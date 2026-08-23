@@ -1,78 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { normalizeJobFeedSettingsInput } from '@/lib/job-feed/helpers';
-import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-import { createClient } from '@/lib/supabase/server';
+import { countriesImpliedByNewCities, normalizeJobFeedSettingsInput } from '@/lib/job-feed/helpers';
+import { JOB_FEED_MIRRORED_ROLE_LIMIT, legacyMarketFromCountries } from '@/lib/job-feed/constants';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { getCurrentUser } from '@/auth/server';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import { getOrSynthesizeCareerProfileAdmin } from '@/lib/job-feed/server';
-import { requireJobFeedAccess } from '@/lib/job-feed/auth';
 import type { JobFeedSettingsInput } from '@/lib/job-feed/types';
+import { getProfile } from '@/db/repos/profiles';
+import { getSettings, upsertSettings, upsertJobPreferences } from '@/db/repos/jobFeed';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
 export const runtime = 'nodejs';
 
-export async function GET(request: NextRequest) {
-  try {
-    const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`job-feed-settings:${ip}`, RATE_LIMITS['job-feed-settings']);
-    if (!allowed) {
-      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
-    }
-
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
-    }
-
-    const access = await requireJobFeedAccess(typedSupabase, user);
-    if (!access.ok) {
-      return NextResponse.json({ error: access.error }, { status: access.status });
-    }
-
-    const { data, error } = await typedSupabase
-      .from('job_feed_settings')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (error) {
-      console.error('[job-feed/settings] GET error:', error.message);
-      return NextResponse.json({ error: 'Failed to load job feed settings.' }, { status: 500 });
-    }
-
-    return NextResponse.json({ settings: data ?? null });
-  } catch (error) {
-    console.error('[job-feed/settings] GET unexpected error:', error);
-    return NextResponse.json({ error: 'Failed to load job feed settings.' }, { status: 500 });
-  }
-}
-
 export async function PUT(request: NextRequest) {
   try {
-    const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`job-feed-settings:${ip}`, RATE_LIMITS['job-feed-settings']);
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
+    const user = await getCurrentUser(request);
+
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
+    const { allowed } = await checkRateLimit(`job-feed-settings:${user.id}`, RATE_LIMITS['job-feed-settings']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const profile = await getProfile(user.id);
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
-    }
-
-    const { data: profile, error: profileError } = await typedSupabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile) {
+    if (!profile) {
       return NextResponse.json({ error: 'Failed to load profile.' }, { status: 500 });
     }
 
@@ -90,11 +50,18 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: normalized.error || 'Invalid settings payload.' }, { status: 400 });
     }
 
-    const { data: existingSettings } = await typedSupabase
-      .from('job_feed_settings')
-      .select('consent_accepted_at')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const existingSettings = await getSettings(user.id);
+
+    // A city named for the first time brings its country with it. Scoped to
+    // new cities so unchecking a country still sticks.
+    const targetCountries = countriesImpliedByNewCities(
+      normalized.data.target_cities,
+      existingSettings?.target_cities ?? [],
+      normalized.data.target_countries,
+    );
+    // The legacy scalar has to follow the list it is derived from, or adding
+    // Toronto would leave the market reading "us".
+    const targetMarket = legacyMarketFromCountries(targetCountries);
 
     const consentAcceptedAt = existingSettings?.consent_accepted_at
       ?? (normalized.data.consent_accepted ? new Date().toISOString() : null);
@@ -113,7 +80,14 @@ export async function PUT(request: NextRequest) {
     // The strategy generator still reads these mirrored fields downstream.
     // profileMirror is the authoritative source for targetRoles — we never
     // fall back to client-supplied roles so drift is impossible.
-    const profileMirror = await loadCareerProfileMirror(user.id);
+    const profileMirror = await loadCareerProfileMirror(user.id, {
+      requestExecutionId: crypto.randomUUID(),
+      clientRequestId: request.headers.get('x-request-id'),
+      userId: user.id,
+      route: '/api/job-feed/settings',
+      feature: 'job_feed',
+      operation: 'career_profile_synthesis',
+    });
 
     if (!profileMirror?.targetRoles?.length) {
       return NextResponse.json(
@@ -136,20 +110,20 @@ export async function PUT(request: NextRequest) {
       ? normalized.data.employment_types
       : (['full_time'] as JobFeedSettingsInput['employment_types']);
 
-    const { data, error } = await typedSupabase
-      .from('job_feed_settings')
-      .upsert({
+    let data;
+    try {
+      data = await upsertSettings(user.id, {
         user_id: user.id,
         enabled: normalized.data.enabled,
         consent_accepted_at: consentAcceptedAt,
         user_timezone: normalized.data.user_timezone,
         // New multi-select columns — primary source of truth for the feed.
-        target_countries: normalized.data.target_countries,
+        target_countries: targetCountries,
         target_cities: normalized.data.target_cities,
         remote_preferences: normalized.data.remote_preferences,
         seniority_targets: seniorityTargets,
         // Legacy scalar columns — kept in sync so older code paths keep working.
-        target_market: normalized.data.target_market,
+        target_market: targetMarket,
         remote_preference: normalized.data.remote_preference,
         seniority_target: seniorityTarget,
         // Shared arrays — AI-mirrored where a profile exists.
@@ -163,14 +137,9 @@ export async function PUT(request: NextRequest) {
         // User-controlled exclusions. Unlike the other AI-mirrored fields this
         // is pure user input (the AI can't know what they want to avoid).
         excluded_terms: normalized.data.excluded_terms,
-      }, {
-        onConflict: 'user_id',
-      })
-      .select('*')
-      .single();
-
-    if (error) {
-      console.error('[job-feed/settings] PUT error:', error.message);
+      });
+    } catch (error) {
+      console.error('[job-feed/settings] PUT error:', error instanceof Error ? error.message : error);
       return NextResponse.json({ error: 'Failed to save job feed settings.' }, { status: 500 });
     }
 
@@ -180,22 +149,18 @@ export async function PUT(request: NextRequest) {
     // Use the AI-mirrored variables (targetRoles, userSkills, seniorityTarget)
     // so the cover letter agent sees the enriched values, not the raw client
     // input which may be empty arrays on first save before the mirror runs.
-    const { error: prefError } = await typedSupabase
-      .from('user_job_preferences')
-      .upsert({
-        user_id: user.id,
+    try {
+      await upsertJobPreferences(user.id, {
         salary_floor: normalized.data.salary_floor,
         remote_preference: normalized.data.remote_preference,
         employment_types: employmentTypes,
         target_roles: targetRoles,
         user_skills: userSkills,
-        target_market: normalized.data.target_market,
+        target_market: targetMarket,
         seniority_target: seniorityTarget,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' });
-
-    if (prefError) {
-      console.error('[job-feed/settings] preferences sync error:', prefError.message);
+      });
+    } catch (prefError) {
+      console.error('[job-feed/settings] preferences sync error:', prefError instanceof Error ? prefError.message : prefError);
       // Non-fatal for the settings flow itself, but surfaced for observability.
     }
 
@@ -221,14 +186,26 @@ interface CareerProfileMirror {
  * path in this flow would rebuild. Returns null only when there's genuinely no
  * CV to synthesize from; the caller then surfaces "profile not ready".
  */
-async function loadCareerProfileMirror(userId: string): Promise<CareerProfileMirror | null> {
-  const profile: CareerProfile | null = await getOrSynthesizeCareerProfileAdmin(userId);
+async function loadCareerProfileMirror(
+  userId: string,
+  generationContext: LlmGenerationContext,
+): Promise<CareerProfileMirror | null> {
+  const profile: CareerProfile | null = await getOrSynthesizeCareerProfileAdmin(userId, generationContext);
   if (!profile) return null;
 
+  // Dedupe case-insensitively, matching the drift check in the overview route.
+  // Deduping by exact case here and by lowercase there made the two lengths
+  // disagree for any profile with the same title in two casings.
+  const seenTitles = new Set<string>();
   const targetRoles = profile.inferredTitles
     .map((title) => title.canonical)
-    .filter((value, index, all) => all.indexOf(value) === index)
-    .slice(0, 6);
+    .filter((value) => {
+      const key = value.trim().toLowerCase();
+      if (!key || seenTitles.has(key)) return false;
+      seenTitles.add(key);
+      return true;
+    })
+    .slice(0, JOB_FEED_MIRRORED_ROLE_LIMIT);
 
   const skillSet = new Set<string>();
   for (const cluster of [...profile.primarySkillClusters, ...profile.secondarySkillClusters]) {

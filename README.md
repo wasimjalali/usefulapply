@@ -1,8 +1,8 @@
-# Karko AI
+# Useful Apply
 
 **The AI job application agent.** Your entire job search in one app. Find roles, check the fit, generate the full application in 90 seconds, and track everything. Every word traces back to your real CV. Nothing invented.
 
-> Karko replaces the seven tools job seekers stitch together: job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, and tracker. One app, one loop.
+> Useful Apply replaces the seven tools job seekers stitch together: job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, and tracker. One app, one loop.
 
 ## Locked Taglines
 
@@ -11,7 +11,7 @@
 | **Job seekers** (homepage, ads, social, swag) | **Your entire job search, in one app.** |
 | **Investors and press** (decks, about page, bios) | **The AI job application agent.** |
 
-Both are locked. Source of truth: [`KARKO_POSITIONING.md`](./KARKO_POSITIONING.md) §1.5. Do not swap without a founder decision. Content framing rules (short-form vs long-form video, platform-specific end-cards) are in §9.5 of the same document.
+Both are locked. Source of truth: [`USEFULAPPLY_POSITIONING.md`](./USEFULAPPLY_POSITIONING.md) §1.5. Do not swap without a founder decision. Content framing rules (short-form vs long-form video, platform-specific end-cards) are in §9.5 of the same document.
 
 ## Features
 
@@ -78,7 +78,7 @@ All templates use Arial body + Georgia headers (ATS-compliant system fonts).
 - **AI:** Claude Sonnet 4.6 via Amazon Bedrock (`@anthropic-ai/bedrock-sdk`) + direct Anthropic API fallback
 - **Auth & DB:** Supabase (Postgres + Auth + Storage)
 - **Payments:** Stripe (subscriptions + add-on credit packs)
-- **Email:** Resend
+- **Email:** Cloudflare Email Service
 - **Analytics:** PostHog (analytics + error tracking + LLM cost tracking)
 - **PDF Parsing:** pdfjs-dist v5 (with binary fallback + AI document understanding)
 - **PDF Export:** jsPDF + html2canvas
@@ -96,7 +96,7 @@ src/
 │   │   ├── regenerate/      # Regenerate individual sections
 │   │   ├── generate-pdf/    # Server-side PDF generation
 │   │   ├── chat/            # Chat endpoint
-│   │   ├── contact/         # Contact form (Resend)
+│   │   ├── contact/         # Contact form (Cloudflare Email Service)
 │   │   └── stripe/          # Checkout, portal, webhook
 │   ├── dashboard/           # Main app dashboard
 │   ├── applications/        # Application tracker page
@@ -142,40 +142,76 @@ src/
 
 ### Environment Variables
 
-Create a `.env.local` file in the project root:
+Copy `.dev.vars.example` to `.dev.vars` and fill in locally. Names only below. Never commit `.dev.vars`. OpenNext uses `NEXTJS_ENV` to pick which Next.js `.env` file to load.
 
 ```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+# OpenNext
+NEXTJS_ENV
 
-# Amazon Bedrock (production)
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-# OR use bearer token auth:
-AWS_BEARER_TOKEN_BEDROCK=
+# Public
+NEXT_PUBLIC_SITE_URL
+NEXT_PUBLIC_APP_URL
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+NEXT_PUBLIC_POSTHOG_KEY
 
-# Anthropic API (dev / fallback)
-ANTHROPIC_API_KEY=
+# Supabase (legacy, still listed until cutover)
+SUPABASE_SERVICE_ROLE_KEY
 
 # Stripe
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-STRIPE_PRICE_ID_PLUS=
-STRIPE_PRICE_ID_MAX=
-STRIPE_PRICE_ID_ADDON_CREDIT_PACK=
+STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET
+STRIPE_PRICE_ID_PLUS
+STRIPE_PRICE_ID_MAX
+STRIPE_PRICE_ID_ADDON_CREDIT_PACK
+STRIPE_PRICE_ID_ADDON_PACK
+STRIPE_PRICE_ID_ADDON_MEDIUM
+STRIPE_PRICE_ID_ADDON_LARGE
 
-# Resend (email)
-RESEND_API_KEY=
+# AI
+AI_PROVIDER
+ANTHROPIC_API_KEY
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+AWS_SESSION_TOKEN
+AWS_BEARER_TOKEN_BEDROCK
+AWS_BEDROCK_ENDPOINT_URL
+AWS_REGION
+DIGITALOCEAN_AGENT_ENDPOINT
+DIGITALOCEAN_ACCESS_KEY
+USE_FALLBACK_MODEL
+USE_PREVIOUS_MODEL
 
-# PostHog (analytics)
-NEXT_PUBLIC_POSTHOG_KEY=
+# Job feed
+SERPAPI_API_KEY
+# Ranking runs on Workers AI through the AI binding in wrangler.jsonc, no key needed.
+# Models: JOB_FEED_RANKING_MODEL and JOB_FEED_RANKING_FALLBACK_MODEL (wrangler vars).
 
-# App URL
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
+# Email: Cloudflare Email Service uses the EMAIL binding in wrangler.jsonc, no key needed.
+
+# Cron
+CRON_SECRET
+
+# Admin dashboard, Cloudflare Access JWT validation
+CLOUDFLARE_ACCESS_ISSUER
+CLOUDFLARE_ACCESS_AUD
+CLOUDFLARE_ACCESS_ADMIN_SUBJECTS
+CLOUDFLARE_ACCESS_ADMIN_EMAILS
+ADMIN_METRICS_HASH_KEY
+# Localhost development only. Never set in production.
+CLOUDFLARE_ACCESS_DEV_BYPASS
+CLOUDFLARE_ACCESS_DEV_BYPASS_KEY
+
+# Job feed debug run. Server-only. Send as header x-job-feed-debug-secret.
+# Unset, the route 404s. Not a NEXT_PUBLIC_ flag: that was inlined into the client.
+JOB_FEED_DEBUG_SECRET
+
+# PostHog (build-time)
+POSTHOG_PERSONAL_API_KEY
+POSTHOG_PROJECT_ID
 ```
+
+See `SETUP.md` for the Cloudflare local loop.
 
 ### Installation
 

@@ -6,13 +6,15 @@ import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
-const SITE_URL = 'https://www.karkoai.com';
+import { BRAND } from '@/lib/brand';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     title: 'ATS-Optimized AI Job Applications',
     description:
-      'KarKo AI generates ATS-optimized CVs with keyword alignment, single-column formatting, and compatibility with Workday, Greenhouse, and Lever.',
+      'Useful Apply generates ATS-optimized CVs with keyword alignment, single-column formatting, and compatibility with Workday, Greenhouse, and Lever.',
     canonical: '/ai-job-application/ats-optimization',
   });
 }
@@ -20,23 +22,23 @@ export async function generateMetadata(): Promise<Metadata> {
 const faqs = [
   {
     q: 'What AI optimizes job applications for ATS systems?',
-    a: "Karko AI optimizes job applications for ATS by mapping job description keywords onto your CV and cover letter, generating ATS-safe single-column formatting, and producing output compatible with Workday, Greenhouse, Lever, SAP SuccessFactors, iCIMS, and Taleo.",
+    a: "Useful Apply optimizes job applications for ATS by mapping job description keywords onto your CV and cover letter, generating ATS-safe single-column formatting, and producing output compatible with Workday, Greenhouse, Lever, SAP SuccessFactors, iCIMS, and Taleo.",
   },
   {
     q: 'What formatting does an ATS-safe CV need?',
-    a: 'Single-column layout, standard section headings (Work Experience, Education, Skills), no tables or text boxes for critical content, consistent date formats, and system fonts like Arial or Georgia. Karko AI applies all of these by default across all CV templates.',
+    a: 'Single-column layout, standard section headings (Work Experience, Education, Skills), no tables or text boxes for critical content, consistent date formats, and system fonts like Arial or Georgia. Useful Apply applies all of these by default across all CV templates.',
   },
   {
     q: 'How does AI match my CV to job description keywords?',
-    a: "Karko AI extracts the top required skills and keywords from the job description, then maps them against your verified CV content, using the job description's exact phrasing where your CV uses equivalent terms. No keywords are added for skills you don't actually have.",
+    a: "Useful Apply extracts the top required skills and keywords from the job description, then maps them against your verified CV content, using the job description's exact phrasing where your CV uses equivalent terms. No keywords are added for skills you don't actually have.",
   },
   {
-    q: 'Which ATS platforms does Karko AI work with?',
+    q: 'Which ATS platforms does Useful Apply work with?',
     a: 'Workday, Greenhouse, Lever, SAP SuccessFactors, iCIMS, and Taleo. The generated documents are designed for clean upload parsing and stable copy-paste into ATS text fields in all of these systems.',
   },
   {
     q: 'What keyword overlap should I aim for?',
-    a: "Industry guidance suggests 60 to 85% keyword overlap between the job description requirements and your CV as a target range for competitive ATS performance. Karko AI's tailoring aims for this range based on your verified skills. It will not fabricate keywords to artificially inflate the score.",
+    a: "Industry guidance suggests 60 to 85% keyword overlap between the job description requirements and your CV as a target range for competitive ATS performance. Useful Apply's tailoring aims for this range based on your verified skills. It will not fabricate keywords to artificially inflate the score.",
   },
 ];
 
@@ -79,11 +81,11 @@ export default function ATSOptimizationPage() {
     '@type': 'Article',
     headline: 'ATS-Optimized Job Application with AI: Keywords, Format & Systems',
     description:
-      'Learn how Karko AI generates ATS-optimized CVs and cover letters. Keyword alignment, single-column formatting, and compatibility with Workday, Greenhouse, Lever, and more.',
-    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+      'Learn how Useful Apply generates ATS-optimized CVs and cover letters. Keyword alignment, single-column formatting, and compatibility with Workday, Greenhouse, Lever, and more.',
+    author: { '@type': 'Organization', name: 'Useful Apply', url: SITE_URL },
     publisher: {
       '@type': 'Organization',
-      name: 'KarKo AI',
+      name: 'Useful Apply',
       url: SITE_URL,
       logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon-512x512.png` },
     },
@@ -146,7 +148,7 @@ export default function ATSOptimizationPage() {
                 An AI tool optimizes job applications for ATS when it maps keywords and skills
                 from the job description onto the CV and cover letter, produces ATS-safe structure
                 and formatting, and prioritizes content by role relevance without creating
-                contradictions with your work history. Karko AI is designed specifically for this,
+                contradictions with your work history. Useful Apply is designed specifically for this,
                 generating documents that pass through ATS parsing before a human reviewer sees them.
               </p>
             </ScrollReveal>
@@ -181,7 +183,7 @@ export default function ATSOptimizationPage() {
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
               Relevance: do the keywords and skills in the CV align with what the job description
-              requires? Both must pass before a human reviewer sees the file. Karko AI generates
+              requires? Both must pass before a human reviewer sees the file. Useful Apply generates
               outputs optimized for both dimensions by default.
             </p>
           </div>
@@ -203,7 +205,7 @@ export default function ATSOptimizationPage() {
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
               Tables and text boxes frequently cause parsing failures where content either
-              disappears entirely or appears in the wrong field. Karko AI uses ATS-safe templates:
+              disappears entirely or appears in the wrong field. Useful Apply uses ATS-safe templates:
               Arial and Georgia system fonts, single-column structure, standard bullet points, and
               consistent date formats across all 6 CV templates.
             </p>
@@ -216,7 +218,7 @@ export default function ATSOptimizationPage() {
             <ScrollReveal>
               <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Keywords</p>
               <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
-                Keyword Matching: How Karko AI Aligns to Your Target Role
+                Keyword Matching: How Useful Apply Aligns to Your Target Role
               </h2>
             </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">
@@ -233,13 +235,13 @@ export default function ATSOptimizationPage() {
           </div>
         </section>
 
-        {/* H2: ATS Systems Karko AI Is Optimized For */}
+        {/* H2: ATS Systems Useful Apply Is Optimized For */}
         <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
           <div className="max-w-5xl mx-auto">
             <ScrollReveal>
               <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">Platforms</p>
               <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
-                ATS Systems Karko AI Is Optimized For
+                ATS Systems Useful Apply Is Optimized For
               </h2>
             </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">

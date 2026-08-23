@@ -5,7 +5,7 @@ paths:
   - "src/**/*.css"
 ---
 
-# Karko Design System (authoritative — overrides any older spec)
+# Useful Apply Design System (authoritative, overrides any older spec)
 
 The product has three visual layers. Every panel, card, and document must pick a role and stick to it.
 
@@ -21,13 +21,13 @@ Rules:
 - **No translucent whites over cream.** `bg-white/85`, `bg-white/90`, `bg-white/95` on a cream canvas create subtle tint shifts the eye can feel but not name. Use solid `bg-cream-50` or solid `bg-white` — decide which role the surface is playing.
 - **Borders on surfaces:** `border-cream-200`. Darker cream borders (`cream-300`, `cream-400`) are for dingy; do not reach for them on new work.
 - **Avoid `cream-300` and `cream-400` on large fills.** They read as aged paper / dingy. Keep them for dividers only.
-- **Scrollbars are navy, not cream.** `navy-400` thumb, `navy-600` on hover, transparent track, 12px wide with a 2px transparent border so the thumb reads as 8px (`globals.css`). A cream thumb on a cream track measures 1.29:1, which is invisible rather than subtle, and users end up grabbing whatever sits next to it. `navy-400` clears the WCAG 3:1 bar for UI components on every light surface we use (~4.1:1 on white and `cream-50`, ~3.9:1 on `cream-100`). Don't move the thumb back into the cream ramp: nothing in it clears 1.5:1. On dark surfaces the ramp has to flip, so scrollable navy panels take `.scrollbar-on-dark` (`navy-200` thumb, `navy-50` on hover) - otherwise hover makes the thumb vanish instead of stand out.
+- **Scrollbars are overlay-style: invisible at rest, white when revealed, never navy and never gold.** The thumb is transparent until the pointer is over the scroller or the scroller is scrolling (`ScrollbarReveal` stamps `data-scrolling`), then soft white `rgba(255,255,255,0.75)` with a faint navy inset hairline so it stays findable on white documents, and solid `#FFFFFF` when the thumb itself is hovered or grabbed. Transparent track, 12px wide with a 2px transparent border so the thumb reads as 8px (`globals.css`). Dark surfaces take `.scrollbar-on-dark`: same behavior, no hairline, `rgba(255,255,255,0.45)` reveal. Firefox has no per-state scrollbar colors, so it keeps an always-visible soft white thin bar.
 
 ### Typography
-- **Headings that anchor the user's eye** → `font-serif` (Georgia via Tailwind `font-serif`, semi-bold): page title `h1`, panel/section `h2`, modal title, wizard title. These are "where am I" moments.
-- **Everything smaller** → default sans (Inter, set in `globals.css` as `--font-sans`): `h3`, body, labels, buttons, chips, form fields. These are scanning-text, not anchoring-text.
-- **Do not apply `font-serif` to chat messages, job cards, tracker rows, form labels, or button text.** It looks Victorian.
-- **`font-semibold` not `font-bold`** on serif headings — bold Georgia reads as AI-slop.
+- **One family everywhere in the app UI: Inter** (self-hosted via `next/font` in `layout.tsx`, wired to `--font-sans` in `globals.css`). Headings, body, labels, buttons, chips, form fields all use it. The old Georgia/Arial split is retired; do NOT reintroduce `font-serif` anywhere in the app or landing.
+- **Hierarchy comes from size and weight, not family.** Page/panel titles: `font-semibold` at the existing size scale. Body and labels: `font-normal` / `font-medium`.
+- **`font-semibold` not `font-bold`** on headings.
+- **Exemptions:** `src/components/cv-templates/**` and the exported PDF/DOCX keep Arial + Georgia (ATS-safe fonts in the applicant's own document). Email templates keep their inline fonts. The brand wordmark keeps Plus Jakarta Sans.
 
 ### Radius scale (3 + 1)
 Pick one role per element. Everything else is deprecated.
@@ -43,7 +43,7 @@ Do NOT use: `rounded-md`, `rounded-xl`, `rounded-3xl`, `rounded-[14px]`, `rounde
 ### CTA treatments (one each — no gradients)
 | CTA | Class | Use |
 |-----|-------|-----|
-| **Primary (Gold)** | `bg-gold-400 hover:bg-gold-500 text-white` | Main action per surface ("Apply with Karko", "Start my daily feed", "Upgrade to Plus") |
+| **Primary (Gold)** | `bg-gold-400 hover:bg-gold-500 text-white` | Main action per surface ("Apply with Useful Apply", "Start my daily feed", "Upgrade to Plus") |
 | **Primary (Navy)** | `bg-navy-600 hover:bg-navy-700 text-white` | Secondary primary ("Sign up", "Save changes", sidebar highlights) |
 
 **Button label colour is always `text-white`** on any solid brand fill, gold or navy. This is a deliberate brand-consistency decision: a screen mixing white-on-navy with dark-on-gold reads as inconsistent. Never use `text-navy-900`, `text-charcoal` or any dark token on `bg-gold-400` / `bg-gold-500`. The same applies to icons inside those buttons.

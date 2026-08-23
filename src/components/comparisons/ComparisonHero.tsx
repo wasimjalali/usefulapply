@@ -26,7 +26,7 @@ export function ComparisonHero({ h1, description, summaryTable, competitorName }
               <thead>
                 <tr className="border-b border-cream-200 bg-cream-50">
                   <th className="px-6 py-4 text-left text-sm font-semibold text-navy-700">Feature</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-navy-700">Karko AI</th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-navy-700">Useful Apply</th>
                   <th className="px-6 py-4 text-center text-sm font-semibold text-navy-700">{competitorName}</th>
                 </tr>
               </thead>
@@ -35,14 +35,14 @@ export function ComparisonHero({ h1, description, summaryTable, competitorName }
                   <tr key={i} className="border-b border-cream-100 last:border-b-0">
                     <td className="px-6 py-4 text-sm text-charcoal font-medium">{row.feature}</td>
                     <td className="px-6 py-4 text-center">
-                      {typeof row.karkoValue === 'boolean' ? (
-                        row.karkoValue ? (
+                      {typeof row.brandValue === 'boolean' ? (
+                        row.brandValue ? (
                           <Check className="w-5 h-5 text-green-600 mx-auto" />
                         ) : (
                           <X className="w-5 h-5 text-warm-gray mx-auto" />
                         )
                       ) : (
-                        <span className="text-sm text-charcoal">{row.karkoValue}</span>
+                        <span className="text-sm text-charcoal">{row.brandValue}</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-center">

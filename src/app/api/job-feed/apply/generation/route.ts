@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { canViewJobFeed } from '@/lib/job-feed/helpers';
 import { captureJobFeedActionRejected } from '@/lib/job-feed/analytics';
-import { createClient } from '@/lib/supabase/server';
-import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { getCurrentUser } from '@/auth/server';
+import { getProfile } from '@/db/repos/profiles';
+import { getGeneration, getLatestGenerationForSession } from '@/db/repos/jobFeed';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
 export const runtime = 'nodejs';
 
@@ -11,12 +13,14 @@ export async function GET(request: NextRequest) {
   let subscriptionTier: string | null = null;
 
   try {
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand all Job Feed columns here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
+      return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
+    }
 
-    if (authError || !user) {
+    const user = await getCurrentUser(request);
+
+    if (!user) {
       captureJobFeedActionRejected({
         route: 'apply/generation',
         action: 'generation_status_read',
@@ -27,27 +31,23 @@ export async function GET(request: NextRequest) {
     }
     userId = user.id;
 
-    const { allowed } = checkRateLimit(`job-feed-apply-gen:${user.id}`, RATE_LIMITS['job-feed-apply-gen']);
+    const { allowed } = await checkRateLimit(`job-feed-apply-gen:${user.id}`, RATE_LIMITS['job-feed-apply-gen']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
     }
 
-    const { data: profile, error: profileError } = await typedSupabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
+    const profile = await getProfile(user.id);
     subscriptionTier = profile?.subscription_tier ?? null;
 
     // Intentionally canViewJobFeed (free + premium): free users reach the
     // credit-gated generation handoff from feed cards. This route only reads the
     // user's own generation context (scoped to userId). Paywall is downstream.
-    if (profileError || !profile || !canViewJobFeed(profile.subscription_tier)) {
+    if (!profile || !canViewJobFeed(profile.subscription_tier)) {
       captureJobFeedActionRejected({
         userId,
         route: 'apply/generation',
         action: 'generation_status_read',
-        reason: profileError ? 'profile_load_failed' : 'plan_not_allowed',
+        reason: !profile ? 'profile_load_failed' : 'plan_not_allowed',
         status: 403,
         subscriptionTier,
       });
@@ -70,10 +70,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'A generation ID or session ID is required.' }, { status: 400 });
     }
 
-    // Client-side sessions use `session-${Date.now()}` until they sync with
-    // Supabase. The DB columns are uuid — querying with a non-uuid value would
-    // throw and produce a 500. Treat pre-sync ids as "no matching row" so the
-    // client gets a clean 404 instead of a scary error in the console.
+    // Client-side sessions use `session-${Date.now()}` until they sync with the
+    // database. Persisted ids are uuids, so a non-uuid value can never match a
+    // row. Treat pre-sync ids as "no matching row" so the client gets a clean
+    // 404 instead of a scary error in the console.
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (generationId && !UUID_RE.test(generationId)) {
       return NextResponse.json({ error: 'Application generation not found.' }, { status: 404 });
@@ -82,20 +82,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Application generation not found.' }, { status: 404 });
     }
 
-    let query = typedSupabase
-      .from('job_feed_application_generations')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false })
-      .limit(1);
-
-    query = generationId
-      ? query.eq('id', generationId)
-      : query.eq('application_session_id', sessionId);
-
-    const { data: generation, error } = await query.maybeSingle();
-    if (error) {
-      console.error('[job-feed/apply/generation] load error:', error.message);
+    let generation;
+    try {
+      generation = generationId
+        ? await getGeneration(user.id, generationId)
+        : await getLatestGenerationForSession(user.id, sessionId);
+    } catch (loadError) {
+      console.error('[job-feed/apply/generation] load error:', loadError instanceof Error ? loadError.message : loadError);
       return NextResponse.json({ error: 'Failed to load application generation.' }, { status: 500 });
     }
 

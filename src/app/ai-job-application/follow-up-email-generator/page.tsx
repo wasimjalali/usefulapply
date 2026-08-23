@@ -6,13 +6,15 @@ import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
-const SITE_URL = 'https://www.karkoai.com';
+import { BRAND } from '@/lib/brand';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     title: 'AI Follow-Up Email Generator for Job Applications',
     description:
-      'Most candidates never follow up. Karko drafts a professional follow-up email for 7 to 10 days after applying, built from your real CV. Try free.',
+      'Most candidates never follow up. Useful Apply drafts a professional follow-up email for 7 to 10 days after applying, built from your real CV. Try free.',
     canonical: '/ai-job-application/follow-up-email-generator',
   });
 }
@@ -32,7 +34,7 @@ const faqs = [
   },
   {
     q: 'How does an AI follow-up email generator work?',
-    a: 'Karko AI generates a follow-up email as part of the full application (CV, cover letter, application email, follow-up email). It references the role, application date, and your top relevant achievement from your Master CV, using professional tone with no filler. You get the follow-up email upfront, so when day 7 to 10 rolls around, you already have it ready to send.',
+    a: 'Useful Apply generates a follow-up email as part of the full application (CV, cover letter, application email, follow-up email). It references the role, application date, and your top relevant achievement from your Master CV, using professional tone with no filler. You get the follow-up email upfront, so when day 7 to 10 rolls around, you already have it ready to send.',
   },
   {
     q: 'How many follow-ups should I send?',
@@ -79,11 +81,11 @@ export default function FollowUpEmailGeneratorPage() {
     '@type': 'Article',
     headline: 'AI Follow-Up Email Generator for Job Applications',
     description:
-      'How Karko AI drafts a professional follow-up email after you apply. Built from your real CV, ready for 7 to 10 days after submission. Get it in 90 seconds.',
-    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+      'How Useful Apply drafts a professional follow-up email after you apply. Built from your real CV, ready for 7 to 10 days after submission. Get it in 90 seconds.',
+    author: { '@type': 'Organization', name: 'Useful Apply', url: SITE_URL },
     publisher: {
       '@type': 'Organization',
-      name: 'KarKo AI',
+      name: 'Useful Apply',
       url: SITE_URL,
       logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon-512x512.png` },
     },
@@ -143,7 +145,7 @@ export default function FollowUpEmailGeneratorPage() {
             </ScrollReveal>
             <ScrollReveal delay={300}>
               <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
-                Most candidates never follow up. The ones who do stand out. Karko drafts a
+                Most candidates never follow up. The ones who do stand out. Useful Apply drafts a
                 professional follow-up email as part of your full application, grounded in your
                 real CV, so when day 7 to 10 rolls around, you already have it ready to send.
               </p>
@@ -297,7 +299,7 @@ export default function FollowUpEmailGeneratorPage() {
               phrase it without sounding pushy.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              <strong>Karko AI generates a professional follow-up email in under 90
+              <strong>Useful Apply generates a professional follow-up email in under 90
               seconds.</strong> It&apos;s part of the 4-document package: CV, cover letter,
               application email, and follow-up email. All tailored to the same job description,
               all consistent in tone and claims.
@@ -385,7 +387,7 @@ export default function FollowUpEmailGeneratorPage() {
               hiring managers to say yes.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              With Karko, you get the follow-up email upfront, drafted from your real CV and
+              With Useful Apply, you get the follow-up email upfront, drafted from your real CV and
               ready for 7 to 10 days after you applied. No procrastination, no blank-page panic.
               Review it, send it when the time is right.
             </p>
@@ -438,7 +440,7 @@ export default function FollowUpEmailGeneratorPage() {
                 Get Your Follow-Up Email in 90 Seconds
               </h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-                Try Karko AI free for your first 2 applications. Get a complete package:
+                Try Useful Apply free for your first 2 applications. Get a complete package:
                 tailored CV, cover letter, application email, and follow-up email. No credit card
                 required.
               </p>
@@ -447,7 +449,7 @@ export default function FollowUpEmailGeneratorPage() {
                   href="/dashboard"
                   className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg inline-flex items-center gap-2"
                 >
-                  Try Karko AI Free
+                  Try Useful Apply Free
                   <ArrowRight className="w-5 h-5" />
                 </Link>
                 <Link

@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 import { pricingFAQs } from '@/lib/marketing/pricing-faqs';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
+import { BRAND } from '@/lib/brand';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
 
 export const metadata: Metadata = buildPageMetadata({
   title: 'Pricing: AI Job Application Plans from $19.99/month',

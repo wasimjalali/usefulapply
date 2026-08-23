@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { canAccessJobFeed, canViewJobFeed } from '@/lib/job-feed/helpers';
 import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
 import { listJobFeedInboxPageAdmin } from '@/lib/job-feed/server';
-import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-import { createClient } from '@/lib/supabase/server';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { getCurrentUser } from '@/auth/server';
+import { getProfile } from '@/db/repos/profiles';
 
 export const runtime = 'nodejs';
 
@@ -11,28 +12,25 @@ const MAX_PAGE_LIMIT = 50;
 
 export async function GET(request: NextRequest) {
   try {
-    const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`job-feed-inbox:${ip}`, RATE_LIMITS['job-feed-inbox']);
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
+    const user = await getCurrentUser(request);
+
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
+    const { allowed } = await checkRateLimit(`job-feed-inbox:${user.id}`, RATE_LIMITS['job-feed-inbox']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet cover all tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const profile = await getProfile(user.id);
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
-    }
-
-    const { data: profile, error: profileError } = await typedSupabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile || !canViewJobFeed(profile.subscription_tier)) {
+    if (!profile || !canViewJobFeed(profile.subscription_tier)) {
       return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 

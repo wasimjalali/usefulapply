@@ -28,6 +28,7 @@ import type {
   JobFeedIngestionFailure,
   JobFeedIngestionResult,
   JobFeedJobPreview,
+  JobFeedQueryProgress,
   JobFeedSearchPlanItem,
 } from '@/lib/job-feed/types';
 import type {
@@ -37,6 +38,7 @@ import type {
   Json,
   UpdateTables,
 } from '@/lib/supabase/types';
+import { getRun, updateRun } from '@/db/repos/jobFeed';
 
 interface ObservedNormalizedJob {
   draft: NormalizedSerpApiJob;
@@ -200,8 +202,9 @@ function inferCountryForCity(city: string): string | null {
  * `maxQueries` entries in the strategy's natural priority order, while
  * guaranteeing every selected query's `fallbackTo` is also in the plan when
  * possible (so a zero-result long-tail can be retried without an extra
- * SerpAPI call beyond the daily budget — fallback retries cost at most
- * +1 SerpAPI call per run, gated by `JOB_FEED_FALLBACK_BUDGET`).
+ * SerpAPI call beyond the daily budget). A retry that does need its own call
+ * comes out of the leftover budget the main plan did not spend, never on top
+ * of it.
  */
 export function buildJobFeedSearchPlanFromStrategy(
   strategy: SearchStrategy,
@@ -308,14 +311,42 @@ async function applyDatePostedFiltersToPlan(
   }
 }
 
-// Maximum out-of-plan fallback SerpAPI calls per run. Keeps the cost bounded
-// when long-tail queries return zero results AND the strategy's fallbackTo
-// pointed to a query that wasn't in the main plan slice.
+// Per-pass ceilings for the two out-of-plan passes. Both draw from the SAME
+// remaining-call budget (daily budget minus the main plan), so a run can never
+// spend more SerpAPI calls than its tier's `maxDailyQueries`. Each call is real
+// money; see JOB_FEED_TIER_LIMITS in constants.ts.
+function asMetadataRecord(metadata: Json): Record<string, Json> {
+  if (metadata && typeof metadata === 'object' && !Array.isArray(metadata)) {
+    return { ...(metadata as Record<string, Json>) };
+  }
+  return {};
+}
+
+async function writeQueryProgress(
+  userId: string,
+  runId: string,
+  progress: JobFeedQueryProgress[],
+  writeChain: { current: Promise<void> },
+): Promise<void> {
+  const snapshot: JobFeedQueryProgress[] = progress.map((item) => ({ ...item }));
+  writeChain.current = writeChain.current.then(async () => {
+    try {
+      const run = await getRun(userId, runId);
+      if (!run) return;
+      await updateRun(userId, runId, {
+        metadata: { ...asMetadataRecord(run.metadata), progress: snapshot as unknown as Json },
+      });
+    } catch (error) {
+      console.error('[ingestion] progress write failed:', error);
+    }
+  });
+  await writeChain.current;
+}
+
 const JOB_FEED_FALLBACK_BUDGET = 1;
 
 // Maximum opportunistic page-2 fetches per run. Triggered when a main-pass
 // query returned a thin result set AND SerpAPI handed back a next_page_token.
-// Capped so worst-case cost is +50% over the daily budget, not +100%.
 const JOB_FEED_PAGINATION_BUDGET = 2;
 // Threshold below which a main-pass result counts as "thin" and qualifies for
 // an opportunistic page-2 retry. SerpAPI typically returns ~10 jobs per page,
@@ -327,6 +358,11 @@ export async function ingestJobFeedRunJobs(params: {
   userId: string;
   settings: JobFeedSettings;
   maxQueries?: number;
+  /**
+   * How many of `maxQueries` the main plan may spend. Defaults to the whole
+   * budget, which is the old behaviour and leaves the extra passes unreachable.
+   */
+  maxMainQueries?: number;
   maxRawJobs?: number;
   /**
    * AI-generated search strategy. When provided, queries come from the
@@ -336,13 +372,17 @@ export async function ingestJobFeedRunJobs(params: {
    */
   strategy?: SearchStrategy | null;
 }): Promise<JobFeedIngestionResult> {
-  const { runId, userId, settings, maxQueries, maxRawJobs = JOB_FEED_MAX_RAW_JOBS_PER_RUN, strategy = null } = params;
+  const {
+    runId, userId, settings, maxQueries, maxMainQueries,
+    maxRawJobs = JOB_FEED_MAX_RAW_JOBS_PER_RUN, strategy = null,
+  } = params;
+  const planQueryCap = maxMainQueries ?? maxQueries;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the new tables here.
   const admin = createAdminClient() as any;
 
   const searchPlan = strategy
-    ? buildJobFeedSearchPlanFromStrategy(strategy, settings, maxQueries)
-    : buildJobFeedSearchPlan(settings, maxQueries);
+    ? buildJobFeedSearchPlanFromStrategy(strategy, settings, planQueryCap)
+    : buildJobFeedSearchPlan(settings, planQueryCap);
 
   // Apply the cached "Past week" date_posted filter to every plan item in
   // a market where filtering is safe. First-run users for any country see
@@ -350,6 +390,22 @@ export async function ingestJobFeedRunJobs(params: {
   // cache for subsequent runs. Fallback retries explicitly skip filtering
   // (set in their planItem construction).
   await applyDatePostedFiltersToPlan(admin, searchPlan);
+
+  // The plan length before the fallback pass appends its retries. Both later
+  // passes iterate the main plan only, and both draw from one shared pool of
+  // leftover calls so the tier's daily SerpAPI budget is a hard ceiling.
+  const mainPlanLength = searchPlan.length;
+  const dailyCallBudget = maxQueries ?? JOB_FEED_MAX_DAILY_QUERIES;
+  let extraCallsRemaining = Math.max(0, dailyCallBudget - mainPlanLength);
+
+  const progress: JobFeedQueryProgress[] = searchPlan.map((item) => ({
+    query: item.query,
+    status: 'running',
+    found: 0,
+  }));
+  const progressWrites: { current: Promise<void> } = { current: Promise.resolve() };
+  const persistProgress = () => writeQueryProgress(userId, runId, progress, progressWrites);
+  await persistProgress();
 
   const rawFetchIds: string[] = [];
   const observedJobs: ObservedNormalizedJob[] = [];
@@ -374,13 +430,22 @@ export async function ingestJobFeedRunJobs(params: {
     ? Math.max(1, Math.ceil(maxRawJobs / searchPlan.length))
     : maxRawJobs;
   const mainPassResults = await Promise.allSettled(
-    searchPlan.map((planItem) => runOneSerpApiFetch({
-      admin,
-      runId,
-      userId,
-      planItem,
-      remainingRawCapacity: perCallCap,
-    })),
+    searchPlan.map(async (planItem, index) => {
+      const result = await runOneSerpApiFetch({
+        admin,
+        runId,
+        userId,
+        planItem,
+        remainingRawCapacity: perCallCap,
+      });
+      const slot = progress[index];
+      if (slot) {
+        slot.status = result.failedFetch ? 'failed' : 'done';
+        slot.found = result.observedJobs.length;
+      }
+      await persistProgress();
+      return result;
+    }),
   );
 
   // Per-plan-index next_page_token handed back by SerpAPI on the main pass.
@@ -398,6 +463,8 @@ export async function ingestJobFeedRunJobs(params: {
       const planItem = searchPlan[i];
       console.error('[ingestion] runOneSerpApiFetch threw:', message);
       failedFetches.push({ query: planItem.query, country: planItem.country, error: message });
+      const slot = progress[i];
+      if (slot) slot.status = 'failed';
       continue;
     }
 
@@ -409,17 +476,18 @@ export async function ingestJobFeedRunJobs(params: {
     mainPassJobCounts[i] = fetchResult.observedJobs.length;
     mainPassNextPageTokens[i] = fetchResult.nextPageToken;
   }
+  await persistProgress();
 
   // ---- Pagination pass ----
   // Opportunistic page-2 retry: when a main-pass query returned a thin
   // result set AND SerpAPI handed back a next_page_token, fire one extra
-  // call to capture the second page. Bounded by JOB_FEED_PAGINATION_BUDGET
-  // and the rawJobs cap, so worst-case cost is +PAGINATION_BUDGET extra
-  // SerpAPI calls per run.
+  // call to capture the second page. Bounded by the shared leftover-call pool,
+  // the per-pass ceiling and the rawJobs cap, so it can only ever use calls the
+  // main plan did not spend.
   if (rawJobsFetched < maxRawJobs) {
-    let paginationBudget = JOB_FEED_PAGINATION_BUDGET;
+    let paginationBudget = Math.min(JOB_FEED_PAGINATION_BUDGET, extraCallsRemaining);
 
-    for (let i = 0; i < searchPlan.length && paginationBudget > 0; i += 1) {
+    for (let i = 0; i < mainPlanLength && paginationBudget > 0; i += 1) {
       const planItem = searchPlan[i];
       const nextToken = mainPassNextPageTokens[i];
       const mainCount = mainPassJobCounts[i];
@@ -443,6 +511,13 @@ export async function ingestJobFeedRunJobs(params: {
       for (const observed of pageTwoResult.observedJobs) observedJobs.push(observed);
       rawJobsFetched += pageTwoResult.observedJobs.length;
       paginationBudget -= 1;
+      extraCallsRemaining -= 1;
+      const slot = progress[i];
+      if (slot) {
+        slot.found += pageTwoResult.observedJobs.length;
+        if (pageTwoResult.failedFetch && slot.found === 0) slot.status = 'failed';
+      }
+      await persistProgress();
 
       if (rawJobsFetched >= maxRawJobs) break;
     }
@@ -451,13 +526,13 @@ export async function ingestJobFeedRunJobs(params: {
   // ---- Fallback pass ----
   // Only when a SearchStrategy is in play. We only retry long-tail / localized
   // entries whose main-pass call returned zero observations AND whose
-  // fallbackTo points into the strategy. Each retry consumes one extra
-  // SerpAPI call beyond `maxQueries` (capped by JOB_FEED_FALLBACK_BUDGET).
+  // fallbackTo points into the strategy. Retries come out of the same shared
+  // leftover-call pool the pagination pass drew from, never out of new budget.
   if (strategy && rawJobsFetched < maxRawJobs) {
-    let fallbacksRemaining = JOB_FEED_FALLBACK_BUDGET;
+    let fallbacksRemaining = Math.min(JOB_FEED_FALLBACK_BUDGET, extraCallsRemaining);
     const alreadyExecutedKeys = new Set(searchPlan.map((p) => `${p.country}::${p.query.toLowerCase()}`));
 
-    for (let i = 0; i < searchPlan.length && fallbacksRemaining > 0; i += 1) {
+    for (let i = 0; i < mainPlanLength && fallbacksRemaining > 0; i += 1) {
       const planItem = searchPlan[i];
       if (planItem.queryType === 'short_tail') continue;
       if (mainPassJobCounts[i] !== 0) continue;
@@ -503,9 +578,61 @@ export async function ingestJobFeedRunJobs(params: {
       rawJobsFetched += fetchResult.observedJobs.length;
       alreadyExecutedKeys.add(fallbackKey);
       fallbacksRemaining -= 1;
+      extraCallsRemaining -= 1;
       searchPlan.push(fallbackPlanItem); // make the fallback visible in diagnostics
+      progress.push({
+        query: fallbackPlanItem.query,
+        status: fetchResult.failedFetch ? 'failed' : 'done',
+        found: fetchResult.observedJobs.length,
+      });
+      await persistProgress();
 
       if (rawJobsFetched >= maxRawJobs) break;
+    }
+  }
+
+  // ---- Unfiltered retry ----
+  // Last resort, and the only pass a Free user can actually reach. The
+  // fallback above needs a strategy entry with `fallbackTo` set, and measured
+  // across every stored strategy the top query is always short_tail with
+  // `fallbackTo: null`, so a one-query plan could never be rescued by it.
+  //
+  // This one asks a different question: the whole run came back empty, so was
+  // it the "Past week" filter rather than the query? Re-running the same query
+  // unfiltered is cheap to reason about and needs nothing from the model. It
+  // fires only on a completely empty run, so a normal day never pays for it,
+  // and only where a filter was actually applied, because repeating an
+  // unfiltered call that already returned nothing would just burn the call.
+  if (rawJobsFetched === 0 && extraCallsRemaining > 0) {
+    const filtered = searchPlan.find(
+      (item) => !item.isFallbackRetry && (item.filterTokens?.length ?? 0) > 0,
+    );
+    if (filtered) {
+      const retryPlanItem: JobFeedSearchPlanItem = {
+        ...filtered,
+        isFallbackRetry: true,
+        fallbackToIndex: null,
+        filterTokens: [],
+      };
+      const fetchResult = await runOneSerpApiFetch({
+        admin,
+        runId,
+        userId,
+        planItem: retryPlanItem,
+        remainingRawCapacity: Math.max(0, maxRawJobs - rawJobsFetched),
+      });
+      rawFetchIds.push(fetchResult.rawFetchId);
+      if (fetchResult.failedFetch) failedFetches.push(fetchResult.failedFetch);
+      for (const observed of fetchResult.observedJobs) observedJobs.push(observed);
+      rawJobsFetched += fetchResult.observedJobs.length;
+      extraCallsRemaining -= 1;
+      searchPlan.push(retryPlanItem); // make the retry visible in diagnostics
+      progress.push({
+        query: retryPlanItem.query,
+        status: fetchResult.failedFetch ? 'failed' : 'done',
+        found: fetchResult.observedJobs.length,
+      });
+      await persistProgress();
     }
   }
 
@@ -523,6 +650,7 @@ export async function ingestJobFeedRunJobs(params: {
     duplicateCount: Math.max(0, observedJobs.length - aggregatedJobs.size),
     failedFetches,
     previewJobs: sortedCanonicalJobs.slice(0, 5).map(toJobPreview),
+    progress: progress.map((item) => ({ ...item })),
   };
 }
 
@@ -655,9 +783,7 @@ async function runOneSerpApiFetch(params: {
     const errorPayload = toErrorPayload(error);
 
     if (error instanceof SerpApiHttpError) {
-      // Strip api_key=… so it never lands in logs even if SerpAPI ever
-      // echoes the request URL inside an error body.
-      const safeBody = error.bodyText.replace(/api_key=[^&"\s]+/gi, 'api_key=REDACTED').slice(0, 500);
+      const safeBody = redactSerpApiKey(error.bodyText).slice(0, 500);
       console.error(
         `[ingestion] SerpAPI ${error.status} for q="${planItem.query}" gl=${planItem.country}: ${safeBody}`,
       );
@@ -706,16 +832,8 @@ async function insertRawFetch(
   admin: any,
   insert: InsertTables<'job_feed_raw_fetches'>
 ) {
-  const { data, error } = await admin
-    .from('job_feed_raw_fetches')
-    .insert(insert)
-    .select('*')
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to persist raw job feed fetch: ${error.message}`);
-  }
-
+  const { insertRawFetch } = await import('@/db/repos/jobFeed');
+  const data = await insertRawFetch(insert.user_id, insert);
   return data as {
     id: string;
     fetched_at: string;
@@ -732,14 +850,8 @@ async function upsertCanonicalJobs(
     return [];
   }
 
-  const { data: existingRows, error: existingRowsError } = await admin
-    .from('job_feed_canonical_jobs')
-    .select('*')
-    .in('canonical_key', canonicalKeys);
-
-  if (existingRowsError) {
-    throw new Error(`Failed to load canonical jobs for dedupe: ${existingRowsError.message}`);
-  }
+  const { getCanonicalJobsByKeys, updateCanonicalJob, insertCanonicalJob } = await import('@/db/repos/admin');
+  const existingRows = await getCanonicalJobsByKeys(canonicalKeys);
 
   const existingByKey = new Map<string, JobFeedCanonicalJob>(
     ((existingRows ?? []) as JobFeedCanonicalJob[]).map((row) => [row.canonical_key, row])
@@ -752,33 +864,14 @@ async function upsertCanonicalJobs(
 
     if (existing) {
       const updates = buildCanonicalJobUpdate(existing, aggregated);
-      const { data, error } = await admin
-        .from('job_feed_canonical_jobs')
-        .update(updates)
-        .eq('id', existing.id)
-        .select('*')
-        .single();
-
-      if (error) {
-        throw new Error(`Failed to update canonical job: ${error.message}`);
-      }
-
-      persistedJobs.push(data as JobFeedCanonicalJob);
+      const data = await updateCanonicalJob(existing.id, updates);
+      persistedJobs.push(data);
       continue;
     }
 
     const insert = buildCanonicalJobInsert(aggregated);
-    const { data, error } = await admin
-      .from('job_feed_canonical_jobs')
-      .insert(insert)
-      .select('*')
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to insert canonical job: ${error.message}`);
-    }
-
-    persistedJobs.push(data as JobFeedCanonicalJob);
+    const data = await insertCanonicalJob(insert);
+    persistedJobs.push(data);
   }
 
   return persistedJobs;
@@ -1043,11 +1136,18 @@ function getFetchErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unknown SerpApi fetch failure.';
 }
 
+/** Strip api_key=… so the key never lands in a log or a stored payload, even
+ *  if SerpAPI echoes the request URL inside an error body. */
+function redactSerpApiKey(value: string): string {
+  return value.replace(/api_key=[^&"\s]+/gi, 'api_key=REDACTED');
+}
+
 function toErrorPayload(error: unknown): Json {
   if (error instanceof SerpApiHttpError) {
+    const safeBody = redactSerpApiKey(error.bodyText);
     return {
       status: error.status,
-      body: tryParseJson(error.bodyText) ?? error.bodyText,
+      body: tryParseJson(safeBody) ?? safeBody,
     };
   }
 

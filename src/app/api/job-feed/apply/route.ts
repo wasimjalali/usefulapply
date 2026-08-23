@@ -6,14 +6,18 @@ import {
   createJobFeedApplicationSessionAdmin,
   getJobFeedApplicationSessionAdmin,
   getJobFeedFeedbackAdmin,
+  canReuseBlockedFeedbackSession,
+  isJobFeedbackBlocked,
   recordJobFeedFeedbackAdmin,
   toJobFeedFeedbackState,
   transitionJobFeedApplicationGenerationAdmin,
 } from '@/lib/job-feed/server';
 import { captureJobFeedActionRejected, captureJobFeedEvent } from '@/lib/job-feed/analytics';
-import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getPostHogServer } from '@/lib/posthog-server';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/auth/server';
+import { getProfile } from '@/db/repos/profiles';
+import { checkCreditBalance } from '@/db/repos/credits';
 
 export const runtime = 'nodejs';
 
@@ -24,24 +28,20 @@ export async function POST(request: NextRequest) {
   let subscriptionTier: string | null = null;
 
   try {
-    const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`job-feed-apply:${ip}`, RATE_LIMITS['job-feed-apply']);
-    if (!allowed) {
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
       captureJobFeedActionRejected({
         route: 'apply',
         action: 'apply_started',
-        reason: 'rate_limited',
+        reason: 'rate_limited_ip',
         status: 429,
       });
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand all of the newly added tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       captureJobFeedActionRejected({
         route: 'apply',
         action: 'apply_started',
@@ -52,23 +52,31 @@ export async function POST(request: NextRequest) {
     }
     userId = user.id;
 
-    const { data: profile, error: profileError } = await typedSupabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
+    const { allowed } = await checkRateLimit(`job-feed-apply:${user.id}`, RATE_LIMITS['job-feed-apply']);
+    if (!allowed) {
+      captureJobFeedActionRejected({
+        userId,
+        route: 'apply',
+        action: 'apply_started',
+        reason: 'rate_limited',
+        status: 429,
+      });
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
+    const profile = await getProfile(user.id);
     subscriptionTier = profile?.subscription_tier ?? null;
 
     // Intentionally canViewJobFeed (free + premium), NOT canAccessJobFeed. This
     // is a handoff that only creates a session + generation intent; it charges no
     // credits and exposes nothing premium-exclusive. The paywall is enforced
     // downstream in the agent flow. canViewJobFeed still denies unknown tiers.
-    if (profileError || !profile || !canViewJobFeed(profile.subscription_tier)) {
+    if (!profile || !canViewJobFeed(profile.subscription_tier)) {
       captureJobFeedActionRejected({
         userId,
         route: 'apply',
         action: 'apply_started',
-        reason: profileError ? 'profile_load_failed' : 'plan_not_allowed',
+        reason: !profile ? 'profile_load_failed' : 'plan_not_allowed',
         status: 403,
         subscriptionTier,
       });
@@ -78,6 +86,22 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({} as Record<string, unknown>));
     jobId = typeof body?.jobId === 'string' ? body.jobId.trim() : '';
     runId = typeof body?.runId === 'string' ? body.runId.trim() : '';
+    // Absent means the fit check, which is what an older tab sends and the
+    // cheaper of the two. A value we do not know is a client bug, not a
+    // default.
+    const rawMode = body?.mode;
+    if (rawMode !== undefined && rawMode !== 'analyze' && rawMode !== 'apply') {
+      captureJobFeedActionRejected({
+        userId,
+        route: 'apply',
+        action: 'apply_started',
+        reason: 'invalid_mode',
+        status: 400,
+        subscriptionTier,
+      });
+      return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
+    }
+    const creditAction = rawMode === 'apply' ? 'FULL_APPLICATION' : 'FIT_ANALYSIS';
 
     if (!jobId || jobId.length > 100 || runId.length > 100) {
       captureJobFeedActionRejected({
@@ -113,6 +137,53 @@ export async function POST(request: NextRequest) {
     const validatedRunId = rankedItem.run_id;
 
     const existingFeedback = await getJobFeedFeedbackAdmin(user.id, jobId);
+    // Check the terminal state before the first write. recordJobFeedFeedbackAdmin
+    // throws for a blocked row further down, and by then an empty session and a
+    // generation intent are already in the sidebar. A stale client (dismiss,
+    // then Check fit from the still-open detail) hits exactly this.
+    if (
+      existingFeedback
+      && isJobFeedbackBlocked(existingFeedback)
+      && !canReuseBlockedFeedbackSession(existingFeedback)
+    ) {
+      captureJobFeedActionRejected({
+        userId,
+        route: 'apply',
+        action: 'apply_started',
+        reason: 'feedback_terminal_state',
+        jobId,
+        runId: validatedRunId,
+        status: 409,
+        subscriptionTier,
+      });
+      return NextResponse.json({ error: 'This role has already moved on.' }, { status: 409 });
+    }
+
+    // A finished kit reopens through this route and charges nothing, so only
+    // a request that will start a generation is priced. Everything else fails
+    // closed: no balance, no rows.
+    if (existingFeedback?.generation_status !== 'succeeded') {
+      const balance = await checkCreditBalance(user.id, creditAction);
+      if (!balance.hasEnough) {
+        captureJobFeedActionRejected({
+          userId,
+          route: 'apply',
+          action: 'apply_started',
+          reason: 'insufficient_credits',
+          jobId,
+          runId: validatedRunId,
+          status: 402,
+          subscriptionTier,
+        });
+        return NextResponse.json({
+          error: 'Not enough credits.',
+          code: 'INSUFFICIENT_CREDITS',
+          required: balance.required,
+          available: balance.available,
+        }, { status: 402 });
+      }
+    }
+
     let session = existingFeedback?.application_session_id
       ? await getJobFeedApplicationSessionAdmin({
           userId: user.id,

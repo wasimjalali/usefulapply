@@ -4,7 +4,9 @@
  * Primary: Claude Sonnet 4.6 | Fallback: Claude Haiku 4.5 (toggle via USE_FALLBACK_MODEL env var)
  */
 
-export type ModelProvider = 'anthropic' | 'bedrock' | 'digitalocean';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
+
+export type ModelProvider = 'anthropic' | 'bedrock' | 'digitalocean' | 'workers-ai';
 
 export type TaskType =
   // Extraction & analysis
@@ -30,6 +32,8 @@ export interface ModelConfig {
 
 export interface ModelResponse {
   content: string;
+  /** Tool calls the model asked for (Workers AI function calling only). */
+  toolCalls?: Array<{ id: string; name: string; arguments: Record<string, unknown> }>;
   usage: {
     inputTokens: number;
     outputTokens: number;
@@ -39,6 +43,7 @@ export interface ModelResponse {
   model: string;
   provider: ModelProvider;
   latencyMs: number;
+  generationId: string;
 }
 
 export interface ConversationMessage {
@@ -62,6 +67,7 @@ export interface ModelCallOptions {
   maxTokens?: number;
   jsonMode?: boolean;
   conversationHistory?: ConversationMessage[];
+  generationContext?: LlmGenerationContext;
 }
 
 // Model configurations - All tasks use Claude Sonnet 4.6 (model ID resolved at runtime in anthropic.ts)

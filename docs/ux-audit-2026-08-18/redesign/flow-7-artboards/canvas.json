@@ -1,0 +1,11 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "M1 · Landing (usefulapply.com)", "x": 0, "y": 0, "w": 1440, "h": 4432 },
+    { "file": "Header.dc.html", "title": "M2 · Header states", "x": 1560, "y": 0, "w": 1440, "h": 236 }
+  ],
+  "annotations": [
+    { "id": "intro", "x": 0, "y": -300, "w": 960, "text": "Flow 7, the marketing site. Locked 19 Aug 2026.\n\nOne landing, about 4,400 px instead of 9,200. Hero on the current aurora background with one gold Try it free into the guided line and the kit screen as proof. Three product moments from the new screens (fit result, ATS what changed, daily feed). A two-line founder note. The plan cards are the same three as the in-app settings modal, one gold action, with the Compare all plans link to /pricing. From there down the page is unchanged: the navy final band and the footer stay as they are today. /pricing keeps its layout (copy refresh only). /features and /how-it-works are gone, their content is the three moments. Dropped: ATS logo bar, scroll-stack, time-savings calculator. The demo video returns under the hero shot once it is re-recorded after the build. Option B (drop-zone hero) and the pricing-page draft are in the version history." },
+    { "id": "m2", "x": 1560, "y": -130, "w": 640, "text": "M2 Header: wordmark, Pricing, Log in, gold Try it free. Signed in: Log in and Try it free become Open app (F10). Blog, About and Contact live in the footer." }
+  ],
+  "launch": { "view": "canvas" }
+}

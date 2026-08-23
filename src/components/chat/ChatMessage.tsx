@@ -17,40 +17,9 @@ import {
   ClipboardList,
 } from 'lucide-react';
 
-interface ScreeningAnswer {
-  question: string;
-  answer: string;
-  raw: string;
-}
-
-function parseScreeningAnswers(content: string): ScreeningAnswer[] | null {
-  if (!content.includes('---ANSWER_START---')) return null;
-
-  const blocks = content.split('---ANSWER_START---').filter(Boolean);
-  const answers: ScreeningAnswer[] = [];
-
-  for (const block of blocks) {
-    const cleaned = block.split('---ANSWER_END---')[0]?.trim();
-    if (!cleaned) continue;
-
-    // Extract question from **Q: ...** line
-    const questionMatch = cleaned.match(/\*\*Q:\s*(.+?)\*\*/);
-    const question = questionMatch ? questionMatch[1].trim() : '';
-
-    // Answer is everything after the Q line
-    const answerStart = cleaned.indexOf('**\n');
-    const answer = answerStart !== -1
-      ? cleaned.substring(answerStart + 3).trim()
-      : cleaned.replace(/\*\*Q:.*?\*\*/, '').trim();
-
-    if (answer) {
-      answers.push({ question, answer, raw: cleaned });
-    }
-  }
-
-  return answers.length > 0 ? answers : null;
-}
-import { KarkoIcon } from '../KarkoLogo';
+import { BrandIcon } from '../BrandLogo';
+import { NamedStages } from '@/components/shell/NamedStages';
+import { parseScreeningAnswers } from '@/lib/screening-answers';
 
 export interface ChatAction {
   label: string;
@@ -72,6 +41,9 @@ interface ChatMessageProps {
   onFeedback: (messageId: string, content: string, type: 'positive' | 'negative') => void;
   feedback?: 'positive' | 'negative';
   collapseLength?: number;
+  layout?: 'classic' | 'spine';
+  /** True when this application's Answers tab holds the screening answers. */
+  answersInDoc?: boolean;
 }
 
 export function ChatMessage({ 
@@ -80,6 +52,8 @@ export function ChatMessage({
   onFeedback,
   feedback,
   collapseLength = 300,
+  layout = 'classic',
+  answersInDoc = false,
 }: ChatMessageProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -140,8 +114,10 @@ export function ChatMessage({
   }
 
   const isLongMessage = message.role === 'user' && message.content.length > collapseLength;
-  const actionItems = (message.actions || []).filter(a => a.action !== 'none');
+  const actionItems = (message.actions || []).filter(a => a.action !== 'none' && a.action !== 'stage-done');
   const hintAction = message.actions?.find(a => a.action === 'none');
+  // A finished named stage travels with the message so it survives reloads.
+  const stageDone = message.actions?.find(a => a.action === 'stage-done');
   const isFitAnalysisMessage = message.role === 'assistant'
     && /\*\*(Strong Fit|Good Fit|Fair Fit|Weak Fit)\*\*/.test(message.content);
   const isCompletionMessage = message.role === 'assistant'
@@ -152,11 +128,41 @@ export function ChatMessage({
     isFitAnalysisMessage ||
     isCompletionMessage ||
     actionItems.length > 0;
+  const isSpine = layout === 'spine';
+  // In the spine the answers live in the Answers tab; the chat keeps one line.
+  // Older applications (answers only in the chat) keep the full blocks.
+  const compactScreening = isSpine && !!screeningAnswers && answersInDoc;
   const surfaceClassName = message.role === 'user'
-    ? 'rounded-2xl border border-cream-200 bg-cream-100 px-4 py-3 shadow-sm'
+    ? isSpine
+      ? 'rounded-2xl rounded-br-sm border border-cream-200 bg-white px-3.5 py-3 shadow-sm'
+      : 'rounded-2xl border border-cream-200 bg-cream-100 px-4 py-3 shadow-sm'
     : useElevatedSurface
       ? 'rounded-2xl border border-cream-200 bg-white px-4 py-3 shadow-sm'
       : 'px-1 py-1.5';
+
+  if (isSpine && message.role === 'user') {
+    return (
+      <div className="group/msg flex justify-end">
+        <div className={`max-w-[86%] ${surfaceClassName}`}>
+          {isLongMessage ? (
+            <div className="relative">
+              <div className={`text-sm text-charcoal overflow-hidden ${isExpanded ? '' : 'max-h-24'}`}>
+                <MarkdownText content={message.content} className="text-sm text-charcoal" />
+              </div>
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="mt-2 text-xs font-medium text-navy-600 cursor-pointer"
+              >
+                {isExpanded ? 'Show less' : 'Show more'}
+              </button>
+            </div>
+          ) : (
+            <MarkdownText content={message.content} className="text-sm text-charcoal" />
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="group/msg flex gap-3">
@@ -166,14 +172,22 @@ export function ChatMessage({
         </div>
       ) : (
         <div className="flex-shrink-0 h-fit">
-          <KarkoIcon size="xs" theme="light" />
+          <BrandIcon size="xs" theme="light" />
         </div>
       )}
 
       <div className="flex-1 min-w-0">
-        <div className={`relative ${surfaceClassName}`}>
-          {/* Screening answers — per-answer copy blocks */}
-          {screeningAnswers ? (
+        {stageDone && (
+          <div className="mb-3 rounded-2xl border border-cream-200 bg-white p-3 shadow-sm">
+            <NamedStages stages={[{ title: stageDone.label, state: 'done' }]} />
+          </div>
+        )}
+        <div className={`relative ${compactScreening ? 'px-1 py-1.5' : surfaceClassName}`}>
+          {compactScreening ? (
+            <p className="text-sm text-charcoal">
+              Your answer&apos;s on the right. Copy it from there, or tell me to make it shorter or more formal.
+            </p>
+          ) : screeningAnswers ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -253,20 +267,16 @@ export function ChatMessage({
           {actionItems.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
               {actionItems.map((action, index) => {
-                const isPrimaryAction =
-                  action.action === 'generate-full-application' ||
-                  action.action === 'screening-questions' ||
-                  action.action === 'navigate-pricing' ||
-                  (actionItems.length === 1 && action.action !== 'start-new-application');
+                const isPrimaryAction = index === 0 && action.action !== 'start-new-application';
 
                 return (
                   <button
                     key={index}
                     onClick={() => onAction(action.action)}
-                    className={`flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-all cursor-pointer ${
+                    className={`flex items-center gap-2 rounded-full border px-[18px] py-2.5 text-sm font-semibold transition-colors duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/50 ${
                       isPrimaryAction
                         ? 'border-gold-400 bg-gold-400 text-white shadow-sm hover:bg-gold-500 hover:border-gold-500'
-                        : 'border-cream-200 bg-white text-charcoal hover:bg-cream-50 hover:border-gold-300'
+                        : 'border-cream-200 bg-cream-50 text-navy-800 hover:bg-white'
                     }`}
                   >
                     {action.icon === 'cv' && <FileText className={`w-4 h-4 ${isPrimaryAction ? 'text-white' : 'text-navy-600'}`} />}

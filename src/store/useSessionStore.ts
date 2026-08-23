@@ -50,6 +50,14 @@ export interface ChatAction {
   icon?: 'cv' | 'cover-letter' | 'email' | 'new' | 'screening';
 }
 
+/** One screening answer, kept on the application so the Answers document survives reloads. */
+export interface ScreeningAnswerItem {
+  id: string;
+  question: string;
+  answer: string;
+  createdAt: string;
+}
+
 export interface ApplicationSession {
   id: string;
   jobTitle: string;
@@ -57,6 +65,12 @@ export interface ApplicationSession {
   createdAt: string;
   updatedAt: string;
   jobDescription: string;
+  /**
+   * The tracker status of the stored row. Only the load path sets it, and only
+   * findReusableSession reads it: a repeat generation must not overwrite an
+   * application the user has told us they sent.
+   */
+  status?: string;
   
   matchScore?: number;
   matchingSkills: string[];
@@ -194,6 +208,12 @@ export interface ApplicationSession {
   /** Number of times the user has used screening question mode (max 2) */
   screeningUsageCount: number;
 
+  /** Screening answers generated from the chat. Persisted inside generated_cv as _screeningAnswers. */
+  screeningAnswers?: ScreeningAnswerItem[];
+
+  /** The CV template this application renders with. Persisted as selected_template. */
+  selectedTemplate?: string;
+
   cvEdits: CVEdit[];
   optimizedPdfRef?: {
     id: string;
@@ -205,6 +225,27 @@ export interface ApplicationSession {
   };
   
   chatMessages: ChatMessage[];
+}
+
+/**
+ * Is this session a real application, or just a chat container?
+ *
+ * Any first chat message calls createNewSession(), and pasting an ad fills in
+ * its jobDescription before anything has been read out of it. Neither has a
+ * company or a role yet, so listing either one puts a "New application / Role
+ * not set" row in the sidebar with nothing in it.
+ *
+ * The test is therefore whether there is something to show: a company, a role,
+ * a generated kit or a fit analysis. A pasted ad joins the list the moment the
+ * user acts on it, which is when the company gets read out of it.
+ */
+export function isApplicationSession(session: ApplicationSession): boolean {
+  return Boolean(
+    session.company?.trim()
+    || session.jobTitle?.trim()
+    || session.generatedCV
+    || session.pendingFitAnalysis,
+  );
 }
 
 interface SessionState {
@@ -230,6 +271,8 @@ interface SessionActions {
   // Session management
   createNewSession: (jobDescription: string) => void;
   updateCurrentSession: (updates: Partial<ApplicationSession>) => void;
+  /** Update one session by id, current or not. Used by async results that must land where they started. */
+  updateSessionById: (sessionId: string, updates: Partial<ApplicationSession>) => void;
   loadSession: (sessionId: string) => void;
   deleteSession: (sessionId: string) => void;
   clearCurrentSession: () => void;
@@ -290,6 +333,7 @@ export const useSessionStore = create<SessionState & SessionActions>()(
           followUpEmail: null,
           companyResearch: null,
           screeningUsageCount: 0,
+          screeningAnswers: [],
           cvEdits: [],
           chatMessages: [],
         };
@@ -318,20 +362,40 @@ export const useSessionStore = create<SessionState & SessionActions>()(
         };
       }),
 
+      updateSessionById: (sessionId, updates) => set((state) => {
+        const stamp = new Date().toISOString();
+        const apply = (s: ApplicationSession) => (s.id === sessionId ? { ...s, ...updates, updatedAt: stamp } : s);
+        const current = state.currentSession && state.currentSession.id === sessionId
+          ? apply(state.currentSession)
+          : state.currentSession;
+        const inList = state.sessions.some((s) => s.id === sessionId);
+        return {
+          currentSession: current,
+          sessions: inList
+            ? state.sessions.map(apply)
+            : current && current.id === sessionId
+              ? [current, ...state.sessions]
+              : state.sessions,
+        };
+      }),
+
       loadSession: (sessionId) => set((state) => {
-        const session = state.sessions.find((s) => s.id === sessionId);
-        if (session) {
-          return {
-            currentSession: session,
-            jobDescription: session.jobDescription,
-            requirements: session.requirements,
-            gaps: session.gaps,
-            generatedCV: session.generatedCV,
-            coverLetter: session.coverLetter,
-            email: session.email,
-          };
+        const session = state.sessions.find((s) => s.id === sessionId)
+          ?? (state.currentSession?.id === sessionId ? state.currentSession : undefined);
+        if (!session) {
+          // A miss used to blank the kit. The row is usually in D1 and the
+          // store just has not loaded it. openStoredSession fetches it.
+          return state;
         }
-        return { currentSession: null };
+        return {
+          currentSession: session,
+          jobDescription: session.jobDescription,
+          requirements: session.requirements,
+          gaps: session.gaps,
+          generatedCV: session.generatedCV,
+          coverLetter: session.coverLetter,
+          email: session.email,
+        };
       }),
 
       deleteSession: (sessionId) => set((state) => ({

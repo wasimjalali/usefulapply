@@ -9,6 +9,7 @@ yarn-error.log*
 out/
 dist/
 build/
+!docs/**/build/
 
 # Environment variables
 .env
@@ -56,3 +57,14 @@ temp/
 .claude/settings.local.json
 .playwright-mcp/
 .claude/worktrees/
+
+# OpenNext / Cloudflare Workers
+.open-next/
+.wrangler/
+.dev.vars
+scripts/migrate/out/
+
+# Session scratch and root-level verification screenshots stay out of git
+/todos/
+/*.png
+landing-captures/

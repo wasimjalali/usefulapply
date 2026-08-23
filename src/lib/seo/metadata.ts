@@ -1,8 +1,9 @@
 import { Metadata } from 'next';
+import { BRAND } from '@/lib/brand';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
-const SITE_NAME = 'KarKo AI';
-const DEFAULT_OG_IMAGE = '/opengraph-image';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
+const SITE_NAME = BRAND.name;
+const DEFAULT_OG_IMAGE = '/opengraph-image.jpg';
 
 export interface PageMetadataOptions {
   title: string;

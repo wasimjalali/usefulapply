@@ -4,9 +4,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { StructuredCV, createEmptyCV, withId } from '@/lib/types/cv-schema';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/auth/server';
+import { getObject } from '@/storage/r2';
 import { detectCVLanguage, extractOriginalHeaders, generateLocalizedHeaders } from '@/lib/cv-parser/section-splitter';
 import { callAnthropic, parseDocumentAsCV } from '@/lib/models/anthropic';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -31,11 +33,38 @@ const hasAICapability = aiProvider === 'digitalocean'
       ? hasAnthropicKey
       : hasAnthropicKey || hasBedrockKeys || hasDigitalOceanKeys;
 
+function resolveOwnedCvKey(userId: string, storagePath: unknown): string | null {
+  if (typeof storagePath !== 'string') return null;
+  if (storagePath.includes('\\') || storagePath.includes('..')) return null;
+  const segments = storagePath.split('/');
+  if (segments.some((segment) => segment.length === 0)) return null;
+  const fileOk = (name: string) => /^[A-Za-z0-9_-]+\.[A-Za-z0-9]+$/.test(name);
+  const typeOk = (type: string) => type === 'primary_cv' || type === 'master_cv';
+  if (
+    segments.length === 4
+    && segments[0] === 'cv-files'
+    && segments[1] === userId
+    && typeOk(segments[2])
+    && fileOk(segments[3])
+  ) {
+    return storagePath;
+  }
+  if (
+    segments.length === 3
+    && segments[0] === userId
+    && typeOk(segments[1])
+    && fileOk(segments[2])
+  ) {
+    return `cv-files/${storagePath}`;
+  }
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Rate limiting
     const clientIP = getClientIP(request);
-    const rateLimitResult = checkRateLimit(`parse-cv:${clientIP}`, RATE_LIMITS['parse-cv']);
+    const rateLimitResult = await checkRateLimit(`parse-cv:${clientIP}`, RATE_LIMITS['parse-cv']);
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: 'Too many requests. Please wait a moment.' },
@@ -44,9 +73,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Auth check: determines rate limiting (anonymous = 5/24h IP limit, authenticated = unlimited)
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
     const isAuthenticated = !!user;
+    const clientRequestId = request.headers.get('x-request-id') ?? crypto.randomUUID();
+    const generationContext: LlmGenerationContext = {
+      requestExecutionId: crypto.randomUUID(),
+      clientRequestId,
+      userId: user?.id ?? null,
+      anonymousSubjectHash: user ? null : `parse-cv:${clientIP}`,
+      route: '/api/parse-cv',
+      feature: 'cv_parse',
+      operation: 'parse_cv',
+    };
 
     // Two input modes:
     // 1) FormData with 'file' field — direct upload (≤ 4.5 MB, Vercel body limit)
@@ -60,7 +98,7 @@ export async function POST(request: NextRequest) {
     const contentType = request.headers.get('content-type') || '';
 
     if (contentType.includes('application/json')) {
-      // Mode 2: Storage-first — file already uploaded to Supabase Storage
+      // Mode 2: Storage-first — file already uploaded to R2
       if (!isAuthenticated) {
         return NextResponse.json({ error: 'Authentication required for storage-based parsing.' }, { status: 401 });
       }
@@ -86,24 +124,30 @@ export async function POST(request: NextRequest) {
 
       console.log(`[Parser] Storage-first mode: ${fileName}, path: ${storagePath}`);
 
-      // Download from Supabase Storage
-      const { data: fileData, error: downloadError } = await supabase.storage
-        .from('cv-files')
-        .download(storagePath);
+      // Ownership: new keys are `cv-files/<userId>/<primary_cv|master_cv>/<name>.<ext>`.
+      // Legacy D1 rows still store `<userId>/<primary_cv|master_cv>/<name>.<ext>`
+      // (copied to R2 as `cv-files/<legacy>`). Segment-wise check so `..` or extra
+      // segments cannot escape the user's prefix.
+      const r2Key = resolveOwnedCvKey(user.id, storagePath);
+      if (!r2Key) {
+        return NextResponse.json({ error: 'Authentication required for storage-based parsing.' }, { status: 401 });
+      }
 
-      if (downloadError || !fileData) {
-        console.error('[Parser] Failed to download from storage:', downloadError);
+      const fileData = await getObject(r2Key);
+      if (!fileData) {
+        console.error('[Parser] Failed to download from storage');
         return NextResponse.json({ error: 'Failed to download file from storage.' }, { status: 400 });
       }
 
-      buffer = Buffer.from(await fileData.arrayBuffer());
-
-      if (buffer.length > MAX_FILE_SIZE_STORAGE) {
+      // Check the stored size before materialising the body in memory.
+      if (fileData.size > MAX_FILE_SIZE_STORAGE) {
         return NextResponse.json(
-          { error: `File is too large (${(buffer.length / 1024 / 1024).toFixed(1)} MB). Maximum: 10 MB.` },
+          { error: `File is too large (${(fileData.size / 1024 / 1024).toFixed(1)} MB). Maximum: 10 MB.` },
           { status: 400 }
         );
       }
+
+      buffer = Buffer.from(await new Response(fileData.body).arrayBuffer());
     } else {
       // Mode 1: Direct FormData upload (original path)
       let formData: FormData;
@@ -163,8 +207,9 @@ export async function POST(request: NextRequest) {
 
     // Tighter rate limiting for anonymous users: 5 parses per hour per IP
     if (!isAuthenticated) {
-      const anonResult = checkRateLimit(`anon-parse:${clientIP}`, RATE_LIMITS['anon-parse']);
-      if (!anonResult.allowed) {
+      const anonResult = await checkRateLimit(`anon-parse:${clientIP}`, RATE_LIMITS['anon-parse']);
+      const anonMinuteResult = await checkRateLimit(`anon-parse-minute:${clientIP}`, RATE_LIMITS['anon-parse-minute']);
+      if (!anonResult.allowed || !anonMinuteResult.allowed) {
         return NextResponse.json(
           { error: "You've reached the free parse limit. Sign up free to get unlimited CV uploads." },
           { status: 429 }
@@ -194,6 +239,7 @@ export async function POST(request: NextRequest) {
           fileExt,
           region: region as 'US' | 'EU',
           documentType,
+          generationContext,
         });
         rawText = documentResult.rawText;
         structuredCV = documentResult.structuredCV;
@@ -220,7 +266,11 @@ export async function POST(request: NextRequest) {
       const textForAI = prepareTextForAI(rawText);
 
       try {
-        structuredCV = await parseWithAI(textForAI, region as 'US' | 'EU');
+        structuredCV = await parseWithAI(
+          textForAI,
+          region as 'US' | 'EU',
+          { ...generationContext, operation: 'parse_cv_text' },
+        );
         parserUsed = 'ai-text';
       } catch (e) {
         const errMsg = e instanceof Error ? e.message : String(e);
@@ -318,8 +368,9 @@ async function parseDocumentWithAIOrFallback(options: {
   fileExt: DocumentFileExt;
   region: 'US' | 'EU';
   documentType: 'primary_cv' | 'master_cv';
+  generationContext: LlmGenerationContext;
 }): Promise<{ rawText: string; structuredCV: StructuredCV; parserUsed: string }> {
-  const { buffer, fileExt, region, documentType } = options;
+  const { buffer, fileExt, region, documentType, generationContext } = options;
   const docFormat = fileExt === '.pdf' ? 'pdf' : 'docx';
 
   try {
@@ -331,6 +382,7 @@ async function parseDocumentWithAIOrFallback(options: {
       maxTokens: 8192,
       temperature: 0.3,
       visualMode: docFormat === 'pdf' && documentType !== 'master_cv',
+      generationContext: { ...generationContext, operation: 'parse_cv_document_native' },
     });
     const structuredCV = parseAIResponse(jsonContent, region);
     const rawText = reconstructRawText(structuredCV);
@@ -358,7 +410,11 @@ async function parseDocumentWithAIOrFallback(options: {
     throw new Error(`${docFormat.toUpperCase()} text extraction returned too little content. The document may be scanned, encrypted, or corrupted.`);
   }
 
-  const structuredCV = await parseWithAI(prepareTextForAI(extractedText), region);
+  const structuredCV = await parseWithAI(
+    prepareTextForAI(extractedText),
+    region,
+    { ...generationContext, operation: 'parse_cv_extracted_text_fallback' },
+  );
   console.log(`[Parser] ${docFormat.toUpperCase()} extracted-text fallback complete: ${extractedText.length} chars`);
   return { rawText: extractedText, structuredCV, parserUsed: 'ai-extracted-text' };
 }
@@ -552,7 +608,11 @@ function decodeXmlEntities(text: string): string {
 /**
  * Parse CV using AI with text input (for TXT/MD/TEX)
  */
-async function parseWithAI(rawText: string, region: 'US' | 'EU'): Promise<StructuredCV> {
+async function parseWithAI(
+  rawText: string,
+  region: 'US' | 'EU',
+  generationContext: LlmGenerationContext,
+): Promise<StructuredCV> {
   const prompt = getParsingPrompt(rawText);
 
   const response = await callAnthropic({
@@ -561,6 +621,7 @@ async function parseWithAI(rawText: string, region: 'US' | 'EU'): Promise<Struct
     temperature: 0.3,
     maxTokens: 8192,  // Master CVs with 10+ years of experience can exceed 4096 tokens of JSON output
     jsonMode: true,
+    generationContext,
   });
 
   console.log(`[Parser] AI response: ${response.usage.outputTokens} output tokens, ${response.content.length} chars`);

@@ -1,27 +1,167 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Check } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
-import { PlusPlanButton, MaxPlanButton } from '@/components/marketing/HomePricingButtons';
 import Footer from '@/components/marketing/Footer';
+import { BrandIcon } from '@/components/marketing/BrandLogo';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
-import { TimeSavingsCalculator } from '@/components/marketing/TimeSavingsCalculator';
-import { PlatformScrollStack } from '@/components/marketing/PlatformScrollStack';
-import { SectionBackground } from '@/components/marketing/AnimatedBackground';
-import { HeroAurora } from '@/components/marketing/HeroAurora';
 import { PricingAurora } from '@/components/marketing/PricingAurora';
+
+import { BRAND } from '@/lib/brand';
 
 export const metadata: Metadata = {
   title: {
-    absolute: 'Karko AI | Your entire job search, in one app',
+    absolute: 'Useful Apply | Your entire job search, in one app',
   },
   description:
-    'Karko is the AI job application agent that replaces the seven tools job seekers stitch together. Find roles, see the fit, and get a tailored CV, cover letter, emails, and screening answers in 90 seconds. Every word traces back to your real CV.',
+    'Useful Apply is the AI job application agent that replaces the seven tools job seekers stitch together. A daily job feed, a fit check before you spend anything, and a tailored CV, cover letter and emails in 90 seconds. Every word traces back to your real CV.',
   alternates: { canonical: '/' },
 };
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
+
+const HERO_IMAGE = {
+  src: '/images/moments/hero-workspace.webp',
+  alt: 'The Useful Apply workspace with a finished application kit: the conversation on the left and the tailored CV on the right',
+};
+
+interface WorkflowStep {
+  n: number;
+  label: string;
+  title: string;
+  body: string;
+  image: { src: string; alt: string };
+  kicker?: string;
+  secondLine?: string;
+  boldClose?: string;
+}
+
+const WORKFLOW_STEPS: WorkflowStep[] = [
+  {
+    n: 1,
+    label: 'Find',
+    title: 'A shortlist, not a firehose',
+    body: 'Every morning, up to 20 fresh roles ranked against your career profile. Matched on skills, seniority and direction, not keyword bingo. Nothing looks right today? Come back tomorrow.',
+    image: {
+      src: '/images/moments/step1-job-board.webp',
+      alt: "The Job Board listing today's ranked roles with match strength, salary and location on each",
+    },
+  },
+  {
+    n: 2,
+    label: 'Check the fit',
+    title: 'Know before you apply.',
+    body: "Run the ad against your real CV before you build anything. A clear read on the match and the reasoning behind it. If it's a pass, you lost nothing. If it's a go, you apply like it matters.",
+    image: {
+      src: '/images/moments/step2-fit-result.webp',
+      alt: 'A fit result for a Product Manager role: 76% match, the strengths that line up and the gaps',
+    },
+    kicker:
+      "An auto-apply bot needs you to keep applying. Telling you when not to apply isn't in its business model. It's central to ours.",
+  },
+  {
+    n: 3,
+    label: 'Get the kit',
+    title: 'The whole kit, built for this job',
+    body: "Tailored CV, cover letter, application email and follow-up email. The ad decides what to emphasize, never what's true about you. Facts come from one place: your real CV.",
+    secondLine: 'Most people never send a follow-up. Yours is already written.',
+    image: {
+      src: '/images/moments/step3-kit-tabs.webp',
+      alt: 'A finished application kit with CV, cover letter and email tabs and the tailored CV preview',
+    },
+  },
+  {
+    n: 4,
+    label: 'Review and send',
+    title: 'Change anything by chatting',
+    body: 'A tighter summary, a different first line, more weight on your last role. Watch it land in the live preview. Six ATS-friendly templates keep the layout clean.',
+    boldClose: 'You review everything before it goes anywhere. Then you send it yourself.',
+    image: {
+      src: '/images/moments/step4-chat-edit.webp',
+      alt: 'The chat rewriting a CV summary section, with the updated CV in the live preview',
+    },
+  },
+  {
+    n: 5,
+    label: 'Track',
+    title: 'Every application, remembered',
+    body: 'Everything you send lands in the tracker. Status, documents and follow-ups in one place, with chat when you want to dig in.',
+    image: {
+      src: '/images/moments/step5-tracker.webp',
+      alt: 'The application tracker with statuses, match scores and follow-up dates for twenty applications',
+    },
+  },
+];
+
+interface LandingPlan {
+  tier: 'free' | 'plus' | 'max';
+  name: string;
+  price: string;
+  per?: string;
+  features: string[];
+  cta: string;
+  href: string;
+}
+
+const LANDING_PLANS: LandingPlan[] = [
+  {
+    tier: 'free',
+    name: 'Free',
+    price: '$0',
+    features: [
+      '2 full applications a month',
+      'Or 8 fit checks while you explore',
+      'Top 5 roles a day in your feed',
+    ],
+    cta: 'Start free',
+    href: '/dashboard',
+  },
+  {
+    tier: 'plus',
+    name: 'Plus',
+    price: '$19.99',
+    per: '/mo',
+    features: [
+      '25 full applications a month',
+      'Fit checks and rewrites from the same allowance',
+      'Top 20 roles a day in your feed',
+    ],
+    cta: 'Go Plus',
+    href: '/pricing',
+  },
+  {
+    tier: 'max',
+    name: 'Max',
+    price: '$79.99',
+    per: '/mo',
+    features: [
+      '100 full applications a month',
+      'Fit checks and rewrites from the same allowance',
+      'Top 20 roles a day, built for an all-out search',
+    ],
+    cta: 'Go Max',
+    href: '/pricing',
+  },
+];
+
+// Comparison cells: true = gold check, string = text verdict, false = dash.
+type CellValue = boolean | string;
+
+const COMPARISON_ROWS: { feature: string; cells: [CellValue, CellValue, CellValue] }[] = [
+  { feature: 'Fit check before you spend a minute', cells: [true, false, false] },
+  { feature: 'Built to stay grounded, nothing added that isn\'t yours', cells: [true, false, false] },
+  { feature: 'Remembers your CV and career profile', cells: [true, false, 'Varies'] },
+  { feature: 'CV, cover letter, application email and follow-up as one kit', cells: [true, 'Prompt by prompt', false] },
+  { feature: 'Edit by chatting, live document preview', cells: [true, false, false] },
+  { feature: 'Daily ranked shortlist and tracker built in', cells: [true, false, 'Varies'] },
+];
+
+function ComparisonCell({ value }: { value: CellValue }) {
+  if (value === true) return <Check aria-label="Yes" className="mx-auto h-4 w-4 text-gold-500" />;
+  if (value === false) return <span className="text-sm text-warm-gray">&ndash;</span>;
+  return <span className="text-xs text-warm-gray">{value}</span>;
+}
 
 export default function Home() {
   return (
@@ -35,15 +175,15 @@ export default function Home() {
           __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'SoftwareApplication',
-            name: 'KarKo AI',
+            name: 'Useful Apply',
             applicationCategory: 'BusinessApplication',
             operatingSystem: 'Web',
             description:
-              'AI-powered job application assistant with a Smart Job Feed, fit analysis, tailored CVs, cover letters, emails, screening question answers, and application tracking.',
+              'AI-powered job application assistant with a daily job feed, fit analysis, tailored CVs, cover letters, emails, screening question answers, and application tracking.',
             url: SITE_URL,
             image: `${SITE_URL}/favicon-512x512.png`,
             featureList: [
-              'Smart Job Feed',
+              'Daily Job Feed',
               'AI CV Optimization',
               'Tailored Cover Letter Generation',
               'Professional Application Email Drafting',
@@ -80,7 +220,7 @@ export default function Home() {
             ],
             creator: {
               '@type': 'Organization',
-              name: 'KarKo AI',
+              name: 'Useful Apply',
               url: SITE_URL,
             },
             aggregateRating: {
@@ -98,7 +238,7 @@ export default function Home() {
                 },
                 datePublished: '2026-03-08',
                 reviewBody:
-                  'Karko is a very useful AI tool for job applications. It helps create a professional CV in the European and USA format and also assists with writing strong cover letters. The platform is easy to use and saves a lot of time when preparing job applications. I would definitely recommend it to anyone who wants to improve their CV and apply for jobs more efficiently.',
+                  'Useful Apply is a very useful AI tool for job applications. It helps create a professional CV in the European and USA format and also assists with writing strong cover letters. The platform is easy to use and saves a lot of time when preparing job applications. I would definitely recommend it to anyone who wants to improve their CV and apply for jobs more efficiently.',
                 reviewRating: {
                   '@type': 'Rating',
                   ratingValue: '5',
@@ -126,351 +266,375 @@ export default function Home() {
       />
       <Navbar />
       <main>
-      {/* Hero Section — text-only, centered, with premium aurora background */}
-      <section className="pt-24 pb-20 lg:pt-32 lg:pb-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-cream-100">
-        <HeroAurora />
-        <div className="max-w-4xl mx-auto text-center relative">
-          <ScrollReveal delay={100}>
-          <h1 className="font-bold text-navy-600 text-[44px] sm:text-[56px] lg:text-[64px] leading-[1.05] tracking-tight mb-6">
-            Your entire job search,{' '}
-            <span className="text-gold-500">in one app.</span>
-          </h1>
-          </ScrollReveal>
-          <ScrollReveal delay={250}>
-          <p className="text-lg lg:text-xl text-warm-gray mb-9 max-w-2xl mx-auto leading-relaxed">
-            Find the role. See the fit. Get a tailored CV, cover letter, emails, and screening answers in 90 seconds. Every word traces back to your real CV. Nothing invented.
-          </p>
-          </ScrollReveal>
-          <ScrollReveal delay={400}>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
-            <Link
-              href="/dashboard"
-              className="cta-gold px-7 py-3.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm flex items-center justify-center gap-2 text-base group"
-            >
-              Start free, no credit card
-              <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
-            </Link>
-            <Link
-              href="#demo"
-              className="px-5 py-3.5 border border-white/70 bg-white/60 hover:bg-white hover:border-white hover:shadow-md text-navy-600 font-semibold rounded-lg transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center gap-1.5 text-base group"
-            >
-              Watch the demo <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
-            </Link>
+        {/* Aurora-backed first fold: hero + volume band share one backdrop,
+            same treatment as the pricing page. */}
+        <div className="relative overflow-hidden">
+        <PricingAurora />
+        {/* Hero: split, copy left, the finished-kit workspace right. */}
+        <section className="relative px-4 pb-14 pt-16 sm:px-6 lg:px-8 lg:pt-24">
+          <div className="mx-auto flex max-w-7xl flex-col items-center gap-10 lg:flex-row lg:gap-16">
+            <ScrollReveal className="w-full lg:w-[430px] lg:flex-shrink-0">
+              <h1 className="text-[38px] font-semibold leading-[1.08] tracking-tight text-navy-800 sm:text-[46px] lg:text-[50px]">
+                Everything you need to apply for a job. Nothing sent for you.
+              </h1>
+              <p className="mt-5 text-[17px] leading-relaxed text-warm-gray">
+                Fit check first. Then a tailored CV, cover letter and emails, grounded in what you&apos;ve
+                actually done and ready in about two minutes. You review, you send.
+              </p>
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Link
+                  href="/dashboard"
+                  className="inline-flex h-12 items-center justify-center rounded-lg bg-gold-400 px-7 text-[15px] font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer"
+                >
+                  Start free
+                </Link>
+                <Link
+                  href="#what-you-get"
+                  className="inline-flex h-12 items-center justify-center rounded-lg border border-cream-200 bg-cream-50 px-7 text-[15px] font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
+                >
+                  See what you get
+                </Link>
+              </div>
+              <p className="mt-4 text-sm text-warm-gray">
+                Your first fit check is on us, no account needed.
+              </p>
+            </ScrollReveal>
+            <ScrollReveal delay={150} className="w-full flex-1">
+              <Image
+                src={HERO_IMAGE.src}
+                alt={HERO_IMAGE.alt}
+                width={1440}
+                height={900}
+                priority
+                quality={90}
+                sizes="(max-width: 1023px) 100vw, 680px"
+                className="w-full rounded-2xl border border-cream-200 shadow-sm"
+              />
+            </ScrollReveal>
           </div>
-          </ScrollReveal>
-        </div>
+        </section>
 
-        {/* Demo video sits below the hero CTAs, above the trust bar.
-            Wider than the text column so the demo reads cinematic.
-            scroll-mt-24 keeps the anchor below the fixed navbar. */}
-        <div id="demo" className="max-w-6xl mx-auto mt-12 lg:mt-16 relative scroll-mt-24">
-          <ScrollReveal delay={550}>
-            <div className="relative rounded-2xl overflow-hidden shadow-lg border border-cream-200 bg-cream-50">
-              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
-                <iframe
-                  src="https://www.tella.tv/video/vid_cmpjrsku400wk04jm1wuf3es6/embed?b=0&title=0&a=1&loop=0&t=0&muted=1&wt=1&o=1"
-                  title="Karko AI demo"
-                  loading="lazy"
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  allow="autoplay; fullscreen; picture-in-picture"
-                  allowFullScreen
-                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
-                />
+        {/* Volume band. */}
+        <section className="relative px-4 py-16 sm:px-6 lg:px-8">
+          <ScrollReveal>
+            <div className="mx-auto max-w-3xl text-center">
+              <h2 className="text-[32px] font-semibold leading-[1.15] text-navy-800 md:text-[40px]">
+                Everyone&apos;s applying more. It&apos;s working less.
+              </h2>
+              <p className="mt-5 text-[17px] leading-relaxed text-charcoal">
+                AI flooded recruiters with lookalike applications. Filters tightened, good people got buried.
+                Useful Apply is the opposite of a bot. One job, one fit check, one application worth your name.
+              </p>
+            </div>
+          </ScrollReveal>
+        </section>
+        </div>
+        {/* /Aurora-backed first fold */}
+
+        {/* Paste from anywhere: boards on the left, the kit on the right. */}
+        <section className="bg-cream-100 px-4 py-16 sm:px-6 lg:px-8">
+          <ScrollReveal>
+            <div className="mx-auto max-w-3xl text-center">
+              <h2 className="text-[32px] font-semibold leading-[1.15] text-navy-800 md:text-[36px]">
+                Bring a job ad from anywhere
+              </h2>
+              <p className="mt-4 text-[17px] leading-relaxed text-warm-gray">
+                See a role on any job board or careers page? Copy the description and paste it into the chat.
+                Useful Apply checks the fit and builds the whole kit for that exact job.
+              </p>
+            </div>
+          </ScrollReveal>
+          <ScrollReveal delay={150}>
+            <div className="mx-auto mt-10 flex max-w-5xl flex-col items-center gap-8 lg:flex-row lg:justify-center lg:gap-10">
+              <div className="grid w-full max-w-md grid-cols-2 gap-3">
+                {[
+                  { name: 'LinkedIn', color: '#0A66C2' },
+                  { name: 'Indeed', color: '#2557A7' },
+                  { name: 'Glassdoor', color: '#0CAA41' },
+                  { name: 'StepStone', color: '#204577' },
+                  { name: 'Monster', color: '#6E46AE' },
+                  { name: 'ZipRecruiter', color: '#1D8649' },
+                ].map((board) => (
+                  <div
+                    key={board.name}
+                    className="flex h-14 items-center justify-center rounded-2xl border border-cream-200 bg-cream-50 shadow-sm"
+                  >
+                    <span className="text-[17px] font-semibold" style={{ color: board.color }}>
+                      {board.name}
+                    </span>
+                  </div>
+                ))}
+                <div className="col-span-2 flex h-10 items-center justify-center rounded-2xl border border-dashed border-cream-300 text-sm text-warm-gray">
+                  and any careers page
+                </div>
+              </div>
+              <div className="flex items-center justify-center lg:flex-col">
+                <ArrowRight className="h-7 w-7 rotate-90 text-gold-500 lg:rotate-0" />
+              </div>
+              <div className="w-full max-w-md rounded-2xl border border-cream-200 bg-cream-50 p-7 shadow-sm">
+                <div className="flex items-center gap-2.5">
+                  <BrandIcon size="sm" theme="light" />
+                  <span className="text-[17px] font-semibold text-navy-800">Useful Apply</span>
+                </div>
+                <ul className="mt-5 flex flex-col gap-2.5">
+                  {['Fit check for that exact role', 'Tailored CV', 'Cover letter', 'Application email', 'Follow-up email'].map((item) => (
+                    <li key={item} className="flex items-center gap-2.5 text-[15px] text-charcoal">
+                      <Check className="h-4 w-4 flex-shrink-0 text-gold-600" strokeWidth={2.5} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-5 text-sm text-warm-gray">Paste the ad, review the kit, send it yourself.</p>
               </div>
             </div>
           </ScrollReveal>
-        </div>
-      </section>
+        </section>
 
-      {/* Trust Bar */}
-      <section className="py-6 px-4 sm:px-6 lg:px-8 bg-white border-y border-cream-200 overflow-hidden">
-        <div className="max-w-7xl mx-auto">
-          <ScrollReveal direction="none">
-          <p className="text-center text-xs font-medium text-warm-gray uppercase tracking-widest mb-5">Built to pass the systems every recruiter uses</p>
-          </ScrollReveal>
-          <div className="relative overflow-hidden">
-            <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
-            <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
-            <div className="flex items-center animate-scroll-logos">
-              {[...Array(2)].map((_, setIdx) => (
-                <div key={setIdx} className="flex items-center shrink-0">
-                  {['Workday', 'Greenhouse', 'Lever', 'SAP SuccessFactors', 'iCIMS', 'Taleo', 'BambooHR', 'SmartRecruiters'].map((name, i) => (
-                    <div key={`${setIdx}-${i}`} className="flex items-center shrink-0 mx-6 md:mx-10">
-                      <span className="text-base md:text-lg font-bold tracking-tight text-navy-600/40 whitespace-nowrap">{name}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
-        <div className="max-w-3xl mx-auto">
+        {/* Workflow heading. */}
+        <section id="what-you-get" className="scroll-mt-24 bg-cream-100 px-4 pb-2 pt-16 sm:px-6 lg:px-8">
           <ScrollReveal>
-          <div className="text-center mb-14">
-            <p className="eyebrow-dot text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">How It Works</p>
-            <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-3">
-              Seven tools, collapsed into one flow.
+            <h2 className="text-center text-[32px] font-semibold leading-[1.1] text-navy-800 md:text-[36px]">
+              One job ad in. A full application out.
             </h2>
-            <p className="text-warm-gray text-lg max-w-xl mx-auto">
-              Job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, tracker. One app instead of seven.
-            </p>
-          </div>
           </ScrollReveal>
+        </section>
 
-          <ol className="relative">
-            {[
-              {
-                step: 1,
-                title: 'Upload your CV once',
-                description: 'Your source of truth. Karko reads it, structures it, and uses only what is actually there.',
-                accent: '/images/features/master-cv-system.jpg',
-                accentAlt: 'Master CV upload illustration',
-              },
-              {
-                step: 2,
-                title: 'Skip the job boards',
-                description: 'Every morning, up to 25 roles picked for you on Plus and Max. Matched to your CV, your goals, your location. No keyword searches.',
-                accent: '/images/gpt-03-compass-card.webp',
-                accentAlt: 'Compass brand illustration',
-              },
-              {
-                step: 3,
-                title: 'See the fit before you commit',
-                description: 'A match score, the skills that line up, and the gaps. You decide before you spend the credits.',
-                accent: '/images/features/fit-analysis.jpg',
-                accentAlt: 'Fit analysis illustration',
-              },
-              {
-                step: 4,
-                title: 'Full application in 90 seconds',
-                description: 'Tailored CV, cover letter, application email, follow-up, and screening answers. All from your real experience. Nothing invented.',
-                accent: '/images/gpt-04-email-seal.webp',
-                accentAlt: 'Email seal brand illustration',
-              },
-              {
-                step: 5,
-                title: 'Track everything',
-                description: 'Every application saves automatically with company, role, match score, status, and a ready follow-up.',
-                accent: '/images/gpt-05-checklist-tracker.webp',
-                accentAlt: 'Checklist brand illustration',
-              },
-            ].map((s, i, arr) => (
-              <li key={s.step} className="relative pl-16 md:pl-20 pb-10 last:pb-0">
-                {/* vertical line */}
-                {i < arr.length - 1 && (
-                  <span className="absolute left-5 md:left-6 top-12 bottom-0 w-[2px] bg-cream-300" aria-hidden="true" />
-                )}
-                {/* numbered circle */}
-                <span className="absolute left-0 top-0 w-10 h-10 md:w-12 md:h-12 rounded-full bg-navy-600 text-white font-bold text-lg md:text-xl flex items-center justify-center shadow-sm">
-                  {s.step}
-                </span>
-                {/* content */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-                  <div className="md:flex-1">
-                    <h3 className="font-bold text-navy-600 text-xl md:text-2xl leading-snug mb-1.5">
-                      {s.title}
-                    </h3>
-                    <p className="text-warm-gray text-[15px] leading-relaxed max-w-lg">
-                      {s.description}
-                    </p>
+        {/* Five workflow steps, alternating splits, product shot dominant. */}
+        {WORKFLOW_STEPS.map((step, i) => (
+          <section key={step.n} className="bg-cream-100 px-4 py-10 sm:px-6 lg:px-8">
+            <ScrollReveal>
+              <div
+                className={`mx-auto flex max-w-6xl flex-col gap-10 lg:flex-row lg:items-center lg:gap-16 ${
+                  i % 2 === 1 ? 'lg:flex-row-reverse' : ''
+                }`}
+              >
+                <div className="w-full lg:w-[400px] lg:flex-shrink-0">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-navy-600 text-sm font-semibold text-white">
+                      {step.n}
+                    </span>
+                    <span className="text-sm font-medium text-warm-gray">
+                      {step.label}
+                    </span>
                   </div>
-                  {s.accent && (
-                    <div className="flex-shrink-0 w-[120px] h-[120px] rounded-2xl bg-white border border-cream-200 overflow-hidden flex items-center justify-center">
-                      <Image
-                        src={s.accent}
-                        alt={s.accentAlt ?? ''}
-                        width={120}
-                        height={120}
-                        className="w-full h-full object-cover"
-                      />
+                  <h3 className="mt-4 text-[28px] font-semibold leading-[1.15] text-navy-800">
+                    {step.title}
+                  </h3>
+                  <p className="mt-4 text-[15px] leading-relaxed text-warm-gray">{step.body}</p>
+                  {step.secondLine && (
+                    <p className="mt-4 text-[15px] leading-relaxed text-warm-gray">{step.secondLine}</p>
+                  )}
+                  {step.boldClose && (
+                    <p className="mt-4 text-[15px] font-semibold leading-relaxed text-navy-800">
+                      {step.boldClose}
+                    </p>
+                  )}
+                  {step.kicker && (
+                    <div className="mt-6 rounded-2xl border border-cream-200 bg-cream-50 p-5 shadow-sm">
+                      <p className="text-sm leading-relaxed text-charcoal">{step.kicker}</p>
                     </div>
                   )}
                 </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      {/* Platform scroll-stack — three panels that pin and layer as you scroll */}
-      <PlatformScrollStack />
-
-      {/* Founder Story — signed-card aesthetic */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-cream-50">
-        <div className="max-w-5xl mx-auto">
-          <ScrollReveal>
-          <div className="grid md:grid-cols-[240px_1fr] gap-10 md:gap-14 items-start">
-            {/* Signed-card photo column */}
-            <div className="flex flex-col items-center md:items-start">
-              <div className="w-[200px] h-[200px] md:w-[240px] md:h-[240px] rounded-2xl overflow-hidden border border-cream-200 shadow-sm">
-                <Image
-                  src="/wasim-founder.jpg"
-                  alt="Wasim Jalali, Founder of Karko AI"
-                  width={240}
-                  height={240}
-                  className="w-full h-full object-cover"
-                />
+                <div className="w-full flex-1">
+                  <Image
+                    src={step.image.src}
+                    alt={step.image.alt}
+                    width={1440}
+                    height={900}
+                    quality={90}
+                    sizes="(max-width: 1023px) 100vw, 660px"
+                    className="w-full rounded-2xl border border-cream-200 shadow-sm"
+                  />
+                </div>
               </div>
-              <p className="mt-5 italic text-charcoal text-2xl leading-none">Wasim Jalali</p>
-              <p className="mt-1 text-sm text-warm-gray">Founder, Karko AI</p>
-            </div>
+            </ScrollReveal>
+          </section>
+        ))}
 
-            {/* Quote column */}
-            <div>
-              <p className="eyebrow-dot text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">
-                A note from the founder
-              </p>
-              <h2 className="font-bold text-navy-600 text-[28px] md:text-[32px] leading-[1.15] mb-6">
-                The tool I built got me hired.
-              </h2>
-              <div className="border-l-2 border-gold-400 pl-6">
-                <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
-                  I built Karko for my own search. Sixty-plus applications, every one written by the product. Five interviews. Then I was hired as an AI Specialist through an application Karko wrote. If it can do that for a first-time job seeker with no degree, it can do it for you.
+        {/* Founder note. */}
+        <section className="bg-cream-100 px-4 py-6 sm:px-6 lg:px-8">
+          <ScrollReveal>
+            <div className="mx-auto flex max-w-3xl items-start gap-6">
+              <Image
+                src="/wasim-founder.jpg"
+                alt="Wasim Jalali, founder of Useful Apply"
+                width={240}
+                height={240}
+                className="h-[120px] w-[120px] flex-shrink-0 rounded-2xl border border-cream-200 object-cover shadow-sm"
+              />
+              <div>
+                <p className="text-[17px] leading-relaxed text-charcoal">
+                  &ldquo;I built Useful Apply for my own search. Sixty-plus applications, every one written by
+                  the product, five interviews, and the job I have now came from one of them.&rdquo;
                 </p>
+                <p className="mt-3 text-sm text-warm-gray">Wasim Jalali, founder</p>
               </div>
             </div>
-          </div>
           </ScrollReveal>
-        </div>
-      </section>
+        </section>
 
-      {/* Time Savings Calculator */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
-        <SectionBackground intensity="light" variant={0} sectionColor="#FEFDFB" />
-        <div className="max-w-4xl mx-auto relative">
+        {/* Pricing: compact cards here, full detail on /pricing. */}
+        <section className="bg-cream-100 px-4 py-14 sm:px-6 lg:px-8">
           <ScrollReveal>
-          <div className="text-center mb-10">
-            <p className="eyebrow-dot text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Time Savings</p>
-            <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-3">
-              How much time will you save?
+            <h2 className="text-center text-[32px] font-semibold leading-[1.1] text-navy-800 md:text-[36px]">
+              Plans you can count
             </h2>
-            <p className="text-warm-gray max-w-lg mx-auto">
-              One tailored application takes an hour by hand. Karko does it in 90 seconds. That is roughly 40x faster, without dropping quality.
+            <p className="mx-auto mt-4 max-w-xl text-center text-[15px] leading-relaxed text-warm-gray">
+              Plain units, published monthly prices. You always know what you&apos;re buying.
             </p>
-          </div>
+          </ScrollReveal>
+          <ScrollReveal delay={100}>
+            <div className="mx-auto mt-9 max-w-5xl">
+              <div className="grid gap-4 md:grid-cols-3">
+                {LANDING_PLANS.map((plan) => {
+                  const isPlus = plan.tier === 'plus';
+                  return (
+                    <div
+                      key={plan.tier}
+                      className={`flex flex-col rounded-2xl border p-6 shadow-sm ${
+                        isPlus ? 'border-gold-400' : 'border-cream-200'
+                      } bg-cream-50`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[15px] font-semibold text-navy-800">{plan.name}</span>
+                        {isPlus && (
+                          <span className="rounded-full bg-gold-400 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
+                            Most popular
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="mt-3 text-[32px] font-semibold leading-none text-navy-900">
+                        {plan.price}
+                        {plan.per && (
+                          <span className="ml-1 text-sm font-normal text-warm-gray">{plan.per}</span>
+                        )}
+                      </p>
+
+                      <ul className="mb-6 mt-4 flex-1 space-y-2.5">
+                        {plan.features.map((feature) => (
+                          <li key={feature} className="flex items-start gap-2 text-sm text-charcoal">
+                            <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-gold-500" />
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
+
+                      {isPlus ? (
+                        <Link
+                          href={plan.href}
+                          className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-gold-400 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer"
+                        >
+                          {plan.cta}
+                        </Link>
+                      ) : (
+                        <Link
+                          href={plan.href}
+                          className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-cream-200 bg-cream-50 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
+                        >
+                          {plan.cta}
+                        </Link>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p className="mt-6 text-center text-sm text-warm-gray">
+                Need more later? Top up with a credit pack for $19.99. Cancel anytime.
+              </p>
+              <p className="mt-2 text-center text-sm font-medium text-charcoal">
+                Whichever plan you pick, nothing sends itself. You review, you send.
+              </p>
+            </div>
+          </ScrollReveal>
+        </section>
+
+        {/* Comparison table + the navy card. */}
+        <section className="bg-cream-100 px-4 py-14 sm:px-6 lg:px-8">
+          <ScrollReveal>
+            <h2 className="text-center text-[32px] font-semibold leading-[1.1] text-navy-800 md:text-[36px]">
+              Why not ChatGPT or a free tool?
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-center text-[15px] leading-relaxed text-warm-gray">
+              Same engine class. The difference is the grounding, the memory and the workflow around it.
+            </p>
+          </ScrollReveal>
+          <ScrollReveal delay={100}>
+            <div className="mx-auto mt-9 max-w-4xl overflow-x-auto rounded-2xl border border-cream-200 bg-cream-50 shadow-sm">
+              <table className="w-full min-w-[640px] border-collapse">
+                <thead>
+                  <tr>
+                    <th className="px-6 py-5" aria-hidden />
+                    <th className="bg-gold-50 px-4 py-5 text-center text-sm font-semibold text-navy-800">
+                      Useful Apply
+                    </th>
+                    <th className="px-4 py-5 text-center text-sm font-medium text-warm-gray">ChatGPT</th>
+                    <th className="px-4 py-5 text-center text-sm font-medium text-warm-gray">
+                      Autofill tools
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {COMPARISON_ROWS.map((row) => (
+                    <tr key={row.feature} className="border-t border-cream-200">
+                      <td className="px-6 py-4 text-sm leading-relaxed text-charcoal">{row.feature}</td>
+                      <td className="bg-gold-50 px-4 py-4 text-center">
+                        <ComparisonCell value={row.cells[0]} />
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <ComparisonCell value={row.cells[1]} />
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <ComparisonCell value={row.cells[2]} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </ScrollReveal>
           <ScrollReveal delay={150}>
-            <TimeSavingsCalculator />
+            <div className="mx-auto mt-8 max-w-4xl rounded-2xl bg-navy-700 p-8 md:p-10">
+              <h3 className="text-xl font-semibold text-white md:text-2xl">We prepare, you send.</h3>
+              <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-navy-100">
+                Useful Apply doesn&apos;t submit anything on your behalf. Not today, not ever. Every application
+                waits for your review and your click. That&apos;s not a gap we plan to close. It&apos;s the whole
+                point.
+              </p>
+            </div>
           </ScrollReveal>
-        </div>
-      </section>
+        </section>
 
-      {/* Pricing teaser — 3-tile summary, links to /pricing for full compare */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-100 relative overflow-hidden">
-        <PricingAurora />
-        <div className="max-w-5xl mx-auto relative">
+        {/* Final CTA */}
+        <section className="py-24 px-4 sm:px-6 lg:px-8 bg-navy-700 relative overflow-hidden">
+          <div className="absolute inset-0 dot-grid opacity-[0.04]" />
           <ScrollReveal>
-          <div className="text-center mb-10">
-            <p className="eyebrow-dot text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Pricing</p>
-            <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-3">
-              Every plan, every feature. Pick your volume.
+          <div className="max-w-3xl mx-auto text-center relative">
+            <h2 className="font-bold text-white text-[36px] md:text-[48px] leading-[1.1] mb-5">
+              Your next interview is <span className="text-gold-400">90 seconds away.</span>
             </h2>
-            <p className="text-warm-gray text-lg max-w-xl mx-auto">
-              Start free. Upgrade when you&apos;re applying every day.
+            <p className="text-[17px] text-navy-100 mb-9 max-w-xl mx-auto leading-relaxed">
+              Upload your CV. Pick a role from your feed. Send your first full application before your coffee gets cold.
             </p>
-          </div>
-          </ScrollReveal>
-
-          <div className="grid md:grid-cols-3 gap-4">
-            {/* Free tile */}
-            <ScrollReveal delay={0}>
-            <div className="bg-cream-50 border border-navy-200 rounded-2xl p-6 shadow-sm h-full flex flex-col">
-              <div className="h-[22px]" />
-              <p className="text-sm font-semibold text-navy-600">Free</p>
-              <p className="text-[22px] font-bold text-charcoal mt-1">$0 / month</p>
-              <ul className="mt-3 mb-5 flex-1 space-y-1.5 text-[14px] text-charcoal">
-                <li className="font-semibold">4 credits per month</li>
-                <li className="text-warm-gray">2 full applications</li>
-                <li className="text-warm-gray">Save ~2 hrs a month</li>
-              </ul>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
               <Link
                 href="/dashboard"
-                className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg border border-navy-300 bg-white hover:bg-navy-50 hover:border-navy-400 hover:shadow-md text-navy-600 font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5 group"
+                className="cta-gold px-8 py-3.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm flex items-center justify-center gap-2 text-base group"
               >
-                Start Free <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
+                Start free, no credit card
+                <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
+              </Link>
+              <Link
+                href="/pricing"
+                className="px-8 py-3.5 border border-white/30 text-white font-semibold rounded-lg hover:bg-white/10 hover:border-white/50 transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center text-base"
+              >
+                View pricing
               </Link>
             </div>
-            </ScrollReveal>
-
-            {/* Plus tile (highlighted) */}
-            <ScrollReveal delay={100}>
-            <div className="bg-cream-50 border-2 border-gold-400 rounded-2xl p-6 shadow-xl h-full flex flex-col relative">
-              <div className="h-[22px] flex items-center">
-                <span className="text-[10px] font-bold tracking-[0.14em] text-gold-600 uppercase">Most popular</span>
-              </div>
-              <p className="text-sm font-semibold text-navy-600">Plus</p>
-              <p className="text-[22px] font-bold text-charcoal mt-1">$19.99<span className="text-sm font-normal text-warm-gray"> / month</span></p>
-              <ul className="mt-3 mb-5 flex-1 space-y-1.5 text-[14px] text-charcoal">
-                <li className="font-semibold">50 credits per month</li>
-                <li className="text-warm-gray">25 full applications</li>
-                <li className="text-warm-gray">Save ~18 hrs a month</li>
-              </ul>
-              <PlusPlanButton />
-            </div>
-            </ScrollReveal>
-
-            {/* Max tile */}
-            <ScrollReveal delay={200}>
-            <div className="bg-navy-800 border border-navy-700 rounded-2xl p-6 shadow-sm h-full flex flex-col">
-              <div className="h-[22px]" />
-              <p className="text-sm font-semibold text-navy-300">Max</p>
-              <p className="text-[22px] font-bold text-white mt-1">$79.99<span className="text-sm font-normal text-navy-300"> / month</span></p>
-              <ul className="mt-3 mb-5 flex-1 space-y-1.5 text-[14px] text-navy-100">
-                <li className="font-semibold text-white">200 credits per month</li>
-                <li className="text-navy-300">100 full applications</li>
-                <li className="text-navy-300">Save ~108 hrs a month</li>
-              </ul>
-              <MaxPlanButton />
-            </div>
-            </ScrollReveal>
           </div>
-
-          <div className="text-center mt-8">
-            <Link
-              href="/pricing"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-navy-600 hover:text-gold-600 underline underline-offset-4 decoration-cream-300 hover:decoration-gold-400 transition-colors"
-            >
-              Compare all plans and features
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-navy-700 relative overflow-hidden">
-        <div className="absolute inset-0 dot-grid opacity-[0.04]" />
-        <ScrollReveal>
-        <div className="max-w-3xl mx-auto text-center relative">
-          <h2 className="font-bold text-white text-[36px] md:text-[48px] leading-[1.1] mb-5">
-            Your next interview is <span className="text-gold-400">90 seconds away.</span>
-          </h2>
-          <p className="text-[17px] text-navy-100 mb-9 max-w-xl mx-auto leading-relaxed">
-            Upload your CV. Pick a role from your feed. Send your first full application before your coffee gets cold.
-          </p>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
-            <Link
-              href="/dashboard"
-              className="cta-gold px-8 py-3.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm flex items-center justify-center gap-2 text-base group"
-            >
-              Start free, no credit card
-              <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
-            </Link>
-            <Link
-              href="/pricing"
-              className="px-8 py-3.5 border border-white/30 text-white font-semibold rounded-lg hover:bg-white/10 hover:border-white/50 transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-center text-base"
-            >
-              View pricing
-            </Link>
-          </div>
-        </div>
-        </ScrollReveal>
-      </section>
-
+          </ScrollReveal>
+        </section>
       </main>
       <Footer />
     </div>

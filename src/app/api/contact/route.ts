@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
+import { sendEmail } from '@/lib/email/send';
+import { BRAND } from '@/lib/brand';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   try {
     // Rate limiting
     const clientIP = getClientIP(request);
-    const rateLimitResult = checkRateLimit(`contact:${clientIP}`, RATE_LIMITS['contact']);
+    const rateLimitResult = await checkRateLimit(`contact:${clientIP}`, RATE_LIMITS['contact']);
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },
@@ -70,35 +70,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Save to Supabase using the anon key — the contact_submissions table allows public inserts via RLS
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     let dbSaved = false;
     let emailSent = false;
 
-    if (supabaseUrl && supabaseAnonKey) {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-      const { error: dbError } = await supabase
-        .from('contact_submissions')
-        .insert({
-          name,
-          email,
-          subject,
-          message,
-          submitted_at: new Date().toISOString(),
-        });
-
-      if (dbError) {
-        console.error('Failed to save contact submission:', dbError);
-      } else {
-        dbSaved = true;
-      }
+    try {
+      const { insertContactSubmission } = await import('@/db/repos/contact');
+      await insertContactSubmission({ name, email, subject, message });
+      dbSaved = true;
+    } catch (dbError) {
+      console.error('Failed to save contact submission:', dbError);
     }
 
-    // Send email notification via Resend
-    const resend = new Resend(process.env.RESEND_API_KEY);
-
+    // Send email notification via Cloudflare Email Service
     try {
       // Escape all user input to prevent XSS in email HTML
       const safeName = escapeHtml(name);
@@ -123,17 +106,18 @@ export async function POST(request: NextRequest) {
 
           <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
             <p style="margin: 0; color: #64748b; font-size: 14px;">
-              This message was sent from the KarKo AI contact form.
+              This message was sent from the Useful Apply contact form.
             </p>
           </div>
         </div>
       `;
 
-      await resend.emails.send({
-        from: 'KarKo AI <noreply@karkoai.com>',
-        to: 'support@karkoai.com',
-        subject: `KarKo AI Contact: ${safeSubject}`,
+      await sendEmail({
+        to: BRAND.supportEmail,
+        replyTo: email,
+        subject: `${BRAND.name} Contact: ${subject}`,
         html: emailContent,
+        text: `New contact form submission\n\nName: ${name}\nEmail: ${email}\nSubject: ${subject}\n\n${message}`,
       });
       emailSent = true;
     } catch (emailError) {

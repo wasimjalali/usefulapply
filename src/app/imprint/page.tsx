@@ -2,11 +2,12 @@ import type { Metadata } from 'next';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { buildPageMetadata } from '@/lib/seo/metadata';
+import { BRAND } from '@/lib/brand';
 
 export const metadata: Metadata = buildPageMetadata({
   title: 'Imprint (Impressum)',
   description:
-    'Legal information and company details for KarKo AI. Impressum as required by German law.',
+    'Legal information and company details for Useful Apply. Impressum as required by German law.',
   canonical: '/imprint',
 });
 
@@ -23,8 +24,9 @@ export default function ImprintPage() {
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">Company Information</h2>
               <div className="text-warm-gray">
-                <p className="font-semibold text-charcoal text-lg">Karko AI Inc</p>
+                <p className="font-semibold text-charcoal text-lg">{BRAND.legalLine}</p>
                 <p className="mt-4">
+                  Karko AI Inc<br />
                   1207 Delaware Ave #412<br />
                   Wilmington, DE 19806<br />
                   USA
@@ -35,8 +37,8 @@ export default function ImprintPage() {
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">Contact</h2>
               <p className="text-warm-gray">
-                Email: <a href="mailto:support@karkoai.com" className="text-navy-600 hover:underline">support@karkoai.com</a><br />
-                Website: <a href="https://www.karkoai.com" className="text-navy-600 hover:underline">www.karkoai.com</a>
+                Email: <a href="mailto:support@usefulapply.com" className="text-navy-600 hover:underline">support@usefulapply.com</a><br />
+                Website: <a href={BRAND.url} className="text-navy-600 hover:underline">{BRAND.domain}</a>
               </p>
             </section>
 

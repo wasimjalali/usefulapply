@@ -8,6 +8,7 @@ import Footer from '@/components/marketing/Footer';
 import { getPostBySlug, getAllPosts, CATEGORY_COLORS } from '@/lib/blog';
 import type { BlogCategory } from '@/lib/blog';
 import { BlogContent } from '@/components/blog/BlogContent';
+import { BRAND } from '@/lib/brand';
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     return { title: 'Post Not Found' };
   }
 
-  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
+  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
 
   return {
     title: post.title,
@@ -37,7 +38,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
       title: post.title,
       description: post.description,
       url: `${SITE_URL}/blog/${post.slug}`,
-      siteName: 'KarKo AI',
+      siteName: BRAND.name,
       publishedTime: post.publishedAt,
       modifiedTime: post.updatedAt || post.publishedAt,
       authors: [post.author.name],
@@ -74,7 +75,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     border: 'border-cream-200',
   };
 
-  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
+  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
 
   return (
     <div className="min-h-screen bg-cream-100">
@@ -96,7 +97,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             },
             publisher: {
               '@type': 'Organization',
-              name: 'KarKo AI',
+              name: BRAND.name,
               url: SITE_URL,
               logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon-512x512.png` },
             },

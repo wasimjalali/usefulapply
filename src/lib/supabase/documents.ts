@@ -1,190 +1,84 @@
-import { getSupabase } from './client';
+import {
+  getDocumentsAction,
+  getDocumentByTypeAction,
+  saveDocumentAction,
+  deleteDocumentAction,
+  deleteFileAction,
+} from '@/db/actions';
+import { toR2Key } from '@/storage/paths';
 
-// Get untyped supabase client for tables not in generated types
-const getUntypedSupabase = () => getSupabase() as any;
+export type { Document } from '@/db/repos/documents';
 
-export interface Document {
-  id: string;
-  user_id: string;
-  type: 'primary_cv' | 'master_cv';
-  file_name: string;
-  file_type: 'pdf' | 'docx' | 'txt';
-  file_size?: number;
-  storage_path?: string;
-  raw_text?: string;
-  sections?: Record<string, string>;
-  all_skills?: string[];
-  all_experiences?: string[];
-  all_education?: string[];
-  structured_data?: any;
-  created_at: string;
-  updated_at: string;
+export async function getDocuments(userId: string) {
+  return getDocumentsAction(userId);
 }
 
-/**
- * Get user's documents
- */
-export async function getDocuments(userId: string): Promise<Document[]> {
-  const supabase = getUntypedSupabase();
-  
-  const { data, error } = await supabase
-    .from('documents')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error('Error fetching documents:', error);
-    return [];
-  }
-
-  return data as Document[];
+export async function getDocumentByType(userId: string, type: 'primary_cv' | 'master_cv') {
+  return getDocumentByTypeAction(userId, type);
 }
 
-/**
- * Get a specific document by type
- */
-export async function getDocumentByType(
-  userId: string, 
-  type: 'primary_cv' | 'master_cv'
-): Promise<Document | null> {
-  const supabase = getUntypedSupabase();
-  
-  const { data, error } = await supabase
-    .from('documents')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('type', type)
-    .order('updated_at', { ascending: false })
-    .limit(1);
-
-  if (error) {
-    console.error('Error fetching document:', error);
-    return null;
-  }
-
-  // Return first result or null (avoids 406 error from .single() when no rows)
-  return (data && data.length > 0) ? data[0] as Document : null;
-}
-
-/**
- * Save or update a document
- */
 export async function saveDocument(
   userId: string,
   type: 'primary_cv' | 'master_cv',
-  data: {
-    file_name: string;
-    file_type: 'pdf' | 'docx' | 'txt';
-    file_size?: number;
-    storage_path?: string;
-    raw_text?: string;
-    sections?: Record<string, string>;
-    structured_data?: any;
-    all_skills?: string[];
-    all_experiences?: string[];
-    all_education?: string[];
+  data: Parameters<typeof saveDocumentAction>[2],
+) {
+  const existing = await getDocumentByTypeAction(userId, type);
+  const result = await saveDocumentAction(userId, type, data);
+  // Only after the row points at the new file is the old object safe to remove.
+  if (existing?.storage_path && data.storage_path && existing.storage_path !== data.storage_path) {
+    const oldKey = toR2Key('cv-files', existing.storage_path);
+    if (oldKey) {
+      try {
+        await deleteFileAction(oldKey);
+      } catch (err) {
+        console.error('[documents] failed to delete replaced CV file:', oldKey, err);
+      }
+    }
   }
-): Promise<{ document: Document | null; error: Error | null }> {
-  const supabase = getUntypedSupabase();
-  
-  // Check if document of this type already exists
-  const existing = await getDocumentByType(userId, type);
-  
-  if (existing) {
-    // Delete old storage file if path changed
-    if (existing.storage_path && data.storage_path && existing.storage_path !== data.storage_path) {
-      await supabase.storage.from('cv-files').remove([existing.storage_path]);
-    }
-
-    // Update existing
-    const { data: updated, error } = await supabase
-      .from('documents')
-      .update({
-        ...data,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', existing.id)
-      .select()
-      .single();
-
-    if (error) {
-      return { document: null, error: new Error(error.message) };
-    }
-    return { document: updated as Document, error: null };
-  } else {
-    // Insert new
-    const { data: inserted, error } = await supabase
-      .from('documents')
-      .insert({
-        user_id: userId,
-        type,
-        ...data,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      return { document: null, error: new Error(error.message) };
-    }
-    return { document: inserted as Document, error: null };
-  }
+  return result;
 }
 
-/**
- * Delete a document
- */
-export async function deleteDocument(documentId: string): Promise<{ error: Error | null }> {
-  const supabase = getUntypedSupabase();
-
-  // Fetch the document first to get the storage path
-  const { data: doc } = await supabase
-    .from('documents')
-    .select('storage_path')
-    .eq('id', documentId)
-    .single();
-
-  const { error } = await supabase
-    .from('documents')
-    .delete()
-    .eq('id', documentId);
-
-  if (error) {
-    return { error: new Error(error.message) };
+export async function deleteDocument(documentId: string) {
+  const { authClient } = await import('@/auth/client');
+  const { data: sessionData } = await authClient.getSession();
+  if (!sessionData?.user) {
+    return { error: new Error('Authentication required') };
   }
-
-  // Clean up storage file after successful DB delete
-  if (doc?.storage_path) {
-    await supabase.storage.from('cv-files').remove([doc.storage_path]);
+  const result = await deleteDocumentAction(sessionData.user.id, documentId);
+  if (!result.error && result.storagePath) {
+    const key = toR2Key('cv-files', result.storagePath);
+    if (key) {
+      try {
+        await deleteFileAction(key);
+      } catch (err) {
+        console.error('[documents] failed to delete CV file for removed document:', key, err);
+      }
+    }
   }
-
-  return { error: null };
+  return { error: result.error };
 }
 
-/**
- * Upload CV file to storage
- */
 export async function uploadCVFile(
   userId: string,
   type: 'primary_cv' | 'master_cv',
-  file: File
+  file: File,
 ): Promise<{ path: string | null; error: Error | null }> {
-  const supabase = getUntypedSupabase();
-  
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${userId}/${type}/${Date.now()}.${fileExt}`;
-  
-  const { data, error } = await supabase.storage
-    .from('cv-files')
-    .upload(fileName, file, {
-      cacheControl: '3600',
-      upsert: true,
-    });
-
-  if (error) {
-    console.error('Upload error:', error);
-    return { path: null, error: new Error(error.message) };
+  void userId;
+  const form = new FormData();
+  form.append('file', file);
+  form.append('bucket', 'cv-files');
+  form.append('subpath', type);
+  try {
+    const res = await fetch('/api/files/upload', { method: 'POST', body: form });
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      return { path: null, error: new Error(data.error || 'Upload failed') };
+    }
+    const data = (await res.json()) as { key?: string };
+    if (!data.key) return { path: null, error: new Error('Upload failed') };
+    return { path: data.key, error: null };
+  } catch (err) {
+    console.error('Upload error:', err);
+    return { path: null, error: err as Error };
   }
-
-  return { path: data.path, error: null };
 }

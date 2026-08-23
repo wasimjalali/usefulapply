@@ -2,11 +2,12 @@ import type { Metadata } from 'next';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { buildPageMetadata } from '@/lib/seo/metadata';
+import { BRAND } from '@/lib/brand';
 
 export const metadata: Metadata = buildPageMetadata({
   title: 'Terms of Service',
   description:
-    'Read the KarKo AI Terms of Service. Understand the rules, responsibilities, and conditions for using our AI-powered job application assistant.',
+    'Read the Useful Apply Terms of Service. Understand the rules, responsibilities and conditions for using our AI-powered job application assistant.',
   canonical: '/terms',
 });
 
@@ -18,20 +19,21 @@ export default function TermsPage() {
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl font-bold text-navy-600 mb-4">Terms of Service</h1>
-          <p className="text-warm-gray mb-8">Last Updated: February 3, 2026</p>
+          <p className="text-warm-gray mb-2">Last Updated: August 17, 2026</p>
+          <p className="text-warm-gray mb-8">{BRAND.legalLine}.</p>
 
           <div className="prose prose-lg max-w-none text-charcoal space-y-8">
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">1. Acceptance of Terms</h2>
               <p className="text-warm-gray">
-                By using Karko AI, you agree to these terms. If you do not agree, please do not use our service.
+                By using {BRAND.name}, you agree to these terms. If you do not agree, please do not use our service.
               </p>
             </section>
 
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">2. Service Description</h2>
               <p className="text-warm-gray">
-                Karko AI is an AI-powered platform that helps generate:
+                {BRAND.name} is an AI-powered platform that helps generate:
               </p>
               <ul className="list-disc pl-6 text-warm-gray space-y-2 mt-4">
                 <li>Optimized CVs/Resumes</li>
@@ -112,7 +114,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">11. Contact</h2>
               <p className="text-warm-gray">
-                Email: <a href="mailto:support@karkoai.com" className="text-navy-600 hover:underline">support@karkoai.com</a>
+                Email: <a href="mailto:support@usefulapply.com" className="text-navy-600 hover:underline">support@usefulapply.com</a>
               </p>
               <p className="text-warm-gray mt-2">
                 Address: Karko AI Inc, 1207 Delaware Ave #412, Wilmington, DE 19806, USA

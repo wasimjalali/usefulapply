@@ -1,8 +1,9 @@
 import { MetadataRoute } from 'next';
 import { getAllPosts } from '@/lib/blog';
 import { getComparisons } from '@/lib/comparisons';
+import { BRAND } from '@/lib/brand';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const blogPosts = getAllPosts();
@@ -46,12 +47,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.8,
-    },
-    {
-      url: `${SITE_URL}/features`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.9,
     },
     // GEO Pages - AI Job Application
     {

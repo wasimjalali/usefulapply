@@ -1,21 +1,21 @@
-# CLAUDE.md — Karko AI Behavioral Instructions
+# CLAUDE.md: Useful Apply Behavioral Instructions
 
 > For historical context, architecture docs, feature narratives, and the changelog, check git history.
 
 ---
 
-## Karko AI Agents (use proactively — do not ask permission)
+## Useful Apply Agents (use proactively, do not ask permission)
 
 Specialist agents are the **preferred** way to handle bug investigations, external research, code review, UI verification, and agent/prompt work. They protect the main context window and often find issues faster than direct exploration. Spawn them in parallel when the work is independent.
 
 ### Project-scope agents (this repo)
 - **`debugger`** — Whenever a runtime bug, regression, stack trace, or "X is broken but I don't know why" appears. Also for intermittent SSE/streaming failures, wrong state on screen, credit/billing anomalies, and any failed request without an obvious cause. Read-only by default; proposes patches with file:line, refuses to paper over symptoms. Powered by Opus.
 - **`agent-expert`** — When editing anything in `src/lib/agents/`, `src/lib/agents/prompts/`, `src/lib/models/`, `src/app/api/agent-v2/`, or the `useAgentV2` / `useAgentWorkflow` hooks. Also for anti-hallucination rule changes, SSE event semantics, context-builder work, CV pipeline, fit-assessment prompts. Powered by Opus.
-- **`ui-tester`** — After any UI change to `/dashboard`, `/applications`, `/documents`, `/` (landing), or shared components (ChatPanel, CVPanel, CoverLetterPanel, EmailPanel, JobFeedPanel). Uses Playwright MCP. Run before calling a UI task done.
+- **`ui-tester`** — After any UI change to `/dashboard`, `/applications`, `/documents`, `/` (landing), or shared components (ChatPanel, CVPanel, CoverLetterPanel, EmailPanel, FeedConversation, FeedCanvas). Uses Playwright MCP. Run before calling a UI task done.
 - **`karko-architect`** — For cross-cutting design decisions, refactors, and "where should this state live" questions. Use for anything that spans 3+ files or has non-obvious tradeoffs. Returns a plan with ordered steps; does not modify code itself. Powered by Opus.
 - **`supabase-dba`** — When writing or reviewing migrations in `supabase/migrations/`, changing RLS policies, touching schema, or when a query looks suspicious. Will not run migrations itself.
 - **`integration-tester`** — Before every commit touching components, hooks, API routes, or job-feed files. Runs tsc + lint + narrow spot-checks. Cheap and fast — uses Haiku.
-- **`job-feed-specialist`** — When editing anything under `src/lib/job-feed/**`, `src/inngest/job-feed.ts`, `src/app/api/job-feed/**`, or `src/components/job-feed/**`. Owns ingestion, prefilter, LLM ranker, batch reconcile, and settings flows.
+- **`job-feed-specialist`** — When editing anything under `src/lib/job-feed/**`, `src/app/api/job-feed/**`, or `src/components/job-feed/**`. Owns ingestion, prefilter, LLM ranker, batch reconcile, and settings flows.
 - **`karko-ui-designer`** — For UI/UX audits, redesigns, and visual polish. Carries brand tokens (navy/cream/gold), typography (Georgia+Arial), surface roles, radius/shadow scales, and anti-AI-slop rules in its system prompt. Can audit AND implement. Does NOT touch backend, API routes, data fetching, or Zustand stores.
 
 ### Opus escalation (automatic — do not wait to be asked)
@@ -32,13 +32,24 @@ Escalate automatically for:
 ### When to parallelize
 If two agent tasks are independent (different files, different questions), spawn them in a **single message with multiple Agent tool calls** — they run concurrently.
 
+### Delegation policy: ox alpha via opencode (Wasim, 2026-08-21)
+**In every session in this repo, Fable is the orchestrator and verifier. The work itself is delegated to `opencode-go/ox-alpha-free` via the opencode CLI.** ox alpha is free until ~2026-08-28 and stronger than Opus; prefer it over Opus/Sonnet subagents for implementation, research, drafting and adversarial review while the free week lasts. Re-evaluate after.
+
+- **Fable does:** planning, task briefs, critical analysis of returned work, merging, verification (tsc, lint, diff review, browser checks), `/design` canvas work and anything requiring session context or user interaction.
+- **ox alpha does:** implementation, web research, copy drafts, adversarial review passes and other self-contained work.
+- **How to call it** (no manual copy-paste; run via Bash in background mode):
+  ```bash
+  opencode run -m opencode-go/ox-alpha-free "$(cat brief.md)" > result.md
+  ```
+  Write the brief to a file first. For implementation, run inside the repo so it can edit files, then review its diff before accepting. For research/drafts, run in the scratchpad and collect the output file.
+
 ---
 
 ## Working Rules
 
 ### Product Priorities (read before any feature work)
-- **Quality > speed > cost.** Karko is a pre-revenue startup; perceived quality is the moat. Do not introduce soft-constraint heuristic rejections (seniority regex, location substring matching, skill keyword scoring, work-mode keyword inference) when a language model can read the description and make the same call — LLM cost is negligible at our scale. Use deterministic prefilters ONLY for hard 99%+ reliable constraints (explicit employment type, explicit salary floor, explicit sponsorship language). Prefer prompt caching + Batch APIs to reduce cost over degrading the feature.
-- **Desktop + tablet (≥768px) is the target. Mobile is NOT a priority.** Karko is a desktop-class productivity tool (CV canvas, side-by-side chat + preview, multi-panel application kit). When making UI changes, verify desktop first. Mobile may look rough or stack layouts — don't chase mobile-specific bugs unless they affect desktop too. Complex flows (CV edit, chat, generation) will eventually be gated to a "best on desktop" prompt on mobile; don't over-engineer responsive variants for them.
+- **Quality > speed > cost.** Useful Apply is a pre-revenue startup; perceived quality is the moat. Do not introduce soft-constraint heuristic rejections (seniority regex, location substring matching, skill keyword scoring, work-mode keyword inference) when a language model can read the description and make the same call — LLM cost is negligible at our scale. Use deterministic prefilters ONLY for hard 99%+ reliable constraints (explicit employment type, explicit salary floor, explicit sponsorship language). Prefer prompt caching + Batch APIs to reduce cost over degrading the feature.
+- **Desktop + tablet (≥768px) is the target. Mobile is NOT a priority.** Useful Apply is a desktop-class productivity tool (CV canvas, side-by-side chat + preview, multi-panel application kit). When making UI changes, verify desktop first. Mobile may look rough or stack layouts — don't chase mobile-specific bugs unless they affect desktop too. Complex flows (CV edit, chat, generation) will eventually be gated to a "best on desktop" prompt on mobile; don't over-engineer responsive variants for them.
 
 ### Autonomy & Speed
 - Work autonomously — do NOT ask permission for bug fixes, UI changes, refactors, or small features
@@ -135,16 +146,16 @@ Always pass the `model` parameter when spawning an Agent. Never let subagents de
 
 ## Architecture Overview
 
-Karko AI is a Next.js 14+ app generating job application materials (CV, Cover Letter, Application Email, Follow-Up Email) via a unified AI agent powered by Claude Sonnet 4.6 (Amazon Bedrock).
+Useful Apply is a Next.js 14+ app generating job application materials (CV, Cover Letter, Application Email, Follow-Up Email) via a unified AI agent. Model split: Claude Sonnet 4.6 (Amazon Bedrock) handles kit writing, CV parsing, context extraction and fit analysis; `@cf/openai/gpt-oss-120b` on Workers AI (`src/lib/models/workers-ai.ts`) handles chat, tracker chat, career-profile synthesis, search strategy and job-feed ranking.
 
 ### Key Directories
 - `src/lib/agents/` — Unified Writer Agent + context-builder
 - `src/lib/agents/prompts/` — Prompt builders (cv-prompt, cover-letter-prompt, email-prompts, fit-assessment-prompt)
 - `src/lib/models/` — Model configurations and task types
 - `src/lib/cv-parser/` — `section-splitter` (language detection + localized headers). CV parsing itself is LLM-only via `src/app/api/parse-cv/route.ts` (Claude reads the document and emits a `StructuredCV`); there are no per-section regex parser modules.
-- `src/app/api/` — API routes (agent-v2, regenerate, auth/*, stripe/*, contact, chat, generate-pdf, parse-cv)
+- `src/app/api/` — API routes (agent-v2, regenerate, auth/*, stripe/*, job-feed/*, tracker/*, contact, chat, credits/balance, files/*, parse-cv)
 - `src/hooks/` — React hooks (`useAgentV2` for SSE streaming)
-- `src/store/` — Zustand stores (useSessionStore, useCVStore, useUIStore)
+- `src/store/` — Zustand stores (useSessionStore, useCVStore, useUIStore, useFeedStore, useTrackerStore, useSettingsStore; `useAppStore` is a deprecated facade over the first three)
 - `src/components/` — React components (EmailPanel, ChatPanel, CVPanel, CoverLetterPanel, etc.)
 - `src/lib/middleware/rateLimiter.ts` — In-memory sliding window rate limiter
 - `src/lib/supabase/` — Supabase client, credits, sessions, accounts, admin
@@ -224,11 +235,15 @@ The full design system (surface roles, typography, radius/CTA/shadow scales, mot
 ---
 
 ## Integrations Summary
-- **PostHog** — analytics + error tracking + LLM cost tracking; see `.claude/rules/posthog.md`
-- **Resend** — transactional email (signup confirmation, contact form); `from: 'KarKo AI <noreply@karkoai.com>'`
-- **Stripe** — subscriptions + add-on credit packs; webhooks verified via signature
-- **Amazon Bedrock** — Claude Sonnet 4.6 inference (production); direct Anthropic API (dev/testing)
-- **Supabase** — Postgres DB + Auth + Storage; service role key server-side only
+- **PostHog** - analytics + error tracking + LLM cost tracking; see `.claude/rules/posthog.md`. Server capture is from route handlers (`getPostHogServer()` + `flush()`). Worker and cron logs are Workers Logs, not PostHog.
+- **Cloudflare Email Service** - transactional email (signup confirmation, password reset, contact form, Day 0 welcome, Day 3 check-in). `from: 'Useful Apply <noreply@usefulapply.com>'` via the `EMAIL` `send_email` binding. No Resend.
+- **Stripe** - subscriptions + add-on credit packs; webhooks verified via signature. Checkout success/cancel and portal return URLs come from `BRAND.url`.
+- **Amazon Bedrock** - Claude Sonnet 4.6 inference for kit writing, CV parsing, extraction and fit analysis (production); direct Anthropic API (dev/testing). AWS SDK path runs on Workers under `nodejs_compat`.
+- **Workers AI** - `@cf/openai/gpt-oss-120b` via the `AI` binding for chat, tracker chat, career-profile synthesis, search strategy and job-feed ranking (`src/lib/models/workers-ai.ts`, `src/lib/job-feed/workers-ai-ranking.ts`).
+- **D1 + Drizzle** - SQLite database behind `src/db/repos/*`. Ownership is checked per query. No RLS.
+- **R2** - file storage. Binding `FILES`, bucket `usefulapply-files`. Served through `/api/files`.
+- **Better Auth** - email + password, Google OAuth, email verification, password reset. Session cookie `usefulapply.session`. Catch-all at `/api/auth/[...all]`.
+- **Workers** - Next.js 16 on Cloudflare via `@opennextjs/cloudflare`. Cron Triggers, Rate Limiting bindings, KV context cache, Workers Logs.
 
 ---
 

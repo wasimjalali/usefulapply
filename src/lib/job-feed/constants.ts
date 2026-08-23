@@ -1,8 +1,23 @@
 export const PREMIUM_JOB_FEED_TIERS = ['plus', 'max'] as const;
 export const JOB_FEED_PROVIDER = 'serpapi' as const;
-export const JOB_FEED_MAX_DAILY_QUERIES = 4;
+// The once-per-local-day cooldown is driven by runs the user kicked off, which
+// is all of them: the feed runs in real time on a click, there is no scheduler.
+// These are the exact values written to job_feed_runs.trigger_source by the run
+// routes, so the cooldown query and the workflow must both read from this list.
+// Preview mode writes a value outside this list on purpose, so its fake run
+// never locks the button.
+export const MANUAL_JOB_FEED_TRIGGER_SOURCES = [
+  'manual_user',
+  'manual_debug',
+  'manual_debug_force',
+] as const;
+export const JOB_FEED_MAX_DAILY_QUERIES = 5;
+// How many career-profile titles get mirrored into settings.target_roles. The
+// settings writer and the drift check must slice to the same number, or the
+// "your target roles are out of date" flag is true for every profile with more
+// titles than this.
+export const JOB_FEED_MIRRORED_ROLE_LIMIT = 6;
 export const JOB_FEED_MAX_RAW_JOBS_PER_RUN = 40;
-export const JOB_FEED_PREFILTER_TARGET_MIN = 8;
 export const JOB_FEED_PREFILTER_HARD_CAP = 15;
 // Default visible jobs when the feed panel first renders (pre-"Load more").
 // First page shows this many; the "Load more" button fetches the rest from
@@ -24,7 +39,16 @@ export const JOB_FEED_VISIBLE_MAX_COUNT = 25;
 export type JobFeedTier = 'plus' | 'max';
 
 export interface JobFeedTierLimits {
+  /** Hard ceiling on SerpAPI calls per run, main plan plus every extra pass. */
   maxDailyQueries: number;
+  /**
+   * How many of those calls the main plan may spend. Anything left over is the
+   * pool the pagination, fallback and unfiltered-retry passes draw from, and
+   * those only fire when the day needs rescuing, so a reserved call is not a
+   * call spent. Where this equals maxDailyQueries the extra passes are
+   * unreachable by design.
+   */
+  maxMainQueries: number;
   maxRawJobsPerRun: number;
   prefilterHardCap: number;
   visibleCount: number;
@@ -37,9 +61,15 @@ export interface JobFeedTierLimits {
  *
  * 1 SerpAPI call per run = real cash. Do not raise maxDailyQueries without
  * explicit approval.
+ *
+ * Free searches once and keeps a second call in reserve (Wasim, 20 Aug 2026).
+ * One query used to mean an empty day had no way back. The reserve is only
+ * spent when the run returned nothing at all, so a normal day still costs one
+ * call and the average barely moves.
  */
 export const JOB_FEED_FREE_TIER_LIMITS: JobFeedTierLimits = {
-  maxDailyQueries: 1,
+  maxDailyQueries: 2,
+  maxMainQueries: 1,
   maxRawJobsPerRun: 10,
   prefilterHardCap: 10,
   visibleCount: 5,
@@ -47,10 +77,12 @@ export const JOB_FEED_FREE_TIER_LIMITS: JobFeedTierLimits = {
 
 export const JOB_FEED_TIER_LIMITS: Record<JobFeedTier, JobFeedTierLimits> = {
   plus: {
-    // maxDailyQueries = SerpAPI calls per run (paid per call). 2 calls x
-    // ~10 results each = up to 20 raw jobs. Do not raise without explicit
-    // approval — each call has a real cash cost.
-    maxDailyQueries: 2,
+    // Plus searches twice and keeps a third call in reserve (Wasim, 20 Aug
+    // 2026). The extra call is only spent on an empty or thin day, so a
+    // normal day still costs two. Do not raise without explicit approval:
+    // each call has a real cash cost.
+    maxDailyQueries: 3,
+    maxMainQueries: 2,
     maxRawJobsPerRun: 20,
     // prefilterHardCap is in-memory only (no API cost). Sized to match
     // the raw cap so we never drop a raw job before the LLM sees it.
@@ -64,7 +96,11 @@ export const JOB_FEED_TIER_LIMITS: Record<JobFeedTier, JobFeedTierLimits> = {
     visibleCount: 25,
   },
   max: {
-    maxDailyQueries: 4,
+    // Max searches four times and keeps a fifth call in reserve (Wasim,
+    // 20 Aug 2026). Same shape as Plus and Free: the extra call is only
+    // spent on an empty or thin day.
+    maxDailyQueries: 5,
+    maxMainQueries: 4,
     maxRawJobsPerRun: 40,
     prefilterHardCap: 30,
     visibleCount: 25,
@@ -84,20 +120,27 @@ export interface JobFeedInputCaps {
 
 export const JOB_FEED_INPUT_CAPS: Record<JobFeedTier, JobFeedInputCaps> = {
   plus: {
-    // 2 queries total. 1 country → 2 roles. 2 countries → 1 role each.
+    // 2 main queries. 1 country → 2 roles. 2 countries → 1 role each.
     maxRoles: 2,
     maxCountries: 2,
     maxCitiesPerCountry: 2,
   },
   max: {
-    // 4 queries total. 1 country → 4 roles. 2 countries → 2 roles each.
+    // 4 main queries. 1 country → 4 roles. 2 countries → 2 roles each.
     maxRoles: 4,
     maxCountries: 4,
     maxCitiesPerCountry: 4,
   },
 };
 
-// Locked caps returned for free / unauthenticated / loading users.
+// Free searches once (the second call is a reserve). 1 country, 1 role.
+export const JOB_FEED_INPUT_CAPS_FREE: JobFeedInputCaps = {
+  maxRoles: 1,
+  maxCountries: 1,
+  maxCitiesPerCountry: 1,
+};
+
+// Locked caps returned for unauthenticated / loading users.
 // Shape-compatible with JobFeedInputCaps so all consumers compile unchanged.
 export const JOB_FEED_INPUT_CAPS_LOCKED: JobFeedInputCaps = {
   maxRoles: 0,
@@ -106,7 +149,8 @@ export const JOB_FEED_INPUT_CAPS_LOCKED: JobFeedInputCaps = {
 };
 
 export function getJobFeedInputCaps(subscriptionTier: string | null | undefined): JobFeedInputCaps {
-  if (!subscriptionTier || subscriptionTier === 'free') return JOB_FEED_INPUT_CAPS_LOCKED;
+  if (!subscriptionTier) return JOB_FEED_INPUT_CAPS_LOCKED;
+  if (subscriptionTier === 'free') return JOB_FEED_INPUT_CAPS_FREE;
   if (subscriptionTier === 'max') return JOB_FEED_INPUT_CAPS.max;
   return JOB_FEED_INPUT_CAPS.plus;
 }
@@ -164,7 +208,6 @@ export const JOB_FEED_COUNTRY_OPTIONS = [
   { value: 'ae', label: 'United Arab Emirates' },
 ] as const;
 
-export type JobFeedCountryCode = (typeof JOB_FEED_COUNTRY_OPTIONS)[number]['value'];
 
 // Popular cities per country. Used as quick-pick suggestions and (when the
 // user selects one) as location hints passed to SerpAPI. Users can still type
@@ -207,13 +250,54 @@ export const JOB_FEED_CITY_SUGGESTIONS: Record<string, string[]> = {
   ae: ['Dubai', 'Abu Dhabi'],
 };
 
-export function getJobFeedCityOptionsForCountries(countries: string[]): string[] {
-  const unique = new Set<string>();
-  for (const country of countries) {
-    const cities = JOB_FEED_CITY_SUGGESTIONS[country] ?? [];
-    for (const city of cities) unique.add(city);
-  }
-  return Array.from(unique);
+/** Short forms and local spellings of cities already in the list above. */
+const JOB_FEED_CITY_ALIASES: Record<string, string> = {
+  nyc: 'New York',
+  'new york city': 'New York',
+  sf: 'San Francisco',
+  'bay area': 'San Francisco',
+  'den haag': 'The Hague',
+  muenchen: 'Munich',
+  munchen: 'Munich',
+  koln: 'Cologne',
+  koeln: 'Cologne',
+  wien: 'Vienna',
+  kobenhavn: 'Copenhagen',
+  goteborg: 'Gothenburg',
+  warszawa: 'Warsaw',
+  krakow: 'Kraków',
+  wroclaw: 'Wrocław',
+  bangalore: 'Bengaluru',
+  'new delhi': 'Delhi NCR',
+  delhi: 'Delhi NCR',
+};
+
+/** Accents, punctuation and casing all vary by who typed it. */
+function normalizeCityKey(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+const CITY_TO_COUNTRY = new Map<string, string>(
+  Object.entries(JOB_FEED_CITY_SUGGESTIONS).flatMap(([country, cities]) =>
+    cities.map((city) => [normalizeCityKey(city), country] as [string, string])
+  )
+);
+
+/**
+ * "Berlin" implies Germany. Without this a city added from the chat is searched
+ * in whatever markets the user already had, so "add Berlin" quietly returns US
+ * results. Returns null for a city we do not know, because inventing a country
+ * is worse than leaving the search as it was.
+ */
+export function countryForCity(city: string): string | null {
+  const key = normalizeCityKey(city);
+  const aliased = JOB_FEED_CITY_ALIASES[key];
+  return CITY_TO_COUNTRY.get(aliased ? normalizeCityKey(aliased) : key) ?? null;
 }
 
 export function legacyMarketFromCountries(countries: string[]): 'us' | 'canada' | 'us_canada' {
@@ -349,10 +433,6 @@ export const JOB_FEED_TIMEZONE_LOOKUP = new Map<string, string>(
   JOB_FEED_TIMEZONE_OPTIONS.map((zone) => [zone.value, zone.label]),
 );
 
-export function getJobFeedTimeZoneLabel(value: string): string {
-  return JOB_FEED_TIMEZONE_LOOKUP.get(value) ?? value;
-}
-
 export const JOB_FEED_EMPLOYMENT_TYPE_OPTIONS = [
   { value: 'full_time', label: 'Full-time' },
   { value: 'part_time', label: 'Part-time' },
@@ -366,27 +446,6 @@ export const JOB_FEED_WORK_AUTH_OPTIONS = [
   { value: 'open_to_both', label: 'Open to both' },
   { value: 'needs_sponsorship', label: 'Needs sponsorship' },
 ] as const;
-
-export const JOB_FEED_SUGGESTED_ROLES = [
-  'Software Engineer',
-  'Frontend Engineer',
-  'Full Stack Engineer',
-  'Product Manager',
-  'Data Analyst',
-  'AI Engineer',
-];
-
-// City-only examples. The country is selected separately in the settings,
-// so users don't need to type it here.
-export const JOB_FEED_SUGGESTED_LOCATIONS = [
-  'New York',
-  'San Francisco',
-  'Berlin',
-  'London',
-  'Tokyo',
-];
-
-export const JOB_FEED_SUGGESTED_LANGUAGES = ['English', 'French'];
 
 export const JOB_FEED_DEFAULT_SETTINGS = {
   enabled: true,
@@ -405,7 +464,3 @@ export const JOB_FEED_DEFAULT_SETTINGS = {
   employment_types: ['full_time'] as string[],
   work_authorization_status: 'open_to_both',
 } as const;
-
-export function isJobFeedDebugModeEnabled(): boolean {
-  return process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_ENABLE_JOB_FEED_DEBUG === 'true';
-}

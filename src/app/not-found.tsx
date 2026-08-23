@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Home, FileText, BookOpen, Search } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
-import KarkoLogo from '@/components/KarkoLogo';
+import BrandLogo from '@/components/BrandLogo';
 
 export default function NotFound() {
   return (
@@ -12,7 +12,7 @@ export default function NotFound() {
         <div className="text-center">
           {/* 404 Visual */}
           <div className="mb-8">
-            <KarkoLogo variant="full" size="lg" theme="light" className="mx-auto mb-6" />
+            <BrandLogo variant="full" size="lg" theme="light" className="mx-auto mb-6" />
             <div className="text-8xl sm:text-9xl font-bold text-navy-600/10">404</div>
           </div>
 

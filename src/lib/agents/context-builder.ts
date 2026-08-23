@@ -1,5 +1,5 @@
 /**
- * Context Builder — Phase 1 functions for Karko AI
+ * Context Builder: Phase 1 functions for Useful Apply
  * 
  * Extracted from unified-writer-agent.ts for modularity.
  * Contains all context-building functions:
@@ -12,6 +12,7 @@
 
 import type { MasterContext, TokenUsage } from './types';
 import { callModel } from '@/lib/models';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
 // =====================================================
 // TOKEN TRACKING
@@ -33,7 +34,8 @@ export interface WithTokens<T> {
  */
 export async function extractApplicantProfile(
   primaryCV: string,
-  masterCV?: string
+  masterCV?: string,
+  generationContext?: LlmGenerationContext,
 ): Promise<WithTokens<MasterContext['applicant']>> {
   const combinedCV = masterCV 
     ? `PRIMARY CV:\n${primaryCV}\n\nMASTER CV (additional experience):\n${masterCV}`
@@ -82,6 +84,7 @@ Extract and merge information from ALL provided CV documents (Primary CV and Mas
 
 Return valid JSON only. No explanation or preamble.`,
     jsonMode: true,
+    generationContext,
   });
 
   const tokens: TokenUsage = {
@@ -136,7 +139,10 @@ export function extractBasicProfile(cvText: string): MasterContext['applicant'] 
 /**
  * Parse job description to extract structured requirements
  */
-export async function parseJobDescription(jobDescription: string): Promise<WithTokens<MasterContext['job']>> {
+export async function parseJobDescription(
+  jobDescription: string,
+  generationContext?: LlmGenerationContext,
+): Promise<WithTokens<MasterContext['job']>> {
   const response = await callModel({
     task: 'parse_job',
     prompt: `Parse this job description and extract all requirements. PAY SPECIAL ATTENTION to identifying the company name — scan the entire text including headers, footers, "About Us" sections, email domains, and URLs.
@@ -178,6 +184,7 @@ CRITICAL: Extracting the correct company name is HIGH PRIORITY. Users rely on th
 
 Return valid JSON only. No explanation or preamble.`,
     jsonMode: true,
+    generationContext,
   });
 
   const tokens: TokenUsage = {
@@ -276,7 +283,8 @@ export function detectLanguage(text: string): DetectedLanguage {
 export async function computeSkillMatch(
   applicant: MasterContext['applicant'],
   job: MasterContext['job'],
-  masterCVText?: string
+  masterCVText?: string,
+  generationContext?: LlmGenerationContext,
 ): Promise<MasterContext['match']> {
   if (!applicant || !job) {
     return { score: 0, matchingSkills: [], missingSkills: [] };
@@ -473,6 +481,7 @@ Where:
 Return ONLY valid JSON, no explanation.`,
       systemPrompt: 'You are an expert ATS-calibrated skill matching engine. Return only valid JSON. Use the tier-based matching hierarchy: explicit matches first, semantic matches second, experience-based evidence third. Be fair and realistic — follow industry standards where 70%+ indicates genuine competitiveness. Never inflate scores, but also avoid excessive conservatism that undervalues transferable skills.',
       jsonMode: true,
+      generationContext,
     });
 
     let jsonContent = response.content.trim();
@@ -502,11 +511,11 @@ Return ONLY valid JSON, no explanation.`,
       score = requiredSkills.length > 0 ? Math.round((matchingSkills.length / requiredSkills.length) * 100) : 0;
     }
 
-    console.log(`[KarkoAI] LLM skill match: ${score}% (${matchingSkills.length} matching, ${missingSkills.length} missing)`);
+    console.log(`[UsefulApply] LLM skill match: ${score}% (${matchingSkills.length} matching, ${missingSkills.length} missing)`);
     return { score, matchingSkills, missingSkills };
 
   } catch (error) {
-    console.error('[KarkoAI] LLM skill matching failed, falling back to string matching:', error);
+    console.error('[UsefulApply] LLM skill matching failed, falling back to string matching:', error);
     return computeSkillMatchFallback(applicant, job);
   }
 }
@@ -601,7 +610,8 @@ export function computeSkillMatchFallback(
  */
 export async function extractVerifiedMetrics(
   primaryCV: string,
-  masterCV?: string
+  masterCV?: string,
+  generationContext?: LlmGenerationContext,
 ): Promise<WithTokens<string[]>> {
   const combinedCV = masterCV
     ? `PRIMARY CV:\n${primaryCV}\n\nMASTER CV:\n${masterCV}`
@@ -630,6 +640,7 @@ Example: ["$120,000 annual revenue", "5 international markets", "25% year-over-y
 Return ONLY the JSON array. No explanation.`,
     systemPrompt: 'You are a precise data extraction tool. Extract only explicitly stated numbers and metrics from the provided documents. Never infer, calculate, or fabricate. Return a JSON array of strings.',
     jsonMode: true,
+    generationContext,
   });
 
   const tokens: TokenUsage = {
@@ -661,14 +672,14 @@ Return ONLY the JSON array. No explanation.`,
 
     if (arr) {
       const metrics = arr.map((m: unknown) => String(m).trim()).filter(Boolean);
-      console.log(`[KarkoAI] Extracted ${metrics.length} verified metrics from source CVs`);
+      console.log(`[UsefulApply] Extracted ${metrics.length} verified metrics from source CVs`);
       return { result: metrics, tokens };
     }
 
-    console.warn('[KarkoAI] Metric extraction returned unexpected format:', typeof parsed, JSON.stringify(parsed).slice(0, 200));
+    console.warn('[UsefulApply] Metric extraction returned unexpected format:', typeof parsed, JSON.stringify(parsed).slice(0, 200));
     return { result: [], tokens };
   } catch (error) {
-    console.error('[KarkoAI] Failed to parse verified metrics:', error);
+    console.error('[UsefulApply] Failed to parse verified metrics:', error);
     return { result: [], tokens };
   }
 }

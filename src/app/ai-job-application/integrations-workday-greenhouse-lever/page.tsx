@@ -6,13 +6,15 @@ import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
-const SITE_URL = 'https://www.karkoai.com';
+import { BRAND } from '@/lib/brand';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     title: 'Workday, Greenhouse & Lever Compatibility',
     description:
-      "How KarKo AI documents work in Workday, Greenhouse, Lever, SAP SuccessFactors, iCIMS, and Taleo. Upload, parsing, and copy-paste ready.",
+      "How Useful Apply documents work in Workday, Greenhouse, Lever, SAP SuccessFactors, iCIMS, and Taleo. Upload, parsing, and copy-paste ready.",
     canonical: '/ai-job-application/integrations-workday-greenhouse-lever',
   });
 }
@@ -20,23 +22,23 @@ export async function generateMetadata(): Promise<Metadata> {
 const faqs = [
   {
     q: 'Which AI job application tool works well with Workday?',
-    a: "Karko AI generates documents in Workday-compatible format (single-column CV, standard section headings, clean date formats) specifically designed to parse correctly when uploaded to Workday's recruiting forms.",
+    a: "Useful Apply generates documents in Workday-compatible format (single-column CV, standard section headings, clean date formats) specifically designed to parse correctly when uploaded to Workday's recruiting forms.",
   },
   {
-    q: 'Does Karko AI integrate directly with Workday or Greenhouse?',
-    a: 'No. Karko AI is not a Workday or Greenhouse plugin. It generates ATS-optimized documents that upload and parse correctly in these systems. Think of it as producing the right input, not automating the submission step.',
+    q: 'Does Useful Apply integrate directly with Workday or Greenhouse?',
+    a: 'No. Useful Apply is not a Workday or Greenhouse plugin. It generates ATS-optimized documents that upload and parse correctly in these systems. Think of it as producing the right input, not automating the submission step.',
   },
   {
     q: 'What CV format works best for Workday uploads?',
-    a: 'Single-column layout, no tables for critical content, standard section headings, consistent date formats, and system fonts like Arial. Karko AI applies all of these constraints in its generated CVs.',
+    a: 'Single-column layout, no tables for critical content, standard section headings, consistent date formats, and system fonts like Arial. Useful Apply applies all of these constraints in its generated CVs.',
   },
   {
-    q: "How do I use Karko AI's output in Greenhouse application forms?",
+    q: "How do I use Useful Apply's output in Greenhouse application forms?",
     a: 'Upload the tailored CV as your resume file. Use the cover letter content for any cover letter field. For custom text questions about motivation or specific skills, the cover letter and application email provide ready-to-adapt paragraphs. The follow-up email is saved separately for use 5 to 7 days after submitting.',
   },
   {
     q: 'Does the generated output work for US and EU ATS systems?',
-    a: 'Yes. Karko AI supports both markets. US and UK applications use standard resume format (typically 1 to 2 pages). German applications use Lebenslauf format with the appropriate German-market header structure. The ATS compatibility considerations are the same across markets.',
+    a: 'Yes. Useful Apply supports both markets. US and UK applications use standard resume format (typically 1 to 2 pages). German applications use Lebenslauf format with the appropriate German-market header structure. The ATS compatibility considerations are the same across markets.',
   },
 ];
 
@@ -79,11 +81,11 @@ export default function IntegrationsWorkdayGreenhouseLeverPage() {
     '@type': 'Article',
     headline: 'AI Job Applications for Workday, Greenhouse & Lever: Compatibility Guide',
     description:
-      "How Karko AI's generated documents work in Workday, Greenhouse, Lever, SAP SuccessFactors, iCIMS, and Taleo. Upload workflows, parsing, and copy-paste compatibility.",
-    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+      "How Useful Apply's generated documents work in Workday, Greenhouse, Lever, SAP SuccessFactors, iCIMS, and Taleo. Upload workflows, parsing, and copy-paste compatibility.",
+    author: { '@type': 'Organization', name: 'Useful Apply', url: SITE_URL },
     publisher: {
       '@type': 'Organization',
-      name: 'KarKo AI',
+      name: 'Useful Apply',
       url: SITE_URL,
       logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon-512x512.png` },
     },
@@ -145,7 +147,7 @@ export default function IntegrationsWorkdayGreenhouseLeverPage() {
               <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
                 Compatible with Workday, Greenhouse, and Lever means the AI-generated
                 documents can be uploaded, parsed, and submitted through these systems without
-                reformatting. Karko AI produces ATS-optimized output: single-column CV structure,
+                reformatting. Useful Apply produces ATS-optimized output: single-column CV structure,
                 clean text for cover letter fields, and ready-to-paste email templates, all
                 designed for how these systems ingest applications.
               </p>
@@ -181,7 +183,7 @@ export default function IntegrationsWorkdayGreenhouseLeverPage() {
               use when the process switches to email submission.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              This is what Karko AI optimizes for: not a built-in connector, but documents that
+              This is what Useful Apply optimizes for: not a built-in connector, but documents that
               work cleanly in real ATS workflows.
             </p>
           </div>
@@ -204,7 +206,7 @@ export default function IntegrationsWorkdayGreenhouseLeverPage() {
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
               If fields are incorrect, the clean-text version of your CV sections can be copy-pasted
-              directly. Karko AI generates the CV in ATS-safe format by default to reduce this
+              directly. Useful Apply generates the CV in ATS-safe format by default to reduce this
               correction step.
             </p>
           </div>
@@ -226,7 +228,7 @@ export default function IntegrationsWorkdayGreenhouseLeverPage() {
               cover letters, or motivation answers.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              Karko AI&apos;s cover letter and application email serve as the content source for
+              Useful Apply&apos;s cover letter and application email serve as the content source for
               these fields. They are written to be adaptable to both full-document and
               text-field use cases.
             </p>
@@ -272,7 +274,7 @@ export default function IntegrationsWorkdayGreenhouseLeverPage() {
               parsing in these systems.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              Karko AI&apos;s ATS-optimized templates are designed with these constraints in mind.
+              Useful Apply&apos;s ATS-optimized templates are designed with these constraints in mind.
             </p>
           </div>
         </section>

@@ -1,0 +1,17 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "A · Chat spine · the decision", "x": 0, "y": 0, "w": 1440, "h": 900 },
+    { "file": "A-Spine-Working.dc.html", "title": "A · Chat spine · working", "x": 0, "y": 1020, "w": 1440, "h": 900 },
+    { "file": "B-Room-Decision.dc.html", "title": "B · Same room, fixed sequence · the decision", "x": 1640, "y": 0, "w": 1440, "h": 900 },
+    { "file": "B-Room-Working.dc.html", "title": "B · Same room, fixed sequence · working", "x": 1640, "y": 1020, "w": 1440, "h": 900 },
+    { "file": "C-Line-Decision.dc.html", "title": "C · Guided line · the decision", "x": 3280, "y": 0, "w": 1440, "h": 900 },
+    { "file": "C-Line-Working.dc.html", "title": "C · Guided line · working", "x": 3280, "y": 1020, "w": 1440, "h": 900 }
+  ],
+  "annotations": [
+    { "id": "intro", "x": 0, "y": -420, "w": 900, "text": "Flow 1, the first run: upload, fit, kit.\nThree directions, same moment in each: the CV is parsed, the job ad is pasted, the user has 4 free credits and must decide. Top row is the decision, bottom row is the work in progress.\n\nAll three already obey the rules in design-philosophy.md: one primary action, price on the button, balance stated, named stages, the CV never blanks, no tab jumps. They differ in how much of the shell changes." },
+    { "id": "a-note", "x": 0, "y": -180, "w": 640, "text": "A · Chat spine (recommended)\nThe conversation is the product. Left: one entry per application, with its status, plus today's feed. Middle: the chat, where you drop the CV, paste the job, pick a chip. Right: the result canvas.\n\nWhy: matches what people praise in Grok Bot (feels like iMessage, nothing to learn, only pulled in for judgment). The tracker becomes the sidebar, so the three front doors collapse into one.\nTradeoff: biggest change to the shell. Job Feed and Tracker tabs move. Narrower canvas at 1440." },
+    { "id": "b-note", "x": 1640, "y": -180, "w": 640, "text": "B · Same room, fixed sequence\nToday's two-panel layout, untouched. Only the order of operations changes: one gold button with the price on it, direct generation demoted to a text link, balance stated, stages stream in the panel, the CV stays on the left while it works.\n\nWhy: lowest risk, ships fastest, fixes F2, F4, F16, F17 directly.\nTradeoff: it's still a room. Two panels, three header tabs and a chat that doesn't feel like the spine. Least of the Grok Bot feel." },
+    { "id": "c-note", "x": 3280, "y": -180, "w": 640, "text": "C · Guided line\nThe first run is a four-step line in one column: Your CV, The job, Your fit, Your kit. One card, one button per step. Feed and Tracker don't appear until the first kit exists; then the dashboard opens.\n\nWhy: the strongest 'line, not room'. A first-timer literally cannot get lost.\nTradeoff: it's a wizard, not a conversation. Returning users need a different surface, so you maintain two shells. Weakest fit with the 'message it like a colleague' idea." }
+  ],
+  "launch": { "view": "canvas" }
+}

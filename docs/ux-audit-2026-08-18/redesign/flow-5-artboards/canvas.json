@@ -1,0 +1,16 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "S1 · Settings modal · General", "x": 0, "y": 0, "w": 1440, "h": 900 },
+    { "file": "M2-Usage-Billing.dc.html", "title": "S2 · Usage & Billing (Plus)", "x": 1560, "y": 0, "w": 1440, "h": 900 },
+    { "file": "M3-Notifications.dc.html", "title": "S3 · Notifications", "x": 0, "y": 1060, "w": 1440, "h": 900 },
+    { "file": "M4-Usage-Billing-Free.dc.html", "title": "S4 · Usage & Billing on Free (where Upgrade lands)", "x": 1560, "y": 1060, "w": 1440, "h": 900 }
+  ],
+  "annotations": [
+    { "id": "intro", "x": 0, "y": -260, "w": 980, "text": "Flow 5, settings and billing. Locked 19 Aug 2026 with Wasim.\n\nThe gear at the bottom of the sidebar opens a settings modal over whatever is on screen (the workspace stays put behind it). Left nav: General, Usage & Billing, Notifications. One pane at a time, grouped rows on a cream surface, one serif heading, captions instead of subtitles. Close with × or Esc. The four old routes and the popover menu are gone." },
+    { "id": "s1", "x": 0, "y": -120, "w": 560, "text": "S1 General: Account (avatar, name, email with copy, Sign out), Profile (name, phone, location, photo), Sign-in and security (password, two-factor toggle, signed in with), Preferences (timezone, date format), Account data (delete, one quiet row)." },
+    { "id": "s2", "x": 1560, "y": -120, "w": 560, "text": "S2 Usage & Billing: Usage first (credits left this month, reset date, what the month's credits went on, the price of each action), then Billing (plan row with Manage billing to the Stripe portal; credit pack row), then Plans (Free / Plus / Max cards, one gold CTA on the upgrade target). Free says top-5 daily feed." },
+    { "id": "s3", "x": 0, "y": 940, "w": 560, "text": "S3 Notifications: 'Email me when' with five toggles, one line each, and the address they go to." },
+    { "id": "s4", "x": 1560, "y": 940, "w": 560, "text": "S4: where 'Upgrade to Plus' and 'See Plus' land: the same Usage & Billing pane on a Free account, Plus highlighted with the gold CTA. No separate pricing modal inside the app." }
+  ],
+  "launch": { "view": "canvas" }
+}

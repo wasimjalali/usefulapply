@@ -1,4 +1,4 @@
-# Karko AI Homepage and Pricing UI, UX, Asset, and Copy Audit
+# Useful Apply Homepage and Pricing UI, UX, Asset, and Copy Audit
 
 Date: April 27, 2026
 
@@ -8,7 +8,7 @@ This audit does not include implementation changes.
 
 ## 1. Executive Summary
 
-Karko AI now has a stronger product than the homepage and pricing page communicate. The product is no longer a simple AI document generator, but the pages still behave like a feature-heavy SaaS landing page trying to prove everything at once. The best story is clear: Karko finds jobs for the user, checks fit, creates a complete application kit quickly, and keeps everything tracked. That story is present, but it is diluted by repeated cards, too many sections, outdated screenshots, credit-first pricing language, decorative motion, and trust signals that feel under-leveraged.
+Useful Apply now has a stronger product than the homepage and pricing page communicate. The product is no longer a simple AI document generator, but the pages still behave like a feature-heavy SaaS landing page trying to prove everything at once. The best story is clear: Useful Apply finds jobs for the user, checks fit, creates a complete application kit quickly, and keeps everything tracked. That story is present, but it is diluted by repeated cards, too many sections, outdated screenshots, credit-first pricing language, decorative motion, and trust signals that feel under-leveraged.
 
 The homepage succeeds in naming the new positioning early: "Find your next job and apply in 90 seconds" plus daily hand-picked roles is directionally right. The problem is that the first viewport has no real product image, no visible job feed proof, and no crisp "what happens after I click" explanation beyond abstract stats. A premium job seeker tool should show the workflow immediately. Right now the page makes the user scroll through illustrations, logo marquee, cards, cards again, screenshots, reviews, trust, founder, pricing, calculator, final CTA, and Master CV. It feels busy and somewhat template-like even though many components are individually polished.
 
@@ -47,7 +47,7 @@ Recommendation:
 Current message:
 
 - Headline: "Find your next job and apply in 90 seconds"
-- Subcopy: "Karko finds hand-picked roles for you every morning, then writes a tailored CV, cover letter and emails for each one. All in one place."
+- Subcopy: "Useful Apply finds hand-picked roles for you every morning, then writes a tailored CV, cover letter and emails for each one. All in one place."
 
 What works:
 
@@ -59,7 +59,7 @@ What works:
 What is weak:
 
 - The hero has no product screenshot. For a job search workspace, this is a missed opportunity. The claim "find jobs and apply" needs immediate visual proof.
-- "Apply in 90 seconds" can sound like Karko submits the application, not that it creates the application materials. That ambiguity matters.
+- "Apply in 90 seconds" can sound like Useful Apply submits the application, not that it creates the application materials. That ambiguity matters.
 - The hero focuses on speed more than confidence. Job seekers care about fast, but they also worry about quality, fit, and not looking generic.
 - The shimmer headline effect makes the page feel a little less premium.
 - The cloud background is soft but not product-relevant. It makes the opening feel decorative rather than useful.
@@ -84,7 +84,7 @@ Get matched jobs and complete applications in one place
 Suggested subcopy:
 
 ```text
-Karko finds relevant jobs each day, checks your fit, writes the tailored CV, cover letter, application email, and follow-up, then tracks every application.
+Useful Apply finds relevant jobs each day, checks your fit, writes the tailored CV, cover letter, application email, and follow-up, then tracks every application.
 ```
 
 Suggested primary CTA:
@@ -253,10 +253,10 @@ Early users are already saving time
 Suggested support copy:
 
 ```text
-Real reviews from job seekers using Karko to create targeted applications faster.
+Real reviews from job seekers using Useful Apply to create targeted applications faster.
 ```
 
-### Why Trust Karko AI
+### Why Trust Useful Apply
 
 What works:
 
@@ -268,7 +268,7 @@ What is weak:
 - The Anthropic image is not an Anthropic logo. It is a generic "AI" tile. This damages trust because the visual proof does not match the label.
 - "Claude Sonnet 4.6" is very model-centric. Job seekers care less about the model name than about output quality and not making things up.
 - "Self-Refining AI" sounds like AI hype. It is not concrete enough.
-- The section title "Why Trust Karko AI" is blunt and a bit defensive.
+- The section title "Why Trust Useful Apply" is blunt and a bit defensive.
 - More rounded cards appear again, reinforcing the template feel.
 
 Recommendation:
@@ -301,7 +301,7 @@ What works:
 
 What is weak:
 
-- The story still frames Karko as "paste a job description, get a tailored CV, cover letter, and professional email," which underplays the new complete workspace.
+- The story still frames Useful Apply as "paste a job description, get a tailored CV, cover letter, and professional email," which underplays the new complete workspace.
 - The card layout is heavy and familiar.
 - The quote decoration is unnecessary.
 - The founder photo is real but casual. It can work, but the surrounding layout should make it feel intentional.
@@ -315,7 +315,7 @@ Recommendation:
 Suggested replacement paragraph:
 
 ```text
-So I built Karko AI to handle the whole workflow: find relevant jobs, check fit, create the tailored application kit, and keep every application organized. Within about 20 applications, I got my first interview. That is when I knew this needed to exist for other job seekers.
+So I built Useful Apply to handle the whole workflow: find relevant jobs, check fit, create the tailored application kit, and keep every application organized. Within about 20 applications, I got my first interview. That is when I knew this needed to exist for other job seekers.
 ```
 
 ### Homepage Pricing
@@ -420,7 +420,7 @@ What is weak:
 
 Recommendation:
 
-- Move Master CV earlier into a compact FAQ, onboarding note, or "How Karko gets better output" section.
+- Move Master CV earlier into a compact FAQ, onboarding note, or "How Useful Apply gets better output" section.
 - Or keep it below final CTA only if the CTA is not styled as final.
 
 ## 3. Pricing Page Section-by-Section Audit
@@ -444,7 +444,7 @@ Recommendation:
 Suggested heading:
 
 ```text
-Choose how much of your job search Karko should run
+Choose how much of your job search Useful Apply should run
 ```
 
 Suggested subcopy:
@@ -567,7 +567,7 @@ What is weak:
 - FAQ is long and partly SEO-driven.
 - Competitor FAQs on the pricing page may distract users who are ready to choose a plan.
 - "Are all features the same across plans?" answer says every plan includes the Application Kit, fit analysis, ATS templates, Master CV support, PDF export, and tracker. It then says Plus adds Job Feed and Max adds screening answers. This is clear, but the question wording invites confusion.
-- "How is KarKo different from other resume builders?" uses the brand as "KarKo," while most page copy says "Karko." Brand capitalization is inconsistent.
+- "How is Useful Apply different from other resume builders?" uses the brand as "Useful Apply," while most page copy says "Useful Apply." Brand capitalization is inconsistent.
 
 Recommendation:
 
@@ -579,7 +579,7 @@ Recommendation:
   - What happens when I run out?
   - How does Smart Job Feed work?
   - What AI model is used?
-- Move competitor comparison links lower or into a compact "Compare Karko" block.
+- Move competitor comparison links lower or into a compact "Compare Useful Apply" block.
 
 ### Pricing Final CTA
 
@@ -590,7 +590,7 @@ What works:
 
 What is weak:
 
-- "Ready to make Karko your job search home?" is warm but vague.
+- "Ready to make Useful Apply your job search home?" is warm but vague.
 - The secondary CTA says "See How It Works" but links to `/`, not directly to `/#how-it-works`. That is a flow issue.
 - The dark CTA repeats the homepage final CTA pattern.
 
@@ -667,7 +667,7 @@ What works:
 What is weak:
 
 - The card says "~300/month" but does not explain that this is based on weekdays or daily delivery assumptions. If "up to 15 jobs/day" is everyday, 15 times 30 is 450, so "~300/month" implies business days. This needs clarity.
-- "25 complete applications/month" competes with "~300 jobs/month." The relationship should be explained: Karko finds many jobs, user chooses which to apply to.
+- "25 complete applications/month" competes with "~300 jobs/month." The relationship should be explained: Useful Apply finds many jobs, user chooses which to apply to.
 - "Priority email support" is low conversion value compared with daily job discovery.
 
 Recommended copy:
@@ -957,9 +957,9 @@ Observed assets in `public/screenshots`:
 
 Current mismatch examples:
 
-- `01-smart-job-feed-populated.webp` should not be used with alt "Karko AI Smart Job Feed with ranked jobs and fit scores."
-- `03c-cv-tailored-clean.webp` should not be used with alt "Karko AI tailored CV panel showing an ATS-safe resume."
-- `03-application-kit-generated.webp` should not be used with alt "Karko AI Application Kit with generated application materials."
+- `01-smart-job-feed-populated.webp` should not be used with alt "Useful Apply Smart Job Feed with ranked jobs and fit scores."
+- `03c-cv-tailored-clean.webp` should not be used with alt "Useful Apply tailored CV panel showing an ATS-safe resume."
+- `03-application-kit-generated.webp` should not be used with alt "Useful Apply Application Kit with generated application materials."
 - `04-fit-analysis-result.webp` includes content referencing GPT-4, while the page positions Claude Sonnet 4.6.
 
 Recommended naming convention:
@@ -980,11 +980,11 @@ application-tracker-overview.webp
 Recommended alt text pattern:
 
 ```text
-Karko AI showing daily ranked job matches with fit labels
-Karko AI job detail modal with role summary and apply action
-Karko AI fit analysis showing match score, strengths, gaps, and recommendation
-Karko AI application kit with CV, cover letter, application email, and follow-up email ready
-Karko AI application tracker showing saved roles, match scores, and statuses
+Useful Apply showing daily ranked job matches with fit labels
+Useful Apply job detail modal with role summary and apply action
+Useful Apply fit analysis showing match score, strengths, gaps, and recommendation
+Useful Apply application kit with CV, cover letter, application email, and follow-up email ready
+Useful Apply application tracker showing saved roles, match scores, and statuses
 ```
 
 ### Asset Quality Recommendation
@@ -995,9 +995,9 @@ Capture a fresh screenshot set from a single fictional user and a single fiction
 
 ### What Is Clear
 
-- Karko finds jobs.
-- Karko creates tailored CVs, cover letters, application emails, and follow-up emails.
-- Karko includes fit analysis and tracking.
+- Useful Apply finds jobs.
+- Useful Apply creates tailored CVs, cover letters, application emails, and follow-up emails.
+- Useful Apply includes fit analysis and tracking.
 - Free includes 2 complete applications.
 - Plus and Max include daily job feed.
 
@@ -1009,25 +1009,25 @@ Capture a fresh screenshot set from a single fictional user and a single fiction
 - "~300/month" from 15 jobs/day needs a business-day assumption.
 - "Try the full AI agent" is not precise if some core workspace features are paid.
 - "Claude Sonnet 4.6" is repeated before the user understands the product benefit.
-- Brand capitalization varies between Karko, KarKo, and Karko AI.
+- Brand capitalization varies between Useful Apply, Useful Apply, and Useful Apply.
 
 ### Copy That Feels Generic or Salesy
 
 - "Two problems. One app."
 - "The full job search workflow, in one place"
-- "Why Trust Karko AI"
+- "Why Trust Useful Apply"
 - "Self-Refining AI"
 - "Make your next application feel clear and fast"
-- "Ready to make Karko your job search home?"
+- "Ready to make Useful Apply your job search home?"
 - "Premium dedicated support"
 
 ### Messaging Hierarchy Recommendation
 
 Lead with outcomes in this order:
 
-1. Karko finds relevant jobs daily.
+1. Useful Apply finds relevant jobs daily.
 2. You review fit before spending time.
-3. Karko creates a complete application kit quickly.
+3. Useful Apply creates a complete application kit quickly.
 4. Everything is saved in one tracker.
 5. Free lets you test quality, paid plans unlock daily job discovery and more volume.
 
@@ -1042,7 +1042,7 @@ Get matched jobs and complete applications in one place
 Subcopy:
 
 ```text
-Karko finds relevant jobs each day, checks your fit, writes the tailored CV, cover letter, application email, and follow-up, then tracks every application.
+Useful Apply finds relevant jobs each day, checks your fit, writes the tailored CV, cover letter, application email, and follow-up, then tracks every application.
 ```
 
 Proof row:
@@ -1058,7 +1058,7 @@ Full application kit in under 90 seconds
 Pricing hero:
 
 ```text
-Choose how much of your job search Karko should run
+Choose how much of your job search Useful Apply should run
 ```
 
 Subcopy:
@@ -1075,7 +1075,7 @@ Free tests the quality. Plus supports an active search. Max is for high-volume s
 
 ### Language Cleanup
 
-- Use "Karko" consistently unless the legal brand is definitively "KarKo."
+- Use "Useful Apply" consistently unless the legal brand is definitively "Useful Apply."
 - Use "complete application" consistently to mean CV, cover letter, application email, and follow-up email.
 - Use "daily matched jobs" instead of "hand-picked jobs" if actual process is automated ranking. "Hand-picked" can imply manual human curation.
 - Use "fit analysis" instead of "honest fit score" when explaining the feature, and use "honest fit score" only as a benefit phrase.
@@ -1147,7 +1147,7 @@ Use one shared calculator component with a clear, conservative formula.
 
 ### P3: Clean Brand and Copy Consistency
 
-Standardize Karko naming, plan claims, complete application definition, and job feed monthly math.
+Standardize Useful Apply naming, plan claims, complete application definition, and job feed monthly math.
 
 ## 12. Specific Recommended Changes
 
@@ -1174,7 +1174,7 @@ Get matched jobs and complete applications in one place
 ```
 
 ```text
-Karko finds relevant jobs each day, checks your fit, writes the tailored CV, cover letter, application email, and follow-up, then tracks every application.
+Useful Apply finds relevant jobs each day, checks your fit, writes the tailored CV, cover letter, application email, and follow-up, then tracks every application.
 ```
 
 ```text
@@ -1246,13 +1246,13 @@ Built to keep applications accurate
 ```
 
 ```text
-Karko uses your CV as the source of truth, shows fit before you generate, and keeps every application tied to the role you chose.
+Useful Apply uses your CV as the source of truth, shows fit before you generate, and keeps every application tied to the role you chose.
 ```
 
 ### Founder Story Copy Adjustment
 
 ```text
-So I built Karko AI to handle the whole workflow: find relevant jobs, check fit, create the tailored application kit, and keep every application organized. Within about 20 applications, I got my first interview. That is when I knew this needed to exist for other job seekers.
+So I built Useful Apply to handle the whole workflow: find relevant jobs, check fit, create the tailored application kit, and keep every application organized. Within about 20 applications, I got my first interview. That is when I knew this needed to exist for other job seekers.
 ```
 
 ### Pricing Page FAQ Additions
@@ -1286,7 +1286,7 @@ Do not implement until confirmed.
 - Rename or replace mismatched screenshots.
 - Update alt text to match actual visuals.
 - Replace or remove the incorrect Anthropic image.
-- Standardize "Karko" capitalization and "complete application" wording on homepage and pricing.
+- Standardize "Useful Apply" capitalization and "complete application" wording on homepage and pricing.
 - Clarify Free vs Plus vs Max feature access.
 
 ### Phase 2: Homepage Conversion Restructure

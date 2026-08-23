@@ -5,8 +5,9 @@ import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
+import { BRAND } from '@/lib/brand';
 
-const SITE_URL = 'https://www.karkoai.com';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
@@ -20,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const faqs = [
   {
     q: 'What is a Master CV and why do I need one?',
-    a: "A Master CV is your complete professional record (every role, skill, achievement, and qualification) in a single ATS-compatible document. You maintain it once and use it as the source for all tailored applications. In Karko AI, uploading your Master CV means the AI has access to your full professional history and can select and emphasize the right elements for each specific job description.",
+    a: "A Master CV is your complete professional record (every role, skill, achievement, and qualification) in a single ATS-compatible document. You maintain it once and use it as the source for all tailored applications. In Useful Apply, uploading your Master CV means the AI has access to your full professional history and can select and emphasize the right elements for each specific job description.",
   },
   {
     q: 'How long should a Master CV be?',
@@ -118,10 +119,10 @@ export default function MasterCVTemplatePage() {
     headline: 'Master CV Template: Build Your Foundation for AI Job Applications',
     description:
       'A Master CV is your complete, structured source document. Build it once, use it for every AI-generated application. Template, structure, and workflow in 45–90 minutes.',
-    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+    author: { '@type': 'Organization', name: 'Useful Apply', url: SITE_URL },
     publisher: {
       '@type': 'Organization',
-      name: 'KarKo AI',
+      name: 'Useful Apply',
       url: SITE_URL,
       logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon-512x512.png` },
     },
@@ -180,7 +181,7 @@ export default function MasterCVTemplatePage() {
             <ScrollReveal delay={300}>
               <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
                 A Master CV is your complete, unedited work history: every role, skill, achievement,
-                and qualification, structured in ATS-safe format. You upload it once to Karko AI, and
+                and qualification, structured in ATS-safe format. You upload it once to Useful Apply, and
                 the system draws from it for every tailored application you generate. The quality of
                 your Master CV directly determines the quality of every application that follows.
               </p>
@@ -205,7 +206,7 @@ export default function MasterCVTemplatePage() {
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
               Its purpose is to be the source document from which tailored, role-specific CVs are
-              derived. Think of it as your database; Karko AI uses it to generate the right subset
+              derived. Think of it as your database; Useful Apply uses it to generate the right subset
               for each job.
             </p>
           </div>
@@ -396,7 +397,7 @@ export default function MasterCVTemplatePage() {
           <ScrollReveal>
             <div className="max-w-4xl mx-auto text-center relative">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                Upload Your Master CV to Karko AI
+                Upload Your Master CV to Useful Apply
               </h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
                 Build your Master CV once, then generate tailored applications for every role in under
@@ -406,7 +407,7 @@ export default function MasterCVTemplatePage() {
                 href="/dashboard"
                 className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg"
               >
-                Upload Your Master CV to Karko AI
+                Upload Your Master CV to Useful Apply
                 <ArrowRight className="w-5 h-5" />
               </a>
             </div>

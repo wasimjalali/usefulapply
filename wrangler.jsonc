@@ -1,0 +1,359 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"main": "src/worker.ts",
+	"name": "usefulapply",
+	"compatibility_date": "2026-08-17",
+	"compatibility_flags": [
+		"nodejs_compat",
+		"global_fetch_strictly_public"
+	],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"services": [
+		{
+			// Self-reference so ISR revalidation can call this worker.
+			"binding": "WORKER_SELF_REFERENCE",
+			"service": "usefulapply"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "NEXT_INC_CACHE_R2_BUCKET",
+			// Bucket created in Task 3.5. Local preview uses wrangler's simulated R2.
+			"bucket_name": "usefulapply-next-cache"
+		},
+		{
+			"binding": "FILES",
+			// Wasim: `npx wrangler r2 bucket create usefulapply-files` (do not create from this task).
+			// Local preview uses wrangler's simulated R2.
+			"bucket_name": "usefulapply-files"
+		}
+	],
+	// Cloudflare Email Service. usefulapply.com is onboarded for sending
+	// (`npx wrangler email sending list`). Add `"remote": true` only for a
+	// local send test, never commit it.
+	"send_email": [
+		{
+			"name": "EMAIL"
+		}
+	],
+	// Auth secrets (Wasim via `wrangler secret put`, never in this file):
+	// BETTER_AUTH_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET.
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "usefulapply-db",
+			"database_id": "8cd7059e-4f0b-429b-aace-e379756707e1",
+			"migrations_dir": "migrations/d1"
+		}
+	],
+	"images": {
+		"binding": "IMAGES"
+	},
+	// Workers AI for job feed ranking. Primary model, then the fallback model on
+	// failure, then deterministic ordering (see openai-ranking.ts).
+	"ai": {
+		"binding": "AI"
+	},
+	"vars": {
+		"JOB_FEED_RANKING_MODEL": "@cf/openai/gpt-oss-120b",
+		"JOB_FEED_RANKING_FALLBACK_MODEL": "@cf/deepseek-ai/deepseek-v4-flash-0731"
+	},
+	"kv_namespaces": [
+		{
+			"binding": "CONTEXT_CACHE",
+			"id": "2de5d12fd4934bbcad48fb1b95fc4cf6"
+		}
+	],
+	// One Rate Limiting binding per RATE_LIMITS bucket (60s windows).
+	// namespace_id is an account-unique integer we pick; confirm unused in Task 3.5.
+	// anon-parse hourly cap (5 / 3600s) stays in-memory; RATE_LIMIT_ANON_PARSE adds a 2 / 60s cap the binding can enforce.
+	"ratelimits": [
+		{
+			"name": "RATE_LIMIT_AGENT_V2",
+			"namespace_id": "3101",
+			"simple": {
+				"limit": 5,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_PARSE_CV",
+			"namespace_id": "3102",
+			"simple": {
+				"limit": 10,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_CHAT",
+			"namespace_id": "3103",
+			"simple": {
+				"limit": 20,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_CONTACT",
+			"namespace_id": "3104",
+			"simple": {
+				"limit": 3,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_REGENERATE",
+			"namespace_id": "3106",
+			"simple": {
+				"limit": 10,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_SIGNUP",
+			"namespace_id": "3107",
+			"simple": {
+				"limit": 3,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_SIGNIN",
+			"namespace_id": "3128",
+			"simple": {
+				"limit": 5,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_FORGOT_PASSWORD",
+			"namespace_id": "3108",
+			"simple": {
+				"limit": 5,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_POST_CONFIRM",
+			"namespace_id": "3109",
+			"simple": {
+				"limit": 5,
+				"period": 60
+			}
+		},
+		{
+			// First tier in front of every job-feed route. High on purpose: it
+			// caps a flood before the session lookup, and the per-route limit
+			// after auth is the one keyed on the user.
+			"name": "RATE_LIMIT_JOB_FEED_IP",
+			"namespace_id": "3131",
+			"simple": {
+				"limit": 600,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_SETTINGS",
+			"namespace_id": "3110",
+			"simple": {
+				"limit": 10,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_OVERVIEW",
+			"namespace_id": "3111",
+			"simple": {
+				"limit": 15,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_SAVED",
+			"namespace_id": "3112",
+			"simple": {
+				"limit": 15,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_FEEDBACK",
+			"namespace_id": "3113",
+			"simple": {
+				"limit": 20,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_APPLY",
+			"namespace_id": "3114",
+			"simple": {
+				"limit": 10,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_RUN",
+			"namespace_id": "3115",
+			"simple": {
+				"limit": 2,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_DEV_RUN",
+			"namespace_id": "3116",
+			"simple": {
+				"limit": 3,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_INBOX",
+			"namespace_id": "3117",
+			"simple": {
+				"limit": 30,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_CREDITS_BALANCE",
+			"namespace_id": "3118",
+			"simple": {
+				"limit": 30,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_DELETE_ACCOUNT",
+			"namespace_id": "3119",
+			"simple": {
+				"limit": 3,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_CREATE_CHECKOUT",
+			"namespace_id": "3120",
+			"simple": {
+				"limit": 5,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_CREATE_ADDON_CHECKOUT",
+			"namespace_id": "3121",
+			"simple": {
+				"limit": 5,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_CREATE_PORTAL",
+			"namespace_id": "3122",
+			"simple": {
+				"limit": 3,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_APPLY_GEN",
+			"namespace_id": "3123",
+			"simple": {
+				"limit": 60,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_JOB_FEED_APPLY_STATUS",
+			"namespace_id": "3124",
+			"simple": {
+				"limit": 30,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_CAREER_PROFILE_GENERATE",
+			"namespace_id": "3125",
+			"simple": {
+				"limit": 6,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_ANON_PARSE",
+			"namespace_id": "3126",
+			"simple": {
+				"limit": 2,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_SEARCH_STRATEGY_GENERATE",
+			"namespace_id": "3127",
+			"simple": {
+				"limit": 3,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_FILES_UPLOAD",
+			"namespace_id": "3129",
+			"simple": {
+				"limit": 10,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_FILES_GET",
+			"namespace_id": "3130",
+			"simple": {
+				"limit": 60,
+				"period": 60
+			}
+		}
+	],
+	// Paid plan default is 30s CPU. Fit analysis + generation is LLM-bound
+	// (unlimited wall clock, but CPU can exceed 30s). Max is 5 minutes.
+	"limits": {
+		"cpu_ms": 300000
+	},
+	// Daily "0 3 * * *" is live for the free-tier credit reset sweep and
+	// job-feed cleanup. The other three stay off until Phase 9.
+	// Expressions must match src/cron/index.ts:
+	// "0 3 * * *", "*/10 * * * *", "0 * * * *", "0 9 * * 1-5".
+	// Weekday check-in stays off: staging D1 holds imported production users
+	// whose welcome_sent_at is already > 3 days old.
+	// Workers Logs: without this the cron console.error lines are not persisted anywhere.
+	"observability": {
+		"enabled": true
+	},
+	"triggers": {
+		"crons": [
+			"0 3 * * *",
+			"0 8 * * *",
+			// "*/10 * * * *",
+			// "0 * * * *",
+			// "0 9 * * 1-5"
+		]
+	},
+	// Custom Domains create the DNS records and certificates automatically.
+	"routes": [
+		{
+			"pattern": "usefulapply.com",
+			"custom_domain": true
+		},
+		{
+			"pattern": "www.usefulapply.com",
+			"custom_domain": true
+		},
+		{
+			// Admin dashboard host. Cloudflare Access (Zero Trust) fronts this
+			// hostname; the Worker still verifies the Access JWT in-app.
+			"pattern": "admin.usefulapply.com",
+			"custom_domain": true
+		}
+	]
+}

@@ -3,13 +3,14 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Check, Zap, ArrowRight, ChevronDown, FileText, MessageSquare, BarChart3, Loader2, Clock } from 'lucide-react';
+import { Check, ArrowRight, ChevronDown, Loader2 } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { PricingAurora } from '@/components/marketing/PricingAurora';
 import { useAuth } from '@/contexts/AuthContext';
 import { pricingFAQs } from '@/lib/marketing/pricing-faqs';
+import { CREDIT_PRICES } from '@/lib/plans';
 
 // Single add-on credit pack
 // TODO: Replace priceId value with actual Stripe Price ID
@@ -169,141 +170,113 @@ export default function PricingPage() {
           <div className="grid md:grid-cols-3 gap-6 items-stretch">
             {/* === FREE === */}
             <ScrollReveal delay={0} className="h-full">
-            <div className="relative h-full flex flex-col bg-cream-50 rounded-2xl border border-navy-200 shadow-sm overflow-hidden">
-              <div className="h-[36px]" />
-              <div className="p-7 pt-5 flex flex-col h-full">
-                <div className="mb-4">
-                  <h3 className="font-bold text-navy-600 text-[22px] leading-tight">Free</h3>
-                  <p className="text-sm text-warm-gray mt-0.5">For testing the waters</p>
-                </div>
-                <div className="mb-5">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-[40px] font-bold text-navy-600 leading-none">$0</span>
-                    <span className="text-warm-gray text-sm">/ month</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 bg-navy-50 border border-navy-100 rounded-lg px-3 py-2 mb-5">
-                  <Clock className="w-4 h-4 text-navy-500 flex-shrink-0" />
-                  <span className="text-[13px] font-semibold text-navy-700">Save ~2 hours every month</span>
-                </div>
-                <Link
-                  href="/dashboard"
-                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm border border-navy-300 bg-white hover:bg-navy-50 hover:border-navy-400 hover:shadow-md text-navy-600 transition-all duration-200 hover:-translate-y-0.5 mb-6 group"
-                >
-                  Start Free
-                  <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
-                </Link>
-                <p className="font-bold text-charcoal text-[15px] mb-3">What&apos;s included:</p>
-                <ul className="space-y-2.5 flex-1">
-                  {[
-                    { label: '4 credits per month', emphasis: true },
-                    { label: '2 full applications per month' },
-                    { label: 'Tailored CV, cover letter, email, follow-up' },
-                    { label: 'Fit analysis with match score' },
-                    { label: 'US and EU ATS-optimized templates' },
-                    { label: 'Application tracker' },
-                  ].map((f, i) => (
-                    <li key={i} className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-500" />
-                      <span className={`text-[14px] text-charcoal leading-relaxed ${f.emphasis ? 'font-semibold' : ''}`}>{f.label}</span>
-                    </li>
-                  ))}
-                </ul>
+            <div className="relative h-full flex flex-col rounded-2xl border border-cream-200 p-6 shadow-sm bg-cream-50">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[22px] font-semibold leading-tight text-navy-800">Free</span>
               </div>
+              <p className="mt-3 text-[32px] font-semibold leading-none text-navy-900">
+                $0
+                <span className="ml-1 text-sm font-normal text-warm-gray">/mo</span>
+              </p>
+              <p className="mt-5 font-semibold text-charcoal text-[15px] mb-3">What&apos;s included:</p>
+              <ul className="flex-1 space-y-2.5 mb-6">
+                {[
+                  { label: '2 full applications a month', emphasis: true },
+                  { label: 'Or 8 fit checks while you explore' },
+                  { label: 'Tailored CV, cover letter, email and follow-up' },
+                  { label: 'Fit analysis with match score' },
+                  { label: 'Top 5 roles a day in your feed' },
+                  { label: 'US and EU ATS-optimized templates' },
+                  { label: 'Application tracker' },
+                ].map((f) => (
+                  <li key={f.label} className={`flex items-start gap-2 text-sm text-charcoal ${f.emphasis ? 'font-semibold' : ''}`}>
+                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-gold-500" />
+                    {f.label}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/dashboard"
+                className="group inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-cream-200 bg-cream-50 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
+              >
+                Start Free
+                <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
+              </Link>
             </div>
             </ScrollReveal>
 
             {/* === PLUS === */}
             <ScrollReveal delay={100} className="h-full">
-            <div className="relative h-full flex flex-col bg-cream-50 rounded-2xl border-2 border-gold-400 shadow-xl overflow-hidden">
-              <div className="h-[36px] flex items-center justify-center bg-gold-400 text-white text-[11px] font-bold tracking-[0.14em]">
-                MOST POPULAR
+            <div className="relative h-full flex flex-col rounded-2xl border border-gold-400 p-6 shadow-sm bg-cream-50">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[22px] font-semibold leading-tight text-navy-800">Plus</span>
+                <span className="rounded-full bg-gold-400 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
+                  Most popular
+                </span>
               </div>
-              <div className="p-7 pt-5 flex flex-col h-full">
-                <div className="mb-4">
-                  <h3 className="font-bold text-navy-600 text-[22px] leading-tight">Plus</h3>
-                  <p className="text-sm text-warm-gray mt-0.5">For applying every week</p>
-                </div>
-                <div className="mb-6">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-[40px] font-bold text-navy-600 leading-none">$19.99</span>
-                    <span className="text-warm-gray text-sm">/ month</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 bg-gold-50 border border-gold-200 rounded-lg px-3 py-2 mb-5">
-                  <Clock className="w-4 h-4 text-gold-600 flex-shrink-0" />
-                  <span className="text-[13px] font-semibold text-gold-700">Save ~18 hours every month</span>
-                </div>
-                <button
-                  onClick={() => handleSubscribe('plus')}
-                  disabled={loadingPlan === 'plus'}
-                  className="cta-gold w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-white shadow-sm cursor-pointer disabled:opacity-60 mb-6 group"
-                >
-                  {loadingPlan === 'plus' ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Plus <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
-                </button>
-                <p className="font-bold text-charcoal text-[15px] mb-3">Everything in Free, plus:</p>
-                <ul className="space-y-2.5 mb-5 flex-1">
-                  {[
-                    { label: '50 credits per month', emphasis: true },
-                    { label: '25 full applications per month' },
-                    { label: 'Smart Job Feed: up to 25 roles a day' },
-                    { label: 'Feed searches 2 job titles across 2 countries' },
-                    { label: 'Screening question answers' },
-                    { label: 'Unlimited application tracker' },
-                    { label: 'Add-on credit packs (credits roll over)' },
-                    { label: 'Priority email support' },
-                  ].map((f, i) => (
-                    <li key={i} className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-500" />
-                      <span className={`text-[14px] text-charcoal leading-relaxed ${f.emphasis ? 'font-semibold' : ''}`}>{f.label}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <p className="mt-3 text-[32px] font-semibold leading-none text-navy-900">
+                $19.99
+                <span className="ml-1 text-sm font-normal text-warm-gray">/mo</span>
+              </p>
+              <p className="mt-5 font-semibold text-charcoal text-[15px] mb-3">Everything in Free, plus:</p>
+              <ul className="flex-1 space-y-2.5 mb-6">
+                {[
+                  { label: '25 full applications a month', emphasis: true },
+                  { label: 'Fit checks and rewrites from the same allowance' },
+                  { label: 'Top 20 roles a day, with feed editing' },
+                  { label: 'Feed searches 2 job titles across 2 countries' },
+                  { label: 'Screening question answers' },
+                  { label: 'Unlimited application tracker' },
+                  { label: 'Top-up packs when you need more' },
+                  { label: 'Priority email support' },
+                ].map((f) => (
+                  <li key={f.label} className={`flex items-start gap-2 text-sm text-charcoal ${f.emphasis ? 'font-semibold' : ''}`}>
+                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-gold-500" />
+                    {f.label}
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => handleSubscribe('plus')}
+                disabled={loadingPlan === 'plus'}
+                className="group inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-gold-400 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer disabled:opacity-60"
+              >
+                {loadingPlan === 'plus' ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Plus <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
+              </button>
             </div>
             </ScrollReveal>
 
             {/* === MAX === */}
             <ScrollReveal delay={200} className="h-full">
-            <div className="relative h-full flex flex-col bg-navy-800 rounded-2xl border border-navy-700 shadow-sm overflow-hidden">
-              <div className="h-[36px]" />
-              <div className="p-7 pt-5 flex flex-col h-full">
-                <div className="mb-4">
-                  <h3 className="font-bold text-white text-[22px] leading-tight">Max</h3>
-                  <p className="text-sm text-navy-300 mt-0.5">For applying every day</p>
-                </div>
-                <div className="mb-6">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-[40px] font-bold text-white leading-none">$79.99</span>
-                    <span className="text-navy-300 text-sm">/ month</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 bg-navy-700 border border-navy-600 rounded-lg px-3 py-2 mb-5">
-                  <Clock className="w-4 h-4 text-gold-400 flex-shrink-0" />
-                  <span className="text-[13px] font-semibold text-gold-300">Save ~108 hours every month</span>
-                </div>
-                <button
-                  onClick={() => handleSubscribe('max')}
-                  disabled={loadingPlan === 'max'}
-                  className="cta-gold w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-lg font-semibold text-sm bg-gold-400 hover:bg-gold-500 text-white shadow-sm cursor-pointer disabled:opacity-60 mb-6 group"
-                >
-                  {loadingPlan === 'max' ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Max <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
-                </button>
-                <p className="font-bold text-white text-[15px] mb-3">Everything in Plus, plus:</p>
-                <ul className="space-y-2.5 mb-5 flex-1">
-                  {[
-                    { label: '200 credits per month', emphasis: true },
-                    { label: '100 full applications per month' },
-                    { label: 'Feed searches 4 job titles across 4 countries' },
-                    { label: 'Premium dedicated support' },
-                  ].map((f, i) => (
-                    <li key={i} className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-400" />
-                      <span className={`text-[14px] text-navy-100 leading-relaxed ${f.emphasis ? 'font-semibold' : ''}`}>{f.label}</span>
-                    </li>
-                  ))}
-                </ul>
+            <div className="relative h-full flex flex-col rounded-2xl border border-cream-200 p-6 shadow-sm bg-cream-50">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[22px] font-semibold leading-tight text-navy-800">Max</span>
               </div>
+              <p className="mt-3 text-[32px] font-semibold leading-none text-navy-900">
+                $79.99
+                <span className="ml-1 text-sm font-normal text-warm-gray">/mo</span>
+              </p>
+              <p className="mt-5 font-semibold text-charcoal text-[15px] mb-3">Everything in Plus, plus:</p>
+              <ul className="flex-1 space-y-2.5 mb-6">
+                {[
+                  { label: '100 full applications a month', emphasis: true },
+                  { label: 'Feed searches 4 job titles across 4 countries' },
+                  { label: 'Built for an all-out daily search' },
+                  { label: 'Premium dedicated support' },
+                ].map((f) => (
+                  <li key={f.label} className={`flex items-start gap-2 text-sm text-charcoal ${f.emphasis ? 'font-semibold' : ''}`}>
+                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-gold-500" />
+                    {f.label}
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => handleSubscribe('max')}
+                disabled={loadingPlan === 'max'}
+                className="group inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-gold-400 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer disabled:opacity-60"
+              >
+                {loadingPlan === 'max' ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Max <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
+              </button>
             </div>
             </ScrollReveal>
           </div>
@@ -318,7 +291,7 @@ export default function PricingPage() {
       {/* /Aurora-backed first-fold */}
 
       {/* Add-on credit packs — moved out of cards into a dedicated band */}
-      <section className="pb-20 px-4 sm:px-6 lg:px-8" id="addons">
+      <section className="scroll-mt-24 pb-20 px-4 sm:px-6 lg:px-8" id="addons">
         <div className="max-w-4xl mx-auto">
           <ScrollReveal>
           <div className="bg-navy-800 border border-navy-700 rounded-2xl p-6 md:p-8 shadow-md">
@@ -375,7 +348,7 @@ export default function PricingPage() {
               How much time will you save?
             </h2>
             <p className="text-warm-gray max-w-lg mx-auto">
-              One tailored application takes an hour by hand. Karko does it in 90 seconds. Roughly 40x faster, without dropping quality.
+              One tailored application takes an hour by hand. Useful Apply does it in 90 seconds. Roughly 40x faster, without dropping quality.
             </p>
           </div>
           </ScrollReveal>
@@ -441,35 +414,13 @@ export default function PricingPage() {
             <h2 className="font-bold text-navy-600 text-[32px] leading-[1.1] mb-3">
               How credits work.
             </h2>
-            <p className="text-warm-gray max-w-xl mx-auto">
-              Credits are simple. Each action costs a fixed number of credits. No surprises.
-            </p>
           </div>
           </ScrollReveal>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { icon: BarChart3, credits: '0.5', label: 'Fit Analysis', sub: 'Job fit score + skill gaps', gradient: 'from-navy-500 to-navy-600', iconBg: 'bg-gradient-to-br from-navy-50 to-navy-100', iconColor: 'text-navy-600' },
-              { icon: FileText, credits: '2', label: 'Full Application', sub: 'CV + Cover Letter + Email', gradient: 'from-gold-400 to-gold-500', iconBg: 'bg-gradient-to-br from-gold-50 to-gold-100', iconColor: 'text-gold-500' },
-              { icon: MessageSquare, credits: '0.5', label: 'Cover Letter Regen', sub: 'Regenerate with new tone', gradient: 'from-gold-500 to-gold-600', iconBg: 'bg-gradient-to-br from-gold-50 to-gold-100', iconColor: 'text-gold-600' },
-              { icon: Zap, credits: '0.5', label: 'Email Regen', sub: 'Regenerate application email', gradient: 'from-navy-600 to-navy-700', iconBg: 'bg-gradient-to-br from-gold-50 to-gold-100', iconColor: 'text-gold-600' },
-            ].map((item, idx) => {
-              const Icon = item.icon;
-              return (
-                <ScrollReveal key={idx} delay={idx * 100}>
-                <div className="text-center p-8 bg-white rounded-2xl border border-cream-200 card-hover-lift relative overflow-hidden">
-                  <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${item.gradient}`} />
-                  <div className={`w-14 h-14 ${item.iconBg} rounded-xl flex items-center justify-center mx-auto mb-4`}>
-                    <Icon className={`w-7 h-7 ${item.iconColor}`} />
-                  </div>
-                  <div className="text-3xl font-bold text-navy-600 mb-1">{item.credits}</div>
-                  <div className="text-sm font-semibold text-charcoal mb-2">credits</div>
-                  <div className="text-sm font-medium text-charcoal">{item.label}</div>
-                  <div className="text-xs text-warm-gray mt-2">{item.sub}</div>
-                </div>
-                </ScrollReveal>
-              );
-            })}
-          </div>
+          <ScrollReveal delay={100}>
+          <p className="text-center text-[15px] text-charcoal">
+            {CREDIT_PRICES}
+          </p>
+          </ScrollReveal>
         </div>
       </section>
 

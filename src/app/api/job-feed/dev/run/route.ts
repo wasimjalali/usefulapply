@@ -1,48 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isJobFeedDebugModeEnabled } from '@/lib/job-feed/constants';
+import { timingSafeEqual } from 'crypto';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import { runJobFeedFoundationWorkflow } from '@/lib/job-feed/server';
-import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-import { createClient } from '@/lib/supabase/server';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { getCurrentUser } from '@/auth/server';
+import { getProfile } from '@/db/repos/profiles';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
+const DEBUG_SECRET_HEADER = 'x-job-feed-debug-secret';
+
+function isJobFeedDebugSecretValid(presented: string | null): boolean {
+  const secret = process.env.JOB_FEED_DEBUG_SECRET;
+  if (!secret || !presented) return false;
+  const expected = Buffer.from(secret);
+  const actual = Buffer.from(presented);
+  if (actual.length !== expected.length) return false;
+  return timingSafeEqual(actual, expected);
+}
+
 export async function POST(request: NextRequest) {
-  if (!isJobFeedDebugModeEnabled()) {
+  if (!isJobFeedDebugSecretValid(request.headers.get(DEBUG_SECRET_HEADER))) {
     return NextResponse.json({ error: 'Not found.' }, { status: 404 });
   }
 
   try {
-    const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`job-feed-dev-run:${ip}`, RATE_LIMITS['job-feed-dev-run']);
-    if (!allowed) {
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
     const payload = await request.json().catch(() => ({}));
     const force = Boolean(payload?.force);
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    const { data: profile, error: profileError } = await typedSupabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
+    const { allowed } = await checkRateLimit(`job-feed-dev-run:${user.id}`, RATE_LIMITS['job-feed-dev-run']);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
 
-    if (profileError || !profile || !canAccessJobFeed(profile.subscription_tier)) {
+    const profile = await getProfile(user.id);
+
+    if (!profile || !canAccessJobFeed(profile.subscription_tier)) {
       return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
     const result = await runJobFeedFoundationWorkflow({
       userId: user.id,
+      requestExecutionId: crypto.randomUUID(),
+      clientRequestId: request.headers.get('x-request-id'),
       triggerSource: force ? 'manual_debug_force' : 'manual_debug',
       now: new Date(),
       force,

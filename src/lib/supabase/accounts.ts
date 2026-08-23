@@ -1,9 +1,10 @@
-import { getSupabase } from './client';
+import { authClient } from '@/auth/client';
 import type { SubscriptionTier } from './types';
-
-// Get untyped supabase client for tables not in generated types
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- connected_accounts / subscriptions lag Database types
-const getUntypedSupabase = () => getSupabase() as any;
+import {
+  getConnectedAccountsAction,
+  disconnectAccountAction,
+  getSubscriptionAction,
+} from '@/db/actions';
 
 export interface ConnectedAccount {
   id: string;
@@ -36,19 +37,7 @@ export interface Subscription {
  * Get user's connected accounts
  */
 export async function getConnectedAccounts(userId: string): Promise<ConnectedAccount[]> {
-  const supabase = getUntypedSupabase();
-
-  const { data, error } = await supabase
-    .from('connected_accounts')
-    .select('*')
-    .eq('user_id', userId);
-
-  if (error) {
-    console.error('Error fetching connected accounts:', error);
-    return [];
-  }
-
-  return data as ConnectedAccount[];
+  return getConnectedAccountsAction(userId) as Promise<ConnectedAccount[]>;
 }
 
 /**
@@ -58,19 +47,7 @@ export async function disconnectAccount(
   userId: string,
   provider: 'google' | 'linkedin' | 'github'
 ): Promise<{ error: Error | null }> {
-  const supabase = getUntypedSupabase();
-
-  const { error } = await supabase
-    .from('connected_accounts')
-    .delete()
-    .eq('user_id', userId)
-    .eq('provider', provider);
-
-  if (error) {
-    return { error: new Error(error.message) };
-  }
-
-  return { error: null };
+  return disconnectAccountAction(userId, provider);
 }
 
 /**
@@ -78,23 +55,7 @@ export async function disconnectAccount(
  */
 export async function getSubscription(userId: string): Promise<Subscription | null> {
   try {
-    const supabase = getUntypedSupabase();
-
-    // Use maybeSingle() to avoid 406 HTTP errors when no subscription exists.
-    // Most users have no row here — the app uses user_credits for plan management.
-    const { data, error } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .maybeSingle();
-
-    if (error) {
-      // Table missing or other schema issue — fail gracefully
-      return null;
-    }
-
-    return data as Subscription | null;
+    return await getSubscriptionAction(userId) as Subscription | null;
   } catch (e) {
     console.warn('getSubscription: unexpected error (non-fatal):', e);
     return null;
@@ -105,25 +66,8 @@ export async function getSubscription(userId: string): Promise<Subscription | nu
  * Create a free subscription for new users
  */
 export async function createFreeSubscription(userId: string): Promise<{ subscription: Subscription | null; error: Error | null }> {
-  const supabase = getUntypedSupabase();
-
-  const { data, error } = await supabase
-    .from('subscriptions')
-    .insert({
-      user_id: userId,
-      tier: 'free',
-      status: 'active',
-      applications_used: 0,
-      applications_limit: 5,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    return { subscription: null, error: new Error(error.message) };
-  }
-
-  return { subscription: data as Subscription, error: null };
+  const { createFreeSubscription: create } = await import('@/db/repos/subscriptions');
+  return create(userId) as Promise<{ subscription: Subscription | null; error: Error | null }>;
 }
 
 /**
@@ -150,17 +94,21 @@ export async function canCreateApplication(userId: string): Promise<boolean> {
 /**
  * Change user password
  */
-export async function changePassword(newPassword: string): Promise<{ error: Error | null }> {
-  const supabase = getSupabase();
-
-  const { error } = await supabase.auth.updateUser({
-    password: newPassword,
+export async function changePassword(
+  newPassword: string,
+  currentPassword?: string,
+): Promise<{ error: Error | null }> {
+  if (!currentPassword) {
+    return { error: new Error('Current password is required.') };
+  }
+  const { error } = await authClient.changePassword({
+    newPassword,
+    currentPassword,
+    revokeOtherSessions: true,
   });
-
   if (error) {
     return { error: new Error(error.message) };
   }
-
   return { error: null };
 }
 
@@ -197,102 +145,16 @@ export async function sendPasswordResetEmail(email: string): Promise<{ error: Er
 export async function connectOAuthProvider(
   provider: 'google' | 'linkedin_oidc'
 ): Promise<{ error: Error | null }> {
-  const supabase = getSupabase();
-
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider,
-    options: {
-      redirectTo: `${window.location.origin}/auth/callback?type=link`,
-      scopes: provider === 'google' ? 'email profile' : 'r_liteprofile r_emailaddress',
-    },
+  if (provider !== 'google') {
+    return { error: new Error('Only Google is supported right now.') };
+  }
+  const { error } = await authClient.signIn.social({
+    provider: 'google',
+    callbackURL: '/auth/callback?type=link',
   });
-
   if (error) {
     return { error: new Error(error.message) };
   }
-
   return { error: null };
 }
 
-/**
- * Delete user account and all associated data
- * This deletes:
- * - User profile
- * - All documents (CVs)
- * - All application sessions
- * - Connected accounts
- * - Subscription
- * - Storage files (avatars, profile photos, generated PDFs)
- */
-export async function deleteUserAccount(userId: string): Promise<{ error: Error | null }> {
-  const supabase = getSupabase();
-  
-  try {
-    // Delete from storage buckets first
-    const buckets = ['avatars', 'profile-photos', 'generated-pdfs', 'cv-uploads'];
-    for (const bucket of buckets) {
-      try {
-        const { data: files } = await supabase.storage.from(bucket).list(userId);
-        if (files && files.length > 0) {
-          const filePaths = files.map(f => `${userId}/${f.name}`);
-          await supabase.storage.from(bucket).remove(filePaths);
-        }
-      } catch (e) {
-        console.warn(`Could not delete from bucket ${bucket}:`, e);
-      }
-    }
-
-    // Delete from database tables (order matters due to foreign keys)
-    // Most tables use `user_id` as the FK column, but `profiles` uses `id`.
-    // `contact_submissions` has no user FK — it's a public form (skip it).
-    const tablesWithUserId = [
-      'chat_messages',
-      'application_sessions',
-      'documents',
-      'connected_accounts',
-      'user_credits',
-      'credit_transactions',
-      'subscriptions',
-      'message_feedback',
-    ];
-
-    for (const table of tablesWithUserId) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic table name for cascade delete
-        const { error } = await (supabase as any)
-          .from(table)
-          .delete()
-          .eq('user_id', userId);
-
-        if (error && error.code !== 'PGRST116') {
-          console.warn(`Error deleting from ${table}:`, error.message);
-        }
-      } catch (e) {
-        console.warn(`Could not delete from table ${table}:`, e);
-      }
-    }
-
-    // profiles table uses `id` (not `user_id`) as the primary key
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- profiles delete outside generated helpers
-      const { error } = await (supabase as any)
-        .from('profiles')
-        .delete()
-        .eq('id', userId);
-
-      if (error && error.code !== 'PGRST116') {
-        console.warn('Error deleting from profiles:', error.message);
-      }
-    } catch (e) {
-      console.warn('Could not delete from profiles:', e);
-    }
-
-    // Finally sign out the user (this doesn't delete auth.users but ends the session)
-    await supabase.auth.signOut();
-
-    return { error: null };
-  } catch (err) {
-    console.error('Error deleting account:', err);
-    return { error: err as Error };
-  }
-}

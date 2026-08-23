@@ -8,13 +8,28 @@
 
 import { useState, useRef } from 'react';
 import { useAppStore } from '@/store/useAppStore';
+import { useSessionStore } from '@/store/useSessionStore';
+import { useDatePrefs } from '@/hooks/useDatePrefs';
+import { formatDate } from '@/lib/utils/format-date';
+import { findSentApplicationForJob } from '@/lib/utils/same-job';
 import { useUIStore } from '@/store/useUIStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePostHog } from 'posthog-js/react';
-import { hasUsedFreeGeneration, markFreeGenerationUsed } from '@/components/SignUpWallModal';
+import { hasUsedFreeGeneration, markFreeGenerationUsed } from '@/lib/anonymous-generation';
 import { notifyJobFeedBadgeRefresh } from '@/hooks/useJobFeedBadge';
 import { generateRequestId } from '@/lib/utils/requestId';
+import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
+import { computeFitLevel } from '@/lib/agents/prompts/fit-assessment-prompt';
+import { useToast } from '@/components/ui/Toast';
+import { useTrackerStore } from '@/store/useTrackerStore';
+import { openSettings } from '@/store/useSettingsStore';
+import { writeDefaultTemplate } from '@/lib/cv-templates/default-template';
+import { loadFeedOverview, loadSavedFeedJobs } from '@/components/job-feed/feed-actions';
+import { useFeedStore } from '@/store/useFeedStore';
+import { cvStructureDigest } from '@/lib/cv-structure/validate';
+import { rememberUndo } from '@/lib/cv-structure/undo';
 import type { JobFeedApplicationGeneration } from '@/lib/supabase/types';
+import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
 
 // AgentStepData type for V2 progress tracking
 export interface AgentStepData {
@@ -98,9 +113,23 @@ function formatFitAnalysisMessage(
 export function useAgentWorkflow(options?: {
   onInsufficientCredits?: (required: number, available: number) => void | Promise<void>;
   onAnonymousLimitReached?: () => void;
+  /**
+   * The model read the message as a pasted job ad. The client shows the
+   * credit-aware decision card; the user's click is what starts a run, so
+   * classification never spends credits.
+   */
+  onProposeApplication?: (jobDescription: string) => void;
+  /**
+   * The reply came back and the model did NOT read the message as an ad.
+   * The client decides whether to offer a manual way in, so a model that
+   * misses a real ad is never a dead end.
+   */
+  onChatAnsweredWithoutProposal?: (message: string) => void;
 }) {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const datePrefs = useDatePrefs();
   const posthog = usePostHog();
+  const { toast } = useToast();
   const { setActiveTab } = useUIStore();
   const {
     currentCV,
@@ -108,9 +137,6 @@ export function useAgentWorkflow(options?: {
     createNewSession,
     addChatMessage,
     setJobDescription,
-    isAnalyzing,
-    isGenerating,
-    isAgentWorking,
     setIsAgentWorking,
     setAgentWorkflowPhase,
   } = useAppStore();
@@ -223,13 +249,6 @@ export function useAgentWorkflow(options?: {
     addChatMessage({
       role: 'assistant',
       content: '⚠️ Generation stopped. No problem! When you\'re ready, paste a new job description to start a fresh application.',
-      actions: [
-        {
-          label: 'Start New Application',
-          action: 'start-new-application',
-          icon: 'new',
-        }
-      ],
     });
   };
 
@@ -259,8 +278,118 @@ export function useAgentWorkflow(options?: {
     return "I'm here to help optimize your job applications. Paste a job description and I'll analyze it, optimize your CV, and create a tailored cover letter.";
   };
 
-  const handleGeneralChat = async (message: string) => {
+  // What the server says a tool actually did. Stores refresh from it so the
+  // dashboard updates live without a reload.
+  const applyExecutedEffects = (
+    executed: unknown,
+    userMessage: string,
+    opts: { startedIn: string | null; suppressProposal: boolean },
+  ): string | null => {
+    if (!Array.isArray(executed)) return null;
+    // Effects that write to the open application only make sense if the user
+    // is still looking at the one that asked. Switching applications mid
+    // request would otherwise overwrite the wrong row.
+    const stillHere = useSessionStore.getState().currentSession?.id === opts.startedIn;
+    // Several structure edits in one turn each ship the WHOLE composed object
+    // from the server's working copy, so the last one already contains all of
+    // them. Applying them in sequence would fail every one after the first, on
+    // its own base digest, and leave the CV half way through what the reply
+    // says happened. Only the last one is applied.
+    const lastCvEdit = (executed as ExecutedEffect[])
+      .filter((effect) => effect.type === 'cv_structure_updated')
+      .at(-1);
+    let cvRefusal: string | null = null;
+    for (const effect of executed as ExecutedEffect[]) {
+      if (effect.type === 'propose_application') {
+        if (opts.suppressProposal || !stillHere) continue;
+        // Classification only. The decision card the client shows is where
+        // the user picks fit analysis or the full kit, so nothing is spent
+        // here and nothing starts.
+        options?.onProposeApplication?.(userMessage);
+      } else if (effect.type === 'set_cv_template') {
+        if (!stillHere) continue;
+        useUIStore.getState().setCvTemplateId(effect.templateId);
+        useAppStore.getState().updateCurrentSession({ selectedTemplate: effect.templateId });
+        writeDefaultTemplate(effect.templateId);
+      } else if (effect.type === 'cv_structure_updated') {
+        // Not a failure: several edits in one turn each ship the whole composed
+        // object, so only the last one is the edit. The others are dropped in
+        // silence on purpose.
+        if (effect !== lastCvEdit) continue;
+        const live = useSessionStore.getState().currentSession;
+        // The server reply may say the edit landed. Every path out of here that
+        // does not write has to replace that claim before it reaches the
+        // transcript or gets an Undo button.
+        if (!stillHere || !live || live.id !== effect.sessionId) {
+          cvRefusal = 'That one didn\'t land. You moved to another application while I was working on it, so I left both CVs alone. Open that one again and ask me there.';
+          continue;
+        }
+        if (!live.optimizedCVData) {
+          cvRefusal = 'That one didn\'t land. There\'s no tailored CV open here any more.';
+          continue;
+        }
+        // A canvas edit that landed while the request was in flight would be
+        // silently clobbered by an object computed from the older CV. The
+        // digest is content-based, so an identical reload still applies.
+        if (cvStructureDigest(live.optimizedCVData) !== effect.baseDigest) {
+          cvRefusal = 'Your CV changed while I was working on that, so I left it alone. Ask me again and I\'ll work from what\'s there now.';
+          continue;
+        }
+        const applied = {
+          ...effect.cv,
+          // Same three keys CVPanel.onSave preserves. sectionHeaders comes from
+          // the effect, because rename_heading is the one operation that
+          // legitimately changes it.
+          analysis: live.optimizedCVData.analysis,
+          localizedStrings: live.optimizedCVData.localizedStrings,
+        };
+        // The snapshot is the live object itself, so undo restores analysis,
+        // sectionHeaders and localizedStrings by construction. The digest of
+        // what we are about to write rides along, so a later canvas edit or a
+        // confirmed delete makes the Undo chip refuse instead of reverting it.
+        rememberUndo(live.id, live.optimizedCVData, cvStructureDigest(applied));
+        useAppStore.getState().updateCurrentSession({ optimizedCVData: applied });
+      } else if (effect.type === 'navigate') {
+        if (effect.target === 'tracker') setActiveTab('tracker');
+        else if (effect.target === 'job-feed') setActiveTab('jobs');
+        else if (effect.target === 'documents') openSettings('cv');
+        else if (effect.target === 'billing') openSettings('usage');
+      } else if (effect.type === 'tracker_updated') {
+        if (user) void useTrackerStore.getState().load(user.id);
+      } else if (effect.type === 'refresh_credits') {
+        triggerCreditUpdate();
+      } else if (effect.type === 'feed_settings_updated') {
+        // The settings panel and the feed both read the store, so one quiet
+        // reload is enough. Nothing on screen is replaced mid-read.
+        void loadFeedOverview({ quiet: true });
+      } else if (effect.type === 'run_feed') {
+        // The feed conversation owns the run and its progress UI. Raise the
+        // flag, then bring the user to the column that shows it.
+        useUIStore.getState().setPendingFeedRunAt(Date.now());
+        setActiveTab('jobs');
+      } else if (effect.type === 'feed_item_updated') {
+        // A dismiss drops the role from the list and a save changes which tab
+        // it belongs to. The Saved list is refetched rather than just cleared:
+        // clearing it while the user is looking at the Saved tab would blank
+        // the column, since nothing refetches on that tab except on entry.
+        void loadFeedOverview({ quiet: true });
+        if (useFeedStore.getState().savedJobs !== null) {
+          void loadSavedFeedJobs();
+        }
+        notifyJobFeedBadgeRefresh();
+      }
+    }
+    return cvRefusal;
+  };
+
+  const handleGeneralChat = async (
+    message: string,
+    opts?: { suppressProposal?: boolean },
+  ) => {
     setIsTyping(true);
+    // The reply lands asynchronously; effects that touch the open application
+    // check this before applying.
+    const startedIn = currentSession?.id ?? null;
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -310,6 +439,19 @@ export function useAgentWorkflow(options?: {
             hasGeneratedCV: !!currentSession?.generatedCV,
             hasGeneratedCoverLetter: !!currentSession?.coverLetter,
             hasGeneratedEmail: !!currentSession?.email,
+            // For the tool registry: the saved application this chat is on
+            // (the route validates the id) and the user's clock for dates.
+            sessionId: currentSession?.id,
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            cvTemplateId: useUIStore.getState().cvTemplateId,
+            // The tailored CV the canvas is showing, for the structure tools.
+            // Sent from the store rather than read server-side from D1: the
+            // sync into D1 is debounced by two seconds, so a canvas edit the
+            // user just saved would otherwise be reverted by an edit computed
+            // from the older row. Omitted entirely when there is none.
+            ...(currentSession?.optimizedCVData
+              ? { optimizedCVData: currentSession.optimizedCVData }
+              : {}),
             ...screeningContext,
           },
         }),
@@ -317,21 +459,41 @@ export function useAgentWorkflow(options?: {
       });
 
       if (response.ok) {
-        const { reply, actions } = await response.json();
+        const { reply, actions, executed } = await response.json();
+        // Apply effects before committing the assistant turn. A CV effect can
+        // be refused when the canvas changed during the request, and in that
+        // case the transcript must contain the refusal instead of the model's
+        // stale success claim. The rejected edit cannot be undone because it
+        // never landed, so its Undo action is removed too.
+        const effectRefusal = applyExecutedEffects(executed, message, {
+          startedIn,
+          suppressProposal: Boolean(opts?.suppressProposal),
+        });
         addChatMessage({
           role: 'assistant',
-          content: reply,
-          actions: actions || [],
+          content: effectRefusal || reply,
+          actions: effectRefusal
+            ? (actions || []).filter((action: { action?: string }) => !action.action?.startsWith('undo-cv-edit:'))
+            : actions || [],
         });
+        // A real ad the model read as a question would otherwise be a dead
+        // end: no card, no run, no way back. The client offers a manual way
+        // in when the text looked like an ad and no proposal came back.
+        const proposed = Array.isArray(executed)
+          && (executed as ExecutedEffect[]).some((effect) => effect.type === 'propose_application');
+        if (!proposed && !opts?.suppressProposal
+          && useSessionStore.getState().currentSession?.id === startedIn) {
+          options?.onChatAnsweredWithoutProposal?.(message);
+        }
+      } else if (response.status === 401) {
+        // Signed out (or anonymous past the free run): ask for an account, never a canned reply.
+        options?.onAnonymousLimitReached?.();
       } else {
         const errorData = await response.json().catch(() => null);
         if (errorData?.code === 'CHAT_LIMIT_REACHED') {
           addChatMessage({
             role: 'assistant',
-            content: 'You\'ve reached the chat message limit for this application. Start a new application to continue.',
-            actions: [
-              { label: 'Start New Application', action: 'start-new-application', icon: 'new' },
-            ],
+            content: 'You\'ve reached the chat message limit for this application. Start a new application from the sidebar to keep going.',
           });
         } else {
           addChatMessage({
@@ -352,6 +514,86 @@ export function useAgentWorkflow(options?: {
       setIsTyping(false);
       setIsScreeningMode(false);
       abortControllerRef.current = null;
+    }
+  };
+
+  /**
+   * Screening answers for the kit: one question in, the raw answer blocks out.
+   * Adds no chat messages itself; the caller decides what the conversation
+   * shows and where the answers land (the Answers tab).
+   */
+  const fetchScreeningAnswers = async (
+    question: string,
+  ): Promise<
+    | { ok: true; reply: string; turnsUsed: number | null }
+    | { ok: false; code: 'PLAN_REQUIRED' | 'CHAT_LIMIT' | 'SIGNED_OUT' | 'NOT_SAVED' | 'CAP_REACHED' | 'ERROR'; turnsUsed?: number }
+  > => {
+    // Own controller: this must never replace the SSE workflow's abort handle.
+    const controller = new AbortController();
+    try {
+      const { masterCV, certifications } = useAppStore.getState();
+      const recentMessages = messages.slice(-10).map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: question,
+          context: {
+            hasCV: !!currentCV,
+            cvSummary: currentCV?.sections?.summary?.substring(0, 500),
+            hasAnalysis: !!currentSession?.gaps,
+            jobTitle: currentSession?.jobTitle,
+            company: currentSession?.company,
+            hasMasterCV: !!masterCV,
+            masterCVSummary: masterCV?.rawText?.substring(0, 3000),
+            hasCertifications: certifications.length > 0,
+            certificationsCount: certifications.length,
+            certificationsList: certifications.map(c => c.fileName).join(', '),
+            chatHistory: recentMessages,
+            hasGeneratedCV: !!currentSession?.generatedCV,
+            hasGeneratedCoverLetter: !!currentSession?.coverLetter,
+            hasGeneratedEmail: !!currentSession?.email,
+            mode: 'screening_answers' as const,
+            // The route spends the turn against this row, so it has to be the
+            // saved application, not the local draft id.
+            sessionId: currentSession?.id,
+            jobDescription: currentSession?.jobDescription?.substring(0, 8000),
+            matchingSkills: currentSession?.matchingSkills,
+            missingSkills: currentSession?.missingSkills,
+            generatedCVSummary: typeof currentSession?.generatedCV?.content === 'string'
+              ? currentSession.generatedCV.content.substring(0, 5000)
+              : undefined,
+            companyResearchSummary: currentSession?.companyResearch
+              ? [
+                  currentSession.companyResearch.description,
+                  currentSession.companyResearch.culture?.join(', '),
+                  currentSession.companyResearch.recentNews?.join(', '),
+                ].filter(Boolean).join(' | ').substring(0, 500)
+              : undefined,
+          },
+        }),
+        signal: controller.signal,
+      });
+      if (response.ok) {
+        const { reply, screeningTurnsUsed } = await response.json();
+        return typeof reply === 'string'
+          ? { ok: true, reply, turnsUsed: typeof screeningTurnsUsed === 'number' ? screeningTurnsUsed : null }
+          : { ok: false, code: 'ERROR' };
+      }
+      if (response.status === 401) return { ok: false, code: 'SIGNED_OUT' };
+      if (response.status === 403) return { ok: false, code: 'PLAN_REQUIRED' };
+      const errorData = await response.json().catch(() => null);
+      if (errorData?.code === 'CHAT_LIMIT_REACHED') return { ok: false, code: 'CHAT_LIMIT' };
+      if (errorData?.code === 'SCREENING_SESSION_REQUIRED') return { ok: false, code: 'NOT_SAVED' };
+      if (errorData?.code === 'SCREENING_CAP_REACHED') {
+        return { ok: false, code: 'CAP_REACHED', turnsUsed: errorData.screeningTurnsUsed };
+      }
+      return { ok: false, code: 'ERROR' };
+    } catch {
+      return { ok: false, code: 'ERROR' };
     }
   };
 
@@ -441,6 +683,9 @@ export function useAgentWorkflow(options?: {
               case 'progress':
                 setV2Progress({ percent: data.percent, message: data.message });
                 break;
+              case 'credits_deducted':
+                triggerCreditUpdate();
+                break;
               case 'fit_analysis_complete': {
                 const { contextId, fitAnalysis, job, match, applicant, verifiedMetrics, detectedLanguage } = data;
                 setFitAnalysisContextId(contextId);
@@ -454,11 +699,14 @@ export function useAgentWorkflow(options?: {
                   fitAnalysis,
                 });
                 // Persist job title, company, and match data to the session
-                // so tracker shows correct info if user proceeds to apply
+                // so tracker shows correct info if user proceeds to apply.
+                // Keep a feed-provided title (e.g. "Product Manager - B2B SaaS")
+                // instead of the parser's shortened title.
                 if (job?.title || job?.companyName) {
+                  const existing = useAppStore.getState().currentSession;
                   useAppStore.getState().updateCurrentSession({
-                    jobTitle: job.title || '',
-                    company: job.companyName || '',
+                    jobTitle: existing?.jobTitle?.trim() || job.title || '',
+                    company: existing?.company?.trim() || job.companyName || '',
                   });
                 }
                 if (match) {
@@ -490,6 +738,7 @@ export function useAgentWorkflow(options?: {
                   role: 'assistant',
                   content: formatFitAnalysisMessage(fitAnalysis, job),
                 });
+                triggerCreditUpdate();
                 break;
               }
               case 'error':
@@ -535,6 +784,7 @@ export function useAgentWorkflow(options?: {
 
     setIsAgentWorking(true);
     setAgentWorkflowPhase('full_generation');
+    setV2Progress({ percent: 0, message: 'Generating full application...' });
     setAgentSteps([]);
     setV2Reflection(null);
     setV2Models(null);
@@ -634,6 +884,10 @@ export function useAgentWorkflow(options?: {
               case 'progress':
                 setV2Progress({ percent: data.percent, message: data.message });
                 break;
+
+              case 'credits_deducted':
+                triggerCreditUpdate();
+                break;
               
               case 'reflection':
                 setV2Reflection({
@@ -655,6 +909,7 @@ export function useAgentWorkflow(options?: {
                 });
 
                 if (ctx?.job) {
+                  const existing = useAppStore.getState().currentSession;
                   useAppStore.getState().updateCurrentSession({
                     requirements: {
                       title: ctx.job.title || '',
@@ -670,8 +925,8 @@ export function useAgentWorkflow(options?: {
                       location: ctx.job.location,
                       workType: ctx.job.workType,
                     },
-                    jobTitle: ctx.job.title,
-                    company: ctx.job.companyName,
+                    jobTitle: existing?.jobTitle?.trim() || ctx.job.title,
+                    company: existing?.company?.trim() || ctx.job.companyName,
                   });
                 }
                 
@@ -732,6 +987,7 @@ export function useAgentWorkflow(options?: {
                       body: ctx.coverLetter,
                       closing: '',
                       signatureName: '',
+                      updatedAt: new Date().toISOString(),
                     },
                   });
                 }
@@ -774,10 +1030,45 @@ export function useAgentWorkflow(options?: {
                 }
 
                 setActiveTab('cv');
+                const resultScore =
+                  typeof ctx?.match?.score === 'number'
+                    ? ctx.match.score
+                    : ctx?.optimizedCVData?.analysis?.ats_compatibility;
+                const isDirectPath = !contextId;
+                const isWeakMatch =
+                  typeof resultScore === 'number' && computeFitLevel(resultScore) === 'weak';
+                const weakMatchNote = isDirectPath && isWeakMatch
+                  ? `\n\nThis role looks like a weak match (${Math.round(resultScore)}%). Review the gaps before you send it.`
+                  : '';
+                const kitCompany = ctx?.job?.companyName || useAppStore.getState().currentSession?.company;
+                const atsNote = typeof ctx?.optimizedCVData?.analysis?.ats_compatibility === 'number'
+                  ? ` (ATS ${Math.round(ctx.optimizedCVData.analysis.ats_compatibility)}%)`
+                  : '';
+                // A repeat on an application the user already sent gets its own
+                // entry, because overwriting the CV they applied with would
+                // destroy the only record of it. Saying so turns what looks
+                // like a duplicate into a stated fact. An unsent draft is
+                // reused instead, quietly, in useSupabaseSync.
+                const sessionForMatch = useAppStore.getState().currentSession;
+                const alreadySent = sessionForMatch
+                  ? findSentApplicationForJob(useSessionStore.getState().sessions, sessionForMatch)
+                  : null;
+                const sentOn = alreadySent?.createdAt
+                  ? formatDate(new Date(alreadySent.createdAt), datePrefs)
+                  : null;
+                const repeatNote = alreadySent
+                  ? `\n\nYou already applied to this one${sentOn ? ` on ${sentOn}` : ''}. This kit is saved separately, so the one you sent stays as it is.`
+                  : '';
                 addChatMessage({
                   role: 'assistant',
-                  content: `✅ **Your full application is ready**\n\nTailored CV, cover letter, and email are ready. Check the **Application Kit** panel (top left).\n\nIf you need ATS screening question answers next, use the suggestion below.`,
+                  content: `Your kit${kitCompany ? ` for ${kitCompany}` : ''} is ready. Tailored CV${atsNote}, a cover letter and two emails. Nothing was invented.${weakMatchNote}${repeatNote}`,
                 });
+                if (isDirectPath && isWeakMatch) {
+                  toast.warning(
+                    `This role scored ${Math.round(resultScore)}%. That's a weak match. Review it before you send.`,
+                  );
+                }
+                triggerCreditUpdate();
                 break;
                 
               case 'error':
@@ -861,7 +1152,10 @@ export function useAgentWorkflow(options?: {
     };
 
     if (!currentSession) {
-      createNewSession(messageContent);
+      // No job description yet: this is a conversation until an ad lands in
+      // it. Passing the message here would file every typed question as an
+      // application (isApplicationSession reads jobDescription).
+      createNewSession('');
       addChatMessage({
         role: 'user',
         content: messageContent,
@@ -874,14 +1168,9 @@ export function useAgentWorkflow(options?: {
         return undefined;
       }
 
-      const isJobDescription = messageContent.length > 100 ||
-        /job|position|role|responsibilities|requirements|qualifications|experience/i.test(messageContent);
-
-      if (isJobDescription) {
-        runWorkflowForJD(messageContent);
-      } else {
-        handleGeneralChat(messageContent);
-      }
+      // Classification is the model's job now (propose_application), so an
+      // unclicked message never starts a paid run from keyword counting.
+      handleGeneralChat(messageContent);
     } else {
       addChatMessage({
         role: 'user',
@@ -908,35 +1197,10 @@ export function useAgentWorkflow(options?: {
         return undefined;
       }
 
-      // When in screening mode, always route to chat (never re-detect as JD)
-      const jobKeywords = /\b(responsibilities|requirements|qualifications|experience required|skills required|about the role|job description|we are looking for|you will|must have|nice to have|salary|benefits|apply|candidate|position|vacancy)\b/i;
-      const isLikelyJobDescription = !isScreeningMode && messageContent.length > 200 && jobKeywords.test(messageContent);
-      const isShortJobPost = !isScreeningMode && messageContent.length > 100 && (messageContent.match(jobKeywords) || []).length >= 2;
-      // If the session already has a completed application, treat any
-      // meaningfully long paste as a fresh JD. Matches the no-session
-      // heuristic so users aren't trapped in general-chat after one run.
-      const sessionHasCompletedApplication = Boolean(currentSession.generatedCV);
-      const isFollowUpJobDescription = !isScreeningMode && sessionHasCompletedApplication && messageContent.length > 100;
-      const isNewJobDescription = isLikelyJobDescription || isShortJobPost || isFollowUpJobDescription;
-
-      if (isNewJobDescription) {
-        setFitAnalysisContextId(null);
-        setFitAnalysisJD('');
-        setFitAnalysisContextData(null);
-        useAppStore.getState().updateCurrentSession({
-          requirements: null,
-          gaps: null,
-          generatedCV: null,
-          matchScore: undefined,
-          matchingSkills: [],
-          missingSkills: [],
-          suggestions: [],
-          pendingFitAnalysis: null,
-        });
-        runWorkflowForJD(messageContent);
-      } else {
-        handleGeneralChat(messageContent);
-      }
+      // No heuristic auto-start here either. A pasted ad is recognised by the
+      // model, which calls propose_application; the user's click on the
+      // decision card is what spends credits.
+      handleGeneralChat(messageContent);
     }
 
     return undefined;
@@ -967,6 +1231,8 @@ export function useAgentWorkflow(options?: {
     setIsScreeningMode,
     // Actions
     handleSend,
+    handleGeneralChat,
+    fetchScreeningAnswers,
     handleStopGeneration,
     runAgentWorkflow,
     runFitAnalysisFlow,

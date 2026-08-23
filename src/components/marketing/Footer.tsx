@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import KarkoLogo from '@/components/KarkoLogo';
+import BrandLogo from '@/components/marketing/BrandLogo';
 import TrustpilotLogo from '@/components/marketing/TrustpilotLogo';
 import { getComparisons } from '@/lib/comparisons';
 import { getAllPosts } from '@/lib/blog';
@@ -10,9 +10,7 @@ interface FooterLink {
 }
 
 const productLinks: FooterLink[] = [
-  { href: '/features', label: 'Features' },
-  { href: '/features#smart-job-feed', label: 'Smart Job Feed' },
-  { href: '/#how-it-works', label: 'How It Works' },
+  { href: '/#what-you-get', label: 'What you get' },
   { href: '/ai-job-application/application-tracker', label: 'Application Tracker' },
   { href: '/pricing', label: 'Pricing' },
 ];
@@ -32,7 +30,7 @@ const legalLinks: FooterLink[] = [
 export default function Footer() {
   const comparisonLinks: FooterLink[] = getComparisons().map((comparison) => ({
     href: `/compare/${comparison.slug}`,
-    label: `Karko AI vs ${comparison.competitorName}`,
+    label: `Useful Apply vs ${comparison.competitorName}`,
   }));
 
   const resourcesLinks: FooterLink[] = [
@@ -149,10 +147,10 @@ export default function Footer() {
               Find jobs. Write applications. Track progress. All in one app.
             </p>
             <a
-              href="mailto:support@karkoai.com"
+              href="mailto:support@usefulapply.com"
               className="text-sm text-navy-200 hover:text-white transition-colors duration-200"
             >
-              support@karkoai.com
+              support@usefulapply.com
             </a>
             <Link
               href="/contact"
@@ -167,13 +165,13 @@ export default function Footer() {
         {/* Large brand logo — same full/wide variant as the footer brand mark, scaled up */}
         <div className="mt-16 md:mt-20 lg:mt-24 mb-2">
           {/* Reserve layout space for CSS scale (xl logo is 64px tall) */}
-          <div className="h-[106px] sm:h-[128px] md:h-[160px] lg:h-[192px]">
+          <div className="flex justify-center items-start h-[106px] sm:h-[128px] md:h-[160px] lg:h-[192px]">
             <Link
               href="/"
-              aria-label="Karko AI home"
-              className="inline-flex origin-top-left scale-[1.65] sm:scale-[2] md:scale-[2.5] lg:scale-[3] transition-opacity hover:opacity-90"
+              aria-label="Useful Apply home"
+              className="inline-flex origin-top scale-[1.65] sm:scale-[2] md:scale-[2.5] lg:scale-[3] transition-opacity hover:opacity-90"
             >
-              <KarkoLogo variant="full" size="xl" theme="dark" />
+              <BrandLogo variant="full" size="xl" theme="dark" />
             </Link>
           </div>
         </div>
@@ -181,7 +179,7 @@ export default function Footer() {
         {/* Bottom */}
         <div className="border-t border-navy-500/30 mt-8 md:mt-10 pt-6">
           <p className="text-navy-300 text-sm">
-            © {new Date().getFullYear()} KarKo AI. All rights reserved.
+            © {new Date().getFullYear()} Useful Apply. All rights reserved.
           </p>
         </div>
       </div>

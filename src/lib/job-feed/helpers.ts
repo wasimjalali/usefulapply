@@ -10,6 +10,7 @@ import {
   PREMIUM_JOB_FEED_TIERS,
   legacyMarketFromCountries,
 } from '@/lib/job-feed/constants';
+import { countryForCity } from '@/lib/job-feed/constants';
 import { splitCompositeRole } from '@/lib/job-feed/cv-suggestions';
 import type { JobFeedOverviewState, JobFeedSettingsInput } from '@/lib/job-feed/types';
 import type { JobFeedRun, JobFeedSettings } from '@/lib/supabase/types';
@@ -39,14 +40,28 @@ export function canAccessJobFeed(subscriptionTier?: string | null): boolean {
  * reservation enforced server-side in /api/agent-v2 before any generation runs,
  * which is gated on session identity (a logged-in free user always pays).
  *
- * Truly premium-exclusive actions (saved jobs, settings + settings/suggest,
- * search-strategy editing, the scheduled "search while you sleep" auto-apply)
- * still require canAccessJobFeed (plus/max only).
+ * Truly premium-exclusive actions (settings + settings/suggest, search-strategy
+ * generation, and steering the feed) still require canAccessJobFeed (plus/max
+ * only). Career-profile and search-strategy GETs are viewable: the free feed
+ * is CV-driven and builds that profile during its run. Bookmarking a role
+ * (`saved`) and recording that it was opened are available to anyone who can
+ * view the feed. Saving is free.
  *
  * Returns false for null/undefined/unknown tiers (fail-closed).
  */
 export function canViewJobFeed(subscriptionTier?: string | null): boolean {
   return subscriptionTier === 'free' || canAccessJobFeed(subscriptionTier);
+}
+
+/** http(s) only. Used before any job-board URL reaches an href or markdown link. */
+export function isSafeExternalUrl(value: string | null | undefined): boolean {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
 export function isValidTimeZone(timeZone: string): boolean {
@@ -160,6 +175,11 @@ export function getJobFeedOverviewState(params: {
     // CV, fall through to the run checks; the first run synthesizes the profile
     // and auto-provisions a minimal settings row.
     if (!hasPrimaryCv) return 'no_cv_required';
+    // Withdrawal must stick. Without this, a previous run keeps the canvas in
+    // ready/feed and "Build today's feed" would look like a normal rerun.
+    if (!settings?.consent_accepted_at || !settings.enabled) {
+      return 'awaiting_first_run';
+    }
   } else {
     if (!isJobFeedConfigured(settings)) return 'setup_required';
     if (!settings.enabled) return 'paused';
@@ -279,12 +299,12 @@ export function normalizeJobFeedSettingsInput(input: unknown): { data?: JobFeedS
     return { error: 'Choose at least one country for your feed.' };
   }
 
+  const targetCities = sanitizeStringArray(payload.target_cities, 20);
+
   const targetMarket = legacyMarketFromCountries(targetCountries);
   if (!MARKET_VALUES.has(targetMarket)) {
     return { error: 'Please choose a supported target market.' };
   }
-
-  const targetCities = sanitizeStringArray(payload.target_cities, 20);
 
   // remote_preferences multi-select — keep singular remote_preference as the
   // "primary" for legacy columns.
@@ -418,6 +438,137 @@ function asTrimmedString(value: unknown, maxLength: number): string {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
 }
 
+const COMPANY_LEGAL_SUFFIXES = [
+  'corporation',
+  'company',
+  'limited',
+  'gmbh',
+  'llc',
+  'l l c',
+  'inc',
+  'ltd',
+  'corp',
+  'plc',
+  'co',
+  'ag',
+  'sa',
+  'bv',
+];
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Lowercase, trim, strip punctuation, drop a leading "The", then peel
+ * trailing legal suffixes so "Avetta" and "Avetta, LLC" compare equal.
+ */
+export function normalizeCompanyForDedupe(value: string | null | undefined): string {
+  let normalized = (value ?? '')
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  normalized = normalized.replace(/^the\s+/, '');
+
+  // Peel trailing legal suffixes (and a dangling "and" left by "X & Co"),
+  // but never down to an empty string.
+  let changed = true;
+  while (changed && normalized.length > 0) {
+    changed = false;
+    for (const suffix of [...COMPANY_LEGAL_SUFFIXES, 'and']) {
+      const pattern = new RegExp(`\\s${escapeRegExp(suffix)}$`);
+      if (pattern.test(normalized)) {
+        normalized = normalized.replace(pattern, '').trim();
+        changed = true;
+        break;
+      }
+    }
+  }
+
+  return normalized;
+}
+
+export function normalizeTitleForDedupe(value: string | null | undefined): string {
+  return (value ?? '')
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Collapse near-identical listings for display. Keeps the first job in the
+ * given order (callers pass jobs already sorted by rank), drops any later
+ * job with the same normalised company + title + salary (or location when
+ * no salary) and the same description opening. Row identity is untouched.
+ */
+export function collapseNearDuplicateJobs<T extends {
+  company: string;
+  title: string;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string | null;
+  location_normalized: string | null;
+  location_text: string | null;
+  description: string | null;
+}>(jobs: T[]): { kept: T[]; dropped: number } {
+  const seen = new Set<string>();
+  const kept: T[] = [];
+  let dropped = 0;
+  for (const job of jobs) {
+    const fingerprint = normalizeTitleForDedupe(job.description ?? '').slice(0, 300);
+    // Aggregators attach a salary chip or a city to one copy of a posting
+    // and not another. A matching description opening is the stronger
+    // signal, so it decides on its own when there is enough of it.
+    const key = fingerprint.length >= 120
+      ? `${jobDedupeKey({ company: job.company, title: job.title })}|${fingerprint}`
+      : `${jobDedupeKey({
+          company: job.company,
+          title: job.title,
+          salaryMin: job.salary_min,
+          salaryMax: job.salary_max,
+          salaryCurrency: job.salary_currency,
+          location: job.location_normalized ?? job.location_text,
+        })}|${fingerprint}`;
+    if (seen.has(key)) {
+      dropped += 1;
+      continue;
+    }
+    seen.add(key);
+    kept.push(job);
+  }
+  return { kept, dropped };
+}
+
+export function jobDedupeKey(input: {
+  company: string | null | undefined;
+  title: string | null | undefined;
+  salaryMin?: number | null;
+  salaryMax?: number | null;
+  salaryCurrency?: string | null;
+  location?: string | null;
+}): string {
+  const company = normalizeCompanyForDedupe(input.company) || 'unknown-company';
+  const title = normalizeTitleForDedupe(input.title) || 'unknown-title';
+  const hasSalary =
+    typeof input.salaryMin === 'number' &&
+    Number.isFinite(input.salaryMin) &&
+    typeof input.salaryMax === 'number' &&
+    Number.isFinite(input.salaryMax);
+  if (hasSalary) {
+    const currency = (input.salaryCurrency ?? '').toLowerCase().trim();
+    return `${company}|${title}|${currency}:${input.salaryMin}-${input.salaryMax}`;
+  }
+  // Without a salary to disambiguate, keep location in the identity so a
+  // generic title at a large employer in two cities stays two jobs.
+  const location = normalizeTitleForDedupe(input.location) || 'unknown-location';
+  return `${company}|${title}|${location}`;
+}
+
 function asOptionalTrimmedString(value: unknown, maxLength: number): string | null {
   const normalized = asTrimmedString(value, maxLength);
   return normalized.length > 0 ? normalized : null;
@@ -435,4 +586,125 @@ function asInteger(value: unknown): number | null {
 function asNullableInteger(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null;
   return asInteger(value);
+}
+
+// Currencies job boards actually quote in, plus the bare symbols. Anything
+// outside this list is left alone rather than guessed at.
+const SALARY_CURRENCY = String.raw`(?:[$€£¥₹]|\b(?:USD|EUR|GBP|CHF|SEK|NOK|DKK|PLN|CZK|CAD|AUD|NZD|SGD|INR)\b)`;
+// The K/M suffix must not run into a word, or "$124,000.00 Minimum" reads as
+// 124 million.
+const SALARY_AMOUNT = String.raw`\d[\d.,]*(?:\s?[KkMm](?![A-Za-z]))?`;
+const SALARY_RANGE_GLOBAL = new RegExp(
+  `${SALARY_CURRENCY}\\s*${SALARY_AMOUNT}(?:\\s*(?:-|–|—|to)\\s*(?:${SALARY_CURRENCY}\\s*)?${SALARY_AMOUNT})?`,
+  'gi'
+);
+const HOURLY_MARKER = /(?:\/\s*(?:hr|hour)|per hour|an hour|hourly)/i;
+
+/**
+ * An ad that states pay says so. Requiring the words is what separates
+ * "the salary range for this position is $87,500 - $180,000" from
+ * "tuition assistance up to $5,250", which a magnitude test cannot do.
+ */
+const PAY_CONTEXT = /(salary|salaries|compensation|base pay|pay range|pay rate|pay scale|hiring range|target earnings|\bOTE\b|\bwage\b|remuneration|per year|per annum|a year|annually|\/\s*(?:yr|year|hr|hour)|per hour|an hour|hourly)/i;
+
+/** Money in the benefits list is not pay. */
+const NOT_PAY_CONTEXT = /(stipend|tuition|reimburs|allowance|budget|discount|assistance|voucher|credit toward)/i;
+
+const PAY_CONTEXT_BEFORE = 140;
+const PAY_CONTEXT_AFTER = 60;
+const NOT_PAY_WINDOW = 45;
+
+/** "190,000" and "60.000" are both 60k-style thousands; "1.5" is a decimal. */
+function toSalaryNumber(amount: string): number {
+  const cleaned = amount.replace(/[^\d.,]/g, '');
+  const withoutGrouping = cleaned.replace(/[.,](?=\d{3}(?:\D|$))/g, '');
+  const value = Number(withoutGrouping.replace(',', '.'));
+  if (!Number.isFinite(value)) return 0;
+  if (/[Mm]\s*$/.test(amount)) return value * 1_000_000;
+  if (/[Kk]\s*$/.test(amount)) return value * 1_000;
+  return value;
+}
+
+function matchSalaryText(text: string): string | null {
+  // Every currency figure gets a look, not just the first. An ad that opens
+  // with "$1,000 annual learning stipend" still states its range further down.
+  for (const match of text.matchAll(SALARY_RANGE_GLOBAL)) {
+    const found = plausibleSalary(text, match[0], match.index ?? 0);
+    if (found) return found;
+  }
+  return null;
+}
+
+function plausibleSalary(text: string, match: string, index: number): string | null {
+  const amounts = match.match(new RegExp(SALARY_AMOUNT, 'g')) ?? [];
+  const magnitude = Math.max(...amounts.map(toSalaryNumber), 0);
+  const tail = text.slice(index + match.length, index + match.length + 24);
+  const hourly = HOURLY_MARKER.test(tail);
+
+  // A yearly figure under a thousand is a benefit ("$500 learning budget"),
+  // not pay. An hourly rate is allowed to be small.
+  if (!hourly && magnitude < 1000) return null;
+  if (hourly && magnitude < 5) return null;
+
+  const before = text.slice(Math.max(0, index - PAY_CONTEXT_BEFORE), index);
+  const after = text.slice(index + match.length, index + match.length + PAY_CONTEXT_AFTER);
+  if (!PAY_CONTEXT.test(before) && !PAY_CONTEXT.test(after)) return null;
+  if (NOT_PAY_CONTEXT.test(text.slice(Math.max(0, index - NOT_PAY_WINDOW), index))) return null;
+
+  return match
+    // Normalise the separator so the chip never carries an em dash.
+    .replace(/\s*[-–—]\s*/g, ' - ')
+    // "$ 110,300" reads as a typo on a chip.
+    .replace(/([$€£¥₹])\s+/g, '$1')
+    .replace(/\s+/g, ' ')
+    // A sentence's full stop is not part of the figure.
+    .replace(/[.,;:]+$/, '')
+    .trim();
+}
+
+/**
+ * A city carries its country. "Add Berlin" from the chat leaves
+ * target_countries alone, so the feed would search Berlin in whatever markets
+ * were already selected and come back with the wrong roles.
+ *
+ * Only cities that are new in this payload imply anything. Applying it to
+ * every saved city would make the country toggle un-removable: unchecking the
+ * US while "New York" sits in the city list would silently put the US back.
+ * A city we do not recognise changes nothing, because inventing a country is
+ * worse than leaving the search alone.
+ */
+export function countriesImpliedByNewCities(
+  cities: readonly string[],
+  previousCities: readonly string[],
+  countries: readonly string[],
+  maxCountries = 12
+): string[] {
+  const seen = new Set(previousCities.map((city) => city.trim().toLowerCase()));
+  const result = [...countries];
+  for (const city of cities) {
+    if (seen.has(city.trim().toLowerCase())) continue;
+    const implied = countryForCity(city);
+    if (implied && !result.includes(implied) && result.length < maxCountries) {
+      result.push(implied);
+    }
+  }
+  return result;
+}
+
+/**
+ * Boards often leave the pay out of the structured salary field and state it in
+ * the ad text instead, so the card shows no salary chip while the detail view
+ * clearly names a range. Pull it back out of the provider's highlight items
+ * first, since those are clean, then the description. Returns null when nothing
+ * plausible is there: no chip beats a guessed one.
+ */
+export function extractSalaryTextFromAd(
+  description: string | null | undefined,
+  highlightItems: readonly string[] = []
+): string | null {
+  for (const item of highlightItems) {
+    const found = matchSalaryText(item);
+    if (found) return found;
+  }
+  return description ? matchSalaryText(description) : null;
 }

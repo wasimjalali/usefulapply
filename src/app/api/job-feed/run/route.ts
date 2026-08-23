@@ -5,46 +5,54 @@ import {
   getLatestManualCompletedJobFeedRunAdmin,
   runJobFeedFoundationWorkflow,
 } from '@/lib/job-feed/server';
-import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { getCurrentUser } from '@/auth/server';
+import { getProfile } from '@/db/repos/profiles';
+import { getSettings } from '@/db/repos/jobFeed';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
 export async function POST(request: NextRequest) {
   try {
-    const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`job-feed-run:${ip}`, RATE_LIMITS['job-feed-run']);
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
+    const user = await getCurrentUser(request);
+
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
+    const { allowed } = await checkRateLimit(`job-feed-run:${user.id}`, RATE_LIMITS['job-feed-run']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const profile = await getProfile(user.id);
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    if (!profile || !canViewJobFeed(profile.subscription_tier)) {
+      return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
-    const { data: profile, error: profileError } = await typedSupabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile || !canViewJobFeed(profile.subscription_tier)) {
-      return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
+    let consentAccepted = false;
+    try {
+      const body = await request.json() as { consent_accepted?: unknown };
+      consentAccepted = body?.consent_accepted === true;
+    } catch {
+      // Empty or non-JSON body is a missing assertion, not a parse bug.
     }
 
     const userTimeZone = await getUserTimeZone(user.id);
     const now = new Date();
     const todayKey = getLocalDateKey(now, userTimeZone);
 
-    // One manual run per local calendar day. If today already has a
-    // completed manual run, the next window opens at local midnight.
+    // One run per local calendar day, and the user starts it. If today already
+    // has a completed run, the next window opens at local midnight. There is no
+    // bypass: an edit to roles or countries costs no extra SerpAPI call, it just
+    // applies to the next run.
     const latestManualRun = await getLatestManualCompletedJobFeedRunAdmin(user.id);
     const cooldown = getCalendarDayCooldown({
       latestManualLocalDate: latestManualRun?.local_date ?? null,
@@ -79,13 +87,12 @@ export async function POST(request: NextRequest) {
 
     const result = await runJobFeedFoundationWorkflow({
       userId: user.id,
+      requestExecutionId: crypto.randomUUID(),
+      clientRequestId: request.headers.get('x-request-id'),
       triggerSource: 'manual_user',
       now,
-      // No need to force here any more. Scheduler is gone, so an
-      // existing-same-day row can only be a stale manual run; the
-      // workflow handles that via its stale-running recovery path.
-      force: false,
       orchestrator: 'direct',
+      consentAccepted,
     });
 
     const diagnostics = getJobFeedRunDiagnostics(result.run);
@@ -118,6 +125,11 @@ export async function POST(request: NextRequest) {
       errorMessage: result.run.error_message,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'JOB_FEED_CONSENT_REQUIRED') {
+      return NextResponse.json({
+        error: 'Please confirm I can search public job boards for you.',
+      }, { status: 400 });
+    }
     if (error instanceof Error && error.message === 'JOB_FEED_INSUFFICIENT_CV') {
       return NextResponse.json({
         error: "We couldn't find enough roles or experience in your CV to build your feed. Add your recent roles or key skills to your CV, then try again.",
@@ -131,14 +143,8 @@ export async function POST(request: NextRequest) {
 }
 
 async function getUserTimeZone(userId: string): Promise<string> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet cover these tables.
-  const admin = createAdminClient() as any;
-  const { data } = await admin
-    .from('job_feed_settings')
-    .select('user_timezone')
-    .eq('user_id', userId)
-    .maybeSingle();
-  return (data as { user_timezone?: string } | null)?.user_timezone || 'UTC';
+  const settings = await getSettings(userId);
+  return settings?.user_timezone || 'UTC';
 }
 
 function getCalendarDayCooldown(params: {

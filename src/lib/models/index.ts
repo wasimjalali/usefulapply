@@ -19,7 +19,7 @@ export { parseAnthropicJSON };
  * Main function to call Claude Sonnet 4.6 (or Sonnet 4.5 / Haiku 4.5 fallback)
  */
 export async function callModel(options: ModelCallOptions): Promise<ModelResponse> {
-  const { task, prompt, systemPrompt, systemBlocks, temperature, maxTokens, jsonMode, conversationHistory } = options;
+  const { task, prompt, systemPrompt, systemBlocks, temperature, maxTokens, jsonMode, conversationHistory, generationContext } = options;
   
   const config = getModelConfig(task);
   
@@ -34,6 +34,14 @@ export async function callModel(options: ModelCallOptions): Promise<ModelRespons
     maxTokens: finalMaxTokens,
     jsonMode,
     conversationHistory,
+    generationContext: generationContext
+      ? { ...generationContext, operation: task }
+      : {
+          requestExecutionId: crypto.randomUUID(),
+          route: 'unattributed',
+          feature: 'unattributed',
+          operation: task,
+        },
   });
 }
 
@@ -44,7 +52,7 @@ export async function callModelStream(
   options: ModelCallOptions,
   onChunk: (chunk: string) => void
 ): Promise<ModelResponse> {
-  const { task, prompt, systemPrompt, temperature, maxTokens } = options;
+  const { task, prompt, systemPrompt, temperature, maxTokens, generationContext } = options;
   
   const config = getModelConfig(task);
   
@@ -57,6 +65,14 @@ export async function callModelStream(
       systemPrompt,
       temperature: finalTemp,
       maxTokens: finalMaxTokens,
+      generationContext: generationContext
+        ? { ...generationContext, operation: task }
+        : {
+            requestExecutionId: crypto.randomUUID(),
+            route: 'unattributed',
+            feature: 'unattributed',
+            operation: task,
+          },
     },
     onChunk
   );

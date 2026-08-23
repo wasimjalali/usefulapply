@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/auth/server';
 import { canViewJobFeed } from '@/lib/job-feed/helpers';
-import { requireJobFeedAccess } from '@/lib/job-feed/auth';
+import { getProfile, updateProfile } from '@/db/repos/profiles';
 import { listLatestJobFeedItemsAdmin } from '@/lib/job-feed/server';
-import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
 export const runtime = 'nodejs';
 
@@ -12,74 +12,70 @@ export const runtime = 'nodejs';
 // the full overview (which includes settings, diagnostics, apply metadata).
 export async function GET(request: NextRequest) {
   try {
-    const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`job-feed-overview:${ip}`, RATE_LIMITS['job-feed-overview']);
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
+    const user = await getCurrentUser(request);
+
+    if (!user) {
+      return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, lastSeenRunDate: null }, { status: 200 });
+    }
+
+    const { allowed } = await checkRateLimit(`job-feed-overview:${user.id}`, RATE_LIMITS['job-feed-overview']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, unprocessedCount: 0 }, { status: 200 });
-    }
-
-    const { data: profile } = await typedSupabase
-      .from('profiles')
-      .select('subscription_tier, job_feed_last_seen_run_date')
-      .eq('id', user.id)
-      .single();
+    const profile = await getProfile(user.id);
 
     const canAccess = canViewJobFeed(profile?.subscription_tier ?? null);
     if (!canAccess) {
-      return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, unprocessedCount: 0 });
+      return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, lastSeenRunDate: null });
     }
 
     const { run, items } = await listLatestJobFeedItemsAdmin({ userId: user.id });
-
-    // Unprocessed = jobs in today's feed the user has not acted on yet.
-    // Save, apply, dismiss, and "not relevant" ratings each clear the job from
-    // the unprocessed pool so the badge counts down as the user works through
-    // the feed. (applied / dismissed / rated_not_relevant already drop the
-    // item from `items`, so we only need to subtract saved here.)
-    const unprocessedCount = items.filter((item) => !item.feedback.savedAt).length;
 
     return NextResponse.json({
       canAccess: true,
       latestRunDate: run?.local_date ?? null,
       jobCount: items.length,
-      unprocessedCount,
       lastSeenRunDate: profile?.job_feed_last_seen_run_date ?? null,
     });
   } catch (error) {
     console.error('[job-feed/summary] unexpected error:', error);
-    return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, unprocessedCount: 0 }, { status: 200 });
+    return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, lastSeenRunDate: null }, { status: 200 });
   }
 }
 
 export async function PATCH(request: NextRequest) {
   try {
-    const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`job-feed-overview:${ip}`, RATE_LIMITS['job-feed-overview']);
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
+      return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
+    }
+
+    const user = await getCurrentUser(request);
+
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
+    const { allowed } = await checkRateLimit(`job-feed-overview:${user.id}`, RATE_LIMITS['job-feed-overview']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
     }
 
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    // Match GET, which is free-tier. Gating this on the paid plans meant a free
+    // user got a badge from GET and then a 403 here, so their last-seen date
+    // was never written and the badge never cleared.
+    const profile = await getProfile(user.id);
+    if (!profile) {
+      return NextResponse.json({ error: 'Failed to update.' }, { status: 500 });
     }
-
-    const access = await requireJobFeedAccess(typedSupabase, user);
-    if (!access.ok) {
-      return NextResponse.json({ canAccess: false, error: access.error }, { status: access.status });
+    if (!canViewJobFeed(profile.subscription_tier)) {
+      return NextResponse.json({ canAccess: false, error: 'Job Feed is not available for this account.' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -89,13 +85,10 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid date format.' }, { status: 400 });
     }
 
-    const { error: updateError } = await typedSupabase
-      .from('profiles')
-      .update({ job_feed_last_seen_run_date: date })
-      .eq('id', user.id);
-
-    if (updateError) {
-      console.error('[job-feed/summary] PATCH update error:', updateError.message);
+    try {
+      await updateProfile(user.id, { job_feed_last_seen_run_date: date });
+    } catch (updateError) {
+      console.error('[job-feed/summary] PATCH update error:', updateError instanceof Error ? updateError.message : updateError);
       return NextResponse.json({ error: 'Failed to update.' }, { status: 500 });
     }
 

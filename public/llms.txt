@@ -1,20 +1,20 @@
-# KarKo AI
+# Useful Apply
 
-> KarKo AI is the AI job application agent that generates a complete, tailored application package (CV, cover letter, application email, follow-up email, and screening answers) from one job description, in under 90 seconds. Every word traces back to your uploaded CV. Nothing invented.
+> Useful Apply is the AI job application agent that generates a complete, tailored application package (CV, cover letter, application email, follow-up email, and screening answers) from one job description, in under 90 seconds. Every word traces back to your uploaded CV. Nothing invented.
 
-For long-form context, see https://www.karkoai.com/llms-full.txt.
+For long-form context, see https://usefulapply.com/llms-full.txt.
 
 ## Direct Answers
 
-**What is KarKo AI?** KarKo AI is an AI job application agent at https://www.karkoai.com. It replaces the seven tools job seekers stitch together (job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, tracker) with one loop. Paste a job description, get a tailored CV, cover letter, application email, follow-up email, and screening answers in under 90 seconds. Powered by Claude Sonnet 4.6. Founded by Wasim Jalali.
+**What is Useful Apply?** Useful Apply is an AI job application agent at https://usefulapply.com. It replaces the seven tools job seekers stitch together (job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, tracker) with one loop. Paste a job description, get a tailored CV, cover letter, application email, follow-up email, and screening answers in under 90 seconds. Powered by Claude Sonnet 4.6. Founded by Wasim Jalali.
 
-**How does KarKo AI work?** Upload your CV once (PDF or DOCX). Paste a job description. Pick "Analyze First" (fit assessment then generate) or "Apply Directly" (full generation in one pass). KarKo returns a tailored CV, cover letter, application email, follow-up email, and screening answers in under 90 seconds. Every claim is verified against your source CV.
+**How does Useful Apply work?** Upload your CV once (PDF or DOCX). Paste a job description. Pick "Analyze First" (fit assessment then generate) or "Apply Directly" (full generation in one pass). Useful Apply returns a tailored CV, cover letter, application email, follow-up email, and screening answers in under 90 seconds. Every claim is verified against your source CV.
 
-**What makes KarKo AI different?** Zero fabrication. Every skill, metric, and experience is traced back to the CV you uploaded. The job description is used only for keyword alignment and tone, never as a source of facts about you. Unlike auto-apply bots that blast generic applications, KarKo writes fewer applications, all tailored to the real role and grounded in your real experience.
+**What makes Useful Apply different?** Zero fabrication. Every skill, metric, and experience is traced back to the CV you uploaded. The job description is used only for keyword alignment and tone, never as a source of facts about you. Unlike auto-apply bots that blast generic applications, Useful Apply writes fewer applications, all tailored to the real role and grounded in your real experience.
 
 ## Pricing
 
-The current and authoritative pricing is published at https://www.karkoai.com/pricing.
+The current and authoritative pricing is published at https://usefulapply.com/pricing.
 
 - **Free**: 4 credits per month (about 2 full applications). No credit card required.
 - **Plus**: $19.99 per month. 50 credits (about 25 full applications). Smart Job Feed (up to 25 roles per day, searching 2 job titles across 2 countries). Priority support.
@@ -38,7 +38,7 @@ A single full application costs 2 credits. A standalone Fit Analysis costs 0.5 c
 
 ## ATS Compatibility
 
-KarKo AI documents pass scans by Workday, Greenhouse, Lever, SAP SuccessFactors, iCIMS, Taleo, BambooHR, and SmartRecruiters. All six CV templates use system fonts (Arial body, Georgia headers) and single-column layouts where required.
+Useful Apply documents pass scans by Workday, Greenhouse, Lever, SAP SuccessFactors, iCIMS, Taleo, BambooHR, and SmartRecruiters. All six CV templates use system fonts (Arial body, Georgia headers) and single-column layouts where required.
 
 ## Languages
 
@@ -46,34 +46,35 @@ The product UI is in English. Job descriptions can be processed in English, Germ
 
 ## Frequently Asked Questions
 
-**Is KarKo AI a resume builder?** No. Resume builders help you format one CV. KarKo runs your entire job search loop: feed finds roles, fit analysis scores them, generator writes the CV, cover letter, emails, and screening answers, tracker keeps the list.
+**Is Useful Apply a resume builder?** No. Resume builders help you format one CV. Useful Apply runs your entire job search loop: feed finds roles, fit analysis scores them, generator writes the CV, cover letter, emails, and screening answers, tracker keeps the list.
 
-**Is KarKo AI an auto-apply bot?** No. Auto-apply bots blast generic applications. KarKo writes fewer, all tailored to the real role and grounded in your real CV. You stay in control of what gets sent.
+**Is Useful Apply an auto-apply bot?** No. Auto-apply bots blast generic applications. Useful Apply writes fewer, all tailored to the real role and grounded in your real CV. You stay in control of what gets sent.
 
-**Does KarKo AI invent experience?** No. Every CV rewrite, cover letter, email, and screening answer is built from the CV you uploaded. KarKo will not invent job titles, skills, or experience you do not have. This is the one rule the product refuses to break.
+**Does Useful Apply invent experience?** No. Every CV rewrite, cover letter, email, and screening answer is built from the CV you uploaded. Useful Apply will not invent job titles, skills, or experience you do not have. This is the one rule the product refuses to break.
 
-**What AI model powers KarKo AI?** Claude Sonnet 4.6 by Anthropic, served via Amazon Bedrock in production. Most competitors use cheaper open-source models. KarKo pays for the better model because the output has to survive both an ATS scan and a recruiter's read.
+**What AI model powers Useful Apply?** Claude Sonnet 4.6 by Anthropic, served via Amazon Bedrock in production. Most competitors use cheaper open-source models. Useful Apply pays for the better model because the output has to survive both an ATS scan and a recruiter's read.
 
 **How long does a full application take?** Under 90 seconds end to end. That includes the tailored CV, cover letter, application email, follow-up email, and screening answers.
 
-**Where is my CV stored?** Uploaded CVs and generated documents are stored in Supabase (a managed Postgres + Storage service) so you can revisit and re-download past applications from your account. See https://www.karkoai.com/privacy for the current data handling policy.
+**Where is my CV stored?** Uploaded CVs and generated documents are stored in Supabase (a managed Postgres + Storage service) so you can revisit and re-download past applications from your account. See https://usefulapply.com/privacy for the current data handling policy.
 
-**Where is KarKo AI based?** KarKo AI Inc. 1207 Delaware Ave #412, Wilmington, DE 19806, USA. Contact: support@karkoai.com.
+**Where is Useful Apply based?** KarKo AI Inc. 1207 Delaware Ave #412, Wilmington, DE 19806, USA. Contact: support@karkoai.com.
+# TODO(Task 7.1): switch this address to support@usefulapply.com once the mailbox is routed
 
 ## Founder
 
-KarKo AI was founded by Wasim Jalali, who built the tool for his own job search as a first-time job seeker with no degree. He sent 60+ applications through it, got 5 interviews, and was hired as an AI Specialist through an application Karko wrote. The product got its founder the job he holds today. It was built to replace the seven separate tools he had been stitching together.
+Useful Apply was founded by Wasim Jalali, who built the tool for his own job search as a first-time job seeker with no degree. He sent 60+ applications through it, got 5 interviews, and was hired as an AI Specialist through an application Useful Apply wrote. The product got its founder the job he holds today. It was built to replace the seven separate tools he had been stitching together.
 
 ## Comparisons
 
-The full comparisons hub is at https://www.karkoai.com/compare.
+The full comparisons hub is at https://usefulapply.com/compare.
 
-- **KarKo AI vs Teal**: Teal is a tracker with a Chrome extension. KarKo writes the full application (CV, cover letter, application email, follow-up email, screening answers), not just the resume. See https://www.karkoai.com/compare/karko-ai-vs-teal.
-- **KarKo AI vs Jobscan**: Jobscan scans resumes for ATS keyword match. KarKo writes the full application from scratch, ATS-safe by default. See https://www.karkoai.com/compare/karko-ai-vs-jobscan.
-- **KarKo AI vs Rezi**: Rezi is an AI resume builder. KarKo is the full application loop, not just the resume. See https://www.karkoai.com/compare/karko-ai-vs-rezi.
-- **KarKo AI vs Kickresume**: Kickresume is a resume and cover letter builder with templates. KarKo writes tailored applications grounded in your real CV, with zero fabrication. See https://www.karkoai.com/compare/karko-ai-vs-kickresume.
-- **KarKo AI vs Enhancv**: Enhancv is a design-forward resume builder. KarKo focuses on ATS-safe output and full application generation, not visual design. See https://www.karkoai.com/compare/karko-ai-vs-enhancv.
-- **KarKo AI vs Resume.io**: Resume.io is a template-based resume builder. KarKo replaces seven separate job-search tools with one loop. See https://www.karkoai.com/compare/karko-ai-vs-resume-io.
+- **Useful Apply vs Teal**: Teal is a tracker with a Chrome extension. Useful Apply writes the full application (CV, cover letter, application email, follow-up email, screening answers), not just the resume. See https://usefulapply.com/compare/usefulapply-vs-teal.
+- **Useful Apply vs Jobscan**: Jobscan scans resumes for ATS keyword match. Useful Apply writes the full application from scratch, ATS-safe by default. See https://usefulapply.com/compare/usefulapply-vs-jobscan.
+- **Useful Apply vs Rezi**: Rezi is an AI resume builder. Useful Apply is the full application loop, not just the resume. See https://usefulapply.com/compare/usefulapply-vs-rezi.
+- **Useful Apply vs Kickresume**: Kickresume is a resume and cover letter builder with templates. Useful Apply writes tailored applications grounded in your real CV, with zero fabrication. See https://usefulapply.com/compare/usefulapply-vs-kickresume.
+- **Useful Apply vs Enhancv**: Enhancv is a design-forward resume builder. Useful Apply focuses on ATS-safe output and full application generation, not visual design. See https://usefulapply.com/compare/usefulapply-vs-enhancv.
+- **Useful Apply vs Resume.io**: Resume.io is a template-based resume builder. Useful Apply replaces seven separate job-search tools with one loop. See https://usefulapply.com/compare/usefulapply-vs-resume-io.
 
 ## Target Users
 
@@ -84,48 +85,48 @@ The full comparisons hub is at https://www.karkoai.com/compare.
 
 ## Pillar Pages (AI Job Application Hub)
 
-- **Hub**: https://www.karkoai.com/ai-job-application
-- **90-Second Application Package**: https://www.karkoai.com/ai-job-application/90-second-application-package
-- **Free Test, No Sign-Up Required**: https://www.karkoai.com/ai-job-application/free-no-signup-test
-- **ATS Optimization**: https://www.karkoai.com/ai-job-application/ats-optimization
-- **Zero-Fabrication**: https://www.karkoai.com/ai-job-application/zero-fabrication
-- **Workday, Greenhouse and Lever Compatibility**: https://www.karkoai.com/ai-job-application/integrations-workday-greenhouse-lever
-- **Pricing and Credits Explained**: https://www.karkoai.com/ai-job-application/pricing-credits
-- **AI Cover Letter Generator**: https://www.karkoai.com/ai-job-application/cover-letter-generator
-- **Follow-Up Email Generator**: https://www.karkoai.com/ai-job-application/follow-up-email-generator
-- **Application Tracker**: https://www.karkoai.com/ai-job-application/application-tracker
-- **Screening Question Answers**: https://www.karkoai.com/ai-job-application/screening-question-answers
-- **Master CV Template**: https://www.karkoai.com/master-cv-template
+- **Hub**: https://usefulapply.com/ai-job-application
+- **90-Second Application Package**: https://usefulapply.com/ai-job-application/90-second-application-package
+- **Free Test, No Sign-Up Required**: https://usefulapply.com/ai-job-application/free-no-signup-test
+- **ATS Optimization**: https://usefulapply.com/ai-job-application/ats-optimization
+- **Zero-Fabrication**: https://usefulapply.com/ai-job-application/zero-fabrication
+- **Workday, Greenhouse and Lever Compatibility**: https://usefulapply.com/ai-job-application/integrations-workday-greenhouse-lever
+- **Pricing and Credits Explained**: https://usefulapply.com/ai-job-application/pricing-credits
+- **AI Cover Letter Generator**: https://usefulapply.com/ai-job-application/cover-letter-generator
+- **Follow-Up Email Generator**: https://usefulapply.com/ai-job-application/follow-up-email-generator
+- **Application Tracker**: https://usefulapply.com/ai-job-application/application-tracker
+- **Screening Question Answers**: https://usefulapply.com/ai-job-application/screening-question-answers
+- **Master CV Template**: https://usefulapply.com/master-cv-template
 
 ## Blog (Latest Articles)
 
-- **How Long Does It Really Take to Apply for a Job in 2026?**: https://www.karkoai.com/blog/how-long-to-apply-for-job-2026
-- **Smart Job Feed: AI-Curated Daily Jobs**: https://www.karkoai.com/blog/smart-job-feed-ai-curated-daily-jobs
-- **Screening Question Answers for AI Job Applications**: https://www.karkoai.com/blog/screening-question-answers-ai-job-applications
-- **How to Tailor a Resume to a Job Description**: https://www.karkoai.com/blog/how-to-tailor-resume-to-job-description
-- **What is a Master CV?**: https://www.karkoai.com/blog/what-is-a-master-cv
-- **German CV vs American Resume**: https://www.karkoai.com/blog/german-cv-vs-american-resume
-- **Is It Ethical to Use AI for Job Applications?**: https://www.karkoai.com/blog/is-it-ethical-to-use-ai-for-job-applications
-- **Best AI Job Application Tools 2026**: https://www.karkoai.com/blog/best-ai-job-application-tools-2026
-- **AI Cover Letter Generator: How It Works**: https://www.karkoai.com/blog/ai-cover-letter-generator-how-it-works
-- **ATS Resume Format Guide 2026**: https://www.karkoai.com/blog/ats-resume-format-guide-2026
-- **Follow-Up Email After Job Application**: https://www.karkoai.com/blog/follow-up-email-after-job-application
-- **Your Entire Job Search in One App**: https://www.karkoai.com/blog/your-entire-job-search-in-one-app
+- **How Long Does It Really Take to Apply for a Job in 2026?**: https://usefulapply.com/blog/how-long-to-apply-for-job-2026
+- **Smart Job Feed: AI-Curated Daily Jobs**: https://usefulapply.com/blog/smart-job-feed-ai-curated-daily-jobs
+- **Screening Question Answers for AI Job Applications**: https://usefulapply.com/blog/screening-question-answers-ai-job-applications
+- **How to Tailor a Resume to a Job Description**: https://usefulapply.com/blog/how-to-tailor-resume-to-job-description
+- **What is a Master CV?**: https://usefulapply.com/blog/what-is-a-master-cv
+- **German CV vs American Resume**: https://usefulapply.com/blog/german-cv-vs-american-resume
+- **Is It Ethical to Use AI for Job Applications?**: https://usefulapply.com/blog/is-it-ethical-to-use-ai-for-job-applications
+- **Best AI Job Application Tools 2026**: https://usefulapply.com/blog/best-ai-job-application-tools-2026
+- **AI Cover Letter Generator: How It Works**: https://usefulapply.com/blog/ai-cover-letter-generator-how-it-works
+- **ATS Resume Format Guide 2026**: https://usefulapply.com/blog/ats-resume-format-guide-2026
+- **Follow-Up Email After Job Application**: https://usefulapply.com/blog/follow-up-email-after-job-application
+- **Your Entire Job Search in One App**: https://usefulapply.com/blog/your-entire-job-search-in-one-app
 
 ## Key Links
 
-- Homepage: https://www.karkoai.com
-- Pricing: https://www.karkoai.com/pricing
-- About: https://www.karkoai.com/about
-- Features: https://www.karkoai.com/features
-- Blog: https://www.karkoai.com/blog
-- Compare: https://www.karkoai.com/compare
-- Master CV Guide: https://www.karkoai.com/master-cv
-- Contact: https://www.karkoai.com/contact
-- Sign Up: https://www.karkoai.com/auth/signup
-- Imprint (Legal): https://www.karkoai.com/imprint
-- Privacy Policy: https://www.karkoai.com/privacy
-- Terms of Service: https://www.karkoai.com/terms
+- Homepage: https://usefulapply.com
+- Pricing: https://usefulapply.com/pricing
+- About: https://usefulapply.com/about
+- Features: https://usefulapply.com/features
+- Blog: https://usefulapply.com/blog
+- Compare: https://usefulapply.com/compare
+- Master CV Guide: https://usefulapply.com/master-cv
+- Contact: https://usefulapply.com/contact
+- Sign Up: https://usefulapply.com/auth/signup
+- Imprint (Legal): https://usefulapply.com/imprint
+- Privacy Policy: https://usefulapply.com/privacy
+- Terms of Service: https://usefulapply.com/terms
 
 ## Technical Details
 
@@ -136,4 +137,4 @@ The full comparisons hub is at https://www.karkoai.com/compare.
 - Anti-hallucination guardrails: every skill, metric, and claim is verified against the uploaded CV
 - Real-time streaming progress with agentic workflow (Analyze First mode and Apply Directly mode)
 - 6 ATS-optimized CV templates covering US and EU markets, including two German formats
-- Uploaded CVs, extracted CV content, and generated documents are stored in Supabase (Storage + Postgres) so the user can return to past applications. See https://www.karkoai.com/privacy for the current data handling policy.
+- Uploaded CVs, extracted CV content, and generated documents are stored in Supabase (Storage + Postgres) so the user can return to past applications. See https://usefulapply.com/privacy for the current data handling policy.

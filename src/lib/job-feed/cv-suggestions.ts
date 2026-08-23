@@ -308,9 +308,3 @@ function parseYearMonthFromCVDate(value: string | undefined): { year: number; mo
 
   return null;
 }
-
-function parseYearFromCVDate(value: string | undefined): number | null {
-  if (!value) return null;
-  const match = value.match(/(\d{4})/);
-  return match ? parseInt(match[1], 10) : null;
-}

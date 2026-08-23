@@ -1,5 +1,5 @@
 {
-  "name": "job-copilot",
+  "name": "usefulapply",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,19 +7,24 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy:cf": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "^0.26.3",
     "@anthropic-ai/sdk": "^0.71.2",
+    "@opennextjs/cloudflare": "^1.20.2",
     "@posthog/nextjs-config": "^1.8.18",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.93.3",
+    "better-auth": "^1.7.0",
     "docx": "^9.5.1",
     "dompurify": "^3.4.1",
+    "drizzle-orm": "^0.45.2",
     "embla-carousel-react": "^8.6.0",
     "html2canvas": "^1.4.1",
-    "inngest": "^4.2.4",
+    "jose": "^6.2.9",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.563.0",
     "next": "^16.2.3",
@@ -32,20 +37,23 @@
     "react-dom": "19.2.3",
     "react-dropzone": "^14.3.8",
     "react-markdown": "^10.1.0",
-    "resend": "^6.9.2",
     "stripe": "^20.3.1",
     "uuid": "^13.0.0",
     "zustand": "^5.0.10"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "better-sqlite3": "^13.0.3",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "^16.2.3",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.123.0"
   }
 }

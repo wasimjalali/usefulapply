@@ -7,6 +7,16 @@ interface MarkdownTextProps {
   className?: string;
 }
 
+function isSafeMarkdownHref(href: string | undefined): href is string {
+  if (!href) return false;
+  try {
+    const url = new URL(href);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export function MarkdownText({ content, className = '' }: MarkdownTextProps) {
   return (
     <div className={`prose prose-sm max-w-none ${className}`}>
@@ -36,15 +46,20 @@ export function MarkdownText({ content, className = '' }: MarkdownTextProps) {
               {children}
             </code>
           ),
+          img: () => null,
           a: ({ href, children }) => (
-            <a 
-              href={href} 
-              className="text-navy-600 hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {children}
-            </a>
+            isSafeMarkdownHref(href) ? (
+              <a
+                href={href}
+                className="text-navy-600 hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {children}
+              </a>
+            ) : (
+              <span>{children}</span>
+            )
           ),
         }}
       >

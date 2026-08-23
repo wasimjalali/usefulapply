@@ -33,10 +33,18 @@ export interface Database {
           notify_updates: boolean
           notify_weekly: boolean
           notify_marketing: boolean
+          notify_feed_ready: boolean
+          notify_follow_up_due: boolean
+          notify_interview_tomorrow: boolean
+          notify_credits_low: boolean
+          hide_rejected: boolean
+          timezone: string | null
+          date_format: string | null
           job_searches_used: number
           job_searches_reset_at: string
           job_feed_last_seen_run_date: string | null
           welcome_sent_at: string | null
+          check_in_sent_at: string | null
           created_at: string
           updated_at: string
         }
@@ -59,10 +67,18 @@ export interface Database {
           notify_updates?: boolean
           notify_weekly?: boolean
           notify_marketing?: boolean
+          notify_feed_ready?: boolean
+          notify_follow_up_due?: boolean
+          notify_interview_tomorrow?: boolean
+          notify_credits_low?: boolean
+          hide_rejected?: boolean
+          timezone?: string | null
+          date_format?: string | null
           job_searches_used?: number
           job_searches_reset_at?: string
           job_feed_last_seen_run_date?: string | null
           welcome_sent_at?: string | null
+          check_in_sent_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -85,10 +101,18 @@ export interface Database {
           notify_updates?: boolean
           notify_weekly?: boolean
           notify_marketing?: boolean
+          notify_feed_ready?: boolean
+          notify_follow_up_due?: boolean
+          notify_interview_tomorrow?: boolean
+          notify_credits_low?: boolean
+          hide_rejected?: boolean
+          timezone?: string | null
+          date_format?: string | null
           job_searches_used?: number
           job_searches_reset_at?: string
           job_feed_last_seen_run_date?: string | null
           welcome_sent_at?: string | null
+          check_in_sent_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -712,7 +736,7 @@ export interface Database {
           email_subject: string | null
           email_body: string | null
           selected_template: string
-          status: 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up'
+          status: 'drafted' | 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up'
           cover_letter_language: string
           fit_assessment: Json | null
           generation_completed: boolean
@@ -752,7 +776,7 @@ export interface Database {
           email_subject?: string | null
           email_body?: string | null
           selected_template?: string
-          status?: 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up'
+          status?: 'drafted' | 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up'
           cover_letter_language?: string
           fit_assessment?: Json | null
           generation_completed?: boolean
@@ -792,7 +816,7 @@ export interface Database {
           email_subject?: string | null
           email_body?: string | null
           selected_template?: string
-          status?: 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up'
+          status?: 'drafted' | 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up'
           cover_letter_language?: string
           fit_assessment?: Json | null
           generation_completed?: boolean

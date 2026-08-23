@@ -33,6 +33,7 @@ function getMimeType(filename: string): string {
   if (filename.endsWith('.pdf')) return 'application/pdf';
   if (filename.endsWith('.docx'))
     return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  if (filename.endsWith('.txt')) return 'text/plain';
   return 'application/octet-stream';
 }
 

@@ -1,4 +1,4 @@
-import { NOREPLY_FROM } from '../config';
+import { LOGO_URL, NOREPLY_FROM } from '../config';
 
 function escapeHtml(str: string): string {
   return str
@@ -24,11 +24,8 @@ interface BuiltEmail {
 
 /**
  * Single source of truth for the confirmation email body, used by:
- *   - scripts/resend-backfill-existing-users.ts (one-off backfill)
- *   - src/app/api/cron/resend-confirmations/route.ts (hourly auto-nudge for unconfirmed > 24h)
- *
- * The original /api/auth/signup route still uses its own inline HTML to keep
- * that hot path minimal. The signup email and this one match in style.
+ *   - Better Auth sendVerificationEmail in src/auth/server.ts
+ *   - src/cron/resend-confirmations.ts (hourly auto-nudge for unconfirmed > 24h)
  */
 export function buildConfirmationEmail({
   confirmationLink,
@@ -39,17 +36,18 @@ export function buildConfirmationEmail({
   const safeName = escapeHtml(cleanName);
   const greeting = safeName ? `Hi ${safeName},` : 'Hi there,';
   const subject = isReminder
-    ? 'A reminder: confirm your Karko AI account'
-    : 'Confirm your Karko AI account';
+    ? 'A reminder: confirm your Useful Apply account'
+    : 'Confirm your Useful Apply account';
 
   const intro = isReminder
-    ? "You signed up for Karko AI a little while back but haven't confirmed your email yet. Here's a fresh link, valid for 24 hours."
-    : "You signed up for Karko AI but didn't finish confirming your email. Click the button below to activate your free account (4 credits included).";
+    ? "You signed up for Useful Apply a little while back but haven't confirmed your email yet. Here's a fresh link, valid for 24 hours."
+    : "Thanks for signing up. Click the button below to confirm your email and activate your free account (4 credits included).";
 
   const html = `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fafaf8; padding: 40px 20px;">
   <div style="text-align: center; margin-bottom: 32px;">
-    <h1 style="font-size: 28px; color: #0f3057; margin: 0; letter-spacing: -0.5px;">Karko AI</h1>
+    <img src="${LOGO_URL}" alt="Useful Apply" width="56" height="56" style="display:block;margin:0 auto 12px auto;border-radius:12px;" />
+    <h1 style="font-size: 28px; color: #0f3057; margin: 0; letter-spacing: -0.5px;">Useful Apply</h1>
     <p style="color: #888; font-size: 14px; margin: 4px 0 0 0;">Your job application copilot</p>
   </div>
   <div style="background: #ffffff; border-radius: 12px; padding: 32px; border: 1px solid #e8e4dc;">
@@ -63,11 +61,11 @@ export function buildConfirmationEmail({
       </a>
     </div>
     <p style="color: #aaa; font-size: 13px; margin: 0; line-height: 1.6; border-top: 1px solid #f0ece4; padding-top: 20px;">
-      If you didn't sign up for Karko AI, you can safely ignore this email. This link expires in 24 hours.
+      If you didn't sign up for Useful Apply, you can safely ignore this email. This link expires in 24 hours.
     </p>
   </div>
   <p style="text-align: center; color: #bbb; font-size: 12px; margin-top: 24px;">
-    Karko AI . karkoai.com
+    Useful Apply . usefulapply.com
   </p>
 </div>
 `.trim();

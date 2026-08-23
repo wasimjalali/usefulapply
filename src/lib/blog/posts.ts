@@ -6,7 +6,7 @@ import { BlogPost } from './types';
  * To add a new blog post:
  * 1. Add a new object to this array
  * 2. The sitemap, listing page, and RSS feed will automatically include it
- * 3. No other changes needed — the dynamic route handles rendering
+ * 3. No other changes needed - the dynamic route handles rendering
  * 
  * Content uses Markdown format for rich text rendering.
  */
@@ -58,8 +58,8 @@ An agent does not have that problem. Neither would you, if your tools shared one
 
 Look at what every current tool optimizes for, and you will see the same broken trade.
 
-<!-- IMAGE PROMPT (speed-quality-quadrant.jpg): Clean editorial 2x2 quadrant diagram on warm cream background (#FAF7F2). X axis labeled "Speed" (low to high). Y axis labeled "Quality" (low to high). Four quadrants labeled minimally: top-left "Resume writers and career coaches (slow, high quality)", bottom-right "Auto-apply bots (fast, low quality)", bottom-left "Manual rewriting + generic AI (slow, low quality)", top-right highlighted in gold (#F59E0B) with a single word: "Karko." Typography: Georgia for headings, Inter for labels. Navy (#1E3A5F) line work, no gradients, no AI slop. -->
-![A speed vs quality quadrant with auto-apply bots in the fast-low-quality corner, resume writers in the slow-high-quality corner, and Karko alone in the fast-high-quality corner](/blog/speed-quality-quadrant.jpg)
+<!-- IMAGE PROMPT (speed-quality-quadrant.jpg): Clean editorial 2x2 quadrant diagram on warm cream background (#FAF7F2). X axis labeled "Speed" (low to high). Y axis labeled "Quality" (low to high). Four quadrants labeled minimally: top-left "Resume writers and career coaches (slow, high quality)", bottom-right "Auto-apply bots (fast, low quality)", bottom-left "Manual rewriting + generic AI (slow, low quality)", top-right highlighted in gold (#F59E0B) with a single word: "Useful Apply." Typography: Georgia for headings, Inter for labels. Navy (#1E3A5F) line work, no gradients, no AI slop. -->
+![A speed vs quality quadrant with auto-apply bots in the fast-low-quality corner, resume writers in the slow-high-quality corner, and Useful Apply alone in the fast-high-quality corner](/blog/speed-quality-quadrant.jpg)
 
 **Auto-apply bots** live in the fast-and-low-quality corner. They spray 200 applications a day. Candidates get flagged by ATS vendors, ghosted by recruiters, and embarrassed in interviews when they cannot explain claims on their own CV. In 2026, ATS platforms are actively hardening against them. Speed without trust is not speed. It is noise.
 
@@ -75,7 +75,7 @@ That is the corner an agent is supposed to live in.
 
 An agent, in the 2026 sense of the word, is not a chatbot. It is not a prompt you paste into. It is software that runs a multi-step workflow on your behalf, carries state between steps, and uses tools to get real work done.
 
-Karko is built as that. One app for the entire application loop.
+Useful Apply is built as that. One app for the entire application loop.
 
 **The AI job application agent.** Your entire job search, in one app.
 
@@ -83,27 +83,27 @@ Here is the shape of the loop it runs, with one shared source of truth (your rea
 
 **1. Smart Job Feed.** Up to 25 roles a day, hand-picked by an LLM that actually read your CV against every job description, not a keyword filter pretending to match.
 
-![The Karko Smart Job Feed: a curated list of roles with match scores, ready when you open your laptop](/screenshots/01b-job-feed-left-only.webp)
+![The Useful Apply Smart Job Feed: a curated list of roles with match scores, ready when you open your laptop](/screenshots/01b-job-feed-left-only.webp)
 
 **2. Fit Analysis.** Before you commit to a full application, you spend 0.5 credits and get back a match score, your strongest skills for the role, the gaps you are missing, and a recommendation. Decide in 30 seconds whether this role is worth your next two credits.
 
-![Karko Fit Analysis showing match score, strengths, gaps and a recommendation for a specific role](/screenshots/product-05-fit-analysis.webp)
+![Useful Apply Fit Analysis showing match score, strengths, gaps and a recommendation for a specific role](/screenshots/product-05-fit-analysis.webp)
 
 **3. Full application.** In about 90 seconds, a CV rewritten for this exact role, a cover letter in your voice, an application email, and a follow-up email pre-drafted for day seven. Every application is saved in one place so you can see the full loop.
 
-![Karko tracker showing saved applications with match scores and status, produced from the full application workflow](/screenshots/_archive/showcase-tracker.jpg)
+![Useful Apply tracker showing saved applications with match scores and status, produced from the full application workflow](/screenshots/_archive/showcase-tracker.jpg)
 
 **4. Screening answers.** Paste the portal's questions, get specific, personalized answers pulled from your actual experience. The cover letter, the CV and the company context are already loaded.
 
 **5. Tracker.** Every application you generate is saved with its match score and status. No spreadsheet. No more "which company was that?"
 
-![Karko Application Kit: tailored CV, cover letter, application email and follow-up email generated together](/screenshots/03-application-kit-generated.webp)
+![Useful Apply Application Kit: tailored CV, cover letter, application email and follow-up email generated together](/screenshots/03-application-kit-generated.webp)
 
 One loop. One shared context. Zero re-typing of your experience into another box.
 
 ## Inside the full application: what actually comes out
 
-This is the part every current tool gets half-right. The resume builder gives you a resume. The cover letter tool gives you a cover letter. Karko gives you the full application, all four pieces, all writing from the same shared context, all consistent in tone and claims. You open the panel and the whole thing is waiting.
+This is the part every current tool gets half-right. The resume builder gives you a resume. The cover letter tool gives you a cover letter. Useful Apply gives you the full application, all four pieces, all writing from the same shared context, all consistent in tone and claims. You open the panel and the whole thing is waiting.
 
 Here is what lands in under 90 seconds.
 
@@ -111,25 +111,25 @@ Here is what lands in under 90 seconds.
 
 The CV is rewritten for this exact role. Your bullets get reordered so the most relevant experience floats to the top. The keywords the job description actually uses get threaded in where your real experience supports them. If the role calls for "stakeholder management" and your CV has it under a different phrase, the wording aligns. If the role calls for skills you do not have, the CV does not invent them.
 
-![A tailored Karko CV rendered in one of the ATS-optimized templates](/screenshots/_archive/showcase-cv.jpg)
+![A tailored Useful Apply CV rendered in one of the ATS-optimized templates](/screenshots/_archive/showcase-cv.jpg)
 
 ### A cover letter that sounds like you, not like ChatGPT
 
-The cover letter is the part most candidates know is being read by a human. Karko writes it in a voice that matches your CV, references the specific company (not "your organization"), and picks out one or two real threads from your background that map to the role. No "passionate team player." No "I am writing to express my interest." No ChatGPT tells.
+The cover letter is the part most candidates know is being read by a human. Useful Apply writes it in a voice that matches your CV, references the specific company (not "your organization"), and picks out one or two real threads from your background that map to the role. No "passionate team player." No "I am writing to express my interest." No ChatGPT tells.
 
-![A Karko cover letter written in the candidate's voice, referencing the specific role and company](/screenshots/_archive/showcase-cover-letter.jpg)
+![A Useful Apply cover letter written in the candidate's voice, referencing the specific role and company](/screenshots/_archive/showcase-cover-letter.jpg)
 
 ### An application email that is ready to paste
 
-The email is the small thing that used to eat 15 minutes because you kept rewriting the first line. Karko drafts it with the CV. Short. Polite. Clear about what is attached and why. Subject line included.
+The email is the small thing that used to eat 15 minutes because you kept rewriting the first line. Useful Apply drafts it with the CV. Short. Polite. Clear about what is attached and why. Subject line included.
 
-![A Karko application email drafted alongside the CV and cover letter, ready to send](/screenshots/_archive/showcase-email.jpg)
+![A Useful Apply application email drafted alongside the CV and cover letter, ready to send](/screenshots/_archive/showcase-email.jpg)
 
 ### A follow-up email, pre-drafted for day seven
 
-Most candidates never follow up, and the ones who do are the ones who get remembered. Karko generates the follow-up with the rest of the package. It sits in your tracker until the timing is right. No more staring at a blank message box on day eight, wondering how to phrase it without sounding desperate.
+Most candidates never follow up, and the ones who do are the ones who get remembered. Useful Apply generates the follow-up with the rest of the package. It sits in your tracker until the timing is right. No more staring at a blank message box on day eight, wondering how to phrase it without sounding desperate.
 
-![A Karko follow-up email pre-drafted for the candidate to send 7 to 10 days after applying](/screenshots/_archive/showcase-follow-up.jpg)
+![A Useful Apply follow-up email pre-drafted for the candidate to send 7 to 10 days after applying](/screenshots/_archive/showcase-follow-up.jpg)
 
 Four documents. One generation. One voice across all of them.
 
@@ -139,7 +139,7 @@ From the outside, "AI writes your application" sounds like every other tool from
 
 ### 1. Never a word you did not earn
 
-Karko will not invent experience you do not have. Every bullet in the tailored CV, every paragraph in the cover letter, every screening answer traces back to the real CV you uploaded. This is not a tagline. It is the architecture.
+Useful Apply will not invent experience you do not have. Every bullet in the tailored CV, every paragraph in the cover letter, every screening answer traces back to the real CV you uploaded. This is not a tagline. It is the architecture.
 
 Why it matters: recruiters have spent two years training themselves to spot hallucinated AI copy, and ATS vendors are catching up. Candidates who got burned in interviews once, because a generic AI made them sound like a leader they were not, do not come back to the tool. Trust is the defensible thing.
 
@@ -157,27 +157,27 @@ At a job-seeker scale, this is worth hours a week. At a career scale, it is wort
 
 ### 4. Sounds like you, reads like a real application
 
-Most tools optimize for either the ATS scan or the recruiter read. The agent has to clear both. Every Karko template is ATS-safe by default (six designs, single-column structure, clean fonts). And every generation is tuned to sound like you wrote it late Tuesday afternoon, not like a language model wrote it late Sunday night.
+Most tools optimize for either the ATS scan or the recruiter read. The agent has to clear both. Every Useful Apply template is ATS-safe by default (six designs, single-column structure, clean fonts). And every generation is tuned to sound like you wrote it late Tuesday afternoon, not like a language model wrote it late Sunday night.
 
 ## The two scores that save you hours
 
-Two of the most overlooked parts of Karko are the two honest scores it shows you: a fit score before you commit, and an ATS score after the CV is generated. Both exist because the single biggest way to save a job seeker's time is to tell them the truth.
+Two of the most overlooked parts of Useful Apply are the two honest scores it shows you: a fit score before you commit, and an ATS score after the CV is generated. Both exist because the single biggest way to save a job seeker's time is to tell them the truth.
 
 The **Fit Analysis** runs for 0.5 credits before you generate anything. It reads your real CV against the full job description and gives you a clean match score, the skills you have that align, the skills the role calls for that you do not, and a plain-English recommendation. If the number is low and the gaps are real, you skip the role. No wasted credits. No three hours tailoring a CV for a job you were never going to get.
 
-![Karko Fit Analysis with match score, strengths and gaps for a specific role](/images/features/fit-analysis.jpg)
+![Useful Apply Fit Analysis with match score, strengths and gaps for a specific role](/images/features/fit-analysis.jpg)
 
-The **ATS score** shows up on the generated CV itself. Every template Karko offers is ATS-safe by default, so the score is not about "your layout is broken." It is about keyword alignment: did the CV pick up the words the job description actually uses, in places where your real experience backs them. A CV that passes the robots before a human sees it.
+The **ATS score** shows up on the generated CV itself. Every template Useful Apply offers is ATS-safe by default, so the score is not about "your layout is broken." It is about keyword alignment: did the CV pick up the words the job description actually uses, in places where your real experience backs them. A CV that passes the robots before a human sees it.
 
-![A tailored Karko CV displayed with its ATS score and keyword alignment](/screenshots/_archive/showcase-ats-score.jpg)
+![A tailored Useful Apply CV displayed with its ATS score and keyword alignment](/screenshots/_archive/showcase-ats-score.jpg)
 
 Together, these two scores collapse the entire "am I wasting my time on this application" question into a 30-second answer. That is the part the seven-tool stack never had.
 
 ## What the math actually looks like
 
-One of the few specific numbers the founder uses about Karko is his own. Sixty-plus applications sent through the agent, 5 interviews, and the job he holds today. He was hired as an AI Specialist through an application Karko wrote. The interview rate works out around 8%, against an industry baseline of 2 to 3% for tailored applications. He did not fudge the CV. He was a first-time job seeker with a founder background and no degree, applying in Germany. The only variable was the tool.
+One of the few specific numbers the founder uses about Useful Apply is his own. Sixty-plus applications sent through the agent, 5 interviews, and the job he holds today. He was hired as an AI Specialist through an application Useful Apply wrote. The interview rate works out around 8%, against an industry baseline of 2 to 3% for tailored applications. He did not fudge the CV. He was a first-time job seeker with a founder background and no degree, applying in Germany. The only variable was the tool.
 
-Here is another way to think about the same thing. Manual tailoring of a single application runs about 60 minutes if you are disciplined, more if you are tired. Karko does it in 90 seconds. That is roughly 40x faster. Multiply over 60 applications and you are looking at the difference between two weekends and two full work weeks.
+Here is another way to think about the same thing. Manual tailoring of a single application runs about 60 minutes if you are disciplined, more if you are tired. Useful Apply does it in 90 seconds. That is roughly 40x faster. Multiply over 60 applications and you are looking at the difference between two weekends and two full work weeks.
 
 Time saved is not the whole story, though. The quieter win is what you do with the time. You spend it preparing for the interview. You spend it researching the company beyond the careers page. You spend it calling a friend who worked there. You spend it sleeping.
 
@@ -213,20 +213,20 @@ The third is that the job market, globally, got harder. People apply to more rol
 
 If any of the last few scrolls described a version of your Sunday night, the only useful next step is to see what your own real CV produces when the whole workflow is in one place.
 
-Karko is free for your first two full applications. No credit card. You upload your CV once. You run a Fit Analysis on a role from your feed. If the score makes it worth it, you generate the full application in under two minutes. You send it before your coffee gets cold.
+Useful Apply is free for your first two full applications. No credit card. You upload your CV once. You run a Fit Analysis on a role from your feed. If the score makes it worth it, you generate the full application in under two minutes. You send it before your coffee gets cold.
 
 Ten hours of searching, gone. The screening wall, gone. The spreadsheet, gone.
 
 One app for your entire job search.
 
-**[Start free at karkoai.com](/dashboard)**
+**[Start free at usefulapply.com](/dashboard)**
 
 ---
 
-*Wasim Jalali is the founder of Karko AI, the AI job application agent. He built Karko after running out of money on a startup in Germany and spending months applying to jobs by hand. Sixty-plus applications through Karko later, he was hired as an AI Specialist through an application his own product wrote.*`,
+*Wasim Jalali is the founder of Useful Apply, the AI job application agent. He built Useful Apply after running out of money on a startup in Germany and spending months applying to jobs by hand. Sixty-plus applications through Useful Apply later, he was hired as an AI Specialist through an application his own product wrote.*`,
     author: {
       name: 'Wasim Jalali',
-      role: 'Founder, Karko AI',
+      role: 'Founder, Useful Apply',
     },
     publishedAt: '2026-04-30',
     readingTime: 9,
@@ -239,7 +239,7 @@ One app for your entire job search.
       'job application workflow',
       'ats optimization',
       'anti hallucination',
-      'karko ai',
+      'useful apply',
       'seven tools',
       'category positioning',
     ],
@@ -250,7 +250,7 @@ One app for your entire job search.
       heading: 'Your entire job search, in one app',
       description:
         'Stop juggling seven tools. Upload your CV once, pick a role from your feed, and send your first full application in under two minutes. Free for 2 applications.',
-      text: 'Try Karko AI free',
+      text: 'Try Useful Apply free',
       href: '/dashboard',
     },
   },
@@ -309,17 +309,17 @@ Think about what would make this solvable. You would need something that already
 
 If all of that context was sitting in one place, generating specific, personalized answers becomes straightforward. The facts are right there. The positioning is already decided. The work is pattern-matching, not invention.
 
-That is how Karko's Screening Question Answers feature works.
+That is how Useful Apply's Screening Question Answers feature works.
 
 ## How it actually works
 
-You generate your full application first. Tailored CV, cover letter, application email, follow-up email. That takes under 90 seconds and costs 2 credits. Karko does the job description analysis and the company research as part of that.
+You generate your full application first. Tailored CV, cover letter, application email, follow-up email. That takes under 90 seconds and costs 2 credits. Useful Apply does the job description analysis and the company research as part of that.
 
-Now Karko has full context. Your complete CV. The cover letter it just wrote for this specific role. The job description. The company details.
+Now Useful Apply has full context. Your complete CV. The cover letter it just wrote for this specific role. The job description. The company details.
 
-You paste the screening questions from the application form into Karko. That is it. You do not need to explain anything. You do not need to retype your experience. You paste the questions.
+You paste the screening questions from the application form into Useful Apply. That is it. You do not need to explain anything. You do not need to retype your experience. You paste the questions.
 
-Karko writes a specific, personalized answer for every one of them. Not templates. Answers that pull from your actual experience, reference the specific company, and connect to the role you are applying for. If the question asks about leadership, it reaches for the right project from your CV. If the question asks why this company, it uses what Karko already learned about the company during the application.
+Useful Apply writes a specific, personalized answer for every one of them. Not templates. Answers that pull from your actual experience, reference the specific company, and connect to the role you are applying for. If the question asks about leadership, it reaches for the right project from your CV. If the question asks why this company, it uses what Useful Apply already learned about the company during the application.
 
 ![Three document icons flowing into a central answer card, representing AI combining CV, cover letter, and job description context](/blog/ai-context-feeding-answer.jpg)
 
@@ -351,14 +351,14 @@ And the AI is not tired. That is the underrated part. The 15th screening answer 
 
 ## Where to find it
 
-Screening Question Answers is available on Plus and Max. Generate a full application for a role, then paste the screening questions into Karko. Get specific, personalized answers in under a minute.
+Screening Question Answers is available on Plus and Max. Generate a full application for a role, then paste the screening questions into Useful Apply. Get specific, personalized answers in under a minute.
 
 Every application is saved in your tracker with its match score and status, and if you want to vet the role before committing, Fit Analysis gives you an honest match score and the skill gaps for 0.5 credits before you commit to a full application.
 
 The screening question section used to be where strong applications died. It does not have to be anymore.`,
     author: {
       name: 'Wasim Jalali',
-      role: 'Founder, Karko AI',
+      role: 'Founder, Useful Apply',
     },
     publishedAt: '2026-04-28',
     readingTime: 7,
@@ -379,7 +379,7 @@ The screening question section used to be where strong applications died. It doe
       heading: 'Clear the screening question wall in minutes',
       description:
         'Generate your full application, paste the screening questions, and get specific, personalized answers that reference your actual experience. Available on Plus and Max.',
-      text: 'Try Karko AI free',
+      text: 'Try Useful Apply free',
       href: '/dashboard',
     },
   },
@@ -416,7 +416,7 @@ No duplicates. No "entry-level, 7+ years required" nonsense. No postings in the 
 
 Just a short list. Curated while you slept. Ready when you open your laptop.
 
-That is what the Karko Smart Job Feed does.
+That is what the Useful Apply Smart Job Feed does.
 
 ![Three curated job cards stacked neatly, each marked with a gold star, representing a daily curated feed](/blog/curated-daily-feed.jpg)
 
@@ -424,7 +424,7 @@ That is what the Karko Smart Job Feed does.
 
 You set it up once. It takes about three minutes.
 
-You tell Karko your target roles (up to two on Plus, up to four on Max). Your locations or cities. Your seniority, from intern through manager. Your remote preference: remote-only, remote-first, hybrid, on-site, or flexible. Your employment type. A salary floor. Your work authorization status and preferred languages.
+You tell Useful Apply your target roles (up to two on Plus, up to four on Max). Your locations or cities. Your seniority, from intern through manager. Your remote preference: remote-only, remote-first, hybrid, on-site, or flexible. Your employment type. A salary floor. Your work authorization status and preferred languages.
 
 Then you pick an aggressiveness. Strict shows only exact matches. Balanced covers your core criteria with some flexibility. Broad casts a wider net, including adjacent roles and nearby cities you may not have thought to search.
 
@@ -473,7 +473,7 @@ The Smart Job Feed is the setup-once, arrives-daily version of that. You can con
 If five months of searching sounds like a long time, that is because it is. Getting the browsing step out of the way is a small change that compounds fast.`,
     author: {
       name: 'Wasim Jalali',
-      role: 'Founder, Karko AI',
+      role: 'Founder, Useful Apply',
     },
     publishedAt: '2026-04-28',
     readingTime: 7,
@@ -553,7 +553,7 @@ Here's the structure:
 
 **Subject line:** Reference the role and your application date. Examples:
 - "Following up: [Job Title] application submitted [Date]"
-- "Re: [Job Title] — Application from [Your Name]"
+- "Re: [Job Title] - Application from [Your Name]"
 
 **Opening:** Polite, direct, no fluff. State the role, when you applied, and that you're following up.
 
@@ -603,11 +603,11 @@ Notice what this does:
 
 Writing a follow-up email manually takes 10 to 15 minutes if you're trying to get the tone right. Most people procrastinate because they don't know how to phrase it without sounding pushy.
 
-**Karko AI generates a professional follow-up email in under 90 seconds.** It's part of the 4-document package: CV, cover letter, application email, and follow-up email. All tailored to the same job description, all consistent in tone and claims.
+**Useful Apply generates a professional follow-up email in under 90 seconds.** It's part of the 4-document package: CV, cover letter, application email, and follow-up email. All tailored to the same job description, all consistent in tone and claims.
 
-![Screenshot of Karko AI generating a follow-up email in the dashboard](/blog/karko-follow-up-generator.jpg)
+![Screenshot of Useful Apply generating a follow-up email in the dashboard](/blog/karko-follow-up-generator.jpg)
 
-The follow-up email Karko generates includes:
+The follow-up email Useful Apply generates includes:
 - The role and application date (pulled from your input).
 - A brief reiteration of your top relevant skill or achievement (pulled from your real CV).
 - A polite request for an update or next steps.
@@ -627,15 +627,15 @@ The candidates who get hired aren't always the most qualified. They're the ones 
 
 ## Try It Yourself
 
-Karko AI is free for your first 2 applications. That includes the follow-up email. No credit card. No sign-up wall.
+Useful Apply is free for your first 2 applications. That includes the follow-up email. No credit card. No sign-up wall.
 
 If you're in a job search right now, you already know how much time you're spending per application. The question is whether you want to keep doing it manually, or let AI handle the heavy lifting while you focus on preparing for interviews.
 
-**[Generate Your Follow-Up Email Free — 2 Applications, No Credit Card](/dashboard)**
+**[Generate Your Follow-Up Email Free - 2 Applications, No Credit Card](/dashboard)**
 
 ---
 
-*Wasim Jalali is the founder of Karko AI. He built it because he was broke, job hunting, and tired of spending hours on applications that went nowhere. Now he's making sure nobody else has to.*`,
+*Wasim Jalali is the founder of Useful Apply. He built it because he was broke, job hunting, and tired of spending hours on applications that went nowhere. Now he's making sure nobody else has to.*`,
     author: { name: 'Wasim Jalali', role: 'Founder & CEO' },
     publishedAt: '2026-03-15',
     readingTime: 7,
@@ -650,7 +650,7 @@ If you're in a job search right now, you already know how much time you're spend
       'follow-up strategy',
       'hiring manager',
       'application response',
-      'Karko AI',
+      'Useful Apply',
     ],
     featured: false,
     ogImage: '/blog/follow-up-email-cover.jpg',
@@ -767,23 +767,23 @@ Neither works.
 
 ## How AI Changes the Math
 
-**Karko AI tailors your resume in under 90 seconds.** Same quality as a hand-tailored CV, roughly 40x faster.
+**Useful Apply tailors your resume in under 90 seconds.** Same quality as a hand-tailored CV, roughly 40x faster.
 
 Here's how it works:
 
 1. You upload your Master CV once (your complete, structured work history).
 2. You paste a job description.
-3. Karko's AI agent extracts the top keywords, maps them to your verified experience, rewrites your bullets to emphasize relevant achievements, and generates an ATS-optimized, tailored CV.
+3. Useful Apply's AI agent extracts the top keywords, maps them to your verified experience, rewrites your bullets to emphasize relevant achievements, and generates an ATS-optimized, tailored CV.
 
-**No fabrication.** Every claim traces back to your uploaded CV. If you don't have AWS experience, Karko won't add it.
+**No fabrication.** Every claim traces back to your uploaded CV. If you don't have AWS experience, Useful Apply won't add it.
 
 **No manual reformatting.** The output is a clean, single-column, ATS-safe PDF in one of 6 professional templates.
 
 **No keyword guessing.** The AI extracts the exact phrasing from the job description and uses it where your CV has equivalent experience.
 
-**Time saved:** 100 applications at 20 minutes each = 33 hours. With Karko, that drops to 2.5 hours.
+**Time saved:** 100 applications at 20 minutes each = 33 hours. With Useful Apply, that drops to 2.5 hours.
 
-![Comparison: 33 hours manual tailoring vs. 2.5 hours with Karko AI for 100 applications](/blog/tailoring-time-comparison.jpg)
+![Comparison: 33 hours manual tailoring vs. 2.5 hours with Useful Apply for 100 applications](/blog/tailoring-time-comparison.jpg)
 
 ## Real Example: Before and After Tailoring
 
@@ -795,7 +795,7 @@ Here's how it works:
 
 **Why it works:** The tailored version uses the job description's language ("customer success," "churn," "onboarding") and quantifies the impact. Same experience, strategically reframed.
 
-Karko AI does this automatically by analyzing the job description, identifying what matters most, and rewriting your bullets to match, all while pulling only from your verified work history.
+Useful Apply does this automatically by analyzing the job description, identifying what matters most, and rewriting your bullets to match, all while pulling only from your verified work history.
 
 ## The 1.6x Advantage
 
@@ -809,15 +809,15 @@ Tailoring works. The question is whether you want to spend 33 hours doing it man
 
 ## Try It Yourself
 
-Karko AI is free for your first 2 applications. No credit card. No sign-up wall. Paste a job description and see what comes back.
+Useful Apply is free for your first 2 applications. No credit card. No sign-up wall. Paste a job description and see what comes back.
 
 If you're in a job search, you already know how long tailoring takes. The question is whether you want to keep spending your time the same way.
 
-**[Tailor Your Resume in 90 Seconds — 2 Applications Free, No Credit Card](/dashboard)**
+**[Tailor Your Resume in 90 Seconds - 2 Applications Free, No Credit Card](/dashboard)**
 
 ---
 
-*Wasim Jalali is the founder of Karko AI. He built it because he was broke, job hunting, and tired of spending hours tailoring applications that went nowhere. Now he's making sure nobody else has to.*`,
+*Wasim Jalali is the founder of Useful Apply. He built it because he was broke, job hunting, and tired of spending hours tailoring applications that went nowhere. Now he's making sure nobody else has to.*`,
     author: { name: 'Wasim Jalali', role: 'Founder & CEO' },
     publishedAt: '2026-03-20',
     readingTime: 8,
@@ -831,7 +831,7 @@ If you're in a job search, you already know how long tailoring takes. The questi
       'job application',
       'AI resume builder',
       'tailored resume',
-      'Karko AI',
+      'Useful Apply',
       'job search tips',
     ],
     featured: false,
@@ -1027,7 +1027,7 @@ Most people don't have 50 hours. So they send the same generic resume to every j
 
 ## How AI Solves the ATS Formatting Problem
 
-**Karko AI generates ATS-optimized resumes by default.** Every output follows all 7 rules above, across all 6 CV templates.
+**Useful Apply generates ATS-optimized resumes by default.** Every output follows all 7 rules above, across all 6 CV templates.
 
 Here's what that means:
 
@@ -1041,9 +1041,9 @@ Here's what that means:
 
 You don't have to check any of this manually. It's built into the templates.
 
-**Keyword matching is also automated.** Karko extracts the top required skills from the job description, maps them to your verified experience, and rewrites your bullets to include those keywords naturally. No keyword stuffing. No fabrication.
+**Keyword matching is also automated.** Useful Apply extracts the top required skills from the job description, maps them to your verified experience, and rewrites your bullets to include those keywords naturally. No keyword stuffing. No fabrication.
 
-![Split-screen: Manual ATS formatting (30 minutes, error-prone) vs. Karko AI (90 seconds, ATS-safe)](/blog/manual-vs-ai-ats-formatting.jpg)
+![Split-screen: Manual ATS formatting (30 minutes, error-prone) vs. Useful Apply (90 seconds, ATS-safe)](/blog/manual-vs-ai-ats-formatting.jpg)
 
 ## The 76% Filter
 
@@ -1057,15 +1057,15 @@ The question is whether you want to spend 30 minutes per application manually ch
 
 ## Try It Yourself
 
-Karko AI is free for your first 2 applications. Every output is ATS-optimized by default. No formatting checklist to worry about. No manual reformatting.
+Useful Apply is free for your first 2 applications. Every output is ATS-optimized by default. No formatting checklist to worry about. No manual reformatting.
 
 Paste a job description and see what comes back.
 
-**[Generate an ATS-Optimized Resume in 90 Seconds — 2 Applications Free, No Credit Card](/dashboard)**
+**[Generate an ATS-Optimized Resume in 90 Seconds - 2 Applications Free, No Credit Card](/dashboard)**
 
 ---
 
-*Wasim Jalali is the founder of Karko AI. He built it because he was broke, job hunting, and tired of getting auto-rejected by ATS systems he didn't even know existed. Now he's making sure nobody else has to.*`,
+*Wasim Jalali is the founder of Useful Apply. He built it because he was broke, job hunting, and tired of getting auto-rejected by ATS systems he didn't even know existed. Now he's making sure nobody else has to.*`,
     author: { name: 'Wasim Jalali', role: 'Founder & CEO' },
     publishedAt: '2026-03-22',
     readingTime: 9,
@@ -1080,7 +1080,7 @@ Paste a job description and see what comes back.
       'Greenhouse',
       'Lever',
       'resume tips',
-      'Karko AI',
+      'Useful Apply',
     ],
     featured: false,
     ogImage: '/blog/ats-resume-cover.jpg',
@@ -1178,7 +1178,7 @@ Not all AI cover letter generators are the same. Here's what matters:
 
 **The fix:** A good AI cover letter generator enforces strict traceability. Every claim must map back to your uploaded CV. If you don't have AWS experience, the cover letter won't mention it.
 
-Karko AI uses a structural anti-hallucination system. The AI agent is explicitly forbidden from inventing skills, metrics, or roles. If it tries to fabricate, the output is rejected and regenerated.
+Useful Apply uses a structural anti-hallucination system. The AI agent is explicitly forbidden from inventing skills, metrics, or roles. If it tries to fabricate, the output is rejected and regenerated.
 
 ### 2. Personalization (Not Just Mail Merge)
 
@@ -1211,7 +1211,7 @@ A good AI cover letter generator produces text that:
 
 **The fix:** A well-designed AI cover letter generator should take one input (job description) and produce a complete cover letter in under 90 seconds. No multi-step wizards. No manual editing required (though optional editing is always a good idea before sending).
 
-Karko AI generates a cover letter as part of a 4-document package (CV, cover letter, application email, follow-up email) in one workflow. Total time: 90 seconds.
+Useful Apply generates a cover letter as part of a 4-document package (CV, cover letter, application email, follow-up email) in one workflow. Total time: 90 seconds.
 
 ![Comparison: Template (generic, 10 min) vs. Manual writing (20 min, high quality) vs. AI (90 sec, high quality)](/blog/cover-letter-time-comparison.jpg)
 
@@ -1256,15 +1256,15 @@ Writing 100 cover letters manually takes 33 hours. With AI, it takes 2.5 hours. 
 
 ## Try It Yourself
 
-Karko AI is free for your first 2 applications. That includes the cover letter, plus the tailored CV, application email, and follow-up email. All four documents reference the same job description and draw from your uploaded CV.
+Useful Apply is free for your first 2 applications. That includes the cover letter, plus the tailored CV, application email, and follow-up email. All four documents reference the same job description and draw from your uploaded CV.
 
 No credit card. No sign-up wall. Paste a job description and see what comes back.
 
-**[Generate an AI Cover Letter in 90 Seconds — 2 Applications Free, No Credit Card](/dashboard)**
+**[Generate an AI Cover Letter in 90 Seconds - 2 Applications Free, No Credit Card](/dashboard)**
 
 ---
 
-*Wasim Jalali is the founder of Karko AI. He built it because he was broke, job hunting, and tired of spending hours writing cover letters that went nowhere. Now he's making sure nobody else has to.*`,
+*Wasim Jalali is the founder of Useful Apply. He built it because he was broke, job hunting, and tired of spending hours writing cover letters that went nowhere. Now he's making sure nobody else has to.*`,
     author: { name: 'Wasim Jalali', role: 'Founder & CEO' },
     publishedAt: '2026-03-25',
     readingTime: 8,
@@ -1278,7 +1278,7 @@ No credit card. No sign-up wall. Paste a job description and see what comes back
       'cover letter templates',
       'AI job application',
       'career advice',
-      'Karko AI',
+      'Useful Apply',
       'application tips',
     ],
     featured: false,
@@ -1329,7 +1329,7 @@ Not all tools are built for the same use case. Before comparing options, define 
 
 ## Top 5 AI Job Application Tools in 2026
 
-### 1. Karko AI — Full Full Application in 90 Seconds
+### 1. Useful Apply: Full Application in 90 Seconds
 
 **What it does:**
 Generates a full application: CV, cover letter, application email, and follow-up email. All four documents reference the same job description and draw from your uploaded CV. On Plus and Max, screening question answers as well.
@@ -1351,9 +1351,9 @@ Generates a full application: CV, cover letter, application email, and follow-up
 
 **Limitations:** No direct LinkedIn or Indeed integration (you download the documents and upload them manually).
 
-**Try it:** [karkoai.com](/)
+**Try it:** [usefulapply.com](/)
 
-### 2. Teal — Resume Builder + Job Tracker
+### 2. Teal - Resume Builder + Job Tracker
 
 **What it does:**
 Resume builder with AI-assisted writing suggestions, plus a job application tracker with deadlines, notes, and contact management.
@@ -1371,7 +1371,7 @@ Resume builder with AI-assisted writing suggestions, plus a job application trac
 
 **Limitations:** Resume builder is slower than AI generation (still requires manual editing). Cover letters are not auto-generated from job descriptions.
 
-### 3. Jobscan — ATS Keyword Scanner
+### 3. Jobscan - ATS Keyword Scanner
 
 **What it does:**
 Scans your resume against a job description and gives you an ATS match score (0 to 100%) with recommendations for which keywords to add.
@@ -1389,7 +1389,7 @@ Scans your resume against a job description and gives you an ATS match score (0 
 
 **Limitations:** It's a scanner, not a generator. You still have to manually rewrite your resume based on the feedback. No cover letter or email generation.
 
-### 4. Rezi — AI Resume Builder
+### 4. Rezi - AI Resume Builder
 
 **What it does:**
 AI-powered resume builder with templates, keyword suggestions, and a built-in ATS score estimator.
@@ -1407,7 +1407,7 @@ AI-powered resume builder with templates, keyword suggestions, and a built-in AT
 
 **Limitations:** AI suggestions are generic (not tailored to specific job descriptions). No cover letter or email generation. No application tracking.
 
-### 5. Kickresume — Resume + Cover Letter Templates
+### 5. Kickresume - Resume + Cover Letter Templates
 
 **What it does:**
 Template-based resume and cover letter builder with some AI writing assistance. Strong design focus.
@@ -1425,11 +1425,11 @@ Template-based resume and cover letter builder with some AI writing assistance. 
 
 **Limitations:** Many templates are not ATS-optimized (multi-column layouts, tables). AI writing is basic (mostly fill-in-the-blank templates). No application tracking.
 
-![Bar chart: Tool comparison by speed (Karko AI = 90 sec, Teal = 15 min, Jobscan = 10 min, Rezi = 20 min, Kickresume = 20 min)](/blog/ai-tools-speed-comparison.jpg)
+![Bar chart: Tool comparison by speed (Useful Apply = 90 sec, Teal = 15 min, Jobscan = 10 min, Rezi = 20 min, Kickresume = 20 min)](/blog/ai-tools-speed-comparison.jpg)
 
 ## Feature Comparison Table
 
-| Feature | Karko AI | Teal | Jobscan | Rezi | Kickresume |
+| Feature | Useful Apply | Teal | Jobscan | Rezi | Kickresume |
 |---------|----------|------|---------|------|------------|
 | **Resume generation** | ✅ Auto | ✅ Manual | ❌ | ✅ Manual | ✅ Manual |
 | **Cover letter generation** | ✅ Auto | ❌ | ❌ | ❌ | ✅ Template |
@@ -1445,7 +1445,7 @@ Template-based resume and cover letter builder with some AI writing assistance. 
 ## Which Tool Should You Use?
 
 **If you need volume (100+ applications) and want a complete package fast:**
-→ **Karko AI.** Generates 4 documents in 90 seconds. Anti-hallucination safeguards. ATS-optimized.
+→ **Useful Apply.** Generates 4 documents in 90 seconds. Anti-hallucination safeguards. ATS-optimized.
 
 **If you want a visual job tracker and don't mind manual resume editing:**
 → **Teal.** Great tracker. Resume builder is slower but solid.
@@ -1459,13 +1459,13 @@ Template-based resume and cover letter builder with some AI writing assistance. 
 **If you're in a creative field and want a portfolio website:**
 → **Kickresume.** Beautiful templates. Portfolio website. Not all designs are ATS-safe.
 
-![Decision tree: Volume + speed → Karko AI, Tracking → Teal, ATS optimization → Jobscan, Simple builder → Rezi, Creative portfolio → Kickresume](/blog/ai-tools-decision-tree.jpg)
+![Decision tree: Volume + speed → Useful Apply, Tracking → Teal, ATS optimization → Jobscan, Simple builder → Rezi, Creative portfolio → Kickresume](/blog/ai-tools-decision-tree.jpg)
 
 ## The Bottom Line
 
 The best AI job application tool depends on your job search strategy.
 
-If you're mass-applying to 100+ jobs and need to move fast without sacrificing quality, you need automated document generation with anti-hallucination safeguards and ATS optimization. That's **Karko AI.**
+If you're mass-applying to 100+ jobs and need to move fast without sacrificing quality, you need automated document generation with anti-hallucination safeguards and ATS optimization. That's **Useful Apply.**
 
 If you're applying to 20 to 30 highly targeted roles and want a visual tracker, **Teal** makes sense.
 
@@ -1477,15 +1477,15 @@ If you're building a resume from scratch and don't need cover letters or emails,
 
 The right tool saves you time, increases your callback rate, and gets you in front of more hiring managers faster.
 
-## Try Karko AI Free
+## Try Useful Apply Free
 
-Karko AI is free for your first 2 applications. Generate a full application (CV, cover letter, application email, follow-up email) in 90 seconds. No credit card. No sign-up wall.
+Useful Apply is free for your first 2 applications. Generate a full application (CV, cover letter, application email, follow-up email) in 90 seconds. No credit card. No sign-up wall.
 
-**[Compare the Tools Yourself — Try Karko AI Free](/dashboard)**
+**[Compare the Tools Yourself - Try Useful Apply Free](/dashboard)**
 
 ---
 
-*Wasim Jalali is the founder of Karko AI. He built it because he was broke, job hunting, and tried every tool on the market. None of them solved the volume + quality problem. So he built one that did.*`,
+*Wasim Jalali is the founder of Useful Apply. He built it because he was broke, job hunting, and tried every tool on the market. None of them solved the volume + quality problem. So he built one that did.*`,
     author: { name: 'Wasim Jalali', role: 'Founder & CEO' },
     publishedAt: '2026-03-27',
     readingTime: 9,
@@ -1496,7 +1496,7 @@ Karko AI is free for your first 2 applications. Generate a full application (CV,
       'cover letter generator',
       'ATS optimization',
       'job search tools',
-      'Karko AI',
+      'Useful Apply',
       'Teal',
       'Jobscan',
       'Rezi',
@@ -1506,7 +1506,7 @@ Karko AI is free for your first 2 applications. Generate a full application (CV,
     featured: false,
     ogImage: '/blog/ai-tools-comparison-cover.jpg',
     cta: {
-      text: 'Try Karko AI Free - 2 Complete Applications',
+      text: 'Try Useful Apply Free - 2 Complete Applications',
       href: '/dashboard',
     },
   },
@@ -1537,7 +1537,7 @@ Total: **45 to 60 minutes per application.** On the conservative side.
 
 That lines up with what career experts recommend. Most sources suggest spending 30 to 60 minutes per tailored application, and some say up to 90 minutes for roles you really want.
 
-![A clock surrounded by floating CV, cover letter, and email documents — illustrating the time pressure of job applications](/blog/job-application-time-clock.jpg)
+![A clock surrounded by floating CV, cover letter, and email documents - illustrating the time pressure of job applications](/blog/job-application-time-clock.jpg)
 
 ## Now Multiply That by 100
 
@@ -1581,13 +1581,13 @@ First, I built a manual prototype: a Claude AI project loaded with my CV as cont
 
 But even that manual process took 45 to 60 minutes per application. It wasn't scalable.
 
-So I built Karko AI. An AI agent that takes your CV and a job description, analyzes the fit, and generates a full application, optimized CV, personalized cover letter, and professional email, in under 90 seconds.
+So I built Useful Apply. An AI agent that takes your CV and a job description, analyzes the fit, and generates a full application, optimized CV, personalized cover letter, and professional email, in under 90 seconds.
 
 ![Split-screen comparison: a person overwhelmed with stacks of papers versus the same person smiling with a clean document generated in 90 seconds](/blog/manual-vs-karko-ai.jpg)
 
 ## The Math, Completely Rewritten
 
-Let's redo the calculation with Karko AI.
+Let's redo the calculation with Useful Apply.
 
 100 applications at 90 seconds each: **2.5 hours total.**
 
@@ -1595,13 +1595,13 @@ That's 75 hours compressed into 2.5 hours. Roughly 40x faster per application.
 
 But the quality doesn't drop. Every CV is tailored with ATS-optimized keywords pulled from the specific job description. Every cover letter opens with an achievement, not a cliche, and references the specific company. Every email is professionally formatted with the right subject line and attachment references.
 
-And critically, every application includes an honest fit assessment that tells you upfront how well your profile matches the role. No false hope, no fabricated skills. If you're a 60% match, Karko tells you that, along with exactly which gaps exist, so you can decide whether to apply or move on.
+And critically, every application includes an honest fit assessment that tells you upfront how well your profile matches the role. No false hope, no fabricated skills. If you're a 60% match, Useful Apply tells you that, along with exactly which gaps exist, so you can decide whether to apply or move on.
 
 Here's what that actually looks like in practice. Instead of spending an entire weekend on 10 applications, you can apply to 100 jobs in a few days. Instead of 75 hours a month on applications alone, you save 40 to 50 or more hours every month. Hours you can spend networking, preparing for interviews, learning new skills, or just not losing your mind to job search burnout.
 
 ## The Difference Isn't Speed. It's Volume With Quality.
 
-The real advantage isn't just that Karko AI is fast. It's that speed plus quality changes the entire math of your job search.
+The real advantage isn't just that Useful Apply is fast. It's that speed plus quality changes the entire math of your job search.
 
 When tailoring takes an hour, you have to be selective. You can only afford to apply to a handful of jobs per day. You skip roles that seem like a stretch. You don't apply to the backup options. You narrow your search because you have to.
 
@@ -1609,19 +1609,19 @@ When tailoring takes 90 seconds, you can apply to every relevant role. The stret
 
 The job seekers who find work fastest aren't necessarily the most qualified. They're the ones who get their tailored application in front of more hiring managers, faster.
 
-![Bar chart comparing Manual Application at 75 hours for 100 jobs versus Karko AI at 2.5 hours for 100 jobs](/blog/time-comparison-chart.jpg)
+![Bar chart comparing Manual Application at 75 hours for 100 jobs versus Useful Apply at 2.5 hours for 100 jobs](/blog/time-comparison-chart.jpg)
 
 ## Try It Yourself
 
-Karko AI is free for your first 2 applications. No credit card. No sign-up wall for the free tier. Just paste a job description and see what comes back.
+Useful Apply is free for your first 2 applications. No credit card. No sign-up wall for the free tier. Just paste a job description and see what comes back.
 
 If you're currently in a job search, you already know how much time you're spending. The question is whether you want to keep spending it the same way.
 
-**[Try Karko AI Free — 2 Applications, No Credit Card](/dashboard)**
+**[Try Useful Apply Free - 2 Applications, No Credit Card](/dashboard)**
 
 ---
 
-*Wasim Jalali is the founder of Karko AI. He built it because he was broke, job hunting, and tired of spending hours on applications that went nowhere. Now he's making sure nobody else has to.*`,
+*Wasim Jalali is the founder of Useful Apply. He built it because he was broke, job hunting, and tired of spending hours on applications that went nowhere. Now he's making sure nobody else has to.*`,
     author: { name: 'Wasim Jalali', role: 'Founder & CEO' },
     publishedAt: '2026-02-10',
     readingTime: 8,
@@ -1634,14 +1634,14 @@ If you're currently in a job search, you already know how much time you're spend
       'ATS optimization',
       'cover letter',
       'job search 2026',
-      'Karko AI',
+      'Useful Apply',
       'apply faster',
       'career advice',
     ],
     featured: false,
     ogImage: '/blog/time-comparison-chart.jpg',
     cta: {
-      text: 'Try Karko AI Free - 2 Applications, No Credit Card',
+      text: 'Try Useful Apply Free - 2 Applications, No Credit Card',
       href: '/dashboard',
     },
   },
@@ -1931,17 +1931,17 @@ It does not need to look beautiful. It needs to be complete, accurate, and easy 
 
 If you do not have a master CV yet, start with a simple structure and build from there.
 
-You can use Karko's [Master CV template](/master-cv-template) as your base. It gives you the right sections, a practical structure, and a clear way to capture all the raw material you will need for future applications.
+You can use Useful Apply's [Master CV template](/master-cv-template) as your base. It gives you the right sections, a practical structure, and a clear way to capture all the raw material you will need for future applications.
 
 The key is not perfection. The key is completeness.
 
 Once the source document exists, every future application gets easier.
 
-## Try It With Karko AI
+## Try It With Useful Apply
 
-Karko AI is built around this exact workflow.
+Useful Apply is built around this exact workflow.
 
-You upload your master CV once. Then, for each job description, Karko generates a tailored CV, cover letter, and application email using your real experience as source material. That means:
+You upload your master CV once. Then, for each job description, Useful Apply generates a tailored CV, cover letter, and application email using your real experience as source material. That means:
 
 - Faster tailoring
 - More consistent facts
@@ -1952,11 +1952,11 @@ This is the practical advantage of a master CV. It turns your job search from re
 
 If you are serious about applying efficiently without sacrificing quality, build the master CV first. Then use it the right way.
 
-**[Generate From Your Master CV Free — 2 Applications, No Credit Card](/dashboard)**
+**[Generate From Your Master CV Free - 2 Applications, No Credit Card](/dashboard)**
 
 ---
 
-*Wasim Jalali is the founder of Karko AI. He built it because he was broke, job hunting, and tired of rebuilding the same application materials over and over. Now he's making sure nobody else has to.*`,
+*Wasim Jalali is the founder of Useful Apply. He built it because he was broke, job hunting, and tired of rebuilding the same application materials over and over. Now he's making sure nobody else has to.*`,
     author: { name: 'Wasim Jalali', role: 'Founder & CEO' },
     publishedAt: '2026-03-30',
     readingTime: 8,
@@ -1970,7 +1970,7 @@ If you are serious about applying efficiently without sacrificing quality, build
       'job application',
       'ATS optimization',
       'career documents',
-      'Karko AI',
+      'Useful Apply',
     ],
     featured: false,
     ogImage: '/blog/master-cv-cover.jpg',
@@ -2241,15 +2241,15 @@ For portal-based German applications, you often want something closer to an ATS-
 
 For the US, ATS-safe structure is the default almost all the time.
 
-## How Karko AI Handles Both Markets
+## How Useful Apply Handles Both Markets
 
-This is exactly the problem Karko AI is built to solve.
+This is exactly the problem Useful Apply is built to solve.
 
-Karko does not assume every applicant is targeting the same country with the same resume rules. It supports both US and German application workflows using the same underlying career history.
+Useful Apply does not assume every applicant is targeting the same country with the same resume rules. It supports both US and German application workflows using the same underlying career history.
 
 ### US templates
 
-Karko includes four US-focused templates:
+Useful Apply includes four US-focused templates:
 
 - Premium ATS
 - Modern Professional
@@ -2260,7 +2260,7 @@ These are optimized for US expectations: clear hierarchy, ATS-safe structure, an
 
 ### German templates
 
-Karko also includes two German-specific templates:
+Useful Apply also includes two German-specific templates:
 
 - German ATS
 - German Classic
@@ -2283,15 +2283,15 @@ A strong international job search is not about picking one perfect format. It is
 
 ## Try It Yourself
 
-Karko AI lets you generate a German or US-ready CV from the same master profile, with the right formatting, tone, and structure for the target market.
+Useful Apply lets you generate a German or US-ready CV from the same master profile, with the right formatting, tone, and structure for the target market.
 
 That means less manual reformatting, fewer cultural mistakes, and a better chance of looking like you understand the market you are applying into.
 
-**[Generate Market-Specific CV Free — 2 Applications, No Credit Card](/dashboard)**
+**[Generate Market-Specific CV Free - 2 Applications, No Credit Card](/dashboard)**
 
 ---
 
-*Wasim Jalali is the founder of Karko AI. He built it after seeing how many strong candidates were rejected for avoidable formatting and market-mismatch mistakes, not lack of ability.*`,
+*Wasim Jalali is the founder of Useful Apply. He built it after seeing how many strong candidates were rejected for avoidable formatting and market-mismatch mistakes, not lack of ability.*`,
     author: { name: 'Wasim Jalali', role: 'Founder & CEO' },
     publishedAt: '2026-03-30',
     readingTime: 8,
@@ -2305,7 +2305,7 @@ That means less manual reformatting, fewer cultural mistakes, and a better chanc
       'CV writing',
       'ATS optimization',
       'Germany jobs',
-      'Karko AI',
+      'Useful Apply',
     ],
     featured: false,
     ogImage: '/blog/german-vs-american-cv-cover.jpg',
@@ -2491,13 +2491,13 @@ If you cannot, the issue is not that AI helped write the bullet. The issue is th
 
 There is also one more practical line: when the writing quality is wildly above the candidate's ability to communicate. That gap creates suspicion fast.
 
-## How Karko AI Enforces Ethical Use
+## How Useful Apply Enforces Ethical Use
 
 This is where product design matters.
 
 Some AI job tools optimize only for output quality. That is dangerous. If the system is rewarded for sounding impressive at all costs, it will drift toward embellishment.
 
-Karko AI takes the opposite approach.
+Useful Apply takes the opposite approach.
 
 Its workflow is built around **zero fabrication**. The model is supposed to work from your real source material, not invent a better past for you.
 
@@ -2508,9 +2508,9 @@ That shows up in a few ways:
 - It surfaces fit gaps instead of hiding them
 - It is designed to avoid hallucinated claims
 
-![4-pillar diagram showing Karko AI safeguards: Source-First Generation, No Skill Inflation, Fit Gap Visibility, and Human Review Required](/blog/karko-ai-safeguards.jpg)
+![4-pillar diagram showing Useful Apply safeguards: Source-First Generation, No Skill Inflation, Fit Gap Visibility, and Human Review Required](/blog/karko-ai-safeguards.jpg)
 
-If you want the full principle, the best reference point in the product is Karko's [zero-fabrication approach](/ai-job-application/zero-fabrication).
+If you want the full principle, the best reference point in the product is Useful Apply's [zero-fabrication approach](/ai-job-application/zero-fabrication).
 
 That is the ethical line translated into product behavior: better articulation of reality, not synthetic credibility.
 
@@ -2568,15 +2568,15 @@ AI does not change that. It just makes the consequences of using the tool well o
 
 ## Try It Yourself
 
-Karko AI helps you write stronger applications without crossing the line. It is built to work from your real experience, not fictional upgrades of your background.
+Useful Apply helps you write stronger applications without crossing the line. It is built to work from your real experience, not fictional upgrades of your background.
 
 That means you can move faster, improve your presentation, and still know the document represents what you can actually defend.
 
-**[Try Ethical AI Job Applications Free — 2 Applications, No Credit Card](/dashboard)**
+**[Try Ethical AI Job Applications Free - 2 Applications, No Credit Card](/dashboard)**
 
 ---
 
-*Wasim Jalali is the founder of Karko AI. He built it because he believed AI should reduce job search friction without turning honest applicants into fiction writers.*`,
+*Wasim Jalali is the founder of Useful Apply. He built it because he believed AI should reduce job search friction without turning honest applicants into fiction writers.*`,
     author: { name: 'Wasim Jalali', role: 'Founder & CEO' },
     publishedAt: '2026-03-30',
     readingTime: 8,
@@ -2590,13 +2590,13 @@ That means you can move faster, improve your presentation, and still know the do
       'career ethics',
       'zero fabrication',
       'job search tips',
-      'Karko AI',
+      'Useful Apply',
     ],
     featured: false,
     ogImage: '/blog/ai-ethics-cover.jpg',
     cta: {
       heading: 'Use AI Without Crossing the Line',
-      description: 'Karko AI helps you phrase real experience better without inventing skills, achievements, or history.',
+      description: 'Useful Apply helps you phrase real experience better without inventing skills, achievements, or history.',
       text: 'Try Ethical AI Job Applications Free',
       href: '/dashboard',
     },

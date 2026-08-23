@@ -1,42 +1,26 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { CVPanel } from '@/components/CVPanel';
-import { CoverLetterPanel } from '@/components/CoverLetterPanel';
-import { EmailPanel } from '@/components/EmailPanel';
-import { ATSScorePanel } from '@/components/ATSScorePanel';
-import { TrackerPanel } from '@/components/TrackerPanel';
-import { JobBoardPanel } from '@/components/JobBoardPanel';
-import { ChatPanel } from '@/components/ChatPanel';
-import { CVInputZone } from '@/components/CVInputZone';
-import { useAppStore, useCVStore } from '@/store/useAppStore';
+import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { MobileFeed } from '@/components/job-feed/MobileFeed';
+import { TrackerCanvas } from '@/components/tracker/TrackerCanvas';
+import { AppShell, GuidedLine } from '@/components/shell';
+import { SettingsModal } from '@/components/settings/SettingsModal';
+import { useAppStore } from '@/store/useAppStore';
+import { openStoredSession } from '@/lib/open-session';
 import { useUIStore } from '@/store/useUIStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
-import { uploadCVFile, saveDocument } from '@/lib/supabase';
-import { FileText, Mail, Send, FolderOpen, ClipboardList, Target, User, Loader2, AlertCircle, ArrowRight, PanelRightClose, PanelRightOpen, ArrowUpRight, Briefcase, ChevronDown, CreditCard, Bell, Shield, LogOut, LifeBuoy, X } from 'lucide-react';
-import KarkoLogo, { KarkoIcon } from '@/components/KarkoLogo';
-import Link from 'next/link';
-import { CreditIndicator } from '@/components/ui/CreditIndicator';
-import { LowCreditsBanner } from '@/components/ui/LowCreditsBanner';
-import { LowCreditsModal } from '@/components/ui/LowCreditsModal';
 import { useJobFeedBadge } from '@/hooks/useJobFeedBadge';
-import type { ParsedCV } from '@/lib/types';
-import type { StructuredCV } from '@/lib/types/cv-schema';
-import {
-  formatUploadLimit,
-  getCVUploadDescription,
-  getPrimaryCVUploadLimitBytes,
-} from '@/lib/cv-upload-limits';
+import { sessionHasKit } from '@/components/shell/application-status';
+import BrandLogo, { BrandIcon } from '@/components/BrandLogo';
+import { Briefcase, ClipboardList, Loader2 } from 'lucide-react';
 
 type ApplicationTab = 'cv' | 'cover-letter' | 'email';
 type Workspace = 'application-kit' | 'job-feed' | 'tracker';
-// Mobile is restricted to Job Feed + Tracker. Application Kit (chat, CV, cover
-// letter, email) requires a larger viewport — we show a "Best on desktop"
-// screen instead. This keeps the heavy, dual-mount-prone components (ChatPanel,
-// CVPanel, CoverLetterPanel, EmailPanel) off mobile entirely.
 type MobileView = 'desktop-required' | 'job-feed' | 'tracker';
+
+/** Never fires: the value only has to differ between server and client. */
+const subscribeToNothing = () => () => {};
 
 function readDashboardQuery() {
   if (typeof window === 'undefined') {
@@ -57,371 +41,35 @@ function readDashboardQuery() {
   };
 }
 
-interface DashboardProfileMenuProps {
-  profile: {
-    avatar_url?: string | null;
-    subscription_tier?: string | null;
-    full_name?: string | null;
-    email?: string | null;
-  } | null;
-  onSignOut: () => Promise<void> | void;
-}
-
-function DashboardProfileMenu({ profile, onSignOut }: DashboardProfileMenuProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handlePointerDown);
-    document.addEventListener('touchstart', handlePointerDown);
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
-      document.removeEventListener('touchstart', handlePointerDown);
-    };
-  }, [isOpen]);
-
-  const menuItems = [
-    { href: '/profile', label: 'Profile', description: 'Personal details', icon: User },
-    { href: '/account', label: 'Account', description: 'Security and login', icon: Shield },
-    { href: '/subscription', label: 'Subscription', description: 'Plan and billing', icon: CreditCard },
-    { href: '/contact', label: 'Contact Support', description: 'Reach the Karko team', icon: LifeBuoy },
-    { href: '/documents', label: 'Documents', description: 'Manage uploaded files', icon: FolderOpen },
-    { href: '/notifications', label: 'Notifications', description: 'Email preferences', icon: Bell },
-  ];
-
-  const subscriptionTier = profile?.subscription_tier;
-  const tierBadge = subscriptionTier === 'max'
-    ? 'MAX'
-    : subscriptionTier === 'plus'
-      ? 'PLUS'
-      : 'FREE';
-
-  return (
-    <div ref={menuRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setIsOpen(prev => !prev)}
-        className="group flex items-center gap-1.5 rounded-full border border-cream-200 bg-cream-50 px-1.5 py-1 shadow-sm transition-all hover:border-gold-200 hover:shadow-md cursor-pointer"
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-      >
-        <div className="relative">
-          <div className={`w-[30px] h-[30px] rounded-full bg-gradient-to-br from-navy-500 to-navy-700 flex items-center justify-center overflow-hidden ring-2 ring-offset-1 ring-offset-white/90 ${
-            subscriptionTier === 'max'
-              ? 'ring-navy-600'
-              : subscriptionTier === 'plus'
-                ? 'ring-gold-400'
-                : 'ring-gray-300'
-          }`}>
-            {profile?.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element -- Remote avatar URLs come from user profile storage and are already sized to this tiny menu slot.
-              <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-            ) : (
-              <User className="w-3.5 h-3.5 text-white" />
-            )}
-          </div>
-          <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full leading-none whitespace-nowrap ${
-            subscriptionTier === 'max'
-              ? 'bg-navy-600 text-white'
-              : subscriptionTier === 'plus'
-                ? 'bg-gold-400 text-white'
-                : 'bg-cream-100 text-warm-gray border border-cream-200'
-          }`}>
-            {tierBadge}
-          </span>
-        </div>
-        <ChevronDown className={`w-3.5 h-3.5 text-warm-gray transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
-
-      {isOpen && (
-        <div
-          className="absolute right-0 top-full mt-3 w-[280px] rounded-[24px] border border-cream-200 bg-cream-50 p-2 shadow-md z-[80]"
-          role="menu"
-        >
-          <div className="px-3 py-3 border-b border-cream-200">
-            <p className="text-sm font-semibold text-charcoal">{profile?.full_name || 'Your account'}</p>
-            <p className="text-xs text-warm-gray mt-1">{profile?.email || 'Manage profile and documents'}</p>
-          </div>
-
-          <div className="py-2">
-            {menuItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex items-start gap-3 rounded-2xl px-3 py-3 text-charcoal transition-colors hover:bg-cream-50"
-                onClick={() => setIsOpen(false)}
-              >
-                <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-navy-50 text-navy-600 border border-navy-100">
-                  <item.icon className="w-4 h-4" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium">{item.label}</span>
-                  <span className="block text-xs text-warm-gray mt-0.5">{item.description}</span>
-                </span>
-              </Link>
-            ))}
-          </div>
-
-          <div className="border-t border-cream-200 pt-2">
-            <button
-              type="button"
-              onClick={async () => {
-                setIsOpen(false);
-                await onSignOut();
-              }}
-              className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 cursor-pointer"
-            >
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-red-50 text-red-500 border border-red-100">
-                <LogOut className="w-4 h-4" />
-              </span>
-              Sign Out
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function DashboardUpgradeButton({
-  tier,
-  mobile = false,
-}: {
-  tier: 'plus' | 'max';
-  mobile?: boolean;
-}) {
-  const isPlus = tier === 'plus';
-
-  return (
-    <Link
-      href="/pricing"
-      aria-label={mobile ? (isPlus ? 'Upgrade to Plus' : 'Upgrade to Max') : undefined}
-      className={[
-        'inline-flex shrink-0 items-center justify-center whitespace-nowrap font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md',
-        mobile
-          ? 'h-8 gap-1.5 rounded-full px-3 text-xs mr-1.5'
-          : 'h-11 gap-2 rounded-full px-4 text-sm mr-2',
-        isPlus
-          ? 'border border-gold-300/70 bg-gold-400 hover:bg-gold-500'
-          : 'border border-navy-500/70 bg-navy-600 hover:bg-navy-700',
-      ].join(' ')}
-    >
-      {mobile ? (isPlus ? 'Upgrade' : 'Go Max') : isPlus ? 'Upgrade to Plus' : 'Upgrade to Max'}
-      <ArrowUpRight className={mobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} />
-    </Link>
-  );
-}
 export default function Dashboard() {
-  const router = useRouter();
   const {
     activeTab,
     setActiveTab,
-    isAgentWorking,
-    currentCV,
     currentSession,
     sessions,
-    loadSession,
-    setCurrentCV,
-    setStructuredCV,
   } = useAppStore();
-
-  const { user, profile, isLoading, signOut } = useAuth();
-
-  // Sync sessions with Supabase in background
-  useSupabaseSync();
-
-  // Job Feed nav badge + first-open popup. The badge number tracks unprocessed
-  // jobs (not acted on yet) and only clears when the user applies, saves,
-  // dismisses, or rates a job. The popup fires once per new run per day.
+  const { user, isLoading } = useAuth();
+  const { sessionsHydrated } = useSupabaseSync();
   const jobFeedBadge = useJobFeedBadge(Boolean(user), user?.id ?? null);
-  const [showJobFeedPopup, setShowJobFeedPopup] = useState(false);
-  const popupShownForRunRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!jobFeedBadge.hasNewRun || !jobFeedBadge.latestRunDate) return;
-    if (popupShownForRunRef.current === jobFeedBadge.latestRunDate) return;
-    if (activeTab === 'jobs') return;
-    popupShownForRunRef.current = jobFeedBadge.latestRunDate;
-    setShowJobFeedPopup(true);
-  }, [jobFeedBadge.hasNewRun, jobFeedBadge.latestRunDate, activeTab]);
-  // Landing on the Job Feed tab acknowledges today's run (popup won't reopen)
-  // but does NOT clear the unprocessed badge count — that only drops as the
-  // user acts on individual jobs.
-  useEffect(() => {
-    if (activeTab === 'jobs' && jobFeedBadge.hasNewRun) {
-      jobFeedBadge.acknowledge();
-      setShowJobFeedPopup(false);
-    }
-  }, [activeTab, jobFeedBadge]);
 
-  // Onboarding CV upload state
-  const [isUploadingCV, setIsUploadingCV] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const onboardingUploadLimitBytes = getPrimaryCVUploadLimitBytes(Boolean(user));
-  const onboardingUploadDescription = getCVUploadDescription(onboardingUploadLimitBytes);
-
-  const handleOnboardingCVUpload = useCallback(async (file: File) => {
-    setIsUploadingCV(true);
-    setUploadError(null);
-    try {
-      if (file.size > onboardingUploadLimitBytes) {
-        throw new Error(
-          `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum: ${formatUploadLimit(onboardingUploadLimitBytes)}.`
-        );
-      }
-
-      // Upload to Supabase Storage first if authenticated
-      let storagePath: string | undefined;
-      if (user) {
-        const uploadResult = await uploadCVFile(user.id, 'primary_cv', file);
-        storagePath = uploadResult.path || undefined;
-      }
-
-      // Parse the CV
-      let response: Response;
-      if (storagePath) {
-        response = await fetch('/api/parse-cv', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ storagePath, fileName: file.name, documentType: 'primary_cv' }),
-        });
-      } else {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('documentType', 'primary_cv');
-        response = await fetch('/api/parse-cv', { method: 'POST', body: formData });
-      }
-
-      if (!response.ok) {
-        let errorMessage = 'Failed to parse CV';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          if (response.status === 413) errorMessage = 'File is too large. Please try a smaller file.';
-          else if (response.status === 429) errorMessage = 'Too many requests. Please wait a moment and try again.';
-        }
-        throw new Error(errorMessage);
-      }
-
-      const result = await response.json();
-      const structuredCV = result.structuredCV as {
-        personal?: { fullName?: string; email?: string; phone?: string };
-        summary?: string;
-        experience?: Array<{ position?: string; company?: string; bullets?: string[] }>;
-        education?: Array<{ degree?: string; institution?: string }>;
-        skills?: Array<{ category?: string; skills?: string[] }>;
-      } | undefined;
-
-      if (result.success && result.rawText) {
-        const parsedCV: ParsedCV = {
-          rawText: result.rawText,
-          sections: {
-            contactInfo: structuredCV?.personal
-              ? `${structuredCV.personal.fullName || ''}\n${structuredCV.personal.email || ''}\n${structuredCV.personal.phone || ''}` : '',
-            summary: structuredCV?.summary || '',
-            experience: structuredCV?.experience?.map((e) =>
-              `${e.position} at ${e.company}\n${e.bullets?.join('\n') || ''}`
-            ).join('\n\n') || '',
-            education: structuredCV?.education?.map((e) =>
-              `${e.degree} - ${e.institution}`
-            ).join('\n') || '',
-            skills: structuredCV?.skills?.map((s) =>
-              `${s.category}: ${s.skills?.join(', ') || ''}`
-            ).join('\n') || '',
-          },
-          fileName: file.name,
-          fileType: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : file.name.toLowerCase().endsWith('.docx') ? 'docx' : 'txt',
-        };
-
-        setCurrentCV(parsedCV);
-        if (result.structuredCV) {
-          setStructuredCV(result.structuredCV as StructuredCV);
-        }
-        useCVStore.getState().setEditedOriginalCVData(null);
-
-        // Save to Supabase
-        if (user) {
-          await saveDocument(user.id, 'primary_cv', {
-            file_name: file.name,
-            file_type: parsedCV.fileType,
-            file_size: file.size,
-            storage_path: storagePath,
-            raw_text: parsedCV.rawText,
-            sections: parsedCV.sections,
-            structured_data: structuredCV,
-          });
-
-          if (structuredCV) {
-            fetch('/api/job-feed/settings/suggest', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ structured_data: structuredCV }),
-            }).catch(() => {});
-          }
-        }
-      } else {
-        throw new Error('CV was parsed but no content was extracted. The file may be empty or image-based.');
-      }
-    } catch (error) {
-      console.error('CV upload error:', error);
-      setUploadError(error instanceof Error ? error.message : 'Upload failed');
-    } finally {
-      setIsUploadingCV(false);
-    }
-  }, [onboardingUploadLimitBytes, user, setCurrentCV, setStructuredCV]);
-
-  // Toolbar portal: panels render their controls into this slot in the tab bar
-  const [toolbarNode, setToolbarNode] = useState<HTMLDivElement | null>(null);
-
-  // Resizable chat panel state - ALL HOOKS MUST BE BEFORE EARLY RETURNS
-  const [chatPanelWidth, setChatPanelWidth] = useState(() => {
-    if (typeof window === 'undefined') return 440;
-    // Guard the parse: Math.min/max propagate NaN, so a corrupt stored value
-    // would render the chat panel at zero width with no way back.
-    const saved = Number(localStorage.getItem('karko_chat_width'));
-    return Number.isFinite(saved) && saved > 0 ? Math.max(360, Math.min(650, saved)) : 440;
+  const [mobileView, setMobileView] = useState<MobileView>(() => {
+    const requested = readDashboardQuery();
+    if (requested.workspace === 'job-feed') return 'job-feed';
+    if (requested.workspace === 'tracker') return 'tracker';
+    return 'desktop-required';
   });
-  const [isResizing, setIsResizing] = useState(false);
-  const [isKeyResizing, setIsKeyResizing] = useState(false);
-  const [isChatCollapsed, setIsChatCollapsed] = useState(false);
-  const [showATSModal, setShowATSModal] = useState(false);
-  const lastResizeClickRef = useRef(0);
-  const resizeGrabOffsetRef = useRef(0);
-  const resizeStartXRef = useRef(0);
-  const resizePointerIdRef = useRef<number | null>(null);
-  const chatWrapperRef = useRef<HTMLDivElement>(null);
-  // Mirrors of the two pieces of resize state that event handlers read. Both a
-  // pointer drag and a held arrow key fire faster than React re-renders, so a
-  // handler closing over state would read a stale value.
-  const chatPanelWidthRef = useRef(chatPanelWidth);
-  const keyResizingRef = useRef(false);
-  const MIN_CHAT_WIDTH = 360;
-  const MAX_CHAT_WIDTH = 650;
-  const COLLAPSED_WIDTH = 48;
+  const [isNarrow, setIsNarrow] = useState(false);
+  // The server always renders the spinner: it has no session and no query
+  // string. On the client the session store can already be resolved on the
+  // first render, and `mobileView` reads window.location.search, so the two
+  // trees disagreed and React threw away the server HTML (#418). Any click
+  // landing in that window was lost, which is why the first click on the
+  // sidebar did nothing. Hold the spinner until after mount so the first
+  // client render matches the server exactly.
+  const mounted = useSyncExternalStore(subscribeToNothing, () => true, () => false);
   const lastApplicationTabRef = useRef<ApplicationTab>('cv');
-
-  const applyChatWidth = useCallback((next: number) => {
-    const clamped = Math.min(MAX_CHAT_WIDTH, Math.max(MIN_CHAT_WIDTH, next));
-    chatPanelWidthRef.current = clamped;
-    setChatPanelWidth(clamped);
-  }, []);
-
-  const persistChatWidth = useCallback(() => {
-    try {
-      localStorage.setItem('karko_chat_width', String(chatPanelWidthRef.current));
-    } catch {
-      // Blocked storage or quota. The width just won't survive a reload, which
-      // is not worth interrupting the user over.
-    }
-  }, []);
+  const processedWorkspaceRef = useRef<string | null>(null);
+  const hasKit = sessions.some(sessionHasKit) || sessionHasKit(currentSession);
 
   const isApplicationTab = activeTab === 'cv' || activeTab === 'cover-letter' || activeTab === 'email';
   const activeWorkspace: Workspace = activeTab === 'jobs'
@@ -429,274 +77,6 @@ export default function Dashboard() {
     : activeTab === 'tracker'
       ? 'tracker'
       : 'application-kit';
-  const isSignedOutJobFeedMode = !user && activeWorkspace === 'job-feed';
-  const atsScore = currentSession?.optimizedCVData?.analysis?.ats_compatibility ?? null;
-  const hasATSInsights = Boolean(currentSession?.optimizedCVData?.analysis || currentSession?.generatedCV?.changes?.length);
-  const showATSControl = atsScore !== null || hasATSInsights || isAgentWorking;
-
-  const atsControl = showATSControl ? (
-    <button
-      type="button"
-      onClick={() => {
-        if (hasATSInsights || atsScore !== null) {
-          setShowATSModal(true);
-        }
-      }}
-      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all sm:px-3.5 sm:py-2 sm:text-sm ${
-        hasATSInsights || atsScore !== null
-          ? 'border-gold-200 bg-white text-navy-700 shadow-sm hover:-translate-y-0.5 hover:shadow-md cursor-pointer'
-          : 'border-cream-200 bg-cream-50 text-warm-gray cursor-default'
-      }`}
-    >
-      <Target className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${atsScore !== null ? 'text-gold-500' : 'text-warm-gray'}`} />
-      {atsScore !== null ? `${atsScore}% ATS Score` : isAgentWorking ? 'Scoring...' : 'ATS Insights'}
-    </button>
-  ) : null;
-
-  // Pointer events, not mouse events, so the sash also works with touch and pen
-  // on tablets (the desktop layout renders from 768px up).
-  const handleSashPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    // Primary button only. A right or middle press would arm the drag and then
-    // never get a matching pointerup (the context menu eats it), leaving the
-    // panel resizing on plain mouse movement.
-    if (e.button !== 0 || !e.isPrimary) return;
-    // One pointer owns the drag. Without this, a second finger landing on a
-    // tablet would yank the panel to follow it, and lifting that finger would
-    // end the first finger's drag.
-    if (resizePointerIdRef.current !== null) return;
-
-    // Double-click to toggle collapse
-    const now = Date.now();
-    if (now - lastResizeClickRef.current < 300) {
-      setIsChatCollapsed(prev => !prev);
-      lastResizeClickRef.current = 0;
-      return;
-    }
-    lastResizeClickRef.current = now;
-    // Remember where inside the sash the user grabbed, so the panel keeps its
-    // current width on the first move. Without this the panel snaps to the raw
-    // pointer position, and since the sash sits entirely right of the divider
-    // that snap can only ever shrink the panel.
-    resizeGrabOffsetRef.current = e.clientX - e.currentTarget.getBoundingClientRect().left;
-    resizeStartXRef.current = e.clientX;
-    resizePointerIdRef.current = e.pointerId;
-    // Cancelling pointerdown suppresses the compatibility mousedown, which
-    // blocks the native selection drag. It also blocks the focus mousedown
-    // would have moved here, and that is deliberate: focusing the sash on a
-    // grab would pull focus out of the chat composer, so "paste a job ad,
-    // widen the panel to read it, press Enter to send" would stop sending.
-    // Keyboard users reach the sash by tabbing to it, which is the standard
-    // route for a separator.
-    e.preventDefault();
-    // Redundant once pointerdown is cancelled, kept as a cheap guard. The
-    // effect's cleanup restores it.
-    document.body.style.userSelect = 'none';
-    setIsResizing(true);
-    // Capture keeps the drag alive when the pointer leaves the 8px sash and
-    // guarantees a lostpointercapture we can treat as a release. It is an
-    // enhancement though: the document listeners drive the drag either way, so
-    // a throw here (NotFoundError when the id has no active pointer) must not
-    // abort the gesture. Hence last, and guarded.
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      // Drag proceeds without capture.
-    }
-  }, []);
-
-  const handleSashKeyDown = useCallback((e: React.KeyboardEvent) => {
-    // No Enter-to-collapse, deliberately. Enter is optional in the ARIA
-    // window-splitter pattern, and collapse is already covered from anywhere by
-    // ⌘⇧C, by double-clicking the sash, and by the header button. Binding it
-    // here would only add a way to collapse the panel by accident.
-    if (e.key === 'Home' || e.key === 'End') {
-      e.preventDefault();
-      applyChatWidth(e.key === 'Home' ? MIN_CHAT_WIDTH : MAX_CHAT_WIDTH);
-      persistChatWidth();
-      return;
-    }
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
-      // Any other key ends a key resize. On macOS, holding Cmd suppresses keyup
-      // for other keys, so an arrow released under Cmd would otherwise latch.
-      endKeyResizeRef.current();
-      return;
-    }
-    e.preventDefault();
-    // Held arrow keys repeat ~30x/sec. Suppress the width transition for the
-    // same reason the drag does, and persist on keyup rather than per repeat.
-    keyResizingRef.current = true;
-    setIsKeyResizing(true);
-    applyChatWidth(chatPanelWidthRef.current + (e.key === 'ArrowLeft' ? 16 : -16));
-  }, [applyChatWidth, persistChatWidth]);
-
-  const endKeyResize = useCallback(() => {
-    if (!keyResizingRef.current) return;
-    keyResizingRef.current = false;
-    setIsKeyResizing(false);
-    persistChatWidth();
-  }, [persistChatWidth]);
-  const endKeyResizeRef = useRef(endKeyResize);
-  endKeyResizeRef.current = endKeyResize;
-
-  // The sash unmounts when the chat collapses, and browsers fire no blur for a
-  // focused element that is removed. Without this, a key resize interrupted by
-  // a collapse would latch isKeyResizing and kill the width transition for the
-  // rest of the session.
-  useEffect(() => {
-    if (isChatCollapsed) endKeyResize();
-  }, [isChatCollapsed, endKeyResize]);
-
-  // The sash is a sibling of the chat content, so it sits in no scrollable
-  // ancestor and a wheel over it would scroll nothing. Forward it to the chat
-  // message list so the panel's leftmost pixels aren't a scroll dead zone.
-  // Note: React registers wheel passively at the root, so preventDefault() here
-  // would silently no-op. Nothing needs it - the dashboard row is
-  // overflow-hidden, so there is no ancestor that could double-scroll.
-  const handleSashWheel = useCallback((e: React.WheelEvent) => {
-    const scroller = chatWrapperRef.current?.querySelector<HTMLElement>('[data-chat-scroll]');
-    if (!scroller) return;
-    // Firefox reports line (1) or page (2) deltas for mouse wheels, not pixels.
-    const scale = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? scroller.clientHeight : 1;
-    scroller.scrollTop += e.deltaY * scale;
-  }, []);
-
-  const handleTabChange = useCallback((tab: ApplicationTab) => {
-    // Only switch the active tab when the user is already inside the
-    // Application Kit workspace. If they are on the Job Feed or the Tracker,
-    // generation completing in the background should NOT hijack their view.
-    // The chat panel remains visible across all tabs, so progress and the
-    // "✅ Application package ready" message still surface inline.
-    if (activeWorkspace === 'application-kit') {
-      setActiveTab(tab);
-      lastApplicationTabRef.current = tab;
-    } else {
-      // Still remember the last tab the user would want to land on when
-      // they DO open the Application Kit later.
-      lastApplicationTabRef.current = tab;
-    }
-  }, [activeWorkspace, setActiveTab]);
-
-  const handleWorkspaceChange = useCallback((workspace: Workspace) => {
-    if (workspace === 'application-kit') {
-      setActiveTab(lastApplicationTabRef.current);
-      return;
-    }
-
-    setActiveTab(workspace === 'job-feed' ? 'jobs' : 'tracker');
-  }, [setActiveTab]);
-
-  // Track the previous chat-collapsed state so we can restore it when leaving full-width tabs
-  const chatCollapsedBeforeFullWidthRef = useRef(false);
-
-  // Auto-collapse chat when entering tracker or jobs, restore when leaving
-  const prevActiveTabRef = useRef(activeTab);
-  useEffect(() => {
-    const prevTab = prevActiveTabRef.current;
-    prevActiveTabRef.current = activeTab;
-
-    // Only Tracker auto-collapses the chat. Job Feed keeps the chat open so
-    // users can paste / continue a generation while browsing jobs — the chat
-    // only closes if they collapse it manually.
-    const isFullWidthTab = activeTab === 'tracker';
-    const wasFullWidthTab = prevTab === 'tracker';
-    const enteringFullWidth = isFullWidthTab && !wasFullWidthTab;
-    const leavingFullWidth = !isFullWidthTab && wasFullWidthTab;
-
-    if (enteringFullWidth) {
-      // Entering full-width tab — remember current collapsed state and collapse chat
-      chatCollapsedBeforeFullWidthRef.current = isChatCollapsed;
-      setIsChatCollapsed(true);
-    } else if (leavingFullWidth) {
-      // Leaving full-width tab — restore previous collapsed state
-      setIsChatCollapsed(chatCollapsedBeforeFullWidthRef.current);
-    }
-  }, [activeTab, isChatCollapsed]);
-
-  // The CV panel's "Tailor for a job" CTA points at the JD input in the chat
-  // panel. If the user has collapsed the chat, expand it first so the focus
-  // that ChatPanel performs actually lands somewhere visible.
-  const jdFocusRequest = useUIStore((state) => state.jdFocusRequest);
-  useEffect(() => {
-    if (jdFocusRequest === 0) return;
-    setIsChatCollapsed(false);
-  }, [jdFocusRequest]);
-
-  // Mobile tab state — must be before any early returns (Rules of Hooks)
-  const [mobileView, setMobileView] = useState<MobileView>('desktop-required');
-
-  // Resize effect (desktop only)
-  useEffect(() => {
-    if (!isResizing) return;
-
-    // Only the pointer that started the drag drives or ends it. The ref doubles
-    // as the "already ended" guard, which pointerup plus the implicit
-    // lostpointercapture in the same task both need. Deliberately a ref and not
-    // an effect-local flag: if a new press lands before isResizing=false
-    // commits, the effect does not re-run, and a local flag would stay latched
-    // and leave the still-attached listener resizing on hover forever.
-    const isDragPointer = (e: PointerEvent) => e.pointerId === resizePointerIdRef.current;
-
-    const endResize = (e: PointerEvent) => {
-      if (!isDragPointer(e)) return;
-      resizePointerIdRef.current = null;
-      // Release the drag before touching storage: a localStorage throw (Safari
-      // with cookies blocked, quota exhaustion) must not leave it armed.
-      setIsResizing(false);
-      persistChatWidth();
-    };
-
-    const handlePointerMove = (e: PointerEvent) => {
-      if (!isDragPointer(e)) return;
-      // Once the pointer has really travelled, this press is a drag, not the
-      // first half of a double-click. Otherwise a quick nudge-and-regrab (press,
-      // drag, release, press again within 300ms) collapses the panel instead of
-      // resizing it, which is exactly the gesture for fine-tuning the width.
-      if (Math.abs(e.clientX - resizeStartXRef.current) > 4) {
-        lastResizeClickRef.current = 0;
-      }
-      // Failsafe: if every button is up and we never saw a pointerup, end the
-      // drag rather than resizing on plain hover. Chorded clicks (press right
-      // mid-drag, then release left) suppress pointerup entirely for mouse.
-      if (e.pointerType === 'mouse' && e.buttons === 0) {
-        endResize(e);
-        return;
-      }
-      applyChatWidth(window.innerWidth - (e.clientX - resizeGrabOffsetRef.current));
-    };
-
-    document.addEventListener('pointermove', handlePointerMove);
-    document.addEventListener('pointerup', endResize);
-    document.addEventListener('pointercancel', endResize);
-    document.addEventListener('lostpointercapture', endResize);
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-
-    return () => {
-      document.removeEventListener('pointermove', handlePointerMove);
-      document.removeEventListener('pointerup', endResize);
-      document.removeEventListener('pointercancel', endResize);
-      document.removeEventListener('lostpointercapture', endResize);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      // Unmount mid-drag would otherwise leave the id set and block every
-      // future grab.
-      resizePointerIdRef.current = null;
-    };
-  }, [isResizing, applyChatWidth, persistChatWidth]);
-
-  // Keyboard shortcut: Cmd+Shift+C to toggle chat collapse
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Shift makes e.key 'C', so a bare 'c' comparison never matched and the
-      // shortcut was dead. It is the advertised way back from a collapse.
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'c') {
-        e.preventDefault();
-        setIsChatCollapsed(prev => !prev);
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   useEffect(() => {
     if (isApplicationTab) {
@@ -704,549 +84,142 @@ export default function Dashboard() {
     }
   }, [activeTab, isApplicationTab]);
 
-  const processedWorkspaceRef = useRef<string | null>(null);
   useEffect(() => {
-    const {
-      workspace: requestedWorkspace,
-      session: requestedSessionId,
-      tab: requestedTab,
-      autostart,
-    } = readDashboardQuery();
+    const media = window.matchMedia('(max-width: 767px)');
+    const sync = () => setIsNarrow(media.matches);
+    sync();
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, []);
 
-    if (!requestedWorkspace && !requestedSessionId && !requestedTab && !autostart) {
-      return;
-    }
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      const {
+        workspace: requestedWorkspace,
+        session: requestedSessionId,
+        tab: requestedTab,
+        autostart,
+      } = readDashboardQuery();
 
-    // Guard against re-firing when the deps array churns (session-id change
-    // after loadSession, sessions array change after setSessions). Without
-    // this the effect re-reads the still-present URL params and re-switches
-    // the tab away from wherever the user has since navigated.
-    const navKey = `${requestedWorkspace ?? ''}|${requestedSessionId ?? ''}|${requestedTab ?? ''}|${autostart ?? ''}`;
-    if (processedWorkspaceRef.current === navKey) {
-      return;
-    }
-    processedWorkspaceRef.current = navKey;
-
-    if (requestedSessionId && currentSession?.id !== requestedSessionId && sessions.some((session) => session.id === requestedSessionId)) {
-      loadSession(requestedSessionId);
-    }
-
-    const resolvedTab: ApplicationTab = requestedTab === 'cover-letter' || requestedTab === 'email'
-      ? requestedTab
-      : 'cv';
-
-    if (requestedWorkspace === 'application-kit') {
-      setActiveTab(resolvedTab);
-      lastApplicationTabRef.current = resolvedTab;
-
-      // Mobile has no Application Kit — viewport is shown the "Best on
-      // desktop" screen. Desktop continues as before.
-      setMobileView('desktop-required');
-
-      if (autostart === 'job-feed-apply' || autostart === 'job-feed-analyze') {
-        setIsChatCollapsed(false);
-        chatCollapsedBeforeFullWidthRef.current = false;
+      if (!requestedWorkspace && !requestedSessionId && !requestedTab && !autostart) {
+        return;
       }
 
-      return;
-    }
+      // Wait until the requested session is current before one-shot tab
+      // handling. A miss still switches workspace, otherwise a dead session
+      // id would pin the user on the wrong pane.
+      if (requestedSessionId && currentSession?.id !== requestedSessionId) {
+        const opened = await openStoredSession(requestedSessionId);
+        if (cancelled) return;
+        if (opened) return;
+      }
 
-    if (requestedWorkspace === 'job-feed') {
-      setActiveTab('jobs');
-      setMobileView('job-feed');
-      return;
-    }
+      if (cancelled) return;
 
-    if (requestedWorkspace === 'tracker') {
-      setActiveTab('tracker');
-      setMobileView('tracker');
-    }
+      const navKey = `${requestedWorkspace ?? ''}|${requestedSessionId ?? ''}|${requestedTab ?? ''}|${autostart ?? ''}`;
+      if (processedWorkspaceRef.current === navKey) {
+        return;
+      }
+      processedWorkspaceRef.current = navKey;
+
+      const resolvedTab: ApplicationTab = requestedTab === 'cover-letter' || requestedTab === 'email'
+        ? requestedTab
+        : 'cv';
+
+      if (requestedWorkspace === 'application-kit') {
+        setActiveTab(resolvedTab);
+        lastApplicationTabRef.current = resolvedTab;
+        return;
+      }
+
+      if (requestedWorkspace === 'job-feed') {
+        setActiveTab('jobs');
+        return;
+      }
+
+      if (requestedWorkspace === 'tracker') {
+        setActiveTab('tracker');
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, [
     currentSession?.id,
-    loadSession,
-    sessions,
+    sessions.length,
     setActiveTab,
   ]);
 
-  const handleSignOut = useCallback(async () => {
-    await signOut();
-    router.push('/auth/login');
-  }, [router, signOut]);
-
   const handleMobileViewChange = useCallback((view: MobileView) => {
     setMobileView(view);
-
     if (view === 'job-feed') {
       setActiveTab('jobs');
+      // Same as the sidebar: opening the feed is what clears the badge.
+      jobFeedBadge.acknowledge();
       return;
     }
-
     if (view === 'tracker') {
       setActiveTab('tracker');
     }
-  }, [setActiveTab]);
+  }, [setActiveTab, jobFeedBadge]);
 
-  // Show loading state while checking auth (brief — just to resolve user state)
-  if (isLoading) {
+  // The line owns every step until a kit exists. A session with a job but no
+  // kit is still on the line (fit running, verdict shown, sign-up pending).
+  const showGuidedLine = !hasKit && activeWorkspace === 'application-kit';
+
+  // The third clause stops the guided line from flashing at a signed-in
+  // user whose sessions have not loaded yet: with no kit visible locally,
+  // hold the spinner until the first sessions load settles the question.
+  // Anonymous visitors and users with a persisted kit skip the wait.
+  if (!mounted || isLoading || (user && !hasKit && !sessionsHydrated)) {
     return (
-      <div className="h-screen flex items-center justify-center bg-cream-100">
+      <div className="h-dvh flex items-center justify-center bg-cream-100">
         <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-cream-100">
-      <div className="hidden md:flex items-center gap-3 px-4 py-1.5 bg-cream-50 border-b border-cream-200 flex-shrink-0 z-50">
-        <button
-          type="button"
-          onClick={() => handleWorkspaceChange('application-kit')}
-          className="flex items-center cursor-pointer"
-          aria-label="Go to Application Kit"
-          title="Go to Application Kit"
-        >
-          <KarkoLogo variant="full" size="xs" theme="light" />
-        </button>
-
-        <div className="flex items-center rounded-full border border-cream-200 bg-cream-50 p-0.5">
-          <button
-            type="button"
-            onClick={() => handleWorkspaceChange('application-kit')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
-              activeWorkspace === 'application-kit'
-                ? 'bg-white text-navy-700 tab-pill-active font-semibold'
-                : 'text-warm-gray hover:text-navy-600'
-            }`}
-          >
-            <FileText className={`w-4 h-4 ${activeWorkspace === 'application-kit' ? 'text-gold-500' : ''}`} />
-            Application Kit
-          </button>
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => {
-                handleWorkspaceChange('job-feed');
-                jobFeedBadge.acknowledge();
-                setShowJobFeedPopup(false);
-              }}
-              className={`relative flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
-                activeWorkspace === 'job-feed'
-                  ? 'bg-white text-navy-700 tab-pill-active font-semibold'
-                  : 'text-warm-gray hover:text-navy-600'
-              }`}
-            >
-              <Briefcase className={`w-4 h-4 ${activeWorkspace === 'job-feed' ? 'text-gold-500' : ''}`} />
-              Job Feed
-              {jobFeedBadge.hasPending && (
-                <span
-                  aria-label={`${jobFeedBadge.unprocessedCount} jobs waiting for your review`}
-                  className="ml-1 inline-flex min-w-[20px] items-center justify-center rounded-full bg-gold-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white"
-                >
-                  {jobFeedBadge.unprocessedCount > 99 ? '99+' : jobFeedBadge.unprocessedCount}
-                </span>
-              )}
-            </button>
-
-            {/* Daily feed popup — anchored below the Job Feed nav button so the
-                user's eye goes straight from the badge to the popup. Shown
-                once per new run per day, dismissed by clicking Open / Later /
-                close, or by landing on the Job Feed tab. */}
-            {showJobFeedPopup && jobFeedBadge.hasNewRun && (
-              <>
-                {/* Arrow pointing up to the Job Feed button */}
-                <div className="absolute left-1/2 top-full z-[60] mt-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-l border-t border-gold-300/80 bg-white" />
-                <div className="absolute left-1/2 top-full z-[60] mt-2 w-80 -translate-x-1/2 rounded-2xl border border-gold-300/80 bg-white p-4 shadow-md">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gold-50 text-gold-600">
-                      <Briefcase className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-charcoal">
-                        {jobFeedBadge.jobCount === 1
-                          ? '1 new role for you today'
-                          : `${jobFeedBadge.jobCount} new roles for you today`}
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-warm-gray">
-                        Fresh matches, hand-picked for you.
-                      </p>
-                      <div className="mt-3 flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleWorkspaceChange('job-feed');
-                            jobFeedBadge.acknowledge();
-                            setShowJobFeedPopup(false);
-                          }}
-                          className="rounded-lg bg-gold-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-gold-600 cursor-pointer"
-                        >
-                          Open Job Feed
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            jobFeedBadge.acknowledge();
-                            setShowJobFeedPopup(false);
-                          }}
-                          className="rounded-lg px-3 py-1.5 text-xs font-medium text-warm-gray transition-colors hover:text-charcoal cursor-pointer"
-                        >
-                          Later
-                        </button>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        jobFeedBadge.acknowledge();
-                        setShowJobFeedPopup(false);
-                      }}
-                      className="rounded-lg p-1 text-warm-gray transition-colors hover:bg-cream-100 hover:text-charcoal cursor-pointer"
-                      aria-label="Dismiss new jobs notification"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-          <button
-            id="tour-tracker"
-            type="button"
-            onClick={() => handleWorkspaceChange('tracker')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer whitespace-nowrap ${
-              activeWorkspace === 'tracker'
-                ? 'bg-white text-navy-700 tab-pill-active font-semibold'
-                : 'text-warm-gray hover:text-navy-600'
-            }`}
-          >
-            <ClipboardList className={`w-4 h-4 ${activeWorkspace === 'tracker' ? 'text-gold-500' : ''}`} />
-            Tracker
-          </button>
-        </div>
-
-        <div className="flex-1" />
-
-        {/* Upgrade CTA — shown for free and plus plans */}
-        {user && profile?.subscription_tier === 'free' && (
-          <DashboardUpgradeButton tier="plus" />
-        )}
-        {user && profile?.subscription_tier === 'plus' && (
-          <DashboardUpgradeButton tier="max" />
-        )}
-
-        {/* Credit Indicator */}
-        {!isSignedOutJobFeedMode && user && (
-          <div className="flex items-center">
-            <CreditIndicator />
-          </div>
-        )}
-
-        {!isSignedOutJobFeedMode && user && <div className="w-px h-5 bg-cream-300 mx-1.5" />}
-
-        {!isSignedOutJobFeedMode && !isChatCollapsed && (
-          <button
-            onClick={() => setIsChatCollapsed(true)}
-            className="p-1.5 rounded-full text-warm-gray hover:bg-cream-100 hover:text-navy-600 transition-all cursor-pointer"
-            title="Collapse chat (⌘⇧C)"
-          >
-            <PanelRightClose className="w-4 h-4" />
-          </button>
-        )}
-
-        {user ? (
-          <DashboardProfileMenu profile={profile} onSignOut={handleSignOut} />
-        ) : null}
-      </div>
-
-      <div className="md:hidden flex items-center px-3 py-1.5 bg-cream-50 border-b border-cream-200 flex-shrink-0 z-50">
-        <button
-          type="button"
-          onClick={() => handleWorkspaceChange('application-kit')}
-          className="flex items-center cursor-pointer"
-          aria-label="Go to Application Kit"
-          title="Go to Application Kit"
-        >
-          <KarkoLogo variant="full" size="xs" theme="light" />
-        </button>
-        <div className="flex-1" />
-        {user && profile?.subscription_tier === 'free' && (
-          <DashboardUpgradeButton tier="plus" mobile />
-        )}
-        {user && profile?.subscription_tier === 'plus' && (
-          <DashboardUpgradeButton tier="max" mobile />
-        )}
-        {user && (
-          <div className="flex items-center mr-1">
-            <CreditIndicator compact />
-          </div>
-        )}
-        {user ? (
-          <DashboardProfileMenu profile={profile} onSignOut={handleSignOut} />
-        ) : null}
-      </div>
-
-      {/* Low-credits alerts — portal modal + slim banner for paid users */}
-      {user && <LowCreditsBanner />}
-      {user && <LowCreditsModal />}
-
+    <div className="h-dvh overflow-hidden flex flex-col bg-cream-100">
+      {/* The gear opens this over whatever is on screen, guided line included. */}
+      <SettingsModal />
+      {!isNarrow && (
       <div className="hidden md:flex flex-1 overflow-hidden">
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {activeWorkspace === 'application-kit' && currentCV && (
-            <>
-              <div className="bg-cream-50 border-b border-cream-200 px-4 sm:px-5 py-2.5">
-                <div id="tour-doc-tabs" className="inline-flex items-center rounded-2xl border border-cream-200 bg-cream-50 p-0.5">
-                  <button
-                    type="button"
-                    onClick={() => handleTabChange('cv')}
-                    className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-                      activeTab === 'cv'
-                        ? 'bg-white text-navy-700 tab-pill-active font-semibold'
-                        : 'text-warm-gray hover:text-navy-600'
-                    }`}
-                  >
-                    <FileText className={`w-4 h-4 ${activeTab === 'cv' ? 'text-gold-500' : ''}`} />
-                    CV
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleTabChange('cover-letter')}
-                    className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-                      activeTab === 'cover-letter'
-                        ? 'bg-white text-navy-700 tab-pill-active font-semibold'
-                        : 'text-warm-gray hover:text-navy-600'
-                    }`}
-                  >
-                    <Mail className={`w-4 h-4 ${activeTab === 'cover-letter' ? 'text-gold-500' : ''}`} />
-                    Cover Letter
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleTabChange('email')}
-                    className={`flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-                      activeTab === 'email'
-                        ? 'bg-white text-navy-700 tab-pill-active font-semibold'
-                        : 'text-warm-gray hover:text-navy-600'
-                    }`}
-                  >
-                    <Send className={`w-4 h-4 ${activeTab === 'email' ? 'text-gold-500' : ''}`} />
-                    Email
-                  </button>
-                </div>
-              </div>
-
-              <div className="relative z-40 bg-cream-100 border-b border-gold-300/60 px-3 sm:px-5 py-2.5">
-                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
-                  <div ref={setToolbarNode} className="flex items-center gap-2" />
-                </div>
-              </div>
-            </>
-          )}
-
-          <div className="flex-1 overflow-auto">
-            {activeWorkspace === 'tracker' ? (
-              <TrackerPanel />
-            ) : activeWorkspace === 'job-feed' ? (
-              <JobBoardPanel />
-            ) : !currentCV ? (
-              <div className="flex items-center justify-center h-full p-8">
-                <div id="tour-cv-upload" className="max-w-lg w-full">
-                  <div className="text-center mb-8">
-                    <div className="inline-flex mb-5">
-                      <KarkoIcon size="lg" theme="light" />
-                    </div>
-                    <h2 className="text-2xl font-bold tracking-tight text-charcoal mb-2">Welcome to Karko AI</h2>
-                    <p className="text-warm-gray max-w-sm mx-auto">
-                      Upload your CV to get started. We&apos;ll tailor it for every job you apply to.
-                    </p>
-                  </div>
-
-                  {uploadError && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                      <p className="text-sm text-red-600">{uploadError}</p>
-                    </div>
-                  )}
-
-                  {isUploadingCV ? (
-                    <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-navy-300 rounded-2xl bg-navy-50/50">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Loader2 className="w-5 h-5 animate-spin text-navy-600" />
-                        <p className="text-sm text-navy-600 font-medium">Parsing your CV...</p>
-                      </div>
-                      <p className="text-xs text-navy-500">This may take 30-60 seconds</p>
-                    </div>
-                  ) : (
-                    <CVInputZone
-                      onFileSelect={handleOnboardingCVUpload}
-                      onError={(msg) => setUploadError(msg)}
-                      label="Upload your CV"
-                      description={onboardingUploadDescription}
-                      maxSizeBytes={onboardingUploadLimitBytes}
-                    />
-                  )}
-
-                  {/* Feature highlights */}
-                  <div className="mt-8 grid grid-cols-3 gap-4">
-                    <div className="text-center">
-                      <div className="inline-flex p-2 bg-navy-50 rounded-lg mb-2">
-                        <FileText className="w-4 h-4 text-navy-600" />
-                      </div>
-                      <p className="text-xs font-medium text-charcoal">ATS-Optimized CV</p>
-                      <p className="text-[10px] text-warm-gray mt-0.5">Tailored to each job description</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="inline-flex p-2 bg-navy-50 rounded-lg mb-2">
-                        <Mail className="w-4 h-4 text-navy-600" />
-                      </div>
-                      <p className="text-xs font-medium text-charcoal">Cover Letter</p>
-                      <p className="text-[10px] text-warm-gray mt-0.5">Professional, role-specific</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="inline-flex p-2 bg-navy-50 rounded-lg mb-2">
-                        <Send className="w-4 h-4 text-navy-600" />
-                      </div>
-                      <p className="text-xs font-medium text-charcoal">Application Email</p>
-                      <p className="text-[10px] text-warm-gray mt-0.5">Ready to send in seconds</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex items-center justify-center">
-                    <button
-                      onClick={() => router.push('/documents')}
-                      className="inline-flex items-center gap-1.5 text-xs text-warm-gray hover:text-navy-600 transition-colors cursor-pointer"
-                    >
-                      <FolderOpen className="w-3.5 h-3.5" />
-                      Open Documents Library
-                      <ArrowRight className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <>
-                {activeTab === 'cv' && <CVPanel toolbarPortal={toolbarNode} atsControl={atsControl} />}
-                {activeTab === 'cover-letter' && <CoverLetterPanel toolbarPortal={toolbarNode} />}
-                {activeTab === 'email' && <EmailPanel toolbarPortal={toolbarNode} />}
-              </>
-            )}
-          </div>
-        </div>
-
-        {!isSignedOutJobFeedMode && (
-          /* No width transition while dragging: it would make the panel edge
-             trail the pointer by the transition duration. */
-          <div
-            ref={chatWrapperRef}
-            className={`relative h-full flex-shrink-0 ${isResizing || isKeyResizing ? '' : 'transition-[width] duration-300 ease-in-out'}`}
-            style={{ width: isChatCollapsed ? COLLAPSED_WIDTH : chatPanelWidth }}
-          >
-            {!isChatCollapsed && (
-              /* The sash sits entirely inside the chat panel. It must never
-                 overhang the left panel, whose scrollbar runs along that same
-                 edge. An overhang swallows scrollbar clicks and wheel events,
-                 so the user gets a resize instead of a scroll. */
-              <div
-                onPointerDown={handleSashPointerDown}
-                onKeyDown={handleSashKeyDown}
-                onKeyUp={endKeyResize}
-                onBlur={endKeyResize}
-                onWheel={handleSashWheel}
-                role="separator"
-                aria-orientation="vertical"
-                aria-label="Resize chat panel"
-                aria-valuenow={chatPanelWidth}
-                aria-valuemin={MIN_CHAT_WIDTH}
-                aria-valuemax={MAX_CHAT_WIDTH}
-                // The raw number is the chat panel's width, so it falls as the
-                // separator moves right. Spell that out rather than reading a
-                // bare number that seems to run backwards.
-                aria-valuetext={`Chat panel ${chatPanelWidth} pixels wide`}
-                tabIndex={0}
-                style={{ touchAction: 'none' }}
-                className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize z-10 group/resize focus:outline-none"
-                title="Drag to resize · Arrow keys to adjust · Double-click to collapse"
-              >
-                {/* Focus gets a 2px gold-500 line rather than the 1px gold-300
-                    hover hairline, which measures 1.64:1 and is too faint to be
-                    the only focus affordance once focus:outline-none is set. */}
-                <div className={`absolute left-0 top-0 bottom-0 transition-all duration-200 ${
-                  isResizing
-                    ? 'w-px bg-gold-400 opacity-100'
-                    : 'w-px bg-gold-300 opacity-0 group-hover/resize:opacity-100 group-focus-visible/resize:w-0.5 group-focus-visible/resize:bg-gold-500 group-focus-visible/resize:opacity-100'
-                }`} />
-                {/* Dots rest visible so the seam reads as draggable: a hover-only
-                    affordance on an 8px strip is a chicken-and-egg problem. They
-                    rest in navy, not gold, because gold is the CTA accent and
-                    there are gold buttons a few hundred pixels away. */}
-                <div className="absolute left-0.5 top-1/2 -translate-y-1/2 flex flex-col gap-1">
-                  {[0, 1, 2].map(i => (
-                    <div
-                      key={i}
-                      className={`w-1 h-1 rounded-full transition-colors duration-200 ${
-                        isResizing
-                          ? 'bg-gold-500'
-                          : 'bg-navy-200 group-hover/resize:bg-gold-400 group-focus-visible/resize:bg-gold-400'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className={`absolute inset-0 flex flex-col items-center justify-start py-2.5 border-l border-cream-200 bg-cream-50 transition-opacity duration-200 ${
-              isChatCollapsed ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-            }`}>
-              <button
-                onClick={() => setIsChatCollapsed(false)}
-                className="p-1.5 rounded-lg text-warm-gray hover:text-navy-600 hover:bg-cream-100 transition-colors cursor-pointer"
-                title="Expand chat (⌘⇧C)"
-              >
-                <PanelRightOpen className="w-4 h-4" />
-              </button>
-              <div className="mt-3 flex flex-col items-center">
-                <KarkoIcon size="xs" theme="light" />
-              </div>
-            </div>
-
-            <div id="tour-chat-panel" className={`absolute inset-0 overflow-hidden border-l border-cream-200 bg-cream-50 transition-opacity duration-200 ${
-              isChatCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
-            }`}>
-              <ChatPanel
-                onTabChange={handleTabChange}
-                docked
-              />
-            </div>
-          </div>
+        {showGuidedLine ? (
+          <GuidedLine onKitReady={() => useUIStore.getState().setActiveTab('cv')} />
+        ) : (
+          <AppShell />
         )}
       </div>
+      )}
 
-      {/* Mobile experience (< 768px): Job Feed + Tracker only. The Application
-          Kit and Chat require desktop/tablet — we render a friendly "Best on
-          desktop" screen instead of mounting those heavy panels. */}
+      {isNarrow && (
       <div className="md:hidden flex-1 flex flex-col overflow-hidden">
+        <div className="flex items-center px-3 py-1.5 bg-cream-50 border-b border-cream-200 flex-shrink-0">
+          <BrandLogo variant="full" size="xs" theme="light" />
+        </div>
         <div className="flex-1 overflow-auto">
           {mobileView === 'tracker' ? (
-            <TrackerPanel />
+            <TrackerCanvas />
           ) : mobileView === 'job-feed' ? (
-            <JobBoardPanel />
+            <MobileFeed />
           ) : (
             <div className="flex items-center justify-center h-full p-6">
               <div className="max-w-sm w-full text-center">
                 <div className="inline-flex mb-5">
-                  <KarkoIcon size="md" theme="light" />
+                  <BrandIcon size="md" theme="light" />
                 </div>
-                <h2 className="text-xl font-bold tracking-tight text-charcoal mb-2">Best on desktop</h2>
+                <h2 className="text-xl font-semibold tracking-tight text-charcoal mb-2">Best on desktop</h2>
                 <p className="text-sm text-warm-gray leading-relaxed mb-6">
-                  Karko&apos;s Application Kit works best on a laptop or tablet. Open Karko on a larger screen to upload your CV, chat with the agent, and generate tailored applications.
-                </p>
-                <p className="text-xs text-warm-gray mb-6">
-                  On the go? Browse your daily Job Feed and review your Tracker right here.
+                  Useful Apply&apos;s Application Kit works best on a laptop or tablet. Open it on a larger screen to upload your CV and generate tailored applications.
                 </p>
                 <div className="flex flex-col gap-2">
                   <button
                     type="button"
                     onClick={() => handleMobileViewChange('job-feed')}
-                    className="w-full flex items-center justify-center gap-2 rounded-full bg-navy-700 text-white px-5 py-3 text-sm font-semibold shadow-sm hover:bg-navy-800 transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 rounded-full bg-gold-400 text-white px-5 py-3 text-sm font-semibold shadow-sm hover:bg-gold-500 transition-colors cursor-pointer"
                   >
                     <Briefcase className="w-4 h-4" />
                     Open Job Feed
@@ -1254,7 +227,7 @@ export default function Dashboard() {
                   <button
                     type="button"
                     onClick={() => handleMobileViewChange('tracker')}
-                    className="w-full flex items-center justify-center gap-2 rounded-full border border-cream-200 bg-white text-charcoal px-5 py-3 text-sm font-semibold hover:bg-cream-50 transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 rounded-full border border-cream-200 bg-cream-50 text-charcoal px-5 py-3 text-sm font-semibold hover:bg-white transition-colors cursor-pointer"
                   >
                     <ClipboardList className="w-4 h-4" />
                     Open Tracker
@@ -1264,76 +237,37 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-
-        <div className="flex-shrink-0 bg-white border-t border-cream-200 px-2 pb-[env(safe-area-inset-bottom)] z-50">
+        <div className="flex-shrink-0 bg-cream-50 border-t border-cream-200 px-2 pb-[env(safe-area-inset-bottom)]">
           <div className="flex items-center justify-around py-1.5">
             <button
               type="button"
               onClick={() => handleMobileViewChange('job-feed')}
-              className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer min-w-[52px] ${
+              className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg cursor-pointer min-w-[52px] ${
                 mobileView === 'job-feed' ? 'text-gold-600' : 'text-warm-gray'
               }`}
             >
-              <Briefcase className={`w-5 h-5 ${mobileView === 'job-feed' ? 'text-gold-500' : ''}`} />
+              <Briefcase className="w-5 h-5" />
               <span className="text-[10px] font-medium">Feed</span>
-              {jobFeedBadge.hasPending && (
+              {jobFeedBadge.hasNewRun && (
                 <span className="absolute top-0 right-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-gold-500 px-1 py-0.5 text-[9px] font-semibold leading-none text-white">
-                  {jobFeedBadge.unprocessedCount > 99 ? '99+' : jobFeedBadge.unprocessedCount}
+                  {jobFeedBadge.jobCount > 99 ? '99+' : jobFeedBadge.jobCount}
                 </span>
               )}
             </button>
             <button
               type="button"
               onClick={() => handleMobileViewChange('tracker')}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer min-w-[52px] ${
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg cursor-pointer min-w-[52px] ${
                 mobileView === 'tracker' ? 'text-gold-600' : 'text-warm-gray'
               }`}
             >
-              <ClipboardList className={`w-5 h-5 ${mobileView === 'tracker' ? 'text-gold-500' : ''}`} />
+              <ClipboardList className="w-5 h-5" />
               <span className="text-[10px] font-medium">Tracker</span>
             </button>
           </div>
         </div>
       </div>
-
-      {showATSModal && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/45"
-            onClick={() => setShowATSModal(false)}
-            aria-label="Close ATS insights"
-          />
-          <div className="relative flex h-[90vh] w-full max-w-4xl min-h-0 max-h-[90vh] flex-col overflow-hidden rounded-[24px] border border-cream-200 bg-cream-50 shadow-lg">
-            <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-cream-200 bg-white/90 backdrop-blur-sm">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full bg-gold-50 px-3 py-1 text-xs font-semibold text-gold-700 border border-gold-100 mb-3">
-                  <Target className="w-3.5 h-3.5" />
-                  ATS Insights
-                </div>
-                <h2 className="text-xl font-bold tracking-tight text-charcoal">CV optimization details</h2>
-                <p className="text-sm text-warm-gray mt-1">
-                  {atsScore !== null
-                    ? `Review the ${atsScore}% ATS score, optimization strategy, and exact improvements applied to this CV.`
-                    : 'Review the AI changes and ATS-focused improvements applied to this CV.'}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowATSModal(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-cream-200 bg-white text-warm-gray hover:text-navy-700 hover:border-navy-200 transition-colors cursor-pointer"
-                aria-label="Close ATS insights"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              <ATSScorePanel />
-            </div>
-          </div>
-        </div>
       )}
-
     </div>
   );
 }

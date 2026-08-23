@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { canAccessJobFeed, canViewJobFeed, getJobFeedOverviewState } from '@/lib/job-feed/helpers';
-import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
+import { getCurrentUser } from '@/auth/server';
+import { canAccessJobFeed, canViewJobFeed, getJobFeedOverviewState, getLocalDateKey } from '@/lib/job-feed/helpers';
+import { getJobFeedTierLimits, JOB_FEED_MIRRORED_ROLE_LIMIT } from '@/lib/job-feed/constants';
 import {
   getJobFeedRunDiagnostics,
   getLatestManualCompletedJobFeedRunAdmin,
   listJobFeedInboxPageAdmin,
-  listLatestJobFeedItemsAdmin,
+  resolveJobFeedRunForFeedAdmin,
 } from '@/lib/job-feed/server';
 import { JOB_FEED_INBOX_PAGE_SIZE } from '@/lib/job-feed/constants';
-import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { isCurrentCareerProfile, type CareerProfile } from '@/lib/job-feed/career-profile';
 import type { JobFeedRun } from '@/lib/supabase/types';
+import { getProfile } from '@/db/repos/profiles';
+import { getDocumentByType } from '@/db/repos/documents';
+import { getCareerProfileRow, getLatestRun, getSettings } from '@/db/repos/jobFeed';
 
 export const runtime = 'nodejs';
 
@@ -19,29 +22,26 @@ const STALE_OVERVIEW_RUN_MS = 15 * 60 * 1000;
 
 export async function GET(request: NextRequest) {
   try {
-    const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`job-feed-overview:${ip}`, RATE_LIMITS['job-feed-overview']);
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
+    const user = await getCurrentUser(request);
+
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
+    const { allowed } = await checkRateLimit(`job-feed-overview:${user.id}`, RATE_LIMITS['job-feed-overview']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand the newly added tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const profile = await getProfile(user.id);
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
-    }
-
-    const { data: profile, error: profileError } = await typedSupabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile) {
-      console.error('[job-feed/overview] profile load error:', profileError?.message);
+    if (!profile) {
+      console.error('[job-feed/overview] profile load error: profile not found');
       return NextResponse.json({ error: 'Failed to load profile.' }, { status: 500 });
     }
 
@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
         latestRunDiagnostics: null,
         jobs: [],
         jobsTotalCount: 0,
+        jobsMatchedCount: 0,
         jobsHasMore: false,
         jobsTodayCount: 0,
         jobsBacklogCount: 0,
@@ -70,61 +71,28 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const [
-      { data: settings, error: settingsError },
-      { data: latestRun, error: runError },
-      { data: careerProfileRow },
-      { data: primaryCvRow },
-    ] = await Promise.all([
-      typedSupabase
-        .from('job_feed_settings')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle(),
-      typedSupabase
-        .from('job_feed_runs')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      typedSupabase
-        .from('user_career_profiles')
-        .select('profile')
-        .eq('user_id', user.id)
-        .maybeSingle(),
+    // A read failure here throws out to the outer catch, which returns the same
+    // 500 payload the per-query error branches used to return.
+    const [settings, latestRun, careerProfileRow, primaryCvRow] = await Promise.all([
+      getSettings(user.id),
+      getLatestRun(user.id),
+      getCareerProfileRow(user.id),
       // Free feeds are CV-driven. The career profile is synthesized on the
       // first run, so the real prerequisite is "has a primary CV", not "has a
       // synthesized profile" - gating on the profile would deadlock free users
       // (no_cv_required hides the run button that would create the profile).
-      typedSupabase
-        .from('documents')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('type', 'primary_cv')
-        .limit(1)
-        .maybeSingle(),
+      getDocumentByType(user.id, 'primary_cv'),
     ]);
-
-    if (settingsError) {
-      console.error('[job-feed/overview] settings load error:', settingsError.message);
-      return NextResponse.json({ error: 'Failed to load job feed overview.' }, { status: 500 });
-    }
-
-    if (runError) {
-      console.error('[job-feed/overview] run load error:', runError.message);
-      return NextResponse.json({ error: 'Failed to load job feed overview.' }, { status: 500 });
-    }
 
     // Load the run metadata once; inbox pagination is a separate call so
     // we can keep the overview payload small even at scale.
-    const [feedRunSummary, firstPage, latestManualRun] = await Promise.all([
+    const [feedRun, firstPage, latestManualRun] = await Promise.all([
+      // Only the run is needed here. Building the item list too would join
+      // every ranked row in the window and throw it away, on a payload the
+      // client polls every 10s while a run is generating.
       latestRun
-        ? listLatestJobFeedItemsAdmin({
-            userId: user.id,
-            latestRun: latestRun ?? null,
-          }).then((result) => ({ run: result.run }))
-        : Promise.resolve({ run: null }),
+        ? resolveJobFeedRunForFeedAdmin({ userId: user.id, latestRun })
+        : Promise.resolve(null),
       listJobFeedInboxPageAdmin({
         userId: user.id,
         offset: 0,
@@ -151,9 +119,25 @@ export async function GET(request: NextRequest) {
     const backlogVisibleCount = !canAccess
       ? Math.min(rawBacklogCount, Math.max(0, visibleCap - rawTodayCount))
       : rawBacklogCount;
-    const runForState = latestRun && isStaleOverviewRun(latestRun) && feedRunSummary.run
-      ? feedRunSummary.run
+    const runForState = latestRun && isStaleOverviewRun(latestRun) && feedRun
+      ? feedRun
       : latestRun;
+    // Ranked count from today's run, before the free-tier list cap. Paid
+    // users already see every ranked row, so the two numbers match. A run
+    // from another day must not become "matched today".
+    const todayKey = getLocalDateKey(
+      new Date(),
+      settings?.user_timezone || latestRun?.local_timezone || 'UTC',
+    );
+    const rankedToday = latestRun?.local_date === todayKey
+      ? latestRun.ranked_jobs_count
+      : 0;
+    const jobsMatchedCount = Math.max(
+      0,
+      typeof rankedToday === 'number' && Number.isFinite(rankedToday)
+        ? rankedToday
+        : rawTodayCount,
+    );
 
     // Compare saved target_roles in settings against AI-inferred titles in the
     // career profile. Flag drift so the editing card can surface a notice.
@@ -167,10 +151,11 @@ export async function GET(request: NextRequest) {
       settings: settings ?? null,
       latestRun: latestRun ?? null,
       latestManualRun: latestManualRun ?? null,
-      feedRun: feedRunSummary.run,
+      feedRun,
       latestRunDiagnostics: getJobFeedRunDiagnostics(latestRun ?? null),
       jobs,
       jobsTotalCount: totalCount,
+      jobsMatchedCount,
       jobsHasMore: hasMore,
       jobsTodayCount,
       jobsBacklogCount: backlogVisibleCount,
@@ -207,9 +192,12 @@ function computeTargetRolesOutdated(
   if (!rawProfile || !isCurrentCareerProfile(rawProfile)) return false;
   const profile = rawProfile as CareerProfile;
 
+  // Same dedupe casing and same slice as the settings writer, otherwise the
+  // lengths never match and this reads as drift on every save.
   const profileRoles = profile.inferredTitles
     .map((title) => title.canonical.trim().toLowerCase())
-    .filter((v, i, a) => a.indexOf(v) === i)
+    .filter((v, i, a) => v.length > 0 && a.indexOf(v) === i)
+    .slice(0, JOB_FEED_MIRRORED_ROLE_LIMIT)
     .sort();
 
   const normalized = savedRoles

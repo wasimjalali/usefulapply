@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+  body { margin: 0; font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; color: #2D3748; background: #FAF7F2; -webkit-font-smoothing: antialiased; }
+  a { color: #1E3A5F; } a:hover { color: #182F4D; }
+  .serif { font-family: Georgia, 'Times New Roman', serif; font-weight: 600; }
+  .wm { font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif; font-weight: 800; letter-spacing: -0.02em; font-size: 17px; line-height: 1; color: #0C1929; display: flex; align-items: center; white-space: nowrap; }
+  .pillgroup { display: flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid #F5F0E8; background: #FEFDFB; border-radius: 9999px; }
+  .tab { display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 9999px; font-size: 14px; font-weight: 500; color: #6B7280; white-space: nowrap; }
+  .tab.on { background: #FFFFFF; color: #182F4D; font-weight: 600; box-shadow: 0 1px 2px 0 rgb(30 58 95 / 0.06), 0 1px 1px -1px rgb(30 58 95 / 0.05); }
+  .btn-gold { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #D4A853; color: #FFFFFF; font-weight: 600; border-radius: 9999px; white-space: nowrap; }
+  .btn-navy { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #1E3A5F; color: #FFFFFF; font-weight: 600; border-radius: 9999px; white-space: nowrap; }
+  .btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #FEFDFB; color: #182F4D; font-weight: 600; border: 1px solid #F5F0E8; border-radius: 9999px; white-space: nowrap; box-shadow: 0 1px 2px 0 rgb(30 58 95 / 0.06), 0 1px 1px -1px rgb(30 58 95 / 0.05); }
+  .card { background: #FEFDFB; border: 1px solid #F5F0E8; border-radius: 16px; box-shadow: 0 1px 2px 0 rgb(30 58 95 / 0.06), 0 1px 1px -1px rgb(30 58 95 / 0.05); }
+  .doc { background: #FFFFFF; border-radius: 16px; box-shadow: 0 1px 0 0 rgb(30 58 95 / 0.04), 0 10px 24px -12px rgb(30 58 95 / 0.16); }
+  .muted { color: #6B7280; }
+  .tool { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 9999px; background: #FEFDFB; border: 1px solid #F5F0E8; font-size: 14px; font-weight: 500; color: #2D3748; box-shadow: 0 1px 2px 0 rgb(30 58 95 / 0.06); white-space: nowrap; }
+  .stage { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid #F5F0E8; background: #FEFDFB; }
+  .stage.done { background: #FBF7EE; border-color: #EBDAAE; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border-radius: 9999px; font-size: 14px; font-weight: 600; white-space: nowrap; }
+  .chip.primary { background: #D4A853; color: #FFFFFF; box-shadow: 0 0 0 1px rgb(212 168 83 / 0.18), 0 12px 30px -10px rgb(212 168 83 / 0.42); }
+  .chip.secondary { background: #FEFDFB; color: #182F4D; border: 1px solid #F5F0E8; box-shadow: 0 1px 2px 0 rgb(30 58 95 / 0.06); }
+  .cost { font-weight: 500; opacity: 0.85; }
+  .status { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 9999px; font-size: 11px; font-weight: 600; }
+  .status.draft { background: #F5ECD5; color: #825E1C; }
+  .status.applied { background: #EEF4F1; color: #3A5A4C; }
+  .status.now { background: #E8EDF4; color: #182F4D; }
+  .line { height: 1px; background: #F5F0E8; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { animation: spin 1.1s linear infinite; transform-origin: 50% 50%; }
+</style>
+</helmet>
+<div style="width: 1440px; height: 4432px; display: flex; flex-direction: column; background: #FAF7F2; overflow: hidden"><div style="display: flex; align-items: center; gap: 12px; height: 64px; padding: 0 200px; background: #FEFDFB; border-bottom: 1px solid #F5F0E8; flex-shrink: 0"><span class="wm"><svg width="14" height="17" viewBox="0 0 84 100" aria-hidden="true" style="margin-right: 1px"><path d="M0 0 H24 V58 A18 18 0 0 0 60 58 V0 H62 L84 22 V58 A42 42 0 0 1 0 58 Z" fill="#0C1929"></path><path d="M62 0 V22 H84 Z" fill="#C4932E"></path></svg>seful&nbsp;<span style="color: #C4932E">Apply</span></span><div style="flex: 1"></div><span style="font-size: 14px; font-weight: 500; color: #1E3A5F; padding: 0 10px">Pricing</span><span style="font-size: 14px; font-weight: 500; color: #1E3A5F">Log in</span><span class="btn-gold" style="height: 40px; padding: 0 18px; font-size: 14px">Try it free</span></div><div style="position: relative"><div style="position: absolute; inset: 0; overflow: hidden; pointer-events: none">
+  <div style="position: absolute; top: -30%; left: -15%; width: 75%; height: 110%; background: radial-gradient(ellipse at center, rgba(30,58,95,0.38) 0%, rgba(30,58,95,0.14) 40%, transparent 70%); filter: blur(90px)"></div>
+  <div style="position: absolute; bottom: -35%; right: -20%; width: 85%; height: 115%; background: radial-gradient(ellipse at center, rgba(212,168,83,0.45) 0%, rgba(212,168,83,0.16) 42%, transparent 72%); filter: blur(100px)"></div>
+  <div style="position: absolute; top: 20%; right: -10%; width: 45%; height: 60%; background: radial-gradient(ellipse at center, rgba(91,138,114,0.22) 0%, rgba(91,138,114,0.08) 40%, transparent 70%); filter: blur(80px)"></div>
+  <div style="position: absolute; inset: 0; background-image: linear-gradient(to right, rgba(30,58,95,0.11) 1px, transparent 1px), linear-gradient(to bottom, rgba(30,58,95,0.11) 1px, transparent 1px); background-size: 72px 72px; -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, transparent 30%, black 90%); mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, transparent 30%, black 90%)"></div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 128px; background: linear-gradient(to bottom, transparent, #FAF7F2)"></div>
+</div><div style="width: 1040px; margin: 0 auto; display: flex; flex-direction: column; "><div style="display: flex; flex-direction: column; align-items: center; gap: 22px; padding: 84px 0 0; position: relative">
+  <span class="serif" style="font-size: 56px; line-height: 1.08; letter-spacing: -0.01em; color: #182F4D; text-align: center; text-wrap: balance">Your entire job search, <span style="color: #C4932E">in one app.</span></span>
+  <span style="font-size: 19px; line-height: 1.5; color: #2D3748; max-width: 640px; text-align: center">Upload your CV, paste a job, see your fit. Then a tailored CV, cover letter and emails in 90 seconds. Every word from your real CV, nothing invented.</span>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 6px"><span class="btn-gold" style="height: 52px; padding: 0 22px; font-size: 15px">Try it free</span><span class="muted" style="font-size: 13px">Your first fit check is on us, no account needed.</span></div>
+  <div style="margin-top: 30px"><img src="kit.jpg" style="width: 1040px; height: auto; display: block; border-radius: 16px; border: 1px solid #F5F0E8; box-shadow: 0 1px 0 0 rgb(30 58 95 / 0.04), 0 10px 24px -12px rgb(30 58 95 / 0.16); "></div>
+</div></div></div><div style="width: 1040px; margin: 0 auto; display: flex; flex-direction: column; "><div style="display: flex; flex-direction: column; gap: 72px; padding: 96px 0 0">
+  <div style="display: flex; align-items: center; gap: 40px; "><div style="width: 320px; display: flex; flex-direction: column; gap: 12px; flex-shrink: 0"><span class="serif" style="font-size: 34px; line-height: 1.15; color: #182F4D">See the fit before you spend anything</span><span style="font-size: 16px; line-height: 1.55; color: #2D3748">A score, what lines up, what's missing, and whether it's worth applying. The first check is free.</span></div><img src="fit.jpg" style="width: 680px; height: auto; display: block; border-radius: 16px; border: 1px solid #F5F0E8; box-shadow: 0 1px 0 0 rgb(30 58 95 / 0.04), 0 10px 24px -12px rgb(30 58 95 / 0.16); "></div>
+  <div style="display: flex; align-items: center; gap: 40px; flex-direction: row-reverse"><div style="width: 320px; display: flex; flex-direction: column; gap: 12px; flex-shrink: 0"><span class="serif" style="font-size: 34px; line-height: 1.15; color: #182F4D">A kit you can send, every claim from your CV</span><span style="font-size: 16px; line-height: 1.55; color: #2D3748">Tailored CV, cover letter, application email and follow-up. ATS-checked, with every change shown. Want it shorter? Just say so.</span></div><img src="ats.jpg" style="width: 680px; height: auto; display: block; border-radius: 16px; border: 1px solid #F5F0E8; box-shadow: 0 1px 0 0 rgb(30 58 95 / 0.04), 0 10px 24px -12px rgb(30 58 95 / 0.16); "></div>
+  <div style="display: flex; align-items: center; gap: 40px; "><div style="width: 320px; display: flex; flex-direction: column; gap: 12px; flex-shrink: 0"><span class="serif" style="font-size: 34px; line-height: 1.15; color: #182F4D">Roles picked for you every morning</span><span style="font-size: 16px; line-height: 1.55; color: #2D3748">Five on Free, twenty on Plus. One click checks the fit, one more writes the kit, and the tracker fills itself.</span></div><img src="feed.jpg" style="width: 680px; height: auto; display: block; border-radius: 16px; border: 1px solid #F5F0E8; box-shadow: 0 1px 0 0 rgb(30 58 95 / 0.04), 0 10px 24px -12px rgb(30 58 95 / 0.16); "></div>
+</div><div style="display: flex; align-items: center; gap: 28px; padding: 96px 0 0">
+  <img src="founder.jpg" style="width: 120px; height: 120px; border-radius: 16px; object-fit: cover; border: 1px solid #F5F0E8; flex-shrink: 0">
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <span style="font-size: 18px; line-height: 1.55; color: #2D3748">"I built Useful Apply for my own search. Sixty-plus applications, every one written by the product, five interviews, and the job I have now came from one of them."</span>
+    <span class="muted" style="font-size: 14px">Wasim Jalali, founder</span>
+  </div>
+</div><div style="display: flex; flex-direction: column; gap: 28px; padding: 96px 0 0; align-items: center">
+  <span class="serif" style="font-size: 34px; line-height: 1.15; color: #182F4D">Start free. Pay when you're applying every week.</span>
+  <div style="display: flex; gap: 16px; width: 100%">
+  <div style="flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 24px; border-radius: 16px; background: #FFFFFF; border: 1px solid #F5F0E8; box-shadow: 0 1px 2px 0 rgb(30 58 95 / 0.06)">
+    <div style="display: flex; align-items: baseline; gap: 8px"><span style="font-size: 16px; font-weight: 600; color: #182F4D">Free</span></div>
+    <div style="display: flex; align-items: baseline; gap: 6px"><span class="serif" style="font-size: 34px; color: #182F4D">$0</span><span class="muted" style="font-size: 14px">a month</span></div>
+    <span style="font-size: 15px; font-weight: 600; color: #2D3748">4 credits a month</span>
+    <div style="display: flex; flex-direction: column; gap: 8px; flex: 1"><span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #2D3748"><span style="color: #C4932E; display: inline-flex"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>2 applications</span><span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #2D3748"><span style="color: #C4932E; display: inline-flex"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>Top-5 daily feed</span><span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #2D3748"><span style="color: #C4932E; display: inline-flex"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>Fit checks and the tracker</span></div>
+    <span class="btn-ghost" style="height: 44px; font-size: 14px">Try it free</span>
+  </div>
+  <div style="flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 24px; border-radius: 16px; background: #FBF7EE; border: 1px solid #EBDAAE; box-shadow: 0 1px 2px 0 rgb(30 58 95 / 0.06)">
+    <div style="display: flex; align-items: baseline; gap: 8px"><span style="font-size: 16px; font-weight: 600; color: #182F4D">Plus</span><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #C4932E">MOST POPULAR</span></div>
+    <div style="display: flex; align-items: baseline; gap: 6px"><span class="serif" style="font-size: 34px; color: #182F4D">$19.99</span><span class="muted" style="font-size: 14px">a month</span></div>
+    <span style="font-size: 15px; font-weight: 600; color: #2D3748">50 credits a month</span>
+    <div style="display: flex; flex-direction: column; gap: 8px; flex: 1"><span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #2D3748"><span style="color: #C4932E; display: inline-flex"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>25 applications</span><span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #2D3748"><span style="color: #C4932E; display: inline-flex"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>20 roles a day, Edit feed</span><span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #2D3748"><span style="color: #C4932E; display: inline-flex"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>Everything in Free</span></div>
+    <span class="btn-gold" style="height: 44px; font-size: 14px">Start with Plus</span>
+  </div>
+  <div style="flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 24px; border-radius: 16px; background: #FFFFFF; border: 1px solid #F5F0E8; box-shadow: 0 1px 2px 0 rgb(30 58 95 / 0.06)">
+    <div style="display: flex; align-items: baseline; gap: 8px"><span style="font-size: 16px; font-weight: 600; color: #182F4D">Max</span></div>
+    <div style="display: flex; align-items: baseline; gap: 6px"><span class="serif" style="font-size: 34px; color: #182F4D">$79.99</span><span class="muted" style="font-size: 14px">a month</span></div>
+    <span style="font-size: 15px; font-weight: 600; color: #2D3748">200 credits a month</span>
+    <div style="display: flex; flex-direction: column; gap: 8px; flex: 1"><span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #2D3748"><span style="color: #C4932E; display: inline-flex"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>100 applications</span><span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #2D3748"><span style="color: #C4932E; display: inline-flex"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>Priority generation</span><span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #2D3748"><span style="color: #C4932E; display: inline-flex"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>Everything in Plus</span></div>
+    <span class="btn-ghost" style="height: 44px; font-size: 14px">Go Max</span>
+  </div>
+</div>
+  <span style="font-size: 14px; font-weight: 600; color: #1E3A5F; display: inline-flex; align-items: center; gap: 6px">Compare all plans and features <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"></path></svg></span>
+</div></div><div style="margin-top: 96px; padding: 96px 0; background: #182F4D; position: relative; overflow: hidden">
+  <div style="position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(30,58,95,0.07) 1px, transparent 1px); background-size: 24px 24px; opacity: 0.6"></div>
+  <div style="position: relative; width: 760px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center">
+    <span style="font-size: 48px; line-height: 1.1; font-weight: 700; letter-spacing: -0.01em; color: #FFFFFF">Your next interview is <span style="color: #D4A853">90 seconds away.</span></span>
+    <span style="font-size: 17px; line-height: 1.6; color: #C5D1E3; max-width: 600px">Upload your CV. Pick a role from your feed. Send your first full application before your coffee gets cold.</span>
+    <div style="display: flex; gap: 12px; margin-top: 8px">
+      <span style="display: inline-flex; align-items: center; gap: 8px; height: 50px; padding: 0 32px; border-radius: 8px; background: #D4A853; color: #FFFFFF; font-weight: 600; font-size: 16px">Start free, no credit card <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"></path></svg></span>
+      <span style="display: inline-flex; align-items: center; height: 50px; padding: 0 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); color: #FFFFFF; font-weight: 600; font-size: 16px">View pricing</span>
+    </div>
+  </div>
+</div><div style="background: linear-gradient(to bottom, #1E3A5F, #12243B); border-top: 1px solid rgba(212,168,83,0.5); overflow: hidden">
+  <div style="width: 1200px; margin: 0 auto; padding: 48px 0 0; display: flex; gap: 40px; align-items: flex-start">
+    <div style="display: flex; flex-direction: column; gap: 12px; width: 190px"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.14em; color: #D4A853">PRODUCT</span><span style="font-size: 14px; color: #9FB3CF">What you get</span><span style="font-size: 14px; color: #9FB3CF">Application Tracker</span><span style="font-size: 14px; color: #9FB3CF">Pricing</span></div>
+    <div style="display: flex; flex-direction: column; gap: 12px; width: 190px"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.14em; color: #D4A853">RESOURCES</span><span style="font-size: 14px; color: #9FB3CF">Useful Apply vs Rezi</span><span style="font-size: 14px; color: #9FB3CF">Useful Apply vs Kickresume</span><span style="font-size: 14px; color: #9FB3CF">Useful Apply vs Enhancv</span><span style="font-size: 14px; color: #9FB3CF">Useful Apply vs Resume.io</span><span style="font-size: 14px; color: #9FB3CF">Useful Apply vs Teal</span><span style="font-size: 14px; color: #9FB3CF">Useful Apply vs Jobscan</span><span style="font-size: 14px; color: #9FB3CF">All Comparisons</span><span style="font-size: 14px; color: #9FB3CF">Try Free, No Sign-Up</span><span style="font-size: 14px; color: #9FB3CF">Master CV Guide</span></div>
+    <div style="display: flex; flex-direction: column; gap: 12px; width: 190px"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.14em; color: #D4A853">BLOG</span><span style="font-size: 14px; color: #9FB3CF">Your entire job search, in...</span><span style="font-size: 14px; color: #9FB3CF">A smart job feed that read...</span><span style="font-size: 14px; color: #9FB3CF">The screening question...</span><span style="font-size: 14px; color: #9FB3CF">How to Tailor Your Resume...</span><span style="font-size: 14px; color: #9FB3CF">What Is a Master CV and...</span><span style="font-size: 14px; color: #5EEAD4">View All Posts</span></div>
+    <div style="display: flex; flex-direction: column; gap: 40px"><div style="display: flex; flex-direction: column; gap: 12px; width: 190px"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.14em; color: #D4A853">COMPANY</span><span style="font-size: 14px; color: #9FB3CF">About Us</span><span style="font-size: 14px; color: #9FB3CF">Contact</span><span style="font-size: 14px; color: #9FB3CF">Log In</span></div><div style="display: flex; flex-direction: column; gap: 12px; width: 190px"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.14em; color: #D4A853">LEGAL</span><span style="font-size: 14px; color: #9FB3CF">Privacy Policy</span><span style="font-size: 14px; color: #9FB3CF">Terms of Service</span><span style="font-size: 14px; color: #9FB3CF">Imprint</span></div></div>
+    <div style="display: flex; flex-direction: column; gap: 14px; width: 280px; margin-left: auto">
+      <span style="font-size: 14px; line-height: 1.5; color: #FFFFFF">Find jobs. Write applications. Track progress. All in one app.</span>
+      <span style="font-size: 14px; color: #9FB3CF">support@usefulapply.com</span>
+      <span style="display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.25); color: #FFFFFF; font-size: 14px; width: fit-content">Contact</span>
+      <span style="display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 8px; background: #FFFFFF; color: #182F4D; font-size: 13px; font-weight: 600; width: fit-content">Trustpilot <span style="color: #00B67A">★★★★★</span></span>
+    </div>
+  </div>
+  <div style="display: flex; justify-content: center; padding: 72px 0 0; line-height: 0.8; overflow: hidden; height: 150px"><span style="font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; font-size: 200px; color: #FFFFFF">Useful <span style="color: #D4A853">Apply</span></span></div>
+</div></div>
+</x-dc>
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

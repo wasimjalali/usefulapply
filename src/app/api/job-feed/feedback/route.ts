@@ -1,20 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { canAccessJobFeed } from '@/lib/job-feed/helpers';
+import { canAccessJobFeed, canViewJobFeed } from '@/lib/job-feed/helpers';
 import {
   authorizeJobFeedJobActionAdmin,
   recordJobFeedFeedbackAdmin,
   toJobFeedFeedbackState,
 } from '@/lib/job-feed/server';
 import { captureJobFeedActionRejected, captureJobFeedEvent } from '@/lib/job-feed/analytics';
-import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getPostHogServer } from '@/lib/posthog-server';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/auth/server';
+import { getProfile } from '@/db/repos/profiles';
 
 export const runtime = 'nodejs';
 
 // 'rated_helpful' / 'rated_not_relevant' capture the user's match-quality
 // signal from the details modal so the ranker can learn from it.
-const SUPPORTED_ACTIONS = new Set(['opened', 'saved', 'dismissed', 'rated_helpful', 'rated_not_relevant']);
+const SUPPORTED_ACTIONS = new Set(['opened', 'saved', 'unsaved', 'dismissed', 'rated_helpful', 'rated_not_relevant']);
+// Bookmarking and "I opened this" are part of viewing the feed. Ratings and
+// dismiss stay on Plus/Max because they train the ranker.
+const VIEW_ACTIONS = new Set(['opened', 'saved', 'unsaved']);
 
 export async function POST(request: NextRequest) {
   let userId: string | null = null;
@@ -24,24 +28,20 @@ export async function POST(request: NextRequest) {
   let subscriptionTier: string | null = null;
 
   try {
-    const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`job-feed-feedback:${ip}`, RATE_LIMITS['job-feed-feedback']);
-    if (!allowed) {
+    const ipAllowed = await checkJobFeedIpGate(request);
+    if (!ipAllowed) {
       captureJobFeedActionRejected({
         route: 'feedback',
         action: 'unknown',
-        reason: 'rate_limited',
+        reason: 'rate_limited_ip',
         status: 429,
       });
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference does not yet understand all of the newly added tables here.
-    const typedSupabase = supabase as any;
-    const { data: { user }, error: authError } = await typedSupabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       captureJobFeedActionRejected({
         route: 'feedback',
         action: 'unknown',
@@ -52,23 +52,31 @@ export async function POST(request: NextRequest) {
     }
     userId = user.id;
 
-    const { data: profile, error: profileError } = await typedSupabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
-    subscriptionTier = profile?.subscription_tier ?? null;
-
-    if (profileError || !profile || !canAccessJobFeed(profile.subscription_tier)) {
+    const { allowed } = await checkRateLimit(`job-feed-feedback:${user.id}`, RATE_LIMITS['job-feed-feedback']);
+    if (!allowed) {
       captureJobFeedActionRejected({
         userId,
         route: 'feedback',
         action: 'unknown',
-        reason: profileError ? 'profile_load_failed' : 'plan_not_allowed',
-        status: profileError ? 500 : 403,
+        reason: 'rate_limited',
+        status: 429,
+      });
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
+    const profile = await getProfile(user.id);
+    subscriptionTier = profile?.subscription_tier ?? null;
+
+    if (!profile) {
+      captureJobFeedActionRejected({
+        userId,
+        route: 'feedback',
+        action: 'unknown',
+        reason: 'profile_load_failed',
+        status: 500,
         subscriptionTier,
       });
-      return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
+      return NextResponse.json({ error: 'Failed to record job feed feedback.' }, { status: 500 });
     }
 
     const body = await request.json().catch(() => ({} as Record<string, unknown>));
@@ -102,6 +110,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unsupported feedback action.' }, { status: 400 });
     }
 
+    const allowedOnPlan = VIEW_ACTIONS.has(action)
+      ? canViewJobFeed(profile.subscription_tier)
+      : canAccessJobFeed(profile.subscription_tier);
+    if (!allowedOnPlan) {
+      captureJobFeedActionRejected({
+        userId,
+        route: 'feedback',
+        action,
+        reason: 'plan_not_allowed',
+        status: 403,
+        subscriptionTier,
+      });
+      return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
+    }
+
     const authorizedItem = await authorizeJobFeedJobActionAdmin({
       userId: user.id,
       jobId,
@@ -126,7 +149,7 @@ export async function POST(request: NextRequest) {
     const feedback = await recordJobFeedFeedbackAdmin({
       userId: user.id,
       jobId,
-      action: action as 'opened' | 'saved' | 'dismissed' | 'rated_helpful' | 'rated_not_relevant',
+      action: action as 'opened' | 'saved' | 'unsaved' | 'dismissed' | 'rated_helpful' | 'rated_not_relevant',
       latestRunId: validatedRunId,
     });
 

@@ -6,13 +6,15 @@ import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
-const SITE_URL = 'https://www.karkoai.com';
+import { BRAND } from '@/lib/brand';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     title: 'Zero-Fabrication AI Applications',
     description:
-      "KarKo AI's anti-hallucination system verifies every CV claim against your source documents. No fabricated skills, metrics, or roles.",
+      "Useful Apply's anti-hallucination system verifies every CV claim against your source documents. No fabricated skills, metrics, or roles.",
     canonical: '/ai-job-application/zero-fabrication',
   });
 }
@@ -20,11 +22,11 @@ export async function generateMetadata(): Promise<Metadata> {
 const faqs = [
   {
     q: "Which AI job application tool doesn't fabricate experience?",
-    a: "Karko AI's anti-hallucination system prevents fabricated experience by extracting a verified list of skills and metrics from your uploaded CV before generation and enforcing these as hard constraints. No skill, metric, or achievement can appear in the output unless it exists in your source documents.",
+    a: "Useful Apply's anti-hallucination system prevents fabricated experience by extracting a verified list of skills and metrics from your uploaded CV before generation and enforcing these as hard constraints. No skill, metric, or achievement can appear in the output unless it exists in your source documents.",
   },
   {
     q: 'Can AI guarantee zero invented experience in job applications?',
-    a: 'No AI can provide an absolute guarantee, because generative models produce statistical outputs. What Karko AI does is enforce structural constraints (a verified skills list and verified metrics list extracted from your CV) that make fabrication structurally difficult rather than just discouraged by prompt instructions.',
+    a: 'No AI can provide an absolute guarantee, because generative models produce statistical outputs. What Useful Apply does is enforce structural constraints (a verified skills list and verified metrics list extracted from your CV) that make fabrication structurally difficult rather than just discouraged by prompt instructions.',
   },
   {
     q: 'What should I review in an AI-generated application?',
@@ -32,7 +34,7 @@ const faqs = [
   },
   {
     q: 'How does the verified metrics system work?',
-    a: "During Phase 1 (before any documents are generated), Karko AI extracts all numbers from your uploaded CV: revenue figures, team sizes, percentages, timeframes. These become a binding list. In Phase 2, the CV agent can only use numbers from this list. If a number does not exist in your source documents, it does not appear in the output, not even as an approximation.",
+    a: "During Phase 1 (before any documents are generated), Useful Apply extracts all numbers from your uploaded CV: revenue figures, team sizes, percentages, timeframes. These become a binding list. In Phase 2, the CV agent can only use numbers from this list. If a number does not exist in your source documents, it does not appear in the output, not even as an approximation.",
   },
   {
     q: 'Is fabricated AI experience detectable by recruiters?',
@@ -79,11 +81,11 @@ export default function ZeroFabricationPage() {
     '@type': 'Article',
     headline: 'Zero-Fabrication AI Job Application: No Invented Experience',
     description:
-      "Karko AI's anti-hallucination system ensures every CV claim is verified against your source documents. No fabricated skills, metrics, or roles, ever.",
-    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+      "Useful Apply's anti-hallucination system ensures every CV claim is verified against your source documents. No fabricated skills, metrics, or roles, ever.",
+    author: { '@type': 'Organization', name: 'Useful Apply', url: SITE_URL },
     publisher: {
       '@type': 'Organization',
-      name: 'KarKo AI',
+      name: 'Useful Apply',
       url: SITE_URL,
       logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon-512x512.png` },
     },
@@ -144,7 +146,7 @@ export default function ZeroFabricationPage() {
             <ScrollReveal delay={300}>
               <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
               Zero-fabrication means the AI can only generate claims that exist in your uploaded CV.
-              Karko AI enforces this structurally: before generating any document, the system
+              Useful Apply enforces this structurally: before generating any document, the system
               extracts a verified list of skills and metrics from your source files, and every output
               is checked against that list. If a skill or achievement isn&apos;t in your CV, it
               doesn&apos;t appear in the application.
@@ -209,13 +211,13 @@ export default function ZeroFabricationPage() {
           </div>
         </section>
 
-        {/* H2: How Karko AI's Anti-Hallucination System Works */}
+        {/* H2: How Useful Apply's Anti-Hallucination System Works */}
         <section className="py-16 px-4 sm:px-6 lg:px-8 bg-cream-50">
           <div className="max-w-5xl mx-auto">
             <ScrollReveal>
               <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">The System</p>
               <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">
-                How Karko AI&apos;s Anti-Hallucination System Works
+                How Useful Apply&apos;s Anti-Hallucination System Works
               </h2>
             </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-4">

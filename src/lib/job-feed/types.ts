@@ -5,6 +5,7 @@ import type {
   JobFeedCanonicalJob,
   JobFeedRun,
   JobFeedSettings,
+  Json,
 } from '@/lib/supabase/types';
 
 export type JobFeedOverviewState =
@@ -20,9 +21,8 @@ export type JobFeedOverviewState =
   | 'error';
 
 export type JobFeedCanonicalWorkMode = JobFeedCanonicalJob['work_mode'];
-export type JobFeedEmploymentType = NonNullable<JobFeedCanonicalJob['employment_type']>;
 export type JobFeedFitLabel = 'strong' | 'good';
-export type JobFeedFeedbackAction = 'opened' | 'saved' | 'dismissed' | 'apply_started' | 'applied' | 'rated_helpful' | 'rated_not_relevant';
+export type JobFeedFeedbackAction = 'opened' | 'saved' | 'unsaved' | 'dismissed' | 'apply_started' | 'applied' | 'rated_helpful' | 'rated_not_relevant';
 export type JobFeedMatchRating = 'helpful' | 'not_relevant';
 export type JobFeedPipelineStage = 'shortlisted' | 'ranked';
 export type JobFeedRankingSource = 'deterministic' | 'llm';
@@ -48,9 +48,9 @@ export interface JobFeedOverviewResponse {
   // Most recent run of any kind — used for display state (generating,
   // error banner, preview items).
   latestRun: JobFeedRun | null;
-  // Most recent *manual* completed run — the only source the "Run for
-  // today" 24h cooldown should consider. Scheduled/system runs must not
-  // lock the button.
+  // Most recent completed run the user started, which is the only source the
+  // "Run for today" 24h cooldown considers. Preview mode's fake run sits
+  // outside that list so it never locks the button.
   latestManualRun: JobFeedRun | null;
   feedRun: JobFeedRun | null;
   latestRunDiagnostics: JobFeedRunDiagnostics | null;
@@ -58,8 +58,15 @@ export interface JobFeedOverviewResponse {
   // Subsequent pages come from /api/job-feed/inbox.
   jobs: JobFeedFeedItem[];
   // Total visible jobs across the whole 7-day inbox (blocked jobs already
-  // stripped). Drives Load More's remaining count.
+  // stripped). Drives Load More's remaining count. Free users see this
+  // capped at visibleCount; jobsMatchedCount is the uncapped figure.
   jobsTotalCount: number;
+  /**
+   * How many roles today's run ranked, before the free-tier list cap.
+   * The item list and jobsTotalCount stay capped. J7's "N more roles
+   * matched today" line reads this.
+   */
+  jobsMatchedCount: number;
   jobsHasMore: boolean;
   // How many jobs today's run delivered, unfiltered by user actions. This
   // is the agent's "how fresh is my feed" signal and stays fixed for the
@@ -95,6 +102,43 @@ export interface JobFeedRunDiagnostics {
   duplicateCount: number;
   failedFetchCount: number;
   rankedItemsMaterialized: boolean | null;
+}
+
+export type JobFeedQueryProgressStatus = 'pending' | 'running' | 'done' | 'failed';
+
+/** Written onto job_feed_runs.metadata.progress after each SerpAPI call. */
+export interface JobFeedQueryProgress {
+  query: string;
+  status: JobFeedQueryProgressStatus;
+  found: number;
+}
+
+const QUERY_PROGRESS_STATUSES: readonly JobFeedQueryProgressStatus[] = [
+  'pending',
+  'running',
+  'done',
+  'failed',
+];
+
+export function readJobFeedQueryProgress(metadata: Json | null | undefined): JobFeedQueryProgress[] {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return [];
+  const raw = (metadata as Record<string, unknown>).progress;
+  if (!Array.isArray(raw)) return [];
+  const items: JobFeedQueryProgress[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+    const record = entry as Record<string, unknown>;
+    if (typeof record.query !== 'string' || !record.query.trim()) continue;
+    const status = QUERY_PROGRESS_STATUSES.includes(record.status as JobFeedQueryProgressStatus)
+      ? (record.status as JobFeedQueryProgressStatus)
+      : null;
+    if (!status) continue;
+    const found = typeof record.found === 'number' && Number.isFinite(record.found)
+      ? Math.max(0, Math.floor(record.found))
+      : 0;
+    items.push({ query: record.query, status, found });
+  }
+  return items;
 }
 
 export interface JobFeedSettingsInput {
@@ -208,6 +252,12 @@ export interface JobFeedFeedItem {
   fitLabel: JobFeedFitLabel | null;
   pipelineStage: JobFeedPipelineStage;
   rankingSource: JobFeedRankingSource | null;
+  /**
+   * The ranker's written reason for this job, as stored on the ranked item.
+   * Null for shortlisted-only rows and for saved jobs read outside a run.
+   * Drives "Why it's a match" in the job detail view.
+   */
+  matchReason: string | null;
   applyOptions: JobFeedApplyOption[];
   feedback: JobFeedItemFeedbackState;
 }
@@ -239,6 +289,7 @@ export interface JobFeedIngestionResult {
   duplicateCount: number;
   failedFetches: JobFeedIngestionFailure[];
   previewJobs: JobFeedJobPreview[];
+  progress: JobFeedQueryProgress[];
 }
 
 export type JobFeedPrefilterRejectReason =
@@ -296,6 +347,7 @@ export interface JobFeedRankedPreviewItem {
   fitLabel: JobFeedFitLabel;
   rankingSource: JobFeedRankingSource;
   reason: string | null;
+  companyDisplay?: string | null;
 }
 
 export interface JobFeedRankedItemRecord {
@@ -305,6 +357,7 @@ export interface JobFeedRankedItemRecord {
   rankingSource: JobFeedRankingSource;
   reason: string | null;
   deterministicScore: number;
+  companyDisplay?: string | null;
 }
 
 export interface JobFeedRankingExecutionResult {

@@ -1,0 +1,65 @@
+# Flow 2: the Application Kit panels. Locked 19 August 2026.
+
+Approved by Wasim on 19 Aug 2026 after one feedback round. Inherits the shell from `flow-1-first-run.md`. Read `../design-philosophy.md` first.
+
+## Canvas and visuals
+
+- **Locked canvas (5 artboards):** https://claude.ai/code/artifact/a8fda81e-f1bb-4a4b-91b2-a2921a501841
+- **Rendered artboards (PNG, 1440x900):** `flow-2-artboards/png/` (K1 ATS view, K2 Templates, K3 Cover letter, K4 Emails, K5 Screening answers).
+- Sources: `flow-2-artboards/gen3.mjs` (imports the shared tokens and spine partials from `flow-1-artboards/`). `node gen3.mjs` regenerates the `.dc.html` files; `node ../shoot.mjs <dir> <out>` renders PNGs.
+
+## Shell decisions made here (apply to every flow, flow 1 updated to match)
+
+- **Gold is the only button fill.** It marks the single primary action on a surface (one chip in the chat, one button on a card). "New application" and "Download all" are quiet outlined buttons. Navy is for non-button emphasis only (selected stepper dot, user avatar).
+- **Chat header:** company and role in serif, status beneath ("Kit ready", "Started just now"). No history icon (the sidebar is the history) and no credit balance (it lives in the settings menu and appears inline on any chip that costs credits).
+
+## The kit, surface by surface
+
+All of it lives in the canvas column. Tab row: **CV / Cover letter / Emails**, plus **Answers** once the first screening answer exists. One outlined **Download all** at the far right of the tab row on every kit tab.
+
+### K1 · CV and the ATS view
+- Row under the tabs: **Original / Tailored** toggle, "Tailored for Pixellot.", and the **ATS 78% · see every change** chip in sage tint (`sage-50` bg, `sage-700` text, both states; a thin sage ring when active).
+- Toolbar: Templates, Edit, Copy, Download PDF.
+- Clicking the ATS chip opens **a view of its own in the canvas** (the CV is replaced, never squeezed): "← Back to CV" outlined button, title "What changed in your CV", the ATS chip at the right. Content: a score card (bar, one-line strategy, "Four changes, nothing added"), then one card per change with **Before** (struck through, muted) and **After** (sage highlight) side by side and a one-line reason, then a sage "Nothing added" line naming the gaps that stayed gaps. Back returns to the CV page.
+
+### K2 · Templates
+- Templates opens a **strip under the toolbar, all six visible**: thumbnail, name, and a short "best for" tag (Recommended, Tech & startups, DACH & NL...). Thumbnails draw instantly as placeholders and the real preview fills in behind; no blank cards. Selected = gold ring. Picking one re-renders the CV below.
+
+### K3 · Cover letter
+- Toolbar: Edit (inline), Copy, one **Download** menu (PDF / DOCX). Right side: "Updated just now · 214 words".
+- **No Regenerate button. The chat is the regenerate button.** The user asks for the change in plain language; the assistant states the cost before doing it ("Rewriting it costs 0.5 credits (you have 2.5)", one gold chip "Rewrite it · 0.5 credits"), then a named stage and a one-line confirmation. The same pattern covers the emails and the CV.
+
+### K4 · Emails
+- One tab, both emails **stacked, full width of the canvas** (cards are fluid, `box-sizing: border-box`). Each card: title, **Copy email**, SUBJECT, BODY. The follow-up carries the **Send after 5 to 7 business days** chip. The old sending-tips block is one muted line above: "Attach the CV and cover letter as PDFs when you send."
+
+### K5 · Screening answers (Wasim chose variant 3 of 3)
+- Paste a question in the chat. The chat shows one stage ("Answering from your CV · STAR shape, 38% adoption result") and a one-liner ("Your answer's on the right. Copy it from there, or tell me to make it shorter or more formal.").
+- The answer **streams into the canvas as a document** ("Screening answers · Pixellot", numbered Q&A, Copy per answer) and the **Answers tab opens itself** with a count. Toolbar: Copy all, Download. Long Q&A never clogs the conversation. Back to CV via the tab row.
+- This is the one place the canvas is allowed to switch tab on its own (rule 4), because the user just asked for exactly that.
+
+## Notes for the spec and build
+
+1. **Download all** bundles the tailored CV (PDF), cover letter (PDF + DOCX), both emails (TXT) and, when present, the answers (PDF). Per-document downloads stay in each tab's toolbar.
+2. **Edit** is the existing inline canvas editing (EditableCVCanvas) and the cover letter's inline editor. Unchanged behaviour, same place.
+3. **Cost before commitment in chat.** Any request that triggers a paid regeneration gets a cost chip first; free edits (inline typing, template switch, copy, download) never do.
+4. **ATS view data** comes from the existing ATS insights payload (score, strategy, improvements). Before/after pairs need the optimizer to return the original snippet alongside each change; if a change has no snippet, show the reason line only.
+5. **Templates strip** uses the six existing templates (`.claude/rules/cv-templates.md`); thumbnails are static SVG placeholders per template, previews render lazily behind them.
+6. **Answers document** persists per application and is included in the tracker row's kit.
+
+## Out of scope for flow 2
+
+Feed results and Edit feed (flow 3). Tracker table (flow 4). Settings pages (flow 5).
+
+## Build notes (batch 2, 19 August 2026)
+
+Built as designed, with these deliberate differences:
+
+1. **K4 keeps an Edit control.** The emails' inline editing already existed and losing it would be a regression, so the toolbar row carries an outlined Edit on the left with the muted "Attach the CV and cover letter as PDFs when you send." line beside it.
+2. **K5 has no subtitle under the document heading.** The copy rules say no helper text under headings; the footer line "Paste the next question in the chat and it lands here." stays because it tells the user how to add more.
+3. **ATS view shows reason lines only today.** The writer agent returns `analysis.key_changes` as one line per change and an empty `changes` array, so there is no original snippet to strike through. The view renders Before/After side by side only when a change carries both; the score card also lists `missing_keywords_added` as chips so nothing from the old modal is lost. Gaps that stayed gaps come from `missingSkills`.
+4. **Chat rewrites call the existing `/api/regenerate` route as is.** The route takes no instruction, so "shorter, two paragraphs" is not passed to the writer. The chat says so before the click ("It's a fresh draft, not an edit of this one") and the done line does not promise edits. A CV rewrite has no regenerate type, so a CV request gets a plain reply pointing at Edit or a fresh kit. Passing the instruction through the writer is an open product decision (it needs a prompt change in `src/lib/agents/**`).
+5. **Download all saves the files one by one** (the browser asks once to allow several downloads). No zip library is declared in the project.
+6. **Screening questions are detected by recruiter openers** once a kit exists ("Tell us about", "Why do you want", "Are you authorized", "Do you have", and so on), never by a bare question mark, so questions about the kit itself stay in the chat. The "Answer screening questions" chip still sets screening mode explicitly, so a missed detection costs one click. Screening turns are capped at 5 per application (the old chip allowed 2 entries); the count rides in `generated_cv._screeningUsageCount`.
+7. **Answers persist inside `generated_cv._screeningAnswers`** on the existing sessions row, the same embed pattern as `_optimizedCVData`. No schema change.
+8. **Download all runs from an always-mounted host** (`KitExportHost` in the shell), so the chat's "Download the kit" chip works from any tab and with the canvas collapsed. A kit without structured tailored CV data skips the CV and says so in the toast instead of shipping the original under a tailored name.
+

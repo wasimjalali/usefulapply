@@ -17,17 +17,17 @@ export interface ComparisonTool {
 
 export interface SummaryTableRow {
   feature: string;
-  karkoValue: string | boolean;
+  brandValue: string | boolean;
   competitorValue: string | boolean;
-  karkoWins?: boolean;
+  brandWins?: boolean;
 }
 
 export interface FeatureComparison {
   title: string;
   description: string;
-  karkoDetails: string;
+  brandDetails: string;
   competitorDetails: string;
-  winner: 'karko' | 'competitor' | 'tie';
+  winner: 'brand' | 'competitor' | 'tie';
   reasoning: string;
 }
 
@@ -54,7 +54,7 @@ export interface ComparisonData {
   competitorSlug: string;
 
   // Overview sections
-  karkoOverview: ComparisonTool;
+  brandOverview: ComparisonTool;
   competitorOverview: ComparisonTool;
 
   // Comparison content

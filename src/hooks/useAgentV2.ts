@@ -1,8 +1,8 @@
 /**
  * useAgentV2 Hook
- * Handles Karko AI unified agent workflow with streaming progress
+ * Handles Useful Apply unified agent workflow with streaming progress
  * 
- * Karko AI performs:
+ * Useful Apply performs:
  * 1. CV and Job Description Analysis
  * 2. Skill Matching and Gap Analysis
  * 3. Optimized CV Generation

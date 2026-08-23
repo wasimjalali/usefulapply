@@ -1,6 +1,6 @@
 /**
  * Agent Types and Interfaces
- * Karko AI Unified Agent Architecture
+ * Useful Apply Unified Agent Architecture
  */
 
 // Token usage tracking for API calls
@@ -26,7 +26,7 @@ export type AgentStatus =
 
 /**
  * MasterContext - The single source of truth for the entire workflow
- * Karko AI builds and consumes this context for document generation
+ * Useful Apply builds and consumes this context for document generation
  */
 export interface MasterContext {
   sessionId: string;
@@ -39,6 +39,9 @@ export interface MasterContext {
   // Language detection (auto-detected or user override)
   detectedLanguage?: string; // ISO 639-1 codes (e.g., 'en', 'de', 'fr', 'es')
   userLanguageOverride?: string; // ISO 639-1 codes
+
+  /** A rewrite instruction typed by the applicant in the chat composer. User-authored, already length-capped and flattened by the route. Never ad-authored. */
+  userInstruction?: string;
 
   // Applicant profile (extracted from CV by Context Agent)
   applicant?: {

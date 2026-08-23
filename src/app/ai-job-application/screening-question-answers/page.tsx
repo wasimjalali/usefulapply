@@ -6,7 +6,9 @@ import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
-const SITE_URL = 'https://www.karkoai.com';
+import { BRAND } from '@/lib/brand';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
@@ -19,16 +21,16 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const faqs = [
   {
-    q: 'What types of screening questions can Karko AI answer?',
-    a: 'Karko AI handles five types: yes/no and eligibility questions (work authorization, relocation), numeric and factual questions (years of experience, salary, start date), short-answer qualitative questions, behavioral questions using the STAR method, and situational or hypothetical questions. Each type gets a response length matched to what recruiters expect.',
+    q: 'What types of screening questions can Useful Apply answer?',
+    a: 'Useful Apply handles five types: yes/no and eligibility questions (work authorization, relocation), numeric and factual questions (years of experience, salary, start date), short-answer qualitative questions, behavioral questions using the STAR method, and situational or hypothetical questions. Each type gets a response length matched to what recruiters expect.',
   },
   {
     q: 'Will the AI make up experience I do not have?',
-    a: 'No. Karko AI only references skills, metrics, and experience that exist in your uploaded CV. If you do not have AWS experience, the answer will not mention AWS. For skills you lack, the AI briefly acknowledges transferable experience instead of fabricating claims.',
+    a: 'No. Useful Apply only references skills, metrics, and experience that exist in your uploaded CV. If you do not have AWS experience, the answer will not mention AWS. For skills you lack, the AI briefly acknowledges transferable experience instead of fabricating claims.',
   },
   {
     q: 'Do the answers fit within ATS character limits?',
-    a: 'Yes. ATS platforms like Workday and Greenhouse typically enforce 500 to 1000 character limits per answer field. Every answer Karko AI generates stays under 750 characters (approximately 150 words). Most answers are significantly shorter based on question type.',
+    a: 'Yes. ATS platforms like Workday and Greenhouse typically enforce 500 to 1000 character limits per answer field. Every answer Useful Apply generates stays under 750 characters (approximately 150 words). Most answers are significantly shorter based on question type.',
   },
   {
     q: 'How many questions can I answer per session?',
@@ -40,7 +42,7 @@ const faqs = [
   },
   {
     q: 'Does it work in languages other than English?',
-    a: 'Yes. Karko AI detects the language of your screening questions and responds in the same language. If your questions are in German, the answers will be in German. This works for all supported languages.',
+    a: 'Yes. Useful Apply detects the language of your screening questions and responds in the same language. If your questions are in German, the answers will be in German. This works for all supported languages.',
   },
 ];
 
@@ -84,10 +86,10 @@ export default function ScreeningQuestionAnswersPage() {
     headline: 'AI Screening Question Answers for Job Applications',
     description:
       'Get AI-generated answers to job application screening questions from Workday, Greenhouse, Lever, and all major ATS platforms.',
-    author: { '@type': 'Organization', name: 'KarKo AI', url: SITE_URL },
+    author: { '@type': 'Organization', name: 'Useful Apply', url: SITE_URL },
     publisher: {
       '@type': 'Organization',
-      name: 'KarKo AI',
+      name: 'Useful Apply',
       url: SITE_URL,
       logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon-512x512.png` },
     },
@@ -148,7 +150,7 @@ export default function ScreeningQuestionAnswersPage() {
             <ScrollReveal delay={300}>
               <p className="text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed">
                 Paste your screening questions from Workday, Greenhouse, Lever, or any ATS
-                portal. Karko AI generates concise, role-specific answers using your real
+                portal. Useful Apply generates concise, role-specific answers using your real
                 experience. Behavioral, situational, yes/no, and free-text questions are all
                 supported.
               </p>
@@ -159,7 +161,7 @@ export default function ScreeningQuestionAnswersPage() {
                   href="/dashboard"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md"
                 >
-                  Try Karko AI Free
+                  Try Useful Apply Free
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -206,7 +208,7 @@ export default function ScreeningQuestionAnswersPage() {
               </h2>
             </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-6">
-              After Karko AI generates your full application (CV, cover letter, emails), a
+              After Useful Apply generates your full application (CV, cover letter, emails), a
               &quot;Screening Questions&quot; button appears in the chat. Click it, paste your
               questions, and receive formatted answers ready to copy into any ATS portal.
             </p>
@@ -250,7 +252,7 @@ export default function ScreeningQuestionAnswersPage() {
               </h2>
             </ScrollReveal>
             <p className="text-charcoal leading-relaxed mb-8">
-              Karko AI classifies each question and matches the response length to what recruiters
+              Useful Apply classifies each question and matches the response length to what recruiters
               expect. Short questions get short answers. Behavioral questions get structured STAR
               responses. Nothing is over-explained or padded.
             </p>
@@ -349,7 +351,7 @@ export default function ScreeningQuestionAnswersPage() {
             <p className="text-charcoal leading-relaxed mb-4">
               ATS platforms enforce strict character limits on screening answer fields, typically
               500 to 1000 characters per field. Recruiters spend 6 to 10 seconds scanning each
-              answer. Every answer Karko AI generates is optimized for both constraints: short
+              answer. Every answer Useful Apply generates is optimized for both constraints: short
               enough to fit the field, focused enough to make an impression in seconds.
             </p>
             <p className="text-charcoal leading-relaxed">
@@ -407,7 +409,7 @@ export default function ScreeningQuestionAnswersPage() {
                 Stop Writing Screening Answers by Hand
               </h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
-                Try Karko AI free for your first 2 applications. Get a tailored CV, cover letter,
+                Try Useful Apply free for your first 2 applications. Get a tailored CV, cover letter,
                 emails, and screening question answers. No credit card required.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -415,7 +417,7 @@ export default function ScreeningQuestionAnswersPage() {
                   href="/dashboard"
                   className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg inline-flex items-center gap-2"
                 >
-                  Try Karko AI Free
+                  Try Useful Apply Free
                   <ArrowRight className="w-5 h-5" />
                 </Link>
                 <Link

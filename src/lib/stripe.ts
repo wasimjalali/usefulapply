@@ -4,6 +4,7 @@
  */
 
 import Stripe from 'stripe';
+import { BRAND } from '@/lib/brand';
 
 let _stripe: Stripe | null = null;
 
@@ -15,6 +16,8 @@ export function getStripe(): Stripe {
     _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2026-01-28.clover',
       typescript: true,
+      // Workers: the SDK's default Node https transport hangs under nodejs_compat.
+      httpClient: Stripe.createFetchHttpClient(),
     });
   }
   return _stripe;
@@ -22,7 +25,7 @@ export function getStripe(): Stripe {
 
 /** @deprecated Use getStripe() instead */
 export const stripe = typeof process !== 'undefined' && process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-01-28.clover', typescript: true })
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-01-28.clover', typescript: true, httpClient: Stripe.createFetchHttpClient() })
   : (null as unknown as Stripe);
 
 /**
@@ -68,12 +71,13 @@ export const PLANS = {
       '2 applications/month',
       'Full application workflow',
       'Fit analysis',
+      'Smart Job Feed: top 5 roles a day',
       'All CV templates',
       'Application tracker',
     ],
   },
   plus: {
-    name: 'Plus',
+    name: `${BRAND.name} Plus`,
     price: 19.99,
     priceId: STRIPE_PRICES.PLUS,
     credits: 50,
@@ -88,7 +92,7 @@ export const PLANS = {
     ],
   },
   max: {
-    name: 'Max',
+    name: `${BRAND.name} Max`,
     price: 79.99,
     priceId: STRIPE_PRICES.MAX,
     credits: 200,

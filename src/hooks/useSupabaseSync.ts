@@ -1,22 +1,24 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore, type ApplicationSession } from '@/store/useSessionStore';
-import { getSupabase } from '@/lib/supabase/client';
+import { updateDocumentStructuredDataAction } from '@/db/actions';
 import {
   getSessions,
+  getSession as getSupabaseSession,
   createSession as createSupabaseSession,
   updateSession as updateSupabaseSession,
-  deleteSession as deleteSupabaseSession,
-  getChatMessages,
   addChatMessage as addSupabaseChatMessage,
+  clearChatMessages as clearSupabaseChatMessages,
   getDocumentByType,
   saveDocument,
   getProfilePhotoUrl,
 } from '@/lib/supabase';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
+import { isSameJob } from '@/lib/utils/same-job';
+import { hydrateChatIfEmpty, mapSessionRowToStore, type StoredSessionRow } from '@/lib/open-session';
 
 // Type for Supabase application_sessions row
 interface SupabaseSessionRow {
@@ -66,6 +68,63 @@ interface SupabaseSessionRow {
  * CRITICAL: This hook now PULLS data FROM Supabase on mount to enable cross-browser sync.
  * Supabase is the source of truth — localStorage is only a cache for the current browser.
  */
+/**
+ * Structured CV data and screening answers ride inside the generated_cv JSON
+ * column. Only keys the session actually holds are written, so a session
+ * loaded without them (older rows, partial mappers) never wipes what is stored.
+ */
+function embedKitData(session: ApplicationSession): Record<string, unknown> | null {
+  const base: Record<string, unknown> | null = session.generatedCV
+    ? { ...session.generatedCV }
+    : session.optimizedCVData
+      ? {}
+      : null;
+  if (!base) return null;
+  if (session.optimizedCVData !== undefined) base._optimizedCVData = session.optimizedCVData;
+  if (session.screeningAnswers !== undefined) base._screeningAnswers = session.screeningAnswers;
+  base._screeningUsageCount = session.screeningUsageCount ?? 0;
+  return base;
+}
+
+/**
+ * The existing entry for this exact job, or null. Reusing it overwrites its CV
+ * and cover letter, and the row in D1 is the only copy, so both halves of this
+ * are deliberately narrow.
+ *
+ * The ad text is part of the match, not just the company and the title.
+ * Measured against the real database: of the six duplicate
+ * (user, company, title) groups, four hold two genuinely different ads, so
+ * company and title alone would have overwritten a different role's work four
+ * times out of six. With the ad in the key it matches only the real repeats.
+ *
+ * `drafted` is the other half. Anything further along the tracker is a
+ * document the user told us they sent, and replacing that destroys the record
+ * of what they actually applied with while the tracker still says "Applied".
+ * A repeat on a sent application gets its own entry instead, which is what the
+ * product did before. Measured: 104 of 115 rows are past `drafted`, so this is
+ * the common case, not a corner one.
+ *
+ * The status test is written the strict way round on purpose. A missing status
+ * is not treated as `drafted`, because defaulting an unknown into "safe to
+ * overwrite" is the wrong way for a destructive operation to fail. This is only
+ * a candidate filter: the caller re-reads the row before trusting it.
+ *
+ * A company, a title and an ad are all required, because an unparsed ad has
+ * none of them. A local draft is never a target: it has nothing stored to
+ * reuse.
+ */
+function findReusableSession(
+  sessions: ApplicationSession[],
+  candidate: ApplicationSession,
+): ApplicationSession | null {
+  return sessions.find((session) =>
+    !session.id.startsWith('session-')
+    && session.id !== candidate.id
+    && session.status === 'drafted'
+    && isSameJob(candidate, session),
+  ) ?? null;
+}
+
 export function useSupabaseSync() {
   const { user } = useAuth();
   const {
@@ -75,11 +134,14 @@ export function useSupabaseSync() {
     setProfilePhoto,
   } = useCVStore();
   const {
-    sessions,
     currentSession,
     setSessions,
   } = useSessionStore();
   
+  // True once the first sessions load has finished (or failed), so the
+  // dashboard can hold a neutral state instead of flashing the guided line
+  // at a signed-in user whose kits have not arrived yet.
+  const [sessionsHydrated, setSessionsHydrated] = useState(false);
   const lastSyncedSessionRef = useRef<string | null>(null);
   const isInitialLoadRef = useRef(true);
   const initialLoadCompleteRef = useRef(false);
@@ -92,7 +154,6 @@ export function useSupabaseSync() {
   // discards all but the first), spinning up disposable browser clients
   // whose navigator.locks AbortControllers fire when GC'd. See locks.ts:107
   // "signal is aborted without reason".
-  const supabaseRef = useRef(getSupabase());
   // Track synced chat message IDs to avoid duplicates
   const syncedMessageIdsRef = useRef<Set<string>>(new Set());
 
@@ -103,10 +164,10 @@ export function useSupabaseSync() {
       docsLoadedRef.current = false;
       initialLoadCompleteRef.current = false;
       isInitialLoadRef.current = true;
+      setSessionsHydrated(false);
     }
     prevSyncUserIdRef.current = user.id;
   }, [user]);
-  const supabase = supabaseRef.current;
 
   // CRITICAL: Load documents (primary CV, master CV, profile photo) from Supabase on mount
   useEffect(() => {
@@ -236,13 +297,10 @@ export function useSupabaseSync() {
       console.log('[SupabaseSync] Loading sessions from Supabase for user:', user.id);
       
       try {
-        const { data, error } = await supabase
-          .from('application_sessions')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false }) as { data: SupabaseSessionRow[] | null; error: any };
-        
-        if (error) {
+        let data: SupabaseSessionRow[];
+        try {
+          data = (await getSessions(user.id)) as unknown as SupabaseSessionRow[];
+        } catch (error) {
           console.error('[SupabaseSync] Error loading sessions:', error);
           // CRITICAL: Still mark load as complete so sync isn't permanently blocked
           initialLoadCompleteRef.current = true;
@@ -271,52 +329,11 @@ export function useSupabaseSync() {
             // with the fresh Supabase version below (after building supabaseSessions).
           }
           
-          // Convert Supabase format to Zustand store format
-          // Each session starts with empty chatMessages — they'll be loaded per-session
-          const supabaseSessions: ApplicationSession[] = data.map((row) => ({
-            id: row.id,
-            jobTitle: row.job_title || '',
-            company: row.company || '',
-            jobDescription: row.job_description || '',
-            createdAt: row.created_at,
-            updatedAt: row.updated_at,
-            matchScore: row.match_score ?? undefined,
-            matchingSkills: row.matching_skills || [],
-            missingSkills: row.missing_skills || [],
-            suggestions: row.suggestions || [],
-            requirements: row.requirements ?? null,
-            gaps: row.gaps ?? null,
-            generatedCV: row.generated_cv ?? null,
-            // Restore optimizedCVData from generated_cv JSONB (embedded during save)
-            optimizedCVData: row.generated_cv?._optimizedCVData ?? undefined,
-            coverLetter: row.cover_letter ?? null,
-            email: row.email ?? null,
-            followUpEmail: row.follow_up_email ?? null,
-            companyResearch: row.company_research ? {
-              ...row.company_research,
-              address: row.company_address || row.company_research?.address,
-              contactPerson: row.company_contact_person || row.company_research?.contactPerson,
-            } : null,
-            status: row.status ?? 'applied',
-            fitAssessment: row.fit_assessment ?? null,
-            generationStatus: row.generation_status ?? 'none',
-            generationError: row.generation_error ?? null,
-            generationStartedAt: row.generation_started_at ?? null,
-            generationCompletedAt: row.generation_completed_at ?? null,
-            generationFailedAt: row.generation_failed_at ?? null,
-            generationCancelledAt: row.generation_cancelled_at ?? null,
-            cvEdits: row.cv_edits || [],
-            optimizedPdfRef: row.optimized_pdf_path ? { 
-              id: row.id, 
-              fileName: 'optimized.pdf', 
-              size: 0, 
-              type: 'optimized' as const, 
-              createdAt: row.created_at,
-              url: row.optimized_pdf_path 
-            } : undefined,
-            screeningUsageCount: 0,
-            chatMessages: [],
-          }));
+          // Convert D1 rows to the store shape. Chat stays empty here; it
+          // loads when that application opens (see openStoredSession).
+          const supabaseSessions: ApplicationSession[] = data.map((row) =>
+            mapSessionRowToStore(row as unknown as StoredSessionRow),
+          );
           
           // Get current localStorage sessions — only keep truly local ones not yet in Supabase
           const { sessions: localSessions, currentSession: cachedCurrent } = useSessionStore.getState();
@@ -368,46 +385,15 @@ export function useSupabaseSync() {
             total: sessionMap.size,
           });
           
-          // Load chat messages for the 10 most recent Supabase sessions
-          // CRITICAL FIX: Each session gets its OWN messages — never mix them
-          const recentSessions = supabaseSessions.slice(0, 10);
-          const messagePromises = recentSessions.map(async (session) => {
-            try {
-              const messages = await getChatMessages(session.id);
-              if (messages && messages.length > 0) {
-                const mappedMessages = messages.map((msg: any) => ({
-                  id: msg.id,
-                  role: msg.role,
-                  content: msg.content,
-                  timestamp: msg.created_at,
-                  actions: msg.actions || [],
-                }));
-                // Update this specific session in the map
-                const existing = sessionMap.get(session.id);
-                if (existing) {
-                  sessionMap.set(session.id, { ...existing, chatMessages: mappedMessages });
-                }
-                console.log(`[SupabaseSync] Loaded ${messages.length} messages for session ${session.id.substring(0, 8)}...`);
-              }
-            } catch (err) {
-              console.error(`[SupabaseSync] Error loading messages for session ${session.id}:`, err);
-            }
-          });
-          
-          await Promise.all(messagePromises);
-          
-          // Update store with chat messages populated — each session has its own messages
-          setSessions(Array.from(sessionMap.values()));
-          
-          // Also refresh currentSession with chat messages if it's in the map
-          const currentAfterMessages = useSessionStore.getState().currentSession;
-          if (currentAfterMessages && sessionMap.has(currentAfterMessages.id)) {
-            const withMessages = sessionMap.get(currentAfterMessages.id)!;
-            if (withMessages.chatMessages.length > 0) {
-              useSessionStore.setState({ currentSession: withMessages });
-            }
+          // Chat for the open application only. The rest loads when that
+          // session is opened. Sweeping the ten newest left older kits empty.
+          const openSession = useSessionStore.getState().currentSession;
+          if (openSession && !openSession.id.startsWith('session-')) {
+            await hydrateChatIfEmpty(openSession.id).catch((err) => {
+              console.error('[SupabaseSync] Chat did not load for the open application:', err);
+            });
           }
-          
+
           // Mark initial load as complete — sync effect can now fire safely
           initialLoadCompleteRef.current = true;
           
@@ -417,7 +403,7 @@ export function useSupabaseSync() {
             lastSyncedSessionRef.current = finalCurrentSession.id + finalCurrentSession.updatedAt;
           }
           
-          console.log('[SupabaseSync] All chat messages loaded for recent sessions');
+          console.log('[SupabaseSync] Sessions loaded. Chat hydrates when an application opens.');
         } else {
           initialLoadCompleteRef.current = true;
           console.log('[SupabaseSync] No sessions found in Supabase for this user');
@@ -429,7 +415,9 @@ export function useSupabaseSync() {
       }
     };
 
-    loadSessionsFromSupabase();
+    void loadSessionsFromSupabase().finally(() => {
+      if (user) setSessionsHydrated(true);
+    });
   }, [user, setSessions]);
 
   // Sync current session to Supabase when it changes
@@ -466,19 +454,46 @@ export function useSupabaseSync() {
           isCreatingSessionRef.current.add(currentSession.id);
           
           try {
-            // Create in Supabase
-            const { session: newSession, error } = await createSupabaseSession(
-              user.id,
-              currentSession.jobDescription
+            // A repeat generation for the same job reuses its entry rather than
+            // writing a second one (Wasim, 20 Aug 2026). The new CV and cover
+            // letter replace the old pair, which is the overwrite half of that
+            // call, so the match has to be exact: see findReusableSession.
+            const reuseCandidate = findReusableSession(
+              useSessionStore.getState().sessions,
+              currentSession,
             );
-            
+            // The sessions array is a snapshot taken at page load and never
+            // refreshed, so it can say `drafted` for a row the user marked
+            // Applied in another tab an hour ago. Overwriting is destructive
+            // and unrecoverable, so the status is re-read live and anything
+            // other than a confirmed `drafted` falls through to a new entry.
+            let reuseTarget: ApplicationSession | null = null;
+            if (reuseCandidate) {
+              try {
+                const fresh = await getSupabaseSession(reuseCandidate.id, user.id);
+                if (fresh?.status === 'drafted') reuseTarget = reuseCandidate;
+              } catch (err) {
+                console.error('[SupabaseSync] Could not confirm the reuse target, writing a new application:', err);
+              }
+            }
+            const created = reuseTarget
+              ? { session: reuseTarget, error: null }
+              : await createSupabaseSession(user.id, currentSession.jobDescription);
+            const newSession = created.session;
+            const error = created.error;
+
             if (error) {
               console.error('[SupabaseSync] Error creating session:', error);
               return;
             }
             
             if (newSession) {
-              console.log('[SupabaseSync] Created session in Supabase:', newSession.id);
+              console.log(
+                reuseTarget
+                  ? '[SupabaseSync] Reusing existing session for the same job:'
+                  : '[SupabaseSync] Created session in Supabase:',
+                newSession.id,
+              );
               
               const oldSessionId = currentSession.id;
               
@@ -488,11 +503,14 @@ export function useSupabaseSync() {
                 id: newSession.id,
               };
               
-              // Replace the old local session with the new Supabase session in the store
+              // Replace the old local session with the new Supabase session in
+              // the store. On a reuse the array holds both the local draft and
+              // the entry being written over, so the draft is dropped rather
+              // than left behind under a now-duplicate id.
               const sessionStore = useSessionStore.getState();
-              const updatedSessions = sessionStore.sessions.map((s) => 
-                s.id === oldSessionId ? updatedSession : s
-              );
+              const updatedSessions = sessionStore.sessions
+                .filter((s) => !(reuseTarget && s.id === oldSessionId))
+                .map((s) => (s.id === oldSessionId || s.id === newSession.id ? updatedSession : s));
               sessionStore.setSessions(updatedSessions);
               
               // Update current session ID
@@ -504,11 +522,7 @@ export function useSupabaseSync() {
               
               // Update the new session with full data
               if (currentSession.jobTitle || currentSession.company || currentSession.generatedCV) {
-                const newGenCV = currentSession.generatedCV
-                  ? { ...currentSession.generatedCV, _optimizedCVData: currentSession.optimizedCVData ?? undefined }
-                  : currentSession.optimizedCVData
-                    ? { _optimizedCVData: currentSession.optimizedCVData }
-                    : null;
+                const newGenCV = embedKitData(currentSession);
                 // Clamp match_score to INTEGER 0-100 to satisfy DB CHECK constraint
                 const safeMatchScore = currentSession.matchScore != null
                   ? Math.round(Math.min(100, Math.max(0, currentSession.matchScore)))
@@ -536,6 +550,20 @@ export function useSupabaseSync() {
                 }
               }
               
+              // On a reuse the target already has the previous generation's
+              // conversation. Appending would leave a thread whose top half
+              // talks about a CV that no longer exists, and that thread is also
+              // what feeds regeneration context, so it is replaced, not added
+              // to. The screen already shows only the new draft's messages, so
+              // this is what makes a reload agree with it.
+              if (reuseTarget) {
+                try {
+                  await clearSupabaseChatMessages(newSession.id);
+                } catch (err) {
+                  console.error('[SupabaseSync] Error clearing chat for reused session:', err);
+                }
+              }
+
               // Sync existing chat messages to Supabase
               if (currentSession.chatMessages && currentSession.chatMessages.length > 0) {
                 console.log('[SupabaseSync] Syncing', currentSession.chatMessages.length, 'chat messages to new session');
@@ -563,11 +591,7 @@ export function useSupabaseSync() {
         } else {
           // Update existing session in Supabase
           // Embed optimizedCVData inside generated_cv JSONB to persist Changes tab + structured CV data
-          const generatedCVWithData = currentSession.generatedCV
-            ? { ...currentSession.generatedCV, _optimizedCVData: currentSession.optimizedCVData ?? undefined }
-            : currentSession.optimizedCVData
-              ? { _optimizedCVData: currentSession.optimizedCVData }
-              : null;
+          const generatedCVWithData = embedKitData(currentSession);
           // Clamp match_score to INTEGER 0-100 to satisfy DB CHECK constraint
           const safeMatchScore = currentSession.matchScore != null
             ? Math.round(Math.min(100, Math.max(0, currentSession.matchScore)))
@@ -588,12 +612,15 @@ export function useSupabaseSync() {
             follow_up_email: currentSession.followUpEmail,
             company_research: currentSession.companyResearch,
             cv_edits: currentSession.cvEdits,
+            // `status` is deliberately not here. The tracker owns that column
+            // through setTrackerStatus. This payload used to carry a copy from
+            // the page-load snapshot, so opening an application wrote the
+            // pre-change status back over what the tracker had just saved.
             // New fields for enhanced data persistence
             optimized_cv_text: (currentSession as any).optimizedCVText,
             email_subject: (currentSession as any).emailSubject,
             email_body: (currentSession as any).emailBody,
             selected_template: (currentSession as any).selectedTemplate,
-            status: (currentSession as any).status,
             cover_letter_language: (currentSession as any).coverLetterLanguage,
             company_address: currentSession.companyResearch?.address,
             company_contact_person: currentSession.companyResearch?.contactPerson,
@@ -713,16 +740,10 @@ export function useSupabaseSync() {
           _editedCVData: editedOriginalCVData,
         };
 
-        // Update in Supabase (cast to any to bypass generated types).
         // Do NOT bump updated_at: _editedCVData is a UI overlay, not a
         // content change. Bumping it falsely invalidates user_career_profiles
-        // and triggers an auto-regen loop in AISearchProfileCard.
-        await (supabase as any)
-          .from('documents')
-          .update({
-            structured_data: updatedStructuredData,
-          })
-          .eq('id', primaryDoc.id);
+        // and triggers an auto-regen loop on the client.
+        await updateDocumentStructuredDataAction(user.id, primaryDoc.id, updatedStructuredData);
 
         console.log('[SupabaseSync] Synced editedOriginalCVData to documents table');
       } catch (err) {
@@ -735,5 +756,5 @@ export function useSupabaseSync() {
     return () => clearTimeout(timeoutId);
   }, [user, editedOriginalCVData]);
 
-  return null;
+  return { sessionsHydrated };
 }

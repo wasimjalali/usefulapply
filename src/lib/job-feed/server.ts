@@ -1,4 +1,8 @@
-import { createAdminClient } from '@/lib/supabase/admin';
+import * as jobFeedRepo from '@/db/repos/jobFeed';
+import * as profilesRepo from '@/db/repos/profiles';
+import * as documentsRepo from '@/db/repos/documents';
+import * as sessionsRepo from '@/db/repos/sessions';
+import * as adminRepo from '@/db/repos/admin';
 import type {
   ApplicationSession as SupabaseApplicationSession,
   JobFeedApplicationGeneration,
@@ -11,7 +15,7 @@ import type {
   JobFeedSettings,
   Json,
 } from '@/lib/supabase/types';
-import { getLocalDateKey, isJobFeedConfigured } from '@/lib/job-feed/helpers';
+import { extractSalaryTextFromAd, getLocalDateKey, isJobFeedConfigured, isSafeExternalUrl } from '@/lib/job-feed/helpers';
 import { getJobFeedTierLimits, JOB_FEED_DEFAULT_SETTINGS, JOB_FEED_INBOX_RETENTION_DAYS } from '@/lib/job-feed/constants';
 import type {
   JobFeedFeedbackAction,
@@ -44,6 +48,7 @@ import {
 } from '@/lib/job-feed/search-strategy';
 import { generateCareerProfile } from '@/lib/job-feed/career-profile-synthesis';
 import type { StructuredCV } from '@/lib/types/cv-schema';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
 type JobFeedRunUpdate = Partial<Pick<JobFeedRun,
   | 'status'
@@ -79,34 +84,12 @@ export interface JobFeedApplicationGenerationIntentResult {
 }
 
 async function getUserSubscriptionTierAdmin(userId: string): Promise<string> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data } = await admin
-    .from('profiles')
-    .select('subscription_tier')
-    .eq('id', userId)
-    .single();
-  // Fail SAFE to the least-privileged tier. A transient profile-read miss must
-  // never silently grant premium economics (extra paid SerpAPI calls, a higher
-  // visible/apply ceiling) to a free user. Worst case on a failed read is one
-  // under-provisioned run, not an over-spend.
-  return data?.subscription_tier ?? 'free';
+  const profile = await profilesRepo.getProfile(userId);
+  return profile?.subscription_tier ?? 'free';
 }
 
 export async function getJobFeedSettingsAdmin(userId: string): Promise<JobFeedSettings | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_settings')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Failed to load job feed settings: ${error.message}`);
-  }
-
-  return (data ?? null) as JobFeedSettings | null;
+  return jobFeedRepo.getSettings(userId);
 }
 
 /**
@@ -149,25 +132,34 @@ function deriveFreeFeedSeedRoles(profile: CareerProfile | null): string[] {
  * row uses safe defaults; the run still resolves search terms from the career
  * profile and search strategy at run time.
  *
+ * Consent is not invented here. The caller must pass `consentAccepted: true`
+ * from an explicit request field before a row is created. A missing assertion
+ * throws JOB_FEED_CONSENT_REQUIRED rather than stamping a timestamp the user
+ * never gave.
+ *
  * Only called for free users. Premium users must configure settings manually
  * through the settings UI (requireJobFeedAccess-gated).
  */
 export async function getOrProvisionFreeJobFeedSettingsAdmin(
   userId: string,
   seedRoles: string[],
+  options: { consentAccepted: boolean },
 ): Promise<JobFeedSettings> {
   const existing = await getJobFeedSettingsAdmin(userId);
-  if (existing) return existing;
+  if (existing) {
+    return ensureFreeFeedConsent(userId, existing, options.consentAccepted);
+  }
+
+  if (!options.consentAccepted) {
+    throw new Error('JOB_FEED_CONSENT_REQUIRED');
+  }
 
   if (seedRoles.length === 0) {
     throw new Error('Cannot provision free-tier job feed settings without at least one seed role from the career profile.');
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_settings')
-    .insert({
+  try {
+    return await jobFeedRepo.upsertSettings(userId, {
       user_id: userId,
       enabled: true,
       consent_accepted_at: new Date().toISOString(),
@@ -178,79 +170,31 @@ export async function getOrProvisionFreeJobFeedSettingsAdmin(
       target_roles: seedRoles,
       preferred_locations: JOB_FEED_DEFAULT_SETTINGS.preferred_locations,
       remote_preference: JOB_FEED_DEFAULT_SETTINGS.remote_preference,
-      remote_preferences: JOB_FEED_DEFAULT_SETTINGS.remote_preferences,
+      remote_preferences: [...JOB_FEED_DEFAULT_SETTINGS.remote_preferences],
       salary_floor: JOB_FEED_DEFAULT_SETTINGS.salary_floor,
-      languages: JOB_FEED_DEFAULT_SETTINGS.languages,
+      languages: [...JOB_FEED_DEFAULT_SETTINGS.languages],
       seniority_target: JOB_FEED_DEFAULT_SETTINGS.seniority_target,
-      seniority_targets: JOB_FEED_DEFAULT_SETTINGS.seniority_targets,
-      employment_types: JOB_FEED_DEFAULT_SETTINGS.employment_types,
+      seniority_targets: [...JOB_FEED_DEFAULT_SETTINGS.seniority_targets],
+      employment_types: [...JOB_FEED_DEFAULT_SETTINGS.employment_types],
       work_authorization_status: JOB_FEED_DEFAULT_SETTINGS.work_authorization_status,
       user_skills: [],
       excluded_terms: [],
-    })
-    .select('*')
-    .single();
-
-  if (error) {
-    // Concurrent first run: the other request won the user_id PK. Re-read and
-    // reuse its row instead of failing this run with a 500.
+    } as never);
+  } catch (error) {
     const raced = await getJobFeedSettingsAdmin(userId);
-    if (raced) return raced;
-    throw new Error(`Failed to provision free-tier job feed settings: ${error.message}`);
+    if (raced) {
+      return ensureFreeFeedConsent(userId, raced, options.consentAccepted);
+    }
+    throw new Error(`Failed to provision free-tier job feed settings: ${error instanceof Error ? error.message : 'unknown error'}`);
   }
-
-  return data as JobFeedSettings;
 }
 
 export async function getLatestJobFeedRunAdmin(userId: string): Promise<JobFeedRun | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_runs')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Failed to load latest job feed run: ${error.message}`);
-  }
-
-  return (data ?? null) as JobFeedRun | null;
-}
-
-export async function getJobFeedRunAdmin(userId: string, runId: string): Promise<JobFeedRun | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_runs')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('id', runId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Failed to load job feed run: ${error.message}`);
-  }
-
-  return (data ?? null) as JobFeedRun | null;
+  return jobFeedRepo.getLatestRun(userId);
 }
 
 export async function getJobFeedCanonicalJobAdmin(jobId: string): Promise<JobFeedCanonicalJob | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_canonical_jobs')
-    .select('*')
-    .eq('id', jobId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Failed to load job feed item: ${error.message}`);
-  }
-
-  return (data ?? null) as JobFeedCanonicalJob | null;
+  return adminRepo.getCanonicalJob(jobId);
 }
 
 export async function authorizeJobFeedJobActionAdmin(params: {
@@ -259,77 +203,27 @@ export async function authorizeJobFeedJobActionAdmin(params: {
   runId?: string | null;
 }): Promise<{ job: JobFeedCanonicalJob; rankedItem: SupabaseJobFeedRankedItem } | null> {
   const { userId, jobId, runId } = params;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-
-  const loadRankedItem = async (preferredRunId?: string | null) => {
-    let query = admin
-      .from('job_feed_ranked_items')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('canonical_job_id', jobId)
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    if (preferredRunId) {
-      query = query.eq('run_id', preferredRunId);
-    }
-
-    const { data, error } = await query.maybeSingle();
-    if (error) {
-      throw new Error(`Failed to authorize job feed item: ${error.message}`);
-    }
-    return (data ?? null) as SupabaseJobFeedRankedItem | null;
-  };
-
-  const rankedItem = await loadRankedItem(runId) ?? await loadRankedItem(null);
+  const rankedItem = await jobFeedRepo.getRankedItem(userId, jobId, runId)
+    ?? await jobFeedRepo.getRankedItem(userId, jobId);
   if (!rankedItem) {
     return null;
   }
-
   const job = await getJobFeedCanonicalJobAdmin(jobId);
   if (!job) {
     return null;
   }
-
   return { job, rankedItem };
 }
 
 export async function getJobFeedFeedbackAdmin(userId: string, jobId: string): Promise<JobFeedFeedback | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_feedback')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('canonical_job_id', jobId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Failed to load job feed feedback: ${error.message}`);
-  }
-
-  return (data ?? null) as JobFeedFeedback | null;
+  return jobFeedRepo.getFeedback(userId, jobId);
 }
 
 export async function getJobFeedApplicationSessionAdmin(params: {
   userId: string;
   sessionId: string;
 }): Promise<SupabaseApplicationSession | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('application_sessions')
-    .select('*')
-    .eq('user_id', params.userId)
-    .eq('id', params.sessionId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Failed to load application session: ${error.message}`);
-  }
-
-  return (data ?? null) as SupabaseApplicationSession | null;
+  return sessionsRepo.getSession(params.userId, params.sessionId) as Promise<SupabaseApplicationSession | null>;
 }
 
 export async function createJobFeedApplicationSessionAdmin(params: {
@@ -337,31 +231,20 @@ export async function createJobFeedApplicationSessionAdmin(params: {
   job: JobFeedCanonicalJob;
 }): Promise<SupabaseApplicationSession> {
   const { userId, job } = params;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Query inference is still catching up to some application tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('application_sessions')
-    .insert({
-      user_id: userId,
-      job_title: job.title,
-      company: job.company,
-      job_description: job.description ?? buildFallbackJobDescription(job),
-      job_url: job.apply_url ?? job.source_url,
-      matching_skills: [],
-      missing_skills: [],
-      suggestions: [],
-      cv_edits: [],
-      generation_status: 'pending',
-      generation_completed: false,
-    })
-    .select('*')
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to create application session from feed item: ${error.message}`);
+  const { session, error } = await sessionsRepo.createSession(userId, job.description ?? buildFallbackJobDescription(job), {
+    job_title: job.title,
+    company: job.company,
+    job_url: job.apply_url ?? job.source_url,
+  });
+  if (error || !session) {
+    throw new Error(`Failed to create application session from feed item: ${error?.message ?? 'unknown error'}`);
   }
-
-  return data as SupabaseApplicationSession;
+  await sessionsRepo.updateSession(userId, session.id, {
+    generation_status: 'pending',
+    generation_completed: false,
+  });
+  const updated = await sessionsRepo.getSession(userId, session.id);
+  return (updated ?? session) as SupabaseApplicationSession;
 }
 
 export async function createOrReuseJobFeedApplicationGenerationAdmin(params: {
@@ -372,59 +255,35 @@ export async function createOrReuseJobFeedApplicationGenerationAdmin(params: {
 }): Promise<JobFeedApplicationGenerationIntentResult> {
   const { userId, jobId, rankedItem, applicationSessionId } = params;
   const now = new Date().toISOString();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-
-  const { data: existingRow, error: loadError } = await admin
-    .from('job_feed_application_generations')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('canonical_job_id', jobId)
-    .eq('application_session_id', applicationSessionId)
-    .maybeSingle();
-
-  if (loadError) {
-    throw new Error(`Failed to load job feed application generation: ${loadError.message}`);
-  }
-
-  const existing = (existingRow ?? null) as JobFeedApplicationGeneration | null;
+  const existing = await jobFeedRepo.getGenerationBySessionJob(userId, jobId, applicationSessionId);
   if (existing) {
     if (existing.status === 'failed' || existing.status === 'cancelled' || existing.status === 'expired') {
       const nextAttempt = existing.attempt + 1;
-      const { data: retriedRow, error: retryError } = await admin
-        .from('job_feed_application_generations')
-        .update({
-          ranked_item_id: rankedItem.id,
-          run_id: rankedItem.run_id,
-          status: 'intent_created',
-          attempt: nextAttempt,
-          lease_owner: null,
-          lease_expires_at: null,
-          last_heartbeat_at: null,
-          error_code: null,
-          error_message: null,
-          metadata: mergeMetadata(existing.metadata, {
-            retry_requested_at: now,
-            retry_previous_status: existing.status,
-          }),
-          intent_created_at: now,
-          queued_at: null,
-          started_at: null,
-          completed_at: null,
-          failed_at: null,
-          cancelled_at: null,
-          expired_at: null,
-          updated_at: now,
-        })
-        .eq('id', existing.id)
-        .select('*')
-        .single();
-
-      if (retryError) {
-        throw new Error(`Failed to retry job feed application generation: ${retryError.message}`);
+      const generation = await jobFeedRepo.updateGeneration(userId, existing.id, {
+        ranked_item_id: rankedItem.id,
+        run_id: rankedItem.run_id,
+        status: 'intent_created',
+        attempt: nextAttempt,
+        lease_owner: null,
+        lease_expires_at: null,
+        last_heartbeat_at: null,
+        error_code: null,
+        error_message: null,
+        metadata: mergeMetadata(existing.metadata, {
+          retry_requested_at: now,
+          retry_previous_status: existing.status,
+        }),
+        intent_created_at: now,
+        queued_at: null,
+        started_at: null,
+        completed_at: null,
+        failed_at: null,
+        cancelled_at: null,
+        expired_at: null,
+      });
+      if (!generation) {
+        throw new Error('Failed to retry job feed application generation');
       }
-
-      const generation = retriedRow as JobFeedApplicationGeneration;
       await insertJobFeedApplicationGenerationEvent({
         generation,
         fromStatus: existing.status,
@@ -462,29 +321,18 @@ export async function createOrReuseJobFeedApplicationGenerationAdmin(params: {
     return { generation: existing, created: false, retried: false };
   }
 
-  const { data, error } = await admin
-    .from('job_feed_application_generations')
-    .insert({
-      user_id: userId,
-      canonical_job_id: jobId,
-      ranked_item_id: rankedItem.id,
-      run_id: rankedItem.run_id,
-      application_session_id: applicationSessionId,
-      status: 'intent_created',
-      attempt: 1,
-      metadata: {
-        source: 'job_feed_apply',
-      },
-      intent_created_at: now,
-    })
-    .select('*')
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to create job feed application generation: ${error.message}`);
-  }
-
-  const generation = data as JobFeedApplicationGeneration;
+  const generation = await jobFeedRepo.insertGeneration(userId, {
+    canonical_job_id: jobId,
+    ranked_item_id: rankedItem.id,
+    run_id: rankedItem.run_id,
+    application_session_id: applicationSessionId,
+    status: 'intent_created',
+    attempt: 1,
+    metadata: {
+      source: 'job_feed_apply',
+    },
+    intent_created_at: now,
+  });
   await insertJobFeedApplicationGenerationEvent({
     generation,
     fromStatus: null,
@@ -556,8 +404,6 @@ export async function transitionJobFeedApplicationGenerationAdmin(params: {
     metadata = {},
   } = params;
   const now = new Date().toISOString();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added columns here.
-  const admin = createAdminClient() as any;
 
   const generation = await getJobFeedApplicationGenerationForTransition({
     userId,
@@ -616,19 +462,14 @@ export async function transitionJobFeedApplicationGenerationAdmin(params: {
     generationPatch.lease_expires_at = null;
   }
 
-  const { data, error } = await admin
-    .from('job_feed_application_generations')
-    .update(generationPatch)
-    .eq('id', generation.id)
-    .eq('user_id', userId)
-    .select('*')
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to transition job feed application generation: ${error.message}`);
+  const updatedGeneration = await jobFeedRepo.updateGeneration(
+    userId,
+    generation.id,
+    generationPatch as Partial<JobFeedApplicationGeneration>,
+  );
+  if (!updatedGeneration) {
+    throw new Error('Failed to transition job feed application generation');
   }
-
-  const updatedGeneration = data as JobFeedApplicationGeneration;
   if (statusChanged) {
     await insertJobFeedApplicationGenerationEvent({
       generation: updatedGeneration,
@@ -672,22 +513,7 @@ export async function expireStaleJobFeedApplicationGenerations(params?: {
   const now = params?.now ?? new Date();
   const checkedAt = now.toISOString();
   const limit = params?.limit ?? 100;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_application_generations')
-    .select('*')
-    .in('status', ['queued', 'running'])
-    .not('lease_expires_at', 'is', null)
-    .lt('lease_expires_at', checkedAt)
-    .order('lease_expires_at', { ascending: true })
-    .limit(limit);
-
-  if (error) {
-    throw new Error(`Failed to load stale job feed application generations: ${error.message}`);
-  }
-
-  const staleGenerations = (data ?? []) as JobFeedApplicationGeneration[];
+  const staleGenerations = await adminRepo.listStaleGenerations(checkedAt, limit);
   let expired = 0;
 
   for (const generation of staleGenerations) {
@@ -716,29 +542,13 @@ async function getJobFeedApplicationGenerationForTransition(params: {
   sessionId?: string | null;
 }): Promise<JobFeedApplicationGeneration | null> {
   const { userId, generationId = null, sessionId = null } = params;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  let query = admin
-    .from('job_feed_application_generations')
-    .select('*')
-    .eq('user_id', userId)
-    .order('updated_at', { ascending: false })
-    .limit(1);
-
   if (generationId) {
-    query = query.eq('id', generationId);
-  } else if (sessionId) {
-    query = query.eq('application_session_id', sessionId);
-  } else {
-    throw new Error('A generation ID or session ID is required.');
+    return jobFeedRepo.getGeneration(userId, generationId);
   }
-
-  const { data, error } = await query.maybeSingle();
-  if (error) {
-    throw new Error(`Failed to load job feed application generation: ${error.message}`);
+  if (sessionId) {
+    return jobFeedRepo.getLatestGenerationForSession(userId, sessionId);
   }
-
-  return (data ?? null) as JobFeedApplicationGeneration | null;
+  throw new Error('A generation ID or session ID is required.');
 }
 
 async function syncJobFeedGenerationReadModels(params: {
@@ -750,8 +560,6 @@ async function syncJobFeedGenerationReadModels(params: {
   const { userId, sessionId, generation, errorMessage = null } = params;
   const status = mapApplicationGenerationStatusToLegacyStatus(generation.status);
   const now = new Date().toISOString();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added columns here.
-  const admin = createAdminClient() as any;
   const sessionPatch: Record<string, Json | string | boolean | null> = {
     generation_status: status,
     generation_error: status === 'failed' || status === 'cancelled' ? generation.error_message ?? errorMessage : null,
@@ -774,32 +582,13 @@ async function syncJobFeedGenerationReadModels(params: {
     sessionPatch.generation_cancelled_at = generation.cancelled_at ?? now;
   }
 
-  const { data: updatedSession, error: sessionError } = await admin
-    .from('application_sessions')
-    .update(sessionPatch)
-    .eq('user_id', userId)
-    .eq('id', sessionId)
-    .select('id, job_title, company, generation_status')
-    .maybeSingle();
-
-  if (sessionError) {
-    throw new Error(`Failed to update application generation status: ${sessionError.message}`);
-  }
-
+  await sessionsRepo.updateSession(userId, sessionId, sessionPatch as Parameters<typeof sessionsRepo.updateSession>[2]);
+  const updatedSession = await sessionsRepo.getSession(userId, sessionId);
   if (!updatedSession) {
     throw new Error('Application session was not found for this account.');
   }
 
-  const { data: existingFeedback, error: feedbackLoadError } = await admin
-    .from('job_feed_feedback')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('application_session_id', sessionId)
-    .maybeSingle();
-
-  if (feedbackLoadError) {
-    throw new Error(`Failed to load job feed feedback for generation status: ${feedbackLoadError.message}`);
-  }
+  const existingFeedback = await jobFeedRepo.getFeedbackBySession(userId, sessionId);
 
   if (!existingFeedback) {
     return {
@@ -840,14 +629,10 @@ async function syncJobFeedGenerationReadModels(params: {
     feedbackPatch.generation_cancelled_at = generation.cancelled_at ?? now;
   }
 
-  const { error: feedbackError } = await admin
-    .from('job_feed_feedback')
-    .update(feedbackPatch)
-    .eq('id', typedFeedback.id);
-
-  if (feedbackError) {
-    throw new Error(`Failed to update job feed generation feedback: ${feedbackError.message}`);
-  }
+  await jobFeedRepo.upsertFeedback(userId, {
+    canonical_job_id: typedFeedback.canonical_job_id,
+    ...feedbackPatch,
+  });
 
   return {
     session: updatedSession as JobFeedGenerationStatusUpdateResult['session'],
@@ -877,25 +662,16 @@ async function insertJobFeedApplicationGenerationEvent(params: {
     errorMessage = null,
     metadata = {},
   } = params;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { error } = await admin
-    .from('job_feed_application_generation_events')
-    .insert({
-      generation_id: generation.id,
-      user_id: generation.user_id,
-      from_status: fromStatus,
-      to_status: toStatus,
-      attempt: generation.attempt,
-      transition_reason: transitionReason,
-      error_code: errorCode,
-      error_message: errorMessage,
-      metadata,
-    });
-
-  if (error) {
-    throw new Error(`Failed to record job feed application generation event: ${error.message}`);
-  }
+  await jobFeedRepo.insertGenerationEvent(generation.user_id, {
+    generation_id: generation.id,
+    from_status: fromStatus,
+    to_status: toStatus,
+    attempt: generation.attempt,
+    transition_reason: transitionReason,
+    error_code: errorCode,
+    error_message: errorMessage,
+    metadata,
+  });
 }
 
 function isJobFeedApplicationGenerationTransitionAllowed(
@@ -961,11 +737,23 @@ export async function recordJobFeedFeedbackAdmin(params: {
   const { userId, jobId, action, latestRunId = null, applicationSessionId = null } = params;
   const existing = await getJobFeedFeedbackAdmin(userId, jobId);
   if (existing && isJobFeedbackBlocked(existing)) {
-    if (existing.applied_at && action === 'apply_started' && existing.application_session_id) {
+    // Reopening a role is always allowed. Blocking it means re-reading the ad
+    // for a job whose kit already succeeded throws, and the detail view dies.
+    if (action === 'opened') {
       return existing;
     }
-
-    throw new Error('This job feed item has already reached a terminal state.');
+    // An apply that already has a session is a no-op, not a new terminal
+    // action. Keyed on the session rather than applied_at, because a run that
+    // reached 'succeeded' never stamps applied_at. A dismissed or not-relevant
+    // row is blocked for a different reason and still throws.
+    if (action === 'apply_started' && canReuseBlockedFeedbackSession(existing)) {
+      return existing;
+    }
+    // Clearing a bookmark only drops saved_at so retention can take the
+    // ranked row. It does not undo a terminal action.
+    if (action !== 'unsaved') {
+      throw new Error('This job feed item has already reached a terminal state.');
+    }
   }
 
   const now = new Date().toISOString();
@@ -987,8 +775,15 @@ export async function recordJobFeedFeedbackAdmin(params: {
       basePatch.saved_at = existing?.saved_at ?? now;
       basePatch.dismissed_at = null;
       break;
+    case 'unsaved':
+      if (!existing) {
+        throw new Error('Nothing to unsave.');
+      }
+      basePatch.saved_at = null;
+      break;
     case 'dismissed':
       basePatch.dismissed_at = existing?.dismissed_at ?? now;
+      basePatch.saved_at = null;
       break;
     case 'apply_started':
       basePatch.opened_at = existing?.opened_at ?? now;
@@ -1024,22 +819,11 @@ export async function recordJobFeedFeedbackAdmin(params: {
       throw new Error(`Unsupported job feed feedback action: ${String(action)}`);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-
   if (existing) {
-    const { data, error } = await admin
-      .from('job_feed_feedback')
-      .update(basePatch)
-      .eq('id', existing.id)
-      .select('*')
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to update job feed feedback: ${error.message}`);
-    }
-
-    return data as JobFeedFeedback;
+    return jobFeedRepo.upsertFeedback(userId, {
+      canonical_job_id: existing.canonical_job_id,
+      ...basePatch,
+    });
   }
 
   // Ratings imply the user saw the job, so we stamp opened_at to satisfy the
@@ -1065,17 +849,7 @@ export async function recordJobFeedFeedbackAdmin(params: {
     metadata: mergeMetadata(null, metadataPatch),
   };
 
-  const { data, error } = await admin
-    .from('job_feed_feedback')
-    .upsert(insertPayload, { onConflict: 'user_id,canonical_job_id' })
-    .select('*')
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to insert job feed feedback: ${error.message}`);
-  }
-
-  return data as JobFeedFeedback;
+  return jobFeedRepo.upsertFeedback(userId, insertPayload as Parameters<typeof jobFeedRepo.upsertFeedback>[1]);
 }
 
 export function toJobFeedFeedbackState(feedback: JobFeedFeedback | null): JobFeedItemFeedbackState {
@@ -1097,14 +871,20 @@ export function toJobFeedFeedbackState(feedback: JobFeedFeedback | null): JobFee
   };
 }
 
-export async function listLatestJobFeedItemsAdmin(params: {
+/**
+ * The completed run the feed should be read from, or null when there is none
+ * inside the retention window. Split out from listLatestJobFeedItemsAdmin so
+ * callers that only need the run (the overview) do not pay for building and
+ * then discarding the whole item list.
+ */
+export async function resolveJobFeedRunForFeedAdmin(params: {
   userId: string;
   latestRun?: JobFeedRun | null;
-}): Promise<LatestJobFeedItemsResult> {
+}): Promise<JobFeedRun | null> {
   const candidateRun = params.latestRun ?? await getLatestJobFeedRunAdmin(params.userId);
   // Apply the inbox retention window to the candidate too. Without this the
   // fast-path accepts a stale completed run, the inbox path returns empty,
-  // and the metadata fallback below resurrects ranked_preview_jobs from a run
+  // and the metadata fallback resurrects ranked_preview_jobs from a run
   // whose ranked_items were already deleted by cleanup at day 7.
   const cutoffMs = Date.now() - JOB_FEED_INBOX_RETENTION_DAYS * 24 * 60 * 60 * 1000;
   const candidateFresh = candidateRun?.status === 'completed'
@@ -1113,7 +893,15 @@ export async function listLatestJobFeedItemsAdmin(params: {
   const run = candidateFresh
     ? candidateRun
     : await getLatestCompletedJobFeedRunAdmin(params.userId);
-  if (!run || run.status !== 'completed') {
+  return run && run.status === 'completed' ? run : null;
+}
+
+export async function listLatestJobFeedItemsAdmin(params: {
+  userId: string;
+  latestRun?: JobFeedRun | null;
+}): Promise<LatestJobFeedItemsResult> {
+  const run = await resolveJobFeedRunForFeedAdmin(params);
+  if (!run) {
     return {
       run: null,
       items: [],
@@ -1196,31 +984,8 @@ async function loadDedupedInboxRows(params: {
   latestCompletedRun: JobFeedRun;
 }): Promise<{ rows: SupabaseJobFeedRankedItem[]; totalCount: number }> {
   const since = new Date(Date.now() - JOB_FEED_INBOX_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand joined ranked feed rows.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_ranked_items')
-    .select(`
-      *,
-      job_feed_runs!inner(id, user_id, status, completed_at, created_at)
-    `)
-    .eq('user_id', params.userId)
-    .eq('job_feed_runs.user_id', params.userId)
-    .eq('job_feed_runs.status', 'completed')
-    .gte('job_feed_runs.completed_at', since)
-    .order('created_at', { referencedTable: 'job_feed_runs', ascending: false })
-    .order('rank_position', { ascending: true });
-
-  if (error) {
-    if (isMissingRankedItemsRelationError(error)) {
-      return { rows: [], totalCount: 0 };
-    }
-
-    throw new Error(`Failed to load recent job feed inbox items: ${error.message}`);
-  }
-
-  const olderRows = ((data ?? []) as SupabaseJobFeedRankedItem[])
-    .filter((row) => row.run_id !== params.latestCompletedRun.id);
+  const data = await jobFeedRepo.listInboxRankedItems(params.userId, since);
+  const olderRows = data.filter((row) => row.run_id !== params.latestCompletedRun.id);
   const todayRows = await listJobFeedRankedItemsForRunAdmin(params.latestCompletedRun.id);
 
   const seenJobIds = new Set<string>();
@@ -1315,48 +1080,50 @@ export async function listJobFeedInboxPageAdmin(params: {
 export async function listSavedJobFeedItemsAdmin(params: {
   userId: string;
 }): Promise<JobFeedFeedItem[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand job_feed_feedback here.
-  const admin = createAdminClient() as any;
-
-  const { data: feedbackRows, error: feedbackError } = await admin
-    .from('job_feed_feedback')
-    .select('*')
-    .eq('user_id', params.userId)
-    .not('saved_at', 'is', null)
-    .order('saved_at', { ascending: false });
-
-  if (feedbackError) {
-    throw new Error(`Failed to load saved job feed items: ${feedbackError.message}`);
-  }
-
-  const typedRows = ((feedbackRows ?? []) as JobFeedFeedback[])
-    .filter((row) => !isJobFeedbackBlocked(row));
+  const feedbackRows = await jobFeedRepo.listSavedFeedback(params.userId);
+  // Saved is a bookmark list, not an inbox. Checking a fit or generating a kit
+  // does not un-bookmark a role, so the inbox's blocked set is too aggressive
+  // here: only an explicit dismiss or "not relevant" takes a role out.
+  const typedRows = feedbackRows.filter((row) => {
+    if (row.dismissed_at) return false;
+    const metadata = (row.metadata ?? null) as Record<string, unknown> | null;
+    return metadata?.match_rating !== 'not_relevant';
+  });
 
   if (typedRows.length === 0) {
     return [];
   }
 
   const jobIds = typedRows.map((row) => row.canonical_job_id);
-
-  const { data: jobRows, error: jobsError } = await admin
-    .from('job_feed_canonical_jobs')
-    .select('*')
-    .in('id', jobIds);
-
-  if (jobsError) {
-    throw new Error(`Failed to load saved canonical jobs: ${jobsError.message}`);
+  const [jobRows, rankedRows] = await Promise.all([
+    adminRepo.getCanonicalJobsByIds(jobIds),
+    jobFeedRepo.listRankedItemsByJobIds(params.userId, jobIds),
+  ]);
+  const jobsById = new Map(jobRows.map((row) => [row.id, row]));
+  // Newest run first from the query, so the first row wins for a job that has
+  // been ranked on more than one day.
+  const rankedByJobId = new Map<string, SupabaseJobFeedRankedItem>();
+  for (const row of rankedRows as SupabaseJobFeedRankedItem[]) {
+    if (!rankedByJobId.has(row.canonical_job_id)) rankedByJobId.set(row.canonical_job_id, row);
   }
-
-  const jobsById = new Map(
-    ((jobRows ?? []) as JobFeedCanonicalJob[]).map((row) => [row.id, row])
-  );
 
   // Preserve the saved_at DESC order from the feedback query.
   return typedRows
     .map((row) => {
       const job = jobsById.get(row.canonical_job_id);
       if (!job) return null;
-      return toFeedItem(job, row);
+      const ranked = rankedByJobId.get(row.canonical_job_id);
+      // Without the ranked row there is no badge and no reason to show, and a
+      // guess would be worse than the gap. toFeedItem leaves both null.
+      if (!ranked) return toFeedItem(job, row);
+      const preview = toRankedPreviewItem(ranked);
+      return toFeedItem(job, row, {
+        fitLabel: preview.fitLabel,
+        pipelineStage: 'ranked',
+        rankingSource: preview.rankingSource,
+        reason: preview.reason,
+        companyDisplay: preview.companyDisplay,
+      });
     })
     .filter((item): item is JobFeedFeedItem => item !== null);
 }
@@ -1400,72 +1167,58 @@ export function getJobFeedRunDiagnostics(run: JobFeedRun | null): JobFeedRunDiag
 }
 
 export async function getLatestCompletedJobFeedRunAdmin(userId: string): Promise<JobFeedRun | null> {
-  // Scope to the inbox retention window. After JOB_FEED_INBOX_RETENTION_DAYS,
-  // cleanup deletes the ranked_items so the inbox panel renders empty for that
-  // run anyway. Returning an older run here causes the dashboard badge to count
-  // unprocessed jobs via the run.metadata fallback (retained 30 days), while
-  // the panel shows nothing - badge and inbox disagree.
   const since = new Date(Date.now() - JOB_FEED_INBOX_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_runs')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('status', 'completed')
-    .gte('completed_at', since)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Failed to load latest completed job feed run: ${error.message}`);
-  }
-
-  return (data ?? null) as JobFeedRun | null;
+  const run = await jobFeedRepo.getLatestCompletedRun(userId);
+  if (!run?.completed_at || run.completed_at < since) return null;
+  return run;
 }
-
-// The 24h "Run for today" cooldown is driven only by runs the user kicked
-// off themselves. Scheduled/system runs must not lock the manual button.
-export const MANUAL_JOB_FEED_TRIGGER_SOURCES = [
-  'manual_user',
-  'manual_debug',
-  'manual_debug_force',
-] as const;
 
 export async function getLatestManualCompletedJobFeedRunAdmin(userId: string): Promise<JobFeedRun | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_runs')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('status', 'completed')
-    .in('trigger_source', MANUAL_JOB_FEED_TRIGGER_SOURCES as unknown as string[])
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Failed to load latest manual job feed run: ${error.message}`);
-  }
-
-  return (data ?? null) as JobFeedRun | null;
+  return jobFeedRepo.getLatestManualCompletedRun(userId);
 }
 
-export function isJobFeedRunStaleRunning(run: JobFeedRun | null, now: Date = new Date()): boolean {
-  if (!run || run.status !== 'running') return false;
-  return isStaleJobFeedRun(run, now);
+async function ensureFreeFeedConsent(
+  userId: string,
+  settings: JobFeedSettings,
+  consentAccepted: boolean,
+): Promise<JobFeedSettings> {
+  if (settings.consent_accepted_at && settings.enabled) {
+    return settings;
+  }
+  if (!consentAccepted) {
+    throw new Error('JOB_FEED_CONSENT_REQUIRED');
+  }
+  return jobFeedRepo.grantConsent(userId);
 }
 
 export async function runJobFeedFoundationWorkflow(params: {
   userId: string;
+  requestExecutionId?: string;
+  clientRequestId?: string | null;
   triggerSource?: string;
   now?: Date;
   force?: boolean;
   orchestrator?: JobFeedRunDiagnostics['orchestrator'];
+  consentAccepted?: boolean;
 }): Promise<JobFeedRunWorkflowResult> {
-  const { userId, triggerSource = 'scheduled', now = new Date(), force = false, orchestrator = 'direct' } = params;
+  const {
+    userId,
+    requestExecutionId = crypto.randomUUID(),
+    clientRequestId = null,
+    triggerSource = 'manual_user',
+    now = new Date(),
+    force = false,
+    orchestrator = 'direct',
+    consentAccepted = false,
+  } = params;
+  const workflowGenerationContext: LlmGenerationContext = {
+    requestExecutionId,
+    clientRequestId,
+    userId,
+    route: 'job-feed/workflow',
+    feature: 'job_feed',
+    operation: 'job_feed_workflow',
+  };
 
   // Resolve the subscription tier early so we can auto-provision settings for
   // free users who have never gone through the (premium-only) settings UI.
@@ -1474,19 +1227,31 @@ export async function runJobFeedFoundationWorkflow(params: {
 
   let settings: JobFeedSettings;
   if (isFreeUser) {
-    // Free users get automatic settings. Seed target_roles from their synthesized
-    // career profile so the provisioned row satisfies the non-empty target_roles
-    // constraint. The profile is reused below for the search strategy
-    // (getOrSynthesizeCareerProfileAdmin is cached, so this is one synthesis).
-    const careerProfileForSeed = await getOrSynthesizeCareerProfileAdmin(userId);
-    const seedRoles = deriveFreeFeedSeedRoles(careerProfileForSeed);
-    if (seedRoles.length === 0) {
-      // Sparse CV (no inferred or aspirational titles). Provisioning would throw
-      // a developer-facing error that surfaces as an opaque 500. Throw a tagged
-      // error the route maps to a clear, user-actionable 422 instead.
-      throw new Error('JOB_FEED_INSUFFICIENT_CV');
+    // Free users get automatic settings. Seed roles are only needed to CREATE
+    // the row, so reuse an existing one first: deriving them up front would
+    // fail a user whose feed already works but whose CV was since deleted or
+    // whose profile no longer matches the current schema version.
+    const existingSettings = await getJobFeedSettingsAdmin(userId);
+    if (existingSettings) {
+      settings = await ensureFreeFeedConsent(userId, existingSettings, consentAccepted);
+    } else {
+      if (!consentAccepted) {
+        throw new Error('JOB_FEED_CONSENT_REQUIRED');
+      }
+      // Seed target_roles from the synthesized career profile so the
+      // provisioned row satisfies the non-empty target_roles constraint. The
+      // profile is reused below for the search strategy
+      // (getOrSynthesizeCareerProfileAdmin is cached, so this is one synthesis).
+      const careerProfileForSeed = await getOrSynthesizeCareerProfileAdmin(userId, workflowGenerationContext);
+      const seedRoles = deriveFreeFeedSeedRoles(careerProfileForSeed);
+      if (seedRoles.length === 0) {
+        // Sparse CV (no inferred or aspirational titles). Provisioning would throw
+        // a developer-facing error that surfaces as an opaque 500. Throw a tagged
+        // error the route maps to a clear, user-actionable 422 instead.
+        throw new Error('JOB_FEED_INSUFFICIENT_CV');
+      }
+      settings = await getOrProvisionFreeJobFeedSettingsAdmin(userId, seedRoles, { consentAccepted: true });
     }
-    settings = await getOrProvisionFreeJobFeedSettingsAdmin(userId, seedRoles);
   } else {
     const loaded = await getJobFeedSettingsAdmin(userId);
     if (!loaded) {
@@ -1551,24 +1316,68 @@ export async function runJobFeedFoundationWorkflow(params: {
     await resetJobFeedRunArtifactsForRerun(existingRun.id);
   }
 
-  if (force && existingRun && existingRun.status !== 'running') {
-    await resetJobFeedRunArtifactsForRerun(existingRun.id);
+  // A force-rerun of a *completed* run must not clear its ranked items up
+  // front: if the rerun then fails (every fetch errored, the ranker is down,
+  // the request times out) the user is left with nothing and no way back.
+  // replaceRankedItemsForRun batches the delete with the inserts, so the swap
+  // happens in one step and only when there is a new ranking to swap in.
+
+  const creation: { run: JobFeedRun; raced: boolean } = existingRun
+    ? { run: existingRun, raced: false }
+    : await createJobFeedRunForToday({
+        userId,
+        localDate,
+        settings,
+        triggerSource,
+        orchestrator,
+      });
+
+  // Another request created today's row between our read and our insert. The
+  // guards above ran against nothing, so run them again over the row that won,
+  // or we execute the whole workflow a second time and spend the tier's
+  // SerpAPI budget twice on the same day.
+  if (creation.raced) {
+    const winner = creation.run;
+
+    if (winner.status === 'completed' && !force) {
+      captureJobFeedRunIdempotencyConflict({
+        userId,
+        run: winner,
+        localDate,
+        triggerSource,
+        force,
+        reason: 'completed_run_exists',
+      });
+      return { run: winner, created: false, skipped: true };
+    }
+
+    if (winner.status === 'running' && !isStaleJobFeedRun(winner, now)) {
+      captureJobFeedRunIdempotencyConflict({
+        userId,
+        run: winner,
+        localDate,
+        triggerSource,
+        force,
+        reason: force ? 'running_run_blocks_force' : 'running_run_exists',
+      });
+
+      if (force) {
+        throw new Error('Cannot force-rerun a job feed run while it is still running.');
+      }
+
+      return { run: winner, created: false, skipped: true };
+    }
+
+    // Falling through means the winner is a stale running row. Mirror the
+    // non-raced path and clear the previous attempt's artifacts before it is
+    // reused, or the run keeps a ranking it never produced.
+    if (winner.status === 'running') {
+      await resetJobFeedRunArtifactsForRerun(winner.id);
+    }
   }
 
-  const run = existingRun ?? await createJobFeedRun({
-    user_id: userId,
-    local_date: localDate,
-    local_timezone: settings.user_timezone,
-    trigger_source: triggerSource,
-    idempotency_key: `${userId}:${localDate}`,
-    settings_snapshot: settings as unknown as Json,
-    metadata: {
-      stage: 'phase_4_ranking',
-      foundation_mode: true,
-      target_market: settings.target_market,
-      orchestrator,
-    },
-  });
+  const run = creation.run;
+  const createdRun = !existingRun && !creation.raced;
 
   let runningRun = await updateJobFeedRun(run.id, {
     status: 'running',
@@ -1580,6 +1389,11 @@ export async function runJobFeedFoundationWorkflow(params: {
     completed_at: null,
     error_message: null,
     result_summary: null,
+    // Zero the previous attempt's counters too. Leaving them makes a failed
+    // rerun report "12 new roles today" over an empty list.
+    raw_jobs_fetched: 0,
+    jobs_after_prefilter: 0,
+    ranked_jobs_count: 0,
     metadata: mergeMetadata(run.metadata, {
       stage: 'phase_4_ranking',
       foundation_mode: true,
@@ -1598,11 +1412,19 @@ export async function runJobFeedFoundationWorkflow(params: {
     // missing (first-time runs before async UI synthesis lands, or after a
     // schema bump). Returns null only when there's no primary CV to synthesize
     // from; ingestJobFeedRunJobs then falls back to the legacy planner.
-    const careerProfileForStrategy = await getOrSynthesizeCareerProfileAdmin(userId);
+    const careerProfileForStrategy = await getOrSynthesizeCareerProfileAdmin(userId, {
+      ...workflowGenerationContext,
+      jobFeedRunId: run.id,
+      operation: 'career_profile_synthesis',
+    });
     const searchStrategy = await loadOrGenerateSearchStrategyAdmin({
       userId,
       settings,
       profile: careerProfileForStrategy,
+      generationContext: {
+        ...workflowGenerationContext,
+        jobFeedRunId: run.id,
+      },
     });
 
     const ingestion = await ingestJobFeedRunJobs({
@@ -1610,6 +1432,7 @@ export async function runJobFeedFoundationWorkflow(params: {
       userId,
       settings,
       maxQueries: tierLimits.maxDailyQueries,
+      maxMainQueries: tierLimits.maxMainQueries,
       maxRawJobs: tierLimits.maxRawJobsPerRun,
       strategy: searchStrategy,
     });
@@ -1654,13 +1477,18 @@ export async function runJobFeedFoundationWorkflow(params: {
       // Explicit user exclusions (titles/companies/keywords). Honored more
       // strongly than the auto-derived negativeTerms.
       excludedTerms: settings.excluded_terms ?? [],
+      generationContext: {
+        ...workflowGenerationContext,
+        jobFeedRunId: run.id,
+        operation: 'job_feed_ranking',
+      },
     });
-    const rankedPreviewItems = rankingResult.items.map(toRankedPreviewRecord);
     const materializedRanking = await persistJobFeedRankedItemsForRunAdmin({
       runId: run.id,
       userId,
       items: rankingResult.items,
     });
+    const rankedPreviewItems = materializedRanking.preview;
 
     runningRun = await updateJobFeedRun(run.id, {
       status: 'completed',
@@ -1669,7 +1497,7 @@ export async function runJobFeedFoundationWorkflow(params: {
       result_summary: buildWorkflowResultSummary(ingestion, prefilter, rankingPrep, rankingResult),
       raw_jobs_fetched: ingestion.rawJobsFetched,
       jobs_after_prefilter: prefilter.survivors.length,
-      ranked_jobs_count: rankingResult.items.length,
+      ranked_jobs_count: rankedPreviewItems.length,
       metadata: mergeMetadata(runningRun.metadata, {
         stage: 'phase_4_ranking',
         workflow_status: 'completed',
@@ -1700,13 +1528,14 @@ export async function runJobFeedFoundationWorkflow(params: {
             })
           : null,
         ranked_preview_jobs: toJson(rankedPreviewItems),
-        ranked_items_materialized: materializedRanking,
+        ranked_items_materialized: materializedRanking.materialized,
+        progress: toJson(ingestion.progress),
       }),
     });
 
     return {
       run: runningRun,
-      created: !existingRun,
+      created: createdRun,
       skipped: false,
       forced: force,
       previewJobs: prefilter.shortlistPreview.length > 0 ? prefilter.shortlistPreview : ingestion.previewJobs,
@@ -1714,34 +1543,68 @@ export async function runJobFeedFoundationWorkflow(params: {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown job feed workflow failure';
 
-    await updateJobFeedRun(run.id, {
-      status: 'failed',
-      completed_at: new Date().toISOString(),
-      error_message: errorMessage,
-      metadata: mergeMetadata(runningRun.metadata, {
-        workflow_status: 'failed',
-      }),
-    });
+    // Marking the run failed must never replace the real cause. If this write
+    // throws too, log it and still rethrow the original, otherwise the run is
+    // left 'running' AND the operator sees the wrong error.
+    try {
+      await updateJobFeedRun(run.id, {
+        status: 'failed',
+        completed_at: new Date().toISOString(),
+        error_message: errorMessage,
+        metadata: mergeMetadata(runningRun.metadata, {
+          workflow_status: 'failed',
+        }),
+      });
+    } catch (markFailedError) {
+      console.error(
+        '[job-feed] could not mark run failed:',
+        markFailedError instanceof Error ? markFailedError.message : markFailedError,
+      );
+    }
 
     throw error;
   }
 }
 
 async function getJobFeedRunByDate(userId: string, localDate: string): Promise<JobFeedRun | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_runs')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('local_date', localDate)
-    .maybeSingle();
+  return jobFeedRepo.getRunByDate(userId, localDate);
+}
 
-  if (error) {
-    throw new Error(`Failed to load existing job feed run: ${error.message}`);
+/**
+ * Insert today's run row, tolerating the read-then-insert race. Two clicks in
+ * the same tick both see "no run today" and both insert against a unique index
+ * on (user_id, local_date); the loser re-reads and reuses the winner's row
+ * rather than surfacing a raw 500.
+ */
+async function createJobFeedRunForToday(params: {
+  userId: string;
+  localDate: string;
+  settings: JobFeedSettings;
+  triggerSource: string;
+  orchestrator: JobFeedRunDiagnostics['orchestrator'];
+}): Promise<{ run: JobFeedRun; raced: boolean }> {
+  const { userId, localDate, settings, triggerSource, orchestrator } = params;
+  try {
+    const run = await createJobFeedRun({
+      user_id: userId,
+      local_date: localDate,
+      local_timezone: settings.user_timezone,
+      trigger_source: triggerSource,
+      idempotency_key: `${userId}:${localDate}`,
+      settings_snapshot: settings as unknown as Json,
+      metadata: {
+        stage: 'phase_4_ranking',
+        foundation_mode: true,
+        target_market: settings.target_market,
+        orchestrator,
+      },
+    });
+    return { run, raced: false };
+  } catch (error) {
+    const raced = await getJobFeedRunByDate(userId, localDate);
+    if (raced) return { run: raced, raced: true };
+    throw error;
   }
-
-  return (data ?? null) as JobFeedRun | null;
 }
 
 async function createJobFeedRun(insert: {
@@ -1753,58 +1616,22 @@ async function createJobFeedRun(insert: {
   metadata: Json;
   settings_snapshot?: Json | null;
 }): Promise<JobFeedRun> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_runs')
-    .insert(insert)
-    .select('*')
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to create job feed run: ${error.message}`);
-  }
-
-  return data as JobFeedRun;
+  return jobFeedRepo.insertRun(insert.user_id, {
+    local_date: insert.local_date,
+    local_timezone: insert.local_timezone,
+    trigger_source: insert.trigger_source,
+    idempotency_key: insert.idempotency_key,
+    metadata: insert.metadata,
+    settings_snapshot: insert.settings_snapshot,
+  });
 }
 
 async function updateJobFeedRun(runId: string, updates: JobFeedRunUpdate): Promise<JobFeedRun> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_runs')
-    .update(updates)
-    .eq('id', runId)
-    .select('*')
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to update job feed run: ${error.message}`);
-  }
-
-  return data as JobFeedRun;
+  return adminRepo.updateRunById(runId, updates);
 }
 
 async function resetJobFeedRunArtifactsForRerun(runId: string): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { error: rawFetchDeleteError } = await admin
-    .from('job_feed_raw_fetches')
-    .delete()
-    .eq('run_id', runId);
-
-  if (rawFetchDeleteError) {
-    throw new Error(`Failed to clear job feed raw fetches for rerun: ${rawFetchDeleteError.message}`);
-  }
-
-  const { error: rankedDeleteError } = await admin
-    .from('job_feed_ranked_items')
-    .delete()
-    .eq('run_id', runId);
-
-  if (rankedDeleteError && !isMissingRankedItemsRelationError(rankedDeleteError)) {
-    throw new Error(`Failed to clear ranked job feed items for rerun: ${rankedDeleteError.message}`);
-  }
+  await adminRepo.deleteRunArtifactsByRunId(runId);
 }
 
 function mergeMetadata(existing: Json, patch: Record<string, Json>): Json {
@@ -1842,18 +1669,7 @@ async function buildFeedItemsForSnapshot(params: {
     return [];
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_canonical_jobs')
-    .select('*')
-    .in('id', orderedJobIds);
-
-  if (error) {
-    throw new Error(`Failed to load latest job feed items: ${error.message}`);
-  }
-
-  const rows = (data ?? []) as JobFeedCanonicalJob[];
+  const rows = await adminRepo.getCanonicalJobsByIds(orderedJobIds);
   const rowsById = new Map(rows.map((row) => [row.id, row]));
   const feedbackByJobId = await getJobFeedFeedbackMapAdmin(params.userId, orderedJobIds);
   const rankedPreviewById = new Map(rankedPreview.map((item) => [item.id, item]));
@@ -1873,6 +1689,8 @@ async function buildFeedItemsForSnapshot(params: {
               fitLabel: rankedItem.fitLabel,
               pipelineStage: 'ranked',
               rankingSource: rankedItem.rankingSource,
+              reason: rankedItem.reason,
+              companyDisplay: rankedItem.companyDisplay ?? null,
             }
           : undefined
       );
@@ -1944,6 +1762,9 @@ function extractRankedPreviewItems(metadata: Json): JobFeedRankedPreviewItem[] {
       fitLabel,
       rankingSource,
       reason: typeof item.reason === 'string' && item.reason.trim().length > 0 ? item.reason.trim() : null,
+      companyDisplay: typeof item.companyDisplay === 'string' && item.companyDisplay.trim().length > 0
+        ? item.companyDisplay.trim()
+        : null,
     });
   }
 
@@ -1952,83 +1773,45 @@ function extractRankedPreviewItems(metadata: Json): JobFeedRankedPreviewItem[] {
 }
 
 async function listJobFeedRankedItemsForRunAdmin(runId: string): Promise<SupabaseJobFeedRankedItem[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_ranked_items')
-    .select('*')
-    .eq('run_id', runId)
-    .order('rank_position', { ascending: true });
-
-  if (error) {
-    if (isMissingRankedItemsRelationError(error)) {
-      return [];
-    }
-
-    throw new Error(`Failed to load ranked job feed items: ${error.message}`);
-  }
-
-  return (data ?? []) as SupabaseJobFeedRankedItem[];
+  return adminRepo.listRankedItemsByRunId(runId) as Promise<SupabaseJobFeedRankedItem[]>;
 }
 
 async function persistJobFeedRankedItemsForRunAdmin(params: {
   runId: string;
   userId: string;
   items: JobFeedRankedItemRecord[];
-}): Promise<boolean> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { error: deleteError } = await admin
-    .from('job_feed_ranked_items')
-    .delete()
-    .eq('run_id', params.runId);
-
-  if (deleteError) {
-    if (isMissingRankedItemsRelationError(deleteError)) {
-      return false;
-    }
-
-    throw new Error(`Failed to clear ranked job feed items: ${deleteError.message}`);
-  }
-
+}): Promise<{ materialized: boolean; preview: JobFeedRankedPreviewItem[] }> {
   if (params.items.length === 0) {
-    return true;
+    // A rerun that ranks nothing must not clear a working feed. The previous
+    // ranking stays put, and the run reports what actually survived instead of
+    // claiming an empty day.
+    const kept = await listJobFeedRankedItemsForRunAdmin(params.runId);
+    return { materialized: false, preview: kept.map(toRankedPreviewItem) };
   }
 
-  const insertPayload = params.items.map((item) => ({
-    run_id: params.runId,
-    user_id: params.userId,
+  await jobFeedRepo.replaceRankedItemsForRun(params.userId, params.runId, params.items.map((item) => ({
     canonical_job_id: item.canonicalJobId,
     rank_position: item.rank,
     fit_label: item.fitLabel,
     ranking_source: item.rankingSource,
     reason: item.reason,
     deterministic_score: item.deterministicScore,
-    metadata: {},
-  }));
-
-  const { error: insertError } = await admin
-    .from('job_feed_ranked_items')
-    .insert(insertPayload);
-
-  if (insertError) {
-    if (isMissingRankedItemsRelationError(insertError)) {
-      return false;
-    }
-
-    throw new Error(`Failed to persist ranked job feed items: ${insertError.message}`);
-  }
-
-  return true;
+    metadata: item.companyDisplay ? { company_display: item.companyDisplay } : {},
+  })));
+  return { materialized: true, preview: params.items.map(toRankedPreviewRecord) };
 }
 
 function toRankedPreviewItem(item: SupabaseJobFeedRankedItem): JobFeedRankedPreviewItem {
+  const companyDisplay = isJsonRecord(item.metadata) && typeof item.metadata.company_display === 'string'
+    ? item.metadata.company_display.trim()
+    : '';
   return {
     id: item.canonical_job_id,
     rank: item.rank_position,
     fitLabel: item.fit_label,
     rankingSource: item.ranking_source,
     reason: item.reason,
+    companyDisplay: companyDisplay.length > 0 ? companyDisplay : null,
   };
 }
 
@@ -2039,27 +1822,12 @@ function toRankedPreviewRecord(item: JobFeedRankedItemRecord): JobFeedRankedPrev
     fitLabel: item.fitLabel,
     rankingSource: item.rankingSource,
     reason: item.reason,
+    companyDisplay: item.companyDisplay ?? null,
   };
 }
 
 async function getJobFeedFeedbackMapAdmin(userId: string, jobIds: string[]): Promise<Map<string, JobFeedFeedback>> {
-  if (jobIds.length === 0) {
-    return new Map();
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the newly added tables here.
-  const admin = createAdminClient() as any;
-  const { data, error } = await admin
-    .from('job_feed_feedback')
-    .select('*')
-    .eq('user_id', userId)
-    .in('canonical_job_id', jobIds);
-
-  if (error) {
-    throw new Error(`Failed to load job feed feedback map: ${error.message}`);
-  }
-
-  const rows = (data ?? []) as JobFeedFeedback[];
+  const rows = await jobFeedRepo.listFeedbackForJobs(userId, jobIds);
   return new Map(rows.map((row) => [row.canonical_job_id, row]));
 }
 
@@ -2070,6 +1838,23 @@ async function getJobFeedFeedbackMapAdmin(userId: string, jobIds: string[]): Pro
  * never resurface — the ranker also consumes this signal to avoid re-ranking
  * them in future runs.
  */
+/**
+ * A blocked row can still hand back the session it already has, but only when
+ * the block came from an application that actually ran. A dismissed row, or
+ * one the user rated not relevant, is a different kind of block and stays
+ * closed. Both the apply route and recordJobFeedFeedbackAdmin read this, so
+ * the two guards cannot drift apart.
+ */
+export function canReuseBlockedFeedbackSession(feedback: JobFeedFeedback | null | undefined): boolean {
+  if (!feedback?.application_session_id) return false;
+  if (feedback.dismissed_at) return false;
+  const metadata = (feedback.metadata ?? null) as Record<string, unknown> | null;
+  if (metadata && typeof metadata === 'object' && metadata.match_rating === 'not_relevant') {
+    return false;
+  }
+  return true;
+}
+
 export function isJobFeedbackBlocked(feedback: JobFeedFeedback | null | undefined): boolean {
   if (!feedback) return false;
   if (feedback.applied_at || feedback.generation_status === 'succeeded') return true;
@@ -2088,28 +1873,10 @@ export function isJobFeedbackBlocked(feedback: JobFeedFeedback | null | undefine
  * rejected, and so they don't re-appear in tomorrow's feed after re-ingestion.
  */
 export async function getBlockedCanonicalJobIdsAdmin(userId: string): Promise<Set<string>> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand job_feed_feedback here.
-  const admin = createAdminClient() as any;
-  // Fetch all feedback rows for this user and apply isJobFeedbackBlocked on
-  // each. This is the single source of truth for "blocked" state. Using a
-  // single full-fetch + in-process filter instead of two separate queries
-  // eliminates the race where a second metadata-based query catches
-  // `not_relevant`-rated jobs whose rating has since been changed to `helpful`
-  // (re-rating un-block). The `isJobFeedbackBlocked` helper reads current
-  // metadata, so a re-rated row with match_rating='helpful' in metadata is
-  // correctly treated as unblocked.
-  const { data, error } = await admin
-    .from('job_feed_feedback')
-    .select('canonical_job_id, applied_at, dismissed_at, generation_status, metadata')
-    .eq('user_id', userId);
-
-  if (error) {
-    throw new Error(`Failed to load blocked job feed canonical ids: ${error.message}`);
-  }
-
+  const data = await jobFeedRepo.listFeedback(userId);
   const blocked = new Set<string>();
-  for (const row of (data ?? []) as Array<Pick<JobFeedFeedback, 'canonical_job_id' | 'applied_at' | 'dismissed_at' | 'generation_status' | 'metadata'>>) {
-    if (isJobFeedbackBlocked(row as JobFeedFeedback)) {
+  for (const row of data) {
+    if (isJobFeedbackBlocked(row)) {
       blocked.add(row.canonical_job_id);
     }
   }
@@ -2124,28 +1891,38 @@ function toFeedItem(
     fitLabel: JobFeedFeedItem['fitLabel'];
     pipelineStage: JobFeedFeedItem['pipelineStage'];
     rankingSource: JobFeedFeedItem['rankingSource'];
+    reason?: string | null;
+    companyDisplay?: string | null;
   }
 ): JobFeedFeedItem {
   const sourceIdentifiers = isJsonRecord(job.source_identifiers) ? job.source_identifiers : {};
+  const displayCompany = ranking?.companyDisplay?.trim() || job.company;
+  const highlights = extractHighlights(sourceIdentifiers.highlights);
+  // Google Jobs leaves detected_extensions.salary empty on plenty of ads that
+  // state the range in the body, so fall back to the ad text before giving up
+  // on the chip.
+  const salaryText = job.salary_text
+    ?? extractSalaryTextFromAd(job.description, highlights.flatMap((section) => section.items));
 
   return {
     id: job.id,
     title: job.title,
-    company: job.company,
+    company: displayCompany,
     location: job.location_text,
     workMode: job.work_mode,
     employmentType: job.employment_type,
-    salaryText: job.salary_text,
+    salaryText,
     description: job.description,
-    highlights: extractHighlights(sourceIdentifiers.highlights),
-    applyUrl: job.apply_url,
-    sourceUrl: job.source_url,
+    highlights,
+    applyUrl: job.apply_url && isSafeExternalUrl(job.apply_url) ? job.apply_url : null,
+    sourceUrl: job.source_url && isSafeExternalUrl(job.source_url) ? job.source_url : null,
     via: typeof sourceIdentifiers.via === 'string' ? sourceIdentifiers.via : null,
     freshnessDays: job.freshness_days,
     postedAtText: job.posted_at_text,
     fitLabel: ranking?.fitLabel ?? null,
     pipelineStage: ranking?.pipelineStage ?? 'shortlisted',
     rankingSource: ranking?.rankingSource ?? null,
+    matchReason: ranking?.reason ?? null,
     applyOptions: extractApplyOptions(sourceIdentifiers.apply_options, job),
     feedback: toJobFeedFeedbackState(feedback),
   };
@@ -2205,14 +1982,7 @@ function extractApplyOptions(value: Json | undefined, job: JobFeedCanonicalJob):
   return options;
 }
 
-function isSafeExternalUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
+
 
 function readUrlProtocol(value: string): string | null {
   try {
@@ -2281,12 +2051,6 @@ function inferRankingSource(
   }
 }
 
-function isMissingRankedItemsRelationError(error: { code?: string; message?: string }): boolean {
-  const message = (error.message ?? '').toLowerCase();
-  return error.code === '42P01'
-    || (message.includes('job_feed_ranked_items') && message.includes('does not exist'));
-}
-
 function buildFallbackJobDescription(job: JobFeedCanonicalJob): string {
   const parts = [
     `${job.title} at ${job.company}`,
@@ -2314,10 +2078,10 @@ function buildWorkflowResultSummary(
   rankingResult: JobFeedRankingExecutionResult
 ): string {
   if (ingestion.rawJobsFetched === 0 && ingestion.failedFetches.length === 0) {
-    return 'Karko checked the current searches, but no jobs matched these settings yet.';
+    return 'Useful Apply checked the current searches, but no jobs matched these settings yet.';
   }
 
-  const summary = `Karko found ${ingestion.rawJobsFetched} job observations across ${ingestion.searchPlan.length} searches and narrowed them to ${prefilter.survivors.length} roles that matched the current filter.`;
+  const summary = `Useful Apply found ${ingestion.rawJobsFetched} job observations across ${ingestion.searchPlan.length} searches and narrowed them to ${prefilter.survivors.length} roles that matched the current filter.`;
   const operationalTail = buildWorkflowOperationalTail(ingestion);
 
   if (rankingPrep.candidates.length === 0) {
@@ -2365,14 +2129,22 @@ function buildWorkflowOperationalTail(ingestion: {
 }
 
 // GPT-4.1 Mini pricing: $0.40/M input, $1.60/M output
+// USD per million tokens (input, output) on Workers AI, August 2026 list prices.
+const RANKING_MODEL_RATES: Record<string, [number, number]> = {
+  '@cf/openai/gpt-oss-120b': [0.35, 0.75],
+  '@cf/deepseek-ai/deepseek-v4-flash-0731': [0.44, 1.32],
+  '@cf/meta/llama-4-scout-17b-16e-instruct': [0.27, 0.85],
+};
+
 function estimateJobFeedRankingCost(
   inputTokens: number,
   outputTokens: number,
-  _modelMeta: Record<string, Json> | null
-): number {
-  const inputRate = 0.40;
-  const outputRate = 1.60;
-  return (inputTokens / 1_000_000) * inputRate + (outputTokens / 1_000_000) * outputRate;
+  modelMeta: Record<string, Json> | null
+): number | null {
+  const name = typeof modelMeta?.name === 'string' ? modelMeta.name : null;
+  const rates = name ? RANKING_MODEL_RATES[name] : undefined;
+  if (!rates) return null;
+  return (inputTokens / 1_000_000) * rates[0] + (outputTokens / 1_000_000) * rates[1];
 }
 
 
@@ -2411,18 +2183,7 @@ function toJson(value: unknown): Json {
  * exists or the CV has no dated experience entries.
  */
 export async function getUserYearsExperienceAdmin(userId: string): Promise<number | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the documents table here.
-  const admin = createAdminClient() as any;
-
-  const { data } = await admin
-    .from('documents')
-    .select('structured_data')
-    .eq('user_id', userId)
-    .eq('type', 'primary_cv')
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
+  const data = await documentsRepo.getDocumentByType(userId, 'primary_cv');
   const structured = data?.structured_data;
   if (structured && typeof structured === 'object') {
     const years = estimateTotalExperienceYears(structured as StructuredCV);
@@ -2443,24 +2204,10 @@ export async function getUserYearsExperienceAdmin(userId: string): Promise<numbe
  * literal `StructuredCV`.
  */
 export async function getUserCareerProfileAdmin(userId: string): Promise<CareerProfile | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the user_career_profiles table here.
-  const admin = createAdminClient() as any;
-
-  const { data, error } = await admin
-    .from('user_career_profiles')
-    .select('profile, version')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (error) {
-    console.error('[job-feed/server] career profile fetch error:', error.message);
-    return null;
-  }
-
+  const data = await jobFeedRepo.getCareerProfileRow(userId);
   if (!data || data.version !== CAREER_PROFILE_SCHEMA_VERSION) return null;
   if (!isCurrentCareerProfile(data.profile)) return null;
-
-  return data.profile;
+  return data.profile as CareerProfile;
 }
 
 /**
@@ -2478,42 +2225,45 @@ export async function getUserCareerProfileAdmin(userId: string): Promise<CareerP
  * Read-only contract still holds: the synthesized profile is NEVER read by
  * `src/lib/agents/**`.
  */
-export async function getOrSynthesizeCareerProfileAdmin(userId: string): Promise<CareerProfile | null> {
+export async function getOrSynthesizeCareerProfileAdmin(
+  userId: string,
+  generationContext?: LlmGenerationContext,
+): Promise<CareerProfile | null> {
   const existing = await getUserCareerProfileAdmin(userId);
   if (existing) return existing;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the documents table here.
-  const admin = createAdminClient() as any;
-  const { data: primaryDoc } = await admin
-    .from('documents')
-    .select('id, structured_data, updated_at')
-    .eq('user_id', userId)
-    .eq('type', 'primary_cv')
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const primaryDoc = await documentsRepo.getDocumentByType(userId, 'primary_cv');
 
   const structured = primaryDoc?.structured_data;
   if (!structured || typeof structured !== 'object') return null;
 
   try {
-    const result = await generateCareerProfile(structured as StructuredCV);
-    const { error: persistError } = await admin
-      .from('user_career_profiles')
-      .upsert({
-        user_id: userId,
-        profile: result.profile,
+    const result = await generateCareerProfile(
+      structured as StructuredCV,
+      generationContext
+        ? { ...generationContext, operation: 'career_profile_synthesis' }
+        : {
+            requestExecutionId: crypto.randomUUID(),
+            userId,
+            route: 'job-feed/internal',
+            feature: 'job_feed',
+            operation: 'career_profile_synthesis',
+          },
+    );
+    try {
+      await jobFeedRepo.upsertCareerProfile(userId, {
+        profile: result.profile as unknown as Json,
         version: CAREER_PROFILE_SCHEMA_VERSION,
         source_document_id: primaryDoc.id ?? null,
         source_document_updated_at: primaryDoc.updated_at ?? null,
         model_provider: result.modelProvider,
         model_name: result.modelName,
-      }, { onConflict: 'user_id' });
-
-    if (persistError) {
-      // Persist failed but we still have a valid profile in hand — use it for
-      // this run; the next run will retry the upsert.
-      console.error('[job-feed/server] career profile persist error:', persistError.message);
+      });
+    } catch (persistError) {
+      console.error(
+        '[job-feed/server] career profile persist error:',
+        persistError instanceof Error ? persistError.message : persistError,
+      );
     }
 
     console.log(
@@ -2542,33 +2292,22 @@ export async function loadOrGenerateSearchStrategyAdmin(params: {
   userId: string;
   settings: JobFeedSettings;
   profile: CareerProfile | null;
+  generationContext?: LlmGenerationContext;
 }): Promise<SearchStrategy | null> {
-  const { userId, settings, profile } = params;
+  const { userId, settings, profile, generationContext } = params;
 
   if (!profile) return null;
   if (!settings.target_countries || settings.target_countries.length === 0) return null;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the user_search_strategies table here.
-  const admin = createAdminClient() as any;
   const settingsHash = computeSettingsHash(settings);
-
-  const { data: cached, error: cacheError } = await admin
-    .from('user_search_strategies')
-    .select('strategy, version, source_profile_generated_at')
-    .eq('user_id', userId)
-    .eq('settings_hash', settingsHash)
-    .maybeSingle();
-
-  if (cacheError) {
-    console.error('[job-feed/server] strategy fetch error:', cacheError.message);
-  }
+  const cached = await jobFeedRepo.getSearchStrategyRow(userId, settingsHash);
 
   // Use epoch comparison instead of string equality so minor timestamp
   // formatting differences and same-millisecond profile regenerations still
   // hit the cache. `>=` means a strategy synthesized for the same or an older
   // profile is valid — a newer profile invalidates the cache (regenerate).
   const cachedTs = Number.isFinite(Number(new Date(cached?.source_profile_generated_at ?? '')))
-    ? new Date(cached.source_profile_generated_at).getTime()
+    ? new Date(cached!.source_profile_generated_at!).getTime()
     : NaN;
   const profileTs = Number.isFinite(Number(new Date(profile.generatedAt ?? '')))
     ? new Date(profile.generatedAt).getTime()
@@ -2587,18 +2326,27 @@ export async function loadOrGenerateSearchStrategyAdmin(params: {
 
   // Cache miss / stale / version bump — synthesize a fresh one and upsert.
   try {
-    const result = await generateSearchStrategy({ profile, settings });
-    await admin
-      .from('user_search_strategies')
-      .upsert({
-        user_id: userId,
-        settings_hash: settingsHash,
-        strategy: result.strategy,
-        version: SEARCH_STRATEGY_SCHEMA_VERSION,
-        source_profile_generated_at: profile.generatedAt,
-        model_provider: result.modelProvider,
-        model_name: result.modelName,
-      }, { onConflict: 'user_id,settings_hash' });
+    const result = await generateSearchStrategy({
+      profile,
+      settings,
+      generationContext: generationContext
+        ? { ...generationContext, operation: 'search_strategy_generation' }
+        : {
+            requestExecutionId: crypto.randomUUID(),
+            userId,
+            route: 'job-feed/internal',
+            feature: 'job_feed',
+            operation: 'search_strategy_generation',
+          },
+    });
+    await jobFeedRepo.upsertSearchStrategy(userId, {
+      settings_hash: settingsHash,
+      strategy: result.strategy as unknown as Json,
+      version: SEARCH_STRATEGY_SCHEMA_VERSION,
+      source_profile_generated_at: profile.generatedAt,
+      model_provider: result.modelProvider,
+      model_name: result.modelName,
+    });
 
     console.log(
       `[search-strategy] Generated for user ${userId}: ${result.modelName} | ${result.inputTokens}in/${result.outputTokens}out | ${result.latencyMs}ms | ${result.strategy.queries.length} queries`,

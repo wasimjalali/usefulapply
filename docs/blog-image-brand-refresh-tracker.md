@@ -1,3 +1,5 @@
+Written when the product was called Karko AI.
+
 # Blog Image Brand Refresh Tracker
 
 Goal: replace legacy blog imagery with GPT Image-2 generated brand illustrations in the shared Karko style.

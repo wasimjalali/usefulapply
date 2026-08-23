@@ -1,0 +1,23 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "1 · Your CV", "x": 0, "y": 0, "w": 1440, "h": 900 },
+    { "file": "L1b-Reading-CV.dc.html", "title": "1b · Reading your CV", "x": 1560, "y": 0, "w": 1440, "h": 900 },
+    { "file": "L2-The-Job.dc.html", "title": "2 · The job", "x": 3120, "y": 0, "w": 1440, "h": 900 },
+    { "file": "L3-Fit-Working.dc.html", "title": "3 · Checking fit", "x": 4680, "y": 0, "w": 1440, "h": 900 },
+    { "file": "L3b-Fit-Result.dc.html", "title": "3b · Your fit", "x": 0, "y": 1100, "w": 1440, "h": 900 },
+    { "file": "L4a-Sign-Up.dc.html", "title": "4a · Sign up to get the kit", "x": 1560, "y": 1100, "w": 1440, "h": 900 },
+    { "file": "L4b-Kit-Working.dc.html", "title": "4b · Building the kit", "x": 3120, "y": 1100, "w": 1440, "h": 900 },
+    { "file": "S1-Kit-Ready.dc.html", "title": "5 · Workspace opens, kit ready", "x": 0, "y": 2200, "w": 1440, "h": 900 },
+    { "file": "S2-Settings-Menu.dc.html", "title": "5b · Settings (gear opens a modal)", "x": 1560, "y": 2200, "w": 1440, "h": 900 },
+    { "file": "S3-Short-On-Credits.dc.html", "title": "6 · Later: short on credits", "x": 3120, "y": 2200, "w": 1440, "h": 900 }
+  ],
+  "annotations": [
+    { "id": "intro", "x": 0, "y": -300, "w": 980, "text": "Flow 1, final direction: the guided line for the first run, the chat spine as the workspace once the kit exists.\n\nRow 1 and 2: an anonymous first-timer. Drop the CV, paste the job while it reads, free fit check, see the score, create the account at the kit step, watch the kit build. Four steps, one card and one button each. No header clutter: only a quiet Log in link top right while anonymous. The account is asked for once, at step 4a.\n\nRow 3: the workspace. No top header. Sidebar holds the logo, New application, today's feed, one entry per application with its status, the tracker table, and at the bottom the profile with a settings button. The gear opens a settings modal over the workspace: General, Usage & Billing, Notifications (locked in flow 5)." },
+    { "id": "note-free", "x": 1560, "y": -120, "w": 560, "text": "1b: parsing takes 40 to 60 seconds, so the job paste opens underneath while it reads. The user isn't waiting on a spinner, they're already doing step 2." },
+    { "id": "note-anon", "x": 3120, "y": -120, "w": 560, "text": "2 and 3b: the first fit check is free and needs no account. The button says so. The kit is the moment we ask for the account, because by then the user has seen the product judge their fit." },
+    { "id": "note-sign", "x": 1560, "y": 980, "w": 560, "text": "4a: sign up happens inside the line, same card, same stepper. Nothing leaves the flow. Google first, email second, one gold button that says what happens next." },
+    { "id": "note-spine", "x": 0, "y": 2080, "w": 640, "text": "5: the kit lands and the workspace opens with the Pixellot conversation already there. The completion message says what's ready, what wasn't invented, and offers two chips. The canvas shows the tailored CV with the ATS chip leading to every change (theme 4: surface the best work)." },
+    { "id": "note-credits", "x": 3120, "y": 2080, "w": 640, "text": "6: price before commitment. When the balance is short the upgrade becomes one of the chips, with the reason inline, and the action the user can still afford stays primary. Nothing clickable that will then say no." }
+  ],
+  "launch": { "view": "canvas" }
+}

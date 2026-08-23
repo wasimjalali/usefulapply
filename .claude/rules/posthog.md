@@ -11,7 +11,9 @@ paths:
 
 - PostHog is used for analytics, error tracking, and LLM cost tracking
 - Client-side: use `posthog-js` for event capture and feature flags
-- Server-side: use PostHog Node SDK for API route analytics
+- Server-side: use the PostHog Node SDK from route handlers via `getPostHogServer()` in `src/lib/posthog-server.ts`. Call `capture` / `captureException` then `await posthog.flush()` before the handler returns. There is no Vercel `waitUntil`.
+- Hosting is Cloudflare Workers via `@opennextjs/cloudflare`, not Vercel. Worker and cron diagnostics live in Workers Logs (`wrangler.jsonc` `observability.enabled`). PostHog is product analytics and exception capture, not the Worker log sink.
+- `NEXT_PUBLIC_POSTHOG_KEY` stays the same across the rebrand so existing event history continues.
 
 ## LLM Cost Tracking
 

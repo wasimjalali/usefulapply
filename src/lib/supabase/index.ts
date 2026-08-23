@@ -1,5 +1,3 @@
-// Re-export all Supabase utilities
-export { createClient, getSupabase } from './client';
 export type { Database, Tables, InsertTables, UpdateTables } from './types';
 export type {
   Profile,
@@ -55,7 +53,6 @@ export {
   changePassword,
   sendPasswordResetEmail,
   connectOAuthProvider,
-  deleteUserAccount,
 } from './accounts';
 export type { ConnectedAccount, Subscription } from './accounts';
 
@@ -76,14 +73,9 @@ export type { MessageFeedback } from './feedback';
 export {
   CREDIT_COSTS,
   getSubscriptionPlans,
-  getSubscriptionPlan,
   getAddonCreditPacks,
   getUserCredits,
   getTotalCredits,
-  hasEnoughCredits,
-  checkCreditBalance,
-  deductCredits,
-  addCredits,
   getCreditTransactions,
 } from './credits';
 export type {

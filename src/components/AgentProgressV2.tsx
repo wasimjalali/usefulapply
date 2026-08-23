@@ -21,27 +21,11 @@ interface AgentProgressV2Props {
   steps: AgentV2Step[];
   progress: AgentV2Progress | null;
   reflection: AgentV2Reflection | null;
-  models: { analysis: string; writing: string } | null;
   isWorking: boolean;
   companyResearch?: CompanyResearchData | null;  // NEW: Company research data
-  tokenUsage?: {
-    inputTokens: number;
-    outputTokens: number;
-    totalTokens: number;
-  };
-  actions?: ActionDetail[];
 }
 
-export interface ActionDetail {
-  id: string;
-  stepId: string;
-  name: string;
-  status: 'pending' | 'running' | 'completed' | 'error';
-  duration?: number;
-  tokens?: { input: number; output: number };
-}
-
-// Karko AI Unified Agent Step Configuration
+// Useful Apply Unified Agent Step Configuration
 const STEP_CONFIG: Record<string, {
   icon: React.ElementType;
   label: string;
@@ -62,21 +46,18 @@ export function AgentProgressV2({
   steps, 
   progress, 
   reflection, 
-  models,
   isWorking,
   companyResearch,
-  tokenUsage,
-  actions = [],
 }: AgentProgressV2Props) {
   if (steps.length === 0 && !isWorking) return null;
 
   return (
     <div className="mb-4">
-      {/* Karko AI header */}
+      {/* Useful Apply header */}
       {isWorking && (
         <div className="flex items-center gap-2.5 mb-3 pb-2 border-b border-gold-200/60">
           <Sparkles className="w-4 h-4 text-gold-500" />
-          <span className="text-sm font-semibold text-navy-700 tracking-tight">Karko AI</span>
+          <span className="text-sm font-semibold text-navy-700 tracking-tight">Useful Apply</span>
           {progress && (
             <div className="ml-auto flex items-center gap-2">
               <div className="w-16 h-1 rounded-full bg-cream-200 overflow-hidden">

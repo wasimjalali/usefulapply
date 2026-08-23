@@ -1,7 +1,7 @@
 /**
- * Agent V2 API Route - Karko AI Architecture
+ * Agent V2 API Route - Useful Apply Architecture
  * 
- * Karko AI handles the complete workflow:
+ * Useful Apply handles the complete workflow:
  * 1. Parse CV and analyze job requirements
  * 2. Match skills and identify gaps
  * 3. Optimize CV for the position
@@ -19,20 +19,18 @@ import {
   type AgentEvent,
   type MasterContext,
 } from '@/lib/agents';
-import { createClient } from '@/lib/supabase/server';
-import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
+import { getCurrentUser } from '@/auth/server';
+import { getSession, updateSession } from '@/db/repos/sessions';
+import { getJobPreferences } from '@/db/repos/jobFeed';
+import { hasAnonymousGeneration, recordAnonymousGeneration } from '@/db/repos/anonymous';
 import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
 import { reserveCredits, captureReservation, releaseReservation } from '@/lib/supabase/credit-reservations';
 import { transitionJobFeedApplicationGenerationAdmin } from '@/lib/job-feed/server';
-import {
-  extractOriginalExperience,
-  extractOriginalHeadline,
-  extractSectionByHeader,
-  transformToGeneratedCV,
-} from '@/lib/utils/cv-transformers';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { randomUUID, createHash } from 'crypto';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -41,42 +39,105 @@ export const maxDuration = 300;
 // SERVER-SIDE CONTEXT CACHE
 // Stores MasterContext from fit analysis for reuse in full generation
 // TTL: 30 minutes, keyed by contextId
+// Prefers Workers KV (shared across isolates). Falls back to an in-memory
+// Map when the CONTEXT_CACHE binding is missing (plain `next dev`).
 // =====================================================
-const contextCache = new Map<string, { context: MasterContext; expiresAt: number }>();
-const CONTEXT_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+type ContextCacheKv = {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
+  delete(key: string): Promise<void>;
+};
+
+declare global {
+  interface CloudflareEnv {
+    CONTEXT_CACHE?: ContextCacheKv;
+  }
+}
+
+const memoryContextCache = new Map<string, { context: MasterContext; expiresAt: number }>();
+const CONTEXT_CACHE_TTL_SECONDS = 30 * 60;
+const CONTEXT_CACHE_TTL_MS = CONTEXT_CACHE_TTL_SECONDS * 1000;
 const MAX_CACHE_SIZE = 100; // Prevent unbounded memory growth
 
-function cacheContext(contextId: string, context: MasterContext): void {
-  // Clean up expired entries
-  const now = Date.now();
-  for (const [key, value] of contextCache.entries()) {
-    if (value.expiresAt < now) contextCache.delete(key);
+async function getContextCacheKv(): Promise<ContextCacheKv | undefined> {
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    return env.CONTEXT_CACHE;
+  } catch {
+    // Not running under OpenNext (plain Next server or a non-Cloudflare build). Use the in-memory cache.
+    return undefined;
   }
-  // Evict oldest entries if cache exceeds max size
-  if (contextCache.size >= MAX_CACHE_SIZE) {
-    const entriesToDelete = contextCache.size - MAX_CACHE_SIZE + 1;
+}
+
+// Cache keys are scoped to the owning user so a leaked or guessed contextId
+// can never read another user's parsed CV. Anonymous callers get a shared
+// "anon" scope, which matches the pre-existing anonymous flow.
+function contextCacheKey(ownerId: string, contextId: string): string {
+  return `${ownerId}:${contextId}`;
+}
+
+function setMemoryContext(key: string, context: MasterContext): void {
+  const now = Date.now();
+  for (const [k, value] of memoryContextCache.entries()) {
+    if (value.expiresAt < now) memoryContextCache.delete(k);
+  }
+  if (memoryContextCache.size >= MAX_CACHE_SIZE) {
+    const entriesToDelete = memoryContextCache.size - MAX_CACHE_SIZE + 1;
     let deleted = 0;
-    for (const key of contextCache.keys()) {
+    for (const k of memoryContextCache.keys()) {
       if (deleted >= entriesToDelete) break;
-      contextCache.delete(key);
+      memoryContextCache.delete(k);
       deleted++;
     }
   }
-  contextCache.set(contextId, { context, expiresAt: now + CONTEXT_CACHE_TTL_MS });
+  memoryContextCache.set(key, { context, expiresAt: now + CONTEXT_CACHE_TTL_MS });
 }
 
-function getCachedContext(contextId: string): MasterContext | null {
-  const entry = contextCache.get(contextId);
+function getMemoryContext(key: string): MasterContext | null {
+  const entry = memoryContextCache.get(key);
   if (!entry) return null;
   if (entry.expiresAt < Date.now()) {
-    contextCache.delete(contextId);
+    memoryContextCache.delete(key);
     return null;
   }
   return entry.context;
 }
 
-function removeCachedContext(contextId: string): void {
-  contextCache.delete(contextId);
+async function cacheContext(ownerId: string, contextId: string, context: MasterContext): Promise<void> {
+  const key = contextCacheKey(ownerId, contextId);
+  // Always write through to the isolate-local map: KV is eventually consistent
+  // and the follow-up request usually lands on the same isolate within seconds.
+  setMemoryContext(key, context);
+  const kv = await getContextCacheKv();
+  if (kv) {
+    await kv.put(key, JSON.stringify(context), { expirationTtl: CONTEXT_CACHE_TTL_SECONDS });
+  }
+}
+
+async function getCachedContext(ownerId: string, contextId: string): Promise<MasterContext | null> {
+  const key = contextCacheKey(ownerId, contextId);
+  const local = getMemoryContext(key);
+  if (local) {
+    console.log('[API_AGENT_V2] context cache hit');
+    return local;
+  }
+  const kv = await getContextCacheKv();
+  if (kv) {
+    const raw = await kv.get(key);
+    if (!raw) return null;
+    console.log('[API_AGENT_V2] context cache hit');
+    return JSON.parse(raw) as MasterContext;
+  }
+  return null;
+}
+
+async function removeCachedContext(ownerId: string, contextId: string): Promise<void> {
+  const key = contextCacheKey(ownerId, contextId);
+  memoryContextCache.delete(key);
+  const kv = await getContextCacheKv();
+  if (kv) {
+    await kv.delete(key);
+  }
 }
 
 // Server-side artifact persistence — writes generated output to
@@ -88,20 +149,30 @@ async function persistGeneratedArtifacts(
 ): Promise<boolean> {
   if (!sessionId || sessionId.startsWith('session-') || sessionId.startsWith('fit-')) return false;
   try {
-    const adminClient = getSupabaseAdmin();
-    const { error } = await adminClient
-      .from('application_sessions')
-      .update({ generated_artifacts: results })
-      .eq('id', sessionId)
-      .eq('user_id', userId);
-    if (error) {
-      console.error('[agent-v2] Failed to persist artifacts:', error.message);
-      return false;
-    }
+    await updateSession(userId, sessionId, { generated_artifacts: results });
     return true;
   } catch (e) {
     console.error('[agent-v2] Artifact persistence error:', e);
     return false;
+  }
+}
+
+// Post-generation bookkeeping is best-effort: a D1 write failure here must
+// never discard output the model already produced. Reservation capture that
+// fails leaves the row 'reserved' for the stale sweeper to release.
+async function recordAnonymousGenerationSafe(ipHash: string): Promise<void> {
+  try {
+    await recordAnonymousGeneration(ipHash);
+  } catch (e) {
+    console.error('[agent-v2] Failed to record anonymous generation:', e);
+  }
+}
+
+async function captureReservationSafe(params: { idempotencyKey: string; userId: string }): Promise<void> {
+  try {
+    await captureReservation(params);
+  } catch (e) {
+    console.error('[agent-v2] Failed to capture credit reservation:', e);
   }
 }
 
@@ -137,30 +208,6 @@ function hashIP(ip: string): string {
   return createHash('sha256').update(ip).digest('hex');
 }
 
-function getSupabaseAdmin() {
-  return createSupabaseAdmin(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
-
-async function hasAnonymousGeneration(ipHash: string): Promise<boolean> {
-  const supabaseAdmin = getSupabaseAdmin();
-  const { data } = await supabaseAdmin
-    .from('anonymous_generations')
-    .select('id')
-    .eq('ip_hash', ipHash)
-    .limit(1);
-  return (data && data.length > 0) || false;
-}
-
-async function recordAnonymousGeneration(ipHash: string): Promise<void> {
-  const supabaseAdmin = getSupabaseAdmin();
-  await supabaseAdmin
-    .from('anonymous_generations')
-    .insert({ ip_hash: ipHash });
-}
-
 interface AgentRequest {
   jobDescription: string;
   currentCV: string;
@@ -187,6 +234,7 @@ export async function POST(request: NextRequest) {
     async start(controller) {
       // PostHog LLM analytics — hoisted above try/catch so error tracking works in catch block
       const traceId = `trace_${randomUUID()}`;
+      const requestExecutionId = randomUUID();
       const stepStartTimes = new Map<string, number>();
       let distinctId = 'anonymous';
       let currentAction = 'unknown';
@@ -268,7 +316,7 @@ export async function POST(request: NextRequest) {
       try {
         // Rate limiting
         const clientIP = getClientIP(request);
-        const rateLimitResult = checkRateLimit(`agent-v2:${clientIP}`, RATE_LIMITS['agent-v2']);
+        const rateLimitResult = await checkRateLimit(`agent-v2:${clientIP}`, RATE_LIMITS['agent-v2']);
         if (!rateLimitResult.allowed) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'error',
@@ -279,29 +327,26 @@ export async function POST(request: NextRequest) {
         }
 
         // Get authenticated user (optional — anonymous users get one free generation)
-        const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getCurrentUser(request);
         const isAnonymous = !user;
         distinctId = user?.id || 'anonymous';
 
-        // Fetch job preferences for cover letter context (best-effort, never blocks)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const typedSupabase = supabase as any;
+        // Fetch job preferences for cover letter context (best-effort, never blocks generation)
         let jobPreferences: import('@/lib/agents/types').MasterContext['jobPreferences'] = undefined;
         if (user) {
-          const { data: prefs } = await typedSupabase
-            .from('user_job_preferences')
-            .select('salary_floor,remote_preference,employment_types,target_market,seniority_target')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          if (prefs) {
-            jobPreferences = {
-              salaryFloor: prefs.salary_floor,
-              remotePreference: prefs.remote_preference,
-              employmentTypes: prefs.employment_types,
-              targetMarket: prefs.target_market,
-              seniorityTarget: prefs.seniority_target,
-            };
+          try {
+            const prefs = await getJobPreferences(user.id);
+            if (prefs) {
+              jobPreferences = {
+                salaryFloor: prefs.salary_floor,
+                remotePreference: prefs.remote_preference,
+                employmentTypes: prefs.employment_types,
+                targetMarket: prefs.target_market,
+                seniorityTarget: prefs.seniority_target,
+              };
+            }
+          } catch (prefsError) {
+            console.error('[agent-v2] Failed to load job preferences (continuing without):', prefsError);
           }
         }
 
@@ -363,20 +408,46 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        // Server-side anonymous generation tracking
+        // Server-side anonymous tracking. Without an account the only thing on
+        // offer is one fit check per IP; every kit needs a signed-in user.
         const ipHash = hashIP(clientIP);
         if (isAnonymous) {
+          if (action !== 'fit_analysis') {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'error',
+              code: 'ANONYMOUS_LIMIT_REACHED',
+              message: 'Create a free account to generate the kit. 4 credits included, no card.',
+            })}\n\n`));
+            controller.close();
+            return;
+          }
           const alreadyUsed = await hasAnonymousGeneration(ipHash);
           if (alreadyUsed) {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'error',
               code: 'ANONYMOUS_LIMIT_REACHED',
-              message: 'You have already used your free generation. Sign up for a free account to continue.',
+              message: 'You have already used your free fit check. Create a free account to continue.',
             })}\n\n`));
             controller.close();
             return;
           }
         }
+
+        const attributableSessionId = user && clientSessionId
+          && !clientSessionId.startsWith('session-')
+          && !clientSessionId.startsWith('fit-')
+          ? (await getSession(user.id, clientSessionId))?.id ?? null
+          : null;
+        const generationContext: LlmGenerationContext = {
+          requestExecutionId,
+          clientRequestId,
+          userId: user?.id ?? null,
+          anonymousSubjectHash: isAnonymous ? ipHash : null,
+          applicationSessionId: attributableSessionId,
+          route: '/api/agent-v2',
+          feature: action === 'fit_analysis' ? 'fit_analysis' : 'application_generation',
+          operation: action,
+        };
 
         console.log('[API_AGENT_V2] Request received:', {
           action,
@@ -501,19 +572,24 @@ export async function POST(request: NextRequest) {
             primaryCV: currentCV,
             masterCV,
             jobPreferences,
+            generationContext,
           }, eventHandler);
 
           if (result.success && result.data) {
             const ctx = result.data.context;
 
             // Cache the context for reuse in generate_with_context
-            const cachedContextId = `ctx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-            cacheContext(cachedContextId, ctx);
+            const cachedContextId = `ctx-${randomUUID()}`;
+            await cacheContext(user?.id ?? 'anon', cachedContextId, ctx);
 
             // Capture reservation — fit analysis produced usable results
             if (activeReservationKey && activeReservationUserId) {
-              await captureReservation({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
+              await captureReservationSafe({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
               activeReservationKey = null;
+            }
+            // The free anonymous fit check is spent once it produced a verdict.
+            if (isAnonymous) {
+              await recordAnonymousGenerationSafe(ipHash);
             }
 
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
@@ -550,7 +626,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Retrieve cached context
-          let cachedContext = getCachedContext(contextId);
+          let cachedContext = await getCachedContext(user?.id ?? 'anon', contextId);
           
           if (!cachedContext) {
             // Validate client-sent context data structure before using it
@@ -640,12 +716,13 @@ export async function POST(request: NextRequest) {
                 primaryCV: currentCV,
                 masterCV,
                 jobPreferences,
+                generationContext,
               }, eventHandler);
 
               if (result.success && result.data) {
                 const ctx = result.data.context;
                 if (isAnonymous) {
-                  await recordAnonymousGeneration(ipHash);
+                  await recordAnonymousGenerationSafe(ipHash);
                 }
 
                 const fallbackResults = {
@@ -663,7 +740,7 @@ export async function POST(request: NextRequest) {
                 await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
 
                 if (activeReservationKey && activeReservationUserId) {
-                  await captureReservation({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
+                  await captureReservationSafe({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
                   activeReservationKey = null;
                 }
 
@@ -721,14 +798,14 @@ export async function POST(request: NextRequest) {
 
           const eventHandler = createEventHandler((id) => getGenerateWithContextStepIndex(id));
           if (jobPreferences) cachedContext.jobPreferences = jobPreferences;
-          const result = await runWithContext(cachedContext, eventHandler);
+          const result = await runWithContext(cachedContext, eventHandler, generationContext);
 
-          removeCachedContext(contextId);
+          await removeCachedContext(user?.id ?? 'anon', contextId);
 
           if (result.success && result.data) {
             const ctx = result.data.context;
             if (isAnonymous) {
-              await recordAnonymousGeneration(ipHash);
+              await recordAnonymousGenerationSafe(ipHash);
             }
 
             const genResults = {
@@ -746,7 +823,7 @@ export async function POST(request: NextRequest) {
             await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
 
             if (activeReservationKey && activeReservationUserId) {
-              await captureReservation({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
+              await captureReservationSafe({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
               activeReservationKey = null;
             }
 
@@ -823,6 +900,7 @@ export async function POST(request: NextRequest) {
             primaryCV: currentCV,
             masterCV,
             jobPreferences,
+            generationContext,
           }, eventHandler);
           
           if (result.success && result.data) {
@@ -847,6 +925,7 @@ export async function POST(request: NextRequest) {
             primaryCV: currentCV,
             masterCV,
             jobPreferences,
+            generationContext,
           }, eventHandler);
 
           if (result.success && result.data) {
@@ -867,14 +946,14 @@ export async function POST(request: NextRequest) {
         }
 
         if (isAnonymous) {
-          await recordAnonymousGeneration(ipHash);
+          await recordAnonymousGenerationSafe(ipHash);
         }
 
         await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', results);
         await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
 
         if (activeReservationKey && activeReservationUserId) {
-          await captureReservation({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
+          await captureReservationSafe({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
           activeReservationKey = null;
         }
 
@@ -935,35 +1014,34 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper to extract original experience bullets from CV text
-// CV transformer functions moved to @/lib/utils/cv-transformers
 
-// Helper to get workflow steps based on action - Karko AI Unified Agent
+// Helper to get workflow steps based on action - Useful Apply Unified Agent
 function getWorkflowSteps(action: string): Array<{ id: string; description: string }> {
   switch (action) {
     case 'fit_analysis':
       return [
-        { id: 'analysis', description: 'Karko AI: Parsing CV and analyzing job requirements' },
-        { id: 'matching', description: 'Karko AI: Matching skills and identifying gaps' },
-        { id: 'fit_assessment', description: 'Karko AI: Assessing job fit' },
+        { id: 'analysis', description: 'Useful Apply: Parsing CV and analyzing job requirements' },
+        { id: 'matching', description: 'Useful Apply: Matching skills and identifying gaps' },
+        { id: 'fit_assessment', description: 'Useful Apply: Assessing job fit' },
       ];
     case 'generate_with_context':
       return [
-        { id: 'cv_generation', description: 'Karko AI: Optimizing CV for the position' },
-        { id: 'cover_letter', description: 'Karko AI: Composing tailored cover letter' },
-        { id: 'email', description: 'Karko AI: Generating application and follow-up emails' },
+        { id: 'cv_generation', description: 'Useful Apply: Optimizing CV for the position' },
+        { id: 'cover_letter', description: 'Useful Apply: Composing tailored cover letter' },
+        { id: 'email', description: 'Useful Apply: Generating application and follow-up emails' },
       ];
     case 'full_optimization':
       return [
-        { id: 'analysis', description: 'Karko AI: Parsing CV and analyzing job requirements' },
-        { id: 'matching', description: 'Karko AI: Matching skills and identifying gaps' },
-        { id: 'cv_generation', description: 'Karko AI: Optimizing CV for the position' },
-        { id: 'cover_letter', description: 'Karko AI: Composing tailored cover letter' },
-        { id: 'email', description: 'Karko AI: Generating application and follow-up emails' },
+        { id: 'analysis', description: 'Useful Apply: Parsing CV and analyzing job requirements' },
+        { id: 'matching', description: 'Useful Apply: Matching skills and identifying gaps' },
+        { id: 'cv_generation', description: 'Useful Apply: Optimizing CV for the position' },
+        { id: 'cover_letter', description: 'Useful Apply: Composing tailored cover letter' },
+        { id: 'email', description: 'Useful Apply: Generating application and follow-up emails' },
       ];
     default:
       return [
-        { id: 'analysis', description: 'Karko AI: Analyzing documents' },
-        { id: 'generation', description: 'Karko AI: Generating content' },
+        { id: 'analysis', description: 'Useful Apply: Analyzing documents' },
+        { id: 'generation', description: 'Useful Apply: Generating content' },
       ];
   }
 }

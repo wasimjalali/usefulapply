@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ScrollbarReveal } from "@/components/ScrollbarReveal";
+import ChunkReloadGuard from "@/components/ChunkReloadGuard";
 import { ToastProvider } from "@/components/ui/Toast";
 import { PostHogProvider } from "@/providers/PostHogProvider";
 import PostHogPageView from "@/providers/PostHogPageView";
+import { BRAND } from '@/lib/brand';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// Inter is the single UI family (next/font self-hosts it at build time).
+// The CV templates and exported documents keep Arial and Georgia; the brand
+// wordmark keeps Plus Jakarta.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -22,16 +23,21 @@ const plusJakarta = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700", "800"],
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.karkoai.com';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
+
+// Without this every prerendered page is served with s-maxage=31536000, so a
+// copy change only reaches visitors after a manual Cloudflare purge. Five
+// minutes at the edge, and child segments can still set their own.
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'KarKo AI | AI-Powered Job Application Assistant',
-    template: '%s | KarKo AI',
+    default: 'Useful Apply | AI Job Application Agent',
+    template: '%s | Useful Apply',
   },
   description:
-    'KarKo AI optimizes your CV, generates tailored cover letters, and creates professional application emails in under 90 seconds.',
+    'Useful Apply optimizes your CV, generates tailored cover letters, and creates professional application emails in under 90 seconds.',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
@@ -52,7 +58,7 @@ export const metadata: Metadata = {
     'ATS-friendly resume',
     'job application assistant',
     'AI resume',
-    'KarKo AI',
+    'Useful Apply',
     'career tools',
     'job search AI',
     'AI CV writer',
@@ -66,9 +72,9 @@ export const metadata: Metadata = {
     'apply to jobs faster',
     'one click job application',
   ],
-  authors: [{ name: 'KarKo AI', url: SITE_URL }],
-  creator: 'KarKo AI',
-  publisher: 'KarKo AI',
+  authors: [{ name: 'Useful Apply', url: SITE_URL }],
+  creator: 'Useful Apply',
+  publisher: 'Useful Apply',
   alternates: {
     canonical: '/',
     types: {
@@ -79,25 +85,25 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: SITE_URL,
-    siteName: 'KarKo AI',
-    title: 'KarKo AI | AI-Powered Job Application Assistant',
+    siteName: 'Useful Apply',
+    title: 'Useful Apply | AI Job Application Agent',
     description:
       'Optimize your CV, generate tailored cover letters, and create professional application emails in minutes with AI.',
     images: [
       {
-        url: '/opengraph-image',
+        url: '/opengraph-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Karko AI | AI-Powered Job Application Assistant',
+        alt: 'Useful Apply | AI Job Application Agent',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'KarKo AI | AI-Powered Job Application Assistant',
+    title: 'Useful Apply | AI Job Application Agent',
     description:
       'Optimize your CV, generate tailored cover letters, and create professional application emails in minutes with AI.',
-    images: ['/opengraph-image'],
+    images: ['/opengraph-image.jpg'],
   },
   robots: {
     index: true,
@@ -134,12 +140,12 @@ export default function RootLayout({
             __html: JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'Organization',
-              name: 'KarKo AI',
+              name: 'Useful Apply',
               legalName: 'Karko AI Inc',
               url: SITE_URL,
               logo: `${SITE_URL}/favicon-512x512.png`,
               description:
-                'KarKo AI helps job seekers apply smarter with AI-powered CV optimization, cover letter generation, and application email drafting.',
+                'Useful Apply helps job seekers apply smarter with AI-powered CV optimization, cover letter generation, and application email drafting.',
               founder: {
                 '@type': 'Person',
                 name: 'Wasim Jalali',
@@ -158,7 +164,7 @@ export default function RootLayout({
               },
               contactPoint: {
                 '@type': 'ContactPoint',
-                email: 'support@karkoai.com',
+                email: 'support@usefulapply.com',
                 url: `${SITE_URL}/contact`,
                 contactType: 'customer support',
                 availableLanguage: ['English', 'German'],
@@ -176,13 +182,13 @@ export default function RootLayout({
             __html: JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'WebSite',
-              name: 'KarKo AI',
+              name: 'Useful Apply',
               url: SITE_URL,
               description:
                 'AI job application agent. Generate tailored CVs, cover letters, and emails in 90 seconds.',
               publisher: {
                 '@type': 'Organization',
-                name: 'KarKo AI',
+                name: 'Useful Apply',
                 url: SITE_URL,
               },
               inLanguage: 'en-US',
@@ -191,9 +197,11 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${plusJakarta.variable} antialiased`}
+        className={`${inter.variable} ${plusJakarta.variable} antialiased`}
         suppressHydrationWarning
       >
+        <ScrollbarReveal />
+        <ChunkReloadGuard />
         <PostHogProvider>
           <AuthProvider>
             <PostHogPageView />

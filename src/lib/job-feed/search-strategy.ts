@@ -12,14 +12,16 @@
  */
 
 import { createHash } from 'node:crypto';
-import { callAnthropic } from '@/lib/models/anthropic';
+import { callWorkersAI } from '@/lib/models/workers-ai';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import type { JobFeedSettings } from '@/lib/supabase/types';
 
 export const SEARCH_STRATEGY_SCHEMA_VERSION = 1 as const;
 
 const STRATEGY_TEMPERATURE = 0.4;
-const STRATEGY_MAX_TOKENS = 2000;
+// gpt-oss spends part of this budget reasoning before the JSON.
+const STRATEGY_MAX_TOKENS = 5000;
 
 export type SearchQueryType = 'short_tail' | 'long_tail' | 'localized';
 export type SearchExpectedRecall = 'high' | 'medium' | 'low';
@@ -71,6 +73,11 @@ export function computeSettingsHash(settings: JobFeedSettings): string {
     employment_types: [...(settings.employment_types ?? [])].sort(),
     languages: [...(settings.languages ?? [])].sort(),
     target_market: settings.target_market ?? null,
+    // Work mode reaches the prompt, so "only remote" from the feed
+    // conversation has to invalidate the cached plan. Without these the saved
+    // preference changes and the run keeps firing the old queries.
+    remote_preferences: [...(settings.remote_preferences ?? [])].sort(),
+    remote_preference: settings.remote_preference ?? null,
   };
   return createHash('sha256').update(JSON.stringify(material)).digest('hex').slice(0, 16);
 }
@@ -159,16 +166,6 @@ Return ONLY valid JSON matching this shape:
 7. No em-dashes anywhere.
 `;
 
-export function buildSearchStrategySystemBlocks(): Array<{ type: 'text'; text: string; cache_control: { type: 'ephemeral' } }> {
-  return [
-    {
-      type: 'text',
-      text: SYSTEM_TEXT,
-      cache_control: { type: 'ephemeral' as const },
-    },
-  ];
-}
-
 export interface GenerateSearchStrategyResult {
   strategy: SearchStrategy;
   modelProvider: string;
@@ -181,16 +178,18 @@ export interface GenerateSearchStrategyResult {
 export async function generateSearchStrategy(params: {
   profile: CareerProfile;
   settings: JobFeedSettings;
+  generationContext?: LlmGenerationContext;
 }): Promise<GenerateSearchStrategyResult> {
   const startTime = Date.now();
   const userPrompt = buildStrategyUserPrompt(params.profile, params.settings);
 
-  const response = await callAnthropic({
+  const response = await callWorkersAI({
     prompt: userPrompt,
-    systemBlocks: buildSearchStrategySystemBlocks(),
+    systemPrompt: SYSTEM_TEXT,
     temperature: STRATEGY_TEMPERATURE,
     maxTokens: STRATEGY_MAX_TOKENS,
     jsonMode: true,
+    generationContext: params.generationContext,
   });
 
   const latencyMs = Date.now() - startTime;

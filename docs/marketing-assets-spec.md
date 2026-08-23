@@ -1,7 +1,7 @@
 # Marketing Assets Spec — Screenshots + GPT Image 2 Prompts
 
 Date: 2026-04-27
-Purpose: exact list of every visual asset needed for the Karko marketing redesign. You capture / generate, drop in the folders below, I reference them in the design plan.
+Purpose: exact list of every visual asset needed for the Useful Apply marketing redesign. You capture / generate, drop in the folders below, I reference them in the design plan.
 
 ## Folders
 
@@ -13,7 +13,7 @@ docs/images/        ← generated illustrations and textures (PNG)
 ## General capture rules (for every screenshot)
 
 - **Browser width**: set Chrome to 1440 × 900 (or any consistent desktop width, just use the same one for all). If your 27" display is bigger, use 1440 × 900 specifically so the framing is tight.
-- **Mode**: logged in as `wasimjalali2004@gmail.com` on production `karkoai.com`.
+- **Mode**: logged in as `wasimjalali2004@gmail.com` on production `usefulapply.com`.
 - **No visible**: browser dev tools, browser bookmarks, notification banners, "Workflow failed" toasts, dev tools panel.
 - **Save format**: PNG, saved as `docs/screenshots/<filename>.png`.
 - **Crop**: take the viewport as-is. I'll crop in the design plan if needed.
@@ -32,7 +32,7 @@ Status key: ✅ already have it · 📸 need you to capture
 ### 01 · 📸 `01-smart-job-feed-populated.png`
 
 **Where:** Dashboard → Job Feed tab.
-**What should be visible:** The "6 jobs for you today" header, "Senior Product Manager, Lead Product Manager · United States" subhead, delivery time, "Today / Saved" tabs, "Edit feed" and refresh buttons. Then 3 job cards fully visible (Strong match / Strong match / Good match). Each card shows the match label pill, title, company, location chips, "Apply with Karko" button, "Employer site" link, "View details".
+**What should be visible:** The "6 jobs for you today" header, "Senior Product Manager, Lead Product Manager · United States" subhead, delivery time, "Today / Saved" tabs, "Edit feed" and refresh buttons. Then 3 job cards fully visible (Strong match / Strong match / Good match). Each card shows the match label pill, title, company, location chips, "Apply with Useful Apply" button, "Employer site" link, "View details".
 **How to frame:** scroll to top of the feed panel so the "6 jobs for you today" header is at the top of the screenshot. The right-side chat panel with "Ready to apply?" is fine to include, but make sure the left feed panel takes most of the width.
 
 ---
@@ -40,7 +40,7 @@ Status key: ✅ already have it · 📸 need you to capture
 ### 02 · 📸 `02-job-detail-modal.png`
 
 **Where:** Dashboard → Job Feed → click "View details" on the first job card (SoFi, Senior Product Manager).
-**What should be visible:** The full modal open. Header with match label (Strong match), job title, company. Below: Role details section (full JD text), Apply via section (Apply with Karko + Employer site + Copy). If the "Match-quality feedback" prompt is visible, include it.
+**What should be visible:** The full modal open. Header with match label (Strong match), job title, company. Below: Role details section (full JD text), Apply via section (Apply with Useful Apply + Employer site + Copy). If the "Match-quality feedback" prompt is visible, include it.
 **How to frame:** modal centered, background dimmed. Full modal height in viewport; if it's too tall, scroll so the header + apply buttons are visible.
 
 ---
@@ -129,7 +129,7 @@ This is the screenshot I'll use to critique the generation-flow UI. I will judge
 ### 10 · 📸 `10-dashboard-top-nav.png`
 
 **Where:** Dashboard (any tab).
-**What should be visible:** Just the top nav strip — Karko logo, Application Kit / Job Feed (with "6" badge) / Tracker tabs, Upgrade to Max button, 210 credits chip, history/add icons, Profile PLUS badge.
+**What should be visible:** Just the top nav strip — Useful Apply logo, Application Kit / Job Feed (with "6" badge) / Tracker tabs, Upgrade to Max button, 210 credits chip, history/add icons, Profile PLUS badge.
 **How to do it:** take a full screenshot, then crop to just the top ~80-100 pixels (the nav bar). If easier, use macOS screenshot Cmd+Shift+4 → drag a thin horizontal strip across the nav.
 
 ---
@@ -138,7 +138,7 @@ This is the screenshot I'll use to critique the generation-flow UI. I will judge
 
 ### 11 · 📸 `11-job-feed-empty-upsell.png` (optional)
 
-**Where:** Log out, go to `karkoai.com`, click "Try It Free" or similar → go to dashboard as a signed-out user → Job Feed tab.
+**Where:** Log out, go to `usefulapply.com`, click "Try It Free" or similar → go to dashboard as a signed-out user → Job Feed tab.
 **What should be visible:** The "Get jobs picked for you, every morning" upgrade gate with preview jobs in the background. This is the conversion surface for signed-out visitors.
 **Skip if annoying** — only useful if it's easy to get logged out without breaking your session.
 
@@ -189,7 +189,7 @@ A calm editorial illustration of a floating stack of 3 index cards, each card re
 ```
 > Style: Premium warm editorial illustration, soft paper-textured cream background (#FAF7F2), navy blue accents (#1E3A5F), gold accents (#D4A93A), flat vector geometry with gentle shadows, modern magazine aesthetic, no text, no gradients, no 3D render, no generic stock-photo look. Think "New York Times" editorial plus "Airbnb Design" illustration. Warm, calm, confident, not playful.
 
-A calm editorial illustration of a stack of four document sheets fanned out slightly: a CV (top, with visible but abstracted section bars), a cover letter behind it, an application email envelope, and a follow-up email envelope at the back. A thin gold thread connects all four documents, suggesting they are part of one package. A small Karko "K" icon in navy appears as a seal in the top right of the CV. Cream paper background. Soft warm shadow under the stack. No text, no real words, just the suggestion of structure. Editorial, premium, not corporate.
+A calm editorial illustration of a stack of four document sheets fanned out slightly: a CV (top, with visible but abstracted section bars), a cover letter behind it, an application email envelope, and a follow-up email envelope at the back. A thin gold thread connects all four documents, suggesting they are part of one package. A small Useful Apply "K" icon in navy appears as a seal in the top right of the CV. Cream paper background. Soft warm shadow under the stack. No text, no real words, just the suggestion of structure. Editorial, premium, not corporate.
 ```
 
 **Usage:** Home page "Two pillars" band — right side, representing Application Kit.
@@ -282,7 +282,7 @@ GPT Image 2 can return up to 8 images in one call with shared style consistency.
 ```
 > Style: Premium warm editorial illustration, soft paper-textured cream background (#FAF7F2), navy blue accents (#1E3A5F), gold accents (#D4A93A), flat vector geometry with gentle shadows, modern magazine aesthetic, no text, no gradients, no 3D render, no generic stock-photo look. Think "New York Times" editorial plus "Airbnb Design" illustration. Warm, calm, confident, not playful.
 
-Generate 8 coherent editorial illustrations for a job application platform called Karko, all in the exact same flat vector style, cream paper background, navy and gold accents, no text:
+Generate 8 coherent editorial illustrations for a job application platform called Useful Apply, all in the exact same flat vector style, cream paper background, navy and gold accents, no text:
 
 1. A compass finding a card labeled with a gold dot
 2. A fanned stack of four documents connected by a gold thread

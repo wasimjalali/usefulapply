@@ -11,7 +11,7 @@ import { getBlurDataUrl } from '@/lib/blog/blur-data';
 export const metadata: Metadata = buildPageMetadata({
   title: 'Blog: Career Tips & AI Job Search',
   description:
-    'Expert advice on CV optimization, cover letter writing, job search strategies, and how AI is transforming hiring. Tips from the KarKo AI team.',
+    'Expert advice on CV optimization, cover letter writing, job search strategies and how AI is transforming hiring. Tips from the Useful Apply team.',
   canonical: '/blog',
 });
 
@@ -31,9 +31,9 @@ export default function BlogPage() {
           <div className="max-w-5xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-cream-50 rounded-full text-sm text-charcoal mb-6 shadow-sm border border-cream-200">
               <BookOpen className="w-4 h-4 text-gold-500" />
-              <span className="font-medium">KarKo AI Blog</span>
+              <span className="font-medium">Useful Apply Blog</span>
             </div>
-            <h1 className="font-serif font-semibold text-navy-600 text-[44px] sm:text-[52px] leading-[1.05] tracking-tight mb-4">
+            <h1 className="font-semibold text-navy-600 text-[44px] sm:text-[52px] leading-[1.05] tracking-tight mb-4">
               Career tips and <span className="text-gold-500">job search strategies.</span>
             </h1>
             <p className="text-lg text-warm-gray max-w-2xl mx-auto mb-4">
@@ -59,7 +59,7 @@ export default function BlogPage() {
                 <div className="w-20 h-20 bg-cream-50 border border-cream-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
                   <Sparkles className="w-10 h-10 text-gold-400" />
                 </div>
-                <h2 className="font-serif font-semibold text-navy-600 text-[22px] md:text-[28px] leading-[1.15] mb-3">Coming soon.</h2>
+                <h2 className="font-semibold text-navy-600 text-[22px] md:text-[28px] leading-[1.15] mb-3">Coming soon.</h2>
                 <p className="text-warm-gray max-w-md mx-auto mb-8">
                   We&apos;re working on expert articles about CV optimization, AI in job search, and career strategies. Stay tuned!
                 </p>
@@ -67,7 +67,7 @@ export default function BlogPage() {
                   href="/dashboard"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors"
                 >
-                  Try Karko AI free
+                  Try Useful Apply free
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -112,7 +112,7 @@ export default function BlogPage() {
                             );
                           })()}
                         </div>
-                        <h2 className="font-serif font-semibold text-navy-700 text-2xl lg:text-[30px] leading-[1.2] mb-4 group-hover:text-gold-600 transition-colors">
+                        <h2 className="font-semibold text-navy-700 text-2xl lg:text-[30px] leading-[1.2] mb-4 group-hover:text-gold-600 transition-colors">
                           {featuredPost.title}
                         </h2>
                         <p className="text-warm-gray text-base lg:text-lg mb-6 line-clamp-3">
@@ -173,7 +173,7 @@ export default function BlogPage() {
                                   {post.category}
                                 </span>
                               </div>
-                              <h3 className="font-serif font-semibold text-navy-700 text-xl leading-[1.25] mb-3 line-clamp-2 group-hover:text-gold-600 transition-colors">
+                              <h3 className="font-semibold text-navy-700 text-xl leading-[1.25] mb-3 line-clamp-2 group-hover:text-gold-600 transition-colors">
                                 {post.title}
                               </h3>
                               <p className="text-sm text-warm-gray mb-4 line-clamp-2 flex-1">
@@ -204,7 +204,7 @@ export default function BlogPage() {
                 {/* Divider label */}
                 {restPosts.length > 0 && (
                   <div className="flex items-center gap-4 pt-2">
-                    <h2 className="font-serif font-semibold text-navy-700 text-2xl">All articles</h2>
+                    <h2 className="font-semibold text-navy-700 text-2xl">All articles</h2>
                     <div className="flex-1 h-px bg-cream-200" />
                     <span className="text-sm text-warm-gray">{restPosts.length} posts</span>
                   </div>
@@ -277,11 +277,11 @@ export default function BlogPage() {
         {/* CTA */}
         <section className="px-4 sm:px-6 lg:px-8 pb-24">
           <div className="max-w-3xl mx-auto text-center bg-navy-700 rounded-2xl p-10 text-white">
-            <h2 className="font-serif font-semibold text-white text-[28px] leading-[1.1] mb-3">
+            <h2 className="font-semibold text-white text-[28px] leading-[1.1] mb-3">
               Ready to apply smarter?
             </h2>
             <p className="text-navy-200 mb-6">
-              Stop spending hours on each application. Karko generates your complete application in under 90 seconds.
+              Stop spending hours on each application. Useful Apply generates your complete application in under 90 seconds.
             </p>
             <Link
               href="/dashboard"

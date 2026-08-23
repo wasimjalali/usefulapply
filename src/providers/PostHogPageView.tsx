@@ -10,7 +10,7 @@ function PostHogPageViewInner(): null {
   const posthog = usePostHog();
 
   useEffect(() => {
-    if (pathname && posthog) {
+    if (pathname && posthog && !pathname.startsWith('/admin-dashboard')) {
       let url = window.origin + pathname;
       if (searchParams.toString()) {
         url = url + `?${searchParams.toString()}`;

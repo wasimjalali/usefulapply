@@ -3,7 +3,8 @@
 import { useEffect } from 'react';
 import posthog from 'posthog-js';
 
-const CHUNK_RELOAD_KEY = 'karko_chunk_reload';
+const CHUNK_RELOAD_KEY = 'usefulapply_chunk_reload';
+const CHUNK_RELOAD_KEY_OLD = 'karko_chunk_reload';
 
 function isChunkLoadError(error: Error): boolean {
   const name = error.name || '';
@@ -37,7 +38,7 @@ export default function GlobalError({
 
     if (typeof window !== 'undefined' && isChunkLoadError(error)) {
       try {
-        if (!sessionStorage.getItem(CHUNK_RELOAD_KEY)) {
+        if (!sessionStorage.getItem(CHUNK_RELOAD_KEY) && !sessionStorage.getItem(CHUNK_RELOAD_KEY_OLD)) {
           sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
           window.location.reload();
         }
@@ -63,6 +64,7 @@ export default function GlobalError({
               onClick={() => {
                 try {
                   sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+                  sessionStorage.removeItem(CHUNK_RELOAD_KEY_OLD);
                 } catch {
                   // ignore
                 }

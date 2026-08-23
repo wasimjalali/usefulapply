@@ -1,3 +1,5 @@
+Written when the product was called Karko AI.
+
 # Job Feed Redesign Plan
 
 ## Context

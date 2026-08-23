@@ -1,6 +1,7 @@
 import { getAllPosts } from '@/lib/blog/posts';
+import { BRAND } from '@/lib/brand';
 
-const SITE_URL = 'https://www.karkoai.com';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
 
 export async function GET() {
   const posts = getAllPosts();
@@ -8,7 +9,7 @@ export async function GET() {
   const rss = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>KarKo AI Blog</title>
+    <title>Useful Apply Blog</title>
     <link>${SITE_URL}/blog</link>
     <description>Expert insights on AI-powered job applications, CV optimization, ATS strategies, and career advice. Get hired faster with data-driven job search tips.</description>
     <language>en-us</language>
@@ -24,7 +25,7 @@ export async function GET() {
       <pubDate>${new Date(post.publishedAt).toUTCString()}</pubDate>
       <guid isPermaLink="true">${SITE_URL}/blog/${post.slug}</guid>
       <category>${escapeXml(post.category)}</category>
-      <author>noreply@karkoai.com (${escapeXml(post.author.name)})</author>
+      <author>${BRAND.noreplyEmail} (${escapeXml(post.author.name)})</author>
     </item>`
       )
       .join('')}

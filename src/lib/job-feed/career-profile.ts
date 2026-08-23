@@ -98,18 +98,6 @@ export interface CareerProfile {
   negativeSignals: string[];
 }
 
-export interface CareerProfileRecord {
-  userId: string;
-  profile: CareerProfile;
-  version: number;
-  sourceDocumentId: string | null;
-  sourceDocumentUpdatedAt: string | null;
-  modelProvider: string | null;
-  modelName: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
 /**
  * Type guard for runtime profile payloads loaded from jsonb.
  * Used to gracefully handle stale rows after a schema bump.
