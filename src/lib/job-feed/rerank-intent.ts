@@ -8,6 +8,11 @@
  * and (2) a filter on the list already on screen. The conversation says both.
  */
 
+import {
+  JOB_FEED_COUNTRY_OPTIONS,
+  legacyMarketFromCountries,
+  matchCountriesInText,
+} from '@/lib/job-feed/constants';
 import type { JobFeedSettingsInput } from '@/lib/job-feed/types';
 
 export type FeedIntentKind =
@@ -15,6 +20,10 @@ export type FeedIntentKind =
   | 'salary_floor'
   | 'exclude_term'
   | 'add_city'
+  | 'add_country'
+  | 'remove_country'
+  | 'set_countries'
+  | 'unsupported_country'
   | 'unknown';
 
 export interface FeedIntent {
@@ -29,6 +38,10 @@ export interface FeedIntent {
   minSalary: number | null;
   /** One line the assistant says back, without the counts (added by caller). */
   confirmation: string;
+  /** Country codes for add/remove/set country intents. */
+  countries: string[];
+  /** Country name the user typed but the feed doesn't cover, for an honest reply. */
+  unsupportedCountry: string | null;
 }
 
 const UNKNOWN: FeedIntent = {
@@ -38,12 +51,31 @@ const UNKNOWN: FeedIntent = {
   remoteOnly: false,
   minSalary: null,
   confirmation: '',
+  countries: [],
+  unsupportedCountry: null,
 };
 
 /** Words that mean "get rid of these", used to find the term after them. */
-const DROP_VERBS = /\b(?:no|drop|avoid|exclude|hide|skip|without|not)\b\s+(.{2,40}?)(?:\s+(?:roles?|jobs?|please|thanks)\b|[.,!?]|$)/i;
+const DROP_VERBS = /\b(?:no|drop|avoid|exclude|hide|skip|without|not|remove|delete)\b\s+(.{2,40}?)(?:\s+(?:roles?|jobs?|please|thanks)\b|[.,!?]|$)/i;
 
 const CITY_ADD = /\b(?:add|include|also search|search)\s+(?:in\s+)?([A-Z][\w'-]*(?:\s+[A-Z][\w'-]*){0,2})\b/;
+
+/** Case-insensitive add/include, checked before CITY_ADD so country names work regardless of casing. */
+const ADD_RE = /\b(?:add|include|also\s+search(?:\s+in)?|search(?:\s+in)?)\s+(?:in\s+)?(.+)/i;
+
+/** "only US", "just US" — replace the country list. "only remote" is caught earlier. */
+const ONLY_RE = /\b(?:only|just)\s+(?:search\s+)?(?:in\s+)?(.+)/i;
+
+/** Common country names the feed does not cover yet, so "add Japan" gets an honest reply. */
+const UNSUPPORTED_COUNTRY_NAMES: ReadonlySet<string> = new Set([
+  'japan', 'china', 'brazil', 'mexico', 'russia', 'south korea', 'korea',
+  'argentina', 'czech republic', 'czechia', 'portugal', 'greece', 'turkey',
+  'israel', 'saudi arabia', 'qatar', 'thailand', 'vietnam', 'malaysia',
+  'indonesia', 'philippines', 'hong kong', 'taiwan', 'egypt', 'morocco',
+  'nigeria', 'kenya', 'colombia', 'chile', 'romania', 'bulgaria', 'hungary',
+  'slovakia', 'croatia', 'serbia', 'lithuania', 'latvia', 'estonia',
+  'iceland', 'luxembourg', 'malta', 'cyprus', 'slovenia',
+]);
 
 /**
  * Read a salary figure out of a request. Accepts "150k", "$150,000",
@@ -74,6 +106,8 @@ export function detectFeedIntent(text: string): FeedIntent {
       remoteOnly: true,
       minSalary: null,
       confirmation: 'Remote only from now on.',
+      countries: [],
+      unsupportedCountry: null,
     };
   }
 
@@ -87,14 +121,40 @@ export function detectFeedIntent(text: string): FeedIntent {
         remoteOnly: false,
         minSalary: floor,
         confirmation: `Salary floor is now ${formatSalary(floor)}.`,
+        countries: [],
+        unsupportedCountry: null,
       };
     }
   }
 
+  // Drop verbs: "remove Canada" is a country removal, "no agencies" is a term
+  // exclusion. The difference is whether the captured word is a country.
   const dropMatch = input.match(DROP_VERBS);
   if (dropMatch) {
     const term = cleanTerm(dropMatch[1]);
     if (term) {
+      const countries = matchCountriesInText(term);
+      if (countries.length > 0) {
+        return {
+          kind: 'remove_country',
+          patch: {},
+          excludeFromList: [],
+          remoteOnly: false,
+          minSalary: null,
+          countries,
+          unsupportedCountry: null,
+          confirmation: `${countryNameList(countries)} ${countries.length === 1 ? 'is' : 'are'} out. The next run won't search ${countries.length === 1 ? 'it' : 'them'}.`,
+        };
+      }
+      const unsupported = matchUnsupportedCountry(term);
+      if (unsupported) {
+        return {
+          ...UNKNOWN,
+          kind: 'unsupported_country',
+          unsupportedCountry: unsupported,
+          confirmation: `The feed doesn't cover ${unsupported} yet.`,
+        };
+      }
       return {
         kind: 'exclude_term',
         patch: {},
@@ -102,7 +162,41 @@ export function detectFeedIntent(text: string): FeedIntent {
         remoteOnly: false,
         minSalary: null,
         confirmation: `I'll leave "${term}" out.`,
+        countries: [],
+        unsupportedCountry: null,
       };
+    }
+  }
+
+  // Add: "add Germany" is a country add (case-insensitive). "add Berlin" is a
+  // city add (the CITY_ADD regex below requires an uppercase first letter).
+  const addMatch = input.match(ADD_RE);
+  if (addMatch) {
+    const term = cleanTerm(addMatch[1]);
+    if (term) {
+      const countries = matchCountriesInText(term);
+      if (countries.length > 0) {
+        return {
+          kind: 'add_country',
+          patch: {},
+          excludeFromList: [],
+          remoteOnly: false,
+          minSalary: null,
+          countries,
+          unsupportedCountry: null,
+          confirmation: `${countryNameList(countries)} ${countries.length === 1 ? 'is' : 'are'} in the search now.`,
+        };
+      }
+      const unsupported = matchUnsupportedCountry(term);
+      if (unsupported) {
+        return {
+          ...UNKNOWN,
+          kind: 'unsupported_country',
+          unsupportedCountry: unsupported,
+          confirmation: `The feed doesn't cover ${unsupported} yet.`,
+        };
+      }
+      // Fall through to CITY_ADD for city names.
     }
   }
 
@@ -117,7 +211,39 @@ export function detectFeedIntent(text: string): FeedIntent {
         remoteOnly: false,
         minSalary: null,
         confirmation: `${city} is in the search now.`,
+        countries: [],
+        unsupportedCountry: null,
       };
+    }
+  }
+
+  // "only US" / "just US" — replace the country list.
+  const onlyMatch = input.match(ONLY_RE);
+  if (onlyMatch) {
+    const term = cleanTerm(onlyMatch[1]);
+    if (term) {
+      const countries = matchCountriesInText(term);
+      if (countries.length > 0) {
+        return {
+          kind: 'set_countries',
+          patch: {},
+          excludeFromList: [],
+          remoteOnly: false,
+          minSalary: null,
+          countries,
+          unsupportedCountry: null,
+          confirmation: `Only ${countryNameList(countries)} from now on.`,
+        };
+      }
+      const unsupported = matchUnsupportedCountry(term);
+      if (unsupported) {
+        return {
+          ...UNKNOWN,
+          kind: 'unsupported_country',
+          unsupportedCountry: unsupported,
+          confirmation: `The feed doesn't cover ${unsupported} yet.`,
+        };
+      }
     }
   }
 
@@ -146,6 +272,29 @@ export function applyFeedIntent(
     next.target_cities = Array.from(merged);
   }
 
+  if (intent.kind === 'add_country' && intent.countries.length > 0) {
+    const merged = new Set([...(current.target_countries ?? []), ...intent.countries]);
+    next.target_countries = Array.from(merged);
+    next.target_market = legacyMarketFromCountries(next.target_countries);
+  }
+
+  if (intent.kind === 'remove_country' && intent.countries.length > 0) {
+    const removeSet = new Set(intent.countries);
+    const remaining = (current.target_countries ?? []).filter((c) => !removeSet.has(c));
+    // The caller refuses before saving when this would empty the list. If we
+    // still get here with nothing left, keep the original to avoid writing an
+    // invalid row.
+    if (remaining.length > 0) {
+      next.target_countries = remaining;
+      next.target_market = legacyMarketFromCountries(remaining);
+    }
+  }
+
+  if (intent.kind === 'set_countries' && intent.countries.length > 0) {
+    next.target_countries = [...intent.countries];
+    next.target_market = legacyMarketFromCountries(next.target_countries);
+  }
+
   return next;
 }
 
@@ -160,4 +309,22 @@ function cleanTerm(value: string): string {
     .replace(/\b(roles?|jobs?|positions?|listings?)\b/gi, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
+}
+
+function countryName(code: string): string {
+  return JOB_FEED_COUNTRY_OPTIONS.find((option) => option.value === code)?.label ?? code.toUpperCase();
+}
+
+function countryNameList(codes: string[]): string {
+  return codes.map(countryName).join(' and ');
+}
+
+function matchUnsupportedCountry(text: string): string | null {
+  const lower = ` ${text.toLowerCase().replace(/[,/]/g, ' ')} `;
+  for (const name of UNSUPPORTED_COUNTRY_NAMES) {
+    if (lower.includes(` ${name} `)) {
+      return name.charAt(0).toUpperCase() + name.slice(1);
+    }
+  }
+  return null;
 }

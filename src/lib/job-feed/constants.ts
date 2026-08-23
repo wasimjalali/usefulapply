@@ -208,6 +208,64 @@ export const JOB_FEED_COUNTRY_OPTIONS = [
   { value: 'ae', label: 'United Arab Emirates' },
 ] as const;
 
+/** Short forms boards and people actually use, on top of the full names. */
+export const JOB_FEED_COUNTRY_ALIASES: Record<string, string> = {
+  us: 'us',
+  usa: 'us',
+  'u.s.': 'us',
+  'u.s.a.': 'us',
+  america: 'us',
+  states: 'us',
+  uk: 'gb',
+  'u.k.': 'gb',
+  britain: 'gb',
+  england: 'gb',
+  canada: 'ca',
+  germany: 'de',
+  deutschland: 'de',
+  netherlands: 'nl',
+  holland: 'nl',
+  ireland: 'ie',
+  france: 'fr',
+  spain: 'es',
+  italy: 'it',
+  switzerland: 'ch',
+  austria: 'at',
+  belgium: 'be',
+  denmark: 'dk',
+  sweden: 'se',
+  norway: 'no',
+  finland: 'fi',
+  poland: 'pl',
+  australia: 'au',
+  'new zealand': 'nz',
+  india: 'in',
+  singapore: 'sg',
+  uae: 'ae',
+};
+
+/**
+ * Find every supported country named in a free-text string. Matches full
+ * labels ("United States") and short forms ("US", "america"). Used by both
+ * the one-line setup parser and the feed chat steering intents so the two
+ * paths agree on what counts as a country. Returns ISO 3166-1 alpha-2 codes,
+ * deduped, in the order they appear.
+ */
+export function matchCountriesInText(text: string): string[] {
+  const lower = ` ${text.toLowerCase().replace(/[,/]/g, ' ')} `;
+  const countries: string[] = [];
+  const push = (code: string) => {
+    if (!countries.includes(code)) countries.push(code);
+  };
+  for (const option of JOB_FEED_COUNTRY_OPTIONS) {
+    if (lower.includes(` ${option.label.toLowerCase()} `)) push(option.value);
+  }
+  for (const [alias, code] of Object.entries(JOB_FEED_COUNTRY_ALIASES)) {
+    if (lower.includes(` ${alias} `)) push(code);
+  }
+  return countries;
+}
+
 
 // Popular cities per country. Used as quick-pick suggestions and (when the
 // user selects one) as location hints passed to SerpAPI. Users can still type

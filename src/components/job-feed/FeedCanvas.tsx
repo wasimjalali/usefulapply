@@ -6,6 +6,7 @@ import { AlertCircle, ArrowUpRight, Briefcase, Check, Loader2, SlidersHorizontal
 import { useAuth } from '@/contexts/AuthContext';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
 import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
+import { toJobFeedInput } from '@/lib/job-feed/helpers';
 import { readJobFeedQueryProgress, type JobFeedQueryProgress } from '@/lib/job-feed/types';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { useCreditsBalance } from '@/hooks/useCreditsBalance';
@@ -103,7 +104,11 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         pill={editPill}
         onPillChange={(pill) => useFeedStore.getState().setEditPill(pill)}
         onBack={() => useFeedStore.getState().backToList()}
-        onEditProfile={() => openSettings('cv')}
+        onEditProfile={() => {
+          const store = useFeedStore.getState();
+          store.startPreferencesEdit(toJobFeedInput(store.overview?.settings ?? null));
+          store.backToList();
+        }}
       />
     );
   }
