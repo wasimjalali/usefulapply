@@ -14,6 +14,8 @@ import {
   type CreditTransaction,
 } from '@/lib/supabase/credits';
 import { creditTransactionKind } from '@/lib/credit-costs';
+import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
+import { getSubscription, type Subscription } from '@/lib/supabase/accounts';
 import { Caption, PaneHeading, RowGroup } from '@/components/settings/parts';
 
 // All four derive from PLANS so a repricing in one file moves every surface.
@@ -52,23 +54,30 @@ export function UsageBillingPane() {
   const datePrefs = useDatePrefs();
   const [credits, setCredits] = useState<UserCredits | null>(null);
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [checkoutStatus, setCheckoutStatus] = useState<'idle' | 'processing' | 'complete' | 'delayed'>('idle');
   // Until the first load lands, `credits` is null and the pane would guess
   // "free", flashing the wrong plan at a paying user. Hold a spinner instead.
   const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
-    if (!user) return;
+    if (!user) return null;
     try {
-      const [creditsResult, txResult] = await Promise.all([
+      const [creditsResult, txResult, subscriptionResult] = await Promise.all([
         getUserCredits(user.id),
         getCreditTransactions(user.id, 200),
+        getSubscription(user.id),
       ]);
       if (creditsResult.credits) setCredits(creditsResult.credits);
-      setTransactions(txResult.transactions ?? []);
+      setSubscription(subscriptionResult);
+      const nextTransactions = txResult.transactions ?? [];
+      setTransactions(nextTransactions);
+      return { credits: creditsResult.credits, transactions: nextTransactions };
     } catch {
-      setError('We could not load your usage. Try again in a moment.');
+      setError("We couldn't load your usage. Try again in a moment.");
+      return null;
     } finally {
       setLoaded(true);
     }
@@ -87,17 +96,57 @@ export function UsageBillingPane() {
   // Coming back from Stripe checkout the webhook may not have landed yet.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('success') !== 'true' && params.get('addon_success') !== 'true') return;
+    const subscriptionReturn = params.get('success') === 'true' && Boolean(params.get('session_id'));
+    const addonReturn = params.get('addon_success') === 'true' && Boolean(params.get('session_id'));
+    if (!subscriptionReturn && !addonReturn) return;
+
+    const expectedPlan = params.get('plan');
+    const checkoutSessionId = params.get('session_id');
+    setCheckoutStatus('processing');
 
     let attempts = 0;
     let timer: ReturnType<typeof setTimeout>;
-    const poll = () => {
-      attempts += 1;
-      void load();
-      if (attempts < 8) timer = setTimeout(poll, 2000);
+    let cancelled = false;
+
+    const clearCheckoutParams = () => {
+      const nextParams = new URLSearchParams(window.location.search);
+      for (const key of ['settings', 'success', 'addon_success', 'session_id', 'plan']) {
+        nextParams.delete(key);
+      }
+      const query = nextParams.toString();
+      window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
     };
-    timer = setTimeout(poll, 1500);
-    return () => clearTimeout(timer);
+
+    const poll = async () => {
+      attempts += 1;
+      const result = await load();
+      if (cancelled) return;
+
+      const subscriptionReady = subscriptionReturn
+        && (expectedPlan === 'plus' || expectedPlan === 'max')
+        && result?.credits?.plan_tier === expectedPlan;
+      const addonReady = addonReturn
+        && result?.transactions.some((transaction) => transaction.metadata?.stripeSessionId === checkoutSessionId);
+
+      if (subscriptionReady || addonReady) {
+        setCheckoutStatus('complete');
+        triggerCreditUpdate();
+        clearCheckoutParams();
+        return;
+      }
+
+      if (attempts < 8) {
+        timer = setTimeout(() => { void poll(); }, 2000);
+      } else {
+        setCheckoutStatus('delayed');
+        clearCheckoutParams();
+      }
+    };
+    timer = setTimeout(() => { void poll(); }, 1500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [load]);
 
   const tier = credits?.plan_tier ?? 'free';
@@ -105,6 +154,7 @@ export function UsageBillingPane() {
   const total = credits ? getTotalCredits(credits) : 0;
   const allowance = Math.max(PLAN_ALLOWANCE[tier] ?? 4, total);
   const resets = formatDay(credits?.next_reset_date, datePrefs);
+  const planEnds = formatDay(subscription?.current_period_end, datePrefs);
 
   const spend = useMemo(() => {
     const since = credits?.last_reset_date ? new Date(credits.last_reset_date).getTime() : 0;
@@ -150,18 +200,18 @@ export function UsageBillingPane() {
   // with window.open(..., 'noopener'), which returns null by spec even when
   // the tab opens, so the blank tab was orphaned and the current page
   // navigated too. The portal's return URL brings the user back here.
-  const handlePortal = async () => {
+  const handlePortal = async (body: Record<string, unknown> = {}) => {
     setError(null);
     setBusy('portal');
     try {
-      const data = await post('/api/stripe/create-portal', {});
+      const data = await post('/api/stripe/create-portal', body);
       if (data.url) window.location.href = data.url;
       else {
-        setError('We could not open the billing portal. Try again.');
+        setError("We couldn't open the billing portal. Try again.");
         setBusy(null);
       }
     } catch {
-      setError('We could not open the billing portal. Try again.');
+      setError("We couldn't open the billing portal. Try again.");
       setBusy(null);
     }
   };
@@ -173,11 +223,11 @@ export function UsageBillingPane() {
       const data = await post(path, body);
       if (data.url) window.location.href = data.url;
       else {
-        setError('We could not start the checkout. Try again.');
+        setError("We couldn't start the checkout. Try again.");
         setBusy(null);
       }
     } catch {
-      setError('We could not start the checkout. Try again.');
+      setError("We couldn't start the checkout. Try again.");
       setBusy(null);
     }
   };
@@ -200,6 +250,20 @@ export function UsageBillingPane() {
   return (
     <div>
       <PaneHeading>Usage &amp; Billing</PaneHeading>
+
+      {checkoutStatus !== 'idle' && (
+        <div
+          className="mb-5 flex items-center gap-3 rounded-xl border border-cream-200 bg-cream-50 px-4 py-3 text-sm text-navy-800"
+          role="status"
+        >
+          {checkoutStatus === 'processing' && <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-gold-600" />}
+          <p>
+            {checkoutStatus === 'processing' && 'Your payment is processing. Your plan and credits will update here.'}
+            {checkoutStatus === 'complete' && 'Your payment is confirmed. Your plan and credits are up to date.'}
+            {checkoutStatus === 'delayed' && 'Your payment is still processing. Refresh in a moment.'}
+          </p>
+        </div>
+      )}
 
       <Caption>USAGE</Caption>
       <div className="rounded-2xl border border-cream-200 bg-cream-50 px-5 py-4">
@@ -232,7 +296,9 @@ export function UsageBillingPane() {
                 <p className="text-sm font-semibold text-navy-800">{PLAN_LABEL[tier]}</p>
                 <p className="mt-0.5 text-xs text-warm-gray">
                   {PLAN_PRICE[tier]}
-                  {resets ? ` · next invoice ${resets}` : ''}
+                  {subscription?.cancel_at_period_end && planEnds
+                    ? ` · plan ends ${planEnds}`
+                    : resets ? ` · next invoice ${resets}` : ''}
                   {' · invoices and card in Manage billing'}
                 </p>
               </div>
@@ -294,8 +360,11 @@ export function UsageBillingPane() {
                 {isTarget && (
                   <button
                     type="button"
-                    disabled={busy === 'plan'}
-                    onClick={() => { void handleCheckout('/api/stripe/create-checkout', { planTier: plan.tier }, 'plan'); }}
+                    disabled={busy === (isFree ? 'plan' : 'portal')}
+                    onClick={() => {
+                      if (isFree) void handleCheckout('/api/stripe/create-checkout', { planTier: plan.tier }, 'plan');
+                      else void handlePortal({ flow: 'subscription_update' });
+                    }}
                     className="inline-flex h-9 w-full items-center justify-center rounded-full bg-gold-400 px-4 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 disabled:opacity-60 cursor-pointer"
                   >
                     {plan.tier === 'plus' ? 'Upgrade to Plus' : 'Move to Max'}

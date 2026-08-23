@@ -219,6 +219,19 @@ export async function getChatMessages(userId: string, sessionId: string): Promis
   return rows as ChatMessage[];
 }
 
+export async function countUserChatMessages(userId: string, sessionId: string): Promise<number> {
+  const db = await getDb();
+  const rows = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(chatMessages)
+    .where(and(
+      eq(chatMessages.session_id, sessionId),
+      eq(chatMessages.user_id, userId),
+      eq(chatMessages.role, 'user'),
+    ));
+  return Number(rows[0]?.count ?? 0);
+}
+
 export async function addChatMessage(
   userId: string,
   sessionId: string,

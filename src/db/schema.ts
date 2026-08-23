@@ -115,7 +115,7 @@ export const anonymousGenerations = sqliteTable(
     ip_hash: text('ip_hash').notNull(),
     generated_at: text('generated_at').notNull().$defaultFn(isoNow),
   },
-  (t) => [index('anonymous_generations_ip_hash_idx').on(t.ip_hash)],
+  (t) => [uniqueIndex('anonymous_generations_ip_hash_uidx').on(t.ip_hash)],
 );
 
 export const contactSubmissions = sqliteTable('contact_submissions', {

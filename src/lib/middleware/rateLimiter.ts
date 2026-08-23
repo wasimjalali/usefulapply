@@ -212,8 +212,12 @@ export async function checkRateLimit(key: string, config: RateLimitConfig): Prom
  * to it), so it is only a fallback for local dev and tests.
  */
 export function getClientIP(request: Request): string {
+  const cloudflareIp = request.headers.get('cf-connecting-ip')?.trim();
+  if (process.env.NODE_ENV === 'production') {
+    return cloudflareIp || 'unknown';
+  }
   return (
-    request.headers.get('cf-connecting-ip')?.trim() ||
+    cloudflareIp ||
     request.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() ||
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     request.headers.get('x-real-ip') ||

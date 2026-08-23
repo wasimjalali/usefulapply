@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     const tierLimits = getJobFeedTierLimits(profile.subscription_tier);
 
     const url = new URL(request.url);
-    const offset = Number.parseInt(url.searchParams.get('offset') ?? '0', 10) || 0;
+    const offset = Math.max(0, Number.parseInt(url.searchParams.get('offset') ?? '0', 10) || 0);
     const limitRaw = Number.parseInt(url.searchParams.get('limit') ?? '10', 10) || 10;
     const limit = Math.min(MAX_PAGE_LIMIT, Math.max(1, limitRaw));
 

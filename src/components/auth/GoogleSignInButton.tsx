@@ -19,9 +19,14 @@ export function GoogleSignInButton({ label, onError, next }: GoogleSignInButtonP
 
   const handleClick = async () => {
     setIsLoading(true);
-    const { error } = await signInWithGoogle(next);
-    if (error) {
-      onError(error.message);
+    try {
+      const { error } = await signInWithGoogle(next);
+      if (error) {
+        onError(error.message);
+        setIsLoading(false);
+      }
+    } catch {
+      onError('Google sign in did not start. Check your connection and try again.');
       setIsLoading(false);
     }
     // On success the browser navigates to Google, so leave the loading state on.

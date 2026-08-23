@@ -91,6 +91,7 @@ export type RegenResult =
   | { ok: false; code: 'INSUFFICIENT_CREDITS'; required: number; available: number }
   | { ok: false; code: 'NO_CONTEXT' }
   | { ok: false; code: 'SIGNED_OUT' }
+  | { ok: false; code: 'REQUEST_IN_PROGRESS' | 'REQUEST_ALREADY_COMPLETED' }
   | { ok: false; code: 'ERROR' };
 
 function buildContext() {
@@ -194,6 +195,12 @@ export async function regenerateDocument(
         available: data?.details?.available ?? 0,
       };
     }
+    if (response.status === 409) {
+      const data = await response.json().catch(() => null);
+      if (data?.code === 'REQUEST_IN_PROGRESS' || data?.code === 'REQUEST_ALREADY_COMPLETED') {
+        return { ok: false, code: data.code };
+      }
+    }
     if (!response.ok) {
       console.error('[Regenerate] failed:', response.status);
       return { ok: false, code: 'ERROR' };
@@ -208,15 +215,18 @@ export async function regenerateDocument(
 
     if (target === 'cover-letter') {
       if (typeof data.coverLetter !== 'string' || !data.coverLetter.trim()) return { ok: false, code: 'ERROR' };
-      // Body-only format (3-agent architecture)
+      const sessionState = useSessionStore.getState();
+      const existingLetter = sessionState.sessions.find((session) => session.id === sessionId)?.coverLetter
+        ?? (sessionState.currentSession?.id === sessionId ? sessionState.currentSession.coverLetter : undefined);
       const letter: GeneratedCoverLetter = {
-        applicantAddress: { name: '', street: '', city: '', country: '', phone: '', email: '' },
-        date: '',
-        companyAddress: { companyName: '', street: '' },
-        salutation: '',
+        applicantAddress: existingLetter?.applicantAddress
+          ?? { name: '', street: '', city: '', country: '', phone: '', email: '' },
+        date: existingLetter?.date ?? '',
+        companyAddress: existingLetter?.companyAddress ?? { companyName: '', street: '' },
+        salutation: existingLetter?.salutation ?? '',
         body: data.coverLetter,
-        closing: '',
-        signatureName: '',
+        closing: existingLetter?.closing ?? '',
+        signatureName: existingLetter?.signatureName ?? '',
         updatedAt: new Date().toISOString(),
       };
       update({ coverLetter: letter });

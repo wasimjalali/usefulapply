@@ -8,12 +8,14 @@ import { type MasterContext } from '@/lib/agents/types';
 import { getCurrentUser } from '@/auth/server';
 import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
 import { reserveCredits, captureReservation, releaseReservation } from '@/lib/supabase/credit-reservations';
-import { detectLanguage } from '@/lib/utils/language-detector';
+import { detectLanguage, normalizeLanguage } from '@/lib/utils/language-detector';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { randomUUID } from 'crypto';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import { MAX_INSTRUCTION_CHARS, flattenInstruction } from '@/lib/agents/chat-tools/untrusted';
+import { getSession, updateSession } from '@/db/repos/sessions';
+import { getDocumentByType, type Document } from '@/db/repos/documents';
 
 /**
  * API endpoint for regenerating cover letter or email
@@ -23,23 +25,22 @@ export async function POST(request: NextRequest) {
   let activeReservationKey: string | null = null;
   let activeReservationUserId: string | null = null;
   try {
-    // Rate limiting
+    // Get authenticated user before choosing a fallback limiter key.
     const clientIP = getClientIP(request);
-    const rateLimitResult = await checkRateLimit(`regenerate:${clientIP}`, RATE_LIMITS['regenerate']);
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please wait a moment.' },
-        { status: 429 }
-      );
-    }
-
-    // Get authenticated user
     const user = await getCurrentUser(request);
-    
     if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
+      );
+    }
+
+    const limiterSubject = clientIP === 'unknown' ? `user:${user.id}` : clientIP;
+    const rateLimitResult = await checkRateLimit(`regenerate:${limiterSubject}`, RATE_LIMITS['regenerate']);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a moment.' },
+        { status: 429 }
       );
     }
 
@@ -52,6 +53,38 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const sessionId = typeof context.sessionId === 'string' ? context.sessionId.trim() : '';
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+    }
+    const session = await getSession(user.id, sessionId);
+    if (!session) {
+      return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+    }
+    const [primaryCv, storedMasterCv] = await Promise.all([
+      getDocumentByType(user.id, 'primary_cv'),
+      getDocumentByType(user.id, 'master_cv'),
+    ]);
+    const rawCV = primaryCv?.raw_text?.trim() || '';
+    if (!rawCV) {
+      return NextResponse.json({ error: 'We need your CV to rewrite this.', code: 'NO_SOURCE_CV' }, { status: 400 });
+    }
+    const storedGeneratedCv = session.generated_cv && typeof session.generated_cv === 'object'
+      ? session.generated_cv as Record<string, unknown>
+      : null;
+    const storedOptimizedCvData = storedGeneratedCv?._optimizedCVData
+      ?? storedGeneratedCv;
+    const artifactContext = sourceContextFromArtifacts(session.generated_artifacts);
+    const documentApplicant = mergeApplicants(
+      applicantFromDocument(primaryCv),
+      applicantFromDocument(storedMasterCv),
+    );
+    const applicant = artifactContext.applicant
+      ?? documentApplicant
+      ?? applicantFromStructuredData(storedOptimizedCvData);
+    const verifiedMetrics = artifactContext.verifiedMetrics
+      ?? verifiedMetricsFromDocuments(primaryCv, storedMasterCv);
 
     // A rewrite instruction typed by the user in the chat composer. It is
     // user-authored, not ad-authored, but it still rides into a prompt, so it
@@ -86,20 +119,14 @@ export async function POST(request: NextRequest) {
       // a document that is not there, and the claim guard refuses everything,
       // since no word in the rewrite can be traced. Neither answer is worth
       // charging for, so refuse before anything is reserved.
-      if (typeof context.rawCV !== 'string' || !context.rawCV.trim()) {
-        return NextResponse.json(
-          { error: 'We need your CV to rewrite a section of it.', code: 'NO_SOURCE_CV' },
-          { status: 400 }
-        );
-      }
-      if (!context.optimizedCVData || typeof context.optimizedCVData !== 'object') {
+      if (!storedOptimizedCvData || typeof storedOptimizedCvData !== 'object') {
         return NextResponse.json(
           { error: 'There is no generated CV on this application yet, so there is no section to rewrite.', code: 'NO_CV_DATA' },
           { status: 400 }
         );
       }
       resolvedSection = resolveCVSectionTarget(
-        context.optimizedCVData,
+        storedOptimizedCvData as NonNullable<MasterContext['optimizedCVData']>,
         (section ?? {}) as { kind?: unknown; id?: unknown },
       );
       if (!resolvedSection) {
@@ -128,12 +155,24 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       action: creditAction,
       idempotencyKey: reservationKey,
-      sessionId: context.sessionId || null,
+      sessionId: session.id,
     });
 
     if (!reserveResult.success) {
       if (reserveResult.error) {
         console.warn('[Regenerate API] Credit reservation failed:', reserveResult.error);
+      }
+      if (reserveResult.code === 'RESERVATION_IN_FLIGHT') {
+        return NextResponse.json(
+          { error: 'That request is still running.', code: 'REQUEST_IN_PROGRESS' },
+          { status: 409 },
+        );
+      }
+      if (reserveResult.code === 'RESERVATION_SPENT') {
+        return NextResponse.json(
+          { error: 'That request already finished.', code: 'REQUEST_ALREADY_COMPLETED' },
+          { status: 409 },
+        );
       }
       return NextResponse.json(
         {
@@ -150,8 +189,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get detected language - from context or detect from job description
-    const detectedLanguage = context.detectedLanguage || 
-                             detectLanguage(context.jobDescription || '');
+    const detectedLanguage = detectLanguage(session.job_description || '');
     
     console.log('[Regenerate API] Using language:', detectedLanguage);
 
@@ -160,16 +198,26 @@ export async function POST(request: NextRequest) {
     // so that anti-hallucination rules have the same source data as first generation
     const masterContext: MasterContext = {
       sessionId: context.sessionId || 'regenerate-session',
-      jobDescription: context.jobDescription || '',
-      rawCV: context.rawCV || '',
-      masterCV: context.masterCV,
+      jobDescription: session.job_description,
+      rawCV,
+      masterCV: storedMasterCv?.raw_text || undefined,
       detectedLanguage: detectedLanguage,
-      userLanguageOverride: context.userLanguageOverride,
-      applicant: context.applicant,
-      job: context.job,
-      companyResearch: context.companyResearch,
-      match: context.match,
-      verifiedMetrics: context.verifiedMetrics,
+      userLanguageOverride: context.userLanguageOverride === undefined
+        ? undefined
+        : normalizeLanguage(context.userLanguageOverride),
+      applicant,
+      job: jobFromSession(session),
+      companyResearch: session.company_research && typeof session.company_research === 'object'
+        ? session.company_research as MasterContext['companyResearch']
+        : undefined,
+      match: session.matching_skills.length > 0 || session.missing_skills.length > 0
+        ? {
+            score: session.match_score ?? 0,
+            matchingSkills: session.matching_skills,
+            missingSkills: session.missing_skills,
+          }
+        : undefined,
+      verifiedMetrics,
       userInstruction,
     };
     const generationContext: LlmGenerationContext = {
@@ -225,7 +273,20 @@ export async function POST(request: NextRequest) {
 
     if (type === 'cover-letter') {
       const { result: coverLetter, tokens } = await unifiedWriterAgent.generateCoverLetter(masterContext, generationContext);
+      if (!coverLetter.trim()) {
+        throw new Error('Empty cover letter generation');
+      }
       trackRegenLLM('regen_cover_letter', tokens);
+      const existingCoverLetter = session.cover_letter && typeof session.cover_letter === 'object'
+        ? session.cover_letter as Record<string, unknown>
+        : {};
+      const persistedCoverLetter = {
+        ...existingCoverLetter,
+        body: coverLetter,
+        updatedAt: new Date().toISOString(),
+      };
+      const persist = await updateSession(user.id, session.id, { cover_letter: persistedCoverLetter });
+      if (persist.error) throw persist.error;
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({
         coverLetter,
@@ -234,7 +295,18 @@ export async function POST(request: NextRequest) {
       });
     } else if (type === 'email') {
       const { result: email, tokens } = await unifiedWriterAgent.generateApplicationEmail(masterContext, generationContext);
+      if (!email?.subject?.trim() || !email?.body?.trim()) {
+        throw new Error('Empty application email generation');
+      }
       trackRegenLLM('regen_email', tokens);
+      const persist = await updateSession(user.id, session.id, {
+        email: {
+          subject: email.subject,
+          body: email.body,
+          attachmentNote: 'Please find my CV and cover letter attached.',
+        },
+      });
+      if (persist.error) throw persist.error;
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({
         email,
@@ -242,11 +314,25 @@ export async function POST(request: NextRequest) {
         tokens,
       });
     } else if (type === 'follow_up_email') {
-      if (context.applicationEmail) {
-        masterContext.applicationEmail = context.applicationEmail;
+      if (session.email && typeof session.email === 'object') {
+        const storedEmail = session.email as Record<string, unknown>;
+        if (typeof storedEmail.subject === 'string' && typeof storedEmail.body === 'string') {
+          masterContext.applicationEmail = { subject: storedEmail.subject, body: storedEmail.body };
+        }
       }
       const { result: followUpEmail, tokens } = await unifiedWriterAgent.generateFollowUpEmail(masterContext, generationContext);
+      if (!followUpEmail?.subject?.trim() || !followUpEmail?.body?.trim()) {
+        throw new Error('Empty follow-up email generation');
+      }
       trackRegenLLM('regen_follow_up_email', tokens);
+      const persist = await updateSession(user.id, session.id, {
+        follow_up_email: {
+          subject: followUpEmail.subject,
+          body: followUpEmail.body,
+          recommendedDelay: followUpEmail.recommendedDelay || 5,
+        },
+      });
+      if (persist.error) throw persist.error;
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({
         followUpEmail,
@@ -330,7 +416,7 @@ export async function POST(request: NextRequest) {
           userId: activeReservationUserId,
           reason: error instanceof Error ? error.message : 'regen_error',
         });
-      } catch (_releaseErr) { /* best-effort refund */ }
+      } catch { /* best-effort refund */ }
     }
     // Track regeneration error in PostHog
     try {
@@ -355,10 +441,177 @@ export async function POST(request: NextRequest) {
         feature: 'regeneration',
       });
       await posthog.flush();
-    } catch (_) { /* ignore PostHog errors */ }
+    } catch { /* ignore PostHog errors */ }
     return NextResponse.json(
       { error: 'Failed to regenerate content' },
       { status: 500 }
     );
   }
+}
+
+function readString(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function readRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function readStringList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+    : [];
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+}
+
+function readDate(value: unknown): string | undefined {
+  if (typeof value === 'string') return value || undefined;
+  const date = readRecord(value);
+  return readString(date?.raw) || undefined;
+}
+
+function applicantFromStructuredData(structured: unknown): MasterContext['applicant'] | undefined {
+  const data = readRecord(structured);
+  const personal = readRecord(data?.personal);
+  if (!data || !personal) return undefined;
+
+  const name = readString(personal.fullName);
+  const email = readString(personal.email);
+  const experiences = Array.isArray(data.experience)
+    ? data.experience.flatMap((value) => {
+        const item = readRecord(value);
+        if (!item) return [];
+        return [{
+          company: readString(item.company),
+          title: readString(item.position) || readString(item.title),
+          startDate: readDate(item.startDate),
+          endDate: readDate(item.endDate),
+          bullets: readStringList(item.bullets),
+        }];
+      })
+    : [];
+  const skillGroups = Array.isArray(data.skills) ? data.skills : [];
+  const skills = skillGroups.flatMap((value) => {
+    const item = readRecord(value);
+    return readStringList(item?.skills ?? item?.items);
+  });
+  const projects = Array.isArray(data.projects) ? data.projects : [];
+  const tools = [
+    ...experiences.flatMap((_, index) => {
+      const item = readRecord((data.experience as unknown[])[index]);
+      return readStringList(item?.technologies);
+    }),
+    ...projects.flatMap((value) => readStringList(readRecord(value)?.technologies)),
+  ];
+  const languages = Array.isArray(data.languages)
+    ? data.languages.flatMap((value) => {
+        const item = readRecord(value);
+        if (!item) return [];
+        const language = readString(item.language);
+        const proficiency = readString(item.proficiency);
+        return language ? [`${language}${proficiency ? ` ${proficiency}` : ''}`] : [];
+      })
+    : [];
+  const certifications = Array.isArray(data.certifications)
+    ? data.certifications.flatMap((value) => {
+        const item = readRecord(value);
+        if (!item) return [];
+        const name = readString(item.name);
+        const issuer = readString(item.issuer);
+        return name ? [`${name}${issuer ? ` (${issuer})` : ''}`] : [];
+      })
+    : [];
+
+  if (!name && !email && experiences.length === 0 && skills.length === 0) return undefined;
+  return {
+    name,
+    email,
+    phone: readString(personal.phone) || undefined,
+    address: [personal.address, personal.city, personal.country]
+      .filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))
+      .join(', ') || undefined,
+    headline: readString(personal.currentTitle) || undefined,
+    skills: uniqueStrings(skills),
+    tools: uniqueStrings(tools),
+    languages: uniqueStrings(languages),
+    experiences,
+    certifications: uniqueStrings(certifications),
+  };
+}
+
+function applicantFromDocument(doc: Document | null): MasterContext['applicant'] | undefined {
+  return applicantFromStructuredData(doc?.structured_data);
+}
+
+function mergeApplicants(
+  primary: MasterContext['applicant'] | undefined,
+  master: MasterContext['applicant'] | undefined,
+): MasterContext['applicant'] | undefined {
+  if (!primary) return master;
+  if (!master) return primary;
+  return {
+    name: primary.name || master.name,
+    email: primary.email || master.email,
+    phone: primary.phone || master.phone,
+    address: primary.address || master.address,
+    headline: primary.headline || master.headline,
+    skills: uniqueStrings([...primary.skills, ...master.skills]),
+    tools: uniqueStrings([...primary.tools, ...master.tools]),
+    languages: uniqueStrings([...primary.languages, ...master.languages]),
+    experiences: [...primary.experiences, ...master.experiences],
+    certifications: uniqueStrings([...primary.certifications, ...master.certifications]),
+  };
+}
+
+function sourceContextFromArtifacts(artifacts: unknown): {
+  applicant?: MasterContext['applicant'];
+  verifiedMetrics?: string[];
+} {
+  const root = readRecord(artifacts);
+  const source = readRecord(root?.sourceContext)
+    ?? readRecord(readRecord(root?.pendingFitAnalysis)?.contextData);
+  const applicant = readRecord(source?.applicant) as MasterContext['applicant'] | null;
+  const verifiedMetrics = readStringList(source?.verifiedMetrics);
+  return {
+    applicant: applicant ?? undefined,
+    verifiedMetrics: verifiedMetrics.length > 0 ? verifiedMetrics : undefined,
+  };
+}
+
+function verifiedMetricsFromDocuments(...docs: Array<Document | null>): string[] | undefined {
+  const metrics = docs.flatMap((doc) => {
+    const structured = readRecord(doc?.structured_data);
+    const summary = readString(structured?.summary);
+    const experiences = Array.isArray(structured?.experience) ? structured.experience : [];
+    return [summary, ...experiences.flatMap((value) => readStringList(readRecord(value)?.bullets))]
+      .filter((value) => /\d/.test(value));
+  });
+  const unique = uniqueStrings(metrics);
+  return unique.length > 0 ? unique : undefined;
+}
+
+function jobFromSession(session: Awaited<ReturnType<typeof getSession>>): MasterContext['job'] | undefined {
+  if (!session) return undefined;
+  const requirements = session.requirements && typeof session.requirements === 'object'
+    ? session.requirements as Record<string, unknown>
+    : null;
+  const list = (value: unknown): string[] => Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
+  return {
+    title: readString(requirements?.title) || session.job_title || '',
+    companyName: readString(requirements?.company) || session.company || '',
+    location: readString(requirements?.location) || undefined,
+    workType: readString(requirements?.workType) || undefined,
+    requiredSkills: list(requirements?.hardSkills),
+    niceToHaveSkills: list(requirements?.niceToHave),
+    responsibilities: list(requirements?.responsibilities),
+    startDate: readString(requirements?.startDate) || undefined,
+    expectedSalary: readString(requirements?.expectedSalary) || undefined,
+  };
 }

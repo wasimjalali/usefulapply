@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { AuthShell } from '@/components/auth/AuthShell';
@@ -10,7 +11,12 @@ import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 
 const MIN_PASSWORD = 8;
 
-export default function SignUpPage() {
+function SignUpForm() {
+  const searchParams = useSearchParams();
+  const planParam = searchParams.get('plan');
+  const plan = planParam === 'plus' || planParam === 'max' ? planParam : undefined;
+  const next = plan ? `/pricing?checkout=${plan}` : undefined;
+  const loginHref = next ? `/auth/login?next=${encodeURIComponent(next)}` : '/auth/login';
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,7 +34,7 @@ export default function SignUpPage() {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, resendOnly: true }),
+        body: JSON.stringify({ email, resendOnly: true, plan }),
       });
       if (res.ok) {
         setHasResent(true);
@@ -57,7 +63,7 @@ export default function SignUpPage() {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, fullName }),
+        body: JSON.stringify({ email, password, fullName, plan }),
       });
       if (res.ok) {
         setSent(true);
@@ -76,7 +82,7 @@ export default function SignUpPage() {
 
   if (sent) {
     return (
-      <AuthShell linkLabel="Log in" linkHref="/auth/login">
+      <AuthShell linkLabel="Log in" linkHref={loginHref}>
         <CheckEmailCard
           email={email}
           onResend={handleResend}
@@ -95,7 +101,7 @@ export default function SignUpPage() {
   }
 
   return (
-    <AuthShell linkLabel="Log in" linkHref="/auth/login">
+    <AuthShell linkLabel="Log in" linkHref={loginHref}>
       <div className={AUTH_CARD}>
         <h1 className="text-2xl font-semibold text-navy-800">Create your free account</h1>
         <p className="mt-1.5 text-sm text-warm-gray">4 credits a month, no card.</p>
@@ -103,7 +109,7 @@ export default function SignUpPage() {
         {formError && <p className="mt-3 text-sm text-red-600">{formError}</p>}
 
         <div className="mt-6">
-          <GoogleSignInButton label="Continue with Google" onError={setFormError} />
+          <GoogleSignInButton label="Continue with Google" onError={setFormError} next={next} />
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -157,12 +163,20 @@ export default function SignUpPage() {
       <p className="mt-5 text-center text-sm text-warm-gray">
         Already have an account?{' '}
         <Link
-          href="/auth/login"
+          href={loginHref}
           className="font-semibold text-navy-800 transition-colors duration-200 hover:text-navy-600 cursor-pointer"
         >
           Log in
         </Link>
       </p>
     </AuthShell>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-cream-100" />}>
+      <SignUpForm />
+    </Suspense>
   );
 }

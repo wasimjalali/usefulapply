@@ -22,15 +22,23 @@ import {
 import { getCurrentUser } from '@/auth/server';
 import { getSession, updateSession } from '@/db/repos/sessions';
 import { getJobPreferences } from '@/db/repos/jobFeed';
-import { hasAnonymousGeneration, recordAnonymousGeneration } from '@/db/repos/anonymous';
+import { claimAnonymousGeneration, releaseAnonymousGeneration } from '@/db/repos/anonymous';
 import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
-import { reserveCredits, captureReservation, releaseReservation } from '@/lib/supabase/credit-reservations';
+import {
+  reserveCredits,
+  captureReservation,
+  releaseReservation,
+  canUseFitContinuation,
+  claimFitContinuation,
+  releaseFitContinuationClaim,
+} from '@/lib/supabase/credit-reservations';
 import { transitionJobFeedApplicationGenerationAdmin } from '@/lib/job-feed/server';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { randomUUID, createHash } from 'crypto';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
+import type { ReserveCreditResult } from '@/lib/supabase/credit-reservations';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -59,6 +67,25 @@ const CONTEXT_CACHE_TTL_SECONDS = 30 * 60;
 const CONTEXT_CACHE_TTL_MS = CONTEXT_CACHE_TTL_SECONDS * 1000;
 const MAX_CACHE_SIZE = 100; // Prevent unbounded memory growth
 
+function reservationErrorPayload(result: ReserveCreditResult, required: number) {
+  if (result.code === 'RESERVATION_IN_FLIGHT') {
+    return { type: 'error', code: 'REQUEST_IN_PROGRESS', message: 'This request is already in progress.' };
+  }
+  if (result.code === 'RESERVATION_SPENT') {
+    return { type: 'error', code: 'REQUEST_ALREADY_COMPLETED', message: 'This request already completed.' };
+  }
+  return {
+    type: 'error',
+    code: 'INSUFFICIENT_CREDITS',
+    message: result.error || 'Insufficient credits',
+    details: {
+      required: result.required ?? required,
+      available: result.available ?? 0,
+      upgradeRequired: true,
+    },
+  };
+}
+
 async function getContextCacheKv(): Promise<ContextCacheKv | undefined> {
   try {
     const { env } = await getCloudflareContext({ async: true });
@@ -70,8 +97,8 @@ async function getContextCacheKv(): Promise<ContextCacheKv | undefined> {
 }
 
 // Cache keys are scoped to the owning user so a leaked or guessed contextId
-// can never read another user's parsed CV. Anonymous callers get a shared
-// "anon" scope, which matches the pre-existing anonymous flow.
+// can never read another user's parsed CV. Anonymous callers are scoped by
+// their server-derived IP hash.
 function contextCacheKey(ownerId: string, contextId: string): string {
   return `${ownerId}:${contextId}`;
 }
@@ -146,25 +173,29 @@ async function persistGeneratedArtifacts(
   sessionId: string | undefined,
   userId: string,
   results: Record<string, unknown>,
-): Promise<boolean> {
-  if (!sessionId || sessionId.startsWith('session-') || sessionId.startsWith('fit-')) return false;
+): Promise<void> {
+  if (!sessionId || !userId || sessionId.startsWith('session-') || sessionId.startsWith('fit-')) {
+    console.warn('[agent-v2] Generated artifacts were not persisted because no stored session was available');
+    return;
+  }
   try {
-    await updateSession(userId, sessionId, { generated_artifacts: results });
-    return true;
-  } catch (e) {
-    console.error('[agent-v2] Artifact persistence error:', e);
-    return false;
+    const persisted = await updateSession(userId, sessionId, { generated_artifacts: results });
+    if (persisted.error) {
+      console.error('[agent-v2] Failed to persist generated artifacts:', persisted.error);
+    }
+  } catch (error) {
+    console.error('[agent-v2] Failed to persist generated artifacts:', error);
   }
 }
 
 // Post-generation bookkeeping is best-effort: a D1 write failure here must
 // never discard output the model already produced. Reservation capture that
 // fails leaves the row 'reserved' for the stale sweeper to release.
-async function recordAnonymousGenerationSafe(ipHash: string): Promise<void> {
+async function releaseAnonymousGenerationSafe(ipHash: string): Promise<void> {
   try {
-    await recordAnonymousGeneration(ipHash);
+    await releaseAnonymousGeneration(ipHash);
   } catch (e) {
-    console.error('[agent-v2] Failed to record anonymous generation:', e);
+    console.error('[agent-v2] Failed to release anonymous generation claim:', e);
   }
 }
 
@@ -311,12 +342,31 @@ export async function POST(request: NextRequest) {
 
       let activeReservationKey: string | null = null;
       let activeReservationUserId: string | null = null;
+      let authenticatedUserId: string | null = null;
       let resolvedSessionId: string | undefined;
+      let anonymousClaimHash: string | null = null;
+      let activeFitContinuation: { userId: string; contextId: string; requestId: string } | null = null;
 
       try {
-        // Rate limiting
+        // Authenticate before choosing a fallback limiter key. Anonymous
+        // generation still requires a trusted edge IP for its free-use gate.
         const clientIP = getClientIP(request);
-        const rateLimitResult = await checkRateLimit(`agent-v2:${clientIP}`, RATE_LIMITS['agent-v2']);
+        const user = await getCurrentUser(request);
+        authenticatedUserId = user?.id ?? null;
+        const isAnonymous = !user;
+        distinctId = user?.id || 'anonymous';
+
+        if (isAnonymous && process.env.NODE_ENV === 'production' && clientIP === 'unknown') {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'error',
+            message: "We couldn't verify this request. Please try again.",
+          })}\n\n`));
+          controller.close();
+          return;
+        }
+
+        const limiterSubject = clientIP === 'unknown' && user ? `user:${user.id}` : clientIP;
+        const rateLimitResult = await checkRateLimit(`agent-v2:${limiterSubject}`, RATE_LIMITS['agent-v2']);
         if (!rateLimitResult.allowed) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'error',
@@ -325,11 +375,6 @@ export async function POST(request: NextRequest) {
           controller.close();
           return;
         }
-
-        // Get authenticated user (optional — anonymous users get one free generation)
-        const user = await getCurrentUser(request);
-        const isAnonymous = !user;
-        distinctId = user?.id || 'anonymous';
 
         // Fetch job preferences for cover letter context (best-effort, never blocks generation)
         let jobPreferences: import('@/lib/agents/types').MasterContext['jobPreferences'] = undefined;
@@ -411,22 +456,13 @@ export async function POST(request: NextRequest) {
         // Server-side anonymous tracking. Without an account the only thing on
         // offer is one fit check per IP; every kit needs a signed-in user.
         const ipHash = hashIP(clientIP);
+        const contextOwnerId = user?.id ?? `anon:${ipHash}`;
         if (isAnonymous) {
           if (action !== 'fit_analysis') {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'error',
               code: 'ANONYMOUS_LIMIT_REACHED',
               message: 'Create a free account to generate the kit. 4 credits included, no card.',
-            })}\n\n`));
-            controller.close();
-            return;
-          }
-          const alreadyUsed = await hasAnonymousGeneration(ipHash);
-          if (alreadyUsed) {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-              type: 'error',
-              code: 'ANONYMOUS_LIMIT_REACHED',
-              message: 'You have already used your free fit check. Create a free account to continue.',
             })}\n\n`));
             controller.close();
             return;
@@ -525,6 +561,22 @@ export async function POST(request: NextRequest) {
             return;
           }
 
+          if (isAnonymous) {
+            const claimed = await claimAnonymousGeneration(ipHash);
+            if (!claimed) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'error',
+                code: 'ANONYMOUS_LIMIT_REACHED',
+                message: 'You have already used your free fit check. Create a free account to continue.',
+              })}\n\n`));
+              controller.close();
+              return;
+            }
+            anonymousClaimHash = ipHash;
+          }
+
+          const fitContextId = `ctx-${randomUUID()}`;
+
           // Reserve 0.5 credits for fit analysis (skip for anonymous users — free generation)
           if (!isAnonymous) {
             const reservationKey = `fit_analysis:${user!.id}:${clientRequestId}`;
@@ -532,18 +584,13 @@ export async function POST(request: NextRequest) {
               userId: user!.id,
               action: 'FIT_ANALYSIS',
               idempotencyKey: reservationKey,
+              sessionId: clientSessionId,
+              metadata: { context_id: fitContextId },
             });
             if (!reserveResult.success) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                type: 'error',
-                code: 'INSUFFICIENT_CREDITS',
-                message: reserveResult.error || 'Insufficient credits',
-                details: {
-                  required: reserveResult.required ?? CREDIT_COSTS.FIT_ANALYSIS,
-                  available: reserveResult.available ?? 0,
-                  upgradeRequired: true,
-                },
-              })}\n\n`));
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(
+                reservationErrorPayload(reserveResult, CREDIT_COSTS.FIT_ANALYSIS),
+              )}\n\n`));
               controller.close();
               return;
             }
@@ -579,22 +626,34 @@ export async function POST(request: NextRequest) {
             const ctx = result.data.context;
 
             // Cache the context for reuse in generate_with_context
-            const cachedContextId = `ctx-${randomUUID()}`;
-            await cacheContext(user?.id ?? 'anon', cachedContextId, ctx);
+            await cacheContext(contextOwnerId, fitContextId, ctx);
+
+            if (user) {
+              await persistGeneratedArtifacts(clientSessionId, user.id, {
+                pendingFitAnalysis: {
+                  contextId: fitContextId,
+                  jobDescription,
+                  contextData: {
+                    applicant: ctx.applicant,
+                    job: ctx.job,
+                    match: ctx.match,
+                    verifiedMetrics: ctx.verifiedMetrics,
+                    detectedLanguage: ctx.detectedLanguage,
+                    fitAnalysis: ctx.fitAnalysis,
+                  },
+                  createdAt: new Date().toISOString(),
+                },
+              });
+            }
 
             // Capture reservation — fit analysis produced usable results
             if (activeReservationKey && activeReservationUserId) {
               await captureReservationSafe({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
               activeReservationKey = null;
             }
-            // The free anonymous fit check is spent once it produced a verdict.
-            if (isAnonymous) {
-              await recordAnonymousGenerationSafe(ipHash);
-            }
-
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'fit_analysis_complete',
-              contextId: cachedContextId,
+              contextId: fitContextId,
               fitAnalysis: ctx.fitAnalysis,
               job: ctx.job,
               match: ctx.match,
@@ -603,6 +662,8 @@ export async function POST(request: NextRequest) {
               verifiedMetrics: ctx.verifiedMetrics,
               detectedLanguage: ctx.detectedLanguage,
             })}\n\n`));
+            // The claim becomes final only after its result entered the response stream.
+            anonymousClaimHash = null;
           } else {
             throw new Error(result.error || 'Fit analysis failed');
           }
@@ -625,8 +686,58 @@ export async function POST(request: NextRequest) {
             return;
           }
 
+          const canUseDiscount = user
+            ? await canUseFitContinuation(user.id, contextId, clientRequestId)
+            : false;
+          const reserveContinuation = async () => {
+            let action = canUseDiscount ? 'GENERATION_AFTER_FIT' as const : 'FULL_APPLICATION' as const;
+            let key = `${action === 'GENERATION_AFTER_FIT' ? 'generation_after_fit' : 'full_application'}:${user!.id}:${clientRequestId}`;
+            let result = await reserveCredits({
+              userId: user!.id,
+              action,
+              idempotencyKey: key,
+              sessionId: clientSessionId,
+            });
+            if (result.success) {
+              activeReservationKey = key;
+              activeReservationUserId = user!.id;
+            }
+
+            if (result.success && action === 'GENERATION_AFTER_FIT') {
+              const claimed = await claimFitContinuation(user!.id, contextId, clientRequestId);
+              if (claimed) {
+                activeFitContinuation = { userId: user!.id, contextId, requestId: clientRequestId };
+              } else {
+                const released = await releaseReservation({
+                  userId: user!.id,
+                  idempotencyKey: key,
+                  reason: 'fit_continuation_claim_lost',
+                });
+                if (!released.success) {
+                  throw new Error('Failed to release a superseded continuation reservation');
+                }
+                activeReservationKey = null;
+                activeReservationUserId = null;
+                action = 'FULL_APPLICATION';
+                key = `full_application:${user!.id}:${clientRequestId}`;
+                result = await reserveCredits({
+                  userId: user!.id,
+                  action,
+                  idempotencyKey: key,
+                  sessionId: clientSessionId,
+                });
+                if (result.success) {
+                  activeReservationKey = key;
+                  activeReservationUserId = user!.id;
+                }
+              }
+            }
+
+            return { result, key, cost: CREDIT_COSTS[action] };
+          };
+
           // Retrieve cached context
-          let cachedContext = await getCachedContext(user?.id ?? 'anon', contextId);
+          let cachedContext = await getCachedContext(contextOwnerId, contextId);
           
           if (!cachedContext) {
             // Validate client-sent context data structure before using it
@@ -669,36 +780,17 @@ export async function POST(request: NextRequest) {
               console.warn('[API_AGENT_V2] Context cache miss AND no client context data, falling back to full optimization');
 
               if (!isAnonymous) {
-                // Reaching this fallback means fit_analysis already ran in this flow
-                // (and was billed 0.5 credits) but the context cache is gone. Charge the
-                // remaining generation slice only, so total stays 2.0 instead of 2.5.
-                const fallbackKey = `generation_after_fit:${user!.id}:${clientRequestId}`;
-                const reserveResult = await reserveCredits({
-                  userId: user!.id,
-                  action: 'GENERATION_AFTER_FIT',
-                  idempotencyKey: fallbackKey,
-                  sessionId: clientSessionId,
-                });
-                if (!reserveResult.success) {
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                    type: 'error',
-                    code: 'INSUFFICIENT_CREDITS',
-                    message: reserveResult.error || 'Insufficient credits',
-                    details: {
-                      required: reserveResult.required ?? CREDIT_COSTS.GENERATION_AFTER_FIT,
-                      available: reserveResult.available ?? 0,
-                      upgradeRequired: true,
-                    },
-                  })}\n\n`));
+                const continuation = await reserveContinuation();
+                if (!continuation.result.success) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(
+                    reservationErrorPayload(continuation.result, continuation.cost),
+                  )}\n\n`));
                   controller.close();
                   return;
                 }
-                activeReservationKey = fallbackKey;
-                activeReservationUserId = user!.id;
-
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                   type: 'credits_deducted',
-                  creditsUsed: CREDIT_COSTS.GENERATION_AFTER_FIT,
+                  creditsUsed: continuation.cost,
                 })}\n\n`));
               }
 
@@ -721,10 +813,6 @@ export async function POST(request: NextRequest) {
 
               if (result.success && result.data) {
                 const ctx = result.data.context;
-                if (isAnonymous) {
-                  await recordAnonymousGenerationSafe(ipHash);
-                }
-
                 const fallbackResults = {
                   job: ctx.job,
                   companyResearch: ctx.companyResearch,
@@ -734,6 +822,10 @@ export async function POST(request: NextRequest) {
                   coverLetter: ctx.coverLetter,
                   applicationEmail: ctx.applicationEmail,
                   followUpEmail: ctx.followUpEmail || null,
+                  sourceContext: {
+                    applicant: ctx.applicant,
+                    verifiedMetrics: ctx.verifiedMetrics,
+                  },
                 };
 
                 await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', fallbackResults);
@@ -757,35 +849,19 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          // Context found - reserve 1.5 credits (fit was 0.5, total = 2.0; skip for anonymous)
+          // Apply the continuation discount only when this context belongs to a captured fit reservation.
           if (!isAnonymous) {
-            const genKey = `generation_after_fit:${user!.id}:${clientRequestId}`;
-            const reserveResult = await reserveCredits({
-              userId: user!.id,
-              action: 'GENERATION_AFTER_FIT',
-              idempotencyKey: genKey,
-              sessionId: clientSessionId,
-            });
-            if (!reserveResult.success) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                type: 'error',
-                code: 'INSUFFICIENT_CREDITS',
-                message: reserveResult.error || 'Insufficient credits',
-                details: {
-                  required: reserveResult.required ?? CREDIT_COSTS.GENERATION_AFTER_FIT,
-                  available: reserveResult.available ?? 0,
-                  upgradeRequired: true,
-                },
-              })}\n\n`));
+            const continuation = await reserveContinuation();
+            if (!continuation.result.success) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(
+                reservationErrorPayload(continuation.result, continuation.cost),
+              )}\n\n`));
               controller.close();
               return;
             }
-            activeReservationKey = genKey;
-            activeReservationUserId = user!.id;
-
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'credits_deducted',
-              creditsUsed: CREDIT_COSTS.GENERATION_AFTER_FIT,
+              creditsUsed: continuation.cost,
             })}\n\n`));
           }
 
@@ -800,14 +876,8 @@ export async function POST(request: NextRequest) {
           if (jobPreferences) cachedContext.jobPreferences = jobPreferences;
           const result = await runWithContext(cachedContext, eventHandler, generationContext);
 
-          await removeCachedContext(user?.id ?? 'anon', contextId);
-
           if (result.success && result.data) {
             const ctx = result.data.context;
-            if (isAnonymous) {
-              await recordAnonymousGenerationSafe(ipHash);
-            }
-
             const genResults = {
               job: ctx.job,
               companyResearch: ctx.companyResearch,
@@ -817,6 +887,10 @@ export async function POST(request: NextRequest) {
               coverLetter: ctx.coverLetter,
               applicationEmail: ctx.applicationEmail,
               followUpEmail: ctx.followUpEmail || null,
+              sourceContext: {
+                applicant: ctx.applicant,
+                verifiedMetrics: ctx.verifiedMetrics,
+              },
             };
 
             await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', genResults);
@@ -831,6 +905,11 @@ export async function POST(request: NextRequest) {
               type: 'workflow_complete',
               results: genResults,
             })}\n\n`));
+            try {
+              await removeCachedContext(contextOwnerId, contextId);
+            } catch (cacheError) {
+              console.error('[API_AGENT_V2] Failed to remove completed context:', cacheError);
+            }
           } else {
             throw new Error(result.error || 'Generation failed');
           }
@@ -861,16 +940,9 @@ export async function POST(request: NextRequest) {
             sessionId: clientSessionId,
           });
           if (!reserveResult.success) {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-              type: 'error',
-              code: 'INSUFFICIENT_CREDITS',
-              message: reserveResult.error || 'Insufficient credits',
-              details: {
-                required: reserveResult.required ?? CREDIT_COSTS.FULL_APPLICATION,
-                available: reserveResult.available ?? 0,
-                upgradeRequired: true,
-              },
-            })}\n\n`));
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(
+              reservationErrorPayload(reserveResult, CREDIT_COSTS.FULL_APPLICATION),
+            )}\n\n`));
             controller.close();
             return;
           }
@@ -891,62 +963,34 @@ export async function POST(request: NextRequest) {
         })}\n\n`));
 
         const eventHandler = createEventHandler((id) => getStepIndex(id));
-        let results: Record<string, unknown> = {};
+        const result = await runJobCopilot({
+          sessionId: `session-${Date.now()}`,
+          jobDescription,
+          primaryCV: currentCV,
+          masterCV,
+          jobPreferences,
+          generationContext,
+        }, eventHandler);
 
-        if (action === 'full_optimization') {
-          const result = await runJobCopilot({
-            sessionId: `session-${Date.now()}`,
-            jobDescription,
-            primaryCV: currentCV,
-            masterCV,
-            jobPreferences,
-            generationContext,
-          }, eventHandler);
-          
-          if (result.success && result.data) {
-            const ctx = result.data.context;
-            results = {
-              job: ctx.job,
-              companyResearch: ctx.companyResearch,
-              match: ctx.match,
-              optimizedCV: ctx.optimizedCV,
-              optimizedCVData: ctx.optimizedCVData,
-              coverLetter: ctx.coverLetter,
-              applicationEmail: ctx.applicationEmail,
-              followUpEmail: ctx.followUpEmail || null,
-            };
-          } else {
-            throw new Error(result.error || 'Optimization failed');
-          }
+        let results: Record<string, unknown>;
+        if (result.success && result.data) {
+          const ctx = result.data.context;
+          results = {
+            job: ctx.job,
+            companyResearch: ctx.companyResearch,
+            match: ctx.match,
+            optimizedCV: ctx.optimizedCV,
+            optimizedCVData: ctx.optimizedCVData,
+            coverLetter: ctx.coverLetter,
+            applicationEmail: ctx.applicationEmail,
+            followUpEmail: ctx.followUpEmail || null,
+            sourceContext: {
+              applicant: ctx.applicant,
+              verifiedMetrics: ctx.verifiedMetrics,
+            },
+          };
         } else {
-          const result = await runJobCopilot({
-            sessionId: `session-${Date.now()}`,
-            jobDescription,
-            primaryCV: currentCV,
-            masterCV,
-            jobPreferences,
-            generationContext,
-          }, eventHandler);
-
-          if (result.success && result.data) {
-            const ctx = result.data.context;
-            results = {
-              job: ctx.job,
-              companyResearch: ctx.companyResearch,
-              match: ctx.match,
-              optimizedCV: ctx.optimizedCV,
-              optimizedCVData: ctx.optimizedCVData,
-              coverLetter: ctx.coverLetter,
-              applicationEmail: ctx.applicationEmail,
-              followUpEmail: ctx.followUpEmail || null,
-            };
-          } else {
-            throw new Error(result.error || 'Workflow failed');
-          }
-        }
-
-        if (isAnonymous) {
-          await recordAnonymousGenerationSafe(ipHash);
+          throw new Error(result.error || 'Optimization failed');
         }
 
         await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', results);
@@ -967,20 +1011,38 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'workflow_error';
 
+        if (anonymousClaimHash) {
+          await releaseAnonymousGenerationSafe(anonymousClaimHash);
+          anonymousClaimHash = null;
+        }
+
         // Server-owned: mark generation as failed only when we know whose generation it is.
         // Empty string user IDs would produce misleading audit rows.
-        if (activeReservationUserId) {
-          await tryTransitionGeneration(resolvedSessionId, activeReservationUserId, 'failed', errorMsg);
+        if (authenticatedUserId) {
+          await tryTransitionGeneration(resolvedSessionId, authenticatedUserId, 'failed', errorMsg);
         }
 
         // Release credit reservation — generation failed, refund user
         if (activeReservationKey && activeReservationUserId) {
           try {
-            await releaseReservation({
+            const released = await releaseReservation({
               idempotencyKey: activeReservationKey,
               userId: activeReservationUserId,
               reason: errorMsg,
             });
+            const fitContinuation = activeFitContinuation as {
+              userId: string;
+              contextId: string;
+              requestId: string;
+            } | null;
+            if (released.success && fitContinuation) {
+              await releaseFitContinuationClaim(
+                fitContinuation.userId,
+                fitContinuation.contextId,
+                fitContinuation.requestId,
+              );
+              activeFitContinuation = null;
+            }
           } catch (releaseErr) {
             console.error('[agent-v2] Failed to release reservation:', releaseErr);
           }
@@ -994,7 +1056,7 @@ export async function POST(request: NextRequest) {
             method: 'POST',
             workflow_action: currentAction,
           });
-        } catch (_) { /* ignore PostHog errors */ }
+        } catch { /* ignore PostHog errors */ }
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({
           type: 'error',
           message: 'Something went wrong while generating your application. Please try again.'

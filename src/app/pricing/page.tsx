@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Check, ArrowRight, ChevronDown, Loader2 } from 'lucide-react';
@@ -44,6 +44,8 @@ const savingsTiers = [
 ];
 
 const faqs = pricingFAQs;
+const CHECKOUT_INTENT_KEY = 'usefulapply_checkout_intent';
+const CHECKOUT_INTENT_TTL_MS = 60 * 60 * 1000;
 
 // Animated counter hook
 function useAnimatedCount(target: number, duration: number = 800, active: boolean = true) {
@@ -75,45 +77,92 @@ export default function PricingPage() {
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [loadingAddon, setLoadingAddon] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [selectedSavingsTier, setSelectedSavingsTier] = useState(1); // default Plus
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const router = useRouter();
 
   const currentSavings = savingsTiers[selectedSavingsTier];
   const animatedApps = useAnimatedCount(currentSavings.apps);
   const animatedHours = useAnimatedCount(currentSavings.hoursSaved);
 
-  const handleSubscribe = async (planTier: string) => {
+  const checkoutStartedRef = useRef(false);
+
+  const handleSubscribe = useCallback(async (planTier: 'plus' | 'max') => {
     if (!user) {
       router.push(`/auth/signup?plan=${planTier}`);
       // Note: paid plans need signup. Free tier uses /dashboard directly.
       return;
     }
+    setCheckoutError(null);
     setLoadingPlan(planTier);
     try {
-      const res = await fetch('/api/stripe/create-checkout', {
+      let res = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id, planTier }),
       });
-      const data = await res.json();
+      let data = await res.json() as { url?: string; error?: string };
+      if (res.status === 409) {
+        res = await fetch('/api/stripe/create-portal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ flow: 'subscription_update' }),
+        });
+        data = await res.json() as { url?: string; error?: string };
+      }
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert(data.error || 'Failed to start checkout');
+        setCheckoutError(data.error || "We couldn't start checkout. Try again.");
       }
     } catch {
-      alert('Something went wrong. Please try again.');
+      setCheckoutError("We couldn't start checkout. Try again.");
     } finally {
       setLoadingPlan(null);
     }
-  };
+  }, [router, user]);
+
+  const handlePlanClick = useCallback((planTier: 'plus' | 'max') => {
+    localStorage.setItem(CHECKOUT_INTENT_KEY, JSON.stringify({ planTier, createdAt: Date.now() }));
+    if (user) localStorage.removeItem(CHECKOUT_INTENT_KEY);
+    void handleSubscribe(planTier);
+  }, [handleSubscribe, user]);
+
+  useEffect(() => {
+    if (!user || checkoutStartedRef.current) return;
+
+    const checkoutTier = new URLSearchParams(window.location.search).get('checkout');
+    if (checkoutTier !== 'plus' && checkoutTier !== 'max') return;
+
+    let intendedTier: string | null = null;
+    try {
+      const rawIntent = localStorage.getItem(CHECKOUT_INTENT_KEY);
+      const intent = rawIntent ? JSON.parse(rawIntent) as { planTier?: unknown; createdAt?: unknown } : null;
+      if (
+        intent
+        && typeof intent.createdAt === 'number'
+        && Date.now() - intent.createdAt < CHECKOUT_INTENT_TTL_MS
+        && (intent.planTier === 'plus' || intent.planTier === 'max')
+      ) {
+        intendedTier = intent.planTier;
+      }
+    } catch {
+      intendedTier = null;
+    }
+    localStorage.removeItem(CHECKOUT_INTENT_KEY);
+    if (intendedTier !== checkoutTier) return;
+
+    checkoutStartedRef.current = true;
+    void handleSubscribe(checkoutTier);
+  }, [handleSubscribe, user]);
 
   const handleBuyAddon = async (packSize: string) => {
     if (!user) {
       router.push('/auth/login');
       return;
     }
+    setCheckoutError(null);
     setLoadingAddon(packSize);
     try {
       const res = await fetch('/api/stripe/create-addon-checkout', {
@@ -125,10 +174,10 @@ export default function PricingPage() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert(data.error || 'Failed to start checkout');
+        setCheckoutError(data.error || "We couldn't start checkout. Try again.");
       }
     } catch {
-      alert('Something went wrong. Please try again.');
+      setCheckoutError("We couldn't start checkout. Try again.");
     } finally {
       setLoadingAddon(null);
     }
@@ -237,7 +286,7 @@ export default function PricingPage() {
                 ))}
               </ul>
               <button
-                onClick={() => handleSubscribe('plus')}
+                onClick={() => handlePlanClick('plus')}
                 disabled={loadingPlan === 'plus'}
                 className="group inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-gold-400 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer disabled:opacity-60"
               >
@@ -271,7 +320,7 @@ export default function PricingPage() {
                 ))}
               </ul>
               <button
-                onClick={() => handleSubscribe('max')}
+                onClick={() => handlePlanClick('max')}
                 disabled={loadingPlan === 'max'}
                 className="group inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-gold-400 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer disabled:opacity-60"
               >
@@ -280,6 +329,10 @@ export default function PricingPage() {
             </div>
             </ScrollReveal>
           </div>
+
+          {checkoutError && (
+            <p className="mt-4 text-center text-sm text-red-600" role="alert">{checkoutError}</p>
+          )}
 
           {/* Trust line under cards */}
           <p className="mt-8 text-center text-[13px] text-warm-gray max-w-3xl mx-auto">
@@ -320,17 +373,29 @@ export default function PricingPage() {
                   </div>
                   {/* Buy button */}
                   <button
-                    onClick={() => handleBuyAddon(pack.name.split(' ')[0].toLowerCase())}
-                    disabled={loadingAddon === pack.name.split(' ')[0].toLowerCase()}
+                    onClick={() => {
+                      const packSize = pack.name.split(' ')[0].toLowerCase();
+                      if (profile?.subscription_tier === 'free') handlePlanClick('plus');
+                      else void handleBuyAddon(packSize);
+                    }}
+                    disabled={Boolean(user && !profile)
+                      || (profile?.subscription_tier === 'free'
+                        ? loadingPlan === 'plus'
+                        : loadingAddon === pack.name.split(' ')[0].toLowerCase())}
                     className="cta-gold px-6 py-4 rounded-xl bg-gold-400 hover:bg-gold-500 text-white font-bold text-[18px] shadow-sm cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 group"
                   >
-                    {loadingAddon === pack.name.split(' ')[0].toLowerCase()
+                    {Boolean(user && !profile)
+                      || loadingAddon === pack.name.split(' ')[0].toLowerCase()
+                      || (profile?.subscription_tier === 'free' && loadingPlan === 'plus')
                       ? <Loader2 className="w-5 h-5 animate-spin" />
-                      : <>${pack.price}<ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
+                      : <>{profile?.subscription_tier === 'free' ? 'Upgrade to Plus' : `$${pack.price}`}<ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
                   </button>
                 </div>
               ))}
             </div>
+            {checkoutError && (
+              <p className="mt-4 text-sm text-red-300" role="alert">{checkoutError}</p>
+            )}
           </div>
           </ScrollReveal>
         </div>

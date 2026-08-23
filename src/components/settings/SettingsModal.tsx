@@ -29,16 +29,21 @@ export function SettingsModal() {
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
   // Deep link: ?settings=usage opens the modal on that pane, then the param
-  // is dropped so a refresh does not reopen it. /settings, /profile and
+  // is dropped so a normal refresh does not reopen it. Checkout return params
+  // stay until billing confirms the webhook, so feedback survives a refresh.
+  // /settings, /profile and
   // /account all land here, so a signed-out visitor gets the param too. There
   // is nothing to show them, so wait for the session and drop the param
   // without opening.
   useEffect(() => {
     if (isLoading) return;
     const params = new URLSearchParams(window.location.search);
-    const requested = params.get('settings');
+    const isCheckoutReturn = (params.get('success') === 'true' || params.get('addon_success') === 'true')
+      && Boolean(params.get('session_id'));
+    const requested = params.get('settings') ?? (isCheckoutReturn ? 'usage' : null);
     if (!isSettingsPane(requested)) return;
     if (user) open(requested);
+    if (isCheckoutReturn) return;
     params.delete('settings');
     const query = params.toString();
     window.history.replaceState(

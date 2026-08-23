@@ -8,6 +8,27 @@
 
 import type { MasterContext } from '../types';
 import { sanitizeAdText } from '../chat-tools/untrusted';
+import { normalizeLanguage } from '@/lib/utils/language-detector';
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English',
+  de: 'German',
+  fr: 'French',
+  es: 'Spanish',
+  pt: 'Portuguese',
+  it: 'Italian',
+  nl: 'Dutch',
+};
+
+const LANGUAGE_LOCALES: Record<string, string> = {
+  en: 'en-US',
+  de: 'de-DE',
+  fr: 'fr-FR',
+  es: 'es-ES',
+  pt: 'pt-PT',
+  it: 'it-IT',
+  nl: 'nl-NL',
+};
 
 /**
  * Build the cover letter system prompt blocks (cacheable)
@@ -148,7 +169,7 @@ SECONDARY MARKET (EU/GERMAN — German JDs):
 LANGUAGE DETECTION:
 - Job description in English → Write all documents in English with US/UK tone
 - Job description in German → Write all documents in German with formal business tone
-- Job description in other EU language → Default to English unless user specifies otherwise
+- Job description in another supported language → Write all documents in that language
 
 === 2026 COVER LETTER STANDARDS ===
 
@@ -357,11 +378,12 @@ WRONG: "Furthermore, I bring extensive experience..." → RIGHT: "I also bring..
 export function buildCoverLetterUserPrompt(context: MasterContext): string {
   const { applicant, job, match, rawCV, masterCV } = context;
 
-  const outputLang = context.userLanguageOverride || context.detectedLanguage || 'en';
+  const outputLang = normalizeLanguage(context.userLanguageOverride || context.detectedLanguage);
   const isGerman = outputLang === 'de';
+  const languageName = LANGUAGE_NAMES[outputLang];
 
   // Get today's date
-  const today = new Date().toLocaleDateString('en-US', { 
+  const today = new Date().toLocaleDateString(LANGUAGE_LOCALES[outputLang] || 'en-US', {
     year: 'numeric', 
     month: 'long', 
     day: 'numeric' 
@@ -481,7 +503,7 @@ ${today}
 
 ${sanitizeAdText(job?.companyName) || 'Unternehmen'}
 
-IMPORTANT: After the company name, go directly to the greeting. If the JD names a specific hiring manager or contact person, address them by name. Otherwise use a standard formal German greeting. Do NOT include any company address lines. Do NOT use bracketed placeholders. If the JD contains a specific company address, you may include it — otherwise omit it entirely and keep the header clean.` : `The cover letter MUST start with this exact header structure (EN market format):
+IMPORTANT: After the company name, go directly to the greeting. If the JD names a specific hiring manager or contact person, address them by name. Otherwise use a standard formal German greeting. Do NOT include any company address lines. Do NOT use bracketed placeholders. If the JD contains a specific company address, you may include it — otherwise omit it entirely and keep the header clean.` : `The cover letter MUST start with this exact header structure (international digital application format):
 
 ${applicant?.name || 'Applicant Name'}
 ${applicant?.address || 'City, Country'}
@@ -496,12 +518,13 @@ ${sanitizeAdText(job?.companyName) || 'Company'}
 IMPORTANT: Do NOT include a company address line. Do NOT include any bracketed placeholders that require the user to fill in or verify information manually. The header goes directly from company name to the greeting. This is standard for US/UK/Canada applications where cover letters are submitted digitally.`}
 
 === LANGUAGE INSTRUCTION ===
-${isGerman ? `CRITICAL: Write the ENTIRE cover letter in GERMAN.
+CRITICAL: Write the ENTIRE cover letter in ${languageName}.
+${isGerman ? `
 - Use formal German "Sie" form
 - German business letter format
 - Use a professional German closing appropriate to the JD tone
 - German date format (e.g., day. month year)
-- Keep name and contact details as-is` : 'Write the cover letter in English.'}
+- Keep name and contact details as-is` : `Use natural professional ${languageName} appropriate to the market and JD tone. Keep names and contact details as-is.`}
 
 REQUIRED SIGNATURE FORMAT:
 The cover letter MUST end with a closing sentence about availability/next steps, followed by a professional sign-off and the applicant's full name on a separate line.

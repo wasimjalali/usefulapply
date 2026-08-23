@@ -49,7 +49,7 @@ export default function Dashboard() {
     sessions,
   } = useAppStore();
   const { user, isLoading } = useAuth();
-  const { sessionsHydrated } = useSupabaseSync();
+  const { sessionsHydrated, documentsHydrated, hydrationError, retryHydration } = useSupabaseSync();
   const jobFeedBadge = useJobFeedBadge(Boolean(user), user?.id ?? null);
 
   const [mobileView, setMobileView] = useState<MobileView>(() => {
@@ -173,10 +173,25 @@ export default function Dashboard() {
   // user whose sessions have not loaded yet: with no kit visible locally,
   // hold the spinner until the first sessions load settles the question.
   // Anonymous visitors and users with a persisted kit skip the wait.
-  if (!mounted || isLoading || (user && !hasKit && !sessionsHydrated)) {
+  if (!mounted || isLoading || (user && !hasKit && (!sessionsHydrated || !documentsHydrated) && !hydrationError)) {
     return (
       <div className="h-dvh flex items-center justify-center bg-cream-100">
         <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
+      </div>
+    );
+  }
+
+  if (user && hydrationError === 'sessions') {
+    return (
+      <div className="h-dvh flex flex-col items-center justify-center gap-4 bg-cream-100 px-6 text-center">
+        <p className="text-sm font-medium text-charcoal">We couldn&apos;t load your account data.</p>
+        <button
+          type="button"
+          onClick={retryHydration}
+          className="h-9 rounded-full bg-navy-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-navy-700"
+        >
+          Try again
+        </button>
       </div>
     );
   }

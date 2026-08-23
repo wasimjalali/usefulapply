@@ -21,8 +21,10 @@ export async function POST(request: NextRequest) {
       password?: string;
       fullName?: string;
       resendOnly?: boolean;
+      plan?: string;
     };
     const { email, password, fullName, resendOnly } = body;
+    const plan = body.plan === 'plus' || body.plan === 'max' ? body.plan : undefined;
 
     if (!email || (!resendOnly && !password)) {
       return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
@@ -39,7 +41,10 @@ export async function POST(request: NextRequest) {
 
     const siteUrl = getSiteUrl(new URL(request.url).origin);
     const auth = await getAuth();
-    const callbackURL = `${siteUrl}/auth/callback`;
+    const next = plan ? `/pricing?checkout=${plan}` : undefined;
+    const callbackURL = next
+      ? `${siteUrl}/auth/callback?next=${encodeURIComponent(next)}`
+      : `${siteUrl}/auth/callback`;
 
     if (resendOnly) {
       try {

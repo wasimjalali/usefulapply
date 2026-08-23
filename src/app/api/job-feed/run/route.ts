@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { canViewJobFeed, getLocalDateKey, getStartOfNextLocalDay } from '@/lib/job-feed/helpers';
+import { canViewJobFeed, getLocalDateKey, getStartOfNextLocalDay, isValidTimeZone } from '@/lib/job-feed/helpers';
 import {
+  getJobFeedSettingsAdmin,
   getJobFeedRunDiagnostics,
   getLatestManualCompletedJobFeedRunAdmin,
   runJobFeedFoundationWorkflow,
@@ -8,7 +9,6 @@ import {
 import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
 import { getProfile } from '@/db/repos/profiles';
-import { getSettings } from '@/db/repos/jobFeed';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -45,20 +45,23 @@ export async function POST(request: NextRequest) {
       // Empty or non-JSON body is a missing assertion, not a parse bug.
     }
 
-    const userTimeZone = await getUserTimeZone(user.id);
+    const settings = await getJobFeedSettingsAdmin(user.id);
+    const timeZone = settings?.user_timezone && isValidTimeZone(settings.user_timezone)
+      ? settings.user_timezone
+      : 'UTC';
     const now = new Date();
-    const todayKey = getLocalDateKey(now, userTimeZone);
+    const todayKey = getLocalDateKey(now, timeZone);
 
-    // One run per local calendar day, and the user starts it. If today already
-    // has a completed run, the next window opens at local midnight. There is no
-    // bypass: an edit to roles or countries costs no extra SerpAPI call, it just
-    // applies to the next run.
+    // One run per calendar day in the user's persisted timezone, with UTC as
+    // the fallback. Changing roles or countries doesn't bypass the daily gate.
     const latestManualRun = await getLatestManualCompletedJobFeedRunAdmin(user.id);
     const cooldown = getCalendarDayCooldown({
       latestManualLocalDate: latestManualRun?.local_date ?? null,
+      latestManualTimeZone: latestManualRun?.local_timezone ?? null,
+      latestManualCompletedAt: latestManualRun?.completed_at ?? latestManualRun?.created_at ?? null,
       todayKey,
+      timeZone,
       now,
-      timeZone: userTimeZone,
     });
 
     if (cooldown.blocked) {
@@ -96,12 +99,8 @@ export async function POST(request: NextRequest) {
     });
 
     const diagnostics = getJobFeedRunDiagnostics(result.run);
-    // Anchor on `now` (the moment the run completed, always inside the user's
-    // current local day) rather than reconstructing noon-UTC from local_date,
-    // which lands on the next local day for UTC+12/+13 zones and pushed the
-    // unlock a full day late.
     const nextRunAt = result.run.local_date
-      ? getStartOfNextLocalDay(now, userTimeZone).toISOString()
+      ? getStartOfNextLocalDay(now, result.run.local_timezone || timeZone).toISOString()
       : null;
 
     return NextResponse.json({
@@ -142,23 +141,30 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function getUserTimeZone(userId: string): Promise<string> {
-  const settings = await getSettings(userId);
-  return settings?.user_timezone || 'UTC';
-}
-
 function getCalendarDayCooldown(params: {
   latestManualLocalDate: string | null;
+  latestManualTimeZone: string | null;
+  latestManualCompletedAt: string | null;
   todayKey: string;
-  now: Date;
   timeZone: string;
+  now: Date;
 }): { blocked: boolean; nextRunAt: string | null; remainingMs: number } {
   if (!params.latestManualLocalDate) {
     return { blocked: false, nextRunAt: null, remainingMs: 0 };
   }
 
-  // Only today's manual run locks. Past-day rows are just history.
-  if (params.latestManualLocalDate !== params.todayKey) {
+  const completionDate = params.latestManualCompletedAt
+    ? new Date(params.latestManualCompletedAt)
+    : null;
+  const blocksDuringTimezoneCutover = params.latestManualTimeZone !== params.timeZone
+    && completionDate !== null
+    && !Number.isNaN(completionDate.getTime())
+    && getLocalDateKey(completionDate, params.timeZone) === params.todayKey;
+
+  // A row already keyed to today locks normally. During a timezone cutover,
+  // the latest completed run also locks when its completion instant falls on
+  // today in the persisted timezone, even if its old local_date differs.
+  if (params.latestManualLocalDate !== params.todayKey && !blocksDuringTimezoneCutover) {
     return { blocked: false, nextRunAt: null, remainingMs: 0 };
   }
 
