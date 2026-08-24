@@ -1137,6 +1137,13 @@ export async function canUseFitContinuation(
       sql`(
         json_extract(${creditReservations.metadata}, '$.continuation_request_id') IS NULL
         OR json_extract(${creditReservations.metadata}, '$.continuation_request_id') = ${requestId}
+        OR EXISTS (
+          SELECT 1
+          FROM credit_reservations AS linked_continuation
+          WHERE linked_continuation.id = json_extract(${creditReservations.metadata}, '$.continuation_reservation_id')
+            AND linked_continuation.user_id = ${userId}
+            AND linked_continuation.status = 'released'
+        )
       )`,
     ))
     .limit(1);
@@ -1147,6 +1154,7 @@ export async function claimFitContinuation(
   userId: string,
   contextId: string,
   requestId: string,
+  reservationId: string,
 ): Promise<boolean> {
   const db = await getDb();
   const now = nowIso();
@@ -1156,6 +1164,7 @@ export async function claimFitContinuation(
       metadata: sql`json_set(
         ${creditReservations.metadata},
         '$.continuation_request_id', ${requestId},
+        '$.continuation_reservation_id', ${reservationId},
         '$.continuation_used_at', ${now}
       )` as never,
       updated_at: now,
@@ -1168,6 +1177,13 @@ export async function claimFitContinuation(
       sql`(
         json_extract(${creditReservations.metadata}, '$.continuation_request_id') IS NULL
         OR json_extract(${creditReservations.metadata}, '$.continuation_request_id') = ${requestId}
+        OR EXISTS (
+          SELECT 1
+          FROM credit_reservations AS linked_continuation
+          WHERE linked_continuation.id = json_extract(${creditReservations.metadata}, '$.continuation_reservation_id')
+            AND linked_continuation.user_id = ${userId}
+            AND linked_continuation.status = 'released'
+        )
       )`,
     ))
     .returning({ id: creditReservations.id });
@@ -1186,6 +1202,7 @@ export async function releaseFitContinuationClaim(
       metadata: sql`json_remove(
         ${creditReservations.metadata},
         '$.continuation_request_id',
+        '$.continuation_reservation_id',
         '$.continuation_used_at'
       )` as never,
       updated_at: nowIso(),
@@ -1482,7 +1499,19 @@ export async function releaseStaleReservations(params?: {
       idempotencyKey: row.idempotency_key,
       reason: 'stale_reservation_reconciler',
     });
-    if (result.success) released += 1;
+    if (result.success) {
+      released += 1;
+      const metadata = row.metadata as Record<string, unknown>;
+      const contextId = metadata.fit_context_id;
+      const requestId = metadata.fit_continuation_request_id;
+      if (
+        row.action === 'generation_after_fit'
+        && typeof contextId === 'string'
+        && typeof requestId === 'string'
+      ) {
+        await releaseFitContinuationClaim(row.user_id, contextId, requestId);
+      }
+    }
   }
   return { released };
 }

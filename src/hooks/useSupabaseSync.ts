@@ -138,6 +138,18 @@ export function useSupabaseSync() {
     currentSession,
     setSessions,
   } = useSessionStore();
+  const chatSyncFingerprint = useSessionStore((state) => {
+    const sessionsById = new Map(state.sessions.map((session) => [session.id, session]));
+    if (state.currentSession) sessionsById.set(state.currentSession.id, state.currentSession);
+    return Array.from(sessionsById.values())
+      .filter((session) => !session.id.startsWith('session-'))
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .map((session) => `${session.id}:${session.chatMessages
+        .filter((message) => message.id.startsWith('msg-'))
+        .map((message) => message.id)
+        .join(',')}`)
+      .join('|');
+  });
   
   // True once the first sessions load has finished (or failed), so the
   // dashboard can hold a neutral state instead of flashing the guided line
@@ -518,6 +530,7 @@ export function useSupabaseSync() {
             }
             
             if (newSession) {
+              let sessionWriteSucceeded = true;
               console.log(
                 reuseTarget
                   ? '[SupabaseSync] Reusing existing session for the same job:'
@@ -577,6 +590,7 @@ export function useSupabaseSync() {
                 }, user.id);
                 if (updateErr) {
                   console.error('[SupabaseSync] Error updating new session with full data:', updateErr);
+                  sessionWriteSucceeded = false;
                 }
               }
               
@@ -613,7 +627,9 @@ export function useSupabaseSync() {
               }
               
               // Update sync key with the new session ID
-              lastSyncedSessionRef.current = newSession.id + currentSession.updatedAt;
+              if (sessionWriteSucceeded) {
+                lastSyncedSessionRef.current = newSession.id + currentSession.updatedAt;
+              }
             }
           } finally {
             isCreatingSessionRef.current.delete(currentSession.id);
@@ -661,9 +677,9 @@ export function useSupabaseSync() {
           
           if (error) {
             console.error('[SupabaseSync] Error updating session:', error);
+          } else {
+            lastSyncedSessionRef.current = syncKey;
           }
-          
-          lastSyncedSessionRef.current = syncKey;
         }
       } catch (error) {
         console.error('[SupabaseSync] Sync error:', error);
@@ -704,48 +720,42 @@ export function useSupabaseSync() {
     }
   }, [user]);
 
-  const chatSessionId = currentSession?.id;
-  const currentChatMessages = currentSession?.chatMessages;
-
-  // Sync chat messages to Supabase when new messages are added
+  // Sync chat messages to Supabase when new messages are added to any session.
   useEffect(() => {
     const syncChatMessages = async () => {
-      if (!user || !chatSessionId || !currentChatMessages) return;
-      
-      // Skip local sessions (they need to be synced to Supabase first)
-      const isLocalSession = chatSessionId.startsWith('session-');
-      if (isLocalSession) {
-        return;
-      }
-      
-      // Only sync local messages (msg- prefix) that haven't been synced yet
-      const unsynced = currentChatMessages.filter(
-        msg => msg.id.startsWith('msg-') && !syncedMessageIdsRef.current.has(msg.id)
-      );
-      
-      if (unsynced.length === 0) return;
-      
-      console.log('[SupabaseSync] Syncing', unsynced.length, 'new chat messages');
-      
-      for (const msg of unsynced) {
-        try {
-          const { message: savedMessage, error } = await addSupabaseChatMessage(
-            chatSessionId,
-            user.id,
-            {
-              role: msg.role,
-              content: msg.content,
-              actions: msg.actions,
+      if (!user) return;
+      const state = useSessionStore.getState();
+      const sessionsById = new Map(state.sessions.map((session) => [session.id, session]));
+      if (state.currentSession) sessionsById.set(state.currentSession.id, state.currentSession);
+
+      for (const session of sessionsById.values()) {
+        if (session.id.startsWith('session-')) continue;
+        const unsynced = session.chatMessages.filter(
+          (message) => message.id.startsWith('msg-') && !syncedMessageIdsRef.current.has(message.id),
+        );
+        if (unsynced.length === 0) continue;
+
+        console.log('[SupabaseSync] Syncing', unsynced.length, 'new chat messages');
+        for (const message of unsynced) {
+          try {
+            const { message: savedMessage, error } = await addSupabaseChatMessage(
+              session.id,
+              user.id,
+              {
+                role: message.role,
+                content: message.content,
+                actions: message.actions,
+              },
+            );
+
+            if (error) {
+              console.error('[SupabaseSync] Error saving chat message:', error);
+            } else if (savedMessage) {
+              syncedMessageIdsRef.current.add(message.id);
             }
-          );
-          
-          if (error) {
-            console.error('[SupabaseSync] Error saving chat message:', error);
-          } else if (savedMessage) {
-            syncedMessageIdsRef.current.add(msg.id);
+          } catch (err) {
+            console.error('[SupabaseSync] Chat message sync error:', err);
           }
-        } catch (err) {
-          console.error('[SupabaseSync] Chat message sync error:', err);
         }
       }
     };
@@ -753,7 +763,7 @@ export function useSupabaseSync() {
     // Debounce chat sync
     const timeoutId = setTimeout(syncChatMessages, 1000);
     return () => clearTimeout(timeoutId);
-  }, [user, chatSessionId, currentChatMessages]);
+  }, [user, chatSyncFingerprint]);
 
   // Sync editedOriginalCVData to Supabase documents table
   const editedOriginalCVData = useCVStore(state => state.editedOriginalCVData);

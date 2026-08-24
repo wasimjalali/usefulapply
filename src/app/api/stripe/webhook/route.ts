@@ -32,6 +32,20 @@ function stripeObjectId(value: string | { id: string } | null | undefined): stri
   return typeof value === 'string' ? value : value?.id;
 }
 
+async function reportUnknownStripePrice(message: string, properties: Record<string, unknown>) {
+  console.error(`[Stripe Webhook] ${message}`, properties);
+  try {
+    const posthog = getPostHogServer();
+    posthog.captureException(new Error(message), 'server_error', {
+      endpoint: '/api/stripe/webhook',
+      ...properties,
+    });
+    await posthog.flush();
+  } catch (error) {
+    console.error('[Stripe Webhook] Failed to report unknown Stripe price:', error);
+  }
+}
+
 /**
  * Keep profiles.subscription_tier in sync so AuthContext / PostHog
  * analytics always reflect the current plan.
@@ -330,7 +344,24 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     planTier = 'max';
     newPlanCredits = 200;
   } else {
-    throw new PermanentWebhookError(`Unsupported subscription price on ${subscription.id}`);
+    const unitAmount = subscription.items.data[0]?.price.unit_amount;
+    await reportUnknownStripePrice('Unknown subscription price ID', {
+      subscriptionId: subscription.id,
+      priceId: priceId ?? null,
+      unitAmount: unitAmount ?? null,
+      status: subscription.status,
+    });
+    if (unitAmount === 1999) {
+      planTier = 'plus';
+      newPlanCredits = 50;
+    } else if (unitAmount === 7999) {
+      planTier = 'max';
+      newPlanCredits = 200;
+    } else if (subscription.status === 'active' || subscription.status === 'trialing') {
+      throw new Error(`Active subscription ${subscription.id} has an unsupported price`);
+    } else {
+      throw new PermanentWebhookError(`Unsupported subscription price on ${subscription.id}`);
+    }
   }
 
   const subscriptionItem = subscription.items.data[0];
@@ -504,20 +535,34 @@ async function resolveRefundSource(charge: Stripe.Charge): Promise<{
     ? invoicePayment.invoice
     : invoicePayment.invoice.id;
   const invoice = await getStripe().invoices.retrieve(invoiceId);
-  const knownPlanLine = invoice.lines.data
+  const pricedLines = invoice.lines.data
     .filter((line) => line.amount > 0)
     .map((line) => {
       const price = line.pricing?.price_details?.price;
       return { line, priceId: typeof price === 'string' ? price : price?.id };
     })
-    .filter((entry) => entry.priceId === STRIPE_PRICES.PLUS || entry.priceId === STRIPE_PRICES.MAX)
-    .sort((a, b) => b.line.amount - a.line.amount)[0];
+    .sort((a, b) => b.line.amount - a.line.amount);
+  const knownPlanLine = pricedLines.find(
+    (entry) => entry.priceId === STRIPE_PRICES.PLUS || entry.priceId === STRIPE_PRICES.MAX,
+  );
 
   if (knownPlanLine?.priceId === STRIPE_PRICES.PLUS) {
     return { isSubscription: true, sourceCredits: 50, source: `invoice:${invoice.id}:plus` };
   }
   if (knownPlanLine?.priceId === STRIPE_PRICES.MAX) {
     return { isSubscription: true, sourceCredits: 200, source: `invoice:${invoice.id}:max` };
+  }
+  await reportUnknownStripePrice('Unknown refunded subscription price ID', {
+    chargeId: charge.id,
+    invoiceId: invoice.id,
+    priceIds: pricedLines.map((entry) => entry.priceId ?? null),
+    chargeAmount: charge.amount,
+  });
+  if (charge.amount === 1999) {
+    return { isSubscription: true, sourceCredits: 50, source: `invoice:${invoice.id}:plus-amount-fallback` };
+  }
+  if (charge.amount === 7999) {
+    return { isSubscription: true, sourceCredits: 200, source: `invoice:${invoice.id}:max-amount-fallback` };
   }
   throw new PermanentWebhookError(`No supported plan price found for refunded invoice ${invoice.id}`);
 }

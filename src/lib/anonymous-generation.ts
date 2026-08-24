@@ -1,13 +1,20 @@
 const ANON_GENERATION_KEY = 'usefulapply_anonymous_generation_used';
 const ANON_GENERATION_KEY_OLD = 'karko_anonymous_generation_used';
+const ANON_GENERATION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** Check if anonymous user has already used their free generation */
 export function hasUsedFreeGeneration(): boolean {
   if (typeof window === 'undefined') return false;
   try {
-    if (localStorage.getItem(ANON_GENERATION_KEY) === 'true') return true;
-    if (localStorage.getItem(ANON_GENERATION_KEY_OLD) === 'true') {
-      localStorage.setItem(ANON_GENERATION_KEY, 'true');
+    const stored = localStorage.getItem(ANON_GENERATION_KEY);
+    const usedAt = Number(stored);
+    if (Number.isFinite(usedAt) && usedAt > 0) {
+      if (Date.now() - usedAt < ANON_GENERATION_TTL_MS) return true;
+      localStorage.removeItem(ANON_GENERATION_KEY);
+    }
+    if (stored === 'true' || localStorage.getItem(ANON_GENERATION_KEY_OLD) === 'true') {
+      localStorage.setItem(ANON_GENERATION_KEY, String(Date.now()));
+      localStorage.removeItem(ANON_GENERATION_KEY_OLD);
       return true;
     }
   } catch {
@@ -19,7 +26,7 @@ export function hasUsedFreeGeneration(): boolean {
 /** Mark that anonymous user has used their free generation */
 export function markFreeGenerationUsed(): void {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(ANON_GENERATION_KEY, 'true');
+  localStorage.setItem(ANON_GENERATION_KEY, String(Date.now()));
 }
 
 /** Clear the free generation flag (called on successful signup) */

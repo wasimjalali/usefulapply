@@ -12,6 +12,8 @@ import { getProfile } from '@/db/repos/profiles';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
+const MIN_MANUAL_RUN_INTERVAL_MS = 20 * 60 * 60 * 1000;
+const MAX_MANUAL_RUN_INTERVAL_MS = 28 * 60 * 60 * 1000;
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,6 +61,7 @@ export async function POST(request: NextRequest) {
       latestManualLocalDate: latestManualRun?.local_date ?? null,
       latestManualTimeZone: latestManualRun?.local_timezone ?? null,
       latestManualCompletedAt: latestManualRun?.completed_at ?? latestManualRun?.created_at ?? null,
+      latestManualRunAt: latestManualRun?.started_at ?? latestManualRun?.created_at ?? null,
       todayKey,
       timeZone,
       now,
@@ -96,6 +99,7 @@ export async function POST(request: NextRequest) {
       now,
       orchestrator: 'direct',
       consentAccepted,
+      force: cooldown.forceRerun,
     });
 
     const diagnostics = getJobFeedRunDiagnostics(result.run);
@@ -145,14 +149,11 @@ function getCalendarDayCooldown(params: {
   latestManualLocalDate: string | null;
   latestManualTimeZone: string | null;
   latestManualCompletedAt: string | null;
+  latestManualRunAt: string | null;
   todayKey: string;
   timeZone: string;
   now: Date;
-}): { blocked: boolean; nextRunAt: string | null; remainingMs: number } {
-  if (!params.latestManualLocalDate) {
-    return { blocked: false, nextRunAt: null, remainingMs: 0 };
-  }
-
+}): { blocked: boolean; nextRunAt: string | null; remainingMs: number; forceRerun: boolean } {
   const completionDate = params.latestManualCompletedAt
     ? new Date(params.latestManualCompletedAt)
     : null;
@@ -160,18 +161,51 @@ function getCalendarDayCooldown(params: {
     && completionDate !== null
     && !Number.isNaN(completionDate.getTime())
     && getLocalDateKey(completionDate, params.timeZone) === params.todayKey;
+  const calendarBlocked = params.latestManualLocalDate === params.todayKey
+    || blocksDuringTimezoneCutover;
+  const runDate = params.latestManualRunAt
+    ? new Date(params.latestManualRunAt)
+    : null;
+  const hasValidRunDate = runDate !== null && !Number.isNaN(runDate.getTime());
+
+  if (hasValidRunDate) {
+    const ageMs = params.now.getTime() - runDate.getTime();
+    if (ageMs >= MAX_MANUAL_RUN_INTERVAL_MS) {
+      return { blocked: false, nextRunAt: null, remainingMs: 0, forceRerun: calendarBlocked };
+    }
+    if (ageMs < MIN_MANUAL_RUN_INTERVAL_MS) {
+      const floorAt = new Date(runDate.getTime() + MIN_MANUAL_RUN_INTERVAL_MS);
+      let nextRunAt = floorAt;
+      if (calendarBlocked) {
+        const calendarAt = getStartOfNextLocalDay(params.now, params.timeZone);
+        const ceilingAt = runDate.getTime() + MAX_MANUAL_RUN_INTERVAL_MS;
+        nextRunAt = new Date(Math.min(Math.max(floorAt.getTime(), calendarAt.getTime()), ceilingAt));
+      }
+      return {
+        blocked: true,
+        nextRunAt: nextRunAt.toISOString(),
+        remainingMs: Math.max(0, nextRunAt.getTime() - params.now.getTime()),
+        forceRerun: false,
+      };
+    }
+  }
 
   // A row already keyed to today locks normally. During a timezone cutover,
   // the latest completed run also locks when its completion instant falls on
   // today in the persisted timezone, even if its old local_date differs.
-  if (params.latestManualLocalDate !== params.todayKey && !blocksDuringTimezoneCutover) {
-    return { blocked: false, nextRunAt: null, remainingMs: 0 };
+  if (!calendarBlocked) {
+    return { blocked: false, nextRunAt: null, remainingMs: 0, forceRerun: false };
   }
 
-  const nextRunAt = getStartOfNextLocalDay(params.now, params.timeZone);
+  let nextRunAt = getStartOfNextLocalDay(params.now, params.timeZone);
+  if (hasValidRunDate) {
+    const ceilingAt = runDate.getTime() + MAX_MANUAL_RUN_INTERVAL_MS;
+    if (nextRunAt.getTime() > ceilingAt) nextRunAt = new Date(ceilingAt);
+  }
   return {
     blocked: true,
     nextRunAt: nextRunAt.toISOString(),
     remainingMs: Math.max(0, nextRunAt.getTime() - params.now.getTime()),
+    forceRerun: false,
   };
 }

@@ -173,13 +173,22 @@ async function persistGeneratedArtifacts(
   sessionId: string | undefined,
   userId: string,
   results: Record<string, unknown>,
+  mergeExisting = false,
 ): Promise<void> {
   if (!sessionId || !userId || sessionId.startsWith('session-') || sessionId.startsWith('fit-')) {
     console.warn('[agent-v2] Generated artifacts were not persisted because no stored session was available');
     return;
   }
   try {
-    const persisted = await updateSession(userId, sessionId, { generated_artifacts: results });
+    let nextArtifacts = results;
+    if (mergeExisting) {
+      const session = await getSession(userId, sessionId);
+      const existingArtifacts = session?.generated_artifacts;
+      if (existingArtifacts && typeof existingArtifacts === 'object' && !Array.isArray(existingArtifacts)) {
+        nextArtifacts = { ...existingArtifacts as Record<string, unknown>, ...results };
+      }
+    }
+    const persisted = await updateSession(userId, sessionId, { generated_artifacts: nextArtifacts });
     if (persisted.error) {
       console.error('[agent-v2] Failed to persist generated artifacts:', persisted.error);
     }
@@ -643,7 +652,7 @@ export async function POST(request: NextRequest) {
                   },
                   createdAt: new Date().toISOString(),
                 },
-              });
+              }, true);
             }
 
             // Capture reservation — fit analysis produced usable results
@@ -697,6 +706,12 @@ export async function POST(request: NextRequest) {
               action,
               idempotencyKey: key,
               sessionId: clientSessionId,
+              metadata: action === 'GENERATION_AFTER_FIT'
+                ? {
+                    fit_context_id: contextId,
+                    fit_continuation_request_id: clientRequestId,
+                  }
+                : undefined,
             });
             if (result.success) {
               activeReservationKey = key;
@@ -704,7 +719,12 @@ export async function POST(request: NextRequest) {
             }
 
             if (result.success && action === 'GENERATION_AFTER_FIT') {
-              const claimed = await claimFitContinuation(user!.id, contextId, clientRequestId);
+              const claimed = await claimFitContinuation(
+                user!.id,
+                contextId,
+                clientRequestId,
+                result.reservation!.id,
+              );
               if (claimed) {
                 activeFitContinuation = { userId: user!.id, contextId, requestId: clientRequestId };
               } else {

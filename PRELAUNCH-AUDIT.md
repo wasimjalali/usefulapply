@@ -562,6 +562,76 @@ Round 2 verified all four round 1 criticals as fixed and 18 E-items as correct. 
 - Fix: Narrow the effect dep back to the chat-messages slice (keeping lint clean with a scoped, reasoned disable if needed).
 - Status: FIXED (chat sync now depends on the session ID and chat-message slice instead of the whole session object)
 
+## Batch G: /code-review max findings on PR #90 (10 finder angles, 13 verified candidates: 11 confirmed, 1 plausible, 2 refuted)
+
+Refuted (no action): webhook same-tier double-grant (OCC loop converges, delta 0), anonymous-claim `changes === 1` semantics (measured correct).
+
+### G1 [HIGH] tracker/follow-up still assumes the old reserveCredits contract
+- Files: `src/app/api/tracker/follow-up/route.ts`
+- What: E4 changed `reserveCredits` to return distinct replay codes for in-flight/spent keys; this untouched caller treats any reserve failure as a 500. A retried request gets a false error instead of the honest replay message.
+- Fix: Handle `RESERVATION_IN_FLIGHT` / `RESERVATION_SPENT` like `/api/regenerate` does (honest 409-style copy, no upgrade prompt, no 500).
+- Status: FIXED (follow-up regeneration now returns honest 409 replay responses for in-flight and already-spent reservation keys)
+
+### G2 [HIGH] Chat route TypeError on non-string sessionId
+- Files: `src/app/api/chat/route.ts` (session gate)
+- What: The E2 rework calls `.startsWith('session-')` on `context.sessionId` without the old `typeof` guard; a non-string value from an authenticated caller throws, returning 500 instead of 400.
+- Fix: Restore the type check (treat non-string as absent/local).
+- Status: FIXED (chat now treats a non-string session ID as absent before any UUID or local-session checks)
+
+### G3 [HIGH] Fit-continuation claim never released by the sweeper (retry overcharge)
+- Files: `src/db/repos/credits.ts` (releaseStaleReservations, claimFitContinuation), `src/app/api/agent-v2/route.ts`
+- What: When a worker dies mid-generation, the stale-reservation sweeper refunds the 1.5 reservation but never clears the fit-continuation stamp (single `releaseFitContinuationClaim` call site). The user's retry then fails the E16 claim and reserves FULL_APPLICATION: 0.5 + 2.0 total instead of 0.5 + 1.5.
+- Fix: Release the continuation claim when the sweeper refunds a GENERATION_AFTER_FIT reservation (or key the claim to the reservation so a released reservation frees it).
+- Status: FIXED (fit claims now link to their discount reservation, so a released reservation reopens the claim even if cleanup is interrupted)
+
+### G4 [HIGH] Regenerate trusts D1 while the client debounce hasn't flushed (cv_section + follow-up email)
+- Files: `src/app/api/regenerate/route.ts`, `src/hooks/useSupabaseSync.ts` (session sync)
+- What: The C4/E9 server-sourcing reads the session from D1, but client edits sync on a 2s debounce, so a rewrite fired just after an edit uses stale content. Aggravator: a FAILED session sync still sets `lastSyncedSessionRef`, so the stale window can extend indefinitely.
+- Fix: (1) Only mark the session synced when the write succeeded. (2) For cv_section/follow-up context, flush the pending session sync before calling regenerate (client), or let the route accept the specific edited section text while keeping identity/anti-hallucination sources server-side.
+- Status: FIXED (failed session writes no longer mark synced, and regeneration uses only the live edited section or email while keeping server-owned identity and source data)
+
+### G5 [MEDIUM] Checkout params stuck for signed-out visitors; modal re-forced on reload
+- Files: `src/components/settings/UsageBillingPane.tsx`, `src/components/settings/SettingsModal.tsx`
+- What: Signed-out visitors landing with checkout params never clear them (pane never mounts), and a signed-in user who closes the modal early gets it forced back open on every reload until a poll cycle completes.
+- Fix: Clear checkout params when signed out or when the user dismisses the modal (stamp consumed intent), not only after a completed poll.
+- Status: FIXED (signed-out checkout returns and explicit modal dismissal now consume checkout URL parameters while open polling keeps its feedback)
+
+### G6 [MEDIUM] Client permanent free-check flag contradicts the 30-day server window
+- Files: client anonymous gate flag (localStorage) used by GuidedLine/ChatPanel
+- What: The client sets a permanent "free check used" flag and hard-blocks before any server call, while D14/E1 moved the server to a 30-day rolling window.
+- Fix: Store a timestamp instead and let it expire after 30 days (server remains the authority).
+- Status: FIXED (the anonymous client gate now stores a timestamp, expires after 30 days and migrates legacy boolean flags)
+
+### G7 [MEDIUM] Workflow completion/error messages for background sessions are lost on refresh
+- Files: `src/components/chat/useAgentWorkflow.ts`, `src/hooks/useSupabaseSync.ts`
+- What: Messages appended to a non-current session live only in the in-memory `sessions[]` array; refresh before reopening loses them (the kit itself is persisted).
+- Fix: Sync chat messages for background sessions too (or persist the completion message server-side with the artifacts).
+- Status: FIXED (one message-ID-scoped sync pass now persists unsynced chat messages from current and background sessions)
+
+### G8 [MEDIUM] Unknown Stripe price IDs hard-ignored on refund removal AND credit grant
+- Files: `src/app/api/stripe/webhook/route.ts` (resolveRefundSource, handleSubscriptionUpdate)
+- What: F-series rework returns permanent-ignore (200) for price IDs outside STRIPE_PRICES; after any repricing, refunds stop removing credits and subscription events stop granting, silently. Old code degraded via the amount map.
+- Fix: Keep the strict path for known prices, but on unknown price IDs log loudly, capture to PostHog, and fall back to the charge-amount map (7999/1999) before giving up; never silently ignore a grant for an active subscription.
+- Status: FIXED (unknown prices now log and report to PostHog, use the 1999/7999 amount fallback and keep active unmatched grants retryable)
+
+### G9 [MEDIUM] Re-running fit on a reopened kit session clobbers the kit snapshot
+- Files: `src/app/api/agent-v2/route.ts` (fit path persistGeneratedArtifacts), `src/lib/open-session.ts`
+- What: Reopened kit sessions expose the analyze chip pre-hydration; re-firing fit on the same session id overwrites `generated_artifacts` (plain column SET), destroying the prior kit's recovery snapshot.
+- Fix: On the fit path, merge into existing generated_artifacts (preserve kit fields) or skip the artifacts write when a kit snapshot already exists for that session.
+- Status: FIXED (fit persistence now merges pending analysis into an existing recovery snapshot while full generation still replaces stale kit fields)
+
+### G10 [MEDIUM] Daily feed gate: timezone collision wrong-block and early-unlock abuse
+- Files: `src/app/api/job-feed/run/route.ts`, `src/lib/job-feed/server.ts` (daily gate)
+- What: Comparing today's key against a `local_date` written under a different timezone can wrongly block a user who waited 26 real hours, and flipping to a later timezone can unlock a second run ~2 hours after the first.
+- Fix: Add a real-time floor alongside the date key: block when the last run's created_at is less than ~20 hours ago, allow when more than ~28 hours regardless of date-string comparison.
+- Status: FIXED (the daily gate now enforces a 20-hour floor and 28-hour ceiling from each run's refreshed start time, with controlled date-key reruns)
+
+### G11 [LOW] Eager-session double-fire reentrancy guard (plausible, defense only)
+- Files: `src/components/chat/useAgentWorkflow.ts` (eager createStoredSession)
+- What: Mechanism exists for a double eager-create if the entry point ever re-fires mid-await; currently masked by dead flags, no reachable trigger.
+- Fix: Add a cheap reentrancy guard (ref) around the eager-create block. Skip if it risks touching working behavior.
+- Status: SKIPPED (a hook-local guard would miss the two mounted workflow instances, while a module-global lock risks stale locks in working generation flows)
+
 ## Patch log (implementer updates per batch)
 - Batch A: FIXED (A1-A4 patched; TypeScript passed and touched files are lint clean)
 - Batch B: FIXED (B1-B16 patched; TypeScript passed and touched files are lint clean)
@@ -569,3 +639,4 @@ Round 2 verified all four round 1 criticals as fixed and 18 E-items as correct. 
 - Batch D: FIXED (D1-D18 patched; TypeScript passed and touched files are lint clean; UI smoke was blocked by no browser session)
 - Batch E: FIXED (E1-E26 patched; TypeScript passed and all Batch E files are lint clean; full lint still reports unrelated pre-existing errors outside the touched files)
 - Batch F: FIXED (F1-F15 patched; TypeScript passed and all Batch F files are lint clean; full lint still reports unrelated pre-existing errors outside touched files)
+- Batch G: COMPLETE (G1-G10 fixed and G11 skipped; TypeScript passed and all Batch G files are lint clean)

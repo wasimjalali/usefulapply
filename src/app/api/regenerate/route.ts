@@ -125,10 +125,24 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      resolvedSection = resolveCVSectionTarget(
+      const storedSection = resolveCVSectionTarget(
         storedOptimizedCvData as NonNullable<MasterContext['optimizedCVData']>,
         (section ?? {}) as { kind?: unknown; id?: unknown },
       );
+      const liveOptimizedCvData = context.optimizedCVData
+        && typeof context.optimizedCVData === 'object'
+        && !Array.isArray(context.optimizedCVData)
+          ? context.optimizedCVData as NonNullable<MasterContext['optimizedCVData']>
+          : null;
+      const liveSection = liveOptimizedCvData
+        ? resolveCVSectionTarget(liveOptimizedCvData, (section ?? {}) as { kind?: unknown; id?: unknown })
+        : null;
+      resolvedSection = storedSection
+        && liveSection
+        && storedSection.kind === liveSection.kind
+        && storedSection.id === liveSection.id
+          ? { ...storedSection, before: liveSection.before }
+          : storedSection;
       if (!resolvedSection) {
         return NextResponse.json(
           { error: 'That is not a section we can rewrite, or it is not in this CV.', code: 'INVALID_SECTION' },
@@ -314,7 +328,15 @@ export async function POST(request: NextRequest) {
         tokens,
       });
     } else if (type === 'follow_up_email') {
-      if (session.email && typeof session.email === 'object') {
+      const liveEmail = context.applicationEmail;
+      if (
+        liveEmail
+        && typeof liveEmail === 'object'
+        && typeof liveEmail.subject === 'string'
+        && typeof liveEmail.body === 'string'
+      ) {
+        masterContext.applicationEmail = { subject: liveEmail.subject, body: liveEmail.body };
+      } else if (session.email && typeof session.email === 'object') {
         const storedEmail = session.email as Record<string, unknown>;
         if (typeof storedEmail.subject === 'string' && typeof storedEmail.body === 'string') {
           masterContext.applicationEmail = { subject: storedEmail.subject, body: storedEmail.body };

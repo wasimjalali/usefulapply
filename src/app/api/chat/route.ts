@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
       // The cap is per application and is spent below, not by the client. The
       // count the client keeps rides inside generated_cv, which the client
       // writes wholesale, so it can only ever be a display number.
-      const sessionId = context.sessionId;
+      const sessionId = typeof context.sessionId === 'string' ? context.sessionId : undefined;
       if (!sessionId || !UUID_RE.test(sessionId)) {
         return NextResponse.json(
           { error: "This application hasn't saved yet. Try the question again in a moment.", code: 'SCREENING_SESSION_REQUIRED' },
@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
       screeningSessionId = sessionId;
     }
 
-    const chatSessionId = context.sessionId;
+    const chatSessionId = typeof context.sessionId === 'string' ? context.sessionId : undefined;
     if (chatSessionId && !UUID_RE.test(chatSessionId) && !chatSessionId.startsWith('session-')) {
       return NextResponse.json(
         { error: 'Invalid application session.' },
