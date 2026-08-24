@@ -257,6 +257,14 @@ const LANGUAGE_INDICATORS: Record<Exclude<DetectedLanguage, 'en'>, RegExp[]> = {
  * Falls back to 'en' when no language passes the indicator threshold so the
  * existing English prompt path stays the safe default.
  */
+/**
+ * English baseline. Several non-English lists contain words English also uses
+ * constantly (pt "a"/"as"/"com", es "son", it "i"/"per", nl "of"/"met"), so a
+ * raw threshold misfires on plain English text. A language only wins when it
+ * outscores this baseline on the same text.
+ */
+const ENGLISH_INDICATORS = /\b(the|and|of|to|in|for|with|on|at|by|from|as|is|are|will|be|you|we|our|your|this|that|or|an|a|it|have|has|their|they|who|which|about|can|team|work|role|job|position|company|experience|skills|requirements|responsibilities|benefits)\b/gi;
+
 export function detectLanguage(text: string): DetectedLanguage {
   let best: { lang: DetectedLanguage; score: number } = { lang: 'en', score: 0 };
 
@@ -270,9 +278,11 @@ export function detectLanguage(text: string): DetectedLanguage {
     }
   }
 
-  // Threshold: at least 10 indicator hits to commit to a non-English language;
-  // below that, the text could be code-mixed or too short — keep the English default.
-  return best.score >= 10 ? best.lang : 'en';
+  // Threshold: at least 10 indicator hits to commit to a non-English language,
+  // and the winner must outscore the English baseline. Stopword collisions
+  // ("a", "com", "of") otherwise turn English ads Portuguese.
+  const englishScore = (text.match(ENGLISH_INDICATORS) || []).length;
+  return best.score >= 10 && best.score > englishScore ? best.lang : 'en';
 }
 
 /**

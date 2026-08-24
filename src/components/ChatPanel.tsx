@@ -1850,7 +1850,7 @@ export function ChatPanel({
           {/* Only for sessions that arrive with a saved job (Job Board). A
               fresh paste is mid-decision, and this bubble would double the
               decision UI below with contradictory copy. */}
-          {currentSession && messages.length === 0 && !showWelcomeHero && !pendingDecisionJd && (
+          {currentSession && messages.length === 0 && !showWelcomeHero && !pendingDecisionJd && !isAgentWorking && (
             <div className="flex gap-3">
               <div className="flex-shrink-0 h-fit">
                 <BrandIcon size="xs" theme="light" />
