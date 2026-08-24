@@ -109,6 +109,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: sessionData, isPending } = authClient.useSession();
   const [profile, setProfile] = useState<Profile | null>(null);
   const prevUserIdRef = useRef<string | null>(null);
+  // Better Auth refetches the session on window refocus and republishes
+  // isPending: true while it runs. Only the first resolution counts as
+  // loading; a refocus refetch must not unmount the app into a spinner
+  // (it wipes component-local state like the guided line's step and job).
+  const [sessionResolved, setSessionResolved] = useState(false);
+  if (!isPending && !sessionResolved) setSessionResolved(true);
 
   // Memoised on scalar fields, not on the session objects: Better Auth's
   // atom republishes a new object on every background refetch (its dedupe
@@ -296,7 +302,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     profile: user ? profile : null,
     session,
-    isLoading: isPending,
+    isLoading: isPending && !sessionResolved,
     signUp,
     signIn,
     signInWithGoogle,
