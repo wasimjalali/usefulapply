@@ -189,6 +189,24 @@ export async function updateRun(userId: string, runId: string, updates: Partial<
   return row;
 }
 
+export async function claimQueuedRun(
+  userId: string,
+  runId: string,
+  updates: Partial<JobFeedRun>,
+): Promise<JobFeedRun | null> {
+  const db = await getDb();
+  const rows = await db
+    .update(jobFeedRuns)
+    .set({ ...stripIdentity(updates), status: 'running', updated_at: nowIso() })
+    .where(and(
+      eq(jobFeedRuns.id, runId),
+      eq(jobFeedRuns.user_id, userId),
+      eq(jobFeedRuns.status, 'queued'),
+    ))
+    .returning();
+  return (rows[0] as JobFeedRun | undefined) ?? null;
+}
+
 export async function deleteRunArtifacts(userId: string, runId: string): Promise<void> {
   const db = await getDb();
   await db.delete(jobFeedRawFetches).where(and(eq(jobFeedRawFetches.run_id, runId), eq(jobFeedRawFetches.user_id, userId)));

@@ -4,7 +4,7 @@ import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
 import { getProfile } from '@/db/repos/profiles';
-import { claimScreeningTurn, releaseScreeningTurn } from '@/db/repos/sessions';
+import { claimScreeningTurn, countUserChatMessages, getSession, releaseScreeningTurn } from '@/db/repos/sessions';
 import { SCREENING_TURN_CAP } from '@/lib/screening-answers';
 import {
   chatToolDefinitions,
@@ -78,22 +78,22 @@ interface ChatContext {
 
 export async function POST(req: NextRequest) {
   try {
-    // Rate limiting
-    const clientIP = getClientIP(req);
-    const rateLimitResult = await checkRateLimit(`chat:${clientIP}`, RATE_LIMITS['chat']);
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please wait a moment.' },
-        { status: 429 }
-      );
-    }
-
     // Authentication: require logged-in user for chat (costs API money)
+    const clientIP = getClientIP(req);
     const user = await getCurrentUser(req);
     if (!user) {
       return NextResponse.json(
         { error: 'Authentication required. Please sign in to use chat.' },
         { status: 401 }
+      );
+    }
+
+    const limiterSubject = clientIP === 'unknown' ? `user:${user.id}` : clientIP;
+    const rateLimitResult = await checkRateLimit(`chat:${limiterSubject}`, RATE_LIMITS['chat']);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a moment.' },
+        { status: 429 }
       );
     }
 
@@ -134,18 +134,37 @@ export async function POST(req: NextRequest) {
       // The cap is per application and is spent below, not by the client. The
       // count the client keeps rides inside generated_cv, which the client
       // writes wholesale, so it can only ever be a display number.
-      const sessionId = context.sessionId;
+      const sessionId = typeof context.sessionId === 'string' ? context.sessionId : undefined;
       if (!sessionId || !UUID_RE.test(sessionId)) {
         return NextResponse.json(
-          { error: 'This application has not saved yet. Try the question again in a moment.', code: 'SCREENING_SESSION_REQUIRED' },
+          { error: "This application hasn't saved yet. Try the question again in a moment.", code: 'SCREENING_SESSION_REQUIRED' },
           { status: 409 }
         );
       }
       screeningSessionId = sessionId;
     }
 
-    // Chat message limit per session (count user messages in history)
-    const userMessageCount = context.chatHistory?.filter(m => m.role === 'user').length ?? 0;
+    const chatSessionId = typeof context.sessionId === 'string' ? context.sessionId : undefined;
+    if (chatSessionId && !UUID_RE.test(chatSessionId) && !chatSessionId.startsWith('session-')) {
+      return NextResponse.json(
+        { error: 'Invalid application session.' },
+        { status: 400 },
+      );
+    }
+
+    let userMessageCount: number;
+    if (chatSessionId && UUID_RE.test(chatSessionId)) {
+      const ownedSession = await getSession(user.id, chatSessionId);
+      if (!ownedSession) {
+        return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+      }
+      userMessageCount = await countUserChatMessages(user.id, chatSessionId);
+    } else {
+      userMessageCount = (context.chatHistory ?? []).filter((entry) => entry.role === 'user').length;
+    }
+
+    // Persisted sessions use server-owned history. Local conversations keep
+    // the original client-history cap until they have a D1 row.
     if (userMessageCount >= MAX_CHAT_MESSAGES_PER_SESSION) {
       return NextResponse.json(
         { error: 'Chat message limit reached for this application. Start a new application to continue chatting.', code: 'CHAT_LIMIT_REACHED' },
@@ -228,19 +247,16 @@ export async function POST(req: NextRequest) {
     // Agentic chat: the model can read the tracker, credits, documents and
     // feed, navigate, and apply tracker writes through the tool registry.
     const timeZone = knownTimeZone(context.timeZone) ? context.timeZone : 'UTC';
-    const chatSessionId = typeof context.sessionId === 'string' && UUID_RE.test(context.sessionId)
-      ? context.sessionId
-      : null;
     const toolContext: ChatToolContext = {
       userId: user.id,
       userMessage: message,
       userMessagePasted: looksPasted(message),
       timeZone,
-      sessionId: chatSessionId,
+      sessionId: chatSessionId && UUID_RE.test(chatSessionId) ? chatSessionId : null,
       // Only ever the CV for the application this conversation is on. Without a
       // validated session id there is nothing to write back to, so it is
       // dropped rather than carried.
-      tailoredCV: chatSessionId ? acceptTailoredCv(context.optimizedCVData) : null,
+      tailoredCV: chatSessionId && UUID_RE.test(chatSessionId) ? acceptTailoredCv(context.optimizedCVData) : null,
       cvOutlineRead: false,
       cvWorking: null,
       // What the canvas is painting, so an edit can be judged against the page
@@ -328,8 +344,8 @@ export async function POST(req: NextRequest) {
         console.error('Chat reply failed after a tool round:', loopError);
         confirmActions.length = 0;
         reply = lastToolNames === 'propose_cv_rewrite'
-          ? 'I could not prepare that CV rewrite. Try again in a moment.'
-          : 'I could not complete that action. Try again in a moment.';
+          ? "I couldn't prepare that CV rewrite. Try again in a moment."
+          : "I couldn't complete that action. Try again in a moment.";
       } else {
         console.error('Chat tool loop failed after executed effects:', loopError);
         // The message has to point at the right place, and it has to be true of
@@ -339,13 +355,13 @@ export async function POST(req: NextRequest) {
         const touchedCv = executed.some((effect) => effect.type === 'cv_structure_updated');
         const touchedRow = executed.some((effect) => effect.type === 'tracker_updated');
         if (touchedRow && touchedCv) {
-          reply = 'That change saved, but I could not finish the reply. The tracker row is updated, and the CV edit is in the CV panel if it went through.';
+          reply = "That change saved, but I couldn't finish the reply. The tracker row is updated, and the CV edit is in the CV panel if it went through.";
         } else if (touchedRow) {
-          reply = 'That change saved, but I could not finish the reply. Check the tracker for the updated row.';
+          reply = "That change saved, but I couldn't finish the reply. Check the tracker for the updated row.";
         } else if (touchedCv) {
-          reply = 'I could not finish the reply. If the CV edit went through it is in the CV panel, with an Undo button on it.';
+          reply = "I couldn't finish the reply. If the CV edit went through it is in the CV panel, with an Undo button on it.";
         } else {
-          reply = 'I could not finish the reply. Ask me again and I\'ll pick it up from there.';
+          reply = "I couldn't finish the reply. Ask me again and I'll pick it up from there.";
         }
       }
     }
@@ -357,8 +373,8 @@ export async function POST(req: NextRequest) {
     if (failedToolNames.length > 0) {
       const failedCvRewrite = failedToolNames.includes('propose_cv_rewrite');
       const failureReply = failedCvRewrite
-        ? 'I could not prepare that CV rewrite. Try again in a moment.'
-        : 'I could not complete that action. Try again in a moment.';
+        ? "I couldn't prepare that CV rewrite. Try again in a moment."
+        : "I couldn't complete that action. Try again in a moment.";
       // Never append to free-form model copy after a known handler failure. A
       // mixed round may contain a stale success claim for the action that did
       // not run. Successful handlers keep their action chips and effects, but

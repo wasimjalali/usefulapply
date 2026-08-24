@@ -38,8 +38,6 @@ import {
   buildCVOptimizationSystemBlocks,
   buildCVOptimizationUserPrompt,
   buildCVSectionRewriteUserPrompt,
-  buildVerifiedSkillList,
-  buildVerifiedMetricsList,
   isListSection,
   type CVSectionKind,
   type ResolvedCVSection,
@@ -53,6 +51,7 @@ import {
 import { buildCoverLetterSystemBlocks, buildCoverLetterUserPrompt } from './prompts/cover-letter-prompt';
 import { buildApplicationEmailUserPrompt, buildApplicationEmailSystemBlocks, buildFollowUpEmailUserPrompt, buildFollowUpEmailSystemBlocks } from './prompts/email-prompts';
 import { buildFitAssessmentPrompt, buildFitAssessmentSystemBlocks, computeFitLevel } from './prompts/fit-assessment-prompt';
+import { normalizeLanguage } from '@/lib/utils/language-detector';
 
 // Re-export for backward compatibility
 export { COVER_LETTER_BLACKLIST };
@@ -658,6 +657,80 @@ function parseSectionResponse(raw: string): Record<string, unknown> {
   return parsed as Record<string, unknown>;
 }
 
+type NormalizedOptimizedCvPayload = {
+  personal: Record<string, unknown>;
+  summary?: unknown;
+  experience: Record<string, unknown>[];
+  education: Record<string, unknown>[];
+  skills: Record<string, unknown>[];
+  languages: Record<string, unknown>[];
+  certifications: Record<string, unknown>[];
+  projects: Record<string, unknown>[];
+  customSections: Record<string, unknown>[];
+  additionalInfo: unknown[];
+  analysis?: Record<string, unknown>;
+  sectionHeaders?: unknown;
+  localizedStrings?: unknown;
+};
+
+function normalizeOptimizedCvPayload(value: unknown): NormalizedOptimizedCvPayload {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('Optimized CV response was not an object');
+  }
+
+  const cv = value as Record<string, unknown>;
+  const personal = cv.personal;
+  if (!personal || typeof personal !== 'object' || Array.isArray(personal)) {
+    throw new Error('Optimized CV response has no personal section');
+  }
+  if (typeof (personal as Record<string, unknown>).fullName !== 'string') {
+    throw new Error('Optimized CV response has no full name');
+  }
+
+  if (!Array.isArray(cv.experience)) {
+    throw new Error('Optimized CV response has no experience list');
+  }
+
+  const normalizeStringArray = (entry: unknown, key: string): boolean => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return false;
+    const record = entry as Record<string, unknown>;
+    if (record[key] === undefined) {
+      record[key] = [];
+      return true;
+    }
+    return Array.isArray(record[key]) && (record[key] as unknown[]).every((item) => typeof item === 'string');
+  };
+  if (!(cv.experience as unknown[]).every((entry) => normalizeStringArray(entry, 'bullets'))) {
+    throw new Error('Optimized CV response has invalid experience bullets');
+  }
+
+  for (const key of ['education', 'skills', 'languages', 'certifications', 'projects', 'customSections'] as const) {
+    if (cv[key] === undefined) cv[key] = [];
+    if (!Array.isArray(cv[key])) {
+      throw new Error(`Optimized CV response has invalid ${key}`);
+    }
+  }
+  if (cv.additionalInfo === undefined) cv.additionalInfo = [];
+  if (!Array.isArray(cv.additionalInfo)) {
+    throw new Error('Optimized CV response has invalid additionalInfo');
+  }
+
+  const nestedLists = [
+    ['experience', 'technologies'],
+    ['education', 'highlights'],
+    ['skills', 'items'],
+    ['projects', 'technologies'],
+    ['customSections', 'items'],
+  ] as const;
+  for (const [key, nestedKey] of nestedLists) {
+    if (!(cv[key] as unknown[]).every((entry) => normalizeStringArray(entry, nestedKey))) {
+      throw new Error(`Optimized CV response has invalid ${key}`);
+    }
+  }
+
+  return cv as unknown as NormalizedOptimizedCvPayload;
+}
+
 /** Text that lands in the CV gets the same cleanup the other writers apply. */
 function cleanSectionText(value: string): string {
   return sanitizeDashes(fixTypos(value)).trim();
@@ -754,7 +827,7 @@ export const unifiedWriterAgent = {
     const startTime = Date.now();
     
     // Initialize MasterContext
-    let context: MasterContext = {
+    const context: MasterContext = {
       sessionId: input.sessionId,
       jobDescription: input.jobDescription,
       rawCV: input.primaryCV,
@@ -914,7 +987,7 @@ export const unifiedWriterAgent = {
   ): Promise<AgentResult<OrchestrationResult>> {
     const startTime = Date.now();
     
-    let context: MasterContext = {
+    const context: MasterContext = {
       sessionId: input.sessionId,
       jobDescription: input.jobDescription,
       rawCV: input.primaryCV,
@@ -1110,10 +1183,7 @@ export const unifiedWriterAgent = {
    * Determine the output language based on detection and user override
    */
   getOutputLanguage(context: MasterContext): string {
-    if (context.userLanguageOverride) {
-      return context.userLanguageOverride;
-    }
-    return context.detectedLanguage || 'en';
+    return normalizeLanguage(context.userLanguageOverride || context.detectedLanguage);
   },
 
   /**
@@ -1125,7 +1195,7 @@ export const unifiedWriterAgent = {
     legacyCV: { content: string; changes: Array<{ section: string; before: string; after: string; reason: string }> };
     tokens: TokenUsage;
   }> {
-    const { applicant, rawCV } = context;
+    const { applicant } = context;
     
     const outputLang = this.getOutputLanguage(context);
     const isGerman = outputLang === 'de';
@@ -1188,19 +1258,20 @@ export const unifiedWriterAgent = {
         }
       }
       
-      const parsed = JSON.parse(jsonContent);
+      const parsed = normalizeOptimizedCvPayload(JSON.parse(jsonContent));
+      const personal = parsed.personal;
 
       // Avoid logging PII (applicant name, raw JSON blobs) in production — these
       // land in CloudWatch / PostHog server logs and are not aggregated personal data.
       if (process.env.NODE_ENV !== 'production') {
         console.log('[UnifiedAgent] Parsed structured CV data:');
-        console.log('  - Personal name present:', Boolean(parsed.personal?.fullName));
+        console.log('  - Personal name present:', Boolean(personal.fullName));
         console.log('  - Experience entries:', parsed.experience?.length || 0);
         console.log('  - Skill categories:', parsed.skills?.length || 0);
         console.log('  - Projects:', parsed.projects?.length || 0);
         console.log('  - Additional Info:', parsed.additionalInfo?.length || 0);
         console.log('  - Custom Sections:', parsed.customSections?.length || 0);
-        console.log('  - Driver License present:', Boolean(parsed.personal?.driverLicense ?? parsed.personal?.driver_license));
+        console.log('  - Driver License present:', Boolean(personal.driverLicense ?? personal.driver_license));
         console.log('  - sectionHeaders present:', Boolean(parsed.sectionHeaders));
         console.log('  - localizedStrings present:', Boolean(parsed.localizedStrings));
       }
@@ -1208,19 +1279,19 @@ export const unifiedWriterAgent = {
       // Validate and provide defaults
       const cvData: NonNullable<MasterContext['optimizedCVData']> = {
         personal: {
-          fullName: parsed.personal?.fullName || applicant?.name || 'Unknown',
-          email: parsed.personal?.email || applicant?.email || '',
-          phone: parsed.personal?.phone,
-          currentTitle: parsed.personal?.currentTitle,
-          address: parsed.personal?.address,
-          city: parsed.personal?.city,
-          country: parsed.personal?.country,
-          linkedIn: parsed.personal?.linkedIn,
-          website: parsed.personal?.website,
-          github: parsed.personal?.github,
-          driverLicense: parsed.personal?.driverLicense ?? parsed.personal?.driver_license ?? undefined,
+          fullName: personal.fullName as string || applicant?.name || 'Unknown',
+          email: personal.email as string || applicant?.email || '',
+          phone: personal.phone as string | undefined,
+          currentTitle: personal.currentTitle as string | undefined,
+          address: personal.address as string | undefined,
+          city: personal.city as string | undefined,
+          country: personal.country as string | undefined,
+          linkedIn: personal.linkedIn as string | undefined,
+          website: personal.website as string | undefined,
+          github: personal.github as string | undefined,
+          driverLicense: (personal.driverLicense ?? personal.driver_license) as string | undefined,
         },
-        summary: parsed.summary || '',
+        summary: parsed.summary as string || '',
         experience: (parsed.experience || []).map((exp: Record<string, unknown>, idx: number) => ({
           id: exp.id as string || `exp-${idx + 1}`,
           company: exp.company as string || '',
@@ -1279,8 +1350,8 @@ export const unifiedWriterAgent = {
           ats_compatibility: (parsed.analysis.ats_compatibility as number) || 0,
           missing_keywords_added: (parsed.analysis.missing_keywords_added as string[]) || [],
         } : undefined,
-        sectionHeaders: parsed.sectionHeaders || undefined,
-        localizedStrings: parsed.localizedStrings || undefined,
+        sectionHeaders: parsed.sectionHeaders as NonNullable<MasterContext['optimizedCVData']>['sectionHeaders'],
+        localizedStrings: parsed.localizedStrings as NonNullable<MasterContext['optimizedCVData']>['localizedStrings'],
       };
       
       // Generate legacy text format for backward compatibility
@@ -1296,32 +1367,7 @@ export const unifiedWriterAgent = {
       };
     } catch (error) {
       console.error('[UnifiedAgent] Failed to parse structured CV JSON:', error);
-      
-      // Fallback: return empty structure with original applicant data
-      const fallbackData: NonNullable<MasterContext['optimizedCVData']> = {
-        personal: {
-          fullName: applicant?.name || 'Unknown',
-          email: applicant?.email || '',
-          phone: applicant?.phone,
-          currentTitle: applicant?.headline,
-          address: applicant?.address,
-        },
-        summary: '',
-        experience: [],
-        education: [],
-        skills: [],
-        languages: [],
-        certifications: [],
-      };
-      
-      return {
-        cvData: fallbackData,
-        legacyCV: {
-          content: rawCV,
-          changes: [],
-        },
-        tokens,
-      };
+      throw new Error('CV generation returned invalid structured data.');
     }
   },
 

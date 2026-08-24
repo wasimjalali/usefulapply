@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { inflateRawSync } from 'node:zlib';
 import { v4 as uuidv4 } from 'uuid';
-import { StructuredCV, createEmptyCV, withId } from '@/lib/types/cv-schema';
+import {
+  StructuredCV,
+  createEmptyCV,
+  withId,
+  type AdditionalSection,
+  type Certification,
+  type CVDate,
+  type Education,
+  type Language,
+  type Project,
+  type SkillCategory,
+  type WorkExperience,
+} from '@/lib/types/cv-schema';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
@@ -60,11 +72,26 @@ function resolveOwnedCvKey(userId: string, storagePath: unknown): string | null 
   return null;
 }
 
+function hasMinimumCvSignals(cv: StructuredCV): boolean {
+  const hasName = cv.personal.fullName.trim().length > 0;
+  const hasExperience = cv.experience.some((entry) =>
+    entry.company.trim().length > 0 || entry.position.trim().length > 0 || entry.bullets.length > 0,
+  );
+  const hasEducation = cv.education.some((entry) =>
+    entry.institution.trim().length > 0 || entry.degree.trim().length > 0,
+  );
+  const hasSkills = cv.skills.some((category) => category.skills.length > 0);
+  return hasName && (hasExperience || hasEducation || hasSkills);
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting
+    // Auth check: determines rate limiting (anonymous = 5/24h IP limit, authenticated = unlimited)
     const clientIP = getClientIP(request);
-    const rateLimitResult = await checkRateLimit(`parse-cv:${clientIP}`, RATE_LIMITS['parse-cv']);
+    const user = await getCurrentUser(request);
+    const isAuthenticated = !!user;
+    const limiterSubject = clientIP === 'unknown' && user ? `user:${user.id}` : clientIP;
+    const rateLimitResult = await checkRateLimit(`parse-cv:${limiterSubject}`, RATE_LIMITS['parse-cv']);
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: 'Too many requests. Please wait a moment.' },
@@ -72,9 +99,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Auth check: determines rate limiting (anonymous = 5/24h IP limit, authenticated = unlimited)
-    const user = await getCurrentUser(request);
-    const isAuthenticated = !!user;
     const clientRequestId = request.headers.get('x-request-id') ?? crypto.randomUUID();
     const generationContext: LlmGenerationContext = {
       requestExecutionId: crypto.randomUUID(),
@@ -282,6 +306,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (!hasMinimumCvSignals(structuredCV)) {
+      return NextResponse.json(
+        { error: "This doesn't look like a CV. Please upload a CV with your name and work, education or skills." },
+        { status: 400 },
+      );
+    }
+
     // Track anonymous AI parse usage separately for cost monitoring
     if (!isAuthenticated) {
       const posthog = getPostHogServer();
@@ -433,7 +464,18 @@ function prepareTextForAI(rawText: string): string {
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   const pdfjsModule = 'pdfjs-dist/legacy/build/pdf.mjs';
-  const pdfjs = await import(pdfjsModule) as any;
+  type PdfDocument = {
+    numPages: number;
+    getPage(pageNumber: number): Promise<{
+      getTextContent(): Promise<{ items: unknown[] }>;
+      cleanup?: () => void;
+    }>;
+    destroy?: () => Promise<void>;
+  };
+  type PdfJsModule = {
+    getDocument(options: Record<string, unknown>): { promise: Promise<PdfDocument> };
+  };
+  const pdfjs = await import(pdfjsModule) as unknown as PdfJsModule;
   const loadingTask = pdfjs.getDocument({
     data: new Uint8Array(buffer),
     useWorkerFetch: false,
@@ -449,7 +491,10 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
       const page = await pdf.getPage(pageNumber);
       const content = await page.getTextContent();
       const pageText = content.items
-        .map((item: any) => typeof item.str === 'string' ? item.str : '')
+        .map((item) => {
+          const record = item && typeof item === 'object' ? item as Record<string, unknown> : null;
+          return typeof record?.str === 'string' ? record.str : '';
+        })
         .filter(Boolean)
         .join(' ')
         .replace(/[ \t]+/g, ' ')
@@ -900,83 +945,132 @@ function parseAIResponse(content: string, region: 'US' | 'EU'): StructuredCV {
   const jsonMatch = content.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error('No JSON in response');
 
-  const parsed = JSON.parse(jsonMatch[0]);
+  const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
   const cv = createEmptyCV(region);
+  const personal = asRecord(parsed.personal) ?? {};
 
   // Map ALL personal info fields
   cv.personal = {
-    fullName: parsed.personal?.fullName || '',
-    email: parsed.personal?.email || '',
-    phone: parsed.personal?.phone || '',
-    currentTitle: parsed.personal?.currentTitle, // Job title/tagline
-    address: parsed.personal?.address,
-    city: parsed.personal?.city,
-    country: parsed.personal?.country,
-    postalCode: parsed.personal?.postalCode,
-    dateOfBirth: parsed.personal?.dateOfBirth, // Important for EU CVs
-    nationality: parsed.personal?.nationality, // Important for EU CVs
-    linkedIn: parsed.personal?.linkedIn,
-    website: parsed.personal?.website,
-    github: parsed.personal?.github,
-    photoUrl: parsed.personal?.photoUrl,
+    fullName: asString(personal.fullName),
+    email: asString(personal.email),
+    phone: asString(personal.phone),
+    currentTitle: asOptionalString(personal.currentTitle), // Job title/tagline
+    address: asOptionalString(personal.address),
+    city: asOptionalString(personal.city),
+    country: asOptionalString(personal.country),
+    postalCode: asOptionalString(personal.postalCode),
+    dateOfBirth: asOptionalString(personal.dateOfBirth), // Important for EU CVs
+    nationality: asOptionalString(personal.nationality), // Important for EU CVs
+    linkedIn: asOptionalString(personal.linkedIn),
+    website: asOptionalString(personal.website),
+    github: asOptionalString(personal.github),
+    photoUrl: asOptionalString(personal.photoUrl),
   };
 
-  cv.summary = parsed.summary;
+  cv.summary = asOptionalString(parsed.summary);
 
-  const asArray = (v: unknown): any[] => Array.isArray(v) ? v : [];
-
-  cv.experience = asArray(parsed.experience).map((exp: any) => withId({
-    company: exp.company || '',
-    position: exp.position || '',
-    location: exp.location,
-    startDate: exp.startDate || { raw: '', confidence: 'low' },
-    endDate: exp.endDate,
-    current: exp.current || false,
-    bullets: asArray(exp.bullets),
+  cv.experience = asRecords(parsed.experience).map((exp) => withId<WorkExperience>({
+    company: asString(exp.company),
+    position: asString(exp.position),
+    location: asOptionalString(exp.location),
+    startDate: asCvDate(exp.startDate) ?? { raw: '', confidence: 'low' },
+    endDate: asCvDate(exp.endDate),
+    current: exp.current === true,
+    bullets: asStrings(exp.bullets),
   }));
 
-  cv.education = asArray(parsed.education).map((edu: any) => withId({
-    institution: edu.institution || '',
-    degree: edu.degree || '',
-    field: edu.field,
-    location: edu.location,
-    startDate: edu.startDate,
-    endDate: edu.endDate,
-    grade: edu.grade,
-    highlights: asArray(edu.highlights),
+  cv.education = asRecords(parsed.education).map((edu) => withId<Education>({
+    institution: asString(edu.institution),
+    degree: asString(edu.degree),
+    field: asOptionalString(edu.field),
+    location: asOptionalString(edu.location),
+    startDate: asCvDate(edu.startDate),
+    endDate: asCvDate(edu.endDate),
+    grade: asOptionalString(edu.grade),
+    highlights: asStrings(edu.highlights),
   }));
 
-  cv.skills = asArray(parsed.skills).map((cat: any) => withId({
-    category: cat.category || 'Skills',
-    skills: asArray(cat.skills),
+  cv.skills = asRecords(parsed.skills).map((category) => withId<SkillCategory>({
+    category: asString(category.category) || 'Skills',
+    skills: asStrings(category.skills),
   }));
 
-  cv.certifications = asArray(parsed.certifications).map((cert: any) => withId({
-    name: cert.name || '',
-    issuer: cert.issuer || '',
-    date: cert.date,
+  cv.certifications = asRecords(parsed.certifications).map((certification) => withId<Certification>({
+    name: asString(certification.name),
+    issuer: asString(certification.issuer),
+    date: asCvDate(certification.date),
   }));
 
-  cv.languages = asArray(parsed.languages).map((lang: any) => withId({
-    language: lang.language || '',
-    proficiency: lang.proficiency || 'Professional',
-    certification: lang.certification,
+  cv.languages = asRecords(parsed.languages).map((language) => withId<Language>({
+    language: asString(language.language),
+    proficiency: asLanguageProficiency(language.proficiency),
+    certification: asOptionalString(language.certification),
   }));
 
-  cv.projects = asArray(parsed.projects).map((proj: any) => withId({
-    name: proj.name || '',
-    description: proj.description || '',
-    technologies: asArray(proj.technologies),
-    url: proj.url,
+  cv.projects = asRecords(parsed.projects).map((project) => withId<Project>({
+    name: asString(project.name),
+    description: asString(project.description),
+    technologies: asStrings(project.technologies),
+    url: asOptionalString(project.url),
   }));
 
-  const additionalArr = asArray(parsed.additionalSections);
+  const additionalArr = asRecords(parsed.additionalSections);
   if (additionalArr.length > 0) {
-    cv.additionalSections = additionalArr.map((section: any) => withId({
-      title: section.title || 'Additional Information',
-      items: asArray(section.items).filter(Boolean),
+    cv.additionalSections = additionalArr.map((section) => withId<AdditionalSection>({
+      title: asString(section.title) || 'Additional Information',
+      items: asStrings(section.items),
     }));
   }
 
   return cv;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function asRecords(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value)
+    ? value.map(asRecord).filter((item): item is Record<string, unknown> => item !== null)
+    : [];
+}
+
+function asString(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function asOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function asStrings(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
+}
+
+function asCvDate(value: unknown): CVDate | undefined {
+  if (typeof value === 'string') return { raw: value, confidence: 'low' };
+  const record = asRecord(value);
+  if (!record || typeof record.raw !== 'string') return undefined;
+  const confidence = record.confidence === 'high' || record.confidence === 'medium'
+    ? record.confidence
+    : 'low';
+  return {
+    raw: record.raw,
+    normalized: asOptionalString(record.normalized),
+    confidence,
+  };
+}
+
+function asLanguageProficiency(value: unknown): Language['proficiency'] {
+  return value === 'Native'
+    || value === 'Fluent'
+    || value === 'Professional'
+    || value === 'Intermediate'
+    || value === 'Basic'
+    ? value
+    : 'Professional';
 }

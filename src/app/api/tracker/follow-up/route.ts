@@ -84,6 +84,18 @@ export async function POST(request: NextRequest) {
     });
 
     if (!reserveResult.success) {
+      if (reserveResult.code === 'RESERVATION_IN_FLIGHT') {
+        return NextResponse.json(
+          { error: 'That request is still running.', code: 'REQUEST_IN_PROGRESS' },
+          { status: 409 },
+        );
+      }
+      if (reserveResult.code === 'RESERVATION_SPENT') {
+        return NextResponse.json(
+          { error: "That request already finished. You weren't charged twice.", code: 'REQUEST_ALREADY_COMPLETED' },
+          { status: 409 },
+        );
+      }
       if (typeof reserveResult.available === 'number') {
         return NextResponse.json(
           {
@@ -240,7 +252,7 @@ export async function POST(request: NextRequest) {
           reservation_key: reservationKey,
         });
         await posthog.flush();
-      } catch (_) { /* ignore PostHog errors */ }
+      } catch { /* ignore PostHog errors */ }
     }
     return NextResponse.json({
       followUpEmail: {

@@ -146,6 +146,7 @@ interface PendingRegen {
   target: RegenTarget;
   instruction: string | null;
   sessionId: string | null;
+  requestId: string;
 }
 
 interface ChatPanelProps {
@@ -239,6 +240,13 @@ export function ChatPanel({
     },
     onAnonymousLimitReached: () => {
       askForAccount();
+    },
+    onSessionExpired: () => {
+      addChatMessage({
+        role: 'assistant',
+        content: 'Your session expired. Sign in again to continue. Nothing was charged.',
+        actions: [{ label: 'Sign in', action: 'navigate-login' }],
+      });
     },
     onProposeApplication: (jd) => {
       // A short message is a question whatever the model decided, and acting
@@ -791,6 +799,7 @@ export function ChatPanel({
       target,
       instruction,
       sessionId: useSessionStore.getState().currentSession?.id ?? null,
+      requestId: generateRequestId(),
     });
   };
 
@@ -817,7 +826,7 @@ export function ChatPanel({
     setRegenStage({ title: meta.stage, tab: meta.tab });
     posthog?.capture('regeneration_requested', { section: meta.type, source: 'chat', with_instruction: Boolean(instruction) });
     try {
-      const result = await regenerateDocument(target, generateRequestId(), instruction ?? undefined, pending.sessionId);
+      const result = await regenerateDocument(target, pending.requestId, instruction ?? undefined, pending.sessionId);
       // The document lands on the application that asked for it; the chat
       // line only makes sense if the user is still looking at that one.
       if (useSessionStore.getState().currentSession?.id !== startedIn) return;
@@ -846,7 +855,12 @@ export function ChatPanel({
           role: 'assistant',
           content: `I can't rewrite the ${meta.noun} without the job ad and your CV loaded. Open the application from the sidebar and try again.`,
         });
+      } else if (result.code === 'REQUEST_IN_PROGRESS') {
+        addChatMessage({ role: 'assistant', content: 'That request is still running.' });
+      } else if (result.code === 'REQUEST_ALREADY_COMPLETED') {
+        addChatMessage({ role: 'assistant', content: "That request already finished. You weren't charged twice." });
       } else {
+        setPendingRegen(pending);
         addChatMessage({
           role: 'assistant',
           content: `That rewrite didn't go through. The ${meta.noun} on the right is unchanged. Try again in a moment.`,

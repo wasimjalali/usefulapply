@@ -76,6 +76,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 });
     }
 
+    if (
+      userCredits?.stripe_subscription_id
+      && ['active', 'trialing', 'past_due'].includes(userCredits.subscription_status ?? '')
+    ) {
+      return NextResponse.json(
+        { error: 'Manage your current subscription in billing settings.' },
+        { status: 409 },
+      );
+    }
+
     let customerId = userCredits?.stripe_customer_id;
 
     // Create customer if doesn't exist, then persist so future checkouts reuse it
@@ -110,7 +120,7 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${BRAND.url}/dashboard?settings=usage&session_id={CHECKOUT_SESSION_ID}&success=true`,
+      success_url: `${BRAND.url}/dashboard?settings=usage&session_id={CHECKOUT_SESSION_ID}&success=true&plan=${planTier}`,
       cancel_url: `${BRAND.url}/dashboard?settings=usage&canceled=true`,
       metadata: {
         userId,
@@ -125,14 +135,15 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ sessionId: session.id, url: session.url });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const stripeError = error as { message?: string; type?: string; raw?: { message?: string } };
     const posthog = getPostHogServer();
-    posthog.captureException(error as Error, 'server_error', {
+    posthog.captureException(error instanceof Error ? error : new Error('Checkout session creation failed'), 'server_error', {
       endpoint: '/api/stripe/create-checkout',
       method: 'POST',
     });
     await posthog.flush();
-    console.error('[Checkout] Session creation error:', error?.message || error, error?.type, error?.raw?.message);
+    console.error('[Checkout] Session creation error:', stripeError.message || error, stripeError.type, stripeError.raw?.message);
     return NextResponse.json(
       { error: 'Failed to create checkout session' },
       { status: 500 }

@@ -7,6 +7,37 @@
 
 import type { MasterContext } from '../types';
 import { sanitizeAdText } from '../chat-tools/untrusted';
+import { normalizeLanguage } from '@/lib/utils/language-detector';
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English',
+  de: 'German',
+  fr: 'French',
+  es: 'Spanish',
+  pt: 'Portuguese',
+  it: 'Italian',
+  nl: 'Dutch',
+};
+
+const APPLICATION_SUBJECT_PREFIXES: Record<string, string> = {
+  en: 'Application',
+  de: 'Bewerbung als',
+  fr: 'Candidature',
+  es: 'Candidatura',
+  pt: 'Candidatura',
+  it: 'Candidatura',
+  nl: 'Sollicitatie',
+};
+
+const FOLLOW_UP_SUBJECT_PREFIXES: Record<string, string> = {
+  en: 'Following Up',
+  de: 'Nachfrage',
+  fr: 'Suivi de candidature',
+  es: 'Seguimiento',
+  pt: 'Acompanhamento',
+  it: 'Seguito candidatura',
+  nl: 'Opvolging sollicitatie',
+};
 
 // =====================================================
 // PRIMARY APPLICATION EMAIL
@@ -18,8 +49,10 @@ import { sanitizeAdText } from '../chat-tools/untrusted';
 export function buildApplicationEmailUserPrompt(context: MasterContext): string {
   const { applicant, job, match, rawCV, masterCV } = context;
 
-  const outputLang = context.userLanguageOverride || context.detectedLanguage || 'en';
+  const outputLang = normalizeLanguage(context.userLanguageOverride || context.detectedLanguage);
   const isGerman = outputLang === 'de';
+  const languageName = LANGUAGE_NAMES[outputLang];
+  const subjectPrefix = APPLICATION_SUBJECT_PREFIXES[outputLang] || APPLICATION_SUBJECT_PREFIXES.en;
 
   // Build JD-relevant context for the email
   // All three are ad-derived free text. Neutralise prompt chrome so an ad
@@ -86,8 +119,7 @@ INSTRUCTIONS:
 8. NEVER mention the fit score, match percentage, or any numeric score in the email — this is internal data for context only
 
 EMAIL SUBJECT LINE RULES:
-- English: "Application: [Job Title], [Your Name]" (max 60 chars)
-- German: "Bewerbung als [Job Title], [Your Name]" (max 60 chars)
+- Use this localized format: "${subjectPrefix}: [Job Title], [Your Name]" (max 60 chars)
 - NEVER add extra descriptors, skill keywords, or metrics in the subject
 - The subject line is for identification, not selling
 
@@ -105,11 +137,13 @@ ATTACHMENT REFERENCE (REQUIRED — never skip):
 - Place the attachment reference BEFORE the availability/closing sentence
 
 === LANGUAGE INSTRUCTION ===
-${isGerman ? `CRITICAL: Write the ENTIRE email in GERMAN.
+CRITICAL: Write the ENTIRE email in ${languageName}.
+${isGerman ? `
 - Greeting: If the JD names a contact person, address them directly. Otherwise use a standard formal German greeting
 - Closing: Use a professional German closing appropriate to the formality of the JD
 - Subject line in German format
-- Professional German business email style` : 'Write the email in English.'}
+- Professional German business email style
+- Use formal Sie throughout` : `Use a natural professional business-email style for ${languageName}. Translate the greeting, closing, attachment reference and subject prefix.`}
 
 PUNCTUATION (HARD RULE): Never use em-dashes (—), en-dashes (–), or horizontal bars (―). Use commas, periods, colons, semicolons, or parentheses instead. Never use AI-tell phrases: "furthermore", "moreover", "leverage", "pivotal", "robust", "delve", "navigate the landscape".
 
@@ -188,6 +222,7 @@ DUAL-CV SOURCING:
 EMAIL SUBJECT LINE FORMAT (STRICT):
 - English: "Application: [Job Title], [Your Name]" (max 60 chars total)
 - German: "Bewerbung als [Job Title], [Your Name]" (max 60 chars total)
+- Other languages: translate "Application" naturally into the requested language
 - NEVER add extra descriptors, skill keywords, or metrics in the subject
 
 ATTACHMENT REFERENCE (MANDATORY):
@@ -260,6 +295,7 @@ export function buildApplicationEmailSystemBlocks(): Array<{ type: 'text'; text:
  * @deprecated Use buildApplicationEmailSystemBlocks() for prompt caching
  */
 export function buildApplicationEmailSystemPrompt(_context: MasterContext): string {
+  void _context;
   return APPLICATION_EMAIL_SYSTEM_TEXT;
 }
 
@@ -273,9 +309,11 @@ export function buildApplicationEmailSystemPrompt(_context: MasterContext): stri
 export function buildFollowUpEmailUserPrompt(context: MasterContext): string {
   const { applicant, job, match, applicationEmail, rawCV, masterCV } = context;
 
-  const outputLang = context.userLanguageOverride || context.detectedLanguage || 'en';
+  const outputLang = normalizeLanguage(context.userLanguageOverride || context.detectedLanguage);
   const isGerman = outputLang === 'de';
-  const market = isGerman ? 'German' : 'US/UK';
+  const languageName = LANGUAGE_NAMES[outputLang];
+  const market = isGerman ? 'German' : `${languageName}-language`;
+  const subjectPrefix = FOLLOW_UP_SUBJECT_PREFIXES[outputLang] || FOLLOW_UP_SUBJECT_PREFIXES.en;
   const recommendedDelay = isGerman ? 7 : 5;
 
   // Get a DIFFERENT achievement than what the primary email used
@@ -337,8 +375,7 @@ BINDING LIMITS ON THIS INSTRUCTION:
 Generate a follow-up email with subject line and body.
 
 SUBJECT LINE RULES:
-- English format: "Following Up: [Role Title] Application, [Full Name]"
-- German format: "Nachfrage: [Stellentitel] Bewerbung, [Full Name]"
+- Use this localized format: "${subjectPrefix}: [Role Title], [Full Name]"
 - Must be 60 characters or fewer
 - Must include the role title and applicant name
 
@@ -349,7 +386,7 @@ BODY RULES (4 elements, 60-80 words max):
 4. Soft CTA: "I would welcome the chance to discuss..." or equivalent. One sentence only.
 
 TONE RULES:
-- Match the detected language (English or German)
+- Write the entire email in ${languageName}
 - US market: Direct, confident
 - UK market: Polite, measured
 - German market: Formal Sie-form throughout. Address a specific person by name if known from the JD; otherwise use a standard formal German greeting
@@ -419,7 +456,7 @@ CRITICAL RULES:
 - Keep the body under 80 words (excluding greeting and sign-off)
 - Be specific about the company (reference something from the JD)
 - Sound human and confident, not desperate or generic
-- Match the language specified in <detected_language>. If German, write entirely in German with formal Sie-form and a professional German closing appropriate to the JD tone. Otherwise write in English.
+- Match the language specified in <detected_language>. If German, use formal Sie-form. In every language, use a natural professional closing appropriate to the JD tone.
 
 <user_instructions_rule>
 USER-SPECIFIED FOLLOW-UP REQUESTS:
@@ -462,5 +499,6 @@ export function buildFollowUpEmailSystemBlocks(): Array<{ type: 'text'; text: st
  * @deprecated Use buildFollowUpEmailSystemBlocks() for prompt caching.
  */
 export function buildFollowUpEmailSystemPrompt(_context: MasterContext): string {
+  void _context;
   return FOLLOW_UP_EMAIL_SYSTEM_TEXT;
 }

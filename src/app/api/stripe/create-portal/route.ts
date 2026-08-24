@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     }
 
     const userId = user.id; // Use authenticated user ID, never trust client
+    const body = await req.json().catch(() => null) as { flow?: unknown } | null;
 
     // Get user's Stripe customer ID
     const userCredits = await findCreditsByUserId(userId);
@@ -36,9 +37,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Create portal session
+    const subscriptionUpdate = body?.flow === 'subscription_update';
+    if (subscriptionUpdate && !userCredits.stripe_subscription_id) {
+      return NextResponse.json({ error: 'No active subscription found' }, { status: 404 });
+    }
     const session = await getStripe().billingPortal.sessions.create({
       customer: userCredits.stripe_customer_id,
       return_url: `${BRAND.url}/dashboard?settings=usage`,
+      ...(subscriptionUpdate ? {
+        flow_data: {
+          type: 'subscription_update' as const,
+          subscription_update: { subscription: userCredits.stripe_subscription_id! },
+        },
+      } : {}),
     });
 
     return NextResponse.json({ url: session.url });

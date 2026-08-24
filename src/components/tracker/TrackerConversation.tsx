@@ -98,6 +98,10 @@ export function TrackerConversation() {
         say('I could not find that application’s job description or your CV.');
         return;
       }
+      if (result.code === 'SIGNED_OUT') {
+        say('Your session expired. Sign in again to continue.');
+        return;
+      }
       say('That did not go through. Try again in a moment.');
     },
     [rows, say, setActiveTab, setThinking],

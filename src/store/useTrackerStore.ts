@@ -57,9 +57,11 @@ interface TrackerState {
   remove: (userId: string, sessionId: string) => Promise<void>;
   addMessage: (message: TrackerMessage) => void;
   setThinking: (thinking: boolean) => void;
+  reset: () => void;
 }
 
 let messageSeq = 0;
+let loadGeneration = 0;
 export function trackerMessageId(prefix: string): string {
   messageSeq += 1;
   return `${prefix}-${messageSeq}`;
@@ -104,11 +106,14 @@ export const useTrackerStore = create<TrackerState>((set, get) => ({
   thinking: false,
 
   load: async (userId) => {
+    const generation = ++loadGeneration;
     set({ loading: true, error: null });
     try {
       const rows = await listTrackerOverviewAction(userId);
+      if (generation !== loadGeneration) return;
       set({ rows, loading: false, loadedOnce: true });
     } catch {
+      if (generation !== loadGeneration) return;
       set({ loading: false, error: 'Your applications did not load. Refresh and try again.' });
     }
   },
@@ -187,6 +192,20 @@ export const useTrackerStore = create<TrackerState>((set, get) => ({
 
   addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
   setThinking: (thinking) => set({ thinking }),
+  reset: () => {
+    loadGeneration += 1;
+    set({
+      rows: [],
+      loading: false,
+      loadedOnce: false,
+      error: null,
+      search: '',
+      statusFilter: 'all',
+      hideRejected: false,
+      messages: [],
+      thinking: false,
+    });
+  },
 }));
 
 /** Rows after the search box, the count pill and the Hide rejected filter. */

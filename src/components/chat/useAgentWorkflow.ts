@@ -30,6 +30,10 @@ import { cvStructureDigest } from '@/lib/cv-structure/validate';
 import { rememberUndo } from '@/lib/cv-structure/undo';
 import type { JobFeedApplicationGeneration } from '@/lib/supabase/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
+import {
+  createSession as createStoredSession,
+  deleteSession as deleteStoredSession,
+} from '@/lib/supabase';
 
 // AgentStepData type for V2 progress tracking
 export interface AgentStepData {
@@ -46,32 +50,33 @@ export interface AgentStepData {
 }
 
 interface FitAnalysisContextData {
-  applicant: any;
-  job: any;
-  match: any;
+  applicant: Record<string, unknown>;
+  job: Record<string, unknown>;
+  match: Record<string, unknown>;
   verifiedMetrics?: string[];
   detectedLanguage?: string;
-  fitAnalysis?: any;
+  fitAnalysis?: Record<string, unknown>;
 }
 
 function formatFitAnalysisMessage(
-  fitAnalysis: any,
+  fitAnalysis: Record<string, unknown>,
   job?: { title?: string; companyName?: string },
 ): string {
+  const fitLevel = typeof fitAnalysis.fitLevel === 'string' ? fitAnalysis.fitLevel : 'weak';
   const fitEmoji =
-    fitAnalysis?.fitLevel === 'strong' ? '🟢' :
-    fitAnalysis?.fitLevel === 'good' ? '🟡' :
-    fitAnalysis?.fitLevel === 'fair' ? '🟠' : '🔴';
+    fitLevel === 'strong' ? '🟢' :
+    fitLevel === 'good' ? '🟡' :
+    fitLevel === 'fair' ? '🟠' : '🔴';
   const fitLabel =
-    fitAnalysis?.fitLevel === 'strong' ? 'Strong Fit' :
-    fitAnalysis?.fitLevel === 'good' ? 'Good Fit' :
-    fitAnalysis?.fitLevel === 'fair' ? 'Fair Fit' : 'Weak Fit';
+    fitLevel === 'strong' ? 'Strong Fit' :
+    fitLevel === 'good' ? 'Good Fit' :
+    fitLevel === 'fair' ? 'Fair Fit' : 'Weak Fit';
 
   const role = job?.title || 'this position';
   const company = job?.companyName || 'this company';
-  const score = typeof fitAnalysis?.score === 'number' ? `${fitAnalysis.score}%` : 'N/A';
+  const score = typeof fitAnalysis.score === 'number' ? `${fitAnalysis.score}%` : 'N/A';
 
-  const rawAssessment = typeof fitAnalysis?.assessment === 'string'
+  const rawAssessment = typeof fitAnalysis.assessment === 'string'
     ? fitAnalysis.assessment.trim()
     : '';
   const assessmentLines = rawAssessment.split('\n');
@@ -84,10 +89,12 @@ function formatFitAnalysisMessage(
     ? assessmentLines.slice(1).join('\n').trim()
     : rawAssessment;
 
-  const fallbackStrengths = (fitAnalysis?.matchingSkills || [])
+  const fallbackStrengths = (Array.isArray(fitAnalysis.matchingSkills) ? fitAnalysis.matchingSkills : [])
+    .filter((skill): skill is string => typeof skill === 'string')
     .slice(0, 3)
     .map((skill: string) => `- ${skill}`);
-  const fallbackGaps = (fitAnalysis?.missingSkills || [])
+  const fallbackGaps = (Array.isArray(fitAnalysis.missingSkills) ? fitAnalysis.missingSkills : [])
+    .filter((skill): skill is string => typeof skill === 'string')
     .slice(0, 2)
     .map((skill: string) => `- ${skill}`);
 
@@ -97,7 +104,7 @@ function formatFitAnalysisMessage(
   ].filter(Boolean).join('\n\n');
 
   const closing =
-    fitAnalysis?.fitLevel === 'weak'
+    fitLevel === 'weak'
       ? 'This one looks weak. I would skip it unless there is a strong strategic reason to apply.'
       : 'If you want to move forward, generate the full application below.';
 
@@ -113,6 +120,7 @@ function formatFitAnalysisMessage(
 export function useAgentWorkflow(options?: {
   onInsufficientCredits?: (required: number, available: number) => void | Promise<void>;
   onAnonymousLimitReached?: () => void;
+  onSessionExpired?: () => void;
   /**
    * The model read the message as a pasted job ad. The client shows the
    * credit-aware decision card; the user's click is what starts a run, so
@@ -161,6 +169,26 @@ export function useAgentWorkflow(options?: {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const messages = currentSession?.chatMessages || [];
+
+  const addWorkflowMessage = (
+    sessionId: string | undefined,
+    message: { role: 'assistant'; content: string },
+  ) => {
+    if (!sessionId || useSessionStore.getState().currentSession?.id === sessionId) {
+      addChatMessage(message);
+      return;
+    }
+    const newMessage = {
+      ...message,
+      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+      timestamp: new Date().toISOString(),
+    };
+    useSessionStore.setState((state) => ({
+      sessions: state.sessions.map((session) => session.id === sessionId
+        ? { ...session, chatMessages: [...session.chatMessages, newMessage], updatedAt: newMessage.timestamp }
+        : session),
+    }));
+  };
 
   const resolveJobFeedGenerationForSession = async (
     sessionId: string
@@ -238,10 +266,9 @@ export function useAgentWorkflow(options?: {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
+      window.setTimeout(triggerCreditUpdate, 750);
     }
     void syncJobFeedGenerationStatus('cancelled', 'Generation stopped by the user.', stoppedSessionId);
-    setIsAgentWorking(false);
-    setAgentWorkflowPhase(null);
     setIsTyping(false);
     setV2Progress(null);
     setAgentSteps([]);
@@ -486,8 +513,8 @@ export function useAgentWorkflow(options?: {
           options?.onChatAnsweredWithoutProposal?.(message);
         }
       } else if (response.status === 401) {
-        // Signed out (or anonymous past the free run): ask for an account, never a canned reply.
-        options?.onAnonymousLimitReached?.();
+        if (user) options?.onSessionExpired?.();
+        else options?.onAnonymousLimitReached?.();
       } else {
         const errorData = await response.json().catch(() => null);
         if (errorData?.code === 'CHAT_LIMIT_REACHED') {
@@ -599,6 +626,7 @@ export function useAgentWorkflow(options?: {
 
   const runFitAnalysisFlow = async (jobDescription: string) => {
     if (!currentCV) return;
+    const fitWorkflowSessionId = useSessionStore.getState().currentSession?.id;
 
     setIsAgentWorking(true);
     setAgentWorkflowPhase('fit_analysis');
@@ -629,7 +657,7 @@ export function useAgentWorkflow(options?: {
           currentCV: currentCV.rawText,
           masterCV: masterCV?.rawText,
           action: 'fit_analysis',
-          sessionId: currentSession?.id,
+          sessionId: fitWorkflowSessionId,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -658,7 +686,7 @@ export function useAgentWorkflow(options?: {
             
             switch (data.type) {
               case 'workflow_start':
-                setAgentSteps(data.steps.map((s: any) => ({
+                setAgentSteps(data.steps.map((s: { function: string; description: string }) => ({
                   function: s.function,
                   description: s.description,
                   status: 'pending' as const,
@@ -703,21 +731,21 @@ export function useAgentWorkflow(options?: {
                 // Keep a feed-provided title (e.g. "Product Manager - B2B SaaS")
                 // instead of the parser's shortened title.
                 if (job?.title || job?.companyName) {
-                  const existing = useAppStore.getState().currentSession;
-                  useAppStore.getState().updateCurrentSession({
+                  const existing = useSessionStore.getState().sessions.find((session) => session.id === fitWorkflowSessionId);
+                  if (fitWorkflowSessionId) useAppStore.getState().updateSessionById(fitWorkflowSessionId, {
                     jobTitle: existing?.jobTitle?.trim() || job.title || '',
                     company: existing?.company?.trim() || job.companyName || '',
                   });
                 }
                 if (match) {
-                  useAppStore.getState().updateCurrentSession({
+                  if (fitWorkflowSessionId) useAppStore.getState().updateSessionById(fitWorkflowSessionId, {
                     matchScore: match.score,
                     matchingSkills: match.matchingSkills || [],
                     missingSkills: match.missingSkills || [],
                   });
                 }
                 // Persist fit analysis state to session so it survives session switches
-                useAppStore.getState().updateCurrentSession({
+                if (fitWorkflowSessionId) useAppStore.getState().updateSessionById(fitWorkflowSessionId, {
                   pendingFitAnalysis: {
                     contextId,
                     jobDescription: jobDescription,
@@ -734,7 +762,7 @@ export function useAgentWorkflow(options?: {
                   company: job?.companyName,
                 });
 
-                addChatMessage({
+                addWorkflowMessage(fitWorkflowSessionId, {
                   role: 'assistant',
                   content: formatFitAnalysisMessage(fitAnalysis, job),
                 });
@@ -742,14 +770,26 @@ export function useAgentWorkflow(options?: {
                 break;
               }
               case 'error':
+                triggerCreditUpdate();
                 if (data.code === 'ANONYMOUS_LIMIT_REACHED') {
-                  options?.onAnonymousLimitReached?.();
+                  if (user) options?.onSessionExpired?.();
+                  else options?.onAnonymousLimitReached?.();
                 } else if (data.code === 'INSUFFICIENT_CREDITS') {
                   const required = data.details?.required ?? data.details?.details?.required ?? 0;
                   const available = data.details?.available ?? data.details?.details?.available ?? 0;
                   options?.onInsufficientCredits?.(required, available);
+                } else if (data.code === 'REQUEST_IN_PROGRESS') {
+                  addWorkflowMessage(fitWorkflowSessionId, {
+                    role: 'assistant',
+                    content: 'That request is still running.',
+                  });
+                } else if (data.code === 'REQUEST_ALREADY_COMPLETED') {
+                  addWorkflowMessage(fitWorkflowSessionId, {
+                    role: 'assistant',
+                    content: "That request already finished. You weren't charged twice.",
+                  });
                 } else {
-                  addChatMessage({
+                  addWorkflowMessage(fitWorkflowSessionId, {
                     role: 'assistant',
                     content: `❌ Sorry, something went wrong: ${data.message}. Please try again.`,
                   });
@@ -767,7 +807,8 @@ export function useAgentWorkflow(options?: {
         return;
       }
       console.error('Fit analysis error:', error);
-      addChatMessage({
+      window.setTimeout(triggerCreditUpdate, 750);
+      addWorkflowMessage(fitWorkflowSessionId, {
         role: 'assistant',
         content: '❌ Sorry, the fit analysis failed. Please try again.',
       });
@@ -780,7 +821,14 @@ export function useAgentWorkflow(options?: {
 
   const runAgentWorkflow = async (jobDescription: string, contextId?: string, overrideContextData?: FitAnalysisContextData) => {
     if (!currentCV) return;
-    const workflowSessionId = currentSession?.id;
+    let workflowSessionId = useSessionStore.getState().currentSession?.id;
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    let eagerLocalSessionId: string | null = null;
+    let eagerStoredSessionId: string | null = null;
+    let didProduceArtifacts = false;
+    let requestStarted = false;
+    let terminalServerError = false;
 
     setIsAgentWorking(true);
     setAgentWorkflowPhase('full_generation');
@@ -793,7 +841,35 @@ export function useAgentWorkflow(options?: {
     try {
       const { masterCV } = useAppStore.getState();
 
-      abortControllerRef.current = new AbortController();
+      if (user && workflowSessionId?.startsWith('session-')) {
+        const localSessionId = workflowSessionId;
+        eagerLocalSessionId = localSessionId;
+        const localSession = useSessionStore.getState().sessions.find((session) => session.id === localSessionId)
+          ?? useSessionStore.getState().currentSession;
+        const created = await createStoredSession(user.id, jobDescription);
+        if (created.error || !created.session) {
+          throw created.error ?? new Error('Failed to save application before generation');
+        }
+        eagerStoredSessionId = created.session.id;
+        if (!localSession) {
+          throw new Error('Local application disappeared before generation');
+        }
+        controller.signal.throwIfAborted();
+        workflowSessionId = created.session.id;
+        const persistedId = workflowSessionId;
+        useSessionStore.setState((state) => {
+          const replace = (session: typeof localSession) => session.id === localSessionId
+            ? { ...session, id: persistedId }
+            : session;
+          return {
+            sessions: state.sessions.map(replace),
+            currentSession: state.currentSession?.id === localSessionId
+              ? replace(state.currentSession)
+              : state.currentSession,
+          };
+        });
+      }
+
       void syncJobFeedGenerationStatus('running', undefined, workflowSessionId);
 
       // Stable idempotency key for this workflow. Server uses it to dedupe
@@ -801,6 +877,7 @@ export function useAgentWorkflow(options?: {
       const requestId = generateRequestId();
 
       const contextData = overrideContextData || fitAnalysisContextData;
+      requestStarted = true;
       const response = await fetch('/api/agent-v2', {
         method: 'POST',
         headers: {
@@ -816,10 +893,11 @@ export function useAgentWorkflow(options?: {
           cachedContextData: contextId ? contextData : undefined,
           sessionId: workflowSessionId,
         }),
-        signal: abortControllerRef.current.signal,
+        signal: controller.signal,
       });
       
       if (!response.ok) {
+        terminalServerError = true;
         throw new Error('Agent workflow failed');
       }
       
@@ -845,7 +923,7 @@ export function useAgentWorkflow(options?: {
             
             switch (data.type) {
               case 'workflow_start':
-                setAgentSteps(data.steps.map((s: any) => ({
+                setAgentSteps(data.steps.map((s: { function: string; description: string }) => ({
                   function: s.function,
                   description: s.description,
                   status: 'pending' as const,
@@ -898,6 +976,7 @@ export function useAgentWorkflow(options?: {
                 break;
                 
               case 'workflow_complete':
+                didProduceArtifacts = true;
                 const ctx = data.results;
                 void syncJobFeedGenerationStatus('succeeded', undefined, workflowSessionId);
                 notifyJobFeedBadgeRefresh();
@@ -909,8 +988,8 @@ export function useAgentWorkflow(options?: {
                 });
 
                 if (ctx?.job) {
-                  const existing = useAppStore.getState().currentSession;
-                  useAppStore.getState().updateCurrentSession({
+                  const existing = useSessionStore.getState().sessions.find((session) => session.id === workflowSessionId);
+                  if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
                     requirements: {
                       title: ctx.job.title || '',
                       company: ctx.job.companyName || '',
@@ -931,7 +1010,7 @@ export function useAgentWorkflow(options?: {
                 }
                 
                 if (ctx?.match) {
-                  useAppStore.getState().updateCurrentSession({
+                  if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
                     gaps: {
                       matchScore: ctx.match.score || 0,
                       matchingSkills: ctx.match.matchingSkills || [],
@@ -947,7 +1026,7 @@ export function useAgentWorkflow(options?: {
                 }
                 
                 if (ctx?.optimizedCV) {
-                  useAppStore.getState().updateCurrentSession({
+                  if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
                     generatedCV: {
                       content: ctx.optimizedCV.content,
                       changes: ctx.optimizedCV.changes?.map((c: { section: string; before: string; after: string; reason: string }) => ({
@@ -962,13 +1041,13 @@ export function useAgentWorkflow(options?: {
                 }
                 
                 if (ctx?.optimizedCVData) {
-                  useAppStore.getState().updateCurrentSession({
+                  if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
                     optimizedCVData: ctx.optimizedCVData,
                   });
                 }
                 
                 if (ctx?.coverLetter) {
-                  useAppStore.getState().updateCurrentSession({
+                  if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
                     coverLetter: {
                       applicantAddress: {
                         name: '',
@@ -993,7 +1072,7 @@ export function useAgentWorkflow(options?: {
                 }
                 
                 if (ctx?.applicationEmail) {
-                  useAppStore.getState().updateCurrentSession({
+                  if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
                     email: {
                       subject: ctx.applicationEmail.subject || `Application for ${ctx.job?.title || 'Position'} at ${ctx.job?.companyName || 'Company'}`,
                       body: ctx.applicationEmail.body || '',
@@ -1003,7 +1082,7 @@ export function useAgentWorkflow(options?: {
                 }
 
                 if (ctx?.followUpEmail) {
-                  useAppStore.getState().updateCurrentSession({
+                  if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
                     followUpEmail: {
                       subject: ctx.followUpEmail.subject,
                       body: ctx.followUpEmail.body,
@@ -1013,7 +1092,7 @@ export function useAgentWorkflow(options?: {
                 }
                 
                 if (ctx?.companyResearch) {
-                  useAppStore.getState().updateCurrentSession({
+                  if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
                     companyResearch: ctx.companyResearch,
                   });
                 }
@@ -1022,14 +1101,15 @@ export function useAgentWorkflow(options?: {
                 setFitAnalysisContextId(null);
                 setFitAnalysisJD('');
                 setFitAnalysisContextData(null);
-                useAppStore.getState().updateCurrentSession({ pendingFitAnalysis: null });
+                if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, { pendingFitAnalysis: null });
 
                 // Mark free generation as used for anonymous users
                 if (!user) {
                   markFreeGenerationUsed();
                 }
 
-                setActiveTab('cv');
+                const originStillOpen = useSessionStore.getState().currentSession?.id === workflowSessionId;
+                if (originStillOpen) setActiveTab('cv');
                 const resultScore =
                   typeof ctx?.match?.score === 'number'
                     ? ctx.match.score
@@ -1040,7 +1120,8 @@ export function useAgentWorkflow(options?: {
                 const weakMatchNote = isDirectPath && isWeakMatch
                   ? `\n\nThis role looks like a weak match (${Math.round(resultScore)}%). Review the gaps before you send it.`
                   : '';
-                const kitCompany = ctx?.job?.companyName || useAppStore.getState().currentSession?.company;
+                const originSession = useSessionStore.getState().sessions.find((session) => session.id === workflowSessionId);
+                const kitCompany = ctx?.job?.companyName || originSession?.company;
                 const atsNote = typeof ctx?.optimizedCVData?.analysis?.ats_compatibility === 'number'
                   ? ` (ATS ${Math.round(ctx.optimizedCVData.analysis.ats_compatibility)}%)`
                   : '';
@@ -1049,7 +1130,7 @@ export function useAgentWorkflow(options?: {
                 // destroy the only record of it. Saying so turns what looks
                 // like a duplicate into a stated fact. An unsent draft is
                 // reused instead, quietly, in useSupabaseSync.
-                const sessionForMatch = useAppStore.getState().currentSession;
+                const sessionForMatch = originSession;
                 const alreadySent = sessionForMatch
                   ? findSentApplicationForJob(useSessionStore.getState().sessions, sessionForMatch)
                   : null;
@@ -1059,11 +1140,11 @@ export function useAgentWorkflow(options?: {
                 const repeatNote = alreadySent
                   ? `\n\nYou already applied to this one${sentOn ? ` on ${sentOn}` : ''}. This kit is saved separately, so the one you sent stays as it is.`
                   : '';
-                addChatMessage({
+                addWorkflowMessage(workflowSessionId, {
                   role: 'assistant',
                   content: `Your kit${kitCompany ? ` for ${kitCompany}` : ''} is ready. Tailored CV${atsNote}, a cover letter and two emails. Nothing was invented.${weakMatchNote}${repeatNote}`,
                 });
-                if (isDirectPath && isWeakMatch) {
+                if (originStillOpen && isDirectPath && isWeakMatch) {
                   toast.warning(
                     `This role scored ${Math.round(resultScore)}%. That's a weak match. Review it before you send.`,
                   );
@@ -1072,15 +1153,32 @@ export function useAgentWorkflow(options?: {
                 break;
                 
               case 'error':
-                void syncJobFeedGenerationStatus('failed', data.message || 'Application generation failed.', workflowSessionId);
+                triggerCreditUpdate();
+                terminalServerError = data.code !== 'REQUEST_IN_PROGRESS'
+                  && data.code !== 'REQUEST_ALREADY_COMPLETED';
+                if (data.code !== 'REQUEST_IN_PROGRESS' && data.code !== 'REQUEST_ALREADY_COMPLETED') {
+                  void syncJobFeedGenerationStatus('failed', data.message || 'Application generation failed.', workflowSessionId);
+                }
                 if (data.code === 'ANONYMOUS_LIMIT_REACHED') {
-                  options?.onAnonymousLimitReached?.();
+                  if (user) options?.onSessionExpired?.();
+                  else options?.onAnonymousLimitReached?.();
                 } else if (data.code === 'INSUFFICIENT_CREDITS') {
                   const required = data.details?.required ?? data.details?.details?.required ?? 0;
                   const available = data.details?.available ?? data.details?.details?.available ?? 0;
                   options?.onInsufficientCredits?.(required, available);
+                } else if (data.code === 'REQUEST_IN_PROGRESS') {
+                  addWorkflowMessage(workflowSessionId, {
+                    role: 'assistant',
+                    content: 'That request is still running.',
+                  });
+                } else if (data.code === 'REQUEST_ALREADY_COMPLETED') {
+                  void syncJobFeedGenerationStatus('succeeded', undefined, workflowSessionId);
+                  addWorkflowMessage(workflowSessionId, {
+                    role: 'assistant',
+                    content: "That request already finished. You weren't charged twice.",
+                  });
                 } else {
-                  addChatMessage({
+                  addWorkflowMessage(workflowSessionId, {
                     role: 'assistant',
                     content: `❌ Sorry, something went wrong: ${data.message}. Please try again.`,
                   });
@@ -1098,19 +1196,41 @@ export function useAgentWorkflow(options?: {
         return;
       }
       console.error('Agent workflow error:', error);
+      window.setTimeout(triggerCreditUpdate, 750);
       void syncJobFeedGenerationStatus(
         'failed',
         error instanceof Error ? error.message : 'Application generation failed.',
         workflowSessionId,
       );
-      addChatMessage({
+      addWorkflowMessage(workflowSessionId, {
         role: 'assistant',
         content: '❌ Sorry, the analysis failed. Please try again.',
       });
     } finally {
+      const canDeleteEmptyEagerSession = !requestStarted || terminalServerError;
+      if (eagerStoredSessionId && !didProduceArtifacts && canDeleteEmptyEagerSession && user) {
+        try {
+          const deleted = await deleteStoredSession(eagerStoredSessionId, user.id);
+          if (deleted.error) throw deleted.error;
+          if (eagerLocalSessionId) {
+            const persistedId = eagerStoredSessionId;
+            const localId = eagerLocalSessionId;
+            useSessionStore.setState((state) => ({
+              sessions: state.sessions.map((session) => session.id === persistedId
+                ? { ...session, id: localId }
+                : session),
+              currentSession: state.currentSession?.id === persistedId
+                ? { ...state.currentSession, id: localId }
+                : state.currentSession,
+            }));
+          }
+        } catch (cleanupError) {
+          console.error('[useAgentWorkflow] Failed to clean up empty eager session:', cleanupError);
+        }
+      }
       setIsAgentWorking(false);
       setAgentWorkflowPhase(null);
-      abortControllerRef.current = null;
+      if (abortControllerRef.current === controller) abortControllerRef.current = null;
     }
   };
 

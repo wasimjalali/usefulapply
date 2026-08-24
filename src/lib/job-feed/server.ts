@@ -15,7 +15,7 @@ import type {
   JobFeedSettings,
   Json,
 } from '@/lib/supabase/types';
-import { extractSalaryTextFromAd, getLocalDateKey, isJobFeedConfigured, isSafeExternalUrl } from '@/lib/job-feed/helpers';
+import { extractSalaryTextFromAd, getLocalDateKey, isJobFeedConfigured, isSafeExternalUrl, isValidTimeZone } from '@/lib/job-feed/helpers';
 import { getJobFeedTierLimits, JOB_FEED_DEFAULT_SETTINGS, JOB_FEED_INBOX_RETENTION_DAYS } from '@/lib/job-feed/constants';
 import type {
   JobFeedFeedbackAction,
@@ -1035,17 +1035,18 @@ export async function listJobFeedInboxPageAdmin(params: {
     latestCompletedRun,
   });
 
-  // "Today" must be the user's local day, not just "the latest completed
-  // run." If the user hasn't refreshed in a few days, the latest run is
+  const settings = await getJobFeedSettingsAdmin(params.userId);
+  const timeZone = settings?.user_timezone && isValidTimeZone(settings.user_timezone)
+    ? settings.user_timezone
+    : isValidTimeZone(latestCompletedRun.local_timezone)
+      ? latestCompletedRun.local_timezone
+      : 'UTC';
+
+  // "Today" uses the same server-owned local day as the run gate, not just the
+  // latest completed run. If the user hasn't refreshed in a few days, the latest run is
   // yesterday's or older — those visible jobs belong in the backlog, not
   // the today bucket.
-  const settings = await getJobFeedSettingsAdmin(params.userId);
-  // Prefer the run's recorded timezone over the current settings value so
-  // "today" is computed consistently even when the user changes timezone
-  // between the run and viewing the feed. Fall back to UTC only when both
-  // are absent (shouldn't happen in practice, but defensive).
-  const userTz = settings?.user_timezone || latestCompletedRun.local_timezone || 'UTC';
-  const todayKey = getLocalDateKey(new Date(), userTz);
+  const todayKey = getLocalDateKey(new Date(), timeZone);
   const latestRunIsToday = latestCompletedRun.local_date === todayKey;
 
   const todayVisibleCount = latestRunIsToday
@@ -1266,7 +1267,10 @@ export async function runJobFeedFoundationWorkflow(params: {
     settings = loaded;
   }
 
-  const localDate = getLocalDateKey(now, settings.user_timezone);
+  const localTimeZone = settings.user_timezone && isValidTimeZone(settings.user_timezone)
+    ? settings.user_timezone
+    : 'UTC';
+  const localDate = getLocalDateKey(now, localTimeZone);
   const existingRun = await getJobFeedRunByDate(userId, localDate);
 
   if (existingRun?.status === 'completed' && !force) {
@@ -1379,7 +1383,7 @@ export async function runJobFeedFoundationWorkflow(params: {
   const run = creation.run;
   const createdRun = !existingRun && !creation.raced;
 
-  let runningRun = await updateJobFeedRun(run.id, {
+  const runningUpdates: JobFeedRunUpdate = {
     status: 'running',
     // When a force-rerun reclaims an existing row (e.g. a user clicking
     // "Run for today" over yesterday's scheduled row), promote the row's
@@ -1400,7 +1404,27 @@ export async function runJobFeedFoundationWorkflow(params: {
       last_trigger_source: triggerSource,
       orchestrator,
     }),
-  });
+  };
+  let runningRun: JobFeedRun;
+  if (run.status === 'queued') {
+    const claimedRun = await jobFeedRepo.claimQueuedRun(userId, run.id, runningUpdates);
+    if (!claimedRun) {
+      const winner = await getJobFeedRunByDate(userId, localDate);
+      if (!winner) throw new Error('Job feed run claim was lost.');
+      captureJobFeedRunIdempotencyConflict({
+        userId,
+        run: winner,
+        localDate,
+        triggerSource,
+        force,
+        reason: 'queued_run_claim_lost',
+      });
+      return { run: winner, created: false, skipped: true };
+    }
+    runningRun = claimedRun;
+  } else {
+    runningRun = await updateJobFeedRun(run.id, runningUpdates);
+  }
 
   try {
     // subscriptionTierForSetup was already resolved before the run row was
@@ -1588,7 +1612,7 @@ async function createJobFeedRunForToday(params: {
     const run = await createJobFeedRun({
       user_id: userId,
       local_date: localDate,
-      local_timezone: settings.user_timezone,
+      local_timezone: isValidTimeZone(settings.user_timezone) ? settings.user_timezone : 'UTC',
       trigger_source: triggerSource,
       idempotency_key: `${userId}:${localDate}`,
       settings_snapshot: settings as unknown as Json,

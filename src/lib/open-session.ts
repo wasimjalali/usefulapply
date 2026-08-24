@@ -36,6 +36,7 @@ export interface StoredSessionRow {
   cover_letter?: unknown;
   email?: unknown;
   follow_up_email?: unknown;
+  generated_artifacts?: Record<string, unknown> | null;
   company_research?: Record<string, unknown> | null;
   company_address?: string | null;
   company_contact_person?: string | null;
@@ -59,7 +60,45 @@ let openGeneration = 0;
 const hydratedChatIds = new Set<string>();
 
 export function mapSessionRowToStore(row: StoredSessionRow): ApplicationSession {
-  const generated = row.generated_cv ?? null;
+  const artifacts = row.generated_artifacts ?? null;
+  const pendingFitCandidate = artifacts?.pendingFitAnalysis;
+  const pendingFit = pendingFitCandidate
+    && typeof pendingFitCandidate === 'object'
+    && !Array.isArray(pendingFitCandidate)
+    && typeof (pendingFitCandidate as Record<string, unknown>).contextId === 'string'
+    && typeof (pendingFitCandidate as Record<string, unknown>).jobDescription === 'string'
+    && typeof (pendingFitCandidate as Record<string, unknown>).createdAt === 'string'
+    && Date.now() - Date.parse((pendingFitCandidate as Record<string, unknown>).createdAt as string) < 30 * 60 * 1000
+      ? pendingFitCandidate as ApplicationSession['pendingFitAnalysis']
+      : null;
+  const artifactCV = artifacts?.optimizedCV && typeof artifacts.optimizedCV === 'object'
+    ? artifacts.optimizedCV as Record<string, unknown>
+    : null;
+  const generated = row.generated_cv ?? (artifactCV
+    ? {
+        content: typeof artifactCV.content === 'string' ? artifactCV.content : '',
+        changes: Array.isArray(artifactCV.changes) ? artifactCV.changes : [],
+        optimizedFor: 'Position',
+      }
+    : null);
+  const artifactCoverLetter = typeof artifacts?.coverLetter === 'string' && artifacts.coverLetter.trim()
+    ? {
+        applicantAddress: { name: '', street: '', city: '', country: '', phone: '', email: '' },
+        date: '',
+        companyAddress: { companyName: '', street: '' },
+        salutation: '',
+        body: artifacts.coverLetter,
+        closing: '',
+        signatureName: '',
+        updatedAt: row.updated_at,
+      }
+    : null;
+  const artifactEmail = artifacts?.applicationEmail && typeof artifacts.applicationEmail === 'object'
+    ? artifacts.applicationEmail as ApplicationSession['email']
+    : null;
+  const artifactFollowUp = artifacts?.followUpEmail && typeof artifacts.followUpEmail === 'object'
+    ? artifacts.followUpEmail as ApplicationSession['followUpEmail']
+    : null;
   return {
     id: row.id,
     status: row.status ?? 'drafted',
@@ -76,13 +115,15 @@ export function mapSessionRowToStore(row: StoredSessionRow): ApplicationSession 
     requirements: (row.requirements ?? null) as ApplicationSession['requirements'],
     gaps: (row.gaps ?? null) as ApplicationSession['gaps'],
     generatedCV: generated as ApplicationSession['generatedCV'],
-    optimizedCVData: (generated?._optimizedCVData as ApplicationSession['optimizedCVData']) ?? undefined,
+    optimizedCVData: (generated?._optimizedCVData as ApplicationSession['optimizedCVData'])
+      ?? (artifacts?.optimizedCVData as ApplicationSession['optimizedCVData'])
+      ?? undefined,
     screeningAnswers: Array.isArray(generated?._screeningAnswers)
       ? (generated._screeningAnswers as ApplicationSession['screeningAnswers'])
       : [],
-    coverLetter: (row.cover_letter ?? null) as ApplicationSession['coverLetter'],
-    email: (row.email ?? null) as ApplicationSession['email'],
-    followUpEmail: (row.follow_up_email ?? null) as ApplicationSession['followUpEmail'],
+    coverLetter: (row.cover_letter ?? artifactCoverLetter) as ApplicationSession['coverLetter'],
+    email: (row.email ?? artifactEmail) as ApplicationSession['email'],
+    followUpEmail: (row.follow_up_email ?? artifactFollowUp) as ApplicationSession['followUpEmail'],
     companyResearch: row.company_research
       ? {
           ...row.company_research,
@@ -91,6 +132,7 @@ export function mapSessionRowToStore(row: StoredSessionRow): ApplicationSession 
         } as ApplicationSession['companyResearch']
       : null,
     fitAssessment: (row.fit_assessment ?? null) as ApplicationSession['fitAssessment'],
+    pendingFitAnalysis: pendingFit,
     generationStatus: row.generation_status ?? 'none',
     generationError: row.generation_error ?? null,
     generationStartedAt: row.generation_started_at ?? null,

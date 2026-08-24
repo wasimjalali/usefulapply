@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useDropzone } from 'react-dropzone';
+import { useDropzone, type FileRejection } from 'react-dropzone';
 import { Check, Loader2, Search, Sparkles, Upload } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 import { GuidedStepper } from '@/components/shell/GuidedStepper';
@@ -12,6 +12,7 @@ import { useAgentWorkflow } from '@/components/chat/useAgentWorkflow';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
+import { openSettings } from '@/store/useSettingsStore';
 import { useAppStore } from '@/store/useAppStore';
 import { uploadCVFile, saveDocument } from '@/lib/supabase';
 import type { ParsedCV } from '@/lib/types';
@@ -138,7 +139,9 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
   const kitStartedRef = useRef(false);
   const fitSeenWorkingRef = useRef(false);
   const kitSeenWorkingRef = useRef(false);
+  const cvHydrationAdvancedRef = useRef(Boolean(currentCV));
   const [lineError, setLineError] = useState<string | null>(null);
+  const [isCreditError, setIsCreditError] = useState(false);
   // Job pasted while the CV was still parsing. Started from an effect, not
   // from the parse callback, so the fit runs with the CV actually in the store.
   const [queuedFit, setQueuedFit] = useState<string | null>(null);
@@ -156,11 +159,16 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
     runAgentWorkflow,
     setApplicationMode,
   } = useAgentWorkflow({
+    onSessionExpired: () => {
+      setIsCreditError(false);
+      setLineError('Your session expired. Sign in again to continue. Nothing was charged.');
+    },
     onAnonymousLimitReached: () => {
       if (user) {
         // The server saw no session for a user the client still has: a
         // transient auth miss, not a sign-up problem.
-        setLineError('Your session could not be verified. Refresh the page and try again.');
+        setIsCreditError(false);
+        setLineError("Your session couldn't be verified. Refresh the page and try again.");
         return;
       }
       const jd = useSessionStore.getState().currentSession?.jobDescription || '';
@@ -168,6 +176,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
       setStep('signup');
     },
     onInsufficientCredits: (required, available) => {
+      setIsCreditError(true);
       setLineError(`This needs ${required} credits and you have ${available}. Upgrade for more, or try the fit check.`);
     },
   });
@@ -187,6 +196,13 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
   const jobTitle = currentSession?.jobTitle || fitJob?.title || '';
   const cvName = structuredCV?.personal?.fullName || currentCV?.fileName?.replace(/\.[^.]+$/, '') || 'Your CV';
   const cvTitle = structuredCV?.personal?.currentTitle || '';
+
+  useEffect(() => {
+    if (step !== 'cv' || !currentCV || uploadError || cvHydrationAdvancedRef.current) return;
+    cvHydrationAdvancedRef.current = true;
+    setFileName(currentCV.fileName || '');
+    setStep(currentSession?.pendingFitAnalysis ? 'fit-result' : 'job');
+  }, [currentCV, currentSession?.pendingFitAnalysis, step, uploadError]);
 
   // Pick up where the visitor left off once a real user exists. Sign-up,
   // verification (new tab) and log in all land here, so a run never starts
@@ -222,6 +238,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
       if (!live || live.jobDescription !== intent.jd) createNewSession(intent.jd);
       const ctx = livePendingFit && livePendingFit.jobDescription === intent.jd ? livePendingFit : null;
       kitStartedRef.current = true;
+      setIsCreditError(false);
       setLineError(null);
       setStep('kit-working');
       setApplicationMode(intent.action === 'direct' ? 'apply_directly' : 'analyze_first');
@@ -313,6 +330,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
       }
       addChatMessage({ role: 'user', content: trimmed });
       setApplicationMode('analyze_first');
+      setIsCreditError(false);
       setLineError(null);
       useAppStore.getState().updateCurrentSession({ pendingFitAnalysis: null });
       setStep('fit-working');
@@ -347,6 +365,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
     const headline = pendingJobFeedAutostart.headline?.trim() || jd;
     setPendingJobFeedAutostart(null);
     addChatMessage({ role: 'user', content: headline });
+    setIsCreditError(false);
     setLineError(null);
 
     if (mode === 'analyze') {
@@ -394,6 +413,8 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
 
   const parseFile = useCallback(
     async (file: File) => {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 60_000);
       setUploadError(null);
       setFileName(file.name);
       setStep('cv-reading');
@@ -417,12 +438,13 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ storagePath, fileName: file.name, documentType: 'primary_cv' }),
+            signal: controller.signal,
           });
         } else {
           const formData = new FormData();
           formData.append('file', file);
           formData.append('documentType', 'primary_cv');
-          response = await fetch('/api/parse-cv', { method: 'POST', body: formData });
+          response = await fetch('/api/parse-cv', { method: 'POST', body: formData, signal: controller.signal });
         }
 
         if (!response.ok) {
@@ -489,8 +511,14 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
       } catch (error) {
         console.error('CV upload error:', error);
         stopParseProgress(0);
-        setUploadError(error instanceof Error ? error.message : 'Upload failed');
+        setUploadError(
+          error instanceof DOMException && error.name === 'AbortError'
+            ? 'CV parsing took too long. Please try again.'
+            : error instanceof Error ? error.message : 'Upload failed',
+        );
         setStep('cv');
+      } finally {
+        window.clearTimeout(timeoutId);
       }
     },
     [handleParsed, maxSizeBytes, user],
@@ -503,8 +531,23 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
     [parseFile],
   );
 
+  const onDropRejected = useCallback(
+    (rejections: FileRejection[]) => {
+      const tooLarge = rejections.some((rejection) =>
+        rejection.errors.some((error) => error.code === 'file-too-large'),
+      );
+      setUploadError(
+        tooLarge
+          ? `File is too large. Maximum: ${formatUploadLimit(maxSizeBytes)}.`
+          : 'Use a PDF, DOCX or TXT file.',
+      );
+    },
+    [maxSizeBytes],
+  );
+
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
+    onDropRejected,
     noClick: true,
     multiple: false,
     accept: {
@@ -533,6 +576,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
       return;
     }
     kitStartedRef.current = true;
+    setIsCreditError(false);
     setLineError(null);
     setStep('kit-working');
     setApplicationMode('analyze_first');
@@ -553,6 +597,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
     else setJobDescription(jd);
     addChatMessage({ role: 'user', content: jd });
     kitStartedRef.current = true;
+    setIsCreditError(false);
     setLineError(null);
     setStep('kit-working');
     setApplicationMode('apply_directly');
@@ -660,6 +705,21 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
     kitPercent,
     ['Keywords from the ad, nothing invented', '', '', 'With the right day to send it'],
   );
+
+  const lineErrorFeedback = lineError ? (
+    <div className="mt-4 flex flex-wrap items-center gap-3" role="alert">
+      <p className="text-sm text-red-600">{lineError}</p>
+      {isCreditError && (
+        <button
+          type="button"
+          onClick={() => openSettings('usage')}
+          className="text-sm font-semibold text-navy-700 hover:text-navy-900 cursor-pointer"
+        >
+          Upgrade to Plus
+        </button>
+      )}
+    </div>
+  ) : null;
 
   return (
     <div className="flex h-full w-full min-w-0 min-h-0 flex-col bg-cream-100">
@@ -783,7 +843,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                 placeholder="Paste the whole ad. Title, company and requirements, all of it."
                 className="mt-6 h-[200px] w-full resize-none rounded-2xl border-2 border-gold-300 bg-white px-4 py-3.5 text-sm leading-relaxed text-charcoal placeholder:text-warm-gray shadow-[0_0_0_4px_rgba(212,168,83,0.12)] focus:outline-none"
               />
-              {lineError && <p className="mt-3 text-sm text-red-600">{lineError}</p>}
+              {lineErrorFeedback}
               <div className="mt-6 flex flex-wrap items-center gap-4">
                 <button
                   type="button"
@@ -888,6 +948,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                 </div>
               </div>
               <div className="my-6 h-px bg-cream-200" />
+              {lineErrorFeedback}
               <div className="flex flex-wrap items-center gap-4">
                 <button
                   type="button"

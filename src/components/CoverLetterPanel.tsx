@@ -20,6 +20,7 @@ import {
   hasAddressPlaceholder as letterHasAddressPlaceholder,
 } from '@/lib/utils/cover-letter-export';
 import { kitFilename } from '@/lib/utils/kit-export';
+import { useSessionStore } from '@/store/useSessionStore';
 
 interface CoverLetterPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -48,7 +49,7 @@ function stampOf(letter: GeneratedCoverLetter | null | undefined): number | null
 }
 
 export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) {
-  const { currentSession, isAgentWorking, agentWorkflowPhase, setCoverLetter, structuredCV } = useAppStore();
+  const { currentSession, isAgentWorking, agentWorkflowPhase, structuredCV } = useAppStore();
   const setPendingApplicationAction = useUIStore((state) => state.setPendingApplicationAction);
   const datePrefs = useDatePrefs();
   const coverLetter = currentSession?.coverLetter;
@@ -71,6 +72,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const [updatedAtMs, setUpdatedAtMs] = useState<number | null>(() => stampOf(coverLetter));
   const lastLetterRef = useRef<GeneratedCoverLetter | null>(null);
   const lastSessionIdRef = useRef<string | null>(null);
+  const editSessionIdRef = useRef<string | null>(null);
   const { toast } = useToast();
 
   // Check if cover letter still contains any address placeholder (old or new format)
@@ -88,6 +90,9 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
       lastSessionIdRef.current = sessionId;
       lastLetterRef.current = coverLetter ?? null;
       setUpdatedAtMs(stampOf(coverLetter));
+      setIsEditMode(false);
+      setEditedCoverLetter(coverLetter ?? null);
+      editSessionIdRef.current = null;
       return;
     }
     if (coverLetter) {
@@ -259,9 +264,12 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
 
   // Save edited cover letter to store
   const handleSaveEdits = () => {
-    if (editedCoverLetter) {
-      setCoverLetter({ ...editedCoverLetter, updatedAt: new Date().toISOString() });
+    if (editedCoverLetter && editSessionIdRef.current) {
+      useSessionStore.getState().updateSessionById(editSessionIdRef.current, {
+        coverLetter: { ...editedCoverLetter, updatedAt: new Date().toISOString() },
+      });
       setIsEditMode(false);
+      editSessionIdRef.current = null;
     }
   };
 
@@ -332,7 +340,10 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
         </>
       ) : (
         <>
-          <button type="button" onClick={() => setIsEditMode(true)} className={TOOL_CLASS}>
+          <button type="button" onClick={() => {
+            editSessionIdRef.current = currentSession?.id ?? null;
+            setIsEditMode(true);
+          }} className={TOOL_CLASS}>
             <Edit3 className="w-4 h-4 text-navy-500" />
             Edit
           </button>

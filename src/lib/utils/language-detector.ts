@@ -27,6 +27,14 @@ const LANGUAGE_NAMES: Record<SupportedLanguage, string> = {
   nl: 'Dutch',
 };
 
+const SUPPORTED_LANGUAGES = new Set<SupportedLanguage>(Object.keys(LANGUAGE_NAMES) as SupportedLanguage[]);
+
+export function normalizeLanguage(value: unknown): SupportedLanguage {
+  return typeof value === 'string' && SUPPORTED_LANGUAGES.has(value as SupportedLanguage)
+    ? value as SupportedLanguage
+    : 'en';
+}
+
 /**
  * Detect language from text content.
  *
@@ -56,5 +64,5 @@ export function isEnglish(text: string): boolean {
 }
 
 export function getLanguageName(code: SupportedLanguage): string {
-  return LANGUAGE_NAMES[code] ?? 'English';
+  return LANGUAGE_NAMES[normalizeLanguage(code)];
 }

@@ -7,7 +7,7 @@ import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useAppStore } from '@/store/useAppStore';
 import { useCVStore } from '@/store/useCVStore';
-import { useSessionStore } from '@/store/useSessionStore';
+import { useSessionStore, type ApplicationSession } from '@/store/useSessionStore';
 
 import { CVTemplateRenderer } from './cv-templates';
 import { TemplateStrip } from './cv-templates/TemplateStrip';
@@ -41,6 +41,7 @@ import { StepIndicator } from './StepIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from './ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
+import type { Profile } from '@/lib/supabase/types';
 
 const PHOTO_TEMPLATE_IDS = new Set(['german-ats', 'german-classic']);
 
@@ -120,9 +121,17 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const [pageBreaks, setPageBreaks] = useState<number[]>([]);
   const cvTemplateRef = useRef<HTMLDivElement>(null);
   const editableCVRef = useRef<EditableCVCanvasRef>(null);
+  const editSessionIdRef = useRef<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   const isPhotoTemplate = PHOTO_TEMPLATE_IDS.has(selectedTemplateId);
+
+  useEffect(() => {
+    if (editSessionIdRef.current === null || editSessionIdRef.current === currentSession?.id) return;
+    editSessionIdRef.current = null;
+    setIsEditMode(false);
+    setEditedCVData(null);
+  }, [currentSession?.id]);
 
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -436,6 +445,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           type="button"
           onClick={() => {
             setIsEditMode(true);
+            editSessionIdRef.current = currentSession?.id ?? null;
             setShowTemplates(false);
             if (cvData && !editedCVData) setEditedCVData(cvData);
           }}
@@ -583,14 +593,19 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                       if (showOptimized && generatedCV) {
                         // For optimized CV, update session store (auto-syncs to Supabase)
                         // Preserve analysis, sectionHeaders, localizedStrings from original optimizedCVData
-                        const existing = useSessionStore.getState().currentSession?.optimizedCVData;
-                        useSessionStore.getState().updateCurrentSession({
+                        const editSessionId = editSessionIdRef.current;
+                        if (!editSessionId) return;
+                        const sessionState = useSessionStore.getState();
+                        const existingSession = sessionState.sessions.find((session) => session.id === editSessionId)
+                          ?? (sessionState.currentSession?.id === editSessionId ? sessionState.currentSession : undefined);
+                        const existing = existingSession?.optimizedCVData;
+                        useSessionStore.getState().updateSessionById(editSessionId, {
                           optimizedCVData: {
                             ...updatedData,
                             analysis: existing?.analysis,
                             sectionHeaders: existing?.sectionHeaders,
                             localizedStrings: existing?.localizedStrings,
-                          } as any
+                          } as ApplicationSession['optimizedCVData'],
                         });
                       } else {
                         // For original CV, persist to CV store (syncs to Supabase via useSupabaseSync)
@@ -599,7 +614,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
 
                       // Save personal links to profiles table
                       const p = updatedData.personal;
-                      const linkUpdates: Record<string, string | null> = {};
+                      const linkUpdates: Partial<Profile> = {};
                       if (p.linkedIn !== undefined) linkUpdates.linkedin_url = p.linkedIn || null;
                       if (p.github !== undefined) linkUpdates.github_url = p.github || null;
                       if (p.portfolio !== undefined) linkUpdates.portfolio_url = p.portfolio || null;
@@ -607,7 +622,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                       if (p.dateOfBirth !== undefined) linkUpdates.date_of_birth = p.dateOfBirth || null;
                       if (p.nationality !== undefined) linkUpdates.nationality = p.nationality || null;
                       if (Object.keys(linkUpdates).length > 0) {
-                        updateProfile(linkUpdates as any).catch((err: any) =>
+                        updateProfile(linkUpdates).catch((err: unknown) =>
                           console.error('[CVPanel] Failed to save personal links:', err)
                         );
                       }

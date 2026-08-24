@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore, type ApplicationSession } from '@/store/useSessionStore';
@@ -32,16 +32,17 @@ interface SupabaseSessionRow {
   matching_skills: string[] | null;
   missing_skills: string[] | null;
   suggestions: string[] | null;
-  requirements: any | null;
-  gaps: any | null;
-  generated_cv: any | null;
-  cover_letter: any | null;
-  email: any | null;
-  follow_up_email: any | null;
-  company_research: any | null;
+  requirements: ApplicationSession['requirements'];
+  gaps: ApplicationSession['gaps'];
+  generated_cv: ApplicationSession['generatedCV'] | Record<string, unknown> | null;
+  cover_letter: ApplicationSession['coverLetter'];
+  email: ApplicationSession['email'];
+  follow_up_email: ApplicationSession['followUpEmail'];
+  generated_artifacts: Record<string, unknown> | null;
+  company_research: ApplicationSession['companyResearch'];
   company_address: string | null;
   company_contact_person: string | null;
-  cv_edits: any[] | null;
+  cv_edits: ApplicationSession['cvEdits'] | null;
   optimized_pdf_path: string | null;
   optimized_cv_text: string | null;
   email_subject: string | null;
@@ -49,7 +50,7 @@ interface SupabaseSessionRow {
   selected_template: string | null;
   status: string | null;
   cover_letter_language: string | null;
-  fit_assessment: any | null;
+  fit_assessment: ApplicationSession['fitAssessment'];
   generation_completed: boolean | null;
   generation_status: JobFeedGenerationStatus | null;
   generation_error: string | null;
@@ -137,11 +138,26 @@ export function useSupabaseSync() {
     currentSession,
     setSessions,
   } = useSessionStore();
+  const chatSyncFingerprint = useSessionStore((state) => {
+    const sessionsById = new Map(state.sessions.map((session) => [session.id, session]));
+    if (state.currentSession) sessionsById.set(state.currentSession.id, state.currentSession);
+    return Array.from(sessionsById.values())
+      .filter((session) => !session.id.startsWith('session-'))
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .map((session) => `${session.id}:${session.chatMessages
+        .filter((message) => message.id.startsWith('msg-'))
+        .map((message) => message.id)
+        .join(',')}`)
+      .join('|');
+  });
   
   // True once the first sessions load has finished (or failed), so the
   // dashboard can hold a neutral state instead of flashing the guided line
   // at a signed-in user whose kits have not arrived yet.
   const [sessionsHydrated, setSessionsHydrated] = useState(false);
+  const [documentsHydrated, setDocumentsHydrated] = useState(false);
+  const [hydrationError, setHydrationError] = useState<string | null>(null);
+  const [hydrationAttempt, setHydrationAttempt] = useState(0);
   const lastSyncedSessionRef = useRef<string | null>(null);
   const isInitialLoadRef = useRef(true);
   const initialLoadCompleteRef = useRef(false);
@@ -165,12 +181,19 @@ export function useSupabaseSync() {
       initialLoadCompleteRef.current = false;
       isInitialLoadRef.current = true;
       setSessionsHydrated(false);
+      setDocumentsHydrated(false);
+      setHydrationError(null);
     }
     prevSyncUserIdRef.current = user.id;
   }, [user]);
 
   // CRITICAL: Load documents (primary CV, master CV, profile photo) from Supabase on mount
   useEffect(() => {
+    let cancelled = false;
+    const requestedUserId = user?.id ?? null;
+    const isActiveUser = () => !cancelled
+      && requestedUserId !== null
+      && prevSyncUserIdRef.current === requestedUserId;
     const loadDocumentsFromSupabase = async () => {
       if (!user) return;
       
@@ -187,6 +210,7 @@ export function useSupabaseSync() {
           getDocumentByType(user.id, 'master_cv'),
           getProfilePhotoUrl(user.id),
         ]);
+        if (!isActiveUser()) return;
         
         // Supabase is authoritative for authenticated users. Always replace
         // cached browser CV state so switching accounts cannot show stale data.
@@ -232,6 +256,7 @@ export function useSupabaseSync() {
             if (saveError) {
               console.error('[SupabaseSync] Failed to migrate local primary CV to Supabase:', saveError);
             }
+            if (!isActiveUser()) return;
           } else {
             setCurrentCV(null);
             setStructuredCV(null);
@@ -276,17 +301,28 @@ export function useSupabaseSync() {
           masterCV: masterDoc ? masterDoc.file_name : 'not found',
           profilePhoto: photoResult.url ? 'loaded' : 'not found',
         });
+        if (isActiveUser()) setDocumentsHydrated(true);
       } catch (err) {
         console.error('[SupabaseSync] Failed to load documents:', err);
+        if (isActiveUser()) setDocumentsHydrated(true);
       }
     };
     
-    loadDocumentsFromSupabase();
-  }, [user, setCurrentCV, setStructuredCV, setMasterCV, setProfilePhoto]);
+    void loadDocumentsFromSupabase();
+    return () => {
+      cancelled = true;
+      docsLoadedRef.current = false;
+    };
+  }, [user, hydrationAttempt, setCurrentCV, setStructuredCV, setMasterCV, setProfilePhoto]);
 
   // CRITICAL: Load sessions from Supabase on mount and populate Zustand store
   // Supabase is the source of truth. Each session gets its OWN chat messages.
   useEffect(() => {
+    let cancelled = false;
+    const requestedUserId = user?.id ?? null;
+    const isActiveUser = () => !cancelled
+      && requestedUserId !== null
+      && prevSyncUserIdRef.current === requestedUserId;
     const loadSessionsFromSupabase = async () => {
       if (!user) return;
       
@@ -300,10 +336,10 @@ export function useSupabaseSync() {
         let data: SupabaseSessionRow[];
         try {
           data = (await getSessions(user.id)) as unknown as SupabaseSessionRow[];
+          if (!isActiveUser()) return;
         } catch (error) {
           console.error('[SupabaseSync] Error loading sessions:', error);
-          // CRITICAL: Still mark load as complete so sync isn't permanently blocked
-          initialLoadCompleteRef.current = true;
+          if (isActiveUser()) setHydrationError('sessions');
           return;
         }
         
@@ -392,6 +428,7 @@ export function useSupabaseSync() {
             await hydrateChatIfEmpty(openSession.id).catch((err) => {
               console.error('[SupabaseSync] Chat did not load for the open application:', err);
             });
+            if (!isActiveUser()) return;
           }
 
           // Mark initial load as complete — sync effect can now fire safely
@@ -408,17 +445,22 @@ export function useSupabaseSync() {
           initialLoadCompleteRef.current = true;
           console.log('[SupabaseSync] No sessions found in Supabase for this user');
         }
+        if (isActiveUser()) {
+          initialLoadCompleteRef.current = true;
+          setSessionsHydrated(true);
+        }
       } catch (err) {
         console.error('[SupabaseSync] Failed to load sessions:', err);
-        // CRITICAL: Still mark load as complete so sync isn't permanently blocked
-        initialLoadCompleteRef.current = true;
+        if (isActiveUser()) setHydrationError('sessions');
       }
     };
 
-    void loadSessionsFromSupabase().finally(() => {
-      if (user) setSessionsHydrated(true);
-    });
-  }, [user, setSessions]);
+    void loadSessionsFromSupabase();
+    return () => {
+      cancelled = true;
+      isInitialLoadRef.current = true;
+    };
+  }, [user, hydrationAttempt, setSessions]);
 
   // Sync current session to Supabase when it changes
   useEffect(() => {
@@ -488,6 +530,7 @@ export function useSupabaseSync() {
             }
             
             if (newSession) {
+              let sessionWriteSucceeded = true;
               console.log(
                 reuseTarget
                   ? '[SupabaseSync] Reusing existing session for the same job:'
@@ -547,6 +590,7 @@ export function useSupabaseSync() {
                 }, user.id);
                 if (updateErr) {
                   console.error('[SupabaseSync] Error updating new session with full data:', updateErr);
+                  sessionWriteSucceeded = false;
                 }
               }
               
@@ -583,7 +627,9 @@ export function useSupabaseSync() {
               }
               
               // Update sync key with the new session ID
-              lastSyncedSessionRef.current = newSession.id + currentSession.updatedAt;
+              if (sessionWriteSucceeded) {
+                lastSyncedSessionRef.current = newSession.id + currentSession.updatedAt;
+              }
             }
           } finally {
             isCreatingSessionRef.current.delete(currentSession.id);
@@ -617,11 +663,10 @@ export function useSupabaseSync() {
             // the page-load snapshot, so opening an application wrote the
             // pre-change status back over what the tracker had just saved.
             // New fields for enhanced data persistence
-            optimized_cv_text: (currentSession as any).optimizedCVText,
-            email_subject: (currentSession as any).emailSubject,
-            email_body: (currentSession as any).emailBody,
-            selected_template: (currentSession as any).selectedTemplate,
-            cover_letter_language: (currentSession as any).coverLetterLanguage,
+            optimized_cv_text: currentSession.generatedCV?.content,
+            email_subject: currentSession.email?.subject,
+            email_body: currentSession.email?.body,
+            selected_template: currentSession.selectedTemplate,
             company_address: currentSession.companyResearch?.address,
             company_contact_person: currentSession.companyResearch?.contactPerson,
             fit_assessment: currentSession.fitAssessment ?? null,
@@ -632,9 +677,9 @@ export function useSupabaseSync() {
           
           if (error) {
             console.error('[SupabaseSync] Error updating session:', error);
+          } else {
+            lastSyncedSessionRef.current = syncKey;
           }
-          
-          lastSyncedSessionRef.current = syncKey;
         }
       } catch (error) {
         console.error('[SupabaseSync] Sync error:', error);
@@ -675,45 +720,42 @@ export function useSupabaseSync() {
     }
   }, [user]);
 
-  // Sync chat messages to Supabase when new messages are added
+  // Sync chat messages to Supabase when new messages are added to any session.
   useEffect(() => {
     const syncChatMessages = async () => {
-      if (!user || !currentSession) return;
-      
-      // Skip local sessions (they need to be synced to Supabase first)
-      const isLocalSession = currentSession.id.startsWith('session-');
-      if (isLocalSession) {
-        return;
-      }
-      
-      // Only sync local messages (msg- prefix) that haven't been synced yet
-      const unsynced = currentSession.chatMessages.filter(
-        msg => msg.id.startsWith('msg-') && !syncedMessageIdsRef.current.has(msg.id)
-      );
-      
-      if (unsynced.length === 0) return;
-      
-      console.log('[SupabaseSync] Syncing', unsynced.length, 'new chat messages');
-      
-      for (const msg of unsynced) {
-        try {
-          const { message: savedMessage, error } = await addSupabaseChatMessage(
-            currentSession.id,
-            user.id,
-            {
-              role: msg.role,
-              content: msg.content,
-              actions: msg.actions,
+      if (!user) return;
+      const state = useSessionStore.getState();
+      const sessionsById = new Map(state.sessions.map((session) => [session.id, session]));
+      if (state.currentSession) sessionsById.set(state.currentSession.id, state.currentSession);
+
+      for (const session of sessionsById.values()) {
+        if (session.id.startsWith('session-')) continue;
+        const unsynced = session.chatMessages.filter(
+          (message) => message.id.startsWith('msg-') && !syncedMessageIdsRef.current.has(message.id),
+        );
+        if (unsynced.length === 0) continue;
+
+        console.log('[SupabaseSync] Syncing', unsynced.length, 'new chat messages');
+        for (const message of unsynced) {
+          try {
+            const { message: savedMessage, error } = await addSupabaseChatMessage(
+              session.id,
+              user.id,
+              {
+                role: message.role,
+                content: message.content,
+                actions: message.actions,
+              },
+            );
+
+            if (error) {
+              console.error('[SupabaseSync] Error saving chat message:', error);
+            } else if (savedMessage) {
+              syncedMessageIdsRef.current.add(message.id);
             }
-          );
-          
-          if (error) {
-            console.error('[SupabaseSync] Error saving chat message:', error);
-          } else if (savedMessage) {
-            syncedMessageIdsRef.current.add(msg.id);
+          } catch (err) {
+            console.error('[SupabaseSync] Chat message sync error:', err);
           }
-        } catch (err) {
-          console.error('[SupabaseSync] Chat message sync error:', err);
         }
       }
     };
@@ -721,7 +763,7 @@ export function useSupabaseSync() {
     // Debounce chat sync
     const timeoutId = setTimeout(syncChatMessages, 1000);
     return () => clearTimeout(timeoutId);
-  }, [user, currentSession?.chatMessages]);
+  }, [user, chatSyncFingerprint]);
 
   // Sync editedOriginalCVData to Supabase documents table
   const editedOriginalCVData = useCVStore(state => state.editedOriginalCVData);
@@ -756,5 +798,15 @@ export function useSupabaseSync() {
     return () => clearTimeout(timeoutId);
   }, [user, editedOriginalCVData]);
 
-  return { sessionsHydrated };
+  const retryHydration = useCallback(() => {
+    docsLoadedRef.current = false;
+    isInitialLoadRef.current = true;
+    initialLoadCompleteRef.current = false;
+    setSessionsHydrated(false);
+    setDocumentsHydrated(false);
+    setHydrationError(null);
+    setHydrationAttempt((attempt) => attempt + 1);
+  }, []);
+
+  return { sessionsHydrated, documentsHydrated, hydrationError, retryHydration };
 }

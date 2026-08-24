@@ -10,6 +10,7 @@ import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
 import { useFeedStore } from '@/store/useFeedStore';
+import { useTrackerStore } from '@/store/useTrackerStore';
 import posthog from 'posthog-js';
 
 const AUTH_USER_ID_STORAGE_KEY = 'usefulapply-auth-user-id';
@@ -60,6 +61,7 @@ function clearPersistedStores() {
     useSessionStore.getState().resetSessionData();
     useUIStore.getState().resetUI();
     useFeedStore.getState().resetFeed();
+    useTrackerStore.getState().reset();
     localStorage.removeItem('session-store');
     localStorage.removeItem('cv-store');
     localStorage.removeItem('usefulapply_resume_intent');

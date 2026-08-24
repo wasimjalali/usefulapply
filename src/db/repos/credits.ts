@@ -460,7 +460,10 @@ export async function upgradePlan(
   return { success: true, error: null };
 }
 
-export async function processMonthlyReset(userId: string): Promise<{ success: boolean; error: Error | null }> {
+export async function processMonthlyReset(
+  userId: string,
+  options?: { dueBefore: string },
+): Promise<{ success: boolean; error: Error | null }> {
   const { credits, error: creditsError } = await getUserCredits(userId);
   if (creditsError || !credits) {
     return { success: false, error: creditsError || new Error('Credits not found') };
@@ -501,6 +504,7 @@ export async function processMonthlyReset(userId: string): Promise<{ success: bo
       WHERE user_id = ${userId}
         AND version = ${credits.version}
         AND plan_tier = ${credits.plan_tier}
+        ${options?.dueBefore ? sql`AND next_reset_date < ${options.dueBefore}` : sql``}
     `,
     sql`
       INSERT INTO credit_transactions (
@@ -519,21 +523,30 @@ export async function processMonthlyReset(userId: string): Promise<{ success: bo
 }
 
 /**
- * Daily sweep for the free tier: reset every free row whose next_reset_date
- * has passed (or was never set). Paid tiers are reset by the Stripe renewal
- * webhook and are deliberately not touched here.
+ * Daily fallback sweep. Free rows reset when due. Active paid rows reset only
+ * after a three-day grace period so a delayed renewal webhook remains primary.
  */
 export async function processOverdueMonthlyResets(options: {
   limit: number;
 }): Promise<{ attempted: number; succeeded: number; failed: number; errors: string[] }> {
   const db = await getDb();
   const now = nowIso();
+  const paidGraceCutoff = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
   const rows = await db
-    .select({ user_id: userCredits.user_id })
+    .select({ user_id: userCredits.user_id, plan_tier: userCredits.plan_tier })
     .from(userCredits)
     .where(and(
-      eq(userCredits.plan_tier, 'free'),
-      or(lt(userCredits.next_reset_date, now), isNull(userCredits.next_reset_date)),
+      or(
+        and(
+          eq(userCredits.plan_tier, 'free'),
+          or(lt(userCredits.next_reset_date, now), isNull(userCredits.next_reset_date)),
+        ),
+        and(
+          or(eq(userCredits.plan_tier, 'plus'), eq(userCredits.plan_tier, 'max')),
+          eq(userCredits.subscription_status, 'active'),
+          lt(userCredits.next_reset_date, paidGraceCutoff),
+        ),
+      ),
     ))
     .orderBy(asc(userCredits.next_reset_date))
     .limit(options.limit);
@@ -545,7 +558,10 @@ export async function processOverdueMonthlyResets(options: {
   for (const row of rows) {
     // One user's failure must not stop the rest of the sweep.
     try {
-      const result = await processMonthlyReset(row.user_id);
+      const result = await processMonthlyReset(
+        row.user_id,
+        row.plan_tier === 'free' ? undefined : { dueBefore: paidGraceCutoff },
+      );
       if (result.success) {
         succeeded += 1;
       } else {
@@ -661,6 +677,7 @@ export async function applyAddonPurchase(
   userId: string,
   creditsToAdd: number,
   options: {
+    idempotencyKey: string;
     stripeCustomerId: string | null;
     description: string;
     metadata: Record<string, unknown>;
@@ -676,7 +693,7 @@ export async function applyAddonPurchase(
     const totalBefore = getTotalCredits(credits);
     const totalAfter = totalBefore + creditsToAdd;
     const now = nowIso();
-    const txId = crypto.randomUUID();
+    const txId = options.idempotencyKey;
 
     const [updateResult] = await runBatch([
       sql`
@@ -687,6 +704,7 @@ export async function applyAddonPurchase(
             updated_at = ${now}
         WHERE user_id = ${userId}
           AND version = ${credits.version}
+          AND NOT EXISTS (SELECT 1 FROM credit_transactions WHERE id = ${txId})
       `,
       sql`
         INSERT INTO credit_transactions (
@@ -700,6 +718,15 @@ export async function applyAddonPurchase(
 
     if (occChanges(updateResult) > 0) {
       return { success: true, totalBefore, totalAfter, error: null };
+    }
+    const db = await getDb();
+    const existingTransaction = await db
+      .select({ id: creditTransactions.id })
+      .from(creditTransactions)
+      .where(eq(creditTransactions.id, txId))
+      .limit(1);
+    if (existingTransaction[0]) {
+      return { success: true, totalBefore, totalAfter: totalBefore, error: null };
     }
     lastError = new Error('Addon credit update failed due to concurrent access');
   }
@@ -719,6 +746,9 @@ export async function applyPlanChange(
     newPlanCredits: number;
     subscriptionStatus: string;
     stripeSubscriptionId: string;
+    stripeCustomerId?: string;
+    grantCredits?: boolean;
+    currentPeriodEnd?: string;
   },
 ): Promise<{
   success: boolean;
@@ -726,6 +756,7 @@ export async function applyPlanChange(
   previousMonthly: number;
   monthlyCredits: number;
   isDowngrade: boolean;
+  isSameTier: boolean;
   error: Error | null;
 }> {
   let lastError: Error | null = null;
@@ -739,28 +770,52 @@ export async function applyPlanChange(
         previousMonthly: 0,
         monthlyCredits: 0,
         isDowngrade: false,
+        isSameTier: false,
         error: new Error('User credits row not found for plan change'),
       };
     }
     const oldPlanCredits = credits.plan_tier === 'max' ? 200 : credits.plan_tier === 'plus' ? 50 : 4;
     const isDowngrade = options.newPlanCredits < oldPlanCredits;
-    const monthlyCredits = isDowngrade
-      ? Math.min(credits.monthly_credits, options.newPlanCredits)
-      : options.newPlanCredits;
+    const isSameTier = options.planTier === credits.plan_tier;
+    const grantCredits = options.grantCredits !== false;
+    const monthlyCredits = !grantCredits || isSameTier
+      ? credits.monthly_credits
+      : isDowngrade
+        ? Math.min(credits.monthly_credits, options.newPlanCredits)
+        : options.newPlanCredits;
+    const nextTier = grantCredits ? options.planTier : credits.plan_tier;
     const now = nowIso();
-    const db = await getDb();
+    const creditDelta = monthlyCredits - credits.monthly_credits;
+    const totalBefore = getTotalCredits(credits);
+    const totalAfter = totalBefore + creditDelta;
+    const transactionId = crypto.randomUUID();
 
-    const result = await db.run(sql`
-      UPDATE user_credits
-      SET plan_tier = ${options.planTier},
-          monthly_credits = ${monthlyCredits},
-          subscription_status = ${options.subscriptionStatus},
-          stripe_subscription_id = ${options.stripeSubscriptionId},
-          version = version + 1,
-          updated_at = ${now}
-      WHERE user_id = ${userId}
-        AND version = ${credits.version}
-    `);
+    const [result] = await runBatch([
+      sql`
+        UPDATE user_credits
+        SET plan_tier = ${nextTier},
+            monthly_credits = ${monthlyCredits},
+            subscription_status = ${options.subscriptionStatus},
+            stripe_subscription_id = ${options.stripeSubscriptionId},
+            stripe_customer_id = COALESCE(${options.stripeCustomerId ?? null}, stripe_customer_id),
+            next_reset_date = COALESCE(${options.currentPeriodEnd ?? null}, next_reset_date),
+            version = version + 1,
+            updated_at = ${now}
+        WHERE user_id = ${userId}
+          AND version = ${credits.version}
+      `,
+      sql`
+        INSERT INTO credit_transactions (
+          id, user_id, amount, transaction_type, transaction_kind, session_id, description, metadata, balance_before, balance_after, created_at
+        )
+        SELECT ${transactionId}, ${userId}, ${creditDelta}, 'plan_upgrade', 'grant', NULL,
+               ${`Plan changed from ${credits.plan_tier} to ${nextTier}`},
+               ${JSON.stringify({ previousTier: credits.plan_tier, nextTier, stripeSubscriptionId: options.stripeSubscriptionId })},
+               ${totalBefore}, ${totalAfter}, ${now}
+        WHERE (SELECT changes()) > 0
+          AND ${creditDelta} != 0
+      `,
+    ]);
 
     if (occChanges(result) > 0) {
       return {
@@ -769,13 +824,14 @@ export async function applyPlanChange(
         previousMonthly: credits.monthly_credits,
         monthlyCredits,
         isDowngrade,
+        isSameTier,
         error: null,
       };
     }
     lastError = new Error('Plan change failed due to concurrent access');
   }
 
-  return { success: false, previousTier: null, previousMonthly: 0, monthlyCredits: 0, isDowngrade: false, error: lastError };
+  return { success: false, previousTier: null, previousMonthly: 0, monthlyCredits: 0, isDowngrade: false, isSameTier: false, error: lastError };
 }
 
 /**
@@ -785,7 +841,7 @@ export async function applyPlanChange(
  */
 export async function applyRenewalReset(
   userId: string,
-  options: { baseCredits: number; maxRollover: number },
+  options: { baseCredits: number; maxRollover: number; idempotencyKey: string },
 ): Promise<{
   success: boolean;
   monthlyBefore: number;
@@ -807,22 +863,43 @@ export async function applyRenewalReset(
     const nowStr = now.toISOString();
     const nextReset = new Date(now);
     nextReset.setMonth(nextReset.getMonth() + 1);
-    const db = await getDb();
-
-    const result = await db.run(sql`
-      UPDATE user_credits
-      SET monthly_credits = ${options.baseCredits},
-          rollover_credits = ${newRollover},
-          subscription_status = 'active',
-          last_reset_date = ${nowStr},
-          next_reset_date = ${nextReset.toISOString()},
-          version = version + 1,
-          updated_at = ${nowStr}
-      WHERE user_id = ${userId}
-        AND version = ${credits.version}
-    `);
+    const totalBefore = getTotalCredits(credits);
+    const totalAfter = options.baseCredits + newRollover + credits.addon_credits;
+    const [result] = await runBatch([
+      sql`
+        UPDATE user_credits
+        SET monthly_credits = ${options.baseCredits},
+            rollover_credits = ${newRollover},
+            subscription_status = 'active',
+            last_reset_date = ${nowStr},
+            next_reset_date = ${nextReset.toISOString()},
+            version = version + 1,
+            updated_at = ${nowStr}
+        WHERE user_id = ${userId}
+          AND version = ${credits.version}
+          AND NOT EXISTS (SELECT 1 FROM credit_transactions WHERE id = ${options.idempotencyKey})
+      `,
+      sql`
+        INSERT INTO credit_transactions (
+          id, user_id, amount, transaction_type, transaction_kind, session_id, description, metadata, balance_before, balance_after, created_at
+        )
+        SELECT ${options.idempotencyKey}, ${userId}, ${totalAfter - totalBefore}, 'monthly_reset', 'grant', NULL,
+               'Stripe subscription renewal', ${JSON.stringify({ stripeInvoiceId: options.idempotencyKey.replace(/^stripe-renewal:/, '') })},
+               ${totalBefore}, ${totalAfter}, ${nowStr}
+        WHERE (SELECT changes()) > 0
+      `,
+    ]);
 
     if (occChanges(result) > 0) {
+      return { success: true, monthlyBefore, rolloverBefore, newRollover, error: null };
+    }
+    const db = await getDb();
+    const existingTransaction = await db
+      .select({ id: creditTransactions.id })
+      .from(creditTransactions)
+      .where(eq(creditTransactions.id, options.idempotencyKey))
+      .limit(1);
+    if (existingTransaction[0]) {
       return { success: true, monthlyBefore, rolloverBefore, newRollover, error: null };
     }
     lastError = new Error('Renewal reset failed due to concurrent access');
@@ -839,7 +916,12 @@ export async function applyRenewalReset(
 export async function applyRefundRemoval(
   userId: string,
   options: {
-    creditsToRemove: number;
+    chargeId: string;
+    refundId: string;
+    refundAmountCents?: number;
+    cumulativeRefundedAmountCents: number;
+    totalAmountCents: number;
+    sourceCredits: number;
     isSubscription: boolean;
     description: string;
     metadata: Record<string, unknown>;
@@ -853,13 +935,54 @@ export async function applyRefundRemoval(
       return { success: false, totalBefore: 0, totalAfter: 0, error: new Error('User credits row disappeared during refund') };
     }
     const totalBefore = getTotalCredits(credits);
+    const transactionId = `stripe-refund:${options.refundId}`;
+    const db = await getDb();
+    const existingRows = await db
+      .select()
+      .from(creditTransactions)
+      .where(eq(creditTransactions.id, transactionId))
+      .limit(1);
+    if (existingRows[0]) {
+      return { success: true, totalBefore, totalAfter: totalBefore, error: null };
+    }
+
+    const chargeTransactions = await db
+      .select()
+      .from(creditTransactions)
+      .where(and(
+        eq(creditTransactions.user_id, userId),
+        eq(creditTransactions.transaction_type, 'refund'),
+        sql`json_extract(${creditTransactions.metadata}, '$.chargeId') = ${options.chargeId}`,
+      ));
+    const processedRefundCents = chargeTransactions.reduce((highest, row) => {
+      const metadata = (row as CreditTransaction).metadata ?? {};
+      const cumulativeAmount = typeof metadata.chargeRefundedAmountCents === 'number'
+        ? metadata.chargeRefundedAmountCents
+        : typeof metadata.refundedAmountCents === 'number'
+          ? metadata.refundedAmountCents
+          : 0;
+      return Math.max(highest, cumulativeAmount);
+    }, 0);
+    const refundAmountCents = options.refundAmountCents
+      ?? Math.max(0, options.cumulativeRefundedAmountCents - processedRefundCents);
+    const nextRefundedCents = Math.max(
+      0,
+      Math.min(options.totalAmountCents, options.cumulativeRefundedAmountCents),
+    );
+    const previousTargetCredits = processedRefundCents >= options.totalAmountCents
+      ? options.sourceCredits
+      : Math.round(options.sourceCredits * (processedRefundCents / options.totalAmountCents));
+    const nextTargetCredits = nextRefundedCents >= options.totalAmountCents
+      ? options.sourceCredits
+      : Math.round(options.sourceCredits * (nextRefundedCents / options.totalAmountCents));
+    const creditsToRemove = Math.max(0, nextTargetCredits - previousTargetCredits);
 
     let newMonthly = credits.monthly_credits;
     let newRollover = credits.rollover_credits;
     let newAddon = credits.addon_credits;
 
     if (options.isSubscription) {
-      let remaining = options.creditsToRemove;
+      let remaining = creditsToRemove;
       const monthlyDeduct = Math.min(remaining, newMonthly);
       newMonthly -= monthlyDeduct;
       remaining -= monthlyDeduct;
@@ -867,12 +990,24 @@ export async function applyRefundRemoval(
         newRollover -= Math.min(remaining, newRollover);
       }
     } else {
-      newAddon = Math.max(0, newAddon - options.creditsToRemove);
+      newAddon = Math.max(0, newAddon - creditsToRemove);
     }
 
     const totalAfter = newMonthly + newRollover + newAddon;
     const now = nowIso();
-    const txId = crypto.randomUUID();
+    const creditsRemoved = totalBefore - totalAfter;
+    const nextMetadata = {
+      ...options.metadata,
+      chargeId: options.chargeId,
+      refundId: options.refundId,
+      refundAmountCents,
+      chargeRefundedAmountCents: nextRefundedCents,
+      totalAmountCents: options.totalAmountCents,
+      sourceCredits: options.sourceCredits,
+      creditsScheduledForRemoval: creditsToRemove,
+      creditsRemoved,
+      unrecoveredCredits: Math.max(0, creditsToRemove - creditsRemoved),
+    };
 
     const [updateResult] = await runBatch([
       sql`
@@ -889,8 +1024,8 @@ export async function applyRefundRemoval(
         INSERT INTO credit_transactions (
           id, user_id, amount, transaction_type, transaction_kind, session_id, description, metadata, balance_before, balance_after, created_at
         )
-        SELECT ${txId}, ${userId}, ${totalAfter - totalBefore}, 'refund', 'refund', NULL,
-               ${options.description}, ${JSON.stringify(options.metadata)}, ${totalBefore}, ${totalAfter}, ${now}
+        SELECT ${transactionId}, ${userId}, ${-creditsRemoved}, 'refund', 'refund', NULL,
+               ${options.description}, ${JSON.stringify(nextMetadata)}, ${totalBefore}, ${totalAfter}, ${now}
         WHERE (SELECT changes()) > 0
       `,
     ]);
@@ -926,6 +1061,7 @@ export interface CreditReservation {
 
 export interface ReserveCreditResult {
   success: boolean;
+  created: boolean;
   reservation: CreditReservation | null;
   error: string | null;
   available?: number;
@@ -935,7 +1071,7 @@ export interface ReserveCreditResult {
    * balance. Callers that surface a balance message can branch on it; the
    * ones that do not still fail closed, which is the half that matters.
    */
-  code?: 'RESERVATION_SPENT';
+  code?: 'RESERVATION_IN_FLIGHT' | 'RESERVATION_SPENT';
 }
 
 export interface CaptureOrReleaseResult {
@@ -969,6 +1105,117 @@ export async function getReservationByKey(userId: string, idempotencyKey: string
   return (rows[0] as CreditReservation | undefined) ?? null;
 }
 
+export async function hasCapturedFitReservation(userId: string, contextId: string): Promise<boolean> {
+  const db = await getDb();
+  const rows = await db
+    .select({ id: creditReservations.id })
+    .from(creditReservations)
+    .where(and(
+      eq(creditReservations.user_id, userId),
+      eq(creditReservations.action, 'fit_analysis'),
+      eq(creditReservations.status, 'captured'),
+      sql`json_extract(${creditReservations.metadata}, '$.context_id') = ${contextId}`,
+    ))
+    .limit(1);
+  return rows.length > 0;
+}
+
+export async function canUseFitContinuation(
+  userId: string,
+  contextId: string,
+  requestId: string,
+): Promise<boolean> {
+  const db = await getDb();
+  const rows = await db
+    .select({ id: creditReservations.id })
+    .from(creditReservations)
+    .where(and(
+      eq(creditReservations.user_id, userId),
+      eq(creditReservations.action, 'fit_analysis'),
+      eq(creditReservations.status, 'captured'),
+      sql`json_extract(${creditReservations.metadata}, '$.context_id') = ${contextId}`,
+      sql`(
+        json_extract(${creditReservations.metadata}, '$.continuation_request_id') IS NULL
+        OR json_extract(${creditReservations.metadata}, '$.continuation_request_id') = ${requestId}
+        OR EXISTS (
+          SELECT 1
+          FROM credit_reservations AS linked_continuation
+          WHERE linked_continuation.id = json_extract(${creditReservations.metadata}, '$.continuation_reservation_id')
+            AND linked_continuation.user_id = ${userId}
+            AND linked_continuation.status = 'released'
+        )
+      )`,
+    ))
+    .limit(1);
+  return rows.length > 0;
+}
+
+export async function claimFitContinuation(
+  userId: string,
+  contextId: string,
+  requestId: string,
+  reservationId: string,
+): Promise<boolean> {
+  const db = await getDb();
+  const now = nowIso();
+  const rows = await db
+    .update(creditReservations)
+    .set({
+      metadata: sql`json_set(
+        ${creditReservations.metadata},
+        '$.continuation_request_id', ${requestId},
+        '$.continuation_reservation_id', ${reservationId},
+        '$.continuation_used_at', ${now}
+      )` as never,
+      updated_at: now,
+    })
+    .where(and(
+      eq(creditReservations.user_id, userId),
+      eq(creditReservations.action, 'fit_analysis'),
+      eq(creditReservations.status, 'captured'),
+      sql`json_extract(${creditReservations.metadata}, '$.context_id') = ${contextId}`,
+      sql`(
+        json_extract(${creditReservations.metadata}, '$.continuation_request_id') IS NULL
+        OR json_extract(${creditReservations.metadata}, '$.continuation_request_id') = ${requestId}
+        OR EXISTS (
+          SELECT 1
+          FROM credit_reservations AS linked_continuation
+          WHERE linked_continuation.id = json_extract(${creditReservations.metadata}, '$.continuation_reservation_id')
+            AND linked_continuation.user_id = ${userId}
+            AND linked_continuation.status = 'released'
+        )
+      )`,
+    ))
+    .returning({ id: creditReservations.id });
+  return rows.length > 0;
+}
+
+export async function releaseFitContinuationClaim(
+  userId: string,
+  contextId: string,
+  requestId: string,
+): Promise<void> {
+  const db = await getDb();
+  await db
+    .update(creditReservations)
+    .set({
+      metadata: sql`json_remove(
+        ${creditReservations.metadata},
+        '$.continuation_request_id',
+        '$.continuation_reservation_id',
+        '$.continuation_used_at'
+      )` as never,
+      updated_at: nowIso(),
+    })
+    .where(and(
+      eq(creditReservations.user_id, userId),
+      eq(creditReservations.action, 'fit_analysis'),
+      eq(creditReservations.status, 'captured'),
+      sql`json_extract(${creditReservations.metadata}, '$.context_id') = ${contextId}`,
+      sql`json_extract(${creditReservations.metadata}, '$.continuation_request_id') = ${requestId}`,
+    ));
+}
+
 export async function reserveCredits(params: {
   userId: string;
   action: CreditAction;
@@ -979,31 +1226,31 @@ export async function reserveCredits(params: {
 }): Promise<ReserveCreditResult> {
   const { userId, action, idempotencyKey, metadata = {} } = params;
   const amount = CREDIT_COSTS[action];
+  const replayResult = (reservation: CreditReservation): ReserveCreditResult => ({
+    success: false,
+    created: false,
+    reservation,
+    error: reservation.status === 'reserved'
+      ? 'This request is already in progress'
+      : 'This request already completed',
+    code: reservation.status === 'reserved' ? 'RESERVATION_IN_FLIGHT' : 'RESERVATION_SPENT',
+    required: amount,
+  });
   const existing = await getReservationByKey(userId, idempotencyKey);
-  if (existing) {
+  if (existing && existing.status !== 'released') {
     // Only a reservation still in flight dedupes. That is what the idempotency
     // key is for: a retried fetch, or a double-fired click, reuses the credits
     // already held rather than deducting twice.
     //
-    // A key whose reservation has been captured or released is SPENT, and
+    // A key whose reservation has been captured is SPENT, and
     // treating it as a fresh success was a way to buy generations for nothing:
     // the key rides in on the client's own `x-request-id` header, so replaying
     // a spent id ran the model again, returned the document, and never moved
     // the balance. Every paid path built on this helper was affected.
     //
-    // Genuine retries are unharmed. Every caller mints a fresh request id per
-    // click, so a user retrying after a failure reserves normally; only a
-    // deliberate replay of a spent id lands here.
-    if (existing.status === 'reserved') {
-      return { success: true, reservation: existing, error: null };
-    }
-    return {
-      success: false,
-      reservation: existing,
-      error: `Reservation ${idempotencyKey} is already ${existing.status}`,
-      code: 'RESERVATION_SPENT',
-      required: amount,
-    };
+    // A released reservation did not produce output and may be reserved again
+    // below. Captured and refunded keys remain terminal.
+    return replayResult(existing);
   }
 
   const deductResult = await deductCredits(userId, action, {
@@ -1013,6 +1260,7 @@ export async function reserveCredits(params: {
   if (!deductResult.success) {
     return {
       success: false,
+      created: false,
       reservation: null,
       error: deductResult.error?.message ?? 'Deduction failed',
       available: deductResult.remainingCredits,
@@ -1030,6 +1278,56 @@ export async function reserveCredits(params: {
   const db = await getDb();
   const now = nowIso();
   const id = crypto.randomUUID();
+  const reservationMetadata = {
+    ...metadata,
+    reservation_attempt_id: id,
+    remaining_after_reserve: deductResult.remainingCredits,
+    deducted_from: deductResult.deductedFrom,
+  } as unknown as Record<string, never>;
+
+  if (existing?.status === 'released') {
+    try {
+      const rows = await db
+        .update(creditReservations)
+        .set({
+          generation_id: coerceUuidOrNull(params.generationId),
+          session_id: coerceUuidOrNull(params.sessionId),
+          action: action.toLowerCase(),
+          amount,
+          status: 'reserved',
+          reserved_at: now,
+          captured_at: null,
+          released_at: null,
+          refunded_at: null,
+          metadata: reservationMetadata,
+          updated_at: now,
+        })
+        .where(and(
+          eq(creditReservations.id, existing.id),
+          eq(creditReservations.user_id, userId),
+          eq(creditReservations.status, 'released'),
+        ))
+        .returning();
+      if (rows[0]) {
+        return { success: true, created: true, reservation: rows[0] as CreditReservation, error: null };
+      }
+    } catch {
+      const verified = await getReservationByKey(userId, idempotencyKey);
+      if (
+        verified?.status === 'reserved'
+        && (verified.metadata as Record<string, unknown>).reservation_attempt_id === id
+      ) {
+        return { success: true, created: true, reservation: verified, error: null };
+      }
+    }
+
+    const winner = await getReservationByKey(userId, idempotencyKey);
+    await refundDeduction('reservation_retry_race_refund', `Reservation retry race refund for ${idempotencyKey}`);
+    return winner
+      ? replayResult(winner)
+      : { success: false, created: false, reservation: null, error: 'Failed to recreate reservation' };
+  }
+
   try {
     await db.insert(creditReservations).values({
       id,
@@ -1041,35 +1339,33 @@ export async function reserveCredits(params: {
       status: 'reserved',
       reserved_at: now,
       idempotency_key: idempotencyKey,
-      metadata: {
-        ...metadata,
-        remaining_after_reserve: deductResult.remainingCredits,
-        deducted_from: deductResult.deductedFrom,
-      } as unknown as Record<string, never>,
+      metadata: reservationMetadata,
       created_at: now,
       updated_at: now,
     });
   } catch (insertError) {
-    if (isUniqueViolation(insertError)) {
-      // Lost the idempotency race: the winner holds the reservation, refund this deduction.
-      const winner = await getReservationByKey(userId, idempotencyKey);
-      if (winner) {
-        await refundDeduction('reservation_duplicate_refund', `Duplicate reservation refund for ${idempotencyKey}`);
-        return { success: true, reservation: winner, error: null };
-      }
+    // Verify before refunding. If this exact row committed and D1 dropped the
+    // response, this call owns the held credits and can proceed.
+    const persisted = await getReservationByKey(userId, idempotencyKey);
+    if (persisted?.id === id) {
+      return { success: true, created: true, reservation: persisted, error: null };
     }
-    // Any other failure: verify before refunding. D1 may have written the row
-    // and dropped the response; refunding then would create a free reservation.
-    const existing = await getReservationByKey(userId, idempotencyKey);
-    if (existing) {
-      return { success: true, reservation: existing, error: null };
+    if (persisted) {
+      await refundDeduction('reservation_duplicate_refund', `Duplicate reservation refund for ${idempotencyKey}`);
+      return replayResult(persisted);
     }
+    console.error('[credits] reservation insert failed:', insertError);
     await refundDeduction('reservation_failed_refund', `Failed reservation refund for ${idempotencyKey}`);
-    return { success: false, reservation: null, error: 'Failed to create reservation' };
+    return { success: false, created: false, reservation: null, error: 'Failed to create reservation' };
   }
 
   const reservation = await getReservationByKey(userId, idempotencyKey);
-  return { success: true, reservation, error: reservation ? null : 'Failed to create reservation' };
+  return {
+    success: Boolean(reservation),
+    created: Boolean(reservation),
+    reservation,
+    error: reservation ? null : 'Failed to create reservation',
+  };
 }
 
 async function transitionReservation(params: {
@@ -1203,7 +1499,19 @@ export async function releaseStaleReservations(params?: {
       idempotencyKey: row.idempotency_key,
       reason: 'stale_reservation_reconciler',
     });
-    if (result.success) released += 1;
+    if (result.success) {
+      released += 1;
+      const metadata = row.metadata as Record<string, unknown>;
+      const contextId = metadata.fit_context_id;
+      const requestId = metadata.fit_continuation_request_id;
+      if (
+        row.action === 'generation_after_fit'
+        && typeof contextId === 'string'
+        && typeof requestId === 'string'
+      ) {
+        await releaseFitContinuationClaim(row.user_id, contextId, requestId);
+      }
+    }
   }
   return { released };
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAppStore } from '@/store/useAppStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -10,6 +10,7 @@ import { StepIndicator } from './StepIndicator';
 import { useToast } from './ui/Toast';
 import { usePostHog } from 'posthog-js/react';
 import { formatEmailAsText } from '@/lib/utils/kit-export';
+import { useSessionStore } from '@/store/useSessionStore';
 
 interface EmailPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -25,7 +26,6 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   const posthog = usePostHog();
   const {
     currentSession,
-    updateCurrentSession,
     isAgentWorking,
     agentWorkflowPhase,
   } = useAppStore();
@@ -52,11 +52,22 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   // older one is stale and the panel falls back to the store (unless the user
   // is mid-edit, where their typing wins).
   const [editBase, setEditBase] = useState<{ email: GeneratedEmail | null; followUp: FollowUp | null } | null>(null);
+  const editSessionIdRef = useRef<string | null>(null);
   const { toast } = useToast();
 
   const editsCurrent = isEditMode || (editBase !== null && editBase.email === (email ?? null) && editBase.followUp === (followUpEmail ?? null));
   const activeEmail = editsCurrent && editedEmail ? editedEmail : email;
   const activeFollowUp = editsCurrent && editedFollowUp ? editedFollowUp : followUpEmail;
+
+  useEffect(() => {
+    if (editSessionIdRef.current === null || editSessionIdRef.current === currentSession?.id) return;
+    editSessionIdRef.current = null;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- switching applications must discard the previous edit buffer
+    setIsEditMode(false);
+    setEditedEmail(null);
+    setEditedFollowUp(null);
+    setEditBase(null);
+  }, [currentSession?.id]);
 
   const updateEmailField = (field: 'subject' | 'body', value: string) => {
     if (!activeEmail) return;
@@ -69,16 +80,18 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   };
 
   const handleSaveEdits = () => {
-    if (editedEmail) {
-      updateCurrentSession({ email: editedEmail });
+    const editSessionId = editSessionIdRef.current;
+    if (editedEmail && editSessionId) {
+      useSessionStore.getState().updateSessionById(editSessionId, { email: editedEmail });
     }
-    if (editedFollowUp) {
-      updateCurrentSession({ followUpEmail: editedFollowUp });
+    if (editedFollowUp && editSessionId) {
+      useSessionStore.getState().updateSessionById(editSessionId, { followUpEmail: editedFollowUp });
     }
     setEditedEmail(null);
     setEditedFollowUp(null);
     setEditBase(null);
     setIsEditMode(false);
+    editSessionIdRef.current = null;
   };
 
   const copy = async (text: string, key: string, eventType?: string) => {
@@ -199,6 +212,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
           type="button"
           onClick={() => {
             setIsEditMode(true);
+            editSessionIdRef.current = currentSession?.id ?? null;
             setEditedEmail(email ?? null);
             setEditedFollowUp(followUpEmail ?? null);
             setEditBase({ email: email ?? null, followUp: followUpEmail ?? null });

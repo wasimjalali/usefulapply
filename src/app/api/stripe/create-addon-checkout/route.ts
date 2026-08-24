@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${BRAND.url}/dashboard?settings=usage&addon_success=true`,
+      success_url: `${BRAND.url}/dashboard?settings=usage&session_id={CHECKOUT_SESSION_ID}&addon_success=true`,
       cancel_url: `${BRAND.url}/dashboard?settings=usage&addon_canceled=true`,
       metadata: {
         userId,
@@ -121,14 +121,15 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ sessionId: session.id, url: session.url });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const stripeError = error as { message?: string; type?: string; raw?: { message?: string } };
     const posthog = getPostHogServer();
-    posthog.captureException(error as Error, 'server_error', {
+    posthog.captureException(error instanceof Error ? error : new Error('Add-on checkout session creation failed'), 'server_error', {
       endpoint: '/api/stripe/create-addon-checkout',
       method: 'POST',
     });
     await posthog.flush();
-    console.error('[Addon Checkout] Session creation error:', error?.message || error, error?.type, error?.raw?.message);
+    console.error('[Addon Checkout] Session creation error:', stripeError.message || error, stripeError.type, stripeError.raw?.message);
     return NextResponse.json(
       { error: 'Failed to create checkout session' },
       { status: 500 }

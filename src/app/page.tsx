@@ -274,12 +274,14 @@ export default function Home() {
         <section className="relative px-4 pb-14 pt-16 sm:px-6 lg:px-8 lg:pt-24">
           <div className="mx-auto flex max-w-7xl flex-col items-center gap-10 lg:flex-row lg:gap-16">
             <ScrollReveal className="w-full lg:w-[430px] lg:flex-shrink-0">
-              <h1 className="text-[38px] font-semibold leading-[1.08] tracking-tight text-navy-800 sm:text-[46px] lg:text-[50px]">
-                Everything you need to apply for a job. Nothing sent for you.
+              <h1 className="font-bold text-navy-600 text-[40px] leading-[1.08] sm:text-[52px]">
+                Find jobs, write tailored applications, track them.<br />
+                <span className="text-gold-500">All in one app.</span>
               </h1>
               <p className="mt-5 text-[17px] leading-relaxed text-warm-gray">
-                Fit check first. Then a tailored CV, cover letter and emails, grounded in what you&apos;ve
-                actually done and ready in about two minutes. You review, you send.
+                Check your fit first. Then get a tailored CV, cover letter, application email and
+                answers to your screening questions, grounded in what you&apos;ve actually done.
+                You review, you send.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Link
@@ -315,13 +317,13 @@ export default function Home() {
         </section>
 
         {/* Volume band. */}
-        <section className="relative px-4 py-16 sm:px-6 lg:px-8">
+        <section className="relative px-4 pt-6 pb-16 sm:px-6 lg:px-8">
           <ScrollReveal>
             <div className="mx-auto max-w-3xl text-center">
               <h2 className="text-[32px] font-semibold leading-[1.15] text-navy-800 md:text-[40px]">
                 Everyone&apos;s applying more. It&apos;s working less.
               </h2>
-              <p className="mt-5 text-[17px] leading-relaxed text-charcoal">
+              <p className="mt-5 text-[17px] leading-relaxed text-warm-gray">
                 AI flooded recruiters with lookalike applications. Filters tightened, good people got buried.
                 Useful Apply is the opposite of a bot. One job, one fit check, one application worth your name.
               </p>
@@ -339,7 +341,7 @@ export default function Home() {
                 Bring a job ad from anywhere
               </h2>
               <p className="mt-4 text-[17px] leading-relaxed text-warm-gray">
-                See a role on any job board or careers page? Copy the description and paste it into the chat.
+                Pick a role from your daily feed, or paste a job ad from any board or careers page.
                 Useful Apply checks the fit and builds the whole kit for that exact job.
               </p>
             </div>
@@ -347,6 +349,10 @@ export default function Home() {
           <ScrollReveal delay={150}>
             <div className="mx-auto mt-10 flex max-w-5xl flex-col items-center gap-8 lg:flex-row lg:justify-center lg:gap-10">
               <div className="grid w-full max-w-md grid-cols-2 gap-3">
+                <div className="col-span-2 flex h-14 items-center justify-center gap-2.5 rounded-2xl border border-cream-200 bg-cream-50 shadow-sm">
+                  <BrandIcon size="sm" theme="light" />
+                  <span className="text-[17px] font-semibold text-navy-800">Useful Apply job feed</span>
+                </div>
                 {[
                   { name: 'LinkedIn', color: '#0A66C2' },
                   { name: 'Indeed', color: '#2557A7' },

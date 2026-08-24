@@ -19,6 +19,20 @@ const NAV: Array<{ pane: SettingsPane; label: string; icon: typeof Settings }> =
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+function isCheckoutReturn(params: URLSearchParams): boolean {
+  return (params.get('success') === 'true' || params.get('addon_success') === 'true')
+    && Boolean(params.get('session_id'));
+}
+
+function clearCheckoutReturnParams(): void {
+  const params = new URLSearchParams(window.location.search);
+  for (const key of ['settings', 'success', 'addon_success', 'session_id', 'plan']) {
+    params.delete(key);
+  }
+  const query = params.toString();
+  window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+}
+
 export function SettingsModal() {
   const { user, isLoading } = useAuth();
   const isOpen = useSettingsStore((s) => s.isOpen);
@@ -29,16 +43,26 @@ export function SettingsModal() {
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
   // Deep link: ?settings=usage opens the modal on that pane, then the param
-  // is dropped so a refresh does not reopen it. /settings, /profile and
+  // is dropped so a normal refresh does not reopen it. Checkout return params
+  // stay until billing confirms the webhook, so feedback survives a refresh.
+  // /settings, /profile and
   // /account all land here, so a signed-out visitor gets the param too. There
   // is nothing to show them, so wait for the session and drop the param
   // without opening.
   useEffect(() => {
     if (isLoading) return;
     const params = new URLSearchParams(window.location.search);
-    const requested = params.get('settings');
+    const checkoutReturn = isCheckoutReturn(params);
+    if (!user && checkoutReturn) {
+      clearCheckoutReturnParams();
+      return;
+    }
+    const requested = params.get('settings') ?? (checkoutReturn ? 'usage' : null);
     if (!isSettingsPane(requested)) return;
-    if (user) open(requested);
+    if (user) {
+      open(requested);
+      if (checkoutReturn) return;
+    }
     params.delete('settings');
     const query = params.toString();
     window.history.replaceState(
@@ -55,6 +79,8 @@ export function SettingsModal() {
   }, [isLoading, user, isOpen, close]);
 
   const handleClose = useCallback(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (isCheckoutReturn(params)) clearCheckoutReturnParams();
     close();
   }, [close]);
 
