@@ -304,7 +304,7 @@ export function ChatPanel({
     });
     setNeedsAccount(true);
   }
-  const { credits, isLoading: creditsLoading } = useCreditsBalance();
+  const { credits, isLoading: creditsLoading, refresh: refreshCredits } = useCreditsBalance();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -456,6 +456,18 @@ export function ChatPanel({
     currentSession?.pendingFitAnalysis?.createdAt
     && nowMs < new Date(currentSession.pendingFitAnalysis.createdAt).getTime() + 30 * 60 * 1000
   );
+
+  // The fit-result chips gate on the balance, and the credits_deducted event
+  // can race the capture write: a stale low read shows "Upgrade" to a user
+  // who can afford the kit until they reload. Refetch when the chips appear
+  // and once more after the capture has certainly settled.
+  const showFitChips = Boolean(fitAnalysisContextId || hasFreshPendingFitAnalysis);
+  useEffect(() => {
+    if (!showFitChips) return;
+    void refreshCredits();
+    const timer = window.setTimeout(() => { void refreshCredits(); }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [showFitChips, refreshCredits]);
 
   // The launchpad owns the JD input, so the composer stays hidden while it is
   // on screen. Shown when nothing is in flight: no session at all, or a session
