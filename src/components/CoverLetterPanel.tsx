@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Card } from './ui/Card';
 import { useAppStore } from '@/store/useAppStore';
@@ -27,6 +27,8 @@ interface CoverLetterPanelProps {
 }
 
 const TOOL_CLASS = 'inline-flex h-9 items-center gap-2 rounded-full border border-cream-200 bg-cream-50 px-3.5 text-sm font-medium text-charcoal shadow-sm hover:bg-white transition-colors duration-200 cursor-pointer flex-shrink-0';
+const DOWNLOAD_MENU_WIDTH = 144;
+const DOWNLOAD_MENU_HEIGHT = 96;
 
 function relativeLabel(ms: number, now: number, prefs: DatePrefs): string {
   const mins = Math.floor((now - ms) / 60_000);
@@ -63,6 +65,8 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const [copied, setCopied] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<'pdf' | 'docx' | null>(null);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const [downloadMenuPos, setDownloadMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const downloadButtonRef = useRef<HTMLButtonElement>(null);
   const downloadMenuRef = useRef<HTMLDivElement>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedCoverLetter, setEditedCoverLetter] = useState<GeneratedCoverLetter | null>(null);
@@ -113,12 +117,40 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     return () => window.clearInterval(id);
   }, []);
 
+  // Fixed to the viewport so the kit toolbar's overflow-x-auto and the
+  // document scroller below it cannot clip or paint over the menu.
+  useLayoutEffect(() => {
+    if (!showDownloadMenu) return;
+    const place = () => {
+      const button = downloadButtonRef.current;
+      if (!button) return;
+      const rect = button.getBoundingClientRect();
+      const below = rect.bottom + 6;
+      const flip = below + DOWNLOAD_MENU_HEIGHT > window.innerHeight;
+      setDownloadMenuPos({
+        top: flip ? Math.max(8, rect.top - DOWNLOAD_MENU_HEIGHT - 6) : below,
+        left: Math.min(
+          Math.max(8, rect.left),
+          window.innerWidth - DOWNLOAD_MENU_WIDTH - 8,
+        ),
+      });
+    };
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [showDownloadMenu]);
+
   useEffect(() => {
     if (!showDownloadMenu) return;
     const onDown = (e: MouseEvent) => {
-      if (downloadMenuRef.current && !downloadMenuRef.current.contains(e.target as Node)) {
-        setShowDownloadMenu(false);
-      }
+      const target = e.target as Node;
+      if (downloadButtonRef.current?.contains(target)) return;
+      if (downloadMenuRef.current?.contains(target)) return;
+      setShowDownloadMenu(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setShowDownloadMenu(false);
@@ -351,8 +383,9 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
             {copied ? <Check className="w-4 h-4 text-gold-600" /> : <Copy className="w-4 h-4" />}
             {copied ? 'Copied' : 'Copy'}
           </button>
-          <div ref={downloadMenuRef} className="relative flex-shrink-0">
+          <div className="relative flex-shrink-0">
             <button
+              ref={downloadButtonRef}
               type="button"
               onClick={() => setShowDownloadMenu((v) => !v)}
               disabled={downloadFormat !== null}
@@ -364,8 +397,18 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
               {downloadFormat ? `Building ${downloadFormat.toUpperCase()}` : 'Download'}
               <ChevronDown className="w-3.5 h-3.5" />
             </button>
-            {showDownloadMenu && (
-              <div role="menu" className="absolute left-0 top-full z-30 mt-1.5 w-36 overflow-hidden rounded-lg border border-cream-200 bg-cream-50 py-1 shadow-md">
+            {showDownloadMenu && typeof document !== 'undefined' && createPortal(
+              <div
+                ref={downloadMenuRef}
+                role="menu"
+                style={{
+                  position: 'fixed',
+                  top: downloadMenuPos?.top ?? -9999,
+                  left: downloadMenuPos?.left ?? -9999,
+                  width: DOWNLOAD_MENU_WIDTH,
+                }}
+                className="z-[60] overflow-hidden rounded-lg border border-cream-200 bg-cream-50 py-1 shadow-md"
+              >
                 <button type="button" role="menuitem" onClick={() => exportLetter('pdf')} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-charcoal hover:bg-white cursor-pointer">
                   <FileText className="w-4 h-4 text-navy-500" />
                   PDF
@@ -374,7 +417,8 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
                   <FileText className="w-4 h-4 text-navy-500" />
                   DOCX
                 </button>
-              </div>
+              </div>,
+              document.body,
             )}
           </div>
           <span className="ml-auto flex-shrink-0 pl-2 text-[13px] text-warm-gray">{statusLabel}</span>
