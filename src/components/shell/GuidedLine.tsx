@@ -142,6 +142,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
   const cvHydrationAdvancedRef = useRef(Boolean(currentCV));
   const [lineError, setLineError] = useState<string | null>(null);
   const [isCreditError, setIsCreditError] = useState(false);
+  const [freeCheckUsed, setFreeCheckUsed] = useState(false);
   // Job pasted while the CV was still parsing. Started from an effect, not
   // from the parse callback, so the fit runs with the CV actually in the store.
   const [queuedFit, setQueuedFit] = useState<string | null>(null);
@@ -173,6 +174,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
       }
       const jd = useSessionStore.getState().currentSession?.jobDescription || '';
       if (jd.length >= MIN_JD) writeResumeIntent({ action: 'fit', jd });
+      setFreeCheckUsed(true);
       setStep('signup');
     },
     onInsufficientCredits: (required, available) => {
@@ -663,7 +665,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
   const covered = strengths.length;
   const totalReqs = Math.max(covered + gaps.length, covered);
   const reason = typeof fitAnalysis?.assessment === 'string'
-    ? fitAnalysis.assessment.split('\n')[0]
+    ? fitAnalysis.assessment.split('\n')[0].replace(/\*\*|__|`/g, '').trim()
     : covered
       ? `You cover ${covered} of ${totalReqs} requirements. Worth applying.`
       : 'Here is how you line up against this job.';
@@ -987,9 +989,11 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
               {authMode === 'signup' ? 'Create your free account to get the kit' : 'Log in to get the kit'}
             </h1>
             <p className="mt-1.5 text-sm text-warm-gray">
-              {authMode === 'signup'
-                ? '4 credits included. Your CV and this fit check come with you.'
-                : 'Your CV and this fit check come with you.'}
+              {freeCheckUsed
+                ? "You've used your free check. A free account runs this one, 4 credits included. Your CV and the job come with you."
+                : authMode === 'signup'
+                  ? '4 credits included. Your CV and this fit check come with you.'
+                  : 'Your CV and this fit check come with you.'}
             </p>
             {authError && <p className="mt-4 text-sm text-red-600">{authError}</p>}
             <button
