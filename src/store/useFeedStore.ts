@@ -22,7 +22,7 @@ import type { CareerProfile } from '@/lib/job-feed/career-profile';
 /** Which surface the canvas shows. The list is the home; the others have Back. */
 export type FeedCanvasView = 'list' | 'detail' | 'edit';
 export type FeedListTab = 'today' | 'saved';
-export type FeedEditPill = 'profile' | 'searches' | 'preferences';
+export type FeedEditPill = 'profile' | 'searches';
 
 /** A chip offered under an assistant message. Handlers live in the conversation. */
 export interface FeedChip {
