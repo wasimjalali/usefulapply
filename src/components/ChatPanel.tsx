@@ -17,7 +17,7 @@ import { useJobFeedBadge } from '@/hooks/useJobFeedBadge';
 import { useFeedStore } from '@/store/useFeedStore';
 import { loadFeedOverview, loadSavedFeedJobs } from '@/components/job-feed/feed-actions';
 import { startFeedHandoff } from '@/components/job-feed/feed-handoff';
-import { buildSuggestedPrompts } from './chat/suggested-prompts';
+import { buildSuggestedPrompts, CANNED_RESPONSES } from './chat/suggested-prompts';
 import ChatGreeting from './chat/ChatGreeting';
 import { openSettings } from '@/store/useSettingsStore';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1889,7 +1889,7 @@ export function ChatPanel({
               can do. Clicking one sends it as the message, straight to chat,
               so the JD heuristics never read a chip as a job ad. */}
           {showSuggestedPrompts && (
-            <div className="flex flex-col items-center gap-5 px-4 py-10">
+            <div className="min-h-full flex flex-col items-center justify-center gap-5 px-4 py-10">
               <ChatGreeting name={user?.name} />
               <div className="flex flex-wrap justify-center gap-2">
               {suggestedPrompts.map((suggestion) => (
@@ -1900,6 +1900,11 @@ export function ChatPanel({
                     const store = useAppStore.getState();
                     if (!store.currentSession) store.createNewSession('');
                     useAppStore.getState().addChatMessage({ role: 'user', content: suggestion });
+                    const canned = CANNED_RESPONSES[suggestion];
+                    if (canned) {
+                      useAppStore.getState().addChatMessage({ role: 'assistant', content: canned });
+                      return;
+                    }
                     void handleGeneralChat(suggestion);
                   }}
                   className="inline-flex items-center rounded-full border border-cream-200 bg-cream-50 px-3.5 py-1.5 text-xs font-medium text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
