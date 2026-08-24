@@ -17,7 +17,7 @@ import { useJobFeedBadge } from '@/hooks/useJobFeedBadge';
 import { useFeedStore } from '@/store/useFeedStore';
 import { loadFeedOverview, loadSavedFeedJobs } from '@/components/job-feed/feed-actions';
 import { startFeedHandoff } from '@/components/job-feed/feed-handoff';
-import { buildSuggestedPrompts, CANNED_RESPONSES } from './chat/suggested-prompts';
+import { buildSuggestedPrompts, CANNED_RESPONSES, PROMPTS } from './chat/suggested-prompts';
 import ChatGreeting from './chat/ChatGreeting';
 import { openSettings } from '@/store/useSettingsStore';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1903,6 +1903,18 @@ export function ChatPanel({
                     const canned = CANNED_RESPONSES[suggestion];
                     if (canned) {
                       useAppStore.getState().addChatMessage({ role: 'assistant', content: canned });
+                      return;
+                    }
+                    if (suggestion === PROMPTS.runFeed) {
+                      // Deterministic, same as the run_feed tool effect: the
+                      // Job Board owns the run, its progress and the
+                      // once-a-day message.
+                      useAppStore.getState().addChatMessage({
+                        role: 'assistant',
+                        content: "Opening your Job Board and starting today's search.",
+                      });
+                      useUIStore.getState().setPendingFeedRunAt(Date.now());
+                      useUIStore.getState().setActiveTab('jobs');
                       return;
                     }
                     void handleGeneralChat(suggestion);

@@ -522,7 +522,7 @@ Work authorization: ${WORK_AUTH_VALUES.join(', ')}.`,
 const runFeed: ChatTool = {
   name: 'run_feed',
   description:
-    'Start today\'s job feed run. Use for "refresh my feed", "look for new roles", "run the feed". The run takes a minute or two and the user watches it on the feed page. It costs no credits. It can only run once per day.',
+    'Start today\'s job search on the Job Board. Use for "search new jobs", "find jobs for today", "refresh my feed", "look for new roles", "run the feed", "build my board". The run takes a minute or two and the user watches it on the Job Board. It costs no credits. It can only run once per day.',
   parameters: { type: 'object', properties: {}, additionalProperties: false },
   handler: async (_args, ctx): Promise<ChatToolResult> => {
     // One manual run a day is the whole budget, so an ad must not be able to
