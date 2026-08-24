@@ -38,11 +38,37 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// The allow-list filter runs once per skill against the same concatenated CV
+// text; the last normalized haystack is memoized to keep that off the hot path.
+let lastMembershipSource: string | undefined;
+let lastNormalizedMembershipSource = '';
+function normalizedMembershipSource(source: string): string {
+  if (source !== lastMembershipSource) {
+    lastMembershipSource = source;
+    lastNormalizedMembershipSource = normalizeMembershipText(source);
+  }
+  return lastNormalizedMembershipSource;
+}
+
 function sourceContainsEvidence(source: string, evidence: string): boolean {
-  const haystack = normalizeMembershipText(source);
+  const haystack = normalizedMembershipSource(source);
   const needle = normalizeMembershipText(evidence);
   if (!needle) return false;
   return new RegExp(`(?:^|[^\\p{L}\\p{N}])${escapeRegExp(needle)}(?=$|[^\\p{L}\\p{N}])`, 'u').test(haystack);
+}
+
+function lineContains(line: string, needle: string): boolean {
+  const normalizedNeedle = normalizeMembershipText(needle);
+  if (!normalizedNeedle) return false;
+  return new RegExp(`(?:^|[^\\p{L}\\p{N}])${escapeRegExp(normalizedNeedle)}(?=$|[^\\p{L}\\p{N}])`, 'u')
+    .test(normalizeMembershipText(line));
+}
+
+// Composite evidence ("German C1", "AWS Certified (Amazon)") is only supported
+// when its components co-occur on one source line; fragments scattered across
+// the CV do not authorize a claim the CV never states.
+function componentsCoOccurOnLine(source: string, first: string, second: string): boolean {
+  return source.split(/\r?\n/).some((line) => lineContains(line, first) && lineContains(line, second));
 }
 
 function languageEvidenceIsSupported(source: string, evidence: string): boolean {
@@ -50,15 +76,14 @@ function languageEvidenceIsSupported(source: string, evidence: string): boolean 
   const parts = evidence.trim().split(/\s+/u);
   return parts.slice(1).some((_, index) => {
     const splitAt = index + 1;
-    return sourceContainsEvidence(source, parts.slice(0, splitAt).join(' '))
-      && sourceContainsEvidence(source, parts.slice(splitAt).join(' '));
+    return componentsCoOccurOnLine(source, parts.slice(0, splitAt).join(' '), parts.slice(splitAt).join(' '));
   });
 }
 
 function certificationEvidenceIsSupported(source: string, evidence: string): boolean {
   if (sourceContainsEvidence(source, evidence)) return true;
   const match = evidence.match(/^(.*?)\s*\((.*?)\)$/);
-  return Boolean(match && sourceContainsEvidence(source, match[1]) && sourceContainsEvidence(source, match[2]));
+  return Boolean(match && componentsCoOccurOnLine(source, match[1], match[2]));
 }
 
 /**

@@ -858,13 +858,6 @@ export async function POST(request: NextRequest) {
             } else {
               console.warn('[API_AGENT_V2] Context cache miss, rerunning with server-held sources');
 
-              if (attributableSession && submittedJobDescription !== attributableSession.job_description.trim()) {
-                const updated = await updateSession(user.id, attributableSession.id, {
-                  job_description: submittedJobDescription,
-                });
-                if (updated.error) throw updated.error;
-              }
-
               const continuation = await reserveContinuation();
               if (!continuation.result.success) {
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify(
@@ -872,6 +865,15 @@ export async function POST(request: NextRequest) {
                 )}\n\n`));
                 controller.close();
                 return;
+              }
+
+              // Only after the reservation succeeds: a failed reservation must
+              // not leave the session pointing at a JD its artifacts don't match.
+              if (attributableSession && submittedJobDescription !== attributableSession.job_description.trim()) {
+                const updated = await updateSession(user.id, attributableSession.id, {
+                  job_description: submittedJobDescription,
+                });
+                if (updated.error) throw updated.error;
               }
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                 type: 'credits_deducted',

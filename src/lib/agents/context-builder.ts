@@ -81,12 +81,30 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// Membership checks run hundreds of times per generation against the same
+// concatenated CV text; re-normalizing that haystack per call dominates the
+// cost, so the last normalized source is memoized.
+let lastMembershipSource: string | undefined;
+let lastNormalizedMembershipSource = '';
+function normalizedMembershipSource(source: string): string {
+  if (source !== lastMembershipSource) {
+    lastMembershipSource = source;
+    lastNormalizedMembershipSource = normalizeMembershipText(source);
+  }
+  return lastNormalizedMembershipSource;
+}
+
 /** Exact phrase membership with normalized whitespace and token boundaries. */
 function sourceContainsEvidence(source: string, evidence: string): boolean {
-  const haystack = normalizeMembershipText(source);
+  const haystack = normalizedMembershipSource(source);
   const needle = normalizeMembershipText(evidence);
   if (!needle) return false;
   return new RegExp(`(?:^|[^\\p{L}\\p{N}])${escapeRegExp(needle)}(?=$|[^\\p{L}\\p{N}])`, 'u').test(haystack);
+}
+
+/** Letters-and-digits-only comparison, tolerant of letter-spaced PDF headers. */
+function squashMembershipText(value: string): string {
+  return value.normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
 }
 
 function validateApplicantProfile(
@@ -143,8 +161,23 @@ function validateApplicantProfile(
     }];
   });
 
+  // The name renders as the applicant's identity, so it never falls back to a
+  // sentinel. Letter-spaced PDF headers ("W A S I M  J A L A L I") fail the
+  // word-boundary check, so a squashed comparison recovers them; a name absent
+  // from every server-held source fails loud instead.
+  const resolveName = (): string => {
+    const literal = optionalRequiredLiteral(profile.name, 'Applicant name');
+    if (literal) return literal;
+    const raw = typeof profile.name === 'string' ? profile.name.trim() : '';
+    if (raw) {
+      const squashed = squashMembershipText(raw);
+      if (squashed && squashMembershipText(sourceDocuments).includes(squashed)) return raw;
+    }
+    throw new Error('Applicant name could not be verified against the source CV');
+  };
+
   const applicant = {
-    name: optionalRequiredLiteral(profile.name, 'Applicant name') || 'Unknown',
+    name: resolveName(),
     email: optionalRequiredLiteral(profile.email, 'Applicant email', true) || '',
     phone: optionalLiteral(profile.phone, 'Applicant phone'),
     address: optionalLiteral(profile.address, 'Applicant address'),
@@ -598,16 +631,35 @@ Return ONLY valid JSON, no explanation.`,
     const allRequirements = [...requiredSkills, ...niceToHaveSkills];
     const requirementByKey = new Map(allRequirements.map((requirement) => [normalizeMembershipText(requirement), requirement]));
     const requiredKeys = new Set(requiredSkills.map(normalizeMembershipText));
-    const seenRequirements = new Set<string>();
     if (!Array.isArray(parsed.details)) {
       throw new Error('Skill matcher returned no details array');
     }
+    // The matcher prompt tells the model to split compound requirements
+    // ("CMS (WordPress, Shopify)" into "WordPress", "Shopify"), so entries are
+    // joined back by word-boundary containment, not only by exact echo.
+    // Multiple entries can map to one parsed requirement; the best tier wins.
+    const tierRank = (tier: 1 | 2 | 3 | 'implicit' | 'missing'): number => (
+      tier === 1 ? 0 : tier === 2 ? 1 : tier === 3 ? 2 : tier === 'implicit' ? 3 : 4
+    );
+    const keyContains = (outer: string, inner: string): boolean => (
+      inner.length > 0
+      && new RegExp(`(?:^|[^\\p{L}\\p{N}])${escapeRegExp(inner)}(?=$|[^\\p{L}\\p{N}])`, 'u').test(outer)
+    );
+    const resolveRequirementKey = (entryKey: string): string | undefined => {
+      if (!entryKey) return undefined;
+      if (requirementByKey.has(entryKey)) return entryKey;
+      for (const key of requirementByKey.keys()) {
+        if (keyContains(key, entryKey) || keyContains(entryKey, key)) return key;
+      }
+      return undefined;
+    };
+    const detailIndexByKey = new Map<string, number>();
     for (const value of parsed.details) {
       if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
       const detail = value as Record<string, unknown>;
-      const requirementKey = normalizeMembershipText(toStr(detail.requirement));
-      const requirement = requirementByKey.get(requirementKey);
-      if (!requirement || seenRequirements.has(requirementKey)) continue;
+      const requirementKey = resolveRequirementKey(normalizeMembershipText(toStr(detail.requirement)));
+      if (!requirementKey) continue;
+      const requirement = requirementByKey.get(requirementKey)!;
       const tier = detail.tier;
       if (tier !== 1 && tier !== 2 && tier !== 3 && tier !== 'implicit' && tier !== 'missing') continue;
       const evidence = toStr(detail.evidence);
@@ -617,21 +669,28 @@ Return ONLY valid JSON, no explanation.`,
       const claimable = (tier === 1 || tier === 2)
         && detail.claimable === true
         && Boolean(supportedEvidence);
-      seenRequirements.add(requirementKey);
-      details.push({
-        requirement,
-        ...(supportedEvidence ? { evidence: supportedEvidence } : {}),
-        tier,
-        claimable,
-        required: requiredKeys.has(requirementKey),
-      });
-      if (tier !== 'missing' && !matchedRequirements.includes(requirement)) matchedRequirements.push(requirement);
       if (claimable && supportedEvidence && !claimableEvidence.includes(supportedEvidence)) {
         claimableEvidence.push(supportedEvidence);
       }
+      const existingIndex = detailIndexByKey.get(requirementKey);
+      if (existingIndex === undefined) {
+        detailIndexByKey.set(requirementKey, details.length);
+        details.push({
+          requirement,
+          ...(supportedEvidence ? { evidence: supportedEvidence } : {}),
+          tier,
+          claimable,
+          required: requiredKeys.has(requirementKey),
+        });
+        continue;
+      }
+      const existing = details[existingIndex];
+      if (tierRank(tier) < tierRank(existing.tier)) existing.tier = tier;
+      if (claimable) existing.claimable = true;
+      if (supportedEvidence && !existing.evidence) existing.evidence = supportedEvidence;
     }
     for (const [requirementKey, requirement] of requirementByKey) {
-      if (seenRequirements.has(requirementKey)) continue;
+      if (detailIndexByKey.has(requirementKey)) continue;
       console.warn(`[UsefulApply] Skill matcher omitted requirement, treating it as missing: ${requirement}`);
       details.push({
         requirement,
@@ -639,6 +698,11 @@ Return ONLY valid JSON, no explanation.`,
         claimable: false,
         required: requiredKeys.has(requirementKey),
       });
+    }
+    for (const detail of details) {
+      if (detail.tier !== 'missing' && !matchedRequirements.includes(detail.requirement)) {
+        matchedRequirements.push(detail.requirement);
+      }
     }
     const missingSkills = details
       .filter((detail) => detail.tier === 'missing')

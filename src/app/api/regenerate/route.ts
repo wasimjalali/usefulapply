@@ -639,7 +639,10 @@ function looksLikeQuantifiedAchievement(value: string): boolean {
   if (!/\d/.test(text)) return false;
   if (/https?:\/\/|www\.|\b\S+@\S+\b/i.test(text)) return false;
   if (/^(?:phone|tel|mobile|fax)?\s*:?\s*\+?\d[\d\s().-]{7,}\d$/i.test(text)) return false;
-  if (/^\d{4,6}\s+[\p{L}\p{M}.'-]+(?:[,\s]+[\p{L}\p{M}.'-]+){0,3}$/u.test(text)) return false;
+  // Postcode/address lines only: a 4-5 digit number followed by at most two
+  // capitalized tokens ("10115 Berlin", "1234 AB Amsterdam"). Quantified
+  // achievements ("3000 users onboarded", "5000 tickets resolved") stay in.
+  if (/^\d{4,5}\s+[\p{Lu}][\p{L}\p{M}.'-]*(?:[,\s]+[\p{Lu}][\p{L}\p{M}.'-]*)?$/u.test(text)) return false;
 
   const withoutDates = text
     .replace(/\b(?:19|20)\d{2}\s*[-–]\s*(?:(?:19|20)\d{2}|present|current|heute|aktuell)\b/giu, ' ')
