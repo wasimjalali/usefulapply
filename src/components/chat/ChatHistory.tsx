@@ -1,5 +1,7 @@
 'use client';
 
+import { useLayoutEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { MessageSquare, ArrowRight } from 'lucide-react';
 import { useUIStore } from '@/store/useUIStore';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
@@ -21,6 +23,8 @@ interface ChatHistoryProps {
   currentSessionId?: string;
   onSelectSession: (sessionId: string) => void;
   onClose: () => void;
+  /** Header (or column) the panel hangs under. Escapes the message scroller. */
+  anchor: HTMLElement | null;
 }
 
 function sessionLabel(session: SessionSummary): string {
@@ -40,30 +44,46 @@ function StatusDot({ hasGeneratedCV, hasFitAnalysis }: { hasGeneratedCV?: boolea
   return <span className="w-2 h-2 rounded-full bg-gray-300 flex-shrink-0" title="Draft" />;
 }
 
-export function ChatHistory({ sessions, currentSessionId, onSelectSession, onClose }: ChatHistoryProps) {
+export function ChatHistory({ sessions, currentSessionId, onSelectSession, onClose, anchor }: ChatHistoryProps) {
   const datePrefs = useDatePrefs();
-  if (sessions.length === 0) {
-    return (
-      <>
-        {/* Backdrop */}
-        <div className="absolute inset-0 z-10" onClick={onClose} />
-        <div className="absolute top-0 left-0 right-0 z-20 bg-white rounded-b-2xl shadow-lg border border-cream-200 border-t-0">
-          <div className="p-3">
-            <p className="text-xs font-medium text-warm-gray mb-2">Recent Applications</p>
-            <p className="text-xs text-warm-gray py-2">No applications yet</p>
-          </div>
-        </div>
-      </>
-    );
-  }
+  const [box, setBox] = useState<{ top: number; left: number; width: number } | null>(null);
 
-  return (
-    <>
-      {/* Backdrop — click outside to close */}
-      <div className="absolute inset-0 z-10" onClick={onClose} />
-      <div className="absolute top-0 left-0 right-0 z-20 bg-white rounded-b-2xl shadow-lg border border-cream-200 border-t-0 max-h-72 overflow-auto">
-        <div className="p-3">
-          <p className="text-xs font-medium text-warm-gray mb-2">Recent Applications</p>
+  useLayoutEffect(() => {
+    if (!anchor) return;
+    const place = () => {
+      const rect = anchor.getBoundingClientRect();
+      setBox({
+        top: rect.bottom,
+        left: rect.left,
+        width: rect.width,
+      });
+    };
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [anchor]);
+
+  if (typeof document === 'undefined') return null;
+
+  const panel = (
+    <div
+      style={{
+        position: 'fixed',
+        top: box?.top ?? -9999,
+        left: box?.left ?? 0,
+        width: box?.width ?? 0,
+      }}
+      className="z-50 max-h-72 overflow-auto rounded-b-2xl border border-cream-200 border-t-0 bg-white shadow-lg"
+    >
+      <div className="p-3">
+        <p className="text-xs font-medium text-warm-gray mb-2">Recent Applications</p>
+        {sessions.length === 0 ? (
+          <p className="text-xs text-warm-gray py-2">No applications yet</p>
+        ) : (
           <div className="space-y-0.5">
             {sessions.slice(0, 10).map((session) => (
               <button
@@ -86,19 +106,27 @@ export function ChatHistory({ sessions, currentSessionId, onSelectSession, onClo
               </button>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              useUIStore.getState().setActiveTab('tracker');
-              onClose();
-            }}
-            className="w-full flex items-center justify-center gap-1 mt-2 px-3 py-2 text-xs font-medium text-navy-600 hover:text-navy-800 hover:bg-cream-100 rounded-lg transition-colors cursor-pointer"
-          >
-            View All Applications
-            <ArrowRight className="w-3 h-3" />
-          </button>
-        </div>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            useUIStore.getState().setActiveTab('tracker');
+            onClose();
+          }}
+          className="w-full flex items-center justify-center gap-1 mt-2 px-3 py-2 text-xs font-medium text-navy-600 hover:text-navy-800 hover:bg-cream-100 rounded-lg transition-colors cursor-pointer"
+        >
+          View All Applications
+          <ArrowRight className="w-3 h-3" />
+        </button>
       </div>
-    </>
+    </div>
+  );
+
+  return createPortal(
+    <>
+      <div className="fixed inset-0 z-40" onClick={onClose} aria-hidden />
+      {panel}
+    </>,
+    document.body,
   );
 }

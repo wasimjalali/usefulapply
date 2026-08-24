@@ -308,6 +308,7 @@ export function ChatPanel({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const historyAnchorRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const isDesktopDocked = docked && !isMobileDrawer;
 
@@ -1664,7 +1665,10 @@ export function ChatPanel({
 
       <div className={`h-full flex flex-col bg-cream-50 ${isMobileDrawer || isDesktopDocked || spine ? '' : 'border-l border-cream-200'}`}>
         {!spine && (
-        <div className="flex-shrink-0 flex items-center justify-between gap-2 border-b border-cream-200 bg-cream-50 px-4 py-2">
+        <div
+          ref={historyAnchorRef}
+          className="flex-shrink-0 flex items-center justify-between gap-2 border-b border-cream-200 bg-cream-50 px-4 py-2"
+        >
           <div className="flex items-center gap-2 min-w-0">
             <Sparkles className="w-4 h-4 text-gold-500 flex-shrink-0" />
             <span className="text-sm font-semibold text-navy-700 truncate">
@@ -1675,10 +1679,9 @@ export function ChatPanel({
         </div>
         )}
 
-        {/* History Overlay */}
-        <div className="relative">
         {showHistory && (
           <ChatHistory
+            anchor={historyAnchorRef.current}
             sessions={sessions.filter(isApplicationSession).map(s => ({
               id: s.id,
               company: s.company,
@@ -1695,7 +1698,6 @@ export function ChatPanel({
             }}
           />
         )}
-        </div>
 
         {/* Messages */}
         <div
