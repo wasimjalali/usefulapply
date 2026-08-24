@@ -241,7 +241,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
                 });
               }}
               aria-current={isCurrent ? 'page' : undefined}
-              className={`flex w-full flex-col gap-1 rounded-lg px-2 py-2 text-left transition-colors duration-200 ${
+              className={`flex w-full flex-col gap-1 rounded-lg px-2 py-2 text-left transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold-400/50 ${
                 isCurrent
                   ? 'bg-cream-50 shadow-sm'
                   : 'hover:bg-cream-50'
@@ -375,7 +375,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
                   type="button"
                   disabled={openingSessionId !== null}
                   onClick={() => void handleSearchSessionOpen(session.id)}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors duration-200 hover:bg-cream-50 disabled:cursor-wait disabled:opacity-60"
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors duration-200 hover:bg-cream-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold-400/50 disabled:cursor-wait disabled:opacity-60"
                 >
                   <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-cream-100 text-navy-600">
                     {isOpening
