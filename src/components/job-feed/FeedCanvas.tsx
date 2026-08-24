@@ -1,18 +1,17 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { AlertCircle, ArrowUpRight, Briefcase, Check, Loader2, SlidersHorizontal } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
 import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
-import { toJobFeedInput } from '@/lib/job-feed/helpers';
 import { readJobFeedQueryProgress, type JobFeedQueryProgress } from '@/lib/job-feed/types';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { useCreditsBalance } from '@/hooks/useCreditsBalance';
 import { resolveFeedBuild, useFeedStore } from '@/store/useFeedStore';
 import { openSettings } from '@/store/useSettingsStore';
 import { FeedEditView } from './FeedEditView';
+import { saveFeedSettings } from './feed-actions';
 import { FeedJobCard } from './FeedJobCard';
 import { FeedJobDetail } from './FeedJobDetail';
 import { buildRankedForLine, plural } from './feed-format';
@@ -30,7 +29,6 @@ interface FeedCanvasProps {
 }
 
 export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
-  const router = useRouter();
   const { profile } = useAuth();
   const datePrefs = useDatePrefs();
   const { credits } = useCreditsBalance();
@@ -100,14 +98,14 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         profile={careerProfile}
         strategy={strategy}
         queryBudget={queryBudget}
-        tier={tier}
         pill={editPill}
         onPillChange={(pill) => useFeedStore.getState().setEditPill(pill)}
         onBack={() => useFeedStore.getState().backToList()}
-        onEditProfile={() => {
-          const store = useFeedStore.getState();
-          store.startPreferencesEdit(toJobFeedInput(store.overview?.settings ?? null));
-          store.backToList();
+        onSavePreferences={async (draft) => {
+          const result = await saveFeedSettings(draft);
+          return result.ok
+            ? { ok: true, settingsVersion: result.data?.updated_at ?? overview?.settings?.updated_at ?? null }
+            : { ok: false, error: result.error };
         }}
       />
     );
@@ -235,7 +233,11 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         {canSteer && (
           <button
             type="button"
-            onClick={() => useFeedStore.getState().setView('edit')}
+            onClick={() => {
+              const store = useFeedStore.getState();
+              store.setEditPill('profile');
+              store.setView('edit');
+            }}
             className="inline-flex h-9 flex-shrink-0 items-center gap-2 rounded-full border border-cream-200 bg-cream-50 px-3.5 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
           >
             <SlidersHorizontal className="h-4 w-4" />

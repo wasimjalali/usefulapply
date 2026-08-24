@@ -1,18 +1,21 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Pencil } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ArrowLeft, Check, Loader2, X } from 'lucide-react';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import type { SearchStrategy } from '@/lib/job-feed/search-strategy';
-import type { JobFeedOverviewResponse } from '@/lib/job-feed/types';
-import { getJobFeedInputCaps } from '@/lib/job-feed/constants';
-import { countryLabel, plural } from './feed-format';
+import type { JobFeedOverviewResponse, JobFeedSettingsInput } from '@/lib/job-feed/types';
+import {
+  JOB_FEED_COUNTRY_OPTIONS,
+  JOB_FEED_REMOTE_PREFERENCE_OPTIONS,
+  JOB_FEED_WORK_AUTH_OPTIONS,
+  legacyMarketFromCountries,
+} from '@/lib/job-feed/constants';
+import { toJobFeedInput } from '@/lib/job-feed/helpers';
+import { countryLabel } from './feed-format';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
 import { formatDayMonth } from '@/lib/utils/format-date';
 import type { FeedEditPill } from '@/store/useFeedStore';
-
-const NUDGE_FLAG_KEY = 'usefulapply.feedEditNudgeSeen';
-const NUDGE_DELAY_MS = 3000;
 
 interface FeedEditViewProps {
   overview: JobFeedOverviewResponse | null;
@@ -20,19 +23,29 @@ interface FeedEditViewProps {
   strategy: SearchStrategy | null;
   /** How many of the planned queries today's plan actually runs. */
   queryBudget: number;
-  /** Plan the input caps are read against. */
-  tier: string | null;
   pill: FeedEditPill;
   onPillChange: (pill: FeedEditPill) => void;
   onBack: () => void;
-  onEditProfile: () => void;
+  onSavePreferences: (draft: JobFeedSettingsInput) => Promise<
+    { ok: true; settingsVersion: string | null } | { ok: false; error: string }
+  >;
 }
 
 const PILLS: { id: FeedEditPill; label: string }[] = [
   { id: 'profile', label: 'Profile' },
   { id: 'searches', label: 'Searches' },
-  { id: 'preferences', label: 'Preferences' },
 ];
+
+interface PreferenceDraft {
+  countries: string[];
+  cities: string;
+  workModes: JobFeedSettingsInput['remote_preferences'];
+  salaryFloor: string;
+  workAuthorization: JobFeedSettingsInput['work_authorization_status'];
+  excludedTerms: string;
+}
+
+type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -56,55 +69,73 @@ export function FeedEditView({
   profile,
   strategy,
   queryBudget,
-  tier,
   pill,
   onPillChange,
   onBack,
-  onEditProfile,
+  onSavePreferences,
 }: FeedEditViewProps) {
   const datePrefs = useDatePrefs();
-  // First visit only: a gold dot on the two pills nobody clicks, plus one
-  // line saying what is behind them. Any pill click ends it for good.
-  const [nudge, setNudge] = useState(false);
-  const nudgeTimerRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (window.localStorage.getItem(NUDGE_FLAG_KEY) === 'seen') return;
-    nudgeTimerRef.current = window.setTimeout(() => {
-      setNudge(true);
-      try {
-        window.localStorage.setItem(NUDGE_FLAG_KEY, 'seen');
-      } catch {
-        // A blocked localStorage just means the nudge shows again next time.
-      }
-    }, NUDGE_DELAY_MS);
-    return () => {
-      if (nudgeTimerRef.current !== null) window.clearTimeout(nudgeTimerRef.current);
-    };
-  }, []);
-
-  const dismissNudge = () => {
-    if (nudgeTimerRef.current !== null) {
-      window.clearTimeout(nudgeTimerRef.current);
-      nudgeTimerRef.current = null;
-    }
-    setNudge(false);
-    try {
-      window.localStorage.setItem(NUDGE_FLAG_KEY, 'seen');
-    } catch {
-      // A blocked localStorage just means the nudge shows again next time.
-    }
-  };
-
   const settings = overview?.settings ?? null;
+  const settingsInput = useMemo(() => settings ? toJobFeedInput(settings) : null, [settings]);
+  const nextDraft = useMemo(() => settingsInput ? toPreferenceDraft(settingsInput) : null, [settingsInput]);
+  const settingsVersion = settings?.updated_at ?? null;
+  const [draft, setDraft] = useState<PreferenceDraft | null>(nextDraft);
+  const [savedDraft, setSavedDraft] = useState<PreferenceDraft | null>(nextDraft);
+  const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [saveError, setSaveError] = useState('');
+  const [draftVersion, setDraftVersion] = useState(settingsVersion);
+
+  if (isNewerSettingsVersion(settingsVersion, draftVersion) && saveState !== 'saving' && saveState !== 'error') {
+    setDraft(nextDraft);
+    setSavedDraft(nextDraft);
+    setSaveState('idle');
+    setSaveError('');
+    setDraftVersion(settingsVersion);
+  }
+
   const plannedQueries = strategy?.queries ?? [];
   const todaysQueries = plannedQueries.slice(0, queryBudget);
   const laterQueries = plannedQueries.slice(queryBudget);
-  const caps = getJobFeedInputCaps(tier);
-  const capLine = caps.maxRoles > 0
-    ? `This plan searches up to ${caps.maxRoles} ${plural(caps.maxRoles, 'role', 'roles')} across ${caps.maxCountries} ${plural(caps.maxCountries, 'country', 'countries')}. Extra ones stay saved for a later run.`
-    : null;
+  const dirty = draft !== null && savedDraft !== null
+    && JSON.stringify(draft) !== JSON.stringify(savedDraft);
+  const salaryValue = draft?.salaryFloor.trim() ?? '';
+  const salaryValid = salaryValue === ''
+    || (/^\d+$/.test(salaryValue) && Number(salaryValue) >= 0);
+  const formValid = Boolean(
+    draft
+    && draft.countries.length > 0
+    && draft.workModes.length > 0
+    && salaryValid,
+  );
+
+  const updateDraft = (patch: Partial<PreferenceDraft>) => {
+    setDraft((current) => current ? { ...current, ...patch } : current);
+    setDraftVersion(settingsVersion);
+    setSaveState('idle');
+    setSaveError('');
+  };
+
+  const savePreferences = async () => {
+    if (!draft || !settingsInput || !formValid || saveState === 'saving') return;
+    setSaveState('saving');
+    setSaveError('');
+    let result: Awaited<ReturnType<typeof onSavePreferences>>;
+    try {
+      result = await onSavePreferences(toSettingsInput(settingsInput, draft));
+    } catch {
+      setSaveState('error');
+      setSaveError('Your preferences did not save. Try again.');
+      return;
+    }
+    if (!result.ok) {
+      setSaveState('error');
+      setSaveError(result.error);
+      return;
+    }
+    setDraftVersion(result.settingsVersion);
+    setSavedDraft(draft);
+    setSaveState('saved');
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -122,25 +153,18 @@ export function FeedEditView({
         <div className="inline-flex flex-shrink-0 items-center rounded-full border border-cream-200 bg-cream-50 p-0.5" role="tablist">
           {PILLS.map((item) => {
             const on = pill === item.id;
-            const dotted = nudge && item.id !== 'profile';
             return (
               <button
                 key={item.id}
                 type="button"
                 role="tab"
                 aria-selected={on}
-                onClick={() => {
-                  dismissNudge();
-                  onPillChange(item.id);
-                }}
-                className={`relative rounded-full px-3.5 py-1.5 text-sm transition-colors duration-200 cursor-pointer ${
+                onClick={() => onPillChange(item.id)}
+                className={`rounded-full px-3.5 py-1.5 text-sm transition-colors duration-200 cursor-pointer ${
                   on ? 'bg-white font-semibold text-navy-800 shadow-sm' : 'font-medium text-warm-gray hover:text-navy-700'
-                } ${dotted ? 'animate-pulse' : ''}`}
+                }`}
               >
                 {item.label}
-                {dotted && (
-                  <span className="absolute right-1 top-0.5 inline-block h-1.5 w-1.5 rounded-full bg-gold-400" />
-                )}
               </button>
             );
           })}
@@ -149,9 +173,171 @@ export function FeedEditView({
 
       <div className="min-h-0 flex-1 overflow-auto px-5 py-5">
         {pill === 'profile' && (
-          <div className="rounded-2xl border border-cream-200 bg-cream-50 px-5 py-5 shadow-sm">
-            <div className="flex items-start gap-3">
-              <h3 className="flex-1 text-base font-semibold text-navy-800">
+          <div className="space-y-4">
+            <section className="rounded-2xl border border-cream-200 bg-cream-50 px-5 py-5 shadow-sm">
+              <h3 className="text-base font-semibold text-navy-800">Preferences</h3>
+              {draft ? (
+                <form
+                  className="mt-4"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void savePreferences();
+                  }}
+                >
+                  <div className="grid grid-cols-1 gap-x-5 gap-y-4 xl:grid-cols-2">
+                    <div>
+                      <label htmlFor="feed-country" className="text-sm font-medium text-charcoal">Countries</label>
+                      <select
+                        id="feed-country"
+                        value=""
+                        onChange={(event) => {
+                          const country = event.target.value;
+                          if (country && !draft.countries.includes(country)) {
+                            updateDraft({ countries: [...draft.countries, country] });
+                          }
+                        }}
+                        className="mt-1.5 h-10 w-full rounded-lg border border-cream-200 bg-white px-3 text-sm text-charcoal outline-none transition-colors duration-150 focus:border-navy-700 focus:ring-2 focus:ring-navy-700/15"
+                      >
+                        <option value="">Add a country</option>
+                        {JOB_FEED_COUNTRY_OPTIONS.filter((option) => !draft.countries.includes(option.value)).map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                      <div className="mt-2 flex min-h-8 flex-wrap gap-2">
+                        {draft.countries.map((country) => (
+                          <span key={country} className="inline-flex items-center gap-1 rounded-full border border-cream-200 bg-white py-1 pl-3 pr-1 text-sm text-charcoal">
+                            {countryLabel(country)}
+                            <button
+                              type="button"
+                              onClick={() => updateDraft({ countries: draft.countries.filter((item) => item !== country) })}
+                              aria-label={`Remove ${countryLabel(country)}`}
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-full text-warm-gray transition-colors duration-150 hover:bg-cream-100 hover:text-navy-800"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                      {draft.countries.length === 0 && (
+                        <p className="mt-1 text-xs text-red-700">Choose at least one country.</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label htmlFor="feed-cities" className="text-sm font-medium text-charcoal">Cities</label>
+                      <input
+                        id="feed-cities"
+                        type="text"
+                        value={draft.cities}
+                        onChange={(event) => updateDraft({ cities: event.target.value })}
+                        placeholder="Berlin, Amsterdam"
+                        className="mt-1.5 h-10 w-full rounded-lg border border-cream-200 bg-white px-3 text-sm text-charcoal outline-none transition-colors duration-150 placeholder:text-warm-gray focus:border-navy-700 focus:ring-2 focus:ring-navy-700/15"
+                      />
+                    </div>
+
+                    <fieldset>
+                      <legend className="text-sm font-medium text-charcoal">Work mode</legend>
+                      <div className="mt-1.5 flex flex-wrap gap-2">
+                        {JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => {
+                          const selected = draft.workModes.includes(option.value);
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              aria-pressed={selected}
+                              onClick={() => updateDraft({
+                                workModes: selected
+                                  ? draft.workModes.filter((item) => item !== option.value)
+                                  : [...draft.workModes, option.value],
+                              })}
+                              className={`inline-flex h-10 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors duration-150 ${
+                                selected
+                                  ? 'border-navy-700 bg-white font-semibold text-navy-800'
+                                  : 'border-cream-200 bg-white text-charcoal hover:border-cream-300'
+                              }`}
+                            >
+                              {selected && <Check className="h-3.5 w-3.5" />}
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {draft.workModes.length === 0 && (
+                        <p className="mt-1 text-xs text-red-700">Choose at least one work mode.</p>
+                      )}
+                    </fieldset>
+
+                    <div>
+                      <label htmlFor="feed-salary-floor" className="text-sm font-medium text-charcoal">Salary floor</label>
+                      <div className="relative mt-1.5">
+                        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-warm-gray">$</span>
+                        <input
+                          id="feed-salary-floor"
+                          type="number"
+                          min="0"
+                          step="1000"
+                          inputMode="numeric"
+                          value={draft.salaryFloor}
+                          onChange={(event) => updateDraft({ salaryFloor: event.target.value })}
+                          className="h-10 w-full rounded-lg border border-cream-200 bg-white py-2 pl-7 pr-3 text-sm tabular-nums text-charcoal outline-none transition-colors duration-150 focus:border-navy-700 focus:ring-2 focus:ring-navy-700/15"
+                        />
+                      </div>
+                      {!salaryValid && (
+                        <p className="mt-1 text-xs text-red-700">Enter a whole number or leave it blank.</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label htmlFor="feed-work-authorization" className="text-sm font-medium text-charcoal">Work authorization</label>
+                      <select
+                        id="feed-work-authorization"
+                        value={draft.workAuthorization ?? ''}
+                        onChange={(event) => updateDraft({
+                          workAuthorization: event.target.value as JobFeedSettingsInput['work_authorization_status'],
+                        })}
+                        className="mt-1.5 h-10 w-full rounded-lg border border-cream-200 bg-white px-3 text-sm text-charcoal outline-none transition-colors duration-150 focus:border-navy-700 focus:ring-2 focus:ring-navy-700/15"
+                      >
+                        {JOB_FEED_WORK_AUTH_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label htmlFor="feed-excluded-terms" className="text-sm font-medium text-charcoal">Words to avoid</label>
+                      <input
+                        id="feed-excluded-terms"
+                        type="text"
+                        value={draft.excludedTerms}
+                        onChange={(event) => updateDraft({ excludedTerms: event.target.value })}
+                        placeholder="Sales, staffing agencies"
+                        className="mt-1.5 h-10 w-full rounded-lg border border-cream-200 bg-white px-3 text-sm text-charcoal outline-none transition-colors duration-150 placeholder:text-warm-gray focus:border-navy-700 focus:ring-2 focus:ring-navy-700/15"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-5 flex min-h-10 items-center justify-end gap-3 border-t border-cream-200 pt-4">
+                    <div className="min-w-0 flex-1" aria-live="polite">
+                      {saveState === 'saved' && <p className="text-sm text-charcoal">Saved.</p>}
+                      {saveState === 'error' && <p className="text-sm text-red-700">{saveError}</p>}
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={!dirty || !formValid || saveState === 'saving'}
+                      className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-gold-400 px-5 text-sm font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-gold-500 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-warm-gray"
+                    >
+                      {saveState === 'saving' && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {saveState === 'saving' ? 'Saving' : 'Save preferences'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <p className="mt-4 text-sm text-warm-gray">Your preferences get saved with the first feed.</p>
+              )}
+            </section>
+
+            <section className="rounded-2xl border border-cream-200 bg-cream-50 px-5 py-5 shadow-sm">
+              <h3 className="text-base font-semibold text-navy-800">
                 What I read from your CV
                 {profile?.generatedAt && (
                   <span className="ml-2 text-xs font-normal text-warm-gray">
@@ -159,62 +345,54 @@ export function FeedEditView({
                   </span>
                 )}
               </h3>
-              <button
-                type="button"
-                onClick={onEditProfile}
-                className="inline-flex h-9 flex-shrink-0 items-center gap-2 rounded-full border border-cream-200 bg-white px-3.5 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-cream-100 cursor-pointer"
-              >
-                <Pencil className="h-4 w-4" />
-                Edit
-              </button>
-            </div>
 
-            {profile ? (
-              <div className="mt-4 space-y-5">
-                <div className="grid grid-cols-2 gap-5">
-                  <Row
-                    label="DISCIPLINE"
-                    value={`${capitalise(profile.function)} · ${capitalise(profile.seniority.level)} · ${profile.yearsTotal} years`}
-                  />
-                  <div>
-                    <p className="text-[11px] font-semibold tracking-[0.08em] text-warm-gray">INDUSTRIES</p>
-                    <div className="mt-1.5 flex flex-wrap gap-2">
-                      {profile.industryDomains.length > 0
-                        ? profile.industryDomains.slice(0, 4).map((item) => <Tag key={item}>{item}</Tag>)
-                        : <p className="text-sm text-warm-gray">Not enough in the CV to name one.</p>}
+              {profile ? (
+                <div className="mt-4 space-y-5">
+                  <div className="grid grid-cols-2 gap-5">
+                    <Row
+                      label="DISCIPLINE"
+                      value={`${capitalise(profile.function)} · ${capitalise(profile.seniority.level)} · ${profile.yearsTotal} years`}
+                    />
+                    <div>
+                      <p className="text-[11px] font-semibold tracking-[0.08em] text-warm-gray">INDUSTRIES</p>
+                      <div className="mt-1.5 flex flex-wrap gap-2">
+                        {profile.industryDomains.length > 0
+                          ? profile.industryDomains.slice(0, 4).map((item) => <Tag key={item}>{item}</Tag>)
+                          : <p className="text-sm text-warm-gray">Not enough in the CV to name one.</p>}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div>
-                  <p className="text-[11px] font-semibold tracking-[0.08em] text-warm-gray">BEST-FIT TITLES</p>
-                  <div className="mt-1.5 flex flex-wrap gap-2">
-                    {profile.inferredTitles.map((title) => <Tag key={title.canonical}>{title.canonical}</Tag>)}
+                  <div>
+                    <p className="text-[11px] font-semibold tracking-[0.08em] text-warm-gray">BEST-FIT TITLES</p>
+                    <div className="mt-1.5 flex flex-wrap gap-2">
+                      {profile.inferredTitles.map((title) => <Tag key={title.canonical}>{title.canonical}</Tag>)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[11px] font-semibold tracking-[0.08em] text-warm-gray">STRONGEST SKILL AREAS</p>
+                    <p className="mt-1.5 text-sm leading-relaxed text-charcoal">
+                      {profile.primarySkillClusters.map((cluster) => (
+                        <span key={cluster.name}>
+                          <strong className="font-semibold">{capitalise(cluster.name)}:</strong>{' '}
+                          {cluster.skills.slice(0, 5).join(', ')}.{' '}
+                        </span>
+                      ))}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-[11px] font-semibold tracking-[0.08em] text-warm-gray">IN ONE PARAGRAPH</p>
+                    <p className="mt-1.5 text-sm leading-relaxed text-charcoal">{profile.narrative}</p>
                   </div>
                 </div>
-
-                <div>
-                  <p className="text-[11px] font-semibold tracking-[0.08em] text-warm-gray">STRONGEST SKILL AREAS</p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-charcoal">
-                    {profile.primarySkillClusters.map((cluster) => (
-                      <span key={cluster.name}>
-                        <strong className="font-semibold">{capitalise(cluster.name)}:</strong>{' '}
-                        {cluster.skills.slice(0, 5).join(', ')}.{' '}
-                      </span>
-                    ))}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-[11px] font-semibold tracking-[0.08em] text-warm-gray">IN ONE PARAGRAPH</p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-charcoal">{profile.narrative}</p>
-                </div>
-              </div>
-            ) : (
-              <p className="mt-4 text-sm text-warm-gray">
-                I haven&apos;t read your CV into a profile yet. It gets built with your first feed.
-              </p>
-            )}
+              ) : (
+                <p className="mt-4 text-sm text-warm-gray">
+                  I haven&apos;t read your CV into a profile yet. It gets built with your first feed.
+                </p>
+              )}
+            </section>
           </div>
         )}
 
@@ -242,40 +420,6 @@ export function FeedEditView({
             )}
           </div>
         )}
-
-        {pill === 'preferences' && (
-          <div className="rounded-2xl border border-cream-200 bg-cream-50 px-5 py-5 shadow-sm">
-            {capLine && <p className="mb-4 text-sm text-warm-gray">{capLine}</p>}
-            {settings ? (
-              <div className="grid grid-cols-2 gap-5">
-                <Row label="COUNTRIES" value={(settings.target_countries ?? []).map(countryLabel).join(', ') || 'Not set'} />
-                <Row label="CITIES" value={(settings.target_cities ?? []).join(', ') || 'Anywhere in those countries'} />
-                <Row
-                  label="WORK MODE"
-                  value={(settings.remote_preferences ?? []).map(remotePreferenceLabel).join(', ') || remotePreferenceLabel(settings.remote_preference)}
-                />
-                <Row
-                  label="SALARY FLOOR"
-                  value={settings.salary_floor ? `$${settings.salary_floor.toLocaleString('en-US')}` : 'No floor set'}
-                />
-                <Row label="WORK AUTHORIZATION" value={workAuthLabel(settings.work_authorization_status)} />
-                <Row label="WORDS TO AVOID" value={(settings.excluded_terms ?? []).join(', ') || 'None yet'} />
-              </div>
-            ) : (
-              <p className="text-sm text-warm-gray">Your preferences get saved with the first feed.</p>
-            )}
-          </div>
-        )}
-
-        {nudge && pill === 'profile' && (
-          <div className="mt-4 rounded-2xl border border-gold-200 bg-gold-50 px-4 py-3">
-            <p className="text-sm leading-relaxed text-charcoal">
-              <span className="text-gold-600">●</span>{' '}
-              First time here? <strong className="font-semibold">Searches</strong> shows the queries I run and why.{' '}
-              <strong className="font-semibold">Preferences</strong> holds countries, work mode, salary floor and words to avoid.
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -286,32 +430,45 @@ function capitalise(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function remotePreferenceLabel(value: string | null): string {
-  switch (value) {
-    case 'remote_only':
-      return 'Remote only';
-    case 'remote_first':
-      return 'Remote first';
-    case 'hybrid':
-      return 'Hybrid okay';
-    case 'onsite':
-      return 'On-site okay';
-    case 'flexible':
-      return 'Flexible';
-    default:
-      return 'Not set';
-  }
+function toPreferenceDraft(input: JobFeedSettingsInput): PreferenceDraft {
+  return {
+    countries: [...input.target_countries],
+    cities: input.target_cities.join(', '),
+    workModes: [...input.remote_preferences],
+    salaryFloor: input.salary_floor === null ? '' : String(input.salary_floor),
+    workAuthorization: input.work_authorization_status,
+    excludedTerms: input.excluded_terms.join(', '),
+  };
 }
 
-function workAuthLabel(value: string | null): string {
-  switch (value) {
-    case 'authorized':
-      return 'Authorized to work there';
-    case 'needs_sponsorship':
-      return 'Needs sponsorship';
-    case 'open_to_both':
-      return 'Open to both';
-    default:
-      return 'Not set';
-  }
+function toSettingsInput(base: JobFeedSettingsInput, draft: PreferenceDraft): JobFeedSettingsInput {
+  const salary = draft.salaryFloor.trim();
+  const remotePreference = draft.workModes[0];
+  return {
+    ...base,
+    target_market: legacyMarketFromCountries(draft.countries),
+    target_countries: draft.countries,
+    target_cities: splitCommaList(draft.cities),
+    remote_preference: remotePreference,
+    remote_preferences: draft.workModes,
+    salary_floor: salary ? Number(salary) : null,
+    work_authorization_status: draft.workAuthorization,
+    excluded_terms: splitCommaList(draft.excludedTerms),
+  };
+}
+
+function splitCommaList(value: string): string[] {
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item, index, items) => item.length > 0 && items.indexOf(item) === index);
+}
+
+function isNewerSettingsVersion(current: string | null, draft: string | null): boolean {
+  if (!current || current === draft) return false;
+  if (!draft) return true;
+  const currentTime = Date.parse(current);
+  const draftTime = Date.parse(draft);
+  if (!Number.isFinite(currentTime) || !Number.isFinite(draftTime)) return true;
+  return currentTime > draftTime;
 }
