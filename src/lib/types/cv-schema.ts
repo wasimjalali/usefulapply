@@ -116,7 +116,8 @@ export interface Certification {
 export interface Language {
   id: string;
   language: string;
-  proficiency: 'Native' | 'Fluent' | 'Professional' | 'Intermediate' | 'Basic';
+  /** Exact proficiency text from the source CV, or an empty string when absent. */
+  proficiency: string;
   certification?: string;
 }
 
