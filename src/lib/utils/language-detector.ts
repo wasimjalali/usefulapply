@@ -17,6 +17,14 @@ const LANGUAGE_INDICATORS: Record<Exclude<SupportedLanguage, 'en'>, RegExp> = {
   nl: /\b(de|het|een|en|of|voor|met|bij|op|over|wij|jij|u|uw|ervaring|kennis|vereisten|taken|opleiding|bedrijf|sollicitatie|vacature)\b/gi,
 };
 
+/**
+ * English baseline. Several non-English lists contain words English also uses
+ * constantly (pt "a"/"as"/"com", es "son", it "i"/"per", nl "of"/"met"), so a
+ * raw threshold misfires on plain English text. A language only wins when it
+ * outscores this baseline on the same text.
+ */
+const ENGLISH_INDICATORS = /\b(the|and|of|to|in|for|with|on|at|by|from|as|is|are|will|be|you|we|our|your|this|that|or|an|a|it|have|has|their|they|who|which|about|can|team|work|role|job|position|company|experience|skills|requirements|responsibilities|benefits)\b/gi;
+
 const LANGUAGE_NAMES: Record<SupportedLanguage, string> = {
   en: 'English',
   de: 'German',
@@ -51,8 +59,11 @@ export function detectLanguage(text: string): SupportedLanguage {
     }
   }
 
-  // Threshold of 5 keeps short or code-mixed text classified as English by default.
-  return best.score >= 5 ? best.lang : 'en';
+  // Threshold of 5 keeps short or code-mixed text classified as English by
+  // default, and the winner must also outscore the English baseline: stopword
+  // collisions ("a", "com", "of") otherwise turn English text Portuguese.
+  const englishScore = (text.match(ENGLISH_INDICATORS) || []).length;
+  return best.score >= 5 && best.score > englishScore ? best.lang : 'en';
 }
 
 export function isGerman(text: string): boolean {
