@@ -612,7 +612,7 @@ Refuted (no action): webhook same-tier double-grant (OCC loop converges, delta 0
 - Files: `src/app/api/stripe/webhook/route.ts` (resolveRefundSource, handleSubscriptionUpdate)
 - What: F-series rework returns permanent-ignore (200) for price IDs outside STRIPE_PRICES; after any repricing, refunds stop removing credits and subscription events stop granting, silently. Old code degraded via the amount map.
 - Fix: Keep the strict path for known prices, but on unknown price IDs log loudly, capture to PostHog, and fall back to the charge-amount map (7999/1999) before giving up; never silently ignore a grant for an active subscription.
-- Status: FIXED (unknown prices now log and report to PostHog, use the 1999/7999 amount fallback and keep active unmatched grants retryable)
+- Status: FIXED (unknown prices log and report to PostHog; the amount fallback applies to refund removal only. Post-review hardening: the GRANT side fails closed on unknown price ids, active subs stay retryable so a corrected price map delivers on Stripe's retry)
 
 ### G9 [MEDIUM] Re-running fit on a reopened kit session clobbers the kit snapshot
 - Files: `src/app/api/agent-v2/route.ts` (fit path persistGeneratedArtifacts), `src/lib/open-session.ts`

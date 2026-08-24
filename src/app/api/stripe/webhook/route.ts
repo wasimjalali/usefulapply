@@ -351,17 +351,13 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
       unitAmount: unitAmount ?? null,
       status: subscription.status,
     });
-    if (unitAmount === 1999) {
-      planTier = 'plus';
-      newPlanCredits = 50;
-    } else if (unitAmount === 7999) {
-      planTier = 'max';
-      newPlanCredits = 200;
-    } else if (subscription.status === 'active' || subscription.status === 'trialing') {
+    // Grants fail closed: an unknown price id never maps to a tier, even when
+    // the amount matches a known plan. The amount fallback exists only on the
+    // refund-removal side, where failing to act is the unsafe direction.
+    if (subscription.status === 'active' || subscription.status === 'trialing') {
       throw new Error(`Active subscription ${subscription.id} has an unsupported price`);
-    } else {
-      throw new PermanentWebhookError(`Unsupported subscription price on ${subscription.id}`);
     }
+    throw new PermanentWebhookError(`Unsupported subscription price on ${subscription.id}`);
   }
 
   const subscriptionItem = subscription.items.data[0];
