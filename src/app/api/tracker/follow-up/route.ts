@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'That rewrite already finished.' }, { status: 409 });
     }
 
-    const masterContext = buildContextFromSession(session, rawCV, masterCv?.raw_text || undefined, primaryCv);
+    const masterContext = await buildContextFromSession(session, rawCV, masterCv?.raw_text || undefined, primaryCv);
     const generationContext: LlmGenerationContext = {
       requestExecutionId: randomUUID(),
       clientRequestId,
@@ -339,19 +339,19 @@ function applicantFromDocument(doc: Document | null): MasterContext['applicant']
   };
 }
 
-function buildContextFromSession(
+async function buildContextFromSession(
   session: ApplicationSession,
   rawCV: string,
   masterCV: string | undefined,
   primaryCv: Document | null,
-): MasterContext {
+): Promise<MasterContext> {
   const requirements = session.requirements && typeof session.requirements === 'object'
     ? session.requirements as Record<string, unknown>
     : null;
   const email = session.email && typeof session.email === 'object'
     ? session.email as Record<string, unknown>
     : null;
-  const detectedLanguage = detectLanguage(session.job_description || '');
+  const detectedLanguage = await detectLanguage(session.job_description || '');
 
   return {
     sessionId: session.id,
@@ -380,8 +380,8 @@ function buildContextFromSession(
     match: (session.matching_skills.length > 0 || session.missing_skills.length > 0)
       ? {
           score: session.match_score ?? 0,
-          matchingSkills: session.matching_skills,
-          missingSkills: session.missing_skills,
+          matchingSkills: session.matching_skills.filter((skill) => isExplicitlyInCv(skill, rawCV, masterCV)),
+          missingSkills: session.missing_skills.filter((skill) => !isExplicitlyInCv(skill, rawCV, masterCV)),
         }
       : undefined,
     applicationEmail: email?.subject && email?.body
@@ -391,4 +391,10 @@ function buildContextFromSession(
       ? session.company_research as MasterContext['companyResearch']
       : undefined,
   };
+}
+
+function isExplicitlyInCv(value: string, ...sources: Array<string | undefined>): boolean {
+  const claim = value.trim().toLocaleLowerCase();
+  if (!claim) return false;
+  return sources.some((source) => source?.toLocaleLowerCase().includes(claim));
 }

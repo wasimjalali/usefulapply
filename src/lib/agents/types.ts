@@ -91,8 +91,17 @@ export interface MasterContext {
   // Match analysis (computed by Context Agent)
   match?: {
     score: number;
+    /** Candidate-side evidence copied verbatim from a server-held CV. Safe for writer allow-lists. */
     matchingSkills: string[];
+    /** Employer-authored requirements that the source CVs do not establish. */
     missingSkills: string[];
+    /** Requirement-level fit detail. Tier 3 and implicit matches are never claimable. */
+    details?: Array<{
+      requirement: string;
+      evidence?: string;
+      tier: 1 | 2 | 3 | 'implicit' | 'missing';
+      claimable: boolean;
+    }>;
   };
 
   // Verified metrics extracted from source CVs (binding constraint for CV generation)
@@ -264,4 +273,3 @@ export interface AgentResult<T = unknown> {
   };
   latencyMs: number;
 }
-

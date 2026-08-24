@@ -75,16 +75,12 @@ export async function POST(request: NextRequest) {
       : null;
     const storedOptimizedCvData = storedGeneratedCv?._optimizedCVData
       ?? storedGeneratedCv;
-    const artifactContext = sourceContextFromArtifacts(session.generated_artifacts);
     const documentApplicant = mergeApplicants(
       applicantFromDocument(primaryCv),
       applicantFromDocument(storedMasterCv),
     );
-    const applicant = artifactContext.applicant
-      ?? documentApplicant
-      ?? applicantFromStructuredData(storedOptimizedCvData);
-    const verifiedMetrics = artifactContext.verifiedMetrics
-      ?? verifiedMetricsFromDocuments(primaryCv, storedMasterCv);
+    const applicant = documentApplicant;
+    const verifiedMetrics = verifiedMetricsFromDocuments(primaryCv, storedMasterCv);
 
     // A rewrite instruction typed by the user in the chat composer. It is
     // user-authored, not ad-authored, but it still rides into a prompt, so it
@@ -129,20 +125,7 @@ export async function POST(request: NextRequest) {
         storedOptimizedCvData as NonNullable<MasterContext['optimizedCVData']>,
         (section ?? {}) as { kind?: unknown; id?: unknown },
       );
-      const liveOptimizedCvData = context.optimizedCVData
-        && typeof context.optimizedCVData === 'object'
-        && !Array.isArray(context.optimizedCVData)
-          ? context.optimizedCVData as NonNullable<MasterContext['optimizedCVData']>
-          : null;
-      const liveSection = liveOptimizedCvData
-        ? resolveCVSectionTarget(liveOptimizedCvData, (section ?? {}) as { kind?: unknown; id?: unknown })
-        : null;
-      resolvedSection = storedSection
-        && liveSection
-        && storedSection.kind === liveSection.kind
-        && storedSection.id === liveSection.id
-          ? { ...storedSection, before: liveSection.before }
-          : storedSection;
+      resolvedSection = storedSection;
       if (!resolvedSection) {
         return NextResponse.json(
           { error: 'That is not a section we can rewrite, or it is not in this CV.', code: 'INVALID_SECTION' },
@@ -202,8 +185,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get detected language - from context or detect from job description
-    const detectedLanguage = detectLanguage(session.job_description || '');
+    // The shared classifier is fail-safe and returns English if Workers AI is unavailable.
+    const detectedLanguage = await detectLanguage(session.job_description || '');
     
     console.log('[Regenerate API] Using language:', detectedLanguage);
 
@@ -227,8 +210,8 @@ export async function POST(request: NextRequest) {
       match: session.matching_skills.length > 0 || session.missing_skills.length > 0
         ? {
             score: session.match_score ?? 0,
-            matchingSkills: session.matching_skills,
-            missingSkills: session.missing_skills,
+            matchingSkills: session.matching_skills.filter((skill) => isExplicitlyInCv(skill, rawCV, storedMasterCv?.raw_text)),
+            missingSkills: session.missing_skills.filter((skill) => !isExplicitlyInCv(skill, rawCV, storedMasterCv?.raw_text)),
           }
         : undefined,
       verifiedMetrics,
@@ -328,15 +311,7 @@ export async function POST(request: NextRequest) {
         tokens,
       });
     } else if (type === 'follow_up_email') {
-      const liveEmail = context.applicationEmail;
-      if (
-        liveEmail
-        && typeof liveEmail === 'object'
-        && typeof liveEmail.subject === 'string'
-        && typeof liveEmail.body === 'string'
-      ) {
-        masterContext.applicationEmail = { subject: liveEmail.subject, body: liveEmail.body };
-      } else if (session.email && typeof session.email === 'object') {
+      if (session.email && typeof session.email === 'object') {
         const storedEmail = session.email as Record<string, unknown>;
         if (typeof storedEmail.subject === 'string' && typeof storedEmail.body === 'string') {
           masterContext.applicationEmail = { subject: storedEmail.subject, body: storedEmail.body };
@@ -590,19 +565,10 @@ function mergeApplicants(
   };
 }
 
-function sourceContextFromArtifacts(artifacts: unknown): {
-  applicant?: MasterContext['applicant'];
-  verifiedMetrics?: string[];
-} {
-  const root = readRecord(artifacts);
-  const source = readRecord(root?.sourceContext)
-    ?? readRecord(readRecord(root?.pendingFitAnalysis)?.contextData);
-  const applicant = readRecord(source?.applicant) as MasterContext['applicant'] | null;
-  const verifiedMetrics = readStringList(source?.verifiedMetrics);
-  return {
-    applicant: applicant ?? undefined,
-    verifiedMetrics: verifiedMetrics.length > 0 ? verifiedMetrics : undefined,
-  };
+function isExplicitlyInCv(value: string, ...sources: Array<string | null | undefined>): boolean {
+  const claim = value.trim().toLocaleLowerCase();
+  if (!claim) return false;
+  return sources.some((source) => source?.toLocaleLowerCase().includes(claim));
 }
 
 function verifiedMetricsFromDocuments(...docs: Array<Document | null>): string[] | undefined {
@@ -610,7 +576,8 @@ function verifiedMetricsFromDocuments(...docs: Array<Document | null>): string[]
     const structured = readRecord(doc?.structured_data);
     const summary = readString(structured?.summary);
     const experiences = Array.isArray(structured?.experience) ? structured.experience : [];
-    return [summary, ...experiences.flatMap((value) => readStringList(readRecord(value)?.bullets))]
+    const sourceLines = doc?.raw_text?.split(/\r?\n/) ?? [];
+    return [summary, ...experiences.flatMap((value) => readStringList(readRecord(value)?.bullets)), ...sourceLines]
       .filter((value) => /\d/.test(value));
   });
   const unique = uniqueStrings(metrics);

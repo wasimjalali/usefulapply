@@ -21,6 +21,7 @@ import {
 } from '@/lib/agents';
 import { getCurrentUser } from '@/auth/server';
 import { getSession, updateSession } from '@/db/repos/sessions';
+import { getDocumentByType } from '@/db/repos/documents';
 import { getJobPreferences } from '@/db/repos/jobFeed';
 import { claimAnonymousGeneration, releaseAnonymousGeneration } from '@/db/repos/anonymous';
 import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
@@ -254,14 +255,6 @@ interface AgentRequest {
   masterCV?: string;
   action: 'full_optimization' | 'fit_analysis' | 'generate_with_context';
   contextId?: string; // For generate_with_context: references cached fit analysis context
-  cachedContextData?: { // Client-side fallback when server cache misses (e.g. dev hot-reload, serverless cold start)
-    applicant: MasterContext['applicant'];
-    job: MasterContext['job'];
-    match: MasterContext['match'];
-    verifiedMetrics?: string[];
-    detectedLanguage?: string;
-    fitAnalysis?: MasterContext['fitAnalysis'];
-  };
   sessionId?: string;
   emailType?: 'application' | 'followup' | 'thankyou';
   enableWebSearch?: boolean;
@@ -411,7 +404,6 @@ export async function POST(request: NextRequest) {
           masterCV,
           action,
           contextId,
-          cachedContextData,
           sessionId: clientSessionId,
           enableWebSearch,
         } = body;
@@ -478,11 +470,25 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        const attributableSessionId = user && clientSessionId
+        const attributableSession = user && clientSessionId
           && !clientSessionId.startsWith('session-')
           && !clientSessionId.startsWith('fit-')
-          ? (await getSession(user.id, clientSessionId))?.id ?? null
+          ? await getSession(user.id, clientSessionId)
           : null;
+        const attributableSessionId = attributableSession?.id ?? null;
+        let ownedCvSourcesPromise: Promise<{ primaryCV: string; masterCV?: string }> | null = null;
+        const getOwnedCvSources = () => {
+          if (!ownedCvSourcesPromise) {
+            ownedCvSourcesPromise = Promise.all([
+              getDocumentByType(user!.id, 'primary_cv'),
+              getDocumentByType(user!.id, 'master_cv'),
+            ]).then(([primaryDocument, masterDocument]) => ({
+              primaryCV: primaryDocument?.raw_text?.trim() || '',
+              masterCV: masterDocument?.raw_text?.trim() || undefined,
+            }));
+          }
+          return ownedCvSourcesPromise;
+        };
         const generationContext: LlmGenerationContext = {
           requestExecutionId,
           clientRequestId,
@@ -497,7 +503,6 @@ export async function POST(request: NextRequest) {
         console.log('[API_AGENT_V2] Request received:', {
           action,
           contextId,
-          hasCachedContextData: !!cachedContextData,
           enableWebSearch,
           hasJobDescription: !!jobDescription,
           hasMasterCV: !!masterCV,
@@ -561,10 +566,22 @@ export async function POST(request: NextRequest) {
         // ACTION: FIT ANALYSIS (Phase 1 only - 0.5 credits)
         // =====================================================
         if (action === 'fit_analysis') {
-          if (!jobDescription || !currentCV) {
+          if (!jobDescription || (isAnonymous && !currentCV)) {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
               type: 'error', 
               message: 'Job description and CV are required' 
+            })}\n\n`));
+            controller.close();
+            return;
+          }
+
+          const fitCvSources = user
+            ? await getOwnedCvSources()
+            : { primaryCV: currentCV, masterCV };
+          if (!fitCvSources.primaryCV) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'error',
+              message: 'We need your CV before we can analyze this role.',
             })}\n\n`));
             controller.close();
             return;
@@ -625,8 +642,8 @@ export async function POST(request: NextRequest) {
           const result = await runFitAnalysis({
             sessionId,
             jobDescription,
-            primaryCV: currentCV,
-            masterCV,
+            primaryCV: fitCvSources.primaryCV,
+            masterCV: fitCvSources.masterCV,
             jobPreferences,
             generationContext,
           }, eventHandler);
@@ -666,7 +683,7 @@ export async function POST(request: NextRequest) {
               fitAnalysis: ctx.fitAnalysis,
               job: ctx.job,
               match: ctx.match,
-              // Client-side context backup for cache-miss recovery
+              // UI data only. The server never accepts it back as writer context.
               applicant: ctx.applicant,
               verifiedMetrics: ctx.verifiedMetrics,
               detectedLanguage: ctx.detectedLanguage,
@@ -757,38 +774,12 @@ export async function POST(request: NextRequest) {
           };
 
           // Retrieve cached context
-          let cachedContext = await getCachedContext(contextOwnerId, contextId);
+          const cachedContext = await getCachedContext(contextOwnerId, contextId);
           
           if (!cachedContext) {
-            // Validate client-sent context data structure before using it
-            if (cachedContextData) {
-              if (!cachedContextData.applicant || !cachedContextData.job || !cachedContextData.match) {
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                  type: 'error',
-                  message: 'Invalid context data',
-                })}\n\n`));
-                controller.close();
-                return;
-              }
-            }
+            const { primaryCV: serverPrimaryCV, masterCV: serverMasterCV } = await getOwnedCvSources();
 
-            // Server cache miss — try reconstructing from client-sent context data
-            if (cachedContextData && cachedContextData.applicant && cachedContextData.job && cachedContextData.match && jobDescription && currentCV) {
-              console.log('[API_AGENT_V2] Server cache miss, reconstructing from client-sent context data');
-              cachedContext = {
-                sessionId: `ctx-reconstructed-${Date.now()}`,
-                jobDescription,
-                rawCV: currentCV,
-                masterCV,
-                applicant: cachedContextData.applicant,
-                job: cachedContextData.job,
-                match: cachedContextData.match,
-                verifiedMetrics: cachedContextData.verifiedMetrics,
-                detectedLanguage: cachedContextData.detectedLanguage,
-                fitAnalysis: cachedContextData.fitAnalysis,
-              };
-            } else if (!jobDescription || !currentCV) {
-              // No fallback possible
+            if (!attributableSession?.job_description?.trim() || !serverPrimaryCV) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
                 type: 'error', 
                 message: 'Context expired. Please run fit analysis again.' 
@@ -796,8 +787,7 @@ export async function POST(request: NextRequest) {
               controller.close();
               return;
             } else {
-              // Last resort: neither server cache nor client data — fall back to full optimization
-              console.warn('[API_AGENT_V2] Context cache miss AND no client context data, falling back to full optimization');
+              console.warn('[API_AGENT_V2] Context cache miss, rerunning with server-held sources');
 
               if (!isAnonymous) {
                 const continuation = await reserveContinuation();
@@ -823,10 +813,10 @@ export async function POST(request: NextRequest) {
 
               const eventHandler = createEventHandler((id) => getStepIndex(id));
               const result = await runJobCopilot({
-                sessionId: `session-${Date.now()}`,
-                jobDescription,
-                primaryCV: currentCV,
-                masterCV,
+                sessionId: attributableSession.id,
+                jobDescription: attributableSession.job_description,
+                primaryCV: serverPrimaryCV,
+                masterCV: serverMasterCV,
                 jobPreferences,
                 generationContext,
               }, eventHandler);
@@ -941,10 +931,22 @@ export async function POST(request: NextRequest) {
         // =====================================================
         // ACTION: FULL OPTIMIZATION (legacy - runs both phases)
         // =====================================================
-        if (!jobDescription || !currentCV) {
+        if (!jobDescription || (isAnonymous && !currentCV)) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
             type: 'error', 
             message: 'Job description and CV are required' 
+          })}\n\n`));
+          controller.close();
+          return;
+        }
+
+        const fullCvSources = user
+          ? await getOwnedCvSources()
+          : { primaryCV: currentCV, masterCV };
+        if (!fullCvSources.primaryCV) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'error',
+            message: 'We need your CV before we can generate your application.',
           })}\n\n`));
           controller.close();
           return;
@@ -984,10 +986,10 @@ export async function POST(request: NextRequest) {
 
         const eventHandler = createEventHandler((id) => getStepIndex(id));
         const result = await runJobCopilot({
-          sessionId: `session-${Date.now()}`,
-          jobDescription,
-          primaryCV: currentCV,
-          masterCV,
+          sessionId: attributableSession?.id ?? `session-${Date.now()}`,
+          jobDescription: attributableSession?.job_description || jobDescription,
+          primaryCV: fullCvSources.primaryCV,
+          masterCV: fullCvSources.masterCV,
           jobPreferences,
           generationContext,
         }, eventHandler);

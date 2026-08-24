@@ -717,7 +717,7 @@ export function useAgentWorkflow(options?: {
               case 'fit_analysis_complete': {
                 const { contextId, fitAnalysis, job, match, applicant, verifiedMetrics, detectedLanguage } = data;
                 setFitAnalysisContextId(contextId);
-                // Store full parsed context for cache-miss recovery
+                // Keep parsed context for the fit UI and session resume only.
                 setFitAnalysisContextData({
                   applicant,
                   job,
@@ -819,8 +819,9 @@ export function useAgentWorkflow(options?: {
     }
   };
 
-  const runAgentWorkflow = async (jobDescription: string, contextId?: string, overrideContextData?: FitAnalysisContextData) => {
+  const runAgentWorkflow = async (jobDescription: string, contextId?: string, _overrideContextData?: FitAnalysisContextData) => {
     if (!currentCV) return;
+    void _overrideContextData; // Legacy UI state only. Never send it as writer context.
     let workflowSessionId = useSessionStore.getState().currentSession?.id;
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -876,7 +877,6 @@ export function useAgentWorkflow(options?: {
       // credit reservations across transient retries.
       const requestId = generateRequestId();
 
-      const contextData = overrideContextData || fitAnalysisContextData;
       requestStarted = true;
       const response = await fetch('/api/agent-v2', {
         method: 'POST',
@@ -890,7 +890,6 @@ export function useAgentWorkflow(options?: {
           masterCV: masterCV?.rawText,
           action: contextId ? 'generate_with_context' : 'full_optimization',
           contextId,
-          cachedContextData: contextId ? contextData : undefined,
           sessionId: workflowSessionId,
         }),
         signal: controller.signal,
