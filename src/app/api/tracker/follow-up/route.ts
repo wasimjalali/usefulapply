@@ -5,7 +5,7 @@ import { type MasterContext } from '@/lib/agents/types';
 import { getCurrentUser } from '@/auth/server';
 import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
 import { reserveCredits, captureReservation, releaseReservation } from '@/lib/supabase/credit-reservations';
-import { detectLanguage } from '@/lib/utils/language-detector';
+import { detectLanguage, isSupportedLanguage, type SupportedLanguage } from '@/lib/utils/language-detector';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getSession, updateSession, type ApplicationSession } from '@/db/repos/sessions';
@@ -152,7 +152,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'That rewrite already finished.' }, { status: 409 });
     }
 
-    const masterContext = buildContextFromSession(session, rawCV, masterCv?.raw_text || undefined, primaryCv);
     const generationContext: LlmGenerationContext = {
       requestExecutionId: randomUUID(),
       clientRequestId,
@@ -162,6 +161,28 @@ export async function POST(request: NextRequest) {
       feature: 'tracker_follow_up',
       operation: 'regen_follow_up_email',
     };
+    const storedArtifacts = readRecord(session.generated_artifacts);
+    const storedRequirements = readRecord(session.requirements);
+    const storedLanguage = isSupportedLanguage(storedRequirements?.detectedLanguage)
+      ? storedRequirements.detectedLanguage
+      : storedDetectedLanguage(storedArtifacts);
+    const detectedLanguage = storedLanguage
+      ?? await detectLanguage(session.job_description, generationContext);
+    if (!storedLanguage) {
+      const persistedLanguage = await updateSession(user.id, session.id, {
+        generated_artifacts: { ...(storedArtifacts ?? {}), detectedLanguage },
+        requirements: { ...(storedRequirements ?? {}), detectedLanguage },
+      });
+      if (persistedLanguage.error) throw persistedLanguage.error;
+    }
+    const masterContext = buildContextFromSession(
+      session,
+      rawCV,
+      masterCv?.raw_text || undefined,
+      primaryCv,
+      detectedLanguage,
+      storedArtifacts,
+    );
 
     const traceId = `trace_${randomUUID()}`;
     const INPUT_COST_PER_M = 3;
@@ -315,6 +336,41 @@ function readString(value: unknown): string {
   return typeof value === 'string' ? value : '';
 }
 
+function readRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function readStringList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+    : [];
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+}
+
+function storedDetectedLanguage(artifacts: Record<string, unknown> | null): SupportedLanguage | undefined {
+  if (isSupportedLanguage(artifacts?.detectedLanguage)) return artifacts.detectedLanguage;
+  const pending = readRecord(artifacts?.pendingFitAnalysis);
+  const contextData = readRecord(pending?.contextData);
+  return isSupportedLanguage(contextData?.detectedLanguage) ? contextData.detectedLanguage : undefined;
+}
+
+function persistedClaimableEvidence(artifacts: Record<string, unknown> | null): string[] {
+  const match = readRecord(artifacts?.match);
+  const details = Array.isArray(match?.details) ? match.details : [];
+  const detailEvidence = details.flatMap((value) => {
+    const detail = readRecord(value);
+    const evidence = readString(detail?.evidence);
+    return detail?.claimable === true && evidence ? [evidence] : [];
+  });
+  const canonical = readStringList(match?.claimableEvidence);
+  return uniqueStrings([...canonical, ...detailEvidence]);
+}
+
 function applicantFromDocument(doc: Document | null): MasterContext['applicant'] | undefined {
   const structured = doc?.structured_data;
   if (!structured || typeof structured !== 'object') return undefined;
@@ -344,6 +400,8 @@ function buildContextFromSession(
   rawCV: string,
   masterCV: string | undefined,
   primaryCv: Document | null,
+  detectedLanguage: SupportedLanguage,
+  storedArtifacts: Record<string, unknown> | null,
 ): MasterContext {
   const requirements = session.requirements && typeof session.requirements === 'object'
     ? session.requirements as Record<string, unknown>
@@ -351,7 +409,8 @@ function buildContextFromSession(
   const email = session.email && typeof session.email === 'object'
     ? session.email as Record<string, unknown>
     : null;
-  const detectedLanguage = detectLanguage(session.job_description || '');
+  const claimableEvidence = persistedClaimableEvidence(storedArtifacts)
+    .filter((evidence) => isExplicitlyInCv(evidence, rawCV, masterCV));
 
   return {
     sessionId: session.id,
@@ -377,11 +436,12 @@ function buildContextFromSession(
       startDate: readString(requirements?.startDate) || undefined,
       expectedSalary: readString(requirements?.expectedSalary) || undefined,
     },
-    match: (session.matching_skills.length > 0 || session.missing_skills.length > 0)
+    match: (session.matching_skills.length > 0 || session.missing_skills.length > 0 || claimableEvidence.length > 0)
       ? {
           score: session.match_score ?? 0,
-          matchingSkills: session.matching_skills,
-          missingSkills: session.missing_skills,
+          matchedRequirements: session.matching_skills,
+          claimableEvidence,
+          missingSkills: session.missing_skills.filter((skill) => !isExplicitlyInCv(skill, rawCV, masterCV)),
         }
       : undefined,
     applicationEmail: email?.subject && email?.body
@@ -391,4 +451,12 @@ function buildContextFromSession(
       ? session.company_research as MasterContext['companyResearch']
       : undefined,
   };
+}
+
+function isExplicitlyInCv(value: string, ...sources: Array<string | undefined>): boolean {
+  const claim = value.trim().normalize('NFKC').replace(/\s+/g, ' ');
+  if (!claim) return false;
+  const escaped = claim.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?=$|[^\\p{L}\\p{N}])`, 'iu');
+  return sources.some((source) => pattern.test(source?.normalize('NFKC').replace(/\s+/g, ' ') ?? ''));
 }

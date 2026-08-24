@@ -3,11 +3,12 @@
  *
  * Extracted from parse-optimized-cv.ts for modularity.
  * Handles multilingual section headers (EN, DE, FR, ES, PT, IT, NL).
- * Also detects the CV's language from its section headers and generates
- * localized sectionHeaders + localizedStrings for template rendering.
+ * Generates localized sectionHeaders + localizedStrings for template rendering.
  */
 
-export type CvHeaderLanguage = 'en' | 'de' | 'fr' | 'es' | 'pt' | 'it' | 'nl';
+import type { SupportedLanguage } from '@/lib/utils/language-detector';
+
+export type CvHeaderLanguage = SupportedLanguage;
 
 /** The seven languages, in the order ties are broken. */
 export const CV_HEADER_LANGUAGES: readonly CvHeaderLanguage[] = ['en', 'de', 'fr', 'es', 'pt', 'it', 'nl'];
@@ -365,83 +366,10 @@ export function extractOriginalHeaders(text: string): Record<string, string> {
 }
 
 /**
- * Detect the language of the CV based on which section headers were found.
- * Returns 'en' by default if unable to determine.
- */
-export function detectCVLanguage(text: string): 'en' | 'de' | 'fr' | 'es' | 'pt' | 'it' | 'nl' {
-  const lower = text.toLowerCase();
-
-  // Count language-specific header matches.
-  // Every token MUST be word-boundary anchored (\b...\b). Bare substrings like
-  // `und`/`oder` matched inside common English words (backgr*ound*, f*ound*ation,
-  // f*und*, m*oder*n), which made English CVs score as German and render German
-  // section titles. Anchoring keeps each token a real word in its own language.
-  const scores: Record<string, number> = { en: 0, de: 0, fr: 0, es: 0, pt: 0, it: 0, nl: 0 };
-
-  // German headers. Function words (und/oder/bei/heute) used to add +1 and
-  // flipped English CVs when extracted bullets lacked English headers.
-  if (/\b(berufserfahrung|berufliche erfahrung|ausbildung|fähigkeiten|kenntnisse|sprachen|zertifikate|berufliches profil)\b/i.test(lower)) scores.de += 3;
-
-  // French headers. "et" dropped from the +1 rule: it matches English "et al." /
-  // "et cetera" and would flip an English academic CV to French. "présent"
-  // (accented) and "chez" are distinctively French and safe.
-  if (/\b(expérience professionnelle|formation|compétences|langues|profil professionnel)\b/i.test(lower)) scores.fr += 3;
-  if (/\b(présent|chez)\b/i.test(lower)) scores.fr += 1;
-
-  // Spanish headers. No +1 function-word rule: bare "actual" is a common English
-  // word and bare "en" is a standalone word in French/Dutch/Portuguese, so either
-  // would steal points and flip those CVs to Spanish. Spanish relies on its
-  // distinctive accented +3 headers, like pt/it/nl.
-  if (/\b(experiencia profesional|experiencia laboral|educación|formación|habilidades|idiomas)\b/i.test(lower)) scores.es += 3;
-
-  // Portuguese headers
-  if (/\b(experiência profissional|formação|educação|competências|línguas)\b/i.test(lower)) scores.pt += 3;
-
-  // Italian headers
-  if (/\b(esperienza professionale|istruzione|competenze|lingue|profilo)\b/i.test(lower)) scores.it += 3;
-
-  // Dutch headers
-  if (/\b(werkervaring|opleiding|vaardigheden|talen|profiel)\b/i.test(lower)) scores.nl += 3;
-
-  // English headers
-  if (/\b(professional experience|work experience|education|skills|core competencies|certifications)\b/i.test(lower)) scores.en += 3;
-  if (/\b(present|current)\b/i.test(lower)) scores.en += 1;
-
-  const best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
-  if (best[1] === 0) return 'en';
-
-  // Extracted PDF/DOCX text is often just summary + bullets, so header
-  // scores can be 0-1. If the body is clearly English, keep English unless
-  // a non-English header score is decisively higher.
-  const englishRatio = englishStopwordRatio(text);
-  if (englishRatio >= 0.12 && scores.en + 2 >= best[1]) {
-    return 'en';
-  }
-
-  return best[0] as 'en' | 'de' | 'fr' | 'es' | 'pt' | 'it' | 'nl';
-}
-
-function englishStopwordRatio(text: string): number {
-  const words = text.toLowerCase().split(/\s+/).filter(Boolean);
-  if (words.length < 20) return 0;
-  const stops = new Set([
-    'the', 'and', 'of', 'to', 'in', 'for', 'with', 'a', 'on', 'as', 'at',
-    'from', 'by', 'an', 'or', 'is', 'was', 'are', 'were', 'this', 'that',
-    'be', 'been',
-  ]);
-  let hits = 0;
-  for (const word of words) {
-    const cleaned = word.replace(/[^a-z]/g, '');
-    if (stops.has(cleaned)) hits += 1;
-  }
-  return hits / words.length;
-}
-
-/**
  * Generate localized section headers and strings for template rendering.
  * Used when rendering the original (non-optimized) CV in templates.
  */
-export function generateLocalizedHeaders(lang: 'en' | 'de' | 'fr' | 'es' | 'pt' | 'it' | 'nl') {
+export function generateLocalizedHeaders(lang: CvHeaderLanguage) {
   const headers: Record<string, Record<string, string>> = {
     en: {
       summary: 'PROFESSIONAL SUMMARY', skills: 'CORE COMPETENCIES',
@@ -467,11 +395,12 @@ export function generateLocalizedHeaders(lang: 'en' | 'de' | 'fr' | 'es' | 'pt' 
       certifications: 'CERTIFICACIONES', languages: 'IDIOMAS',
       contact: 'CONTACTO', additionalInfo: 'INFORMACION ADICIONAL', projects: 'PROYECTOS',
     },
+    // The base `pt` product code consistently renders European Portuguese.
     pt: {
-      summary: 'PERFIL PROFISSIONAL', skills: 'COMPETENCIAS',
-      experience: 'EXPERIENCIA PROFISSIONAL', education: 'EDUCACAO',
-      certifications: 'CERTIFICACOES', languages: 'LINGUAS',
-      contact: 'CONTACTO', additionalInfo: 'INFORMACOES ADICIONAIS', projects: 'PROJETOS',
+      summary: 'PERFIL PROFISSIONAL', skills: 'COMPETÊNCIAS',
+      experience: 'EXPERIÊNCIA PROFISSIONAL', education: 'EDUCAÇÃO',
+      certifications: 'CERTIFICAÇÕES', languages: 'LÍNGUAS',
+      contact: 'CONTACTO', additionalInfo: 'INFORMAÇÕES ADICIONAIS', projects: 'PROJETOS',
     },
     it: {
       summary: 'PROFILO PROFESSIONALE', skills: 'COMPETENZE',
@@ -492,7 +421,7 @@ export function generateLocalizedHeaders(lang: 'en' | 'de' | 'fr' | 'es' | 'pt' 
     de: { present: 'Heute', gradePrefix: 'Note:', degreeConnector: 'in', photoPlaceholder: 'Foto', dateOfBirthLabel: 'Geburtsdatum', nationalityLabel: 'Nationalität', websiteLabel: 'Webseite', signatureLabel: 'Unterschrift', cityLabel: 'Ort', dateLabel: 'Datum' },
     fr: { present: 'Présent', gradePrefix: 'Mention:', degreeConnector: 'en', photoPlaceholder: 'Photo', dateOfBirthLabel: 'Date de naissance', nationalityLabel: 'Nationalité', websiteLabel: 'Site web', signatureLabel: 'Signature', cityLabel: 'Ville', dateLabel: 'Date' },
     es: { present: 'Actual', gradePrefix: 'Nota:', degreeConnector: 'en', photoPlaceholder: 'Foto', dateOfBirthLabel: 'Fecha de nacimiento', nationalityLabel: 'Nacionalidad', websiteLabel: 'Sitio web', signatureLabel: 'Firma', cityLabel: 'Ciudad', dateLabel: 'Fecha' },
-    pt: { present: 'Presente', gradePrefix: 'Nota:', degreeConnector: 'em', photoPlaceholder: 'Foto', dateOfBirthLabel: 'Data de nascimento', nationalityLabel: 'Nacionalidade', websiteLabel: 'Website', signatureLabel: 'Assinatura', cityLabel: 'Cidade', dateLabel: 'Data' },
+    pt: { present: 'Presente', gradePrefix: 'Nota:', degreeConnector: 'em', photoPlaceholder: 'Foto', dateOfBirthLabel: 'Data de nascimento', nationalityLabel: 'Nacionalidade', websiteLabel: 'Sítio Web', signatureLabel: 'Assinatura', cityLabel: 'Cidade', dateLabel: 'Data' },
     it: { present: 'Attuale', gradePrefix: 'Voto:', degreeConnector: 'in', photoPlaceholder: 'Foto', dateOfBirthLabel: 'Data di nascita', nationalityLabel: 'Nazionalità', websiteLabel: 'Sito web', signatureLabel: 'Firma', cityLabel: 'Città', dateLabel: 'Data' },
     nl: { present: 'Heden', gradePrefix: 'Cijfer:', degreeConnector: 'in', photoPlaceholder: 'Foto', dateOfBirthLabel: 'Geboortedatum', nationalityLabel: 'Nationaliteit', websiteLabel: 'Website', signatureLabel: 'Handtekening', cityLabel: 'Stad', dateLabel: 'Datum' },
   };
@@ -528,8 +457,7 @@ export function headingOptions(sectionKey: string, lang: CvHeaderLanguage): stri
  * Which language a tailored CV's headings are written in.
  *
  * The headings themselves are the direct evidence and they are already on the
- * object, so this never re-reads the CV body: detectCVLanguage() scores prose
- * and would disagree with the headings the user is actually looking at.
+ * object, so this never re-reads the CV body or makes a language judgment.
  *
  * A heading counts for a language when it is one the parser recognises for that
  * language, or when it is that language's canonical localized heading (which is

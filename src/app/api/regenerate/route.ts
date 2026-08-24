@@ -8,7 +8,11 @@ import { type MasterContext } from '@/lib/agents/types';
 import { getCurrentUser } from '@/auth/server';
 import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
 import { reserveCredits, captureReservation, releaseReservation } from '@/lib/supabase/credit-reservations';
-import { detectLanguage, normalizeLanguage } from '@/lib/utils/language-detector';
+import {
+  detectLanguage,
+  isSupportedLanguage,
+  normalizeLanguage,
+} from '@/lib/utils/language-detector';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { randomUUID } from 'crypto';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
@@ -75,16 +79,21 @@ export async function POST(request: NextRequest) {
       : null;
     const storedOptimizedCvData = storedGeneratedCv?._optimizedCVData
       ?? storedGeneratedCv;
-    const artifactContext = sourceContextFromArtifacts(session.generated_artifacts);
     const documentApplicant = mergeApplicants(
       applicantFromDocument(primaryCv),
       applicantFromDocument(storedMasterCv),
     );
-    const applicant = artifactContext.applicant
-      ?? documentApplicant
-      ?? applicantFromStructuredData(storedOptimizedCvData);
-    const verifiedMetrics = artifactContext.verifiedMetrics
-      ?? verifiedMetricsFromDocuments(primaryCv, storedMasterCv);
+    const applicant = mergeApplicants(
+      documentApplicant,
+      applicantFromStructuredData(storedOptimizedCvData),
+    );
+    if (!applicant?.name.trim()) {
+      return NextResponse.json(
+        { error: 'We could not resolve the applicant from the saved CV.', code: 'NO_APPLICANT' },
+        { status: 400 },
+      );
+    }
+    const verifiedMetrics = verifiedMetricsFromDocuments(primaryCv, storedMasterCv);
 
     // A rewrite instruction typed by the user in the chat composer. It is
     // user-authored, not ad-authored, but it still rides into a prompt, so it
@@ -129,20 +138,7 @@ export async function POST(request: NextRequest) {
         storedOptimizedCvData as NonNullable<MasterContext['optimizedCVData']>,
         (section ?? {}) as { kind?: unknown; id?: unknown },
       );
-      const liveOptimizedCvData = context.optimizedCVData
-        && typeof context.optimizedCVData === 'object'
-        && !Array.isArray(context.optimizedCVData)
-          ? context.optimizedCVData as NonNullable<MasterContext['optimizedCVData']>
-          : null;
-      const liveSection = liveOptimizedCvData
-        ? resolveCVSectionTarget(liveOptimizedCvData, (section ?? {}) as { kind?: unknown; id?: unknown })
-        : null;
-      resolvedSection = storedSection
-        && liveSection
-        && storedSection.kind === liveSection.kind
-        && storedSection.id === liveSection.id
-          ? { ...storedSection, before: liveSection.before }
-          : storedSection;
+      resolvedSection = storedSection;
       if (!resolvedSection) {
         return NextResponse.json(
           { error: 'That is not a section we can rewrite, or it is not in this CV.', code: 'INVALID_SECTION' },
@@ -163,6 +159,15 @@ export async function POST(request: NextRequest) {
     const clientRequestId = request.headers.get('x-request-id')
       ?? `req-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const reservationKey = `${creditAction.toLowerCase()}:${user.id}:${clientRequestId}`;
+    const generationContext: LlmGenerationContext = {
+      requestExecutionId: randomUUID(),
+      clientRequestId,
+      userId: user.id,
+      applicationSessionId: session.id,
+      route: '/api/regenerate',
+      feature: 'regeneration',
+      operation: `regen_${type}`,
+    };
     activeReservationKey = reservationKey;
     activeReservationUserId = user.id;
     const reserveResult = await reserveCredits({
@@ -202,8 +207,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get detected language - from context or detect from job description
-    const detectedLanguage = detectLanguage(session.job_description || '');
+    const storedArtifacts = readRecord(session.generated_artifacts);
+    const storedRequirements = readRecord(session.requirements);
+    const storedLanguage = isSupportedLanguage(storedRequirements?.detectedLanguage)
+      ? storedRequirements.detectedLanguage
+      : storedDetectedLanguage(storedArtifacts);
+    const claimableEvidence = persistedClaimableEvidence(storedArtifacts)
+      .filter((evidence) => isExplicitlyInCv(evidence, rawCV, storedMasterCv?.raw_text));
+    const detectedLanguage = storedLanguage
+      ?? await detectLanguage(session.job_description || '', generationContext);
+    if (!storedLanguage) {
+      const persistedLanguage = await updateSession(user.id, session.id, {
+        generated_artifacts: { ...(storedArtifacts ?? {}), detectedLanguage },
+        requirements: { ...(storedRequirements ?? {}), detectedLanguage },
+      });
+      if (persistedLanguage.error) throw persistedLanguage.error;
+    }
     
     console.log('[Regenerate API] Using language:', detectedLanguage);
 
@@ -224,25 +243,17 @@ export async function POST(request: NextRequest) {
       companyResearch: session.company_research && typeof session.company_research === 'object'
         ? session.company_research as MasterContext['companyResearch']
         : undefined,
-      match: session.matching_skills.length > 0 || session.missing_skills.length > 0
-        ? {
+      match: session.matching_skills.length > 0 || session.missing_skills.length > 0 || claimableEvidence.length > 0
+          ? {
             score: session.match_score ?? 0,
-            matchingSkills: session.matching_skills,
-            missingSkills: session.missing_skills,
+            matchedRequirements: session.matching_skills,
+            claimableEvidence,
+            missingSkills: session.missing_skills.filter((skill) => !isExplicitlyInCv(skill, rawCV, storedMasterCv?.raw_text)),
           }
         : undefined,
       verifiedMetrics,
       userInstruction,
     };
-    const generationContext: LlmGenerationContext = {
-      requestExecutionId: randomUUID(),
-      clientRequestId,
-      userId: user.id,
-      route: '/api/regenerate',
-      feature: 'regeneration',
-      operation: `regen_${type}`,
-    };
-
     // PostHog LLM analytics for regeneration
     const traceId = `trace_${randomUUID()}`;
     const INPUT_COST_PER_M = 3;
@@ -328,15 +339,7 @@ export async function POST(request: NextRequest) {
         tokens,
       });
     } else if (type === 'follow_up_email') {
-      const liveEmail = context.applicationEmail;
-      if (
-        liveEmail
-        && typeof liveEmail === 'object'
-        && typeof liveEmail.subject === 'string'
-        && typeof liveEmail.body === 'string'
-      ) {
-        masterContext.applicationEmail = { subject: liveEmail.subject, body: liveEmail.body };
-      } else if (session.email && typeof session.email === 'object') {
+      if (session.email && typeof session.email === 'object') {
         const storedEmail = session.email as Record<string, unknown>;
         if (typeof storedEmail.subject === 'string' && typeof storedEmail.body === 'string') {
           masterContext.applicationEmail = { subject: storedEmail.subject, body: storedEmail.body };
@@ -481,6 +484,25 @@ function readRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
+function storedDetectedLanguage(artifacts: Record<string, unknown> | null): string | undefined {
+  if (isSupportedLanguage(artifacts?.detectedLanguage)) return artifacts.detectedLanguage;
+  const pending = readRecord(artifacts?.pendingFitAnalysis);
+  const contextData = readRecord(pending?.contextData);
+  return isSupportedLanguage(contextData?.detectedLanguage) ? contextData.detectedLanguage : undefined;
+}
+
+function persistedClaimableEvidence(artifacts: Record<string, unknown> | null): string[] {
+  const match = readRecord(artifacts?.match);
+  const details = Array.isArray(match?.details) ? match.details : [];
+  const detailEvidence = details.flatMap((value) => {
+    const detail = readRecord(value);
+    const evidence = readString(detail?.evidence);
+    return detail?.claimable === true && evidence ? [evidence] : [];
+  });
+  const canonical = readStringList(match?.claimableEvidence);
+  return uniqueStrings([...canonical, ...detailEvidence]);
+}
+
 function readStringList(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
@@ -590,19 +612,12 @@ function mergeApplicants(
   };
 }
 
-function sourceContextFromArtifacts(artifacts: unknown): {
-  applicant?: MasterContext['applicant'];
-  verifiedMetrics?: string[];
-} {
-  const root = readRecord(artifacts);
-  const source = readRecord(root?.sourceContext)
-    ?? readRecord(readRecord(root?.pendingFitAnalysis)?.contextData);
-  const applicant = readRecord(source?.applicant) as MasterContext['applicant'] | null;
-  const verifiedMetrics = readStringList(source?.verifiedMetrics);
-  return {
-    applicant: applicant ?? undefined,
-    verifiedMetrics: verifiedMetrics.length > 0 ? verifiedMetrics : undefined,
-  };
+function isExplicitlyInCv(value: string, ...sources: Array<string | null | undefined>): boolean {
+  const claim = value.trim().normalize('NFKC').replace(/\s+/g, ' ');
+  if (!claim) return false;
+  const escaped = claim.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?=$|[^\\p{L}\\p{N}])`, 'iu');
+  return sources.some((source) => pattern.test(source?.normalize('NFKC').replace(/\s+/g, ' ') ?? ''));
 }
 
 function verifiedMetricsFromDocuments(...docs: Array<Document | null>): string[] | undefined {
@@ -610,11 +625,29 @@ function verifiedMetricsFromDocuments(...docs: Array<Document | null>): string[]
     const structured = readRecord(doc?.structured_data);
     const summary = readString(structured?.summary);
     const experiences = Array.isArray(structured?.experience) ? structured.experience : [];
-    return [summary, ...experiences.flatMap((value) => readStringList(readRecord(value)?.bullets))]
-      .filter((value) => /\d/.test(value));
+    const sourceBullets = (doc?.raw_text?.split(/\r?\n/) ?? [])
+      .filter((line) => /^\s*[•·▪◦*-]\s+/.test(line));
+    return [summary, ...experiences.flatMap((value) => readStringList(readRecord(value)?.bullets)), ...sourceBullets]
+      .filter(looksLikeQuantifiedAchievement);
   });
-  const unique = uniqueStrings(metrics);
+  const unique = uniqueStrings(metrics).slice(0, 30);
   return unique.length > 0 ? unique : undefined;
+}
+
+function looksLikeQuantifiedAchievement(value: string): boolean {
+  const text = value.trim().replace(/^\s*[•·▪◦*-]\s+/u, '').replace(/\s+/g, ' ');
+  if (!/\d/.test(text)) return false;
+  if (/https?:\/\/|www\.|\b\S+@\S+\b/i.test(text)) return false;
+  if (/^(?:phone|tel|mobile|fax)?\s*:?\s*\+?\d[\d\s().-]{7,}\d$/i.test(text)) return false;
+  // Postcode/address lines only: a 4-5 digit number followed by at most two
+  // capitalized tokens ("10115 Berlin", "1234 AB Amsterdam"). Quantified
+  // achievements ("3000 users onboarded", "5000 tickets resolved") stay in.
+  if (/^\d{4,5}\s+[\p{Lu}][\p{L}\p{M}.'-]*(?:[,\s]+[\p{Lu}][\p{L}\p{M}.'-]*)?$/u.test(text)) return false;
+
+  const withoutDates = text
+    .replace(/\b(?:19|20)\d{2}\s*[-–]\s*(?:(?:19|20)\d{2}|present|current|heute|aktuell)\b/giu, ' ')
+    .replace(/\b(?:19|20)\d{2}\b/g, ' ');
+  return /%|[$€£¥]|\b\d+(?:[.,]\d+)?\s*[x×]\b|\b\d+(?:[.,]\d+)?\s*(?:USD|EUR|GBP)\b|\b\d+(?:[.,]\d+)?\s+\p{L}{3,}\b/iu.test(withoutDates);
 }
 
 function jobFromSession(session: Awaited<ReturnType<typeof getSession>>): MasterContext['job'] | undefined {

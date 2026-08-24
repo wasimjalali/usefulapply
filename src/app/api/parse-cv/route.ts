@@ -18,9 +18,14 @@ import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
 import { getObject } from '@/storage/r2';
-import { detectCVLanguage, extractOriginalHeaders, generateLocalizedHeaders } from '@/lib/cv-parser/section-splitter';
+import {
+  extractOriginalHeaders,
+  generateLocalizedHeaders,
+  inferCvLanguageFromHeaders,
+} from '@/lib/cv-parser/section-splitter';
 import { callAnthropic, parseDocumentAsCV } from '@/lib/models/anthropic';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
+import { detectLanguageResult, isSupportedLanguage, type SupportedLanguage } from '@/lib/utils/language-detector';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -251,6 +256,7 @@ export async function POST(request: NextRequest) {
     // Parse CV using AI
     let rawText = '';
     let structuredCV: StructuredCV;
+    let parsedDocumentLanguage: SupportedLanguage | null = null;
     let parserUsed = 'ai';
     const parseStartTime = Date.now();
 
@@ -267,6 +273,7 @@ export async function POST(request: NextRequest) {
         });
         rawText = documentResult.rawText;
         structuredCV = documentResult.structuredCV;
+        parsedDocumentLanguage = documentResult.documentLanguage;
         parserUsed = documentResult.parserUsed;
       } catch (e) {
         const errMsg = e instanceof Error ? e.message : String(e);
@@ -290,11 +297,13 @@ export async function POST(request: NextRequest) {
       const textForAI = prepareTextForAI(rawText);
 
       try {
-        structuredCV = await parseWithAI(
+        const parseResult = await parseWithAI(
           textForAI,
           region as 'US' | 'EU',
           { ...generationContext, operation: 'parse_cv_text' },
         );
+        structuredCV = parseResult.structuredCV;
+        parsedDocumentLanguage = parseResult.documentLanguage;
         parserUsed = 'ai-text';
       } catch (e) {
         const errMsg = e instanceof Error ? e.message : String(e);
@@ -334,28 +343,31 @@ export async function POST(request: NextRequest) {
     structuredCV.sourceFileName = originalFileName;
     structuredCV.sourceFormat = (fileExt === '.pdf') ? 'pdf' : (fileExt === '.docx') ? 'docx' : 'txt';
 
-    // Detect CV language and generate localized strings (Present/Heute, GPA/Note, etc.)
-    // For native document path (PDF/DOCX), rawText is reconstructed with English headers,
-    // so use the AI-extracted content (summary + bullets) for more accurate language detection.
-    const textForLangDetection = (fileExt === '.pdf' || fileExt === '.docx')
-      ? [
-          structuredCV.summary || '',
-          ...structuredCV.experience.flatMap(e => e.bullets || []),
-          ...structuredCV.education.map(e => `${e.degree} ${e.institution}`),
-        ].join('\n')
-      : rawText;
-    const detectedLang = detectCVLanguage(textForLangDetection);
-    const { sectionHeaders: localizedSectionHeaders, localizedStrings } = generateLocalizedHeaders(detectedLang);
-
     // Prefer original text headers when we have extracted text; otherwise use
     // generated localized headers so PDF/DOCX templates do not fall back to English.
     const rawTextHasOriginalHeaders = parserUsed === 'ai-extracted-text' || (fileExt !== '.pdf' && fileExt !== '.docx');
-    const originalHeaders = rawTextHasOriginalHeaders
-      ? extractOriginalHeaders(rawText)
-      : {};
-    structuredCV.sectionHeaders = Object.keys(originalHeaders).length > 0
-      ? originalHeaders
-      : localizedSectionHeaders;
+    const originalHeaders = {
+      ...(structuredCV.sectionHeaders ?? {}),
+      ...(rawTextHasOriginalHeaders ? extractOriginalHeaders(rawText) : {}),
+    };
+
+    // The Claude parser already sees the full source document, so use its
+    // explicit, allow-listed language when available. If Workers AI fails safe
+    // to English, recognised source headers are stronger evidence than the
+    // fallback and prevent a mixed-language template.
+    const classified = parsedDocumentLanguage
+      ? { language: parsedDocumentLanguage, usedFallback: false }
+      : await detectLanguageResult(
+          rawText,
+          { ...generationContext, operation: 'parse_cv_language_classification' },
+        );
+    const headerLanguage = inferCvLanguageFromHeaders(originalHeaders);
+    const detectedLang = classified.usedFallback && headerLanguage !== 'en'
+      ? headerLanguage
+      : classified.language;
+    const { sectionHeaders: localizedSectionHeaders, localizedStrings } = generateLocalizedHeaders(detectedLang);
+
+    structuredCV.sectionHeaders = { ...localizedSectionHeaders, ...originalHeaders };
     structuredCV.localizedStrings = localizedStrings;
     structuredCV.settings.language = detectedLang;
 
@@ -400,7 +412,12 @@ async function parseDocumentWithAIOrFallback(options: {
   region: 'US' | 'EU';
   documentType: 'primary_cv' | 'master_cv';
   generationContext: LlmGenerationContext;
-}): Promise<{ rawText: string; structuredCV: StructuredCV; parserUsed: string }> {
+}): Promise<{
+  rawText: string;
+  structuredCV: StructuredCV;
+  parserUsed: string;
+  documentLanguage: SupportedLanguage | null;
+}> {
   const { buffer, fileExt, region, documentType, generationContext } = options;
   const docFormat = fileExt === '.pdf' ? 'pdf' : 'docx';
 
@@ -415,13 +432,19 @@ async function parseDocumentWithAIOrFallback(options: {
       visualMode: docFormat === 'pdf' && documentType !== 'master_cv',
       generationContext: { ...generationContext, operation: 'parse_cv_document_native' },
     });
-    const structuredCV = parseAIResponse(jsonContent, region);
+    const parseResult = parseAIResponse(jsonContent, region);
+    const structuredCV = parseResult.structuredCV;
     const rawText = reconstructRawText(structuredCV);
     if (rawText.trim().length < 20) {
       throw new Error('Native document parser returned too little content.');
     }
     console.log(`[Parser] ${docFormat.toUpperCase()} native document parse complete: ${rawText.length} chars reconstructed`);
-    return { rawText, structuredCV, parserUsed: 'ai-document-native' };
+    return {
+      rawText,
+      structuredCV,
+      parserUsed: 'ai-document-native',
+      documentLanguage: parseResult.documentLanguage,
+    };
   } catch (nativeError) {
     const nativeMessage = nativeError instanceof Error ? nativeError.message : String(nativeError);
     console.warn(`[Parser] ${docFormat.toUpperCase()} native document parse unavailable/failed; falling back to extracted text:`, nativeMessage);
@@ -441,13 +464,18 @@ async function parseDocumentWithAIOrFallback(options: {
     throw new Error(`${docFormat.toUpperCase()} text extraction returned too little content. The document may be scanned, encrypted, or corrupted.`);
   }
 
-  const structuredCV = await parseWithAI(
+  const parseResult = await parseWithAI(
     prepareTextForAI(extractedText),
     region,
     { ...generationContext, operation: 'parse_cv_extracted_text_fallback' },
   );
   console.log(`[Parser] ${docFormat.toUpperCase()} extracted-text fallback complete: ${extractedText.length} chars`);
-  return { rawText: extractedText, structuredCV, parserUsed: 'ai-extracted-text' };
+  return {
+    rawText: extractedText,
+    structuredCV: parseResult.structuredCV,
+    parserUsed: 'ai-extracted-text',
+    documentLanguage: parseResult.documentLanguage,
+  };
 }
 
 function prepareTextForAI(rawText: string): string {
@@ -657,7 +685,7 @@ async function parseWithAI(
   rawText: string,
   region: 'US' | 'EU',
   generationContext: LlmGenerationContext,
-): Promise<StructuredCV> {
+): Promise<ParsedCvResult> {
   const prompt = getParsingPrompt(rawText);
 
   const response = await callAnthropic({
@@ -688,16 +716,22 @@ RULES:
 2. For dates, preserve the original format in "raw" and try to normalize to "YYYY-MM"
 3. If a date is ambiguous (just "2022"), mark confidence as "medium"
 4. If something is missing, use null or empty arrays - do NOT invent
-9. PROJECTS: Only extract projects if the CV has a DEDICATED "Projects" section header (e.g., "Projects", "Projekte", "Projets", "Key Projects"). Do NOT extract projects from experience bullets or other sections. If no explicit Projects section exists, return an empty array for "projects".
-10. ADDITIONAL SECTIONS: Extract any remaining sections like "Additional Information", "Volunteer Experience", "Awards", "Interests", "Hobbies", "References", "Publications", etc. Group each under its original section title with bullet items. If none exist, return an empty array for "additionalSections".
-5. Split skills into logical categories (e.g., "Programming", "Marketing", "Tools", etc.)
-6. SKILL PROFICIENCY LEVELS: If a skill has a proficiency level, qualifier, or descriptor attached (e.g., "Python (Proficient)", "Excel - Advanced", "SQL: Fundamentals", "Photoshop, Basic"), you MUST preserve it in the output as "SkillName (Level)". If a skill has NO level attached, output just the skill name. NEVER invent or guess proficiency levels — only preserve what is explicitly written.
-7. For German CVs, look for "Berufserfahrung", "Ausbildung", "Kenntnisse", "Sprachen", etc.
-8. Extract ALL sections present in the CV - do not skip any information
-9. For "currentTitle": extract the job title/tagline shown prominently (e.g., "Senior Software Engineer")
+5. DOCUMENT LANGUAGE: Return the source document's primary natural language as exactly one of: en, de, fr, es, pt, it, nl. Return null only if the document language cannot be determined. Use pt for either Portuguese variant.
+6. SECTION HEADERS: Return the original source text for recognised section headers. Use only these keys: summary, skills, experience, education, certifications, languages, contact, additionalInfo, projects. Omit unavailable keys. Never translate or invent a header.
+7. PROJECTS: Only extract projects if the CV has a DEDICATED "Projects" section header (e.g., "Projects", "Projekte", "Projets", "Key Projects"). Do NOT extract projects from experience bullets or other sections. If no explicit Projects section exists, return an empty array for "projects".
+8. ADDITIONAL SECTIONS: Extract any remaining sections like "Additional Information", "Volunteer Experience", "Awards", "Interests", "Hobbies", "References", "Publications", etc. Group each under its original section title with bullet items. If none exist, return an empty array for "additionalSections".
+9. Split skills into logical categories (e.g., "Programming", "Marketing", "Tools", etc.)
+10. SKILL PROFICIENCY LEVELS: If a skill has a proficiency level, qualifier, or descriptor attached (e.g., "Python (Proficient)", "Excel - Advanced", "SQL: Fundamentals", "Photoshop, Basic"), you MUST preserve it in the output as "SkillName (Level)". If a skill has NO level attached, output just the skill name. NEVER invent or guess proficiency levels - only preserve what is explicitly written.
+11. For German CVs, look for "Berufserfahrung", "Ausbildung", "Kenntnisse", "Sprachen", etc.
+12. Extract ALL sections present in the CV - do not skip any information
+13. For "currentTitle": extract the job title/tagline shown prominently (e.g., "Senior Software Engineer")
 
 Return ONLY valid JSON with this structure:
 {
+  "documentLanguage": "en|de|fr|es|pt|it|nl|null",
+  "sectionHeaders": {
+    "summary": "string|null", "skills": "string|null", "experience": "string|null", "education": "string|null", "certifications": "string|null", "languages": "string|null", "contact": "string|null", "additionalInfo": "string|null", "projects": "string|null"
+  },
   "personal": {
     "fullName": "string",
     "email": "string",
@@ -743,7 +777,7 @@ Return ONLY valid JSON with this structure:
     { "name": "string", "issuer": "string", "date": { "raw": "string", "normalized": "string|null", "confidence": "string" } | null }
   ],
   "languages": [
-    { "language": "string", "proficiency": "Native|Fluent|Professional|Intermediate|Basic", "certification": "string|null" }
+    { "language": "string", "proficiency": "string|null, preserve the exact source value such as B2, C1 or Native", "certification": "string|null" }
   ],
   "projects": [
     { "name": "string", "description": "string", "technologies": ["string"], "url": "string|null" }
@@ -768,16 +802,22 @@ RULES:
 2. For dates, preserve the original format in "raw" and try to normalize to "YYYY-MM"
 3. If a date is ambiguous (just "2022"), mark confidence as "medium"
 4. If something is missing, use null or empty arrays - do NOT invent
-5. PROJECTS: Only extract projects if the CV has a DEDICATED "Projects" section header (e.g., "Projects", "Projekte", "Projets", "Key Projects"). Do NOT extract projects from experience bullets or other sections. If no explicit Projects section exists, return an empty array for "projects".
-6. ADDITIONAL SECTIONS: Extract any remaining sections like "Additional Information", "Volunteer Experience", "Awards", "Interests", "Hobbies", "References", "Publications", etc. Group each under its original section title with bullet items. If none exist, return an empty array for "additionalSections".
-7. Split skills into logical categories (e.g., "Programming", "Marketing", "Tools", etc.)
-8. SKILL PROFICIENCY LEVELS: If a skill has a proficiency level, qualifier, or descriptor attached (e.g., "Python (Proficient)", "Excel - Advanced", "SQL: Fundamentals", "Photoshop, Basic"), you MUST preserve it in the output as "SkillName (Level)". If a skill has NO level attached, output just the skill name. NEVER invent or guess proficiency levels — only preserve what is explicitly written.
-9. For German CVs, look for "Berufserfahrung", "Ausbildung", "Kenntnisse", "Sprachen", etc.
-10. Extract ALL sections present in the CV - do not skip any information
-11. For "currentTitle": extract the job title/tagline shown prominently (e.g., "Senior Software Engineer")
+5. DOCUMENT LANGUAGE: Return the source document's primary natural language as exactly one of: en, de, fr, es, pt, it, nl. Return null only if the document language cannot be determined. Use pt for either Portuguese variant.
+6. SECTION HEADERS: Return the original source text for recognised section headers. Use only these keys: summary, skills, experience, education, certifications, languages, contact, additionalInfo, projects. Omit unavailable keys. Never translate or invent a header.
+7. PROJECTS: Only extract projects if the CV has a DEDICATED "Projects" section header (e.g., "Projects", "Projekte", "Projets", "Key Projects"). Do NOT extract projects from experience bullets or other sections. If no explicit Projects section exists, return an empty array for "projects".
+8. ADDITIONAL SECTIONS: Extract any remaining sections like "Additional Information", "Volunteer Experience", "Awards", "Interests", "Hobbies", "References", "Publications", etc. Group each under its original section title with bullet items. If none exist, return an empty array for "additionalSections".
+9. Split skills into logical categories (e.g., "Programming", "Marketing", "Tools", etc.)
+10. SKILL PROFICIENCY LEVELS: If a skill has a proficiency level, qualifier, or descriptor attached (e.g., "Python (Proficient)", "Excel - Advanced", "SQL: Fundamentals", "Photoshop, Basic"), you MUST preserve it in the output as "SkillName (Level)". If a skill has NO level attached, output just the skill name. NEVER invent or guess proficiency levels - only preserve what is explicitly written.
+11. For German CVs, look for "Berufserfahrung", "Ausbildung", "Kenntnisse", "Sprachen", etc.
+12. Extract ALL sections present in the CV - do not skip any information
+13. For "currentTitle": extract the job title/tagline shown prominently (e.g., "Senior Software Engineer")
 
 Return ONLY valid JSON with this structure:
 {
+  "documentLanguage": "en|de|fr|es|pt|it|nl|null",
+  "sectionHeaders": {
+    "summary": "string|null", "skills": "string|null", "experience": "string|null", "education": "string|null", "certifications": "string|null", "languages": "string|null", "contact": "string|null", "additionalInfo": "string|null", "projects": "string|null"
+  },
   "personal": {
     "fullName": "string",
     "email": "string",
@@ -823,7 +863,7 @@ Return ONLY valid JSON with this structure:
     { "name": "string", "issuer": "string", "date": { "raw": "string", "normalized": "string|null", "confidence": "string" } | null }
   ],
   "languages": [
-    { "language": "string", "proficiency": "Native|Fluent|Professional|Intermediate|Basic", "certification": "string|null" }
+    { "language": "string", "proficiency": "string|null, preserve the exact source value such as B2, C1 or Native", "certification": "string|null" }
   ],
   "projects": [
     { "name": "string", "description": "string", "technologies": ["string"], "url": "string|null" }
@@ -899,7 +939,8 @@ function reconstructRawText(cv: StructuredCV): string {
     lines.push('');
     lines.push('LANGUAGES');
     for (const lang of languages) {
-      lines.push(`${lang.language}: ${lang.proficiency}${lang.certification ? ` (${lang.certification})` : ''}`);
+      const proficiency = lang.proficiency ? `: ${lang.proficiency}` : '';
+      lines.push(`${lang.language}${proficiency}${lang.certification ? ` (${lang.certification})` : ''}`);
     }
   }
 
@@ -941,13 +982,34 @@ function reconstructRawText(cv: StructuredCV): string {
 /**
  * Parse AI response into StructuredCV
  */
-function parseAIResponse(content: string, region: 'US' | 'EU'): StructuredCV {
+type ParsedCvResult = {
+  structuredCV: StructuredCV;
+  documentLanguage: SupportedLanguage | null;
+};
+
+const SECTION_HEADER_KEYS = new Set([
+  'summary',
+  'skills',
+  'experience',
+  'education',
+  'certifications',
+  'languages',
+  'contact',
+  'additionalInfo',
+  'projects',
+]);
+
+function parseAIResponse(content: string, region: 'US' | 'EU'): ParsedCvResult {
   const jsonMatch = content.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error('No JSON in response');
 
   const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
   const cv = createEmptyCV(region);
   const personal = asRecord(parsed.personal) ?? {};
+  const documentLanguage = isSupportedLanguage(parsed.documentLanguage)
+    ? parsed.documentLanguage
+    : null;
+  const sectionHeaders = asSectionHeaders(parsed.sectionHeaders);
 
   // Map ALL personal info fields
   cv.personal = {
@@ -968,6 +1030,9 @@ function parseAIResponse(content: string, region: 'US' | 'EU'): StructuredCV {
   };
 
   cv.summary = asOptionalString(parsed.summary);
+  if (Object.keys(sectionHeaders).length > 0) {
+    cv.sectionHeaders = sectionHeaders;
+  }
 
   cv.experience = asRecords(parsed.experience).map((exp) => withId<WorkExperience>({
     company: asString(exp.company),
@@ -1022,7 +1087,7 @@ function parseAIResponse(content: string, region: 'US' | 'EU'): StructuredCV {
     }));
   }
 
-  return cv;
+  return { structuredCV: cv, documentLanguage };
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -1051,6 +1116,19 @@ function asStrings(value: unknown): string[] {
     : [];
 }
 
+function asSectionHeaders(value: unknown): Record<string, string> {
+  const record = asRecord(value);
+  if (!record) return {};
+
+  const sectionHeaders: Record<string, string> = {};
+  for (const [key, header] of Object.entries(record)) {
+    if (SECTION_HEADER_KEYS.has(key) && typeof header === 'string' && header.trim()) {
+      sectionHeaders[key] = header;
+    }
+  }
+  return sectionHeaders;
+}
+
 function asCvDate(value: unknown): CVDate | undefined {
   if (typeof value === 'string') return { raw: value, confidence: 'low' };
   const record = asRecord(value);
@@ -1066,11 +1144,5 @@ function asCvDate(value: unknown): CVDate | undefined {
 }
 
 function asLanguageProficiency(value: unknown): Language['proficiency'] {
-  return value === 'Native'
-    || value === 'Fluent'
-    || value === 'Professional'
-    || value === 'Intermediate'
-    || value === 'Basic'
-    ? value
-    : 'Professional';
+  return typeof value === 'string' ? value : '';
 }

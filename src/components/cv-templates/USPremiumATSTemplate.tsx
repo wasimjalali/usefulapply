@@ -327,7 +327,7 @@ export function USPremiumATSTemplate({
                       >
                         <span style={{ flexShrink: 0 }}>•</span>
                         <span>
-                          <strong>{lang.language}:</strong> {lang.proficiency}
+                          <strong>{lang.language}{lang.proficiency ? ':' : ''}</strong>{lang.proficiency ? ` ${lang.proficiency}` : ''}
                         </span>
                       </div>
                     ))}

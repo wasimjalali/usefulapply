@@ -40,6 +40,7 @@ export interface JobRequirements {
   startDate?: string | null;
   location?: string | null;
   workType?: string | null;
+  detectedLanguage?: string | null;
 }
 
 export interface GapAnalysis {
