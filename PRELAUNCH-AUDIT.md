@@ -1,5 +1,9 @@
 # Pre-launch Audit and Patch Tracker (2026-08-23)
 
+## Browser verification pass (2026-08-24, production)
+
+Live verification on usefulapply.com confirmed: A1/E21 (plan intent + click-gated checkout), A2 surfaces, E1 (anonymous gate denies a second free check), E2 (new-conversation chat), E3/F5 (refresh hydration), B6/E16 (fit -> 1.5-credit continuation, exact billing), D1/D2 (session isolation), D8 (non-CV rejection), D12 (continuation survives refresh), Google OAuth signup, account deletion, free-tier paywall and kit download. Four follow-up fixes shipped during the pass (PRs #91-#94: fit-subtitle markdown, used-free-check message, refocus unmount wiping guided-line state, mailed-link origin). karkoai.com now 308-redirects to usefulapply.com. Still unverified: the real-subscription flows (A3/G5 checkout return, B2/E8/F7 portal plan switch, D13 cancellation display), which need a live Stripe charge; and the E12 duplicate-tracker-row residual remains open.
+
 Consolidated, deduplicated findings from a 3-model read-only audit (GPT 5.6 Sol via Codex CLI, GLM 5.2 via opencode, Opus 5 subagent, plus a manual GLM 5.2 Max run). This file is the single source of truth for the patch phase: the implementer patches each bug and updates its Status line in place.
 
 **Status values:** `TODO` | `IN PROGRESS` | `FIXED (short note: what was changed)` | `SKIPPED (reason)` | `NEEDS DECISION (question for Wasim)`
