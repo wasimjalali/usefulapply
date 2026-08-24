@@ -77,20 +77,23 @@ export function getAllBlacklistedPhrases(): string[] {
  * Check if text contains any blacklisted phrases
  */
 export function containsBlacklistedPhrase(text: string): boolean {
-  const lowerText = text.toLowerCase();
-  return getAllBlacklistedPhrases().some(phrase => 
-    lowerText.includes(phrase.toLowerCase())
-  );
+  return findBlacklistedPhrases(text).length > 0;
+}
+
+function phrasePattern(phrase: string): RegExp {
+  const escaped = phrase
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?=$|[^\\p{L}\\p{N}])`, 'iu');
 }
 
 /**
  * Find all blacklisted phrases in text
  */
 export function findBlacklistedPhrases(text: string): string[] {
-  const lowerText = text.toLowerCase();
-  return getAllBlacklistedPhrases().filter(phrase => 
-    lowerText.includes(phrase.toLowerCase())
-  );
+  const normalizedText = text.replace(/\s+/g, ' ');
+  return getAllBlacklistedPhrases().filter((phrase) => phrasePattern(phrase).test(normalizedText));
 }
 
 /**

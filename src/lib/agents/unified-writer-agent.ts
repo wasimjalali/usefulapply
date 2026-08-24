@@ -24,7 +24,7 @@ import { callModel } from '@/lib/models';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import { loadApplicantDocuments } from '@/lib/storage/applicantStore';
 import { fixTypos, sanitizeDashes } from '@/lib/config/typo-corrections';
-import { COVER_LETTER_BLACKLIST, findBlacklistedPhrases } from '@/lib/config/cover-letter-blacklist';
+import { COVER_LETTER_BLACKLIST, getAllBlacklistedPhrases } from '@/lib/config/cover-letter-blacklist';
 import {
   extractApplicantProfile,
   parseJobDescription,
@@ -671,8 +671,15 @@ function assertStringField(
   options: { optional?: boolean; allowEmpty?: boolean; allowNull?: boolean } = {},
 ): void {
   const value = record[key];
-  if (value === undefined || (options.allowNull && value === null)) {
-    if (options.optional || options.allowNull) return;
+  if (value === undefined || value === null || value === '') {
+    if (options.optional || options.allowNull) {
+      record[key] = undefined;
+      return;
+    }
+    if (options.allowEmpty) {
+      record[key] = '';
+      return;
+    }
     throw new Error(`${label} is missing`);
   }
   if (typeof value !== 'string' || (!options.allowEmpty && !value.trim())) {
@@ -687,7 +694,10 @@ function assertStringArrayField(
   options: { optional?: boolean; allowEmpty?: boolean } = {},
 ): void {
   const value = record[key];
-  if (value === undefined && options.optional) return;
+  if ((value === undefined || value === null) && options.optional) {
+    record[key] = [];
+    return;
+  }
   if (!Array.isArray(value) || (!options.allowEmpty && value.length === 0)) {
     throw new Error(`${label} must be a${options.allowEmpty ? '' : ' non-empty'} array`);
   }
@@ -707,48 +717,49 @@ function normalizeOptimizedCvPayload(value: unknown): NormalizedOptimizedCvPaylo
     throw new Error('Optimized CV response has no personal section');
   }
   assertStringField(personal, 'fullName', 'Optimized CV full name');
-  assertStringField(personal, 'email', 'Optimized CV email', { allowEmpty: true });
+  assertStringField(personal, 'email', 'Optimized CV email', { optional: true, allowEmpty: true });
   for (const key of ['phone', 'currentTitle', 'address', 'city', 'country', 'linkedIn', 'website', 'github', 'driverLicense', 'driver_license']) {
     assertStringField(personal, key, `Optimized CV personal.${key}`, { optional: true });
   }
 
+  if (cv.summary === null) cv.summary = undefined;
   if (cv.summary !== undefined && typeof cv.summary !== 'string') {
     throw new Error('Optimized CV summary must be a string');
   }
 
-  if (!Array.isArray(cv.experience) || cv.experience.length === 0) {
-    throw new Error('Optimized CV response has no meaningful experience content');
+  if (!Array.isArray(cv.experience)) {
+    throw new Error('Optimized CV response has invalid experience');
   }
   for (const [index, value] of cv.experience.entries()) {
     if (!isRecord(value)) throw new Error(`Optimized CV experience ${index + 1} was not an object`);
-    for (const key of ['id', 'company', 'position', 'startDate']) {
+    for (const key of ['company', 'position']) {
       assertStringField(value, key, `Optimized CV experience ${index + 1}.${key}`);
     }
-    for (const key of ['location', 'endDate']) {
-      assertStringField(value, key, `Optimized CV experience ${index + 1}.${key}`, { optional: true, allowNull: key === 'endDate' });
+    for (const key of ['id', 'location', 'startDate', 'endDate']) {
+      assertStringField(value, key, `Optimized CV experience ${index + 1}.${key}`, { optional: true });
     }
     if (value.current !== undefined && typeof value.current !== 'boolean') {
       throw new Error(`Optimized CV experience ${index + 1}.current must be a boolean`);
     }
-    assertStringArrayField(value, 'bullets', `Optimized CV experience ${index + 1}.bullets`);
+    assertStringArrayField(value, 'bullets', `Optimized CV experience ${index + 1}.bullets`, { optional: true, allowEmpty: true });
     assertStringArrayField(value, 'technologies', `Optimized CV experience ${index + 1}.technologies`, { optional: true, allowEmpty: true });
   }
 
   for (const key of ['education', 'skills', 'languages', 'certifications', 'projects', 'customSections'] as const) {
-    if (cv[key] === undefined) cv[key] = [];
+    if (cv[key] === undefined || cv[key] === null) cv[key] = [];
     if (!Array.isArray(cv[key])) {
       throw new Error(`Optimized CV response has invalid ${key}`);
     }
   }
-  if (cv.additionalInfo === undefined) cv.additionalInfo = [];
+  if (cv.additionalInfo === undefined || cv.additionalInfo === null) cv.additionalInfo = [];
   assertStringArrayField(cv, 'additionalInfo', 'Optimized CV additionalInfo', { allowEmpty: true });
 
   for (const [index, value] of (cv.education as unknown[]).entries()) {
     if (!isRecord(value)) throw new Error(`Optimized CV education ${index + 1} was not an object`);
-    for (const key of ['id', 'institution', 'degree']) {
+    for (const key of ['institution', 'degree']) {
       assertStringField(value, key, `Optimized CV education ${index + 1}.${key}`);
     }
-    for (const key of ['field', 'location', 'startDate', 'endDate', 'grade']) {
+    for (const key of ['id', 'field', 'location', 'startDate', 'endDate', 'grade']) {
       assertStringField(value, key, `Optimized CV education ${index + 1}.${key}`, { optional: true });
     }
     assertStringArrayField(value, 'highlights', `Optimized CV education ${index + 1}.highlights`, { optional: true, allowEmpty: true });
@@ -762,26 +773,27 @@ function normalizeOptimizedCvPayload(value: unknown): NormalizedOptimizedCvPaylo
   for (const [index, value] of (cv.languages as unknown[]).entries()) {
     if (!isRecord(value)) throw new Error(`Optimized CV language ${index + 1} was not an object`);
     assertStringField(value, 'language', `Optimized CV language ${index + 1}.language`);
-    assertStringField(value, 'proficiency', `Optimized CV language ${index + 1}.proficiency`, { allowEmpty: true });
+    assertStringField(value, 'proficiency', `Optimized CV language ${index + 1}.proficiency`, { optional: true, allowEmpty: true });
   }
   for (const [index, value] of (cv.certifications as unknown[]).entries()) {
     if (!isRecord(value)) throw new Error(`Optimized CV certification ${index + 1} was not an object`);
-    for (const key of ['id', 'name', 'issuer']) {
-      assertStringField(value, key, `Optimized CV certification ${index + 1}.${key}`, { allowEmpty: key === 'issuer' });
-    }
+    assertStringField(value, 'name', `Optimized CV certification ${index + 1}.name`);
+    assertStringField(value, 'id', `Optimized CV certification ${index + 1}.id`, { optional: true });
+    assertStringField(value, 'issuer', `Optimized CV certification ${index + 1}.issuer`, { optional: true, allowEmpty: true });
     assertStringField(value, 'date', `Optimized CV certification ${index + 1}.date`, { optional: true });
   }
   for (const [index, value] of (cv.projects as unknown[]).entries()) {
     if (!isRecord(value)) throw new Error(`Optimized CV project ${index + 1} was not an object`);
-    for (const key of ['id', 'name', 'description']) {
+    for (const key of ['name', 'description']) {
       assertStringField(value, key, `Optimized CV project ${index + 1}.${key}`);
     }
-    assertStringArrayField(value, 'technologies', `Optimized CV project ${index + 1}.technologies`, { allowEmpty: true });
+    assertStringField(value, 'id', `Optimized CV project ${index + 1}.id`, { optional: true });
+    assertStringArrayField(value, 'technologies', `Optimized CV project ${index + 1}.technologies`, { optional: true, allowEmpty: true });
     assertStringField(value, 'url', `Optimized CV project ${index + 1}.url`, { optional: true });
   }
   for (const [index, value] of (cv.customSections as unknown[]).entries()) {
     if (!isRecord(value)) throw new Error(`Optimized CV custom section ${index + 1} was not an object`);
-    assertStringField(value, 'id', `Optimized CV custom section ${index + 1}.id`);
+    assertStringField(value, 'id', `Optimized CV custom section ${index + 1}.id`, { optional: true });
     assertStringField(value, 'title', `Optimized CV custom section ${index + 1}.title`);
     assertStringArrayField(value, 'items', `Optimized CV custom section ${index + 1}.items`);
   }
@@ -801,6 +813,14 @@ function normalizeOptimizedCvPayload(value: unknown): NormalizedOptimizedCvPaylo
     }
   }
 
+  const hasMeaningfulContent = cv.experience.length > 0
+    || (cv.education as unknown[]).length > 0
+    || (cv.skills as unknown[]).length > 0
+    || (cv.projects as unknown[]).length > 0;
+  if (!hasMeaningfulContent) {
+    throw new Error('Optimized CV response had no experience, education, skills or projects');
+  }
+
   return cv as unknown as NormalizedOptimizedCvPayload;
 }
 
@@ -811,22 +831,44 @@ function countWords(value: string): number {
 function validateFitAssessment(value: string): string {
   const assessment = sanitizeDashes(fixTypos(value)).trim();
   if (!assessment) throw new Error('Fit assessment was empty');
-  if (countWords(assessment) > 150) throw new Error('Fit assessment exceeded 150 words');
+  if (countWords(assessment) > 200) throw new Error('Fit assessment exceeded 200 words');
   for (const heading of ['**Strengths:**', '**Gaps:**', '**Recommendation:**']) {
     if (!assessment.includes(heading)) throw new Error(`Fit assessment was missing ${heading}`);
   }
   return assessment;
 }
 
+class CoverLetterValidationError extends Error {
+  constructor(readonly issues: string[]) {
+    super(`Cover letter validation failed: ${issues.join(', ')}`);
+  }
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function findBoundaryBlacklistedPhrases(value: string): string[] {
+  const normalized = value.normalize('NFKC').toLocaleLowerCase().replace(/\s+/gu, ' ');
+  return getAllBlacklistedPhrases().filter((phrase) => {
+    const pattern = escapeRegExp(phrase.normalize('NFKC').toLocaleLowerCase())
+      .replace(/\s+/g, '\\s+');
+    return new RegExp(`(?:^|[^\\p{L}\\p{N}])${pattern}(?=$|[^\\p{L}\\p{N}])`, 'u').test(normalized);
+  });
+}
+
 function validateCoverLetter(value: string): string {
   const coverLetter = sanitizeDashes(fixTypos(value)).trim();
   if (!coverLetter) throw new Error('Cover letter was empty');
-  if (countWords(coverLetter) > 330) throw new Error('Cover letter exceeded its maximum length');
-  const blacklisted = findBlacklistedPhrases(coverLetter);
-  if (blacklisted.length > 0) {
-    throw new Error(`Cover letter contained a blacklisted phrase: ${blacklisted[0]}`);
-  }
+  const issues: string[] = [];
+  if (countWords(coverLetter) > 420) issues.push('full letter exceeded 420 words');
+  issues.push(...findBoundaryBlacklistedPhrases(coverLetter).map((phrase) => `blacklisted phrase "${phrase}"`));
+  if (issues.length > 0) throw new CoverLetterValidationError(issues);
   return coverLetter;
+}
+
+function normalizeComparisonText(value: string): string {
+  return value.normalize('NFKC').toLocaleLowerCase().replace(/\s+/gu, ' ').trim();
 }
 
 function parseStrictJsonObject(value: string, label: string): Record<string, unknown> {
@@ -892,7 +934,7 @@ function validateApplicationEmail(
   if (!subject || subject.length > 60) throw new Error('Application email subject was empty or exceeded 60 characters');
   if (!body || countSentences(emailContentText(body)) > 4) throw new Error('Application email body was empty or exceeded four sentences');
   if (/\[[^\]]+\]/u.test(body)) throw new Error('Application email contained a placeholder');
-  if (applicantName?.trim() && !body.includes(applicantName.trim())) {
+  if (applicantName?.trim() && !normalizeComparisonText(body).includes(normalizeComparisonText(applicantName))) {
     throw new Error('Application email signature was missing the applicant name');
   }
   return { subject, body };
@@ -912,9 +954,9 @@ function validateFollowUpEmail(
   body = sanitizeDashes(fixTypos(body)).trim();
   if (!subject || subject.length > 60) throw new Error('Follow-up email subject was empty or exceeded 60 characters');
   if (!body || contentWordCount(body) > 80) throw new Error('Follow-up email body was empty or exceeded 80 words');
-  if (parsed.recommendedDelay !== recommendedDelay) throw new Error('Follow-up email returned an invalid recommended delay');
+  if (Number(parsed.recommendedDelay) !== recommendedDelay) throw new Error('Follow-up email returned an invalid recommended delay');
   if (/\[[^\]]+\]/u.test(body)) throw new Error('Follow-up email contained a placeholder');
-  if (applicantName?.trim() && !body.includes(applicantName.trim())) {
+  if (applicantName?.trim() && !normalizeComparisonText(body).includes(normalizeComparisonText(applicantName))) {
     throw new Error('Follow-up email signature was missing the applicant name');
   }
   return { subject, body, recommendedDelay };
@@ -1055,10 +1097,11 @@ export const unifiedWriterAgent = {
 
       // Step 1+2: Extract applicant profile and parse JD in parallel — they're independent
       emit({ type: 'progress', percent: 10, message: 'Analyzing CV and job description...' });
-      const [applicantSettled, jobSettled, metricsSettled] = await Promise.allSettled([
+      const [applicantSettled, jobSettled, metricsSettled, languageSettled] = await Promise.allSettled([
         this.extractApplicantProfile(context.rawCV, context.masterCV, input.generationContext),
         this.parseJobDescription(context.jobDescription, input.generationContext),
         this.extractVerifiedMetrics(context.rawCV, context.masterCV, input.generationContext),
+        this.detectLanguage(context.jobDescription, input.generationContext),
       ]);
       // Critical: applicant and job must succeed
       if (applicantSettled.status === 'rejected') throw applicantSettled.reason;
@@ -1069,7 +1112,7 @@ export const unifiedWriterAgent = {
       context.job = jobResult.result;
       // Non-critical: metrics extraction failure is non-blocking
       context.verifiedMetrics = metricsSettled.status === 'fulfilled' ? metricsSettled.value.result : [];
-      context.detectedLanguage = await this.detectLanguage(context.jobDescription, input.generationContext);
+      context.detectedLanguage = languageSettled.status === 'fulfilled' ? languageSettled.value : 'en';
       console.log('[UsefulApply] Detected language:', context.detectedLanguage);
       console.log('[UsefulApply] Verified metrics count:', context.verifiedMetrics?.length || 0);
       
@@ -1124,13 +1167,21 @@ export const unifiedWriterAgent = {
 
       // Follow-up email depends on application email content
       emit({ type: 'progress', percent: 85, message: 'Composing follow-up email...' });
-      const followUpResult = await this.generateFollowUpEmail(context, input.generationContext);
-      context.followUpEmail = followUpResult.result;
-      const emailStepTokens: TokenUsage = {
-        input: emailResult.tokens.input + followUpResult.tokens.input,
-        output: emailResult.tokens.output + followUpResult.tokens.output,
-      };
-      emit({ type: 'step_completed', step: { id: 'email', description: 'Email + follow-up ready' }, tokens: emailStepTokens });
+      let emailStepTokens: TokenUsage = { ...emailResult.tokens };
+      let emailStepDescription = 'Email + follow-up ready';
+      try {
+        const followUpResult = await this.generateFollowUpEmail(context, input.generationContext);
+        context.followUpEmail = followUpResult.result;
+        emailStepTokens = {
+          input: emailResult.tokens.input + followUpResult.tokens.input,
+          output: emailResult.tokens.output + followUpResult.tokens.output,
+        };
+      } catch (error) {
+        console.error('[UnifiedAgent] Follow-up generation failed after the application kit completed:', error);
+        delete context.followUpEmail;
+        emailStepDescription = 'Application email ready. Follow-up unavailable';
+      }
+      emit({ type: 'step_completed', step: { id: 'email', description: emailStepDescription }, tokens: emailStepTokens });
 
       emit({ type: 'progress', percent: 100, message: 'Complete!' });
 
@@ -1208,10 +1259,11 @@ export const unifiedWriterAgent = {
       }
 
       // Run applicant extraction, JD parsing, and metrics extraction in parallel — they're independent
-      const [applicantSettled2, jobSettled2, metricsSettled2] = await Promise.allSettled([
+      const [applicantSettled2, jobSettled2, metricsSettled2, languageSettled2] = await Promise.allSettled([
         this.extractApplicantProfile(context.rawCV, context.masterCV, input.generationContext),
         this.parseJobDescription(context.jobDescription, input.generationContext),
         this.extractVerifiedMetrics(context.rawCV, context.masterCV, input.generationContext),
+        this.detectLanguage(context.jobDescription, input.generationContext),
       ]);
       if (applicantSettled2.status === 'rejected') throw applicantSettled2.reason;
       if (jobSettled2.status === 'rejected') throw jobSettled2.reason;
@@ -1220,7 +1272,7 @@ export const unifiedWriterAgent = {
       context.applicant = applicantResult.result;
       context.job = jobResult.result;
       context.verifiedMetrics = metricsSettled2.status === 'fulfilled' ? metricsSettled2.value.result : [];
-      context.detectedLanguage = await this.detectLanguage(context.jobDescription, input.generationContext);
+      context.detectedLanguage = languageSettled2.status === 'fulfilled' ? languageSettled2.value : 'en';
       const analysisTokens2: TokenUsage = {
         input: applicantResult.tokens.input + jobResult.tokens.input + (metricsSettled2.status === 'fulfilled' ? metricsSettled2.value.tokens.input : 0),
         output: applicantResult.tokens.output + jobResult.tokens.output + (metricsSettled2.status === 'fulfilled' ? metricsSettled2.value.tokens.output : 0),
@@ -1305,13 +1357,21 @@ export const unifiedWriterAgent = {
 
       // Follow-up email depends on application email content
       emit({ type: 'progress', percent: 85, message: 'Composing follow-up email...' });
-      const followUpResult2 = await this.generateFollowUpEmail(context, generationContext);
-      context.followUpEmail = followUpResult2.result;
-      const emailStepTokens2: TokenUsage = {
-        input: emailResult2.tokens.input + followUpResult2.tokens.input,
-        output: emailResult2.tokens.output + followUpResult2.tokens.output,
-      };
-      emit({ type: 'step_completed', step: { id: 'email', description: 'Email + follow-up ready' }, tokens: emailStepTokens2 });
+      let emailStepTokens2: TokenUsage = { ...emailResult2.tokens };
+      let emailStepDescription2 = 'Email + follow-up ready';
+      try {
+        const followUpResult2 = await this.generateFollowUpEmail(context, generationContext);
+        context.followUpEmail = followUpResult2.result;
+        emailStepTokens2 = {
+          input: emailResult2.tokens.input + followUpResult2.tokens.input,
+          output: emailResult2.tokens.output + followUpResult2.tokens.output,
+        };
+      } catch (error) {
+        console.error('[UnifiedAgent] Follow-up generation failed after the application kit completed:', error);
+        delete context.followUpEmail;
+        emailStepDescription2 = 'Application email ready. Follow-up unavailable';
+      }
+      emit({ type: 'step_completed', step: { id: 'email', description: emailStepDescription2 }, tokens: emailStepTokens2 });
 
       emit({ type: 'progress', percent: 100, message: 'Complete!' });
 
@@ -1366,7 +1426,7 @@ export const unifiedWriterAgent = {
         fitLevel,
         score: match?.score ?? 0,
         assessment: validateFitAssessment(response.content),
-        matchingSkills: match?.matchingSkills || [],
+        matchingSkills: match?.matchedRequirements || [],
         missingSkills: match?.missingSkills || [],
       },
       tokens,
@@ -1731,7 +1791,7 @@ export const unifiedWriterAgent = {
     if (cvData.languages.length) {
       lines.push(isGerman ? 'SPRACHEN' : 'LANGUAGES');
       for (const lang of cvData.languages) {
-        lines.push(`${lang.language}: ${lang.proficiency}`);
+        lines.push(lang.proficiency ? `${lang.language}: ${lang.proficiency}` : lang.language);
       }
       lines.push('');
     }
@@ -1798,20 +1858,37 @@ export const unifiedWriterAgent = {
 
     // ---- PROMPT CACHING: Static cover letter rules into cacheable system blocks ----
     const coverLetterSystemBlocks = buildCoverLetterSystemBlocks();
+    const basePrompt = buildCoverLetterUserPrompt(context);
 
     const response = await callModel({
       task: 'write_cover_letter',
-      prompt: buildCoverLetterUserPrompt(context),
+      prompt: basePrompt,
       systemBlocks: coverLetterSystemBlocks,
       generationContext,
     });
 
-    const tokens: TokenUsage = {
+    let tokens: TokenUsage = {
       input: response.usage.inputTokens,
       output: response.usage.outputTokens,
     };
 
-    return { result: validateCoverLetter(response.content), tokens };
+    try {
+      return { result: validateCoverLetter(response.content), tokens };
+    } catch (error) {
+      if (!(error instanceof CoverLetterValidationError)) throw error;
+      console.warn('[UnifiedAgent] Retrying cover letter after validation miss:', error.issues.join(', '));
+      const retry = await callModel({
+        task: 'write_cover_letter',
+        prompt: `${basePrompt}\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.issues.join('; ')}. Rewrite the complete letter once. Remove every named phrase and keep the full letter, including header and signature, within 420 words. Preserve every factuality rule.`,
+        systemBlocks: coverLetterSystemBlocks,
+        generationContext,
+      });
+      tokens = {
+        input: tokens.input + retry.usage.inputTokens,
+        output: tokens.output + retry.usage.outputTokens,
+      };
+      return { result: validateCoverLetter(retry.content), tokens };
+    }
   },
 
   /**

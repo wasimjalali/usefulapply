@@ -168,6 +168,61 @@ async function removeCachedContext(ownerId: string, contextId: string): Promise<
   }
 }
 
+function normalizeCachedMatch(context: MasterContext): void {
+  const rawMatch = context.match as unknown;
+  if (!rawMatch || typeof rawMatch !== 'object' || Array.isArray(rawMatch)) return;
+  const match = rawMatch as Record<string, unknown>;
+  const strings = (value: unknown): string[] => Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+    : [];
+  const sourceText = [context.rawCV, context.masterCV].filter(Boolean).join('\n');
+  const containsWholeTerm = (value: string): boolean => {
+    const normalized = value.trim().normalize('NFKC').replace(/\s+/g, ' ');
+    if (!normalized) return false;
+    const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?=$|[^\\p{L}\\p{N}])`, 'iu')
+      .test(sourceText.normalize('NFKC').replace(/\s+/g, ' '));
+  };
+  const requiredSkills = context.job?.requiredSkills ?? [];
+  const rawDetails = Array.isArray(match.details) ? match.details : [];
+  const details: NonNullable<NonNullable<MasterContext['match']>['details']> = [];
+  for (const value of rawDetails) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
+    const detail = value as Record<string, unknown>;
+    const requirement = typeof detail.requirement === 'string' ? detail.requirement.trim() : '';
+    const tier = detail.tier;
+    if (!requirement || (tier !== 1 && tier !== 2 && tier !== 3 && tier !== 'implicit' && tier !== 'missing')) continue;
+    const evidence = typeof detail.evidence === 'string' && containsWholeTerm(detail.evidence)
+      ? detail.evidence
+      : undefined;
+    details.push({
+      requirement,
+      evidence,
+      tier,
+      claimable: (tier === 1 || tier === 2) && detail.claimable === true && Boolean(evidence),
+      required: typeof detail.required === 'boolean'
+        ? detail.required
+        : requiredSkills.some((skill) => skill.trim().toLocaleLowerCase() === requirement.toLocaleLowerCase()),
+    });
+  }
+
+  const matchedRequirements = strings(match.matchedRequirements);
+  const claimableEvidence = strings(match.claimableEvidence).filter(containsWholeTerm);
+  context.match = {
+    score: typeof match.score === 'number' && Number.isFinite(match.score)
+      ? Math.max(0, Math.min(100, Math.round(match.score)))
+      : 0,
+    matchedRequirements: matchedRequirements.length > 0
+      ? matchedRequirements
+      : [...new Set(details.filter((detail) => detail.tier !== 'missing').map((detail) => detail.requirement))],
+    claimableEvidence: claimableEvidence.length > 0
+      ? claimableEvidence
+      : [...new Set(details.filter((detail) => detail.claimable && detail.evidence).map((detail) => detail.evidence!))],
+    missingSkills: strings(match.missingSkills),
+    details,
+  };
+}
+
 // Server-side artifact persistence — writes generated output to
 // application_sessions.generated_artifacts so results survive browser crashes.
 async function persistGeneratedArtifacts(
@@ -478,10 +533,11 @@ export async function POST(request: NextRequest) {
         const attributableSessionId = attributableSession?.id ?? null;
         let ownedCvSourcesPromise: Promise<{ primaryCV: string; masterCV?: string }> | null = null;
         const getOwnedCvSources = () => {
+          if (!user) return Promise.resolve({ primaryCV: '', masterCV: undefined });
           if (!ownedCvSourcesPromise) {
             ownedCvSourcesPromise = Promise.all([
-              getDocumentByType(user!.id, 'primary_cv'),
-              getDocumentByType(user!.id, 'master_cv'),
+              getDocumentByType(user.id, 'primary_cv'),
+              getDocumentByType(user.id, 'master_cv'),
             ]).then(([primaryDocument, masterDocument]) => ({
               primaryCV: primaryDocument?.raw_text?.trim() || '',
               masterCV: masterDocument?.raw_text?.trim() || undefined,
@@ -775,11 +831,24 @@ export async function POST(request: NextRequest) {
 
           // Retrieve cached context
           const cachedContext = await getCachedContext(contextOwnerId, contextId);
+          if (cachedContext) normalizeCachedMatch(cachedContext);
           
           if (!cachedContext) {
-            const { primaryCV: serverPrimaryCV, masterCV: serverMasterCV } = await getOwnedCvSources();
+            if (!user) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'error',
+                message: 'Context expired. Please run fit analysis again.',
+              })}\n\n`));
+              controller.close();
+              return;
+            }
 
-            if (!attributableSession?.job_description?.trim() || !serverPrimaryCV) {
+            const { primaryCV: serverPrimaryCV, masterCV: serverMasterCV } = await getOwnedCvSources();
+            const submittedJobDescription = jobDescription?.trim()
+              || attributableSession?.job_description?.trim()
+              || '';
+
+            if (!submittedJobDescription || !serverPrimaryCV) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
                 type: 'error', 
                 message: 'Context expired. Please run fit analysis again.' 
@@ -789,20 +858,25 @@ export async function POST(request: NextRequest) {
             } else {
               console.warn('[API_AGENT_V2] Context cache miss, rerunning with server-held sources');
 
-              if (!isAnonymous) {
-                const continuation = await reserveContinuation();
-                if (!continuation.result.success) {
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(
-                    reservationErrorPayload(continuation.result, continuation.cost),
-                  )}\n\n`));
-                  controller.close();
-                  return;
-                }
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                  type: 'credits_deducted',
-                  creditsUsed: continuation.cost,
-                })}\n\n`));
+              if (attributableSession && submittedJobDescription !== attributableSession.job_description.trim()) {
+                const updated = await updateSession(user.id, attributableSession.id, {
+                  job_description: submittedJobDescription,
+                });
+                if (updated.error) throw updated.error;
               }
+
+              const continuation = await reserveContinuation();
+              if (!continuation.result.success) {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(
+                  reservationErrorPayload(continuation.result, continuation.cost),
+                )}\n\n`));
+                controller.close();
+                return;
+              }
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'credits_deducted',
+                creditsUsed: continuation.cost,
+              })}\n\n`));
 
               const steps = getWorkflowSteps('full_optimization');
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({
@@ -813,8 +887,8 @@ export async function POST(request: NextRequest) {
 
               const eventHandler = createEventHandler((id) => getStepIndex(id));
               const result = await runJobCopilot({
-                sessionId: attributableSession.id,
-                jobDescription: attributableSession.job_description,
+                sessionId: attributableSession?.id ?? clientSessionId ?? `session-${Date.now()}`,
+                jobDescription: submittedJobDescription,
                 primaryCV: serverPrimaryCV,
                 masterCV: serverMasterCV,
                 jobPreferences,
@@ -832,6 +906,7 @@ export async function POST(request: NextRequest) {
                   coverLetter: ctx.coverLetter,
                   applicationEmail: ctx.applicationEmail,
                   followUpEmail: ctx.followUpEmail || null,
+                  detectedLanguage: ctx.detectedLanguage,
                   sourceContext: {
                     applicant: ctx.applicant,
                     verifiedMetrics: ctx.verifiedMetrics,
@@ -897,6 +972,7 @@ export async function POST(request: NextRequest) {
               coverLetter: ctx.coverLetter,
               applicationEmail: ctx.applicationEmail,
               followUpEmail: ctx.followUpEmail || null,
+              detectedLanguage: ctx.detectedLanguage,
               sourceContext: {
                 applicant: ctx.applicant,
                 verifiedMetrics: ctx.verifiedMetrics,
@@ -931,7 +1007,10 @@ export async function POST(request: NextRequest) {
         // =====================================================
         // ACTION: FULL OPTIMIZATION (legacy - runs both phases)
         // =====================================================
-        if (!jobDescription || (isAnonymous && !currentCV)) {
+        const submittedJobDescription = jobDescription?.trim()
+          || attributableSession?.job_description?.trim()
+          || '';
+        if (!submittedJobDescription || (isAnonymous && !currentCV)) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
             type: 'error', 
             message: 'Job description and CV are required' 
@@ -985,9 +1064,15 @@ export async function POST(request: NextRequest) {
         })}\n\n`));
 
         const eventHandler = createEventHandler((id) => getStepIndex(id));
+        if (user && attributableSession && submittedJobDescription !== attributableSession.job_description.trim()) {
+          const updated = await updateSession(user.id, attributableSession.id, {
+            job_description: submittedJobDescription,
+          });
+          if (updated.error) throw updated.error;
+        }
         const result = await runJobCopilot({
           sessionId: attributableSession?.id ?? `session-${Date.now()}`,
-          jobDescription: attributableSession?.job_description || jobDescription,
+          jobDescription: submittedJobDescription,
           primaryCV: fullCvSources.primaryCV,
           masterCV: fullCvSources.masterCV,
           jobPreferences,
@@ -1006,6 +1091,7 @@ export async function POST(request: NextRequest) {
             coverLetter: ctx.coverLetter,
             applicationEmail: ctx.applicationEmail,
             followUpEmail: ctx.followUpEmail || null,
+            detectedLanguage: ctx.detectedLanguage,
             sourceContext: {
               applicant: ctx.applicant,
               verifiedMetrics: ctx.verifiedMetrics,

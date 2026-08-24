@@ -193,6 +193,9 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
         assessment?: string;
       }
     | undefined;
+  const fitMatch = pendingFit?.contextData?.match as
+    | { matchedRequirements?: string[]; missingSkills?: string[] }
+    | undefined;
   const fitJob = pendingFit?.contextData?.job as { title?: string; companyName?: string } | undefined;
   const companyName = currentSession?.company || fitJob?.companyName || '';
   const jobTitle = currentSession?.jobTitle || fitJob?.title || '';
@@ -488,9 +491,8 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                 ? 'docx'
                 : 'txt',
           };
-          handleParsed(parsedCV, structured);
           if (user) {
-            await saveDocument(user.id, 'primary_cv', {
+            const saved = await saveDocument(user.id, 'primary_cv', {
               file_name: file.name,
               file_type: parsedCV.fileType,
               file_size: file.size,
@@ -499,6 +501,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
               sections: parsedCV.sections,
               structured_data: structured,
             });
+            if (saved.error) throw saved.error;
             if (structured) {
               fetch('/api/job-feed/settings/suggest', {
                 method: 'POST',
@@ -507,6 +510,9 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
               }).catch(() => {});
             }
           }
+          // A queued fit request reads the CV from the server. Advance the UI
+          // only after the signed-in user's document write is durable.
+          handleParsed(parsedCV, structured);
         } else {
           throw new Error('CV was parsed but no content was extracted. The file may be empty or image-based.');
         }
@@ -660,10 +666,18 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
     ? fitAnalysis.score
     : currentSession?.matchScore;
   const fitLevel = fitAnalysis?.fitLevel || (typeof score === 'number' ? computeFitLevel(score) : undefined);
-  const strengths = (fitAnalysis?.matchingSkills || currentSession?.matchingSkills || []).slice(0, 3);
-  const gaps = (fitAnalysis?.missingSkills || currentSession?.missingSkills || []).slice(0, 2);
-  const covered = strengths.length;
-  const totalReqs = Math.max(covered + gaps.length, covered);
+  const matchedRequirements = fitMatch?.matchedRequirements
+    || fitAnalysis?.matchingSkills
+    || currentSession?.matchingSkills
+    || [];
+  const missingRequirements = fitMatch?.missingSkills
+    || fitAnalysis?.missingSkills
+    || currentSession?.missingSkills
+    || [];
+  const strengths = matchedRequirements.slice(0, 3);
+  const gaps = missingRequirements.slice(0, 2);
+  const covered = matchedRequirements.length;
+  const totalReqs = Math.max(covered + missingRequirements.length, covered);
   const reason = typeof fitAnalysis?.assessment === 'string'
     ? fitAnalysis.assessment.split('\n')[0].replace(/\*\*|__|`/g, '').trim()
     : covered

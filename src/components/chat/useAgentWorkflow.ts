@@ -735,12 +735,27 @@ export function useAgentWorkflow(options?: {
                   if (fitWorkflowSessionId) useAppStore.getState().updateSessionById(fitWorkflowSessionId, {
                     jobTitle: existing?.jobTitle?.trim() || job.title || '',
                     company: existing?.company?.trim() || job.companyName || '',
+                    requirements: {
+                      title: job.title || '',
+                      company: job.companyName || '',
+                      hardSkills: job.requiredSkills || [],
+                      softSkills: [],
+                      experienceLevel: '',
+                      keywords: [],
+                      responsibilities: job.responsibilities || [],
+                      niceToHave: job.niceToHaveSkills || [],
+                      expectedSalary: job.expectedSalary,
+                      startDate: job.startDate,
+                      location: job.location,
+                      workType: job.workType,
+                      detectedLanguage,
+                    },
                   });
                 }
                 if (match) {
                   if (fitWorkflowSessionId) useAppStore.getState().updateSessionById(fitWorkflowSessionId, {
                     matchScore: match.score,
-                    matchingSkills: match.matchingSkills || [],
+                    matchingSkills: match.matchedRequirements || [],
                     missingSkills: match.missingSkills || [],
                   });
                 }
@@ -756,7 +771,7 @@ export function useAgentWorkflow(options?: {
                 posthog?.capture('fit_analysis_viewed', {
                   fit_score: fitAnalysis?.score,
                   fit_level: fitAnalysis?.fitLevel,
-                  matching_skills_count: fitAnalysis?.matchingSkills?.length || 0,
+                  matching_skills_count: match?.matchedRequirements?.length || fitAnalysis?.matchingSkills?.length || 0,
                   missing_skills_count: fitAnalysis?.missingSkills?.length || 0,
                   job_title: job?.title,
                   company: job?.companyName,
@@ -1002,6 +1017,7 @@ export function useAgentWorkflow(options?: {
                       startDate: ctx.job.startDate,
                       location: ctx.job.location,
                       workType: ctx.job.workType,
+                      detectedLanguage: ctx.detectedLanguage,
                     },
                     jobTitle: existing?.jobTitle?.trim() || ctx.job.title,
                     company: existing?.company?.trim() || ctx.job.companyName,
@@ -1012,14 +1028,14 @@ export function useAgentWorkflow(options?: {
                   if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
                     gaps: {
                       matchScore: ctx.match.score || 0,
-                      matchingSkills: ctx.match.matchingSkills || [],
+                      matchingSkills: ctx.match.matchedRequirements || [],
                       missingSkills: ctx.match.missingSkills || [],
                       matchingExperience: [],
                       missingExperience: [],
                       suggestions: [],
                     },
                     matchScore: ctx.match.score,
-                    matchingSkills: ctx.match.matchingSkills || [],
+                    matchingSkills: ctx.match.matchedRequirements || [],
                     missingSkills: ctx.match.missingSkills || [],
                   });
                 }
@@ -1080,13 +1096,13 @@ export function useAgentWorkflow(options?: {
                   });
                 }
 
-                if (ctx?.followUpEmail) {
-                  if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
-                    followUpEmail: {
+                if (workflowSessionId) {
+                  useAppStore.getState().updateSessionById(workflowSessionId, {
+                    followUpEmail: ctx?.followUpEmail ? {
                       subject: ctx.followUpEmail.subject,
                       body: ctx.followUpEmail.body,
                       recommendedDelay: ctx.followUpEmail.recommendedDelay || 5,
-                    },
+                    } : null,
                   });
                 }
                 

@@ -30,6 +30,37 @@ const LANGUAGE_LOCALES: Record<string, string> = {
   nl: 'nl-NL',
 };
 
+function normalizeMembershipText(value: string): string {
+  return value.normalize('NFKC').toLocaleLowerCase().replace(/\s+/gu, ' ').trim();
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function sourceContainsEvidence(source: string, evidence: string): boolean {
+  const haystack = normalizeMembershipText(source);
+  const needle = normalizeMembershipText(evidence);
+  if (!needle) return false;
+  return new RegExp(`(?:^|[^\\p{L}\\p{N}])${escapeRegExp(needle)}(?=$|[^\\p{L}\\p{N}])`, 'u').test(haystack);
+}
+
+function languageEvidenceIsSupported(source: string, evidence: string): boolean {
+  if (sourceContainsEvidence(source, evidence)) return true;
+  const parts = evidence.trim().split(/\s+/u);
+  return parts.slice(1).some((_, index) => {
+    const splitAt = index + 1;
+    return sourceContainsEvidence(source, parts.slice(0, splitAt).join(' '))
+      && sourceContainsEvidence(source, parts.slice(splitAt).join(' '));
+  });
+}
+
+function certificationEvidenceIsSupported(source: string, evidence: string): boolean {
+  if (sourceContainsEvidence(source, evidence)) return true;
+  const match = evidence.match(/^(.*?)\s*\((.*?)\)$/);
+  return Boolean(match && sourceContainsEvidence(source, match[1]) && sourceContainsEvidence(source, match[2]));
+}
+
 /**
  * Build the cover letter system prompt blocks (cacheable)
  * These are ~1,500+ tokens of static content identical across every call.
@@ -171,10 +202,11 @@ LANGUAGE DETECTION:
    - Reference the inferred challenge in your opening paragraph
    - Connect the challenge to the applicant's relevant experience
 
-3. KEYWORD MIRRORING: Include 3-5 EXACT phrases from the job description in the cover letter body.
+3. KEYWORD MIRRORING: Include 3-5 exact role, domain or employer-context phrases from the job description in the cover letter body.
    - This helps ATS matching AND shows the recruiter you read the posting
    - Integrate naturally, never stuff keywords awkwardly
    - Pull the phrases directly from the JD text each time — do not reuse phrases from prior letters
+   - JD wording may be mirrored for role, domain and employer context only. Use it as applicant skill or fact wording only when the same claim is explicitly supported by a source CV
 
 4. TONE MATCHING:
    - JD uses "you'll", "we're", casual language → write conversationally
@@ -325,7 +357,7 @@ INSTRUCTIONS:
 3. Keep UNDER 250 words in the body (excluding header and signature) — brevity is critical
 4. CRITICAL: Every claim, skill, tool, platform, and metric MUST exist in EITHER the Primary CV or Master CV
 5. If the job requires skills not in either CV, show TRANSFERABLE skills instead — NEVER claim missing skills
-6. Include 3-5 exact keyword phrases from the job description
+6. Mirror 3-5 exact JD phrases only for role, domain or employer context. Use JD wording as applicant skill or fact wording only when the same claim is explicitly supported by a source CV.
 7. NEVER omit the signature. A cover letter without a signature is incomplete.
 
 <self_verification>
@@ -407,13 +439,21 @@ ${context.verifiedMetrics && context.verifiedMetrics.length > 0
 
 ${(() => {
   const sourceDocuments = [rawCV, masterCV].filter(Boolean).join('\n');
-  const verifiedSkills = [
-    ...(applicant?.skills || []),
-    ...(applicant?.tools || []),
-    ...(applicant?.languages || []),
-  ]
-    .map((s) => (typeof s === 'string' ? s.trim() : ''))
-    .filter((skill) => Boolean(skill) && sourceDocuments.includes(skill));
+  const directEvidence = [...(applicant?.skills || []), ...(applicant?.tools || [])]
+    .map((entry) => typeof entry === 'string' ? entry.trim() : '')
+    .filter((entry) => Boolean(entry) && sourceContainsEvidence(sourceDocuments, entry));
+  const languageEvidence = (applicant?.languages || [])
+    .map((entry) => typeof entry === 'string' ? entry.trim() : '')
+    .filter((entry) => Boolean(entry) && languageEvidenceIsSupported(sourceDocuments, entry));
+  const certificationEvidence = (applicant?.certifications || [])
+    .map((entry) => typeof entry === 'string' ? entry.trim() : '')
+    .filter((entry) => Boolean(entry) && certificationEvidenceIsSupported(sourceDocuments, entry));
+  const verifiedSkills = [...new Set([
+    ...directEvidence,
+    ...languageEvidence,
+    ...certificationEvidence,
+    ...(match?.claimableEvidence || []),
+  ])];
 
   const hasAllowList = verifiedSkills.length > 0;
   const hasBlockList = match && match.missingSkills.length > 0;
@@ -422,7 +462,7 @@ ${(() => {
 
   const allowBlock = hasAllowList
     ? `SKILLS YOU MAY CLAIM (allow-list, verified from the applicant's CV):
-${verifiedSkills.join(', ')}
+${sanitizeAdText(verifiedSkills.join(', '))}
 
 `
     : '';

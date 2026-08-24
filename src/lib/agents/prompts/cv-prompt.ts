@@ -23,11 +23,12 @@ const LANGUAGE_NAMES: Record<SupportedLanguage, string> = {
 /**
  * Build the verified skill list section for the CV prompt
  *
- * matchingSkills contains literal candidate-side evidence copied from a
- * server-held CV. missingSkills is employer-authored JD wording.
+ * claimableEvidence contains candidate-side evidence from server-held CVs.
+ * missingSkills is employer-authored JD wording.
  */
 export function buildVerifiedSkillList(match: MasterContext['match']): string {
   if (!match) return '';
+  const claimableEvidence = match.claimableEvidence || [];
 
   return `
 === VERIFIED SKILL LIST (BINDING — DO NOT OVERRIDE) ===
@@ -35,7 +36,7 @@ export function buildVerifiedSkillList(match: MasterContext['match']): string {
 The following candidate-side phrases have been copied literally from the applicant's server-held CV documents and match the job description. You may prioritize and reposition these exact documented skills. Do not replace them with broader JD wording:
 
 VERIFIED MATCHING SKILLS:
-${match.matchingSkills.length > 0 ? sanitizeAdText(match.matchingSkills.join(', ')) : '(No matching skills found — generate CV using applicant\'s actual skills without JD keyword optimization)'}
+${claimableEvidence.length > 0 ? sanitizeAdText(claimableEvidence.join(', ')) : '(No claimable matching evidence found. Generate the CV using only the applicant\'s source documents)'}
 
 The following skills are REQUIRED by the job but NOT FOUND in any applicant document. You must NOT include these in the CV, the Professional Summary, or the Skills section:
 
@@ -502,6 +503,7 @@ Do NOT use creative or unconventional headers.
    - If YES: Reposition that documented skill to be more prominent. Keep the candidate-side wording from the source CV
    - If NO: Do NOT add the skill. Leave it out. The fit assessment already flagged it as a gap.
    - Keep acronyms and expanded forms exactly as the applicant documented them
+   - JD wording may be mirrored for role, domain and employer context only. Use it as applicant skill or fact wording only when the same claim is explicitly supported by a source CV
 
 3. BULLET FORMAT (Action → Impact):
    - Every bullet MUST start with a strong action verb
@@ -737,8 +739,8 @@ export function buildCVSectionRewriteUserPrompt(
   const verifiedMetricsList = buildVerifiedMetricsList(context.verifiedMetrics);
 
   const beforeRendered = Array.isArray(section.before)
-    ? section.before.map((item, i) => `${i + 1}. ${item}`).join('\n')
-    : section.before;
+    ? section.before.map((item, i) => `${i + 1}. ${sanitizeAdText(item)}`).join('\n')
+    : sanitizeAdText(section.before);
 
   return `=== SECTION REWRITE SCOPE ===
 

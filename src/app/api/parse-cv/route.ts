@@ -18,10 +18,14 @@ import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
 import { getObject } from '@/storage/r2';
-import { extractOriginalHeaders, generateLocalizedHeaders } from '@/lib/cv-parser/section-splitter';
+import {
+  extractOriginalHeaders,
+  generateLocalizedHeaders,
+  inferCvLanguageFromHeaders,
+} from '@/lib/cv-parser/section-splitter';
 import { callAnthropic, parseDocumentAsCV } from '@/lib/models/anthropic';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
-import { detectLanguage, isSupportedLanguage, type SupportedLanguage } from '@/lib/utils/language-detector';
+import { detectLanguageResult, isSupportedLanguage, type SupportedLanguage } from '@/lib/utils/language-detector';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -339,15 +343,6 @@ export async function POST(request: NextRequest) {
     structuredCV.sourceFileName = originalFileName;
     structuredCV.sourceFormat = (fileExt === '.pdf') ? 'pdf' : (fileExt === '.docx') ? 'docx' : 'txt';
 
-    // The Claude parser already sees the full source document, so use its
-    // explicit, allow-listed language when available. The shared Workers AI
-    // classifier handles missing or invalid parse output without blocking CV parsing.
-    const detectedLang = parsedDocumentLanguage ?? await detectLanguage(
-      rawText,
-      { ...generationContext, operation: 'parse_cv_language_classification' },
-    );
-    const { sectionHeaders: localizedSectionHeaders, localizedStrings } = generateLocalizedHeaders(detectedLang);
-
     // Prefer original text headers when we have extracted text; otherwise use
     // generated localized headers so PDF/DOCX templates do not fall back to English.
     const rawTextHasOriginalHeaders = parserUsed === 'ai-extracted-text' || (fileExt !== '.pdf' && fileExt !== '.docx');
@@ -355,6 +350,23 @@ export async function POST(request: NextRequest) {
       ...(structuredCV.sectionHeaders ?? {}),
       ...(rawTextHasOriginalHeaders ? extractOriginalHeaders(rawText) : {}),
     };
+
+    // The Claude parser already sees the full source document, so use its
+    // explicit, allow-listed language when available. If Workers AI fails safe
+    // to English, recognised source headers are stronger evidence than the
+    // fallback and prevent a mixed-language template.
+    const classified = parsedDocumentLanguage
+      ? { language: parsedDocumentLanguage, usedFallback: false }
+      : await detectLanguageResult(
+          rawText,
+          { ...generationContext, operation: 'parse_cv_language_classification' },
+        );
+    const headerLanguage = inferCvLanguageFromHeaders(originalHeaders);
+    const detectedLang = classified.usedFallback && headerLanguage !== 'en'
+      ? headerLanguage
+      : classified.language;
+    const { sectionHeaders: localizedSectionHeaders, localizedStrings } = generateLocalizedHeaders(detectedLang);
+
     structuredCV.sectionHeaders = { ...localizedSectionHeaders, ...originalHeaders };
     structuredCV.localizedStrings = localizedStrings;
     structuredCV.settings.language = detectedLang;

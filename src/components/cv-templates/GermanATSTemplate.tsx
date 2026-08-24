@@ -321,7 +321,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                       >
                         <span style={{ flexShrink: 0 }}>•</span>
                         <span style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
-                          <strong>{lang.language}:</strong> {lang.proficiency}
+                          <strong>{lang.language}{lang.proficiency ? ':' : ''}</strong>{lang.proficiency ? ` ${lang.proficiency}` : ''}
                         </span>
                       </div>
                     ))}

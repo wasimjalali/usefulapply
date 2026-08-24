@@ -59,10 +59,34 @@ function optionalString(value: unknown, label: string): string | undefined {
 }
 
 function requireStringArray(value: unknown, label: string): string[] {
-  if (!Array.isArray(value) || !value.every((entry) => typeof entry === 'string')) {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) {
     throw new Error(`${label} must be an array of strings`);
   }
-  return value.map((entry) => entry.trim()).filter(Boolean);
+  return value.flatMap((entry, index) => {
+    if (typeof entry !== 'string') {
+      console.warn(`[UnifiedAgent] Dropped invalid ${label} item ${index + 1}`);
+      return [];
+    }
+    const trimmed = entry.trim();
+    return trimmed ? [trimmed] : [];
+  });
+}
+
+function normalizeMembershipText(value: string): string {
+  return value.normalize('NFKC').toLocaleLowerCase().replace(/\s+/gu, ' ').trim();
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Exact phrase membership with normalized whitespace and token boundaries. */
+function sourceContainsEvidence(source: string, evidence: string): boolean {
+  const haystack = normalizeMembershipText(source);
+  const needle = normalizeMembershipText(evidence);
+  if (!needle) return false;
+  return new RegExp(`(?:^|[^\\p{L}\\p{N}])${escapeRegExp(needle)}(?=$|[^\\p{L}\\p{N}])`, 'u').test(haystack);
 }
 
 function validateApplicantProfile(
@@ -73,46 +97,55 @@ function validateApplicantProfile(
     throw new Error('Applicant profile was not an object');
   }
   const profile = value as Record<string, unknown>;
-  const sourceLower = sourceDocuments.toLocaleLowerCase();
-  const sourceLiteral = (claim: string, label: string, allowEmpty = false): string => {
+  const sourceLiteral = (claim: string, label: string, allowEmpty = false): string | undefined => {
     const trimmed = claim.trim();
     if (!trimmed && allowEmpty) return '';
-    const index = sourceLower.indexOf(trimmed.toLocaleLowerCase());
-    if (index < 0) throw new Error(`${label} was not a literal source-CV substring`);
-    return sourceDocuments.slice(index, index + trimmed.length);
+    if (sourceContainsEvidence(sourceDocuments, trimmed)) return trimmed;
+    console.warn(`[UnifiedAgent] Dropped unsupported applicant extraction item: ${label}`);
+    return undefined;
   };
-  const requiredLiteral = (claim: unknown, label: string, allowEmpty = false): string => (
-    sourceLiteral(requireString(claim, label, allowEmpty), label, allowEmpty)
-  );
+  const optionalRequiredLiteral = (claim: unknown, label: string, allowEmpty = false): string | undefined => {
+    if (claim === undefined || claim === null || claim === '') return allowEmpty ? '' : undefined;
+    return sourceLiteral(requireString(claim, label, allowEmpty), label, allowEmpty);
+  };
   const optionalLiteral = (claim: unknown, label: string): string | undefined => {
     const text = optionalString(claim, label);
     return text ? sourceLiteral(text, label) : undefined;
   };
   const literalArray = (claims: unknown, label: string): string[] => (
-    requireStringArray(claims, label).map((claim, index) => sourceLiteral(claim, `${label} ${index + 1}`))
+    requireStringArray(claims, label)
+      .map((claim, index) => sourceLiteral(claim, `${label} ${index + 1}`))
+      .filter((claim): claim is string => claim !== undefined)
   );
   const experiencesValue = profile.experiences;
-  if (!Array.isArray(experiencesValue)) {
+  if (experiencesValue !== undefined && experiencesValue !== null && !Array.isArray(experiencesValue)) {
     throw new Error('Applicant experiences must be an array');
   }
 
-  const experiences = experiencesValue.map((entry, index) => {
+  const experiences = (experiencesValue || []).flatMap((entry, index) => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
-      throw new Error(`Applicant experience ${index + 1} was not an object`);
+      console.warn(`[UnifiedAgent] Dropped invalid applicant experience ${index + 1}`);
+      return [];
     }
     const experience = entry as Record<string, unknown>;
-    return {
-      company: requiredLiteral(experience.company, `Applicant experience ${index + 1} company`),
-      title: requiredLiteral(experience.title, `Applicant experience ${index + 1} title`),
+    const company = optionalRequiredLiteral(experience.company, `Applicant experience ${index + 1} company`);
+    const title = optionalRequiredLiteral(experience.title, `Applicant experience ${index + 1} title`);
+    if (!company || !title) {
+      console.warn(`[UnifiedAgent] Dropped applicant experience ${index + 1} without supported company and title`);
+      return [];
+    }
+    return [{
+      company,
+      title,
       startDate: optionalLiteral(experience.startDate, `Applicant experience ${index + 1} startDate`),
       endDate: optionalLiteral(experience.endDate, `Applicant experience ${index + 1} endDate`),
       bullets: literalArray(experience.bullets, `Applicant experience ${index + 1} bullets`),
-    };
+    }];
   });
 
   const applicant = {
-    name: requiredLiteral(profile.name, 'Applicant name'),
-    email: profile.email === null ? '' : requiredLiteral(profile.email, 'Applicant email', true),
+    name: optionalRequiredLiteral(profile.name, 'Applicant name') || 'Unknown',
+    email: optionalRequiredLiteral(profile.email, 'Applicant email', true) || '',
     phone: optionalLiteral(profile.phone, 'Applicant phone'),
     address: optionalLiteral(profile.address, 'Applicant address'),
     headline: optionalLiteral(profile.headline, 'Applicant headline'),
@@ -331,7 +364,7 @@ export async function computeSkillMatch(
   const zeroTokens: TokenUsage = { input: 0, output: 0 };
   let matcherTokens = zeroTokens;
   if (!applicant || !job) {
-    return { result: { score: 0, matchingSkills: [], missingSkills: [], details: [] }, tokens: zeroTokens };
+    return { result: { score: 0, matchedRequirements: [], claimableEvidence: [], missingSkills: [], details: [] }, tokens: zeroTokens };
   }
 
   const toStr = (s: unknown): string => {
@@ -351,8 +384,8 @@ export async function computeSkillMatch(
   const requiredSkills = (job.requiredSkills || []).map(toStr).filter(Boolean);
   const niceToHaveSkills = (job.niceToHaveSkills || []).map(toStr).filter(Boolean);
   
-  if (requiredSkills.length === 0) {
-    return { result: { score: 0, matchingSkills: [], missingSkills: [], details: [] }, tokens: zeroTokens };
+  if (requiredSkills.length === 0 && niceToHaveSkills.length === 0) {
+    return { result: { score: 0, matchedRequirements: [], claimableEvidence: [], missingSkills: [], details: [] }, tokens: zeroTokens };
   }
 
   const sourceDocuments = [primaryCVText, masterCVText].filter(Boolean).join('\n');
@@ -533,13 +566,11 @@ Return ONLY this JSON:
     {"requirement": "soft skill", "tier": "implicit", "claimable": false},
     {"requirement": "missing tool", "tier": "missing", "claimable": false}
   ],
-  "missing": ["skill3", "skill4"],
   "score": 35
 }
 
 Where:
 - "details" = one entry per required and nice-to-have item. Only Tier 1 and Tier 2 entries may be claimable, and only when evidence is copied literally from a source CV.
-- "missing" = ALL required AND nice-to-have skills the candidate LACKS. List EVERY individual tool/technology separately — never collapse into categories.
 - "score" = fit percentage calculated using the FIT SCORE CALCULATION METHOD above (not a simple ratio)
 
 Return ONLY valid JSON, no explanation.`,
@@ -562,29 +593,52 @@ Return ONLY valid JSON, no explanation.`,
 
     const parsed = JSON.parse(jsonContent) as Record<string, unknown>;
     const details: NonNullable<MasterContext['match']>['details'] = [];
-    const matchingSkills: string[] = [];
+    const claimableEvidence: string[] = [];
+    const matchedRequirements: string[] = [];
+    const allRequirements = [...requiredSkills, ...niceToHaveSkills];
+    const requirementByKey = new Map(allRequirements.map((requirement) => [normalizeMembershipText(requirement), requirement]));
+    const requiredKeys = new Set(requiredSkills.map(normalizeMembershipText));
+    const seenRequirements = new Set<string>();
     if (!Array.isArray(parsed.details)) {
       throw new Error('Skill matcher returned no details array');
     }
     for (const value of parsed.details) {
       if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
       const detail = value as Record<string, unknown>;
-      const requirement = toStr(detail.requirement);
-      if (!requirement) continue;
+      const requirementKey = normalizeMembershipText(toStr(detail.requirement));
+      const requirement = requirementByKey.get(requirementKey);
+      if (!requirement || seenRequirements.has(requirementKey)) continue;
       const tier = detail.tier;
       if (tier !== 1 && tier !== 2 && tier !== 3 && tier !== 'implicit' && tier !== 'missing') continue;
       const evidence = toStr(detail.evidence);
+      const supportedEvidence = evidence && sourceContainsEvidence(sourceDocuments, evidence)
+        ? evidence
+        : undefined;
       const claimable = (tier === 1 || tier === 2)
         && detail.claimable === true
-        && Boolean(evidence)
-        && sourceDocuments.includes(evidence);
+        && Boolean(supportedEvidence);
+      seenRequirements.add(requirementKey);
       details.push({
         requirement,
-        ...(evidence && sourceDocuments.includes(evidence) ? { evidence } : {}),
+        ...(supportedEvidence ? { evidence: supportedEvidence } : {}),
         tier,
         claimable,
+        required: requiredKeys.has(requirementKey),
       });
-      if (claimable && !matchingSkills.includes(evidence)) matchingSkills.push(evidence);
+      if (tier !== 'missing' && !matchedRequirements.includes(requirement)) matchedRequirements.push(requirement);
+      if (claimable && supportedEvidence && !claimableEvidence.includes(supportedEvidence)) {
+        claimableEvidence.push(supportedEvidence);
+      }
+    }
+    for (const [requirementKey, requirement] of requirementByKey) {
+      if (seenRequirements.has(requirementKey)) continue;
+      console.warn(`[UsefulApply] Skill matcher omitted requirement, treating it as missing: ${requirement}`);
+      details.push({
+        requirement,
+        tier: 'missing',
+        claimable: false,
+        required: requiredKeys.has(requirementKey),
+      });
     }
     const missingSkills = details
       .filter((detail) => detail.tier === 'missing')
@@ -595,20 +649,29 @@ Return ONLY valid JSON, no explanation.`,
       const llmScore = Math.max(0, Math.min(100, Math.round(parsed.score)));
       // Sanity check: if LLM score deviates >40 points from the actual skill ratio, blend them
       // (prevents hallucinated 95% when only 1/10 skills match)
-      const matchedRequirements = details.filter((detail) => detail.tier !== 'missing').length;
+      const matchedRequiredCount = details.filter((detail) => detail.required && detail.tier !== 'missing').length;
       const actualRatio = requiredSkills.length > 0
-        ? Math.round((Math.min(matchedRequirements, requiredSkills.length) / requiredSkills.length) * 100)
+        ? Math.round((matchedRequiredCount / requiredSkills.length) * 100)
         : llmScore;
       score = Math.abs(llmScore - actualRatio) > 40
         ? Math.round((llmScore + actualRatio) / 2)
         : llmScore;
     } else {
-      const matchedRequirements = details.filter((detail) => detail.tier !== 'missing').length;
-      score = requiredSkills.length > 0 ? Math.round((Math.min(matchedRequirements, requiredSkills.length) / requiredSkills.length) * 100) : 0;
+      const matchedRequiredCount = details.filter((detail) => detail.required && detail.tier !== 'missing').length;
+      score = requiredSkills.length > 0 ? Math.round((matchedRequiredCount / requiredSkills.length) * 100) : 0;
     }
 
-    console.log(`[UsefulApply] LLM skill match: ${score}% (${matchingSkills.length} matching, ${missingSkills.length} missing)`);
-    return { result: { score, matchingSkills, missingSkills, details }, tokens: matcherTokens };
+    console.log(`[UsefulApply] LLM skill match: ${score}% (${matchedRequirements.length} requirements matched, ${claimableEvidence.length} claimable evidence items, ${missingSkills.length} missing)`);
+    return {
+      result: {
+        score,
+        matchedRequirements,
+        claimableEvidence,
+        missingSkills,
+        details,
+      },
+      tokens: matcherTokens,
+    };
 
   } catch (error) {
     console.error('[UsefulApply] LLM skill matching failed:', error);
@@ -690,7 +753,7 @@ Return ONLY the JSON array. No explanation.`,
       const metrics = arr
         .filter((metric: unknown): metric is string => typeof metric === 'string')
         .map((metric) => metric.trim())
-        .filter((metric) => Boolean(metric) && combinedCV.includes(metric));
+        .filter((metric) => Boolean(metric) && sourceContainsEvidence(combinedCV, metric));
       console.log(`[UsefulApply] Extracted ${metrics.length} verified metrics from source CVs`);
       return { result: metrics, tokens };
     }
