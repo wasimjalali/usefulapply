@@ -415,8 +415,11 @@ export function useAgentWorkflow(options?: {
   ) => {
     setIsTyping(true);
     // The reply lands asynchronously; effects that touch the open application
-    // check this before applying.
-    const startedIn = currentSession?.id ?? null;
+    // check this before applying. Read the live store, not the render closure:
+    // on a new conversation handleSend creates the session and calls this
+    // synchronously, so the closure still holds the previous (null) session
+    // and every effect in the reply would be dropped as "not still here".
+    const startedIn = useSessionStore.getState().currentSession?.id ?? null;
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
