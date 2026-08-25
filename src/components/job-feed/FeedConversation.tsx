@@ -596,6 +596,7 @@ export function FeedConversation() {
         await new Promise<void>((resolve) => {
           requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
         });
+        await new Promise((resolve) => window.setTimeout(resolve, 1400));
         await completeSetup(draft);
         return;
       }
