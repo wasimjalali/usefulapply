@@ -52,6 +52,12 @@ body{font-family:ui-sans-serif,system-ui,sans-serif,"Apple Color Emoji","Segoe U
        background:var(--cream-100);transform-origin:center center}
 #cam{position:absolute;inset:0;transform-origin:960px 540px}
 #app{position:absolute;inset:0;overflow:hidden;background:var(--cream-100)}
+/* Stills capture (?stills): zoom the product UI in this file so type,
+   chips and buttons read larger, then size the stage so the whole
+   1920 dashboard still fits. The live reel iframe is unchanged. */
+html.stills{--still-zoom:1.2}
+html.stills #stage{width:calc(1920px * var(--still-zoom));height:calc(1080px * var(--still-zoom))}
+html.stills #app{inset:auto;top:0;left:0;width:1920px;height:1080px;zoom:var(--still-zoom)}
 
 /* Scenes: every move between scenes is directed. rise for bookends and
    chapter cards, push for forward moves through the app, settle where a
@@ -2003,12 +2009,16 @@ function play() {
    A recording window is rarely exactly 16:9, and a 1px letterbox
    hairline is worse than losing a pixel of margin. Within 3% of
    16:9 the stage covers the window; past that it fits inside. */
+const qs = new URLSearchParams(location.search);
+if (qs.has('stills')) document.documentElement.classList.add('stills');
 const stage = document.getElementById('stage');
 function fitStage() {
-  const cover = Math.abs((innerWidth / innerHeight) / (16 / 9) - 1) <= 0.03;
+  const w = stage.offsetWidth || 1920;
+  const h = stage.offsetHeight || 1080;
+  const cover = Math.abs((innerWidth / innerHeight) / (w / h) - 1) <= 0.03;
   const s = cover
-    ? Math.max(innerWidth / 1920, innerHeight / 1080)
-    : Math.min(innerWidth / 1920, innerHeight / 1080);
+    ? Math.max(innerWidth / w, innerHeight / h)
+    : Math.min(innerWidth / w, innerHeight / h);
   stage.style.transform = `translate(-50%, -50%) scale(${s})`;
 }
 addEventListener('resize', fitStage); fitStage();
@@ -2022,7 +2032,7 @@ addEventListener('keydown', (e) => {
   if (e.key === 'r' || e.key === 'R') hud.classList.toggle('hide');
   if (e.key === ' ') { e.preventDefault(); play(); }
 });
-if (new URLSearchParams(location.search).has('rec')) hud.classList.add('hide');
+if (qs.has('rec')) hud.classList.add('hide');
 reset();
 </script>
 </body>

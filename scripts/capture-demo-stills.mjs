@@ -1,8 +1,9 @@
-// Recapture the four landing stills from the product reel at 2x
-// (3840x2160), then encode sharp WebP. Run with the Next dev server up:
+// Recapture the four landing stills from the product reel. The demo
+// itself zooms to 120% via ?stills (see useful-apply-reel.html); this
+// script just seeks and shoots the full dashboard. Run with Next up:
 //   node scripts/capture-demo-stills.mjs
 import { spawn } from 'node:child_process';
-import { mkdtemp, rm, stat } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,18 +11,19 @@ import sharp from 'sharp';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const PAGE = 'http://localhost:3000/demo/useful-apply-reel.html?rec';
+const ZOOM = 1.2;
+const VIEW_W = Math.round(1920 * ZOOM);
+const VIEW_H = Math.round(1080 * ZOOM);
+const PAGE = 'http://localhost:3000/demo/useful-apply-reel.html?rec&stills';
 const OUT = join(ROOT, 'public/images/demo');
 
 // Played-timeline ms (CUES already divide by --rate). Frames sit on a
 // settled product screen, away from click/camera windows, cursor hidden.
 const STILLS = [
-  // Crops are 2x pixels on the 1920x1080 stage. Each still is the one pane
-  // that moment is about, so the landing walkthrough stays readable at 1280.
-  { name: 'still-find', ms: 11500, crop: { left: 1950, top: 0, width: 1890, height: 980 } },
-  { name: 'still-fit', ms: 20500, crop: { left: 470, top: 220, width: 1460, height: 920 } },
-  { name: 'still-kit', ms: 35000, crop: { left: 1950, top: 0, width: 1890, height: 1040 } },
-  { name: 'still-track', ms: 57500, crop: { left: 1568, top: 0, width: 2272, height: 1100 } },
+  { name: 'still-find', ms: 11500 },
+  { name: 'still-fit', ms: 20500 },
+  { name: 'still-kit', ms: 35000 },
+  { name: 'still-track', ms: 57500 },
 ];
 
 class Cdp {
@@ -66,7 +68,7 @@ async function launch() {
     '--autoplay-policy=no-user-gesture-required',
     '--remote-debugging-port=0',
     `--user-data-dir=${profile}`,
-    '--window-size=1920,1080',
+    `--window-size=${VIEW_W},${VIEW_H}`,
     'about:blank',
   ], { stdio: ['ignore', 'ignore', 'pipe'] });
 
@@ -96,8 +98,8 @@ async function launch() {
   await send('Page.enable');
   await send('Runtime.enable');
   await send('Emulation.setDeviceMetricsOverride', {
-    width: 1920,
-    height: 1080,
+    width: VIEW_W,
+    height: VIEW_H,
     deviceScaleFactor: 2,
     mobile: false,
   });
@@ -114,6 +116,7 @@ async function launch() {
 
 const page = await launch();
 try {
+  await mkdir(OUT, { recursive: true });
   await page.send('Page.navigate', { url: PAGE });
   await page.send('Runtime.evaluate', {
     expression: `new Promise((r) => {
@@ -145,7 +148,7 @@ try {
       expression: `new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))`,
       awaitPromise: true,
     });
-    await new Promise((r) => setTimeout(r, 120));
+    await new Promise((r) => setTimeout(r, 160));
     const shot = await page.send('Page.captureScreenshot', {
       format: 'png',
       fromSurface: true,
@@ -154,12 +157,11 @@ try {
     const meta = await sharp(png).metadata();
     const dest = join(OUT, `${still.name}.webp`);
     await sharp(png)
-      .extract(still.crop)
       .webp({ quality: 90, effort: 6, smartSubsample: false, lossless: true })
       .toFile(dest);
     const { size } = await stat(dest);
     console.log(
-      `${still.name}  png ${meta.width}x${meta.height}  webp ${(size / 1024).toFixed(0)}KB  q90`
+      `${still.name}  png ${meta.width}x${meta.height}  webp ${(size / 1024).toFixed(0)}KB`
     );
   }
 } finally {
