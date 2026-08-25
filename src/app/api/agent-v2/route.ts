@@ -733,6 +733,25 @@ export async function POST(request: NextRequest) {
               await captureReservationSafe({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
               activeReservationKey = null;
             }
+
+            try {
+              const posthog = getPostHogServer();
+              const fit = ctx.fitAnalysis;
+              posthog.capture({
+                distinctId,
+                event: 'fit_analysis_viewed',
+                properties: {
+                  fit_score: fit?.score,
+                  fit_level: fit?.fitLevel,
+                  matching_skills_count: ctx.match?.matchedRequirements?.length || fit?.matchingSkills?.length || 0,
+                  missing_skills_count: fit?.missingSkills?.length || ctx.match?.missingSkills?.length || 0,
+                  job_title: ctx.job?.title,
+                  company: ctx.job?.companyName,
+                },
+              });
+              await posthog.flush();
+            } catch { /* ignore PostHog errors */ }
+
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'fit_analysis_complete',
               contextId: fitContextId,
