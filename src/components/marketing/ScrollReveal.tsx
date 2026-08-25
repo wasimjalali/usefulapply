@@ -1,7 +1,7 @@
 'use client';
 
 import { useInView } from '@/hooks/useInView';
-import { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 interface ScrollRevealProps {
   children: ReactNode;
@@ -42,6 +42,7 @@ export function ScrollReveal({
     <div
       ref={ref}
       className={className}
+      data-inview={isInView ? 'true' : 'false'}
       style={{
         opacity: isInView ? 1 : 0,
         transform: isInView ? 'none' : getTransform(),

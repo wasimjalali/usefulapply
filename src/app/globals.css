@@ -527,6 +527,119 @@ select:focus-visible {
 .animate-conic-sweep { animation: conic-sweep 90s linear infinite; will-change: transform; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   SCROLL-DRIVEN MOTION (landing)
+   Progress-linked reveals: the element animates with scroll position, both
+   directions, like a product page walkthrough. Where the browser lacks
+   `animation-timeline: view()` the element renders static and the
+   ScrollReveal wrapper remains the only reveal.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@supports (animation-timeline: view()) {
+  .scroll-zoom {
+    animation: scroll-zoom-in linear both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 42%;
+  }
+  .scroll-rise {
+    animation: scroll-rise-in linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 30%;
+  }
+  /* Late range: starts deeper into the entry and finishes later, so stacked
+     lines in a full-bleed band cascade instead of moving in lockstep. */
+  .scroll-rise-late {
+    animation: scroll-rise-in linear both;
+    animation-timeline: view();
+    animation-range: entry 12% cover 42%;
+  }
+  /* Settle: a large statement scales down into place as it enters. Reserved
+     for one oversized headline per page (the final CTA). */
+  .scroll-settle {
+    animation: scroll-settle-in linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 90%;
+  }
+  /* Directional slides for the product walkthrough. Each still enters from
+     a different edge as it scrolls into view. Transform + opacity only. */
+  .scroll-slide-from-left {
+    animation: scroll-slide-from-left linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 42%;
+  }
+  .scroll-slide-from-right {
+    animation: scroll-slide-from-right linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 42%;
+  }
+  .scroll-slide-from-top {
+    animation: scroll-slide-from-top linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 42%;
+  }
+  .scroll-slide-from-bottom {
+    animation: scroll-slide-from-bottom linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 42%;
+  }
+}
+@keyframes scroll-zoom-in {
+  from { opacity: 0.25; transform: scale(0.93) translateY(32px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes scroll-rise-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes scroll-settle-in {
+  from { opacity: 0; transform: scale(0.94) translateY(20px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes scroll-slide-from-left {
+  from { opacity: 0; transform: translateX(-72px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes scroll-slide-from-right {
+  from { opacity: 0; transform: translateX(72px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes scroll-slide-from-top {
+  from { opacity: 0; transform: translateY(-64px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes scroll-slide-from-bottom {
+  from { opacity: 0; transform: translateY(64px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Staggered child reveal, triggered by the nearest ScrollReveal ancestor
+   (it stamps data-inview). Children rise one after the other. */
+.stagger-rise > * {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.5s var(--ease-out-quart), transform 0.5s var(--ease-out-quart);
+}
+[data-inview='true'] .stagger-rise > * { opacity: 1; transform: none; }
+[data-inview='true'] .stagger-rise > :nth-child(2) { transition-delay: 60ms; }
+[data-inview='true'] .stagger-rise > :nth-child(3) { transition-delay: 120ms; }
+[data-inview='true'] .stagger-rise > :nth-child(4) { transition-delay: 180ms; }
+[data-inview='true'] .stagger-rise > :nth-child(5) { transition-delay: 240ms; }
+[data-inview='true'] .stagger-rise > :nth-child(6) { transition-delay: 300ms; }
+[data-inview='true'] .stagger-rise > :nth-child(7) { transition-delay: 360ms; }
+[data-inview='true'] .stagger-rise > :nth-child(8) { transition-delay: 420ms; }
+[data-inview='true'] .stagger-rise > :nth-child(n + 9) { transition-delay: 480ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-zoom,
+  .scroll-rise,
+  .scroll-rise-late,
+  .scroll-settle,
+  .scroll-slide-from-left,
+  .scroll-slide-from-right,
+  .scroll-slide-from-top,
+  .scroll-slide-from-bottom { animation: none !important; }
+  .stagger-rise > * { opacity: 1 !important; transform: none !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    REDUCED MOTION — single blanket gate (UI premium pass)
    Honors prefers-reduced-motion across the whole app, not just the aurora.
    Decorative loops stop entirely; functional transitions collapse to near-zero
