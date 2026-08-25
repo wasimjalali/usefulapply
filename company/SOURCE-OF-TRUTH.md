@@ -3,7 +3,7 @@
 Keep this current: update when the product, stack or direction changes.
 
 **Owner:** Wasim Jalali
-**Last updated:** 2026-08-23
+**Last updated:** 2026-08-25
 **Scope:** the company, the product, the founder, the numbers.
 **Purpose:** the single place to pull facts from for any application, accelerator, grant, investor conversation or press request. Nothing here should have to be re-researched.
 
@@ -270,6 +270,26 @@ Job data comes from SerpAPI. [verified] `src/lib/job-feed/`
 
 Never claim a model upgrade before it ships. Production generation is Sonnet 4.6. Say nothing else.
 
+### Leftover `src/lib/supabase/` names
+
+The folder name is historical. Those files are D1 and R2 wrappers (`credits.ts`, `sessions.ts`, `documents.ts`, `storage.ts`, `useSupabaseSync`). They are not a live Supabase client. Keep them until a dedicated rename. Do not delete the folder: the app imports it.
+
+`supabase/migrations/` is the frozen Postgres history that D1 was ported from. Keep until decommission, then delete with `scripts/migrate/**`.
+
+`@supabase/supabase-js` is only for `scripts/migrate/*` (one-shot cutover). `@supabase/ssr` is unused.
+
+### When to delete the Supabase project and Vercel
+
+Cutover to Cloudflare: **2026-08-23** (PR #87 merged, usefulapply.com live).
+
+| When | What |
+|---|---|
+| **Now (2026-08-25)** | Do not delete either project. Production no longer reads them. Keep as rollback and as the source for a final export. |
+| **2026-09-22** (30 clean days) | Pause the Supabase project. Take a final encrypted export (DB + Storage) and store it offline. Delete the Vercel project and cancel Vercel Pro. Disable any leftover Vercel Stripe webhook. |
+| **2026-11-21** (90 days after pause) | Delete the paused Supabase project. Then delete `scripts/migrate/**`, `supabase/migrations/` and the unused npm packages from this repo. |
+
+Do not pause earlier than 30 days unless a live incident forces it. karkoai.com should keep redirecting to usefulapply.com for at least 12 months.
+
 ### Anti-hallucination, precisely
 
 This is the headline trust claim, so state it accurately.
@@ -405,4 +425,5 @@ Status: not running a raise. Focus is activation and product.
 
 | Date | Change |
 |---|---|
+| 2026-08-25 | Recorded leftover `src/lib/supabase/` as D1/R2 wrappers, not a live client. Decommission calendar: pause Supabase and delete Vercel on 2026-09-22; delete the paused Supabase project on 2026-11-21. |
 | 2026-08-23 | Consolidated from three Karko-era documents (`KARKO-AI-SOURCE-OF-TRUTH.md`, `APPLICATION-ANSWER-BANK.md`, `NEXT-SESSION-BRIEF.md`) into two files under the Useful Apply brand. Restated the stack as Cloudflare (Workers, D1, R2, KV) after the migration from Vercel and Supabase. Cut session-specific strategy, the unshipped Opus 5 migration material and Vercel-era infrastructure detail. Kept every fact that survives the rebrand, with its as-of date. |
