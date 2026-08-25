@@ -428,7 +428,7 @@ You tell Useful Apply your target roles (up to two on Plus, up to four on Max). 
 
 Then you pick an aggressiveness. Strict shows only exact matches. Balanced covers your core criteria with some flexibility. Broad casts a wider net, including adjacent roles and nearby cities you may not have thought to search.
 
-Every morning, at the local time you chose, the feed runs. It fetches fresh roles from the live web across 22 countries: the US, Canada, the UK, Germany, the Netherlands, France, Australia, India, Singapore, the UAE, and more. It pulls roles that were posted recently, not three-week-old reposts.
+You run the feed when you want, once a day. It fetches fresh roles from the live web across 22 countries: the US, Canada, the UK, Germany, the Netherlands, France, Australia, India, Singapore, the UAE, and more. It pulls roles that were posted recently, not three-week-old reposts.
 
 Then the AI takes over.
 
@@ -438,7 +438,7 @@ This is the part that changes the experience. A keyword filter sees "Senior Prod
 
 The AI ranker reads every job description, end to end, against your actual CV. Your years of experience. Your industries. Your skill stack. Your track record. It scores each role for genuine fit and labels the top ones as "strong" or "good." Anything below that never hits your feed.
 
-On Plus and Max, you get up to 25 curated roles per day. The number is capped on purpose. The feed is not trying to show you every job that exists. It is trying to show you jobs worth your time. What Max adds is reach: it searches 4 job titles across 4 countries each morning, where Plus searches 2 and 2.
+On Plus and Max, you get up to 25 curated roles per day. The number is capped on purpose. The feed is not trying to show you every job that exists. It is trying to show you jobs worth your time. What Max adds is reach: it searches 4 job titles across 4 countries each run, where Plus searches 2 and 2.
 
 ![A magnifying glass reading a CV next to a job posting, representing AI-powered fit matching](/blog/ai-reads-cv.jpg)
 

@@ -166,12 +166,12 @@ Rule for applications: answer clean solo. Future-tense co-founders read as a wea
 
 ### What it is
 
-Useful Apply is an AI agent that runs the whole job search in one app. Upload your CV once. Each morning you get matched roles. Before you spend anything you see a fit score with real gaps. In about 90 seconds you get a complete application: tailored CV, cover letter, application email, follow-up email and screening answers, with every line grounded in your actual CV. You review everything before it goes anywhere. Every application is tracked automatically.
+Useful Apply is an AI agent that runs the whole job search in one app. Upload your CV once. You run a daily feed of matched roles. Before you spend anything you see a fit score with real gaps. In about 90 seconds you get a complete application: tailored CV, cover letter, application email, follow-up email and screening answers, with every line grounded in your actual CV. You review everything before it goes anywhere. Every application is tracked automatically.
 
 ### The loop
 
 1. Upload your CV once (plus an optional Master CV with the full history)
-2. Skip the job boards: a matched feed arrives daily
+2. Skip the job boards: run a matched daily feed (on click, once a day)
 3. See the fit before you commit (score, strengths, honest gaps)
 4. Full application in about 90 seconds
 5. Track everything automatically
@@ -204,7 +204,7 @@ Compression: 7 to 8 tools into 1 loop, with the candidate's real CV as the share
 
 App surfaces: dashboard, documents, master CV, profile, settings, subscription, tracker, auth flows. Marketing surfaces: landing, about, features, pricing, comparison pages, blog, SEO landing pages, contact, legal pages.
 
-Key capabilities: SSE-streamed unified writer agent (analyze-first or apply-directly modes), fit analysis, PDF and DOCX export, 6 ATS-safe CV templates including two German market templates, output in 7 languages (English, German, French, Spanish, Portuguese, Italian, Dutch), daily job feed with feedback and saved roles, application tracker, career profile and search strategy.
+Key capabilities: SSE-streamed unified writer agent (analyze-first or apply-directly modes), fit analysis, PDF and DOCX export, 6 ATS-safe CV templates including two German market templates, output in 7 languages (English, German, French, Spanish, Portuguese, Italian, Dutch), on-click daily job feed with feedback and saved roles, application tracker, career profile and search strategy.
 
 ### What it is NOT
 
@@ -218,7 +218,7 @@ Source: live Stripe config and README. [verified]
 
 | Plan | Price | Credits | Notes |
 |---|---|---|---|
-| Free | $0 | 4 / month | No job feed, no screening answers |
+| Free | $0 | 4 / month | Top-5 daily feed, no screening answers |
 | Plus | $19.99 / mo | 50 | Feed up to 25 roles/day, 2 job titles x 2 countries, screening answers, priority email support |
 | Max | $79.99 / mo | 200 | Same feed cap, 4 job titles x 4 countries, premium dedicated support |
 | Credit Pack | $19.99 one-time | +50 | Paid plans |
@@ -426,4 +426,5 @@ Status: not running a raise. Focus is activation and product.
 | Date | Change |
 |---|---|
 | 2026-08-25 | Recorded leftover `src/lib/supabase/` as D1/R2 wrappers, not a live client. Decommission calendar: pause Supabase and delete Vercel on 2026-09-22; delete the paused Supabase project on 2026-11-21. |
+| 2026-08-25 | Synced with the live codebase. Free has a top-5 daily feed (not "no job feed"). The feed is user-triggered once a day, not a morning batch. Plus and Max visible cap is 25 roles. Dropped "arrives each morning" language. |
 | 2026-08-23 | Consolidated from three Karko-era documents (`KARKO-AI-SOURCE-OF-TRUTH.md`, `APPLICATION-ANSWER-BANK.md`, `NEXT-SESSION-BRIEF.md`) into two files under the Useful Apply brand. Restated the stack as Cloudflare (Workers, D1, R2, KV) after the migration from Vercel and Supabase. Cut session-specific strategy, the unshipped Opus 5 migration material and Vercel-era infrastructure detail. Kept every fact that survives the rebrand, with its as-of date. |

@@ -30,11 +30,11 @@ const faqs = [
   },
   {
     q: 'How does Useful Apply\'s tracker work?',
-    a: 'Useful Apply automatically saves every application you generate to your tracker. It records the company, job title, application date, match score (fit assessment), and the exact documents you generated (CV, cover letter, email, follow-up). You can update the status (applied → interview → offer) and add notes. Everything is saved to your Supabase account, accessible from the Applications page.',
+    a: 'Useful Apply automatically saves every application you generate to your tracker. It records the company, job title, application date, match score (fit assessment), and the exact documents you generated (CV, cover letter, email, follow-up). You can update the status (applied → interview → offer) and add notes. Everything is saved to your account and available from the Applications page.',
   },
   {
     q: 'Can I export my application data?',
-    a: 'Yes. Your application data is stored in your Supabase account (PostgreSQL database). You can export it as CSV or JSON from the Supabase dashboard, or build custom queries if you need advanced analysis. Useful Apply does not lock you into a proprietary format.',
+    a: 'Your applications live in your Useful Apply account and stay available from the Applications page. There is no separate export dashboard. You keep the documents you generated (CV, cover letter, emails) and can download them from the kit at any time.',
   },
   {
     q: 'What\'s the difference between a tracker and a CRM for job search?',
@@ -286,8 +286,7 @@ export default function ApplicationTrackerPage() {
               <li>Status (defaults to &quot;Applied,&quot; you can update it later)</li>
             </ul>
             <p className="text-charcoal leading-relaxed mb-4">
-              <strong>Everything is saved to your Supabase account</strong> (PostgreSQL
-              database). You can access your full application history from the Applications page
+              <strong>Everything is saved to your account</strong>. You can access your full application history from the Applications page
               in the Useful Apply dashboard. You can update the status (e.g., from &quot;Applied&quot; to
               &quot;Interview&quot;), add notes, and filter by status, date, or match score.
             </p>

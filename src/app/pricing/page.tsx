@@ -272,7 +272,7 @@ export default function PricingPage() {
                 {[
                   { label: '25 full applications a month', emphasis: true },
                   { label: 'Fit checks and rewrites from the same allowance' },
-                  { label: 'Top 20 roles a day, with feed editing' },
+                  { label: 'Top 25 roles a day, with feed editing' },
                   { label: 'Feed searches 2 job titles across 2 countries' },
                   { label: 'Screening question answers' },
                   { label: 'Unlimited application tracker' },

@@ -1,6 +1,7 @@
 'use client';
 
-import { Sparkles, FileText, Pencil, Award, Loader2, CheckCircle2 } from 'lucide-react';
+import { FileText, Pencil, Award, Loader2, CheckCircle2 } from 'lucide-react';
+import { BrandIcon } from '@/components/BrandLogo';
 
 export type StepType = 'cv' | 'cover_letter' | 'email';
 
@@ -51,10 +52,7 @@ export function StepIndicator({
       <div className="bg-white rounded-2xl shadow-md border border-navy-100/60 p-8 max-w-md w-full">
         {/* Header with Useful Apply branding */}
         <div className="flex items-center gap-2.5 mb-6 pb-3 border-b border-gold-200/60">
-          <div className="p-1.5 bg-gradient-to-br from-navy-600 to-navy-700 rounded-full shadow-sm">
-            <Sparkles className="w-4 h-4 text-gold-400" />
-          </div>
-          <span className="text-sm font-semibold text-navy-700 tracking-tight">Useful Apply</span>
+          <BrandIcon size="xs" theme="light" />
           {isLoading && (
             <span className="ml-auto text-[11px] text-gold-600 font-medium">{statusLabel || 'Processing...'}</span>
           )}

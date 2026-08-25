@@ -12,7 +12,7 @@ Authoritative pricing and feature documentation live at https://usefulapply.com.
 
 Useful Apply is a web application that replaces the seven separate tools job seekers stitch together (job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, application tracker) with one loop.
 
-- **Find roles**: the Smart Job Feed (Plus and Max) returns hand-picked roles every day based on the user's Master CV.
+- **Find roles**: the Smart Job Feed returns hand-picked roles when you run it, once a day. Free gets the top 5. Plus and Max get up to 25.
 - **Check the fit**: a Fit Analysis scores the match against the role (0 to 100), surfaces strengths and gaps, and tells the user whether the role is worth applying to before spending more credits.
 - **Generate the full application**: in under 90 seconds, Useful Apply returns a CV rewritten for the specific role, a cover letter tailored to the company, an application email, a follow-up email, and (on Plus and Max) AI-drafted answers to screening questions.
 - **Track everything**: every generated application is saved with status (applied, interview, rejected, accepted, follow-up), match score, deadlines, and notes.
@@ -22,8 +22,7 @@ The core architectural rule the product refuses to break: **zero fabrication**. 
 URL: https://usefulapply.com
 Founder: Wasim Jalali
 Legal entity: Karko AI Inc, 1207 Delaware Ave #412, Wilmington, DE 19806, USA
-Support: support@karkoai.com
-# TODO(Task 7.1): switch this address to support@usefulapply.com once the mailbox is routed
+Support: support@usefulapply.com
 
 ---
 
@@ -36,7 +35,8 @@ All prices are in USD. A single full application costs 2 credits. A standalone F
 - 4 credits per month (about 2 full applications)
 - No credit card required
 - Full workflow: tailored CV, cover letter, application email, follow-up email, ATS templates, application tracker, fit analysis
-- Does NOT include: Smart Job Feed, screening question answers, priority support
+- Top-5 daily job feed
+- Does NOT include: screening question answers, priority support
 
 ### Plus
 - **$19.99 / month**
@@ -75,7 +75,7 @@ The user pastes a job description. Useful Apply accepts long-form descriptions i
 
 ### Step 3: Pick a workflow mode
 
-**Analyze First** (recommended for high-stakes roles): Useful Apply runs a Fit Analysis first. The user sees a match score, strengths, gaps, and an honest "go" or "no-go" recommendation. If the user proceeds, the cached analysis is used to generate the full application in a second pass. This costs 0.5 credits for the analysis plus 2 credits if the user proceeds to generation.
+**Analyze First** (recommended for high-stakes roles): Useful Apply runs a Fit Analysis first. The user sees a match score, strengths, gaps, and an honest "go" or "no-go" recommendation. If the user proceeds, the cached analysis is used to generate the full application in a second pass. This costs 0.5 credits for the analysis plus 1.5 credits if the user proceeds to generation.
 
 **Apply Directly** (recommended for high-volume): Useful Apply runs the full Fit Analysis and the full application generation in one continuous pass. This costs 2 credits total.
 
@@ -192,18 +192,19 @@ The founder story is at https://usefulapply.com/about.
 
 ## 11. Technical Stack
 
-- **Framework**: Next.js 16 (App Router) on Vercel
-- **UI**: React 19, Tailwind CSS v4, Plus Jakarta Sans + Geist fonts
-- **AI inference**: Claude Sonnet 4.6 by Anthropic via Amazon Bedrock (production), direct Anthropic API (development)
-- **Database and auth**: Supabase (Postgres, Auth, Storage)
+- **Framework**: Next.js 16 (App Router) on Cloudflare Workers via `@opennextjs/cloudflare`
+- **UI**: React 19, Tailwind CSS v4, Inter UI + Plus Jakarta Sans wordmark
+- **AI inference**: Claude Sonnet 4.6 via Amazon Bedrock for kit writing, CV parsing and fit analysis; `@cf/openai/gpt-oss-120b` on Workers AI for chat, ranking and career profile
+- **Database**: Cloudflare D1 (SQLite) with Drizzle ORM
+- **Auth**: Better Auth
+- **Files**: Cloudflare R2
 - **Payments**: Stripe (subscriptions and add-on credit packs)
-- **Background jobs**: Inngest
 - **Analytics**: PostHog
-- **Email**: Resend
-- **PDF generation**: jsPDF + pdf-lib
-- **CV parsing**: pdfjs-dist for text extraction
+- **Email**: Cloudflare Email Service
+- **PDF generation**: jsPDF + html2canvas + docx
+- **CV parsing**: LLM-only via Claude (pdfjs-dist for text extraction)
 
-Uploaded CVs, extracted CV content, and generated documents are stored in Supabase (Storage + Postgres) so the user can return to past applications. Data handling policy: https://usefulapply.com/privacy.
+Uploaded CVs, extracted CV content, and generated documents are stored on Cloudflare (D1 + R2) so the user can return to past applications. Data handling policy: https://usefulapply.com/privacy.
 
 ---
 

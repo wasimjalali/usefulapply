@@ -105,7 +105,7 @@ const LANDING_PLANS: LandingPlan[] = [
     features: [
       '25 full applications a month',
       'Fit checks and rewrites from the same allowance',
-      'Top 20 roles a day in your feed',
+      'Top 25 roles a day in your feed',
     ],
     cta: 'Go Plus',
     href: '/pricing',
@@ -118,7 +118,7 @@ const LANDING_PLANS: LandingPlan[] = [
     features: [
       '100 full applications a month',
       'Fit checks and rewrites from the same allowance',
-      'Top 20 roles a day, built for an all-out search',
+      'Top 25 roles a day, twice the search',
     ],
     cta: 'Go Max',
     href: '/pricing',

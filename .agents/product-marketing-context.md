@@ -1,16 +1,16 @@
-# Product Marketing Context — Karko AI
+# Product Marketing Context — Useful Apply
 
-*Last updated: 2026-04-27 (v2 — repositioned from application generator to complete job application platform)*
+*Last updated: 2026-08-25 (synced to live codebase: Useful Apply brand, on-click daily feed, Cloudflare stack)*
 
 ---
 
 ## Product Overview
 
-**One-liner:** The complete job application platform: find hand-picked jobs every morning and write a tailored application for each one in 90 seconds.
+**One-liner:** The complete job application platform: find hand-picked jobs in a daily feed and write a tailored application for each one in 90 seconds.
 
-**What it does:** Karko is the one app a job seeker needs. It does three things that used to require three different tools:
-1. **Finds jobs** — the Smart Job Feed searches across your roles, countries and cities every day and delivers hand-picked matches ranked by real fit against your CV.
-2. **Writes the application** — paste or pick a job and Karko produces a complete package in under 90 seconds: ATS-optimized CV, personalized cover letter, application email, and follow-up email, all drawn from your Master CV.
+**What it does:** Useful Apply is the one app a job seeker needs. It does three things that used to require three different tools:
+1. **Finds jobs** — you run the Smart Job Feed across your roles, countries and cities, once a day, and get hand-picked matches ranked by real fit against your CV.
+2. **Writes the application** — paste or pick a job and Useful Apply produces a complete package in under 90 seconds: ATS-optimized CV, personalized cover letter, application email, and follow-up email, all drawn from your Master CV.
 3. **Tracks progress** — every application is stored with match score, status and company context, so you stop living in a spreadsheet.
 
 A Fit Analysis mode lets users check their match score before spending credits.
@@ -56,7 +56,7 @@ A Fit Analysis mode lets users check their match score before spending credits.
 
 | Persona | Cares about | Challenge | Value we promise |
 |---------|-------------|-----------|------------------|
-| Passive-to-active job seeker | Finding good jobs without daily hunting | Too busy to scan LinkedIn/Indeed every morning; misses relevant roles | Smart Job Feed delivers hand-picked matches to your inbox-equivalent every morning |
+| Passive-to-active job seeker | Finding good jobs without daily hunting | Too busy to scan LinkedIn/Indeed every morning; misses relevant roles | Smart Job Feed delivers hand-picked matches when you run your daily feed |
 | Active job seeker | Speed, quality, response rates | Spending 45-60 min per application; generic CVs not getting callbacks | Complete package in 90 seconds, tailored to each job |
 | ATS-blocked candidate | Getting past software filters | Strong experience but applications filtered before human review | ATS-first templates; keyword matching without stuffing |
 | International applicant | Correct regional format | US vs EU formats differ; German Lebenslauf has strict conventions | Region-specific templates (US ATS, German classic, German two-column) |
@@ -94,8 +94,8 @@ A Fit Analysis mode lets users check their match score before spending credits.
 ## Competitive Landscape
 
 **Direct competitors:**
-- **Teal** — Resume builder with a Chrome-extension job tracker. Their tracker used to be a real edge; Karko now has a built-in tracker plus the Smart Job Feed. Teal does not discover jobs for you and does not generate emails.
-- **Enhancv** — Resume builder with multi-language and basic tracking. Karko now matches on tracking and exceeds on discovery and email generation.
+- **Teal** — Resume builder with a Chrome-extension job tracker. Their tracker used to be a real edge; Useful Apply now has a built-in tracker plus the Smart Job Feed. Teal does not discover jobs for you and does not generate emails.
+- **Enhancv** — Resume builder with multi-language and basic tracking. Useful Apply now matches on tracking and exceeds on discovery and email generation.
 - **Kickresume / Zety** — Resume formatting tools with AI copy suggestions. Not agentic workflows. No application emails. No job discovery.
 - **Rezi** — ATS-focused resume builder. No cover letter + email workflow. No job discovery.
 
@@ -103,13 +103,13 @@ A Fit Analysis mode lets users check their match score before spending credits.
 - **ChatGPT / Claude.ai directly** — Capable but requires the user to design their own workflow, prompts, and templates. No structured output, no ATS templates, no PDF export, no job discovery, no tracker.
 - **Jobscan** — ATS scoring and keyword matching. Optimizes existing content rather than generating new content.
 - **LinkedIn / Indeed job alerts** — Discover jobs but do not write the application, do not score fit against your real CV, and do not track once you have applied.
-- **Resume.io + recruiter matching** — Broader ecosystem with auto-apply; Karko's positioning is controlled, strategic applications rather than blast-apply.
+- **Resume.io + recruiter matching** — Broader ecosystem with auto-apply; Useful Apply's positioning is controlled, strategic applications rather than blast-apply.
 
 **Indirect competitors:**
 - **Professional CV writers (freelance / agencies)** — High quality but expensive ($200-$500+), slow (3-7 days), not scalable for multiple applications.
 - **Doing it manually across 5 tabs** — The default. The status quo we are competing against most of the time.
 
-**How Karko wins:**
+**How Useful Apply wins:**
 - The only app that covers the full workflow: discover → fit → write → apply → track
 - Smart Job Feed delivers hand-picked, ranked jobs daily (up to ~15/day on Plus, ~25/day on Max) — no other resume tool has this
 - Complete application package (CV + cover letter + application email + follow-up email) in 90 seconds — no other tool generates emails
@@ -153,13 +153,13 @@ A Fit Analysis mode lets users check their match score before spending credits.
 
 | Objection | Response |
 |-----------|----------|
-| "AI CVs all sound the same / generic" | Karko uses your specific experience from your Master CV. Every claim traces to something you actually did. It is tailored, not templated. |
+| "AI CVs all sound the same / generic" | Useful Apply uses your specific experience from your Master CV. Every claim traces to something you actually did. It is tailored, not templated. |
 | "Recruiters can tell when a CV is AI-generated" | Our output uses your own words and experience as raw material. The AI restructures and optimizes — it does not invent. Plus, ATS software does not care who wrote the content. |
-| "I can just use ChatGPT for free" | You would need to design the workflow, write the prompts, handle ATS formatting, and export PDFs yourself. Karko is an end-to-end system with ATS templates, Master CV storage, and a structured workflow built in. |
+| "I can just use ChatGPT for free" | You would need to design the workflow, write the prompts, handle ATS formatting, and export PDFs yourself. Useful Apply is an end-to-end system with ATS templates, Master CV storage, and a structured workflow built in. |
 | "Is my data safe?" | [needs input — add privacy/data handling statement] |
 
 **Anti-persona:**
-- Users who want a portfolio/design-forward CV (Karko is ATS-first; not for graphic designers using visual CVs)
+- Users who want a portfolio/design-forward CV (Useful Apply is ATS-first; not for graphic designers using visual CVs)
 - Users who only need one application per year (Free tier handles this, but the ROI is lower)
 
 ---
@@ -171,7 +171,7 @@ A Fit Analysis mode lets users check their match score before spending credits.
 - Generic templates not getting callbacks despite strong experience
 - ATS filters silently rejecting well-qualified candidates
 
-**Pull (toward Karko):**
+**Pull (toward Useful Apply):**
 - 90-second workflow promises immediate time savings
 - Complete package removes the "I still have to write the email" friction
 - Fit Analysis mode removes the risk of applying to a bad match
@@ -181,7 +181,7 @@ A Fit Analysis mode lets users check their match score before spending credits.
 - Uncertainty about AI quality: "I should just write it myself"
 - Familiarity with Word/Google Docs for CV editing
 
-**Anxiety (about switching to Karko):**
+**Anxiety (about switching to Useful Apply):**
 - "What if the output is generic or wrong?"
 - "What if I put in my experience and the AI invents things?"
 - "Is this worth paying for if I only apply occasionally?"
@@ -204,7 +204,7 @@ A Fit Analysis mode lets users check their match score before spending credits.
 *(Source: reviews embedded in page.tsx schema markup)*
 
 **Words to use:**
-- hand-picked, every morning, your feed, ranked by fit, apply with Karko, one app, all in one place
+- hand-picked, daily feed, your feed, ranked by fit, apply with Useful Apply, one app, all in one place
 - tailored, targeted, specific, ATS-optimized, complete package, 90 seconds, application kit, zero fabrication, Master CV, tracker
 - daily, ready when you open the app
 
@@ -220,7 +220,7 @@ A Fit Analysis mode lets users check their match score before spending credits.
 |------|---------|
 | Master CV | User's complete work history uploaded once; source of truth for all generated content |
 | Smart Job Feed | Daily feed of hand-picked, ranked jobs based on user roles, countries, cities, seniority, and CV fit |
-| Apply with Karko | One-click handoff from a Job Feed card into the Application Kit generation workflow |
+| Apply with Useful Apply | One-click handoff from a Job Feed card into the Application Kit generation workflow |
 | Application Kit | The complete output: CV + cover letter + application email + follow-up email |
 | Application Tracker | In-app list of every generated application with match score, status, company, role |
 | Fit Analysis | Pre-application match score + skill gap analysis (0.5 credits) |
@@ -251,12 +251,12 @@ A Fit Analysis mode lets users check their match score before spending credits.
 - 100 applications in 2.5 hours vs 75 hours manually (97% time savings — use sparingly, calculated not measured)
 - 6 professional ATS-compatible CV templates
 - Passes Workday, Greenhouse, Lever ATS parsers
-- Smart Job Feed: up to 15 hand-picked jobs per day on Plus (~300/month), up to 25 per day on Max (~500/month)
-- Fit Analysis: 0.5 credits; Full Application: 2 credits
+- Smart Job Feed: top 5 on Free, up to 25 hand-picked jobs per day on Plus and Max. Max searches twice as wide (4 titles x 4 countries vs 2 x 2).
+- Fit Analysis: 0.5 credits; full kit: 2 credits, or 1.5 after a fit check
 - Pricing: Free (4 credits, ~2 apps), Plus ($19.99/mo, 50 credits, ~25 apps), Max ($79.99/mo, 200 credits, ~100 apps), add-on pack ($19.99 for 50 credits, rollover while subscribed)
 
 **Reviews (verbatim, from schema markup in page.tsx):**
-> "Karko is a very useful AI tool for job applications. It helps create a professional CV in the European and USA format and also assists with writing strong cover letters. The platform is easy to use and saves a lot of time when preparing job applications." — Mohammad Shafiq, 5 stars
+> "Useful Apply is a very useful AI tool for job applications. It helps create a professional CV in the European and USA format and also assists with writing strong cover letters. The platform is easy to use and saves a lot of time when preparing job applications." — Mohammad Shafiq, 5 stars
 
 > "If you are someone who's looking for jobs like me this is the best site for you. It saves so much time and energy for you. You can create targeted CV, Cover Letter and Email + follow up email in a matter of seconds for any Job application you want." — Zaeem Jalali, 5 stars
 

@@ -33,8 +33,8 @@ export const PLANS: Plan[] = [
     price: '$19.99',
     per: 'a month',
     credits: '50 credits a month',
-    features: ['25 applications', '20 roles a day, Edit feed', 'Everything in Free'],
-    settingsLine: '25 applications, 20 roles a day, Edit feed.',
+    features: ['25 applications', '25 roles a day, Edit feed', 'Everything in Free'],
+    settingsLine: '25 applications, 25 roles a day, Edit feed.',
   },
   {
     tier: 'max',

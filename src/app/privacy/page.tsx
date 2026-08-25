@@ -88,7 +88,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">4. Data Storage and Security</h2>
               <ul className="list-disc pl-6 text-warm-gray space-y-2">
-                <li>Data stored in Supabase (encrypted at rest)</li>
+                <li>Data stored in Cloudflare D1 and R2 (encrypted at rest)</li>
                 <li>HTTPS encryption for all transfers</li>
                 <li>Regular security audits</li>
               </ul>
@@ -116,9 +116,10 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-2xl font-semibold text-navy-600 mb-4">7. Third-Party Services</h2>
               <ul className="list-disc pl-6 text-warm-gray space-y-2">
-                <li>Supabase (database)</li>
-                <li>Anthropic Claude API (AI processing)</li>
-                <li>Stripe (payments, if applicable)</li>
+                <li>Cloudflare (hosting, database, file storage)</li>
+                <li>Amazon Bedrock (AI processing)</li>
+                <li>Stripe (payments)</li>
+                <li>PostHog (analytics)</li>
               </ul>
             </section>
 

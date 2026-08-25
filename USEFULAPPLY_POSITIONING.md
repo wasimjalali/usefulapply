@@ -424,7 +424,7 @@ You cannot sell "all-in-one" in 15 seconds. You can sell one pain and reveal the
 Build a library of 10 short videos. Each one picks ONE feature and ONE pain. All end with the same stamp. Consistency is the lever.
 
 1. **Screening questions** — Hook: "You found the job. Then you hit 8 essay questions." Reveal: Useful Apply drafts them from your real CV in 2 minutes.
-2. **Smart Job Feed** — Hook: "You're spending 10 hours a week on LinkedIn. Stop." Reveal: 25 hand-picked roles delivered every morning.
+2. **Smart Job Feed** — Hook: "You're spending 10 hours a week on LinkedIn. Stop." Reveal: 25 hand-picked roles in a daily feed you run yourself.
 3. **Fit analysis** — Hook: "Stop wasting an hour on jobs you'll never get." Reveal: Half a credit shows match score + gaps before you write.
 4. **Anti-hallucination** — Hook: "Your AI cover letter is lying about your experience." Reveal: Useful Apply will not invent experience you do not have.
 5. **Cover letter speed** — Hook: "You're writing cover letters at midnight." Reveal: 90 seconds, tailored to the role.
@@ -594,13 +594,13 @@ Reference snapshot so future sessions know what's already been aligned and what 
 
 ### Terminology: "Smart Job Feed" vs "job-feed" in code
 
-When you see `job-feed`, `jobFeed`, `JobFeed`, `job_feed` in the codebase (52 files: API routes at `/api/job-feed/*`, Inngest workers in `src/inngest/job-feed.ts`, lib modules in `src/lib/job-feed/`, components in `src/components/job-feed/`, DB tables `job_feed_runs` / `job_feed_saved` / `job_feed_settings`), **this is the same feature as "Smart Job Feed" on marketing surfaces.**
+When you see `job-feed`, `jobFeed`, `JobFeed`, `job_feed` in the codebase (API routes at `/api/job-feed/*`, lib modules in `src/lib/job-feed/`, components in `src/components/job-feed/`, D1 tables `job_feed_runs` / `job_feed_saved` / `job_feed_settings`), **this is the same feature as "Smart Job Feed" on marketing surfaces.**
 
-- **Internal / code name:** `job-feed` (short, lowercase, hyphenated per Next.js + Supabase conventions)
+- **Internal / code name:** `job-feed` (short, lowercase, hyphenated)
 - **User-facing / marketing name:** "Smart Job Feed"
 - **Dashboard tab label:** "Job Feed" (short for navigation scannability)
 
-Do NOT rename the code to `smart-job-feed`. The rename would touch 52 files including database tables, API routes, Inngest event names, and component imports. The risk-to-reward is terrible: zero user benefit (users never see the code), high risk of breaking live daily-running infrastructure and in-flight data. Keep them separate.
+Do NOT rename the code to `smart-job-feed`. The rename would touch dozens of files including database tables, API routes and component imports. The risk-to-reward is terrible: zero user benefit (users never see the code), high risk of breaking the live on-click daily feed. Keep them separate.
 
 If a future session sees `job-feed` in code, it is Smart Job Feed. That is the convention.
 

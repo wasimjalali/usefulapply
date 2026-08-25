@@ -46,10 +46,10 @@ If two agent tasks are independent (different files, different questions), spawn
 - Only pause and confirm before:
   - **Deleting files** — Grep for all imports/references first; if dead code, delete without asking
   - **Adding new npm packages** — state what and why, confirm before installing
-  - **Changing Supabase DB schema** — always write a migration in `supabase/migrations/`, confirm before running
+  - **Changing D1 schema** — always write a migration in `migrations/d1/`, confirm before running
   - **Modifying Stripe webhook/credit logic** — financial logic, confirm intent first
   - **Force-push or git history rewrites** — always confirm
-  - **Touching Supabase auth or session handling** — security-sensitive
+  - **Touching Better Auth or session handling** — security-sensitive
 
 ### Code-Change Discipline
 - **Surgical changes.** Touch only what the task requires. No drive-by refactors, no reformatting adjacent code, no "while I'm here" cleanups. Match existing style even if you disagree.
@@ -86,10 +86,10 @@ If two agent tasks are independent (different files, different questions), spawn
 - **Never read, log, or modify `.env.local`**
 - Never hardcode secrets, API keys, or tokens in any source file
 - **If you notice an exposed secret or security vulnerability — flag it immediately**
-- Watch for: SQL injection, XSS, unprotected API routes, Stripe webhook bypass, exposed Supabase service role key in client-side code
+- Watch for: SQL injection, XSS, unprotected API routes, Stripe webhook bypass, secrets leaking into client-side code
 
-### Database / Supabase
-- **Never modify production DB directly** — always write a SQL migration in `supabase/migrations/`
+### Database / D1
+- **Never modify production DB schema directly** — always write a SQL migration in `migrations/d1/`, applied with `npx wrangler d1 migrations apply usefulapply-db`
 - Migration filenames: descriptive snake_case (e.g., `fix_starter_credits_10.sql`)
 - Before writing a migration, check existing migrations to avoid conflicts
 
@@ -179,16 +179,16 @@ Useful Apply is a Next.js 14+ app generating job application materials (CV, Cove
 ## Key Behavioral Constraints
 
 ### Anti-Hallucination (CV & Cover Letter)
-Every skill, metric, and claim must trace to the Primary CV or Master CV. The JD is for keyword matching only — never a source of facts about the applicant. See `src/lib/agents/prompts/` for the full rule blocks. See `.Codex/rules/agents-and-prompts.md` for a summary.
+Every skill, metric, and claim must trace to the Primary CV or Master CV. The JD is for keyword matching only — never a source of facts about the applicant. See `src/lib/agents/prompts/` for the full rule blocks. See `.claude/rules/agents-and-prompts.md` for a summary.
 
 ### API Route Pattern
-Every API route must: (1) authenticate via `supabase.auth.getUser()`, (2) check rate limit, (3) validate input lengths, (4) return generic error messages (never `error.message`). See `.Codex/rules/security.md`.
+Every API route must: (1) authenticate via the Better Auth session (`getCurrentUser()`), (2) check rate limit, (3) validate input lengths, (4) return generic error messages (never `error.message`). See `.claude/rules/security.md`.
 
 ### Stripe / Credits Pattern
-`userId` always comes from the authenticated session — never from the request body. Use optimistic concurrency for `deductCredits()`. See `.Codex/rules/stripe-and-credits.md`.
+`userId` always comes from the authenticated session — never from the request body. Use optimistic concurrency for `deductCredits()`. See `.claude/rules/stripe-and-credits.md`.
 
-### Supabase Migrations
-Before writing any migration, read `supabase/migrations/` to check for conflicts. Run in Supabase SQL Editor (no CLI used).
+### D1 Migrations
+Before writing any migration, read `migrations/d1/` to check for conflicts. Apply with `npx wrangler d1 migrations apply usefulapply-db`.
 
 ---
 
@@ -241,10 +241,9 @@ The 6 CV templates and their color/market tokens live in `.Codex/rules/cv-templa
 ---
 
 ## Documentation
-- `README.md` — Project overview
-- `SETUP.md` / `INSTALLATION_STEPS.md` — Setup instructions
-- `SUPABASE_SCHEMA_GUIDE.md` / `SUPABASE_SETUP_GUIDE.md` — DB reference
-- `STRIPE_SETUP_GUIDE.md` — Stripe integration
+- `README.md` — Project overview (current Cloudflare stack)
+- `SETUP.md` — Local dev and bindings setup
+- `company/` — Source of truth + application answer bank for external applications. Keep these two files updated whenever the product, stack or direction changes.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

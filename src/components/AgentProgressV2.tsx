@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   Loader2,
   AlertCircle,
-  Sparkles,
   Brain,
   Pencil,
   Search,
@@ -15,6 +14,7 @@ import {
   Award,
   Building2,
 } from 'lucide-react';
+import { BrandIcon } from '@/components/BrandLogo';
 import type { AgentV2Step, AgentV2Progress, AgentV2Reflection, CompanyResearchData } from '@/hooks/useAgentV2';
 
 interface AgentProgressV2Props {
@@ -56,8 +56,7 @@ export function AgentProgressV2({
       {/* Useful Apply header */}
       {isWorking && (
         <div className="flex items-center gap-2.5 mb-3 pb-2 border-b border-gold-200/60">
-          <Sparkles className="w-4 h-4 text-gold-500" />
-          <span className="text-sm font-semibold text-navy-700 tracking-tight">Useful Apply</span>
+          <BrandIcon size="xs" theme="light" />
           {progress && (
             <div className="ml-auto flex items-center gap-2">
               <div className="w-16 h-1 rounded-full bg-cream-200 overflow-hidden">
