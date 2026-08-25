@@ -8,9 +8,10 @@ import { BrandIcon } from '@/components/marketing/BrandLogo';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { PricingAurora } from '@/components/marketing/PricingAurora';
 
-import { SEO_SITE_URL, canonicalUrl } from '@/lib/seo/site-url';
+import { SEO_METADATA_BASE, SEO_SITE_URL, canonicalUrl } from '@/lib/seo/site-url';
 
 export const metadata: Metadata = {
+  metadataBase: SEO_METADATA_BASE,
   title: {
     absolute: 'Useful Apply | Your entire job search, in one app',
   },

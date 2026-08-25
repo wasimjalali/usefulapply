@@ -7,7 +7,7 @@ import ChunkReloadGuard from "@/components/ChunkReloadGuard";
 import { ToastProvider } from "@/components/ui/Toast";
 import { PostHogProvider } from "@/providers/PostHogProvider";
 import PostHogPageView from "@/providers/PostHogPageView";
-import { SEO_SITE_URL, canonicalUrl } from '@/lib/seo/site-url';
+import { SEO_METADATA_BASE, SEO_SITE_URL, canonicalUrl } from '@/lib/seo/site-url';
 
 // Inter is the single UI family (next/font self-hosts it at build time).
 // The CV templates and exported documents keep Arial and Georgia; the brand
@@ -31,7 +31,7 @@ const SITE_URL = SEO_SITE_URL;
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
+  metadataBase: SEO_METADATA_BASE,
   title: {
     default: 'Useful Apply | AI Job Application Agent',
     template: '%s | Useful Apply',

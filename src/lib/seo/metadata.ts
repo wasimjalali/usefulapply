@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { BRAND } from '@/lib/brand';
-import { SEO_SITE_URL, canonicalUrl } from '@/lib/seo/site-url';
+import { SEO_METADATA_BASE, SEO_SITE_URL, canonicalUrl } from '@/lib/seo/site-url';
 
 const SITE_NAME = BRAND.name;
 const DEFAULT_OG_IMAGE = '/opengraph-image.jpg';
@@ -51,6 +51,7 @@ export function buildPageMetadata(options: PageMetadataOptions): Metadata {
   const imageUrl = ogImage.startsWith('http') ? ogImage : `${SEO_SITE_URL}${ogImage}`;
 
   const metadata: Metadata = {
+    metadataBase: SEO_METADATA_BASE,
     title,
     description,
     alternates: {

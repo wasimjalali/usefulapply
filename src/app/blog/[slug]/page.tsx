@@ -9,7 +9,7 @@ import { getPostBySlug, getAllPosts, CATEGORY_COLORS } from '@/lib/blog';
 import type { BlogCategory } from '@/lib/blog';
 import { BlogContent } from '@/components/blog/BlogContent';
 import { BRAND } from '@/lib/brand';
-import { SEO_SITE_URL, canonicalUrl } from '@/lib/seo/site-url';
+import { SEO_METADATA_BASE, SEO_SITE_URL, canonicalUrl } from '@/lib/seo/site-url';
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
@@ -28,9 +28,8 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     return { title: 'Post Not Found' };
   }
 
-  const SITE_URL = SEO_SITE_URL;
-
   return {
+    metadataBase: SEO_METADATA_BASE,
     title: post.title,
     description: post.description,
     alternates: { canonical: canonicalUrl(`/blog/${post.slug}`) },
@@ -38,7 +37,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
       type: 'article',
       title: post.title,
       description: post.description,
-      url: `${SITE_URL}/blog/${post.slug}`,
+      url: canonicalUrl(`/blog/${post.slug}`),
       siteName: BRAND.name,
       publishedTime: post.publishedAt,
       modifiedTime: post.updatedAt || post.publishedAt,

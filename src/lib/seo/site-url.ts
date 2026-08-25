@@ -9,15 +9,28 @@ import { BRAND } from '@/lib/brand';
  */
 export const SEO_SITE_URL = BRAND.url.replace(/\/$/, '');
 
-/** Absolute Useful Apply URL. Homepage has no trailing slash, other paths do not either. */
+const KARKO_HOST = /(^|\.)karkoai\.com$/i;
+
+/**
+ * Absolute Useful Apply URL for the given path.
+ * Homepage has no trailing slash; other paths do not either.
+ * Host is always usefulapply.com: karkoai.com and www are rewritten away.
+ */
 export function canonicalUrl(path: string = '/'): string {
+  let pathname = '/';
   if (/^https?:\/\//i.test(path)) {
     const url = new URL(path);
-    const pathname = url.pathname === '/' ? '' : url.pathname.replace(/\/$/, '');
-    return `${url.origin}${pathname}${url.search}`;
+    pathname = url.pathname || '/';
+  } else if (path) {
+    pathname = path.startsWith('/') ? path : `/${path}`;
   }
 
-  const normalized =
-    !path || path === '/' ? '' : path.startsWith('/') ? path.replace(/\/$/, '') : `/${path}`;
-  return `${SEO_SITE_URL}${normalized}`;
+  const normalized = pathname === '/' ? '' : pathname.replace(/\/$/, '');
+  const result = `${SEO_SITE_URL}${normalized}`;
+  if (KARKO_HOST.test(result)) {
+    throw new Error('SEO canonical must not use karkoai.com');
+  }
+  return result;
 }
+
+export const SEO_METADATA_BASE = new URL(SEO_SITE_URL);

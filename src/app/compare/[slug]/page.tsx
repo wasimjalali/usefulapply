@@ -11,7 +11,7 @@ import { ComparisonFeatures } from '@/components/comparisons/ComparisonFeatures'
 import { ComparisonUseCases } from '@/components/comparisons/ComparisonUseCases';
 import { ComparisonFAQ } from '@/components/comparisons/ComparisonFAQ';
 
-import { SEO_SITE_URL, canonicalUrl } from '@/lib/seo/site-url';
+import { SEO_METADATA_BASE, SEO_SITE_URL, canonicalUrl } from '@/lib/seo/site-url';
 
 interface ComparisonPageProps {
   params: Promise<{ slug: string }>;
@@ -30,9 +30,8 @@ export async function generateMetadata({ params }: ComparisonPageProps): Promise
     return { title: 'Comparison Not Found' };
   }
 
-  const SITE_URL = SEO_SITE_URL;
-
   return {
+    metadataBase: SEO_METADATA_BASE,
     title: comparison.title,
     description: comparison.description,
     alternates: { canonical: canonicalUrl(`/compare/${comparison.slug}`) },
@@ -40,7 +39,7 @@ export async function generateMetadata({ params }: ComparisonPageProps): Promise
       type: 'article',
       title: comparison.title,
       description: comparison.description,
-      url: `${SITE_URL}/compare/${comparison.slug}`,
+      url: canonicalUrl(`/compare/${comparison.slug}`),
       siteName: 'Useful Apply',
       publishedTime: comparison.publishedAt,
       modifiedTime: comparison.updatedAt || comparison.publishedAt,
