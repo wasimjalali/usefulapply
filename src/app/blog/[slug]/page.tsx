@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Clock, Calendar, User, Tag, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Clock, Calendar, User, Tag } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { getPostBySlug, getAllPosts, CATEGORY_COLORS } from '@/lib/blog';
@@ -209,8 +209,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               href={post.cta?.href || '/dashboard'}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors text-sm"
             >
-              {post.cta?.text || 'Try it free'}
-              <ArrowRight className="w-4 h-4" />
+              {post.cta?.text || 'Start free'}
             </Link>
           </div>
 

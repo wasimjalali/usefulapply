@@ -400,7 +400,7 @@ export default function NinetySecondApplicationPackagePage() {
           <ScrollReveal>
             <div className="max-w-4xl mx-auto text-center relative">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                Try Useful Apply Free, No Sign-Up Required
+                Start free
               </h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
                 Generate your full application in under 90 seconds. 2 free applications
@@ -410,8 +410,7 @@ export default function NinetySecondApplicationPackagePage() {
                 href="/dashboard"
                 className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg"
               >
-                Try Useful Apply Free
-                <ArrowRight className="w-5 h-5" />
+                Start free
               </a>
             </div>
           </ScrollReveal>

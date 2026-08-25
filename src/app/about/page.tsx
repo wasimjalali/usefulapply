@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Users, Target, Heart, Zap, Sparkles, Shield, Globe } from 'lucide-react';
+import { Users, Target, Heart, Zap, Sparkles, Shield, Globe } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
@@ -249,10 +249,9 @@ export default function AboutPage() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             <Link
               href="/dashboard"
-              className="px-8 py-3.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 text-base"
+              className="px-8 py-3.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center text-base"
             >
-              Start free, no credit card
-              <ArrowRight className="w-4 h-4" />
+              Start free
             </Link>
             <Link
               href="/pricing"
@@ -261,6 +260,7 @@ export default function AboutPage() {
               View pricing
             </Link>
           </div>
+          <p className="mt-4 text-sm text-navy-200">No credit card needed.</p>
         </div>
         </ScrollReveal>
       </section>

@@ -47,7 +47,7 @@ export function PlanCards() {
 
               {plan.tier === 'free' && (
                 <Link href="/dashboard" className={OUTLINE_BUTTON}>
-                  Try it free
+                  Start free
                 </Link>
               )}
               {plan.tier === 'plus' && <PlusPlanButton />}

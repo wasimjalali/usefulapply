@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { getComparisonBySlug, getComparisons } from '@/lib/comparisons';
@@ -166,7 +166,6 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors"
               >
                 {comparison.ctaText}
-                <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>

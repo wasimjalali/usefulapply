@@ -91,7 +91,7 @@ export function ComparisonDeepDive({ tool, isBrand = false }: ComparisonDeepDive
             href="/dashboard"
             className="inline-block w-full text-center px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors"
           >
-            Try Useful Apply Free
+            Start free
           </Link>
         </div>
       )}

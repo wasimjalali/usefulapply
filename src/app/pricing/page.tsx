@@ -246,10 +246,9 @@ export default function PricingPage() {
               </ul>
               <Link
                 href="/dashboard"
-                className="group inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-cream-200 bg-cream-50 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
+                className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-cream-200 bg-cream-50 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
               >
-                Start Free
-                <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
+                Start free
               </Link>
             </div>
             </ScrollReveal>
@@ -290,7 +289,7 @@ export default function PricingPage() {
                 disabled={loadingPlan === 'plus'}
                 className="group inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-gold-400 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer disabled:opacity-60"
               >
-                {loadingPlan === 'plus' ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Plus <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
+                {loadingPlan === 'plus' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Go Plus'}
               </button>
             </div>
             </ScrollReveal>
@@ -324,7 +323,7 @@ export default function PricingPage() {
                 disabled={loadingPlan === 'max'}
                 className="group inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-gold-400 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer disabled:opacity-60"
               >
-                {loadingPlan === 'max' ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Get Max <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
+                {loadingPlan === 'max' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Go Max'}
               </button>
             </div>
             </ScrollReveal>
@@ -544,7 +543,7 @@ export default function PricingPage() {
               href="/dashboard"
               className="cta-gold px-8 py-3.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm flex items-center justify-center text-base"
             >
-              Start free, no credit card
+              Start free
             </Link>
             <Link
               href="/"
@@ -553,6 +552,7 @@ export default function PricingPage() {
               Back to home
             </Link>
           </div>
+          <p className="mt-4 text-sm text-navy-200">No credit card needed.</p>
         </div>
         </ScrollReveal>
       </section>

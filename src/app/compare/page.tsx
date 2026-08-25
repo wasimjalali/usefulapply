@@ -115,10 +115,9 @@ export default function CompareHubPage() {
               </p>
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+                className="inline-flex items-center px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
               >
-                Start free, no credit card
-                <ArrowRight className="w-4 h-4" />
+                Start free
               </Link>
             </div>
           </div>

@@ -23,7 +23,7 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const { user, isLoading } = useAuth();
-  // The session resolves over the network, so the CTA would flash "Try it
+  // The session resolves over the network, so the CTA would flash "Start
   // free" at a signed-in visitor before flipping. The localStorage hint is
   // synchronous: right after hydration the CTA already knows which way to
   // lean, and the resolved session settles it. The server snapshot is null,
@@ -89,7 +89,7 @@ export default function Navbar() {
                   href="/dashboard"
                   className="inline-flex h-10 items-center rounded-full bg-gold-400 px-5 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500"
                 >
-                  Try it free
+                  Start free
                 </Link>
               </>
             )}
@@ -141,7 +141,7 @@ export default function Navbar() {
                       className="inline-flex h-11 items-center justify-center rounded-full bg-gold-400 text-sm font-semibold text-white shadow-sm"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Try it free
+                      Start free
                     </Link>
                   </>
                 )}
