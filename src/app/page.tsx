@@ -28,9 +28,8 @@ const SITE_URL = SEO_SITE_URL;
 const DEMO_MOMENTS = [
   {
     anchor: 'moment-find',
-    label: 'Step 1 · Find',
-    title: 'A shortlist, not a firehose',
-    body: 'Up to 20 roles a morning, ranked against your career profile.',
+    title: 'Jobs ranked for you',
+    body: 'Up to 20 a day, matched to your experience.',
     image: {
       src: '/images/demo/still-find.webp',
       alt: "The Job Board listing today's ranked roles with match strength, salary and location on each, and a fit check button per role",
@@ -38,9 +37,8 @@ const DEMO_MOMENTS = [
   },
   {
     anchor: 'moment-fit',
-    label: 'Step 2 · Check the fit',
-    title: 'Know before you apply',
-    body: "Match score, strengths and gaps. If it's a pass, you lost nothing.",
+    title: 'Check the fit first',
+    body: "What's strong, what's missing and whether it's worth applying.",
     image: {
       src: '/images/demo/still-fit.webp',
       alt: 'A fit result: 78% match for a Senior Frontend Engineer role, with the strengths that line up, the gaps and a clear recommendation',
@@ -48,9 +46,8 @@ const DEMO_MOMENTS = [
   },
   {
     anchor: 'moment-kit',
-    label: 'Step 3 · Get the kit',
-    title: 'The whole kit, for this job',
-    body: 'CV, cover letter, emails and screening answers. Grounded in your real CV.',
+    title: 'The application for this job',
+    body: 'CV, cover letter, emails and screening answers. From your real CV.',
     image: {
       src: '/images/demo/still-kit.webp',
       alt: 'A finished kit: the tailored CV in the live preview with its ATS score, the template picker open and the chat alongside',
@@ -58,9 +55,8 @@ const DEMO_MOMENTS = [
   },
   {
     anchor: 'moment-track',
-    label: 'Step 4 · Track',
-    title: 'Every application, remembered',
-    body: 'Status, match scores and follow-ups, in one place.',
+    title: 'Track every application',
+    body: "What you've sent, what's gone quiet and what's due a follow-up.",
     image: {
       src: '/images/demo/still-track.webp',
       alt: 'The application tracker: six applications with match scores, statuses and the follow-ups due this week',
@@ -386,30 +382,22 @@ export default function Home() {
 
         {/* Product walkthrough: four stacked slides. Each card sticks in
             the same viewport; the next one covers it as you scroll. */}
-        <section id="what-you-get" className="scroll-mt-24 bg-cream-100">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="scroll-rise mx-auto max-w-2xl pt-20 text-center lg:pt-28">
-              <h2 className="text-[32px] font-semibold leading-[1.1] text-navy-800 md:text-[36px]">
-                One job ad in. A full application out.
-              </h2>
-            </div>
-          </div>
+        <section id="what-you-get" className="scroll-mt-24 bg-cream-100 pt-8 lg:pt-12">
           <div>
             {DEMO_MOMENTS.map((moment, index) => (
               <figure
                 key={moment.title}
                 id={moment.anchor}
-                className="sticky top-[5.25rem] flex h-[calc(100svh-5.25rem)] flex-col bg-cream-100"
+                className={`walkthrough-card sticky top-[5.25rem] flex h-[calc(100svh-5.25rem)] flex-col bg-cream-100 ${
+                  index > 0 ? 'border-t border-cream-200' : ''
+                }`}
                 style={{ zIndex: index + 1 }}
               >
                 <div className="mx-auto flex h-full w-full max-w-7xl flex-col px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-                  <figcaption className="mx-auto w-full max-w-2xl shrink-0 text-center">
-                    <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-warm-gray">
-                      {moment.label}
-                    </p>
-                    <h3 className="mt-2 text-[26px] font-semibold leading-[1.15] text-navy-800 md:text-[32px]">
+                  <figcaption className="mx-auto flex min-h-[6.5rem] w-full max-w-2xl shrink-0 flex-col justify-end text-center md:min-h-[7.25rem]">
+                    <h2 className="text-[26px] font-semibold leading-[1.15] text-navy-800 md:text-[32px]">
                       {moment.title}
-                    </h3>
+                    </h2>
                     <p className="mt-3 text-[15px] leading-relaxed text-warm-gray md:text-[16px]">
                       {moment.body}
                     </p>
@@ -429,11 +417,21 @@ export default function Home() {
               </figure>
             ))}
           </div>
-          <ScrollReveal delay={80}>
-            <p className="mx-auto max-w-2xl px-4 pb-20 pt-16 text-center text-[15px] leading-relaxed text-charcoal sm:px-6 lg:px-8 lg:pb-28 md:text-[16px]">
-              An auto-apply bot needs you to keep applying. Telling you when not to apply isn&apos;t
-              in its business model. It&apos;s central to ours.
-            </p>
+        </section>
+
+        <section className="bg-cream-100 px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+          <ScrollReveal direction="none" duration={700}>
+            <div className="mx-auto max-w-2xl text-center">
+              <h2 className="text-[32px] font-semibold leading-[1.15] text-navy-800 md:text-[36px]">
+                A companion, not an apply bot
+              </h2>
+              <p className="mt-5 text-[17px] leading-relaxed text-charcoal md:text-[18px]">
+                Recruiters hate auto-apply. They can spot spray and pray, and they skip it.
+              </p>
+              <p className="mt-4 text-[17px] leading-relaxed text-charcoal md:text-[18px]">
+                Useful Apply helps you pick the job, write a real application and send it yourself.
+              </p>
+            </div>
           </ScrollReveal>
         </section>
 
