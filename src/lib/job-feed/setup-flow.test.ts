@@ -18,6 +18,7 @@ import {
 import { serpApiLocationValue } from './serpapi';
 import { buildJobFeedSearchPlan, buildJobFeedSearchPlanFromStrategy } from './ingestion';
 import { getJobFeedOverviewState } from './helpers';
+import { formatSetupPlanSummary } from '../../components/job-feed/feed-format';
 import type { JobFeedSettings } from '@/lib/supabase/types';
 import type { CareerProfile } from './career-profile';
 import type { SearchStrategy } from './search-strategy';
@@ -221,6 +222,18 @@ test('Free users never enter the paid setup wizard', () => {
     isFreeUser: false,
   });
   assert.equal(plusNeedsSetup, 'setup_required');
+});
+
+test('consent plan summary is one search per line with no trailing comma', () => {
+  const text = formatSetupPlanSummary([
+    { query: 'Senior Product Manager', targetCountry: 'us' },
+    { query: 'Product Manager, API and Integrations', targetCountry: 'us' },
+  ]);
+  assert.equal(
+    text,
+    'Senior Product Manager in United States\n\nProduct Manager, API and Integrations in United States',
+  );
+  assert.equal(text.includes('United States,'), false);
 });
 
 function fixtureSettings(overrides: Partial<JobFeedSettings>): JobFeedSettings {

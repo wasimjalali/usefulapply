@@ -47,7 +47,7 @@ import {
   saveFeedSettings,
   withdrawFeedConsent,
 } from './feed-actions';
-import { countryLabel, escapeMarkdown, formatFeedDay, plural } from './feed-format';
+import { countryLabel, escapeMarkdown, formatFeedDay, formatSetupPlanSummary, plural } from './feed-format';
 import { SearchPlanEditor } from './SearchPlanEditor';
 import {
   buildJobFeedPreviewCareerProfile,
@@ -565,7 +565,7 @@ export function FeedConversation() {
       return;
     }
     if (chip.id === 'workmode:done') {
-      const selected = store.setupDraft.remote_preferences ?? [];
+      const selected = selectedWorkModes(store.setupDraft.remote_preferences);
       const remotePreference = selected[0];
       if (!remotePreference) {
         say({ role: 'assistant', content: 'Pick at least one way you want to work.' });
@@ -580,14 +580,19 @@ export function FeedConversation() {
     }
     if (chip.id.startsWith('workmode:')) {
       const mode = chip.id.slice('workmode:'.length) as JobFeedSettingsInput['remote_preference'];
-      const current = store.setupDraft.remote_preferences ?? [];
+      if (!WORK_MODE_VALUES.has(mode)) return;
+      const current = selectedWorkModes(store.setupDraft.remote_preferences);
       const next = current.includes(mode)
         ? current.filter((item) => item !== mode)
         : [...current, mode];
-      store.patchSetupDraft({
-        remote_preferences: next,
-        ...(next[0] ? { remote_preference: next[0] } : {}),
-      });
+      if (next[0]) {
+        store.patchSetupDraft({
+          remote_preferences: next,
+          remote_preference: next[0],
+        });
+      } else {
+        store.patchSetupDraft({ remote_preferences: next });
+      }
       return;
     }
     if (chip.id.startsWith('salary:')) {
@@ -874,7 +879,7 @@ export function FeedConversation() {
         ))}
 
         {phase === 'setup' && setupStep === 4 && (
-          <div className="pl-9">
+          <div className="space-y-3 pl-9">
             <SearchPlanEditor
               rows={setupPlan}
               countries={setupDraft.target_countries ?? []}
@@ -883,6 +888,14 @@ export function FeedConversation() {
               compact
               onChange={(rows) => useFeedStore.getState().setSetupPlan(rows)}
             />
+            <button
+              type="button"
+              disabled={busy || isSavingSettings}
+              onClick={() => { void handleChip({ id: 'plan:confirm', label: 'Looks good', variant: 'primary' }); }}
+              className="inline-flex h-10 max-w-full items-center gap-2 rounded-full bg-gold-400 px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-gold-500 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+            >
+              Looks good
+            </button>
           </div>
         )}
 
@@ -1134,7 +1147,7 @@ function buildOpening(params: {
       }
       if (setupStep > 1) {
         const cities = setupDraft.target_cities ?? [];
-        const selectedModes = setupDraft.remote_preferences ?? [];
+        const selectedModes = selectedWorkModes(setupDraft.remote_preferences);
         items.push({
           id: 'setup-a2',
           role: 'user',
@@ -1190,17 +1203,14 @@ function buildOpening(params: {
         items.push({
           id: 'setup-q5',
           role: 'assistant',
-          content: `**These are the searches I'll run.** Each one is a role in a country. Drop, edit or add up to ${queryBudget}.`,
-          chips: setupStep === 4
-            ? [{ id: 'plan:confirm', label: 'Looks good', variant: 'primary' }]
-            : undefined,
+          content: "**These are the searches I'll run.**",
         });
       }
       if (setupStep > 4) {
         items.push({
           id: 'setup-a5',
           role: 'user',
-          content: summarizePlan(setupPlan),
+          content: formatSetupPlanSummary(setupPlan),
         });
         items.push({
           id: 'setup-consent',
@@ -1291,20 +1301,24 @@ function describeProfile(profile: ReturnType<typeof useFeedStore.getState>['care
   return parts.length > 0 ? parts.join(', ') : null;
 }
 
+const WORK_MODE_VALUES = new Set<string>(
+  JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => option.value),
+);
+
+function selectedWorkModes(
+  values: JobFeedSettingsInput['remote_preferences'] | undefined,
+): JobFeedSettingsInput['remote_preferences'] {
+  if (!Array.isArray(values)) return [];
+  return values.filter((value) => WORK_MODE_VALUES.has(value));
+}
+
 function workModeAnswer(values: JobFeedSettingsInput['remote_preferences']): string {
   const labelByValue = new Map(JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => [option.value, option.label]));
-  const labels = values
+  const labels = selectedWorkModes(values)
     .map((value) => labelByValue.get(value))
     .filter((label): label is NonNullable<typeof label> => Boolean(label));
   if (labels.length === 0) return 'Pick at least one way you want to work.';
   return labels.join(', ');
-}
-
-function summarizePlan(plan: { query: string; targetCountry: string }[]): string {
-  if (plan.length === 0) return 'These searches';
-  return plan
-    .map((row) => `${row.query} in ${countryLabel(row.targetCountry)}`)
-    .join(', ');
 }
 
 function cityFrom(confirmation: string): string | undefined {

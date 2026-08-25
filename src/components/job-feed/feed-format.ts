@@ -42,6 +42,16 @@ export function countryLabel(code: string): string {
   return match?.label ?? code.toUpperCase();
 }
 
+/** One search per line in the consent-step recap. Comma-join wraps with a trailing comma. */
+export function formatSetupPlanSummary(
+  plan: { query: string; targetCountry: string }[],
+): string {
+  if (plan.length === 0) return 'These searches';
+  return plan
+    .map((row) => `${row.query} in ${countryLabel(row.targetCountry)}`)
+    .join('\n\n');
+}
+
 /**
  * "Ranked for Product, Senior, B2B SaaS · United States · refreshed 09:25".
  * Every part comes from saved settings or the run, so a missing part is left
