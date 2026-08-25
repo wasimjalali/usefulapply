@@ -610,6 +610,13 @@ select:focus-visible {
   to { opacity: 1; transform: none; }
 }
 
+/* Sticky walkthrough cards: promote to their own layer so covering the
+   previous slide stays on the compositor instead of repainting cream. */
+.walkthrough-card {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
 /* Staggered child reveal, triggered by the nearest ScrollReveal ancestor
    (it stamps data-inview). Children rise one after the other. */
 .stagger-rise > * {
