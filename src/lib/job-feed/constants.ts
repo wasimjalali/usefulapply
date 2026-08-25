@@ -266,6 +266,49 @@ export function matchCountriesInText(text: string): string[] {
   return countries;
 }
 
+/** How many city chips to show per selected country during first-time setup. */
+export const JOB_FEED_SETUP_CITY_CHIPS_PER_COUNTRY = 3;
+
+/**
+ * Find every known city named in a free-text string. Matches curated names
+ * and short forms ("NYC", "sf"). Returns canonical city names, deduped, in
+ * the order they appear. Unknown names are not invented.
+ */
+export function matchCitiesInText(text: string): string[] {
+  const lower = ` ${text.toLowerCase().replace(/[,/]/g, ' ')} `;
+  const cities: string[] = [];
+  const push = (name: string) => {
+    if (!cities.some((city) => normalizeCityKey(city) === normalizeCityKey(name))) {
+      cities.push(name);
+    }
+  };
+  const known = Object.values(JOB_FEED_CITY_SUGGESTIONS).flat()
+    .slice()
+    .sort((a, b) => b.length - a.length);
+  for (const city of known) {
+    if (lower.includes(` ${city.toLowerCase()} `)) push(city);
+  }
+  const aliases = Object.entries(JOB_FEED_CITY_ALIASES)
+    .slice()
+    .sort((a, b) => b[0].length - a[0].length);
+  for (const [alias, canonical] of aliases) {
+    if (lower.includes(` ${alias} `)) push(canonical);
+  }
+  return cities;
+}
+
+/** City chips for the setup question: a short list from each selected country. */
+export function setupCityChipsForCountries(countries: string[]): string[] {
+  const chips: string[] = [];
+  for (const code of countries) {
+    const suggestions = JOB_FEED_CITY_SUGGESTIONS[code] ?? [];
+    for (const city of suggestions.slice(0, JOB_FEED_SETUP_CITY_CHIPS_PER_COUNTRY)) {
+      if (!chips.includes(city)) chips.push(city);
+    }
+  }
+  return chips;
+}
+
 
 // Popular cities per country. Used as quick-pick suggestions and (when the
 // user selects one) as location hints passed to SerpAPI. Users can still type

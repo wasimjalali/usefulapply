@@ -1,15 +1,15 @@
 /**
- * The typed alternative to the setup chips: "US and Canada, remote, 150K+"
- * in one line. Only reports what it actually recognised, so the conversation
- * can ask for the rest instead of guessing.
+ * The typed alternative to the setup chips on country and city steps.
+ * Only reports what it actually recognised. Unknown names stay unknown.
  */
 
-import { matchCountriesInText } from '@/lib/job-feed/constants';
+import { matchCitiesInText, matchCountriesInText } from '@/lib/job-feed/constants';
 import type { JobFeedSettingsInput } from '@/lib/job-feed/types';
 import { readSalaryFloor } from '@/lib/job-feed/rerank-intent';
 
 export interface SetupLineResult {
   countries: string[];
+  cities: string[];
   remotePreference: JobFeedSettingsInput['remote_preference'] | null;
   salaryFloor: number | null;
 }
@@ -18,6 +18,7 @@ export function parseSetupLine(text: string): SetupLineResult {
   const lower = ` ${text.toLowerCase().replace(/[,/]/g, ' ')} `;
 
   const countries = matchCountriesInText(text);
+  const cities = matchCitiesInText(text);
 
   let remotePreference: SetupLineResult['remotePreference'] = null;
   if (/\b(remote only|only remote|fully remote)\b/.test(lower)) {
@@ -32,6 +33,7 @@ export function parseSetupLine(text: string): SetupLineResult {
 
   return {
     countries,
+    cities,
     remotePreference,
     salaryFloor: readSalaryFloor(text),
   };

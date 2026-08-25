@@ -214,6 +214,19 @@ export function getCountryName(code: string): string {
 }
 
 /**
+ * SerpAPI `location` for a country-scoped call. A city is a hint. An empty
+ * city still sends the country name (plus `gl`). Never omit location.
+ */
+export function serpApiLocationValue(countryCode: string, location?: string | null): string {
+  const countryName = getCountryName(countryCode);
+  if (!location?.trim()) return countryName;
+  const stripped = stripTrailingCountrySegment(location.trim(), countryCode, countryName);
+  return stripped.toLowerCase().includes(countryName.toLowerCase())
+    ? stripped
+    : `${stripped}, ${countryName}`;
+}
+
+/**
  * Drop trailing comma-segments that duplicate the country we already pin
  * with `gl`. Handles the 2-letter code, the canonical country name, and a
  * handful of common aliases people put in their CV / settings. Idempotent.
@@ -274,22 +287,7 @@ export function buildSerpApiSearchParams(input: SerpApiSearchInput): URLSearchPa
     const language = input.language || COUNTRY_LANGUAGES[countryCode] || 'en';
     searchParams.set('hl', language);
 
-    if (input.location?.trim()) {
-      const countryName = getCountryName(countryCode);
-      // Strip a trailing country-like segment so we never end up with
-      // "San Francisco, US, United States" — SerpAPI rejects that as
-      // 400 "Unsupported location parameter". The upstream cv-suggestions
-      // layer appends `cv.personal.country` (often the 2-letter code)
-      // without knowing how SerpAPI scopes by `gl`. We normalize at the
-      // boundary so user input stays untouched in our DB.
-      const location = stripTrailingCountrySegment(input.location.trim(), countryCode, countryName);
-      const locationValue = location.toLowerCase().includes(countryName.toLowerCase())
-        ? location
-        : `${location}, ${countryName}`;
-      searchParams.set('location', locationValue);
-    } else {
-      searchParams.set('location', getCountryName(countryCode));
-    }
+    searchParams.set('location', serpApiLocationValue(countryCode, input.location));
   } else if (input.location?.trim()) {
     searchParams.set('location', input.location.trim());
   } else {

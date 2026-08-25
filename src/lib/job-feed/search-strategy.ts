@@ -48,6 +48,11 @@ export interface SearchStrategy {
   generatedAt: string;
   /** ISO timestamp of the profile this strategy was synthesized against. */
   sourceProfileGeneratedAt: string;
+  /**
+   * True when the user confirmed or edited this query list. Daily runs must
+   * reuse it and must not silently regenerate over it.
+   */
+  userConfirmed?: boolean;
   queries: SearchStrategyQuery[];
   /**
    * Negative title/keyword terms used by the ranker as a downweight signal
@@ -116,6 +121,7 @@ Cap queries.length at 10 entries total. Hardware constraint: each is paid.
   - pl: "Inżynier Oprogramowania", "Programista Frontend", "Menedżer Produktu"
 - Avoid composite titles ("PM | Founder | Growth"). Each query is one role.
 - DO NOT include quote marks, boolean operators (AND, OR, NOT), parentheses, or minus signs. Plain text only.
+- NEVER put a city in the query string. City is applied later as a SerpAPI location hint. Each query is a role keyword plus a targetCountry field only.
 - Keep each query under 70 characters.
 
 # fallbackTo semantics
@@ -164,6 +170,7 @@ Return ONLY valid JSON matching this shape:
 5. No quotes, no boolean operators, no minus signs in any query string.
 6. version equals ${SEARCH_STRATEGY_SCHEMA_VERSION}.
 7. No em-dashes anywhere.
+8. No city names in any query string.
 `;
 
 export interface GenerateSearchStrategyResult {
@@ -345,7 +352,9 @@ function validateSearchStrategyPayload(
 
   // Validate that we have at least one short_tail per declared country, when
   // any country is set. (Guards against a model that returns only long_tails.)
-  if (allowedCountries.size > 0) {
+  // User-confirmed lists can drop a country on purpose; skip this check.
+  const userConfirmed = candidate.userConfirmed === true;
+  if (!userConfirmed && allowedCountries.size > 0) {
     const shortTailCountries = new Set(
       queries.filter((q) => q.type === 'short_tail').map((q) => q.targetCountry),
     );
@@ -369,6 +378,7 @@ function validateSearchStrategyPayload(
     version: SEARCH_STRATEGY_SCHEMA_VERSION,
     generatedAt: typeof candidate.generatedAt === 'string' ? candidate.generatedAt : new Date().toISOString(),
     sourceProfileGeneratedAt,
+    ...(userConfirmed ? { userConfirmed: true } : {}),
     queries,
     negativeTerms,
   };

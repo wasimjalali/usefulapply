@@ -101,8 +101,8 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         pill={editPill}
         onPillChange={(pill) => useFeedStore.getState().setEditPill(pill)}
         onBack={() => useFeedStore.getState().backToList()}
-        onSavePreferences={async (draft) => {
-          const result = await saveFeedSettings(draft);
+        onSavePreferences={async (draft, plan) => {
+          const result = await saveFeedSettings(draft, { confirmedQueries: plan });
           return result.ok
             ? { ok: true, settingsVersion: result.data?.updated_at ?? overview?.settings?.updated_at ?? null }
             : { ok: false, error: result.error };

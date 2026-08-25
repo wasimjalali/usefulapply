@@ -558,6 +558,28 @@ export async function getSearchStrategyRow(userId: string, settingsHash: string)
   };
 }
 
+export async function getLatestSearchStrategyRow(userId: string): Promise<{
+  strategy: Json;
+  version: number;
+  settings_hash: string;
+  source_profile_generated_at: string | null;
+} | null> {
+  const db = await getDb();
+  const rows = await db
+    .select()
+    .from(userSearchStrategies)
+    .where(eq(userSearchStrategies.user_id, userId))
+    .orderBy(desc(userSearchStrategies.updated_at))
+    .limit(1);
+  if (!rows[0]) return null;
+  return {
+    strategy: rows[0].strategy as Json,
+    version: rows[0].version,
+    settings_hash: rows[0].settings_hash,
+    source_profile_generated_at: rows[0].source_profile_generated_at,
+  };
+}
+
 export async function upsertSearchStrategy(userId: string, values: {
   settings_hash: string;
   strategy: Json;
