@@ -7,7 +7,7 @@ import ChunkReloadGuard from "@/components/ChunkReloadGuard";
 import { ToastProvider } from "@/components/ui/Toast";
 import { PostHogProvider } from "@/providers/PostHogProvider";
 import PostHogPageView from "@/providers/PostHogPageView";
-import { BRAND } from '@/lib/brand';
+import { SEO_METADATA_BASE, SEO_SITE_URL, canonicalUrl } from '@/lib/seo/site-url';
 
 // Inter is the single UI family (next/font self-hosts it at build time).
 // The CV templates and exported documents keep Arial and Georgia; the brand
@@ -23,7 +23,7 @@ const plusJakarta = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700", "800"],
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
+const SITE_URL = SEO_SITE_URL;
 
 // Without this every prerendered page is served with s-maxage=31536000, so a
 // copy change only reaches visitors after a manual Cloudflare purge. Five
@@ -31,7 +31,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
+  metadataBase: SEO_METADATA_BASE,
   title: {
     default: 'Useful Apply | AI Job Application Agent',
     template: '%s | Useful Apply',
@@ -76,7 +76,7 @@ export const metadata: Metadata = {
   creator: 'Useful Apply',
   publisher: 'Useful Apply',
   alternates: {
-    canonical: '/',
+    canonical: canonicalUrl('/'),
     types: {
       'application/rss+xml': `${SITE_URL}/feed.xml`,
     },

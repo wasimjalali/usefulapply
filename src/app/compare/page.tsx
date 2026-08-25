@@ -7,9 +7,9 @@ import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 import { getComparisons } from '@/lib/comparisons';
 
-import { BRAND } from '@/lib/brand';
+import { SEO_SITE_URL } from '@/lib/seo/site-url';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
+const SITE_URL = SEO_SITE_URL;
 
 export const metadata: Metadata = buildPageMetadata({
   title: 'Useful Apply vs Resume Builders: Side-by-Side Comparisons',

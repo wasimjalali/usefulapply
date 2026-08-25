@@ -8,18 +8,19 @@ import { BrandIcon } from '@/components/marketing/BrandLogo';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { PricingAurora } from '@/components/marketing/PricingAurora';
 
-import { BRAND } from '@/lib/brand';
+import { SEO_METADATA_BASE, SEO_SITE_URL, canonicalUrl } from '@/lib/seo/site-url';
 
 export const metadata: Metadata = {
+  metadataBase: SEO_METADATA_BASE,
   title: {
     absolute: 'Useful Apply | Your entire job search, in one app',
   },
   description:
     'Useful Apply is the AI job application agent that replaces the seven tools job seekers stitch together. A daily job feed, a fit check before you spend anything, and a tailored CV, cover letter and emails in 90 seconds. Every word traces back to your real CV.',
-  alternates: { canonical: '/' },
+  alternates: { canonical: canonicalUrl('/') },
 };
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
+const SITE_URL = SEO_SITE_URL;
 
 const HERO_IMAGE = {
   src: '/images/moments/hero-workspace.webp',

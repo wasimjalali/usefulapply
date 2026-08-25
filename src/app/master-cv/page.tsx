@@ -6,7 +6,7 @@ import { Copy, Check, FileText, Sparkles, Target, Clock, ArrowRight, CheckCircle
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
-import { BRAND } from '@/lib/brand';
+import { SEO_SITE_URL } from '@/lib/seo/site-url';
 
 // The Master CV Prompt
 const MASTER_CV_PROMPT = `You are helping me create a Master CV, a complete inventory of my professional background. This is NOT a regular CV to send to employers. It's a detailed reference document (up to 5 pages) that an AI job application tool will use to generate tailored applications for me.
@@ -256,7 +256,7 @@ export default function MasterCVPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
+  const SITE_URL = SEO_SITE_URL;
 
   // Breadcrumb JSON-LD
   const breadcrumbJsonLd = {

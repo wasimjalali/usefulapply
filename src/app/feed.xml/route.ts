@@ -1,7 +1,8 @@
 import { getAllPosts } from '@/lib/blog/posts';
 import { BRAND } from '@/lib/brand';
+import { SEO_SITE_URL } from '@/lib/seo/site-url';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
+const SITE_URL = SEO_SITE_URL;
 
 export async function GET() {
   const posts = getAllPosts();

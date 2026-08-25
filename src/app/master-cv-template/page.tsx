@@ -5,9 +5,9 @@ import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { buildPageMetadata } from '@/lib/seo/metadata';
-import { BRAND } from '@/lib/brand';
+import { SEO_SITE_URL } from '@/lib/seo/site-url';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
+const SITE_URL = SEO_SITE_URL;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
