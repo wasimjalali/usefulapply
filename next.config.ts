@@ -10,8 +10,11 @@ const nextConfig: NextConfig = {
       { pathname: '/screenshots/**', search: '?v=3' },
       { pathname: '/**', search: '' },
     ],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 2560, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // Next 16 clamps every request to quality 75 unless listed here. The demo
+    // stills are dense product UI; 75 turns their text to mush.
+    qualities: [75, 90, 95],
   },
   // Empty turbopack config to silence build warning (Next.js 16+)
   turbopack: {},
