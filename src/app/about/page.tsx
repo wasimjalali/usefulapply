@@ -8,7 +8,7 @@ import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { CountUp } from '@/components/marketing/CountUp';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 
-import { BRAND } from '@/lib/brand';
+import { SEO_SITE_URL } from '@/lib/seo/site-url';
 
 export const metadata: Metadata = buildPageMetadata({
   title: 'About Useful Apply: The AI Job Application Agent Built by a Job Seeker',
@@ -17,7 +17,7 @@ export const metadata: Metadata = buildPageMetadata({
   canonical: '/about',
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
+const SITE_URL = SEO_SITE_URL;
 
 const founderPersonJsonLd = {
   '@context': 'https://schema.org',

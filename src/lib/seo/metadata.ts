@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { BRAND } from '@/lib/brand';
+import { SEO_SITE_URL, canonicalUrl } from '@/lib/seo/site-url';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
 const SITE_NAME = BRAND.name;
 const DEFAULT_OG_IMAGE = '/opengraph-image.jpg';
 
@@ -47,20 +47,20 @@ export function buildPageMetadata(options: PageMetadataOptions): Metadata {
     noindex = false,
   } = options;
 
-  const canonicalUrl = canonical.startsWith('http') ? canonical : `${SITE_URL}${canonical}`;
-  const imageUrl = ogImage.startsWith('http') ? ogImage : `${SITE_URL}${ogImage}`;
+  const absoluteCanonical = canonicalUrl(canonical);
+  const imageUrl = ogImage.startsWith('http') ? ogImage : `${SEO_SITE_URL}${ogImage}`;
 
   const metadata: Metadata = {
     title,
     description,
     alternates: {
-      canonical,
+      canonical: absoluteCanonical,
     },
     openGraph: {
       type: ogType,
       title,
       description,
-      url: canonicalUrl,
+      url: absoluteCanonical,
       siteName: SITE_NAME,
       locale: 'en_US',
       images: [

@@ -9,6 +9,7 @@ import { getPostBySlug, getAllPosts, CATEGORY_COLORS } from '@/lib/blog';
 import type { BlogCategory } from '@/lib/blog';
 import { BlogContent } from '@/components/blog/BlogContent';
 import { BRAND } from '@/lib/brand';
+import { SEO_SITE_URL, canonicalUrl } from '@/lib/seo/site-url';
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
@@ -27,12 +28,12 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     return { title: 'Post Not Found' };
   }
 
-  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
+  const SITE_URL = SEO_SITE_URL;
 
   return {
     title: post.title,
     description: post.description,
-    alternates: { canonical: `/blog/${post.slug}` },
+    alternates: { canonical: canonicalUrl(`/blog/${post.slug}`) },
     openGraph: {
       type: 'article',
       title: post.title,
@@ -75,7 +76,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     border: 'border-cream-200',
   };
 
-  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
+  const SITE_URL = SEO_SITE_URL;
 
   return (
     <div className="min-h-screen bg-cream-100">

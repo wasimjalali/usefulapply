@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 import { pricingFAQs } from '@/lib/marketing/pricing-faqs';
 
-import { BRAND } from '@/lib/brand';
+import { SEO_SITE_URL } from '@/lib/seo/site-url';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
+const SITE_URL = SEO_SITE_URL;
 
 export const metadata: Metadata = buildPageMetadata({
   title: 'Pricing: AI Job Application Plans from $19.99/month',

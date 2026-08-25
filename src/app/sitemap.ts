@@ -1,9 +1,9 @@
 import { MetadataRoute } from 'next';
 import { getAllPosts } from '@/lib/blog';
 import { getComparisons } from '@/lib/comparisons';
-import { BRAND } from '@/lib/brand';
+import { SEO_SITE_URL } from '@/lib/seo/site-url';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || BRAND.url;
+const SITE_URL = SEO_SITE_URL;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const blogPosts = getAllPosts();

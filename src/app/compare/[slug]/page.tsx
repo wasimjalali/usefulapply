@@ -11,7 +11,7 @@ import { ComparisonFeatures } from '@/components/comparisons/ComparisonFeatures'
 import { ComparisonUseCases } from '@/components/comparisons/ComparisonUseCases';
 import { ComparisonFAQ } from '@/components/comparisons/ComparisonFAQ';
 
-import { BRAND } from '@/lib/brand';
+import { SEO_SITE_URL, canonicalUrl } from '@/lib/seo/site-url';
 
 interface ComparisonPageProps {
   params: Promise<{ slug: string }>;
@@ -30,12 +30,12 @@ export async function generateMetadata({ params }: ComparisonPageProps): Promise
     return { title: 'Comparison Not Found' };
   }
 
-  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
+  const SITE_URL = SEO_SITE_URL;
 
   return {
     title: comparison.title,
     description: comparison.description,
-    alternates: { canonical: `/compare/${comparison.slug}` },
+    alternates: { canonical: canonicalUrl(`/compare/${comparison.slug}`) },
     openGraph: {
       type: 'article',
       title: comparison.title,
@@ -64,7 +64,7 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
     notFound();
   }
 
-  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || BRAND.url;
+  const SITE_URL = SEO_SITE_URL;
 
   // JSON-LD schemas
   const breadcrumbJsonLd = {
