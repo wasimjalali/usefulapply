@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     template: '%s | Useful Apply',
   },
   description:
-    'Useful Apply optimizes your CV, generates tailored cover letters, and creates professional application emails in under 90 seconds.',
+    'Useful Apply is the AI job application agent that replaces the seven tools job seekers stitch together. A daily job feed, a fit check before you spend anything, and a tailored CV, cover letter and emails in 90 seconds. Every word traces back to your real CV.',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
@@ -145,7 +145,7 @@ export default function RootLayout({
               url: SITE_URL,
               logo: `${SITE_URL}/favicon-512x512.png`,
               description:
-                'Useful Apply helps job seekers apply smarter with AI-powered CV optimization, cover letter generation, and application email drafting.',
+                'Useful Apply is the AI job application agent. A daily job feed, a fit check, and a tailored CV, cover letter and emails in 90 seconds. Every word traces back to your real CV.',
               founder: {
                 '@type': 'Person',
                 name: 'Wasim Jalali',
@@ -153,7 +153,7 @@ export default function RootLayout({
                 url: `${SITE_URL}/about`,
                 image: `${SITE_URL}/wasim-founder.jpg`,
               },
-              foundingDate: '2025',
+              foundingDate: '2026',
               address: {
                 '@type': 'PostalAddress',
                 streetAddress: '1207 Delaware Ave #412',

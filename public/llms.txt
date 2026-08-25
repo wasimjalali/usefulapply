@@ -16,7 +16,7 @@ For long-form context, see https://usefulapply.com/llms-full.txt.
 
 The current and authoritative pricing is published at https://usefulapply.com/pricing.
 
-- **Free**: 4 credits per month (about 2 full applications). No credit card required.
+- **Free**: 4 credits per month (about 2 full applications). Top-5 daily job feed. No credit card required.
 - **Plus**: $19.99 per month. 50 credits (about 25 full applications). Smart Job Feed (up to 25 roles per day, searching 2 job titles across 2 countries). Priority support.
 - **Max**: $79.99 per month. 200 credits (about 100 full applications). Smart Job Feed (up to 25 roles per day, searching 4 job titles across 4 countries). Premium support.
 - **Add-on Credit Pack**: $19.99 for 50 credits (about 25 extra applications). Available to Plus and Max subscribers. Add-on credits roll over while the subscription is active.
@@ -25,7 +25,7 @@ A single full application costs 2 credits. A standalone Fit Analysis costs 0.5 c
 
 ## Core Features
 
-- **Smart Job Feed**: AI-curated daily job matches based on your Master CV (up to 25 per day on Plus and Max; Plus searches 2 job titles across 2 countries, Max searches 4 across 4).
+- **Smart Job Feed**: AI-curated daily job matches (top 5 on Free; up to 25 per day on Plus and Max). You run it when you want, once a day. Plus searches 2 job titles across 2 countries, Max searches 4 across 4.
 - **AI CV Optimization**: Tailors your CV to each job description while preserving your real experience. Zero fabrication.
 - **Smart Fit Analysis**: Scores your match against job requirements (0 to 100), identifies gaps, gives honest go or no-go assessments before you apply.
 - **Personalized Cover Letters**: Human-sounding cover letters that reference specific company and role details, built from your real CV.
@@ -56,10 +56,9 @@ The product UI is in English. Job descriptions can be processed in English, Germ
 
 **How long does a full application take?** Under 90 seconds end to end. That includes the tailored CV, cover letter, application email, follow-up email, and screening answers.
 
-**Where is my CV stored?** Uploaded CVs and generated documents are stored in Supabase (a managed Postgres + Storage service) so you can revisit and re-download past applications from your account. See https://usefulapply.com/privacy for the current data handling policy.
+**Where is my CV stored?** Uploaded CVs and generated documents are stored on Cloudflare (D1 for metadata, R2 for files) so you can revisit and re-download past applications from your account. See https://usefulapply.com/privacy for the current data handling policy.
 
-**Where is Useful Apply based?** KarKo AI Inc. 1207 Delaware Ave #412, Wilmington, DE 19806, USA. Contact: support@karkoai.com.
-# TODO(Task 7.1): switch this address to support@usefulapply.com once the mailbox is routed
+**Where is Useful Apply based?** Karko AI Inc. 1207 Delaware Ave #412, Wilmington, DE 19806, USA. Contact: support@usefulapply.com.
 
 ## Founder
 
@@ -130,11 +129,11 @@ The full comparisons hub is at https://usefulapply.com/compare.
 
 ## Technical Details
 
-- Built with Next.js (App Router) and React on Vercel
-- AI inference: Claude Sonnet 4.6 by Anthropic, via Amazon Bedrock (production) and direct Anthropic API (development)
-- Authentication and database: Supabase (Postgres + Auth + Storage)
+- Built with Next.js 16 (App Router) on Cloudflare Workers via `@opennextjs/cloudflare`
+- AI inference: Claude Sonnet 4.6 via Amazon Bedrock for kit writing, CV parsing and fit analysis; `@cf/openai/gpt-oss-120b` on Workers AI for chat, ranking and career profile
+- Authentication: Better Auth. Database: Cloudflare D1. Files: Cloudflare R2.
 - Payments: Stripe (subscriptions and add-on credit packs)
 - Anti-hallucination guardrails: every skill, metric, and claim is verified against the uploaded CV
 - Real-time streaming progress with agentic workflow (Analyze First mode and Apply Directly mode)
 - 6 ATS-optimized CV templates covering US and EU markets, including two German formats
-- Uploaded CVs, extracted CV content, and generated documents are stored in Supabase (Storage + Postgres) so the user can return to past applications. See https://usefulapply.com/privacy for the current data handling policy.
+- Uploaded CVs, extracted CV content, and generated documents are stored on Cloudflare (D1 + R2) so the user can return to past applications. See https://usefulapply.com/privacy for the current data handling policy.

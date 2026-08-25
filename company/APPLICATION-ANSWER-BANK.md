@@ -3,7 +3,7 @@
 Keep this current: update when the product, stack or direction changes.
 
 **Owner:** Wasim Jalali
-**Last updated:** 2026-08-23
+**Last updated:** 2026-08-25
 **Companion to:** `SOURCE-OF-TRUTH.md` (the fact layer). This file is the writing layer.
 **Use for:** Y Combinator, other accelerators, angel and pre-seed conversations, grants, startup competitions, press.
 **Brand:** Useful Apply (formerly Karko AI). Legal entity remains Karko AI Inc., a Delaware C-Corp.
@@ -34,7 +34,7 @@ Keep this current: update when the product, stack or direction changes.
 
 ### What is your company going to make?
 
-> Useful Apply is an AI agent that runs the whole job search in one app. You upload your CV once. Every morning you get matched roles. Before you spend time, you see a fit score with real gaps. In about 90 seconds you get a complete application: tailored CV, cover letter, email and screening answers, with every line grounded in your actual experience. You review everything before it goes anywhere. Every application is tracked automatically. It replaces the seven tools job seekers juggle today: job board, resume builder, ATS checker, cover letter AI, email drafts, screening prep and a tracking spreadsheet.
+> Useful Apply is an AI agent that runs the whole job search in one app. You upload your CV once. You run a daily feed of matched roles. Before you spend time, you see a fit score with real gaps. In about 90 seconds you get a complete application: tailored CV, cover letter, email and screening answers, with every line grounded in your actual experience. You review everything before it goes anywhere. Every application is tracked automatically. It replaces the seven tools job seekers juggle today: job board, resume builder, ATS checker, cover letter AI, email drafts, screening prep and a tracking spreadsheet.
 
 ### Why did you pick this idea? Do you have domain expertise?
 
@@ -54,7 +54,7 @@ Keep this current: update when the product, stack or direction changes.
 
 ### How do you make money? How much could you make?
 
-> Credit-based subscription. Free, Plus at $19.99 a month, Max at $79.99 a month, plus credit top-ups on paid plans. Both paid plans get the Smart Job Feed at up to 25 roles a day, and Max searches twice as wide, 4 job titles across 4 countries. Job search is episodic, so churn is real and I don't pretend otherwise. Near-term growth is activation and free-to-paid conversion, not market-size slides. The economics are modelled, not guessed: about $0.21 of inference per full application today, $0.40 revenue per credit, and 73 to 80% gross margin on a paid subscription at realistic utilization. The number I actually watch is free-to-paid conversion, because blended break-even sits at about 4.7% and that is where the business is won or lost.
+> Credit-based subscription. Free, Plus at $19.99 a month, Max at $79.99 a month, plus credit top-ups on paid plans. Free gets a top-5 daily feed. Plus and Max get up to 25 roles a day, and Max searches twice as wide, 4 job titles across 4 countries. Job search is episodic, so churn is real and I don't pretend otherwise. Near-term growth is activation and free-to-paid conversion, not market-size slides. The economics are modelled, not guessed: about $0.21 of inference per full application today, $0.40 revenue per credit, and 73 to 80% gross margin on a paid subscription at realistic utilization. The number I actually watch is free-to-paid conversion, because blended break-even sits at about 4.7% and that is where the business is won or lost.
 
 ### How far along are you?
 

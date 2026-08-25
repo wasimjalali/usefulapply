@@ -255,5 +255,4 @@ The 6 CV templates and their color/market tokens live in `.claude/rules/cv-templ
 ## Documentation
 - `README.md` — Project overview (current Cloudflare stack)
 - `SETUP.md` — Local dev and bindings setup
-- `docs/usefulapply-master-plan.md` — Migration/cutover runbook (Phases 9-10 remain)
 - `company/` — Source of truth + application answer bank for external applications. **Keep these two files updated whenever the product, stack or direction changes.**
