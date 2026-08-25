@@ -23,8 +23,8 @@ export const metadata: Metadata = {
 
 const SITE_URL = SEO_SITE_URL;
 
-// Stills captured from the product demo, then cropped to the one pane
-// that moment is about so they stay readable at 1280px desktop.
+// Stills captured from the product demo at 120% UI zoom (?stills),
+// full 16:9 dashboard, so the landing walkthrough shows the whole app.
 const DEMO_MOMENTS = [
   {
     anchor: 'moment-find',
@@ -32,7 +32,9 @@ const DEMO_MOMENTS = [
     body: 'Up to 20 a day, matched to your experience.',
     image: {
       src: '/images/demo/still-find.webp',
-      alt: "Today's ranked roles: match strength, title, salary and a Check fit button on each card",
+      alt: 'The full Useful Apply dashboard: sidebar, job-board chat and today\'s ranked roles',
+      width: 4608,
+      height: 2592,
     },
   },
   {
@@ -41,7 +43,9 @@ const DEMO_MOMENTS = [
     body: "What's strong, what's missing and whether it's worth applying.",
     image: {
       src: '/images/demo/still-fit.webp',
-      alt: 'A Good Fit card: 78% match, the strengths that line up, the gaps and a short recommendation',
+      alt: 'The full dashboard on a Good Fit result: 78% match in chat, CV preview on the right',
+      width: 4608,
+      height: 2592,
     },
   },
   {
@@ -50,7 +54,9 @@ const DEMO_MOMENTS = [
     body: 'CV, cover letter, emails and screening answers. From your real CV.',
     image: {
       src: '/images/demo/still-kit.webp',
-      alt: 'The tailored CV preview with Original/Tailored toggle, ATS 91% and the template picker',
+      alt: 'The full dashboard with the tailored CV, ATS 91% and the template picker',
+      width: 4608,
+      height: 2592,
     },
   },
   {
@@ -59,7 +65,9 @@ const DEMO_MOMENTS = [
     body: "What you've sent, what's gone quiet and what's due a follow-up.",
     image: {
       src: '/images/demo/still-track.webp',
-      alt: 'The tracker table: six applications with match scores, status pills and the next action on each',
+      alt: 'The full dashboard on the tracker: six applications, match scores and the next action on each',
+      width: 4608,
+      height: 2592,
     },
   },
 ];
@@ -381,7 +389,9 @@ export default function Home() {
         </section>
 
         {/* Product walkthrough: four stacked slides. Each card sticks in
-            the same viewport; the next one covers it as you scroll. */}
+            the same viewport; the next one covers it as you scroll. The
+            still is sized to its 16:9 frame; a shadow lifts it off the
+            cream canvas. */}
         <section id="what-you-get" className="scroll-mt-24 bg-cream-100 pt-8 lg:pt-12">
           <div>
             {DEMO_MOMENTS.map((moment, index) => (
@@ -402,16 +412,19 @@ export default function Home() {
                       {moment.body}
                     </p>
                   </figcaption>
-                  <div className="relative mt-6 min-h-0 flex-1 overflow-hidden rounded-2xl border border-cream-200 bg-cream-50 shadow-lg">
-                    <Image
-                      src={moment.image.src}
-                      alt={moment.image.alt}
-                      fill
-                      quality={95}
-                      unoptimized
-                      sizes="(max-width: 1280px) 100vw, 1280px"
-                      className="object-contain object-top"
-                    />
+                  <div className="mt-6 flex min-h-0 flex-1 items-center justify-center py-4">
+                    <div className="walkthrough-still max-h-full max-w-full rounded-2xl bg-cream-50">
+                      <Image
+                        src={moment.image.src}
+                        alt={moment.image.alt}
+                        width={moment.image.width}
+                        height={moment.image.height}
+                        quality={95}
+                        unoptimized
+                        sizes="(max-width: 1280px) 100vw, 1280px"
+                        className="block h-auto max-h-full w-auto max-w-full rounded-2xl"
+                      />
+                    </div>
                   </div>
                 </div>
               </figure>
