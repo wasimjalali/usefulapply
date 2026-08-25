@@ -270,10 +270,10 @@ export default function Home() {
             same treatment as the pricing page. */}
         <div className="relative overflow-hidden">
         <PricingAurora />
-        {/* Hero: split, copy left, the finished-kit workspace right. */}
+        {/* Hero: copy stacked over the demo, so the reel gets the full column width. */}
         <section className="relative px-4 pb-14 pt-16 sm:px-6 lg:px-8 lg:pt-24">
-          <div className="mx-auto flex max-w-7xl flex-col items-center gap-10 lg:flex-row lg:gap-16">
-            <ScrollReveal className="w-full lg:w-[430px] lg:flex-shrink-0">
+          <div className="mx-auto max-w-7xl">
+            <ScrollReveal className="mx-auto max-w-3xl text-center">
               <h1 className="font-bold text-navy-600 text-[40px] leading-[1.08] sm:text-[52px]">
                 Find jobs, write tailored applications, track them.<br />
                 <span className="text-gold-500">All in one app.</span>
@@ -283,7 +283,7 @@ export default function Home() {
                 answers to your screening questions, grounded in what you&apos;ve actually done.
                 You review, you send.
               </p>
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
                 <Link
                   href="/dashboard"
                   className="inline-flex h-12 items-center justify-center rounded-lg bg-gold-400 px-7 text-[15px] font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer"
@@ -301,17 +301,19 @@ export default function Home() {
                 Your first fit check is on us, no account needed.
               </p>
             </ScrollReveal>
-            <ScrollReveal delay={150} className="w-full flex-1">
-              <Image
-                src={HERO_IMAGE.src}
-                alt={HERO_IMAGE.alt}
-                width={1440}
-                height={900}
-                priority
-                quality={90}
-                sizes="(max-width: 1023px) 100vw, 680px"
-                className="w-full rounded-2xl border border-cream-200 shadow-sm"
-              />
+            {/* The product reel, 16:9, running the full container width. */}
+            <ScrollReveal delay={150} className="mt-12 w-full">
+              <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-cream-200 shadow-sm">
+                <Image
+                  src={HERO_IMAGE.src}
+                  alt={HERO_IMAGE.alt}
+                  fill
+                  priority
+                  quality={90}
+                  sizes="(max-width: 1279px) 100vw, 1280px"
+                  className="object-cover"
+                />
+              </div>
             </ScrollReveal>
           </div>
         </section>
