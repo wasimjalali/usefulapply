@@ -94,9 +94,6 @@ export function SearchPlanEditor({
           Add a search
         </button>
       )}
-      <p className="text-xs text-warm-gray">
-        {rows.length} of {cap} {cap === 1 ? 'search' : 'searches'}.
-      </p>
     </div>
   );
 }

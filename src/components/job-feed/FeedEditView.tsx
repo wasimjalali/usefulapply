@@ -311,9 +311,6 @@ export function FeedEditView({
 
                     <div className="xl:col-span-2">
                       <p className="text-sm font-medium text-charcoal">Searches</p>
-                      <p className="mt-1 text-xs text-warm-gray">
-                        Each row is a role in a country. Up to {queryBudget} {queryBudget === 1 ? 'search' : 'searches'}.
-                      </p>
                       <div className="mt-2">
                         {draft && (
                           <SearchPlanEditor

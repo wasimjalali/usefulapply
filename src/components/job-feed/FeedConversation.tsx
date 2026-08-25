@@ -22,6 +22,7 @@ import {
 import { useFeedJobLists } from './useVisibleFeedJobs';
 import {
   JOB_FEED_COUNTRY_OPTIONS,
+  JOB_FEED_REMOTE_PREFERENCE_OPTIONS,
   getJobFeedTierLimits,
   legacyMarketFromCountries,
   setupCityChipsForCountries,
@@ -563,10 +564,30 @@ export function FeedConversation() {
       store.setSetupStep(2);
       return;
     }
+    if (chip.id === 'workmode:done') {
+      const selected = store.setupDraft.remote_preferences ?? [];
+      const remotePreference = selected[0];
+      if (!remotePreference) {
+        say({ role: 'assistant', content: 'Pick at least one way you want to work.' });
+        return;
+      }
+      store.patchSetupDraft({
+        remote_preferences: selected,
+        remote_preference: remotePreference,
+      });
+      store.setSetupStep(3);
+      return;
+    }
     if (chip.id.startsWith('workmode:')) {
       const mode = chip.id.slice('workmode:'.length) as JobFeedSettingsInput['remote_preference'];
-      store.patchSetupDraft({ remote_preference: mode, remote_preferences: [mode] });
-      store.setSetupStep(3);
+      const current = store.setupDraft.remote_preferences ?? [];
+      const next = current.includes(mode)
+        ? current.filter((item) => item !== mode)
+        : [...current, mode];
+      store.patchSetupDraft({
+        remote_preferences: next,
+        ...(next[0] ? { remote_preference: next[0] } : {}),
+      });
       return;
     }
     if (chip.id.startsWith('salary:')) {
@@ -593,10 +614,16 @@ export function FeedConversation() {
         const draft = { ...base, ...setupDraft, enabled: true, consent_accepted: true };
         store.patchSetupDraft(draft);
         store.setSetupStep(6);
-        await new Promise<void>((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-        });
-        await new Promise((resolve) => window.setTimeout(resolve, 1400));
+        return;
+      }
+      case 'start-searching': {
+        const base = createDefaultJobFeedInput(browserTimeZone());
+        const draft = {
+          ...base,
+          ...useFeedStore.getState().setupDraft,
+          enabled: true,
+          consent_accepted: true,
+        };
         await completeSetup(draft);
         return;
       }
@@ -876,6 +903,7 @@ export function FeedConversation() {
         <div ref={endRef} />
       </div>
 
+      {!(phase === 'setup' && setupStep >= 2) && (
       <div className="flex-shrink-0 bg-cream-50 px-5 pb-4 pt-2.5">
         <div className="flex items-end gap-2 rounded-2xl border border-cream-200 bg-white px-3.5 py-2.5 shadow-sm">
           <textarea
@@ -894,11 +922,9 @@ export function FeedConversation() {
                 ? 'Or type a country I search'
                 : phase === 'setup' && setupStep === 1
                   ? 'Or type a city I know'
-                  : phase === 'setup'
-                    ? 'Pick one of the chips above'
-                    : phase === 'building'
-                      ? "You can keep typing, I'll answer after this"
-                      : 'Tell me what to change, e.g. "more remote, no agencies"'
+                  : phase === 'building'
+                    ? "You can keep typing, I'll answer after this"
+                    : 'Tell me what to change, e.g. "more remote, no agencies"'
             }
             className="max-h-32 min-h-[24px] flex-1 resize-none bg-transparent text-sm text-charcoal placeholder:text-warm-gray/70 focus:outline-none disabled:cursor-not-allowed"
           />
@@ -913,6 +939,7 @@ export function FeedConversation() {
           </button>
         </div>
       </div>
+      )}
     </section>
   );
 }
@@ -1107,6 +1134,7 @@ function buildOpening(params: {
       }
       if (setupStep > 1) {
         const cities = setupDraft.target_cities ?? [];
+        const selectedModes = setupDraft.remote_preferences ?? [];
         items.push({
           id: 'setup-a2',
           role: 'user',
@@ -1118,10 +1146,15 @@ function buildOpening(params: {
           content: '**How do you want to work?**',
           chips: setupStep === 2
             ? [
-                { id: 'workmode:remote_only', label: 'Remote only', variant: 'secondary' as const },
-                { id: 'workmode:remote_first', label: 'Remote first', variant: 'secondary' as const },
-                { id: 'workmode:hybrid', label: 'Hybrid okay', variant: 'secondary' as const },
-                { id: 'workmode:onsite', label: 'On-site okay', variant: 'secondary' as const },
+                ...JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => ({
+                  id: `workmode:${option.value}`,
+                  label: option.label,
+                  variant: 'secondary' as const,
+                  pressed: selectedModes.includes(option.value),
+                })),
+                ...(selectedModes.length > 0
+                  ? [{ id: 'workmode:done', label: "That's all", variant: 'primary' as const }]
+                  : []),
               ]
             : undefined,
         });
@@ -1130,7 +1163,7 @@ function buildOpening(params: {
         items.push({
           id: 'setup-a3',
           role: 'user',
-          content: workModeAnswer(setupDraft.remote_preference ?? null),
+          content: workModeAnswer(setupDraft.remote_preferences ?? []),
         });
         items.push({
           id: 'setup-q4',
@@ -1188,6 +1221,9 @@ function buildOpening(params: {
           id: 'setup-done',
           role: 'assistant',
           content: "That's everything. I'll search public job boards for you now.",
+          chips: setupStep === 6
+            ? [{ id: 'start-searching', label: 'Start searching', variant: 'primary' }]
+            : undefined,
         });
       }
       return items;
@@ -1255,19 +1291,13 @@ function describeProfile(profile: ReturnType<typeof useFeedStore.getState>['care
   return parts.length > 0 ? parts.join(', ') : null;
 }
 
-function workModeAnswer(value: JobFeedSettingsInput['remote_preference'] | null): string {
-  switch (value) {
-    case 'remote_only':
-      return 'Remote only';
-    case 'remote_first':
-      return 'Remote first';
-    case 'hybrid':
-      return 'Hybrid okay';
-    case 'onsite':
-      return 'On-site okay';
-    default:
-      return 'Flexible';
-  }
+function workModeAnswer(values: JobFeedSettingsInput['remote_preferences']): string {
+  const labelByValue = new Map(JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => [option.value, option.label]));
+  const labels = values
+    .map((value) => labelByValue.get(value))
+    .filter((label): label is NonNullable<typeof label> => Boolean(label));
+  if (labels.length === 0) return 'Pick at least one way you want to work.';
+  return labels.join(', ');
 }
 
 function summarizePlan(plan: { query: string; targetCountry: string }[]): string {

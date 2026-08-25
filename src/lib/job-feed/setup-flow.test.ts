@@ -12,6 +12,7 @@ import {
   rolesFromCareerProfile,
   rolesFromConfirmedQueries,
   shouldGenerateStrategyOnSettingsSave,
+  shouldReuseUserConfirmedStrategy,
   validateConfirmedQueries,
 } from './search-plan';
 import { serpApiLocationValue } from './serpapi';
@@ -125,6 +126,17 @@ test('later runs reuse a user-confirmed list and do not silently re-pick', () =>
   // must not fall through to generate even if the caller only has this flag.
   assert.equal(shouldGenerateStrategyOnSettingsSave(), false);
   assert.notEqual(resolveSearchStrategyMode({ userConfirmed: isUserConfirmedStrategy(strategy) }), 'generate');
+  // Stale schema, hash or profile must still reuse. Silent re-pick is a spec break.
+  assert.equal(shouldReuseUserConfirmedStrategy({ strategy, version: 0 }), true);
+  assert.equal(shouldReuseUserConfirmedStrategy({ strategy, version: 999 }), true);
+  assert.equal(
+    shouldReuseUserConfirmedStrategy({ strategy: { userConfirmed: true, queries: [] }, version: 1 }),
+    false,
+  );
+  assert.equal(
+    shouldReuseUserConfirmedStrategy({ strategy: { userConfirmed: false, queries: strategy.queries }, version: 1 }),
+    false,
+  );
 });
 
 test('confirmed queries persist as target_roles in career-profile order', () => {

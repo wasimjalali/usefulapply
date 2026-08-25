@@ -134,6 +134,19 @@ export function isUserConfirmedStrategy(value: unknown): boolean {
   return (value as { userConfirmed?: unknown }).userConfirmed === true;
 }
 
+/**
+ * Daily runs reuse a confirmed list even when the settings hash, schema
+ * version or career profile looks stale. Regenerating would silently re-pick.
+ */
+export function shouldReuseUserConfirmedStrategy(latest: {
+  strategy: unknown;
+  version?: number;
+} | null | undefined): boolean {
+  if (!latest || !isUserConfirmedStrategy(latest.strategy)) return false;
+  const queries = (latest.strategy as { queries?: unknown }).queries;
+  return Array.isArray(queries) && queries.length > 0;
+}
+
 export function isCitySkipLine(text: string): boolean {
   const normalized = text.trim().toLowerCase().replace(/[.!?]+$/g, '');
   return /^(skip|none|no|no cities?|country only)$/.test(normalized);

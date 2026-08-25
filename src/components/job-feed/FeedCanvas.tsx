@@ -162,7 +162,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         title="Your feed lands here"
         body={readOnly
           ? "Set your feed up on a computer and it'll show up here."
-          : "Answer the three questions on the left and I'll build it. About a minute. After that you run it again when you want a new list."}
+          : "Finish the questions on the left and I'll build it. About a minute. After that you run it again when you want a new list."}
       />
     );
   }

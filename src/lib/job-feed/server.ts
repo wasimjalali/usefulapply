@@ -47,7 +47,7 @@ import {
   type SearchStrategy,
 } from '@/lib/job-feed/search-strategy';
 import {
-  isUserConfirmedStrategy,
+  shouldReuseUserConfirmedStrategy,
 } from '@/lib/job-feed/search-plan';
 import { generateCareerProfile } from '@/lib/job-feed/career-profile-synthesis';
 import type { StructuredCV } from '@/lib/types/cv-schema';
@@ -2328,13 +2328,10 @@ export async function loadOrGenerateSearchStrategyAdmin(params: {
 
   const latest = await jobFeedRepo.getLatestSearchStrategyRow(userId);
   // A user-confirmed list is the source of truth. Do not regenerate over it,
-  // including when the settings hash changed (steer) or the career profile
-  // was rebuilt. Falling through would silently re-pick queries.
-  if (latest && isUserConfirmedStrategy(latest.strategy)) {
-    const confirmed = latest.strategy as unknown as SearchStrategy;
-    if (Array.isArray(confirmed.queries) && confirmed.queries.length > 0) {
-      return confirmed;
-    }
+  // including when the settings hash, schema version or career profile
+  // looks stale. Falling through would silently re-pick queries.
+  if (latest && shouldReuseUserConfirmedStrategy(latest)) {
+    return latest.strategy as unknown as SearchStrategy;
   }
 
   const settingsHash = computeSettingsHash(settings);
