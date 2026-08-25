@@ -53,7 +53,7 @@ export function PlusPlanButton() {
   return (
     <>
       <button onClick={start} disabled={loading} className={GOLD_BUTTON}>
-        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Start with Plus'}
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Go Plus'}
       </button>
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </>

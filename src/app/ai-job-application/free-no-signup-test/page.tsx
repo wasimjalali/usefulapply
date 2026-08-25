@@ -157,8 +157,7 @@ export default function FreeNoSignupTestPage() {
                   href="/dashboard"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md"
                 >
-                  Try It Now - No Sign-Up Required
-                  <ArrowRight className="w-4 h-4" />
+                  Start free
                 </Link>
               </div>
             </ScrollReveal>
@@ -326,7 +325,7 @@ export default function FreeNoSignupTestPage() {
           <ScrollReveal>
             <div className="max-w-4xl mx-auto text-center relative">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                Try Free, No Sign-Up
+                Start free
               </h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
                 2 complete applications at no cost. See the output quality before committing to
@@ -336,8 +335,7 @@ export default function FreeNoSignupTestPage() {
                 href="/dashboard"
                 className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg"
               >
-                Try Free, No Sign-Up
-                <ArrowRight className="w-5 h-5" />
+                Start free
               </a>
             </div>
           </ScrollReveal>

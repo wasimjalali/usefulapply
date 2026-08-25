@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, Check } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
@@ -161,8 +161,7 @@ export default function ScreeningQuestionAnswersPage() {
                   href="/dashboard"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md"
                 >
-                  Try Useful Apply Free
-                  <ArrowRight className="w-4 h-4" />
+                  Start free
                 </Link>
               </div>
             </ScrollReveal>
@@ -417,8 +416,7 @@ export default function ScreeningQuestionAnswersPage() {
                   href="/dashboard"
                   className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg inline-flex items-center gap-2"
                 >
-                  Try Useful Apply Free
-                  <ArrowRight className="w-5 h-5" />
+                  Start free
                 </Link>
                 <Link
                   href="/ai-job-application"

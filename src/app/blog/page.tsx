@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Clock, Calendar, BookOpen, Sparkles, Rss } from 'lucide-react';
+import { Clock, Calendar, BookOpen, Sparkles, Rss } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { getAllPosts, CATEGORY_COLORS } from '@/lib/blog';
@@ -67,8 +67,7 @@ export default function BlogPage() {
                   href="/dashboard"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors"
                 >
-                  Try Useful Apply free
-                  <ArrowRight className="w-4 h-4" />
+                  Start free
                 </Link>
               </div>
             ) : (
@@ -287,8 +286,7 @@ export default function BlogPage() {
               href="/dashboard"
               className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors"
             >
-              Start free, no credit card
-              <ArrowRight className="w-4 h-4" />
+              Start free
             </Link>
           </div>
         </section>

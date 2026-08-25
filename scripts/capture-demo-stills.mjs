@@ -16,10 +16,12 @@ const OUT = join(ROOT, 'public/images/demo');
 // Played-timeline ms (CUES already divide by --rate). Frames sit on a
 // settled product screen, away from click/camera windows, cursor hidden.
 const STILLS = [
-  { name: 'still-find', ms: 11500 },
-  { name: 'still-fit', ms: 20500 },
-  { name: 'still-kit', ms: 35000 },
-  { name: 'still-track', ms: 57500 },
+  // Crops are 2x pixels on the 1920x1080 stage. Each still is the one pane
+  // that moment is about, so the landing walkthrough stays readable at 1280.
+  { name: 'still-find', ms: 11500, crop: { left: 1950, top: 0, width: 1890, height: 980 } },
+  { name: 'still-fit', ms: 20500, crop: { left: 470, top: 220, width: 1460, height: 920 } },
+  { name: 'still-kit', ms: 35000, crop: { left: 1950, top: 0, width: 1890, height: 1040 } },
+  { name: 'still-track', ms: 57500, crop: { left: 1568, top: 0, width: 2272, height: 1100 } },
 ];
 
 class Cdp {
@@ -152,7 +154,8 @@ try {
     const meta = await sharp(png).metadata();
     const dest = join(OUT, `${still.name}.webp`);
     await sharp(png)
-      .webp({ quality: 90, effort: 6, smartSubsample: false })
+      .extract(still.crop)
+      .webp({ quality: 90, effort: 6, smartSubsample: false, lossless: true })
       .toFile(dest);
     const { size } = await stat(dest);
     console.log(

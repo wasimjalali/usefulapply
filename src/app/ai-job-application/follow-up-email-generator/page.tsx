@@ -449,8 +449,7 @@ export default function FollowUpEmailGeneratorPage() {
                   href="/dashboard"
                   className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg inline-flex items-center gap-2"
                 >
-                  Try Useful Apply Free
-                  <ArrowRight className="w-5 h-5" />
+                  Start free
                 </Link>
                 <Link
                   href="/ai-job-application"

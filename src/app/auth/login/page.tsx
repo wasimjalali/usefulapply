@@ -97,7 +97,7 @@ function LoginForm() {
   }
 
   return (
-    <AuthShell linkLabel="New here? Try it free" linkHref="/dashboard">
+    <AuthShell linkLabel="New here? Start free" linkHref="/dashboard">
       <div className={AUTH_CARD}>
         <h1 className="text-2xl font-semibold text-navy-800">Log in</h1>
 

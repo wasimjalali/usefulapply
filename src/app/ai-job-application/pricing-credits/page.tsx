@@ -158,8 +158,7 @@ export default function PricingCreditsPage() {
                   href="/dashboard"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md"
                 >
-                  Start Free - 2 Applications Included
-                  <ArrowRight className="w-4 h-4" />
+                  Start free
                 </Link>
               </div>
             </ScrollReveal>
@@ -341,7 +340,7 @@ export default function PricingCreditsPage() {
           <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
           <ScrollReveal>
             <div className="max-w-4xl mx-auto text-center relative">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Get Started Free</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Start free</h2>
               <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">
                 2 complete applications at no cost. No credit card required. Same AI quality as paid
                 plans.
@@ -350,8 +349,7 @@ export default function PricingCreditsPage() {
                 href="/dashboard"
                 className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg"
               >
-                Get Started Free
-                <ArrowRight className="w-5 h-5" />
+                Start free
               </a>
             </div>
           </ScrollReveal>

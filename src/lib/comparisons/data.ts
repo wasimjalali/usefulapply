@@ -302,7 +302,7 @@ export const comparisons: ComparisonData[] = [
       'Useful Apply and Teal are different products pretending to be comparable. Useful Apply replaces the seven tools you use to apply for a job with one loop: find, check fit, write, track. Teal replaces your tracking spreadsheet and gives you a good Chrome extension for saving jobs. Pick Useful Apply if you want your entire job search in one app, with emails and screening answers included. Pick Teal if your workflow already works and you just want a better tracker.',
 
     // CTA
-    ctaText: 'Try Useful Apply Free - Send Your First Full Application in 90 Seconds',
+    ctaText: 'Start free',
     ctaHref: '/dashboard',
 
     // SEO
@@ -602,7 +602,7 @@ export const comparisons: ComparisonData[] = [
       'Useful Apply and Jobscan are doing different jobs. Useful Apply replaces the seven tools you use to apply for a job with one loop: find the role, check fit, write the full application, track it. The output is ATS-safe by default, so you skip the scan-and-fix cycle. Jobscan is a specialized keyword scanner for a CV you wrote somewhere else. Pick Useful Apply if you want your entire job search in one app. Pick Jobscan if your writing process already works and you only want the keyword check on each finished CV.',
 
     // CTA
-    ctaText: 'Try Useful Apply Free - Send Your First Full Application in 90 Seconds',
+    ctaText: 'Start free',
     ctaHref: '/dashboard',
 
     // SEO
@@ -906,7 +906,7 @@ export const comparisons: ComparisonData[] = [
     verdict:
       'Useful Apply and Rezi are shaped differently. Useful Apply replaces the seven tools you use to apply for a job with one loop: find the role, check fit, write the full application, track it. Rezi is a well-made CV scorer with good interview practice. Pick Useful Apply if you want your entire job search in one app. Pick Rezi if your search workflow already works and you just want to polish CVs to a score and practice for interviews. If both matter, some users run Useful Apply for the application loop and Rezi for interview prep.',
 
-    ctaText: 'Try Useful Apply Free - Send Your First Full Application in 90 Seconds',
+    ctaText: 'Start free',
     ctaHref: '/dashboard',
 
     tags: [
@@ -1212,7 +1212,7 @@ export const comparisons: ComparisonData[] = [
     verdict:
       'Useful Apply and Kickresume are shaped differently. Useful Apply replaces the seven tools you use to apply for a job with one loop: find the role, check fit, write the full application, track it. ATS-safe by default. Kickresume is a design-first resume builder with a portfolio site on top. Pick Useful Apply for any corporate or ATS-heavy job search where the parser will reject multi-column templates. Pick Kickresume for creative or portfolio-driven roles where a human reviews first and visual variety helps you stand out.',
 
-    ctaText: 'Try Useful Apply Free - Send Your First Full Application in 90 Seconds',
+    ctaText: 'Start free',
     ctaHref: '/dashboard',
 
     tags: [
@@ -1506,7 +1506,7 @@ export const comparisons: ComparisonData[] = [
     verdict:
       'Useful Apply and Enhancv are shaped differently. Useful Apply replaces the seven tools you use to apply for a job with one loop: find the role, check fit, write the full application (CV, cover letter, emails, screening answers), track it. Enhancv is a resume builder with wide multi-language support and a tracker. Pick Useful Apply for the full workflow in English, German, or other European markets. Pick Enhancv if your job search needs 30+ language coverage and your workflow for everything else already works.',
 
-    ctaText: 'Try Useful Apply Free - Send Your First Full Application in 90 Seconds',
+    ctaText: 'Start free',
     ctaHref: '/dashboard',
 
     tags: [
@@ -1806,7 +1806,7 @@ export const comparisons: ComparisonData[] = [
     verdict:
       'Useful Apply and Resume.io are bets on two different shapes of job search. Useful Apply is one app for the whole loop: find the role, check fit, write the full application, track it. Every word traces to your real CV. You review and approve every send. Resume.io is a large ecosystem betting on volume: recruiter matching, auto-apply, and coaching. Pick Useful Apply if you want quality and control on every application, with the full workflow in one app. Pick Resume.io if you want a recruiter network and are comfortable with a service applying on your behalf.',
 
-    ctaText: 'Try Useful Apply Free - Send Your First Full Application in 90 Seconds',
+    ctaText: 'Start free',
     ctaHref: '/dashboard',
 
     tags: [

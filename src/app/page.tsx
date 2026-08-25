@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowDown, ArrowRight, Check } from 'lucide-react';
+import { ArrowDown, Check } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { BrandIcon } from '@/components/marketing/BrandLogo';
@@ -23,8 +23,8 @@ export const metadata: Metadata = {
 
 const SITE_URL = SEO_SITE_URL;
 
-// Stills captured from the product demo, one per moment that matters.
-// For anyone who skips the reel in the hero.
+// Stills captured from the product demo, then cropped to the one pane
+// that moment is about so they stay readable at 1280px desktop.
 const DEMO_MOMENTS = [
   {
     anchor: 'moment-find',
@@ -32,7 +32,7 @@ const DEMO_MOMENTS = [
     body: 'Up to 20 a day, matched to your experience.',
     image: {
       src: '/images/demo/still-find.webp',
-      alt: "The Job Board listing today's ranked roles with match strength, salary and location on each, and a fit check button per role",
+      alt: "Today's ranked roles: match strength, title, salary and a Check fit button on each card",
     },
   },
   {
@@ -41,7 +41,7 @@ const DEMO_MOMENTS = [
     body: "What's strong, what's missing and whether it's worth applying.",
     image: {
       src: '/images/demo/still-fit.webp',
-      alt: 'A fit result: 78% match for a Senior Frontend Engineer role, with the strengths that line up, the gaps and a clear recommendation',
+      alt: 'A Good Fit card: 78% match, the strengths that line up, the gaps and a short recommendation',
     },
   },
   {
@@ -50,7 +50,7 @@ const DEMO_MOMENTS = [
     body: 'CV, cover letter, emails and screening answers. From your real CV.',
     image: {
       src: '/images/demo/still-kit.webp',
-      alt: 'A finished kit: the tailored CV in the live preview with its ATS score, the template picker open and the chat alongside',
+      alt: 'The tailored CV preview with Original/Tailored toggle, ATS 91% and the template picker',
     },
   },
   {
@@ -59,7 +59,7 @@ const DEMO_MOMENTS = [
     body: "What you've sent, what's gone quiet and what's due a follow-up.",
     image: {
       src: '/images/demo/still-track.webp',
-      alt: 'The application tracker: six applications with match scores, statuses and the follow-ups due this week',
+      alt: 'The tracker table: six applications with match scores, status pills and the next action on each',
     },
   },
 ];
@@ -609,10 +609,9 @@ export default function Home() {
               <div className="mt-9 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
                 <Link
                   href="/dashboard"
-                  className="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-gold-400 px-8 text-base font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer"
+                  className="inline-flex h-12 items-center justify-center rounded-lg bg-gold-400 px-8 text-base font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer"
                 >
-                  Start free, no credit card
-                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+                  Start free
                 </Link>
                 <Link
                   href="/pricing"
@@ -621,6 +620,7 @@ export default function Home() {
                   View pricing
                 </Link>
               </div>
+              <p className="mt-4 text-sm text-navy-200">No credit card needed.</p>
             </ScrollReveal>
           </div>
         </section>
