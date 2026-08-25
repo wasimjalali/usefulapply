@@ -13,6 +13,14 @@ import {
 } from '@/lib/job-feed/constants';
 import { toJobFeedInput } from '@/lib/job-feed/helpers';
 import { countryLabel } from './feed-format';
+import { SearchPlanEditor } from './SearchPlanEditor';
+import {
+  buildConfirmSearchPlan,
+  queriesFromSearchStrategy,
+  rolesFromConfirmedQueries,
+  validateConfirmedQueries,
+  type ConfirmedSearchQuery,
+} from '@/lib/job-feed/search-plan';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
 import { formatDayMonth } from '@/lib/utils/format-date';
 import type { FeedEditPill } from '@/store/useFeedStore';
@@ -26,7 +34,7 @@ interface FeedEditViewProps {
   pill: FeedEditPill;
   onPillChange: (pill: FeedEditPill) => void;
   onBack: () => void;
-  onSavePreferences: (draft: JobFeedSettingsInput) => Promise<
+  onSavePreferences: (draft: JobFeedSettingsInput, plan: ConfirmedSearchQuery[]) => Promise<
     { ok: true; settingsVersion: string | null } | { ok: false; error: string }
   >;
 }
@@ -41,6 +49,7 @@ interface PreferenceDraft {
   cities: string;
   workModes: JobFeedSettingsInput['remote_preferences'];
   salaryFloor: string;
+  searchRows: ConfirmedSearchQuery[];
   workAuthorization: JobFeedSettingsInput['work_authorization_status'];
   excludedTerms: string;
 }
@@ -77,7 +86,12 @@ export function FeedEditView({
   const datePrefs = useDatePrefs();
   const settings = overview?.settings ?? null;
   const settingsInput = useMemo(() => settings ? toJobFeedInput(settings) : null, [settings]);
-  const nextDraft = useMemo(() => settingsInput ? toPreferenceDraft(settingsInput) : null, [settingsInput]);
+  const nextDraft = useMemo(
+    () => settingsInput
+      ? toPreferenceDraft(settingsInput, strategy, queryBudget)
+      : null,
+    [queryBudget, settingsInput, strategy],
+  );
   const settingsVersion = settings?.updated_at ?? null;
   const [draft, setDraft] = useState<PreferenceDraft | null>(nextDraft);
   const [savedDraft, setSavedDraft] = useState<PreferenceDraft | null>(nextDraft);
@@ -105,7 +119,9 @@ export function FeedEditView({
     draft
     && draft.countries.length > 0
     && draft.workModes.length > 0
-    && salaryValid,
+    && salaryValid
+    && draft.searchRows.length > 0
+    && draft.searchRows.every((row) => row.query.trim().length > 0),
   );
 
   const updateDraft = (patch: Partial<PreferenceDraft>) => {
@@ -117,11 +133,17 @@ export function FeedEditView({
 
   const savePreferences = async () => {
     if (!draft || !settingsInput || !formValid || saveState === 'saving') return;
+    const checked = validateConfirmedQueries(draft.searchRows, queryBudget);
+    if (!checked.ok) {
+      setSaveState('error');
+      setSaveError(checked.error);
+      return;
+    }
     setSaveState('saving');
     setSaveError('');
     let result: Awaited<ReturnType<typeof onSavePreferences>>;
     try {
-      result = await onSavePreferences(toSettingsInput(settingsInput, draft));
+      result = await onSavePreferences(toSettingsInput(settingsInput, { ...draft, searchRows: checked.queries }), checked.queries);
     } catch {
       setSaveState('error');
       setSaveError('Your preferences did not save. Try again.');
@@ -287,6 +309,27 @@ export function FeedEditView({
                       )}
                     </div>
 
+                    <div className="xl:col-span-2">
+                      <p className="text-sm font-medium text-charcoal">Searches</p>
+                      <div className="mt-2">
+                        {draft && (
+                          <SearchPlanEditor
+                            rows={draft.searchRows}
+                            countries={draft.countries}
+                            cap={queryBudget}
+                            disabled={saveState === 'saving'}
+                            onChange={(searchRows) => updateDraft({ searchRows })}
+                          />
+                        )}
+                      </div>
+                      {draft.searchRows.length === 0 && (
+                        <p className="mt-1 text-xs text-red-700">Keep at least one search.</p>
+                      )}
+                      {draft.searchRows.some((row) => row.query.trim().length === 0) && (
+                        <p className="mt-1 text-xs text-red-700">Every search needs a role keyword.</p>
+                      )}
+                    </div>
+
                     <div>
                       <label htmlFor="feed-work-authorization" className="text-sm font-medium text-charcoal">Work authorization</label>
                       <select
@@ -430,12 +473,26 @@ function capitalise(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function toPreferenceDraft(input: JobFeedSettingsInput): PreferenceDraft {
+function toPreferenceDraft(
+  input: JobFeedSettingsInput,
+  strategy: SearchStrategy | null,
+  cap: number,
+): PreferenceDraft {
+  const fromStrategy = queriesFromSearchStrategy(strategy);
+  const searchRows = fromStrategy.length > 0
+    ? fromStrategy.slice(0, cap)
+    : buildConfirmSearchPlan({
+        roles: input.target_roles,
+        countries: input.target_countries,
+        cities: input.target_cities,
+        cap,
+      });
   return {
     countries: [...input.target_countries],
     cities: input.target_cities.join(', '),
     workModes: [...input.remote_preferences],
     salaryFloor: input.salary_floor === null ? '' : String(input.salary_floor),
+    searchRows,
     workAuthorization: input.work_authorization_status,
     excludedTerms: input.excluded_terms.join(', '),
   };
@@ -449,6 +506,7 @@ function toSettingsInput(base: JobFeedSettingsInput, draft: PreferenceDraft): Jo
     target_market: legacyMarketFromCountries(draft.countries),
     target_countries: draft.countries,
     target_cities: splitCommaList(draft.cities),
+    target_roles: rolesFromConfirmedQueries(draft.searchRows),
     remote_preference: remotePreference,
     remote_preferences: draft.workModes,
     salary_floor: salary ? Number(salary) : null,

@@ -101,8 +101,8 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         pill={editPill}
         onPillChange={(pill) => useFeedStore.getState().setEditPill(pill)}
         onBack={() => useFeedStore.getState().backToList()}
-        onSavePreferences={async (draft) => {
-          const result = await saveFeedSettings(draft);
+        onSavePreferences={async (draft, plan) => {
+          const result = await saveFeedSettings(draft, { confirmedQueries: plan });
           return result.ok
             ? { ok: true, settingsVersion: result.data?.updated_at ?? overview?.settings?.updated_at ?? null }
             : { ok: false, error: result.error };
@@ -162,7 +162,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         title="Your feed lands here"
         body={readOnly
           ? "Set your feed up on a computer and it'll show up here."
-          : "Answer the three questions on the left and I'll build it. About a minute. After that you run it again when you want a new list."}
+          : "Finish the questions on the left and I'll build it. About a minute. After that you run it again when you want a new list."}
       />
     );
   }

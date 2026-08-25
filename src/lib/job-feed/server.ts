@@ -46,6 +46,9 @@ import {
   SEARCH_STRATEGY_SCHEMA_VERSION,
   type SearchStrategy,
 } from '@/lib/job-feed/search-strategy';
+import {
+  shouldReuseUserConfirmedStrategy,
+} from '@/lib/job-feed/search-plan';
 import { generateCareerProfile } from '@/lib/job-feed/career-profile-synthesis';
 import type { StructuredCV } from '@/lib/types/cv-schema';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
@@ -2323,6 +2326,14 @@ export async function loadOrGenerateSearchStrategyAdmin(params: {
   if (!profile) return null;
   if (!settings.target_countries || settings.target_countries.length === 0) return null;
 
+  const latest = await jobFeedRepo.getLatestSearchStrategyRow(userId);
+  // A user-confirmed list is the source of truth. Do not regenerate over it,
+  // including when the settings hash, schema version or career profile
+  // looks stale. Falling through would silently re-pick queries.
+  if (latest && shouldReuseUserConfirmedStrategy(latest)) {
+    return latest.strategy as unknown as SearchStrategy;
+  }
+
   const settingsHash = computeSettingsHash(settings);
   const cached = await jobFeedRepo.getSearchStrategyRow(userId, settingsHash);
 
@@ -2384,4 +2395,20 @@ export async function loadOrGenerateSearchStrategyAdmin(params: {
     if (cached && isCurrentSearchStrategy(cached.strategy)) return cached.strategy;
     return null;
   }
+}
+
+/** Persist a user-confirmed query list. Does not call generateSearchStrategy. */
+export async function persistUserConfirmedStrategyAdmin(params: {
+  userId: string;
+  settings: JobFeedSettings;
+  strategy: SearchStrategy;
+}): Promise<void> {
+  await jobFeedRepo.upsertSearchStrategy(params.userId, {
+    settings_hash: computeSettingsHash(params.settings),
+    strategy: params.strategy as unknown as Json,
+    version: SEARCH_STRATEGY_SCHEMA_VERSION,
+    source_profile_generated_at: params.strategy.sourceProfileGeneratedAt,
+    model_provider: 'user',
+    model_name: 'user-confirmed',
+  });
 }

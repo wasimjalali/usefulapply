@@ -15,8 +15,9 @@ import {
   loadOrGenerateSearchStrategyAdmin,
 } from '@/lib/job-feed/server';
 import { getProfile } from '@/db/repos/profiles';
-import { getSearchStrategyRow } from '@/db/repos/jobFeed';
+import { getLatestSearchStrategyRow, getSearchStrategyRow } from '@/db/repos/jobFeed';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
+import { isUserConfirmedStrategy } from '@/lib/job-feed/search-plan';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -89,6 +90,17 @@ export async function GET(request: NextRequest) {
     let row;
     try {
       row = await getSearchStrategyRow(userId, settingsHash);
+      if (!row || row.version !== SEARCH_STRATEGY_SCHEMA_VERSION || !isCurrentSearchStrategy(row.strategy)) {
+        const latest = await getLatestSearchStrategyRow(userId);
+        if (
+          latest
+          && latest.version === SEARCH_STRATEGY_SCHEMA_VERSION
+          && isCurrentSearchStrategy(latest.strategy)
+          && isUserConfirmedStrategy(latest.strategy)
+        ) {
+          row = latest;
+        }
+      }
     } catch (error) {
       console.error('[job-feed/search-strategy] fetch error:', error instanceof Error ? error.message : error);
       return NextResponse.json({ error: 'Failed to load search strategy.' }, { status: 500 });

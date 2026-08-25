@@ -4,11 +4,19 @@ import { JOB_FEED_MIRRORED_ROLE_LIMIT, legacyMarketFromCountries } from '@/lib/j
 import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
-import { getOrSynthesizeCareerProfileAdmin } from '@/lib/job-feed/server';
+import { getOrSynthesizeCareerProfileAdmin, persistUserConfirmedStrategyAdmin } from '@/lib/job-feed/server';
 import type { JobFeedSettingsInput } from '@/lib/job-feed/types';
 import { getProfile } from '@/db/repos/profiles';
 import { getSettings, upsertSettings, upsertJobPreferences } from '@/db/repos/jobFeed';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
+import type { JobFeedSettings } from '@/lib/supabase/types';
+import {
+  buildUserConfirmedStrategy,
+  planCapForTier,
+  resolveSavedTargetRoles,
+  rolesFromConfirmedQueries,
+  validateConfirmedQueries,
+} from '@/lib/job-feed/search-plan';
 
 export const runtime = 'nodejs';
 
@@ -73,13 +81,9 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Auto-mirror AI-derived fields from the latest career profile so the
-    // user never has to fill in roles, seniority, languages, or skills by
-    // hand. The minimal preferences card only captures things the AI cannot
-    // know (countries, cities, work mode, salary floor, work authorization).
-    // The strategy generator still reads these mirrored fields downstream.
-    // profileMirror is the authoritative source for targetRoles — we never
-    // fall back to client-supplied roles so drift is impossible.
+    // Roles come from the confirmed search list when the client sends one.
+    // Otherwise keep what is already saved. Profile mirror is the last
+    // fallback so a first save still has something to search.
     const profileMirror = await loadCareerProfileMirror(user.id, {
       requestExecutionId: crypto.randomUUID(),
       clientRequestId: request.headers.get('x-request-id'),
@@ -89,19 +93,35 @@ export async function PUT(request: NextRequest) {
       operation: 'career_profile_synthesis',
     });
 
-    if (!profileMirror?.targetRoles?.length) {
+    const cap = planCapForTier(profile.subscription_tier);
+    const confirmed = 'confirmed_queries' in (body as object)
+      ? validateConfirmedQueries((body as { confirmed_queries?: unknown }).confirmed_queries, cap)
+      : null;
+    if (confirmed && !confirmed.ok) {
+      return NextResponse.json({ error: confirmed.error }, { status: 400 });
+    }
+
+    const targetRoles = confirmed?.ok
+      ? rolesFromConfirmedQueries(confirmed.queries)
+      : resolveSavedTargetRoles(
+          normalized.data.target_roles,
+          existingSettings?.target_roles,
+          profileMirror?.targetRoles ?? [],
+        );
+
+    if (targetRoles.length === 0) {
       return NextResponse.json(
-        { error: 'AI profile not ready. Please retry in a few seconds.' },
-        { status: 422 }
+        { error: profileMirror ? 'Confirm at least one search.' : 'AI profile not ready. Please retry in a few seconds.' },
+        { status: profileMirror ? 400 : 422 },
       );
     }
 
-    const targetRoles = profileMirror.targetRoles;
-    const userSkills = profileMirror.userSkills ?? [];
-    const languages = profileMirror.languages ?? ['English'];
+    const userSkills = profileMirror?.userSkills ?? existingSettings?.user_skills ?? [];
+    const languages = profileMirror?.languages ?? (existingSettings?.languages?.length ? existingSettings.languages : ['English']);
 
-    const seniorityTargets = profileMirror.seniorityTargets ?? normalized.data.seniority_targets;
-    const seniorityTarget = seniorityTargets[0] ?? normalized.data.seniority_target ?? null;
+    const seniorityTargets = profileMirror?.seniorityTargets
+      ?? (existingSettings?.seniority_targets?.length ? existingSettings.seniority_targets : normalized.data.seniority_targets);
+    const seniorityTarget = seniorityTargets[0] ?? normalized.data.seniority_target ?? existingSettings?.seniority_target ?? null;
 
     // Employment types stays user-controlled in DB but the new wizard
     // doesn't expose it. Default to ['full_time'] when the client did not
@@ -110,34 +130,59 @@ export async function PUT(request: NextRequest) {
       ? normalized.data.employment_types
       : (['full_time'] as JobFeedSettingsInput['employment_types']);
 
+    const nextSettings = {
+      user_id: user.id,
+      enabled: normalized.data.enabled,
+      consent_accepted_at: consentAcceptedAt,
+      user_timezone: normalized.data.user_timezone,
+      // New multi-select columns, primary source of truth for the feed.
+      target_countries: targetCountries,
+      target_cities: normalized.data.target_cities,
+      remote_preferences: normalized.data.remote_preferences,
+      seniority_targets: seniorityTargets,
+      // Legacy scalar columns, kept in sync so older code paths keep working.
+      target_market: targetMarket,
+      remote_preference: normalized.data.remote_preference,
+      seniority_target: seniorityTarget,
+      // Shared arrays. AI-mirrored where a profile exists.
+      target_roles: targetRoles,
+      preferred_locations: normalized.data.preferred_locations,
+      salary_floor: normalized.data.salary_floor,
+      languages: languages,
+      employment_types: employmentTypes,
+      work_authorization_status: normalized.data.work_authorization_status,
+      user_skills: userSkills,
+      // User-controlled exclusions. Unlike the other AI-mirrored fields this
+      // is pure user input (the AI can't know what they want to avoid).
+      excluded_terms: normalized.data.excluded_terms,
+    };
+
+    // Persist the confirmed list before enabling the feed. If this fails we
+    // must not turn the feed on, or a later run would silently generate a
+    // new strategy over the user's picks.
+    if (confirmed?.ok) {
+      try {
+        await persistUserConfirmedStrategyAdmin({
+          userId: user.id,
+          settings: {
+            ...(existingSettings ?? {}),
+            ...nextSettings,
+          } as JobFeedSettings,
+          strategy: buildUserConfirmedStrategy({
+            queries: confirmed.queries,
+            sourceProfileGeneratedAt: profileMirror ? undefined : existingSettings?.updated_at ?? new Date().toISOString(),
+            negativeTerms: [],
+          }),
+        });
+      } catch (error) {
+        console.error('[job-feed/settings] confirmed strategy persist error:', error instanceof Error ? error.message : error);
+        return NextResponse.json({ error: 'Your searches did not save. Try again.' }, { status: 500 });
+      }
+    }
+
     let data;
     try {
-      data = await upsertSettings(user.id, {
-        user_id: user.id,
-        enabled: normalized.data.enabled,
-        consent_accepted_at: consentAcceptedAt,
-        user_timezone: normalized.data.user_timezone,
-        // New multi-select columns — primary source of truth for the feed.
-        target_countries: targetCountries,
-        target_cities: normalized.data.target_cities,
-        remote_preferences: normalized.data.remote_preferences,
-        seniority_targets: seniorityTargets,
-        // Legacy scalar columns — kept in sync so older code paths keep working.
-        target_market: targetMarket,
-        remote_preference: normalized.data.remote_preference,
-        seniority_target: seniorityTarget,
-        // Shared arrays — AI-mirrored where a profile exists.
-        target_roles: targetRoles,
-        preferred_locations: normalized.data.preferred_locations,
-        salary_floor: normalized.data.salary_floor,
-        languages: languages,
-        employment_types: employmentTypes,
-        work_authorization_status: normalized.data.work_authorization_status,
-        user_skills: userSkills,
-        // User-controlled exclusions. Unlike the other AI-mirrored fields this
-        // is pure user input (the AI can't know what they want to avoid).
-        excluded_terms: normalized.data.excluded_terms,
-      });
+      data = await upsertSettings(user.id, nextSettings);
     } catch (error) {
       console.error('[job-feed/settings] PUT error:', error instanceof Error ? error.message : error);
       return NextResponse.json({ error: 'Failed to save job feed settings.' }, { status: 500 });

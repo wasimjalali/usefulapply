@@ -18,17 +18,20 @@ import type {
 } from '@/lib/job-feed/types';
 import type { SearchStrategy } from '@/lib/job-feed/search-strategy';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
+import type { ConfirmedSearchQuery } from '@/lib/job-feed/search-plan';
 
 /** Which surface the canvas shows. The list is the home; the others have Back. */
 export type FeedCanvasView = 'list' | 'detail' | 'edit';
 export type FeedListTab = 'today' | 'saved';
 export type FeedEditPill = 'profile' | 'searches';
+export type FeedSetupStep = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 /** A chip offered under an assistant message. Handlers live in the conversation. */
 export interface FeedChip {
   id: string;
   label: string;
   variant?: 'primary' | 'secondary';
+  pressed?: boolean;
 }
 
 export interface FeedMessage {
@@ -107,11 +110,10 @@ interface FeedState {
   thread: { key: string; items: FeedMessage[] };
   /** Chips already picked on this feed, so a spent chip is not offered again. */
   usedChips: { key: string; ids: string[] };
-  /** Setup question the conversation is on (J1). */
-  setupStep: 0 | 1 | 2 | 3;
+  /** Setup question the conversation is on. 0 country, 1 city, 2 work mode, 3 salary, 4 plan, 5 consent, 6 all-done. */
+  setupStep: FeedSetupStep;
   setupDraft: Partial<JobFeedSettingsInput>;
-  /** True when the user is re-running the guided setup to edit existing preferences. */
-  editingPreferences: boolean;
+  setupPlan: ConfirmedSearchQuery[];
 }
 
 interface FeedActions {
@@ -144,8 +146,7 @@ interface FeedActions {
   markChipUsed: (key: string, chipId: string) => void;
   setSetupStep: (step: FeedState['setupStep']) => void;
   patchSetupDraft: (patch: Partial<JobFeedSettingsInput>) => void;
-  startPreferencesEdit: (seed: Partial<JobFeedSettingsInput>) => void;
-  clearEditingPreferences: () => void;
+  setSetupPlan: (plan: ConfirmedSearchQuery[]) => void;
   resetFeed: () => void;
 }
 
@@ -174,7 +175,7 @@ const initialState: FeedState = {
   usedChips: { key: '', ids: [] },
   setupStep: 0,
   setupDraft: {},
-  editingPreferences: false,
+  setupPlan: [],
 };
 
 let messageSeq = 0;
@@ -257,8 +258,7 @@ export const useFeedStore = create<FeedState & FeedActions>()((set) => ({
 
   setSetupStep: (step) => set({ setupStep: step }),
   patchSetupDraft: (patch) => set((state) => ({ setupDraft: { ...state.setupDraft, ...patch } })),
-  startPreferencesEdit: (seed) => set({ editingPreferences: true, setupStep: 0, setupDraft: seed }),
-  clearEditingPreferences: () => set({ editingPreferences: false, setupStep: 0, setupDraft: {} }),
+  setSetupPlan: (plan) => set({ setupPlan: plan }),
   resetFeed: () => set((state) => ({ ...initialState, fetchGeneration: state.fetchGeneration + 1 })),
 }));
 

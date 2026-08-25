@@ -21,6 +21,8 @@ import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import { useFeedStore } from '@/store/useFeedStore';
 import { notifyJobFeedBadgeRefresh } from '@/hooks/useJobFeedBadge';
 import { getJobFeedPreviewMode } from './preview-utils';
+import type { ConfirmedSearchQuery } from '@/lib/job-feed/search-plan';
+import { shouldGenerateStrategyOnSettingsSave } from '@/lib/job-feed/search-plan';
 
 export type FeedResult<T> =
   | { ok: true; data: T }
@@ -284,12 +286,12 @@ export async function withdrawFeedConsent(): Promise<FeedResult<{ withdrawn: tru
 
 /**
  * Save the feed settings. On a first save the career profile has to exist
- * first, because the settings route mirrors target roles off it and rejects a
- * payload that would end up with none.
+ * first so seniority, skills and languages can be mirrored. Confirmed search
+ * rows travel with the payload. This never calls generateSearchStrategy.
  */
 export async function saveFeedSettings(
   input: JobFeedSettingsInput,
-  options?: { firstTime?: boolean },
+  options?: { firstTime?: boolean; confirmedQueries?: ConfirmedSearchQuery[] },
 ): Promise<FeedResult<JobFeedSettings | null>> {
   if (isPreviewing()) {
     return { ok: true, data: null };
@@ -297,11 +299,11 @@ export async function saveFeedSettings(
   const generation = useFeedStore.getState().fetchGeneration;
   useFeedStore.getState().setIsSavingSettings(true);
   try {
-    if (options?.firstTime) {
+    if (options?.firstTime && !useFeedStore.getState().careerProfile) {
       const profileResponse = await fetch('/api/job-feed/career-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ force: true }),
+        body: JSON.stringify({ force: false }),
       });
       const profilePayload = await readJson(profileResponse);
       if (!profileResponse.ok || profilePayload.status === 'no_cv') {
@@ -318,7 +320,11 @@ export async function saveFeedSettings(
     const response = await fetch('/api/job-feed/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
+      body: JSON.stringify(
+        options?.confirmedQueries
+          ? { ...input, confirmed_queries: options.confirmedQueries }
+          : input,
+      ),
     });
     const payload = await readJson(response);
     if (isStale(generation)) return { ok: false, error: 'Feed was reset.' };
@@ -332,17 +338,12 @@ export async function saveFeedSettings(
       store.setOverview({ ...store.overview, settings });
     }
 
-    // Cache-aware: only regenerates when the profile or the settings changed.
-    // A failure here is not fatal, the next run regenerates the strategy.
-    let strategyOk = false;
-    try {
-      const strategyResponse = await fetch('/api/job-feed/search-strategy', { method: 'POST' });
-      strategyOk = strategyResponse.ok;
-    } catch {
-      strategyOk = false;
-    }
-    if (strategyOk && !isStale(generation)) {
+    if (options?.confirmedQueries && !isStale(generation)) {
       useFeedStore.getState().patchBuild({ strategyDone: true });
+    }
+
+    if (shouldGenerateStrategyOnSettingsSave()) {
+      throw new Error('Settings save must not generate a search strategy.');
     }
 
     return { ok: true, data: settings };

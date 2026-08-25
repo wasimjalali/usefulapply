@@ -22,13 +22,22 @@ import {
 import { useFeedJobLists } from './useVisibleFeedJobs';
 import {
   JOB_FEED_COUNTRY_OPTIONS,
+  JOB_FEED_REMOTE_PREFERENCE_OPTIONS,
   getJobFeedTierLimits,
   legacyMarketFromCountries,
+  setupCityChipsForCountries,
 } from '@/lib/job-feed/constants';
 import { createDefaultJobFeedInput, getLocalDateKey, toJobFeedInput } from '@/lib/job-feed/helpers';
 import type { JobFeedFeedItem, JobFeedSettingsInput } from '@/lib/job-feed/types';
 import { applyFeedIntent, detectFeedIntent, formatSalary } from '@/lib/job-feed/rerank-intent';
 import { parseSetupLine } from '@/lib/job-feed/setup-intent';
+import {
+  buildConfirmSearchPlan,
+  isCitySkipLine,
+  rolesFromCareerProfile,
+  rolesFromConfirmedQueries,
+  validateConfirmedQueries,
+} from '@/lib/job-feed/search-plan';
 import {
   loadCareerProfile,
   loadFeedOverview,
@@ -38,7 +47,8 @@ import {
   saveFeedSettings,
   withdrawFeedConsent,
 } from './feed-actions';
-import { countryLabel, escapeMarkdown, formatFeedDay, plural } from './feed-format';
+import { countryLabel, escapeMarkdown, formatFeedDay, formatSetupPlanSummary, plural } from './feed-format';
+import { SearchPlanEditor } from './SearchPlanEditor';
 import {
   buildJobFeedPreviewCareerProfile,
   buildJobFeedPreviewSnapshot,
@@ -86,7 +96,7 @@ export function FeedConversation() {
   const thread = useFeedStore((state) => state.thread);
   const setupStep = useFeedStore((state) => state.setupStep);
   const setupDraft = useFeedStore((state) => state.setupDraft);
-  const editingPreferences = useFeedStore((state) => state.editingPreferences);
+  const setupPlan = useFeedStore((state) => state.setupPlan);
   const filters = useFeedStore((state) => state.filters);
   const usedChips = useFeedStore((state) => state.usedChips);
 
@@ -193,9 +203,6 @@ export function FeedConversation() {
     }
     if (build || isRunning) return 'building';
     if (!overview) return 'error';
-    // Re-running the guided setup to edit existing preferences takes over the
-    // conversation until it's saved or cancelled.
-    if (editingPreferences) return 'setup';
     switch (overview.state) {
       case 'upgrade_required':
         return 'upgrade';
@@ -215,7 +222,7 @@ export function FeedConversation() {
       default:
         return 'feed';
     }
-  }, [build, editingPreferences, isRunning, overview, pollGaveUp, status]);
+  }, [build, isRunning, overview, pollGaveUp, status]);
 
   const { all: allJobs } = useFeedJobLists();
   const todayCount = overview?.jobsTodayCount ?? 0;
@@ -243,7 +250,7 @@ export function FeedConversation() {
       tier,
       setupStep,
       setupDraft,
-      editingPreferences,
+      setupPlan,
       errorMessage,
       build,
       queryBudget,
@@ -251,8 +258,8 @@ export function FeedConversation() {
       usedChipIds: usedChips.key === feedKey ? usedChips.ids : [],
     }),
     [
-      allJobs, build, canRunToday, canSteer, careerProfile, editingPreferences, errorMessage,
-      feedKey, knownFree, overview, phase, queryBudget, setupDraft, setupStep,
+      allJobs, build, canRunToday, canSteer, careerProfile, errorMessage,
+      feedKey, knownFree, overview, phase, queryBudget, setupDraft, setupPlan, setupStep,
       strategy?.queries.length, tier, todayCount, totalCount, usedChips,
     ],
   );
@@ -369,10 +376,18 @@ export function FeedConversation() {
   }, [pendingFeedRunAt, triggerRun]);
 
   const completeSetup = useCallback(async (draft: JobFeedSettingsInput) => {
-    startBuild(true);
-    const saved = await saveFeedSettings(draft, { firstTime: true });
+    const plan = useFeedStore.getState().setupPlan;
+    const checked = validateConfirmedQueries(plan, queryBudget);
+    if (!checked.ok) {
+      say({ role: 'assistant', content: checked.error });
+      return;
+    }
+    const withRoles: JobFeedSettingsInput = {
+      ...draft,
+      target_roles: rolesFromConfirmedQueries(checked.queries),
+    };
+    const saved = await saveFeedSettings(withRoles, { firstTime: true, confirmedQueries: checked.queries });
     if (!saved.ok) {
-      useFeedStore.getState().setBuild(null);
       say({ role: 'assistant', content: saved.error });
       return;
     }
@@ -380,6 +395,7 @@ export function FeedConversation() {
     await loadFeedOverview({ quiet: true });
     await loadSearchStrategy();
     await loadCareerProfile();
+    startBuild(true);
     const result = await runFeed();
     if (!result.ok) {
       useFeedStore.getState().setBuild(null);
@@ -387,19 +403,38 @@ export function FeedConversation() {
       return;
     }
     await finishBuild();
-  }, [finishBuild, posthog, say, startBuild]);
+  }, [finishBuild, posthog, queryBudget, say, startBuild]);
 
-  /** Save a preferences edit made through the guided setup, without a run. */
-  const completePreferencesEdit = useCallback(async (draft: JobFeedSettingsInput) => {
-    const saved = await saveFeedSettings(draft);
-    if (!saved.ok) {
-      say({ role: 'assistant', content: saved.error });
+  const fillSetupPlan = useCallback(async () => {
+    const store = useFeedStore.getState();
+    let profile = store.careerProfile;
+    if (!profile && !isPreviewing) {
+      profile = await loadCareerProfile();
+      if (!profile) {
+        const response = await fetch('/api/job-feed/career-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ force: false }),
+        });
+        const payload = await response.json().catch(() => ({})) as { profile?: typeof profile; status?: string };
+        if (payload.profile) {
+          useFeedStore.getState().setCareerProfile(payload.profile);
+          profile = payload.profile;
+        }
+      }
+    }
+    const roles = rolesFromCareerProfile(profile);
+    if (roles.length === 0) {
+      say({
+        role: 'assistant',
+        content: "I couldn't read a job title from your CV. Add more to it and come back.",
+      });
       return;
     }
-    useFeedStore.getState().clearEditingPreferences();
-    await loadFeedOverview({ quiet: true });
-    say({ role: 'assistant', content: 'Saved. The next run searches with these.' });
-  }, [say]);
+    const countries = store.setupDraft.target_countries ?? [];
+    const cities = store.setupDraft.target_cities ?? [];
+    store.setSetupPlan(buildConfirmSearchPlan({ roles, countries, cities, cap: queryBudget }));
+  }, [isPreviewing, queryBudget, say]);
 
   /** Save a steering change and narrow what is already on screen. */
   const applySteer = useCallback(async (text: string) => {
@@ -511,16 +546,70 @@ export function FeedConversation() {
       store.setSetupStep(1);
       return;
     }
+    if (chip.id.startsWith('city:')) {
+      const city = chip.id.slice('city:'.length);
+      const current = store.setupDraft.target_cities ?? [];
+      const next = current.includes(city)
+        ? current.filter((item) => item !== city)
+        : [...current, city];
+      store.patchSetupDraft({ target_cities: next });
+      return;
+    }
+    if (chip.id === 'cities:skip') {
+      store.patchSetupDraft({ target_cities: [] });
+      store.setSetupStep(2);
+      return;
+    }
+    if (chip.id === 'cities:done') {
+      store.setSetupStep(2);
+      return;
+    }
+    if (chip.id === 'workmode:done') {
+      const selected = selectedWorkModes(store.setupDraft.remote_preferences);
+      const remotePreference = selected[0];
+      if (!remotePreference) {
+        say({ role: 'assistant', content: 'Pick at least one way you want to work.' });
+        return;
+      }
+      store.patchSetupDraft({
+        remote_preferences: selected,
+        remote_preference: remotePreference,
+      });
+      store.setSetupStep(3);
+      return;
+    }
     if (chip.id.startsWith('workmode:')) {
       const mode = chip.id.slice('workmode:'.length) as JobFeedSettingsInput['remote_preference'];
-      store.patchSetupDraft({ remote_preference: mode, remote_preferences: [mode] });
-      store.setSetupStep(2);
+      if (!WORK_MODE_VALUES.has(mode)) return;
+      const current = selectedWorkModes(store.setupDraft.remote_preferences);
+      const next = current.includes(mode)
+        ? current.filter((item) => item !== mode)
+        : [...current, mode];
+      if (next[0]) {
+        store.patchSetupDraft({
+          remote_preferences: next,
+          remote_preference: next[0],
+        });
+      } else {
+        store.patchSetupDraft({ remote_preferences: next });
+      }
       return;
     }
     if (chip.id.startsWith('salary:')) {
       const raw = chip.id.slice('salary:'.length);
       store.patchSetupDraft({ salary_floor: raw === 'skip' ? null : Number(raw) });
-      store.setSetupStep(3);
+      store.setSetupStep(4);
+      void fillSetupPlan();
+      return;
+    }
+    if (chip.id === 'plan:confirm') {
+      const checked = validateConfirmedQueries(store.setupPlan, queryBudget);
+      if (!checked.ok) {
+        say({ role: 'assistant', content: checked.error });
+        return;
+      }
+      store.setSetupPlan(checked.queries);
+      store.setSetupStep(5);
       return;
     }
 
@@ -528,17 +617,21 @@ export function FeedConversation() {
       case 'consent': {
         const base = createDefaultJobFeedInput(browserTimeZone());
         const draft = { ...base, ...setupDraft, enabled: true, consent_accepted: true };
-        if (store.editingPreferences) {
-          await completePreferencesEdit(draft);
-        } else {
-          await completeSetup(draft);
-        }
+        store.patchSetupDraft(draft);
+        store.setSetupStep(6);
         return;
       }
-      case 'cancel-edit':
-        store.clearEditingPreferences();
-        say({ role: 'assistant', content: 'Kept your preferences as they were.' });
+      case 'start-searching': {
+        const base = createDefaultJobFeedInput(browserTimeZone());
+        const draft = {
+          ...base,
+          ...useFeedStore.getState().setupDraft,
+          enabled: true,
+          consent_accepted: true,
+        };
+        await completeSetup(draft);
         return;
+      }
       case 'build-feed':
         await triggerRun(false);
         return;
@@ -646,7 +739,7 @@ export function FeedConversation() {
       say({ role: 'assistant', content: buildWhyAnswer(job) });
       return;
     }
-  }, [allJobs, applySteer, completePreferencesEdit, completeSetup, currentSettingsInput, posthog, say, setupDraft, triggerRun]);
+  }, [allJobs, applySteer, completeSetup, currentSettingsInput, fillSetupPlan, posthog, queryBudget, say, setupDraft, triggerRun]);
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
@@ -658,24 +751,50 @@ export function FeedConversation() {
         const parsed = parseSetupLine(text);
         const store = useFeedStore.getState();
         say({ role: 'user', content: text });
-        if (parsed.countries.length === 0) {
-          say({
-            role: 'assistant',
-            content: 'I need a country to search in. Pick one above, or name it and I\'ll take it from there.',
+        if (setupStep === 0) {
+          if (parsed.countries.length === 0) {
+            say({
+              role: 'assistant',
+              content: "I don't know that country. Pick one above or type a country I search.",
+            });
+            return;
+          }
+          store.patchSetupDraft({
+            target_countries: parsed.countries,
+            target_market: legacyMarketFromCountries(parsed.countries),
+            ...(parsed.salaryFloor !== null ? { salary_floor: parsed.salaryFloor } : {}),
+            ...(parsed.remotePreference ? {
+              remote_preference: parsed.remotePreference,
+              remote_preferences: [parsed.remotePreference],
+            } : {}),
           });
+          store.setSetupStep(1);
           return;
         }
-        const base = createDefaultJobFeedInput(browserTimeZone());
-        const draft: Partial<JobFeedSettingsInput> = {
-          ...store.setupDraft,
-          target_countries: parsed.countries,
-          target_market: legacyMarketFromCountries(parsed.countries),
-          remote_preference: parsed.remotePreference ?? store.setupDraft.remote_preference ?? base.remote_preference,
-          remote_preferences: [parsed.remotePreference ?? store.setupDraft.remote_preference ?? base.remote_preference],
-          salary_floor: parsed.salaryFloor ?? store.setupDraft.salary_floor ?? null,
-        };
-        store.patchSetupDraft(draft);
-        store.setSetupStep(3);
+        if (setupStep === 1) {
+          if (isCitySkipLine(text)) {
+            store.patchSetupDraft({ target_cities: [] });
+            store.setSetupStep(2);
+            return;
+          }
+          if (parsed.cities.length === 0) {
+            say({
+              role: 'assistant',
+              content: "I don't know that city. Pick one above, type a city I know or skip.",
+            });
+            return;
+          }
+          store.patchSetupDraft({
+            target_cities: parsed.cities,
+            ...(parsed.salaryFloor !== null ? { salary_floor: parsed.salaryFloor } : {}),
+          });
+          store.setSetupStep(2);
+          return;
+        }
+        say({
+          role: 'assistant',
+          content: 'Pick one of the chips above.',
+        });
         return;
       }
 
@@ -684,7 +803,7 @@ export function FeedConversation() {
     } finally {
       setBusy(false);
     }
-  }, [applySteer, busy, input, phase, say]);
+  }, [applySteer, busy, input, phase, say, setupStep]);
 
   // ---- render -------------------------------------------------------------
 
@@ -738,11 +857,14 @@ export function FeedConversation() {
                         key={chip.id}
                         type="button"
                         disabled={busy || isSavingSettings}
+                        aria-pressed={chip.pressed ?? false}
                         onClick={() => { void handleChip(chip); }}
                         className={`inline-flex h-10 max-w-full items-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer ${
                           chip.variant === 'primary'
                             ? 'bg-gold-400 text-white hover:bg-gold-500'
-                            : 'border border-cream-200 bg-cream-50 text-navy-800 shadow-sm hover:bg-white'
+                            : chip.pressed
+                              ? 'border border-navy-700 bg-white font-semibold text-navy-800'
+                              : 'border border-cream-200 bg-cream-50 text-navy-800 shadow-sm hover:bg-white'
                         }`}
                       >
                         {chip.label}
@@ -755,6 +877,27 @@ export function FeedConversation() {
             </div>
           )
         ))}
+
+        {phase === 'setup' && setupStep === 4 && (
+          <div className="space-y-3 pl-9">
+            <SearchPlanEditor
+              rows={setupPlan}
+              countries={setupDraft.target_countries ?? []}
+              cap={queryBudget}
+              disabled={busy || isSavingSettings}
+              compact
+              onChange={(rows) => useFeedStore.getState().setSetupPlan(rows)}
+            />
+            <button
+              type="button"
+              disabled={busy || isSavingSettings}
+              onClick={() => { void handleChip({ id: 'plan:confirm', label: 'Looks good', variant: 'primary' }); }}
+              className="inline-flex h-10 max-w-full items-center gap-2 rounded-full bg-gold-400 px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-gold-500 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+            >
+              Looks good
+            </button>
+          </div>
+        )}
 
         {stages && (
           <div className="pl-9">
@@ -773,6 +916,7 @@ export function FeedConversation() {
         <div ref={endRef} />
       </div>
 
+      {!(phase === 'setup' && setupStep >= 2) && (
       <div className="flex-shrink-0 bg-cream-50 px-5 pb-4 pt-2.5">
         <div className="flex items-end gap-2 rounded-2xl border border-cream-200 bg-white px-3.5 py-2.5 shadow-sm">
           <textarea
@@ -786,11 +930,15 @@ export function FeedConversation() {
             }}
             rows={1}
             disabled={busy || isSavingSettings}
-            placeholder={phase === 'setup'
-              ? 'Or just type it: "US and Canada, remote, 150K+"'
-              : phase === 'building'
-                ? "You can keep typing, I'll answer after this"
-                : 'Tell me what to change, e.g. "more remote, no agencies"'}
+            placeholder={
+              phase === 'setup' && setupStep === 0
+                ? 'Or type a country I search'
+                : phase === 'setup' && setupStep === 1
+                  ? 'Or type a city I know'
+                  : phase === 'building'
+                    ? "You can keep typing, I'll answer after this"
+                    : 'Tell me what to change, e.g. "more remote, no agencies"'
+            }
             className="max-h-32 min-h-[24px] flex-1 resize-none bg-transparent text-sm text-charcoal placeholder:text-warm-gray/70 focus:outline-none disabled:cursor-not-allowed"
           />
           <button
@@ -804,6 +952,7 @@ export function FeedConversation() {
           </button>
         </div>
       </div>
+      )}
     </section>
   );
 }
@@ -865,9 +1014,9 @@ function buildOpening(params: {
   knownFree: boolean;
   canRunToday: boolean;
   tier: string | null;
-  setupStep: 0 | 1 | 2 | 3;
+  setupStep: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   setupDraft: Partial<JobFeedSettingsInput>;
-  editingPreferences: boolean;
+  setupPlan: { query: string; targetCountry: string; cityHint?: string | null }[];
   errorMessage: string | null;
   build: unknown;
   queryBudget: number;
@@ -876,7 +1025,7 @@ function buildOpening(params: {
 }): FeedMessage[] {
   const {
     phase, overview, careerProfile, allJobs, todayCount, canSteer,
-    canRunToday, setupStep, setupDraft, editingPreferences, errorMessage,
+    canRunToday, setupStep, setupDraft, setupPlan, errorMessage,
     queryBudget, plannedQueries, usedChipIds,
   } = params;
   const message = (content: string, chips?: FeedChip[], note?: string): FeedMessage => ({
@@ -950,19 +1099,12 @@ function buildOpening(params: {
 
     case 'setup': {
       const items: FeedMessage[] = [];
-      if (editingPreferences) {
-        items.push(message(
-          "Let's go over where I look. Answer the three questions again and I'll save the new answers.",
-          [{ id: 'cancel-edit', label: 'Keep what I had', variant: 'secondary' }],
-        ));
-      } else {
-        const readOut = describeProfile(careerProfile);
-        items.push(message(
-          readOut
-            ? `I read your CV: ${readOut}. I'll search for roles like that when you build the feed. Three quick things I can't guess from the CV.`
-            : "I'll search public job boards for roles like yours when you build the feed. Three quick things I can't read off your CV.",
-        ));
-      }
+      const readOut = describeProfile(careerProfile);
+      items.push(message(
+        readOut
+          ? `I read your CV: ${readOut}. I'll search for roles like that when you build the feed. A few things I can't read off your CV.`
+          : "I'll search public job boards for roles like yours when you build the feed. A few things I can't read off your CV.",
+      ));
 
       items.push({
         id: 'setup-q1',
@@ -977,6 +1119,8 @@ function buildOpening(params: {
           : undefined,
       });
       if (setupStep > 0) {
+        const selectedCities = setupDraft.target_cities ?? [];
+        const cityChips = setupCityChipsForCountries(setupDraft.target_countries ?? []);
         items.push({
           id: 'setup-a1',
           role: 'user',
@@ -985,28 +1129,60 @@ function buildOpening(params: {
         items.push({
           id: 'setup-q2',
           role: 'assistant',
-          content: '**How do you want to work?**',
+          content: '**Any cities, or skip for country-wide?**',
           chips: setupStep === 1
             ? [
-                { id: 'workmode:remote_only', label: 'Remote only', variant: 'secondary' as const },
-                { id: 'workmode:remote_first', label: 'Remote first', variant: 'secondary' as const },
-                { id: 'workmode:hybrid', label: 'Hybrid okay', variant: 'secondary' as const },
-                { id: 'workmode:onsite', label: 'On-site okay', variant: 'secondary' as const },
+                ...cityChips.map((city) => ({
+                  id: `city:${city}`,
+                  label: city,
+                  variant: 'secondary' as const,
+                  pressed: selectedCities.includes(city),
+                })),
+                selectedCities.length > 0
+                  ? { id: 'cities:done', label: "That's all", variant: 'primary' as const }
+                  : { id: 'cities:skip', label: 'Skip', variant: 'secondary' as const },
               ]
             : undefined,
         });
       }
       if (setupStep > 1) {
+        const cities = setupDraft.target_cities ?? [];
+        const selectedModes = selectedWorkModes(setupDraft.remote_preferences);
         items.push({
           id: 'setup-a2',
           role: 'user',
-          content: workModeAnswer(setupDraft.remote_preference ?? null),
+          content: cities.length > 0 ? cities.join(', ') : 'Skip',
         });
         items.push({
           id: 'setup-q3',
           role: 'assistant',
-          content: '**Minimum salary, or skip?**',
+          content: '**How do you want to work?**',
           chips: setupStep === 2
+            ? [
+                ...JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => ({
+                  id: `workmode:${option.value}`,
+                  label: option.label,
+                  variant: 'secondary' as const,
+                  pressed: selectedModes.includes(option.value),
+                })),
+                ...(selectedModes.length > 0
+                  ? [{ id: 'workmode:done', label: "That's all", variant: 'primary' as const }]
+                  : []),
+              ]
+            : undefined,
+        });
+      }
+      if (setupStep > 2) {
+        items.push({
+          id: 'setup-a3',
+          role: 'user',
+          content: workModeAnswer(setupDraft.remote_preferences ?? []),
+        });
+        items.push({
+          id: 'setup-q4',
+          role: 'assistant',
+          content: '**Minimum salary, or skip?**',
+          chips: setupStep === 3
             ? [
                 ...SALARY_CHIPS.map((value) => ({
                   id: `salary:${value}`,
@@ -1018,24 +1194,46 @@ function buildOpening(params: {
             : undefined,
         });
       }
-      if (setupStep > 2) {
+      if (setupStep > 3) {
         items.push({
-          id: 'setup-a3',
+          id: 'setup-a4',
           role: 'user',
           content: setupDraft.salary_floor ? formatSalary(setupDraft.salary_floor) : 'Skip',
         });
         items.push({
+          id: 'setup-q5',
+          role: 'assistant',
+          content: "**These are the searches I'll run.**",
+        });
+      }
+      if (setupStep > 4) {
+        items.push({
+          id: 'setup-a5',
+          role: 'user',
+          content: formatSetupPlanSummary(setupPlan),
+        });
+        items.push({
           id: 'setup-consent',
           role: 'assistant',
-          content: editingPreferences
-            ? 'That\'s everything. Save these?'
-            : 'I\'ll search public job boards on your behalf. OK?',
-          chips: editingPreferences
-            ? [
-                { id: 'consent', label: 'Save my preferences', variant: 'primary' },
-                { id: 'cancel-edit', label: 'Keep what I had', variant: 'secondary' },
-              ]
-            : [{ id: 'consent', label: 'Yes, build my feed', variant: 'primary' }],
+          content: "I'll search public job boards on your behalf. OK?",
+          chips: setupStep === 5
+            ? [{ id: 'consent', label: 'Yes, build my feed', variant: 'primary' }]
+            : undefined,
+        });
+      }
+      if (setupStep > 5) {
+        items.push({
+          id: 'setup-a6',
+          role: 'user',
+          content: 'Yes, build my feed',
+        });
+        items.push({
+          id: 'setup-done',
+          role: 'assistant',
+          content: "That's everything. I'll search public job boards for you now.",
+          chips: setupStep === 6
+            ? [{ id: 'start-searching', label: 'Start searching', variant: 'primary' }]
+            : undefined,
         });
       }
       return items;
@@ -1103,19 +1301,24 @@ function describeProfile(profile: ReturnType<typeof useFeedStore.getState>['care
   return parts.length > 0 ? parts.join(', ') : null;
 }
 
-function workModeAnswer(value: JobFeedSettingsInput['remote_preference'] | null): string {
-  switch (value) {
-    case 'remote_only':
-      return 'Remote only';
-    case 'remote_first':
-      return 'Remote first';
-    case 'hybrid':
-      return 'Hybrid okay';
-    case 'onsite':
-      return 'On-site okay';
-    default:
-      return 'Flexible';
-  }
+const WORK_MODE_VALUES = new Set<string>(
+  JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => option.value),
+);
+
+function selectedWorkModes(
+  values: JobFeedSettingsInput['remote_preferences'] | undefined,
+): JobFeedSettingsInput['remote_preferences'] {
+  if (!Array.isArray(values)) return [];
+  return values.filter((value) => WORK_MODE_VALUES.has(value));
+}
+
+function workModeAnswer(values: JobFeedSettingsInput['remote_preferences']): string {
+  const labelByValue = new Map(JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => [option.value, option.label]));
+  const labels = selectedWorkModes(values)
+    .map((value) => labelByValue.get(value))
+    .filter((label): label is NonNullable<typeof label> => Boolean(label));
+  if (labels.length === 0) return 'Pick at least one way you want to work.';
+  return labels.join(', ');
 }
 
 function cityFrom(confirmation: string): string | undefined {
