@@ -14,7 +14,7 @@ import { formatDate } from '@/lib/utils/format-date';
 import { findSentApplicationForJob } from '@/lib/utils/same-job';
 import { useUIStore } from '@/store/useUIStore';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePostHog } from 'posthog-js/react';
+import posthog from 'posthog-js';
 import { hasUsedFreeGeneration, markFreeGenerationUsed } from '@/lib/anonymous-generation';
 import { notifyJobFeedBadgeRefresh } from '@/hooks/useJobFeedBadge';
 import { generateRequestId } from '@/lib/utils/requestId';
@@ -136,7 +136,6 @@ export function useAgentWorkflow(options?: {
 }) {
   const { user } = useAuth();
   const datePrefs = useDatePrefs();
-  const posthog = usePostHog();
   const { toast } = useToast();
   const { setActiveTab } = useUIStore();
   const {
@@ -771,15 +770,6 @@ export function useAgentWorkflow(options?: {
                     createdAt: new Date().toISOString(),
                   },
                 });
-                posthog?.capture('fit_analysis_viewed', {
-                  fit_score: fitAnalysis?.score,
-                  fit_level: fitAnalysis?.fitLevel,
-                  matching_skills_count: match?.matchedRequirements?.length || fitAnalysis?.matchingSkills?.length || 0,
-                  missing_skills_count: fitAnalysis?.missingSkills?.length || 0,
-                  job_title: job?.title,
-                  company: job?.companyName,
-                });
-
                 addWorkflowMessage(fitWorkflowSessionId, {
                   role: 'assistant',
                   content: formatFitAnalysisMessage(fitAnalysis, job),
@@ -997,7 +987,7 @@ export function useAgentWorkflow(options?: {
                 const ctx = data.results;
                 void syncJobFeedGenerationStatus('succeeded', undefined, workflowSessionId);
                 notifyJobFeedBadgeRefresh();
-                posthog?.capture('application_generated', {
+                posthog.capture('application_generated', {
                   mode: contextId ? 'analyze_first' : 'apply_directly',
                   job_title: ctx?.job?.title,
                   company: ctx?.job?.companyName,
@@ -1279,7 +1269,7 @@ export function useAgentWorkflow(options?: {
       setJobDescription(jd);
       setIsAgentWorking(true);
       setAwaitingJobDescription(false);
-      posthog?.capture('jd_pasted', { jd_length: jd.length, mode: effectiveMode });
+      posthog.capture('jd_pasted', { jd_length: jd.length, mode: effectiveMode });
       if (effectiveMode === 'apply_directly') {
         setV2Progress({ percent: 0, message: 'Generating full application...' });
         runAgentWorkflow(jd);

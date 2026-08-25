@@ -186,9 +186,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       prevUserIdRef.current = user.id;
 
       posthog.identify(user.id, {
-        email: user.email,
         created_at: user.created_at,
       });
+      // Drop email previously sent as a person property. Never send it again.
+      posthog.capture('$unset', { $unset: ['email'] });
       fetchProfile(user.id)
         .then((profileData) => {
           setProfile(profileData);
