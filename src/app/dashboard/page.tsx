@@ -13,6 +13,7 @@ import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { useJobFeedBadge } from '@/hooks/useJobFeedBadge';
 import { sessionHasKit } from '@/components/shell/application-status';
 import BrandLogo, { BrandIcon } from '@/components/BrandLogo';
+import { getJobFeedPreviewMode } from '@/components/job-feed/preview-utils';
 import { Briefcase, ClipboardList, Loader2 } from 'lucide-react';
 
 type ApplicationTab = 'cv' | 'cover-letter' | 'email';
@@ -67,6 +68,14 @@ export default function Dashboard() {
   // sidebar did nothing. Hold the spinner until after mount so the first
   // client render matches the server exactly.
   const mounted = useSyncExternalStore(subscribeToNothing, () => true, () => false);
+  // Dev-only job-feed preview must not wait on Better Auth. get-session can
+  // 500 in a local env with no bindings, and the spinner would hide the
+  // preview forever. Production always reports preview mode as off.
+  const previewingFeed = useSyncExternalStore(
+    subscribeToNothing,
+    () => getJobFeedPreviewMode() !== 'off',
+    () => false,
+  );
   const lastApplicationTabRef = useRef<ApplicationTab>('cv');
   const processedWorkspaceRef = useRef<string | null>(null);
   const hasKit = sessions.some(sessionHasKit) || sessionHasKit(currentSession);
@@ -173,7 +182,11 @@ export default function Dashboard() {
   // user whose sessions have not loaded yet: with no kit visible locally,
   // hold the spinner until the first sessions load settles the question.
   // Anonymous visitors and users with a persisted kit skip the wait.
-  if (!mounted || isLoading || (user && !hasKit && (!sessionsHydrated || !documentsHydrated) && !hydrationError)) {
+  if (
+    !mounted
+    || (!previewingFeed && isLoading)
+    || (!previewingFeed && user && !hasKit && (!sessionsHydrated || !documentsHydrated) && !hydrationError)
+  ) {
     return (
       <div className="h-dvh flex items-center justify-center bg-cream-100">
         <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
