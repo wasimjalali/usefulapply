@@ -1,4 +1,3 @@
-import { createAdminClient } from '@/lib/supabase/admin';
 import {
   JOB_FEED_COUNTRY_OPTIONS,
   JOB_FEED_MARKET_COUNTRIES,
@@ -377,8 +376,9 @@ export async function ingestJobFeedRunJobs(params: {
     maxRawJobs = JOB_FEED_MAX_RAW_JOBS_PER_RUN, strategy = null,
   } = params;
   const planQueryCap = maxMainQueries ?? maxQueries;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase query inference does not yet understand the new tables here.
-  const admin = createAdminClient() as any;
+  // Leftover argument: helpers used to take a Supabase admin client. Writes
+  // go through `@/db/repos/*` (D1). Do not recreate a live Supabase client.
+  const admin = null;
 
   const searchPlan = strategy
     ? buildJobFeedSearchPlanFromStrategy(strategy, settings, planQueryCap)
