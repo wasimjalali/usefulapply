@@ -47,6 +47,7 @@ const nextConfig: NextConfig = {
       { source: '/compare/karko-ai-vs-resume-io', destination: '/compare/usefulapply-vs-resume-io', permanent: true },
       { source: '/login', destination: '/auth/login', permanent: true },
       { source: '/signup', destination: '/auth/signup', permanent: true },
+      // 301, not Next's permanent:true (308). No hash: crawlers must land on `/`.
       { source: '/features', destination: '/', statusCode: 301 },
     ];
   },

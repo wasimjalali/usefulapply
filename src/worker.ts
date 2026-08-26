@@ -30,6 +30,12 @@ const worker = {
     if (url.hostname === 'admin.usefulapply.com' && url.pathname === '/') {
       return Response.redirect(`${url.origin}/admin-dashboard`, 308);
     }
+    // Product: /features is a 301 to `/`. Next `permanent: true` is 308 and
+    // previously hashed to /#what-you-get, which crawlers drop. Handle it at
+    // the Worker edge so Location is `/` with no fragment.
+    if (url.pathname === '/features' || url.pathname === '/features/') {
+      return Response.redirect(`${url.origin}/`, 301);
+    }
     return nextApp.fetch(request, env, ctx);
   },
   async scheduled(controller: { cron: string }, env: CloudflareEnv, ctx: ExecutionContext) {
