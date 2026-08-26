@@ -136,7 +136,7 @@ export interface AdditionalSection {
   items: string[];
 }
 
-export function createEmptyCV(region: 'US' | 'EU' = 'EU'): StructuredCV {
+export function createEmptyCV(region: 'US' | 'EU' = 'US'): StructuredCV {
   return {
     id: uuidv4(),
     version: 1,

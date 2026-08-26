@@ -241,7 +241,7 @@ const NUMERAL_WORDS = new Map<string, string>([
   ['triple', 'x3'], ['tripled', 'x3'], ['tripling', 'x3'],
   ['quadruple', 'x4'], ['quadrupled', 'x4'], ['quadrupling', 'x4'],
   ['half', 'x0.5'], ['halved', 'x0.5'], ['halving', 'x0.5'],
-  // German, because Germany is a primary market for this product.
+  // German, because German-language CVs are a supported output.
   ['zwei', '2'], ['drei', '3'], ['vier', '4'], ['fuenf', '5'], ['sechs', '6'],
   ['sieben', '7'], ['acht', '8'], ['neun', '9'], ['zehn', '10'],
   ['elf', '11'], ['zwanzig', '20'], ['dreissig', '30'], ['vierzig', '40'],

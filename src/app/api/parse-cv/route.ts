@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     let buffer: Buffer = undefined!;
     let originalFileName = '';
     let fileExt: string;
-    let region = 'EU';
+    let region = 'US';
 
     let documentType: 'primary_cv' | 'master_cv' = 'primary_cv';
     const contentType = request.headers.get('content-type') || '';
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
 
       const body = await request.json();
       const { storagePath, fileName } = body;
-      region = body.region === 'US' ? 'US' : 'EU';
+      region = body.region === 'EU' ? 'EU' : 'US';
       if (body.documentType === 'master_cv') documentType = 'master_cv';
 
       if (!storagePath || !fileName) {
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
       }
 
       const file = formData.get('file') as File;
-      region = (formData.get('region') as string) === 'US' ? 'US' : 'EU';
+      region = (formData.get('region') as string) === 'EU' ? 'EU' : 'US';
       if ((formData.get('documentType') as string) === 'master_cv') documentType = 'master_cv';
 
       if (!file || !(file instanceof File) || file.size === 0) {

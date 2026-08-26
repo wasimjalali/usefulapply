@@ -32,6 +32,7 @@ Keep this current: update when the product, stack or direction changes.
 | Incorporated | **February 9, 2026**, Delaware Secretary of State, via Stripe Atlas | [verified] |
 | Registered address | 1207 Delaware Ave #412, Wilmington, DE 19806, USA | [verified] imprint page |
 | Category | AI job application agent (recruiting / consumer SaaS) | locked |
+| Primary market | US, North America and other English-speaking countries. Europe is secondary. Do not treat Germany or the EU as the default audience. | locked, [self-reported] |
 | Founded | January 2026 | [verified] first commit 2026-02-04 |
 | Founder | Wasim Jalali, sole founder, technical | [verified] git history |
 | Team size | 1 | [verified] |
@@ -332,6 +333,8 @@ Monetisation has not been tested and failed. It has not been tested.
 
 Researched and verified 2026-07-25. Claims marked [R] came from research and were not independently confirmed. Do not put an [R] number in front of an investor unchecked.
 
+**Primary market:** the US, North America and other English-speaking countries. Europe is secondary. Do not treat Germany or the EU as the default audience. [self-reported, Wasim, 2026-08-26]
+
 **What market:** candidate-side software, paid for by the candidate. Indeed, the LinkedIn job board and Google Jobs are supply, not competitors. **LinkedIn Premium is a competitor.**
 
 ### The anchor
@@ -425,6 +428,7 @@ Status: not running a raise. Focus is activation and product.
 
 | Date | Change |
 |---|---|
+| 2026-08-26 | Locked primary market: US, North America and other English-speaking countries. Europe is secondary. Germany/EU is not the default audience. |
 | 2026-08-26 | Product-locked job-feed caps. Free has a feed: visibleCount 5, no wizard, one main search. Plus/Max visibleCount 25 (Plus 2 searches, Max 4). README no longer lists the feed as Plus/Max only. |
 | 2026-08-25 | Recorded leftover `src/lib/supabase/` as D1/R2 wrappers, not a live client. Decommission calendar: pause Supabase and delete Vercel on 2026-09-22; delete the paused Supabase project on 2026-11-21. |
 | 2026-08-25 | Synced with the live codebase. Free has a top-5 daily feed (not "no job feed"). The feed is user-triggered once a day, not a morning batch. Plus and Max visible cap is 25 roles. Dropped "arrives each morning" language. |

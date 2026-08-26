@@ -252,7 +252,7 @@ export function FeedEditView({
                         type="text"
                         value={draft.cities}
                         onChange={(event) => updateDraft({ cities: event.target.value })}
-                        placeholder="Berlin, Amsterdam"
+                        placeholder="New York, San Francisco"
                         className="mt-1.5 h-10 w-full rounded-lg border border-cream-200 bg-white px-3 text-sm text-charcoal outline-none transition-colors duration-150 placeholder:text-warm-gray focus:border-navy-700 focus:ring-2 focus:ring-navy-700/15"
                       />
                     </div>
