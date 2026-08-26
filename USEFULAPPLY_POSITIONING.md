@@ -124,7 +124,7 @@ Job seekers today stitch together seven to eight separate tools to run a search:
 
 | The seven-tool stack | Useful Apply replaces with |
 |---|---|
-| LinkedIn / Indeed keyword search | **Smart Job Feed** (personalized, LLM-ranked, up to 25/day) |
+| LinkedIn / Indeed keyword search | **Smart Job Feed** (personalized, LLM-ranked, top 5/day on Free, up to 25/day on Plus and Max) |
 | Zety / Canva resume builder | **ATS-optimized templates + inline editor** (6 templates, all ATS-compliant) |
 | Jobscan / Resumeworded ATS checker | **Built-in ATS score + keyword injection** |
 | ChatGPT "am I a fit?" prompts | **Fit Analysis** (score, strengths, gaps, recommendation) |
@@ -335,7 +335,7 @@ All bios use the two-tagline system: "Founder, Useful Apply" as the anchor, then
 >
 > Useful Apply is one app for all of it.
 >
-> Every morning, it hands you twenty-five roles matched to your CV. You pick one. You see the match score before you commit. You click apply. In ninety seconds: a CV rewritten for that exact role, a cover letter, an email, a follow-up, and answers to every screening question. All of it pulled from what's actually on your CV. Nothing invented.
+> On Plus and Max, it hands you twenty-five roles matched to your CV. You pick one. You see the match score before you commit. You click apply. In ninety seconds: a CV rewritten for that exact role, a cover letter, an email, a follow-up, and answers to every screening question. All of it pulled from what's actually on your CV. Nothing invented.
 >
 > Spend one hour setting up your CV. Then apply to five strong jobs before lunch.
 
@@ -424,7 +424,7 @@ You cannot sell "all-in-one" in 15 seconds. You can sell one pain and reveal the
 Build a library of 10 short videos. Each one picks ONE feature and ONE pain. All end with the same stamp. Consistency is the lever.
 
 1. **Screening questions** — Hook: "You found the job. Then you hit 8 essay questions." Reveal: Useful Apply drafts them from your real CV in 2 minutes.
-2. **Smart Job Feed** — Hook: "You're spending 10 hours a week on LinkedIn. Stop." Reveal: 25 hand-picked roles in a daily feed you run yourself.
+2. **Smart Job Feed** — Hook: "You're spending 10 hours a week on LinkedIn. Stop." Reveal: On Plus and Max, 25 hand-picked roles in a daily feed you run yourself. Free gets a top-5 feed.
 3. **Fit analysis** — Hook: "Stop wasting an hour on jobs you'll never get." Reveal: Half a credit shows match score + gaps before you write.
 4. **Anti-hallucination** — Hook: "Your AI cover letter is lying about your experience." Reveal: Useful Apply will not invent experience you do not have.
 5. **Cover letter speed** — Hook: "You're writing cover letters at midnight." Reveal: 90 seconds, tailored to the role.
@@ -556,7 +556,7 @@ Reference snapshot so future sessions know what's already been aligned and what 
 | ATS-optimized templates (6 designs) | ✅ | ✅ | ✅ |
 | Application tracker | ✅ | ✅ | ✅ |
 | **Screening question answers** | ❌ | **✅** | ✅ |
-| Smart Job Feed | ❌ | Up to 25/day | Up to 25/day |
+| Smart Job Feed | Top 5 | 25 (2 titles, 2 countries) | 25 (4 titles, 4 countries) |
 | Feed search breadth | ❌ | 2 job titles, 2 countries | 4 job titles, 4 countries |
 | Add-on credit packs | ❌ | ✅ | ✅ |
 | Support | Standard | Priority email | Premium dedicated |
