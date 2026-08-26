@@ -3,7 +3,7 @@
 Keep this current: update when the product, stack or direction changes.
 
 **Owner:** Wasim Jalali
-**Last updated:** 2026-08-25
+**Last updated:** 2026-08-26
 **Companion to:** `SOURCE-OF-TRUTH.md` (the fact layer). This file is the writing layer.
 **Use for:** Y Combinator, other accelerators, angel and pre-seed conversations, grants, startup competitions, press.
 **Brand:** Useful Apply (formerly Karko AI). Legal entity remains Karko AI Inc., a Delaware C-Corp.
@@ -54,7 +54,7 @@ Keep this current: update when the product, stack or direction changes.
 
 ### How do you make money? How much could you make?
 
-> Credit-based subscription. Free, Plus at $19.99 a month, Max at $79.99 a month, plus credit top-ups on paid plans. Free gets a top-5 daily feed. Plus and Max get up to 25 roles a day, and Max searches twice as wide, 4 job titles across 4 countries. Job search is episodic, so churn is real and I don't pretend otherwise. Near-term growth is activation and free-to-paid conversion, not market-size slides. The economics are modelled, not guessed: about $0.21 of inference per full application today, $0.40 revenue per credit, and 73 to 80% gross margin on a paid subscription at realistic utilization. The number I actually watch is free-to-paid conversion, because blended break-even sits at about 4.7% and that is where the business is won or lost.
+> Credit-based subscription. Free, Plus at $19.99 a month, Max at $79.99 a month, plus credit top-ups on paid plans. Free gets a top-5 daily feed, no wizard, one main search. Plus and Max get up to 25 roles a day. Plus searches twice (2 job titles x 2 countries), Max four times (4 x 4). Job search is episodic, so churn is real and I don't pretend otherwise. Near-term growth is activation and free-to-paid conversion, not market-size slides. The economics are modelled, not guessed: about $0.21 of inference per full application today, $0.40 revenue per credit, and 73 to 80% gross margin on a paid subscription at realistic utilization. The number I actually watch is free-to-paid conversion, because blended break-even sits at about 4.7% and that is where the business is won or lost.
 
 ### How far along are you?
 
