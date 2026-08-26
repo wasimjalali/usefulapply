@@ -1,73 +1,87 @@
 import type { Metadata } from 'next';
-import Navbar from '@/components/marketing/Navbar';
-import Footer from '@/components/marketing/Footer';
+import { LegalH2, LegalP, LegalShell } from '@/components/marketing/LegalShell';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 import { BRAND } from '@/lib/brand';
+import { LEGAL } from '@/lib/legal';
 
 export const metadata: Metadata = buildPageMetadata({
   title: 'Imprint (Impressum)',
   description:
-    'Legal information and company details for Useful Apply. Impressum as required by German law.',
+    'Legal information and company details for Useful Apply / Karko AI Inc. Impressum as required by German law.',
   canonical: '/imprint',
 });
 
+const mailHref = `mailto:${LEGAL.email}`;
+
 export default function ImprintPage() {
   return (
-    <div className="min-h-screen bg-cream-100">
-      <Navbar />
-      <main>
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold text-navy-600 mb-8">Imprint (Impressum)</h1>
-
-          <div className="prose prose-lg max-w-none text-charcoal space-y-8">
-            <section>
-              <h2 className="text-2xl font-semibold text-navy-600 mb-4">Company Information</h2>
-              <div className="text-warm-gray">
-                <p className="font-semibold text-charcoal text-lg">{BRAND.legalLine}</p>
-                <p className="mt-4">
-                  Karko AI Inc<br />
-                  1207 Delaware Ave #412<br />
-                  Wilmington, DE 19806<br />
-                  USA
-                </p>
-              </div>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-navy-600 mb-4">Contact</h2>
-              <p className="text-warm-gray">
-                Email: <a href="mailto:support@usefulapply.com" className="text-navy-600 hover:underline">support@usefulapply.com</a><br />
-                Website: <a href={BRAND.url} className="text-navy-600 hover:underline">{BRAND.domain}</a>
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-navy-600 mb-4">Responsible for Content</h2>
-              <p className="text-warm-gray">
-                Karko AI Inc
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-navy-600 mb-4">Disclaimer</h2>
-              <p className="text-warm-gray">
-                The content on this website is provided for informational purposes. 
-                We strive for accuracy but cannot guarantee error-free content.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-navy-600 mb-4">Copyright</h2>
-              <p className="text-warm-gray">
-                © 2026 Karko AI Inc. All rights reserved.
-              </p>
-            </section>
-          </div>
+    <LegalShell title="Imprint (Impressum)">
+      <section>
+        <LegalH2>Company</LegalH2>
+        <div className="text-warm-gray">
+          <p className="font-semibold text-charcoal text-lg">{LEGAL.entity}</p>
+          <p>Doing business as {LEGAL.dba}</p>
+          <p>Delaware C-Corporation, United States</p>
+          <p className="mt-4">
+            {LEGAL.addressLines.map((line) => (
+              <span key={line}>
+                {line}
+                <br />
+              </span>
+            ))}
+          </p>
         </div>
       </section>
-      </main>
-      <Footer />
-    </div>
+
+      <section>
+        <LegalH2>Represented by</LegalH2>
+        <LegalP>
+          {LEGAL.director}, {LEGAL.directorTitle}
+        </LegalP>
+        <LegalP>
+          Karko AI Inc. is a U.S. company. It is not entered in a German commercial register
+          (Handelsregister) and it does not have a German VAT ID. There is no EU subsidiary.
+        </LegalP>
+      </section>
+
+      <section>
+        <LegalH2>Contact</LegalH2>
+        <p className="text-warm-gray">
+          Email:{' '}
+          <a href={mailHref} className="text-navy-600 hover:underline">
+            {LEGAL.email}
+          </a>
+          <br />
+          Website:{' '}
+          <a href={BRAND.url} className="text-navy-600 hover:underline">
+            {BRAND.domain}
+          </a>
+        </p>
+      </section>
+
+      <section>
+        <LegalH2>Responsible for content</LegalH2>
+        <LegalP>
+          {LEGAL.director}, {LEGAL.entity}, {LEGAL.addressOneLine}
+        </LegalP>
+      </section>
+
+      <section>
+        <LegalH2>Disclaimer</LegalH2>
+        <LegalP>
+          Content on this website is provided for information. We work to keep it accurate but
+          cannot guarantee it is complete or error-free. Links to third-party sites (including
+          employer listings) are outside our control.
+        </LegalP>
+      </section>
+
+      <section>
+        <LegalH2>Copyright</LegalH2>
+        <LegalP>
+          © {new Date().getFullYear()} {LEGAL.entity}. All rights reserved. &quot;{LEGAL.dba}&quot;
+          is a brand of {LEGAL.entity}.
+        </LegalP>
+      </section>
+    </LegalShell>
   );
 }

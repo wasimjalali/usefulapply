@@ -142,6 +142,18 @@ function LoginForm() {
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Log in'}
           </button>
         </form>
+
+        <p className="mt-4 text-center text-xs text-warm-gray">
+          By continuing you agree to the{' '}
+          <Link href="/terms" className="font-semibold text-navy-800 hover:text-navy-600 cursor-pointer">
+            Terms
+          </Link>
+          {' and '}
+          <Link href="/privacy" className="font-semibold text-navy-800 hover:text-navy-600 cursor-pointer">
+            Privacy policy
+          </Link>
+          .
+        </p>
       </div>
 
       <p className="mt-5 text-center text-sm text-warm-gray">
