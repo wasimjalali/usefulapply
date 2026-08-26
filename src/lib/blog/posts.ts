@@ -89,7 +89,7 @@ Here is the shape of the loop it runs, with one shared source of truth (your rea
 
 ![Useful Apply Fit Analysis showing match score, strengths, gaps and a recommendation for a specific role](/screenshots/product-05-fit-analysis.webp)
 
-**3. Full application.** In about 90 seconds, a CV rewritten for this exact role, a cover letter in your voice, an application email, and a follow-up email pre-drafted for day seven. Every application is saved in one place so you can see the full loop.
+**3. Full application.** In about 90 seconds, a CV rewritten for this exact role, a cover letter in your voice, an application email, and a follow-up email pre-drafted for day seven. Every application is saved in one app so you can see the full loop.
 
 ![Useful Apply tracker showing saved applications with match scores and status, produced from the full application workflow](/screenshots/_archive/showcase-tracker.jpg)
 
@@ -97,7 +97,7 @@ Here is the shape of the loop it runs, with one shared source of truth (your rea
 
 **5. Tracker.** Every application you generate is saved with its match score and status. No spreadsheet. No more "which company was that?"
 
-![Useful Apply Application Kit: tailored CV, cover letter, application email and follow-up email generated together](/screenshots/03-application-kit-generated.webp)
+![Useful Apply full application: tailored CV, cover letter, application email and follow-up](/screenshots/03-full-application-generated.webp)
 
 One loop. One shared context. Zero re-typing of your experience into another box.
 
@@ -151,7 +151,7 @@ Generic AI has one input: the prompt. The agent has three: your real CV, the rol
 
 ### 3. One app, one loop, seven tools collapsed
 
-The compression is the point. Stop counting features and look at what you are no longer doing: no tool-switching, no re-pasting your CV, no re-entering job details, no "wait, which role was this cover letter for?" The full application workflow lives in one place because there is one source of truth behind all of it.
+The compression is the point. Stop counting features and look at what you are no longer doing: no tool-switching, no re-pasting your CV, no re-entering job details, no "wait, which role was this cover letter for?" The full application workflow lives in one app because there is one source of truth behind all of it.
 
 At a job-seeker scale, this is worth hours a week. At a career scale, it is worth enough strong applications to actually move the needle.
 
@@ -211,7 +211,7 @@ The third is that the job market, globally, got harder. People apply to more rol
 
 ## How to try it
 
-If any of the last few scrolls described a version of your Sunday night, the only useful next step is to see what your own real CV produces when the whole workflow is in one place.
+If any of the last few scrolls described a version of your Sunday night, the only useful next step is to see what your own real CV produces when the whole workflow is in one app.
 
 Useful Apply is free for your first two full applications. No credit card. You upload your CV once. You run a Fit Analysis on a role from your feed. If the score makes it worth it, you generate the full application in under two minutes. You send it before your coffee gets cold.
 
@@ -462,7 +462,7 @@ If you are unsure about the role, you run a Fit Analysis. It costs 0.5 credits. 
 
 If the Fit looks good, or if you already know the role is right, you generate a full application. Tailored CV, cover letter, application email, and follow-up email. It costs 2 credits, and it takes under 90 seconds.
 
-Every application you create is saved in your tracker with its match score and status. You can see at a glance where you stand: applied, interview, follow-up, rejected, or accepted. The whole search, in one place.
+Every application you create is saved in your tracker with its match score and status. You can see at a glance where you stand: applied, interview, follow-up, rejected, or accepted. The whole search, in one app.
 
 ## Worth trying if you are tired of the scroll
 
@@ -605,7 +605,7 @@ Writing a follow-up email manually takes 10 to 15 minutes if you're trying to ge
 
 **Useful Apply generates a professional follow-up email in under 90 seconds.** It's part of the 4-document package: CV, cover letter, application email, and follow-up email. All tailored to the same job description, all consistent in tone and claims.
 
-![Screenshot of Useful Apply generating a follow-up email in the dashboard](/blog/karko-follow-up-generator.jpg)
+![Screenshot of Useful Apply generating a follow-up email in the dashboard](/blog/follow-up-generator.jpg)
 
 The follow-up email Useful Apply generates includes:
 - The role and application date (pulled from your input).
@@ -1438,7 +1438,7 @@ Template-based resume and cover letter builder with some AI writing assistance. 
 | **ATS optimization** | ✅ All templates | ⚠️ Some | ✅ | ✅ | ⚠️ Some |
 | **Anti-hallucination** | ✅ Enforced | ⚠️ Manual check | N/A | ⚠️ Manual check | ⚠️ Manual check |
 | **Application tracker** | ❌ | ✅ | ❌ | ❌ | ❌ |
-| **Free tier** | ✅ 5/month | ✅ Limited | ✅ 5 scans | ✅ Limited | ✅ Limited |
+| **Free tier** | ✅ 2/month | ✅ Limited | ✅ 5 scans | ✅ Limited | ✅ Limited |
 | **Speed (per application)** | 90 sec | 15+ min | 10 min | 20+ min | 20+ min |
 | **Regional support** | US/UK/CA/DE | US/UK | US/UK | US/UK | US/UK/EU |
 
@@ -1583,7 +1583,7 @@ But even that manual process took 45 to 60 minutes per application. It wasn't sc
 
 So I built Useful Apply. An AI agent that takes your CV and a job description, analyzes the fit, and generates a full application, optimized CV, personalized cover letter, and professional email, in under 90 seconds.
 
-![Split-screen comparison: a person overwhelmed with stacks of papers versus the same person smiling with a clean document generated in 90 seconds](/blog/manual-vs-karko-ai.jpg)
+![Split-screen comparison: a person overwhelmed with stacks of papers versus the same person smiling with a clean document generated in 90 seconds](/blog/manual-vs-useful-apply.jpg)
 
 ## The Math, Completely Rewritten
 
@@ -2508,7 +2508,7 @@ That shows up in a few ways:
 - It surfaces fit gaps instead of hiding them
 - It is designed to avoid hallucinated claims
 
-![4-pillar diagram showing Useful Apply safeguards: Source-First Generation, No Skill Inflation, Fit Gap Visibility, and Human Review Required](/blog/karko-ai-safeguards.jpg)
+![4-pillar diagram showing Useful Apply safeguards: Source-First Generation, No Skill Inflation, Fit Gap Visibility, and Human Review Required](/blog/useful-apply-safeguards.jpg)
 
 If you want the full principle, the best reference point in the product is Useful Apply's [zero-fabrication approach](/ai-job-application/zero-fabrication).
 

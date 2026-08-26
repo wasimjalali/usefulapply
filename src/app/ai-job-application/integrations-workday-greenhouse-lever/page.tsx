@@ -34,7 +34,7 @@ const faqs = [
   },
   {
     q: "How do I use Useful Apply's output in Greenhouse application forms?",
-    a: 'Upload the tailored CV as your resume file. Use the cover letter content for any cover letter field. For custom text questions about motivation or specific skills, the cover letter and application email provide ready-to-adapt paragraphs. The follow-up email is saved separately for use 5 to 7 days after submitting.',
+    a: 'Upload the tailored CV as your resume file. Use the cover letter content for any cover letter field. For custom text questions about motivation or specific skills, the cover letter and application email provide ready-to-adapt paragraphs. The follow-up email is saved separately for use 7 to 10 days after submitting.',
   },
   {
     q: 'Does the generated output work for US and EU ATS systems?',

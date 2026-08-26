@@ -48,4 +48,4 @@ export const PLANS: Plan[] = [
 ];
 
 /** Stated once, on the landing and on /pricing. */
-export const CREDIT_PRICES = 'Fit check 0.5 · full kit 2, 1.5 after a fit check · rewrite 0.5';
+export const CREDIT_PRICES = 'Fit check 0.5 · full application 2, 1.5 after a fit check · rewrite 0.5';

@@ -26,7 +26,7 @@ const faqs = [
   },
   {
     q: 'What documents does the 90-second package include?',
-    a: 'Four documents: a tailored CV customized to the specific role, a cover letter addressing your fit and motivation, an application email for use when applying by email or in ATS text fields, and a follow-up email to send 5 to 7 days later with a different achievement highlighted.',
+    a: 'Four documents: a tailored CV customized to the specific role, a cover letter addressing your fit and motivation, an application email for use when applying by email or in ATS text fields, and a follow-up email to send 7 to 10 days later with a different achievement highlighted.',
   },
   {
     q: 'How does the fit score work?',
@@ -282,7 +282,7 @@ export default function NinetySecondApplicationPackagePage() {
               applying via email or filling a text field in an ATS.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              The <strong>follow-up email</strong> is designed to be sent 5 to 7 days after the
+              The <strong>follow-up email</strong> is designed to be sent 7 to 10 days after the
               application, highlighting a different achievement than the primary email, adding
               visibility without repetition.
             </p>

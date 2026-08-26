@@ -7,7 +7,7 @@ import { LEGAL } from '@/lib/legal';
 export const metadata: Metadata = buildPageMetadata({
   title: 'Imprint (Impressum)',
   description:
-    'Legal information and company details for Useful Apply / Karko AI Inc. Impressum as required by German law.',
+    'Legal information (Impressum) for Useful Apply, operated by Karko AI Inc.',
   canonical: '/imprint',
 });
 
@@ -62,7 +62,7 @@ export default function ImprintPage() {
       <section>
         <LegalH2>Responsible for content</LegalH2>
         <LegalP>
-          {LEGAL.director}, {LEGAL.entity}, {LEGAL.addressOneLine}
+          {LEGAL.director}, {LEGAL.addressOneLine}
         </LegalP>
       </section>
 
@@ -78,7 +78,7 @@ export default function ImprintPage() {
       <section>
         <LegalH2>Copyright</LegalH2>
         <LegalP>
-          © {new Date().getFullYear()} {LEGAL.entity}. All rights reserved. &quot;{LEGAL.dba}&quot;
+          © {new Date().getFullYear()} {LEGAL.entity} All rights reserved. &quot;{LEGAL.dba}&quot;
           is a brand of {LEGAL.entity}.
         </LegalP>
       </section>

@@ -112,7 +112,7 @@ export function BlogContent({ content, slug }: BlogContentProps) {
       {
         name: 'Free tier',
         values: [
-          { status: 'yes' as const, text: '5/month' },
+          { status: 'yes' as const, text: '2/month' },
           { status: 'yes' as const, text: 'Limited' },
           { status: 'yes' as const, text: '5 scans' },
           { status: 'yes' as const, text: 'Limited' },

@@ -47,7 +47,7 @@ const nextConfig: NextConfig = {
       { source: '/compare/karko-ai-vs-resume-io', destination: '/compare/usefulapply-vs-resume-io', permanent: true },
       { source: '/login', destination: '/auth/login', permanent: true },
       { source: '/signup', destination: '/auth/signup', permanent: true },
-      { source: '/features', destination: '/#what-you-get', permanent: true },
+      { source: '/features', destination: '/', statusCode: 301 },
     ];
   },
   // Staging builds (NEXT_PUBLIC_SITE_STAGE=staging at build time) must not be indexed

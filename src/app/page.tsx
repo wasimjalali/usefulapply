@@ -53,7 +53,7 @@ const DEMO_MOMENTS = [
     title: 'The application for this job',
     body: 'CV, cover letter, emails and screening answers. From your real CV.',
     image: {
-      src: '/images/demo/still-kit.webp',
+      src: '/images/demo/still-application.webp',
       alt: 'The full dashboard with the tailored CV, ATS 91% and the template picker',
       width: 4608,
       height: 2592,
@@ -167,7 +167,7 @@ export default function Home() {
             applicationCategory: 'BusinessApplication',
             operatingSystem: 'Web',
             description:
-              'AI-powered job application assistant with a daily job feed, fit analysis, tailored CVs, cover letters, emails, screening question answers, and application tracking.',
+              'Useful Apply is the AI job application agent: daily job feed, fit check, tailored CV, cover letter, emails, screening answers and tracker. Every word traces back to your real CV.',
             url: SITE_URL,
             image: `${SITE_URL}/favicon-512x512.png`,
             featureList: [
@@ -263,8 +263,8 @@ export default function Home() {
           <div className="mx-auto max-w-7xl">
             <ScrollReveal className="mx-auto max-w-3xl text-center">
               <h1 className="font-bold text-navy-600 text-[40px] leading-[1.08] sm:text-[52px]">
-                Your entire job search,<br />
-                <span className="text-gold-500">in one app.</span>
+                Find jobs, write tailored applications, track them.<br />
+                <span className="text-gold-500">All in one app.</span>
               </h1>
               <p className="mt-5 text-[17px] leading-relaxed text-warm-gray">
                 Check your fit first. Then get a tailored CV, cover letter, application email and
