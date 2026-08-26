@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useDropzone, type FileRejection } from 'react-dropzone';
 import { Check, Loader2, Search, Sparkles, Upload } from 'lucide-react';
@@ -1055,6 +1056,17 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                   : authMode === 'signup' ? 'Create account and generate the kit' : 'Log in and generate the kit'}
               </button>
             </form>
+            <p className="mt-4 text-center text-xs text-warm-gray">
+              By continuing you agree to the{' '}
+              <Link href="/terms" className="font-semibold text-navy-800 hover:text-navy-600">
+                Terms
+              </Link>
+              {' and '}
+              <Link href="/privacy" className="font-semibold text-navy-800 hover:text-navy-600">
+                Privacy policy
+              </Link>
+              .
+            </p>
             <p className="mt-4 text-center text-xs text-warm-gray">
               {authMode === 'signup' ? 'Already have an account?' : 'New here?'}{' '}
               <button

@@ -21,7 +21,7 @@ function initializePostHog() {
     autocapture: true,
     capture_exceptions: true,
     session_recording: {
-      maskAllInputs: false,
+      maskAllInputs: true,
       maskTextSelector: '[data-ph-mask]',
     },
     before_send: (event) => {

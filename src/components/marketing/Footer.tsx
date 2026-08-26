@@ -24,6 +24,7 @@ const companyLinks: FooterLink[] = [
 const legalLinks: FooterLink[] = [
   { href: '/privacy', label: 'Privacy Policy' },
   { href: '/terms', label: 'Terms of Service' },
+  { href: '/cookies', label: 'Cookie Notice' },
   { href: '/imprint', label: 'Imprint' },
 ];
 
