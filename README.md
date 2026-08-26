@@ -4,7 +4,7 @@
 
 ## Features
 
-- **Daily job feed** - hand-picked roles matched to your CV, goals, and location (Plus and Max)
+- **Daily job feed** - hand-picked roles matched to your CV, goals, and location. Free: top 5 a day, one search, no wizard. Plus and Max: up to 25 a day (Plus 2 searches, Max 4).
 - **Fit Analysis** - match score, strengths, and gaps before you spend credits on the full application. A checkpoint, not a commitment.
 - **Tailored CV** - rewritten for each role from your real CV, in an ATS-optimized template
 - **Cover Letter** - grounded in your real experience, written for the specific role and company

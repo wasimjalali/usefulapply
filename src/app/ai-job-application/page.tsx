@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     title: 'AI Job Application Guide',
     description:
-      'AI job applications in one place: 90-second workflow, ATS optimization, zero-fabrication, integrations, pricing, and Master CV templates.',
+      'AI job applications in one app: 90-second workflow, ATS optimization, zero-fabrication, integrations, pricing, and Master CV templates.',
     canonical: '/ai-job-application',
   });
 }
@@ -168,7 +168,7 @@ export default function AIJobApplicationHub() {
     '@type': 'Article',
     headline: 'AI Job Application: Tools, Workflow, ATS & Templates',
     description:
-      'Everything about AI job applications in one place: 90-second workflow, ATS optimization, zero-fabrication, integrations, pricing, and Master CV templates.',
+      'Everything about AI job applications in one app: 90-second workflow, ATS optimization, zero-fabrication, integrations, pricing, and Master CV templates.',
     author: { '@type': 'Organization', name: 'Useful Apply', url: SITE_URL },
     publisher: {
       '@type': 'Organization',

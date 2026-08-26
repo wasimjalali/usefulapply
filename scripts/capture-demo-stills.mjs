@@ -22,7 +22,7 @@ const OUT = join(ROOT, 'public/images/demo');
 const STILLS = [
   { name: 'still-find', ms: 11500 },
   { name: 'still-fit', ms: 20500 },
-  { name: 'still-kit', ms: 35000 },
+  { name: 'still-application', ms: 35000 },
   { name: 'still-track', ms: 57500 },
 ];
 

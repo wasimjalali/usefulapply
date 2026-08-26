@@ -228,8 +228,7 @@ export default function FreeNoSignupTestPage() {
               Application history is account-specific.
             </p>
             <p className="text-charcoal leading-relaxed mb-4">
-              (3) Are you applying to multiple roles simultaneously and need more than 20
-              applications? That&apos;s when the Plus or Max plan makes sense. Don&apos;t create an
+              (3) Need more than 2 applications a month? That&apos;s Plus or Max. Don&apos;t create an
               account until question one has a &quot;yes.&quot; That&apos;s the only honest
               sequence.
             </p>

@@ -29,7 +29,7 @@ const DEMO_MOMENTS = [
   {
     anchor: 'moment-find',
     title: 'Jobs ranked for you',
-    body: 'Up to 20 a day, matched to your experience.',
+    body: 'Up to 25 a day, matched to your experience.',
     image: {
       src: '/images/demo/still-find.webp',
       alt: 'The full Useful Apply dashboard: sidebar, job-board chat and today\'s ranked roles',
@@ -53,7 +53,7 @@ const DEMO_MOMENTS = [
     title: 'The application for this job',
     body: 'CV, cover letter, emails and screening answers. From your real CV.',
     image: {
-      src: '/images/demo/still-kit.webp',
+      src: '/images/demo/still-application.webp',
       alt: 'The full dashboard with the tailored CV, ATS 91% and the template picker',
       width: 4608,
       height: 2592,
@@ -140,7 +140,7 @@ const COMPARISON_ROWS: { feature: string; cells: [CellValue, CellValue, CellValu
   { feature: 'Fit check before you spend a minute', cells: [true, false, false] },
   { feature: 'Built to stay grounded, nothing added that isn\'t yours', cells: [true, false, false] },
   { feature: 'Remembers your CV and career profile', cells: [true, false, 'Varies'] },
-  { feature: 'CV, cover letter, application email and follow-up as one kit', cells: [true, 'Prompt by prompt', false] },
+  { feature: 'CV, cover letter, application email and follow-up as one application', cells: [true, 'Prompt by prompt', false] },
   { feature: 'Edit by chatting, live document preview', cells: [true, false, false] },
   { feature: 'Daily ranked shortlist and tracker built in', cells: [true, false, 'Varies'] },
 ];
@@ -167,7 +167,7 @@ export default function Home() {
             applicationCategory: 'BusinessApplication',
             operatingSystem: 'Web',
             description:
-              'AI-powered job application assistant with a daily job feed, fit analysis, tailored CVs, cover letters, emails, screening question answers, and application tracking.',
+              'Useful Apply is the AI job application agent: daily job feed, fit check, tailored CV, cover letter, emails, screening answers and tracker. Every word traces back to your real CV.',
             url: SITE_URL,
             image: `${SITE_URL}/favicon-512x512.png`,
             featureList: [
@@ -381,7 +381,7 @@ export default function Home() {
                       </li>
                     ))}
                   </ul>
-                  <p className="mt-5 text-sm text-warm-gray">Paste the ad, review the kit, send it yourself.</p>
+                  <p className="mt-5 text-sm text-warm-gray">Paste the ad, review the full application, send it yourself.</p>
                 </div>
               </div>
             </div>

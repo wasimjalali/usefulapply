@@ -14,7 +14,7 @@ const imagesToCompress = [
   'german-american-cv-checklist.jpg',
   'cv-format-decision-tree.jpg',
   'ai-resume-ethics-spectrum.jpg',
-  'karko-ai-safeguards.jpg',
+  'useful-apply-safeguards.jpg',
   'job-search-pressure-balance.jpg',
 ];
 

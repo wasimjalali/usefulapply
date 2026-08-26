@@ -3,7 +3,7 @@
 Keep this current: update when the product, stack or direction changes.
 
 **Owner:** Wasim Jalali
-**Last updated:** 2026-08-25
+**Last updated:** 2026-08-26
 **Scope:** the company, the product, the founder, the numbers.
 **Purpose:** the single place to pull facts from for any application, accelerator, grant, investor conversation or press request. Nothing here should have to be re-researched.
 
@@ -218,14 +218,14 @@ Source: live Stripe config and README. [verified]
 
 | Plan | Price | Credits | Notes |
 |---|---|---|---|
-| Free | $0 | 4 / month | Top-5 daily feed, no screening answers |
-| Plus | $19.99 / mo | 50 | Feed up to 25 roles/day, 2 job titles x 2 countries, screening answers, priority email support |
-| Max | $79.99 / mo | 200 | Same feed cap, 4 job titles x 4 countries, premium dedicated support |
+| Free | $0 | 4 / month | Top-5 daily feed (visibleCount 5), no wizard, one main search. No screening answers |
+| Plus | $19.99 / mo | 50 | Feed up to 25 roles/day, 2 searches (2 job titles x 2 countries), screening answers, priority email support |
+| Max | $79.99 / mo | 200 | Same visible cap (25), 4 searches (4 job titles x 4 countries), premium dedicated support |
 | Credit Pack | $19.99 one-time | +50 | Paid plans |
 
 Credit costs: full application 2.0, fit analysis 0.5, cover letter regeneration 0.5, email regeneration 0.5, follow-up regeneration 0.5. Credits roll over while the subscription is active.
 
-Max's differentiator is search breadth (twice the job titles and countries), not feed size. Both paid plans surface up to 25 roles a day.
+Max's differentiator is search breadth (4 searches vs Plus at 2), not feed size. Both paid plans surface up to 25 roles a day. Free has a feed: 5 roles, no wizard, one main search.
 
 A decision recorded in July 2026 to cut the free tier to 2 credits has **not shipped**. Quote 4 credits until it does.
 
@@ -425,6 +425,7 @@ Status: not running a raise. Focus is activation and product.
 
 | Date | Change |
 |---|---|
+| 2026-08-26 | Product-locked job-feed caps. Free has a feed: visibleCount 5, no wizard, one main search. Plus/Max visibleCount 25 (Plus 2 searches, Max 4). README no longer lists the feed as Plus/Max only. |
 | 2026-08-25 | Recorded leftover `src/lib/supabase/` as D1/R2 wrappers, not a live client. Decommission calendar: pause Supabase and delete Vercel on 2026-09-22; delete the paused Supabase project on 2026-11-21. |
 | 2026-08-25 | Synced with the live codebase. Free has a top-5 daily feed (not "no job feed"). The feed is user-triggered once a day, not a morning batch. Plus and Max visible cap is 25 roles. Dropped "arrives each morning" language. |
 | 2026-08-23 | Consolidated from three Karko-era documents (`KARKO-AI-SOURCE-OF-TRUTH.md`, `APPLICATION-ANSWER-BANK.md`, `NEXT-SESSION-BRIEF.md`) into two files under the Useful Apply brand. Restated the stack as Cloudflare (Workers, D1, R2, KV) after the migration from Vercel and Supabase. Cut session-specific strategy, the unshipped Opus 5 migration material and Vercel-era infrastructure detail. Kept every fact that survives the rebrand, with its as-of date. |
