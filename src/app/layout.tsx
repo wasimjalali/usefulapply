@@ -169,9 +169,6 @@ export default function RootLayout({
                 contactType: 'customer support',
                 availableLanguage: ['English', 'German'],
               },
-              sameAs: [
-                'https://www.trustpilot.com/review/karkoai.com',
-              ],
             }),
           }}
         />

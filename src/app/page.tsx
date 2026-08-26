@@ -29,7 +29,7 @@ const DEMO_MOMENTS = [
   {
     anchor: 'moment-find',
     title: 'Jobs ranked for you',
-    body: 'Up to 20 a day, matched to your experience.',
+    body: 'Up to 25 a day, matched to your experience.',
     image: {
       src: '/images/demo/still-find.webp',
       alt: 'The full Useful Apply dashboard: sidebar, job-board chat and today\'s ranked roles',
@@ -140,7 +140,7 @@ const COMPARISON_ROWS: { feature: string; cells: [CellValue, CellValue, CellValu
   { feature: 'Fit check before you spend a minute', cells: [true, false, false] },
   { feature: 'Built to stay grounded, nothing added that isn\'t yours', cells: [true, false, false] },
   { feature: 'Remembers your CV and career profile', cells: [true, false, 'Varies'] },
-  { feature: 'CV, cover letter, application email and follow-up as one kit', cells: [true, 'Prompt by prompt', false] },
+  { feature: 'CV, cover letter, application email and follow-up as one application', cells: [true, 'Prompt by prompt', false] },
   { feature: 'Edit by chatting, live document preview', cells: [true, false, false] },
   { feature: 'Daily ranked shortlist and tracker built in', cells: [true, false, 'Varies'] },
 ];
@@ -263,8 +263,8 @@ export default function Home() {
           <div className="mx-auto max-w-7xl">
             <ScrollReveal className="mx-auto max-w-3xl text-center">
               <h1 className="font-bold text-navy-600 text-[40px] leading-[1.08] sm:text-[52px]">
-                Find jobs, write tailored applications, track them.<br />
-                <span className="text-gold-500">All in one app.</span>
+                Your entire job search,<br />
+                <span className="text-gold-500">in one app.</span>
               </h1>
               <p className="mt-5 text-[17px] leading-relaxed text-warm-gray">
                 Check your fit first. Then get a tailored CV, cover letter, application email and
@@ -381,7 +381,7 @@ export default function Home() {
                       </li>
                     ))}
                   </ul>
-                  <p className="mt-5 text-sm text-warm-gray">Paste the ad, review the kit, send it yourself.</p>
+                  <p className="mt-5 text-sm text-warm-gray">Paste the ad, review the full application, send it yourself.</p>
                 </div>
               </div>
             </div>
