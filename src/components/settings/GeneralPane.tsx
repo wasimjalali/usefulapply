@@ -6,8 +6,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { detectTimezone } from '@/lib/utils/format-date';
 import { authClient } from '@/auth/client';
 import { changePassword } from '@/lib/supabase';
-import { uploadAvatar, deleteAvatar } from '@/lib/supabase/storage';
+import { uploadAvatar, deleteAvatar, deleteProfilePhoto } from '@/lib/supabase/storage';
 import { fileDisplayUrl } from '@/storage/paths';
+import { useCVStore } from '@/store/useCVStore';
 import { getBillingSubscriptionAction } from '@/db/actions';
 import { willBillAgain, type BillingSubscriptionLike } from '@/lib/subscription-billing';
 import { openSettings } from '@/store/useSettingsStore';
@@ -161,6 +162,35 @@ export function GeneralPane() {
     }
     const { error: cleanupError } = await deleteAvatar(user.id, key);
     if (cleanupError) console.error('[settings] failed to remove old avatar:', cleanupError);
+    // The same photo is the CV photo, so the CV preview updates right away.
+    const displayUrl = fileDisplayUrl(key);
+    if (displayUrl) {
+      useCVStore.getState().setProfilePhoto({
+        id: `photo-${Date.now()}`,
+        fileName: file.name,
+        dataUrl: displayUrl,
+        uploadedAt: new Date().toISOString(),
+      });
+    }
+    await refreshProfile();
+  };
+
+  const handleRemovePhoto = async () => {
+    if (!user) return;
+    setPhotoError(null);
+    setPhotoBusy(true);
+    const { error: saveError } = await updateProfile({ avatar_url: null });
+    if (saveError) {
+      setPhotoBusy(false);
+      setPhotoError('We could not remove the photo. Try again.');
+      return;
+    }
+    const { error: avatarError } = await deleteAvatar(user.id);
+    if (avatarError) console.error('[settings] failed to delete avatar objects:', avatarError);
+    const { error: legacyError } = await deleteProfilePhoto(user.id);
+    if (legacyError) console.error('[settings] failed to delete legacy CV photo:', legacyError);
+    useCVStore.getState().setProfilePhoto(null);
+    setPhotoBusy(false);
     await refreshProfile();
   };
 
@@ -339,11 +369,11 @@ export function GeneralPane() {
         {editableRow('full_name', 'Name', 'Your name')}
         {editableRow('phone', 'Phone', 'Your phone number')}
         {editableRow('location', 'Location', 'City, country')}
-        <Row label="Photo" hint={photoError ?? undefined}>
+        <Row label="Photo" hint={photoError ?? 'Also used on CV templates that carry a photo'}>
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/png,image/jpeg,image/webp"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -351,8 +381,13 @@ export function GeneralPane() {
               if (file) void handlePhoto(file);
             }}
           />
+          {avatarUrl && (
+            <LinkButton disabled={photoBusy} onClick={() => { void handleRemovePhoto(); }}>
+              Remove
+            </LinkButton>
+          )}
           <LinkButton disabled={photoBusy} onClick={() => fileInputRef.current?.click()}>
-            {photoBusy ? 'Uploading' : 'Change'}
+            {photoBusy ? 'Working' : 'Change'}
           </LinkButton>
         </Row>
       </RowGroup>

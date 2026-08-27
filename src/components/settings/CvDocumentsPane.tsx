@@ -1,24 +1,21 @@
 'use client';
 
 /**
- * The CV pane: primary CV, master CV and the profile photo, in the settings
- * modal. The upload and parse flow moved here from the retired /documents
- * page (DocumentsPanel); the logic is carried over, only the presentation
- * follows the settings rows.
+ * The CV pane: primary CV and master CV, in the settings modal. The upload
+ * and parse flow moved here from the retired /documents page (DocumentsPanel);
+ * the logic is carried over, only the presentation follows the settings rows.
+ * The profile photo lives in the General pane (one photo for account and CV).
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CVInputZone } from '@/components/CVInputZone';
-import { useCVStore, type ProfilePhoto } from '@/store/useCVStore';
+import { useCVStore } from '@/store/useCVStore';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   getDocumentByType,
   saveDocument,
   deleteDocument,
   uploadCVFile,
-  uploadProfilePhoto,
-  getProfilePhotoUrl,
-  deleteProfilePhoto,
   type Document as StoredDocument,
 } from '@/lib/supabase';
 import { AlertCircle } from 'lucide-react';
@@ -37,43 +34,6 @@ import {
   Row,
   RowGroup,
 } from '@/components/settings/parts';
-
-/**
- * Resizes an image file to fit within `maxSize` pixels on its longest side,
- * preserving aspect ratio. Returns a JPEG data URL (~50–100KB for 800px).
- */
-function resizeImage(file: File, maxSize: number, quality = 0.9): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = () => reject(new Error('Image load failed'));
-      img.onload = () => {
-        let w = img.naturalWidth;
-        let h = img.naturalHeight;
-        if (w > maxSize || h > maxSize) {
-          if (w > h) {
-            h = Math.round(h * (maxSize / w));
-            w = maxSize;
-          } else {
-            w = Math.round(w * (maxSize / h));
-            h = maxSize;
-          }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return reject(new Error('Could not get 2d context'));
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.src = reader.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
-}
 
 function parseDocumentFile(
   file: File,
@@ -182,18 +142,13 @@ export function CvDocumentsPane() {
   const setStructuredCV = useCVStore((s) => s.setStructuredCV);
   const masterCV = useCVStore((s) => s.masterCV);
   const setMasterCV = useCVStore((s) => s.setMasterCV);
-  const profilePhoto = useCVStore((s) => s.profilePhoto);
-  const setProfilePhoto = useCVStore((s) => s.setProfilePhoto);
-
   const [isUploadingCV, setIsUploadingCV] = useState(false);
   const [isUploadingMasterCV, setIsUploadingMasterCV] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [masterCVUploadError, setMasterCVUploadError] = useState<string | null>(null);
-  const [photoError, setPhotoError] = useState<string | null>(null);
   const [replacingPrimary, setReplacingPrimary] = useState(false);
   const [replacingMaster, setReplacingMaster] = useState(false);
   const [storedDocs, setStoredDocs] = useState<{ primary?: StoredDocument; master?: StoredDocument }>({});
-  const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Load documents on mount. The store is the source of truth for signed-in
   // users, so cached browser state is always replaced.
@@ -251,37 +206,6 @@ export function CvDocumentsPane() {
     };
 
     void loadDocuments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  // Load the profile photo on mount, unless a fresh local upload is showing.
-  useEffect(() => {
-    const loadProfilePhoto = async () => {
-      if (!user) return;
-      const isBase64 = profilePhoto?.dataUrl?.startsWith('data:');
-      if (isBase64) return;
-
-      try {
-        const { url, error } = await getProfilePhotoUrl(user.id);
-        if (error) {
-          console.error('Error loading profile photo:', error);
-          return;
-        }
-
-        if (url) {
-          setProfilePhoto({
-            id: `photo-stored-${Date.now()}`,
-            fileName: profilePhoto?.fileName || 'profile.jpg',
-            dataUrl: url,
-            uploadedAt: new Date().toISOString(),
-          });
-        }
-      } catch (err) {
-        console.error('Error loading profile photo:', err);
-      }
-    };
-
-    void loadProfilePhoto();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -436,66 +360,6 @@ export function CvDocumentsPane() {
     }
   };
 
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    setPhotoError(null);
-
-    if (!file.type.startsWith('image/')) {
-      setPhotoError('That is not an image. Use a JPG or PNG.');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setPhotoError('The image must be under 5 MB.');
-      return;
-    }
-
-    try {
-      const dataUrl = await resizeImage(file, 800);
-      const photo: ProfilePhoto = {
-        id: `photo-${Date.now()}`,
-        fileName: file.name,
-        dataUrl,
-        uploadedAt: new Date().toISOString(),
-      };
-
-      setProfilePhoto(photo);
-
-      if (user) {
-        try {
-          const { url, error } = await uploadProfilePhoto(user.id, file);
-          if (error) {
-            console.error('Error uploading photo:', error);
-          } else if (url) {
-            setProfilePhoto({ ...photo, dataUrl: url });
-          }
-        } catch (err) {
-          console.error('Profile photo upload error:', err);
-        }
-      }
-    } catch (err) {
-      console.error('Image resize error:', err);
-      setPhotoError('That image did not load. Try another file.');
-    }
-  };
-
-  const handleRemovePhoto = async () => {
-    setPhotoError(null);
-    const previous = profilePhoto;
-    setProfilePhoto(null);
-    if (user) {
-      const { error } = await deleteProfilePhoto(user.id);
-      if (error) {
-        // A failed delete must not pretend it worked: put the photo back.
-        console.error('Error deleting profile photo:', error);
-        setProfilePhoto(previous);
-        setPhotoError('The photo did not delete. Try again.');
-      }
-    }
-  };
-
   return (
     <div>
       <PaneHeading>CV</PaneHeading>
@@ -564,40 +428,6 @@ export function CvDocumentsPane() {
         ) : null}
       </RowGroup>
 
-      <Caption>PROFILE PHOTO</Caption>
-      <RowGroup>
-        <Row
-          label={
-            <span className="flex items-center gap-3">
-              {profilePhoto && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={profilePhoto.dataUrl}
-                  alt="Profile photo"
-                  className="h-9 w-9 rounded-full object-cover"
-                />
-              )}
-              {profilePhoto ? profilePhoto.fileName : 'No photo'}
-            </span>
-          }
-          hint="For CV templates that carry a photo, common in Europe"
-        >
-          {profilePhoto && (
-            <LinkButton onClick={() => void handleRemovePhoto()}>Remove</LinkButton>
-          )}
-          <OutlineButton onClick={() => photoInputRef.current?.click()}>
-            {profilePhoto ? 'Replace' : 'Upload'}
-          </OutlineButton>
-          <input
-            ref={photoInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(event) => void handlePhotoUpload(event)}
-          />
-        </Row>
-        {photoError && <InlineError message={photoError} />}
-      </RowGroup>
     </div>
   );
 }

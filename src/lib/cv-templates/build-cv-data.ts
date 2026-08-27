@@ -30,6 +30,26 @@ export interface BuildCvDataInput {
   profile?: ProfileLinks | null;
 }
 
+/**
+ * Templates render these values straight into href. A schemeless value like
+ * "wasim.dev" becomes a relative link and resolves against whatever host is
+ * serving the page, so it gets an https:// prefix here.
+ */
+function normalizeExternalUrl(value: string | undefined): string {
+  const trimmed = (value ?? '').trim();
+  if (!trimmed) return '';
+  if (/^(https?:\/\/|mailto:)/i.test(trimmed)) return trimmed;
+  if (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(trimmed)) return `https://${trimmed}`;
+  return trimmed;
+}
+
+function normalizePersonalLinks(personal: CVData['personal']) {
+  personal.linkedIn = normalizeExternalUrl(personal.linkedIn);
+  personal.github = normalizeExternalUrl(personal.github);
+  personal.portfolio = normalizeExternalUrl(personal.portfolio);
+  personal.website = normalizeExternalUrl(personal.website);
+}
+
 function mergeProfileLinks(personal: CVData['personal'], profile?: ProfileLinks | null) {
   if (!profile) return;
   personal.linkedIn = personal.linkedIn || profile.linkedin_url || '';
@@ -54,7 +74,7 @@ export function buildCvData(input: BuildCvDataInput): CVData | null {
   // Tailored CV: structured JSON from the agent, used directly. Personal links
   // fall back to the original CV so the user never re-enters them per job.
   if (showOptimized && optimizedCVData) {
-    return {
+    const tailored: CVData = {
       personal: {
         fullName: optimizedCVData.personal.fullName,
         email: optimizedCVData.personal.email,
@@ -85,6 +105,8 @@ export function buildCvData(input: BuildCvDataInput): CVData | null {
       sectionHeaders: optimizedCVData.sectionHeaders,
       localizedStrings: optimizedCVData.localizedStrings,
     };
+    normalizePersonalLinks(tailored.personal);
+    return tailored;
   }
 
   // Original view: prefer the user's saved edits of the original CV. Also
@@ -95,8 +117,10 @@ export function buildCvData(input: BuildCvDataInput): CVData | null {
       merged.personal.photoUrl = photoDataUrl;
     }
     mergeProfileLinks(merged.personal, profile);
+    normalizePersonalLinks(merged.personal);
     return merged;
   }
 
+  normalizePersonalLinks(parsed.personal);
   return parsed;
 }

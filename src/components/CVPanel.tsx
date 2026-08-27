@@ -34,7 +34,7 @@ import {
   Trash2,
   Shield,
 } from 'lucide-react';
-import { uploadProfilePhoto } from '@/lib/supabase/storage';
+import { uploadAvatar, deleteAvatar, deleteProfilePhoto } from '@/lib/supabase/storage';
 import type { ProfilePhoto } from '@/store/useCVStore';
 import { EditableCVCanvas, EditableCVCanvasRef } from './EditableCVCanvas';
 import { StepIndicator } from './StepIndicator';
@@ -159,12 +159,21 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
 
       if (user) {
         try {
-          const { url, error } = await uploadProfilePhoto(user.id, file);
-          if (error) {
-            console.error('Photo upload to Supabase failed:', error);
-            toast.warning('Photo saved locally — cloud sync failed');
-          } else if (url) {
-            setProfilePhoto({ ...photo, dataUrl: url });
+          // One photo everywhere: the account avatar is the CV photo too.
+          const { url, key, error } = await uploadAvatar(user.id, file);
+          if (error || !key) {
+            console.error('Photo upload failed:', error);
+            toast.warning('Photo saved locally. Cloud sync failed.');
+          } else {
+            const { error: saveError } = await updateProfile({ avatar_url: key });
+            if (saveError) {
+              console.error('Failed to save avatar_url:', saveError);
+              toast.warning('Photo saved locally. Cloud sync failed.');
+            } else {
+              const { error: cleanupError } = await deleteAvatar(user.id, key);
+              if (cleanupError) console.error('Failed to remove old avatar:', cleanupError);
+              if (url) setProfilePhoto({ ...photo, dataUrl: url });
+            }
           }
         } catch (err) {
           console.error('Photo upload exception:', err);
@@ -173,6 +182,20 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
     } catch {
       toast.error('Failed to process image');
     }
+  };
+
+  const handleRemovePhoto = async () => {
+    setProfilePhoto(null);
+    if (!user) return;
+    const { error: saveError } = await updateProfile({ avatar_url: null });
+    if (saveError) {
+      console.error('Failed to clear avatar_url:', saveError);
+      return;
+    }
+    const { error: avatarError } = await deleteAvatar(user.id);
+    if (avatarError) console.error('Failed to delete avatar objects:', avatarError);
+    const { error: legacyError } = await deleteProfilePhoto(user.id);
+    if (legacyError) console.error('Failed to delete legacy CV photo:', legacyError);
   };
 
   // Responsive CV scaling — JS-based because CSS transform: scale can't dynamically
@@ -403,7 +426,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           <input
             ref={photoInputRef}
             type="file"
-            accept="image/*"
+            accept="image/png,image/jpeg,image/webp"
             onChange={handlePhotoUpload}
             className="hidden"
           />
@@ -418,7 +441,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                 <Camera className="h-4 w-4" />
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); setProfilePhoto(null); }}
+                onClick={(e) => { e.stopPropagation(); void handleRemovePhoto(); }}
                 className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-white text-warm-gray opacity-0 shadow ring-1 ring-cream-300 transition-opacity hover:text-red-500 group-hover:opacity-100"
                 title="Remove photo"
                 aria-label="Remove photo"

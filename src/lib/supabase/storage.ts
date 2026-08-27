@@ -1,4 +1,4 @@
-import { deleteFileAction, deleteUserFilesAction, listUserFilesAction } from '@/db/actions';
+import { deleteFileAction, deleteUserFilesAction, getProfileAction, listUserFilesAction } from '@/db/actions';
 import { fileDisplayUrl, toR2Key } from '@/storage/paths';
 
 type FileBucket = 'cv-files' | 'generated-pdfs' | 'avatars' | 'profile-photos';
@@ -55,21 +55,18 @@ export async function deleteAvatar(userId: string, keepKey?: string): Promise<{ 
   return deleteOwnedPrefix('avatars', keepKey);
 }
 
-export async function uploadProfilePhoto(
-  userId: string,
-  file: File,
-): Promise<{ url: string | null; path: string | null; error: Error | null }> {
-  void userId;
-  const result = await postUpload(file, 'profile-photos');
-  if (result.error || !result.key) return { url: null, path: null, error: result.error };
-  return { url: fileDisplayUrl(result.key), path: result.key, error: null };
-}
-
+/**
+ * The single profile photo: the account avatar (profiles.avatar_url). Falls
+ * back to the legacy profile-photos bucket for users who uploaded a CV photo
+ * before the two were consolidated.
+ */
 export async function getProfilePhotoUrl(
   userId: string,
 ): Promise<{ url: string | null; error: Error | null }> {
-  void userId;
   try {
+    const profile = await getProfileAction(userId);
+    const avatarUrl = fileDisplayUrl(profile?.avatar_url);
+    if (avatarUrl) return { url: avatarUrl, error: null };
     const keys = await listUserFilesAction('profile-photos');
     const key = keys[0];
     return { url: key ? fileDisplayUrl(key) : null, error: null };
@@ -78,6 +75,7 @@ export async function getProfilePhotoUrl(
   }
 }
 
+/** Delete the legacy CV-photo objects along with the avatar so a removed photo stays removed. */
 export async function deleteProfilePhoto(userId: string): Promise<{ error: Error | null }> {
   void userId;
   return deleteOwnedPrefix('profile-photos');
