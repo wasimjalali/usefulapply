@@ -123,6 +123,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const editableCVRef = useRef<EditableCVCanvasRef>(null);
   const editSessionIdRef = useRef<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const photoBusyRef = useRef(false);
 
   const isPhotoTemplate = PHOTO_TEMPLATE_IDS.has(selectedTemplateId);
 
@@ -138,8 +139,12 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
     if (!file) return;
     event.target.value = '';
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please upload an image file (JPG, PNG, etc.)');
+    // One flight at a time: a second pick during upload -> updateProfile ->
+    // cleanup could delete the avatar the first pick just saved.
+    if (photoBusyRef.current) return;
+
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      toast.error('Use a JPG, PNG or WebP image.');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -147,6 +152,10 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
       return;
     }
 
+    photoBusyRef.current = true;
+    // Captured before the local preview replaces it: a photo still served
+    // from the legacy bucket is superseded by this upload.
+    const hadLegacyPhoto = profilePhoto?.dataUrl?.includes('/api/files/profile-photos/') ?? false;
     try {
       const dataUrl = await resizeImage(file, 800);
       const photo: ProfilePhoto = {
@@ -163,15 +172,19 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           const { url, key, error } = await uploadAvatar(user.id, file);
           if (error || !key) {
             console.error('Photo upload failed:', error);
-            toast.warning('Photo saved locally. Cloud sync failed.');
+            toast.error('The upload failed. This photo will not be saved.');
           } else {
             const { error: saveError } = await updateProfile({ avatar_url: key });
             if (saveError) {
               console.error('Failed to save avatar_url:', saveError);
-              toast.warning('Photo saved locally. Cloud sync failed.');
+              toast.error('The upload failed. This photo will not be saved.');
             } else {
               const { error: cleanupError } = await deleteAvatar(user.id, key);
               if (cleanupError) console.error('Failed to remove old avatar:', cleanupError);
+              if (hadLegacyPhoto) {
+                const { error: legacyError } = await deleteProfilePhoto(user.id);
+                if (legacyError) console.error('Failed to remove legacy CV photo:', legacyError);
+              }
               if (url) setProfilePhoto({ ...photo, dataUrl: url });
             }
           }
@@ -181,21 +194,30 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
       }
     } catch {
       toast.error('Failed to process image');
+    } finally {
+      photoBusyRef.current = false;
     }
   };
 
   const handleRemovePhoto = async () => {
+    const previous = profilePhoto;
     setProfilePhoto(null);
     if (!user) return;
     const { error: saveError } = await updateProfile({ avatar_url: null });
     if (saveError) {
+      // A failed delete must not pretend it worked: put the photo back.
       console.error('Failed to clear avatar_url:', saveError);
+      setProfilePhoto(previous);
+      toast.error('The photo did not delete. Try again.');
       return;
     }
     const { error: avatarError } = await deleteAvatar(user.id);
-    if (avatarError) console.error('Failed to delete avatar objects:', avatarError);
     const { error: legacyError } = await deleteProfilePhoto(user.id);
-    if (legacyError) console.error('Failed to delete legacy CV photo:', legacyError);
+    if (avatarError || legacyError) {
+      // A leftover object would bring the photo back on the next load.
+      console.error('Photo delete incomplete:', avatarError || legacyError);
+      toast.warning('The photo may not be fully removed. Try again.');
+    }
   };
 
   // Responsive CV scaling — JS-based because CSS transform: scale can't dynamically
@@ -261,17 +283,20 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
     if (!user || !profilePhoto?.dataUrl) return;
     if (profilePhoto.dataUrl.startsWith('data:')) return;
 
+    let cancelled = false;
     const img = new Image();
     img.onerror = async () => {
       try {
         const { getProfilePhotoUrl } = await import('@/lib/supabase/storage');
         const { url } = await getProfilePhotoUrl(user.id);
-        if (url) {
+        // A remove (or newer photo) changed the store meanwhile: stay out.
+        if (url && !cancelled) {
           setProfilePhoto({ ...profilePhoto, dataUrl: url });
         }
       } catch { /* ignore */ }
     };
     img.src = profilePhoto.dataUrl;
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, profilePhoto?.dataUrl]);
 

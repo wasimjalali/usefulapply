@@ -139,8 +139,8 @@ export function GeneralPane() {
   const handlePhoto = async (file: File) => {
     if (!user) return;
     setPhotoError(null);
-    if (!file.type.startsWith('image/')) {
-      setPhotoError('That file is not an image.');
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      setPhotoError('Use a JPG, PNG or WebP image.');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -155,13 +155,20 @@ export function GeneralPane() {
       return;
     }
     const { error: saveError } = await updateProfile({ avatar_url: key });
-    setPhotoBusy(false);
     if (saveError) {
+      setPhotoBusy(false);
       setPhotoError('We could not save the photo. Try again.');
       return;
     }
     const { error: cleanupError } = await deleteAvatar(user.id, key);
     if (cleanupError) console.error('[settings] failed to remove old avatar:', cleanupError);
+    // A photo still served from the legacy bucket is superseded now; leaving
+    // it would waste quota and resurrect on a later remove failure.
+    const previousCvPhoto = useCVStore.getState().profilePhoto;
+    if (previousCvPhoto?.dataUrl?.includes('/api/files/profile-photos/')) {
+      const { error: legacyError } = await deleteProfilePhoto(user.id);
+      if (legacyError) console.error('[settings] failed to remove legacy CV photo:', legacyError);
+    }
     // The same photo is the CV photo, so the CV preview updates right away.
     const displayUrl = fileDisplayUrl(key);
     if (displayUrl) {
@@ -173,6 +180,9 @@ export function GeneralPane() {
       });
     }
     await refreshProfile();
+    // Busy holds until the whole tail is done, so Remove cannot interleave
+    // with the cleanup and store sync above.
+    setPhotoBusy(false);
   };
 
   const handleRemovePhoto = async () => {
@@ -186,11 +196,14 @@ export function GeneralPane() {
       return;
     }
     const { error: avatarError } = await deleteAvatar(user.id);
-    if (avatarError) console.error('[settings] failed to delete avatar objects:', avatarError);
     const { error: legacyError } = await deleteProfilePhoto(user.id);
-    if (legacyError) console.error('[settings] failed to delete legacy CV photo:', legacyError);
     useCVStore.getState().setProfilePhoto(null);
     setPhotoBusy(false);
+    if (avatarError || legacyError) {
+      // A leftover object would bring the photo back on the next load.
+      console.error('[settings] photo delete incomplete:', avatarError || legacyError);
+      setPhotoError('The photo may not be fully removed. Try Remove again.');
+    }
     await refreshProfile();
   };
 
@@ -283,6 +296,8 @@ export function GeneralPane() {
     return displayName.slice(0, 2).toUpperCase();
   }, [displayName]);
   const avatarUrl = fileDisplayUrl(profile?.avatar_url);
+  // Legacy CV photos (profile-photos bucket, no avatar_url) must stay removable.
+  const cvPhoto = useCVStore((s) => s.profilePhoto);
 
   const timezone = profile?.timezone || detectedTimezone();
   const tzOptions = useMemo(() => timezoneOptions(timezone), [timezone]);
@@ -381,7 +396,7 @@ export function GeneralPane() {
               if (file) void handlePhoto(file);
             }}
           />
-          {avatarUrl && (
+          {(avatarUrl || cvPhoto) && (
             <LinkButton disabled={photoBusy} onClick={() => { void handleRemovePhoto(); }}>
               Remove
             </LinkButton>

@@ -39,8 +39,9 @@ function normalizeExternalUrl(value: string | undefined): string {
   const trimmed = (value ?? '').trim();
   if (!trimmed) return '';
   if (/^(https?:\/\/|mailto:)/i.test(trimmed)) return trimmed;
-  if (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(trimmed)) return `https://${trimmed}`;
-  return trimmed;
+  if (/^[\p{L}\p{N}_-]+(\.[\p{L}\p{N}_-]+)+([/?#]\S*)?$/u.test(trimmed)) return `https://${trimmed}`;
+  // Anything else (javascript:, data:, free text) must never reach an href.
+  return '';
 }
 
 function normalizePersonalLinks(personal: CVData['personal']) {
