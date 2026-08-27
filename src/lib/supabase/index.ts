@@ -31,10 +31,9 @@ export {
 export type { ApplicationSession, ChatMessage } from './sessions';
 
 // Storage operations
-export { 
-  uploadAvatar, 
+export {
+  uploadAvatar,
   deleteAvatar,
-  uploadProfilePhoto,
   getProfilePhotoUrl,
   deleteProfilePhoto,
   uploadGeneratedPDF,

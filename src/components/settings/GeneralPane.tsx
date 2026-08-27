@@ -6,8 +6,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { detectTimezone } from '@/lib/utils/format-date';
 import { authClient } from '@/auth/client';
 import { changePassword } from '@/lib/supabase';
-import { uploadAvatar, deleteAvatar } from '@/lib/supabase/storage';
+import { uploadAvatar, deleteAvatar, deleteProfilePhoto } from '@/lib/supabase/storage';
 import { fileDisplayUrl } from '@/storage/paths';
+import { useCVStore } from '@/store/useCVStore';
 import { getBillingSubscriptionAction } from '@/db/actions';
 import { willBillAgain, type BillingSubscriptionLike } from '@/lib/subscription-billing';
 import { openSettings } from '@/store/useSettingsStore';
@@ -138,8 +139,8 @@ export function GeneralPane() {
   const handlePhoto = async (file: File) => {
     if (!user) return;
     setPhotoError(null);
-    if (!file.type.startsWith('image/')) {
-      setPhotoError('That file is not an image.');
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      setPhotoError('Use a JPG, PNG or WebP image.');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -154,13 +155,55 @@ export function GeneralPane() {
       return;
     }
     const { error: saveError } = await updateProfile({ avatar_url: key });
-    setPhotoBusy(false);
     if (saveError) {
+      setPhotoBusy(false);
       setPhotoError('We could not save the photo. Try again.');
       return;
     }
     const { error: cleanupError } = await deleteAvatar(user.id, key);
     if (cleanupError) console.error('[settings] failed to remove old avatar:', cleanupError);
+    // A photo still served from the legacy bucket is superseded now; leaving
+    // it would waste quota and resurrect on a later remove failure.
+    const previousCvPhoto = useCVStore.getState().profilePhoto;
+    if (previousCvPhoto?.dataUrl?.includes('/api/files/profile-photos/')) {
+      const { error: legacyError } = await deleteProfilePhoto(user.id);
+      if (legacyError) console.error('[settings] failed to remove legacy CV photo:', legacyError);
+    }
+    // The same photo is the CV photo, so the CV preview updates right away.
+    const displayUrl = fileDisplayUrl(key);
+    if (displayUrl) {
+      useCVStore.getState().setProfilePhoto({
+        id: `photo-${Date.now()}`,
+        fileName: file.name,
+        dataUrl: displayUrl,
+        uploadedAt: new Date().toISOString(),
+      });
+    }
+    await refreshProfile();
+    // Busy holds until the whole tail is done, so Remove cannot interleave
+    // with the cleanup and store sync above.
+    setPhotoBusy(false);
+  };
+
+  const handleRemovePhoto = async () => {
+    if (!user) return;
+    setPhotoError(null);
+    setPhotoBusy(true);
+    const { error: saveError } = await updateProfile({ avatar_url: null });
+    if (saveError) {
+      setPhotoBusy(false);
+      setPhotoError('We could not remove the photo. Try again.');
+      return;
+    }
+    const { error: avatarError } = await deleteAvatar(user.id);
+    const { error: legacyError } = await deleteProfilePhoto(user.id);
+    useCVStore.getState().setProfilePhoto(null);
+    setPhotoBusy(false);
+    if (avatarError || legacyError) {
+      // A leftover object would bring the photo back on the next load.
+      console.error('[settings] photo delete incomplete:', avatarError || legacyError);
+      setPhotoError('The photo may not be fully removed. Try Remove again.');
+    }
     await refreshProfile();
   };
 
@@ -253,6 +296,8 @@ export function GeneralPane() {
     return displayName.slice(0, 2).toUpperCase();
   }, [displayName]);
   const avatarUrl = fileDisplayUrl(profile?.avatar_url);
+  // Legacy CV photos (profile-photos bucket, no avatar_url) must stay removable.
+  const cvPhoto = useCVStore((s) => s.profilePhoto);
 
   const timezone = profile?.timezone || detectedTimezone();
   const tzOptions = useMemo(() => timezoneOptions(timezone), [timezone]);
@@ -339,11 +384,11 @@ export function GeneralPane() {
         {editableRow('full_name', 'Name', 'Your name')}
         {editableRow('phone', 'Phone', 'Your phone number')}
         {editableRow('location', 'Location', 'City, country')}
-        <Row label="Photo" hint={photoError ?? undefined}>
+        <Row label="Photo" hint={photoError ?? 'Also used on CV templates that carry a photo'}>
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/png,image/jpeg,image/webp"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -351,8 +396,13 @@ export function GeneralPane() {
               if (file) void handlePhoto(file);
             }}
           />
+          {(avatarUrl || cvPhoto) && (
+            <LinkButton disabled={photoBusy} onClick={() => { void handleRemovePhoto(); }}>
+              Remove
+            </LinkButton>
+          )}
           <LinkButton disabled={photoBusy} onClick={() => fileInputRef.current?.click()}>
-            {photoBusy ? 'Uploading' : 'Change'}
+            {photoBusy ? 'Working' : 'Change'}
           </LinkButton>
         </Row>
       </RowGroup>

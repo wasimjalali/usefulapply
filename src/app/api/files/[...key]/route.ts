@@ -46,13 +46,15 @@ export async function GET(
       return NextResponse.json({ error: 'Not found.' }, { status: 404 });
     }
 
+    // writeHttpMetadata is not used: with proxied R2 bindings (local dev) it
+    // cannot serialize the Headers object and throws, 500ing every file read.
+    // Everything it would set is written explicitly below.
     const headers = new Headers();
-    object.writeHttpMetadata(headers);
     headers.set('Cache-Control', 'private, max-age=3600');
     headers.set('X-Content-Type-Options', 'nosniff');
     headers.set('Content-Security-Policy', "default-src 'none'; sandbox");
 
-    const etag = object.httpEtag ?? headers.get('etag');
+    const etag = object.httpEtag;
     if (etag) {
       headers.set('ETag', etag);
       const ifNoneMatch = request.headers.get('if-none-match');

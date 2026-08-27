@@ -292,7 +292,9 @@ export function useSupabaseSync() {
             dataUrl: photoResult.url,
             uploadedAt: new Date().toISOString(),
           });
-        } else if (!photoResult.url && !isBase64) {
+        } else if (!photoResult.error && !photoResult.url && !isBase64) {
+          // Only a confirmed "no photo" clears the store; a transient load
+          // failure must not wipe a photo that still exists.
           setProfilePhoto(null);
         }
         
