@@ -486,23 +486,21 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
             >
               {data.sectionHeaders?.projects || DEFAULT_HEADERS.projects}
             </h2>
-            {data.projects.map((project) => (
-              <div key={project.id} style={{ marginBottom: '8px' }}>
-                <div style={{ fontWeight: 600, fontSize: '12px', color: germanColors.text }}>
-                  {project.name}
+            {/* One line per project keeps the section short; a description
+                that just repeats the name is dropped. */}
+            {data.projects.map((project) => {
+              const description = project.description?.trim();
+              const showDescription = Boolean(description && description.toLowerCase() !== project.name.trim().toLowerCase());
+              return (
+                <div key={project.id} style={{ fontSize: '11px', lineHeight: 1.5, color: germanColors.textLight, marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '12px', color: germanColors.text }}>{project.name}</span>
+                  {showDescription && <span>: {description}</span>}
+                  {project.technologies && project.technologies.length > 0 && (
+                    <span style={{ fontSize: '10px', color: germanColors.primary }}> ({project.technologies.join(', ')})</span>
+                  )}
                 </div>
-                {project.description && (
-                  <div style={{ fontSize: '11px', color: germanColors.textLight, marginTop: '2px' }}>
-                    {project.description}
-                  </div>
-                )}
-                {project.technologies && project.technologies.length > 0 && (
-                  <div style={{ fontSize: '10px', color: germanColors.primary, marginTop: '2px' }}>
-                    {project.technologies.join(' • ')}
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </section>
         )}
 

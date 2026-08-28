@@ -44,6 +44,24 @@ function normalizeExternalUrl(value: string | undefined): string {
   return '';
 }
 
+/**
+ * The model sometimes reuses another section's header for additionalInfo
+ * ("Certifications & Languages" twice on one CV). A duplicate is cleared so
+ * the template falls back to its own default header.
+ */
+function dedupeAdditionalInfoHeader(headers: CVData['sectionHeaders']): CVData['sectionHeaders'] {
+  if (!headers?.additionalInfo) return headers;
+  const additional = headers.additionalInfo.trim().toLowerCase();
+  const others = [
+    headers.summary, headers.skills, headers.experience, headers.education,
+    headers.certifications, headers.languages, headers.contact, headers.projects,
+  ];
+  if (others.some((header) => header && header.trim().toLowerCase() === additional)) {
+    return { ...headers, additionalInfo: undefined };
+  }
+  return headers;
+}
+
 function normalizePersonalLinks(personal: CVData['personal']) {
   personal.linkedIn = normalizeExternalUrl(personal.linkedIn);
   personal.github = normalizeExternalUrl(personal.github);
@@ -103,7 +121,7 @@ export function buildCvData(input: BuildCvDataInput): CVData | null {
       additionalInfo: optimizedCVData.additionalInfo || (optimizedCVData.personal.driverLicense
         ? [`Driver's License: ${optimizedCVData.personal.driverLicense}`]
         : undefined),
-      sectionHeaders: optimizedCVData.sectionHeaders,
+      sectionHeaders: dedupeAdditionalInfoHeader(optimizedCVData.sectionHeaders),
       localizedStrings: optimizedCVData.localizedStrings,
     };
     normalizePersonalLinks(tailored.personal);
@@ -119,9 +137,11 @@ export function buildCvData(input: BuildCvDataInput): CVData | null {
     }
     mergeProfileLinks(merged.personal, profile);
     normalizePersonalLinks(merged.personal);
+    merged.sectionHeaders = dedupeAdditionalInfoHeader(merged.sectionHeaders);
     return merged;
   }
 
   normalizePersonalLinks(parsed.personal);
+  parsed.sectionHeaders = dedupeAdditionalInfoHeader(parsed.sectionHeaders);
   return parsed;
 }

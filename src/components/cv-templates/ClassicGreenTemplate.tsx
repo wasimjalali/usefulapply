@@ -529,23 +529,21 @@ export function ClassicGreenTemplate({ data, template }: Props) {
           >
             {data.sectionHeaders?.projects || 'PROJECTS'}
           </h2>
-          {data.projects.map((project) => (
-            <div key={project.id} style={{ marginBottom: '8px' }}>
-              <div style={{ fontWeight: 600, fontSize: '12px', color: greenColors.text }}>
-                {project.name}
+          {/* One line per project keeps the section short; a description
+              that just repeats the name is dropped. */}
+          {data.projects.map((project) => {
+            const description = project.description?.trim();
+            const showDescription = Boolean(description && description.toLowerCase() !== project.name.trim().toLowerCase());
+            return (
+              <div key={project.id} style={{ fontSize: '12px', lineHeight: 1.5, color: greenColors.textLight, marginBottom: '4px' }}>
+                <span style={{ fontWeight: 600, color: greenColors.text }}>{project.name}</span>
+                {showDescription && <span>: {description}</span>}
+                {project.technologies && project.technologies.length > 0 && (
+                  <span style={{ fontSize: '11px', color: greenColors.accent }}> ({project.technologies.join(', ')})</span>
+                )}
               </div>
-              {project.description && (
-                <div style={{ fontSize: '12px', color: greenColors.textLight, marginTop: '2px' }}>
-                  {project.description}
-                </div>
-              )}
-              {project.technologies && project.technologies.length > 0 && (
-                <div style={{ fontSize: '11px', color: greenColors.accent, marginTop: '2px' }}>
-                  {project.technologies.join(' • ')}
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </section>
       )}
 

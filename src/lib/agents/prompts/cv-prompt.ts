@@ -274,6 +274,9 @@ To ensure the CV fits on 2 pages and remains readable:
    - Preserve AI/automation skills even if not in job description
    - Max 5 items per category (strictly enforced)
    - PRESERVE proficiency levels from source CVs: if a skill has a level in the source document, keep it as "SkillName (Level)" in output. If no level in source, output just the skill name.
+   - Languages belong ONLY in the "languages" array. NEVER list a language or its proficiency as a skill item, and NEVER create a skills category for languages
+   - Certifications belong ONLY in the "certifications" array. NEVER list a certification as a skill item, and NEVER create a skills category for certifications
+   - A skill category name must NEVER duplicate a section header (Certifications, Languages, Additional Information, Education, Projects). If the source CV combines them in one section (e.g., "Certifications & Languages"), split that content into the proper arrays instead of copying the combined heading into skills
 
 6. EDUCATION: Copy from Primary CV exactly. Use the standard CV education format.
 
@@ -458,7 +461,7 @@ Return ONLY this JSON structure - no markdown, no preamble, no explanation:
     "certifications": "ATS-compliant section header for Certifications in the output language",
     "languages": "ATS-compliant section header for Languages in the output language",
     "contact": "ATS-compliant section header for Contact in the output language",
-    "additionalInfo": "ATS-compliant section header for Additional Info in the output language",
+    "additionalInfo": "ATS-compliant section header for Additional Info in the output language (e.g., 'Additional Information', 'Weitere Angaben', 'Informations complémentaires'). It MUST be its own distinct header. NEVER reuse or duplicate the header of another section (Certifications, Languages, Skills or any other) here",
     "projects": "ATS-compliant section header for Projects in the output language (e.g., 'Projects', 'Projekte', 'Projets')"
   },
   "localizedStrings": {
@@ -556,7 +559,7 @@ The following fields from the original CV or Master CV must ALWAYS be preserved 
 2. Languages — always include ALL languages with their exact proficiency levels
 3. Work Authorization status — if mentioned in Master CV or Primary CV
 4. Location — always include current city
-5. Projects — if the source CV contains a Projects section, include the most relevant 2-4 projects. Include project name, 1-2 sentence description, and technologies used. Output in the "projects" array.
+5. Projects — if the source CV contains a Projects section, include the most relevant 2-4 projects. Include project name, 1-2 sentence description, and technologies used. The description must say what the project does or delivered, never repeat the project name. Output in the "projects" array.
 6. Additional Information — preserve catch-all content like work authorization in the "additionalInfo" array.
 7. Custom Sections — if the source CV contains sections like Selected Achievements, Career Highlights, Volunteer Experience, Publications, Conference Presentations, Teaching Experience, Research, Interests, References, Coursework, or Portfolio, preserve each as a separate entry in the "customSections" array with its ATS-safe title. Do NOT flatten these into additionalInfo.
 These fields cost zero space in terms of relevance but can be disqualifying if missing.
