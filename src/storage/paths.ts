@@ -3,17 +3,21 @@ export const ALLOWED_FILE_BUCKETS = ['cv-files', 'generated-pdfs', 'avatars', 'p
 export type AllowedFileBucket = (typeof ALLOWED_FILE_BUCKETS)[number];
 
 const CV_EXTS = new Set(['.pdf', '.docx', '.txt', '.md', '.tex']);
-const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp']);
+// HEIC/HEIF is what iPhones produce; the upload route re-encodes photos to JPEG.
+const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.heic', '.heif']);
 
 const CV_TYPES = new Set(['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'text/markdown', 'application/x-tex', 'text/x-tex']);
-const IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp']);
+const IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/heic', 'image/heif']);
 
 export const FILE_BUCKET_LIMITS: Record<AllowedFileBucket, { maxBytes: number; exts: Set<string>; types: Set<string> }> = {
   'cv-files': { maxBytes: 10 * 1024 * 1024, exts: CV_EXTS, types: CV_TYPES },
   'generated-pdfs': { maxBytes: 10 * 1024 * 1024, exts: new Set(['.pdf']), types: new Set(['application/pdf']) },
-  avatars: { maxBytes: 5 * 1024 * 1024, exts: IMAGE_EXTS, types: IMAGE_TYPES },
-  'profile-photos': { maxBytes: 5 * 1024 * 1024, exts: IMAGE_EXTS, types: IMAGE_TYPES },
+  avatars: { maxBytes: 10 * 1024 * 1024, exts: IMAGE_EXTS, types: IMAGE_TYPES },
+  'profile-photos': { maxBytes: 10 * 1024 * 1024, exts: IMAGE_EXTS, types: IMAGE_TYPES },
 };
+
+/** Buckets whose uploads are photos: normalized to JPEG by the upload route. */
+export const PHOTO_BUCKETS: ReadonlySet<AllowedFileBucket> = new Set(['avatars', 'profile-photos'] as const);
 
 export function isAllowedFileBucket(value: string): value is AllowedFileBucket {
   return (ALLOWED_FILE_BUCKETS as readonly string[]).includes(value);

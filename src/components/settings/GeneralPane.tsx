@@ -139,19 +139,33 @@ export function GeneralPane() {
   const handlePhoto = async (file: File) => {
     if (!user) return;
     setPhotoError(null);
-    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
-      setPhotoError('Use a JPG, PNG or WebP image.');
+    // Browsers often report an empty type for HEIC, so the name decides too.
+    const isImage = ['image/png', 'image/jpeg', 'image/webp', 'image/heic', 'image/heif'].includes(file.type)
+      || /\.(png|jpe?g|webp|heic|heif)$/i.test(file.name);
+    if (!isImage) {
+      setPhotoError('Use a JPG, PNG, WebP or iPhone (HEIC) photo.');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setPhotoError('Keep the photo under 5MB.');
+    if (file.size > 10 * 1024 * 1024) {
+      setPhotoError('Keep the photo under 10MB.');
       return;
     }
     setPhotoBusy(true);
     const { key, error } = await uploadAvatar(user.id, file);
     if (error || !key) {
       setPhotoBusy(false);
-      setPhotoError('The upload failed. Try again.');
+      // Only the route's own user-facing copy may render; anything else
+      // (network errors, generic failures) gets the generic line.
+      const serverCopy = new Set([
+        'That image could not be processed. Try a JPG or PNG.',
+        'Unsupported file type.',
+        'File is too large.',
+        'Storage limit reached. Delete some files to upload more.',
+        'Too many requests. Please try again later.',
+      ]);
+      setPhotoError(error && serverCopy.has(error.message)
+        ? error.message
+        : 'The upload failed. Try again.');
       return;
     }
     const { error: saveError } = await updateProfile({ avatar_url: key });
@@ -388,7 +402,7 @@ export function GeneralPane() {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/png,image/jpeg,image/webp"
+            accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
