@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/auth/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { deleteObject, listPrefix, putObject, USER_STORAGE_QUOTA_BYTES, userStorageBytes } from '@/storage/r2';
+import { ImagesBindingUnavailableError, normalizePhotoToJpeg } from '@/storage/images';
 import {
   ALLOWED_FILE_BUCKETS,
   FILE_BUCKET_LIMITS,
+  PHOTO_BUCKETS,
   isAllowedFileBucket,
   sanitizeSubpath,
   sanitizeUploadExt,
@@ -62,19 +64,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
     }
 
-    const fileName = `${crypto.randomUUID()}${ext}`;
-    const parts = [bucketRaw, user.id];
-    if (subpath) parts.push(subpath);
-    parts.push(fileName);
-    const key = parts.join('/');
+    const isPhoto = PHOTO_BUCKETS.has(bucketRaw);
 
+    // Quota runs before the paid conversion so an over-quota account never
+    // burns a transformation. Photos re-encode to a small JPEG, so a large
+    // original counts as at most the conversion ceiling, not its raw size.
+    const PHOTO_STORED_CEILING = 512 * 1024;
+    const effectiveSize = isPhoto ? Math.min(file.size, PHOTO_STORED_CEILING) : file.size;
     const used = await userStorageBytes(user.id, ALLOWED_FILE_BUCKETS);
-    if (used + file.size > USER_STORAGE_QUOTA_BYTES) {
+    if (used + effectiveSize > USER_STORAGE_QUOTA_BYTES) {
       return NextResponse.json(
         { error: 'Storage limit reached. Delete some files to upload more.' },
         { status: 413 },
       );
     }
+
+    // Photos are decoded (HEIC from iPhones included), scaled down and
+    // re-encoded as JPEG so every stored photo is browser-renderable.
+    let body: ArrayBuffer | File = file;
+    let storedExt = ext;
+    let storedContentType = contentType || fallbackContentType(ext);
+    if (isPhoto) {
+      try {
+        body = await normalizePhotoToJpeg(file.stream());
+        storedExt = '.jpg';
+        storedContentType = 'image/jpeg';
+      } catch (error) {
+        console.error('[files/upload] photo conversion failed:', error);
+        if (error instanceof ImagesBindingUnavailableError) {
+          // Configuration outage, not the user's file.
+          return NextResponse.json({ error: 'Upload failed.' }, { status: 500 });
+        }
+        return NextResponse.json(
+          { error: 'That image could not be processed. Try a JPG or PNG.' },
+          { status: 400 },
+        );
+      }
+    }
+
+    const fileName = `${crypto.randomUUID()}${storedExt}`;
+    const parts = [bucketRaw, user.id];
+    if (subpath) parts.push(subpath);
+    parts.push(fileName);
+    const key = parts.join('/');
 
     // profile-photos has no D1 reference (the newest object under the prefix is
     // the photo), so replace in place: list what exists, write, then remove the
@@ -82,7 +114,7 @@ export async function POST(request: NextRequest) {
     // up by the client after that row is saved (deleteUserFilesAction).
     const previous = bucketRaw === 'profile-photos' ? await listPrefix(`${bucketRaw}/${user.id}/`) : [];
 
-    await putObject(key, file, { contentType: contentType || fallbackContentType(ext) });
+    await putObject(key, body, { contentType: storedContentType });
 
     if (previous.length > 0) {
       try {

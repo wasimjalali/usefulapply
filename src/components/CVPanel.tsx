@@ -30,47 +30,14 @@ import {
   Edit3,
   Maximize2,
   X,
-  Camera,
-  Trash2,
   Shield,
 } from 'lucide-react';
-import { uploadAvatar, deleteAvatar, deleteProfilePhoto } from '@/lib/supabase/storage';
-import type { ProfilePhoto } from '@/store/useCVStore';
 import { EditableCVCanvas, EditableCVCanvasRef } from './EditableCVCanvas';
 import { StepIndicator } from './StepIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from './ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import type { Profile } from '@/lib/supabase/types';
-
-const PHOTO_TEMPLATE_IDS = new Set(['german-ats', 'german-classic']);
-
-function resizeImage(file: File, maxSize: number, quality = 0.9): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = () => reject(new Error('Image load failed'));
-      img.onload = () => {
-        let w = img.naturalWidth;
-        let h = img.naturalHeight;
-        if (w > maxSize || h > maxSize) {
-          if (w > h) { h = Math.round(h * (maxSize / w)); w = maxSize; }
-          else { w = Math.round(w * (maxSize / h)); h = maxSize; }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return reject(new Error('Could not get 2d context'));
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.src = reader.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
-}
 
 interface CVPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -122,103 +89,12 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const cvTemplateRef = useRef<HTMLDivElement>(null);
   const editableCVRef = useRef<EditableCVCanvasRef>(null);
   const editSessionIdRef = useRef<string | null>(null);
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const photoBusyRef = useRef(false);
-
-  const isPhotoTemplate = PHOTO_TEMPLATE_IDS.has(selectedTemplateId);
-
   useEffect(() => {
     if (editSessionIdRef.current === null || editSessionIdRef.current === currentSession?.id) return;
     editSessionIdRef.current = null;
     setIsEditMode(false);
     setEditedCVData(null);
   }, [currentSession?.id]);
-
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    event.target.value = '';
-
-    // One flight at a time: a second pick during upload -> updateProfile ->
-    // cleanup could delete the avatar the first pick just saved.
-    if (photoBusyRef.current) return;
-
-    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
-      toast.error('Use a JPG, PNG or WebP image.');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be less than 5MB');
-      return;
-    }
-
-    photoBusyRef.current = true;
-    // Captured before the local preview replaces it: a photo still served
-    // from the legacy bucket is superseded by this upload.
-    const hadLegacyPhoto = profilePhoto?.dataUrl?.includes('/api/files/profile-photos/') ?? false;
-    try {
-      const dataUrl = await resizeImage(file, 800);
-      const photo: ProfilePhoto = {
-        id: `photo-${Date.now()}`,
-        fileName: file.name,
-        dataUrl,
-        uploadedAt: new Date().toISOString(),
-      };
-      setProfilePhoto(photo);
-
-      if (user) {
-        try {
-          // One photo everywhere: the account avatar is the CV photo too.
-          const { url, key, error } = await uploadAvatar(user.id, file);
-          if (error || !key) {
-            console.error('Photo upload failed:', error);
-            toast.error('The upload failed. This photo will not be saved.');
-          } else {
-            const { error: saveError } = await updateProfile({ avatar_url: key });
-            if (saveError) {
-              console.error('Failed to save avatar_url:', saveError);
-              toast.error('The upload failed. This photo will not be saved.');
-            } else {
-              const { error: cleanupError } = await deleteAvatar(user.id, key);
-              if (cleanupError) console.error('Failed to remove old avatar:', cleanupError);
-              if (hadLegacyPhoto) {
-                const { error: legacyError } = await deleteProfilePhoto(user.id);
-                if (legacyError) console.error('Failed to remove legacy CV photo:', legacyError);
-              }
-              if (url) setProfilePhoto({ ...photo, dataUrl: url });
-            }
-          }
-        } catch (err) {
-          console.error('Photo upload exception:', err);
-        }
-      }
-    } catch {
-      toast.error('Failed to process image');
-    } finally {
-      photoBusyRef.current = false;
-    }
-  };
-
-  const handleRemovePhoto = async () => {
-    const previous = profilePhoto;
-    setProfilePhoto(null);
-    if (!user) return;
-    const { error: saveError } = await updateProfile({ avatar_url: null });
-    if (saveError) {
-      // A failed delete must not pretend it worked: put the photo back.
-      console.error('Failed to clear avatar_url:', saveError);
-      setProfilePhoto(previous);
-      toast.error('The photo did not delete. Try again.');
-      return;
-    }
-    const { error: avatarError } = await deleteAvatar(user.id);
-    const { error: legacyError } = await deleteProfilePhoto(user.id);
-    if (avatarError || legacyError) {
-      // A leftover object would bring the photo back on the next load.
-      console.error('Photo delete incomplete:', avatarError || legacyError);
-      toast.warning('The photo may not be fully removed. Try again.');
-    }
-  };
 
   // Responsive CV scaling — JS-based because CSS transform: scale can't dynamically
   // compensate for the CV template's fixed width (8.5in / 210mm).
@@ -443,48 +319,6 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           <span>Templates</span>
           {showTemplates ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
-      )}
-
-      {/* Photo upload button — only for photo-supporting templates */}
-      {!isEditMode && isPhotoTemplate && (
-        <>
-          <input
-            ref={photoInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            onChange={handlePhotoUpload}
-            className="hidden"
-          />
-          {profilePhoto ? (
-            <div className="group relative flex-shrink-0">
-              <button
-                onClick={() => photoInputRef.current?.click()}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-gold-300 bg-gold-50 text-navy-600 shadow-sm transition-all hover:bg-gold-100 hover:border-gold-400"
-                title={`Change photo (${profilePhoto.fileName})`}
-                aria-label={`Change photo (${profilePhoto.fileName})`}
-              >
-                <Camera className="h-4 w-4" />
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); void handleRemovePhoto(); }}
-                className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-white text-warm-gray opacity-0 shadow ring-1 ring-cream-300 transition-opacity hover:text-red-500 group-hover:opacity-100"
-                title="Remove photo"
-                aria-label="Remove photo"
-              >
-                <Trash2 className="h-2.5 w-2.5" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => photoInputRef.current?.click()}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-cream-200 bg-white text-navy-500 shadow-sm transition-all hover:bg-cream-50 hover:border-gold-300 flex-shrink-0"
-              title="Upload photo for CV"
-              aria-label="Upload photo for CV"
-            >
-              <Camera className="h-4 w-4" />
-            </button>
-          )}
-        </>
       )}
 
       {/* Edit button */}

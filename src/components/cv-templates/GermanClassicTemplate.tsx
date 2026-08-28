@@ -25,6 +25,7 @@
 
 import { CVData, CVTemplate } from '@/lib/cv-templates/types';
 import { Mail, Phone, MapPin, Linkedin, Globe, Github, User } from 'lucide-react';
+import { openSettings } from '@/store/useSettingsStore';
 
 interface Props {
   data: CVData;
@@ -188,8 +189,11 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
             )}
           </div>
 
-          {/* Photo — Top-right, German CV standard: 3.5cm x 4.7cm */}
+          {/* Photo — Top-right, German CV standard: 3.5cm x 4.7cm.
+              The empty placeholder opens settings, where the photo lives. */}
           <div
+            onClick={photoUrl ? undefined : () => openSettings('general')}
+            title={photoUrl ? undefined : 'Add your photo in Settings'}
             style={{
               width: '35mm',
               height: '47mm',
@@ -201,6 +205,7 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
               justifyContent: 'center',
               overflow: 'hidden',
               backgroundColor: photoUrl ? 'transparent' : '#F9FAFB',
+              cursor: photoUrl ? undefined : 'pointer',
             }}
           >
             {photoUrl ? (
