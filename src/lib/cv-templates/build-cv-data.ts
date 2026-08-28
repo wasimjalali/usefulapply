@@ -44,22 +44,75 @@ function normalizeExternalUrl(value: string | undefined): string {
   return '';
 }
 
+type SectionHeaderKey = keyof NonNullable<CVData['sectionHeaders']>;
+
 /**
- * The model sometimes reuses another section's header for additionalInfo
- * ("Certifications & Languages" twice on one CV). A duplicate is cleared so
- * the template falls back to its own default header.
+ * The headers the reader actually sees, lowercased. A header only collides if
+ * its section has content, so an unused one never costs another its heading.
  */
-function dedupeAdditionalInfoHeader(headers: CVData['sectionHeaders']): CVData['sectionHeaders'] {
-  if (!headers?.additionalInfo) return headers;
-  const additional = headers.additionalInfo.trim().toLowerCase();
-  const others = [
-    headers.summary, headers.skills, headers.experience, headers.education,
-    headers.certifications, headers.languages, headers.contact, headers.projects,
-  ];
-  if (others.some((header) => header && header.trim().toLowerCase() === additional)) {
-    return { ...headers, additionalInfo: undefined };
+function renderedHeaders(data: CVData): Array<[SectionHeaderKey, string]> {
+  const headers = data.sectionHeaders;
+  if (!headers) return [];
+  const isRendered: Record<SectionHeaderKey, boolean> = {
+    summary: Boolean(data.summary?.trim()),
+    skills: data.skills.length > 0,
+    experience: data.experience.length > 0,
+    education: data.education.length > 0,
+    certifications: data.certifications.length > 0,
+    languages: data.languages.length > 0,
+    projects: (data.projects?.length ?? 0) > 0,
+    additionalInfo: (data.additionalInfo?.length ?? 0) > 0,
+    contact: true,
+  };
+  const entries = Object.entries(headers) as Array<[SectionHeaderKey, string | undefined]>;
+  return entries
+    .filter(([key, header]) => Boolean(header?.trim()) && isRendered[key])
+    .map(([key, header]) => [key, header!.trim().toLowerCase()]);
+}
+
+/**
+ * One source heading can land on several sections. A CV with a combined
+ * "Certifications & Languages" section gives the parser that same string for
+ * the certifications header, the languages header and a catch-all section, so
+ * the reader sees the heading three times over three different blocks.
+ *
+ * A heading shared by two rendered sections is dropped from both, leaving each
+ * template its own default ("Certifications", "Languages"), and a catch-all
+ * section that repeats a section heading is folded into additionalInfo, which
+ * is where content like a driver's license belongs anyway.
+ */
+function resolveDuplicateHeaders(data: CVData): CVData {
+  const headerValues = new Set(renderedHeaders(data).map(([, header]) => header));
+  if (headerValues.size === 0) return data;
+
+  let result = data;
+
+  const repeats = (data.customSections ?? []).filter((section) => headerValues.has(section.title.trim().toLowerCase()));
+  if (repeats.length > 0) {
+    const kept = data.customSections!.filter((section) => !repeats.includes(section));
+    const folded = [...(data.additionalInfo ?? []), ...repeats.flatMap((section) => section.items)];
+    result = {
+      ...result,
+      customSections: kept.length > 0 ? kept : undefined,
+      additionalInfo: folded.length > 0 ? folded : undefined,
+    };
   }
-  return headers;
+
+  // Folding can give additionalInfo its first content, so count after it.
+  const counts = new Map<string, number>();
+  for (const [, header] of renderedHeaders(result)) {
+    counts.set(header, (counts.get(header) ?? 0) + 1);
+  }
+
+  const headers = { ...result.sectionHeaders };
+  let dropped = false;
+  for (const [key, header] of renderedHeaders(result)) {
+    if ((counts.get(header) ?? 0) > 1) {
+      delete headers[key];
+      dropped = true;
+    }
+  }
+  return dropped ? { ...result, sectionHeaders: headers } : result;
 }
 
 function normalizePersonalLinks(personal: CVData['personal']) {
@@ -121,11 +174,11 @@ export function buildCvData(input: BuildCvDataInput): CVData | null {
       additionalInfo: optimizedCVData.additionalInfo || (optimizedCVData.personal.driverLicense
         ? [`Driver's License: ${optimizedCVData.personal.driverLicense}`]
         : undefined),
-      sectionHeaders: dedupeAdditionalInfoHeader(optimizedCVData.sectionHeaders),
+      sectionHeaders: optimizedCVData.sectionHeaders,
       localizedStrings: optimizedCVData.localizedStrings,
     };
     normalizePersonalLinks(tailored.personal);
-    return tailored;
+    return resolveDuplicateHeaders(tailored);
   }
 
   // Original view: prefer the user's saved edits of the original CV. Also
@@ -137,11 +190,9 @@ export function buildCvData(input: BuildCvDataInput): CVData | null {
     }
     mergeProfileLinks(merged.personal, profile);
     normalizePersonalLinks(merged.personal);
-    merged.sectionHeaders = dedupeAdditionalInfoHeader(merged.sectionHeaders);
-    return merged;
+    return resolveDuplicateHeaders(merged);
   }
 
   normalizePersonalLinks(parsed.personal);
-  parsed.sectionHeaders = dedupeAdditionalInfoHeader(parsed.sectionHeaders);
-  return parsed;
+  return resolveDuplicateHeaders(parsed);
 }
