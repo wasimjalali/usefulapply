@@ -20,8 +20,12 @@ import type { TailoredCV } from '@/lib/cv-structure/types';
 import { sanitizeDashes } from '@/lib/config/typo-corrections';
 import { guardUnsupportedCvAdditionOffer } from '@/lib/agents/chat-reply-guard';
 
-// Input/output limits
-const MAX_MESSAGE_LENGTH = 2_000;
+// Input/output limits. A pasted job ad is the main thing that arrives here:
+// the model reads it and calls propose_application, which is how a run starts.
+// So the cap has to fit a real ad, and it matches the one /api/agent-v2
+// enforces on the job description, or chat would refuse text generation
+// accepts.
+const MAX_MESSAGE_LENGTH = 30_000;
 const MAX_SCREENING_MESSAGE_LENGTH = 5_000;
 const MAX_CHAT_MESSAGES_PER_SESSION = 10;
 
@@ -113,7 +117,10 @@ export async function POST(req: NextRequest) {
     // Input length validation
     if (message && message.length > maxMessageLength) {
       return NextResponse.json(
-        { error: `Message is too long (${message.length} chars). Maximum: ${maxMessageLength} characters.` },
+        {
+          error: `Message is too long (${message.length} chars). Maximum: ${maxMessageLength} characters.`,
+          code: 'MESSAGE_TOO_LONG',
+        },
         { status: 400 }
       );
     }
