@@ -280,11 +280,20 @@ export function useAgentWorkflow(options?: {
 
   const getSmartFallbackResponse = (message: string): string => {
     const lowerMessage = message.toLowerCase();
-    
+
+    // The keyword branches below read a short typed question. Substring
+    // matching them against a pasted ad is how a job description that says
+    // "we help companies…" got answered with the "I can help you with" menu.
+    const isPaste = message.length > 500;
+
     if (!currentCV) {
       return "To get started, please upload your CV in the **Documents** section. Once uploaded, paste a job description here and I'll optimize your application.";
     }
-    
+
+    if (isPaste) {
+      return "I couldn't read that one just now. Nothing was charged, so send it again when you're ready.";
+    }
+
     if (lowerMessage.includes('help') || lowerMessage.includes('what can you do')) {
       return "I can help you with:\n\n• **Analyzing job descriptions** - Paste a job posting and I'll identify key requirements\n• **Optimizing your CV** - I'll tailor your CV to match the job\n• **Creating cover letters** - Personalized letters for each application\n• **Drafting emails** - Professional application emails\n\nJust paste a job description to get started!";
     }
@@ -408,6 +417,19 @@ export function useAgentWorkflow(options?: {
     return cvRefusal;
   };
 
+  // No proposal came back, either because the model read the ad as a question
+  // or because the request never reached it. Either way the paste must not be
+  // a dead end: the client decides whether to offer the manual chip.
+  const offerManualWayIn = (
+    message: string,
+    startedIn: string | null,
+    opts?: { suppressProposal?: boolean },
+  ) => {
+    if (opts?.suppressProposal) return;
+    if (useSessionStore.getState().currentSession?.id !== startedIn) return;
+    options?.onChatAnsweredWithoutProposal?.(message);
+  };
+
   const handleGeneralChat = async (
     message: string,
     opts?: { suppressProposal?: boolean },
@@ -510,10 +532,7 @@ export function useAgentWorkflow(options?: {
         // in when the text looked like an ad and no proposal came back.
         const proposed = Array.isArray(executed)
           && (executed as ExecutedEffect[]).some((effect) => effect.type === 'propose_application');
-        if (!proposed && !opts?.suppressProposal
-          && useSessionStore.getState().currentSession?.id === startedIn) {
-          options?.onChatAnsweredWithoutProposal?.(message);
-        }
+        if (!proposed) offerManualWayIn(message, startedIn, opts);
       } else if (response.status === 401) {
         if (user) options?.onSessionExpired?.();
         else options?.onAnonymousLimitReached?.();
@@ -524,11 +543,17 @@ export function useAgentWorkflow(options?: {
             role: 'assistant',
             content: 'You\'ve reached the chat message limit for this application. Start a new application from the sidebar to keep going.',
           });
+        } else if (errorData?.code === 'MESSAGE_TOO_LONG') {
+          addChatMessage({
+            role: 'assistant',
+            content: 'That job ad is longer than I can read in one go. Paste the role, requirements and responsibilities and leave out the boilerplate.',
+          });
         } else {
           addChatMessage({
             role: 'assistant',
             content: getSmartFallbackResponse(message),
           });
+          offerManualWayIn(message, startedIn, opts);
         }
       }
     } catch (error) {
@@ -539,6 +564,7 @@ export function useAgentWorkflow(options?: {
         role: 'assistant',
         content: getSmartFallbackResponse(message),
       });
+      offerManualWayIn(message, startedIn, opts);
     } finally {
       setIsTyping(false);
       setIsScreeningMode(false);

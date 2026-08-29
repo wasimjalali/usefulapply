@@ -117,9 +117,9 @@ const JOB_AD_MARKERS = /\b(responsibilities|requirements|qualifications|job desc
 export function isObviousJobAd(text: string): boolean {
   if (text.length <= 350) return false;
   const distinct = new Set((text.match(JOB_AD_MARKERS) || []).map((hit) => hit.toLowerCase())).size;
-  // The composer caps at 2000 characters, so anything near that is a paste,
-  // but a long paste is not automatically an ad: pasting your own CV text
-  // into an edit request is just as long. Markers are what separate them.
+  // Past this length nobody is typing, they pasted. But a long paste is not
+  // automatically an ad: pasting your own CV text into an edit request is
+  // just as long. Markers are what separate them.
   if (text.length > 1800) return distinct >= 2;
   return distinct >= 3;
 }
