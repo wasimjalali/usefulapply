@@ -84,14 +84,14 @@ If two agent tasks are independent (different files, different questions), spawn
 3. Open a PR to merge the branch into `main` (`gh pr create`).
 4. Review the PR before merging: run `coderabbit` or the `pr-review-toolkit`, and address what it surfaces.
 5. Wait for GitHub CI checks to go green. Do not merge on red or pending checks.
-6. Merge the PR into `main`. Vercel auto-deploys `main` to production, so `main` must always stay green.
+6. Merge the PR into `main`, then deploy with `npm run deploy:cf`. Nothing deploys on merge, so production only moves when that command runs.
 
 ### Package Manager
 - Use **`npm` only** — never bun, yarn, or pnpm
 
 ### Deployment
-- Vercel — production auto-deploys on push to `main`
-- TypeScript errors **will break the Vercel build** — always verify `tsc --noEmit` = 0
+- Cloudflare Workers via `@opennextjs/cloudflare`. Production ships by running `npm run deploy:cf` from `main`. There is no auto-deploy and no GitHub Actions workflow, so a merge alone changes nothing on usefulapply.com.
+- TypeScript errors **will break the build** — always verify `tsc --noEmit` = 0
 
 ### Security Rules
 - **Never read, log, or modify `.env.local`**
