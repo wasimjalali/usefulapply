@@ -304,10 +304,18 @@ function renderMarkdown(md: string, hasComparisonTable: boolean): string {
     }
 
     // Image
-    const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    // Optional title: ![alt](src) keeps today's caption-from-alt behavior.
+    // ![alt](src "") sets alt for accessibility and skips the visible caption.
+    const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$/);
     if (imgMatch) {
       if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
-      result.push(`<figure class="my-10"><img src="${escapeHtml(imgMatch[2])}" alt="${escapeHtml(imgMatch[1])}" class="rounded-xl w-full shadow-sm" loading="lazy" />${imgMatch[1] ? `<figcaption class="text-center text-sm text-warm-gray mt-3">${escapeHtml(imgMatch[1])}</figcaption>` : ''}</figure>`);
+      const alt = imgMatch[1];
+      const src = imgMatch[2];
+      const caption = imgMatch[3] !== undefined ? imgMatch[3] : alt;
+      const captionHtml = caption
+        ? `<figcaption class="text-center text-sm text-warm-gray mt-3">${escapeHtml(caption)}</figcaption>`
+        : '';
+      result.push(`<figure class="my-10"><img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" class="rounded-xl w-full shadow-sm" loading="lazy" />${captionHtml}</figure>`);
       continue;
     }
 
