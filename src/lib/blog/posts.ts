@@ -12,6 +12,142 @@ import { BlogPost } from './types';
  */
 export const blogPosts: BlogPost[] = [
   {
+    slug: 'karko-ai-job-application-agent',
+    title: 'Karko AI Is Now Useful Apply: The AI Job Application Agent',
+    description:
+      'Karko AI is now Useful Apply. The AI job application agent writes from your real CV, not a bot that sprays applications. You review before anything is sent.',
+    content: `![One workspace for the job search.](/blog/karko-ai-one-workspace.jpg "")
+
+If you're comparing AI job tools, the market splits into two loud piles. Resume builders that format a document. Auto-apply bots that spray applications in your name.
+
+Neither is a job search.
+
+A third category exists. The AI job application agent. It finds the role, checks the fit, writes a CV, cover letter and emails from your real history, then tracks what you sent. You review before anything goes out.
+
+Useful Apply is that agent. If you searched for Karko AI, that was the former name. Same company, Karko AI Inc. Same rule: the job ad does not get to invent your past.
+
+## The comparison most people run is the wrong one
+
+Most roundups rank tools on templates, speed and price. That's how you pick a prettier PDF and keep the same broken search.
+
+Ask a different question. What is this tool actually for?
+
+A resume builder exists to format one document. You still hunt the role. You still write the letter and the emails. You still guess whether the job is even a fit. You still track the rest somewhere else.
+
+An auto-apply bot exists to submit. Volume is the pitch. Fit is optional. Review is optional. Your name goes on applications you may never read. Recruiters already treat that pile as noise.
+
+An AI job application agent exists to run the loop with you. One role at a time. One application you can stand behind. Grounded in what you've actually done.
+
+If a product competes as auto-apply, it isn't this. Useful Apply does not submit on your behalf. That's not a missing feature. It's the product.
+
+## What the agent does
+
+![Find, check fit, write, track.](/blog/karko-ai-four-moves.jpg "")
+
+Four moves. Then you send.
+
+**Find the role.** Bring a job from a board, a careers page or a feed. The work starts with a real opening, not a blank prompt.
+
+**Check the fit.** See what's strong, what's missing and whether the role is worth an application. A gap is information. It isn't a prompt to invent a skill.
+
+**Write the application.** A tailored CV, cover letter and emails for that job. Every claim traces to your real CV.
+
+**Track it.** What you sent, to whom and what still needs a follow-up. The search stays in one place.
+
+That loop is the job search. Not a document. Not a blast. Your entire job search, in one app.
+
+## The job description is not a biography
+
+![Facts come from the CV. The job ad is keywords and tone.](/blog/karko-ai-cv-is-source.jpg "")
+
+This is the test that should sit at the top of any comparison, and the one most pages skip.
+
+A job description is a source of keywords and tone. It's never a source of facts about you.
+
+If the ad wants a stack you haven't used, the CV should not grow a bullet for it. If the ad wants people management and you haven't managed people, the cover letter should not say you have. The agent can match language you already earned to the way the employer talks. It cannot invent a career.
+
+Hallucination isn't a writing style. It's a trust failure. You put your name on the file. The interview is the test. A line you cannot defend should not leave the draft.
+
+When you compare tools, ignore the ones that treat the job ad as raw material for your history. Ask where each claim came from. If the answer is that the model filled a gap, keep walking.
+
+Useful Apply is built the other way. Facts from your CV. Keywords and tone from the ad. You see the draft. You decide.
+
+That rule does not change with the market. Built first for the US, the rest of North America and other English-speaking searches. Europe is secondary. Your CV is still the source of truth.
+
+## Auto-apply is a category to reject
+
+![Review the application. Do not spray.](/blog/karko-ai-review-not-spray.jpg "")
+
+The search is unpaid work. A bot that applies while you sleep is an easy wish.
+
+It's also how you become the thing recruiters filter out. Auto-apply skips the fit check. It sends claims you didn't read. It attaches your name to volume. The applications look alike because they are alike.
+
+Don't score AI job tools on how many forms they can submit. Score them on whether the application is still yours.
+
+Useful Apply will not auto-apply. You review. You send. One job, one application you actually read.
+
+## A resume builder is a different product
+
+Builders are useful if all you need is a clean layout. They're not an agent.
+
+An agent treats your CV as source material for the whole application, not as the finished product. The tailored CV is one output. It sits next to the cover letter and the emails. Same role. Same history. Same story, pointed at this job.
+
+If you still need a spreadsheet, a separate letter tool and a follow-up you write at midnight, you bought a piece. The comparison should say so.
+
+## Four questions that sort the market
+
+You don't need a hit list of names. Run every tool, including this one, through the same four questions.
+
+**Does every claim trace to my CV?** If the job ad can insert facts about me, the tool will invent under pressure.
+
+**Do I review before anything is sent?** If it submits for me, it's auto-apply. Leave it.
+
+**Is it the loop, or one document?** Find the role, check fit, write the CV, cover letter and emails, then track. A single output means you're still stitching the search together.
+
+**Can I defend this in the room?** If a line would collapse in an interview, it should not go out.
+
+Builders fail the loop. Auto-apply fails review. A generic chat window fails memory and grounding. An agent should pass all four.
+
+## What you do after the draft
+
+You read it. You cut what isn't you. You send it yourself.
+
+That last click isn't leftover work. It's how the application stays yours. The agent can find the role, show the fit and write the application. It cannot want the job. It cannot sit in the interview.
+
+If you're comparing tools this week, start there. Not with who applies the most. With who writes from your real CV, keeps the job ad in its lane and waits for you.
+
+The AI job application agent. That's the category. Useful Apply is built for it.
+
+[Start at usefulapply.com](https://www.usefulapply.com)`,
+    author: {
+      name: 'Wasim Jalali',
+      role: 'Founder, Useful Apply',
+    },
+    publishedAt: '2026-08-31',
+    readingTime: 5,
+    category: 'AI & Technology',
+    tags: [
+      'karko ai',
+      'useful apply',
+      'ai job application agent',
+      'auto-apply',
+      'resume builder',
+      'job search',
+      'anti hallucination',
+      'job application agent',
+    ],
+    featured: false,
+    priority: 2,
+    ogImage: '/blog/karko-ai-one-workspace.jpg',
+    cta: {
+      heading: 'The AI job application agent',
+      description:
+        'Find the role, check the fit, write from your real CV. You review. You send.',
+      text: 'Start at usefulapply.com',
+      href: '/dashboard',
+    },
+  },
+  {
     slug: 'your-entire-job-search-in-one-app',
     title: 'Your entire job search, in one app',
     description:
