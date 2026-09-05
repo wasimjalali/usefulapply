@@ -452,24 +452,6 @@ export function useAgentWorkflow(options?: {
         content: msg.content,
       }));
 
-      // Build screening-specific context when in screening mode
-      const screeningContext = isScreeningMode ? {
-        mode: 'screening_answers' as const,
-        jobDescription: currentSession?.jobDescription?.substring(0, 8000),
-        matchingSkills: currentSession?.matchingSkills,
-        missingSkills: currentSession?.missingSkills,
-        generatedCVSummary: typeof currentSession?.generatedCV?.content === 'string'
-          ? currentSession.generatedCV.content.substring(0, 5000)
-          : undefined,
-        companyResearchSummary: currentSession?.companyResearch
-          ? [
-              currentSession.companyResearch.description,
-              currentSession.companyResearch.culture?.join(', '),
-              currentSession.companyResearch.recentNews?.join(', '),
-            ].filter(Boolean).join(' | ').substring(0, 500)
-          : undefined,
-      } : {};
-
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -503,7 +485,6 @@ export function useAgentWorkflow(options?: {
             ...(currentSession?.optimizedCVData
               ? { optimizedCVData: currentSession.optimizedCVData }
               : {}),
-            ...screeningContext,
           },
         }),
         signal: controller.signal,

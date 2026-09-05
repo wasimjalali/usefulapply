@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   unifiedWriterAgent,
+  EmailValidationError,
   resolveCVSectionTarget,
   type ResolvedCVSection,
 } from '@/lib/agents/unified-writer-agent';
@@ -468,7 +469,9 @@ export async function POST(request: NextRequest) {
       await posthog.flush();
     } catch { /* ignore PostHog errors */ }
     return NextResponse.json(
-      { error: 'Failed to regenerate content' },
+      error instanceof EmailValidationError
+        ? { error: "We couldn't finish the email. Please try rewriting it again.", code: 'EMAIL_VALIDATION_FAILED' }
+        : { error: 'Failed to regenerate content' },
       { status: 500 }
     );
   }

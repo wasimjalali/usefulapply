@@ -20,7 +20,7 @@
  */
 
 import type { MasterContext, AgentEventHandler, AgentResult, TokenUsage } from './types';
-import { callModel } from '@/lib/models';
+import { callModel, type ModelCallOptions, type ModelResponse } from '@/lib/models';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import { loadApplicantDocuments } from '@/lib/storage/applicantStore';
 import { fixTypos, sanitizeDashes } from '@/lib/config/typo-corrections';
@@ -844,6 +844,8 @@ class CoverLetterValidationError extends Error {
   }
 }
 
+export class EmailValidationError extends Error {}
+
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -926,16 +928,16 @@ function validateApplicationEmail(
   applicantName?: string,
 ): { subject: string; body: string } {
   if (typeof parsed.subject !== 'string' || typeof parsed.body !== 'string') {
-    throw new Error('Application email subject and body must be strings');
+    throw new EmailValidationError('Application email subject and body must be strings');
   }
   const subject = sanitizeDashes(fixTypos(parsed.subject)).trim();
   let body = cleanEmailPlaceholders(parsed.body, language);
   body = sanitizeDashes(fixTypos(body)).trim();
-  if (!subject || subject.length > 60) throw new Error('Application email subject was empty or exceeded 60 characters');
-  if (!body || countSentences(emailContentText(body)) > 4) throw new Error('Application email body was empty or exceeded four sentences');
-  if (/\[[^\]]+\]/u.test(body)) throw new Error('Application email contained a placeholder');
+  if (!subject || subject.length > 60) throw new EmailValidationError('Application email subject was empty or exceeded 60 characters');
+  if (!body || countSentences(emailContentText(body)) > 4) throw new EmailValidationError('Application email body was empty or exceeded four sentences');
+  if (/\[[^\]]+\]/u.test(body)) throw new EmailValidationError('Application email contained a placeholder');
   if (applicantName?.trim() && !normalizeComparisonText(body).includes(normalizeComparisonText(applicantName))) {
-    throw new Error('Application email signature was missing the applicant name');
+    throw new EmailValidationError('Application email signature was missing the applicant name');
   }
   return { subject, body };
 }
@@ -947,19 +949,115 @@ function validateFollowUpEmail(
   recommendedDelay: number,
 ): { subject: string; body: string; recommendedDelay: number } {
   if (typeof parsed.subject !== 'string' || typeof parsed.body !== 'string') {
-    throw new Error('Follow-up email subject and body must be strings');
+    throw new EmailValidationError('Follow-up email subject and body must be strings');
   }
   const subject = sanitizeDashes(fixTypos(parsed.subject)).trim();
   let body = cleanEmailPlaceholders(parsed.body, language);
   body = sanitizeDashes(fixTypos(body)).trim();
-  if (!subject || subject.length > 60) throw new Error('Follow-up email subject was empty or exceeded 60 characters');
-  if (!body || contentWordCount(body) > 80) throw new Error('Follow-up email body was empty or exceeded 80 words');
-  if (Number(parsed.recommendedDelay) !== recommendedDelay) throw new Error('Follow-up email returned an invalid recommended delay');
-  if (/\[[^\]]+\]/u.test(body)) throw new Error('Follow-up email contained a placeholder');
+  if (!subject || subject.length > 60) throw new EmailValidationError('Follow-up email subject was empty or exceeded 60 characters');
+  if (!body || contentWordCount(body) > 80) throw new EmailValidationError('Follow-up email body was empty or exceeded 80 words');
+  if (Number(parsed.recommendedDelay) !== recommendedDelay) throw new EmailValidationError('Follow-up email returned an invalid recommended delay');
+  if (/\[[^\]]+\]/u.test(body)) throw new EmailValidationError('Follow-up email contained a placeholder');
   if (applicantName?.trim() && !normalizeComparisonText(body).includes(normalizeComparisonText(applicantName))) {
-    throw new Error('Follow-up email signature was missing the applicant name');
+    throw new EmailValidationError('Follow-up email signature was missing the applicant name');
   }
   return { subject, body, recommendedDelay };
+}
+
+type EmailModelCall = (options: ModelCallOptions) => Promise<ModelResponse>;
+
+function parseAndValidateEmail<T>(
+  content: string,
+  responseLabel: string,
+  validate: (parsed: Record<string, unknown>) => T,
+): T {
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = parseStrictJsonObject(content, responseLabel);
+  } catch {
+    // JSON parser errors can quote draft text. Keep correction details fixed.
+    throw new EmailValidationError(`${responseLabel} must be a valid JSON object`);
+  }
+  return validate(parsed);
+}
+
+async function generateEmailWithValidationRetry<T>(
+  options: ModelCallOptions,
+  responseLabel: string,
+  correctionRequirements: string,
+  validate: (parsed: Record<string, unknown>) => T,
+  modelCall: EmailModelCall,
+): Promise<WithTokens<T>> {
+  const response = await modelCall(options);
+  let tokens: TokenUsage = {
+    input: response.usage.inputTokens,
+    output: response.usage.outputTokens,
+  };
+
+  try {
+    return { result: parseAndValidateEmail(response.content, responseLabel, validate), tokens };
+  } catch (error) {
+    if (!(error instanceof EmailValidationError)) throw error;
+    console.warn(`[UnifiedAgent] Retrying ${responseLabel.toLowerCase()} after validation miss:`, error.message);
+    const retry = await modelCall({
+      ...options,
+      prompt: `${options.prompt}\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.message}. Rewrite the complete email once and return only valid JSON. ${correctionRequirements} Preserve every factuality rule. Do not add any applicant fact, skill, metric or claim that is absent from the Primary CV and Master CV.`,
+      generationContext: options.generationContext
+        ? { ...options.generationContext, parentGenerationId: response.generationId }
+        : undefined,
+    });
+    tokens = {
+      input: tokens.input + retry.usage.inputTokens,
+      output: tokens.output + retry.usage.outputTokens,
+    };
+    return {
+      result: parseAndValidateEmail(retry.content, responseLabel, validate),
+      tokens,
+    };
+  }
+}
+
+export async function generateApplicationEmailWithRetry(
+  context: MasterContext,
+  generationContext?: LlmGenerationContext,
+  modelCall: EmailModelCall = callModel,
+): Promise<WithTokens<{ subject: string; body: string }>> {
+  const outputLang = normalizeLanguage(context.userLanguageOverride || context.detectedLanguage);
+  return generateEmailWithValidationRetry(
+    {
+      task: 'write_email',
+      prompt: buildApplicationEmailUserPrompt(context),
+      systemBlocks: buildApplicationEmailSystemBlocks(),
+      jsonMode: true,
+      generationContext,
+    },
+    'Application email response',
+    'Keep the subject between 1 and 60 characters total. Shorten the job title portion, omit secondary titles and count every character, including spaces, the localized prefix and applicant name. Keep the body within four sentences, with the attachment reference and applicant signature.',
+    (parsed) => validateApplicationEmail(parsed, outputLang, context.applicant?.name),
+    modelCall,
+  );
+}
+
+export async function generateFollowUpEmailWithRetry(
+  context: MasterContext,
+  generationContext?: LlmGenerationContext,
+  modelCall: EmailModelCall = callModel,
+): Promise<WithTokens<{ subject: string; body: string; recommendedDelay: number }>> {
+  const outputLang = normalizeLanguage(context.userLanguageOverride || context.detectedLanguage);
+  const recommendedDelay = outputLang === 'de' ? 7 : 5;
+  return generateEmailWithValidationRetry(
+    {
+      task: 'write_follow_up_email',
+      prompt: buildFollowUpEmailUserPrompt(context),
+      systemBlocks: buildFollowUpEmailSystemBlocks(),
+      jsonMode: true,
+      generationContext,
+    },
+    'Follow-up email response',
+    `Keep the subject between 1 and 60 characters, the body within 80 words and recommendedDelay exactly ${recommendedDelay}. Keep the applicant signature.`,
+    (parsed) => validateFollowUpEmail(parsed, outputLang, context.applicant?.name, recommendedDelay),
+    modelCall,
+  );
 }
 
 /** Text that lands in the CV gets the same cleanup the other writers apply. */
@@ -1167,21 +1265,13 @@ export const unifiedWriterAgent = {
 
       // Follow-up email depends on application email content
       emit({ type: 'progress', percent: 85, message: 'Composing follow-up email...' });
-      let emailStepTokens: TokenUsage = { ...emailResult.tokens };
-      let emailStepDescription = 'Email + follow-up ready';
-      try {
-        const followUpResult = await this.generateFollowUpEmail(context, input.generationContext);
-        context.followUpEmail = followUpResult.result;
-        emailStepTokens = {
-          input: emailResult.tokens.input + followUpResult.tokens.input,
-          output: emailResult.tokens.output + followUpResult.tokens.output,
-        };
-      } catch (error) {
-        console.error('[UnifiedAgent] Follow-up generation failed after the application kit completed:', error);
-        delete context.followUpEmail;
-        emailStepDescription = 'Application email ready. Follow-up unavailable';
-      }
-      emit({ type: 'step_completed', step: { id: 'email', description: emailStepDescription }, tokens: emailStepTokens });
+      const followUpResult = await this.generateFollowUpEmail(context, input.generationContext);
+      context.followUpEmail = followUpResult.result;
+      const emailStepTokens: TokenUsage = {
+        input: emailResult.tokens.input + followUpResult.tokens.input,
+        output: emailResult.tokens.output + followUpResult.tokens.output,
+      };
+      emit({ type: 'step_completed', step: { id: 'email', description: 'Email + follow-up ready' }, tokens: emailStepTokens });
 
       emit({ type: 'progress', percent: 100, message: 'Complete!' });
 
@@ -1196,12 +1286,17 @@ export const unifiedWriterAgent = {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Agent execution failed';
+      const isEmailValidationError = error instanceof EmailValidationError;
+      const clientErrorMessage = isEmailValidationError
+        ? 'Email generation failed validation after correction.'
+        : errorMessage;
       console.error('[UsefulApply] Error:', errorMessage);
-      emit({ type: 'step_error', step: { id: 'karko_ai' }, error: errorMessage });
+      emit({ type: 'step_error', step: { id: 'karko_ai' }, error: clientErrorMessage });
       
       return {
         success: false,
-        error: errorMessage,
+        error: clientErrorMessage,
+        ...(isEmailValidationError ? { errorCode: 'EMAIL_VALIDATION_FAILED' as const } : {}),
         latencyMs: Date.now() - startTime,
       };
     }
@@ -1352,21 +1447,13 @@ export const unifiedWriterAgent = {
 
       // Follow-up email depends on application email content
       emit({ type: 'progress', percent: 85, message: 'Composing follow-up email...' });
-      let emailStepTokens2: TokenUsage = { ...emailResult2.tokens };
-      let emailStepDescription2 = 'Email + follow-up ready';
-      try {
-        const followUpResult2 = await this.generateFollowUpEmail(context, generationContext);
-        context.followUpEmail = followUpResult2.result;
-        emailStepTokens2 = {
-          input: emailResult2.tokens.input + followUpResult2.tokens.input,
-          output: emailResult2.tokens.output + followUpResult2.tokens.output,
-        };
-      } catch (error) {
-        console.error('[UnifiedAgent] Follow-up generation failed after the application kit completed:', error);
-        delete context.followUpEmail;
-        emailStepDescription2 = 'Application email ready. Follow-up unavailable';
-      }
-      emit({ type: 'step_completed', step: { id: 'email', description: emailStepDescription2 }, tokens: emailStepTokens2 });
+      const followUpResult2 = await this.generateFollowUpEmail(context, generationContext);
+      context.followUpEmail = followUpResult2.result;
+      const emailStepTokens2: TokenUsage = {
+        input: emailResult2.tokens.input + followUpResult2.tokens.input,
+        output: emailResult2.tokens.output + followUpResult2.tokens.output,
+      };
+      emit({ type: 'step_completed', step: { id: 'email', description: 'Email + follow-up ready' }, tokens: emailStepTokens2 });
 
       emit({ type: 'progress', percent: 100, message: 'Complete!' });
 
@@ -1381,12 +1468,17 @@ export const unifiedWriterAgent = {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Generation failed';
+      const isEmailValidationError = error instanceof EmailValidationError;
+      const clientErrorMessage = isEmailValidationError
+        ? 'Email generation failed validation after correction.'
+        : errorMessage;
       console.error('[UsefulApply] Generation with context error:', errorMessage);
-      emit({ type: 'step_error', step: { id: 'karko_ai' }, error: errorMessage });
+      emit({ type: 'step_error', step: { id: 'karko_ai' }, error: clientErrorMessage });
       
       return {
         success: false,
-        error: errorMessage,
+        error: clientErrorMessage,
+        ...(isEmailValidationError ? { errorCode: 'EMAIL_VALIDATION_FAILED' as const } : {}),
         latencyMs: Date.now() - startTime,
       };
     }
@@ -1895,24 +1987,7 @@ export const unifiedWriterAgent = {
     
     console.log('[UnifiedAgent] Generating email in language:', outputLang);
 
-    const response = await callModel({
-      task: 'write_email',
-      prompt: buildApplicationEmailUserPrompt(context),
-      systemBlocks: buildApplicationEmailSystemBlocks(),
-      jsonMode: true,
-      generationContext,
-    });
-
-    const tokens: TokenUsage = {
-      input: response.usage.inputTokens,
-      output: response.usage.outputTokens,
-    };
-
-    const parsed = parseStrictJsonObject(response.content, 'Application email response');
-    return {
-      result: validateApplicationEmail(parsed, outputLang, context.applicant?.name),
-      tokens,
-    };
+    return generateApplicationEmailWithRetry(context, generationContext);
   },
 
   /**
@@ -1920,32 +1995,11 @@ export const unifiedWriterAgent = {
    * Uses a DIFFERENT achievement than the primary email for the value hook
    */
   async generateFollowUpEmail(context: MasterContext, generationContext?: LlmGenerationContext): Promise<WithTokens<{ subject: string; body: string; recommendedDelay: number }>> {
-    const { applicant } = context;
-    
     const outputLang = this.getOutputLanguage(context);
-    const isGerman = outputLang === 'de';
-    const recommendedDelay = isGerman ? 7 : 5;
     
     console.log('[UnifiedAgent] Generating follow-up email in language:', outputLang);
 
-    const response = await callModel({
-      task: 'write_follow_up_email',
-      prompt: buildFollowUpEmailUserPrompt(context),
-      systemBlocks: buildFollowUpEmailSystemBlocks(),
-      jsonMode: true,
-      generationContext,
-    });
-
-    const tokens: TokenUsage = {
-      input: response.usage.inputTokens,
-      output: response.usage.outputTokens,
-    };
-
-    const parsed = parseStrictJsonObject(response.content, 'Follow-up email response');
-    return {
-      result: validateFollowUpEmail(parsed, outputLang, applicant?.name, recommendedDelay),
-      tokens,
-    };
+    return generateFollowUpEmailWithRetry(context, generationContext);
   },
 };
 

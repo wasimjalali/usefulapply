@@ -1046,6 +1046,14 @@ export function ChatPanel({
     // This message replaces any earlier rewrite note. A CV rewrite chip raised
     // by the reply to it may use it; one raised before it may not.
     cvRewriteNoteRef.current = { text, sessionId: currentSession?.id ?? null };
+    // Explicit screening intent must reach the Answers handler even when a
+    // restored application hasn't hydrated its generated CV yet.
+    if (isScreeningMode) {
+      setInputValue('');
+      addChatMessage({ role: 'user', content: text });
+      await runScreening(text);
+      return;
+    }
     if (spine && currentSession?.generatedCV && (isScreeningMode || !isObviousJobAd(text))) {
       const draft = text;
       setInputValue('');
