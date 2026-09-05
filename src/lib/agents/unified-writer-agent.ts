@@ -1139,30 +1139,30 @@ export const unifiedWriterAgent = {
       emit({ type: 'step_completed', step: { id: 'matching', description: 'Skills matched' }, tokens: matchResult.tokens });
 
       // ============================================
-      // PHASE 2: DOCUMENT GENERATION (parallelized)
-      // CV, cover letter, and application email are independent — none reference each other's output.
-      // Only follow-up email depends on application email content.
+      // PHASE 2: DOCUMENT GENERATION
+      // One Bedrock Converse call at a time. Parallel CV + cover letter + email
+      // left optimize_cv and write_cover_letter stuck at `started` in production
+      // while write_email finished. Fit analysis on the same model succeeds.
+      // Follow-up email still depends on application email content.
       // ============================================
 
       emit({ type: 'step_started', step: { id: 'cv_generation', description: 'Useful Apply: Optimizing CV for the position' } });
-      emit({ type: 'step_started', step: { id: 'cover_letter', description: 'Useful Apply: Composing tailored cover letter' } });
-      emit({ type: 'step_started', step: { id: 'email', description: 'Useful Apply: Generating application and follow-up emails' } });
-      emit({ type: 'progress', percent: 45, message: 'Generating CV, cover letter, and email...' });
-
-      const [cvResult, coverLetterResult, emailResult] = await Promise.all([
-        this.generateOptimizedCVData(context, input.generationContext),
-        this.generateCoverLetter(context, input.generationContext),
-        this.generateApplicationEmail(context, input.generationContext),
-      ]);
-
+      emit({ type: 'progress', percent: 45, message: 'Optimizing your CV...' });
+      const cvResult = await this.generateOptimizedCVData(context, input.generationContext);
       const { cvData, legacyCV, tokens: cvTokens } = cvResult;
       context.optimizedCVData = cvData;
       context.optimizedCV = legacyCV;
       emit({ type: 'step_completed', step: { id: 'cv_generation', description: 'CV optimized' }, tokens: cvTokens });
 
+      emit({ type: 'step_started', step: { id: 'cover_letter', description: 'Useful Apply: Composing tailored cover letter' } });
+      emit({ type: 'progress', percent: 65, message: 'Writing your cover letter...' });
+      const coverLetterResult = await this.generateCoverLetter(context, input.generationContext);
       context.coverLetter = coverLetterResult.result;
       emit({ type: 'step_completed', step: { id: 'cover_letter', description: 'Cover letter ready' }, tokens: coverLetterResult.tokens });
 
+      emit({ type: 'step_started', step: { id: 'email', description: 'Useful Apply: Generating application and follow-up emails' } });
+      emit({ type: 'progress', percent: 80, message: 'Writing your application email...' });
+      const emailResult = await this.generateApplicationEmail(context, input.generationContext);
       context.applicationEmail = emailResult.result;
 
       // Follow-up email depends on application email content
@@ -1330,29 +1330,24 @@ export const unifiedWriterAgent = {
     const startTime = Date.now();
 
     try {
-      // Phase 2 only: Document Generation (parallelized)
-      // CV, cover letter, and application email are independent — run in parallel.
-      // Only follow-up email depends on application email content.
-
+      // Phase 2 only. Sequential on purpose: see PHASE 2 note in runJobCopilot.
       emit({ type: 'step_started', step: { id: 'cv_generation', description: 'Useful Apply: Optimizing CV for the position' } });
-      emit({ type: 'step_started', step: { id: 'cover_letter', description: 'Useful Apply: Composing tailored cover letter' } });
-      emit({ type: 'step_started', step: { id: 'email', description: 'Useful Apply: Generating application and follow-up emails' } });
-      emit({ type: 'progress', percent: 15, message: 'Generating CV, cover letter, and email...' });
-
-      const [cvResult2, coverLetterResult2, emailResult2] = await Promise.all([
-        this.generateOptimizedCVData(context, generationContext),
-        this.generateCoverLetter(context, generationContext),
-        this.generateApplicationEmail(context, generationContext),
-      ]);
-
+      emit({ type: 'progress', percent: 15, message: 'Optimizing your CV...' });
+      const cvResult2 = await this.generateOptimizedCVData(context, generationContext);
       const { cvData: cvData2, legacyCV: legacyCV2, tokens: cvTokens2 } = cvResult2;
       context.optimizedCVData = cvData2;
       context.optimizedCV = legacyCV2;
       emit({ type: 'step_completed', step: { id: 'cv_generation', description: 'CV optimized' }, tokens: cvTokens2 });
 
+      emit({ type: 'step_started', step: { id: 'cover_letter', description: 'Useful Apply: Composing tailored cover letter' } });
+      emit({ type: 'progress', percent: 55, message: 'Writing your cover letter...' });
+      const coverLetterResult2 = await this.generateCoverLetter(context, generationContext);
       context.coverLetter = coverLetterResult2.result;
       emit({ type: 'step_completed', step: { id: 'cover_letter', description: 'Cover letter ready' }, tokens: coverLetterResult2.tokens });
 
+      emit({ type: 'step_started', step: { id: 'email', description: 'Useful Apply: Generating application and follow-up emails' } });
+      emit({ type: 'progress', percent: 75, message: 'Writing your application email...' });
+      const emailResult2 = await this.generateApplicationEmail(context, generationContext);
       context.applicationEmail = emailResult2.result;
 
       // Follow-up email depends on application email content

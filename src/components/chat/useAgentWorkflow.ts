@@ -825,7 +825,9 @@ export function useAgentWorkflow(options?: {
                 } else {
                   addWorkflowMessage(fitWorkflowSessionId, {
                     role: 'assistant',
-                    content: `❌ Sorry, something went wrong: ${data.message}. Please try again.`,
+                    content: `❌ ${typeof data.message === 'string' && data.message.trim()
+                      ? data.message.trim()
+                      : 'Something went wrong. Please try again.'}`,
                   });
                 }
                 break;
@@ -1214,7 +1216,9 @@ export function useAgentWorkflow(options?: {
                 } else {
                   addWorkflowMessage(workflowSessionId, {
                     role: 'assistant',
-                    content: `❌ Sorry, something went wrong: ${data.message}. Please try again.`,
+                    content: `❌ ${typeof data.message === 'string' && data.message.trim()
+                      ? data.message.trim()
+                      : 'Something went wrong. Please try again.'}`,
                   });
                 }
                 break;

@@ -276,6 +276,7 @@ class BedrockBearerTokenClient {
           'Authorization': `Bearer ${this.bearerToken}`,
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(120_000),
       });
 
       if (response.ok) {

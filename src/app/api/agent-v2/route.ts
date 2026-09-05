@@ -404,6 +404,14 @@ export async function POST(request: NextRequest) {
       let anonymousClaimHash: string | null = null;
       let activeFitContinuation: { userId: string; contextId: string; requestId: string } | null = null;
 
+      const heartbeat = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`));
+        } catch {
+          clearInterval(heartbeat);
+        }
+      }, 8000);
+
       try {
         // Authenticate before choosing a fallback limiter key. Anonymous
         // generation still requires a trusted edge IP for its free-use gate.
@@ -1178,6 +1186,7 @@ export async function POST(request: NextRequest) {
         }
 
         trackLLMError('workflow', error);
+        console.error('[agent-v2] workflow failed:', errorMsg);
         try {
           const posthog = getPostHogServer();
           posthog.captureException(error as Error, distinctId, {
@@ -1191,6 +1200,8 @@ export async function POST(request: NextRequest) {
           message: 'Something went wrong while generating your application. Please try again.'
         })}\n\n`));
         controller.close();
+      } finally {
+        clearInterval(heartbeat);
       }
     },
   });
