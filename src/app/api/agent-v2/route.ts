@@ -326,6 +326,7 @@ export async function POST(request: NextRequest) {
       const stepStartTimes = new Map<string, number>();
       let distinctId = 'anonymous';
       let currentAction = 'unknown';
+      let workflowErrorCode: 'EMAIL_VALIDATION_FAILED' | undefined;
 
       // Sonnet 4.6 pricing (per million tokens)
       const INPUT_COST_PER_M = 3;   // $3 per 1M input tokens
@@ -599,7 +600,7 @@ export async function POST(request: NextRequest) {
                 type: 'step_error',
                 step: event.step.id,
                 index: stepIndexFn(event.step.id),
-                error: event.error,
+                error: 'This generation step failed. Please try again.',
               })}\n\n`));
               break;
             case 'progress':
@@ -955,6 +956,7 @@ export async function POST(request: NextRequest) {
                   results: fallbackResults,
                 })}\n\n`));
               } else {
+                workflowErrorCode = result.errorCode;
                 throw new Error(result.error || 'Optimization failed');
               }
 
@@ -1026,6 +1028,7 @@ export async function POST(request: NextRequest) {
               console.error('[API_AGENT_V2] Failed to remove completed context:', cacheError);
             }
           } else {
+            workflowErrorCode = result.errorCode;
             throw new Error(result.error || 'Generation failed');
           }
 
@@ -1127,6 +1130,7 @@ export async function POST(request: NextRequest) {
             },
           };
         } else {
+          workflowErrorCode = result.errorCode;
           throw new Error(result.error || 'Optimization failed');
         }
 
@@ -1197,7 +1201,10 @@ export async function POST(request: NextRequest) {
         } catch { /* ignore PostHog errors */ }
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({
           type: 'error',
-          message: 'Something went wrong while generating your application. Please try again.'
+          ...(workflowErrorCode && { code: workflowErrorCode }),
+          message: workflowErrorCode === 'EMAIL_VALIDATION_FAILED'
+            ? "We couldn't finish the application emails. Please try generating your kit again."
+            : 'Something went wrong while generating your application. Please try again.'
         })}\n\n`));
         controller.close();
       } finally {

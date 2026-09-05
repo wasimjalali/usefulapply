@@ -269,6 +269,7 @@ export interface AgentResult<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
+  errorCode?: 'EMAIL_VALIDATION_FAILED';
   usage?: {
     inputTokens: number;
     outputTokens: number;
