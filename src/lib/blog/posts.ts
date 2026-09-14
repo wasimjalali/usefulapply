@@ -12,6 +12,143 @@ import { BlogPost } from './types';
  */
 export const blogPosts: BlogPost[] = [
   {
+    slug: 'tailor-cv-without-hallucinating',
+    title: 'How to Tailor a CV to a Job Description Without Inventing Experience',
+    description:
+      'Tailor a CV to a job description without inventing experience. Match language you earned. Useful Apply (formerly Karko AI) writes from your real CV.',
+    content: `![Honest tailoring keeps real CV facts and cuts what you cannot defend.](/blog/tailor-cv-without-hallucinating-cover.jpg "")
+
+Tailoring a CV is not rewriting your career for each ad.
+
+It's pointing your real work at this role. Same history. Different emphasis. Same facts you can defend in the room.
+
+A lot of advice skips that line. It tells you to "match the job description." Then people paste skills they've never used. AI tools make the same mistake when they treat the ad as a biography. The result looks strong on paper and collapses in the first interview.
+
+If you still know us as Karko AI, that was the former name. Same company, Karko AI Inc. Same rule: the job ad doesn't invent your past. Useful Apply is the AI job application agent. It matches language you already earned. It never invents a career. You review. You send.
+
+## The job description is not your biography
+
+A job description is a source of keywords and tone. It's never a source of facts about you.
+
+The ad can tell you how the employer talks. It can show which outcomes matter. It can't give you AWS if you haven't used AWS. It can't give you people management if you haven't managed people.
+
+When you treat the JD as raw material for your history, you're not tailoring. You're fabricating under pressure.
+
+Hallucination isn't a writing style. It's a trust failure. You put your name on the file. The interview is the test. A line you can't defend shouldn't leave the draft.
+
+## What honest tailoring actually looks like
+
+![Match, reorder, reframe, cut. None of these invent.](/blog/tailor-cv-four-moves.jpg "")
+
+Honest tailoring has four moves. None of them invent.
+
+**1. Pull keywords from the ad, then map them to your CV.**
+
+List the skills, tools and verbs the employer repeats. Then find where your real work already covers them. If the ad says "stakeholder management" and you ran weekly updates with product and sales, that's a match. If the ad says "Kubernetes" and you've never touched it, leave the gap alone.
+
+A gap is information. It isn't a prompt to invent a skill.
+
+**2. Reorder what is already true.**
+
+Move the most relevant roles and bullets up. Demote what doesn't matter for this opening. You're not adding a career. You're choosing which part of your career gets the first glance.
+
+**3. Reframe bullets with their language, not new facts.**
+
+Same outcome. Closer wording.
+
+Before: "Worked on the payment service and fixed slow queries."
+
+After, for a backend role that stresses reliability: "Improved payment service query performance, cutting latency for checkout traffic."
+
+You didn't invent the work. You named it the way the employer names their problem.
+
+**4. Cut what you can't defend.**
+
+If a draft line would fail a follow-up question, delete it. Speed doesn't beat a ruined interview.
+
+That's the whole method. Match. Reorder. Reframe. Cut. No new biography.
+
+For the longer matching process, including ATS keyword work, see [how to tailor a resume to a job description](/blog/how-to-tailor-resume-to-job-description).
+
+## Where people (and tools) go wrong
+
+Three traps show up again and again.
+
+**Trap 1: Keyword stuffing from the ad.**
+
+Copying "required" skills into your Skills section when you've never used them. ATS may score you higher. The hiring manager will ask. You will freeze.
+
+**Trap 2: Soft inflation.**
+
+Turning "helped the team with X" into "led X end to end" when you didn't lead. Tone matching is fine. Title inflation isn't.
+
+**Trap 3: Letting a model fill gaps.**
+
+You paste a JD into a chat window. It returns a polished CV with tools and wins you never had. It feels like progress. It's a liability with your name on it.
+
+If a tool can't show where each claim came from in your real CV, keep walking.
+
+## How Useful Apply stays on your side of the line
+
+Useful Apply is built the other way. Facts from your CV. Keywords and tone from the ad.
+
+You upload your Master CV once. That file is the source of truth. When you bring a job, the agent checks fit, then writes a tailored CV, cover letter and emails for that role. Every claim traces back to what you uploaded. If the experience isn't there, it doesn't appear in the draft.
+
+Useful Apply doesn't auto-apply. That's not a missing feature. It's the product. You read the draft. You cut what isn't you. You send it yourself.
+
+That last click is how the application stays yours. The agent can match language you already earned. It can't invent a career. It can't sit in the interview for you.
+
+## A quick checklist before you hit send
+
+Run every tailored CV, including one from Useful Apply, through the same questions.
+
+- Can I point to the real project or role behind this bullet?
+- Did I only use tools and skills I have actually used?
+- If they ask "walk me through this," do I have a clean answer?
+- Did I review the draft myself before it left?
+
+If any answer is no, fix the line. Or drop the application. A role that only works if you invent experience was never a fit.
+
+## Tailoring without lying is still worth the time
+
+Generic CVs waste space on work that doesn't matter for this job. Honest tailoring uses the same space to surface what does.
+
+You don't need a new career for every posting. You need a clear map from your real history to their language. That's the job. That's also where most AI tools fail, because inventing is easier than grounding.
+
+Useful Apply exists for the grounded version. Find the role. Check the fit. Write from your real CV. Track what you sent. Your entire job search, in one app. You review. You send.
+
+**[Start free](/dashboard)** · **[Watch the demo](/#demo)**`,
+    author: {
+      name: 'Wasim Jalali',
+      role: 'Founder, Useful Apply',
+    },
+    publishedAt: '2026-09-14',
+    readingTime: 5,
+    category: 'CV Writing',
+    tags: [
+      'tailor CV',
+      'job description',
+      'resume tailoring',
+      'anti hallucination',
+      'CV writing',
+      'keyword matching',
+      'Useful Apply',
+      'Karko AI',
+      'job search',
+      'inventing experience',
+    ],
+    featured: false,
+    priority: 3,
+    ogImage: '/blog/tailor-cv-without-hallucinating-cover.jpg',
+    cta: {
+      heading: 'Write from your real CV',
+      description:
+        'Every word traces to your real CV. You review. You send.',
+      text: 'Start free',
+      href: '/dashboard',
+    },
+  },
+  {
     slug: 'karko-ai-job-application-agent',
     title: 'Karko AI Is Now Useful Apply: The AI Job Application Agent',
     description:
