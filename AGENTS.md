@@ -110,7 +110,7 @@ Useful Apply is a Next.js 16 app generating job application materials (CV, Cover
 - `src/lib/supabase/` — legacy-named D1/R2 wrappers (credits, sessions, accounts, admin); data access is in `src/db/repos/*`
 
 ### Agent Flow — Analyze First Mode
-1. **Phase 1:** `runFitAnalysis()` → context cached server-side (30-min TTL in `contextCache` Map)
+1. **Phase 1:** `runFitAnalysis()` → context cached server-side (30-min TTL in the `CONTEXT_CACHE` KV, with an in-memory Map fallback)
 2. `fit_analysis_complete` SSE event → client stores full parsed context as fallback
 3. User clicks "Apply for This Job" → triggers `generate_with_context` with `cachedContextData`
 4. Server tries in-memory cache first; if miss, reconstructs MasterContext from client-sent data
@@ -119,7 +119,7 @@ Useful Apply is a Next.js 16 app generating job application materials (CV, Cover
 ### Agent Flow — Apply Directly Mode
 - Runs `runJobCopilot()` → full Phase 1 + Phase 2 in one pass (no fit assessment)
 
-### Credit Costs (source of truth: `src/lib/supabase/credits.ts`)
+### Credit Costs (source of truth: `src/lib/credit-costs.ts`; deductions in `src/db/repos/credits.ts`)
 | Action | Credits |
 |--------|---------|
 | Fit Analysis | 0.5 |

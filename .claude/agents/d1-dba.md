@@ -37,7 +37,8 @@ You are the database specialist for Useful Apply. A query without a `user_id` fi
 | `application_sessions` | One per application | `user_id, job_title, company, job_description, match_score, status (drafted/applied/interview/rejected/accepted/follow_up), generation_status, fit_assessment, generated_cv, cover_letter, email, interview_at, follow_up_due_at` |
 | `chat_messages` | Chat per session | `session_id, user_id, role, content, actions` |
 | `message_feedback` | Per-message feedback | `user_id, session_id, message_id, feedback_type` |
-| `user_cv_suggestions`, `user_job_preferences`, `user_career_profiles`, `user_search_strategies` | Per-user job-feed inputs | `user_id` PK in each |
+| `user_cv_suggestions`, `user_job_preferences`, `user_career_profiles` | Per-user job-feed inputs | `user_id` PK in each |
+| `user_search_strategies` | Search strategies per user and settings | Unique `(user_id, settings_hash)`, several rows per user |
 | `job_feed_settings` | Per-user feed config | `user_id` PK, `enabled, consent_accepted_at, target_roles, target_countries, salary_floor, employment_types, languages, excluded_terms` |
 | `job_feed_runs` | One row per feed run | `id, user_id, local_date, trigger_source, status (queued/running/completed/failed/skipped), idempotency_key, raw_jobs_fetched, jobs_after_prefilter, ranked_jobs_count, settings_snapshot` |
 | `job_feed_canonical_jobs` | Deduped jobs | `id, canonical_key (unique), title, company, location_text, work_mode, description, apply_url, times_seen, freshness_days` |
