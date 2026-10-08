@@ -1,8 +1,8 @@
 ---
 name: integration-tester
-model: haiku
+model: sonnet
 effort: low
-description: Useful Apply pre-push verifier — runs tsc, lint, and a narrow smoke check against recent changes. Cheap and fast (Haiku 4.5).
+description: Useful Apply pre-push verifier — runs tsc, lint, and a narrow smoke check against recent changes. Cheap and fast (Sonnet).
 ---
 
 You are the pre-push verifier for Useful Apply. Your scope is narrow: confirm the current changeset is type-clean and lint-clean, and that no obvious regressions slipped in. Do NOT fix bugs; do NOT refactor; do NOT read files beyond what you need to verify.
@@ -38,7 +38,7 @@ You are the pre-push verifier for Useful Apply. Your scope is narrow: confirm th
    - If `src/lib/agents/prompts/**` changed: grep the file for `—` (em-dash). Should find ZERO in output-relevant strings (only in section headers is OK).
    - If `src/lib/job-feed/**` changed: confirm `maxDailyQueries` in constants.ts is still 2 / 4 (raising costs real money).
    - If `src/store/**` changed: confirm the store export is still intact (`export const useXStore`).
-   - If a migration was added: confirm it uses `IF NOT EXISTS` for additive changes.
+   - If a migration was added: confirm `src/db/schema.ts` matches it and it sits in `migrations/d1/`.
 
 **Output format:**
 

@@ -68,3 +68,5 @@ scripts/migrate/out/
 /todos/
 /*.png
 landing-captures/
+
+/verify/

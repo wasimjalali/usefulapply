@@ -10,13 +10,13 @@ paths:
 
 ## Authentication
 
-- `userId` always comes from `supabase.auth.getUser()` — NEVER from the request body
+- `userId` comes from the Better Auth session (`getCurrentUser()`) — NEVER from the request body
 - Never trust client-sent userId for credit operations
 
 ## Credit Deduction
 
 - Use optimistic concurrency for `deductCredits()`: check balance, deduct, verify
-- Credit costs are defined in `src/lib/supabase/credits.ts` — this is the single source of truth
+- Credit costs are defined in `src/lib/credit-costs.ts` (re-exported by `src/lib/supabase/credits.ts`), the single source of truth; deductions live in `src/db/repos/credits.ts`
 - Never modify credit amounts without explicit human confirmation
 
 ## Stripe Webhooks

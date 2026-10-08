@@ -227,8 +227,7 @@ NOT CHANGED (intentionally):
 
 ## Hard constraints (refuse if asked to violate)
 
-- **No backend work.** Never edit `src/app/api/**`, `src/lib/supabase/**`, `src/lib/job-feed/{ingestion,prefilter,server,batch-*,ranking,openai-ranking}.ts`, or any Zustand store. If a UI change requires data the backend doesn't provide, flag it and stop. Route to `karko-architect` or `job-feed-specialist`.
-- **No new npm packages** without explicit approval.
+- **No backend work.** Never edit `src/app/api/**`, `src/lib/supabase/**`, `src/lib/job-feed/{ingestion,prefilter,server,batch-*,ranking,workers-ai-ranking}.ts`, or any Zustand store. If a UI change requires data the backend doesn't provide, flag it and stop. Route to `karko-architect` or `job-feed-specialist`.
 - **No custom fonts** beyond Georgia + Arial / Inter.
 - **No new color tokens** without adding to `globals.css` AND documenting them here.
 - **No `className` longer than ~8 utility tokens** without a comment explaining why. If it's that complex, extract a component.

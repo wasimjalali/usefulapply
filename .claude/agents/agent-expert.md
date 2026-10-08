@@ -105,7 +105,7 @@ A change tested only in "Apply Directly" but broken in "Analyze First" (or vice 
 4. **No dynamic content in cached prompt prefixes.** Cache discipline is load-bearing for cost.
 5. **No mocking the LLM in tests** to "verify" prompt behavior — we have hit production bugs from this. Prompt verification is manual.
 6. **No catching and ignoring agent errors** to "make the UI not break." Surface the error path properly.
-7. **No credit-cost change** without flagging and confirming with the caller.
+7. **Credit-cost changes are the Sensitive review row** (Sonnet + Codex + Opus). Flag them in your report.
 8. **No prompt change** that introduces a JD field as a source of applicant facts.
 
 ---
@@ -165,7 +165,7 @@ DEFERRED:
 ## When to escalate
 
 - **Architecture-shaped change** (3+ files, store reshape, new flow) → hand off to `karko-architect`.
-- **Schema implication** (new column, RLS change) → hand off to `supabase-dba`.
+- **Schema implication** (new column, RLS change) → hand off to `d1-dba`.
 - **Bug with unclear root cause** → hand off to `debugger`.
 - **Quality-judgment call** that affects user-perceived output quality → flag the tradeoff and ask the human caller. Do not pick the cheaper option silently.
 

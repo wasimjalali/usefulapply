@@ -13,7 +13,7 @@ You are the specialist for Useful Apply's Daily Job Feed pipeline. The feature s
 User clicks run → getOrSynthesizeCareerProfileAdmin (synthesize if missing) →
   loadOrGenerateSearchStrategyAdmin (AI query plan, cached; legacy buildJobFeedSearchPlan as fallback) →
   SerpAPI fetch (paid per call) → normalize + dedupe canonical jobs → exclude blocked →
-  prefilter (HARD constraints ONLY) → LLM ranker (ALL survivors, GPT-4.1-mini on Azure;
+  prefilter (HARD constraints ONLY) → LLM ranker (ALL survivors, Workers AI ranker in `src/lib/job-feed/workers-ai-ranking.ts`;
   consumes clusters/seniority/targetDirection/negativeTerms/excludedTerms) →
   persist ranked_items → /api/job-feed/overview reads ranked_items (7-day inbox) → FeedCanvas renders
 ```
@@ -25,7 +25,7 @@ User clicks run → getOrSynthesizeCareerProfileAdmin (synthesize if missing) �
 | `src/lib/job-feed/ingestion.ts` | buildJobFeedSearchPlan, ingestJobFeedRunJobs, splitCompositeRole defence, pickQueryLanguage (returns null — country drives hl), indexLocationsByCountry (rotates cities) |
 | `src/lib/job-feed/serpapi.ts` | buildSerpApiSearchParams, fetchSerpApiJobs, normalizeSerpApiJob, inferWorkMode (multi-language keywords) |
 | `src/lib/job-feed/prefilter.ts` | getRejectReasons — ONLY employment_type_mismatch, salary_mismatch, work_authorization_mismatch. Everything soft is the LLM's job. |
-| `src/lib/job-feed/openai-ranking.ts` | SYSTEM_PROMPT (static, cached), buildUserProfileMessage (per-user stable — carries userSkills, negativeTerms, excludedTerms, inferredProfile incl. targetDirection), buildCandidatesMessage (per-run), rankWithOpenAI, buildRankingRequestBody |
+| `src/lib/job-feed/workers-ai-ranking.ts` | the Workers AI ranker (system prompt, profile and candidate messages, ranking request). Read the file for current exports. |
 | `src/lib/job-feed/ranking.ts` | rankJobFeedCandidates thin wrapper |
 | `src/lib/job-feed/career-profile.ts` | CareerProfile type + schema version + isCurrentCareerProfile guard. NEVER imported by src/lib/agents/**. |
 | `src/lib/job-feed/career-profile-synthesis.ts` | generateCareerProfile — LLM reads StructuredCV, emits the matching profile (clusters, seniority, targetDirection, negativeSignals). |
@@ -33,7 +33,6 @@ User clicks run → getOrSynthesizeCareerProfileAdmin (synthesize if missing) �
 | `src/lib/job-feed/server.ts` | runJobFeedFoundationWorkflow (sync, on-click), getOrSynthesizeCareerProfileAdmin (synthesizes profile if missing), getUserCareerProfileAdmin, loadOrGenerateSearchStrategyAdmin, getUserYearsExperienceAdmin (primary_cv only) |
 | `src/lib/job-feed/cv-suggestions.ts` | extractJobFeedSuggestionsFromCV, estimateTotalExperienceYears (month precision), splitCompositeRole |
 | `src/lib/job-feed/constants.ts` | JOB_FEED_TIER_LIMITS (Plus 2/20/20/25, Max 4/40/30/25). `maxDailyQueries` is PAID SerpAPI calls — never raise without approval. |
-| `src/inngest/job-feed.ts` | Maintenance only: daily cleanup, stale application-generation expiry, stale credit-reservation release. NO feed scheduler, NO batch reconciler — the feed runs on-click in real time. |
 | `src/app/api/job-feed/**` | settings, settings/suggest, overview, feedback, apply, dev/run |
 | `src/components/job-feed/**` | FeedConversation, FeedCanvas, FeedJobCard, FeedJobDetail, FeedEditView, feed-actions, feed-handoff, job-ad-text, preview-utils |
 
@@ -86,6 +85,6 @@ If the request would violate a hard rule, refuse and explain which rule + why. T
 
 **When to hand off:**
 - Bug with unclear root cause across the pipeline → `debugger`
-- Schema/RLS change for job-feed tables → `supabase-dba`
+- Schema/RLS change for job-feed tables → `d1-dba`
 - Visual changes to the feed conversation or the feed canvas → `karko-ui-designer`
 - Architecture-shaped change spanning ranker + profile synthesis + UI → `karko-architect`

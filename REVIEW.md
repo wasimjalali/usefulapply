@@ -1,8 +1,6 @@
 # Review instructions
 
-These tune Claude Code Review (the managed PR service) and the local `/code-review` command
-for Useful Apply. Injected as highest-priority guidance. Keep it short - long files dilute the
-rules that matter most.
+Review brief for the Sonnet, Codex and Opus reviewers: include it in each review brief.
 
 ## What "Important" (merge-blocker) means here
 
