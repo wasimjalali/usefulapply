@@ -25,7 +25,7 @@ User clicks run → getOrSynthesizeCareerProfileAdmin (synthesize if missing) �
 | `src/lib/job-feed/ingestion.ts` | buildJobFeedSearchPlan, ingestJobFeedRunJobs, splitCompositeRole defence, pickQueryLanguage (returns null — country drives hl), indexLocationsByCountry (rotates cities) |
 | `src/lib/job-feed/serpapi.ts` | buildSerpApiSearchParams, fetchSerpApiJobs, normalizeSerpApiJob, inferWorkMode (multi-language keywords) |
 | `src/lib/job-feed/prefilter.ts` | getRejectReasons — ONLY employment_type_mismatch, salary_mismatch, work_authorization_mismatch. Everything soft is the LLM's job. |
-| `src/lib/job-feed/openai-ranking.ts` | SYSTEM_PROMPT (static, cached), buildUserProfileMessage (per-user stable — carries userSkills, negativeTerms, excludedTerms, inferredProfile incl. targetDirection), buildCandidatesMessage (per-run), rankWithOpenAI, buildRankingRequestBody |
+| `src/lib/job-feed/workers-ai-ranking.ts` | the Workers AI ranker (system prompt, profile and candidate messages, ranking request). Read the file for current exports. |
 | `src/lib/job-feed/ranking.ts` | rankJobFeedCandidates thin wrapper |
 | `src/lib/job-feed/career-profile.ts` | CareerProfile type + schema version + isCurrentCareerProfile guard. NEVER imported by src/lib/agents/**. |
 | `src/lib/job-feed/career-profile-synthesis.ts` | generateCareerProfile — LLM reads StructuredCV, emits the matching profile (clusters, seniority, targetDirection, negativeSignals). |
@@ -33,7 +33,6 @@ User clicks run → getOrSynthesizeCareerProfileAdmin (synthesize if missing) �
 | `src/lib/job-feed/server.ts` | runJobFeedFoundationWorkflow (sync, on-click), getOrSynthesizeCareerProfileAdmin (synthesizes profile if missing), getUserCareerProfileAdmin, loadOrGenerateSearchStrategyAdmin, getUserYearsExperienceAdmin (primary_cv only) |
 | `src/lib/job-feed/cv-suggestions.ts` | extractJobFeedSuggestionsFromCV, estimateTotalExperienceYears (month precision), splitCompositeRole |
 | `src/lib/job-feed/constants.ts` | JOB_FEED_TIER_LIMITS (Plus 2/20/20/25, Max 4/40/30/25). `maxDailyQueries` is PAID SerpAPI calls — never raise without approval. |
-| `src/inngest/job-feed.ts` | Maintenance only: daily cleanup, stale application-generation expiry, stale credit-reservation release. NO feed scheduler, NO batch reconciler — the feed runs on-click in real time. |
 | `src/app/api/job-feed/**` | settings, settings/suggest, overview, feedback, apply, dev/run |
 | `src/components/job-feed/**` | FeedConversation, FeedCanvas, FeedJobCard, FeedJobDetail, FeedEditView, feed-actions, feed-handoff, job-ad-text, preview-utils |
 

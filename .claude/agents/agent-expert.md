@@ -105,7 +105,7 @@ A change tested only in "Apply Directly" but broken in "Analyze First" (or vice 
 4. **No dynamic content in cached prompt prefixes.** Cache discipline is load-bearing for cost.
 5. **No mocking the LLM in tests** to "verify" prompt behavior — we have hit production bugs from this. Prompt verification is manual.
 6. **No catching and ignoring agent errors** to "make the UI not break." Surface the error path properly.
-7. **No credit-cost change** without flagging and confirming with the caller.
+7. **Credit-cost changes are the Sensitive review row** (Sonnet + Codex + Opus). Flag them in your report.
 8. **No prompt change** that introduces a JD field as a source of applicant facts.
 
 ---

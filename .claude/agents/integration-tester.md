@@ -38,7 +38,7 @@ You are the pre-push verifier for Useful Apply. Your scope is narrow: confirm th
    - If `src/lib/agents/prompts/**` changed: grep the file for `—` (em-dash). Should find ZERO in output-relevant strings (only in section headers is OK).
    - If `src/lib/job-feed/**` changed: confirm `maxDailyQueries` in constants.ts is still 2 / 4 (raising costs real money).
    - If `src/store/**` changed: confirm the store export is still intact (`export const useXStore`).
-   - If a migration was added: confirm it uses `IF NOT EXISTS` for additive changes.
+   - If a migration was added: confirm `src/db/schema.ts` matches it and it sits in `migrations/d1/`.
 
 **Output format:**
 

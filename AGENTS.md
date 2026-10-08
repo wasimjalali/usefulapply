@@ -9,7 +9,7 @@
 Specialist agents are the **preferred** way to handle bug investigations, external research, code review, UI verification, and agent/prompt work. They protect the main context window and often find issues faster than direct exploration. Spawn them in parallel when the work is independent.
 
 ### Project-scope agents (this repo)
-- **`debugger`** (global agent, no project copy) — Whenever a runtime bug, regression, stack trace, or "X is broken but I don't know why" appears. Also for intermittent SSE/streaming failures, wrong state on screen, credit/billing anomalies, and any failed request without an obvious cause. Read-only by default; proposes patches with file:line, refuses to paper over symptoms.
+- **`debugger`** (global agent; read `.claude/rules/debugging-patterns.md` first) — Whenever a runtime bug, regression, stack trace, or "X is broken but I don't know why" appears. Also for intermittent SSE/streaming failures, wrong state on screen, credit/billing anomalies, and any failed request without an obvious cause. Read-only by default; proposes patches with file:line, refuses to paper over symptoms.
 - **`agent-expert`** — When editing anything in `src/lib/agents/`, `src/lib/agents/prompts/`, `src/lib/models/`, `src/app/api/agent-v2/`, or the `useAgentV2` / `useAgentWorkflow` hooks. Also for anti-hallucination rule changes, SSE event semantics, context-builder work, CV pipeline, fit-assessment prompts. Powered by Opus.
 - **`ui-tester`** — After any UI change to `/dashboard`, `/applications`, `/documents`, `/` (landing), or shared components (ChatPanel, CVPanel, CoverLetterPanel, EmailPanel, FeedConversation, FeedCanvas). Uses Playwright MCP. Run before calling a UI task done.
 - **`karko-architect`** — For cross-cutting design decisions, refactors, and "where should this state live" questions. Use for anything that spans 3+ files or has non-obvious tradeoffs. Returns a plan with ordered steps; does not modify code itself. Powered by Opus.
@@ -63,6 +63,7 @@ After the PR is open:
 - Cloudflare Workers via `@opennextjs/cloudflare`. Production ships by running `npm run deploy:cf` from `main`. There is no auto-deploy and no GitHub Actions workflow, so a merge alone changes nothing on usefulapply.com.
 
 ### Security Rules
+- Never read, log or modify `.dev.vars` (local secrets) or `.dev.vars.*` other than `.dev.vars.example`.
 - Watch for: SQL injection, XSS, unprotected API routes, Stripe webhook bypass, secrets leaking into client-side code
 
 ### Database / D1
@@ -75,7 +76,7 @@ After the PR is open:
 **Subagent model selection (mandatory):**
 | Task Type | Model | When |
 |-----------|-------|------|
-| Explore/search | `sonnet-worker` | Simple searches and quick lookups |
+| Explore/search | `sonnet` (agent: `sonnet-worker`) | Simple searches and quick lookups |
 | Code analysis, multi-file investigation, planning | `sonnet` | Default for most dev subagents |
 | Copywriting, video scripts, marketing copy | `opus` | Always — Sonnet drafts first, Opus polishes |
 | Debugging with stack trace / unexpected behavior | `opus` | Via `debugger` agent |
@@ -94,7 +95,7 @@ Always pass the `model` parameter when spawning an Agent. Never let subagents de
 
 ## Architecture Overview
 
-Useful Apply is a Next.js 14+ app generating job application materials (CV, Cover Letter, Application Email, Follow-Up Email) via a unified AI agent. Model split: Claude Sonnet 4.6 (Amazon Bedrock) handles kit writing, CV parsing, context extraction and fit analysis; `@cf/openai/gpt-oss-120b` on Workers AI (`src/lib/models/workers-ai.ts`) handles chat, tracker chat, career-profile synthesis, search strategy and job-feed ranking.
+Useful Apply is a Next.js 16 app generating job application materials (CV, Cover Letter, Application Email, Follow-Up Email) via a unified AI agent. Model split: Claude Sonnet 4.6 (Amazon Bedrock) handles kit writing, CV parsing, context extraction and fit analysis; `@cf/openai/gpt-oss-120b` on Workers AI (`src/lib/models/workers-ai.ts`) handles chat, tracker chat, career-profile synthesis, search strategy and job-feed ranking.
 
 ### Key Directories
 - `src/lib/agents/` — Unified Writer Agent + context-builder
@@ -106,7 +107,7 @@ Useful Apply is a Next.js 14+ app generating job application materials (CV, Cove
 - `src/store/` — Zustand stores (useSessionStore, useCVStore, useUIStore, useFeedStore, useTrackerStore, useSettingsStore; `useAppStore` is a deprecated facade over the first three)
 - `src/components/` — React components (EmailPanel, ChatPanel, CVPanel, CoverLetterPanel, etc.)
 - `src/lib/middleware/rateLimiter.ts` — In-memory sliding window rate limiter
-- `src/lib/supabase/` — Supabase client, credits, sessions, accounts, admin
+- `src/lib/supabase/` — legacy-named D1/R2 wrappers (credits, sessions, accounts, admin); data access is in `src/db/repos/*`
 
 ### Agent Flow — Analyze First Mode
 1. **Phase 1:** `runFitAnalysis()` → context cached server-side (30-min TTL in `contextCache` Map)
