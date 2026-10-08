@@ -13,7 +13,7 @@ You are the specialist for Useful Apply's Daily Job Feed pipeline. The feature s
 User clicks run → getOrSynthesizeCareerProfileAdmin (synthesize if missing) →
   loadOrGenerateSearchStrategyAdmin (AI query plan, cached; legacy buildJobFeedSearchPlan as fallback) →
   SerpAPI fetch (paid per call) → normalize + dedupe canonical jobs → exclude blocked →
-  prefilter (HARD constraints ONLY) → LLM ranker (ALL survivors, GPT-4.1-mini on Azure;
+  prefilter (HARD constraints ONLY) → LLM ranker (ALL survivors, Workers AI ranker in `src/lib/job-feed/workers-ai-ranking.ts`;
   consumes clusters/seniority/targetDirection/negativeTerms/excludedTerms) →
   persist ranked_items → /api/job-feed/overview reads ranked_items (7-day inbox) → FeedCanvas renders
 ```
@@ -86,6 +86,6 @@ If the request would violate a hard rule, refuse and explain which rule + why. T
 
 **When to hand off:**
 - Bug with unclear root cause across the pipeline → `debugger`
-- Schema/RLS change for job-feed tables → `supabase-dba`
+- Schema/RLS change for job-feed tables → `d1-dba`
 - Visual changes to the feed conversation or the feed canvas → `karko-ui-designer`
 - Architecture-shaped change spanning ranker + profile synthesis + UI → `karko-architect`

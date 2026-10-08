@@ -10,7 +10,7 @@ paths:
 
 ## Authentication
 
-- `userId` always comes from `supabase.auth.getUser()` — NEVER from the request body
+- `userId` comes from the Better Auth session (`getCurrentUser()`) — NEVER from the request body
 - Never trust client-sent userId for credit operations
 
 ## Credit Deduction

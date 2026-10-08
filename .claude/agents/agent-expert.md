@@ -165,7 +165,7 @@ DEFERRED:
 ## When to escalate
 
 - **Architecture-shaped change** (3+ files, store reshape, new flow) → hand off to `karko-architect`.
-- **Schema implication** (new column, RLS change) → hand off to `supabase-dba`.
+- **Schema implication** (new column, RLS change) → hand off to `d1-dba`.
 - **Bug with unclear root cause** → hand off to `debugger`.
 - **Quality-judgment call** that affects user-perceived output quality → flag the tradeoff and ask the human caller. Do not pick the cheaper option silently.
 
