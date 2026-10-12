@@ -131,10 +131,6 @@ function joinNames(names: string[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
-function capitalize(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
 function formatCredits(amount: number): string {
   return `${amount} ${amount === 1 ? 'credit' : 'credits'}`;
 }
@@ -151,13 +147,13 @@ function kitReadyMessage(opts: {
   creditsRefunded: number;
 }): string {
   const { errors } = opts;
-  const intro = `Your kit${opts.company ? ` for ${opts.company}` : ''} is ready.`;
+  const intro = `Your kit${opts.company ? ` for ${opts.company}` : ''} is ready`;
   const failed = (Object.keys(KIT_DOCUMENT_NAMES) as KitDocument[]).filter((document) => errors[document]);
   if (failed.length === 0) {
-    return `${intro} Tailored CV${opts.atsNote}, a cover letter and two emails. Every claim comes from your CV. Review it before you send.`;
+    return `${intro}: a tailored CV${opts.atsNote}, a cover letter and two emails. Every claim comes from your CV. Review it before you send.`;
   }
   const ready: string[] = [];
-  if (!errors.cv) ready.push(`Tailored CV${opts.atsNote}`);
+  if (!errors.cv) ready.push(`a tailored CV${opts.atsNote}`);
   if (!errors.coverLetter) ready.push('a cover letter');
   if (!errors.applicationEmail && !errors.followUpEmail) ready.push('two emails');
   else if (!errors.applicationEmail) ready.push('an application email');
@@ -168,7 +164,7 @@ function kitReadyMessage(opts: {
     ...(errors.applicationEmail || errors.followUpEmail ? ['Emails'] : []),
   ];
   const lines = [
-    `${intro} ${capitalize(joinNames(ready))}. Every claim comes from your CV. Review it before you send.`,
+    `${intro}: ${joinNames(ready)}. Every claim comes from your CV. Review it before you send.`,
     `We couldn't write the ${joinNames(failed.map((document) => KIT_DOCUMENT_NAMES[document]))}.`,
   ];
   if (retryTabs.length > 0) {

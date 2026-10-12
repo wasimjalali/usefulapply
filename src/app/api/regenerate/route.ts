@@ -20,7 +20,7 @@ import { randomUUID } from 'crypto';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import { MAX_INSTRUCTION_CHARS, flattenInstruction } from '@/lib/agents/chat-tools/untrusted';
-import { getSession, updateSession } from '@/db/repos/sessions';
+import { clearKitDocumentError, getSession, updateSession } from '@/db/repos/sessions';
 import { getDocumentByType, type Document } from '@/db/repos/documents';
 
 /**
@@ -227,8 +227,6 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('[Regenerate API] Using language:', detectedLanguage);
-    // What generated_artifacts holds now, including the language just written above.
-    const currentArtifacts = storedLanguage ? storedArtifacts : { ...(storedArtifacts ?? {}), detectedLanguage };
 
     // Build MasterContext from the provided data
     // CRITICAL: masterCV, verifiedMetrics, and match must be passed through
@@ -314,11 +312,9 @@ export async function POST(request: NextRequest) {
         body: coverLetter,
         updatedAt: new Date().toISOString(),
       };
-      const persist = await updateSession(user.id, session.id, {
-        cover_letter: persistedCoverLetter,
-        ...clearedDocumentError(currentArtifacts, 'coverLetter'),
-      });
+      const persist = await updateSession(user.id, session.id, { cover_letter: persistedCoverLetter });
       if (persist.error) throw persist.error;
+      await clearDocumentMark(user.id, session.id, 'coverLetter');
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({
         coverLetter,
@@ -337,9 +333,9 @@ export async function POST(request: NextRequest) {
           body: email.body,
           attachmentNote: 'Please find my CV and cover letter attached.',
         },
-        ...clearedDocumentError(currentArtifacts, 'applicationEmail'),
       });
       if (persist.error) throw persist.error;
+      await clearDocumentMark(user.id, session.id, 'applicationEmail');
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({
         email,
@@ -364,9 +360,9 @@ export async function POST(request: NextRequest) {
           body: followUpEmail.body,
           recommendedDelay: followUpEmail.recommendedDelay || 5,
         },
-        ...clearedDocumentError(currentArtifacts, 'followUpEmail'),
       });
       if (persist.error) throw persist.error;
+      await clearDocumentMark(user.id, session.id, 'followUpEmail');
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({
         followUpEmail,
@@ -486,21 +482,20 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * A partial kit marks its failed documents in generated_artifacts. Once a
- * regenerate writes one, its mark goes too, so a reload never shows an error
- * state for a document that now exists. Returns nothing to write when there
- * was no mark.
+ * The failure mark is cosmetic once the document exists (tabs only show it
+ * while the document is missing), so a miss is logged and never turns a saved
+ * document into a 500 and a refund.
  */
-function clearedDocumentError(
-  artifacts: unknown,
+async function clearDocumentMark(
+  userId: string,
+  sessionId: string,
   document: 'coverLetter' | 'applicationEmail' | 'followUpEmail',
-): { generated_artifacts?: Record<string, unknown> } {
-  const stored = readRecord(artifacts);
-  const errors = readRecord(stored?.documentErrors);
-  if (!stored || !errors || !(document in errors)) return {};
-  const rest = { ...errors };
-  delete rest[document];
-  return { generated_artifacts: { ...stored, documentErrors: rest } };
+): Promise<void> {
+  try {
+    await clearKitDocumentError(userId, sessionId, document);
+  } catch (error) {
+    console.error('[Regenerate API] Could not clear the failure mark:', document, error);
+  }
 }
 
 function readString(value: unknown): string {

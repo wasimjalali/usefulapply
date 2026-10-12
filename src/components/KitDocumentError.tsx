@@ -89,7 +89,7 @@ export function KitDocumentError({ variant, title, target }: KitDocumentErrorPro
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-cream-100">
           <AlertCircle className="h-6 w-6 text-warm-gray" />
         </div>
-        <h3 className="mb-5 text-lg font-bold tracking-tight text-charcoal">{title}</h3>
+        <h3 className="mb-5 text-lg font-semibold tracking-tight text-charcoal">{title}</h3>
         {button}
       </div>
     </div>

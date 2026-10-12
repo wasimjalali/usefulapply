@@ -596,6 +596,93 @@ async function main() {
     return { mid, first, after, second };
   });
 
+  // ---- Review round 2 --------------------------------------------------------
+
+  await scenario('R2. concurrent regenerates on different documents both clear their marks, nothing else', async () => {
+    const sessions = await import('../src/db/repos/sessions');
+    const sessionId = '00000000-0000-4000-8000-0000000005e5';
+    const stamp = new Date().toISOString();
+    await db.prepare('INSERT INTO application_sessions (id, user_id, job_description, matching_skills, missing_skills, suggestions, cv_edits, generated_artifacts, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(sessionId, userId, JOB_DESCRIPTION, '[]', '[]', '[]', '[]', JSON.stringify({
+        detectedLanguage: 'en',
+        documentErrors: { coverLetter: 'GENERATION_FAILED', applicationEmail: 'VALIDATION_FAILED', followUpEmail: 'GENERATION_FAILED' },
+      }), stamp, stamp).run();
+    // Two retries landing together, each also saving its document, as /api/regenerate does.
+    await Promise.all([
+      (async () => {
+        await sessions.updateSession(userId, sessionId, { cover_letter: { body: 'Letter' } as never });
+        await sessions.clearKitDocumentError(userId, sessionId, 'coverLetter');
+      })(),
+      (async () => {
+        await sessions.updateSession(userId, sessionId, { email: { subject: 'S', body: 'B' } as never });
+        await sessions.clearKitDocumentError(userId, sessionId, 'applicationEmail');
+      })(),
+    ]);
+    // A second clear is a no-op, and another user's id touches nothing.
+    await sessions.clearKitDocumentError(userId, sessionId, 'coverLetter');
+    await sessions.clearKitDocumentError('00000000-0000-4000-8000-0000000000ff', sessionId, 'followUpEmail');
+    const row = await db.prepare('SELECT generated_artifacts FROM application_sessions WHERE id = ?').bind(sessionId).first<{ generated_artifacts: string }>();
+    const artifacts = JSON.parse(row?.generated_artifacts ?? '{}');
+    assert.deepEqual(artifacts.documentErrors, { followUpEmail: 'GENERATION_FAILED' });
+    assert.equal(artifacts.detectedLanguage, 'en');
+    return { artifacts };
+  });
+
+  await scenario('R2. the tracker follow-up path and the tab retry share one in-flight guard', async () => {
+    const { useSessionStore } = await import('../src/store/useSessionStore');
+    const { useCVStore } = await import('../src/store/useCVStore');
+    const regen = await import('../src/lib/regenerate-client');
+    const sessionId = '00000000-0000-4000-8000-0000000005e6';
+    useSessionStore.setState({
+      currentSession: { id: sessionId, jobDescription: JOB_DESCRIPTION, chatMessages: [] } as never,
+      sessions: [],
+    });
+    useCVStore.setState({ currentCV: { rawText: PRIMARY_CV, sections: {}, fileName: 'cv.txt', fileType: 'txt' } as never });
+    const realFetch = globalThis.fetch;
+    let fetches = 0;
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    globalThis.fetch = (async () => {
+      fetches += 1;
+      await gate;
+      return new Response(JSON.stringify({ followUpEmail: { subject: 'Following Up', body: 'Body text', recommendedDelay: 5 } }), { status: 200 });
+    }) as typeof fetch;
+    try {
+      const tracker = regen.regenerateFollowUpForSession(sessionId);
+      const tabRetry = await regen.regenerateDocument('follow-up', 'req-2', undefined, sessionId);
+      const trackerAgain = await regen.regenerateFollowUpForSession(sessionId);
+      release();
+      const first = await tracker;
+      assert.equal(first.ok, true);
+      assert.deepEqual(tabRetry, { ok: false, code: 'REQUEST_IN_PROGRESS' });
+      assert.deepEqual(trackerAgain, { ok: false, code: 'REQUEST_IN_PROGRESS' });
+      assert.equal(fetches, 1);
+      assert.equal(regen.isRegenInFlight(sessionId, 'follow-up'), false);
+      return { fetches, tabRetry, trackerAgain };
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  await scenario('R2. a partial refund that fails partway records what was actually paid', async () => {
+    await setBuckets(0, 0.5, 10);
+    const key = `full_application:${userId}:r2paid`;
+    await credits.reserveCredits({ userId, action: 'FULL_APPLICATION', idempotencyKey: key });
+    await credits.captureReservation({ idempotencyKey: key, userId });
+    await db.prepare("CREATE TRIGGER block_rollover_r2 BEFORE UPDATE ON user_credits WHEN NEW.rollover_credits > OLD.rollover_credits BEGIN SELECT RAISE(ABORT, 'rollover blocked'); END").run();
+    let result;
+    try {
+      result = await credits.refundReservationPartially({ userId, idempotencyKey: key, amount: 2.0, reason: 'r2' });
+    } finally {
+      await db.prepare('DROP TRIGGER block_rollover_r2').run();
+    }
+    const metadata = (await credits.getReservationByKey(userId, key))?.metadata as Record<string, unknown>;
+    assert.equal(result.refunded, 1.5);
+    assert.equal(metadata.partial_refund_amount, 2);
+    assert.equal(metadata.partial_refund_paid, 1.5);
+    return { result, partial_refund_amount: metadata.partial_refund_amount, partial_refund_paid: metadata.partial_refund_paid };
+  });
+
   await proxy.dispose();
   const failed = report.scenarios.filter((entry) => !entry.passed);
   writeFileSync(join(outDir, 'kit-isolation-report.json'), `${JSON.stringify(report, null, 2)}\n`);

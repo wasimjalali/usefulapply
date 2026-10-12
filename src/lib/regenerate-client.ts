@@ -341,6 +341,19 @@ export async function regenerateFollowUpForSession(
   sessionId: string,
   requestId: string = generateRequestId(),
 ): Promise<RegenResult> {
+  // The tracker route is a second paid path to the same follow-up, so it
+  // shares the follow-up's in-flight guard with the tab retry and the chat.
+  const key = regenKey(sessionId, 'follow-up');
+  if (inFlightRegens.has(key)) return { ok: false, code: 'REQUEST_IN_PROGRESS' };
+  setRegenInFlight(key, true);
+  try {
+    return await requestTrackerFollowUp(sessionId, requestId);
+  } finally {
+    setRegenInFlight(key, false);
+  }
+}
+
+async function requestTrackerFollowUp(sessionId: string, requestId: string): Promise<RegenResult> {
   try {
     const response = await fetch('/api/tracker/follow-up', {
       method: 'POST',

@@ -897,6 +897,18 @@ export function ChatPanel({
     const session = useSessionStore.getState().currentSession;
     const startedIn = session?.id ?? null;
     if (!startedIn) return;
+    // Screening answers are stored with the tailored CV, so a kit whose CV
+    // failed has nowhere to keep them. Say so before a paid turn is claimed.
+    // Only for a kit that exists without a CV: an application whose CV has not
+    // hydrated yet has no kit documents either, and still goes through.
+    if (session && sessionHasKit(session) && !session.generatedCV && !session.optimizedCVData) {
+      setIsScreeningMode(false);
+      addChatMessage({
+        role: 'assistant',
+        content: "Screening answers need the tailored CV, and this kit doesn't have one. Paste the job ad again for a new kit, then ask me here. Nothing was charged.",
+      });
+      return;
+    }
     // A local read of a spent cap saves a round trip. It is not the cap: the
     // chat route holds that, on a column only it writes.
     if ((session?.screeningUsageCount ?? 0) >= SCREENING_TURN_CAP) {
@@ -1400,6 +1412,8 @@ export function ChatPanel({
             role: 'assistant',
             content: 'I can\'t write that follow-up without the job ad and your CV. Open the application and check both are there.',
           });
+        } else if (result.code === 'REQUEST_IN_PROGRESS') {
+          addChatMessage({ role: 'assistant', content: 'That follow-up is already being written. It lands in the Emails tab.' });
         } else {
           addChatMessage({
             role: 'assistant',
@@ -1697,7 +1711,7 @@ export function ChatPanel({
               company: s.company,
               jobTitle: s.jobTitle,
               updatedAt: s.updatedAt,
-              hasGeneratedCV: !!s.generatedCV,
+              hasGeneratedCV: sessionHasKit(s),
               hasFitAnalysis: !!s.pendingFitAnalysis,
             }))}
             currentSessionId={currentSession?.id}
@@ -2355,9 +2369,11 @@ export function ChatPanel({
             isWorking={isAgentWorking || isTyping}
             placeholder={
               spine
-                ? (sessionHasKit(currentSession)
-                    ? 'Ask for a change, or paste a screening question'
-                    : 'Paste a job ad or ask anything')
+                ? (currentSession?.generatedCV
+                    ? 'Ask for a change or a screening answer'
+                    : sessionHasKit(currentSession)
+                      ? 'Ask for a change to your kit'
+                      : 'Paste a job ad or ask anything')
                 : currentCV
                   ? 'Paste a job description or ask me anything...'
                   : 'Upload your CV first to get started...'

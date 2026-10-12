@@ -135,6 +135,43 @@ export async function updateSession(
   return { error: null };
 }
 
+/** The kit documents a single-document regenerate can write. */
+export type RegeneratedKitDocument = 'coverLetter' | 'applicationEmail' | 'followUpEmail';
+
+const KIT_DOCUMENT_ERROR_PATHS: Record<RegeneratedKitDocument, string> = {
+  coverLetter: '$.documentErrors.coverLetter',
+  applicationEmail: '$.documentErrors.applicationEmail',
+  followUpEmail: '$.documentErrors.followUpEmail',
+};
+
+/**
+ * Remove one document's failure mark from generated_artifacts, in SQL.
+ *
+ * A partial kit lists its failed documents there. Once a regenerate writes
+ * one, its mark goes, so a reload never shows an error for a document that
+ * exists. json_remove on the stored value, not a write-back of a snapshot
+ * read before the model call: two retries on different documents of one
+ * application, or a kit persist landing meanwhile, must not restore each
+ * other's marks. Scoped to the owner like every other session write. The
+ * path is chosen from a fixed map, never built from input.
+ */
+export async function clearKitDocumentError(
+  userId: string,
+  sessionId: string,
+  document: RegeneratedKitDocument,
+): Promise<void> {
+  const db = await getDb();
+  const path = KIT_DOCUMENT_ERROR_PATHS[document];
+  await db
+    .update(applicationSessions)
+    .set({ generated_artifacts: sql`json_remove(${applicationSessions.generated_artifacts}, ${path})` as never })
+    .where(and(
+      eq(applicationSessions.id, sessionId),
+      eq(applicationSessions.user_id, userId),
+      sql`json_type(${applicationSessions.generated_artifacts}, ${path}) IS NOT NULL`,
+    ));
+}
+
 export type ScreeningTurnClaim =
   | { ok: true; turnsUsed: number }
   | { ok: false; reason: 'cap_reached' | 'not_found'; turnsUsed: number };

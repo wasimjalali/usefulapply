@@ -677,15 +677,15 @@ export async function POST(request: NextRequest) {
             if (refund.success) return refund.refunded;
             // A partial payout (one bucket landed, the next failed) still
             // happened, so it is reported, never rounded down to nothing.
-            reportRefundFailure(new Error(refund.error ?? 'Partial refund failed'));
+            reportRefundFailure(new Error(refund.error ?? 'Partial refund failed'), refund.refunded);
             return refund.refunded;
           } catch (refundError) {
-            reportRefundFailure(refundError);
+            reportRefundFailure(refundError, 0);
             return 0;
           }
 
-          function reportRefundFailure(refundError: unknown) {
-            console.error('[agent-v2] Partial kit refund failed:', key, amount, refundError);
+          function reportRefundFailure(refundError: unknown, refunded: number) {
+            console.error('[agent-v2] Partial kit refund failed:', key, amount, refunded, refundError);
             try {
               getPostHogServer().captureException(refundError as Error, distinctId, {
                 endpoint: '/api/agent-v2',
@@ -693,6 +693,8 @@ export async function POST(request: NextRequest) {
                 failed_documents: failed.join(','),
                 reservation_key: key,
                 refund_amount: amount,
+                refunded,
+                shortfall: amount - refunded,
               });
             } catch { /* ignore PostHog errors */ }
           }

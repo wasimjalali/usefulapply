@@ -121,12 +121,20 @@ export function KitExportHost() {
           delivered += 1;
           await new Promise((resolve) => setTimeout(resolve, 250));
         }
+        // A CV that failed in the kit run was never tailored, so it is left
+        // out on purpose rather than shipped as the original under a tailored name.
+        const untailoredCvNote = session.kitDocumentErrors?.cv && !cvData
+          ? " The CV wasn't tailored, so it was left out. Download your base CV from the CV tab."
+          : '';
+        const fromTabs = failed.length === 1 ? 'download it from its tab' : 'download them from their tabs';
         if (delivered === 0) {
           toast.error(failed.length > 0
-            ? `Nothing downloaded. The ${failed.join(' and ')} didn't build.`
-            : 'Nothing to download yet.');
+            ? `Nothing downloaded. The ${failed.join(' and ')} didn't build.${untailoredCvNote}`
+            : `Nothing to download yet.${untailoredCvNote}`);
         } else if (failed.length > 0) {
-          toast.warning(`Downloaded ${fileCount(delivered)}. The ${failed.join(' and ')} didn't build, download it from its tab.`);
+          toast.warning(`Downloaded ${fileCount(delivered)}. The ${failed.join(' and ')} didn't build, ${fromTabs}.${untailoredCvNote}`);
+        } else if (untailoredCvNote) {
+          toast.warning(`Downloaded ${fileCount(delivered)}.${untailoredCvNote}`, 8000);
         } else {
           toast.success(`Downloaded ${fileCount(delivered)}.`);
         }

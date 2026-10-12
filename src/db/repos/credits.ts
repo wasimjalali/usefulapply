@@ -1539,11 +1539,30 @@ export async function refundReservationPartially(params: {
     }
     if (failure) {
       console.error('[credits] partial refund credit failed after the claim:', reservation.id, bucket, portion, failure);
+      // partial_refund_amount is what was owed; this is what reached the user.
+      await recordPartialRefundPaid(reservation.id, userId, amount - remaining);
       return { success: false, refunded: amount - remaining, alreadyRefunded: false, error: failure };
     }
     remaining -= portion;
   }
+  await recordPartialRefundPaid(reservation.id, userId, amount);
   return { success: true, refunded: amount, alreadyRefunded: false, error: null };
+}
+
+/** Stamp the credits a partial refund actually paid, beside the amount it intended. */
+async function recordPartialRefundPaid(reservationId: string, userId: string, paid: number): Promise<void> {
+  try {
+    const db = await getDb();
+    await db
+      .update(creditReservations)
+      .set({
+        metadata: sql`json_set(${creditReservations.metadata}, '$.partial_refund_paid', ${paid})` as never,
+        updated_at: nowIso(),
+      })
+      .where(and(eq(creditReservations.id, reservationId), eq(creditReservations.user_id, userId)));
+  } catch (error) {
+    console.error('[credits] could not record the partial refund paid:', reservationId, paid, error);
+  }
 }
 
 export async function findActiveReservation(params: {
