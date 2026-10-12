@@ -627,8 +627,14 @@ function unsupportedInstructionTerms(instruction: string, sourceText: string): s
 }
 
 /** Strip the model's JSON out of whatever wrapping it came back in. */
-function parseSectionResponse(raw: string): Record<string, unknown> {
-  return parseStrictJsonObject(raw, 'Section rewrite response');
+export function parseSectionResponse(
+  raw: string,
+  kind: CVSectionKind,
+): { content: string | string[]; omitted: unknown } {
+  return parseStrictJsonObject(raw, 'Section rewrite response', (parsed) => ({
+    content: validateSectionContent(kind, parsed.content),
+    omitted: parsed.omitted,
+  }));
 }
 
 type NormalizedOptimizedCvPayload = {
@@ -693,7 +699,7 @@ function assertStringArrayField(
   }
 }
 
-function normalizeOptimizedCvPayload(value: unknown): NormalizedOptimizedCvPayload {
+export function normalizeOptimizedCvPayload(value: unknown): NormalizedOptimizedCvPayload {
   if (!isRecord(value)) {
     throw new Error('Optimized CV response was not an object');
   }
@@ -861,33 +867,54 @@ function normalizeComparisonText(value: string): string {
 }
 
 /**
- * Every balanced top-level `{...}` span in the text, in order. Braces inside
- * JSON strings (and escaped quotes inside those strings) don't count, so a
- * subject like "Role {Remote}" can't split an object.
+ * Index of the `}` that closes the object opening at `start`, or -1 when it
+ * never closes. Braces inside JSON strings (and escaped quotes inside those
+ * strings) don't count, so a subject like "Role {Remote}" can't split an object.
  */
-export function findTopLevelJsonObjects(text: string): string[] {
-  const objects: string[] = [];
+function balancedObjectEnd(text: string, start: number): number {
   let depth = 0;
-  let start = -1;
   let inString = false;
   let escaped = false;
-  for (let i = 0; i < text.length; i++) {
+  for (let i = start; i < text.length; i++) {
     const char = text[i];
-    if (depth > 0 && inString) {
+    if (inString) {
       if (escaped) escaped = false;
       else if (char === '\\') escaped = true;
       else if (char === '"') inString = false;
       continue;
     }
-    if (char === '"' && depth > 0) {
-      inString = true;
-    } else if (char === '{') {
-      if (depth === 0) start = i;
-      depth++;
-    } else if (char === '}' && depth > 0) {
+    if (char === '"') inString = true;
+    else if (char === '{') depth++;
+    else if (char === '}') {
       depth--;
-      if (depth === 0) objects.push(text.slice(start, i + 1));
+      if (depth === 0) return i;
     }
+  }
+  return -1;
+}
+
+/**
+ * Every top-level JSON object in the text that parses, in order. A span that
+ * never closes or doesn't parse (prose such as `the subject "Dev {Remote" is
+ * too long`) is dropped and the scan restarts at the next `{`, so it can't hide
+ * a later object. The inside of an object that parsed is never a candidate.
+ */
+export function findTopLevelJsonObjects(text: string): Array<Record<string, unknown>> {
+  const objects: Array<Record<string, unknown>> = [];
+  let from = text.indexOf('{');
+  while (from !== -1) {
+    const end = balancedObjectEnd(text, from);
+    if (end !== -1) {
+      try {
+        // A span that starts with `{` and parses is always a plain object.
+        objects.push(JSON.parse(text.slice(from, end + 1)) as Record<string, unknown>);
+        from = text.indexOf('{', end + 1);
+        continue;
+      } catch {
+        // Not JSON: rescan from the next brace inside it.
+      }
+    }
+    from = text.indexOf('{', from + 1);
   }
   return objects;
 }
@@ -895,64 +922,120 @@ export function findTopLevelJsonObjects(text: string): string[] {
 /**
  * Parse the model's JSON object. Sonnet 5.5 sometimes notices a limit it broke
  * after emitting the JSON and writes a corrected object after a short note
- * ("Wait, the subject must be 60 characters or fewer. Corrected output: {...}"),
- * so the last balanced object that parses wins. Used by every JSON writer
- * (emails, CV data, CV section rewrites).
+ * ("Wait, the subject must be 60 characters or fewer. Corrected output: {...}").
+ * Candidates are tried from last to first. With a validator, the first that
+ * validates wins, so an echoed template or a partial fragment ("Corrected
+ * summary: {...}") can't stand in for the whole answer; when none validates,
+ * the error from the last object is thrown so the caller's retry sees the miss.
+ * Without a validator, the last object wins. Errors never quote model output.
  */
-export function parseStrictJsonObject(value: string, label: string): Record<string, unknown> {
+export function parseStrictJsonObject(value: string, label: string): Record<string, unknown>;
+export function parseStrictJsonObject<T>(
+  value: string,
+  label: string,
+  validate: (parsed: Record<string, unknown>) => T,
+): T;
+export function parseStrictJsonObject<T>(
+  value: string,
+  label: string,
+  validate?: (parsed: Record<string, unknown>) => T,
+): T | Record<string, unknown> {
   let jsonContent = value.trim();
   if (jsonContent.startsWith('```json')) {
     jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
   } else if (jsonContent.startsWith('```')) {
     jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
   }
+  if (jsonContent.trimStart().startsWith('[')) throw new Error(`${label} was a JSON array, not an object`);
   const candidates = findTopLevelJsonObjects(jsonContent);
-  if (candidates.length === 0) throw new Error(`${label} contained no JSON object`);
-  let lastError: unknown;
+  if (candidates.length === 0) throw new Error(`${label} was not valid JSON`);
+  if (!validate) return candidates[candidates.length - 1];
+  let firstError: unknown;
   for (let i = candidates.length - 1; i >= 0; i--) {
-    let parsed: unknown;
     try {
-      parsed = JSON.parse(candidates[i]) as unknown;
+      return validate(candidates[i]);
     } catch (error) {
-      lastError = error;
-      continue;
+      if (firstError === undefined) firstError = error;
     }
-    if (!isRecord(parsed)) throw new Error(`${label} was not a JSON object`);
-    return parsed;
   }
-  throw lastError instanceof Error ? lastError : new Error(`${label} was not valid JSON`);
+  throw firstError;
 }
 
-// Abbreviations whose period never ends a sentence ("4,2 Mio. EUR", "ca. 60 Kunden").
+// Abbreviations whose period never ends a sentence. Case-sensitive on purpose:
+// "CA." or "HR." at the end of a sentence still ends it. Capitalised forms are
+// listed where they start a name or a sentence ("Dr. Weber", "Ca. 60 Kunden").
+// "etc." and "usw." are left out: mid-sentence they are followed by a lowercase
+// word (covered below), and at the end of a sentence they end it.
 const SENTENCE_ABBREVIATIONS = new RegExp(
-  String.raw`(?<![\p{L}\p{N}])(?:mio|mrd|ca|bzw|usw|nr|dr|hr|fr|inkl|ggf|etc|vs|approx)\.`,
-  'giu',
+  String.raw`(?<![\p{L}\p{N}])(?:ca|bzw|bspw|evtl|zzgl|inkl|ggf|nr|dr|hr|fr|prof|st|co|mr|mrs|ms|vs|approx|Ca|Nr|Dr|Hr|Fr|Prof|St|Co|Mr|Mrs|Ms)\.`,
+  'gu',
+);
+// "Mio." and "Mrd." only before a currency or unit ("4,2 Mio. EUR").
+const SENTENCE_AMOUNT_ABBREVIATIONS = new RegExp(
+  String.raw`(?<![\p{L}\p{N}])(?:Mio|Mrd)\.(?=\s*(?:(?:EUR|Euro|USD|CHF|GBP|Dollar|Franken)(?!\p{L})|[€$£]))`,
+  'gu',
 );
 // Two-part abbreviations, with or without the inner space ("z. B.", "e.g.").
 const SENTENCE_TWO_PART_ABBREVIATIONS = new RegExp(
-  String.raw`(?<![\p{L}\p{N}])(?:z\.\s?b|e\.\s?g|i\.\s?e|d\.\s?h|u\.\s?a)\.`,
-  'giu',
+  String.raw`(?<![\p{L}\p{N}])(?:z\.\s?B|Z\.\s?B|e\.\s?g|i\.\s?e|d\.\s?h|D\.\s?h|u\.\s?a|U\.\s?a)\.`,
+  'gu',
 );
+// Degrees and similar dotted tokens ("M.Sc.", "B.A.", "Ph.D."), one token each.
+const SENTENCE_DOTTED_TOKENS = /(?<![\p{L}\p{N}])[A-Z][a-z]?\.[A-Za-z]{1,3}\./gu;
 const NOT_A_BOUNDARY = '\u0001';
 
 /**
  * Counts sentences for the application email's four-sentence limit. A period
- * is not a boundary after an abbreviation, after a single capital initial
- * ("J. Hartmann"), or when the next word starts with a lowercase letter or a
- * digit. Decimal and thousand separators ("4.2", "1.000") never split, since
- * a boundary needs whitespace after it.
+ * is not a boundary inside a listed abbreviation or a dotted degree, or when
+ * the next word starts with a lowercase letter. Decimal and thousand
+ * separators ("4.2", "1.000") never split, since a boundary needs whitespace
+ * after it.
  */
 export function countSentences(value: string): number {
+  const maskAll = (match: string) => match.replace(/\./g, NOT_A_BOUNDARY);
   const masked = value
-    .replace(SENTENCE_TWO_PART_ABBREVIATIONS, (match) => match.replace(/\./g, NOT_A_BOUNDARY))
-    .replace(SENTENCE_ABBREVIATIONS, (match) => match.replace(/\.$/, NOT_A_BOUNDARY))
-    .replace(/(?<![\p{L}\p{N}])(\p{Lu})\.(?=\s)/gu, `$1${NOT_A_BOUNDARY}`)
-    .replace(/\.(?=\s+[\p{Ll}\p{N}])/gu, NOT_A_BOUNDARY);
+    .replace(SENTENCE_TWO_PART_ABBREVIATIONS, maskAll)
+    .replace(SENTENCE_DOTTED_TOKENS, maskAll)
+    .replace(SENTENCE_AMOUNT_ABBREVIATIONS, maskAll)
+    .replace(SENTENCE_ABBREVIATIONS, maskAll)
+    .replace(/\.(?=\s+\p{Ll})/gu, NOT_A_BOUNDARY);
   return masked.split(/[.!?]+(?=\s|$)/u).map((part) => part.trim()).filter(Boolean).length;
 }
 
-function emailContentText(value: string): string {
+// Closing phrases that start the sign-off block, lowercase. A line counts as a
+// closing only when the phrase is followed by nothing, punctuation or (for
+// multi-word phrases) a capitalised name ("Kind regards Ada Lovelace"), so a
+// body sentence such as "Thank you for your time." is not mistaken for one.
+const EMAIL_CLOSINGS = [
+  'kind regards', 'best regards', 'warm regards', 'warmest regards', 'regards', 'best wishes', 'best',
+  'sincerely', 'yours sincerely', 'yours faithfully', 'yours truly', 'many thanks', 'thank you', 'thanks', 'cheers',
+  'mit freundlichen grüßen', 'mit freundlichem gruß', 'mit besten grüßen', 'beste grüße', 'viele grüße',
+  'freundliche grüße', 'herzliche grüße', 'liebe grüße',
+];
+
+function isEmailClosingLine(line: string): boolean {
+  const lower = line.toLocaleLowerCase();
+  return EMAIL_CLOSINGS.some((phrase) => {
+    if (!lower.startsWith(phrase)) return false;
+    const rest = line.slice(phrase.length).trimStart();
+    // A name straight after the phrase, without a comma, only for multi-word
+    // closings: "Best Buy hired me" must stay a body sentence.
+    return rest === '' || /^[,.!]/u.test(rest) || (phrase.includes(' ') && /^\p{Lu}/u.test(rest));
+  });
+}
+
+/**
+ * The email body without its greeting and sign-off. Everything from the last
+ * closing line on (closing, name, contact lines) is dropped, including a
+ * closing and name on one line. Without a recognised closing, the last two
+ * lines are treated as closing and name.
+ */
+export function emailContentText(value: string): string {
   const lines = value.split('\n').map((line) => line.trim()).filter(Boolean);
+  const afterGreeting = lines.length >= 4 ? lines.slice(1) : lines;
+  for (let i = afterGreeting.length - 1; i >= 0; i--) {
+    if (isEmailClosingLine(afterGreeting[i])) return afterGreeting.slice(0, i).join(' ');
+  }
   const contentLines = lines.length >= 4 ? lines.slice(1, -2) : lines;
   return contentLines.join(' ');
 }
@@ -1031,14 +1114,15 @@ function parseAndValidateEmail<T>(
   responseLabel: string,
   validate: (parsed: Record<string, unknown>) => T,
 ): T {
-  let parsed: Record<string, unknown>;
   try {
-    parsed = parseStrictJsonObject(content, responseLabel);
-  } catch {
-    // JSON parser errors can quote draft text. Keep correction details fixed.
+    // Each candidate object goes through the validator, so a self-corrected
+    // second object wins over the first draft it replaces.
+    return parseStrictJsonObject(content, responseLabel, validate);
+  } catch (error) {
+    if (error instanceof EmailValidationError) throw error;
+    // Keep correction details fixed for anything that isn't a validation miss.
     throw new EmailValidationError(`${responseLabel} must be a valid JSON object`);
   }
-  return validate(parsed);
 }
 
 async function generateEmailWithValidationRetry<T>(
@@ -1626,7 +1710,7 @@ export const unifiedWriterAgent = {
     try {
       // Last balanced JSON object that parses: text around it, or a corrected
       // object after a self-correction note, doesn't break the parse.
-      const parsed = normalizeOptimizedCvPayload(parseStrictJsonObject(response.content, 'Optimized CV response'));
+      const parsed = parseStrictJsonObject(response.content, 'Optimized CV response', normalizeOptimizedCvPayload);
       const personal = parsed.personal;
 
       // Avoid logging PII (applicant name, raw JSON blobs) in production — these
@@ -1777,8 +1861,8 @@ export const unifiedWriterAgent = {
     // Deliberately not wrapped in a try/catch with a fallback. The other
     // writers can fall back to raw text because a rough letter is still a
     // letter; a rough CVData fragment breaks six templates and the PDF export.
-    const parsed = parseSectionResponse(response.content);
-    const content = validateSectionContent(section.kind, parsed.content);
+    const parsed = parseSectionResponse(response.content, section.kind);
+    const content = parsed.content;
     const omitted = cleanOmitted(parsed.omitted);
 
     const beforeText = sectionText(section.before);

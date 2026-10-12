@@ -145,8 +145,8 @@ export default function TermsPage() {
       <section>
         <LegalH2>5. Third-party services</LegalH2>
         <LegalP>
-          The Service depends on providers such as Cloudflare, Amazon Bedrock, Stripe, PostHog,
-          Google (optional sign-in) and SerpAPI. Job links lead to employer or job-board sites
+          The Service depends on providers such as Cloudflare, Anthropic, Amazon Bedrock, Stripe,
+          PostHog, Google (optional sign-in) and SerpAPI. Job links lead to employer or job-board sites
           we do not control. Their terms apply to those sites. We are not responsible for
           third-party content, listings or hiring processes.
         </LegalP>

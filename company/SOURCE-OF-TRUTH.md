@@ -268,7 +268,7 @@ Migrated from Vercel + Supabase to Cloudflare. Source: README. [verified]
 
 Job data comes from SerpAPI. [verified] `src/lib/job-feed/`
 
-Never claim a model upgrade before it ships. Production generation is Sonnet 5.5, chosen in an October 2026 eval against Sonnet 4.6. Say nothing else.
+Never claim a model upgrade before it ships. Production generation is Sonnet 5.5, chosen in an October 2026 eval against Sonnet 4.6. Grounding, speed and cost drove the choice; on a manual read, writing quality was roughly even. Say nothing else.
 
 ### Leftover `src/lib/supabase/` names
 

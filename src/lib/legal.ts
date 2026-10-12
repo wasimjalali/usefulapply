@@ -2,7 +2,7 @@ import { BRAND } from '@/lib/brand';
 
 /** Shared facts for public legal pages. Keep in sync with company/SOURCE-OF-TRUTH.md. */
 export const LEGAL = {
-  updated: 'August 26, 2026',
+  updated: 'October 12, 2026',
   entity: 'Karko AI Inc.',
   dba: BRAND.name,
   entityLine: `${BRAND.name}, operated by Karko AI Inc.`,

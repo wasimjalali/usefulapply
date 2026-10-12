@@ -164,6 +164,18 @@ export async function failLlmGeneration(params: {
   attemptCount?: number;
   errorKind: string;
   httpStatus?: number | null;
+  /**
+   * A response can be billed and still fail (a refusal, or output cut off at max_tokens).
+   * Its token counts and request id are kept here. usage_reported stays false: the schema
+   * reserves it for response_received rows.
+   */
+  providerRequestId?: string | null;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  cacheReadInputTokens?: number | null;
+  cacheWriteInputTokens?: number | null;
+  providerTotalTokens?: number | null;
+  providerUsage?: Json | null;
 }): Promise<void> {
   const db = await getDb();
   const failedAt = params.failedAt ?? nowIso();
@@ -176,6 +188,13 @@ export async function failLlmGeneration(params: {
       attempt_count: params.attemptCount ?? 1,
       error_kind: params.errorKind,
       http_status: params.httpStatus ?? null,
+      provider_request_id: params.providerRequestId ?? null,
+      input_tokens: params.inputTokens ?? null,
+      output_tokens: params.outputTokens ?? null,
+      cache_read_input_tokens: params.cacheReadInputTokens ?? null,
+      cache_write_input_tokens: params.cacheWriteInputTokens ?? null,
+      provider_total_tokens: params.providerTotalTokens ?? null,
+      provider_usage: params.providerUsage ?? null,
       updated_at: failedAt,
     })
     .where(and(eq(llmGenerations.id, params.id), eq(llmGenerations.status, 'started')))
@@ -193,7 +212,10 @@ export async function failLlmGeneration(params: {
       && row.latency_ms === params.latencyMs
       && row.attempt_count === (params.attemptCount ?? 1)
       && row.error_kind === params.errorKind
-      && row.http_status === (params.httpStatus ?? null);
+      && row.http_status === (params.httpStatus ?? null)
+      && row.provider_request_id === (params.providerRequestId ?? null)
+      && row.input_tokens === (params.inputTokens ?? null)
+      && row.output_tokens === (params.outputTokens ?? null);
     if (isIdenticalTerminalWrite) return;
     throw new Error('LLM generation ledger failure update conflicted');
   }

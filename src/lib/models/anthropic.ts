@@ -584,11 +584,12 @@ export interface ModelPricing {
   outputPerM: number;
   /** 5-minute cache write, 1.25x input */
   cacheWritePerM: number;
-  /** Cache read, 0.1x input */
+  /** Cache read: 0.1x input on Sonnet 4.x and Haiku 4.5, 0.05x on Sonnet 5.5 */
   cacheReadPerM: number;
 }
 
-const SONNET_55_PRICING: ModelPricing = { inputPerM: 2, outputPerM: 10, cacheWritePerM: 2.5, cacheReadPerM: 0.2 };
+// Cache read is $0.10 (5% of input) per the Sonnet 5.5 model page on platform.claude.com.
+const SONNET_55_PRICING: ModelPricing = { inputPerM: 2, outputPerM: 10, cacheWritePerM: 2.5, cacheReadPerM: 0.1 };
 const SONNET_4X_PRICING: ModelPricing = { inputPerM: 3, outputPerM: 15, cacheWritePerM: 3.75, cacheReadPerM: 0.3 };
 const HAIKU_45_PRICING: ModelPricing = { inputPerM: 1, outputPerM: 5, cacheWritePerM: 1.25, cacheReadPerM: 0.1 };
 
@@ -652,7 +653,12 @@ async function sendSdkMessage(params: Record<string, unknown>): Promise<SdkMessa
 
 /** A completed response that must not be treated as success (refusal or truncation). */
 class ModelStopError extends Error {
-  constructor(message: string, readonly errorKind: 'provider_refusal' | 'provider_max_tokens') {
+  constructor(
+    message: string,
+    readonly errorKind: 'provider_refusal' | 'provider_max_tokens',
+    /** The response was billed, so its usage and request id still go in the failed ledger row. */
+    readonly billed: { usage: unknown; providerRequestId: string | null },
+  ) {
     super(message);
     this.name = 'ModelStopError';
   }
@@ -664,24 +670,30 @@ class ModelStopError extends Error {
  * document. On Sonnet 5.5 a `max_tokens` stop means thinking plus answer ran out of budget, which
  * truncates the JSON or the letter.
  */
-function assertUsableStop(stopReason: string | null | undefined, stopDetails: unknown, maxTokens: number): void {
+function assertUsableStop(
+  stopReason: string | null | undefined,
+  stopDetails: unknown,
+  maxTokens: number,
+  billed: { usage: unknown; providerRequestId: string | null },
+): void {
   if (stopReason === 'refusal') {
     const category = stopDetails && typeof stopDetails === 'object' && 'category' in stopDetails
       ? String((stopDetails as { category?: unknown }).category)
       : 'unknown';
-    throw new ModelStopError(`Model declined the request (stop_reason refusal, category ${category})`, 'provider_refusal');
+    throw new ModelStopError(`Model declined the request (stop_reason refusal, category ${category})`, 'provider_refusal', billed);
   }
   if (stopReason === 'max_tokens' && USE_SONNET_55_SHAPE) {
-    throw new ModelStopError(`Model output hit max_tokens (${maxTokens}) before finishing`, 'provider_max_tokens');
+    throw new ModelStopError(`Model output hit max_tokens (${maxTokens}) before finishing`, 'provider_max_tokens', billed);
   }
 }
 
 /** Read text by block type: thinking blocks come first (empty by default) and are skipped. */
-function sdkMessageText(message: Anthropic.Message, params: Record<string, unknown>): string {
+function sdkMessageText(message: SdkMessage, params: Record<string, unknown>): string {
   assertUsableStop(
     message.stop_reason,
     (message as unknown as { stop_details?: unknown }).stop_details,
     params.max_tokens as number,
+    { usage: message.usage, providerRequestId: message._request_id ?? message.id ?? null },
   );
   return message.content.map((block) => (block.type === 'text' ? block.text : '')).join('');
 }
@@ -690,6 +702,24 @@ function providerErrorKind(error: unknown, fallback: string): string {
   if (error instanceof ProviderHttpError) return 'provider_http_error';
   if (error instanceof ModelStopError) return error.errorKind;
   return fallback;
+}
+
+/**
+ * Usage and request id of a billed response that still failed (refusal or truncation), for the
+ * single failed ledger row. Empty for errors where no response came back.
+ */
+function billedFailureUsage(error: unknown): Partial<Parameters<typeof failLlmGeneration>[0]> {
+  if (!(error instanceof ModelStopError)) return {};
+  const normalized = normalizeProviderUsage(error.billed.usage);
+  return {
+    providerRequestId: error.billed.providerRequestId,
+    inputTokens: normalized.inputTokens,
+    outputTokens: normalized.outputTokens,
+    cacheReadInputTokens: normalized.cacheReadInputTokens,
+    cacheWriteInputTokens: normalized.cacheWriteInputTokens,
+    providerTotalTokens: normalized.providerTotalTokens,
+    providerUsage: normalized.providerUsage,
+  };
 }
 
 if (USE_DIGITALOCEAN) {
@@ -836,6 +866,7 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
         attemptCount: providerAttemptCount(error),
         errorKind: providerErrorKind(error, 'provider_error'),
         httpStatus: providerHttpStatus(error),
+        ...billedFailureUsage(error),
       });
     }
     console.error('Anthropic API error:', error);
@@ -1014,7 +1045,10 @@ export async function callAnthropicStream(
     }
 
     // A refusal or truncation already streamed partial text, but it is not a usable answer.
-    assertUsableStop(stopReason, stopDetails, streamParams.max_tokens as number);
+    assertUsableStop(stopReason, stopDetails, streamParams.max_tokens as number, {
+      usage: Object.keys(finalUsage).length > 0 ? finalUsage : null,
+      providerRequestId,
+    });
 
     providerResponseReceived = true;
     await completeProviderGeneration({
@@ -1047,6 +1081,7 @@ export async function callAnthropicStream(
         attemptCount: providerAttemptCount(error),
         errorKind: providerErrorKind(error, 'provider_stream_error'),
         httpStatus: providerHttpStatus(error),
+        ...billedFailureUsage(error),
       });
     }
     console.error('Anthropic streaming error:', error);
@@ -1195,6 +1230,7 @@ export async function extractDocumentText(
         attemptCount: providerAttemptCount(error),
         errorKind: providerErrorKind(error, 'document_extraction_provider_error'),
         httpStatus: providerHttpStatus(error),
+        ...billedFailureUsage(error),
       });
     }
     console.error('[Anthropic] Document extraction failed:', error);
@@ -1349,6 +1385,7 @@ export async function parseDocumentAsCV(options: {
         attemptCount: providerAttemptCount(error),
         errorKind: providerErrorKind(error, 'document_parse_provider_error'),
         httpStatus: providerHttpStatus(error),
+        ...billedFailureUsage(error),
       });
     }
     throw error;

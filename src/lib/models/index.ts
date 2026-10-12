@@ -90,7 +90,7 @@ export function parseModelJSON<T>(content: string): T {
 /**
  * Get estimated cost for a model call (in USD), at the active model's list price
  * (Sonnet 5.5: $2/M input, $10/M output; Sonnet 4.6: $3/$15; Haiku 4.5: $1/$5;
- * cache writes 1.25x input, cache reads 0.1x input)
+ * cache writes 1.25x input; cache reads 0.05x input on Sonnet 5.5, 0.1x on the others)
  */
 export function estimateCost(
   task: TaskType,
