@@ -88,7 +88,7 @@ export function AgentProgressV2({
                   : step.status === 'running'
                     ? 'bg-white border border-cream-300 shadow-sm'
                     : step.status === 'error'
-                      ? 'bg-red-50 border border-red-200'
+                      ? 'bg-cream-50 border border-cream-200'
                       : 'bg-cream-50/60 border border-cream-200/60'
               }`}
             >
@@ -106,7 +106,7 @@ export function AgentProgressV2({
                   ) : step.status === 'completed' ? (
                     <CheckCircle2 className="w-3.5 h-3.5 text-gold-600" />
                   ) : step.status === 'error' ? (
-                    <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+                    <AlertCircle className="w-3.5 h-3.5 text-warm-gray" />
                   ) : (
                     <StepIcon className="w-3.5 h-3.5 text-warm-gray/60" />
                   )}
@@ -127,6 +127,9 @@ export function AgentProgressV2({
                 )}
                 {step.status === 'running' && (
                   <span className="text-[11px] text-gold-500 font-medium">Active</span>
+                )}
+                {step.status === 'error' && (
+                  <span className="text-[11px] text-warm-gray font-semibold">Couldn&apos;t finish</span>
                 )}
               </div>
 

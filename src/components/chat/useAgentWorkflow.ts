@@ -131,6 +131,10 @@ function joinNames(names: string[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 function formatCredits(amount: number): string {
   return `${amount} ${amount === 1 ? 'credit' : 'credits'}`;
 }
@@ -150,7 +154,7 @@ function kitReadyMessage(opts: {
   const intro = `Your kit${opts.company ? ` for ${opts.company}` : ''} is ready.`;
   const failed = (Object.keys(KIT_DOCUMENT_NAMES) as KitDocument[]).filter((document) => errors[document]);
   if (failed.length === 0) {
-    return `${intro} Tailored CV${opts.atsNote}, a cover letter and two emails. Nothing was invented.`;
+    return `${intro} Tailored CV${opts.atsNote}, a cover letter and two emails. Every claim comes from your CV. Review it before you send.`;
   }
   const ready: string[] = [];
   if (!errors.cv) ready.push(`Tailored CV${opts.atsNote}`);
@@ -158,13 +162,19 @@ function kitReadyMessage(opts: {
   if (!errors.applicationEmail && !errors.followUpEmail) ready.push('two emails');
   else if (!errors.applicationEmail) ready.push('an application email');
   else if (!errors.followUpEmail) ready.push('a follow-up email');
-  const retryable = failed.filter((document) => document !== 'cv');
+  // Both emails live on one tab, so count tabs, not documents.
+  const retryTabs = [
+    ...(errors.coverLetter ? ['Cover letter'] : []),
+    ...(errors.applicationEmail || errors.followUpEmail ? ['Emails'] : []),
+  ];
   const lines = [
-    `${intro} ${joinNames(ready).replace(/^a/, 'A')}. Nothing was invented.`,
+    `${intro} ${capitalize(joinNames(ready))}. Every claim comes from your CV. Review it before you send.`,
     `We couldn't write the ${joinNames(failed.map((document) => KIT_DOCUMENT_NAMES[document]))}.`,
   ];
-  if (retryable.length > 0) lines.push(`Try again from ${retryable.length === 1 ? 'its tab' : 'their tabs'}.`);
-  if (errors.cv) lines.push('The CV tab shows your base CV for now.');
+  if (retryTabs.length > 0) {
+    lines.push(`Try again from the ${joinNames(retryTabs)} ${retryTabs.length === 1 ? 'tab' : 'tabs'}.`);
+  }
+  if (errors.cv) lines.push('The CV tab shows your base CV. To tailor it, paste the job ad again for a new kit.');
   if (opts.creditsRefunded > 0) lines.push(`We refunded ${formatCredits(opts.creditsRefunded)}.`);
   return `${lines[0]}\n\n${lines.slice(1).join(' ')}`;
 }

@@ -1364,6 +1364,16 @@ function mergeOmitted(modelAuthored: string[], detected: string[]): string[] {
   return merged.slice(0, SECTION_MAX_OMITTED);
 }
 
+/** The context with every kit document removed, so a run can only return what it wrote. */
+function withoutKitDocuments(context: MasterContext): MasterContext {
+  delete context.optimizedCVData;
+  delete context.optimizedCV;
+  delete context.coverLetter;
+  delete context.applicationEmail;
+  delete context.followUpEmail;
+  return context;
+}
+
 // =====================================================
 // UNIFIED WRITER AGENT
 // =====================================================
@@ -1603,11 +1613,17 @@ export const unifiedWriterAgent = {
    * Skips Phase 1 (CV parsing, JD parsing, skill matching) - reuses cached context
    */
   async runWithContext(
-    context: MasterContext,
+    cachedContext: MasterContext,
     emit: AgentEventHandler,
     generationContext?: LlmGenerationContext,
   ): Promise<AgentResult<OrchestrationResult>> {
     const startTime = Date.now();
+    // The cached context can be shared: the isolate cache hands the same
+    // object to every request for this contextId. Writing documents onto it
+    // would let one run read another's output for a document that failed in
+    // its own run, and that output would then ship, persist and be refunded.
+    // So each run works on its own copy, with no documents on it.
+    const context = withoutKitDocuments(structuredClone(cachedContext));
 
     // Phase 2 only. Each document succeeds or fails on its own (see
     // generateKitDocuments); only a run where all four fail is a failure.

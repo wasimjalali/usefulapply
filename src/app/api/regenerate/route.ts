@@ -227,6 +227,8 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('[Regenerate API] Using language:', detectedLanguage);
+    // What generated_artifacts holds now, including the language just written above.
+    const currentArtifacts = storedLanguage ? storedArtifacts : { ...(storedArtifacts ?? {}), detectedLanguage };
 
     // Build MasterContext from the provided data
     // CRITICAL: masterCV, verifiedMetrics, and match must be passed through
@@ -312,7 +314,10 @@ export async function POST(request: NextRequest) {
         body: coverLetter,
         updatedAt: new Date().toISOString(),
       };
-      const persist = await updateSession(user.id, session.id, { cover_letter: persistedCoverLetter });
+      const persist = await updateSession(user.id, session.id, {
+        cover_letter: persistedCoverLetter,
+        ...clearedDocumentError(currentArtifacts, 'coverLetter'),
+      });
       if (persist.error) throw persist.error;
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({
@@ -332,6 +337,7 @@ export async function POST(request: NextRequest) {
           body: email.body,
           attachmentNote: 'Please find my CV and cover letter attached.',
         },
+        ...clearedDocumentError(currentArtifacts, 'applicationEmail'),
       });
       if (persist.error) throw persist.error;
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
@@ -358,6 +364,7 @@ export async function POST(request: NextRequest) {
           body: followUpEmail.body,
           recommendedDelay: followUpEmail.recommendedDelay || 5,
         },
+        ...clearedDocumentError(currentArtifacts, 'followUpEmail'),
       });
       if (persist.error) throw persist.error;
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
@@ -476,6 +483,24 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * A partial kit marks its failed documents in generated_artifacts. Once a
+ * regenerate writes one, its mark goes too, so a reload never shows an error
+ * state for a document that now exists. Returns nothing to write when there
+ * was no mark.
+ */
+function clearedDocumentError(
+  artifacts: unknown,
+  document: 'coverLetter' | 'applicationEmail' | 'followUpEmail',
+): { generated_artifacts?: Record<string, unknown> } {
+  const stored = readRecord(artifacts);
+  const errors = readRecord(stored?.documentErrors);
+  if (!stored || !errors || !(document in errors)) return {};
+  const rest = { ...errors };
+  delete rest[document];
+  return { generated_artifacts: { ...stored, documentErrors: rest } };
 }
 
 function readString(value: unknown): string {

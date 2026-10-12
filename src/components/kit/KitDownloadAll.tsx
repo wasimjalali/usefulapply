@@ -2,11 +2,12 @@
 
 import { Download, Loader2 } from 'lucide-react';
 import { useSessionStore } from '@/store/useSessionStore';
+import { sessionHasKit } from '@/components/shell/application-status';
 import { useUIStore } from '@/store/useUIStore';
 
 /** The one outlined "Download all" on the kit tab row. The work happens in KitExportHost. */
 export function KitDownloadAll() {
-  const hasKit = useSessionStore((s) => Boolean(s.currentSession?.generatedCV));
+  const hasKit = useSessionStore((s) => sessionHasKit(s.currentSession));
   const requestKitDownload = useUIStore((s) => s.requestKitDownload);
   const busy = useUIStore((s) => s.kitDownloadBusy);
 

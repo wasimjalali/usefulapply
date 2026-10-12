@@ -143,6 +143,34 @@ function buildContext() {
   };
 }
 
+/**
+ * One regenerate per document per application at a time, across every caller
+ * (a tab's Try again, the chat's Rewrite it). Module level on purpose: a
+ * component's own state is lost when a tab switch remounts it, and a second
+ * click there would start a second paid request with a fresh request id.
+ */
+const inFlightRegens = new Set<string>();
+const inFlightListeners = new Set<() => void>();
+
+function regenKey(sessionId: string, target: RegenTarget): string {
+  return `${sessionId}:${target}`;
+}
+
+function setRegenInFlight(key: string, running: boolean) {
+  if (running) inFlightRegens.add(key);
+  else inFlightRegens.delete(key);
+  for (const listener of inFlightListeners) listener();
+}
+
+export function subscribeRegenInFlight(listener: () => void): () => void {
+  inFlightListeners.add(listener);
+  return () => { inFlightListeners.delete(listener); };
+}
+
+export function isRegenInFlight(sessionId: string | null | undefined, target: RegenTarget): boolean {
+  return Boolean(sessionId) && inFlightRegens.has(regenKey(sessionId as string, target));
+}
+
 /** The kit document a regenerate target writes. */
 const REGEN_KIT_DOCUMENT: Record<RegenTarget, KitDocument> = {
   'cover-letter': 'coverLetter',
@@ -197,6 +225,24 @@ export async function regenerateDocument(
   // means: a message of only punctuation must not travel as an instruction.
   const cleanInstruction = instruction ? flattenInstruction(instruction).slice(0, MAX_INSTRUCTION_CHARS) : '';
 
+  const key = regenKey(sessionId, target);
+  if (inFlightRegens.has(key)) return { ok: false, code: 'REQUEST_IN_PROGRESS' };
+  setRegenInFlight(key, true);
+  try {
+    return await requestRegeneration(target, meta, context, sessionId, requestId, cleanInstruction);
+  } finally {
+    setRegenInFlight(key, false);
+  }
+}
+
+async function requestRegeneration(
+  target: RegenTarget,
+  meta: (typeof REGEN_META)[RegenTarget],
+  context: NonNullable<ReturnType<typeof buildContext>>,
+  sessionId: string,
+  requestId: string,
+  cleanInstruction: string,
+): Promise<RegenResult> {
   try {
     const response = await fetch('/api/regenerate', {
       method: 'POST',

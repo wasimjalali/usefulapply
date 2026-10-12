@@ -461,7 +461,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
               <div role="alert" className="flex-shrink-0 border-b border-cream-200 bg-cream-50 px-4 py-2.5 sm:px-6">
                 <p className="text-sm text-warm-gray">
                   <span className="font-semibold text-navy-800">We couldn&apos;t tailor your CV for this job.</span>{' '}
-                  This is your base CV.
+                  This is your base CV. To try again, paste the job ad in the chat for a new kit.
                 </p>
               </div>
             )}

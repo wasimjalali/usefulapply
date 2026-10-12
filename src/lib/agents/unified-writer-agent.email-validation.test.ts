@@ -258,7 +258,9 @@ test('a follow-up validation failure leaves the rest of the kit intact', async (
   assert.equal(result.success, true);
   assert.deepEqual(result.data?.documentErrors, { followUpEmail: 'VALIDATION_FAILED' });
   assert.deepEqual(emittedErrors, [{ step: 'follow_up', error: 'Follow-up email contained a placeholder' }]);
-  assert.equal(masterContext.coverLetter, 'Cover letter');
-  assert.equal(masterContext.applicationEmail?.subject, 'Application: Software Engineer, Ada Lovelace');
-  assert.equal(masterContext.followUpEmail, undefined);
+  assert.equal(result.data?.context.coverLetter, 'Cover letter');
+  assert.equal(result.data?.context.applicationEmail?.subject, 'Application: Software Engineer, Ada Lovelace');
+  assert.equal(result.data?.context.followUpEmail, undefined);
+  // The cached context the run was handed is never written to.
+  assert.equal(masterContext.coverLetter, undefined);
 });

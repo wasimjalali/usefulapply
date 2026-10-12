@@ -1471,7 +1471,9 @@ export interface PartialRefundResult {
  *
  * Like releaseReservation, the marker is claimed before the credits move, so
  * a crash between the two loses the refund rather than doubling it. An
- * addCredits failure is returned as an error, never swallowed.
+ * addCredits failure, returned or thrown, comes back as success: false with
+ * `refunded` set to what had already landed, so the caller never reports more
+ * or less than was paid. It is logged with the reservation, bucket and portion.
  */
 export async function refundReservationPartially(params: {
   userId: string;
@@ -1528,15 +1530,16 @@ export async function refundReservationPartially(params: {
   for (const bucket of ['addon', 'rollover', 'monthly'] as const) {
     const portion = Math.min(remaining, split[bucket]);
     if (portion <= 0) continue;
-    const added = await addCredits(reservation.user_id, portion, bucket, 'reservation_partial_refund', 'refund', description);
-    if (!added.success) {
-      console.error('[credits] partial refund credit failed after the claim:', reservation.id, bucket, portion, added.error);
-      return {
-        success: false,
-        refunded: amount - remaining,
-        alreadyRefunded: false,
-        error: added.error?.message ?? 'Partial refund failed',
-      };
+    let failure: string | null = null;
+    try {
+      const added = await addCredits(reservation.user_id, portion, bucket, 'reservation_partial_refund', 'refund', description);
+      if (!added.success) failure = added.error?.message ?? 'Partial refund failed';
+    } catch (error) {
+      failure = error instanceof Error ? error.message : 'Partial refund failed';
+    }
+    if (failure) {
+      console.error('[credits] partial refund credit failed after the claim:', reservation.id, bucket, portion, failure);
+      return { success: false, refunded: amount - remaining, alreadyRefunded: false, error: failure };
     }
     remaining -= portion;
   }

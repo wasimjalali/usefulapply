@@ -633,15 +633,18 @@ export async function POST(request: NextRequest) {
 
         // The kit payload the client and the session row both get. A partial
         // kit lists its failed documents; the missing ones are simply absent.
+        // A document listed as failed is nulled here as well, whatever the
+        // context says, so a failed document can never ship, persist and be
+        // refunded at once (defence in depth behind runWithContext's copy).
         const buildKitResults = (ctx: MasterContext, documentErrors: KitDocumentErrors) => ({
           job: ctx.job,
           companyResearch: ctx.companyResearch,
           match: ctx.match,
-          optimizedCV: ctx.optimizedCV,
-          optimizedCVData: ctx.optimizedCVData,
-          coverLetter: ctx.coverLetter,
-          applicationEmail: ctx.applicationEmail,
-          followUpEmail: ctx.followUpEmail || null,
+          optimizedCV: documentErrors.cv ? null : ctx.optimizedCV,
+          optimizedCVData: documentErrors.cv ? null : ctx.optimizedCVData,
+          coverLetter: documentErrors.coverLetter ? null : ctx.coverLetter,
+          applicationEmail: documentErrors.applicationEmail ? null : ctx.applicationEmail,
+          followUpEmail: documentErrors.followUpEmail ? null : ctx.followUpEmail || null,
           detectedLanguage: ctx.detectedLanguage,
           documentErrors,
           sourceContext: {
@@ -671,18 +674,27 @@ export async function POST(request: NextRequest) {
               amount,
               reason: `kit_documents_failed:${failed.join(',')}`,
             });
-            if (!refund.success) throw new Error(refund.error ?? 'Partial refund failed');
+            if (refund.success) return refund.refunded;
+            // A partial payout (one bucket landed, the next failed) still
+            // happened, so it is reported, never rounded down to nothing.
+            reportRefundFailure(new Error(refund.error ?? 'Partial refund failed'));
             return refund.refunded;
           } catch (refundError) {
-            console.error('[agent-v2] Partial kit refund failed:', refundError);
+            reportRefundFailure(refundError);
+            return 0;
+          }
+
+          function reportRefundFailure(refundError: unknown) {
+            console.error('[agent-v2] Partial kit refund failed:', key, amount, refundError);
             try {
               getPostHogServer().captureException(refundError as Error, distinctId, {
                 endpoint: '/api/agent-v2',
                 workflow_action: currentAction,
                 failed_documents: failed.join(','),
+                reservation_key: key,
+                refund_amount: amount,
               });
             } catch { /* ignore PostHog errors */ }
-            return 0;
           }
         };
 

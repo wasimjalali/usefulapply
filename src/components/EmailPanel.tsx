@@ -228,7 +228,11 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
           Edit
         </button>
       )}
-      <span className="flex-shrink-0 pl-1 text-[13px] text-warm-gray">Attach the CV and cover letter as PDFs when you send.</span>
+      <span className="flex-shrink-0 pl-1 text-[13px] text-warm-gray">
+        {currentSession?.coverLetter
+          ? 'Attach the CV and cover letter as PDFs when you send.'
+          : 'Attach the CV as a PDF when you send.'}
+      </span>
     </>
   );
 

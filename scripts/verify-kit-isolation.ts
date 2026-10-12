@@ -61,8 +61,13 @@ const calls: Record<Writer, number> = { cv: 0, coverLetter: 0, applicationEmail:
 const prompts: Record<Writer, string[]> = { cv: [], coverLetter: [], applicationEmail: [], followUpEmail: [], fit: [] };
 let behaviour: Record<Writer, Behaviour> = { cv: 'ok', coverLetter: 'ok', applicationEmail: 'ok', followUpEmail: 'ok', fit: 'ok' };
 
-function resetModel(next: Partial<Record<Writer, Behaviour>>) {
+// Per-call answers, consumed in call order, for scenarios where two runs
+// overlap and each must see a different outcome for the same writer.
+let queued: Partial<Record<Writer, Behaviour[]>> = {};
+
+function resetModel(next: Partial<Record<Writer, Behaviour>>, queue: Partial<Record<Writer, Behaviour[]>> = {}) {
   behaviour = { cv: 'ok', coverLetter: 'ok', applicationEmail: 'ok', followUpEmail: 'ok', fit: 'ok', ...next };
+  queued = queue;
   for (const key of Object.keys(calls) as Writer[]) {
     calls[key] = 0;
     prompts[key] = [];
@@ -167,7 +172,7 @@ const LONG_FIT = [
 ].join('\n');
 
 function answer(writer: Writer): string {
-  const mode = behaviour[writer];
+  const mode = queued[writer]?.shift() ?? behaviour[writer];
   if (mode === 'throw') throw Object.assign(new Error(`stubbed provider failure for ${writer}`), { status: 500 });
   if (writer === 'cv') return CV_JSON;
   if (writer === 'coverLetter') return LONG_LETTER;
@@ -474,6 +479,121 @@ async function main() {
     assert.equal(first.refunded, 1.5);
     assert.equal(after.total, before.total);
     return { before, after, first };
+  });
+
+  // ---- Review round 1 --------------------------------------------------------
+
+  await scenario('R1. one cached context, two runs in sequence: a failed letter never returns the earlier run\'s letter', async () => {
+    const shared = contextFor();
+    resetModel({});
+    const first = await agent.runWithContext(shared, () => undefined);
+    assert.equal(first.success, true);
+    assert.ok(first.data?.context.coverLetter);
+    resetModel({ coverLetter: 'throw' });
+    const second = await agent.runWithContext(shared, () => undefined);
+    assert.deepEqual(second.data?.documentErrors, { coverLetter: 'GENERATION_FAILED' });
+    assert.equal(second.data?.context.coverLetter, undefined);
+    assert.equal(shared.coverLetter, undefined, 'the cached context is never written to');
+    return { secondDocumentErrors: second.data?.documentErrors, secondHasLetter: Boolean(second.data?.context.coverLetter) };
+  });
+
+  await scenario('R1. one cached context, two overlapping runs: each returns only its own documents', async () => {
+    const shared = contextFor();
+    resetModel({}, { coverLetter: ['ok', 'throw'] });
+    const [a, b] = await Promise.all([
+      agent.runWithContext(shared, () => undefined),
+      agent.runWithContext(shared, () => undefined),
+    ]);
+    const runs = [a, b];
+    const failedRuns = runs.filter((run) => run.data?.documentErrors?.coverLetter);
+    const okRuns = runs.filter((run) => !run.data?.documentErrors?.coverLetter);
+    assert.equal(failedRuns.length, 1);
+    assert.equal(okRuns.length, 1);
+    assert.equal(failedRuns[0].data?.context.coverLetter, undefined);
+    assert.ok(okRuns[0].data?.context.coverLetter);
+    assert.notEqual(a.data?.context, b.data?.context);
+    assert.equal(shared.coverLetter, undefined);
+    return { coverLetterCalls: calls.coverLetter, failedRunHasLetter: Boolean(failedRuns[0].data?.context.coverLetter) };
+  });
+
+  const setBuckets = async (monthly: number, rollover: number, addon: number) => {
+    await db.prepare('UPDATE user_credits SET monthly_credits = ?, rollover_credits = ?, addon_credits = ?, version = version + 1 WHERE user_id = ?')
+      .bind(monthly, rollover, addon, userId).run();
+  };
+
+  await scenario('X1. six concurrent refunds on one captured reservation pay once', async () => {
+    await setBuckets(0, 0, 10);
+    const key = `full_application:${userId}:x1`;
+    assert.equal((await credits.reserveCredits({ userId, action: 'FULL_APPLICATION', idempotencyKey: key })).success, true);
+    await credits.captureReservation({ idempotencyKey: key, userId });
+    const before = await balance();
+    const results = await Promise.all(Array.from({ length: 6 }, () => credits.refundReservationPartially({ userId, idempotencyKey: key, amount: 0.5, reason: 'x1' })));
+    const after = await balance();
+    assert.equal(results.filter((result) => result.refunded > 0).length, 1);
+    assert.equal(after.total - before.total, 0.5);
+    return { paid: results.map((result) => result.refunded), before, after };
+  });
+
+  await scenario('X2. refunds go back last-drawn first and are capped at the charge', async () => {
+    await setBuckets(1, 0.5, 6);
+    const key = `full_application:${userId}:x2`;
+    await credits.reserveCredits({ userId, action: 'FULL_APPLICATION', idempotencyKey: key });
+    await credits.captureReservation({ idempotencyKey: key, userId });
+    const mid = await balance();
+    await credits.refundReservationPartially({ userId, idempotencyKey: key, amount: 1.0, reason: 'x2' });
+    const after = await balance();
+    assert.deepEqual({ m: after.monthly - mid.monthly, r: after.rollover - mid.rollover, a: after.addon - mid.addon }, { m: 0, r: 0.5, a: 0.5 });
+    await setBuckets(0.5, 0, 2);
+    const key2 = `generation_after_fit:${userId}:x2b`;
+    await credits.reserveCredits({ userId, action: 'GENERATION_AFTER_FIT', idempotencyKey: key2 });
+    await credits.captureReservation({ idempotencyKey: key2, userId });
+    const capped = await credits.refundReservationPartially({ userId, idempotencyKey: key2, amount: 2.0, reason: 'x2b' });
+    assert.equal(capped.refunded, 1.5);
+    assert.deepEqual(await balance(), { total: 2.5, monthly: 0.5, rollover: 0, addon: 2 });
+    return { mid, after, capped };
+  });
+
+  await scenario('X3. no partial refund on a reserved or released reservation; release after one is a no-op', async () => {
+    await setBuckets(0, 0, 10);
+    const key = `full_application:${userId}:x3`;
+    await credits.reserveCredits({ userId, action: 'FULL_APPLICATION', idempotencyKey: key });
+    const b0 = await balance();
+    assert.equal((await credits.refundReservationPartially({ userId, idempotencyKey: key, amount: 0.5, reason: 'x3' })).success, false);
+    assert.deepEqual(await balance(), b0);
+    await credits.releaseReservation({ userId, idempotencyKey: key, reason: 'x3' });
+    const b1 = await balance();
+    assert.equal((await credits.refundReservationPartially({ userId, idempotencyKey: key, amount: 0.5, reason: 'x3' })).success, false);
+    assert.deepEqual(await balance(), b1);
+    const key2 = `full_application:${userId}:x3b`;
+    await credits.reserveCredits({ userId, action: 'FULL_APPLICATION', idempotencyKey: key2 });
+    await credits.captureReservation({ idempotencyKey: key2, userId });
+    await credits.refundReservationPartially({ userId, idempotencyKey: key2, amount: 0.5, reason: 'x3b' });
+    const b2 = await balance();
+    assert.equal((await credits.releaseReservation({ userId, idempotencyKey: key2, reason: 'late' })).success, false);
+    assert.deepEqual(await balance(), b2);
+    return { b0, b1, b2 };
+  });
+
+  await scenario('X5. a thrown addCredits mid-refund is returned, not thrown, with the part that landed', async () => {
+    await setBuckets(0, 0.5, 10);
+    const key = `full_application:${userId}:x5`;
+    await credits.reserveCredits({ userId, action: 'FULL_APPLICATION', idempotencyKey: key });
+    await credits.captureReservation({ idempotencyKey: key, userId });
+    const mid = await balance();
+    await db.prepare("CREATE TRIGGER block_rollover BEFORE UPDATE ON user_credits WHEN NEW.rollover_credits > OLD.rollover_credits BEGIN SELECT RAISE(ABORT, 'rollover blocked'); END").run();
+    let first;
+    try {
+      first = await credits.refundReservationPartially({ userId, idempotencyKey: key, amount: 2.0, reason: 'x5' });
+    } finally {
+      await db.prepare('DROP TRIGGER block_rollover').run();
+    }
+    const after = await balance();
+    assert.equal(first.success, false);
+    assert.equal(first.refunded, 1.5, 'addon landed before the rollover bucket failed');
+    assert.equal(after.total - mid.total, 1.5);
+    const second = await credits.refundReservationPartially({ userId, idempotencyKey: key, amount: 2.0, reason: 'x5' });
+    assert.equal(second.alreadyRefunded, true);
+    return { mid, first, after, second };
   });
 
   await proxy.dispose();
