@@ -2,6 +2,18 @@ import { and, eq } from 'drizzle-orm';
 import { getDb, nowIso } from '../client';
 import { adminAuthEvents, llmGenerations, type Json } from '../schema';
 
+/** JSON with object keys sorted at every depth, so equal usage objects compare equal whatever their key order. */
+function canonicalJson(value: unknown): string {
+  const sort = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(sort);
+    if (v !== null && typeof v === 'object') {
+      return Object.fromEntries(Object.keys(v as Record<string, unknown>).sort().map((k) => [k, sort((v as Record<string, unknown>)[k])]));
+    }
+    return v;
+  };
+  return JSON.stringify(sort(value ?? null));
+}
+
 export type AdminAuthEventType = 'signup' | 'session_started';
 export type LlmUsageProvider = 'anthropic' | 'bedrock' | 'digitalocean' | 'workers-ai';
 
@@ -151,7 +163,7 @@ export async function completeLlmGeneration(params: {
       && row.cache_read_input_tokens === values.cache_read_input_tokens
       && row.cache_write_input_tokens === values.cache_write_input_tokens
       && row.provider_total_tokens === values.provider_total_tokens
-      && JSON.stringify(row.provider_usage) === JSON.stringify(values.provider_usage);
+      && canonicalJson(row.provider_usage) === canonicalJson(values.provider_usage);
     if (isIdenticalTerminalWrite) return;
     throw new Error('LLM generation ledger completion conflicted');
   }
@@ -219,7 +231,7 @@ export async function failLlmGeneration(params: {
       && row.cache_read_input_tokens === (params.cacheReadInputTokens ?? null)
       && row.cache_write_input_tokens === (params.cacheWriteInputTokens ?? null)
       && row.provider_total_tokens === (params.providerTotalTokens ?? null)
-      && JSON.stringify(row.provider_usage) === JSON.stringify(params.providerUsage ?? null);
+      && canonicalJson(row.provider_usage) === canonicalJson(params.providerUsage ?? null);
     if (isIdenticalTerminalWrite) return;
     throw new Error('LLM generation ledger failure update conflicted');
   }

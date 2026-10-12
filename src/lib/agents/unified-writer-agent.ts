@@ -896,53 +896,103 @@ function balancedObjectEnd(text: string, start: number): number {
   return -1;
 }
 
-// Upper bound on characters scanned while looking for objects. A real answer
+/** Index of the `]` that closes the array opening at `start`, or -1. String-aware like balancedObjectEnd. */
+function balancedArrayEnd(text: string, start: number): number {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i++) {
+    const char = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"') inString = true;
+    else if (char === '[') depth++;
+    else if (char === ']') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+// Upper bound on characters scanned while looking for JSON. A real answer
 // costs about its own length; only pathological input (thousands of unclosed
 // braces) gets near this, and then the parse fails instead of hanging.
 const JSON_SCAN_BUDGET = 5_000_000;
 
+/** One JSON-like span in the model's text, in order of appearance. */
+export type JsonScanItem =
+  | { kind: 'object'; value: Record<string, unknown> }
+  | { kind: 'array'; value: unknown[] }
+  /** A `{` that never closes or whose span does not parse. */
+  | { kind: 'broken' };
+
+function tryParseJson(span: string): unknown {
+  try {
+    return JSON.parse(span) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
- * Every top-level JSON object in the text that parses, in order. A span that
- * never closes or doesn't parse (prose such as `the subject "Dev {Remote" is
- * too long`) is dropped and the scan carries on at the next character, so it
- * can't hide a later object. The inside of an object that parsed is never a
- * candidate. Objects inside a top-level array (`[{A}, {B}]`) are ignored, so a
- * list of options is not mistaken for one answer; a bracketed prose note such
- * as `[Note: corrected]` closes its own bracket and changes nothing.
+ * Every JSON-like span in the text, in order.
+ * - A `{...}` span that parses is an object; the scan continues after it, so
+ *   its inside is never a candidate of its own.
+ * - A `{` that never closes or doesn't parse is recorded as broken, and the
+ *   scan carries on at the next character, so prose such as `the subject
+ *   "Dev {Remote" is too long` can't hide a later object.
+ * - A `[` counts only when the next non-space character is `{` and the span
+ *   parses as an array (`[{A}, {B}]`). Prose brackets ("[1", ":-[", "[Note:
+ *   corrected]") are ignored, so an unclosed one can't hide later objects.
  */
-export function findTopLevelJsonObjects(text: string): Array<Record<string, unknown>> {
-  const objects: Array<Record<string, unknown>> = [];
-  let arrayDepth = 0;
+export function scanJsonSpans(text: string): JsonScanItem[] {
+  const items: JsonScanItem[] = [];
   let budget = JSON_SCAN_BUDGET;
+  const spend = (start: number, end: number) => {
+    budget -= (end === -1 ? text.length : end + 1) - start;
+    if (budget < 0) throw new Error('JSON scan budget exceeded');
+  };
   let i = 0;
   while (i < text.length) {
     const char = text[i];
     if (char === '[') {
-      arrayDepth++;
-    } else if (char === ']') {
-      if (arrayDepth > 0) arrayDepth--;
-    } else if (char === '{') {
-      const end = balancedObjectEnd(text, i);
-      budget -= (end === -1 ? text.length : end + 1) - i;
-      if (budget < 0) throw new Error('JSON scan budget exceeded');
-      if (end !== -1) {
-        let parsed: Record<string, unknown> | null = null;
-        try {
-          // A span that starts with `{` and parses is always a plain object.
-          parsed = JSON.parse(text.slice(i, end + 1)) as Record<string, unknown>;
-        } catch {
-          parsed = null;
-        }
-        if (parsed) {
-          if (arrayDepth === 0) objects.push(parsed);
+      let next = i + 1;
+      while (next < text.length && /\s/u.test(text[next])) next++;
+      if (text[next] === '{') {
+        const end = balancedArrayEnd(text, i);
+        spend(i, end);
+        const parsed = end === -1 ? undefined : tryParseJson(text.slice(i, end + 1));
+        if (Array.isArray(parsed)) {
+          items.push({ kind: 'array', value: parsed });
           i = end + 1;
           continue;
         }
       }
+    } else if (char === '{') {
+      const end = balancedObjectEnd(text, i);
+      spend(i, end);
+      // A span that starts with `{` and parses is always a plain object.
+      const parsed = end === -1 ? undefined : tryParseJson(text.slice(i, end + 1));
+      if (parsed !== undefined) {
+        items.push({ kind: 'object', value: parsed as Record<string, unknown> });
+        i = end + 1;
+        continue;
+      }
+      items.push({ kind: 'broken' });
     }
     i++;
   }
-  return objects;
+  return items;
+}
+
+/** Every top-level JSON object in the text that parses, in order (see scanJsonSpans). */
+export function findTopLevelJsonObjects(text: string): Array<Record<string, unknown>> {
+  return scanJsonSpans(text).flatMap((item) => (item.kind === 'object' ? [item.value] : []));
 }
 
 /** How the parser tells a complete answer apart from a fragment, and then validates it. */
@@ -956,17 +1006,28 @@ export interface JsonAnswerCheck<T> {
   validate: (parsed: Record<string, unknown>) => T;
 }
 
+/** The model wrote something JSON-like after its last complete answer, such as a partial correction. */
+export class JsonAnswerCorrectedError extends Error {
+  constructor(label: string) {
+    super(`${label} had a correction after the answer`);
+    this.name = 'JsonAnswerCorrectedError';
+  }
+}
+
 /**
  * Parse the model's JSON answer. Sonnet 5.5 sometimes notices a limit it broke
  * after emitting the JSON and writes a corrected object after a short note
  * ("Wait, the subject must be 60 characters or fewer. Corrected output: {...}").
  *
- * With a check, candidates are read from last to first and anything that fails
- * the shape check (a fragment, a note, an echoed template) is skipped. The last
- * complete answer is THE answer: it alone is validated, and a validation miss is
- * thrown as is, so the email retry runs with the right reason and the CV fails
- * loud. An earlier complete answer is never used, because the model may have
- * retracted it ("Wait, I added Kubernetes, which is not in the CV").
+ * With a check, the last object that passes the shape check is THE answer, and
+ * only it is validated; an earlier complete answer is never used, because the
+ * model may have retracted it ("Wait, I added Kubernetes, which is not in the
+ * CV"). If anything JSON-like follows that answer (a partial correction such as
+ * `Corrected summary: {...}`, an unparseable corrected object, an array), the
+ * model changed its answer in a way that can't be applied safely, so this
+ * throws JsonAnswerCorrectedError: the email retry runs and the CV fails loud.
+ * The only exception is a pure format-template echo (`{"subject": "...",
+ * "body": "..."}`), which carries no content.
  *
  * Without a check, the last object wins. Errors never quote model output.
  */
@@ -983,15 +1044,26 @@ export function parseStrictJsonObject<T>(
   } else if (jsonContent.startsWith('```')) {
     jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
   }
-  const candidates = findTopLevelJsonObjects(jsonContent);
+  const items = scanJsonSpans(jsonContent);
   if (!check) {
-    if (candidates.length === 0) throw new Error(`${label} contained no JSON object`);
-    return candidates[candidates.length - 1];
+    const objects = items.flatMap((item) => (item.kind === 'object' ? [item.value] : []));
+    if (objects.length === 0) throw new Error(`${label} contained no JSON object`);
+    return objects[objects.length - 1];
   }
-  for (let i = candidates.length - 1; i >= 0; i--) {
-    if (check.shape(candidates[i])) return check.validate(candidates[i]);
+  let answerIndex = -1;
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i];
+    if (item.kind === 'object' && check.shape(item.value)) {
+      answerIndex = i;
+      break;
+    }
   }
-  throw new Error(`${label} contained no complete JSON object`);
+  if (answerIndex === -1) throw new Error(`${label} contained no complete JSON object`);
+  const correctionAfter = items
+    .slice(answerIndex + 1)
+    .some((item) => !(item.kind === 'object' && isPlaceholderTemplate(item.value)));
+  if (correctionAfter) throw new JsonAnswerCorrectedError(label);
+  return check.validate((items[answerIndex] as { value: Record<string, unknown> }).value);
 }
 
 /** Format-template values ("string", "...", "<subject>", "[Job Title]", empty), not content. */
@@ -1003,6 +1075,15 @@ function isPlaceholderValue(value: unknown): boolean {
     || /^(?:\.{2,}|…)$/u.test(v)
     || /^<[^<>]*>$/u.test(v)
     || /^\[[^[\]]*\]$/u.test(v);
+}
+
+/** An echoed format template: every string in it, at any depth, is a placeholder. */
+function isPlaceholderTemplate(value: unknown): boolean {
+  if (typeof value === 'string') return isPlaceholderValue(value);
+  if (Array.isArray(value)) return value.every(isPlaceholderTemplate);
+  if (isRecord(value)) return Object.values(value).every(isPlaceholderTemplate);
+  // Numbers, booleans and null carry no applicant content.
+  return true;
 }
 
 function isRealString(value: unknown): boolean {
@@ -1040,11 +1121,13 @@ export function isSectionAnswerShape(parsed: Record<string, unknown>): boolean {
 // listed where they start a name or a sentence ("Dr. Weber", "Ca. 60 Kunden").
 // "etc." and "usw." are left out: mid-sentence they are followed by a lowercase
 // word (covered below), and at the end of a sentence they end it. Lowercase
-// "ms", "mr" and "mrs" are left out because "200 ms." is a unit.
+// "ms", "mr" and "mrs" are left out because "200 ms." is a unit. Listed
+// abbreviations are masked before anything, digits included ("mind. 5 Jahre").
 const SENTENCE_ABBREVIATIONS = new RegExp(
   String.raw`(?<![\p{L}\p{N}])(?:`
-    + 'ca|bzw|bspw|evtl|zzgl|inkl|ggf|nr|dr|hr|fr|prof|st|co|vs|approx'
-    + '|Ca|Bzw|Bspw|Evtl|Zzgl|Inkl|Ggf|Nr|No|Dr|Hr|Fr|Fa|Prof|St|Co|Mr|Mrs|Ms|Approx'
+    + 'ca|bzw|bspw|bzgl|evtl|zzgl|inkl|insb|ggf|sog|vgl|rd|ehem|nr|dr|hr|fr|prof|st|co|vs|approx|incl|esp'
+    + '|Ca|Bzw|Bspw|Bzgl|Evtl|Zzgl|Inkl|Insb|Ggf|Vgl|Abt|Ehem|Dipl|Mag|Nr|No|Dr|Hr|Fr|Fa|Prof|St|Co'
+    + '|Mr|Mrs|Ms|Sr|Jr|Assoc|Asst|Mgr|Eng|Dept|Univ|Inst|Sgt|Mt|Approx|Incl|Esp'
     + '|Jan|Feb|Mar|Mär|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Okt|Nov|Dec|Dez'
     + String.raw`)\.`,
   'gu',
@@ -1052,14 +1135,20 @@ const SENTENCE_ABBREVIATIONS = new RegExp(
 // German compound titles, one token each ("Dipl.-Ing.", "Dr.-Ing.", "Dipl.-Kfm.").
 const SENTENCE_COMPOUND_TITLES = /(?<![\p{L}\p{N}])(?:Dipl|Dr|Prof)\.-\p{Lu}\p{Ll}{1,5}\./gu;
 // "Mio.", "Mrd." and "Tsd." after a number ("3 Mio. Nutzer", "4,2 Mio. EUR") or before a currency.
-const SENTENCE_AMOUNT_AFTER_NUMBER = /(?<=\p{N}\s*)(?:Mio|Mrd|Tsd)\./gu;
+const SENTENCE_AMOUNT_AFTER_NUMBER = /(?<=\p{N}\s{0,3})(?:Mio|Mrd|Tsd)\./gu;
+// "mind.", "max." and "min." only before a number ("mind. 5 Jahre", "max. 20 Kunden"):
+// "in mind." and "Max." are ordinary English sentence ends.
+const SENTENCE_LIMIT_ABBREVIATIONS = /(?<![\p{L}\p{N}])(?:mind|max|min|Mind|Max|Min)\.(?=\s?\p{N})/gu;
+// German "s." as in "s. Anhang" (not after an apostrophe, so "it's." still ends a sentence).
+const SENTENCE_GERMAN_SIEHE = /(?<![\p{L}\p{N}'’])s\.(?=\s)/gu;
 const SENTENCE_AMOUNT_BEFORE_CURRENCY = new RegExp(
-  String.raw`(?<![\p{L}\p{N}])(?:Mio|Mrd|Tsd)\.(?=\s*(?:(?:EUR|Euro|USD|CHF|GBP|Dollar|Franken)(?!\p{L})|[€$£]))`,
+  String.raw`(?<![\p{L}\p{N}])(?:Mio|Mrd|Tsd)\.(?=\s{0,3}(?:(?:EUR|Euro|USD|CHF|GBP|Dollar|Franken)(?!\p{L})|[€$£]))`,
   'gu',
 );
-// Two-part abbreviations, with or without the inner space ("z. B.", "e.g.").
+// Two- and three-part abbreviations, with or without the inner space
+// ("z. B.", "e.g.", "z. T.", "v. a.", "u. U.", "i. A.", "i. d. R.", "s. o.").
 const SENTENCE_TWO_PART_ABBREVIATIONS = new RegExp(
-  String.raw`(?<![\p{L}\p{N}])(?:z\.\s?B|Z\.\s?B|e\.\s?g|E\.\s?g|i\.\s?e|I\.\s?e|d\.\s?h|D\.\s?h|u\.\s?a|U\.\s?a)\.`,
+  String.raw`(?<![\p{L}\p{N}])(?:i\.\s?d\.\s?R|I\.\s?d\.\s?R|z\.\s?B|Z\.\s?B|z\.\s?T|Z\.\s?T|e\.\s?g|E\.\s?g|i\.\s?e|I\.\s?e|d\.\s?h|D\.\s?h|u\.\s?a|U\.\s?a|u\.\s?U|U\.\s?U|v\.\s?a|V\.\s?a|i\.\s?A|I\.\s?A|s\.\s?o|s\.\s?u)\.`,
   'gu',
 );
 // Degrees and similar dotted tokens ("M.Sc.", "Ph.D.", "U.S."), plus the spaced
@@ -1073,9 +1162,9 @@ const SENTENCE_INITIALS = /(?<![\p{L}\p{N}])\p{Lu}\.(?=\s+\p{Lu})/gu;
 // a 1 or 2 digit number after a German article or preposition, at the start of a
 // clause, or before a German month name. Four-digit years ("in 2019. 2023 was")
 // and English counts ("a team of 5. I shipped") still end a sentence.
-const GERMAN_ORDINAL_CONTEXT_WORDS = 'am|ab|bis|seit|vom|zum|zur|im|um|nach|vor|als|dem|den|der|die|das|des|ein|eine|einem|einen|einer|mein|meine|meinem|meinen|meiner|ihr|ihre|ihrem|ihren|unser|unsere|unserem|unseren|jedem|jeden|jeder|Am|Ab|Bis|Seit|Vom|Zum|Zur|Im|Nach|Vor|Als|Dem|Den|Der|Die|Das|Ein|Eine|Mein|Meine';
+const GERMAN_ORDINAL_CONTEXT_WORDS = 'am|ab|bis|seit|vom|zum|zur|im|um|nach|vor|als|dem|den|der|die|das|des|ein|eine|einem|einen|einer|mein|meine|meinem|meinen|meiner|ihr|ihre|ihrem|ihren|unser|unsere|unserem|unseren|jedem|jeden|jeder|jede|jedes|beim|ins|fürs|diese|dieser|diesem|diesen|Am|Ab|Bis|Seit|Vom|Zum|Zur|Im|Nach|Vor|Als|Dem|Den|Der|Die|Das|Ein|Eine|Mein|Meine|Beim|Ins|Fürs|Jede|Jedes|Jeden|Jeder|Diese|Dieser|Diesem|Diesen';
 const SENTENCE_GERMAN_ORDINALS = new RegExp(
-  String.raw`(?<=(?:(?:^|[\s(])(?:${GERMAN_ORDINAL_CONTEXT_WORDS})\s+|(?:^|[,;:(])\s*)\p{N}{1,2})\.(?=\s+\p{Lu})`,
+  String.raw`(?<=(?:(?:^|[\s(])(?:${GERMAN_ORDINAL_CONTEXT_WORDS})\s{1,3}|(?:^|[,;:(])\s{0,3})\p{N}{1,2})\.(?=\s\p{Lu})`,
   'gu',
 );
 const SENTENCE_ORDINAL_BEFORE_MONTH = /(?<=(?:^|[^\p{N}.,])\p{N}{1,2})\.(?=\s+(?:Januar|Jänner|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)(?!\p{L}))/gu;
@@ -1091,6 +1180,8 @@ function maskNonBoundaryPeriods(value: string): string {
     .replace(SENTENCE_AMOUNT_AFTER_NUMBER, maskAll)
     .replace(SENTENCE_AMOUNT_BEFORE_CURRENCY, maskAll)
     .replace(SENTENCE_ABBREVIATIONS, maskAll)
+    .replace(SENTENCE_GERMAN_SIEHE, maskAll)
+    .replace(SENTENCE_LIMIT_ABBREVIATIONS, maskAll)
     .replace(SENTENCE_GERMAN_ORDINALS, NOT_A_BOUNDARY)
     .replace(SENTENCE_ORDINAL_BEFORE_MONTH, NOT_A_BOUNDARY)
     .replace(SENTENCE_INITIALS, maskAll)
@@ -1105,7 +1196,9 @@ function maskNonBoundaryPeriods(value: string): string {
  * since a boundary needs whitespace after it.
  */
 export function countSentences(value: string): number {
-  return maskNonBoundaryPeriods(value)
+  // Whitespace runs collapse first: the counter only needs word boundaries, and
+  // long runs would otherwise make the lookarounds slow.
+  return maskNonBoundaryPeriods(value.replace(/\s+/gu, ' '))
     .split(/[.!?]+(?=\s|$)/u)
     .map((part) => part.trim())
     .filter(Boolean).length;
@@ -1126,8 +1219,11 @@ const EMAIL_CLOSINGS = [
   'cordiali saluti', 'distinti saluti', 'saluti',
   'met vriendelijke groet', 'met vriendelijke groeten', 'vriendelijke groet', 'hartelijke groet', 'groeten',
 ];
-// A name of up to five capitalised words or initials ("Ada Lovelace", "Dr. Jonas Hartmann, M.Sc.").
-const SIGNATURE_NAME = String.raw`\p{Lu}[\p{L}'’.\-]*(?:[\s,]+\p{Lu}[\p{L}'’.\-]*){0,4}`;
+// A name of up to five capitalised words or initials, with lowercase name
+// particles and an optional short note in parentheses ("Ada Lovelace",
+// "Dr. Jonas Hartmann, M.Sc.", "Ludwig van Beethoven", "Ada Lovelace (she/her)").
+const NAME_PARTICLE = '(?:van|von|de|der|den|du|da|di|la|le|zu|ten|ter)';
+const SIGNATURE_NAME = String.raw`\p{Lu}[\p{L}'’.\-]*(?:[\s,]+(?:${NAME_PARTICLE}\s+){0,2}\p{Lu}[\p{L}'’.\-]*){0,4}(?:\s*\([^()]{1,30}\))?`;
 const CLOSING_THEN_PUNCTUATION = new RegExp(String.raw`^[,.!]\s*(?:${SIGNATURE_NAME})?$`, 'u');
 const CLOSING_THEN_NAME = new RegExp(String.raw`^${SIGNATURE_NAME}$`, 'u');
 
@@ -1138,6 +1234,8 @@ const CLOSING_THEN_NAME = new RegExp(String.raw`^${SIGNATURE_NAME}$`, 'u');
  * Berlin", "Best, I can start in May") makes it a body line.
  */
 function isEmailClosingLine(line: string): boolean {
+  // A sign-off line is short; the cap also keeps the name pattern cheap.
+  if (line.length > 100) return false;
   const lower = line.toLocaleLowerCase();
   return EMAIL_CLOSINGS.some((phrase) => {
     if (!lower.startsWith(phrase)) return false;
@@ -1149,9 +1247,9 @@ function isEmailClosingLine(line: string): boolean {
   });
 }
 
-/** A short line with no sentence in it: a name, title, phone number, email or URL. */
-function isSignatureLine(line: string): boolean {
-  return line.length <= 60 && !/[.!?](?=\s|$)/u.test(maskNonBoundaryPeriods(line));
+/** A postscript line after the signature ("P.S.", "P. S.", "PS:", "PPS"). */
+function isPostscriptLine(line: string): boolean {
+  return /^(?:p\.\s?p\.\s?s\.|p\.\s?s\.|pps\b|ps\s?:)/iu.test(line);
 }
 
 /** A short greeting line ending in "," or "!" with no other sentence punctuation. */
@@ -1163,18 +1261,19 @@ function isGreetingLine(line: string): boolean {
  * The email body without its greeting and sign-off, for the sentence and word
  * limits. The greeting is a short first line ending in "," or "!" (or, in
  * emails of four or more lines, the first line). The closing is a closing line
- * among the last four lines; it and the name and contact lines after it are
- * dropped, while any real sentence after it (a P.S.) still counts. Without a
- * recognised closing, the last two lines of a four-line or longer email are
+ * among the last six lines. It and every line after it are signature (name,
+ * title, "Tel. +49 ...", "Hauptstr. 5", "John Smith Jr."), except a postscript:
+ * from a line starting with "P.S.", "PS:" or "PPS" on, the lines count. Without
+ * a recognised closing, the last two lines of a four-line or longer email are
  * treated as closing and name. Never drops the body itself.
  */
 export function emailContentText(value: string): string {
   const lines = value.split('\n').map((line) => line.trim()).filter(Boolean);
   const start = lines.length > 1 && (isGreetingLine(lines[0]) || lines.length >= 4) ? 1 : 0;
-  for (let i = lines.length - 1; i >= Math.max(start, lines.length - 4); i--) {
+  for (let i = lines.length - 1; i >= Math.max(start, lines.length - 6); i--) {
     if (!isEmailClosingLine(lines[i])) continue;
-    const afterClosing = lines.slice(i + 1).filter((line) => !isSignatureLine(line));
-    return [...lines.slice(start, i), ...afterClosing].join(' ');
+    const postscript = lines.findIndex((line, index) => index > i && isPostscriptLine(line));
+    return [...lines.slice(start, i), ...(postscript === -1 ? [] : lines.slice(postscript))].join(' ');
   }
   const end = lines.length >= 4 ? lines.length - 2 : lines.length;
   return lines.slice(start, Math.max(start, end)).join(' ');
@@ -1260,6 +1359,9 @@ function parseAndValidateEmail<T>(
     return parseStrictJsonObject(content, responseLabel, { shape: isEmailAnswerShape, validate });
   } catch (error) {
     if (error instanceof EmailValidationError) throw error;
+    if (error instanceof JsonAnswerCorrectedError) {
+      throw new EmailValidationError(`${responseLabel} must be one complete JSON object with nothing after it`);
+    }
     // Keep correction details fixed for anything that isn't a validation miss.
     throw new EmailValidationError(`${responseLabel} must be a valid JSON object`);
   }
