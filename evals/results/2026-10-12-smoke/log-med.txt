@@ -1,0 +1,45 @@
+arm sonnet55-medium: 2 kits to run (0 already done), concurrency 4, prompt variant sonnet55
+[UsefulApply] Extracted 8 verified metrics from source CVs
+[UsefulApply] LLM skill match: 24% (5 requirements matched, 0 claimable evidence items, 7 missing)
+[UnifiedAgent] Generating structured CV data in language: en
+[UsefulApply] Extracted 7 verified metrics from source CVs
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 1
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 2
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 3
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 4
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant languages 5
+[UsefulApply] LLM skill match: 84% (14 requirements matched, 2 claimable evidence items, 0 missing)
+[UnifiedAgent] Extracted JSON from position 0 to 4914
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 3
+  - Skill categories: 3
+  - Projects: 0
+  - Additional Info: 1
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating structured CV data in language: de
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[1/2] syn-01 rep1 complete 37s calls=10
+[UnifiedAgent] Extracted JSON from position 0 to 8058
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 2
+  - Additional Info: 3
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: de
+[UnifiedAgent] Generating email in language: de
+[UnifiedAgent] Generating follow-up email in language: de
+[UnifiedAgent] Retrying follow-up email response after validation miss: Follow-up email subject was empty or exceeded 60 characters
+[2/2] own-11 rep1 partial 121s calls=11 failures=write_follow_up_email
+prompt variant files used: /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/cv-prompt.ts, /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/cover-letter-prompt.ts, /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/email-prompts.ts, /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/fit-assessment-prompt.ts
+done in 121s

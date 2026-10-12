@@ -1,0 +1,29 @@
+Tomas Brandt
+Financial Analyst
+tomas.brandt@example.com | +1 555 0123 | Chicago, IL, USA
+
+PROFILE
+Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting for manufacturing and retail businesses. Strong in Excel and Power BI, working towards my ACCA qualification.
+
+EXPERIENCE
+Financial Analyst | Calder Industrial Components (manufacturing, 900 staff) | Mar 2022 - Present
+- Own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD
+- Improved forecast accuracy for the larger unit from 88% to 96% by rebuilding the model around order backlog
+- Shortened month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA
+- Build Power BI dashboards on SAP data for plant managers
+
+Junior Financial Analyst | Redfern Stores (retail chain, 60 stores) | Sep 2019 - Feb 2022
+- Prepared weekly store P&L packs and the annual budget for the regional team
+- Found a recurring supplier rebate that was not being claimed, worth about 120,000 USD a year
+
+Finance Intern | Lakeshore Logistics | Jun 2018 - Aug 2018
+- Reconciled freight invoices and supported the audit file
+
+EDUCATION
+B.S. Finance | University of Illinois Chicago | 2015 - 2019
+ACCA: 9 of 13 papers passed (in progress)
+
+SKILLS
+Excel (advanced: INDEX/MATCH, pivot tables, VBA), Power BI, SAP (reporting), basic SQL
+Financial skills: budgeting, rolling forecasts, variance analysis, working capital, management reporting
+Languages: English (native), German (basic)

@@ -1,0 +1,441 @@
+{
+ "run": "2026-10-12-sonnet-eval",
+ "mode": "chain",
+ "note": "Every arm ran the whole kit itself.",
+ "arms": {
+  "sonnet-4.6": {
+   "dir": "sonnet46-api",
+   "deterministic_present": true,
+   "kits_scored": 30,
+   "deterministic_fabrication_findings_per_kit": 6.533333333333333,
+   "deterministic_failure_counts": {
+    "F1": 30,
+    "F8": 23,
+    "F6": 29,
+    "F2": 25,
+    "F18": 3,
+    "F4": 7,
+    "F7": 10,
+    "F3": 17,
+    "F9": 6
+   },
+   "latency_clean_kit": {
+    "n": 20,
+    "kit_ms_p50": 102306.5,
+    "kit_ms_p95": 178057.45
+   },
+   "latency_clean_per_task": [
+    {
+     "task": "parse_cv",
+     "n": 20,
+     "p50_ms": 21600.5,
+     "p95_ms": 42446.95
+    },
+    {
+     "task": "extract_applicant",
+     "n": 20,
+     "p50_ms": 8069.5,
+     "p95_ms": 45083.65
+    },
+    {
+     "task": "parse_job",
+     "n": 20,
+     "p50_ms": 11118.5,
+     "p95_ms": 16260.4
+    },
+    {
+     "task": "skill_matching",
+     "n": 20,
+     "p50_ms": 16062,
+     "p95_ms": 27622.700000000008
+    },
+    {
+     "task": "extract_metrics",
+     "n": 20,
+     "p50_ms": 4881,
+     "p95_ms": 20691.250000000004
+    },
+    {
+     "task": "fit_assessment",
+     "n": 20,
+     "p50_ms": 5547.5,
+     "p95_ms": 8017.750000000001
+    },
+    {
+     "task": "optimize_cv",
+     "n": 20,
+     "p50_ms": 36787,
+     "p95_ms": 69870.3
+    },
+    {
+     "task": "write_cover_letter",
+     "n": 20,
+     "p50_ms": 10049.5,
+     "p95_ms": 16972.5
+    },
+    {
+     "task": "write_email",
+     "n": 24,
+     "p50_ms": 5981,
+     "p95_ms": 7811.599999999999
+    },
+    {
+     "task": "write_follow_up_email",
+     "n": 39,
+     "p50_ms": 5193,
+     "p95_ms": 6738.900000000001
+    }
+   ],
+   "tokens_per_kit": {
+    "input": 44580.53333333333,
+    "output": 9318.666666666666,
+    "cache_read": 16279.5,
+    "cache_write": 0
+   },
+   "cost_usd_per_kit": 0.27840545,
+   "calls": 337,
+   "refusal_rate": 0,
+   "truncation_rate": 0,
+   "failed_call_rate": 0
+  },
+  "5.5-low": {
+   "dir": "sonnet55-low",
+   "deterministic_present": true,
+   "kits_scored": 30,
+   "deterministic_fabrication_findings_per_kit": 3.6,
+   "deterministic_failure_counts": {
+    "F1": 30,
+    "F6": 28,
+    "F4": 13,
+    "F18": 6,
+    "F8": 2,
+    "F12": 3,
+    "F14": 3,
+    "F9": 6,
+    "F2": 8,
+    "F3": 5
+   },
+   "latency_clean_kit": {
+    "n": 20,
+    "kit_ms_p50": 38351,
+    "kit_ms_p95": 69529.1
+   },
+   "latency_clean_per_task": [
+    {
+     "task": "parse_cv",
+     "n": 20,
+     "p50_ms": 7212,
+     "p95_ms": 11980.9
+    },
+    {
+     "task": "extract_applicant",
+     "n": 20,
+     "p50_ms": 4783.5,
+     "p95_ms": 11627.65
+    },
+    {
+     "task": "parse_job",
+     "n": 20,
+     "p50_ms": 4431,
+     "p95_ms": 7807.900000000004
+    },
+    {
+     "task": "skill_matching",
+     "n": 20,
+     "p50_ms": 5338,
+     "p95_ms": 7783.150000000001
+    },
+    {
+     "task": "extract_metrics",
+     "n": 20,
+     "p50_ms": 3143,
+     "p95_ms": 7473.5
+    },
+    {
+     "task": "fit_assessment",
+     "n": 20,
+     "p50_ms": 2706.5,
+     "p95_ms": 6176.700000000001
+    },
+    {
+     "task": "optimize_cv",
+     "n": 20,
+     "p50_ms": 10890,
+     "p95_ms": 22058.450000000008
+    },
+    {
+     "task": "write_cover_letter",
+     "n": 20,
+     "p50_ms": 4960.5,
+     "p95_ms": 13462.8
+    },
+    {
+     "task": "write_email",
+     "n": 25,
+     "p50_ms": 2911,
+     "p95_ms": 9657.199999999995
+    },
+    {
+     "task": "write_follow_up_email",
+     "n": 25,
+     "p50_ms": 2631,
+     "p95_ms": 3598.7999999999993
+    }
+   ],
+   "tokens_per_kit": {
+    "input": 55246.066666666666,
+    "output": 9950.566666666668,
+    "cache_read": 21913.733333333334,
+    "cache_write": 0
+   },
+   "cost_usd_per_kit": 0.21438054666666673,
+   "calls": 319,
+   "refusal_rate": 0,
+   "truncation_rate": 0,
+   "failed_call_rate": 0
+  },
+  "5.5-medium": {
+   "dir": "sonnet55-medium",
+   "deterministic_present": true,
+   "kits_scored": 30,
+   "deterministic_fabrication_findings_per_kit": 3.8666666666666667,
+   "deterministic_failure_counts": {
+    "F1": 30,
+    "F6": 29,
+    "F4": 12,
+    "F8": 3,
+    "F12": 2,
+    "F14": 2,
+    "F18": 2,
+    "F16": 1,
+    "F2": 10,
+    "F9": 6,
+    "F3": 5
+   },
+   "latency_clean_kit": {
+    "n": 20,
+    "kit_ms_p50": 45140.5,
+    "kit_ms_p95": 86359.5
+   },
+   "latency_clean_per_task": [
+    {
+     "task": "parse_cv",
+     "n": 20,
+     "p50_ms": 7386.5,
+     "p95_ms": 12073.800000000001
+    },
+    {
+     "task": "extract_applicant",
+     "n": 20,
+     "p50_ms": 4666.5,
+     "p95_ms": 9997.750000000002
+    },
+    {
+     "task": "parse_job",
+     "n": 20,
+     "p50_ms": 4445,
+     "p95_ms": 7493
+    },
+    {
+     "task": "skill_matching",
+     "n": 20,
+     "p50_ms": 5596,
+     "p95_ms": 12615.000000000005
+    },
+    {
+     "task": "extract_metrics",
+     "n": 20,
+     "p50_ms": 3254.5,
+     "p95_ms": 8161.7
+    },
+    {
+     "task": "fit_assessment",
+     "n": 20,
+     "p50_ms": 2721.5,
+     "p95_ms": 7505.300000000001
+    },
+    {
+     "task": "optimize_cv",
+     "n": 20,
+     "p50_ms": 14181.5,
+     "p95_ms": 34328.1
+    },
+    {
+     "task": "write_cover_letter",
+     "n": 20,
+     "p50_ms": 5554,
+     "p95_ms": 14396.15
+    },
+    {
+     "task": "write_email",
+     "n": 26,
+     "p50_ms": 3067.5,
+     "p95_ms": 11002
+    },
+    {
+     "task": "write_follow_up_email",
+     "n": 22,
+     "p50_ms": 2800,
+     "p95_ms": 3181.25
+    }
+   ],
+   "tokens_per_kit": {
+    "input": 54773.8,
+    "output": 10904.066666666668,
+    "cache_read": 21572.966666666667,
+    "cache_write": 0
+   },
+   "cost_usd_per_kit": 0.22290285999999998,
+   "calls": 316,
+   "refusal_rate": 0,
+   "truncation_rate": 0,
+   "failed_call_rate": 0
+  }
+ },
+ "comparisons": [
+  {
+   "name": "4.6 vs 5.5-low",
+   "a": "sonnet46-api",
+   "b": "sonnet55-low",
+   "judged_pairs": 150,
+   "judged_kits": 30,
+   "by_doc_type": {
+    "cv": {
+     "n": 30,
+     "a_wins": 0,
+     "ties": 0,
+     "b_wins": 30,
+     "passes_disagreed": 0
+    },
+    "cover_letter": {
+     "n": 30,
+     "a_wins": 0,
+     "ties": 2,
+     "b_wins": 28,
+     "passes_disagreed": 2
+    },
+    "email": {
+     "n": 30,
+     "a_wins": 14,
+     "ties": 2,
+     "b_wins": 14,
+     "passes_disagreed": 1
+    },
+    "follow_up": {
+     "n": 30,
+     "a_wins": 2,
+     "ties": 4,
+     "b_wins": 24,
+     "passes_disagreed": 3
+    },
+    "fit": {
+     "n": 30,
+     "a_wins": 6,
+     "ties": 3,
+     "b_wins": 21,
+     "passes_disagreed": 3
+    }
+   },
+   "judge_fabrications_per_kit": {
+    "a": 16.6,
+    "b": 5.333333333333333
+   }
+  },
+  {
+   "name": "4.6 vs 5.5-medium",
+   "a": "sonnet46-api",
+   "b": "sonnet55-medium",
+   "judged_pairs": 150,
+   "judged_kits": 30,
+   "by_doc_type": {
+    "cv": {
+     "n": 30,
+     "a_wins": 0,
+     "ties": 1,
+     "b_wins": 29,
+     "passes_disagreed": 1
+    },
+    "cover_letter": {
+     "n": 30,
+     "a_wins": 2,
+     "ties": 0,
+     "b_wins": 28,
+     "passes_disagreed": 0
+    },
+    "email": {
+     "n": 30,
+     "a_wins": 11,
+     "ties": 0,
+     "b_wins": 19,
+     "passes_disagreed": 0
+    },
+    "follow_up": {
+     "n": 30,
+     "a_wins": 2,
+     "ties": 3,
+     "b_wins": 25,
+     "passes_disagreed": 3
+    },
+    "fit": {
+     "n": 30,
+     "a_wins": 9,
+     "ties": 3,
+     "b_wins": 18,
+     "passes_disagreed": 3
+    }
+   },
+   "judge_fabrications_per_kit": {
+    "a": 16.1,
+    "b": 6.033333333333333
+   }
+  },
+  {
+   "name": "5.5-low vs 5.5-medium",
+   "a": "sonnet55-low",
+   "b": "sonnet55-medium",
+   "judged_pairs": 150,
+   "judged_kits": 30,
+   "by_doc_type": {
+    "cv": {
+     "n": 30,
+     "a_wins": 15,
+     "ties": 5,
+     "b_wins": 10,
+     "passes_disagreed": 5
+    },
+    "cover_letter": {
+     "n": 30,
+     "a_wins": 13,
+     "ties": 7,
+     "b_wins": 10,
+     "passes_disagreed": 7
+    },
+    "email": {
+     "n": 30,
+     "a_wins": 8,
+     "ties": 5,
+     "b_wins": 17,
+     "passes_disagreed": 4
+    },
+    "follow_up": {
+     "n": 30,
+     "a_wins": 9,
+     "ties": 8,
+     "b_wins": 13,
+     "passes_disagreed": 6
+    },
+    "fit": {
+     "n": 30,
+     "a_wins": 21,
+     "ties": 3,
+     "b_wins": 6,
+     "passes_disagreed": 3
+    }
+   },
+   "judge_fabrications_per_kit": {
+    "a": 5.1,
+    "b": 6.266666666666667
+   }
+  }
+ ]
+}

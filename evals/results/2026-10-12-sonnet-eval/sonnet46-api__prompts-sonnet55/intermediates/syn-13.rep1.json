@@ -1,0 +1,634 @@
+{
+ "case_id": "syn-13",
+ "rep": 1,
+ "arm": "sonnet46-api",
+ "detectedLanguage": "en",
+ "applicant": {
+  "name": "Tomas Brandt",
+  "email": "tomas.brandt@example.com",
+  "phone": "+1 555 0123",
+  "address": "Chicago, IL, USA",
+  "headline": "Financial Analyst",
+  "skills": [
+   "budgeting",
+   "rolling forecasts",
+   "variance analysis",
+   "working capital",
+   "management reporting",
+   "month-end reporting",
+   "forecasting"
+  ],
+  "tools": [
+   "Excel (advanced: INDEX/MATCH, pivot tables, VBA)",
+   "Power BI",
+   "SAP (reporting)",
+   "basic SQL"
+  ],
+  "languages": [
+   "English (native)",
+   "German (basic)"
+  ],
+  "experiences": [
+   {
+    "company": "Calder Industrial Components",
+    "title": "Financial Analyst",
+    "startDate": "Mar 2022",
+    "endDate": "Present",
+    "bullets": [
+     "Own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD",
+     "Improved forecast accuracy for the larger unit from 88% to 96% by rebuilding the model around order backlog",
+     "Shortened month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA",
+     "Build Power BI dashboards on SAP data for plant managers"
+    ]
+   },
+   {
+    "company": "Redfern Stores",
+    "title": "Junior Financial Analyst",
+    "startDate": "Sep 2019",
+    "endDate": "Feb 2022",
+    "bullets": [
+     "Prepared weekly store P&L packs and the annual budget for the regional team",
+     "Found a recurring supplier rebate that was not being claimed, worth about 120,000 USD a year"
+    ]
+   },
+   {
+    "company": "Lakeshore Logistics",
+    "title": "Finance Intern",
+    "startDate": "Jun 2018",
+    "endDate": "Aug 2018",
+    "bullets": [
+     "Reconciled freight invoices and supported the audit file"
+    ]
+   }
+  ],
+  "certifications": [
+   "ACCA: 9 of 13 papers passed (in progress)"
+  ]
+ },
+ "job": {
+  "title": "Finance Manager, Technology FP&A",
+  "companyName": "Okta",
+  "location": "San Francisco, California",
+  "workType": "Hybrid",
+  "requiredSkills": [
+   "5+ years of FP&A experience",
+   "Bachelor's degree in Finance, Accounting, or Economics",
+   "M&A deal model review",
+   "Financial due diligence",
+   "Operating model conversion",
+   "Post-merger integration and synergy tracking",
+   "Proficiency with FP&A systems",
+   "Proficiency with AI tools and implementing them into workflows",
+   "Excellent financial modeling and analysis skills",
+   "Advanced Excel and/or Google Sheets",
+   "Strong PowerPoint and/or Google Slides",
+   "Budgeting and forecasting",
+   "Variance analysis",
+   "Accruals and close process collaboration",
+   "Pricing and packaging financial modeling",
+   "Margin impact analysis",
+   "Enterprise deal structuring",
+   "Unit economics modeling",
+   "Discount structure evaluation",
+   "Gross margin analysis",
+   "Strategic scenario modeling",
+   "Long-range strategic planning",
+   "Excellent written and verbal communication skills",
+   "Influencing skills",
+   "Ability to manage multiple tasks in a deadline-driven environment",
+   "High level of precision and attention to detail",
+   "Comfortable with change and challenging the status quo",
+   "Cross-functional collaboration"
+  ],
+  "niceToHaveSkills": [
+   "MBA",
+   "Big 4 accounting experience",
+   "Investment banking experience",
+   "Anaplan experience",
+   "Workday experience",
+   "Prior experience in high-growth high-tech/software/SaaS organization"
+  ],
+  "responsibilities": [
+   "Be a strategic financial partner to the newly formed organization",
+   "Own the budgeting and forecasting processes for the function",
+   "Partner with business to ensure accuracy for controllable spend and key metrics",
+   "Prepare budget vs. actual variance analysis and relevant reporting",
+   "Lead thoughtful analysis evaluating key drivers and metrics",
+   "Partner on driving operational efficiencies",
+   "Collaborate with controllership organization on accruals and close process",
+   "Evolve FP&A processes as needed",
+   "Evaluate, critique, and pressure-test buy-side valuation and financial deal models (M&A)",
+   "Lead financial due diligence workstream for target acquisitions",
+   "Translate deal-stage financial models into operational budgets, COA structures, and FP&A tracking mechanisms post-close",
+   "Participate in the company's long-range strategic planning",
+   "Serve as core finance partner to Pricing & Packaging and Product teams",
+   "Conduct comprehensive financial modeling and margin impact analysis for new product introductions (NPI) and monetization models",
+   "Lead ad hoc financial and margin analysis for Large Deal Pursuit team",
+   "Provide real-time deal desk support, profitability guardrails, and strategic scenario modeling for complex enterprise proposals",
+   "Develop scalable models to evaluate discount structures, multi-year deal terms, cloud/infrastructure cost impacts, and gross margin trade-offs",
+   "Translate product pricing dynamics and deal-level margin analytics into actionable insights for senior executive leadership",
+   "Assist with and manage frequent ad hoc projects to support senior management and business decisions",
+   "Lead process and systems improvement and scaling projects",
+   "Partner on cross-functional teams to drive company growth and scaling"
+  ],
+  "expectedSalary": "$143,000–$197,000 USD (San Francisco Bay Area); $128,000–$176,000 USD (California excluding SF Bay Area, Colorado, Illinois, New York, Washington)"
+ },
+ "match": {
+  "score": 32,
+  "matchedRequirements": [
+   "5+ years of FP&A experience",
+   "Bachelor's degree in Finance, Accounting, or Economics",
+   "Proficiency with FP&A systems",
+   "Excellent financial modeling and analysis skills",
+   "Advanced Excel and/or Google Sheets",
+   "Budgeting and forecasting",
+   "Variance analysis",
+   "Accruals and close process collaboration",
+   "Excellent written and verbal communication skills",
+   "Influencing skills",
+   "Ability to manage multiple tasks in a deadline-driven environment",
+   "High level of precision and attention to detail",
+   "Comfortable with change and challenging the status quo",
+   "Cross-functional collaboration"
+  ],
+  "claimableEvidence": [
+   "Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting",
+   "B.S. Finance | University of Illinois Chicago | 2015 - 2019",
+   "SAP (reporting)",
+   "Improved forecast accuracy for the larger unit from 88% to 96% by rebuilding the model around order backlog",
+   "Excel (advanced: INDEX/MATCH, pivot tables, VBA)",
+   "budgeting, rolling forecasts",
+   "variance analysis",
+   "Shortened month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA"
+  ],
+  "missingSkills": [
+   "M&A deal model review",
+   "Financial due diligence",
+   "Operating model conversion",
+   "Post-merger integration and synergy tracking",
+   "Proficiency with AI tools and implementing them into workflows",
+   "Strong PowerPoint and/or Google Slides",
+   "Pricing and packaging financial modeling",
+   "Margin impact analysis",
+   "Enterprise deal structuring",
+   "Unit economics modeling",
+   "Discount structure evaluation",
+   "Gross margin analysis",
+   "Strategic scenario modeling",
+   "Long-range strategic planning",
+   "MBA",
+   "Big 4 accounting experience",
+   "Investment banking experience",
+   "Anaplan experience",
+   "Workday experience",
+   "Prior experience in high-growth high-tech/software/SaaS organization"
+  ],
+  "details": [
+   {
+    "requirement": "5+ years of FP&A experience",
+    "evidence": "Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Bachelor's degree in Finance, Accounting, or Economics",
+    "evidence": "B.S. Finance | University of Illinois Chicago | 2015 - 2019",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "M&A deal model review",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Financial due diligence",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Operating model conversion",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Post-merger integration and synergy tracking",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Proficiency with FP&A systems",
+    "evidence": "SAP (reporting)",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Proficiency with AI tools and implementing them into workflows",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Excellent financial modeling and analysis skills",
+    "evidence": "Improved forecast accuracy for the larger unit from 88% to 96% by rebuilding the model around order backlog",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Advanced Excel and/or Google Sheets",
+    "evidence": "Excel (advanced: INDEX/MATCH, pivot tables, VBA)",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Strong PowerPoint and/or Google Slides",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Budgeting and forecasting",
+    "evidence": "budgeting, rolling forecasts",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Variance analysis",
+    "evidence": "variance analysis",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Accruals and close process collaboration",
+    "evidence": "Shortened month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Pricing and packaging financial modeling",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Margin impact analysis",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Enterprise deal structuring",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Unit economics modeling",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Discount structure evaluation",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Gross margin analysis",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Strategic scenario modeling",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Long-range strategic planning",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Excellent written and verbal communication skills",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Influencing skills",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Ability to manage multiple tasks in a deadline-driven environment",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "High level of precision and attention to detail",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Comfortable with change and challenging the status quo",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Cross-functional collaboration",
+    "evidence": "Build Power BI dashboards on SAP data for plant managers",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "MBA",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Big 4 accounting experience",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Investment banking experience",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Anaplan experience",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Workday experience",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Prior experience in high-growth high-tech/software/SaaS organization",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   }
+  ]
+ },
+ "verifiedMetrics": [
+  "5 years of experience in budgeting, forecasting and month-end reporting"
+ ],
+ "fitAnalysis": {
+  "fitLevel": "weak",
+  "score": 32,
+  "assessment": "This is a weak fit (32%) for a senior FP&A role requiring M&A, SaaS, and strategic modeling depth you do not yet have.\n\n**Strengths:**\n- Budgeting, rolling forecasts, and variance analysis across 5 years of FP&A\n- Advanced Excel (VBA automation cut month-end close from 9 to 6 days)\n- Forecast accuracy improved from 88% to 96% via backlog-driven model rebuild\n\n**Gaps:**\n- No M&A, financial due diligence, or post-merger integration experience\n- Missing SaaS-specific skills: unit economics, gross margin, pricing and packaging modeling\n- No Anaplan, Workday, or AI workflow tooling experience\n\n**Recommendation:** Build toward this role by targeting a mid-level FP&A analyst position at a SaaS or tech company first, where you can gain the domain context and strategic modeling experience this Finance Manager role requires.",
+  "matchingSkills": [
+   "5+ years of FP&A experience",
+   "Bachelor's degree in Finance, Accounting, or Economics",
+   "Proficiency with FP&A systems",
+   "Excellent financial modeling and analysis skills",
+   "Advanced Excel and/or Google Sheets",
+   "Budgeting and forecasting",
+   "Variance analysis",
+   "Accruals and close process collaboration",
+   "Excellent written and verbal communication skills",
+   "Influencing skills",
+   "Ability to manage multiple tasks in a deadline-driven environment",
+   "High level of precision and attention to detail",
+   "Comfortable with change and challenging the status quo",
+   "Cross-functional collaboration"
+  ],
+  "missingSkills": [
+   "M&A deal model review",
+   "Financial due diligence",
+   "Operating model conversion",
+   "Post-merger integration and synergy tracking",
+   "Proficiency with AI tools and implementing them into workflows",
+   "Strong PowerPoint and/or Google Slides",
+   "Pricing and packaging financial modeling",
+   "Margin impact analysis",
+   "Enterprise deal structuring",
+   "Unit economics modeling",
+   "Discount structure evaluation",
+   "Gross margin analysis",
+   "Strategic scenario modeling",
+   "Long-range strategic planning",
+   "MBA",
+   "Big 4 accounting experience",
+   "Investment banking experience",
+   "Anaplan experience",
+   "Workday experience",
+   "Prior experience in high-growth high-tech/software/SaaS organization"
+  ]
+ },
+ "optimizedCVData": {
+  "personal": {
+   "fullName": "Tomas Brandt",
+   "email": "tomas.brandt@example.com",
+   "phone": "+1 555 0123",
+   "currentTitle": "Financial Analyst | FP&A | Budgeting & Forecasting",
+   "address": "Chicago, IL, USA"
+  },
+  "summary": "Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting across manufacturing and retail businesses. Rebuilt a forecast model around order backlog to lift accuracy from 88% to 96%, and automated journal checks in Excel VBA to shorten the close cycle from 9 working days to 6. Skilled in variance analysis, management reporting and building Power BI dashboards on SAP data for operational stakeholders. Currently completing the ACCA qualification, with 9 of 13 papers passed.",
+  "experience": [
+   {
+    "id": "exp-1",
+    "company": "Calder Industrial Components",
+    "position": "Financial Analyst",
+    "location": "Chicago, IL, USA",
+    "startDate": "March 2022",
+    "current": true,
+    "bullets": [
+     "Rebuilt the forecast model for the larger business unit around order backlog, improving forecast accuracy from 88% to 96% and reducing planning cycle uncertainty for senior stakeholders",
+     "Automated journal checks in Excel VBA to shorten month-end close reporting from 9 working days to 6, freeing capacity for deeper variance analysis",
+     "Own the monthly forecast and variance reporting for two business units, translating financial results into clear commentary for plant managers and the regional leadership team",
+     "Build Power BI dashboards on SAP data to give plant managers real-time visibility into operational and financial performance"
+    ],
+    "technologies": [
+     "Excel (VBA, INDEX/MATCH, pivot tables)",
+     "Power BI",
+     "SAP"
+    ]
+   },
+   {
+    "id": "exp-2",
+    "company": "Redfern Stores",
+    "position": "Junior Financial Analyst",
+    "location": "Chicago, IL, USA",
+    "startDate": "September 2019",
+    "endDate": "February 2022",
+    "current": false,
+    "bullets": [
+     "Prepared weekly store P&L packs and the annual budget for the regional team, supporting timely financial review across a 60-store retail chain",
+     "Identified a recurring supplier rebate that had not been claimed, recovering approximately $120,000 in annual value for the business",
+     "Supported rolling forecast updates and month-end close processes, building familiarity with accruals and period-end reporting disciplines"
+    ],
+    "technologies": [
+     "Excel",
+     "Power BI"
+    ]
+   },
+   {
+    "id": "exp-3",
+    "company": "Lakeshore Logistics",
+    "position": "Finance Intern",
+    "location": "Chicago, IL, USA",
+    "startDate": "June 2018",
+    "endDate": "August 2018",
+    "current": false,
+    "bullets": [
+     "Reconciled freight invoices and contributed to audit file preparation, developing foundational skills in financial controls and documentation accuracy"
+    ],
+    "technologies": [
+     "Excel"
+    ]
+   }
+  ],
+  "education": [
+   {
+    "id": "edu-1",
+    "institution": "University of Illinois Chicago",
+    "degree": "Bachelor of Science in Finance",
+    "location": "Chicago, IL, USA",
+    "startDate": "2015",
+    "endDate": "2019",
+    "highlights": []
+   },
+   {
+    "id": "edu-2",
+    "institution": "ACCA",
+    "degree": "ACCA Qualification (in progress)",
+    "endDate": "Present",
+    "highlights": [
+     "9 of 13 papers passed"
+    ]
+   }
+  ],
+  "skills": [
+   {
+    "category": "Financial Planning & Analysis",
+    "items": [
+     "Budgeting",
+     "Rolling Forecasts",
+     "Variance Analysis",
+     "Month-End Close Reporting",
+     "Management Reporting"
+    ]
+   },
+   {
+    "category": "Financial Modeling & Tools",
+    "items": [
+     "Excel (Advanced: INDEX/MATCH, Pivot Tables, VBA)",
+     "Power BI",
+     "SAP (Reporting)",
+     "SQL (Basic)"
+    ]
+   },
+   {
+    "category": "Reporting & Analytics",
+    "items": [
+     "Dashboard Development",
+     "Working Capital Analysis",
+     "P&L Reporting",
+     "Order Backlog Modeling"
+    ]
+   }
+  ],
+  "languages": [
+   {
+    "language": "English",
+    "proficiency": "Native"
+   },
+   {
+    "language": "German",
+    "proficiency": "Basic"
+   }
+  ],
+  "certifications": [
+   {
+    "id": "cert-1",
+    "name": "ACCA Qualification (in progress, 9 of 13 papers passed)",
+    "issuer": "Association of Chartered Certified Accountants"
+   }
+  ],
+  "projects": [],
+  "additionalInfo": [],
+  "analysis": {
+   "summary": "Repositioned Tomas's documented FP&A skills, forecast accuracy improvement and close-cycle automation to align with Okta's Finance Manager role requirements. Emphasis was placed on verified metrics and transferable skills in budgeting, variance analysis and financial modeling, while excluding all skills absent from the source documents.",
+   "key_changes": [
+    "Headline reframed from a generic 'Financial Analyst' title to a keyword-aligned FP&A headline matching the JD's core competencies",
+    "Summary leads with the verified 5-year FP&A experience claim and highlights the forecast accuracy improvement and close-cycle reduction as concrete evidence of impact",
+    "Forecast accuracy bullet repositioned to lead the most recent role, as it is the strongest documented achievement and directly maps to the JD's financial modeling and variance analysis requirements",
+    "Excel VBA automation bullet reframed to emphasize the business outcome (close cycle shortened from 9 to 6 working days) rather than the technical method alone",
+    "Skills section reorganized to surface budgeting, forecasting, variance analysis and financial reporting tools first, matching JD priority keywords",
+    "ACCA in-progress qualification retained and surfaced in education to signal accounting rigor relevant to the close process and accruals requirements"
+   ],
+   "ats_compatibility": 58,
+   "missing_keywords_added": [
+    "budgeting and forecasting",
+    "variance analysis",
+    "month-end close",
+    "financial modeling",
+    "management reporting",
+    "rolling forecasts"
+   ]
+  },
+  "sectionHeaders": {
+   "summary": "Professional Summary",
+   "skills": "Skills",
+   "experience": "Professional Experience",
+   "education": "Education",
+   "certifications": "Certifications",
+   "languages": "Languages",
+   "contact": "Contact",
+   "additionalInfo": "Additional Information",
+   "projects": "Projects"
+  },
+  "localizedStrings": {
+   "present": "Present",
+   "gradePrefix": "Grade:",
+   "degreeConnector": "in",
+   "dateOfBirthLabel": "Date of Birth",
+   "nationalityLabel": "Nationality",
+   "photoPlaceholder": "Photo",
+   "websiteLabel": "Website",
+   "signatureLabel": "Signature",
+   "cityLabel": "City",
+   "dateLabel": "Date"
+  }
+ },
+ "coverLetter": "Tomas Brandt\nChicago, IL, USA\ntomas.brandt@example.com\n+1 555 0123\n\nOctober 12, 2026\n\nHiring Manager\nOkta\n\nDear Hiring Manager,\n\nOkta's Technology FP&A team needs someone who can own budgeting and forecasting for a newly formed organization while keeping variance reporting sharp enough to drive real decisions. That's the work I've been doing for the past five years: at Calder Industrial Components, I rebuilt a forecasting model around order backlog data and moved accuracy from 88% to 96% for a business unit inside an ~$85 million revenue portfolio.\n\nAs a Financial Analyst supporting two business units, I've run the full monthly cycle: rolling forecasts, budget-versus-actual variance analysis, close collaboration with the controllership team on accruals, and management reporting for senior stakeholders. When the close process was taking too long, I automated journal checks in Excel VBA and cut reporting time from nine working days to six. That builder instinct, finding where a process is slow and fixing it, maps directly to Okta's emphasis on process improvement and scaling. My advanced Excel skills and experience translating operational data into clear dashboards for non-finance audiences would carry into the cross-functional partnering this role requires, and my B.S. in Finance and ongoing ACCA studies give me the technical foundation to grow into the broader analytical scope Okta is looking for.\n\nI'd welcome the chance to discuss how my forecasting and reporting background can contribute to Okta's FP&A organization, and I'm available at your convenience.\n\nSincerely,\nTomas Brandt",
+ "applicationEmail": {
+  "subject": "Application: Finance Manager, Technology FP&A, Tomas Brandt",
+  "body": "Hi there,\n\nOkta's FP&A team needs someone who can own budgeting and forecasting end to end, and that's the work I've been doing for the past 5 years across manufacturing and retail businesses, including rebuilding a forecast model that lifted accuracy from 88% to 96%. I also shortened month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA, so I'm used to making the close process faster and more reliable for the teams I support. My CV and cover letter are attached for your review. I'm available for a conversation any time this week or next.\n\nBest regards,\nTomas Brandt"
+ },
+ "followUpEmail": {
+  "subject": "Following Up: Finance Manager, Technology FP&A, Tomas Brandt",
+  "body": "Hi there,\n\nI applied last week for the Finance Manager, Technology FP&A role at Okta. The emphasis on being a strategic financial partner to a newly formed organization is exactly the kind of work I find most rewarding. At Redfern Stores, I identified an unclaimed supplier rebate worth around 120,000 USD annually, the sort of controllable-spend insight Okta's JD highlights. I would welcome the chance to discuss how I can contribute.\n\nBest regards,\nTomas Brandt",
+  "recommendedDelay": 5
+ }
+}

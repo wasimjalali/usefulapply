@@ -1,0 +1,590 @@
+{
+ "case_id": "syn-03",
+ "rep": 1,
+ "arm": "sonnet55-low",
+ "detectedLanguage": "en",
+ "applicant": {
+  "name": "Maya Linden",
+  "email": "maya.linden@example.com",
+  "phone": "+1 555 0142",
+  "address": "Portland, OR, USA",
+  "headline": "Marketing graduate",
+  "skills": [
+   "copywriting",
+   "basic Adobe Photoshop"
+  ],
+  "tools": [
+   "Canva",
+   "CapCut",
+   "Instagram",
+   "TikTok",
+   "Mailchimp",
+   "Hootsuite",
+   "Google Analytics (basic)",
+   "Instagram Insights",
+   "Excel"
+  ],
+  "languages": [
+   "English (native)",
+   "Spanish (conversational)"
+  ],
+  "experiences": [
+   {
+    "company": "Harbor Street Pet Supply",
+    "title": "Marketing Intern",
+    "startDate": "Jun 2025",
+    "endDate": "Sep 2025",
+    "bullets": [
+     "Wrote and scheduled 3 Instagram posts and 1 newsletter per week",
+     "Grew the newsletter list from 640 to 1,150 subscribers over the summer by adding a sign-up QR code at the till",
+     "Helped plan a weekend adoption event that brought in about 300 visitors"
+    ]
+   },
+   {
+    "company": "Westbrook Film Society",
+    "title": "Social Media Lead",
+    "startDate": "Sep 2022",
+    "endDate": "Jun 2025",
+    "bullets": [
+     "Ran the society's Instagram and TikTok accounts and trained two new volunteers",
+     "Raised average ticket sales for screenings from 35 to 60 per event through a weekly \"pick of the week\" reel"
+    ]
+   },
+   {
+    "company": "Corner Bean Cafe",
+    "title": "Barista",
+    "startDate": "Jun 2021",
+    "endDate": "Aug 2024",
+    "bullets": [
+     "Served up to 150 customers per shift and trained 4 new colleagues"
+    ]
+   }
+  ],
+  "certifications": [
+   "Google Analytics for Beginners (2024)",
+   "HubSpot Content Marketing course (2024)"
+  ]
+ },
+ "job": {
+  "title": "Demand Generation Coordinator, Customer Marketing",
+  "companyName": "Elastic",
+  "location": "Canada",
+  "requiredSkills": [
+   "3+ years in integrated demand generation or lifecycle marketing within a B2B software environment",
+   "Email marketing",
+   "Building lifecycle nurture and trigger programs",
+   "Owning programs end to end, from initial build through final reporting",
+   "Data analysis",
+   "Campaign reporting",
+   "Proactive optimization",
+   "Bias towards execution",
+   "Thriving in ambiguity",
+   "Fail fast mindset",
+   "AI integration in day-to-day work",
+   "AI-assisted workflows",
+   "Automated workflows",
+   "Responsiveness",
+   "Collaboration",
+   "Communicating program status and performance across teams",
+   "Paid media",
+   "Webinars",
+   "Workshops",
+   "ABM channels",
+   "Campaign planning and execution",
+   "Measurement setup",
+   "Cross-functional partnership",
+   "Stakeholder communication",
+   "Audience building",
+   "Content drafting"
+  ],
+  "niceToHaveSkills": [
+   "Scaled ABM programs",
+   "Demandbase or equivalent ABM tool",
+   "Automation and CRM tools",
+   "Marketo",
+   "Salesforce"
+  ],
+  "responsibilities": [
+   "Build integrated demand generation campaigns for every stage of the customer lifecycle using email, paid media, webinars, workshops, and ABM channels",
+   "Own end-to-end campaign delivery: plan, build, execute, optimize, and report on customer marketing and renewal campaigns",
+   "Partner cross-functionally with Product Marketing, Content, Email, Marketing Operations, Renewals and Sales teams",
+   "Translate product and consumption telemetry signals into prescriptive campaigns",
+   "Apply AI tools to streamline program operations, including building target audiences, drafting content, detecting signals, and optimizing campaigns",
+   "Set up measurement on programs and drive meaningful business results",
+   "Communicate campaign and program status to owners and stakeholders",
+   "Continuously optimize and improve GTM initiatives",
+   "Grow adoption, expansion, and renewals within the global customer base"
+  ],
+  "expectedSalary": "$68,200—$107,900 CAD"
+ },
+ "match": {
+  "score": 24,
+  "matchedRequirements": [
+   "Email marketing",
+   "Data analysis",
+   "Proactive optimization",
+   "Bias towards execution",
+   "Collaboration",
+   "Campaign planning and execution",
+   "Audience building",
+   "Content drafting",
+   "Automation and CRM tools"
+  ],
+  "claimableEvidence": [
+   "1 newsletter per week",
+   "Google Analytics (basic), Instagram Insights, Excel",
+   "Helped plan a weekend adoption event that brought in about 300 visitors",
+   "Grew the newsletter list from 640 to 1,150 subscribers over the summer",
+   "copywriting",
+   "Mailchimp"
+  ],
+  "missingSkills": [
+   "3+ years in integrated demand generation or lifecycle marketing within a B2B software environment",
+   "Building lifecycle nurture and trigger programs",
+   "Owning programs end to end, from initial build through final reporting",
+   "Campaign reporting",
+   "Thriving in ambiguity",
+   "Fail fast mindset",
+   "AI integration in day-to-day work",
+   "AI-assisted workflows",
+   "Automated workflows",
+   "Responsiveness",
+   "Communicating program status and performance across teams",
+   "Paid media",
+   "Webinars",
+   "Workshops",
+   "ABM channels",
+   "Measurement setup",
+   "Cross-functional partnership",
+   "Stakeholder communication",
+   "Scaled ABM programs",
+   "Demandbase or equivalent ABM tool",
+   "Marketo",
+   "Salesforce"
+  ],
+  "details": [
+   {
+    "requirement": "3+ years in integrated demand generation or lifecycle marketing within a B2B software environment",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Email marketing",
+    "evidence": "1 newsletter per week",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Building lifecycle nurture and trigger programs",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Owning programs end to end, from initial build through final reporting",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Data analysis",
+    "evidence": "Google Analytics (basic), Instagram Insights, Excel",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Campaign reporting",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Proactive optimization",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Bias towards execution",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Thriving in ambiguity",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Fail fast mindset",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "AI integration in day-to-day work",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "AI-assisted workflows",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Automated workflows",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Responsiveness",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Collaboration",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Communicating program status and performance across teams",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Paid media",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Webinars",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Workshops",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "ABM channels",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Campaign planning and execution",
+    "evidence": "Helped plan a weekend adoption event that brought in about 300 visitors",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Measurement setup",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Cross-functional partnership",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Stakeholder communication",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Audience building",
+    "evidence": "Grew the newsletter list from 640 to 1,150 subscribers over the summer",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Content drafting",
+    "evidence": "copywriting",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Scaled ABM programs",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Demandbase or equivalent ABM tool",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Automation and CRM tools",
+    "evidence": "Mailchimp",
+    "tier": 2,
+    "claimable": true,
+    "required": false
+   },
+   {
+    "requirement": "Marketo",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Salesforce",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   }
+  ]
+ },
+ "verifiedMetrics": [
+  "two years running the social channels of a student society",
+  "one marketing internship",
+  "1 newsletter per week",
+  "trained two new volunteers",
+  "served up to 150 customers per shift",
+  "trained 4 new colleagues",
+  "Google Analytics for Beginners (2024)",
+  "HubSpot Content Marketing course (2024)"
+ ],
+ "fitAnalysis": {
+  "fitLevel": "weak",
+  "score": 24,
+  "assessment": "Your 24% match is a Weak Fit for this Demand Generation Coordinator role at Elastic.\n\n**Strengths:**\n- Mailchimp email work: weekly newsletter, list grew from 640 to 1,150\n- Planned a weekend adoption event that drew about 300 visitors\n- Copywriting plus Google Analytics (basic), Instagram Insights and Excel reporting\n\n**Gaps:**\n- No 3+ years of B2B software demand generation or lifecycle marketing\n- No Marketo, Salesforce, ABM tools, paid media or webinar experience\n- No lifecycle nurture programs or end-to-end campaign reporting\n\n**Recommendation:** Build B2B email automation and CRM skills (Marketo or HubSpot) through a certification and a portfolio project, and target entry-level B2B marketing roles before reapplying.",
+  "matchingSkills": [
+   "Email marketing",
+   "Data analysis",
+   "Proactive optimization",
+   "Bias towards execution",
+   "Collaboration",
+   "Campaign planning and execution",
+   "Audience building",
+   "Content drafting",
+   "Automation and CRM tools"
+  ],
+  "missingSkills": [
+   "3+ years in integrated demand generation or lifecycle marketing within a B2B software environment",
+   "Building lifecycle nurture and trigger programs",
+   "Owning programs end to end, from initial build through final reporting",
+   "Campaign reporting",
+   "Thriving in ambiguity",
+   "Fail fast mindset",
+   "AI integration in day-to-day work",
+   "AI-assisted workflows",
+   "Automated workflows",
+   "Responsiveness",
+   "Communicating program status and performance across teams",
+   "Paid media",
+   "Webinars",
+   "Workshops",
+   "ABM channels",
+   "Measurement setup",
+   "Cross-functional partnership",
+   "Stakeholder communication",
+   "Scaled ABM programs",
+   "Demandbase or equivalent ABM tool",
+   "Marketo",
+   "Salesforce"
+  ]
+ },
+ "optimizedCVData": {
+  "personal": {
+   "fullName": "Maya Linden",
+   "email": "maya.linden@example.com",
+   "phone": "+1 555 0142",
+   "currentTitle": "Email Marketing | Social Media | Content Marketing",
+   "city": "Portland, OR",
+   "country": "USA",
+   "linkedIn": "linkedin.com/in/maya-linden-example"
+  },
+  "summary": "Communications graduate with one marketing internship and two years running the social channels of a student society. Grew a retail newsletter list from 640 to 1,150 subscribers using Mailchimp and wrote copy for a weekly send. Comfortable reading Google Analytics (basic) and Instagram Insights to see what content works. Looking for a first full-time marketing role where I can build on email and content experience.",
+  "experience": [
+   {
+    "id": "exp-1",
+    "company": "Harbor Street Pet Supply (local retailer, 14 staff)",
+    "position": "Marketing Intern",
+    "startDate": "Jun 2025",
+    "endDate": "Sep 2025",
+    "current": false,
+    "bullets": [
+     "Grew the newsletter list from 640 to 1,150 subscribers over the summer by adding a sign-up QR code at the till",
+     "Wrote and scheduled 3 Instagram posts and 1 newsletter per week, handling the copywriting end to end",
+     "Helped plan a weekend adoption event that brought in about 300 visitors"
+    ],
+    "technologies": [
+     "Mailchimp",
+     "Instagram Insights",
+     "copywriting"
+    ]
+   },
+   {
+    "id": "exp-2",
+    "company": "Westbrook Film Society (student society)",
+    "position": "Social Media Lead",
+    "startDate": "Sep 2022",
+    "endDate": "Jun 2025",
+    "current": false,
+    "bullets": [
+     "Ran the society's Instagram and TikTok accounts and trained two new volunteers",
+     "Raised average ticket sales for screenings from 35 to 60 per event through a weekly \"pick of the week\" reel"
+    ],
+    "technologies": [
+     "Instagram",
+     "TikTok",
+     "CapCut",
+     "Canva"
+    ]
+   },
+   {
+    "id": "exp-3",
+    "company": "Corner Bean Cafe",
+    "position": "Barista",
+    "startDate": "Jun 2021",
+    "endDate": "Aug 2024",
+    "current": false,
+    "bullets": [
+     "Served up to 150 customers per shift and trained 4 new colleagues"
+    ],
+    "technologies": []
+   }
+  ],
+  "education": [
+   {
+    "id": "edu-1",
+    "institution": "Westbrook University",
+    "degree": "B.A. Communications, minor in Psychology",
+    "startDate": "Sep 2021",
+    "endDate": "Jun 2025",
+    "grade": "3.6 GPA",
+    "highlights": [
+     "Thesis: how short-form video changes brand recall among 18 to 24 year olds (survey of 212 students)"
+    ]
+   }
+  ],
+  "skills": [
+   {
+    "category": "Email & Analytics",
+    "items": [
+     "Mailchimp",
+     "Google Analytics (basic)",
+     "Instagram Insights",
+     "Excel"
+    ]
+   },
+   {
+    "category": "Content",
+    "items": [
+     "copywriting",
+     "Canva",
+     "CapCut",
+     "basic Adobe Photoshop"
+    ]
+   },
+   {
+    "category": "Social Channels",
+    "items": [
+     "Instagram",
+     "TikTok",
+     "Hootsuite"
+    ]
+   }
+  ],
+  "languages": [
+   {
+    "language": "English",
+    "proficiency": "Native"
+   },
+   {
+    "language": "Spanish",
+    "proficiency": "Conversational"
+   }
+  ],
+  "certifications": [
+   {
+    "id": "cert-1",
+    "name": "Google Analytics for Beginners",
+    "issuer": "Google",
+    "date": "2024"
+   },
+   {
+    "id": "cert-2",
+    "name": "HubSpot Content Marketing course",
+    "issuer": "HubSpot",
+    "date": "2024"
+   }
+  ],
+  "projects": [],
+  "additionalInfo": [],
+  "analysis": {
+   "summary": "Positioned Maya as an early-career marketer by leading with her documented email growth work in Mailchimp, her analytics tools and her content skills. Experience bullets use only facts and numbers from her CV, and skills the job requires but she has not documented were left out.",
+   "key_changes": [
+    "Rewrote the headline around email marketing, social media and content marketing, which her CV supports",
+    "Moved the newsletter growth from 640 to 1,150 subscribers to the top of the internship bullets as the lead achievement",
+    "Reordered skills so Mailchimp, Google Analytics (basic), Instagram Insights and Excel come first",
+    "Kept the Barista role to a single bullet to show training and high-volume customer work without crowding out marketing experience",
+    "Rewrote the summary to be honest about her entry-level status while emphasizing email, content and analytics work"
+   ],
+   "ats_compatibility": 55,
+   "missing_keywords_added": [
+    "Mailchimp",
+    "Email marketing",
+    "Google Analytics (basic)",
+    "Excel",
+    "copywriting"
+   ]
+  },
+  "sectionHeaders": {
+   "summary": "Professional Summary",
+   "skills": "Skills",
+   "experience": "Professional Experience",
+   "education": "Education",
+   "certifications": "Certifications",
+   "languages": "Languages",
+   "contact": "Contact",
+   "additionalInfo": "Additional Information",
+   "projects": "Projects"
+  },
+  "localizedStrings": {
+   "present": "Present",
+   "gradePrefix": "GPA:",
+   "degreeConnector": "in",
+   "dateOfBirthLabel": "Date of Birth",
+   "nationalityLabel": "Nationality",
+   "photoPlaceholder": "Photo",
+   "websiteLabel": "Website",
+   "signatureLabel": "Signature",
+   "cityLabel": "City",
+   "dateLabel": "Date"
+  }
+ },
+ "coverLetter": "Maya Linden\nPortland, OR, USA\nmaya.linden@example.com\n+1 555 0142\n\nOctober 12, 2026\n\nHiring Manager\nElastic\n\nDear Hiring Manager,\n\nElastic's growth is coming from existing customers, and your Customer Marketing team needs campaigns that keep them engaged from onboarding through renewal. I know the small-scale version of that problem. At Harbor Street Pet Supply, I grew the newsletter list from 640 to 1,150 subscribers in one summer by adding a sign-up QR code at the till, then kept that audience engaged with a weekly newsletter in Mailchimp.\n\nI'm early in my career, and I'll say so plainly. I haven't worked in B2B software or run ABM programs. What I have is hands-on email and channel work, plus a habit of testing what moves people. As Social Media Lead for the Westbrook Film Society, I raised average ticket sales from 35 to 60 per event with a weekly \"pick of the week\" reel. I read results in Google Analytics, Instagram Insights and Excel, and I've completed Google Analytics for Beginners and a HubSpot Content Marketing course. Your ad asks for a bias towards execution and AI as a power multiplier in day-to-day work. I'm a fast learner who ships, and I'd bring that energy to drafting content and building audiences for your lifecycle campaigns.\n\nI'd welcome the chance to talk about how I can contribute as a Demand Generation Coordinator reporting to your Director of Customer Renewals Marketing. I'm available to start a conversation whenever suits your team.\n\nKind regards,\nMaya Linden",
+ "applicationEmail": {
+  "subject": "Application: Demand Generation Coordinator, Maya Linden",
+  "body": "Dear Elastic Hiring Team,\n\nDuring my marketing internship at Harbor Street Pet Supply I wrote a weekly newsletter in Mailchimp and grew the list from 640 to 1,150 subscribers, which is the email work I'd like to build on in customer marketing. I also track results with Google Analytics and Excel, and I'm a quick learner who likes to turn those numbers into the next improvement. I've attached my CV and cover letter so you can see the detail behind this. I'm available for a call at any time that suits you, and I could start soon after an offer.\n\nBest regards,\nMaya Linden"
+ },
+ "followUpEmail": {
+  "subject": "Following Up: Demand Generation Coordinator, Maya Linden",
+  "body": "Dear Elastic Hiring Team,\n\nI applied for the Demand Generation Coordinator role last week. Elastic's focus on campaigns for every stage of the customer lifecycle, across email, webinars and ABM, is what draws me to it. At Westbrook Film Society, I raised average ticket sales from 35 to 60 per event with a weekly reel, planning, building and measuring a campaign from start to finish. I would welcome the chance to discuss how that approach could support your customer marketing team.\n\nBest regards,\nMaya Linden",
+  "recommendedDelay": 5
+ }
+}

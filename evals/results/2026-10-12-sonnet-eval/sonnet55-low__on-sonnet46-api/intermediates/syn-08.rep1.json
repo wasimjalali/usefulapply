@@ -1,0 +1,571 @@
+{
+ "case_id": "syn-08",
+ "rep": 1,
+ "arm": "sonnet55-low",
+ "detectedLanguage": "en",
+ "applicant": {
+  "name": "Priya Raman",
+  "email": "priya.raman@example.com",
+  "phone": "+1 555 0176",
+  "address": "Toronto, Canada",
+  "headline": "Senior Backend Engineer",
+  "skills": [
+   "Kotlin",
+   "Java",
+   "Python",
+   "SQL",
+   "API design",
+   "event-driven architecture",
+   "code review",
+   "mentoring"
+  ],
+  "tools": [
+   "Spring Boot",
+   "PostgreSQL",
+   "Redis",
+   "Kafka",
+   "RabbitMQ",
+   "AWS (EC2, RDS, SQS, S3)",
+   "Docker",
+   "Terraform",
+   "GitHub Actions",
+   "Datadog",
+   "Spring"
+  ],
+  "languages": [],
+  "experiences": [
+   {
+    "company": "Lumen Payments (fintech, 300 staff)",
+    "title": "Senior Software Engineer",
+    "startDate": "Feb 2019",
+    "endDate": "Feb 2023",
+    "bullets": [
+     "Designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka",
+     "Cut p99 latency of the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis",
+     "Led a team of 4 engineers through a 9 month migration from a monolith to 6 services",
+     "On call for the payments platform and wrote the post-incident reviews for 14 incidents"
+    ]
+   },
+   {
+    "company": "Northgate Retail Systems",
+    "title": "Software Engineer",
+    "startDate": "Aug 2015",
+    "endDate": "Jan 2019",
+    "bullets": [
+     "Built order and inventory services in Java and Spring, backed by PostgreSQL and RabbitMQ",
+     "Introduced contract tests that reduced integration bugs found in staging by about a third"
+    ]
+   },
+   {
+    "company": "Brightpath Consulting",
+    "title": "Junior Developer",
+    "startDate": "Jul 2013",
+    "endDate": "Jul 2015",
+    "bullets": [
+     "Delivered internal web tools for two clients in Java and JavaScript"
+    ]
+   }
+  ],
+  "certifications": [
+   "AWS Certified Solutions Architect - Associate (2024)"
+  ]
+ },
+ "job": {
+  "title": "Senior Software Engineer, Backend - Payments Platform",
+  "companyName": "Coinbase",
+  "location": "Remote - USA",
+  "workType": "Remote",
+  "requiredSkills": [
+   "5+ years backend software engineering experience",
+   "Go",
+   "Service-oriented architecture",
+   "Microservices architecture",
+   "Scalable API design",
+   "Low-latency API design",
+   "Distributed systems",
+   "Financial systems experience",
+   "Payments infrastructure",
+   "High-volume transactional systems",
+   "Production service ownership",
+   "End-to-end feature delivery",
+   "Technical design",
+   "Production deployment",
+   "Production support",
+   "Auditability and precision in financial systems",
+   "Generative AI usage (responsible, with human oversight)"
+  ],
+  "niceToHaveSkills": [
+   "Experience with payment rails",
+   "Partner integrations",
+   "Funds-flow systems",
+   "Platform/API product development (Stripe-like)",
+   "Observability and monitoring",
+   "Performance optimization",
+   "Code review",
+   "Cross-functional collaboration"
+  ],
+  "responsibilities": [
+   "Design and build scalable, fault-tolerant backend services for payment processing using Go",
+   "Ensure high reliability and correctness for financial transactions at scale",
+   "Own end-to-end delivery of payment features from technical design through production deployment, monitoring, and iteration",
+   "Build platform primitives, extension points, and self-serve APIs for other Coinbase teams",
+   "Enable new payment methods and rails without deep changes to core services",
+   "Partner with engineers, product managers, and senior leadership to translate product vision into technical plans",
+   "Drive improvements to system reliability, observability, and performance across payment services",
+   "Proactively identify and resolve bottlenecks",
+   "Contribute to engineering quality through code reviews and design discussions",
+   "Advocate for best practices in service-oriented architecture"
+  ],
+  "expectedSalary": "$186,065 — $218,900 USD annually (base salary, excluding equity and bonus)"
+ },
+ "match": {
+  "score": 74,
+  "matchedRequirements": [
+   "5+ years backend software engineering experience",
+   "Service-oriented architecture",
+   "Microservices architecture",
+   "Scalable API design",
+   "Low-latency API design",
+   "Distributed systems",
+   "Financial systems experience",
+   "Payments infrastructure",
+   "High-volume transactional systems",
+   "Production service ownership",
+   "End-to-end feature delivery",
+   "Technical design",
+   "Production deployment",
+   "Production support",
+   "Auditability and precision in financial systems",
+   "Experience with payment rails",
+   "Funds-flow systems",
+   "Platform/API product development (Stripe-like)",
+   "Observability and monitoring",
+   "Performance optimization",
+   "Code review",
+   "Cross-functional collaboration"
+  ],
+  "claimableEvidence": [
+   "Backend engineer with 11 years of experience building payment and event-processing services in Java, Kotlin and Python.",
+   "Led a team of 4 engineers through a 9 month migration from a monolith to 6 services",
+   "API design",
+   "Cut p99 latency of the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis",
+   "event-driven architecture",
+   "Lumen Payments (fintech, 300 staff)",
+   "Designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka",
+   "processing about 40 million events a day on Kafka",
+   "On call for the payments platform and wrote the post-incident reviews for 14 incidents",
+   "Delivered internal web tools for two clients in Java and JavaScript",
+   "Designed and ran the settlement service in Kotlin and Spring Boot",
+   "AWS (EC2, RDS, SQS, S3), Docker, Terraform, GitHub Actions",
+   "Datadog",
+   "code review"
+  ],
+  "missingSkills": [
+   "Go",
+   "Generative AI usage (responsible, with human oversight)",
+   "Partner integrations"
+  ],
+  "details": [
+   {
+    "requirement": "5+ years backend software engineering experience",
+    "evidence": "Backend engineer with 11 years of experience building payment and event-processing services in Java, Kotlin and Python.",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Go",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Service-oriented architecture",
+    "evidence": "Led a team of 4 engineers through a 9 month migration from a monolith to 6 services",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Microservices architecture",
+    "evidence": "Led a team of 4 engineers through a 9 month migration from a monolith to 6 services",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Scalable API design",
+    "evidence": "API design",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Low-latency API design",
+    "evidence": "Cut p99 latency of the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Distributed systems",
+    "evidence": "event-driven architecture",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Financial systems experience",
+    "evidence": "Lumen Payments (fintech, 300 staff)",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Payments infrastructure",
+    "evidence": "Designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "High-volume transactional systems",
+    "evidence": "processing about 40 million events a day on Kafka",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Production service ownership",
+    "evidence": "On call for the payments platform and wrote the post-incident reviews for 14 incidents",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "End-to-end feature delivery",
+    "evidence": "Delivered internal web tools for two clients in Java and JavaScript",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Technical design",
+    "evidence": "Designed and ran the settlement service in Kotlin and Spring Boot",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Production deployment",
+    "evidence": "AWS (EC2, RDS, SQS, S3), Docker, Terraform, GitHub Actions",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Production support",
+    "evidence": "On call for the payments platform and wrote the post-incident reviews for 14 incidents",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Auditability and precision in financial systems",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Generative AI usage (responsible, with human oversight)",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Experience with payment rails",
+    "tier": 3,
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Partner integrations",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Funds-flow systems",
+    "evidence": "Designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka",
+    "tier": 2,
+    "claimable": true,
+    "required": false
+   },
+   {
+    "requirement": "Platform/API product development (Stripe-like)",
+    "tier": 3,
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Observability and monitoring",
+    "evidence": "Datadog",
+    "tier": 1,
+    "claimable": true,
+    "required": false
+   },
+   {
+    "requirement": "Performance optimization",
+    "evidence": "Cut p99 latency of the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis",
+    "tier": 1,
+    "claimable": true,
+    "required": false
+   },
+   {
+    "requirement": "Code review",
+    "evidence": "code review",
+    "tier": 1,
+    "claimable": true,
+    "required": false
+   },
+   {
+    "requirement": "Cross-functional collaboration",
+    "tier": 3,
+    "claimable": false,
+    "required": false
+   }
+  ]
+ },
+ "verifiedMetrics": [],
+ "fitAnalysis": {
+  "fitLevel": "good",
+  "score": 74,
+  "assessment": "Your 74% match is a GOOD FIT for this Senior Backend role, with Go as the main gap.\n\n**Strengths:**\n- Ran Kotlin settlement service handling 40 million Kafka events daily\n- Cut payment API p99 latency from 480 ms to 120 ms\n- Led 9-month monolith-to-6-services migration; on call for 14 incidents\n\n**Gaps:**\n- No Go experience, the required core language\n- No generative AI usage with human oversight\n- No partner integrations shown\n\n**Recommendation:** Apply now, build a small Go service before interviews, and lead your cover letter with the settlement service and latency results.",
+  "matchingSkills": [
+   "5+ years backend software engineering experience",
+   "Service-oriented architecture",
+   "Microservices architecture",
+   "Scalable API design",
+   "Low-latency API design",
+   "Distributed systems",
+   "Financial systems experience",
+   "Payments infrastructure",
+   "High-volume transactional systems",
+   "Production service ownership",
+   "End-to-end feature delivery",
+   "Technical design",
+   "Production deployment",
+   "Production support",
+   "Auditability and precision in financial systems",
+   "Experience with payment rails",
+   "Funds-flow systems",
+   "Platform/API product development (Stripe-like)",
+   "Observability and monitoring",
+   "Performance optimization",
+   "Code review",
+   "Cross-functional collaboration"
+  ],
+  "missingSkills": [
+   "Go",
+   "Generative AI usage (responsible, with human oversight)",
+   "Partner integrations"
+  ]
+ },
+ "optimizedCVData": {
+  "personal": {
+   "fullName": "Priya Raman",
+   "email": "priya.raman@example.com",
+   "phone": "+1 555 0176",
+   "currentTitle": "Senior Backend Engineer | Payments Platform | Event-Driven Architecture | API Design",
+   "city": "Toronto",
+   "country": "Canada"
+  },
+  "summary": "Backend engineer with 11 years of experience building payment and event-processing services in Java, Kotlin and Python. At Lumen Payments, designed and ran a settlement service processing about 40 million events a day on Kafka and cut p99 latency of the payment status API from 480 ms to 120 ms. Led a team of 4 engineers through a 9 month migration from a monolith to 6 services and carried on-call responsibility for the payments platform. Returning to full-time engineering after a planned career break, during which I completed AWS Solutions Architect Associate prep and contributed to an open-source Kotlin library.",
+  "experience": [
+   {
+    "id": "exp-1",
+    "company": "Career break",
+    "position": "Career break (family caregiving)",
+    "startDate": "Mar 2023",
+    "endDate": "Apr 2025",
+    "current": false,
+    "bullets": [
+     "Provided full-time family caregiving during a planned break from engineering",
+     "Kept skills current through AWS Solutions Architect Associate prep and a Designing Data-Intensive Applications reading group",
+     "Contributed small bug fixes to an open-source Kotlin library"
+    ],
+    "technologies": [
+     "Kotlin",
+     "AWS"
+    ]
+   },
+   {
+    "id": "exp-2",
+    "company": "Lumen Payments (fintech, 300 staff)",
+    "position": "Senior Software Engineer",
+    "startDate": "Feb 2019",
+    "endDate": "Feb 2023",
+    "current": false,
+    "bullets": [
+     "Designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka",
+     "Cut p99 latency of the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis",
+     "Led a team of 4 engineers through a 9 month migration from a monolith to 6 services",
+     "Took on-call duty for the payments platform and wrote the post-incident reviews for 14 incidents"
+    ],
+    "technologies": [
+     "Kotlin",
+     "Spring Boot",
+     "Kafka",
+     "PostgreSQL",
+     "Redis"
+    ]
+   },
+   {
+    "id": "exp-3",
+    "company": "Northgate Retail Systems",
+    "position": "Software Engineer",
+    "startDate": "Aug 2015",
+    "endDate": "Jan 2019",
+    "current": false,
+    "bullets": [
+     "Built order and inventory services in Java and Spring, backed by PostgreSQL and RabbitMQ",
+     "Introduced contract tests that reduced integration bugs found in staging by about a third"
+    ],
+    "technologies": [
+     "Java",
+     "Spring",
+     "PostgreSQL",
+     "RabbitMQ"
+    ]
+   },
+   {
+    "id": "exp-4",
+    "company": "Brightpath Consulting",
+    "position": "Junior Developer",
+    "startDate": "Jul 2013",
+    "endDate": "Jul 2015",
+    "current": false,
+    "bullets": [
+     "Delivered internal web tools for two clients in Java and JavaScript"
+    ],
+    "technologies": [
+     "Java",
+     "JavaScript"
+    ]
+   }
+  ],
+  "education": [
+   {
+    "id": "edu-1",
+    "institution": "University of Waterloo",
+    "degree": "B.Sc. Computer Science",
+    "startDate": "2009",
+    "endDate": "2013",
+    "highlights": []
+   }
+  ],
+  "skills": [
+   {
+    "category": "Practices",
+    "items": [
+     "API design",
+     "event-driven architecture",
+     "code review",
+     "mentoring"
+    ]
+   },
+   {
+    "category": "Languages",
+    "items": [
+     "Kotlin",
+     "Java",
+     "Python",
+     "SQL"
+    ]
+   },
+   {
+    "category": "Frameworks and Data",
+    "items": [
+     "Spring Boot",
+     "Kafka",
+     "PostgreSQL",
+     "Redis",
+     "RabbitMQ"
+    ]
+   },
+   {
+    "category": "Cloud and Tooling",
+    "items": [
+     "AWS (EC2, RDS, SQS, S3)",
+     "Docker",
+     "Terraform",
+     "GitHub Actions",
+     "Datadog"
+    ]
+   }
+  ],
+  "languages": [],
+  "certifications": [
+   {
+    "id": "cert-1",
+    "name": "AWS Certified Solutions Architect - Associate",
+    "issuer": "Amazon Web Services",
+    "date": "2024"
+   }
+  ],
+  "projects": [],
+  "additionalInfo": [],
+  "analysis": {
+   "summary": "The CV positions Priya as a payments-focused backend engineer, leading with her settlement service, latency and migration results from Lumen Payments. The career break is shown transparently, with the upskilling she documented, and no skills missing from her documents were added.",
+   "key_changes": [
+    "Rewrote the headline around payments platform, event-driven architecture and API design, all documented in her CV",
+    "Led the summary with 11 years of experience and the verified metrics of 40 million events a day, 480 ms to 120 ms p99 latency and a 9 month migration to 6 services",
+    "Ordered the Lumen Payments bullets by relevance to a payments platform role: settlement service, latency, migration, on-call ownership",
+    "Shown the career break plainly as a dated entry with its documented upskilling instead of leaving a gap",
+    "Reordered skills so API design, event-driven architecture, Kafka and AWS come first, and kept the older roles short"
+   ],
+   "ats_compatibility": 68,
+   "missing_keywords_added": [
+    "API design",
+    "event-driven architecture",
+    "code review",
+    "Datadog",
+    "AWS",
+    "Kafka"
+   ]
+  },
+  "sectionHeaders": {
+   "summary": "Professional Summary",
+   "skills": "Skills",
+   "experience": "Professional Experience",
+   "education": "Education",
+   "certifications": "Certifications",
+   "languages": "Languages",
+   "contact": "Contact",
+   "additionalInfo": "Additional Information",
+   "projects": "Projects"
+  },
+  "localizedStrings": {
+   "present": "Present",
+   "gradePrefix": "GPA:",
+   "degreeConnector": "in",
+   "dateOfBirthLabel": "Date of Birth",
+   "nationalityLabel": "Nationality",
+   "photoPlaceholder": "Photo",
+   "websiteLabel": "Website",
+   "signatureLabel": "Signature",
+   "cityLabel": "City",
+   "dateLabel": "Date"
+  }
+ },
+ "coverLetter": "Priya Raman\nToronto, Canada\npriya.raman@example.com\n+1 555 0176\n\nOctober 12, 2026\n\nHiring Manager\nCoinbase\n\nDear Hiring Manager,\n\nYour north star is payment success rate, and every slow or unreliable call in the payment path pulls it down. At Lumen Payments I faced a similar problem when the payment status API was slow under load. I moved the hot reads from PostgreSQL to Redis and brought p99 latency from 480 ms down to 120 ms.\n\nThat work sat inside eleven years of backend engineering on payment and event-processing services. As a Senior Software Engineer at Lumen Payments (fintech), I designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka. I also led a team of 4 engineers through a 9 month migration from a monolith to 6 services, which is the service-oriented architecture work your team describes. I owned those services in production, was on call for the payments platform and wrote the post-incident reviews for 14 incidents. I haven't written production Go; my depth is in Kotlin, Java and Python, and I pick up new backend languages quickly. I also bring API design, code review, Datadog monitoring and AWS experience to your goal of turning the payments stack into a self-serve, API-driven platform.\n\nI took a career break from 2023 to 2025 to care for a family member, and I'm now returning to full-time engineering. I'm available to start promptly and would welcome a conversation about how I can help your Payments team raise payment success rate.\n\nKind regards,\nPriya Raman",
+ "applicationEmail": {
+  "subject": "Application: Senior Software Engineer, Priya Raman",
+  "body": "Hello Coinbase Payments hiring team,\n\nYou're hiring for backend services that move money reliably, and at Lumen Payments I designed and ran a high-volume settlement service in Kotlin and Spring Boot on Kafka. I also led a team of engineers through a migration from a monolith to services and was on call for the payments platform, so I know both service-oriented design and owning code in production. My CV and cover letter are attached for more detail. I'm back in full-time engineering and available for a call any weekday this week.\n\nBest regards,\nPriya Raman"
+ },
+ "followUpEmail": {
+  "subject": "Following Up: Senior Software Engineer, Backend, Priya Raman",
+  "body": "Hello Coinbase Payments hiring team,\n\nI applied last week for the Senior Software Engineer, Backend role. Coinbase's focus on correctness for financial transactions at scale is what draws me to it. At Lumen Payments I cut p99 latency of the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis, and I wrote post-incident reviews for 14 incidents. I would welcome the chance to discuss how that fits your payments platform.\n\nBest regards,\nPriya Raman",
+  "recommendedDelay": 5
+ }
+}

@@ -1,0 +1,449 @@
+{
+ "case_id": "syn-01",
+ "rep": 1,
+ "arm": "sonnet55-medium",
+ "detectedLanguage": "en",
+ "applicant": {
+  "name": "Maya Linden",
+  "email": "maya.linden@example.com",
+  "phone": "+1 555 0142",
+  "address": "Portland, OR, USA",
+  "headline": "Marketing graduate",
+  "skills": [
+   "copywriting"
+  ],
+  "tools": [
+   "Canva",
+   "CapCut",
+   "basic Adobe Photoshop",
+   "Instagram",
+   "TikTok",
+   "Mailchimp",
+   "Hootsuite",
+   "Google Analytics (basic)",
+   "Instagram Insights",
+   "Excel"
+  ],
+  "languages": [
+   "English (native)",
+   "Spanish (conversational)"
+  ],
+  "experiences": [
+   {
+    "company": "Harbor Street Pet Supply (local retailer, 14 staff)",
+    "title": "Marketing Intern",
+    "startDate": "Jun 2025",
+    "endDate": "Sep 2025",
+    "bullets": [
+     "Wrote and scheduled 3 Instagram posts and 1 newsletter per week",
+     "Grew the newsletter list from 640 to 1,150 subscribers over the summer by adding a sign-up QR code at the till",
+     "Helped plan a weekend adoption event that brought in about 300 visitors"
+    ]
+   },
+   {
+    "company": "Westbrook Film Society (student society)",
+    "title": "Social Media Lead",
+    "startDate": "Sep 2022",
+    "endDate": "Jun 2025",
+    "bullets": [
+     "Ran the society's Instagram and TikTok accounts and trained two new volunteers",
+     "Raised average ticket sales for screenings from 35 to 60 per event through a weekly \"pick of the week\" reel"
+    ]
+   },
+   {
+    "company": "Corner Bean Cafe",
+    "title": "Barista",
+    "startDate": "Jun 2021",
+    "endDate": "Aug 2024",
+    "bullets": [
+     "Served up to 150 customers per shift and trained 4 new colleagues"
+    ]
+   }
+  ],
+  "certifications": [
+   "Google Analytics for Beginners (2024)",
+   "HubSpot Content Marketing course (2024)"
+  ]
+ },
+ "job": {
+  "title": "Experiential Marketing Associate",
+  "companyName": "Coinbase",
+  "location": "USA",
+  "workType": "Remote",
+  "requiredSkills": [
+   "2+ years of experience in event management or experiential marketing",
+   "End-to-end event logistics and execution",
+   "Managing multiple events simultaneously",
+   "Maintaining quality and meeting deadlines across overlapping timelines",
+   "Vendor and venue management",
+   "Contract negotiation",
+   "Budget tracking",
+   "Event management platforms (e.g., Splash, Eventbrite, Cvent)",
+   "Project management tools (e.g., Asana, Monday.com)",
+   "Post-event reporting with measurable outcomes (attendance targets, engagement rates, attribution to leads and revenue)",
+   "Responsible use of generative AI with human oversight",
+   "Cross-functional coordination",
+   "Splash",
+   "Eventbrite",
+   "Cvent",
+   "Asana",
+   "Monday.com"
+  ],
+  "niceToHaveSkills": [],
+  "responsibilities": [
+   "Own end-to-end event execution across Coinbase's experiential marketing calendar, managing logistics including venue sourcing, vendor coordination, contract negotiation, budgets, and attendee management",
+   "Coordinate with internal stakeholders across Marketing, Sales, Product, and Communications to align event programming with business priorities and ensure seamless delivery",
+   "Build and maintain event project plans, timelines, and run-of-show documents, tracking all milestones from pre-event planning through post-event wrap-up",
+   "Support creative development for event experiences, collaborating with design and brand teams on invitations, signage, branded materials, and on-site activations",
+   "Track event budgets, manage vendor invoices, and reconcile expenses to ensure programs are delivered within approved spend",
+   "Measure event performance by compiling post-event reports with attendance data, engagement metrics, and attribution to pipeline or revenue goals"
+  ],
+  "expectedSalary": "$100,725–$118,500 USD"
+ },
+ "match": {
+  "score": 22,
+  "matchedRequirements": [
+   "End-to-end event logistics and execution",
+   "Maintaining quality and meeting deadlines across overlapping timelines",
+   "Post-event reporting with measurable outcomes (attendance targets, engagement rates, attribution to leads and revenue)",
+   "Cross-functional coordination"
+  ],
+  "claimableEvidence": [],
+  "missingSkills": [
+   "2+ years of experience in event management or experiential marketing",
+   "Managing multiple events simultaneously",
+   "Vendor and venue management",
+   "Contract negotiation",
+   "Budget tracking",
+   "Event management platforms (e.g., Splash, Eventbrite, Cvent)",
+   "Project management tools (e.g., Asana, Monday.com)",
+   "Responsible use of generative AI with human oversight",
+   "Splash",
+   "Eventbrite",
+   "Cvent",
+   "Asana",
+   "Monday.com"
+  ],
+  "details": [
+   {
+    "requirement": "2+ years of experience in event management or experiential marketing",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "End-to-end event logistics and execution",
+    "evidence": "Helped plan a weekend adoption event that brought in about 300 visitors",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Managing multiple events simultaneously",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Maintaining quality and meeting deadlines across overlapping timelines",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Vendor and venue management",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Contract negotiation",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Budget tracking",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Event management platforms (e.g., Splash, Eventbrite, Cvent)",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Project management tools (e.g., Asana, Monday.com)",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Post-event reporting with measurable outcomes (attendance targets, engagement rates, attribution to leads and revenue)",
+    "evidence": "Raised average ticket sales for screenings from 35 to 60 per event through a weekly \"pick of the week\" reel",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Responsible use of generative AI with human oversight",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Cross-functional coordination",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Splash",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Eventbrite",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Cvent",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Asana",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Monday.com",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   }
+  ]
+ },
+ "verifiedMetrics": [
+  "two years running the social channels of a student society",
+  "one marketing internship",
+  "1 newsletter per week",
+  "trained two new volunteers",
+  "served up to 150 customers per shift",
+  "trained 4 new colleagues",
+  "Google Analytics for Beginners (2024)",
+  "HubSpot Content Marketing course (2024)"
+ ],
+ "fitAnalysis": {
+  "fitLevel": "weak",
+  "score": 22,
+  "assessment": "Your 22% match is a Weak Fit for this Experiential Marketing Associate role at Coinbase.\n\n**Strengths:**\n- Social Media Lead for Westbrook Film Society (Sep 2022-Jun 2025)\n- Mailchimp, Hootsuite and Instagram Insights reporting experience\n- Canva and CapCut for branded creative materials\n\n**Gaps:**\n- No event management or experiential marketing experience (2+ years required)\n- No vendor, venue, contract negotiation or budget tracking experience\n- No Splash, Eventbrite, Cvent, Asana or Monday.com experience\n\n**Recommendation:** Build event experience first, such as organizing Westbrook Film Society screenings with budgets and vendors, and learn Eventbrite and Asana before applying to similar roles.",
+  "matchingSkills": [
+   "End-to-end event logistics and execution",
+   "Maintaining quality and meeting deadlines across overlapping timelines",
+   "Post-event reporting with measurable outcomes (attendance targets, engagement rates, attribution to leads and revenue)",
+   "Cross-functional coordination"
+  ],
+  "missingSkills": [
+   "2+ years of experience in event management or experiential marketing",
+   "Managing multiple events simultaneously",
+   "Vendor and venue management",
+   "Contract negotiation",
+   "Budget tracking",
+   "Event management platforms (e.g., Splash, Eventbrite, Cvent)",
+   "Project management tools (e.g., Asana, Monday.com)",
+   "Responsible use of generative AI with human oversight",
+   "Splash",
+   "Eventbrite",
+   "Cvent",
+   "Asana",
+   "Monday.com"
+  ]
+ },
+ "optimizedCVData": {
+  "personal": {
+   "fullName": "Maya Linden",
+   "email": "maya.linden@example.com",
+   "phone": "+1 555 0142",
+   "currentTitle": "Marketing Graduate | Social Media | Content Marketing | Event Support",
+   "city": "Portland, OR",
+   "country": "USA",
+   "linkedIn": "linkedin.com/in/maya-linden-example"
+  },
+  "summary": "Communications graduate with a marketing internship and two years running the social channels of a student society. Helped plan a weekend adoption event for a local retailer and coordinated weekly content, newsletters and screening promotions. Skilled in copywriting, short-form video and audience analytics, with a customer-facing background built in a high-volume cafe. Seeking a first full-time marketing role where creative ideas and organized execution matter.",
+  "experience": [
+   {
+    "id": "exp-1",
+    "company": "Harbor Street Pet Supply",
+    "position": "Marketing Intern",
+    "location": "Portland, OR",
+    "startDate": "Jun 2025",
+    "endDate": "Sep 2025",
+    "current": false,
+    "bullets": [
+     "Helped plan a weekend adoption event that brought in about 300 visitors for a local retailer",
+     "Grew the newsletter list from 640 to 1,150 subscribers over the summer by adding a sign-up QR code at the till",
+     "Wrote and scheduled 3 Instagram posts and 1 newsletter per week, keeping a steady content rhythm",
+     "Supported a small team of 14 staff by turning in-store ideas into social and email content"
+    ],
+    "technologies": [
+     "Instagram",
+     "Mailchimp"
+    ]
+   },
+   {
+    "id": "exp-2",
+    "company": "Westbrook Film Society",
+    "position": "Social Media Lead",
+    "location": "Westbrook University",
+    "startDate": "Sep 2022",
+    "endDate": "Jun 2025",
+    "current": false,
+    "bullets": [
+     "Raised average ticket sales for screenings from 35 to 60 per event through a weekly \"pick of the week\" reel",
+     "Ran the society's Instagram and TikTok accounts for two years",
+     "Trained two new volunteers to take on content and posting tasks"
+    ],
+    "technologies": [
+     "Instagram",
+     "TikTok",
+     "CapCut",
+     "Canva"
+    ]
+   },
+   {
+    "id": "exp-3",
+    "company": "Corner Bean Cafe",
+    "position": "Barista",
+    "startDate": "Jun 2021",
+    "endDate": "Aug 2024",
+    "current": false,
+    "bullets": [
+     "Served up to 150 customers per shift in a fast-paced, customer-facing setting",
+     "Trained 4 new colleagues on service routines and day-to-day tasks"
+    ],
+    "technologies": []
+   }
+  ],
+  "education": [
+   {
+    "id": "edu-1",
+    "institution": "Westbrook University",
+    "degree": "B.A. Communications, minor in Psychology",
+    "startDate": "Sep 2021",
+    "endDate": "Jun 2025",
+    "grade": "3.6 GPA",
+    "highlights": [
+     "Thesis: how short-form video changes brand recall among 18 to 24 year olds (survey of 212 students)"
+    ]
+   }
+  ],
+  "skills": [
+   {
+    "category": "Content",
+    "items": [
+     "Copywriting",
+     "Canva",
+     "CapCut",
+     "Adobe Photoshop (basic)"
+    ]
+   },
+   {
+    "category": "Channels",
+    "items": [
+     "Instagram",
+     "TikTok",
+     "Mailchimp",
+     "Hootsuite"
+    ]
+   },
+   {
+    "category": "Analytics",
+    "items": [
+     "Google Analytics (basic)",
+     "Instagram Insights",
+     "Excel"
+    ]
+   }
+  ],
+  "languages": [
+   {
+    "language": "English",
+    "proficiency": "Native"
+   },
+   {
+    "language": "Spanish",
+    "proficiency": "Conversational"
+   }
+  ],
+  "certifications": [
+   {
+    "id": "cert-1",
+    "name": "Google Analytics for Beginners",
+    "issuer": "Google",
+    "date": "2024"
+   },
+   {
+    "id": "cert-2",
+    "name": "HubSpot Content Marketing course",
+    "issuer": "HubSpot",
+    "date": "2024"
+   }
+  ],
+  "projects": [],
+  "additionalInfo": [],
+  "analysis": {
+   "summary": "Positioned Maya as an early-career marketer whose real strengths are audience-facing campaigns, event support and content, since the role's core requirements (event platforms, vendor management, 2+ years of event experience) are not documented in her CVs. Every claim and number comes from her Primary CV and the verified metrics list.",
+   "key_changes": [
+    "Rewrote the headline and summary around social media, content and event support, her documented strengths",
+    "Led the experience section with the internship, including the adoption event she helped plan, as the closest match to experiential marketing",
+    "Reworded bullets to open with varied verbs and show impact using only verified figures",
+    "Grouped skills by function, with Google Analytics kept at its documented 'basic' level",
+    "Kept the Barista role short to show customer-facing work and training experience",
+    "Left out required skills and tools she has not documented, such as event platforms, vendor management and budget tracking"
+   ],
+   "ats_compatibility": 45,
+   "missing_keywords_added": []
+  },
+  "sectionHeaders": {
+   "summary": "Professional Summary",
+   "skills": "Skills",
+   "experience": "Professional Experience",
+   "education": "Education",
+   "certifications": "Certifications",
+   "languages": "Languages",
+   "contact": "Contact",
+   "additionalInfo": "Additional Information",
+   "projects": "Projects"
+  },
+  "localizedStrings": {
+   "present": "Present",
+   "gradePrefix": "GPA:",
+   "degreeConnector": "in",
+   "dateOfBirthLabel": "Date of Birth",
+   "nationalityLabel": "Nationality",
+   "photoPlaceholder": "Photo",
+   "websiteLabel": "Website",
+   "signatureLabel": "Signature",
+   "cityLabel": "City",
+   "dateLabel": "Date"
+  }
+ },
+ "coverLetter": "Maya Linden\nPortland, OR, USA\nmaya.linden@example.com\n+1 555 0142\n\nOctober 12, 2026\n\nHiring Manager\nCoinbase\n\nDear Hiring Manager,\n\nYour Experiential Marketing Associate role comes down to one problem: turning a calendar of events into polished, on-brand experiences for both Consumer and Institutional audiences. I've solved a smaller version of it. As Social Media Lead for the Westbrook Film Society, I raised average screening ticket sales from 35 to 60 per event, and during my internship at Harbor Street Pet Supply I helped plan a weekend adoption event that brought in about 300 visitors.\n\nI'm early in my career and won't pretend to have the event management experience this posting asks for, or hands-on time with platforms like Splash or Cvent. What I do have is the groundwork. I ran the society's Instagram and TikTok for two years, trained two new volunteers, and wrote copy and designed content in Canva and CapCut. I track results with Instagram Insights, Google Analytics and Excel, which is the habit behind the post-event reporting you describe, where attendance and engagement data have to point to business goals. Years of serving up to 150 customers per shift as a barista also taught me to stay calm and keep quality up when many things happen at once.\n\nCoinbase's remote-first, high-bar culture suits how I work: I learn fast, ask for feedback and finish what I start. I'd welcome a conversation about how I could support your events team, and I can start whenever works for you.\n\nBest regards,\nMaya Linden",
+ "applicationEmail": {
+  "subject": "Application: Experiential Marketing Associate, Maya Linden",
+  "body": "Hello Coinbase Hiring Team,\n\nAt Harbor Street Pet Supply I helped plan a weekend adoption event that brought in about 300 visitors, and I'd like to bring that hands-on event experience to your experiential marketing calendar. I've also trained two new volunteers and up to 4 colleagues in past roles, so I work well with the people around me and keep things on schedule. My CV and cover letter are attached for you to look through. I'm available for a call any weekday and could start within a few weeks of an offer.\n\nBest regards,\nMaya Linden"
+ },
+ "followUpEmail": {
+  "subject": "Following Up: Experiential Marketing Associate, Maya Linden",
+  "body": "Hello Coinbase Hiring Team,\n\nI applied for the Experiential Marketing Associate role last week and remain very interested. I'm drawn to how your events align with business priorities across Marketing, Sales, Product and Communications. At Westbrook Film Society, I raised average ticket sales from 35 to 60 per screening with a weekly reel, so I know how to fill a room. I would welcome the chance to discuss how that could support your attendee goals.\n\nBest regards,\nMaya Linden",
+  "recommendedDelay": 5
+ }
+}

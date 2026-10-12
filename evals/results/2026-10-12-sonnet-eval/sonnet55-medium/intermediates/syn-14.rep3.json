@@ -1,0 +1,549 @@
+{
+ "case_id": "syn-14",
+ "rep": 3,
+ "arm": "sonnet55-medium",
+ "detectedLanguage": "en",
+ "applicant": {
+  "name": "Tomas Brandt",
+  "email": "tomas.brandt@example.com",
+  "phone": "+1 555 0123",
+  "address": "Chicago, IL, USA",
+  "headline": "Financial Analyst",
+  "skills": [
+   "budgeting",
+   "rolling forecasts",
+   "variance analysis",
+   "working capital",
+   "management reporting",
+   "forecasting",
+   "month-end reporting"
+  ],
+  "tools": [
+   "Excel",
+   "INDEX/MATCH",
+   "pivot tables",
+   "VBA",
+   "Power BI",
+   "SAP (reporting)",
+   "basic SQL"
+  ],
+  "languages": [
+   "English (native)",
+   "German (basic)"
+  ],
+  "experiences": [
+   {
+    "company": "Calder Industrial Components (manufacturing, 900 staff)",
+    "title": "Financial Analyst",
+    "startDate": "Mar 2022",
+    "endDate": "Present",
+    "bullets": [
+     "Own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD",
+     "Improved forecast accuracy for the larger unit from 88% to 96% by rebuilding the model around order backlog",
+     "Shortened month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA",
+     "Build Power BI dashboards on SAP data for plant managers"
+    ]
+   },
+   {
+    "company": "Redfern Stores (retail chain, 60 stores)",
+    "title": "Junior Financial Analyst",
+    "startDate": "Sep 2019",
+    "endDate": "Feb 2022",
+    "bullets": [
+     "Prepared weekly store P&L packs and the annual budget for the regional team",
+     "Found a recurring supplier rebate that was not being claimed, worth about 120,000 USD a year"
+    ]
+   },
+   {
+    "company": "Lakeshore Logistics",
+    "title": "Finance Intern",
+    "startDate": "Jun 2018",
+    "endDate": "Aug 2018",
+    "bullets": [
+     "Reconciled freight invoices and supported the audit file"
+    ]
+   }
+  ],
+  "certifications": [
+   "ACCA: 9 of 13 papers passed (in progress)"
+  ]
+ },
+ "job": {
+  "title": "Senior Program Manager, Workplace Operations",
+  "companyName": "Airbnb",
+  "location": "San Francisco, United States",
+  "workType": "On-site",
+  "requiredSkills": [
+   "12-15+ years of experience in program management, workplace operations, or a closely related field",
+   "Practical experience applying AI and automation to operational work",
+   "Identifying high-value AI use cases, scoping pilots, and scaling what works",
+   "Independently owning and delivering multiple complex, cross-functional programs simultaneously",
+   "Managing programs with global reach",
+   "Stakeholder alignment across functions, regions, and seniority levels",
+   "Assessing how existing teams operate and translating into an actionable roadmap of process, tooling, and automation improvements",
+   "Systems-thinking",
+   "Process design",
+   "Building structure and clarity in fast-moving, ambiguous environments",
+   "Build / buy / outsource decision-making",
+   "Vendor evaluation, scoping, and performance management",
+   "Influencing without direct authority",
+   "Developing policies, playbooks, and operational tooling for distributed teams",
+   "Change management, including enablement and adoption",
+   "Strong analytical skills",
+   "Using data to measure program performance, build a business case, and drive decisions",
+   "Excellent written and verbal communication skills",
+   "Tailoring messaging to diverse audiences",
+   "Program and project management tools (e.g., Airtable, JIRA, or equivalent)",
+   "Workflow automation and integration platforms",
+   "Customer service orientation",
+   "Commitment to delivering a high-quality employee experience",
+   "Operating with autonomy in a high-visibility environment with senior stakeholders",
+   "Independent judgment",
+   "Comfortable in fast-paced, ambiguous environments",
+   "Curiosity about emerging technology in operational work"
+  ],
+  "niceToHaveSkills": [
+   "Previous people management experience"
+  ],
+  "responsibilities": [
+   "Own and manage a portfolio of cross-functional programs with global scope, driving delivery from inception through ongoing operation and continuous improvement",
+   "Develop and maintain program-level policies, processes, playbooks, and operating standards",
+   "Lead cross-functional workstreams ensuring Workplace Ops priorities are represented, aligned, and delivered",
+   "Identify gaps in current program offerings and proactively develop solutions, often without an established playbook",
+   "Build and scale operational tooling, workflows, and internal resources",
+   "Develop measurement frameworks and synthesize data and feedback to assess program performance and inform strategic decisions",
+   "Support the team's internal operating model through goal-setting, roadmap development, and ways of working",
+   "Manage vendor relationships and provide direction, ensuring alignment to Airbnb standards",
+   "Serve as a thought partner to Workplace Ops leadership on priorities, capacity, and program strategy",
+   "Communicate across all levels of the organization, translating complex operational topics into clear guidance",
+   "Map how Workplace Ops teams operate today (processes, tools, systems, vendors, handoffs) and build an evidence-based view of the current state",
+   "Identify gaps, duplication, manual effort, and friction points and size the opportunity",
+   "Create alignment and synergy across teams, consolidating overlapping workflows and standardizing where helpful",
+   "Develop build / buy / automate recommendations",
+   "Lead identification and adoption of AI-enabled workflows and turn ideas into scoped, measurable pilots",
+   "Partner with IT, Technology, Procurement, Finance, Legal, Privacy, and Security to evaluate tools and platforms and ensure standards for data handling, security, and responsible AI use",
+   "Build the business case for change, including cost, effort, risk, and expected efficiency gains, and present recommendations to leadership",
+   "Lead change management and enablement for new processes and tools, including training, documentation, and adoption tracking",
+   "Define success metrics for transformation work (cycle time, cost per transaction, manual hours saved, employee satisfaction) and report on realized impact"
+  ],
+  "expectedSalary": "$192,000-$237,000 USD"
+ },
+ "match": {
+  "score": 28,
+  "matchedRequirements": [
+   "Practical experience applying AI and automation to operational work",
+   "Stakeholder alignment across functions, regions, and seniority levels",
+   "Assessing how existing teams operate and translating into an actionable roadmap of process, tooling, and automation improvements",
+   "Systems-thinking",
+   "Influencing without direct authority",
+   "Strong analytical skills",
+   "Using data to measure program performance, build a business case, and drive decisions",
+   "Excellent written and verbal communication skills",
+   "Tailoring messaging to diverse audiences",
+   "Customer service orientation",
+   "Operating with autonomy in a high-visibility environment with senior stakeholders",
+   "Independent judgment",
+   "Comfortable in fast-paced, ambiguous environments",
+   "Curiosity about emerging technology in operational work"
+  ],
+  "claimableEvidence": [
+   "automating journal checks in Excel VBA",
+   "variance analysis"
+  ],
+  "missingSkills": [
+   "12-15+ years of experience in program management, workplace operations, or a closely related field",
+   "Identifying high-value AI use cases, scoping pilots, and scaling what works",
+   "Independently owning and delivering multiple complex, cross-functional programs simultaneously",
+   "Managing programs with global reach",
+   "Process design",
+   "Building structure and clarity in fast-moving, ambiguous environments",
+   "Build / buy / outsource decision-making",
+   "Vendor evaluation, scoping, and performance management",
+   "Developing policies, playbooks, and operational tooling for distributed teams",
+   "Change management, including enablement and adoption",
+   "Program and project management tools (e.g., Airtable, JIRA, or equivalent)",
+   "Workflow automation and integration platforms",
+   "Commitment to delivering a high-quality employee experience",
+   "Previous people management experience"
+  ],
+  "details": [
+   {
+    "requirement": "12-15+ years of experience in program management, workplace operations, or a closely related field",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Practical experience applying AI and automation to operational work",
+    "evidence": "automating journal checks in Excel VBA",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Identifying high-value AI use cases, scoping pilots, and scaling what works",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Independently owning and delivering multiple complex, cross-functional programs simultaneously",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Managing programs with global reach",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Stakeholder alignment across functions, regions, and seniority levels",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Assessing how existing teams operate and translating into an actionable roadmap of process, tooling, and automation improvements",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Systems-thinking",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Process design",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Building structure and clarity in fast-moving, ambiguous environments",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Build / buy / outsource decision-making",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Vendor evaluation, scoping, and performance management",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Influencing without direct authority",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Developing policies, playbooks, and operational tooling for distributed teams",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Change management, including enablement and adoption",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Strong analytical skills",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Using data to measure program performance, build a business case, and drive decisions",
+    "evidence": "variance analysis",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Excellent written and verbal communication skills",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Tailoring messaging to diverse audiences",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Program and project management tools (e.g., Airtable, JIRA, or equivalent)",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Workflow automation and integration platforms",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Customer service orientation",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Commitment to delivering a high-quality employee experience",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Operating with autonomy in a high-visibility environment with senior stakeholders",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Independent judgment",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Comfortable in fast-paced, ambiguous environments",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Curiosity about emerging technology in operational work",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Previous people management experience",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   }
+  ]
+ },
+ "verifiedMetrics": [
+  "5 years of experience in budgeting, forecasting and month-end reporting",
+  "ACCA: 9 of 13 papers passed (in progress)",
+  "combined revenue of about 85 million USD"
+ ],
+ "fitAnalysis": {
+  "fitLevel": "weak",
+  "score": 28,
+  "assessment": "Your 28% match is a Weak Fit for this Senior Program Manager role, mainly because of seniority and domain.\n\n**Strengths:**\n- Automating journal checks in Excel VBA\n- Variance analysis backed by Power BI reporting\n- Management reporting for a 900-staff manufacturer\n\n**Gaps:**\n- 12-15+ years of program management experience (you have about 6 in finance)\n- No global cross-functional program ownership or change management\n- No vendor management or workflow automation platform experience\n\n**Recommendation:** Target finance systems or FP&A automation roles first, and build program management experience (such as a PMP-track certification) before applying to senior program roles like this one.",
+  "matchingSkills": [
+   "Practical experience applying AI and automation to operational work",
+   "Stakeholder alignment across functions, regions, and seniority levels",
+   "Assessing how existing teams operate and translating into an actionable roadmap of process, tooling, and automation improvements",
+   "Systems-thinking",
+   "Influencing without direct authority",
+   "Strong analytical skills",
+   "Using data to measure program performance, build a business case, and drive decisions",
+   "Excellent written and verbal communication skills",
+   "Tailoring messaging to diverse audiences",
+   "Customer service orientation",
+   "Operating with autonomy in a high-visibility environment with senior stakeholders",
+   "Independent judgment",
+   "Comfortable in fast-paced, ambiguous environments",
+   "Curiosity about emerging technology in operational work"
+  ],
+  "missingSkills": [
+   "12-15+ years of experience in program management, workplace operations, or a closely related field",
+   "Identifying high-value AI use cases, scoping pilots, and scaling what works",
+   "Independently owning and delivering multiple complex, cross-functional programs simultaneously",
+   "Managing programs with global reach",
+   "Process design",
+   "Building structure and clarity in fast-moving, ambiguous environments",
+   "Build / buy / outsource decision-making",
+   "Vendor evaluation, scoping, and performance management",
+   "Developing policies, playbooks, and operational tooling for distributed teams",
+   "Change management, including enablement and adoption",
+   "Program and project management tools (e.g., Airtable, JIRA, or equivalent)",
+   "Workflow automation and integration platforms",
+   "Commitment to delivering a high-quality employee experience",
+   "Previous people management experience"
+  ]
+ },
+ "optimizedCVData": {
+  "personal": {
+   "fullName": "Tomas Brandt",
+   "email": "tomas.brandt@example.com",
+   "phone": "+1 555 0123",
+   "currentTitle": "Financial Analyst | Variance Analysis | Excel VBA Automation",
+   "city": "Chicago, IL",
+   "country": "USA"
+  },
+  "summary": "Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting for manufacturing and retail businesses. Owns monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD. Builds Power BI dashboards on SAP data and automates reporting steps in Excel VBA to make recurring processes faster and more reliable. Working towards ACCA qualification (9 of 13 papers passed).",
+  "experience": [
+   {
+    "id": "exp-1",
+    "company": "Calder Industrial Components",
+    "position": "Financial Analyst",
+    "location": "Chicago, IL, USA",
+    "startDate": "Mar 2022",
+    "current": true,
+    "bullets": [
+     "Own the monthly forecast and variance analysis reporting for two business units with combined revenue of about 85 million USD",
+     "Shortened month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA",
+     "Rebuilt the forecast model around order backlog, lifting forecast accuracy for the larger unit from 88% to 96%",
+     "Build Power BI dashboards on SAP data that give plant managers the figures they need to run their operations"
+    ],
+    "technologies": [
+     "Excel VBA",
+     "Power BI",
+     "SAP (reporting)"
+    ]
+   },
+   {
+    "id": "exp-2",
+    "company": "Redfern Stores",
+    "position": "Junior Financial Analyst",
+    "startDate": "Sep 2019",
+    "endDate": "Feb 2022",
+    "current": false,
+    "bullets": [
+     "Found a recurring supplier rebate that was not being claimed, worth about 120,000 USD a year",
+     "Prepared weekly store P&L packs for the regional team",
+     "Prepared the annual budget for the regional team"
+    ],
+    "technologies": [
+     "Excel"
+    ]
+   },
+   {
+    "id": "exp-3",
+    "company": "Lakeshore Logistics",
+    "position": "Finance Intern",
+    "startDate": "Jun 2018",
+    "endDate": "Aug 2018",
+    "current": false,
+    "bullets": [
+     "Reconciled freight invoices and supported the audit file"
+    ],
+    "technologies": []
+   }
+  ],
+  "education": [
+   {
+    "id": "edu-1",
+    "institution": "University of Illinois Chicago",
+    "degree": "B.S. Finance",
+    "startDate": "2015",
+    "endDate": "2019",
+    "highlights": []
+   }
+  ],
+  "skills": [
+   {
+    "category": "Financial Analysis",
+    "items": [
+     "Variance analysis",
+     "Budgeting",
+     "Rolling forecasts",
+     "Working capital",
+     "Management reporting"
+    ]
+   },
+   {
+    "category": "Excel & Automation",
+    "items": [
+     "Excel (advanced: INDEX/MATCH, pivot tables, VBA)",
+     "Automating journal checks in Excel VBA"
+    ]
+   },
+   {
+    "category": "Reporting & Data",
+    "items": [
+     "Power BI",
+     "SAP (reporting)",
+     "SQL (basic)"
+    ]
+   }
+  ],
+  "languages": [
+   {
+    "language": "English",
+    "proficiency": "Native"
+   },
+   {
+    "language": "German",
+    "proficiency": "Basic"
+   }
+  ],
+  "certifications": [
+   {
+    "id": "cert-1",
+    "name": "ACCA: 9 of 13 papers passed (in progress)",
+    "issuer": "ACCA"
+   }
+  ],
+  "projects": [],
+  "additionalInfo": [],
+  "analysis": {
+   "summary": "The CV positions the candidate's documented strengths in variance analysis, Excel VBA automation and data-driven reporting as the closest match to the analytical and process-improvement demands of the role. No program management, workplace operations or people management claims were added because none appear in the source documents.",
+   "key_changes": [
+    "Rewrote the headline around documented strengths: variance analysis and Excel VBA automation",
+    "Led the summary with the verified 5 years of budgeting, forecasting and month-end reporting experience",
+    "Reframed the month-end close bullet to highlight process improvement through automating journal checks in Excel VBA",
+    "Emphasized data-driven reporting and ownership of recurring reporting cycles to reflect the analytical requirements",
+    "Condensed older roles to the most relevant bullets and grouped skills by technical function",
+    "Preserved the ACCA progress, education and language levels exactly as documented"
+   ],
+   "ats_compatibility": 40,
+   "missing_keywords_added": [
+    "automating journal checks in Excel VBA",
+    "variance analysis"
+   ]
+  },
+  "sectionHeaders": {
+   "summary": "Professional Summary",
+   "skills": "Skills",
+   "experience": "Professional Experience",
+   "education": "Education",
+   "certifications": "Certifications",
+   "languages": "Languages",
+   "contact": "Contact",
+   "additionalInfo": "Additional Information",
+   "projects": "Projects"
+  },
+  "localizedStrings": {
+   "present": "Present",
+   "gradePrefix": "GPA:",
+   "degreeConnector": "in",
+   "dateOfBirthLabel": "Date of Birth",
+   "nationalityLabel": "Nationality",
+   "photoPlaceholder": "Photo",
+   "websiteLabel": "Website",
+   "signatureLabel": "Signature",
+   "cityLabel": "City",
+   "dateLabel": "Date"
+  }
+ },
+ "coverLetter": "Tomas Brandt\nChicago, IL, USA\ntomas.brandt@example.com\n+1 555 0123\n\nOctober 12, 2026\n\nHiring Manager\nAirbnb\n\nDear Hiring Manager,\n\nYour posting describes Workplace Operations teams that each run their own processes, tools and vendors, with duplicated effort and manual work in between. I know that problem from finance. Our month-end close depended on manual journal checks, so I automated them in Excel VBA and shortened the close reporting cycle. That is the kind of manual effort your team wants to find and remove across a global office footprint.\n\nMy background is financial analysis, not workplace operations, and I want to be clear about that. As a Financial Analyst at Calder Industrial Components, I own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD. I also build Power BI dashboards on SAP data for plant managers, so I'm used to turning raw data into something non-finance stakeholders act on. That maps to the measurement frameworks and data-driven decisions your role calls for. I work with advanced Excel and basic SQL, and I tend to look for the manual step that can be replaced by something better.\n\nI'd like to bring that analytical, build-it-better mindset to your operational modernization work, and I'm keen to learn how AI changes that work at Airbnb's scale. I'm available for a conversation at your convenience and would welcome the chance to discuss where my skills could support the team.\n\nKind regards,\nTomas Brandt",
+ "applicationEmail": {
+  "subject": "Application: Senior Program Manager, Tomas Brandt",
+  "body": "Dear Hiring Team,\n\nI'm a financial analyst who shortened month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA, and I'd like to bring that habit of finding and fixing slow processes to your Workplace Operations programs. I use data to measure performance and explain it to non-finance colleagues, including in my current role owning forecast and variance reporting for two business units with combined revenue of about 85 million USD. My CV and cover letter are attached for your review. I'm available for a call any weekday afternoon (Central Time) and can start a conversation whenever suits your team.\n\nBest regards,\nTomas Brandt"
+ },
+ "followUpEmail": {
+  "subject": "Following Up: Senior Program Manager, Tomas Brandt",
+  "body": "Dear Hiring Team,\n\nI applied last week for the Senior Program Manager role in Workplace Operations. I'm drawn to the scope of owning cross-functional programs with global reach, from inception through continuous improvement. One result relevant to that: I rebuilt a forecast model around order backlog and raised accuracy for our larger business unit from 88% to 96%. I would welcome the chance to discuss how that approach could support your programs.\n\nBest regards,\nTomas Brandt",
+  "recommendedDelay": 5
+ }
+}

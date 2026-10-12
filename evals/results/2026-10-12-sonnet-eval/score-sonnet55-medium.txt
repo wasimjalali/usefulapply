@@ -1,0 +1,13 @@
+scored 30 kits (rep 1), 50 kits total
+F1: 30 kits, 79 findings {"write_cover_letter":47,"fit_assessment":30,"write_email":1,"write_follow_up_email":1}
+F12: 2 kits, 2 findings {"write_follow_up_email":1,"write_email":1}
+F14: 2 kits, 2 findings {"write_follow_up_email":1,"write_email":1}
+F16: 1 kits, 1 findings {"write_cover_letter":1}
+F18: 2 kits, 3 findings {"write_follow_up_email":2,"write_email":1}
+F2: 10 kits, 14 findings {"optimize_cv":14}
+F3: 5 kits, 23 findings {"optimize_cv":23}
+F4: 12 kits, 16 findings {"write_cover_letter":11,"write_follow_up_email":3,"write_email":2}
+F6: 29 kits, 59 findings {"write_cover_letter":23,"write_email":22,"write_follow_up_email":14}
+F8: 3 kits, 4 findings {"write_cover_letter":2,"fit_assessment":2}
+F9: 6 kits, 6 findings {"fit_assessment":6}
+{"total":50,"complete":45,"partial":5,"aborted":0} cost $11.10

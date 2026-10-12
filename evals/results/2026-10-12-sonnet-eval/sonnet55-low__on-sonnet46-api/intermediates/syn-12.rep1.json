@@ -1,0 +1,533 @@
+{
+ "case_id": "syn-12",
+ "rep": 1,
+ "arm": "sonnet55-low",
+ "detectedLanguage": "en",
+ "applicant": {
+  "name": "Tomas Brandt",
+  "email": "tomas.brandt@example.com",
+  "phone": "+1 555 0123",
+  "address": "Chicago, IL, USA",
+  "headline": "Financial Analyst",
+  "skills": [
+   "budgeting",
+   "rolling forecasts",
+   "variance analysis",
+   "working capital",
+   "management reporting",
+   "month-end reporting",
+   "forecasting",
+   "INDEX/MATCH",
+   "pivot tables",
+   "VBA",
+   "basic SQL"
+  ],
+  "tools": [
+   "Excel",
+   "Power BI",
+   "SAP (reporting)"
+  ],
+  "languages": [
+   "English (native)",
+   "German (basic)"
+  ],
+  "experiences": [
+   {
+    "company": "Calder Industrial Components",
+    "title": "Financial Analyst",
+    "startDate": "Mar 2022",
+    "endDate": "Present",
+    "bullets": [
+     "Own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD",
+     "Improved forecast accuracy for the larger unit from 88% to 96% by rebuilding the model around order backlog",
+     "Shortened month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA",
+     "Build Power BI dashboards on SAP data for plant managers"
+    ]
+   },
+   {
+    "company": "Redfern Stores",
+    "title": "Junior Financial Analyst",
+    "startDate": "Sep 2019",
+    "endDate": "Feb 2022",
+    "bullets": [
+     "Prepared weekly store P&L packs and the annual budget for the regional team",
+     "Found a recurring supplier rebate that was not being claimed, worth about 120,000 USD a year"
+    ]
+   },
+   {
+    "company": "Lakeshore Logistics",
+    "title": "Finance Intern",
+    "startDate": "Jun 2018",
+    "endDate": "Aug 2018",
+    "bullets": [
+     "Reconciled freight invoices and supported the audit file"
+    ]
+   }
+  ],
+  "certifications": [
+   "ACCA: 9 of 13 papers passed (in progress)"
+  ]
+ },
+ "job": {
+  "title": "Senior FP&A Analyst, Cloud Hosting",
+  "companyName": "GitLab",
+  "location": "Remote, Canada; Remote, United States",
+  "workType": "Remote",
+  "requiredSkills": [
+   "FP&A experience",
+   "Corporate finance",
+   "Accounting",
+   "Finance business partnering",
+   "Vendor spend management",
+   "Forecasting",
+   "Variance analysis",
+   "Month-end close activities",
+   "Accruals",
+   "Allocations",
+   "Reconciliations",
+   "Financial modeling",
+   "Analytical skills",
+   "Cloud and AI vendor spend experience",
+   "Cloud billing data analysis",
+   "Data analysis",
+   "Cross-functional stakeholder communication",
+   "Asynchronous communication",
+   "Independent work",
+   "Prioritization",
+   "AI tools usage",
+   "Clear written communication",
+   "Decision-support materials creation",
+   "Narrative writing from financial data"
+  ],
+  "niceToHaveSkills": [
+   "Cloud cost management",
+   "FinOps experience"
+  ],
+  "responsibilities": [
+   "Manage and report on cloud and AI-related expenses",
+   "Maintain forecast models incorporating actual results, usage drivers, and business drivers",
+   "Execute recurring month-end close activities including accruals, allocations, reconciliations, variance analysis, and close commentary",
+   "Support forecasting and annual planning cycles",
+   "Build or enhance financial models to answer new and evolving business questions",
+   "Partner with engineering, product, procurement, accounting, and finance stakeholders",
+   "Access and analyze cloud billing information from provider consoles, billing exports, and other data sources",
+   "Translate findings into clear narratives, recommendations, and decision-support materials",
+   "Use AI tools to automate and improve recurring analysis, reporting, data preparation, and finance workflows",
+   "Improve data quality, accuracy, scalability, and operating efficiency",
+   "Own deliverables and communicate progress and risks proactively",
+   "Manage changing priorities in a distributed, asynchronous environment"
+  ],
+  "expectedSalary": "$115,200 — $194,400 USD (United States residents only)"
+ },
+ "match": {
+  "score": 48,
+  "matchedRequirements": [
+   "FP&A experience",
+   "Finance business partnering",
+   "Forecasting",
+   "Variance analysis",
+   "Month-end close activities",
+   "Reconciliations",
+   "Financial modeling",
+   "Analytical skills",
+   "Data analysis",
+   "Cross-functional stakeholder communication",
+   "Asynchronous communication",
+   "Independent work",
+   "Prioritization",
+   "Clear written communication",
+   "Decision-support materials creation"
+  ],
+  "claimableEvidence": [
+   "Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting",
+   "rolling forecasts",
+   "variance analysis",
+   "month-end reporting",
+   "Reconciled freight invoices and supported the audit file",
+   "rebuilding the model around order backlog",
+   "variance analysis, working capital, management reporting",
+   "Build Power BI dashboards on SAP data for plant managers"
+  ],
+  "missingSkills": [
+   "Corporate finance",
+   "Accounting",
+   "Vendor spend management",
+   "Accruals",
+   "Allocations",
+   "Cloud and AI vendor spend experience",
+   "Cloud billing data analysis",
+   "AI tools usage",
+   "Narrative writing from financial data",
+   "Cloud cost management",
+   "FinOps experience"
+  ],
+  "details": [
+   {
+    "requirement": "FP&A experience",
+    "evidence": "Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Corporate finance",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Accounting",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Finance business partnering",
+    "evidence": "Build Power BI dashboards on SAP data for plant managers",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Vendor spend management",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Forecasting",
+    "evidence": "rolling forecasts",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Variance analysis",
+    "evidence": "variance analysis",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Month-end close activities",
+    "evidence": "month-end reporting",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Accruals",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Allocations",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Reconciliations",
+    "evidence": "Reconciled freight invoices and supported the audit file",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Financial modeling",
+    "evidence": "rebuilding the model around order backlog",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Analytical skills",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Cloud and AI vendor spend experience",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Cloud billing data analysis",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Data analysis",
+    "evidence": "variance analysis, working capital, management reporting",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Cross-functional stakeholder communication",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Asynchronous communication",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Independent work",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Prioritization",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "AI tools usage",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Clear written communication",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Decision-support materials creation",
+    "evidence": "Build Power BI dashboards on SAP data for plant managers",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Narrative writing from financial data",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Cloud cost management",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "FinOps experience",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   }
+  ]
+ },
+ "verifiedMetrics": [
+  "5 years of experience in budgeting, forecasting and month-end reporting"
+ ],
+ "fitAnalysis": {
+  "fitLevel": "weak",
+  "score": 48,
+  "assessment": "This is a weak fit at 48%, with core FP&A skills in place but real gaps in cloud spend and accounting depth.\n\n**Strengths:**\n- Five years of budgeting, rolling forecasts and variance analysis\n- Month-end reporting and freight invoice reconciliations supporting the audit file\n- Power BI dashboards on SAP data, plus a rebuilt backlog model\n\n**Gaps:**\n- No cloud or AI vendor spend, billing data or FinOps experience\n- No accruals, allocations or vendor spend management shown\n- ACCA incomplete (9 of 13 papers); corporate finance and accounting depth unproven\n\n**Recommendation:** Build cloud cost and FinOps knowledge (such as the FinOps Foundation certification) and gain accruals experience before applying to senior roles like this one.",
+  "matchingSkills": [
+   "FP&A experience",
+   "Finance business partnering",
+   "Forecasting",
+   "Variance analysis",
+   "Month-end close activities",
+   "Reconciliations",
+   "Financial modeling",
+   "Analytical skills",
+   "Data analysis",
+   "Cross-functional stakeholder communication",
+   "Asynchronous communication",
+   "Independent work",
+   "Prioritization",
+   "Clear written communication",
+   "Decision-support materials creation"
+  ],
+  "missingSkills": [
+   "Corporate finance",
+   "Accounting",
+   "Vendor spend management",
+   "Accruals",
+   "Allocations",
+   "Cloud and AI vendor spend experience",
+   "Cloud billing data analysis",
+   "AI tools usage",
+   "Narrative writing from financial data",
+   "Cloud cost management",
+   "FinOps experience"
+  ]
+ },
+ "optimizedCVData": {
+  "personal": {
+   "fullName": "Tomas Brandt",
+   "email": "tomas.brandt@example.com",
+   "phone": "+1 555 0123",
+   "currentTitle": "Financial Analyst | Forecasting | Variance Analysis | Financial Modeling",
+   "city": "Chicago, IL",
+   "country": "USA"
+  },
+  "summary": "Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting for manufacturing and retail businesses. Owns monthly forecasts and variance reporting for two business units, and builds Power BI dashboards on SAP data for plant managers. Strong in advanced Excel, working towards the ACCA qualification.",
+  "experience": [
+   {
+    "id": "exp-1",
+    "company": "Calder Industrial Components",
+    "position": "Financial Analyst",
+    "location": "Chicago, IL",
+    "startDate": "Mar 2022",
+    "current": true,
+    "bullets": [
+     "Own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD",
+     "Rebuilt the forecasting model around order backlog, lifting forecast accuracy for the larger unit from 88% to 96%",
+     "Cut month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA",
+     "Build Power BI dashboards on SAP data for plant managers"
+    ],
+    "technologies": [
+     "Excel VBA",
+     "Power BI",
+     "SAP"
+    ]
+   },
+   {
+    "id": "exp-2",
+    "company": "Redfern Stores",
+    "position": "Junior Financial Analyst",
+    "startDate": "Sep 2019",
+    "endDate": "Feb 2022",
+    "current": false,
+    "bullets": [
+     "Prepared weekly store P&L packs and the annual budget for the regional team",
+     "Found a recurring supplier rebate that was not being claimed, worth about 120,000 USD a year"
+    ],
+    "technologies": []
+   },
+   {
+    "id": "exp-3",
+    "company": "Lakeshore Logistics",
+    "position": "Finance Intern",
+    "startDate": "Jun 2018",
+    "endDate": "Aug 2018",
+    "current": false,
+    "bullets": [
+     "Reconciled freight invoices and supported the audit file"
+    ],
+    "technologies": []
+   }
+  ],
+  "education": [
+   {
+    "id": "edu-1",
+    "institution": "University of Illinois Chicago",
+    "degree": "B.S. Finance",
+    "startDate": "2015",
+    "endDate": "2019",
+    "highlights": []
+   },
+   {
+    "id": "edu-2",
+    "institution": "ACCA",
+    "degree": "ACCA qualification: 9 of 13 papers passed",
+    "endDate": "ongoing",
+    "highlights": []
+   }
+  ],
+  "skills": [
+   {
+    "category": "Financial Analysis",
+    "items": [
+     "Rolling forecasts",
+     "Variance analysis",
+     "Budgeting",
+     "Management reporting",
+     "Working capital"
+    ]
+   },
+   {
+    "category": "Tools and Analytics",
+    "items": [
+     "Excel (advanced: INDEX/MATCH, pivot tables, VBA)",
+     "Power BI",
+     "SAP (reporting)",
+     "SQL (basic)"
+    ]
+   }
+  ],
+  "languages": [
+   {
+    "language": "English",
+    "proficiency": "Native"
+   },
+   {
+    "language": "German",
+    "proficiency": "Basic"
+   }
+  ],
+  "certifications": [],
+  "projects": [],
+  "additionalInfo": [],
+  "analysis": {
+   "summary": "Positioned the candidate's documented forecasting, variance analysis and month-end reporting experience at the front of the CV to match the FP&A focus of the role. Skills the source documents do not support, such as cloud vendor spend, FinOps and accruals, were left out to keep every claim verifiable.",
+   "key_changes": [
+    "Rewrote the headline around forecasting, variance analysis and financial modeling",
+    "Led the summary with the verified 5 years of experience in budgeting, forecasting and month-end reporting",
+    "Reordered Calder Industrial Components bullets to put forecast ownership, model rebuilding and close reporting first",
+    "Kept the Finance Intern reconciliation work as supporting evidence for reconciliation experience",
+    "Grouped skills into finance and analytics categories with documented tool levels preserved",
+    "Kept the ACCA progress exactly as stated in the source"
+   ],
+   "ats_compatibility": 62,
+   "missing_keywords_added": [
+    "forecasting",
+    "variance analysis",
+    "month-end reporting",
+    "reconciliations",
+    "financial modeling",
+    "management reporting",
+    "Power BI",
+    "data analysis"
+   ]
+  },
+  "sectionHeaders": {
+   "summary": "Professional Summary",
+   "skills": "Skills",
+   "experience": "Professional Experience",
+   "education": "Education",
+   "certifications": "Certifications",
+   "languages": "Languages",
+   "contact": "Contact",
+   "additionalInfo": "Additional Information",
+   "projects": "Projects"
+  },
+  "localizedStrings": {
+   "present": "Present",
+   "gradePrefix": "GPA:",
+   "degreeConnector": "in",
+   "dateOfBirthLabel": "Date of Birth",
+   "nationalityLabel": "Nationality",
+   "photoPlaceholder": "Photo",
+   "websiteLabel": "Website",
+   "signatureLabel": "Signature",
+   "cityLabel": "City",
+   "dateLabel": "Date"
+  }
+ },
+ "coverLetter": "Tomas Brandt\nChicago, IL, USA\ntomas.brandt@example.com\n+1 555 0123\n\nOctober 12, 2026\n\nHiring Manager\nGitLab\n\nDear Hiring Manager,\n\nForecasts only help engineering and finance leaders if they hold up against actuals. At Calder Industrial Components, the larger of my two business units had a forecast accuracy of 88%, so I rebuilt the model around order backlog and brought it to 96%. Your Cloud Hosting role asks for the same discipline: forecast models that reflect actual results, usage drivers and business drivers.\n\nAs a Financial Analyst with 5 years of experience in budgeting, forecasting and month-end reporting, I own the monthly forecast and variance reporting for two business units. I also cut month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA, and I build Power BI dashboards on SAP data for plant managers who need clear answers, not raw data. I haven't worked with cloud billing data yet, but variance analysis, financial modeling and explaining results to non-finance partners transfer directly. I'm also working towards my ACCA qualification, with 9 of 13 papers passed. Your all-remote, asynchronous setup suits how I work: I own my deliverables and flag risks early.\n\nSupporting decisions on cloud and AI infrastructure investments under the Manager, FP&A is the kind of work I want to grow into. I'm available to talk whenever suits your team and can start the conversation right away.\n\nBest regards,\nTomas Brandt",
+ "applicationEmail": {
+  "subject": "Application: Senior FP&A Analyst, Tomas Brandt",
+  "body": "Dear Hiring Team,\n\nYour team needs someone to maintain forecast models and run variance analysis, and I've spent 5 years in budgeting, forecasting and month-end reporting, most recently rebuilding a forecast model around order backlog. I own monthly forecast and variance reporting for two business units and build Power BI dashboards for plant managers, so I'm used to turning numbers into something the business can act on. My CV and cover letter are attached for your review. I'm available for a call any weekday, between 9am and 5pm Central Time.\n\nKind regards,\nTomas Brandt"
+ },
+ "followUpEmail": {
+  "subject": "Following Up: Senior FP&A Analyst, Tomas Brandt",
+  "body": "Dear Hiring Team,\n\nI applied for the Senior FP&A Analyst, Cloud Hosting role last week. Managing and reporting on cloud and AI-related expenses is a focus I find compelling. At Calder Industrial Components, I shortened month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA. I would bring that same close discipline to your accruals, reconciliations and variance commentary. I would welcome the chance to discuss how I can support your team.\n\nKind regards,\nTomas Brandt",
+  "recommendedDelay": 5
+ }
+}

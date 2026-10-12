@@ -1,0 +1,18 @@
+judge sonnet46-api__prompts-sonnet55 vs sonnet55-low: 160 passes to run (0 done), 148 need the judge, concurrency 4
+10/160 judge cost so far $0.40
+20/160 judge cost so far $0.80
+30/160 judge cost so far $1.26
+40/160 judge cost so far $1.71
+50/160 judge cost so far $1.95
+60/160 judge cost so far $2.30
+70/160 judge cost so far $2.80
+80/160 judge cost so far $3.20
+90/160 judge cost so far $3.55
+100/160 judge cost so far $4.01
+110/160 judge cost so far $4.44
+120/160 judge cost so far $4.91
+130/160 judge cost so far $5.34
+140/160 judge cost so far $5.82
+150/160 judge cost so far $6.21
+160/160 judge cost so far $6.71
+done 160/160, judge cost $6.71

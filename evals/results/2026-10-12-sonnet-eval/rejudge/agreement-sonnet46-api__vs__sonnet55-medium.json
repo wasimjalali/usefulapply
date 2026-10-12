@@ -1,0 +1,43 @@
+{
+ "pair": "sonnet46-api__vs__sonnet55-medium",
+ "packets": 24,
+ "invalid": [],
+ "agreement_all": {
+  "n": 24,
+  "agree": 23,
+  "rate": 0.9583333333333334
+ },
+ "agreement_both_decisive": {
+  "n": 23,
+  "agree": 23,
+  "rate": 1,
+  "opposite_winner": 0
+ },
+ "by_doc_type": {
+  "cv": {
+   "n": 5,
+   "agree": 5,
+   "rate": 1
+  },
+  "cover_letter": {
+   "n": 5,
+   "agree": 5,
+   "rate": 1
+  },
+  "email": {
+   "n": 5,
+   "agree": 4,
+   "rate": 0.8
+  },
+  "follow_up": {
+   "n": 4,
+   "agree": 4,
+   "rate": 1
+  },
+  "fit": {
+   "n": 5,
+   "agree": 5,
+   "rate": 1
+  }
+ }
+}

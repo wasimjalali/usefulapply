@@ -1,0 +1,524 @@
+{
+ "case_id": "syn-12",
+ "rep": 1,
+ "arm": "sonnet55-low",
+ "detectedLanguage": "en",
+ "applicant": {
+  "name": "Tomas Brandt",
+  "email": "tomas.brandt@example.com",
+  "phone": "+1 555 0123",
+  "address": "Chicago, IL, USA",
+  "headline": "Financial Analyst",
+  "skills": [
+   "budgeting",
+   "rolling forecasts",
+   "variance analysis",
+   "working capital",
+   "management reporting",
+   "forecasting",
+   "month-end reporting",
+   "basic SQL"
+  ],
+  "tools": [
+   "Excel",
+   "Power BI",
+   "SAP (reporting)",
+   "Excel VBA",
+   "INDEX/MATCH",
+   "pivot tables",
+   "VBA"
+  ],
+  "languages": [
+   "English (native)",
+   "German (basic)"
+  ],
+  "experiences": [
+   {
+    "company": "Calder Industrial Components",
+    "title": "Financial Analyst",
+    "startDate": "Mar 2022",
+    "endDate": "Present",
+    "bullets": [
+     "Own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD",
+     "Improved forecast accuracy for the larger unit from 88% to 96% by rebuilding the model around order backlog",
+     "Shortened month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA",
+     "Build Power BI dashboards on SAP data for plant managers"
+    ]
+   },
+   {
+    "company": "Redfern Stores",
+    "title": "Junior Financial Analyst",
+    "startDate": "Sep 2019",
+    "endDate": "Feb 2022",
+    "bullets": [
+     "Prepared weekly store P&L packs and the annual budget for the regional team",
+     "Found a recurring supplier rebate that was not being claimed, worth about 120,000 USD a year"
+    ]
+   },
+   {
+    "company": "Lakeshore Logistics",
+    "title": "Finance Intern",
+    "startDate": "Jun 2018",
+    "endDate": "Aug 2018",
+    "bullets": [
+     "Reconciled freight invoices and supported the audit file"
+    ]
+   }
+  ],
+  "certifications": [
+   "ACCA: 9 of 13 papers passed (in progress)"
+  ]
+ },
+ "job": {
+  "title": "Senior FP&A Analyst, Cloud Hosting",
+  "companyName": "GitLab",
+  "location": "Remote, Canada; Remote, United States",
+  "workType": "Remote",
+  "requiredSkills": [
+   "FP&A",
+   "Corporate finance",
+   "Accounting",
+   "Finance business partnering",
+   "Vendor spend",
+   "Forecasting",
+   "Variance analysis",
+   "Month-end close activities",
+   "Financial modeling",
+   "Analytical skills",
+   "Working with detailed data",
+   "Investigating variances",
+   "Evaluating financial trade-offs",
+   "Building financial models from scratch",
+   "Translating complex financial and operational information into clear narratives and recommendations",
+   "Cross-functional stakeholder communication",
+   "Prioritization",
+   "Working independently",
+   "Clear communication in an asynchronous environment",
+   "Cloud and AI vendor spend experience",
+   "Use of AI tools in daily workflows",
+   "Ownership and accountability",
+   "Managing changing priorities"
+  ],
+  "niceToHaveSkills": [
+   "Cloud cost management",
+   "FinOps"
+  ],
+  "responsibilities": [
+   "Manage and report on cloud and AI-related expenses, maintaining forecast models that incorporate actual results, usage drivers, and business drivers",
+   "Execute recurring month-end close activities, including accruals, allocations, reconciliations, variance analysis, and close commentary",
+   "Support forecasting and annual planning cycles, and build or enhance financial models to answer new and evolving business questions",
+   "Partner with engineering, product, procurement, accounting, and finance stakeholders to gather inputs, resolve data questions, explain results, and support spending decisions",
+   "Access and analyze cloud billing information from provider consoles, billing exports, and other data sources, then translate findings into clear narratives, recommendations, and decision-support materials",
+   "Use AI tools to automate and improve recurring analysis, reporting, data preparation, and other finance workflows while improving data quality, accuracy, scalability, and operating efficiency",
+   "Own deliverables, communicate progress and risks proactively, and manage changing priorities in a distributed, asynchronous environment"
+  ],
+  "expectedSalary": "$115,200–$194,400 USD (United States)"
+ },
+ "match": {
+  "score": 63,
+  "matchedRequirements": [
+   "FP&A",
+   "Accounting",
+   "Finance business partnering",
+   "Vendor spend",
+   "Forecasting",
+   "Variance analysis",
+   "Month-end close activities",
+   "Financial modeling",
+   "Analytical skills",
+   "Working with detailed data",
+   "Investigating variances",
+   "Building financial models from scratch",
+   "Translating complex financial and operational information into clear narratives and recommendations",
+   "Cross-functional stakeholder communication",
+   "Working independently",
+   "Clear communication in an asynchronous environment",
+   "Ownership and accountability",
+   "Managing changing priorities"
+  ],
+  "claimableEvidence": [
+   "Own the monthly forecast and variance reporting for two business units",
+   "Reconciled freight invoices and supported the audit file",
+   "forecasting",
+   "variance analysis",
+   "Shortened month-end close reporting from 9 working days to 6",
+   "by rebuilding the model around order backlog",
+   "Found a recurring supplier rebate that was not being claimed"
+  ],
+  "missingSkills": [
+   "Corporate finance",
+   "Evaluating financial trade-offs",
+   "Prioritization",
+   "Cloud and AI vendor spend experience",
+   "Use of AI tools in daily workflows",
+   "Cloud cost management",
+   "FinOps"
+  ],
+  "details": [
+   {
+    "requirement": "FP&A",
+    "evidence": "Own the monthly forecast and variance reporting for two business units",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Corporate finance",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Accounting",
+    "evidence": "Reconciled freight invoices and supported the audit file",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Finance business partnering",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Vendor spend",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Forecasting",
+    "evidence": "forecasting",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Variance analysis",
+    "evidence": "variance analysis",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Month-end close activities",
+    "evidence": "Shortened month-end close reporting from 9 working days to 6",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Financial modeling",
+    "evidence": "by rebuilding the model around order backlog",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Analytical skills",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Working with detailed data",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Investigating variances",
+    "evidence": "Found a recurring supplier rebate that was not being claimed",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Evaluating financial trade-offs",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Building financial models from scratch",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Translating complex financial and operational information into clear narratives and recommendations",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Cross-functional stakeholder communication",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Prioritization",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Working independently",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Clear communication in an asynchronous environment",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Cloud and AI vendor spend experience",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Use of AI tools in daily workflows",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Ownership and accountability",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Managing changing priorities",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Cloud cost management",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "FinOps",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   }
+  ]
+ },
+ "verifiedMetrics": [
+  "5 years of experience in budgeting, forecasting and month-end reporting",
+  "two business units with combined revenue of about 85 million USD",
+  "ACCA: 9 of 13 papers passed (in progress)"
+ ],
+ "fitAnalysis": {
+  "fitLevel": "fair",
+  "score": 63,
+  "assessment": "Your 63% match is a FAIR FIT for this Senior FP&A Analyst role, worth applying to with preparation.\n\n**Strengths:**\n- You own monthly forecast and variance reporting for two business units.\n- You cut month-end close from 9 working days to 6.\n- You found an unclaimed supplier rebate and reconciled freight invoices.\n\n**Gaps:**\n- No cloud or AI vendor spend experience, a must-have.\n- No corporate finance or financial trade-off evaluation shown.\n- No FinOps or cloud cost management (nice-to-have).\n\n**Recommendation:** Apply now, and in your cover letter link your supplier rebate and close-time wins to cloud spend, after learning FinOps basics.",
+  "matchingSkills": [
+   "FP&A",
+   "Accounting",
+   "Finance business partnering",
+   "Vendor spend",
+   "Forecasting",
+   "Variance analysis",
+   "Month-end close activities",
+   "Financial modeling",
+   "Analytical skills",
+   "Working with detailed data",
+   "Investigating variances",
+   "Building financial models from scratch",
+   "Translating complex financial and operational information into clear narratives and recommendations",
+   "Cross-functional stakeholder communication",
+   "Working independently",
+   "Clear communication in an asynchronous environment",
+   "Ownership and accountability",
+   "Managing changing priorities"
+  ],
+  "missingSkills": [
+   "Corporate finance",
+   "Evaluating financial trade-offs",
+   "Prioritization",
+   "Cloud and AI vendor spend experience",
+   "Use of AI tools in daily workflows",
+   "Cloud cost management",
+   "FinOps"
+  ]
+ },
+ "optimizedCVData": {
+  "personal": {
+   "fullName": "Tomas Brandt",
+   "email": "tomas.brandt@example.com",
+   "phone": "+1 555 0123",
+   "currentTitle": "Financial Analyst | FP&A | Forecasting | Variance Analysis",
+   "city": "Chicago, IL",
+   "country": "USA"
+  },
+  "summary": "Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting for manufacturing and retail businesses. Owns monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD. Builds forecast models and Power BI dashboards that give plant managers and regional teams clear financial insight. Working towards the ACCA qualification, with 9 of 13 papers passed.",
+  "experience": [
+   {
+    "id": "exp-1",
+    "company": "Calder Industrial Components",
+    "position": "Financial Analyst",
+    "location": "Chicago, IL",
+    "startDate": "Mar 2022",
+    "current": true,
+    "bullets": [
+     "Own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD",
+     "Rebuilt the forecast model around order backlog, which raised forecast accuracy for the larger unit from 88% to 96%",
+     "Automated journal checks in Excel VBA, shortening month-end close reporting from 9 working days to 6",
+     "Build Power BI dashboards on SAP data so plant managers can track performance"
+    ],
+    "technologies": [
+     "Excel",
+     "VBA",
+     "Power BI",
+     "SAP"
+    ]
+   },
+   {
+    "id": "exp-2",
+    "company": "Redfern Stores",
+    "position": "Junior Financial Analyst",
+    "startDate": "Sep 2019",
+    "endDate": "Feb 2022",
+    "current": false,
+    "bullets": [
+     "Prepared weekly store P&L packs for the regional team",
+     "Produced the annual budget for the regional team",
+     "Found a recurring supplier rebate that was not being claimed, worth about 120,000 USD a year"
+    ],
+    "technologies": [
+     "Excel"
+    ]
+   },
+   {
+    "id": "exp-3",
+    "company": "Lakeshore Logistics",
+    "position": "Finance Intern",
+    "startDate": "Jun 2018",
+    "endDate": "Aug 2018",
+    "current": false,
+    "bullets": [
+     "Reconciled freight invoices and supported the audit file"
+    ],
+    "technologies": []
+   }
+  ],
+  "education": [
+   {
+    "id": "edu-1",
+    "institution": "University of Illinois Chicago",
+    "degree": "B.S. Finance",
+    "startDate": "2015",
+    "endDate": "2019",
+    "highlights": []
+   }
+  ],
+  "skills": [
+   {
+    "category": "Financial Analysis",
+    "items": [
+     "Forecasting",
+     "Rolling forecasts",
+     "Variance analysis",
+     "Budgeting",
+     "Management reporting"
+    ]
+   },
+   {
+    "category": "Finance Operations",
+    "items": [
+     "Month-end reporting",
+     "Working capital"
+    ]
+   },
+   {
+    "category": "Tools and Reporting",
+    "items": [
+     "Excel (advanced: INDEX/MATCH, pivot tables, VBA)",
+     "Power BI",
+     "SAP (reporting)",
+     "SQL (basic)"
+    ]
+   }
+  ],
+  "languages": [
+   {
+    "language": "English",
+    "proficiency": "Native"
+   },
+   {
+    "language": "German",
+    "proficiency": "Basic"
+   }
+  ],
+  "certifications": [
+   {
+    "id": "cert-1",
+    "name": "ACCA: 9 of 13 papers passed (in progress)",
+    "issuer": "ACCA"
+   }
+  ],
+  "projects": [],
+  "additionalInfo": [],
+  "analysis": {
+   "summary": "The CV positions Tomas as an FP&A-focused analyst by leading with forecasting, variance analysis and month-end reporting, which are documented in his experience. Only metrics and skills found in the source CVs were used, and JD skills with no support in his documents were left out.",
+   "key_changes": [
+    "Reworked the headline and summary around FP&A, forecasting and variance analysis",
+    "Led the most recent role with ownership of monthly forecast and variance reporting for two business units",
+    "Kept the verified revenue figure of about 85 million USD and the 5 years of experience",
+    "Reordered skills so forecasting, variance analysis and month-end reporting come first",
+    "Kept the three most recent roles and the ACCA progress in certifications",
+    "Preserved language levels exactly as stated in the source"
+   ],
+   "ats_compatibility": 70,
+   "missing_keywords_added": [
+    "forecasting",
+    "variance analysis",
+    "month-end reporting"
+   ]
+  },
+  "sectionHeaders": {
+   "summary": "Professional Summary",
+   "skills": "Skills",
+   "experience": "Professional Experience",
+   "education": "Education",
+   "certifications": "Certifications",
+   "languages": "Languages",
+   "contact": "Contact",
+   "additionalInfo": "Additional Information",
+   "projects": "Projects"
+  },
+  "localizedStrings": {
+   "present": "Present",
+   "gradePrefix": "GPA:",
+   "degreeConnector": "in",
+   "dateOfBirthLabel": "Date of Birth",
+   "nationalityLabel": "Nationality",
+   "photoPlaceholder": "Photo",
+   "websiteLabel": "Website",
+   "signatureLabel": "Signature",
+   "cityLabel": "City",
+   "dateLabel": "Date"
+  }
+ },
+ "coverLetter": "Tomas Brandt\nChicago, IL, USA\ntomas.brandt@example.com\n+1 555 0123\n\nOctober 12, 2026\n\nHiring Manager\nGitLab\n\nDear Hiring Manager,\n\nForecasts only help engineering and finance leaders if they track what the business is actually doing. At Calder Industrial Components, our forecast for the larger business unit kept missing, so I rebuilt the model around order backlog and lifted its accuracy from 88% to 96%. Your Cloud Hosting role asks for the same thing: forecast models that reflect actual results and business drivers.\n\nAs a Financial Analyst, I own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD, and I've done month-end reporting for five years. I also shortened our close reporting from 9 working days to 6 by automating journal checks in Excel VBA. I haven't managed cloud or AI vendor spend, but I'm strong in the underlying work: variance analysis, working with detailed data from SAP and Power BI, and turning numbers into a clear story for plant managers. At Redfern Stores I found a supplier rebate nobody was claiming, worth about 120,000 USD a year, because I kept digging into a variance until it made sense. I'm also working towards my ACCA, with 9 of 13 papers passed.\n\nYour team works remotely and asynchronously, which suits how I like to work: own the deliverable, flag risks early and write things up clearly. I'd welcome a conversation about how I can support your cloud and AI infrastructure planning, and I'm available to start a discussion whenever suits your team.\n\nBest regards,\nTomas Brandt",
+ "applicationEmail": {
+  "subject": "Application: Senior FP&A Analyst, Tomas Brandt",
+  "body": "Hello,\n\nI own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD, and I shortened our month-end close reporting from 9 working days to 6. That is the forecasting, variance analysis and close work your Senior FP&A Analyst role centres on, and I'm working towards my ACCA qualification alongside it. I've attached my CV and cover letter with more detail on how I work with business teams. I'm available for a call any weekday this month and can start after a standard notice period.\n\nKind regards,\nTomas Brandt"
+ },
+ "followUpEmail": {
+  "subject": "Following Up: Senior FP&A Analyst, Tomas Brandt",
+  "body": "Hello,\n\nI applied for the Senior FP&A Analyst, Cloud Hosting role last week. GitLab's focus on forecast models that tie actual results to usage drivers is what draws me to it. At Calder Industrial Components, I rebuilt the forecast model around order backlog and lifted accuracy for the larger unit from 88% to 96%. I would welcome the chance to discuss how that approach could support your cloud and AI spend forecasting.\n\nKind regards,\nTomas Brandt",
+  "recommendedDelay": 5
+ }
+}

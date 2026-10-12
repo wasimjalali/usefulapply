@@ -1,0 +1,416 @@
+{
+ "case_id": "syn-06",
+ "rep": 1,
+ "arm": "sonnet55-low",
+ "detectedLanguage": "en",
+ "applicant": {
+  "name": "Daniel Okafor",
+  "email": "daniel.okafor@example.org",
+  "phone": "+44 20 5550 0188",
+  "address": "Leeds, UK",
+  "headline": "Physics teacher moving into customer education and success",
+  "skills": [
+   "curriculum design",
+   "workshop facilitation",
+   "one-to-one coaching",
+   "Excel (pivot tables, lookups)",
+   "Google Sheets",
+   "basic Python (pandas for simple analysis)"
+  ],
+  "tools": [
+   "Google Workspace",
+   "Microsoft Teams",
+   "Notion"
+  ],
+  "languages": [
+   "English (native)",
+   "French (school level)"
+  ],
+  "experiences": [
+   {
+    "company": "Ashgrove Academy, Leeds",
+    "title": "Teacher of Physics and Head of Year 9",
+    "startDate": "Sep 2018",
+    "endDate": "Present",
+    "bullets": [
+     "Teach physics to about 140 students a year across Years 9 to 13",
+     "Raised the share of Year 11 students reaching grade 5 or above from 71% to 86% over three years",
+     "Wrote the department's Year 9 practical curriculum and trained 12 colleagues to use it",
+     "Run weekly parent calls and two parents' evenings a term for a year group of 210 students",
+     "Track student progress in spreadsheets and present results to senior leadership each term"
+    ]
+   },
+   {
+    "company": "Millbank Secondary School, Bradford",
+    "title": "Science Teacher",
+    "startDate": "Sep 2016",
+    "endDate": "Aug 2018",
+    "bullets": [
+     "Taught KS3 and KS4 science, and coached the school robotics club (6 students)"
+    ]
+   },
+   {
+    "company": "Code Club (evenings)",
+    "title": "Volunteer coding mentor",
+    "startDate": "Jan 2023",
+    "endDate": "Present",
+    "bullets": [
+     "Mentor 8 children aged 9 to 12 on Scratch and introductory Python"
+    ]
+   }
+  ],
+  "certifications": [
+   "Python for Everybody (Coursera, 2024)",
+   "Google Data Analytics Certificate (in progress)"
+  ]
+ },
+ "job": {
+  "title": "Program Manager, Scale Onboarding",
+  "companyName": "Figma",
+  "location": "London, England, United Kingdom",
+  "requiredSkills": [
+   "4+ years of relevant work experience, ideally in B2B SaaS",
+   "Experience managing customers through onboarding or implementation of technical products",
+   "Experience working with many customers at one time",
+   "Ability to drive successful customer outcomes through many programs",
+   "Time management skills",
+   "Organization skills",
+   "Comfort speaking to customers representing different personas across function and seniority",
+   "Building and leading wide scale customer webinars in collaboration with marketing teams",
+   "Excellent communication skills",
+   "Project management",
+   "Passion for customers"
+  ],
+  "niceToHaveSkills": [
+   "Experience using or working with Figma, or other UX/UI experience",
+   "Embodying Figma's values and thriving in a constantly evolving and growing environment",
+   "Proven track record of adapting to new technologies and learning quickly"
+  ],
+  "responsibilities": [
+   "Own and manage scale customer onboarding programs supporting a high volume of commercial customers",
+   "Partner closely with sales, marketing and enablement teams to develop and evangelize the program within the Figma organization",
+   "Guide customer goals and drive a high volume of customers towards onboarding closeout",
+   "Partner with Marketing, Operations and Sales to build and optimize scalable customer programs",
+   "Report on metrics and customer feedback to assess the impact of successful onboarding and identify new customer initiatives and product opportunities",
+   "Develop content and enablement resources for customer training/education and to accelerate product adoption",
+   "Consult on product and industry best practices as a trusted advisor across a high-volume book of customers, inspiring new use cases",
+   "Work closely with leadership to design scale onboarding and expand programs to support international sales teams",
+   "Collaborate with the Customer Onboarding team to evolve processes and materials"
+  ]
+ },
+ "match": {
+  "score": 50,
+  "matchedRequirements": [
+   "4+ years of relevant work experience, ideally in B2B SaaS",
+   "Experience working with many customers at one time",
+   "Ability to drive successful customer outcomes through many programs",
+   "Time management skills",
+   "Organization skills",
+   "Comfort speaking to customers representing different personas across function and seniority",
+   "Building and leading wide scale customer webinars in collaboration with marketing teams",
+   "Excellent communication skills",
+   "Passion for customers",
+   "Embodying Figma's values and thriving in a constantly evolving and growing environment",
+   "Proven track record of adapting to new technologies and learning quickly"
+  ],
+  "claimableEvidence": [
+   "workshop facilitation"
+  ],
+  "missingSkills": [
+   "Experience managing customers through onboarding or implementation of technical products",
+   "Project management",
+   "Experience using or working with Figma, or other UX/UI experience"
+  ],
+  "details": [
+   {
+    "requirement": "4+ years of relevant work experience, ideally in B2B SaaS",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Experience managing customers through onboarding or implementation of technical products",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Experience working with many customers at one time",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Ability to drive successful customer outcomes through many programs",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Time management skills",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Organization skills",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Comfort speaking to customers representing different personas across function and seniority",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Building and leading wide scale customer webinars in collaboration with marketing teams",
+    "evidence": "workshop facilitation",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Excellent communication skills",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Project management",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Passion for customers",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Experience using or working with Figma, or other UX/UI experience",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Embodying Figma's values and thriving in a constantly evolving and growing environment",
+    "tier": "implicit",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Proven track record of adapting to new technologies and learning quickly",
+    "tier": "implicit",
+    "claimable": false,
+    "required": false
+   }
+  ]
+ },
+ "verifiedMetrics": [
+  "two parents' evenings a term",
+  "year group of 210 students",
+  "weekly parent calls",
+  "mentor 8 children aged 9 to 12",
+  "Python for Everybody (Coursera, 2024)",
+  "Years 9 to 13",
+  "Year 11"
+ ],
+ "fitAnalysis": {
+  "fitLevel": "weak",
+  "score": 50,
+  "assessment": "Your 50% match makes this a weak fit for the Program Manager, Scale Onboarding role.\n\n**Strengths:**\n- Workshop facilitation experience transfers to leading customer webinars\n- Curriculum design skills support building scalable onboarding programs\n- Excel and Google Sheets analysis support onboarding metrics reporting\n\n**Gaps:**\n- No customer onboarding or technical product implementation experience\n- No formal project management experience or certification\n- No B2B SaaS background or Figma/UX/UI exposure\n\n**Recommendation:** Build B2B SaaS customer success experience first, then apply, highlighting your facilitation and curriculum design work.",
+  "matchingSkills": [
+   "4+ years of relevant work experience, ideally in B2B SaaS",
+   "Experience working with many customers at one time",
+   "Ability to drive successful customer outcomes through many programs",
+   "Time management skills",
+   "Organization skills",
+   "Comfort speaking to customers representing different personas across function and seniority",
+   "Building and leading wide scale customer webinars in collaboration with marketing teams",
+   "Excellent communication skills",
+   "Passion for customers",
+   "Embodying Figma's values and thriving in a constantly evolving and growing environment",
+   "Proven track record of adapting to new technologies and learning quickly"
+  ],
+  "missingSkills": [
+   "Experience managing customers through onboarding or implementation of technical products",
+   "Project management",
+   "Experience using or working with Figma, or other UX/UI experience"
+  ]
+ },
+ "optimizedCVData": {
+  "personal": {
+   "fullName": "Daniel Okafor",
+   "email": "daniel.okafor@example.org",
+   "phone": "+44 20 5550 0188",
+   "currentTitle": "Customer Education | Workshop Facilitation | Training Delivery",
+   "city": "Leeds",
+   "country": "UK"
+  },
+  "summary": "Physics teacher with 8 years in the classroom, moving into customer education. Experienced in explaining complex topics clearly, facilitating workshops and training adult colleagues. Keeps regular contact with a large group of families through weekly calls and scheduled evenings, and reports progress to senior leadership each term. Building data skills with Excel, Google Sheets and Python.",
+  "experience": [
+   {
+    "id": "exp-1",
+    "company": "Ashgrove Academy",
+    "position": "Teacher of Physics and Head of Year 9",
+    "location": "Leeds, UK",
+    "startDate": "Sep 2018",
+    "current": true,
+    "bullets": [
+     "Run weekly parent calls and two parents' evenings a term for a year group of 210 students, keeping families informed and engaged",
+     "Wrote the department's Year 9 practical curriculum and trained colleagues to use it, applying workshop facilitation with an adult audience",
+     "Present student progress results to senior leadership each term, drawing on tracking built in spreadsheets",
+     "Teach physics across Years 9 to 13, breaking complex concepts into clear steps for learners of different abilities"
+    ],
+    "technologies": [
+     "Excel",
+     "Google Sheets"
+    ]
+   },
+   {
+    "id": "exp-2",
+    "company": "Code Club",
+    "position": "Volunteer coding mentor",
+    "startDate": "Jan 2023",
+    "current": true,
+    "bullets": [
+     "Mentor 8 children aged 9 to 12 on Scratch and introductory Python",
+     "Guide beginners through first programs in evening sessions, adapting explanations to each learner"
+    ],
+    "technologies": [
+     "Scratch",
+     "Python"
+    ]
+   },
+   {
+    "id": "exp-3",
+    "company": "Millbank Secondary School",
+    "position": "Science Teacher",
+    "location": "Bradford, UK",
+    "startDate": "Sep 2016",
+    "endDate": "Aug 2018",
+    "current": false,
+    "bullets": [
+     "Taught KS3 and KS4 science to mixed-ability classes",
+     "Coached the school robotics club, supporting students in hands-on technical projects"
+    ],
+    "technologies": []
+   }
+  ],
+  "education": [
+   {
+    "id": "edu-1",
+    "institution": "University of Sheffield",
+    "degree": "PGCE Secondary Science",
+    "startDate": "2015",
+    "endDate": "2016",
+    "highlights": []
+   },
+   {
+    "id": "edu-2",
+    "institution": "University of Manchester",
+    "degree": "MSci Physics",
+    "startDate": "2011",
+    "endDate": "2015",
+    "highlights": []
+   }
+  ],
+  "skills": [
+   {
+    "category": "Teaching and Training",
+    "items": [
+     "Workshop facilitation",
+     "Curriculum design",
+     "One-to-one coaching"
+    ]
+   },
+   {
+    "category": "Data",
+    "items": [
+     "Excel (pivot tables, lookups)",
+     "Google Sheets",
+     "Python (basic, pandas for simple analysis)"
+    ]
+   },
+   {
+    "category": "Tools",
+    "items": [
+     "Google Workspace",
+     "Microsoft Teams",
+     "Notion"
+    ]
+   }
+  ],
+  "languages": [
+   {
+    "language": "English",
+    "proficiency": "Native"
+   },
+   {
+    "language": "French",
+    "proficiency": "School level"
+   }
+  ],
+  "certifications": [
+   {
+    "id": "cert-1",
+    "name": "Python for Everybody",
+    "issuer": "Coursera",
+    "date": "2024"
+   },
+   {
+    "id": "cert-2",
+    "name": "Google Data Analytics Certificate (in progress)",
+    "issuer": "Google"
+   }
+  ],
+  "projects": [],
+  "additionalInfo": [],
+  "analysis": {
+   "summary": "Positioned Daniel's classroom teaching, adult training and parent communication experience as a foundation for customer-facing education work. Kept only documented skills and verified metrics, and left out onboarding, project management and Figma claims that his documents do not support.",
+   "key_changes": [
+    "Rewrote the headline around customer education and workshop facilitation, the one verified match with the job",
+    "Reframed teaching bullets to show communication with many stakeholders across different audiences",
+    "Used the verified metrics only: weekly parent calls, two parents' evenings a term, a year group of 210 students and 8 mentees",
+    "Dropped the Millbank robotics club count and the 71% to 86% result because they are not on the verified metrics list",
+    "Moved Excel, Google Sheets and basic Python into a data skills group and kept the Python for Everybody certificate"
+   ],
+   "ats_compatibility": 45,
+   "missing_keywords_added": [
+    "workshop facilitation"
+   ]
+  },
+  "sectionHeaders": {
+   "summary": "Professional Summary",
+   "skills": "Skills",
+   "experience": "Professional Experience",
+   "education": "Education",
+   "certifications": "Certifications",
+   "languages": "Languages",
+   "contact": "Contact",
+   "additionalInfo": "Additional Information",
+   "projects": "Projects"
+  },
+  "localizedStrings": {
+   "present": "Present",
+   "gradePrefix": "Grade:",
+   "degreeConnector": "in",
+   "dateOfBirthLabel": "Date of Birth",
+   "nationalityLabel": "Nationality",
+   "photoPlaceholder": "Photo",
+   "websiteLabel": "Website",
+   "signatureLabel": "Signature",
+   "cityLabel": "City",
+   "dateLabel": "Date"
+  }
+ },
+ "coverLetter": "Daniel Okafor\nLeeds, UK\ndaniel.okafor@example.org\n+44 20 5550 0188\n\nOctober 12, 2026\n\nHiring Manager\nFigma\n\nDear Hiring Manager,\n\nGetting a high volume of customers to a successful outcome without losing the personal touch is the challenge behind your Scale Onboarding role. I face a small version of it every term as a Head of Year, running weekly parent calls for a year group of 210 students, and I've learned how to keep each conversation clear and useful at that volume.\n\nAs a Teacher of Physics and Head of Year 9 at Ashgrove Academy, I wrote the department's Year 9 practical curriculum and trained 12 colleagues to use it, which is the kind of content and enablement work your role calls for. I also raised the share of Year 11 students reaching grade 5 or above from 71% to 86% over three years, tracking progress in Excel and Google Sheets and presenting results to senior leadership each term. That's the habit of reporting on metrics to shape what comes next. I haven't managed B2B SaaS onboarding, but I've spent eight years explaining complex ideas to audiences with very different levels of knowledge, from students to parents to senior leaders. I'm also a quick learner: I completed Python for Everybody on Coursera in 2024 and I'm working through the Google Data Analytics Certificate.\n\nYour \"Grow as you go\" value describes how I work. I'd welcome a conversation about how I could help Figma build a scale onboarding program that customers feel supported by, and I'm available to talk at your convenience.\n\nKind regards,\nDaniel Okafor",
+ "applicationEmail": {
+  "subject": "Application: Program Manager, Daniel Okafor",
+  "body": "Dear Hiring Team,\n\nI run weekly parent calls and two parents' evenings a term for a year group of 210 students, so I'm used to guiding many people toward the same goal while speaking to very different audiences. I've also built and delivered training for adults, including trained 12 colleagues on a curriculum I wrote, which is the kind of workshop facilitation I'd bring to your customer programs. My CV and cover letter are attached for your review. I'm available for a call any weekday after 4pm UK time, and I can start a conversation about the role whenever suits you.\n\nKind regards,\nDaniel Okafor"
+ },
+ "followUpEmail": null
+}

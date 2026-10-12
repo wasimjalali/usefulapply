@@ -1,0 +1,497 @@
+arm sonnet55-low__on-sonnet46-api: 30 kits to run (0 already done), concurrency 4, prompt variant sonnet55
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 6987
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 4
+  - Projects: 2
+  - Additional Info: 3
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 7839
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 3
+  - Additional Info: 3
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 7752
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 3
+  - Additional Info: 2
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[UnifiedAgent] Retrying application email response after validation miss: Application email subject was empty or exceeded 60 characters
+[UnifiedAgent] Extracted JSON from position 0 to 8213
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 3
+  - Additional Info: 3
+  - Custom Sections: 1
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[1/30] own-02 rep1 complete 41s calls=6
+[UnifiedAgent] Generating follow-up email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[2/30] own-01 rep1 complete 43s calls=6
+[UnifiedAgent] Retrying follow-up email response after validation miss: Follow-up email subject was empty or exceeded 60 characters
+[UnifiedAgent] Generating email in language: en
+[3/30] own-04 rep1 partial 47s calls=8 failures=write_email,write_follow_up_email
+[UnifiedAgent] Generating follow-up email in language: en
+[4/30] own-03 rep1 complete 50s calls=6
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 7695
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 3
+  - Additional Info: 3
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 8234
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 3
+  - Additional Info: 3
+  - Custom Sections: 1
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 7727
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 3
+  - Additional Info: 3
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 7780
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 2
+  - Additional Info: 3
+  - Custom Sections: 1
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[5/30] own-05 rep1 complete 43s calls=6
+[6/30] own-06 rep1 complete 41s calls=6
+[UnifiedAgent] Generating follow-up email in language: en
+[UnifiedAgent] Generating email in language: en
+[7/30] own-07 rep1 complete 41s calls=6
+[UnifiedAgent] Generating follow-up email in language: en
+[8/30] own-08 rep1 complete 43s calls=6
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Generating structured CV data in language: de
+[UnifiedAgent] Generating structured CV data in language: de
+[UnifiedAgent] Extracted JSON from position 0 to 8058
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 3
+  - Additional Info: 3
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 7799
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 3
+  - Additional Info: 3
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 6562
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 4
+  - Projects: 2
+  - Additional Info: 3
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: de
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[9/30] own-09 rep1 complete 42s calls=6
+[10/30] own-10 rep1 complete 42s calls=6
+[UnifiedAgent] Generating email in language: de
+[UnifiedAgent] Extracted JSON from position 0 to 9308
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 3
+  - Additional Info: 3
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: de
+[UnifiedAgent] Retrying application email response after validation miss: Application email subject was empty or exceeded 60 characters
+[UnifiedAgent] Generating follow-up email in language: de
+[UnifiedAgent] Retrying follow-up email response after validation miss: Follow-up email subject was empty or exceeded 60 characters
+[UnifiedAgent] Generating structured CV data in language: de
+[UnifiedAgent] Generating structured CV data in language: de
+[11/30] own-11 rep1 partial 59s calls=8 failures=write_follow_up_email
+[UnifiedAgent] Generating email in language: de
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Generating follow-up email in language: de
+[12/30] own-12 rep1 complete 70s calls=6
+[UnifiedAgent] Extracted JSON from position 0 to 4189
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 2
+  - Skill categories: 3
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 7816
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 2
+  - Additional Info: 3
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: de
+[UnifiedAgent] Extracted JSON from position 0 to 8357
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 3
+  - Additional Info: 3
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: de
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[13/30] syn-01 rep1 complete 29s calls=6
+[UnifiedAgent] Generating email in language: de
+[UnifiedAgent] Extracted JSON from position 0 to 4239
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 2
+  - Skill categories: 3
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: de
+[UnifiedAgent] Generating follow-up email in language: de
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Generating follow-up email in language: de
+[14/30] own-13 rep1 complete 61s calls=6
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Retrying follow-up email response after validation miss: Follow-up email subject was empty or exceeded 60 characters
+[UnifiedAgent] Generating follow-up email in language: en
+[15/30] own-14 rep1 complete 65s calls=7
+[16/30] syn-02 rep1 complete 29s calls=6
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 5373
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 2
+  - Skill categories: 3
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 4384
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 3
+  - Skill categories: 3
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[17/30] syn-03 rep1 complete 33s calls=6
+[UnifiedAgent] Extracted JSON from position 0 to 4578
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 3
+  - Skill categories: 3
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 4396
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 3
+  - Skill categories: 3
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating email in language: en
+[18/30] syn-04 rep1 complete 30s calls=6
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Retrying application email response after validation miss: Application email subject was empty or exceeded 60 characters
+[UnifiedAgent] Retrying application email response after validation miss: Application email subject was empty or exceeded 60 characters
+[UnifiedAgent] Generating follow-up email in language: en
+[UnifiedAgent] Retrying follow-up email response after validation miss: Follow-up email subject was empty or exceeded 60 characters
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[19/30] syn-06 rep1 partial 34s calls=8 failures=write_follow_up_email
+[UnifiedAgent] Extracted JSON from position 0 to 4688
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 3
+  - Skill categories: 5
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Retrying follow-up email response after validation miss: Follow-up email subject was empty or exceeded 60 characters
+[20/30] syn-05 rep1 partial 41s calls=8 failures=write_follow_up_email
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 5084
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 4
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[21/30] syn-07 rep1 complete 31s calls=6
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Retrying application email response after validation miss: Application email response must be a valid JSON object
+[UnifiedAgent] Extracted JSON from position 0 to 4821
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 4
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 4882
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 4
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Retrying application email response after validation miss: Application email subject was empty or exceeded 60 characters
+[22/30] syn-08 rep1 complete 39s calls=7
+[UnifiedAgent] Generating follow-up email in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 4017
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 3
+  - Skill categories: 2
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[23/30] syn-09 rep1 complete 32s calls=7
+[UnifiedAgent] Generating follow-up email in language: en
+[UnifiedAgent] Generating email in language: en
+[24/30] syn-10 rep1 complete 30s calls=6
+[UnifiedAgent] Generating follow-up email in language: en
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Generating structured CV data in language: en
+[25/30] syn-11 rep1 complete 28s calls=6
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 4153
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 3
+  - Skill categories: 2
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 4292
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 3
+  - Skill categories: 2
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating structured CV data in language: de
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Retrying application email response after validation miss: Application email subject was empty or exceeded 60 characters
+[UnifiedAgent] Extracted JSON from position 0 to 4069
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 2
+  - Skill categories: 3
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[26/30] syn-13 rep1 complete 28s calls=6
+[UnifiedAgent] Retrying application email response after validation miss: Application email subject was empty or exceeded 60 characters
+[27/30] syn-12 rep1 complete 33s calls=7
+[UnifiedAgent] Extracted JSON from position 0 to 4348
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 3
+  - Skill categories: 3
+  - Projects: 0
+  - Additional Info: 2
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: de
+[UnifiedAgent] Generating follow-up email in language: en
+[UnifiedAgent] Generating email in language: de
+[28/30] syn-14 rep1 complete 34s calls=7
+[UnifiedAgent] Generating structured CV data in language: de
+[UnifiedAgent] Generating follow-up email in language: de
+[29/30] syn-15 rep1 complete 34s calls=6
+[UnifiedAgent] Extracted JSON from position 0 to 4528
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 3
+  - Skill categories: 2
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: de
+[UnifiedAgent] Generating email in language: de
+[UnifiedAgent] Generating follow-up email in language: de
+[UnifiedAgent] Retrying follow-up email response after validation miss: Follow-up email subject was empty or exceeded 60 characters
+[30/30] syn-16 rep1 complete 43s calls=7
+prompt variant files used: /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/cv-prompt.ts, /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/cover-letter-prompt.ts, /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/email-prompts.ts, /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/fit-assessment-prompt.ts
+done in 330s
