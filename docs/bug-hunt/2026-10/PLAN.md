@@ -15,10 +15,10 @@ Out of scope: mobile layouts (not a target), marketing pages beyond broken links
 
 ## Phases
 
-1. **Setup (orchestrator, about 20 min).** Local dev with local D1, R2 and KV bindings (`SETUP.md`), a seeded test account with a primary and master CV (synthetic, from `evals/dataset/cvs/`), `npx playwright install chromium`. Confirm one end-to-end kit generates locally before starting the fleet.
+1. **Setup (orchestrator, about 20 min).** Local dev with local D1, R2 and KV bindings (`SETUP.md`), a seeded test account with a primary and master CV (synthetic, from `evals/dataset/cvs/`), `npm install -D @playwright/test` (the repo has no Playwright yet; add a minimal `playwright.config.ts` in a setup PR) and `npx playwright install chromium`. Confirm one end-to-end kit generates locally before starting the fleet.
 2. **Hunt (fleet, read-only plus live checks).** Each agent owns one area below, reads the code, runs the flows that touch it and writes findings to `docs/bug-hunt/2026-10/<area>.md` in the shared schema. Agents don't fix in this phase.
 3. **Triage (orchestrator, Opus).** Merge all findings, dedupe, confirm every high and critical with a repro, drop what doesn't reproduce, group the rest into fix batches by file ownership. One table: `docs/bug-hunt/2026-10/TRIAGE.md`.
-4. **Fix (fleet, worktrees).** One worker per batch, each in its own worktree with its own files. Each fix ships with the check that proves it (a Playwright spec for anything a user can see, a scripted repro otherwise). Then the change loop: PR, reviews by row (sensitive batches get Sonnet + Codex + Opus at high), merge one at a time, deploy, verify on production.
+4. **Fix (fleet, worktrees).** One worker per batch, each in its own worktree with its own files. Each fix ships with the check that proves it (a Playwright spec for anything a user can see, a scripted repro otherwise). Then the change loop: PR, reviews by row (sensitive batches get Sonnet + Codex + Opus at high), merge one at a time, deploy with `npm run deploy:cf` from `main` (a merge alone changes nothing on usefulapply.com), verify on production.
 5. **Close.** Playwright suite green on the merged main, a dated write-up `docs/bug-hunt/2026-10/REPORT.md` (found, fixed, deferred with reasons, cost), memory updated.
 
 ## Fleet (phase 2)
@@ -53,7 +53,7 @@ Every finding, in each area file:
 - Where: file:line (and the screen, if visible)
 - Repro: exact steps or input, starting state, account
 - Expected / Actual
-- Evidence: screenshot or log path under verify/bug-hunt/
+- Evidence: screenshot or log path under the main checkout's `verify/bug-hunt/` (never only in a worker worktree, which is deleted after merge)
 - Suspected cause and suggested fix (optional)
 ```
 
@@ -70,7 +70,7 @@ Severity: critical = data loss, wrong charge, security, or a kit that can't be g
 - Every critical and high fixed, merged, deployed and verified on production.
 - Every medium fixed or deferred with a reason in `TRIAGE.md`.
 - Lows fixed per the change loop.
-- Playwright suite for the golden journeys checked in and green, HTML report in `verify/`.
+- Playwright suite for the golden journeys checked in and green, HTML report in the main checkout's `verify/bug-hunt/`.
 - `REPORT.md` written with counts per area and severity, which agent and model found what, and spend.
 
 ## Kickoff prompt for the new session
