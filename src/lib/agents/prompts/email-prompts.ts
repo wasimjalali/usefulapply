@@ -343,7 +343,7 @@ Write a follow-up email with a subject line and a body.
 
 Subject line: "${subjectPrefix}: [Role Title], [Full Name]", 60 characters or fewer, with the role title and the applicant's name.
 
-Body: four elements in 60 to 80 words (the app rejects bodies over 80 words):
+Body: four elements in 60 to 80 words:
 1. Opening: a brief reference to the original application with an approximate timeframe ("last week").
 2. Renewed interest: one sentence about something specific to the company from the JD, such as a product, mission, growth metric or team detail, rather than generic praise.
 3. New value: connect one specific achievement from the Primary CV or Master CV to a specific company need from the JD. It is a different strength from the one the primary email used. <key_achievement> names the angle the primary email took, so treat it as the thing to avoid repeating, not as your source.

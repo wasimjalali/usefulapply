@@ -12,6 +12,7 @@ import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { generateRequestId } from '@/lib/utils/requestId';
 import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
 import { MAX_INSTRUCTION_CHARS, flattenInstruction } from '@/lib/agents/chat-tools/untrusted';
+import type { KitDocument } from '@/lib/agents/types';
 
 export type RegenTarget = 'cover-letter' | 'email' | 'follow-up';
 
@@ -142,6 +143,28 @@ function buildContext() {
   };
 }
 
+/** The kit document a regenerate target writes. */
+const REGEN_KIT_DOCUMENT: Record<RegenTarget, KitDocument> = {
+  'cover-letter': 'coverLetter',
+  email: 'applicationEmail',
+  'follow-up': 'followUpEmail',
+};
+
+/**
+ * A partial kit marks its failed documents. Once one is written, its mark
+ * goes, so the tab never shows an error next to a document that exists.
+ */
+function clearKitDocumentError(sessionId: string, document: KitDocument): Partial<ApplicationSession> {
+  const state = useSessionStore.getState();
+  const session = state.sessions.find((candidate) => candidate.id === sessionId)
+    ?? (state.currentSession?.id === sessionId ? state.currentSession : undefined);
+  const errors = session?.kitDocumentErrors;
+  if (!errors?.[document]) return {};
+  const rest = { ...errors };
+  delete rest[document];
+  return { kitDocumentErrors: Object.keys(rest).length > 0 ? rest : null };
+}
+
 function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
@@ -210,7 +233,10 @@ export async function regenerateDocument(
     // Land the result on the application that asked for it, even if the user
     // moved to another one while it ran.
     const update = (updates: Partial<ApplicationSession>) =>
-      useSessionStore.getState().updateSessionById(sessionId, updates);
+      useSessionStore.getState().updateSessionById(sessionId, {
+        ...updates,
+        ...clearKitDocumentError(sessionId, REGEN_KIT_DOCUMENT[target]),
+      });
     let wordCount = 0;
 
     if (target === 'cover-letter') {
@@ -304,6 +330,7 @@ export async function regenerateFollowUpForSession(
         body: data.followUpEmail.body,
         recommendedDelay: data.followUpEmail.recommendedDelay || 5,
       },
+      ...clearKitDocumentError(sessionId, 'followUpEmail'),
     });
     triggerCreditUpdate();
     return { ok: true, wordCount: countWords(data.followUpEmail.body), sessionId };

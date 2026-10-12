@@ -14,6 +14,7 @@ import {
   getChatMessages,
 } from '@/lib/supabase';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
+import { KIT_DOCUMENTS, type KitDocumentErrors } from '@/lib/agents/types';
 import {
   useSessionStore,
   type ApplicationSession,
@@ -54,6 +55,18 @@ export interface StoredSessionRow {
   screening_turns_used?: number | null;
   created_at: string;
   updated_at: string;
+}
+
+/** The failed-document map a partial kit run stored, or null. Unknown keys and values are dropped. */
+export function readKitDocumentErrors(value: unknown): KitDocumentErrors | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const errors: KitDocumentErrors = {};
+  for (const document of KIT_DOCUMENTS) {
+    const code = record[document];
+    if (code === 'VALIDATION_FAILED' || code === 'GENERATION_FAILED') errors[document] = code;
+  }
+  return Object.keys(errors).length > 0 ? errors : null;
 }
 
 let openGeneration = 0;
@@ -132,6 +145,7 @@ export function mapSessionRowToStore(row: StoredSessionRow): ApplicationSession 
         } as ApplicationSession['companyResearch']
       : null,
     fitAssessment: (row.fit_assessment ?? null) as ApplicationSession['fitAssessment'],
+    kitDocumentErrors: readKitDocumentErrors(artifacts?.documentErrors),
     pendingFitAnalysis: pendingFit,
     generationStatus: row.generation_status ?? 'none',
     generationError: row.generation_error ?? null,

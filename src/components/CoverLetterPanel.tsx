@@ -10,6 +10,7 @@ import { useUIStore } from '@/store/useUIStore';
 import { Mail, Download, Copy, Check, FileText, Edit3, Maximize2, X, Zap, ChevronDown } from 'lucide-react';
 import type { GeneratedCoverLetter } from '@/lib/types';
 import { StepIndicator } from './StepIndicator';
+import { KitDocumentError } from './KitDocumentError';
 import { useToast } from './ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import {
@@ -250,6 +251,18 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
           </div>
         </div>
       </div>
+    );
+  }
+
+  // The last kit run delivered everything else but not this letter. Retry it
+  // here on its own; the other tabs are untouched.
+  if (!coverLetter && currentSession?.kitDocumentErrors?.coverLetter) {
+    return (
+      <KitDocumentError
+        variant="panel"
+        title="We couldn't write this cover letter"
+        target="cover-letter"
+      />
     );
   }
 

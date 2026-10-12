@@ -7,6 +7,7 @@ import { useUIStore } from '@/store/useUIStore';
 import { Send, Copy, Check, Edit3, Zap } from 'lucide-react';
 import type { GeneratedEmail } from '@/lib/types';
 import { StepIndicator } from './StepIndicator';
+import { KitDocumentError } from './KitDocumentError';
 import { useToast } from './ui/Toast';
 import { usePostHog } from 'posthog-js/react';
 import { formatEmailAsText } from '@/lib/utils/kit-export';
@@ -33,6 +34,10 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   const email = currentSession?.email;
   const followUpEmail = currentSession?.followUpEmail;
   const pendingFitAnalysis = currentSession?.pendingFitAnalysis;
+  // Each email fails on its own in a kit run. Its slot shows the error and a
+  // retry only while that email is still missing.
+  const emailFailed = !email && Boolean(currentSession?.kitDocumentErrors?.applicationEmail);
+  const followUpFailed = !followUpEmail && Boolean(currentSession?.kitDocumentErrors?.followUpEmail);
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
     const id = window.setInterval(() => setNowMs(Date.now()), 60_000);
@@ -162,7 +167,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   // No email and no pending fit analysis — the email is always generated as
   // part of the full application kit. Do not offer a standalone "Generate
   // Email" button (it cannot work without a generation context).
-  if (!email) {
+  if (!email && !emailFailed) {
     return (
       <div className="h-full flex items-center justify-center bg-cream-50 p-8">
         <div className="text-center max-w-sm">
@@ -207,7 +212,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
             Cancel
           </button>
         </>
-      ) : (
+      ) : (email || followUpEmail) && (
         <button
           type="button"
           onClick={() => {
@@ -302,15 +307,20 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-auto px-5 pb-6 pt-5">
-        {renderCard({
+        {activeEmail ? renderCard({
           key: 'primary',
           title: 'Application email',
-          subject: activeEmail?.subject || '',
-          body: activeEmail?.body || '',
+          subject: activeEmail.subject || '',
+          body: activeEmail.body || '',
           onSubject: (v) => updateEmailField('subject', v),
           onBody: (v) => updateEmailField('body', v),
           copyEvent: 'email',
-        })}
+        }) : (
+          <KitDocumentError variant="card" title="We couldn't write the application email" target="email" />
+        )}
+        {followUpFailed && !activeFollowUp && (
+          <KitDocumentError variant="card" title="We couldn't write the follow-up email" target="follow-up" />
+        )}
         {activeFollowUp && renderCard({
           key: 'follow-up',
           title: 'Follow-up email',

@@ -36,7 +36,8 @@ const STEP_CONFIG: Record<string, {
   cv_generation: { icon: FileText, label: 'Optimizing CV', runningSubtitle: 'Tailoring your experience and skills to the role...' },
   cover_letter: { icon: Pencil, label: 'Composing Cover Letter', runningSubtitle: 'Writing a personalized cover letter for this position...' },
   fit_assessment: { icon: Zap, label: 'Assessing Job Fit', runningSubtitle: 'Scoring your fit and identifying strengths and gaps...' },
-  email: { icon: Award, label: 'Generating Emails', runningSubtitle: 'Drafting your application and follow-up emails...' },
+  email: { icon: Award, label: 'Writing Application Email', runningSubtitle: 'Drafting your application email...' },
+  follow_up: { icon: Award, label: 'Writing Follow-Up Email', runningSubtitle: 'Drafting the follow-up you send a few days later...' },
   // Legacy step IDs
   context: { icon: Brain, label: 'Analyzing Documents', runningSubtitle: 'Reading and understanding your documents...' },
   writing: { icon: Pencil, label: 'Generating Documents', runningSubtitle: 'Generating your application materials...' },

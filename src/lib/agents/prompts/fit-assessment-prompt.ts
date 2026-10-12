@@ -3,7 +3,8 @@
  *
  * Builds the prompt and system prompt for the fit assessment LLM call. Tuned for
  * Claude Sonnet 5.5 (eval of 2026-10-12). The three literal headings are parsed
- * by the validator in unified-writer-agent.ts.
+ * by the validator in unified-writer-agent.ts. The 200-word length is the
+ * standard the prompt asks for; the validator does not enforce it.
  */
 
 import type { MasterContext } from '@/lib/agents/types';
@@ -127,7 +128,7 @@ Use exactly this markdown structure, with a blank line between sections. The app
 </output_format>
 
 <length>
-The reader scans this in about five seconds, so it stays short: two or three strength bullets, two or three gap bullets, exactly one recommendation sentence, each bullet twelve words or fewer, and under 200 words in total (the app rejects longer assessments).
+The reader scans this in about five seconds, so it stays short: two or three strength bullets, two or three gap bullets, exactly one recommendation sentence, each bullet twelve words or fewer, and under 200 words in total.
 </length>
 
 <competitive_advantage_rule>

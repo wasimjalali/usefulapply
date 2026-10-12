@@ -16,7 +16,9 @@ import {
   runJobCopilot,
   runFitAnalysis,
   runWithContext,
+  KIT_DOCUMENTS,
   type AgentEvent,
+  type KitDocumentErrors,
   type MasterContext,
 } from '@/lib/agents';
 import { getCurrentUser } from '@/auth/server';
@@ -25,10 +27,12 @@ import { getDocumentByType } from '@/db/repos/documents';
 import { getJobPreferences } from '@/db/repos/jobFeed';
 import { claimAnonymousGeneration, releaseAnonymousGeneration } from '@/db/repos/anonymous';
 import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
+import { KIT_DOCUMENT_FAILURE_REFUND } from '@/lib/credit-costs';
 import {
   reserveCredits,
   captureReservation,
   releaseReservation,
+  refundReservationPartially,
   canUseFitContinuation,
   claimFitContinuation,
   releaseFitContinuationClaim,
@@ -327,7 +331,6 @@ export async function POST(request: NextRequest) {
       const stepStartTimes = new Map<string, number>();
       let distinctId = 'anonymous';
       let currentAction = 'unknown';
-      let workflowErrorCode: 'EMAIL_VALIDATION_FAILED' | undefined;
 
       // Active model list price (per million tokens)
       const INPUT_COST_PER_M = ACTIVE_MODEL_PRICING.inputPerM;
@@ -625,6 +628,61 @@ export async function POST(request: NextRequest) {
                 content: event.content,
               })}\n\n`));
               break;
+          }
+        };
+
+        // The kit payload the client and the session row both get. A partial
+        // kit lists its failed documents; the missing ones are simply absent.
+        const buildKitResults = (ctx: MasterContext, documentErrors: KitDocumentErrors) => ({
+          job: ctx.job,
+          companyResearch: ctx.companyResearch,
+          match: ctx.match,
+          optimizedCV: ctx.optimizedCV,
+          optimizedCVData: ctx.optimizedCVData,
+          coverLetter: ctx.coverLetter,
+          applicationEmail: ctx.applicationEmail,
+          followUpEmail: ctx.followUpEmail || null,
+          detectedLanguage: ctx.detectedLanguage,
+          documentErrors,
+          sourceContext: {
+            applicant: ctx.applicant,
+            verifiedMetrics: ctx.verifiedMetrics,
+          },
+        });
+
+        // Capture the kit reservation (the user got a kit), then give back the
+        // single-document price of every document that failed. Returns the
+        // credits that actually came back, so the client never reports a
+        // refund that did not land. A refund failure is logged and reported
+        // to PostHog; it never takes the delivered documents away.
+        const settleKitReservation = async (documentErrors: KitDocumentErrors): Promise<number> => {
+          const key = activeReservationKey;
+          const reservationUserId = activeReservationUserId;
+          if (!key || !reservationUserId) return 0;
+          await captureReservationSafe({ idempotencyKey: key, userId: reservationUserId });
+          activeReservationKey = null;
+          const failed = KIT_DOCUMENTS.filter((document) => documentErrors[document]);
+          if (failed.length === 0) return 0;
+          const amount = failed.reduce((sum, document) => sum + KIT_DOCUMENT_FAILURE_REFUND[document], 0);
+          try {
+            const refund = await refundReservationPartially({
+              userId: reservationUserId,
+              idempotencyKey: key,
+              amount,
+              reason: `kit_documents_failed:${failed.join(',')}`,
+            });
+            if (!refund.success) throw new Error(refund.error ?? 'Partial refund failed');
+            return refund.refunded;
+          } catch (refundError) {
+            console.error('[agent-v2] Partial kit refund failed:', refundError);
+            try {
+              getPostHogServer().captureException(refundError as Error, distinctId, {
+                endpoint: '/api/agent-v2',
+                workflow_action: currentAction,
+                failed_documents: failed.join(','),
+              });
+            } catch { /* ignore PostHog errors */ }
+            return 0;
           }
         };
 
@@ -927,37 +985,19 @@ export async function POST(request: NextRequest) {
               }, eventHandler);
 
               if (result.success && result.data) {
-                const ctx = result.data.context;
-                const fallbackResults = {
-                  job: ctx.job,
-                  companyResearch: ctx.companyResearch,
-                  match: ctx.match,
-                  optimizedCV: ctx.optimizedCV,
-                  optimizedCVData: ctx.optimizedCVData,
-                  coverLetter: ctx.coverLetter,
-                  applicationEmail: ctx.applicationEmail,
-                  followUpEmail: ctx.followUpEmail || null,
-                  detectedLanguage: ctx.detectedLanguage,
-                  sourceContext: {
-                    applicant: ctx.applicant,
-                    verifiedMetrics: ctx.verifiedMetrics,
-                  },
-                };
+                const documentErrors = result.data.documentErrors ?? {};
+                const fallbackResults = buildKitResults(result.data.context, documentErrors);
 
                 await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', fallbackResults);
                 await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
-
-                if (activeReservationKey && activeReservationUserId) {
-                  await captureReservationSafe({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
-                  activeReservationKey = null;
-                }
+                const creditsRefunded = await settleKitReservation(documentErrors);
 
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                   type: 'workflow_complete',
                   results: fallbackResults,
+                  creditsRefunded,
                 })}\n\n`));
               } else {
-                workflowErrorCode = result.errorCode;
                 throw new Error(result.error || 'Optimization failed');
               }
 
@@ -994,34 +1034,17 @@ export async function POST(request: NextRequest) {
           const result = await runWithContext(cachedContext, eventHandler, generationContext);
 
           if (result.success && result.data) {
-            const ctx = result.data.context;
-            const genResults = {
-              job: ctx.job,
-              companyResearch: ctx.companyResearch,
-              match: ctx.match,
-              optimizedCV: ctx.optimizedCV,
-              optimizedCVData: ctx.optimizedCVData,
-              coverLetter: ctx.coverLetter,
-              applicationEmail: ctx.applicationEmail,
-              followUpEmail: ctx.followUpEmail || null,
-              detectedLanguage: ctx.detectedLanguage,
-              sourceContext: {
-                applicant: ctx.applicant,
-                verifiedMetrics: ctx.verifiedMetrics,
-              },
-            };
+            const documentErrors = result.data.documentErrors ?? {};
+            const genResults = buildKitResults(result.data.context, documentErrors);
 
             await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', genResults);
             await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
-
-            if (activeReservationKey && activeReservationUserId) {
-              await captureReservationSafe({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
-              activeReservationKey = null;
-            }
+            const creditsRefunded = await settleKitReservation(documentErrors);
 
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'workflow_complete',
               results: genResults,
+              creditsRefunded,
             })}\n\n`));
             try {
               await removeCachedContext(contextOwnerId, contextId);
@@ -1029,7 +1052,6 @@ export async function POST(request: NextRequest) {
               console.error('[API_AGENT_V2] Failed to remove completed context:', cacheError);
             }
           } else {
-            workflowErrorCode = result.errorCode;
             throw new Error(result.error || 'Generation failed');
           }
 
@@ -1112,40 +1134,20 @@ export async function POST(request: NextRequest) {
           generationContext,
         }, eventHandler);
 
-        let results: Record<string, unknown>;
-        if (result.success && result.data) {
-          const ctx = result.data.context;
-          results = {
-            job: ctx.job,
-            companyResearch: ctx.companyResearch,
-            match: ctx.match,
-            optimizedCV: ctx.optimizedCV,
-            optimizedCVData: ctx.optimizedCVData,
-            coverLetter: ctx.coverLetter,
-            applicationEmail: ctx.applicationEmail,
-            followUpEmail: ctx.followUpEmail || null,
-            detectedLanguage: ctx.detectedLanguage,
-            sourceContext: {
-              applicant: ctx.applicant,
-              verifiedMetrics: ctx.verifiedMetrics,
-            },
-          };
-        } else {
-          workflowErrorCode = result.errorCode;
+        if (!result.success || !result.data) {
           throw new Error(result.error || 'Optimization failed');
         }
+        const documentErrors = result.data.documentErrors ?? {};
+        const results = buildKitResults(result.data.context, documentErrors);
 
         await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', results);
         await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
-
-        if (activeReservationKey && activeReservationUserId) {
-          await captureReservationSafe({ idempotencyKey: activeReservationKey, userId: activeReservationUserId });
-          activeReservationKey = null;
-        }
+        const creditsRefunded = await settleKitReservation(documentErrors);
 
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({
           type: 'workflow_complete',
           results,
+          creditsRefunded,
         })}\n\n`));
 
         controller.close();
@@ -1202,10 +1204,7 @@ export async function POST(request: NextRequest) {
         } catch { /* ignore PostHog errors */ }
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({
           type: 'error',
-          ...(workflowErrorCode && { code: workflowErrorCode }),
-          message: workflowErrorCode === 'EMAIL_VALIDATION_FAILED'
-            ? "We couldn't finish the application emails. Please try generating your kit again."
-            : 'Something went wrong while generating your application. Please try again.'
+          message: 'Something went wrong while generating your application. Please try again.'
         })}\n\n`));
         controller.close();
       } finally {
@@ -1238,7 +1237,8 @@ function getWorkflowSteps(action: string): Array<{ id: string; description: stri
       return [
         { id: 'cv_generation', description: 'Useful Apply: Optimizing CV for the position' },
         { id: 'cover_letter', description: 'Useful Apply: Composing tailored cover letter' },
-        { id: 'email', description: 'Useful Apply: Generating application and follow-up emails' },
+        { id: 'email', description: 'Useful Apply: Writing the application email' },
+        { id: 'follow_up', description: 'Useful Apply: Writing the follow-up email' },
       ];
     case 'full_optimization':
       return [
@@ -1246,7 +1246,8 @@ function getWorkflowSteps(action: string): Array<{ id: string; description: stri
         { id: 'matching', description: 'Useful Apply: Matching skills and identifying gaps' },
         { id: 'cv_generation', description: 'Useful Apply: Optimizing CV for the position' },
         { id: 'cover_letter', description: 'Useful Apply: Composing tailored cover letter' },
-        { id: 'email', description: 'Useful Apply: Generating application and follow-up emails' },
+        { id: 'email', description: 'Useful Apply: Writing the application email' },
+        { id: 'follow_up', description: 'Useful Apply: Writing the follow-up email' },
       ];
     default:
       return [
@@ -1258,7 +1259,7 @@ function getWorkflowSteps(action: string): Array<{ id: string; description: stri
 
 // Helper to get step index for progress tracking
 function getStepIndex(stepId: string): number {
-  const stepOrder = ['analysis', 'matching', 'cv_generation', 'cover_letter', 'email'];
+  const stepOrder = ['analysis', 'matching', 'cv_generation', 'cover_letter', 'email', 'follow_up'];
   return stepOrder.indexOf(stepId);
 }
 
@@ -1268,6 +1269,6 @@ function getFitAnalysisStepIndex(stepId: string): number {
 }
 
 function getGenerateWithContextStepIndex(stepId: string): number {
-  const stepOrder = ['cv_generation', 'cover_letter', 'email'];
+  const stepOrder = ['cv_generation', 'cover_letter', 'email', 'follow_up'];
   return stepOrder.indexOf(stepId);
 }

@@ -2,6 +2,7 @@ export {
   reserveCredits,
   captureReservation,
   releaseReservation,
+  refundReservationPartially,
   findActiveReservation,
   hasCapturedFitReservation,
   canUseFitContinuation,
@@ -11,4 +12,5 @@ export {
   type CreditReservation,
   type ReserveCreditResult,
   type CaptureOrReleaseResult,
+  type PartialRefundResult,
 } from '@/db/repos/credits';

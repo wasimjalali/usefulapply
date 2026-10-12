@@ -2,18 +2,23 @@ import type { ApplicationSession } from '@/store/useSessionStore';
 
 export type ApplicationStatusLabel = 'Now' | 'Kit ready' | 'Drafted' | 'Applied';
 
+/**
+ * A kit exists once any of its documents does. A partial kit (the CV failed
+ * but the letter and emails came back, say) is still a kit the user can open
+ * and finish from each tab, so it never reads as missing or failed.
+ */
 export function sessionHasKit(session: ApplicationSession | null | undefined): boolean {
-  return Boolean(session?.generatedCV);
+  return Boolean(session?.generatedCV || session?.coverLetter || session?.email || session?.followUpEmail);
 }
 
 export function deriveApplicationStatus(
   session: ApplicationSession,
   options: { isCurrent: boolean; isWorking?: boolean },
 ): ApplicationStatusLabel {
-  if (options.isCurrent && (options.isWorking || !session.generatedCV)) {
+  if (options.isCurrent && (options.isWorking || !sessionHasKit(session))) {
     return 'Now';
   }
-  if (session.generatedCV) {
+  if (sessionHasKit(session)) {
     return 'Kit ready';
   }
   return 'Drafted';

@@ -13,6 +13,21 @@ export const CREDIT_COSTS = {
 export type CreditAction = keyof typeof CREDIT_COSTS;
 
 /**
+ * Credits given back for each kit document that failed while the rest of the
+ * kit was delivered (founder request, 2026-10-12). It is that document's
+ * single-document regenerate price, so retrying it from its tab is net free.
+ * The CV has no single-document regenerate, so it is refunded at the same 0.5.
+ * The total is capped at what the kit reservation charged. A kit where every
+ * document failed is released in full instead.
+ */
+export const KIT_DOCUMENT_FAILURE_REFUND = {
+  cv: 0.5,
+  coverLetter: CREDIT_COSTS.COVER_LETTER_REGEN,
+  applicationEmail: CREDIT_COSTS.EMAIL_REGEN,
+  followUpEmail: CREDIT_COSTS.FOLLOW_UP_REGEN,
+} as const;
+
+/**
  * The bucket a ledger row belongs to, written into
  * `credit_transactions.transaction_kind` at insert.
  *

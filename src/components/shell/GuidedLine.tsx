@@ -23,6 +23,7 @@ import {
   getPrimaryCVUploadLimitBytes,
 } from '@/lib/cv-upload-limits';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
+import { sessionHasKit } from '@/components/shell/application-status';
 import {
   clearFreeGenerationFlag,
   hasUsedFreeGeneration,
@@ -118,6 +119,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
   const setCurrentCV = useCVStore((s) => s.setCurrentCV);
   const setStructuredCV = useCVStore((s) => s.setStructuredCV);
   const currentSession = useSessionStore((s) => s.currentSession);
+  const hasKit = sessionHasKit(currentSession);
   const createNewSession = useSessionStore((s) => s.createNewSession);
   const addChatMessage = useSessionStore((s) => s.addChatMessage);
   const setJobDescription = useSessionStore((s) => s.setJobDescription);
@@ -254,10 +256,10 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
   }, [user, currentCV, step, pendingFit, createNewSession, runAgentWorkflow, setApplicationMode]);
 
   useEffect(() => {
-    if (kitStartedRef.current && !isAgentWorking && currentSession?.generatedCV) {
+    if (kitStartedRef.current && !isAgentWorking && hasKit) {
       onKitReady();
     }
-  }, [isAgentWorking, currentSession?.generatedCV, onKitReady]);
+  }, [isAgentWorking, hasKit, onKitReady]);
 
   // Same shape for step 4b: a run that ends with no kit goes back to the
   // verdict (or the job) with a reason instead of sitting on "Building".
@@ -270,11 +272,11 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
       kitSeenWorkingRef.current = true;
       return;
     }
-    if (!kitSeenWorkingRef.current || currentSession?.generatedCV) return;
+    if (!kitSeenWorkingRef.current || hasKit) return;
     kitStartedRef.current = false;
     setLineError((prev) => prev ?? "The kit didn't finish. Try again.");
     setStep(pendingFit ? 'fit-result' : 'job');
-  }, [step, isAgentWorking, currentSession?.generatedCV, pendingFit]);
+  }, [step, isAgentWorking, hasKit, pendingFit]);
 
   // Leave step 3 only after the run has actually been seen working, so the
   // tick between setStep and runFitAnalysisFlow can't bounce it. No verdict
@@ -362,7 +364,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
     const jd = live.jobDescription?.trim() ?? '';
     if (jd.length < MIN_JD) return;
     // Already under way or already answered: consume the flag and leave it.
-    if (kitStartedRef.current || isAgentWorking || live.generatedCV || live.pendingFitAnalysis) {
+    if (kitStartedRef.current || isAgentWorking || sessionHasKit(live) || live.pendingFitAnalysis) {
       setPendingJobFeedAutostart(null);
       return;
     }
