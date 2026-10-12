@@ -417,5 +417,5 @@ arm sonnet55-low: 20 kits to run (30 already done), concurrency 1, prompt varian
 [UnifiedAgent] Retrying application email response after validation miss: Application email body was empty or exceeded four sentences
 [UnifiedAgent] Generating follow-up email in language: de
 [20/20] syn-15 rep3 partial 45s calls=11 failures=write_email
-prompt variant files used: /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/cv-prompt.ts, /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/cover-letter-prompt.ts, /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/email-prompts.ts, /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/fit-assessment-prompt.ts
+prompt variant files used: <repo>/evals/prompt-variants/sonnet55/cv-prompt.ts, <repo>/evals/prompt-variants/sonnet55/cover-letter-prompt.ts, <repo>/evals/prompt-variants/sonnet55/email-prompts.ts, <repo>/evals/prompt-variants/sonnet55/fit-assessment-prompt.ts
 done in 1072s

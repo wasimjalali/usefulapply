@@ -340,5 +340,5 @@ arm sonnet46-api__prompts-sonnet55: 16 kits to run (0 already done), concurrency
 [UnifiedAgent] Retrying application email response after validation miss: Application email subject was empty or exceeded 60 characters
 [UnifiedAgent] Generating follow-up email in language: de
 [16/16] syn-16 rep1 complete 126s calls=11
-prompt variant files used: /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/cv-prompt.ts, /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/cover-letter-prompt.ts, /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/email-prompts.ts, /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/fit-assessment-prompt.ts
+prompt variant files used: <repo>/evals/prompt-variants/sonnet55/cv-prompt.ts, <repo>/evals/prompt-variants/sonnet55/cover-letter-prompt.ts, <repo>/evals/prompt-variants/sonnet55/email-prompts.ts, <repo>/evals/prompt-variants/sonnet55/fit-assessment-prompt.ts
 done in 449s

@@ -148,3 +148,5 @@ Prompt variants: `--prompt-variant <name>` makes a prompt module in `evals/promp
 `evals/private/` is in `.gitignore`. It holds the owner CV, the 14 owner ads, and every raw call and intermediate on owner cases (`evals/private/results/<run>/<arm>/`). Committed results contain only synthetic cases and aggregate numbers for owner cases. Public ad text is committed with its source URL. Synthetic CVs are fictional (example.com and example.org contacts).
 
 Raw call logs over 5 MB are committed gzipped (`calls.jsonl.gz`). Run `gunzip -k <file>` before re-scoring or re-judging that arm.
+
+Reproducibility: the published per-kit cost, token and latency means and the 30-case judge tables include the 14 owner cases, whose raw calls and verdicts stay in the gitignored `evals/private/`. From the repo alone you can re-derive the 16 synthetic cases; the write-up's synthetic-only tables are those numbers. Local paths in committed logs are redacted to `<repo>`, `<scratch>` and `~`.

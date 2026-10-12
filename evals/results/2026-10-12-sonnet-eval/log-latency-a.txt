@@ -101,12 +101,12 @@ arm sonnet46-api: 20 kits to run (30 already done), concurrency 1, prompt varian
 [UnifiedAgent] Dropped unsupported applicant extraction item: Applicant languages 5
 [UsefulApply] LLM skill matching failed: SyntaxError: Expected ',' or ']' after array element in JSON at position 6941 (line 194 column 6)
     at JSON.parse (<anonymous>)
-    at Object.computeSkillMatch (/Users/wasimjalali/Desktop/Useful_Apply/src/lib/agents/context-builder.ts:627:25)
+    at Object.computeSkillMatch (<repo>/src/lib/agents/context-builder.ts:627:25)
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-    at async <anonymous> (/Users/wasimjalali/Desktop/Useful_Apply/evals/lib/pipeline.ts:161:26)
-    at async worker (/Users/wasimjalali/Desktop/Useful_Apply/evals/run-eval.ts:125:40)
+    at async <anonymous> (<repo>/evals/lib/pipeline.ts:161:26)
+    at async worker (<repo>/evals/run-eval.ts:125:40)
     at async Promise.all (index 0)
-    at async main (/Users/wasimjalali/Desktop/Useful_Apply/evals/run-eval.ts:137:3)
+    at async main (<repo>/evals/run-eval.ts:137:3)
 [UnifiedAgent] Generating structured CV data in language: en
 [UnifiedAgent] Extracted JSON from position 0 to 12948
 [UnifiedAgent] Parsed structured CV data:

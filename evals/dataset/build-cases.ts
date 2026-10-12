@@ -107,22 +107,23 @@ const SYNTHETIC: Array<{ id: string; cv: string; lang: 'en' | 'de'; pub: Pub; ta
   { id: 'syn-16', cv: 'cv-de-mfa-quereinstieg', lang: 'de', pub: { kind: 'pe', slug: 'ottonova', id: '2817870' }, tags: ['career-changer', 'insurance'], notes: 'German career-changer ad written for this profile.' },
 ];
 
-// Owner cases: session id prefix -> language and tags. Language verified by reading each ad.
-const OWNER: Array<{ sid: string; lang: 'en' | 'de'; tags: string[]; notes: string }> = [
-  { sid: 'bde21c1a', lang: 'en', tags: ['mid', 'ai-solutions', 'startup'], notes: 'Stored language column says de, ad is English.' },
-  { sid: 'a1689f6e', lang: 'en', tags: ['mid', 'ecommerce', 'bait'], notes: 'Non-AI market manager role. Stored language column says de, ad is English.' },
-  { sid: 'd73e6afb', lang: 'en', tags: ['mid', 'marketing', 'noisy-jd'], notes: 'LinkedIn page noise in the ad text.' },
-  { sid: 'bb8113ef', lang: 'en', tags: ['junior', 'ai-implementation'], notes: 'Junior role.' },
-  { sid: '27e98887', lang: 'en', tags: ['intern', 'ai-engineering', 'noisy-jd'], notes: 'Internship, LinkedIn noise.' },
-  { sid: '87d2f96e', lang: 'en', tags: ['senior', 'product', 'long-jd'], notes: 'Longest owner ad (9.3k chars).' },
-  { sid: '914031cc', lang: 'en', tags: ['lead', 'ai-orchestration', 'noisy-jd'], notes: 'Lead-level ad.' },
-  { sid: '2fa005ed', lang: 'en', tags: ['mid', 'ai-engineering', 'noisy-jd'], notes: 'Long LinkedIn-style ad.' },
-  { sid: '4261d6c5', lang: 'en', tags: ['mid', 'marketing-ops'], notes: 'Marketing operations ad.' },
-  { sid: '94949d02', lang: 'en', tags: ['mid', 'ai-engineering'], notes: 'Company page ad.' },
-  { sid: 'a983063d', lang: 'de', tags: ['mid', 'ecommerce', 'bait'], notes: 'German Du/wir ad, Amazon account manager.' },
-  { sid: '605ffb7b', lang: 'de', tags: ['mid', 'automation', 'du-form'], notes: 'German ad, informal Du.' },
-  { sid: '647795aa', lang: 'de', tags: ['mid', 'genai', 'long-jd'], notes: 'German ad with gendered Nutzer:innen style.' },
-  { sid: 'da2156c2', lang: 'de', tags: ['mid', 'prompt-engineering', 'sie-form'], notes: 'German ad, formal Sie.' },
+// Owner cases in order own-01..own-14: language and tags. Language verified by reading each ad.
+// The case -> session id map lives in the gitignored evals/private/owner_case_map.json.
+const OWNER: Array<{ lang: 'en' | 'de'; tags: string[]; notes: string }> = [
+  { lang: 'en', tags: ['mid', 'ai-solutions', 'startup'], notes: 'Stored language column says de, ad is English.' },
+  { lang: 'en', tags: ['mid', 'ecommerce', 'bait'], notes: 'Non-AI market manager role. Stored language column says de, ad is English.' },
+  { lang: 'en', tags: ['mid', 'marketing', 'noisy-jd'], notes: 'LinkedIn page noise in the ad text.' },
+  { lang: 'en', tags: ['junior', 'ai-implementation'], notes: 'Junior role.' },
+  { lang: 'en', tags: ['intern', 'ai-engineering', 'noisy-jd'], notes: 'Internship, LinkedIn noise.' },
+  { lang: 'en', tags: ['senior', 'product', 'long-jd'], notes: 'Longest owner ad (9.3k chars).' },
+  { lang: 'en', tags: ['lead', 'ai-orchestration', 'noisy-jd'], notes: 'Lead-level ad.' },
+  { lang: 'en', tags: ['mid', 'ai-engineering', 'noisy-jd'], notes: 'Long LinkedIn-style ad.' },
+  { lang: 'en', tags: ['mid', 'marketing-ops'], notes: 'Marketing operations ad.' },
+  { lang: 'en', tags: ['mid', 'ai-engineering'], notes: 'Company page ad.' },
+  { lang: 'de', tags: ['mid', 'ecommerce', 'bait'], notes: 'German Du/wir ad, e-commerce account manager.' },
+  { lang: 'de', tags: ['mid', 'automation', 'du-form'], notes: 'German ad, informal Du.' },
+  { lang: 'de', tags: ['mid', 'genai', 'long-jd'], notes: 'German ad with gendered Nutzer:innen style.' },
+  { lang: 'de', tags: ['mid', 'prompt-engineering', 'sie-form'], notes: 'German ad, formal Sie.' },
 ];
 
 async function main() {
@@ -132,16 +133,22 @@ async function main() {
   if (!fs.existsSync(allPath)) throw new Error(`Missing ${allPath}. Regenerate it with evals/private/README.md first.`);
   const all = JSON.parse(fs.readFileSync(allPath, 'utf8')) as Array<{ id: string; job_title: string; company: string; job_url: string | null; job_description: string }>;
   const ownerSubset: Record<string, { job_title: string; company: string; job_url: string | null; job_description: string }> = {};
+  const mapPath = path.join(PRIVATE_DIR, 'owner_case_map.json');
+  if (!fs.existsSync(mapPath)) throw new Error(`Missing ${mapPath} (case id -> session id prefix).`);
+  const caseMap = JSON.parse(fs.readFileSync(mapPath, 'utf8')) as Record<string, string>;
   OWNER.forEach((o, i) => {
-    const row = all.find((r) => r.id.startsWith(o.sid));
-    if (!row) throw new Error(`Owner session ${o.sid} not found`);
-    ownerSubset[row.id] = { job_title: row.job_title, company: row.company, job_url: row.job_url, job_description: row.job_description };
+    const id = `own-${String(i + 1).padStart(2, '0')}`;
+    const sid = caseMap[id];
+    if (!sid) throw new Error(`${id} missing from ${mapPath}`);
+    const row = all.find((r) => r.id.startsWith(sid));
+    if (!row) throw new Error(`Owner session for ${id} not found`);
+    ownerSubset[id] = { job_title: row.job_title, company: row.company, job_url: row.job_url, job_description: row.job_description };
     cases.push({
-      id: `own-${String(i + 1).padStart(2, '0')}`,
+      id,
       origin: 'owner',
       language: o.lang,
       tags: o.tags,
-      jd_ref: `private:owner_jds.json#${row.id}`,
+      jd_ref: `private:owner_jds.json#${id}`,
       cv_ref: 'private:owner_cv.json',
       source_url: null,
       notes: o.notes,

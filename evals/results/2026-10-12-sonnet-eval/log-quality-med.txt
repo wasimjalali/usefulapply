@@ -632,5 +632,5 @@ arm sonnet55-medium: 30 kits to run (0 already done), concurrency 4, prompt vari
 [UnifiedAgent] Generating email in language: de
 [UnifiedAgent] Generating follow-up email in language: de
 [30/30] syn-16 rep1 complete 51s calls=10
-prompt variant files used: /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/cv-prompt.ts, /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/cover-letter-prompt.ts, /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/email-prompts.ts, /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/fit-assessment-prompt.ts
+prompt variant files used: <repo>/evals/prompt-variants/sonnet55/cv-prompt.ts, <repo>/evals/prompt-variants/sonnet55/cover-letter-prompt.ts, <repo>/evals/prompt-variants/sonnet55/email-prompts.ts, <repo>/evals/prompt-variants/sonnet55/fit-assessment-prompt.ts
 done in 454s

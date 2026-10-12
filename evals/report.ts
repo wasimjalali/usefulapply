@@ -2,7 +2,7 @@
  * Aggregate report for the write-up. Numbers only: no document text, quotes or judge reasons,
  * so owner-case content cannot appear in it.
  *
- *   npx tsx evals/report.ts --run evals/results/2026-10-07-sonnet-eval [--mode chain|fixed]
+ *   npx tsx evals/report.ts --run evals/results/2026-10-12-sonnet-eval [--mode chain|fixed]
  *
  * mode chain : arms sonnet46-api, sonnet55-low, sonnet55-medium (each ran the whole kit itself)
  * mode fixed : B arms are the folders sonnet55-*__on-sonnet46-api (writing tasks on arm A's analysis)

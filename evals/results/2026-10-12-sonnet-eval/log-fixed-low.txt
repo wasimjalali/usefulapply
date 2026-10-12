@@ -493,5 +493,5 @@ arm sonnet55-low__on-sonnet46-api: 30 kits to run (0 already done), concurrency 
 [UnifiedAgent] Generating follow-up email in language: de
 [UnifiedAgent] Retrying follow-up email response after validation miss: Follow-up email subject was empty or exceeded 60 characters
 [30/30] syn-16 rep1 complete 43s calls=7
-prompt variant files used: /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/cv-prompt.ts, /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/cover-letter-prompt.ts, /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/email-prompts.ts, /Users/wasimjalali/Desktop/Useful_Apply/evals/prompt-variants/sonnet55/fit-assessment-prompt.ts
+prompt variant files used: <repo>/evals/prompt-variants/sonnet55/cv-prompt.ts, <repo>/evals/prompt-variants/sonnet55/cover-letter-prompt.ts, <repo>/evals/prompt-variants/sonnet55/email-prompts.ts, <repo>/evals/prompt-variants/sonnet55/fit-assessment-prompt.ts
 done in 330s
