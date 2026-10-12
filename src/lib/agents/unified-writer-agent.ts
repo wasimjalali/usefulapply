@@ -628,20 +628,7 @@ function unsupportedInstructionTerms(instruction: string, sourceText: string): s
 
 /** Strip the model's JSON out of whatever wrapping it came back in. */
 function parseSectionResponse(raw: string): Record<string, unknown> {
-  let jsonContent = raw.trim();
-  if (jsonContent.startsWith('```json')) {
-    jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-  } else if (jsonContent.startsWith('```')) {
-    jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
-  }
-  const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
-  if (jsonMatch) jsonContent = jsonMatch[0];
-
-  const parsed = JSON.parse(jsonContent) as unknown;
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('Section rewrite response was not a JSON object');
-  }
-  return parsed as Record<string, unknown>;
+  return parseStrictJsonObject(raw, 'Section rewrite response');
 }
 
 type NormalizedOptimizedCvPayload = {
@@ -909,7 +896,8 @@ export function findTopLevelJsonObjects(text: string): string[] {
  * Parse the model's JSON object. Sonnet 5.5 sometimes notices a limit it broke
  * after emitting the JSON and writes a corrected object after a short note
  * ("Wait, the subject must be 60 characters or fewer. Corrected output: {...}"),
- * so the last balanced object that parses wins.
+ * so the last balanced object that parses wins. Used by every JSON writer
+ * (emails, CV data, CV section rewrites).
  */
 export function parseStrictJsonObject(value: string, label: string): Record<string, unknown> {
   let jsonContent = value.trim();
@@ -935,8 +923,32 @@ export function parseStrictJsonObject(value: string, label: string): Record<stri
   throw lastError instanceof Error ? lastError : new Error(`${label} was not valid JSON`);
 }
 
-function countSentences(value: string): number {
-  return value.split(/[.!?]+(?=\s|$)/u).map((part) => part.trim()).filter(Boolean).length;
+// Abbreviations whose period never ends a sentence ("4,2 Mio. EUR", "ca. 60 Kunden").
+const SENTENCE_ABBREVIATIONS = new RegExp(
+  String.raw`(?<![\p{L}\p{N}])(?:mio|mrd|ca|bzw|usw|nr|dr|hr|fr|inkl|ggf|etc|vs|approx)\.`,
+  'giu',
+);
+// Two-part abbreviations, with or without the inner space ("z. B.", "e.g.").
+const SENTENCE_TWO_PART_ABBREVIATIONS = new RegExp(
+  String.raw`(?<![\p{L}\p{N}])(?:z\.\s?b|e\.\s?g|i\.\s?e|d\.\s?h|u\.\s?a)\.`,
+  'giu',
+);
+const NOT_A_BOUNDARY = '\u0001';
+
+/**
+ * Counts sentences for the application email's four-sentence limit. A period
+ * is not a boundary after an abbreviation, after a single capital initial
+ * ("J. Hartmann"), or when the next word starts with a lowercase letter or a
+ * digit. Decimal and thousand separators ("4.2", "1.000") never split, since
+ * a boundary needs whitespace after it.
+ */
+export function countSentences(value: string): number {
+  const masked = value
+    .replace(SENTENCE_TWO_PART_ABBREVIATIONS, (match) => match.replace(/\./g, NOT_A_BOUNDARY))
+    .replace(SENTENCE_ABBREVIATIONS, (match) => match.replace(/\.$/, NOT_A_BOUNDARY))
+    .replace(/(?<![\p{L}\p{N}])(\p{Lu})\.(?=\s)/gu, `$1${NOT_A_BOUNDARY}`)
+    .replace(/\.(?=\s+[\p{Ll}\p{N}])/gu, NOT_A_BOUNDARY);
+  return masked.split(/[.!?]+(?=\s|$)/u).map((part) => part.trim()).filter(Boolean).length;
 }
 
 function emailContentText(value: string): string {
@@ -1612,46 +1624,9 @@ export const unifiedWriterAgent = {
     };
 
     try {
-      let jsonContent = response.content.trim();
-      
-      // Remove markdown code blocks if present
-      if (jsonContent.startsWith('```json')) {
-        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      } else if (jsonContent.startsWith('```')) {
-        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
-      }
-      
-      // Extract only the first complete JSON object (handle AI adding extra text after)
-      let braceCount = 0;
-      let jsonStart = -1;
-      let jsonEnd = -1;
-      
-      for (let i = 0; i < jsonContent.length; i++) {
-        const char = jsonContent[i];
-        if (char === '{') {
-          if (braceCount === 0) jsonStart = i;
-          braceCount++;
-        } else if (char === '}') {
-          braceCount--;
-          if (braceCount === 0 && jsonStart !== -1) {
-            jsonEnd = i + 1;
-            break; // Found complete JSON object
-          }
-        }
-      }
-      
-      if (jsonStart !== -1 && jsonEnd !== -1) {
-        jsonContent = jsonContent.substring(jsonStart, jsonEnd);
-        console.log('[UnifiedAgent] Extracted JSON from position', jsonStart, 'to', jsonEnd);
-      } else {
-        // Fallback to regex if brace counting fails
-        const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          jsonContent = jsonMatch[0];
-        }
-      }
-      
-      const parsed = normalizeOptimizedCvPayload(JSON.parse(jsonContent));
+      // Last balanced JSON object that parses: text around it, or a corrected
+      // object after a self-correction note, doesn't break the parse.
+      const parsed = normalizeOptimizedCvPayload(parseStrictJsonObject(response.content, 'Optimized CV response'));
       const personal = parsed.personal;
 
       // Avoid logging PII (applicant name, raw JSON blobs) in production — these

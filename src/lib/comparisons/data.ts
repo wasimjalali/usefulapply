@@ -283,7 +283,7 @@ export const comparisons: ComparisonData[] = [
       {
         question: 'Which has better AI?',
         answer:
-          'Useful Apply runs on Claude Sonnet 4.6 by Anthropic, one of the most capable models available for writing. Teal uses generic AI (the model is not disclosed on the site). Useful Apply also has architectural anti-hallucination rules so the output traces back to your real CV. Teal\'s users report the AI sometimes strips real experience out of their resumes, which is a different kind of problem.',
+          'Useful Apply runs on Claude Sonnet 5.5 by Anthropic, one of the most capable models available for writing. Teal uses generic AI (the model is not disclosed on the site). Useful Apply also has architectural anti-hallucination rules so the output traces back to your real CV. Teal\'s users report the AI sometimes strips real experience out of their resumes, which is a different kind of problem.',
       },
       {
         question: 'Which is cheaper?',
@@ -889,7 +889,7 @@ export const comparisons: ComparisonData[] = [
       {
         question: 'Which has better AI for writing?',
         answer:
-          'Useful Apply runs on Claude Sonnet 4.6 by Anthropic, one of the most capable models available for writing. Rezi uses AI but does not disclose the model. Useful Apply also has architectural anti-hallucination rules so every output traces back to your real CV.',
+          'Useful Apply runs on Claude Sonnet 5.5 by Anthropic, one of the most capable models available for writing. Rezi uses AI but does not disclose the model. Useful Apply also has architectural anti-hallucination rules so every output traces back to your real CV.',
       },
       {
         question: 'Which is cheaper?',
@@ -1200,7 +1200,7 @@ export const comparisons: ComparisonData[] = [
       {
         question: 'Which has better AI for writing?',
         answer:
-          'Useful Apply runs on Claude Sonnet 4.6 by Anthropic, one of the most capable models available for writing. Every output is grounded in your real CV. Kickresume\'s AI is mostly fill-in-the-blank bullet suggestions.',
+          'Useful Apply runs on Claude Sonnet 5.5 by Anthropic, one of the most capable models available for writing. Every output is grounded in your real CV. Kickresume\'s AI is mostly fill-in-the-blank bullet suggestions.',
       },
       {
         question: 'Which is faster?',
@@ -1489,7 +1489,7 @@ export const comparisons: ComparisonData[] = [
       {
         question: 'Which has better AI for writing?',
         answer:
-          'Useful Apply runs on Claude Sonnet 4.6 by Anthropic, one of the most capable models available for writing, with architectural anti-hallucination. Enhancv uses AI for bullet suggestions but does not disclose the model.',
+          'Useful Apply runs on Claude Sonnet 5.5 by Anthropic, one of the most capable models available for writing, with architectural anti-hallucination. Enhancv uses AI for bullet suggestions but does not disclose the model.',
       },
       {
         question: 'Which is cheaper?',
@@ -1789,7 +1789,7 @@ export const comparisons: ComparisonData[] = [
       {
         question: 'Which has better AI for writing?',
         answer:
-          'Useful Apply runs on Claude Sonnet 4.6 by Anthropic, one of the most capable models available for writing, with architectural anti-hallucination. Resume.io uses AI but does not disclose the model and generation is slower.',
+          'Useful Apply runs on Claude Sonnet 5.5 by Anthropic, one of the most capable models available for writing, with architectural anti-hallucination. Resume.io uses AI but does not disclose the model and generation is slower.',
       },
       {
         question: 'Which has clearer pricing?',
