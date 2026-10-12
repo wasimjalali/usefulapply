@@ -126,13 +126,12 @@ export function KitExportHost() {
         const untailoredCvNote = session.kitDocumentErrors?.cv && !cvData
           ? " The CV wasn't tailored, so it was left out. Download your base CV from the CV tab."
           : '';
-        const fromTabs = failed.length === 1 ? 'download it from its tab' : 'download them from their tabs';
         if (delivered === 0) {
           toast.error(failed.length > 0
-            ? `Nothing downloaded. The ${failed.join(' and ')} didn't build.${untailoredCvNote}`
-            : `Nothing to download yet.${untailoredCvNote}`);
+            ? `Nothing downloaded. The ${joinList(failed)} didn't build.${untailoredCvNote}`
+            : `Nothing to download yet.${untailoredCvNote}`, 8000);
         } else if (failed.length > 0) {
-          toast.warning(`Downloaded ${fileCount(delivered)}. The ${failed.join(' and ')} didn't build, ${fromTabs}.${untailoredCvNote}`);
+          toast.warning(`Downloaded ${fileCount(delivered)}. The ${joinList(failed)} didn't build. ${fromTabsSentence(failed)}${untailoredCvNote}`, 8000);
         } else if (untailoredCvNote) {
           toast.warning(`Downloaded ${fileCount(delivered)}.${untailoredCvNote}`, 8000);
         } else {
@@ -166,6 +165,20 @@ export function KitExportHost() {
       </div>
     </div>
   );
+}
+
+/** Kit parts named in plural: "the emails", "the answers". */
+const PLURAL_PARTS = new Set(['emails', 'answers']);
+
+function joinList(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? '';
+  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+}
+
+/** "Download it from its tab." for one singular part, "them" for a plural part or several. */
+function fromTabsSentence(failed: string[]): string {
+  if (failed.length > 1) return 'Download them from their tabs.';
+  return PLURAL_PARTS.has(failed[0]) ? 'Download them from their tab.' : 'Download it from its tab.';
 }
 
 function fileCount(count: number): string {

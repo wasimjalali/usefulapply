@@ -483,7 +483,7 @@ async function main() {
 
   // ---- Review round 1 --------------------------------------------------------
 
-  await scenario('R1. one cached context, two runs in sequence: a failed letter never returns the earlier run\'s letter', async () => {
+  await scenario('R1a. one cached context, two runs in sequence: a failed letter never returns the earlier run\'s letter', async () => {
     const shared = contextFor();
     resetModel({});
     const first = await agent.runWithContext(shared, () => undefined);
@@ -497,7 +497,7 @@ async function main() {
     return { secondDocumentErrors: second.data?.documentErrors, secondHasLetter: Boolean(second.data?.context.coverLetter) };
   });
 
-  await scenario('R1. one cached context, two overlapping runs: each returns only its own documents', async () => {
+  await scenario('R1b. one cached context, two overlapping runs: each returns only its own documents', async () => {
     const shared = contextFor();
     resetModel({}, { coverLetter: ['ok', 'throw'] });
     const [a, b] = await Promise.all([
@@ -598,7 +598,7 @@ async function main() {
 
   // ---- Review round 2 --------------------------------------------------------
 
-  await scenario('R2. concurrent regenerates on different documents both clear their marks, nothing else', async () => {
+  await scenario('R2a. concurrent regenerates on different documents both clear their marks, nothing else', async () => {
     const sessions = await import('../src/db/repos/sessions');
     const sessionId = '00000000-0000-4000-8000-0000000005e5';
     const stamp = new Date().toISOString();
@@ -628,7 +628,7 @@ async function main() {
     return { artifacts };
   });
 
-  await scenario('R2. the tracker follow-up path and the tab retry share one in-flight guard', async () => {
+  await scenario('R2b. the tracker follow-up path and the tab retry share one in-flight guard', async () => {
     const { useSessionStore } = await import('../src/store/useSessionStore');
     const { useCVStore } = await import('../src/store/useCVStore');
     const regen = await import('../src/lib/regenerate-client');
@@ -664,7 +664,7 @@ async function main() {
     }
   });
 
-  await scenario('R2. a partial refund that fails partway records what was actually paid', async () => {
+  await scenario('R2c. a partial refund that fails partway records what was actually paid', async () => {
     await setBuckets(0, 0.5, 10);
     const key = `full_application:${userId}:r2paid`;
     await credits.reserveCredits({ userId, action: 'FULL_APPLICATION', idempotencyKey: key });

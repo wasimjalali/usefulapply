@@ -11,7 +11,7 @@ import { AgentProgressV2 } from './AgentProgressV2';
 import { useAgentWorkflow } from './chat/useAgentWorkflow';
 import { useAppStore } from '@/store/useAppStore';
 import { isApplicationSession, useSessionStore } from '@/store/useSessionStore';
-import { sessionHasKit } from '@/components/shell/application-status';
+import { hasTailoredCv, sessionHasKit } from '@/components/shell/application-status';
 import { useUIStore, type KitTab } from '@/store/useUIStore';
 import { useTrackerStore } from '@/store/useTrackerStore';
 import { useJobFeedBadge } from '@/hooks/useJobFeedBadge';
@@ -901,11 +901,11 @@ export function ChatPanel({
     // failed has nowhere to keep them. Say so before a paid turn is claimed.
     // Only for a kit that exists without a CV: an application whose CV has not
     // hydrated yet has no kit documents either, and still goes through.
-    if (session && sessionHasKit(session) && !session.generatedCV && !session.optimizedCVData) {
+    if (session && sessionHasKit(session) && !hasTailoredCv(session)) {
       setIsScreeningMode(false);
       addChatMessage({
         role: 'assistant',
-        content: "Screening answers need the tailored CV, and this kit doesn't have one. Paste the job ad again for a new kit, then ask me here. Nothing was charged.",
+        content: `Screening answers need the tailored CV, and this kit doesn't have one. A new kit for this job (${CREDIT_COSTS.FULL_APPLICATION} credits) gives you one. Nothing was charged.`,
       });
       return;
     }
@@ -1041,7 +1041,10 @@ export function ChatPanel({
       startRegenPrompt(target, parsed.ok ? parsed.instruction : null);
       return true;
     }
-    if (isScreeningMode || looksLikeScreeningQuestion(text)) {
+    // A message that only looks like a screening question goes to the normal
+    // chat when there is no tailored CV to answer from; explicit screening
+    // mode still reaches runScreening, which says why it can't run.
+    if (isScreeningMode || (looksLikeScreeningQuestion(text) && hasTailoredCv(currentSession))) {
       await runScreening(text);
       return true;
     }
@@ -2323,7 +2326,7 @@ export function ChatPanel({
                 },
                 // Screening answers persist inside generated_cv, so they
                 // need the tailored CV. A kit whose CV failed offers download only.
-                ...(currentSession?.generatedCV && (currentSession?.screeningUsageCount ?? 0) < 2
+                ...(hasTailoredCv(currentSession) && (currentSession?.screeningUsageCount ?? 0) < 2
                   ? [{
                       id: 'screening',
                       label: 'Answer screening questions',
@@ -2369,7 +2372,7 @@ export function ChatPanel({
             isWorking={isAgentWorking || isTyping}
             placeholder={
               spine
-                ? (currentSession?.generatedCV
+                ? (hasTailoredCv(currentSession)
                     ? 'Ask for a change or a screening answer'
                     : sessionHasKit(currentSession)
                       ? 'Ask for a change to your kit'

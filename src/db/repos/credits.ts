@@ -1549,7 +1549,13 @@ export async function refundReservationPartially(params: {
   return { success: true, refunded: amount, alreadyRefunded: false, error: null };
 }
 
-/** Stamp the credits a partial refund actually paid, beside the amount it intended. */
+/**
+ * Stamp the credits a partial refund actually paid, beside the amount it
+ * intended. Best effort: this write can fail after the credits moved, so a
+ * missing partial_refund_paid means unknown, not zero. The credit_transactions
+ * ledger (reservation_partial_refund rows naming the reservation) is the
+ * source of truth for reconciliation.
+ */
 async function recordPartialRefundPaid(reservationId: string, userId: string, paid: number): Promise<void> {
   try {
     const db = await getDb();

@@ -11,6 +11,14 @@ export function sessionHasKit(session: ApplicationSession | null | undefined): b
   return Boolean(session?.generatedCV || session?.coverLetter || session?.email || session?.followUpEmail);
 }
 
+/**
+ * The tailored CV exists, in either of the shapes a session can hold it.
+ * Screening answers are stored with it, so screening is offered only then.
+ */
+export function hasTailoredCv(session: ApplicationSession | null | undefined): boolean {
+  return Boolean(session?.generatedCV || session?.optimizedCVData);
+}
+
 export function deriveApplicationStatus(
   session: ApplicationSession,
   options: { isCurrent: boolean; isWorking?: boolean },
