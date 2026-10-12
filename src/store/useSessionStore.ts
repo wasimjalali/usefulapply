@@ -15,6 +15,7 @@ import type {
   GeneratedEmail,
 } from '@/lib/types';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
+import type { KitDocumentErrors } from '@/lib/agents/types';
 
 export interface CVEdit {
   id: string;
@@ -180,6 +181,12 @@ export interface ApplicationSession {
     recommendedDelay: number;
   } | null;
   fitAssessment?: string | null;
+  /**
+   * Kit documents that failed in the last kit run. A tab shows its error
+   * state only while its document is still missing, so a successful retry
+   * needs no cleanup to look right; regenerate-client clears it anyway.
+   */
+  kitDocumentErrors?: KitDocumentErrors | null;
   generationStatus?: JobFeedGenerationStatus;
   generationError?: string | null;
   generationStartedAt?: string | null;

@@ -29,6 +29,8 @@ import { useFeedStore } from '@/store/useFeedStore';
 import { cvStructureDigest } from '@/lib/cv-structure/validate';
 import { rememberUndo } from '@/lib/cv-structure/undo';
 import type { JobFeedApplicationGeneration } from '@/lib/supabase/types';
+import { readKitDocumentErrors } from '@/lib/open-session';
+import type { KitDocument, KitDocumentErrors } from '@/lib/agents/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
 import {
   createSession as createStoredSession,
@@ -115,6 +117,62 @@ function formatFitAnalysisMessage(
     details,
     closing,
   ].filter(Boolean).join('\n\n');
+}
+
+const KIT_DOCUMENT_NAMES: Record<KitDocument, string> = {
+  cv: 'tailored CV',
+  coverLetter: 'cover letter',
+  applicationEmail: 'application email',
+  followUpEmail: 'follow-up email',
+};
+
+function joinNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+function formatCredits(amount: number): string {
+  return `${amount} ${amount === 1 ? 'credit' : 'credits'}`;
+}
+
+/**
+ * The chat line for a finished kit. A partial kit names what is ready, what
+ * is not, where to retry it and what came back, and claims a refund only
+ * when the server confirmed one.
+ */
+function kitReadyMessage(opts: {
+  company?: string;
+  atsNote: string;
+  errors: KitDocumentErrors;
+  creditsRefunded: number;
+}): string {
+  const { errors } = opts;
+  const intro = `Your kit${opts.company ? ` for ${opts.company}` : ''} is ready`;
+  const failed = (Object.keys(KIT_DOCUMENT_NAMES) as KitDocument[]).filter((document) => errors[document]);
+  if (failed.length === 0) {
+    return `${intro}: a tailored CV${opts.atsNote}, a cover letter and two emails. Every claim comes from your CV. Review it before you send.`;
+  }
+  const ready: string[] = [];
+  if (!errors.cv) ready.push(`a tailored CV${opts.atsNote}`);
+  if (!errors.coverLetter) ready.push('a cover letter');
+  if (!errors.applicationEmail && !errors.followUpEmail) ready.push('two emails');
+  else if (!errors.applicationEmail) ready.push('an application email');
+  else if (!errors.followUpEmail) ready.push('a follow-up email');
+  // Both emails live on one tab, so count tabs, not documents.
+  const retryTabs = [
+    ...(errors.coverLetter ? ['Cover letter'] : []),
+    ...(errors.applicationEmail || errors.followUpEmail ? ['Emails'] : []),
+  ];
+  const lines = [
+    `${intro}: ${joinNames(ready)}. Every claim comes from your CV. Review it before you send.`,
+    `We couldn't write the ${joinNames(failed.map((document) => KIT_DOCUMENT_NAMES[document]))}.`,
+  ];
+  if (retryTabs.length > 0) {
+    lines.push(`Try again from the ${joinNames(retryTabs)} ${retryTabs.length === 1 ? 'tab' : 'tabs'}.`);
+  }
+  if (errors.cv) lines.push('The CV tab shows your base CV. To tailor it, paste the job ad again for a new kit.');
+  if (opts.creditsRefunded > 0) lines.push(`We refunded ${formatCredits(opts.creditsRefunded)}.`);
+  return `${lines[0]}\n\n${lines.slice(1).join(' ')}`;
 }
 
 export function useAgentWorkflow(options?: {
@@ -994,6 +1052,12 @@ export function useAgentWorkflow(options?: {
               case 'workflow_complete':
                 didProduceArtifacts = true;
                 const ctx = data.results;
+                // A partial kit is still a finished kit: the failed documents
+                // are listed here and each tab shows its own error state.
+                const kitErrors = readKitDocumentErrors(ctx?.documentErrors) ?? {};
+                const creditsRefunded = typeof data.creditsRefunded === 'number' && data.creditsRefunded > 0
+                  ? data.creditsRefunded
+                  : 0;
                 void syncJobFeedGenerationStatus('succeeded', undefined, workflowSessionId);
                 notifyJobFeedBadgeRefresh();
                 posthog.capture('application_generated', {
@@ -1001,6 +1065,7 @@ export function useAgentWorkflow(options?: {
                   job_title: ctx?.job?.title,
                   company: ctx?.job?.companyName,
                   match_score: ctx?.match?.score,
+                  failed_documents: Object.keys(kitErrors),
                 });
 
                 if (ctx?.job) {
@@ -1107,6 +1172,18 @@ export function useAgentWorkflow(options?: {
                     } : null,
                   });
                 }
+
+                // A document that failed in this run must not leave an older
+                // run's copy on screen as if it belonged to this job. Clear it
+                // so its tab shows the error and the retry instead.
+                if (workflowSessionId) {
+                  useAppStore.getState().updateSessionById(workflowSessionId, {
+                    kitDocumentErrors: Object.keys(kitErrors).length > 0 ? kitErrors : null,
+                    ...(kitErrors.cv ? { generatedCV: null, optimizedCVData: undefined } : {}),
+                    ...(kitErrors.coverLetter ? { coverLetter: null } : {}),
+                    ...(kitErrors.applicationEmail ? { email: null } : {}),
+                  });
+                }
                 
                 if (ctx?.companyResearch) {
                   if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
@@ -1159,7 +1236,7 @@ export function useAgentWorkflow(options?: {
                   : '';
                 addWorkflowMessage(workflowSessionId, {
                   role: 'assistant',
-                  content: `Your kit${kitCompany ? ` for ${kitCompany}` : ''} is ready. Tailored CV${atsNote}, a cover letter and two emails. Nothing was invented.${weakMatchNote}${repeatNote}`,
+                  content: `${kitReadyMessage({ company: kitCompany, atsNote, errors: kitErrors, creditsRefunded })}${weakMatchNote}${repeatNote}`,
                 });
                 if (originStillOpen && isDirectPath && isWeakMatch) {
                   toast.warning(

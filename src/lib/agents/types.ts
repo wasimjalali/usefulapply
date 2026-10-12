@@ -265,11 +265,25 @@ export type AgentEvent =
 
 export type AgentEventHandler = (event: AgentEvent) => void;
 
+/** The four documents a kit run writes. Each one succeeds or fails on its own. */
+export type KitDocument = 'cv' | 'coverLetter' | 'applicationEmail' | 'followUpEmail';
+
+export const KIT_DOCUMENTS: readonly KitDocument[] = ['cv', 'coverLetter', 'applicationEmail', 'followUpEmail'];
+
+/**
+ * Why a kit document is missing. VALIDATION_FAILED: the model answered but the
+ * answer failed a quality check after its one retry. GENERATION_FAILED: any
+ * other error (provider, parse, grounding). Codes only, never model output.
+ */
+export type KitDocumentErrorCode = 'VALIDATION_FAILED' | 'GENERATION_FAILED';
+
+/** Only the documents that failed are present. An empty object is a whole kit. */
+export type KitDocumentErrors = Partial<Record<KitDocument, KitDocumentErrorCode>>;
+
 export interface AgentResult<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
-  errorCode?: 'EMAIL_VALIDATION_FAILED';
   usage?: {
     inputTokens: number;
     outputTokens: number;

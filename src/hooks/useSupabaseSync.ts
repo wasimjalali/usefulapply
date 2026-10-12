@@ -19,6 +19,7 @@ import {
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
 import { isSameJob } from '@/lib/utils/same-job';
 import { hydrateChatIfEmpty, mapSessionRowToStore, type StoredSessionRow } from '@/lib/open-session';
+import { sessionHasKit } from '@/components/shell/application-status';
 
 // Type for Supabase application_sessions row
 interface SupabaseSessionRow {
@@ -487,7 +488,7 @@ export function useSupabaseSync() {
         if (isLocalSession) {
           // Only create in Supabase once a full application has been generated.
           // Fit-analysis-only sessions stay local to avoid "Unknown Company" clutter in the tracker.
-          if (!currentSession.generatedCV) {
+          if (!sessionHasKit(currentSession)) {
             return;
           }
 
@@ -566,7 +567,7 @@ export function useSupabaseSync() {
               console.log('[SupabaseSync] Replaced local ID:', oldSessionId, '->', newSession.id);
               
               // Update the new session with full data
-              if (currentSession.jobTitle || currentSession.company || currentSession.generatedCV) {
+              if (currentSession.jobTitle || currentSession.company || sessionHasKit(currentSession)) {
                 const newGenCV = embedKitData(currentSession);
                 // Clamp match_score to INTEGER 0-100 to satisfy DB CHECK constraint
                 const safeMatchScore = currentSession.matchScore != null
@@ -586,9 +587,9 @@ export function useSupabaseSync() {
                   follow_up_email: currentSession.followUpEmail,
                   company_research: currentSession.companyResearch,
                   fit_assessment: currentSession.fitAssessment ?? null,
-                  generation_completed: currentSession.generatedCV ? true : false,
-                  generation_status: currentSession.generatedCV ? 'succeeded' : currentSession.generationStatus,
-                  generation_error: currentSession.generatedCV ? undefined : currentSession.generationError ?? undefined,
+                  generation_completed: sessionHasKit(currentSession),
+                  generation_status: sessionHasKit(currentSession) ? 'succeeded' : currentSession.generationStatus,
+                  generation_error: sessionHasKit(currentSession) ? undefined : currentSession.generationError ?? undefined,
                 }, user.id);
                 if (updateErr) {
                   console.error('[SupabaseSync] Error updating new session with full data:', updateErr);
@@ -672,9 +673,9 @@ export function useSupabaseSync() {
             company_address: currentSession.companyResearch?.address,
             company_contact_person: currentSession.companyResearch?.contactPerson,
             fit_assessment: currentSession.fitAssessment ?? null,
-            generation_completed: currentSession.generatedCV ? true : false,
-            generation_status: currentSession.generatedCV ? 'succeeded' : currentSession.generationStatus,
-            generation_error: currentSession.generatedCV ? undefined : currentSession.generationError ?? undefined,
+            generation_completed: sessionHasKit(currentSession),
+            generation_status: sessionHasKit(currentSession) ? 'succeeded' : currentSession.generationStatus,
+            generation_error: sessionHasKit(currentSession) ? undefined : currentSession.generationError ?? undefined,
           }, user.id);
           
           if (error) {

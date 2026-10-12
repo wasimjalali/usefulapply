@@ -13,6 +13,7 @@
 import { useState, useCallback } from 'react';
 import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
 import { generateRequestId } from '@/lib/utils/requestId';
+import type { KitDocumentErrors } from '@/lib/agents/types';
 
 export interface AgentV2Step {
   id: string;
@@ -163,6 +164,8 @@ export interface AgentV2Result {
     body: string;
     recommendedDelay: number;
   } | null;
+  /** A partial kit: the documents that failed. Their fields above are absent. */
+  documentErrors?: KitDocumentErrors;
   globalContext?: unknown;
 }
 

@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore } from '@/store/useSessionStore';
+import { sessionHasKit } from '@/components/shell/application-status';
 import { useUIStore } from '@/store/useUIStore';
 import { buildCvData } from '@/lib/cv-templates/build-cv-data';
 import { readDefaultTemplate } from '@/lib/cv-templates/default-template';
@@ -58,7 +59,7 @@ export function KitExportHost() {
     handledRequestRef.current = kitDownloadRequest;
     if (busyRef.current) return;
     const session = useSessionStore.getState().currentSession;
-    if (!session?.generatedCV) {
+    if (!session || !sessionHasKit(session)) {
       toast.error('Nothing to download yet.');
       return;
     }
@@ -80,8 +81,9 @@ export function KitExportHost() {
             console.error('[DownloadAll] CV PDF failed:', err);
             failed.push('CV');
           }
-        } else {
+        } else if (!session.kitDocumentErrors?.cv) {
           // No tailored structured CV to render: never ship the original under a tailored name.
+          // A CV that failed in the kit run is already named on its tab, so it is not a download failure.
           failed.push('CV');
         }
         if (session.coverLetter) {
@@ -119,19 +121,26 @@ export function KitExportHost() {
           delivered += 1;
           await new Promise((resolve) => setTimeout(resolve, 250));
         }
+        // A CV that failed in the kit run was never tailored, so it is left
+        // out on purpose rather than shipped as the original under a tailored name.
+        const untailoredCvNote = session.kitDocumentErrors?.cv && !cvData
+          ? " The CV wasn't tailored, so it was left out. Download your base CV from the CV tab."
+          : '';
         if (delivered === 0) {
           toast.error(failed.length > 0
-            ? `Nothing downloaded. The ${failed.join(' and ')} didn't build.`
-            : 'Nothing to download yet.');
+            ? `Nothing downloaded. The ${joinList(failed)} didn't build.${untailoredCvNote}`
+            : `Nothing to download yet.${untailoredCvNote}`, 8000);
         } else if (failed.length > 0) {
-          toast.warning(`Downloaded ${delivered} files. The ${failed.join(' and ')} didn't build, download it from its tab.`);
+          toast.warning(`Downloaded ${fileCount(delivered)}. The ${joinList(failed)} didn't build. ${fromTabsSentence(failed)}${untailoredCvNote}`, 8000);
+        } else if (untailoredCvNote) {
+          toast.warning(`Downloaded ${fileCount(delivered)}.${untailoredCvNote}`, 8000);
         } else {
-          toast.success(`Downloaded ${delivered} files.`);
+          toast.success(`Downloaded ${fileCount(delivered)}.`);
         }
       } catch (err) {
         console.error('[DownloadAll] failed:', err);
         toast.error(delivered > 0
-          ? `Downloaded ${delivered} files, then the download stopped. Try again for the rest.`
+          ? `Downloaded ${fileCount(delivered)}, then the download stopped. Try again for the rest.`
           : 'The download didn\'t start. Try again in a moment.');
       } finally {
         busyRef.current = false;
@@ -156,4 +165,22 @@ export function KitExportHost() {
       </div>
     </div>
   );
+}
+
+/** Kit parts named in plural: "the emails", "the answers". */
+const PLURAL_PARTS = new Set(['emails', 'answers']);
+
+function joinList(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? '';
+  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+}
+
+/** "Download it from its tab." for one singular part, "them" for a plural part or several. */
+function fromTabsSentence(failed: string[]): string {
+  if (failed.length > 1) return 'Download them from their tabs.';
+  return PLURAL_PARTS.has(failed[0]) ? 'Download them from their tab.' : 'Download it from its tab.';
+}
+
+function fileCount(count: number): string {
+  return `${count} ${count === 1 ? 'file' : 'files'}`;
 }

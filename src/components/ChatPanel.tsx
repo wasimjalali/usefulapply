@@ -11,6 +11,7 @@ import { AgentProgressV2 } from './AgentProgressV2';
 import { useAgentWorkflow } from './chat/useAgentWorkflow';
 import { useAppStore } from '@/store/useAppStore';
 import { isApplicationSession, useSessionStore } from '@/store/useSessionStore';
+import { hasTailoredCv, sessionHasKit } from '@/components/shell/application-status';
 import { useUIStore, type KitTab } from '@/store/useUIStore';
 import { useTrackerStore } from '@/store/useTrackerStore';
 import { useJobFeedBadge } from '@/hooks/useJobFeedBadge';
@@ -485,7 +486,7 @@ export function ChatPanel({
       !currentSession
       || (
         !currentSession.jobDescription
-        && !currentSession.generatedCV
+        && !sessionHasKit(currentSession)
         && messages.length === 0
       )
     )
@@ -595,7 +596,7 @@ export function ChatPanel({
         !canRestartPendingJobFeedGeneration &&
         (
           currentSession.chatMessages.length > 0 ||
-          !!currentSession.generatedCV ||
+          sessionHasKit(currentSession) ||
           !!currentSession.pendingFitAnalysis
         )
       );
@@ -730,8 +731,9 @@ export function ChatPanel({
   const presentJobAdDecision = (jd: string) => {
     if (!currentSession) {
       useAppStore.getState().createNewSession(jd);
-    } else if (!currentSession.generatedCV) {
-      // A new ad on an unfinished application replaces it. Without this the
+    } else if (!sessionHasKit(currentSession)) {
+      // A new ad on an unfinished application replaces it. A partial kit (any
+      // document delivered) is finished work and is never overwritten here. Without this the
       // fit result from the previous ad stays live and its "generate the kit"
       // chip would spend 2 credits building for the wrong job.
       setJobDescription(jd);
@@ -768,7 +770,7 @@ export function ChatPanel({
   // application stays in the sidebar; the new job opens its own conversation.
   const beginJobRun = (jd: string) => {
     setPendingDecisionJd(null);
-    if (currentSession?.generatedCV) {
+    if (sessionHasKit(currentSession)) {
       useAppStore.getState().createNewSession(jd);
       addChatMessage({ role: 'user', content: jd });
     }
@@ -895,6 +897,18 @@ export function ChatPanel({
     const session = useSessionStore.getState().currentSession;
     const startedIn = session?.id ?? null;
     if (!startedIn) return;
+    // Screening answers are stored with the tailored CV, so a kit whose CV
+    // failed has nowhere to keep them. Say so before a paid turn is claimed.
+    // Only for a kit that exists without a CV: an application whose CV has not
+    // hydrated yet has no kit documents either, and still goes through.
+    if (session && sessionHasKit(session) && !hasTailoredCv(session)) {
+      setIsScreeningMode(false);
+      addChatMessage({
+        role: 'assistant',
+        content: `Screening answers need the tailored CV, and this kit doesn't have one. A new kit for this job (${CREDIT_COSTS.FULL_APPLICATION} credits) gives you one. Nothing was charged.`,
+      });
+      return;
+    }
     // A local read of a spent cap saves a round trip. It is not the cap: the
     // chat route holds that, on a column only it writes.
     if ((session?.screeningUsageCount ?? 0) >= SCREENING_TURN_CAP) {
@@ -1004,7 +1018,7 @@ export function ChatPanel({
    * down the normal chat path.
    */
   const routeKitMessage = async (text: string): Promise<boolean> => {
-    if (!currentSession?.generatedCV) return false;
+    if (!sessionHasKit(currentSession)) return false;
     const openTab = useUIStore.getState().activeTab;
     const openDocument = openTab === 'cover-letter' ? 'cover-letter' : openTab === 'email' ? 'email' : openTab === 'cv' ? 'cv' : null;
     const target = detectRegenTarget(text, openDocument);
@@ -1027,7 +1041,10 @@ export function ChatPanel({
       startRegenPrompt(target, parsed.ok ? parsed.instruction : null);
       return true;
     }
-    if (isScreeningMode || looksLikeScreeningQuestion(text)) {
+    // A message that only looks like a screening question goes to the normal
+    // chat when there is no tailored CV to answer from; explicit screening
+    // mode still reaches runScreening, which says why it can't run.
+    if (isScreeningMode || (looksLikeScreeningQuestion(text) && hasTailoredCv(currentSession))) {
       await runScreening(text);
       return true;
     }
@@ -1054,7 +1071,7 @@ export function ChatPanel({
       await runScreening(text);
       return;
     }
-    if (spine && currentSession?.generatedCV && (isScreeningMode || !isObviousJobAd(text))) {
+    if (spine && sessionHasKit(currentSession) && (isScreeningMode || !isObviousJobAd(text))) {
       const draft = text;
       setInputValue('');
       addChatMessage({ role: 'user', content: draft });
@@ -1398,6 +1415,8 @@ export function ChatPanel({
             role: 'assistant',
             content: 'I can\'t write that follow-up without the job ad and your CV. Open the application and check both are there.',
           });
+        } else if (result.code === 'REQUEST_IN_PROGRESS') {
+          addChatMessage({ role: 'assistant', content: 'That follow-up is already being written. It lands in the Emails tab.' });
         } else {
           addChatMessage({
             role: 'assistant',
@@ -1695,7 +1714,7 @@ export function ChatPanel({
               company: s.company,
               jobTitle: s.jobTitle,
               updatedAt: s.updatedAt,
-              hasGeneratedCV: !!s.generatedCV,
+              hasGeneratedCV: sessionHasKit(s),
               hasFitAnalysis: !!s.pendingFitAnalysis,
             }))}
             currentSessionId={currentSession?.id}
@@ -2039,7 +2058,7 @@ export function ChatPanel({
           
           {/* Inline follow-up: Fit analysis actions */}
           {!isAgentWorking &&
-            !currentSession?.generatedCV &&
+            !sessionHasKit(currentSession) &&
             !pendingDecisionJd &&
             !!(fitAnalysisContextId || hasFreshPendingFitAnalysis) && (
             <DecisionChips
@@ -2127,7 +2146,7 @@ export function ChatPanel({
                           const jd = pendingDecisionJd;
                           setPendingDecisionJd(null);
                           void (async () => {
-                            if (currentSession?.generatedCV && await routeKitMessage(jd)) return;
+                            if (sessionHasKit(currentSession) && await routeKitMessage(jd)) return;
                             // Same text, same model: without this it would be
                             // read as an ad again and the card would return.
                             await handleGeneralChat(jd, { suppressProposal: true });
@@ -2294,7 +2313,7 @@ export function ChatPanel({
             !runningRegen &&
             !runningCvRewrite &&
             !runningScreening &&
-            !!currentSession?.generatedCV &&
+            sessionHasKit(currentSession) &&
             !(fitAnalysisContextId || hasFreshPendingFitAnalysis) && (
             <DecisionChips
               chips={[
@@ -2305,7 +2324,9 @@ export function ChatPanel({
                   icon: <Download className="h-4 w-4" />,
                   onSelect: () => requestKitDownload(),
                 },
-                ...((currentSession?.screeningUsageCount ?? 0) < 2
+                // Screening answers persist inside generated_cv, so they
+                // need the tailored CV. A kit whose CV failed offers download only.
+                ...(hasTailoredCv(currentSession) && (currentSession?.screeningUsageCount ?? 0) < 2
                   ? [{
                       id: 'screening',
                       label: 'Answer screening questions',
@@ -2351,9 +2372,11 @@ export function ChatPanel({
             isWorking={isAgentWorking || isTyping}
             placeholder={
               spine
-                ? (currentSession?.generatedCV
-                    ? 'Ask for a change, or paste a screening question'
-                    : 'Paste a job ad or ask anything')
+                ? (hasTailoredCv(currentSession)
+                    ? 'Ask for a change or a screening answer'
+                    : sessionHasKit(currentSession)
+                      ? 'Ask for a change to your kit'
+                      : 'Paste a job ad or ask anything')
                 : currentCV
                   ? 'Paste a job description or ask me anything...'
                   : 'Upload your CV first to get started...'

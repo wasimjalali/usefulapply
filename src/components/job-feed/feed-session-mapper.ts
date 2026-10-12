@@ -9,6 +9,7 @@
 
 import type { JobFeedApplyResponse } from '@/lib/job-feed/types';
 import type { ApplicationSession as StoreApplicationSession } from '@/store/useSessionStore';
+import { readKitDocumentErrors } from '@/lib/open-session';
 
 export function toSessionGenerationStatus(
   status: JobFeedApplyResponse['generation']['status']
@@ -71,6 +72,9 @@ export function toStoreApplicationSession(
     email: session.email as unknown as StoreApplicationSession['email'],
     followUpEmail: session.follow_up_email as unknown as StoreApplicationSession['followUpEmail'],
     fitAssessment: session.fit_assessment as unknown as StoreApplicationSession['fitAssessment'],
+    kitDocumentErrors: readKitDocumentErrors(
+      (session.generated_artifacts as Record<string, unknown> | null)?.documentErrors,
+    ),
     generationStatus: toSessionGenerationStatus(generation.status),
     generationError: generation.error_message ?? session.generation_error,
     generationStartedAt: session.generation_started_at,
@@ -110,5 +114,6 @@ export function mergeFeedSession(
     chatMessages: existing.chatMessages.length > 0 ? existing.chatMessages : mapped.chatMessages,
     pendingFitAnalysis: existing.pendingFitAnalysis ?? mapped.pendingFitAnalysis,
     optimizedPdfRef: mapped.optimizedPdfRef ?? existing.optimizedPdfRef,
+    kitDocumentErrors: mapped.kitDocumentErrors ?? existing.kitDocumentErrors ?? null,
   };
 }

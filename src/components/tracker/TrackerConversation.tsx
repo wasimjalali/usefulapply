@@ -102,6 +102,10 @@ export function TrackerConversation() {
         say('Your session expired. Sign in again to continue.');
         return;
       }
+      if (result.code === 'REQUEST_IN_PROGRESS') {
+        say('That follow-up is already being written. It lands in the Emails tab.');
+        return;
+      }
       say('That did not go through. Try again in a moment.');
     },
     [rows, say, setActiveTab, setThinking],

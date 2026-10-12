@@ -12,6 +12,7 @@ import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { generateRequestId } from '@/lib/utils/requestId';
 import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
 import { MAX_INSTRUCTION_CHARS, flattenInstruction } from '@/lib/agents/chat-tools/untrusted';
+import type { KitDocument } from '@/lib/agents/types';
 
 export type RegenTarget = 'cover-letter' | 'email' | 'follow-up';
 
@@ -142,6 +143,56 @@ function buildContext() {
   };
 }
 
+/**
+ * One regenerate per document per application at a time, across every caller
+ * (a tab's Try again, the chat's Rewrite it). Module level on purpose: a
+ * component's own state is lost when a tab switch remounts it, and a second
+ * click there would start a second paid request with a fresh request id.
+ */
+const inFlightRegens = new Set<string>();
+const inFlightListeners = new Set<() => void>();
+
+function regenKey(sessionId: string, target: RegenTarget): string {
+  return `${sessionId}:${target}`;
+}
+
+function setRegenInFlight(key: string, running: boolean) {
+  if (running) inFlightRegens.add(key);
+  else inFlightRegens.delete(key);
+  for (const listener of inFlightListeners) listener();
+}
+
+export function subscribeRegenInFlight(listener: () => void): () => void {
+  inFlightListeners.add(listener);
+  return () => { inFlightListeners.delete(listener); };
+}
+
+export function isRegenInFlight(sessionId: string | null | undefined, target: RegenTarget): boolean {
+  return Boolean(sessionId) && inFlightRegens.has(regenKey(sessionId as string, target));
+}
+
+/** The kit document a regenerate target writes. */
+const REGEN_KIT_DOCUMENT: Record<RegenTarget, KitDocument> = {
+  'cover-letter': 'coverLetter',
+  email: 'applicationEmail',
+  'follow-up': 'followUpEmail',
+};
+
+/**
+ * A partial kit marks its failed documents. Once one is written, its mark
+ * goes, so the tab never shows an error next to a document that exists.
+ */
+function clearKitDocumentError(sessionId: string, document: KitDocument): Partial<ApplicationSession> {
+  const state = useSessionStore.getState();
+  const session = state.sessions.find((candidate) => candidate.id === sessionId)
+    ?? (state.currentSession?.id === sessionId ? state.currentSession : undefined);
+  const errors = session?.kitDocumentErrors;
+  if (!errors?.[document]) return {};
+  const rest = { ...errors };
+  delete rest[document];
+  return { kitDocumentErrors: Object.keys(rest).length > 0 ? rest : null };
+}
+
 function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
@@ -174,6 +225,24 @@ export async function regenerateDocument(
   // means: a message of only punctuation must not travel as an instruction.
   const cleanInstruction = instruction ? flattenInstruction(instruction).slice(0, MAX_INSTRUCTION_CHARS) : '';
 
+  const key = regenKey(sessionId, target);
+  if (inFlightRegens.has(key)) return { ok: false, code: 'REQUEST_IN_PROGRESS' };
+  setRegenInFlight(key, true);
+  try {
+    return await requestRegeneration(target, meta, context, sessionId, requestId, cleanInstruction);
+  } finally {
+    setRegenInFlight(key, false);
+  }
+}
+
+async function requestRegeneration(
+  target: RegenTarget,
+  meta: (typeof REGEN_META)[RegenTarget],
+  context: NonNullable<ReturnType<typeof buildContext>>,
+  sessionId: string,
+  requestId: string,
+  cleanInstruction: string,
+): Promise<RegenResult> {
   try {
     const response = await fetch('/api/regenerate', {
       method: 'POST',
@@ -210,7 +279,10 @@ export async function regenerateDocument(
     // Land the result on the application that asked for it, even if the user
     // moved to another one while it ran.
     const update = (updates: Partial<ApplicationSession>) =>
-      useSessionStore.getState().updateSessionById(sessionId, updates);
+      useSessionStore.getState().updateSessionById(sessionId, {
+        ...updates,
+        ...clearKitDocumentError(sessionId, REGEN_KIT_DOCUMENT[target]),
+      });
     let wordCount = 0;
 
     if (target === 'cover-letter') {
@@ -269,6 +341,19 @@ export async function regenerateFollowUpForSession(
   sessionId: string,
   requestId: string = generateRequestId(),
 ): Promise<RegenResult> {
+  // The tracker route is a second paid path to the same follow-up, so it
+  // shares the follow-up's in-flight guard with the tab retry and the chat.
+  const key = regenKey(sessionId, 'follow-up');
+  if (inFlightRegens.has(key)) return { ok: false, code: 'REQUEST_IN_PROGRESS' };
+  setRegenInFlight(key, true);
+  try {
+    return await requestTrackerFollowUp(sessionId, requestId);
+  } finally {
+    setRegenInFlight(key, false);
+  }
+}
+
+async function requestTrackerFollowUp(sessionId: string, requestId: string): Promise<RegenResult> {
   try {
     const response = await fetch('/api/tracker/follow-up', {
       method: 'POST',
@@ -304,6 +389,7 @@ export async function regenerateFollowUpForSession(
         body: data.followUpEmail.body,
         recommendedDelay: data.followUpEmail.recommendedDelay || 5,
       },
+      ...clearKitDocumentError(sessionId, 'followUpEmail'),
     });
     triggerCreditUpdate();
     return { ok: true, wordCount: countWords(data.followUpEmail.body), sessionId };

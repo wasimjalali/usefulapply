@@ -9,7 +9,7 @@ import { detectLanguage, isSupportedLanguage, type SupportedLanguage } from '@/l
 import { getPostHogServer } from '@/lib/posthog-server';
 import { ACTIVE_MODEL_ID, ACTIVE_MODEL_PRICING } from '@/lib/models';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-import { getSession, updateSession, type ApplicationSession } from '@/db/repos/sessions';
+import { clearKitDocumentError, getSession, updateSession, type ApplicationSession } from '@/db/repos/sessions';
 import { getDocumentByType, type Document } from '@/db/repos/documents';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
@@ -246,6 +246,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to save the follow-up.' }, { status: 500 });
     }
     persisted = true;
+    // A partial kit may have marked this follow-up as failed. Cosmetic once the
+    // letter exists (tabs only show the mark while the document is missing),
+    // so a miss here is logged and never turns a delivered follow-up into a 500.
+    try {
+      await clearKitDocumentError(user.id, session.id, 'followUpEmail');
+    } catch (clearError) {
+      console.error('[Tracker follow-up] Could not clear the follow-up failure mark:', clearError);
+    }
 
     // Past this point the letter is saved and durable, so the only truthful
     // response is success. A capture that fails must not turn a delivered

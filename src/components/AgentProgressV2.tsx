@@ -36,7 +36,8 @@ const STEP_CONFIG: Record<string, {
   cv_generation: { icon: FileText, label: 'Optimizing CV', runningSubtitle: 'Tailoring your experience and skills to the role...' },
   cover_letter: { icon: Pencil, label: 'Composing Cover Letter', runningSubtitle: 'Writing a personalized cover letter for this position...' },
   fit_assessment: { icon: Zap, label: 'Assessing Job Fit', runningSubtitle: 'Scoring your fit and identifying strengths and gaps...' },
-  email: { icon: Award, label: 'Generating Emails', runningSubtitle: 'Drafting your application and follow-up emails...' },
+  email: { icon: Award, label: 'Writing Application Email', runningSubtitle: 'Drafting your application email...' },
+  follow_up: { icon: Award, label: 'Writing Follow-Up Email', runningSubtitle: 'Drafting the follow-up you send a few days later...' },
   // Legacy step IDs
   context: { icon: Brain, label: 'Analyzing Documents', runningSubtitle: 'Reading and understanding your documents...' },
   writing: { icon: Pencil, label: 'Generating Documents', runningSubtitle: 'Generating your application materials...' },
@@ -87,7 +88,7 @@ export function AgentProgressV2({
                   : step.status === 'running'
                     ? 'bg-white border border-cream-300 shadow-sm'
                     : step.status === 'error'
-                      ? 'bg-red-50 border border-red-200'
+                      ? 'bg-cream-50 border border-cream-200'
                       : 'bg-cream-50/60 border border-cream-200/60'
               }`}
             >
@@ -105,7 +106,7 @@ export function AgentProgressV2({
                   ) : step.status === 'completed' ? (
                     <CheckCircle2 className="w-3.5 h-3.5 text-gold-600" />
                   ) : step.status === 'error' ? (
-                    <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+                    <AlertCircle className="w-3.5 h-3.5 text-warm-gray" />
                   ) : (
                     <StepIcon className="w-3.5 h-3.5 text-warm-gray/60" />
                   )}
@@ -126,6 +127,9 @@ export function AgentProgressV2({
                 )}
                 {step.status === 'running' && (
                   <span className="text-[11px] text-gold-500 font-medium">Active</span>
+                )}
+                {step.status === 'error' && (
+                  <span className="text-[11px] text-warm-gray font-semibold">Couldn&apos;t finish</span>
                 )}
               </div>
 

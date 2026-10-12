@@ -20,7 +20,7 @@ import { randomUUID } from 'crypto';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import { MAX_INSTRUCTION_CHARS, flattenInstruction } from '@/lib/agents/chat-tools/untrusted';
-import { getSession, updateSession } from '@/db/repos/sessions';
+import { clearKitDocumentError, getSession, updateSession } from '@/db/repos/sessions';
 import { getDocumentByType, type Document } from '@/db/repos/documents';
 
 /**
@@ -314,6 +314,7 @@ export async function POST(request: NextRequest) {
       };
       const persist = await updateSession(user.id, session.id, { cover_letter: persistedCoverLetter });
       if (persist.error) throw persist.error;
+      await clearDocumentMark(user.id, session.id, 'coverLetter');
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({
         coverLetter,
@@ -334,6 +335,7 @@ export async function POST(request: NextRequest) {
         },
       });
       if (persist.error) throw persist.error;
+      await clearDocumentMark(user.id, session.id, 'applicationEmail');
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({
         email,
@@ -360,6 +362,7 @@ export async function POST(request: NextRequest) {
         },
       });
       if (persist.error) throw persist.error;
+      await clearDocumentMark(user.id, session.id, 'followUpEmail');
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({
         followUpEmail,
@@ -475,6 +478,23 @@ export async function POST(request: NextRequest) {
         : { error: 'Failed to regenerate content' },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * The failure mark is cosmetic once the document exists (tabs only show it
+ * while the document is missing), so a miss is logged and never turns a saved
+ * document into a 500 and a refund.
+ */
+async function clearDocumentMark(
+  userId: string,
+  sessionId: string,
+  document: 'coverLetter' | 'applicationEmail' | 'followUpEmail',
+): Promise<void> {
+  try {
+    await clearKitDocumentError(userId, sessionId, document);
+  } catch (error) {
+    console.error('[Regenerate API] Could not clear the failure mark:', document, error);
   }
 }
 

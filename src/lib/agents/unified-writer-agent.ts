@@ -19,7 +19,15 @@
  * 7. Generate application email
  */
 
-import type { MasterContext, AgentEventHandler, AgentResult, TokenUsage } from './types';
+import {
+  KIT_DOCUMENTS,
+  type MasterContext,
+  type AgentEventHandler,
+  type AgentResult,
+  type KitDocument,
+  type KitDocumentErrors,
+  type TokenUsage,
+} from './types';
 import { callModel, type ModelCallOptions, type ModelResponse } from '@/lib/models';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import { loadApplicantDocuments } from '@/lib/storage/applicantStore';
@@ -62,6 +70,11 @@ export { COVER_LETTER_BLACKLIST };
 export interface OrchestrationResult {
   context: MasterContext;
   totalLatencyMs: number;
+  /**
+   * Kit runs only. The documents that failed; empty when the kit is whole.
+   * A run returns success while at least one document was written.
+   */
+  documentErrors?: KitDocumentErrors;
 }
 
 // =====================================================
@@ -108,10 +121,6 @@ export interface UnifiedAgentInput {
 // SECTION REWRITE: RESOLUTION AND VERIFICATION
 // =====================================================
 
-const SECTION_TEXT_MAX = 1600;   // one summary or project description
-const SECTION_ITEM_MAX = 400;    // one bullet or custom-section item
-const SECTION_MAX_BULLETS = 8;
-const SECTION_MAX_ITEMS = 12;
 const SECTION_MAX_OMITTED = 5;
 const SECTION_OMITTED_MAX_CHARS = 120;
 
@@ -820,14 +829,10 @@ export function normalizeOptimizedCvPayload(value: unknown): NormalizedOptimized
   return cv as unknown as NormalizedOptimizedCvPayload;
 }
 
-function countWords(value: string): number {
-  return value.trim().split(/\s+/u).filter(Boolean).length;
-}
-
 function validateFitAssessment(value: string): string {
   const assessment = sanitizeDashes(fixTypos(value)).trim();
   if (!assessment) throw new Error('Fit assessment was empty');
-  if (countWords(assessment) > 200) throw new Error('Fit assessment exceeded 200 words');
+  // Length is a prompt standard (under 200 words), never a reason to fail.
   for (const heading of ['**Strengths:**', '**Gaps:**', '**Recommendation:**']) {
     if (!assessment.includes(heading)) throw new Error(`Fit assessment was missing ${heading}`);
   }
@@ -858,9 +863,9 @@ function findBoundaryBlacklistedPhrases(value: string): string[] {
 function validateCoverLetter(value: string): string {
   const coverLetter = sanitizeDashes(fixTypos(value)).trim();
   if (!coverLetter) throw new Error('Cover letter was empty');
-  const issues: string[] = [];
-  if (countWords(coverLetter) > 420) issues.push('full letter exceeded 420 words');
-  issues.push(...findBoundaryBlacklistedPhrases(coverLetter).map((phrase) => `blacklisted phrase "${phrase}"`));
+  // Length is a prompt standard, never a reason to fail or retry. The letter
+  // renders at whatever length it came back.
+  const issues = findBoundaryBlacklistedPhrases(coverLetter).map((phrase) => `blacklisted phrase "${phrase}"`);
   if (issues.length > 0) throw new CoverLetterValidationError(issues);
   return coverLetter;
 }
@@ -1111,178 +1116,6 @@ export function isSectionAnswerShape(parsed: Record<string, unknown>): boolean {
   return Array.isArray(content) && content.some(isRealString);
 }
 
-// HOW THE SENTENCE COUNTER DECIDES (read this before changing it):
-// an overcount fails the whole kit, because the application email is rejected
-// after its one retry; an undercount only lets a slightly long email through.
-// So when a period is ambiguous, it is NOT a sentence boundary.
-
-// Abbreviations whose period never ends a sentence. Case-sensitive on purpose:
-// "CA." or "HR." at the end of a sentence still ends it. Capitalised forms are
-// listed where they start a name or a sentence ("Dr. Weber", "Ca. 60 Kunden").
-// "etc." and "usw." are left out: mid-sentence they are followed by a lowercase
-// word (covered below), and at the end of a sentence they end it. Lowercase
-// "ms", "mr" and "mrs" are left out because "200 ms." is a unit. Listed
-// abbreviations are masked before anything, digits included ("mind. 5 Jahre").
-const SENTENCE_ABBREVIATIONS = new RegExp(
-  String.raw`(?<![\p{L}\p{N}])(?:`
-    + 'ca|bzw|bspw|bzgl|evtl|zzgl|inkl|insb|ggf|sog|vgl|rd|ehem|nr|dr|hr|fr|prof|st|co|vs|approx|incl|esp'
-    + '|Ca|Bzw|Bspw|Bzgl|Evtl|Zzgl|Inkl|Insb|Ggf|Vgl|Abt|Ehem|Dipl|Mag|Nr|No|Dr|Hr|Fr|Fa|Prof|St|Co'
-    + '|Mr|Mrs|Ms|Sr|Jr|Assoc|Asst|Mgr|Eng|Dept|Univ|Inst|Sgt|Mt|Approx|Incl|Esp'
-    + '|Jan|Feb|Mar|Mär|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Okt|Nov|Dec|Dez'
-    + String.raw`)\.`,
-  'gu',
-);
-// German compound titles, one token each ("Dipl.-Ing.", "Dr.-Ing.", "Dipl.-Kfm.").
-const SENTENCE_COMPOUND_TITLES = /(?<![\p{L}\p{N}])(?:Dipl|Dr|Prof)\.-\p{Lu}\p{Ll}{1,5}\./gu;
-// "Mio.", "Mrd." and "Tsd." after a number ("3 Mio. Nutzer", "4,2 Mio. EUR") or before a currency.
-const SENTENCE_AMOUNT_AFTER_NUMBER = /(?<=\p{N}\s{0,3})(?:Mio|Mrd|Tsd)\./gu;
-// "mind.", "max." and "min." only before a number ("mind. 5 Jahre", "max. 20 Kunden"):
-// "in mind." and "Max." are ordinary English sentence ends.
-const SENTENCE_LIMIT_ABBREVIATIONS = /(?<![\p{L}\p{N}])(?:mind|max|min|Mind|Max|Min)\.(?=\s?\p{N})/gu;
-// German "s." as in "s. Anhang" (not after an apostrophe, so "it's." still ends a sentence).
-const SENTENCE_GERMAN_SIEHE = /(?<![\p{L}\p{N}'’])s\.(?=\s)/gu;
-const SENTENCE_AMOUNT_BEFORE_CURRENCY = new RegExp(
-  String.raw`(?<![\p{L}\p{N}])(?:Mio|Mrd|Tsd)\.(?=\s{0,3}(?:(?:EUR|Euro|USD|CHF|GBP|Dollar|Franken)(?!\p{L})|[€$£]))`,
-  'gu',
-);
-// Two- and three-part abbreviations, with or without the inner space
-// ("z. B.", "e.g.", "z. T.", "v. a.", "u. U.", "i. A.", "i. d. R.", "s. o.").
-const SENTENCE_TWO_PART_ABBREVIATIONS = new RegExp(
-  String.raw`(?<![\p{L}\p{N}])(?:i\.\s?d\.\s?R|I\.\s?d\.\s?R|z\.\s?B|Z\.\s?B|z\.\s?T|Z\.\s?T|e\.\s?g|E\.\s?g|i\.\s?e|I\.\s?e|d\.\s?h|D\.\s?h|u\.\s?a|U\.\s?a|u\.\s?U|U\.\s?U|v\.\s?a|V\.\s?a|i\.\s?A|I\.\s?A|s\.\s?o|s\.\s?u)\.`,
-  'gu',
-);
-// Degrees and similar dotted tokens ("M.Sc.", "Ph.D.", "U.S."), plus the spaced
-// degree spellings ("B. Sc.", "M. A."). A generic spaced form would also swallow
-// "Co. KG." at the end of a sentence, so only degrees get the space.
-const SENTENCE_DOTTED_TOKENS = /(?<![\p{L}\p{N}])(?:[A-Z][a-z]?\.[A-Za-z]{1,3}|[BM]\.\s(?:Sc|A|Eng|Ed|Phil))\./gu;
-// A single capital initial before a capitalised word ("J. Hartmann"). This also
-// joins "Series A. Then" into one sentence, an undercount the rule above accepts.
-const SENTENCE_INITIALS = /(?<![\p{L}\p{N}])\p{Lu}\.(?=\s+\p{Lu})/gu;
-// German ordinals ("ab dem 1. Oktober", "das 2. Staatsexamen", "im 3. Semester"):
-// a 1 or 2 digit number after a German article or preposition, at the start of a
-// clause, or before a German month name. Four-digit years ("in 2019. 2023 was")
-// and English counts ("a team of 5. I shipped") still end a sentence.
-const GERMAN_ORDINAL_CONTEXT_WORDS = 'am|ab|bis|seit|vom|zum|zur|im|um|nach|vor|als|dem|den|der|die|das|des|ein|eine|einem|einen|einer|mein|meine|meinem|meinen|meiner|ihr|ihre|ihrem|ihren|unser|unsere|unserem|unseren|jedem|jeden|jeder|jede|jedes|beim|ins|fürs|diese|dieser|diesem|diesen|Am|Ab|Bis|Seit|Vom|Zum|Zur|Im|Nach|Vor|Als|Dem|Den|Der|Die|Das|Ein|Eine|Mein|Meine|Beim|Ins|Fürs|Jede|Jedes|Jeden|Jeder|Diese|Dieser|Diesem|Diesen';
-const SENTENCE_GERMAN_ORDINALS = new RegExp(
-  String.raw`(?<=(?:(?:^|[\s(])(?:${GERMAN_ORDINAL_CONTEXT_WORDS})\s{1,3}|(?:^|[,;:(])\s{0,3})\p{N}{1,2})\.(?=\s\p{Lu})`,
-  'gu',
-);
-const SENTENCE_ORDINAL_BEFORE_MONTH = /(?<=(?:^|[^\p{N}.,])\p{N}{1,2})\.(?=\s+(?:Januar|Jänner|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)(?!\p{L}))/gu;
-const NOT_A_BOUNDARY = '\u0001';
-
-/** The text with every period that is not a sentence boundary replaced. */
-function maskNonBoundaryPeriods(value: string): string {
-  const maskAll = (match: string) => match.replace(/\./g, NOT_A_BOUNDARY);
-  return value
-    .replace(SENTENCE_COMPOUND_TITLES, maskAll)
-    .replace(SENTENCE_TWO_PART_ABBREVIATIONS, maskAll)
-    .replace(SENTENCE_DOTTED_TOKENS, maskAll)
-    .replace(SENTENCE_AMOUNT_AFTER_NUMBER, maskAll)
-    .replace(SENTENCE_AMOUNT_BEFORE_CURRENCY, maskAll)
-    .replace(SENTENCE_ABBREVIATIONS, maskAll)
-    .replace(SENTENCE_GERMAN_SIEHE, maskAll)
-    .replace(SENTENCE_LIMIT_ABBREVIATIONS, maskAll)
-    .replace(SENTENCE_GERMAN_ORDINALS, NOT_A_BOUNDARY)
-    .replace(SENTENCE_ORDINAL_BEFORE_MONTH, NOT_A_BOUNDARY)
-    .replace(SENTENCE_INITIALS, maskAll)
-    .replace(/\.(?=\s+\p{Ll})/gu, NOT_A_BOUNDARY);
-}
-
-/**
- * Counts sentences for the application email's four-sentence limit, following
- * the rule above: a period is a boundary only when nothing marks it as an
- * abbreviation, amount, ordinal, degree or initial and the next word is not
- * lowercase. Decimal and thousand separators ("4.2", "1.000") never split,
- * since a boundary needs whitespace after it.
- */
-export function countSentences(value: string): number {
-  // Whitespace runs collapse first: the counter only needs word boundaries, and
-  // long runs would otherwise make the lookarounds slow.
-  return maskNonBoundaryPeriods(value.replace(/\s+/gu, ' '))
-    .split(/[.!?]+(?=\s|$)/u)
-    .map((part) => part.trim())
-    .filter(Boolean).length;
-}
-
-// Closing phrases that start the sign-off block, lowercase.
-const EMAIL_CLOSINGS = [
-  'kind regards', 'with kind regards', 'best regards', 'with best regards', 'warm regards', 'warmest regards',
-  'regards', 'best wishes', 'all the best', 'best', 'sincerely', 'yours sincerely', 'yours faithfully',
-  'yours truly', 'yours', 'many thanks', 'thank you', 'thanks', 'cheers', 'talk soon', 'speak soon',
-  'mit freundlichen grüßen', 'mit freundlichen grüssen', 'mit freundlichem gruß', 'mit freundlichem gruss',
-  'mit besten grüßen', 'mit besten grüssen', 'freundliche grüße', 'freundliche grüsse', 'beste grüße',
-  'beste grüsse', 'viele grüße', 'viele grüsse', 'herzliche grüße', 'herzliche grüsse', 'liebe grüße',
-  'liebe grüsse',
-  'cordialement', 'bien cordialement', 'bien à vous', 'salutations distinguées',
-  'saludos', 'saludos cordiales', 'un saludo', 'atentamente',
-  'atenciosamente', 'cumprimentos', 'com os melhores cumprimentos',
-  'cordiali saluti', 'distinti saluti', 'saluti',
-  'met vriendelijke groet', 'met vriendelijke groeten', 'vriendelijke groet', 'hartelijke groet', 'groeten',
-];
-// A name of up to five capitalised words or initials, with lowercase name
-// particles and an optional short note in parentheses ("Ada Lovelace",
-// "Dr. Jonas Hartmann, M.Sc.", "Ludwig van Beethoven", "Ada Lovelace (she/her)").
-const NAME_PARTICLE = '(?:van|von|de|der|den|du|da|di|la|le|zu|ten|ter)';
-const SIGNATURE_NAME = String.raw`\p{Lu}[\p{L}'’.\-]*(?:[\s,]+(?:${NAME_PARTICLE}\s+){0,2}\p{Lu}[\p{L}'’.\-]*){0,4}(?:\s*\([^()]{1,30}\))?`;
-const CLOSING_THEN_PUNCTUATION = new RegExp(String.raw`^[,.!]\s*(?:${SIGNATURE_NAME})?$`, 'u');
-const CLOSING_THEN_NAME = new RegExp(String.raw`^${SIGNATURE_NAME}$`, 'u');
-
-/**
- * A closing line: a known phrase followed by nothing, by punctuation and an
- * optional name, or (for multi-word phrases) directly by a name. Anything else
- * after the phrase ("Thank you Siemens for the chance", "Viele Grüße aus
- * Berlin", "Best, I can start in May") makes it a body line.
- */
-function isEmailClosingLine(line: string): boolean {
-  // A sign-off line is short; the cap also keeps the name pattern cheap.
-  if (line.length > 100) return false;
-  const lower = line.toLocaleLowerCase();
-  return EMAIL_CLOSINGS.some((phrase) => {
-    if (!lower.startsWith(phrase)) return false;
-    const rest = line.slice(phrase.length).trimStart();
-    if (rest !== '' && /^\p{L}/u.test(line.slice(phrase.length))) return false;
-    return rest === ''
-      || CLOSING_THEN_PUNCTUATION.test(rest)
-      || (phrase.includes(' ') && CLOSING_THEN_NAME.test(rest));
-  });
-}
-
-/** A postscript line after the signature ("P.S.", "P. S.", "PS:", "PPS"). */
-function isPostscriptLine(line: string): boolean {
-  return /^(?:p\.\s?p\.\s?s\.|p\.\s?s\.|pps\b|ps\s?:)/iu.test(line);
-}
-
-/** A short greeting line ending in "," or "!" with no other sentence punctuation. */
-function isGreetingLine(line: string): boolean {
-  return line.length <= 80 && /[,!]$/u.test(line) && !/[.?!]/u.test(line.slice(0, -1));
-}
-
-/**
- * The email body without its greeting and sign-off, for the sentence and word
- * limits. The greeting is a short first line ending in "," or "!" (or, in
- * emails of four or more lines, the first line). The closing is a closing line
- * among the last six lines. It and every line after it are signature (name,
- * title, "Tel. +49 ...", "Hauptstr. 5", "John Smith Jr."), except a postscript:
- * from a line starting with "P.S.", "PS:" or "PPS" on, the lines count. Without
- * a recognised closing, the last two lines of a four-line or longer email are
- * treated as closing and name. Never drops the body itself.
- */
-export function emailContentText(value: string): string {
-  const lines = value.split('\n').map((line) => line.trim()).filter(Boolean);
-  const start = lines.length > 1 && (isGreetingLine(lines[0]) || lines.length >= 4) ? 1 : 0;
-  for (let i = lines.length - 1; i >= Math.max(start, lines.length - 6); i--) {
-    if (!isEmailClosingLine(lines[i])) continue;
-    const postscript = lines.findIndex((line, index) => index > i && isPostscriptLine(line));
-    return [...lines.slice(start, i), ...(postscript === -1 ? [] : lines.slice(postscript))].join(' ');
-  }
-  const end = lines.length >= 4 ? lines.length - 2 : lines.length;
-  return lines.slice(start, Math.max(start, end)).join(' ');
-}
-
-function contentWordCount(value: string): number {
-  return countWords(emailContentText(value));
-}
-
 const GENERIC_EMAIL_GREETINGS: Record<SupportedLanguage, string> = {
   en: 'Dear Hiring Team,',
   de: 'Sehr geehrte Damen und Herren,',
@@ -1315,8 +1148,10 @@ function validateApplicationEmail(
   const subject = sanitizeDashes(fixTypos(parsed.subject)).trim();
   let body = cleanEmailPlaceholders(parsed.body, language);
   body = sanitizeDashes(fixTypos(body)).trim();
-  if (!subject || subject.length > 60) throw new EmailValidationError('Application email subject was empty or exceeded 60 characters');
-  if (!body || countSentences(emailContentText(body)) > 4) throw new EmailValidationError('Application email body was empty or exceeded four sentences');
+  // Subject and body length are prompt standards (60 characters, four
+  // sentences), never a reason to fail or retry. Only emptiness fails here.
+  if (!subject) throw new EmailValidationError('Application email subject was empty');
+  if (!body) throw new EmailValidationError('Application email body was empty');
   if (/\[[^\]]+\]/u.test(body)) throw new EmailValidationError('Application email contained a placeholder');
   if (applicantName?.trim() && !normalizeComparisonText(body).includes(normalizeComparisonText(applicantName))) {
     throw new EmailValidationError('Application email signature was missing the applicant name');
@@ -1336,8 +1171,10 @@ function validateFollowUpEmail(
   const subject = sanitizeDashes(fixTypos(parsed.subject)).trim();
   let body = cleanEmailPlaceholders(parsed.body, language);
   body = sanitizeDashes(fixTypos(body)).trim();
-  if (!subject || subject.length > 60) throw new EmailValidationError('Follow-up email subject was empty or exceeded 60 characters');
-  if (!body || contentWordCount(body) > 80) throw new EmailValidationError('Follow-up email body was empty or exceeded 80 words');
+  // Subject and body length are prompt standards (60 characters, 80 words),
+  // never a reason to fail or retry. Only emptiness fails here.
+  if (!subject) throw new EmailValidationError('Follow-up email subject was empty');
+  if (!body) throw new EmailValidationError('Follow-up email body was empty');
   if (Number(parsed.recommendedDelay) !== recommendedDelay) throw new EmailValidationError('Follow-up email returned an invalid recommended delay');
   if (/\[[^\]]+\]/u.test(body)) throw new EmailValidationError('Follow-up email contained a placeholder');
   if (applicantName?.trim() && !normalizeComparisonText(body).includes(normalizeComparisonText(applicantName))) {
@@ -1418,7 +1255,7 @@ export async function generateApplicationEmailWithRetry(
       generationContext,
     },
     'Application email response',
-    'Keep the subject between 1 and 60 characters total. Shorten the job title portion, omit secondary titles and count every character, including spaces, the localized prefix and applicant name. Keep the body within four sentences, with the attachment reference and applicant signature.',
+    'Keep the standard: a subject of 60 characters or fewer and a body of at most four sentences, with the attachment reference and the applicant signature.',
     (parsed) => validateApplicationEmail(parsed, outputLang, context.applicant?.name),
     modelCall,
   );
@@ -1440,7 +1277,7 @@ export async function generateFollowUpEmailWithRetry(
       generationContext,
     },
     'Follow-up email response',
-    `Keep the subject between 1 and 60 characters total. Shorten the job title portion, omit secondary titles and count every character, including spaces, the localized prefix and applicant name. Keep the body within 80 words and recommendedDelay exactly ${recommendedDelay}. Keep the applicant signature.`,
+    `Keep the standard: a subject of 60 characters or fewer and a body of at most 80 words. Set recommendedDelay to exactly ${recommendedDelay} and keep the applicant signature.`,
     (parsed) => validateFollowUpEmail(parsed, outputLang, context.applicant?.name, recommendedDelay),
     modelCall,
   );
@@ -1457,7 +1294,7 @@ function cleanSectionText(value: string): string {
  * Throws rather than salvaging. optimizedCVData drives all six CV templates and
  * the PDF export, so a response that is not exactly the right shape (a whole
  * CVData object, a bare string where bullets belong, an empty array) fails the
- * request. Digging a section out of a malformed response would be guessing at
+ * request. Length is not shape: a long section renders. Digging a section out of a malformed response would be guessing at
  * intent with the user's CV.
  */
 function validateSectionContent(kind: CVSectionKind, value: unknown): string | string[] {
@@ -1465,17 +1302,18 @@ function validateSectionContent(kind: CVSectionKind, value: unknown): string | s
     if (!Array.isArray(value)) {
       throw new Error(`Section rewrite for ${kind} did not return a list`);
     }
-    const max = kind === 'experience_bullets' ? SECTION_MAX_BULLETS : SECTION_MAX_ITEMS;
-    if (value.length === 0 || value.length > max) {
-      throw new Error(`Section rewrite for ${kind} returned ${value.length} items`);
+    // Item count and item length are prompt standards, never a reason to
+    // fail: a long list renders. An empty list has nothing to render.
+    if (value.length === 0) {
+      throw new Error(`Section rewrite for ${kind} returned no items`);
     }
     return value.map((item) => {
       if (typeof item !== 'string') {
         throw new Error(`Section rewrite for ${kind} returned a non-string item`);
       }
       const clean = cleanSectionText(item);
-      if (!clean || clean.length > SECTION_ITEM_MAX) {
-        throw new Error(`Section rewrite for ${kind} returned an unusable item`);
+      if (!clean) {
+        throw new Error(`Section rewrite for ${kind} returned an empty item`);
       }
       return clean;
     });
@@ -1485,8 +1323,8 @@ function validateSectionContent(kind: CVSectionKind, value: unknown): string | s
     throw new Error(`Section rewrite for ${kind} did not return text`);
   }
   const clean = cleanSectionText(value);
-  if (!clean || clean.length > SECTION_TEXT_MAX) {
-    throw new Error(`Section rewrite for ${kind} returned unusable text`);
+  if (!clean) {
+    throw new Error(`Section rewrite for ${kind} returned empty text`);
   }
   return clean;
 }
@@ -1524,6 +1362,16 @@ function mergeOmitted(modelAuthored: string[], detected: string[]): string[] {
     merged.push(term);
   }
   return merged.slice(0, SECTION_MAX_OMITTED);
+}
+
+/** The context with every kit document removed, so a run can only return what it wrote. */
+function withoutKitDocuments(context: MasterContext): MasterContext {
+  delete context.optimizedCVData;
+  delete context.optimizedCV;
+  delete context.coverLetter;
+  delete context.applicationEmail;
+  delete context.followUpEmail;
+  return context;
 }
 
 // =====================================================
@@ -1624,65 +1472,26 @@ export const unifiedWriterAgent = {
 
       // ============================================
       // PHASE 2: DOCUMENT GENERATION
-      // One Bedrock Converse call at a time. Parallel CV + cover letter + email
-      // left optimize_cv and write_cover_letter stuck at `started` in production
-      // while write_email finished. Fit analysis on the same model succeeds.
-      // Follow-up email still depends on application email content.
+      // Each document succeeds or fails on its own (see generateKitDocuments).
       // ============================================
-
-      emit({ type: 'step_started', step: { id: 'cv_generation', description: 'Useful Apply: Optimizing CV for the position' } });
-      emit({ type: 'progress', percent: 45, message: 'Optimizing your CV...' });
-      const cvResult = await this.generateOptimizedCVData(context, input.generationContext);
-      const { cvData, legacyCV, tokens: cvTokens } = cvResult;
-      context.optimizedCVData = cvData;
-      context.optimizedCV = legacyCV;
-      emit({ type: 'step_completed', step: { id: 'cv_generation', description: 'CV optimized' }, tokens: cvTokens });
-
-      emit({ type: 'step_started', step: { id: 'cover_letter', description: 'Useful Apply: Composing tailored cover letter' } });
-      emit({ type: 'progress', percent: 65, message: 'Writing your cover letter...' });
-      const coverLetterResult = await this.generateCoverLetter(context, input.generationContext);
-      context.coverLetter = coverLetterResult.result;
-      emit({ type: 'step_completed', step: { id: 'cover_letter', description: 'Cover letter ready' }, tokens: coverLetterResult.tokens });
-
-      emit({ type: 'step_started', step: { id: 'email', description: 'Useful Apply: Generating application and follow-up emails' } });
-      emit({ type: 'progress', percent: 80, message: 'Writing your application email...' });
-      const emailResult = await this.generateApplicationEmail(context, input.generationContext);
-      context.applicationEmail = emailResult.result;
-
-      // Follow-up email depends on application email content
-      emit({ type: 'progress', percent: 85, message: 'Composing follow-up email...' });
-      const followUpResult = await this.generateFollowUpEmail(context, input.generationContext);
-      context.followUpEmail = followUpResult.result;
-      const emailStepTokens: TokenUsage = {
-        input: emailResult.tokens.input + followUpResult.tokens.input,
-        output: emailResult.tokens.output + followUpResult.tokens.output,
-      };
-      emit({ type: 'step_completed', step: { id: 'email', description: 'Email + follow-up ready' }, tokens: emailStepTokens });
-
-      emit({ type: 'progress', percent: 100, message: 'Complete!' });
-
-      return {
-        success: true,
-        data: {
-          context,
-          totalLatencyMs: Date.now() - startTime,
-        },
-        latencyMs: Date.now() - startTime,
-      };
+      const documentErrors = await this.generateKitDocuments(context, emit, input.generationContext, {
+        cv: 45,
+        coverLetter: 65,
+        applicationEmail: 80,
+        followUpEmail: 85,
+      });
+      return this.finishKit(context, documentErrors, startTime, emit);
 
     } catch (error) {
+      // Context building failed before any document was written. That fails
+      // the whole kit, as it always has.
       const errorMessage = error instanceof Error ? error.message : 'Agent execution failed';
-      const isEmailValidationError = error instanceof EmailValidationError;
-      const clientErrorMessage = isEmailValidationError
-        ? 'Email generation failed validation after correction.'
-        : errorMessage;
       console.error('[UsefulApply] Error:', errorMessage);
-      emit({ type: 'step_error', step: { id: 'karko_ai' }, error: clientErrorMessage });
-      
+      emit({ type: 'step_error', step: { id: 'karko_ai' }, error: errorMessage });
+
       return {
         success: false,
-        error: clientErrorMessage,
-        ...(isEmailValidationError ? { errorCode: 'EMAIL_VALIDATION_FAILED' as const } : {}),
+        error: errorMessage,
         latencyMs: Date.now() - startTime,
       };
     }
@@ -1804,70 +1613,151 @@ export const unifiedWriterAgent = {
    * Skips Phase 1 (CV parsing, JD parsing, skill matching) - reuses cached context
    */
   async runWithContext(
-    context: MasterContext,
+    cachedContext: MasterContext,
     emit: AgentEventHandler,
     generationContext?: LlmGenerationContext,
   ): Promise<AgentResult<OrchestrationResult>> {
     const startTime = Date.now();
+    // The cached context can be shared: the isolate cache hands the same
+    // object to every request for this contextId. Writing documents onto it
+    // would let one run read another's output for a document that failed in
+    // its own run, and that output would then ship, persist and be refunded.
+    // So each run works on its own copy, with no documents on it.
+    const context = withoutKitDocuments(structuredClone(cachedContext));
 
-    try {
-      // Phase 2 only. Sequential on purpose: see PHASE 2 note in runJobCopilot.
-      emit({ type: 'step_started', step: { id: 'cv_generation', description: 'Useful Apply: Optimizing CV for the position' } });
-      emit({ type: 'progress', percent: 15, message: 'Optimizing your CV...' });
-      const cvResult2 = await this.generateOptimizedCVData(context, generationContext);
-      const { cvData: cvData2, legacyCV: legacyCV2, tokens: cvTokens2 } = cvResult2;
-      context.optimizedCVData = cvData2;
-      context.optimizedCV = legacyCV2;
-      emit({ type: 'step_completed', step: { id: 'cv_generation', description: 'CV optimized' }, tokens: cvTokens2 });
+    // Phase 2 only. Each document succeeds or fails on its own (see
+    // generateKitDocuments); only a run where all four fail is a failure.
+    const documentErrors = await this.generateKitDocuments(context, emit, generationContext, {
+      cv: 15,
+      coverLetter: 55,
+      applicationEmail: 75,
+      followUpEmail: 85,
+    });
+    return this.finishKit(context, documentErrors, startTime, emit);
+  },
 
-      emit({ type: 'step_started', step: { id: 'cover_letter', description: 'Useful Apply: Composing tailored cover letter' } });
-      emit({ type: 'progress', percent: 55, message: 'Writing your cover letter...' });
-      const coverLetterResult2 = await this.generateCoverLetter(context, generationContext);
-      context.coverLetter = coverLetterResult2.result;
-      emit({ type: 'step_completed', step: { id: 'cover_letter', description: 'Cover letter ready' }, tokens: coverLetterResult2.tokens });
+  /**
+   * Write the four kit documents, one model call at a time, each in its own
+   * try/catch. A failed document emits `step_error` for its own step and the
+   * run moves on to the next one, so a cover letter that fails validation no
+   * longer takes the CV and both emails down with it.
+   *
+   * Sequential on purpose. Parallel CV + cover letter + email left optimize_cv
+   * and write_cover_letter stuck at `started` on Bedrock in production while
+   * write_email finished.
+   *
+   * The follow-up still runs when the application email failed. Its prompt
+   * quotes the primary email as wording and repetition context only (never a
+   * source of applicant facts), and the follow-up regenerate route already
+   * writes one without a stored application email. So the dependency is soft:
+   * without it the follow-up has nothing to avoid repeating, and every claim
+   * still has to come from the Primary CV or Master CV.
+   *
+   * Returns the documents that failed. Never throws for a document failure.
+   */
+  async generateKitDocuments(
+    context: MasterContext,
+    emit: AgentEventHandler,
+    generationContext: LlmGenerationContext | undefined,
+    percents: { cv: number; coverLetter: number; applicationEmail: number; followUpEmail: number },
+  ): Promise<KitDocumentErrors> {
+    const documentErrors: KitDocumentErrors = {};
 
-      emit({ type: 'step_started', step: { id: 'email', description: 'Useful Apply: Generating application and follow-up emails' } });
-      emit({ type: 'progress', percent: 75, message: 'Writing your application email...' });
-      const emailResult2 = await this.generateApplicationEmail(context, generationContext);
-      context.applicationEmail = emailResult2.result;
+    // Only the model call sits inside the try. A failure there marks this one
+    // document and the run moves on; an emit failure (a closed stream) is not
+    // a document failure and still propagates.
+    const writeDocument = async <T extends { tokens: TokenUsage }>(
+      document: KitDocument,
+      step: { id: string; started: string; completed: string },
+      progress: { percent: number; message: string },
+      generate: () => Promise<T>,
+      apply: (value: T) => void,
+    ): Promise<void> => {
+      emit({ type: 'step_started', step: { id: step.id, description: step.started } });
+      emit({ type: 'progress', ...progress });
+      let value: T;
+      try {
+        value = await generate();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Document generation failed';
+        console.error(`[UsefulApply] ${document} failed, continuing with the rest of the kit:`, message);
+        documentErrors[document] = error instanceof EmailValidationError || error instanceof CoverLetterValidationError
+          ? 'VALIDATION_FAILED'
+          : 'GENERATION_FAILED';
+        emit({ type: 'step_error', step: { id: step.id }, error: message });
+        return;
+      }
+      apply(value);
+      emit({ type: 'step_completed', step: { id: step.id, description: step.completed }, tokens: value.tokens });
+    };
 
-      // Follow-up email depends on application email content
-      emit({ type: 'progress', percent: 85, message: 'Composing follow-up email...' });
-      const followUpResult2 = await this.generateFollowUpEmail(context, generationContext);
-      context.followUpEmail = followUpResult2.result;
-      const emailStepTokens2: TokenUsage = {
-        input: emailResult2.tokens.input + followUpResult2.tokens.input,
-        output: emailResult2.tokens.output + followUpResult2.tokens.output,
-      };
-      emit({ type: 'step_completed', step: { id: 'email', description: 'Email + follow-up ready' }, tokens: emailStepTokens2 });
+    await writeDocument(
+      'cv',
+      { id: 'cv_generation', started: 'Useful Apply: Optimizing CV for the position', completed: 'CV optimized' },
+      { percent: percents.cv, message: 'Optimizing your CV...' },
+      () => this.generateOptimizedCVData(context, generationContext),
+      ({ cvData, legacyCV }) => {
+        context.optimizedCVData = cvData;
+        context.optimizedCV = legacyCV;
+      },
+    );
 
-      emit({ type: 'progress', percent: 100, message: 'Complete!' });
+    await writeDocument(
+      'coverLetter',
+      { id: 'cover_letter', started: 'Useful Apply: Composing tailored cover letter', completed: 'Cover letter ready' },
+      { percent: percents.coverLetter, message: 'Writing your cover letter...' },
+      () => this.generateCoverLetter(context, generationContext),
+      ({ result }) => { context.coverLetter = result; },
+    );
 
-      return {
-        success: true,
-        data: {
-          context,
-          totalLatencyMs: Date.now() - startTime,
-        },
-        latencyMs: Date.now() - startTime,
-      };
+    await writeDocument(
+      'applicationEmail',
+      { id: 'email', started: 'Useful Apply: Writing the application email', completed: 'Application email ready' },
+      { percent: percents.applicationEmail, message: 'Writing your application email...' },
+      () => this.generateApplicationEmail(context, generationContext),
+      ({ result }) => { context.applicationEmail = result; },
+    );
 
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Generation failed';
-      const isEmailValidationError = error instanceof EmailValidationError;
-      const clientErrorMessage = isEmailValidationError
-        ? 'Email generation failed validation after correction.'
-        : errorMessage;
-      console.error('[UsefulApply] Generation with context error:', errorMessage);
-      emit({ type: 'step_error', step: { id: 'karko_ai' }, error: clientErrorMessage });
-      
+    await writeDocument(
+      'followUpEmail',
+      { id: 'follow_up', started: 'Useful Apply: Writing the follow-up email', completed: 'Follow-up email ready' },
+      { percent: percents.followUpEmail, message: 'Composing follow-up email...' },
+      () => this.generateFollowUpEmail(context, generationContext),
+      ({ result }) => { context.followUpEmail = result; },
+    );
+
+    return documentErrors;
+  },
+
+  /**
+   * The kit's result. Success while at least one document was written, with
+   * the failed ones listed. Only a run where every document failed is a
+   * failure, which is what refunds the whole reservation.
+   */
+  finishKit(
+    context: MasterContext,
+    documentErrors: KitDocumentErrors,
+    startTime: number,
+    emit: AgentEventHandler,
+  ): AgentResult<OrchestrationResult> {
+    if (KIT_DOCUMENTS.every((document) => documentErrors[document])) {
+      console.error('[UsefulApply] Every kit document failed');
       return {
         success: false,
-        error: clientErrorMessage,
-        ...(isEmailValidationError ? { errorCode: 'EMAIL_VALIDATION_FAILED' as const } : {}),
+        error: 'Every document in the kit failed',
         latencyMs: Date.now() - startTime,
       };
     }
+    emit({ type: 'progress', percent: 100, message: 'Complete!' });
+    return {
+      success: true,
+      data: {
+        context,
+        totalLatencyMs: Date.now() - startTime,
+        documentErrors,
+      },
+      latencyMs: Date.now() - startTime,
+    };
   },
 
   /**
@@ -2318,7 +2208,7 @@ export const unifiedWriterAgent = {
       console.warn('[UnifiedAgent] Retrying cover letter after validation miss:', error.issues.join(', '));
       const retry = await callModel({
         task: 'write_cover_letter',
-        prompt: `${basePrompt}\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.issues.join('; ')}. Rewrite the complete letter once. Remove every named phrase and keep the full letter, including header and signature, within 420 words. Preserve every factuality rule.`,
+        prompt: `${basePrompt}\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.issues.join('; ')}. Rewrite the complete letter once. Remove every named phrase. Preserve every factuality rule.`,
         systemBlocks: coverLetterSystemBlocks,
         generationContext,
       });

@@ -64,14 +64,18 @@ const LONG_SUBJECT_APPLICATION_EMAIL = JSON.stringify({
   body: 'Dear Hiring Team,\n\nI am applying for the Software Engineer role. My CV and cover letter are attached. I am available to discuss the role next week.\n\nKind regards,\nAda Lovelace',
 });
 
+// A non-length miss: a bracketed placeholder still fails validation.
+const PLACEHOLDER_APPLICATION_EMAIL = JSON.stringify({
+  subject: 'Application: Software Engineer, Ada Lovelace',
+  body: 'Dear [Hiring Manager],\n\nI am applying for the Software Engineer role. My CV and cover letter are attached.\n\nKind regards,\nAda Lovelace',
+});
+
 for (const mode of ['cached', 'direct'] as const) {
-test(`an overlong subject gets one correction and completes the ${mode} kit`, async () => {
+test(`an overlong subject renders as written, with no retry, in the ${mode} kit`, async () => {
   const calls: ModelCallOptions[] = [];
   const modelCall = async (options: ModelCallOptions): Promise<ModelResponse> => {
     calls.push(options);
-    return calls.length === 1
-      ? response(LONG_SUBJECT_APPLICATION_EMAIL, 'generation-1', 10, 5)
-      : response(VALID_APPLICATION_EMAIL, 'generation-2', 7, 3);
+    return response(LONG_SUBJECT_APPLICATION_EMAIL, `generation-${calls.length}`, 10, 5);
   };
   const masterContext = context();
   const harness: typeof unifiedWriterAgent = {
@@ -123,11 +127,10 @@ test(`an overlong subject gets one correction and completes the ${mode} kit`, as
       }, () => undefined);
 
   assert.equal(result.success, true);
-  assert.equal(result.data?.context.applicationEmail?.subject, 'Application: Software Engineer, Ada Lovelace');
+  assert.equal(result.data?.context.applicationEmail?.subject, JSON.parse(LONG_SUBJECT_APPLICATION_EMAIL).subject);
   assert.equal(result.data?.context.followUpEmail?.recommendedDelay, 5);
-  assert.equal(calls.length, 2);
-  assert.match(calls[1].prompt, /REQUIRED CORRECTION/u);
-  assert.equal(calls[1].generationContext?.parentGenerationId, 'generation-1');
+  assert.deepEqual(result.data?.documentErrors, {});
+  assert.equal(calls.length, 1);
 });
 }
 
@@ -148,14 +151,14 @@ test('a persistent invalid application email fails after one correction', async 
   let calls = 0;
   const modelCall = async (): Promise<ModelResponse> => {
     calls += 1;
-    return response(LONG_SUBJECT_APPLICATION_EMAIL, `generation-${calls}`);
+    return response(PLACEHOLDER_APPLICATION_EMAIL, `generation-${calls}`);
   };
 
   await assert.rejects(
     generateApplicationEmailWithRetry(context(), GENERATION_CONTEXT, modelCall),
     (error: unknown) => {
       assert.ok(error instanceof EmailValidationError);
-      assert.equal(error.message, 'Application email subject was empty or exceeded 60 characters');
+      assert.equal(error.message, 'Application email contained a placeholder');
       return true;
     },
   );
@@ -197,9 +200,9 @@ test('follow-up email validation gets the same bounded correction', async () => 
     calls.push(options);
     const content = calls.length === 1
       ? JSON.stringify({
-          subject: `Following Up: ${'Software Engineer '.repeat(4)}`,
+          subject: 'Following Up: Software Engineer',
           body: 'Dear Hiring Team,\n\nI wanted to follow up.\n\nKind regards,\nAda Lovelace',
-          recommendedDelay: 5,
+          recommendedDelay: 9,
         })
       : JSON.stringify({
           subject: 'Following Up: Software Engineer',
@@ -217,9 +220,9 @@ test('follow-up email validation gets the same bounded correction', async () => 
   assert.equal(calls[1].generationContext?.parentGenerationId, 'generation-1');
 });
 
-test('follow-up validation failure fails the kit with a safe typed error', async () => {
+test('a follow-up validation failure leaves the rest of the kit intact', async () => {
   const masterContext = context();
-  const emittedErrors: string[] = [];
+  const emittedErrors: Array<{ step: string; error: string }> = [];
   const harness: typeof unifiedWriterAgent = {
     ...unifiedWriterAgent,
     async generateOptimizedCVData() {
@@ -239,7 +242,7 @@ test('follow-up validation failure fails the kit with a safe typed error', async
       };
     },
     async generateFollowUpEmail() {
-      throw new EmailValidationError('Follow-up email subject was empty or exceeded 60 characters');
+      throw new EmailValidationError('Follow-up email contained a placeholder');
     },
   };
 
@@ -247,14 +250,17 @@ test('follow-up validation failure fails the kit with a safe typed error', async
     harness,
     masterContext,
     (event) => {
-      if (event.type === 'step_error') emittedErrors.push(event.error);
+      if (event.type === 'step_error') emittedErrors.push({ step: event.step.id, error: event.error });
     },
     GENERATION_CONTEXT,
   );
 
-  assert.equal(result.success, false);
-  assert.equal(result.errorCode, 'EMAIL_VALIDATION_FAILED');
-  assert.equal(result.error, 'Email generation failed validation after correction.');
-  assert.deepEqual(emittedErrors, ['Email generation failed validation after correction.']);
-  assert.equal(masterContext.followUpEmail, undefined);
+  assert.equal(result.success, true);
+  assert.deepEqual(result.data?.documentErrors, { followUpEmail: 'VALIDATION_FAILED' });
+  assert.deepEqual(emittedErrors, [{ step: 'follow_up', error: 'Follow-up email contained a placeholder' }]);
+  assert.equal(result.data?.context.coverLetter, 'Cover letter');
+  assert.equal(result.data?.context.applicationEmail?.subject, 'Application: Software Engineer, Ada Lovelace');
+  assert.equal(result.data?.context.followUpEmail, undefined);
+  // The cached context the run was handed is never written to.
+  assert.equal(masterContext.coverLetter, undefined);
 });

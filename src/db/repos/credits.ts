@@ -1445,6 +1445,132 @@ export async function releaseReservation(params: {
   return result;
 }
 
+export interface PartialRefundResult {
+  success: boolean;
+  /** Credits this call put back. 0 when an earlier call already refunded. */
+  refunded: number;
+  alreadyRefunded: boolean;
+  error: string | null;
+}
+
+/**
+ * Give back part of a CAPTURED reservation, at most once per reservation.
+ *
+ * Used when a kit was delivered with some documents missing: the reservation
+ * stays captured (the user got a kit) and the missing documents are refunded.
+ * No schema change: the once-only marker lives in the reservation's metadata,
+ * claimed with a compare-and-set on `$.partial_refund_at IS NULL`, the same
+ * pattern transitionReservation uses on status. A second call, a retried
+ * request or a race loses the CAS and refunds nothing.
+ *
+ * The amount is capped at what the reservation charged. Credits go back to
+ * the buckets the reservation drew from, last-drawn first (addon, then
+ * rollover, then monthly), which leaves the balance exactly as if only the
+ * delivered part had been charged. A reservation without a recorded split is
+ * refunded to addon, like releaseReservation.
+ *
+ * Like releaseReservation, the marker is claimed before the credits move, so
+ * a crash between the two loses the refund rather than doubling it. An
+ * addCredits failure, returned or thrown, comes back as success: false with
+ * `refunded` set to what had already landed, so the caller never reports more
+ * or less than was paid. It is logged with the reservation, bucket and portion.
+ */
+export async function refundReservationPartially(params: {
+  userId: string;
+  idempotencyKey: string;
+  amount: number;
+  reason: string;
+}): Promise<PartialRefundResult> {
+  const { userId, idempotencyKey, reason } = params;
+  if (!Number.isFinite(params.amount) || params.amount <= 0) {
+    return { success: false, refunded: 0, alreadyRefunded: false, error: 'Refund amount must be positive' };
+  }
+  const reservation = await getReservationByKey(userId, idempotencyKey);
+  if (!reservation) {
+    return { success: false, refunded: 0, alreadyRefunded: false, error: 'Reservation not found' };
+  }
+  if (reservation.status !== 'captured') {
+    return { success: false, refunded: 0, alreadyRefunded: false, error: `Cannot partially refund a ${reservation.status} reservation` };
+  }
+  const amount = Math.min(params.amount, reservation.amount);
+  const db = await getDb();
+  const now = nowIso();
+  const claimed = await db
+    .update(creditReservations)
+    .set({
+      metadata: sql`json_set(
+        ${creditReservations.metadata},
+        '$.partial_refund_at', ${now},
+        '$.partial_refund_amount', ${amount},
+        '$.partial_refund_reason', ${reason}
+      )` as never,
+      updated_at: now,
+    })
+    .where(and(
+      eq(creditReservations.id, reservation.id),
+      eq(creditReservations.user_id, userId),
+      eq(creditReservations.status, 'captured'),
+      sql`json_extract(${creditReservations.metadata}, '$.partial_refund_at') IS NULL`,
+    ))
+    .returning({ id: creditReservations.id });
+
+  if (claimed.length === 0) {
+    const current = await getReservationByKey(userId, idempotencyKey);
+    const marker = current?.metadata && typeof current.metadata === 'object' && !Array.isArray(current.metadata)
+      ? (current.metadata as Record<string, unknown>).partial_refund_at
+      : undefined;
+    if (marker) return { success: true, refunded: 0, alreadyRefunded: true, error: null };
+    return { success: false, refunded: 0, alreadyRefunded: false, error: 'Partial refund claim lost' };
+  }
+
+  const description = `Partial refund on reservation ${reservation.id}: ${reason}`;
+  const split = extractDeductedFrom(reservation.metadata, reservation.amount)
+    ?? { monthly: 0, rollover: 0, addon: reservation.amount };
+  let remaining = amount;
+  for (const bucket of ['addon', 'rollover', 'monthly'] as const) {
+    const portion = Math.min(remaining, split[bucket]);
+    if (portion <= 0) continue;
+    let failure: string | null = null;
+    try {
+      const added = await addCredits(reservation.user_id, portion, bucket, 'reservation_partial_refund', 'refund', description);
+      if (!added.success) failure = added.error?.message ?? 'Partial refund failed';
+    } catch (error) {
+      failure = error instanceof Error ? error.message : 'Partial refund failed';
+    }
+    if (failure) {
+      console.error('[credits] partial refund credit failed after the claim:', reservation.id, bucket, portion, failure);
+      // partial_refund_amount is what was owed; this is what reached the user.
+      await recordPartialRefundPaid(reservation.id, userId, amount - remaining);
+      return { success: false, refunded: amount - remaining, alreadyRefunded: false, error: failure };
+    }
+    remaining -= portion;
+  }
+  await recordPartialRefundPaid(reservation.id, userId, amount);
+  return { success: true, refunded: amount, alreadyRefunded: false, error: null };
+}
+
+/**
+ * Stamp the credits a partial refund actually paid, beside the amount it
+ * intended. Best effort: this write can fail after the credits moved, so a
+ * missing partial_refund_paid means unknown, not zero. The credit_transactions
+ * ledger (reservation_partial_refund rows naming the reservation) is the
+ * source of truth for reconciliation.
+ */
+async function recordPartialRefundPaid(reservationId: string, userId: string, paid: number): Promise<void> {
+  try {
+    const db = await getDb();
+    await db
+      .update(creditReservations)
+      .set({
+        metadata: sql`json_set(${creditReservations.metadata}, '$.partial_refund_paid', ${paid})` as never,
+        updated_at: nowIso(),
+      })
+      .where(and(eq(creditReservations.id, reservationId), eq(creditReservations.user_id, userId)));
+  } catch (error) {
+    console.error('[credits] could not record the partial refund paid:', reservationId, paid, error);
+  }
+}
+
 export async function findActiveReservation(params: {
   userId: string;
   generationId?: string | null;
