@@ -19,7 +19,7 @@
 
 | Task | Model | Provider |
 |------|-------|----------|
-| Kit writing, CV parsing, fit analysis | Claude Sonnet 4.6 | Amazon Bedrock |
+| Kit writing, CV parsing, fit analysis | Claude Sonnet 5.5 (Sonnet 4.6 as fallback) | Anthropic API (Amazon Bedrock as fallback, via `AI_PROVIDER`) |
 | Chat, tracker chat, career profile, search strategy, job-feed ranking | `@cf/openai/gpt-oss-120b` | Workers AI |
 
 The agent uses a **Unified Writer Agent** with two modes:
@@ -64,7 +64,7 @@ All templates use Arial body + Georgia headers (ATS-compliant system fonts).
 - **Language:** TypeScript 5
 - **Styling:** Tailwind CSS v4
 - **State:** Zustand v5
-- **AI:** Claude Sonnet 4.6 via Amazon Bedrock, `@cf/openai/gpt-oss-120b` via Workers AI
+- **AI:** Claude Sonnet 5.5 via the Anthropic API (Sonnet 4.6 on Amazon Bedrock as fallback), `@cf/openai/gpt-oss-120b` via Workers AI
 - **Auth:** Better Auth (email + password, Google OAuth), session cookie `usefulapply.session`
 - **Database:** Cloudflare D1 (SQLite) with Drizzle, repos in `src/db/repos/`, migrations in `migrations/d1/`
 - **Storage:** Cloudflare R2 (`usefulapply-files`), served through `/api/files`
@@ -118,7 +118,7 @@ src/
 ├── lib/
 │   ├── agents/              # Unified Writer Agent + context builder
 │   │   └── prompts/         # Prompt builders (cv, cover letter, email, fit)
-│   ├── models/              # Model config (Bedrock + Workers AI)
+│   ├── models/              # Model config (Anthropic API, Bedrock fallback, Workers AI)
 │   ├── cv-parser/           # CV section splitting + parsing
 │   ├── cv-templates/        # CVData types + parser
 │   ├── job-feed/            # Ingestion, prefilter, LLM ranker, reconcile

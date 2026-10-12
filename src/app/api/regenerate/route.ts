@@ -15,6 +15,7 @@ import {
   normalizeLanguage,
 } from '@/lib/utils/language-detector';
 import { getPostHogServer } from '@/lib/posthog-server';
+import { ACTIVE_MODEL_ID, ACTIVE_MODEL_PRICING } from '@/lib/models';
 import { randomUUID } from 'crypto';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
@@ -257,8 +258,8 @@ export async function POST(request: NextRequest) {
     };
     // PostHog LLM analytics for regeneration
     const traceId = `trace_${randomUUID()}`;
-    const INPUT_COST_PER_M = 3;
-    const OUTPUT_COST_PER_M = 15;
+    const INPUT_COST_PER_M = ACTIVE_MODEL_PRICING.inputPerM;
+    const OUTPUT_COST_PER_M = ACTIVE_MODEL_PRICING.outputPerM;
     const regenStartTime = Date.now();
 
     const trackRegenLLM = (step: string, tokens: { input: number; output: number }) => {
@@ -275,7 +276,7 @@ export async function POST(request: NextRequest) {
           properties: {
             // Required PostHog LLM analytics properties
             $ai_provider: 'anthropic',
-            $ai_model: 'claude-sonnet-4-6',
+            $ai_model: ACTIVE_MODEL_ID,
             $ai_input_tokens: tokens.input,
             $ai_output_tokens: tokens.output,
             $ai_input_cost_usd: inputCost,
@@ -452,7 +453,7 @@ export async function POST(request: NextRequest) {
         event: '$ai_generation',
         properties: {
           $ai_provider: 'anthropic',
-          $ai_model: 'claude-sonnet-4-6',
+          $ai_model: ACTIVE_MODEL_ID,
           $ai_is_error: true,
           $ai_http_status: 500,
           $ai_error: error instanceof Error ? error.message : String(error),

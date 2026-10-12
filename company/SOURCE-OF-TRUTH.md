@@ -263,12 +263,12 @@ Migrated from Vercel + Supabase to Cloudflare. Source: README. [verified]
 
 | Task | Model | Provider |
 |---|---|---|
-| Kit writing (CV, cover letter, emails, screening answers), CV parsing, fit analysis | Claude Sonnet 4.6 | Amazon Bedrock |
+| Kit writing (CV, cover letter, emails, screening answers), CV parsing, fit analysis | Claude Sonnet 5.5 | Anthropic API (Sonnet 4.6 on Amazon Bedrock kept as fallback) |
 | Chat, tracker chat, career profile, search strategy, job-feed ranking | `@cf/openai/gpt-oss-120b` | Cloudflare Workers AI |
 
 Job data comes from SerpAPI. [verified] `src/lib/job-feed/`
 
-Never claim a model upgrade before it ships. Production generation is Sonnet 4.6. Say nothing else.
+Never claim a model upgrade before it ships. Production generation is Sonnet 5.5, chosen in an October 2026 eval against Sonnet 4.6. Say nothing else.
 
 ### Leftover `src/lib/supabase/` names
 

@@ -7,6 +7,7 @@ import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
 import { reserveCredits, captureReservation, releaseReservation } from '@/lib/supabase/credit-reservations';
 import { detectLanguage, isSupportedLanguage, type SupportedLanguage } from '@/lib/utils/language-detector';
 import { getPostHogServer } from '@/lib/posthog-server';
+import { ACTIVE_MODEL_ID, ACTIVE_MODEL_PRICING } from '@/lib/models';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getSession, updateSession, type ApplicationSession } from '@/db/repos/sessions';
 import { getDocumentByType, type Document } from '@/db/repos/documents';
@@ -185,8 +186,8 @@ export async function POST(request: NextRequest) {
     );
 
     const traceId = `trace_${randomUUID()}`;
-    const INPUT_COST_PER_M = 3;
-    const OUTPUT_COST_PER_M = 15;
+    const INPUT_COST_PER_M = ACTIVE_MODEL_PRICING.inputPerM;
+    const OUTPUT_COST_PER_M = ACTIVE_MODEL_PRICING.outputPerM;
     const regenStartTime = Date.now();
 
     const { result: followUpEmail, tokens } = await unifiedWriterAgent.generateFollowUpEmail(masterContext, generationContext);
@@ -208,7 +209,7 @@ export async function POST(request: NextRequest) {
         event: '$ai_generation',
         properties: {
           $ai_provider: 'anthropic',
-          $ai_model: 'claude-sonnet-4-6',
+          $ai_model: ACTIVE_MODEL_ID,
           $ai_input_tokens: tokens.input,
           $ai_output_tokens: tokens.output,
           $ai_input_cost_usd: inputCost,

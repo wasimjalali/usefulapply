@@ -873,18 +873,66 @@ function normalizeComparisonText(value: string): string {
   return value.normalize('NFKC').toLocaleLowerCase().replace(/\s+/gu, ' ').trim();
 }
 
-function parseStrictJsonObject(value: string, label: string): Record<string, unknown> {
+/**
+ * Every balanced top-level `{...}` span in the text, in order. Braces inside
+ * JSON strings (and escaped quotes inside those strings) don't count, so a
+ * subject like "Role {Remote}" can't split an object.
+ */
+export function findTopLevelJsonObjects(text: string): string[] {
+  const objects: string[] = [];
+  let depth = 0;
+  let start = -1;
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (depth > 0 && inString) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"' && depth > 0) {
+      inString = true;
+    } else if (char === '{') {
+      if (depth === 0) start = i;
+      depth++;
+    } else if (char === '}' && depth > 0) {
+      depth--;
+      if (depth === 0) objects.push(text.slice(start, i + 1));
+    }
+  }
+  return objects;
+}
+
+/**
+ * Parse the model's JSON object. Sonnet 5.5 sometimes notices a limit it broke
+ * after emitting the JSON and writes a corrected object after a short note
+ * ("Wait, the subject must be 60 characters or fewer. Corrected output: {...}"),
+ * so the last balanced object that parses wins.
+ */
+export function parseStrictJsonObject(value: string, label: string): Record<string, unknown> {
   let jsonContent = value.trim();
   if (jsonContent.startsWith('```json')) {
     jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
   } else if (jsonContent.startsWith('```')) {
     jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
   }
-  const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
-  if (jsonMatch) jsonContent = jsonMatch[0];
-  const parsed = JSON.parse(jsonContent) as unknown;
-  if (!isRecord(parsed)) throw new Error(`${label} was not a JSON object`);
-  return parsed;
+  const candidates = findTopLevelJsonObjects(jsonContent);
+  if (candidates.length === 0) throw new Error(`${label} contained no JSON object`);
+  let lastError: unknown;
+  for (let i = candidates.length - 1; i >= 0; i--) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(candidates[i]) as unknown;
+    } catch (error) {
+      lastError = error;
+      continue;
+    }
+    if (!isRecord(parsed)) throw new Error(`${label} was not a JSON object`);
+    return parsed;
+  }
+  throw lastError instanceof Error ? lastError : new Error(`${label} was not valid JSON`);
 }
 
 function countSentences(value: string): number {
@@ -1054,7 +1102,7 @@ export async function generateFollowUpEmailWithRetry(
       generationContext,
     },
     'Follow-up email response',
-    `Keep the subject between 1 and 60 characters, the body within 80 words and recommendedDelay exactly ${recommendedDelay}. Keep the applicant signature.`,
+    `Keep the subject between 1 and 60 characters total. Shorten the job title portion, omit secondary titles and count every character, including spaces, the localized prefix and applicant name. Keep the body within 80 words and recommendedDelay exactly ${recommendedDelay}. Keep the applicant signature.`,
     (parsed) => validateFollowUpEmail(parsed, outputLang, context.applicant?.name, recommendedDelay),
     modelCall,
   );

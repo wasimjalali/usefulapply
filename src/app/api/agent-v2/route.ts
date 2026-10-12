@@ -35,6 +35,7 @@ import {
 } from '@/lib/supabase/credit-reservations';
 import { transitionJobFeedApplicationGenerationAdmin } from '@/lib/job-feed/server';
 import { getPostHogServer } from '@/lib/posthog-server';
+import { ACTIVE_MODEL_ID, ACTIVE_MODEL_PRICING } from '@/lib/models';
 import { randomUUID, createHash } from 'crypto';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
@@ -328,9 +329,9 @@ export async function POST(request: NextRequest) {
       let currentAction = 'unknown';
       let workflowErrorCode: 'EMAIL_VALIDATION_FAILED' | undefined;
 
-      // Sonnet 4.6 pricing (per million tokens)
-      const INPUT_COST_PER_M = 3;   // $3 per 1M input tokens
-      const OUTPUT_COST_PER_M = 15;  // $15 per 1M output tokens
+      // Active model list price (per million tokens)
+      const INPUT_COST_PER_M = ACTIVE_MODEL_PRICING.inputPerM;
+      const OUTPUT_COST_PER_M = ACTIVE_MODEL_PRICING.outputPerM;
 
       const trackLLMStep = (stepId: string, tokens?: { input: number; output: number }) => {
         if (!tokens) return;
@@ -348,7 +349,7 @@ export async function POST(request: NextRequest) {
             properties: {
               // Required PostHog LLM analytics properties
               $ai_provider: 'anthropic',
-              $ai_model: 'claude-sonnet-4-6',
+              $ai_model: ACTIVE_MODEL_ID,
               $ai_input_tokens: tokens.input,
               $ai_output_tokens: tokens.output,
               $ai_input_cost_usd: inputCost,
@@ -382,7 +383,7 @@ export async function POST(request: NextRequest) {
             event: '$ai_generation',
             properties: {
               $ai_provider: 'anthropic',
-              $ai_model: 'claude-sonnet-4-6',
+              $ai_model: ACTIVE_MODEL_ID,
               $ai_is_error: true,
               $ai_http_status: 500,
               $ai_trace_id: traceId,
@@ -698,7 +699,7 @@ export async function POST(request: NextRequest) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
             type: 'workflow_start', 
             steps: steps.map((s, i) => ({ function: s.id, description: s.description, index: i })),
-            models: { analysis: 'claude-sonnet-4.6', writing: 'claude-sonnet-4.6' },
+            models: { analysis: ACTIVE_MODEL_ID, writing: ACTIVE_MODEL_ID },
           })}\n\n`));
 
           const eventHandler = createEventHandler((id) => getFitAnalysisStepIndex(id));
@@ -912,7 +913,7 @@ export async function POST(request: NextRequest) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                 type: 'workflow_start',
                 steps: steps.map((s, i) => ({ function: s.id, description: s.description, index: i })),
-                models: { analysis: 'claude-sonnet-4.6', writing: 'claude-sonnet-4.6' },
+                models: { analysis: ACTIVE_MODEL_ID, writing: ACTIVE_MODEL_ID },
               })}\n\n`));
 
               const eventHandler = createEventHandler((id) => getStepIndex(id));
@@ -985,7 +986,7 @@ export async function POST(request: NextRequest) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'workflow_start',
             steps: steps.map((s, i) => ({ function: s.id, description: s.description, index: i })),
-            models: { analysis: 'claude-sonnet-4.6', writing: 'claude-sonnet-4.6' },
+            models: { analysis: ACTIVE_MODEL_ID, writing: ACTIVE_MODEL_ID },
           })}\n\n`));
 
           const eventHandler = createEventHandler((id) => getGenerateWithContextStepIndex(id));
@@ -1092,7 +1093,7 @@ export async function POST(request: NextRequest) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
           type: 'workflow_start', 
           steps: steps.map((s, i) => ({ function: s.id, description: s.description, index: i })),
-          models: { analysis: 'claude-sonnet-4.6', writing: 'claude-sonnet-4.6' },
+          models: { analysis: ACTIVE_MODEL_ID, writing: ACTIVE_MODEL_ID },
         })}\n\n`));
 
         const eventHandler = createEventHandler((id) => getStepIndex(id));

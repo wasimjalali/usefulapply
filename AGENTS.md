@@ -95,7 +95,7 @@ Always pass the `model` parameter when spawning an Agent. Never let subagents de
 
 ## Architecture Overview
 
-Useful Apply is a Next.js 16 app generating job application materials (CV, Cover Letter, Application Email, Follow-Up Email) via a unified AI agent. Model split: Claude Sonnet 4.6 (Amazon Bedrock) handles kit writing, CV parsing, context extraction and fit analysis; `@cf/openai/gpt-oss-120b` on Workers AI (`src/lib/models/workers-ai.ts`) handles chat, tracker chat, career-profile synthesis, search strategy and job-feed ranking.
+Useful Apply is a Next.js 16 app generating job application materials (CV, Cover Letter, Application Email, Follow-Up Email) via a unified AI agent. Model split: Claude Sonnet 5.5 on the Anthropic API (`AI_PROVIDER=anthropic`) handles kit writing, CV parsing, context extraction and fit analysis, with Claude Sonnet 4.6 on Amazon Bedrock kept as the fallback (`AI_PROVIDER=bedrock`); `@cf/openai/gpt-oss-120b` on Workers AI (`src/lib/models/workers-ai.ts`) handles chat, tracker chat, career-profile synthesis, search strategy and job-feed ranking.
 
 ### Key Directories
 - `src/lib/agents/` — Unified Writer Agent + context-builder
@@ -170,7 +170,8 @@ The full design system (surface roles, typography, radius/CTA/shadow scales, mot
 - **PostHog** - analytics + error tracking + LLM cost tracking; see `.claude/rules/posthog.md`. Server capture is from route handlers (`getPostHogServer()` + `flush()`). Worker and cron logs are Workers Logs, not PostHog.
 - **Cloudflare Email Service** - transactional email (signup confirmation, password reset, contact form, Day 0 welcome, Day 3 check-in). `from: 'Useful Apply <noreply@usefulapply.com>'` via the `EMAIL` `send_email` binding. No Resend.
 - **Stripe** - subscriptions + add-on credit packs; webhooks verified via signature. Checkout success/cancel and portal return URLs come from `BRAND.url`.
-- **Amazon Bedrock** - Claude Sonnet 4.6 inference for kit writing, CV parsing, extraction and fit analysis (production); direct Anthropic API (dev/testing). AWS SDK path runs on Workers under `nodejs_compat`.
+- **Anthropic API** - Claude Sonnet 5.5 for kit writing, CV parsing, extraction and fit analysis (adaptive thinking, effort low, no temperature; request shape in `src/lib/models/anthropic.ts`).
+- **Amazon Bedrock** - Claude Sonnet 4.6 fallback for the same tasks, selected with `AI_PROVIDER=bedrock`, on the old request shape. AWS SDK path runs on Workers under `nodejs_compat`.
 - **Workers AI** - `@cf/openai/gpt-oss-120b` via the `AI` binding for chat, tracker chat, career-profile synthesis, search strategy and job-feed ranking (`src/lib/models/workers-ai.ts`, `src/lib/job-feed/workers-ai-ranking.ts`).
 - **D1 + Drizzle** - SQLite database behind `src/db/repos/*`. Ownership is checked per query. No RLS.
 - **R2** - file storage. Binding `FILES`, bucket `usefulapply-files`. Served through `/api/files`.
