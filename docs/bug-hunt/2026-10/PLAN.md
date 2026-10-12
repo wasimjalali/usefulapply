@@ -11,7 +11,7 @@ Out of scope: mobile layouts (not a target), marketing pages beyond broken links
 ## Starting point
 
 - Production generates with Claude Sonnet 5.5 since PR #136 (see `evals/results/2026-10-12-sonnet-46-vs-55.md`). The open items from that work are listed under "Follow-ups from the Sonnet 5.5 switch" below. They're known work, not findings to rediscover.
-- Kit documents now fail independently and length is a prompt standard rather than a failure (branch `feature/isolated-kit-failures`). If that PR isn't merged and deployed when this session starts, finish it first.
+- Kit documents fail independently and length is a prompt standard rather than a failure since PR #140 (deployed 2026-10-12, Worker version 0351dd7a). A failed document shows an error and a retry in its own tab and refunds 0.5 credit. A failed CV has no single-document retry yet; the tab shows the base CV.
 - There's no Playwright suite in the repo. Phase 4 adds one for the core journeys; it is the repeatable artifact of this hunt.
 
 ## Follow-ups from the Sonnet 5.5 switch
@@ -25,7 +25,10 @@ Work these as their own fix batches in phase 4, alongside the hunt's findings. E
 5. **Banned-phrase lists.** Optional: an ablation of the cover-letter banned-phrase lists, and the validator phrases missing from the prompt (see `evals/prompt-variants/sonnet55/CHANGES.md`).
 6. **Email subjects built in code.** Optional now that length no longer fails a document: build the subject from the localized prefix, the role title and the applicant name in code, so subjects stay consistent and under 60 characters without relying on the model.
 7. **Watch production after the switch.** Check the LLM ledger and PostHog for availability or start-date lines in emails (the one fabrication class 5.5 showed in the eval) and for the retry rate per email task since the parser change. Report numbers in `REPORT.md`.
-8. **Open decision for Wasim, not code:** when evals and judges run on subscription agents versus the paid Anthropic API credit (the Opus API judge cost $74 in the 5.5 eval).
+8. **Server-side regenerate lock.** The in-flight guard from PR #140 is per browser tab. Two tabs (tracker plus dashboard) can still regenerate the same follow-up at once and pay 0.5 twice. Add a per-(session, document) lock on the server shared by `/api/regenerate` and `/api/tracker/follow-up`. Credits row: Sonnet + Codex + Opus review.
+9. **Single-document CV retry.** A failed CV can only be fixed by a new kit today. Consider a CV-only regenerate path, priced like the other regenerates.
+10. **Existing lint errors on `main`.** `npm run lint` reports 16 errors on main, counted without the gitignored `verify/` and the `.claude/worktrees/` copies (a plain run from the main checkout also lints those and shows more). They're in `scripts/compress-blog-images.js`, `scripts/generate-blur-placeholders.js`, `scripts/resize-profile-image.js`, `src/app/auth/auth-code-error/page.tsx`, `src/app/not-found.tsx`, `src/components/blog/BlogContent.tsx` and `src/components/comparisons/ComparisonUseCases.tsx`. Fix them and ignore `verify/` and `.claude/worktrees/` in the lint config, so lint is a real gate again.
+11. **Open decision for Wasim, not code:** when evals and judges run on subscription agents versus the paid Anthropic API credit (the Opus API judge cost $74 in the 5.5 eval).
 
 ## Phases
 
