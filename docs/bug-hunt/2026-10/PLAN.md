@@ -10,8 +10,22 @@ Out of scope: mobile layouts (not a target), marketing pages beyond broken links
 
 ## Starting point
 
-- Production generates with Claude Sonnet 5.5 since PR #136 (see `evals/results/2026-10-12-sonnet-46-vs-55.md`). Known open items from that eval go to the prompts team as leads, not as findings to rediscover: fit-score inflation on 5.5, `skill_matching` marking bait skills claimable, email subjects built by the model, the native PDF parse path untested on 5.5.
+- Production generates with Claude Sonnet 5.5 since PR #136 (see `evals/results/2026-10-12-sonnet-46-vs-55.md`). The open items from that work are listed under "Follow-ups from the Sonnet 5.5 switch" below. They're known work, not findings to rediscover.
+- Kit documents now fail independently and length is a prompt standard rather than a failure (branch `feature/isolated-kit-failures`). If that PR isn't merged and deployed when this session starts, finish it first.
 - There's no Playwright suite in the repo. Phase 4 adds one for the core journeys; it is the repeatable artifact of this hunt.
+
+## Follow-ups from the Sonnet 5.5 switch
+
+Work these as their own fix batches in phase 4, alongside the hunt's findings. Each goes through the change loop.
+
+1. **Fit-score recalibration.** Sonnet 5.5 scores fit 5 to 23 points higher than 4.6 on the same input; a junior synthetic CV showed "95% Strong fit" live. Re-derive the 85/70/55 bands (fit prompt, system prompt, `computeFitLevel`) from the eval's 5.5 score distribution, or anchor the prompt with calibrated examples. Prompts row: `agent-expert`.
+2. **`skill_matching` bait handling.** The unchanged `skill_matching` prompt marks requirements the CV lacks as claimable on every model, and that feeds the fit text and the letter allow-list. Fix the prompt, then rerun the eval's bait cases (syn-02, 04, 07, 10, 12, 14, 15) with `evals/run-eval.ts` and compare.
+3. **Structured outputs.** Replace the "respond with ONLY valid JSON" suffix and the brace scanner with `output_config.format` JSON schemas on every JSON task (CV, emails, extraction). Check Sonnet 5.5 support in the current Anthropic docs first.
+4. **Native PDF parse path on 5.5.** Type-checked only. Run a real PDF and a DOCX through `/api/parse-cv` on production or local and confirm the Sonnet 5.5 request shape works.
+5. **Banned-phrase lists.** Optional: an ablation of the cover-letter banned-phrase lists, and the validator phrases missing from the prompt (see `evals/prompt-variants/sonnet55/CHANGES.md`).
+6. **Email subjects built in code.** Optional now that length no longer fails a document: build the subject from the localized prefix, the role title and the applicant name in code, so subjects stay consistent and under 60 characters without relying on the model.
+7. **Watch production after the switch.** Check the LLM ledger and PostHog for availability or start-date lines in emails (the one fabrication class 5.5 showed in the eval) and for the retry rate per email task since the parser change. Report numbers in `REPORT.md`.
+8. **Open decision for Wasim, not code:** when evals and judges run on subscription agents versus the paid Anthropic API credit (the Opus API judge cost $74 in the 5.5 eval).
 
 ## Phases
 
