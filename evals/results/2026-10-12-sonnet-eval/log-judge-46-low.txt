@@ -1,0 +1,32 @@
+judge sonnet46-api vs sonnet55-low: 300 passes to run (0 done), 282 need the judge, concurrency 4
+10/300 judge cost so far $0.67
+20/300 judge cost so far $1.40
+30/300 judge cost so far $2.10
+40/300 judge cost so far $2.55
+50/300 judge cost so far $3.26
+60/300 judge cost so far $4.08
+70/300 judge cost so far $4.81
+80/300 judge cost so far $5.57
+90/300 judge cost so far $6.27
+100/300 judge cost so far $6.86
+110/300 judge cost so far $7.59
+120/300 judge cost so far $8.39
+130/300 judge cost so far $9.22
+140/300 judge cost so far $9.94
+150/300 judge cost so far $10.36
+160/300 judge cost so far $10.76
+170/300 judge cost so far $11.22
+180/300 judge cost so far $11.66
+190/300 judge cost so far $11.96
+200/300 judge cost so far $12.30
+210/300 judge cost so far $12.78
+220/300 judge cost so far $13.20
+230/300 judge cost so far $13.53
+240/300 judge cost so far $14.00
+250/300 judge cost so far $14.43
+260/300 judge cost so far $14.88
+270/300 judge cost so far $15.34
+280/300 judge cost so far $15.83
+290/300 judge cost so far $16.20
+300/300 judge cost so far $16.68
+done 300/300, judge cost $16.68

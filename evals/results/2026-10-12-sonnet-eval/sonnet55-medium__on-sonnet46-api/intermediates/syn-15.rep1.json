@@ -1,0 +1,424 @@
+{
+ "case_id": "syn-15",
+ "rep": 1,
+ "arm": "sonnet55-medium",
+ "detectedLanguage": "de",
+ "applicant": {
+  "name": "Jonas Hartmann",
+  "email": "jonas.hartmann@example.de",
+  "phone": "+49 911 0000 0142",
+  "address": "Nürnberg, Deutschland",
+  "headline": "Technischer Vertriebsmitarbeiter, Maschinenbau",
+  "skills": [
+   "Kundenbetreuung",
+   "Angebotserstellung",
+   "Verhandlung",
+   "Messeauftritte",
+   "Antriebstechnik",
+   "Pumpen",
+   "technische Auslegung"
+  ],
+  "tools": [
+   "SAP CRM",
+   "SAP SD",
+   "MS Office",
+   "MS Teams"
+  ],
+  "languages": [
+   "Deutsch (Muttersprache)",
+   "Englisch (verhandlungssicher, C1)",
+   "Türkisch (Grundkenntnisse)"
+  ],
+  "experiences": [
+   {
+    "company": "Frankenmetall Antriebstechnik GmbH, Nürnberg",
+    "title": "Technischer Vertriebsmitarbeiter im Außendienst",
+    "startDate": "04/2021",
+    "bullets": [
+     "Betreue rund 60 Bestandskunden im Raum Bayern und Baden-Württemberg",
+     "Steigerte den Jahresumsatz meines Gebiets von 3,1 auf 4,2 Mio. EUR",
+     "Erstelle Angebote und technische Auslegungen gemeinsam mit der Konstruktion",
+     "Führe pro Jahr etwa 15 Messegespräche und Kundenschulungen durch",
+     "Pflege alle Kontakte und Angebote im CRM (SAP CRM)"
+    ]
+   },
+   {
+    "company": "Kessler Pumpen und Armaturen GmbH, Fürth",
+    "title": "Vertriebsinnendienst",
+    "startDate": "09/2018",
+    "endDate": "03/2021",
+    "bullets": [
+     "Bearbeitete täglich 20 bis 30 Kundenanfragen und erstellte Angebote und Auftragsbestätigungen",
+     "Reduzierte die durchschnittliche Angebotszeit von drei auf einen Arbeitstag durch Textbausteine und Vorlagen"
+    ]
+   },
+   {
+    "company": "Kessler Pumpen und Armaturen GmbH, Fürth",
+    "title": "Trainee Vertrieb",
+    "startDate": "09/2017",
+    "endDate": "08/2018",
+    "bullets": [
+     "Durchlief Konstruktion, Einkauf und Vertrieb"
+    ]
+   }
+  ],
+  "certifications": []
+ },
+ "job": {
+  "title": "Key Account Manager/in, Maklerbetreuer/in Firmengeschäft für die Krankenversicherung (m/w/d)",
+  "companyName": "ottonova",
+  "location": "München",
+  "workType": "Hybrid",
+  "requiredSkills": [
+   "Abgeschlossene Ausbildung als Kaufmann/-frau für Versicherungen und Finanzen oder vergleichbare kaufmännische Qualifikation",
+   "3–8 Jahre Erfahrung im Vertrieb von Versicherungsprodukten bei Arbeitgebern",
+   "Erfahrung in der bAV oder bKV",
+   "Bestehendes Netzwerk an Arbeitgeberkontakten",
+   "Kenntnisse in CRM-Systemen",
+   "Digital Mindset",
+   "Strukturierte und zuverlässige Arbeitsweise",
+   "Kommunikationsstärke im B2B-Umfeld",
+   "Eigeninitiative und Prozessoptimierung",
+   "Deutsch (verhandlungssicher, Wort und Schrift)",
+   "Englischkenntnisse (gut bis sehr gut)"
+  ],
+  "niceToHaveSkills": [
+   "Erfahrung mit Video-Call-Tools",
+   "Erfahrung in der betrieblichen Krankenversicherung (bKV)",
+   "Kenntnisse im HR- und Unternehmensveranstaltungsumfeld"
+  ],
+  "responsibilities": [
+   "Neukundengewinnung: Identifikation und aktive Gewinnung von Unternehmen als neue Kunden für die bKV von ottonova",
+   "Fokus auf Entscheidungsträger in HR und Geschäftsführung",
+   "Beratung von Unternehmen zu den Vorteilen der betrieblichen Krankenversicherung",
+   "Entwicklung passgenaue Angebote entsprechend dem jeweiligen Unternehmensbedarf",
+   "Pflege des bestehenden Netzwerks an Arbeitgeberkontakten",
+   "Begleitung des gesamten Vertriebsprozesses vom ersten Gespräch bis zur Vertragsunterzeichnung",
+   "Repräsentation von ottonova bei relevanten HR- und Unternehmensveranstaltungen",
+   "Stärkung der Sichtbarkeit im betrieblichen Krankenversicherungsmarkt"
+  ]
+ },
+ "match": {
+  "score": 57,
+  "matchedRequirements": [
+   "Abgeschlossene Ausbildung als Kaufmann/-frau für Versicherungen und Finanzen oder vergleichbare kaufmännische Qualifikation",
+   "Bestehendes Netzwerk an Arbeitgeberkontakten",
+   "Kenntnisse in CRM-Systemen",
+   "Digital Mindset",
+   "Strukturierte und zuverlässige Arbeitsweise",
+   "Kommunikationsstärke im B2B-Umfeld",
+   "Eigeninitiative und Prozessoptimierung",
+   "Deutsch (verhandlungssicher, Wort und Schrift)",
+   "Englischkenntnisse (gut bis sehr gut)",
+   "Erfahrung mit Video-Call-Tools"
+  ],
+  "claimableEvidence": [
+   "B.Eng. Maschinenbau | Technische Hochschule Nürnberg | 2013 - 2017",
+   "SAP CRM",
+   "Deutsch (Muttersprache)",
+   "Englisch (verhandlungssicher, C1)",
+   "MS Teams"
+  ],
+  "missingSkills": [
+   "3–8 Jahre Erfahrung im Vertrieb von Versicherungsprodukten bei Arbeitgebern",
+   "Erfahrung in der bAV oder bKV",
+   "Erfahrung in der betrieblichen Krankenversicherung (bKV)",
+   "Kenntnisse im HR- und Unternehmensveranstaltungsumfeld"
+  ],
+  "details": [
+   {
+    "requirement": "Abgeschlossene Ausbildung als Kaufmann/-frau für Versicherungen und Finanzen oder vergleichbare kaufmännische Qualifikation",
+    "evidence": "B.Eng. Maschinenbau | Technische Hochschule Nürnberg | 2013 - 2017",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "3–8 Jahre Erfahrung im Vertrieb von Versicherungsprodukten bei Arbeitgebern",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Erfahrung in der bAV oder bKV",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Bestehendes Netzwerk an Arbeitgeberkontakten",
+    "evidence": "Betreue rund 60 Bestandskunden im Raum Bayern und Baden-Württemberg",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Kenntnisse in CRM-Systemen",
+    "evidence": "SAP CRM",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Digital Mindset",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Strukturierte und zuverlässige Arbeitsweise",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Kommunikationsstärke im B2B-Umfeld",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Eigeninitiative und Prozessoptimierung",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Deutsch (verhandlungssicher, Wort und Schrift)",
+    "evidence": "Deutsch (Muttersprache)",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Englischkenntnisse (gut bis sehr gut)",
+    "evidence": "Englisch (verhandlungssicher, C1)",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Erfahrung mit Video-Call-Tools",
+    "evidence": "MS Teams",
+    "tier": 2,
+    "claimable": true,
+    "required": false
+   },
+   {
+    "requirement": "Erfahrung in der betrieblichen Krankenversicherung (bKV)",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Kenntnisse im HR- und Unternehmensveranstaltungsumfeld",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   }
+  ]
+ },
+ "verifiedMetrics": [
+  "sieben Jahren Erfahrung im Verkauf",
+  "rund 60 Bestandskunden im Raum Bayern und Baden-Württemberg"
+ ],
+ "fitAnalysis": {
+  "fitLevel": "fair",
+  "score": 57,
+  "assessment": "Your computed match is 57%, a FAIR FIT, so apply with a well-prepared case for the move into insurance sales.\n\n**Strengths:**\n- SAP CRM and SAP SD experience covers the CRM requirement\n- Technical field sales and Angebotserstellung (quotes) with Verhandlung experience\n- English C1 and native German meet both language requirements\n\n**Gaps:**\n- No insurance sales experience (3-8 years required)\n- No bAV or bKV product experience\n- No HR or corporate event context\n\n**Recommendation:** Apply now, and in your cover letter link your B2B quoting and negotiation record to bKV sales, while completing a short bKV or bAV course first.",
+  "matchingSkills": [
+   "Abgeschlossene Ausbildung als Kaufmann/-frau für Versicherungen und Finanzen oder vergleichbare kaufmännische Qualifikation",
+   "Bestehendes Netzwerk an Arbeitgeberkontakten",
+   "Kenntnisse in CRM-Systemen",
+   "Digital Mindset",
+   "Strukturierte und zuverlässige Arbeitsweise",
+   "Kommunikationsstärke im B2B-Umfeld",
+   "Eigeninitiative und Prozessoptimierung",
+   "Deutsch (verhandlungssicher, Wort und Schrift)",
+   "Englischkenntnisse (gut bis sehr gut)",
+   "Erfahrung mit Video-Call-Tools"
+  ],
+  "missingSkills": [
+   "3–8 Jahre Erfahrung im Vertrieb von Versicherungsprodukten bei Arbeitgebern",
+   "Erfahrung in der bAV oder bKV",
+   "Erfahrung in der betrieblichen Krankenversicherung (bKV)",
+   "Kenntnisse im HR- und Unternehmensveranstaltungsumfeld"
+  ]
+ },
+ "optimizedCVData": {
+  "personal": {
+   "fullName": "Jonas Hartmann",
+   "email": "jonas.hartmann@example.de",
+   "phone": "+49 911 0000 0142",
+   "currentTitle": "Key Account Management | B2B-Vertrieb | Kundenbetreuung | SAP CRM",
+   "city": "Nürnberg",
+   "country": "Deutschland",
+   "driverLicense": "Klasse B"
+  },
+  "summary": "Technischer Vertriebsmitarbeiter mit sieben Jahren Erfahrung im Verkauf erklärungsbedürftiger Produkte an Mittelständler. Betreut rund 60 Bestandskunden im Raum Bayern und Baden-Württemberg und pflegt Kontakte und Angebote strukturiert im CRM (SAP CRM). Verbindet einen ruhigen, beratenden Verkaufsstil mit technischem Verständnis und langfristiger Kundenbindung. Deutsch als Muttersprache, Englisch verhandlungssicher (C1).",
+  "experience": [
+   {
+    "id": "exp-1",
+    "company": "Frankenmetall Antriebstechnik GmbH",
+    "position": "Technischer Vertriebsmitarbeiter im Außendienst",
+    "location": "Nürnberg",
+    "startDate": "04/2021",
+    "current": true,
+    "bullets": [
+     "Betreue rund 60 Bestandskunden im Raum Bayern und Baden-Württemberg und baue langfristige Kundenbeziehungen auf",
+     "Steigerte den Jahresumsatz meines Gebiets von 3,1 auf 4,2 Mio. EUR",
+     "Erstelle Angebote und technische Auslegungen in enger Abstimmung mit der Konstruktion",
+     "Pflege alle Kontakte und Angebote im CRM (SAP CRM) und führe Messegespräche und Kundenschulungen durch"
+    ],
+    "technologies": [
+     "SAP CRM",
+     "MS Teams"
+    ]
+   },
+   {
+    "id": "exp-2",
+    "company": "Kessler Pumpen und Armaturen GmbH",
+    "position": "Vertriebsinnendienst",
+    "location": "Fürth",
+    "startDate": "09/2018",
+    "endDate": "03/2021",
+    "current": false,
+    "bullets": [
+     "Verkürzte die durchschnittliche Angebotszeit von drei auf einen Arbeitstag durch Textbausteine und Vorlagen",
+     "Bearbeitete täglich 20 bis 30 Kundenanfragen und erstellte Angebote und Auftragsbestätigungen"
+    ],
+    "technologies": [
+     "SAP SD"
+    ]
+   },
+   {
+    "id": "exp-3",
+    "company": "Kessler Pumpen und Armaturen GmbH",
+    "position": "Trainee Vertrieb",
+    "location": "Fürth",
+    "startDate": "09/2017",
+    "endDate": "08/2018",
+    "current": false,
+    "bullets": [
+     "Durchlief die Bereiche Konstruktion, Einkauf und Vertrieb und gewann so einen Überblick über die gesamte Wertschöpfungskette"
+    ],
+    "technologies": []
+   }
+  ],
+  "education": [
+   {
+    "id": "edu-1",
+    "institution": "Technische Hochschule Nürnberg",
+    "degree": "B.Eng. Maschinenbau",
+    "startDate": "2013",
+    "endDate": "2017",
+    "highlights": []
+   },
+   {
+    "id": "edu-2",
+    "institution": "Gymnasium Fürth",
+    "degree": "Allgemeine Hochschulreife (Abitur-Äquivalent)",
+    "endDate": "2013",
+    "highlights": []
+   }
+  ],
+  "skills": [
+   {
+    "category": "Vertrieb",
+    "items": [
+     "Kundenbetreuung",
+     "Verhandlung",
+     "Angebotserstellung",
+     "Messeauftritte"
+    ]
+   },
+   {
+    "category": "Software",
+    "items": [
+     "SAP CRM",
+     "MS Teams",
+     "SAP SD (Anwender)",
+     "MS Office"
+    ]
+   },
+   {
+    "category": "Technik",
+    "items": [
+     "Antriebstechnik",
+     "Pumpen",
+     "technische Auslegung"
+    ]
+   }
+  ],
+  "languages": [
+   {
+    "language": "Deutsch",
+    "proficiency": "Muttersprache"
+   },
+   {
+    "language": "Englisch",
+    "proficiency": "verhandlungssicher, C1"
+   },
+   {
+    "language": "Türkisch",
+    "proficiency": "Grundkenntnisse"
+   }
+  ],
+  "certifications": [],
+  "projects": [],
+  "additionalInfo": [
+   "Führerschein Klasse B",
+   "Reisebereitschaft"
+  ],
+  "analysis": {
+   "summary": "Die Bewerbung positioniert Jonas Hartmann als erfahrenen B2B-Vertriebler mit langfristiger Kundenbetreuung im Mittelstand und dokumentierter CRM-Erfahrung. Fehlende Versicherungs-, bAV- und bKV-Erfahrung wird nicht behauptet; stattdessen werden übertragbare Stärken im beratenden B2B-Vertrieb hervorgehoben.",
+   "key_changes": [
+    "Headline auf Key Account Management, B2B-Vertrieb und Kundenbetreuung ausgerichtet",
+    "Profil betont sieben Jahre Verkaufserfahrung und langfristige Bestandskundenbetreuung",
+    "Bullets der aktuellen Rolle auf Kundenbetreuung, Umsatzentwicklung und CRM-Pflege fokussiert",
+    "Prozessoptimierung durch die dokumentierte Verkürzung der Angebotszeit im Innendienst sichtbar gemacht",
+    "Skills nach Relevanz sortiert: SAP CRM und MS Teams zuerst, Sprachniveaus unverändert übernommen"
+   ],
+   "ats_compatibility": 62,
+   "missing_keywords_added": [
+    "SAP CRM",
+    "MS Teams",
+    "Kundenbetreuung",
+    "Verhandlung"
+   ]
+  },
+  "sectionHeaders": {
+   "summary": "Profil",
+   "skills": "Kenntnisse",
+   "experience": "Berufserfahrung",
+   "education": "Ausbildung",
+   "certifications": "Zertifikate",
+   "languages": "Sprachen",
+   "contact": "Kontakt",
+   "additionalInfo": "Weitere Angaben",
+   "projects": "Projekte"
+  },
+  "localizedStrings": {
+   "present": "Heute",
+   "gradePrefix": "Note:",
+   "degreeConnector": "in",
+   "dateOfBirthLabel": "Geburtsdatum",
+   "nationalityLabel": "Nationalität",
+   "photoPlaceholder": "Foto",
+   "websiteLabel": "Webseite",
+   "signatureLabel": "Unterschrift",
+   "cityLabel": "Ort",
+   "dateLabel": "Datum"
+  }
+ },
+ "coverLetter": "Jonas Hartmann\nNürnberg, Deutschland\njonas.hartmann@example.de\n+49 911 0000 0142\n\n12. Oktober 2026\n\nottonova\n\nSehr geehrte Damen und Herren,\n\nottonova will im betrieblichen Umfeld wachsen und braucht dafür jemanden, der Entscheidungsträger in Unternehmen gewinnt und langfristig betreut. Genau das mache ich seit sieben Jahren im Vertrieb: Als technischer Vertriebsmitarbeiter bei der Frankenmetall Antriebstechnik GmbH betreue ich rund 60 Bestandskunden im Raum Bayern und Baden-Württemberg und habe den Jahresumsatz meines Gebiets von 3,1 auf 4,2 Mio. EUR gesteigert.\n\nIch komme aus dem Industrievertrieb und nicht aus der Versicherungsbranche, und das sage ich offen. Mitbringen kann ich eine beratende Arbeitsweise bei erklärungsbedürftigen Produkten: Ich analysiere den Bedarf, erstelle passgenaue Angebote, verhandle und begleite den Abschluss. Im Innendienst habe ich die durchschnittliche Angebotszeit von drei auf einen Arbeitstag reduziert, das zeigt meinen Blick für Prozessoptimierung. Meine Kontakte und Angebote pflege ich konsequent im CRM (SAP CRM), Kundentermine laufen bei mir über MS Teams. Mein Englisch ist verhandlungssicher (C1), mein Deutsch muttersprachlich. Die Versicherungsthemen, vom Produkt bis zum HR-Umfeld, erarbeite ich mir zügig, wie ich es bei technischen Produkten auch getan habe.\n\nGern überzeuge ich Sie in einem persönlichen Gespräch oder per Video-Call davon, wie ich Ihr Firmengeschäft für die bKV voranbringen kann. Ich freue mich auf Ihre Einladung und bin nach Absprache kurzfristig verfügbar.\n\nMit besten Grüßen,\nJonas Hartmann",
+ "applicationEmail": {
+  "subject": "Bewerbung als Key Account Manager/in, Jonas Hartmann",
+  "body": "Sehr geehrte Damen und Herren,\n\nIn meiner aktuellen Rolle betreue ich rund 60 Bestandskunden im Raum Bayern und Baden-Württemberg langfristig und berate sie im direkten Gespräch mit Entscheidern, das ist die Arbeit, die Sie auch bei ottonova im Firmengeschäft suchen. Meine sieben Jahre B2B-Vertriebserfahrung, die sauber geführten Kontakte in SAP CRM und mein ruhiger, beratender Stil helfen mir, Vertrauen bei Geschäftsführung und HR aufzubauen. Meinen Lebenslauf und mein Anschreiben finden Sie im Anhang. Für ein erstes Gespräch stehe ich Ihnen gern kurzfristig per Telefon oder MS Teams zur Verfügung.\n\nMit freundlichen Grüßen\nJonas Hartmann"
+ },
+ "followUpEmail": {
+  "subject": "Nachfrage: Key Account Manager/in, Jonas Hartmann",
+  "body": "Sehr geehrte Damen und Herren,\n\nvor einigen Tagen habe ich mich auf die Stelle als Key Account Manager/in beworben. Besonders reizt mich die aktive Gewinnung neuer Unternehmenskunden für die bKV von ottonova. Im Außendienst steigerte ich den Jahresumsatz meines Gebiets von 3,1 auf 4,2 Mio. EUR und führe jährlich etwa 15 Messegespräche und Kundenschulungen durch. Gern berichte ich Ihnen in einem kurzen Gespräch, wie ich diese Erfahrung bei ottonova einbringen würde.\n\nMit freundlichen Grüßen\nJonas Hartmann",
+  "recommendedDelay": 7
+ }
+}

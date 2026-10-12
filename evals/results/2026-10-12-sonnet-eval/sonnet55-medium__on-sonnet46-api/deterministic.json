@@ -1,0 +1,908 @@
+{
+ "run": "2026-10-12-sonnet-eval",
+ "arm": "sonnet55-medium__on-sonnet46-api",
+ "scored_kits_rep1": 30,
+ "failure_counts_rep1": {
+  "F1": {
+   "kits": 30,
+   "findings": 76,
+   "byTask": {
+    "write_cover_letter": 49,
+    "fit_assessment": 25,
+    "write_email": 1,
+    "write_follow_up_email": 1
+   }
+  },
+  "F6": {
+   "kits": 30,
+   "findings": 61,
+   "byTask": {
+    "write_cover_letter": 24,
+    "write_email": 23,
+    "write_follow_up_email": 14
+   }
+  },
+  "F4": {
+   "kits": 9,
+   "findings": 14,
+   "byTask": {
+    "write_cover_letter": 9,
+    "write_email": 2,
+    "write_follow_up_email": 3
+   }
+  },
+  "F12": {
+   "kits": 2,
+   "findings": 2,
+   "byTask": {
+    "write_follow_up_email": 2
+   }
+  },
+  "F14": {
+   "kits": 2,
+   "findings": 2,
+   "byTask": {
+    "write_follow_up_email": 2
+   }
+  },
+  "F18": {
+   "kits": 4,
+   "findings": 4,
+   "byTask": {
+    "write_follow_up_email": 3,
+    "write_email": 1
+   }
+  },
+  "F8": {
+   "kits": 5,
+   "findings": 7,
+   "byTask": {
+    "fit_assessment": 3,
+    "write_cover_letter": 2,
+    "write_email": 2
+   }
+  },
+  "F9": {
+   "kits": 6,
+   "findings": 6,
+   "byTask": {
+    "fit_assessment": 6
+   }
+  },
+  "F2": {
+   "kits": 11,
+   "findings": 14,
+   "byTask": {
+    "optimize_cv": 14
+   }
+  },
+  "F17": {
+   "kits": 1,
+   "findings": 1,
+   "byTask": {
+    "write_cover_letter": 1
+   }
+  },
+  "F3": {
+   "kits": 5,
+   "findings": 21,
+   "byTask": {
+    "optimize_cv": 21
+   }
+  }
+ },
+ "stats": {
+  "calls_total": 192,
+  "calls_failed": 0,
+  "retries_total": 0,
+  "kits": {
+   "total": 30,
+   "complete": 26,
+   "partial": 4,
+   "aborted": 0
+  },
+  "kit_latency_all_reps": {
+   "n": 30,
+   "kit_ms_p50": 32094.5,
+   "kit_ms_p95": 76406
+  },
+  "kit_latency_clean_concurrency1": {
+   "n": 0,
+   "kit_ms_p50": null,
+   "kit_ms_p95": null
+  },
+  "cost_usd_total": 4.3399209,
+  "cost_usd_per_kit_mean": 0.14466403,
+  "perTask": [
+   {
+    "task": "parse_cv",
+    "calls": 30,
+    "latency_ms_p50": 7612,
+    "latency_ms_p95": 12114.05,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": 3309.9,
+    "cache_read_tokens_mean": 0,
+    "cache_write_tokens_mean": 0,
+    "output_tokens_mean": 1881.9666666666667,
+    "cost_usd_total": 0.7631839999999999,
+    "retries": 0
+   },
+   {
+    "task": "extract_applicant",
+    "calls": 0,
+    "latency_ms_p50": null,
+    "latency_ms_p95": null,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": null,
+    "cache_read_tokens_mean": null,
+    "cache_write_tokens_mean": null,
+    "output_tokens_mean": null,
+    "cost_usd_total": 0,
+    "retries": 0
+   },
+   {
+    "task": "parse_job",
+    "calls": 0,
+    "latency_ms_p50": null,
+    "latency_ms_p95": null,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": null,
+    "cache_read_tokens_mean": null,
+    "cache_write_tokens_mean": null,
+    "output_tokens_mean": null,
+    "cost_usd_total": 0,
+    "retries": 0
+   },
+   {
+    "task": "skill_matching",
+    "calls": 0,
+    "latency_ms_p50": null,
+    "latency_ms_p95": null,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": null,
+    "cache_read_tokens_mean": null,
+    "cache_write_tokens_mean": null,
+    "output_tokens_mean": null,
+    "cost_usd_total": 0,
+    "retries": 0
+   },
+   {
+    "task": "extract_metrics",
+    "calls": 0,
+    "latency_ms_p50": null,
+    "latency_ms_p95": null,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": null,
+    "cache_read_tokens_mean": null,
+    "cache_write_tokens_mean": null,
+    "output_tokens_mean": null,
+    "cost_usd_total": 0,
+    "retries": 0
+   },
+   {
+    "task": "fit_assessment",
+    "calls": 30,
+    "latency_ms_p50": 2611.5,
+    "latency_ms_p95": 7133.399999999999,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": 5331.9,
+    "cache_read_tokens_mean": 734.0666666666667,
+    "cache_write_tokens_mean": 112.93333333333334,
+    "output_tokens_mean": 346.4,
+    "cost_usd_total": 0.4367084,
+    "retries": 0
+   },
+   {
+    "task": "optimize_cv",
+    "calls": 30,
+    "latency_ms_p50": 16496,
+    "latency_ms_p95": 38399.9,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": 5076.5,
+    "cache_read_tokens_mean": 9440.1,
+    "cache_write_tokens_mean": 1048.9,
+    "output_tokens_mean": 3041.0666666666666,
+    "cost_usd_total": 1.3522181,
+    "retries": 0
+   },
+   {
+    "task": "write_cover_letter",
+    "calls": 30,
+    "latency_ms_p50": 5001,
+    "latency_ms_p95": 16184.699999999999,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": 7658.833333333333,
+    "cache_read_tokens_mean": 4644,
+    "cache_write_tokens_mean": 0,
+    "output_tokens_mean": 846.2333333333333,
+    "cost_usd_total": 0.741264,
+    "retries": 0
+   },
+   {
+    "task": "write_email",
+    "calls": 36,
+    "latency_ms_p50": 3697.5,
+    "latency_ms_p95": 10973.75,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": 4629.722222222223,
+    "cache_read_tokens_mean": 2920,
+    "cache_write_tokens_mean": 0,
+    "output_tokens_mean": 606.75,
+    "cost_usd_total": 0.5727939999999999,
+    "retries": 0
+   },
+   {
+    "task": "write_follow_up_email",
+    "calls": 36,
+    "latency_ms_p50": 2668.5,
+    "latency_ms_p95": 3256,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": 5186.694444444444,
+    "cache_read_tokens_mean": 1457,
+    "cache_write_tokens_mean": 0,
+    "output_tokens_mean": 249.5,
+    "cost_usd_total": 0.47375239999999996,
+    "retries": 0
+   }
+  ]
+ },
+ "details": [
+  {
+   "case_id": "syn-01",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Manager; Hiring Manager"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: CV"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-02",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Manager; Hiring Manager; Instagram Insights. As Social Media Lead"
+    },
+    {
+     "id": "F4",
+     "task": "write_cover_letter",
+     "detail": "mentions requirement(s) the CV does not support: Marketo"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: Datadog Hiring Team; CV"
+    },
+    {
+     "id": "F4",
+     "task": "write_email",
+     "detail": "mentions requirement(s) the CV does not support: Marketo"
+    },
+    {
+     "id": "F6",
+     "task": "write_follow_up_email",
+     "detail": "entity candidates: Datadog Hiring Team"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 46 not in the CV or the ad"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-04",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Hiring Manager"
+    },
+    {
+     "id": "F4",
+     "task": "write_cover_letter",
+     "detail": "mentions requirement(s) the CV does not support: Contract negotiation; MEDDIC sales training"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: Datadog Hiring Team; CV"
+    },
+    {
+     "id": "F6",
+     "task": "write_follow_up_email",
+     "detail": "entity candidates: Datadog Hiring Team"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 28 not in the CV or the ad"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-03",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Manager; Hiring Manager; Excel. As Social Media Lead"
+    },
+    {
+     "id": "F4",
+     "task": "write_cover_letter",
+     "detail": "mentions requirement(s) the CV does not support: B2B software marketing; Marketo; Salesforce"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: CV"
+    },
+    {
+     "id": "F4",
+     "task": "write_follow_up_email",
+     "detail": "mentions requirement(s) the CV does not support: Lifecycle marketing; Lifecycle nurture programs"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-05",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F12",
+     "task": "write_follow_up_email",
+     "detail": "output is not valid JSON"
+    },
+    {
+     "id": "F14",
+     "task": "write_follow_up_email",
+     "detail": "JSON did not close although the model stopped normally"
+    },
+    {
+     "id": "F18",
+     "task": "write_follow_up_email",
+     "detail": "Follow-up email response must be a valid JSON object"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: CV"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 55 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "fit_assessment",
+     "detail": "Oxford comma pattern"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-06",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F12",
+     "task": "write_follow_up_email",
+     "detail": "output is not valid JSON"
+    },
+    {
+     "id": "F14",
+     "task": "write_follow_up_email",
+     "detail": "JSON did not close although the model stopped normally"
+    },
+    {
+     "id": "F18",
+     "task": "write_follow_up_email",
+     "detail": "Follow-up email response must be a valid JSON object"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: CV"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 28 not in the CV or the ad"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-07",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Manager; Hiring Manager"
+    },
+    {
+     "id": "F4",
+     "task": "write_cover_letter",
+     "detail": "mentions requirement(s) the CV does not support: Rust"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: CV"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 30 not in the CV or the ad"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-08",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: JVM"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: CV"
+    },
+    {
+     "id": "F6",
+     "task": "write_follow_up_email",
+     "detail": "entity candidates: Up"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 74 not in the CV or the ad"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-10",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "write_cover_letter",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Manager; Hiring Manager"
+    },
+    {
+     "id": "F4",
+     "task": "write_cover_letter",
+     "detail": "mentions requirement(s) the CV does not support: Vector databases; Search relevance; Lucene"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: CV"
+    },
+    {
+     "id": "F4",
+     "task": "write_follow_up_email",
+     "detail": "mentions requirement(s) the CV does not support: Elasticsearch; Search algorithms"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 38 not in the CV or the ad"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-09",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F18",
+     "task": "write_email",
+     "detail": "Application email body was empty or exceeded four sentences"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Manager; Hiring Manager"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 88 not in the CV or the ad"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-11",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Hiring Manager"
+    },
+    {
+     "id": "F4",
+     "task": "write_cover_letter",
+     "detail": "mentions requirement(s) the CV does not support: Pigment"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: Datadog Hiring Team; CV"
+    },
+    {
+     "id": "F6",
+     "task": "write_follow_up_email",
+     "detail": "entity candidates: Up; Datadog Hiring Team"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 68 not in the CV or the ad"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-12",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F4",
+     "task": "write_cover_letter",
+     "detail": "mentions requirement(s) the CV does not support: Cloud billing data analysis"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: CV"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 48 not in the CV or the ad"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-13",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: CV"
+    },
+    {
+     "id": "F6",
+     "task": "write_follow_up_email",
+     "detail": "entity candidates: Up"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 34 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "fit_assessment",
+     "detail": "Oxford comma pattern"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-14",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "jd_only_number 12"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "write_cover_letter",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F4",
+     "task": "write_cover_letter",
+     "detail": "mentions requirement(s) the CV does not support: Workplace operations"
+    },
+    {
+     "id": "F8",
+     "task": "write_email",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: CV"
+    },
+    {
+     "id": "F4",
+     "task": "write_email",
+     "detail": "mentions requirement(s) the CV does not support: Workplace operations"
+    },
+    {
+     "id": "F4",
+     "task": "write_follow_up_email",
+     "detail": "mentions requirement(s) the CV does not support: Workplace operations"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 18 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "fit_assessment",
+     "detail": "Oxford comma pattern"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-15",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Damen; Herren; Industrievertrieb; Versicherungsbranche; Produkten; Bedarf"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: Damen; Herren; Rolle; Entscheidern; Arbeit; Jahre B2B-Vertriebserfahrung"
+    },
+    {
+     "id": "F6",
+     "task": "write_follow_up_email",
+     "detail": "entity candidates: Damen; Herren; Tagen; Stelle; Unternehmenskunden; Ihnen"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 57 not in the CV or the ad"
+    },
+    {
+     "id": "F9",
+     "task": "fit_assessment",
+     "detail": "fit reads as en, case is de"
+    },
+    {
+     "id": "F2",
+     "task": "optimize_cv",
+     "detail": "degree not in CV: Allgemeine Hochschulreife (Abitur-Äquivalent)"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-16",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Damen; Herren; Formfehlern; Patienten; Versicherer Zeit. Genau; Problem"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: Damen; Herren; Lebenslauf; Anschreiben; Gespräch; Ihnen"
+    },
+    {
+     "id": "F6",
+     "task": "write_follow_up_email",
+     "detail": "entity candidates: Damen; Herren; Woche; Stelle; Bewertung; Kommunikation"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 76 not in the CV or the ad"
+    },
+    {
+     "id": "F9",
+     "task": "fit_assessment",
+     "detail": "fit reads as en, case is de"
+    }
+   ]
+  }
+ ]
+}

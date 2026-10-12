@@ -1,0 +1,416 @@
+arm sonnet55-medium: 20 kits to run (30 already done), concurrency 1, prompt variant sonnet55
+[UsefulApply] Extracted 14 verified metrics from source CVs
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 1
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 2
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 3
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 4
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant languages 5
+[UsefulApply] LLM skill match: 82% (13 requirements matched, 7 claimable evidence items, 1 missing)
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 7768
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 3
+  - Additional Info: 3
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[1/20] own-01 rep2 complete 73s calls=10
+[UsefulApply] Extracted 8 verified metrics from source CVs
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 1
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 2
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 3
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 4
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant languages 5
+[UsefulApply] LLM skill match: 73% (12 requirements matched, 7 claimable evidence items, 2 missing)
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 7989
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 3
+  - Additional Info: 4
+  - Custom Sections: 1
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[2/20] own-01 rep3 complete 68s calls=10
+[UsefulApply] Extracted 17 verified metrics from source CVs
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 1
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 2
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 3
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 4
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant languages 5
+[UsefulApply] LLM skill match: 72% (34 requirements matched, 19 claimable evidence items, 4 missing)
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 7909
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 3
+  - Additional Info: 4
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[3/20] own-06 rep2 complete 60s calls=10
+[UsefulApply] Extracted 15 verified metrics from source CVs
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 1
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 2
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 3
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 4
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant languages 5
+[UsefulApply] LLM skill match: 76% (24 requirements matched, 13 claimable evidence items, 2 missing)
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 8014
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 3
+  - Additional Info: 3
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[4/20] own-06 rep3 complete 63s calls=10
+[UsefulApply] Extracted 12 verified metrics from source CVs
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 1
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 2
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 3
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 4
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant languages 5
+[UsefulApply] LLM skill match: 84% (16 requirements matched, 5 claimable evidence items, 0 missing)
+[UnifiedAgent] Generating structured CV data in language: de
+[UnifiedAgent] Extracted JSON from position 0 to 6716
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 4
+  - Projects: 1
+  - Additional Info: 3
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: de
+[UnifiedAgent] Generating email in language: de
+[UnifiedAgent] Generating follow-up email in language: de
+[UnifiedAgent] Retrying follow-up email response after validation miss: Follow-up email subject was empty or exceeded 60 characters
+[5/20] own-11 rep2 partial 77s calls=11 failures=fit_assessment
+[UsefulApply] Extracted 15 verified metrics from source CVs
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 1
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 2
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 3
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 4
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant languages 5
+[UsefulApply] LLM skill match: 88% (14 requirements matched, 5 claimable evidence items, 0 missing)
+[UnifiedAgent] Generating structured CV data in language: de
+[UnifiedAgent] Extracted JSON from position 0 to 7695
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 3
+  - Additional Info: 3
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: de
+[UnifiedAgent] Generating email in language: de
+[UnifiedAgent] Generating follow-up email in language: de
+[UnifiedAgent] Retrying follow-up email response after validation miss: Follow-up email subject was empty or exceeded 60 characters
+[6/20] own-11 rep3 complete 98s calls=11
+[UsefulApply] Extracted 6 verified metrics from source CVs
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 1
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 2
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 3
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 4
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant languages 5
+[UsefulApply] LLM skill match: 66% (18 requirements matched, 9 claimable evidence items, 5 missing)
+[UnifiedAgent] Generating structured CV data in language: de
+[UnifiedAgent] Extracted JSON from position 0 to 8577
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 4
+  - Additional Info: 4
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: de
+[UnifiedAgent] Generating email in language: de
+[UnifiedAgent] Generating follow-up email in language: de
+[7/20] own-13 rep2 complete 96s calls=10
+[UsefulApply] Extracted 12 verified metrics from source CVs
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 1
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 2
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 3
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 bullets 4
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant languages 5
+[UsefulApply] LLM skill match: 62% (20 requirements matched, 9 claimable evidence items, 5 missing)
+[UnifiedAgent] Generating structured CV data in language: de
+[UnifiedAgent] Extracted JSON from position 0 to 10112
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 3
+  - Additional Info: 3
+  - Custom Sections: 1
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: de
+[UnifiedAgent] Generating email in language: de
+[UnifiedAgent] Generating follow-up email in language: de
+[8/20] own-13 rep3 complete 103s calls=10
+[UsefulApply] Extracted 8 verified metrics from source CVs
+[UsefulApply] LLM skill match: 22% (5 requirements matched, 0 claimable evidence items, 12 missing)
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 4455
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 3
+  - Skill categories: 3
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[9/20] syn-01 rep2 complete 36s calls=10
+[UsefulApply] Extracted 9 verified metrics from source CVs
+[UsefulApply] LLM skill match: 22% (4 requirements matched, 0 claimable evidence items, 13 missing)
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 4888
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 3
+  - Skill categories: 3
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[10/20] syn-01 rep3 complete 38s calls=10
+[UsefulApply] Extracted 6 verified metrics from source CVs
+[UsefulApply] LLM skill match: 33% (12 requirements matched, 1 claimable evidence items, 9 missing)
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 4584
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 3
+  - Skill categories: 3
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[11/20] syn-04 rep2 complete 38s calls=10
+[UsefulApply] Extracted 9 verified metrics from source CVs
+[UsefulApply] LLM skill match: 33% (10 requirements matched, 0 claimable evidence items, 7 missing)
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 4501
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 3
+  - Skill categories: 3
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[12/20] syn-04 rep3 complete 44s calls=10
+[UsefulApply] Extracted 6 verified metrics from source CVs
+[UnifiedAgent] Dropped applicant experience 1 without supported company and title
+[UsefulApply] LLM skill match: 30% (20 requirements matched, 9 claimable evidence items, 18 missing)
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 4869
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 3
+  - Skill categories: 4
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Retrying application email response after validation miss: Application email response must be a valid JSON object
+[UnifiedAgent] Generating follow-up email in language: en
+[13/20] syn-07 rep2 complete 61s calls=11
+[UsefulApply] Extracted 7 verified metrics from source CVs
+[UnifiedAgent] Dropped applicant experience 1 without supported company and title
+[UsefulApply] LLM skill match: 48% (20 requirements matched, 9 claimable evidence items, 18 missing)
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 5039
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 4
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Retrying application email response after validation miss: Application email subject was empty or exceeded 60 characters
+[UnifiedAgent] Generating follow-up email in language: en
+[14/20] syn-07 rep3 complete 46s calls=11
+[UsefulApply] Extracted 4 verified metrics from source CVs
+[UnifiedAgent] Dropped applicant experience 1 without supported company and title
+[UsefulApply] LLM skill match: 47% (18 requirements matched, 9 claimable evidence items, 13 missing)
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 4876
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 0
+  - Additional Info: 1
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[15/20] syn-10 rep2 complete 54s calls=10
+[UsefulApply] Extracted 5 verified metrics from source CVs
+[UsefulApply] LLM skill match: 49% (20 requirements matched, 7 claimable evidence items, 11 missing)
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 4925
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 4
+  - Skill categories: 5
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Retrying application email response after validation miss: Application email response must be a valid JSON object
+[UnifiedAgent] Generating follow-up email in language: en
+[16/20] syn-10 rep3 complete 43s calls=11
+[UsefulApply] Extracted 3 verified metrics from source CVs
+[UsefulApply] LLM skill match: 15% (11 requirements matched, 1 claimable evidence items, 18 missing)
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 4222
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 2
+  - Skill categories: 4
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Generating follow-up email in language: en
+[17/20] syn-14 rep2 complete 50s calls=10
+[UsefulApply] Extracted 3 verified metrics from source CVs
+[UsefulApply] LLM skill match: 28% (14 requirements matched, 2 claimable evidence items, 14 missing)
+[UnifiedAgent] Generating structured CV data in language: en
+[UnifiedAgent] Extracted JSON from position 0 to 4426
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 3
+  - Skill categories: 3
+  - Projects: 0
+  - Additional Info: 0
+  - Custom Sections: 0
+  - Driver License present: false
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: en
+[UnifiedAgent] Generating email in language: en
+[UnifiedAgent] Retrying application email response after validation miss: Application email response must be a valid JSON object
+[UnifiedAgent] Generating follow-up email in language: en
+[18/20] syn-14 rep3 complete 51s calls=11
+[UsefulApply] Extracted 3 verified metrics from source CVs
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 endDate
+[UsefulApply] LLM skill match: 38% (11 requirements matched, 7 claimable evidence items, 7 missing)
+[UnifiedAgent] Generating structured CV data in language: de
+[UnifiedAgent] Extracted JSON from position 0 to 4473
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 3
+  - Skill categories: 3
+  - Projects: 0
+  - Additional Info: 2
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: de
+[UnifiedAgent] Generating email in language: de
+[UnifiedAgent] Retrying application email response after validation miss: Application email body was empty or exceeded four sentences
+[UnifiedAgent] Generating follow-up email in language: de
+[19/20] syn-15 rep2 partial 46s calls=11 failures=write_email
+[UsefulApply] Extracted 3 verified metrics from source CVs
+[UnifiedAgent] Dropped unsupported applicant extraction item: Applicant experience 1 endDate
+[UsefulApply] LLM skill match: 43% (12 requirements matched, 8 claimable evidence items, 6 missing)
+[UnifiedAgent] Generating structured CV data in language: de
+[UnifiedAgent] Extracted JSON from position 0 to 4458
+[UnifiedAgent] Parsed structured CV data:
+  - Personal name present: true
+  - Experience entries: 3
+  - Skill categories: 3
+  - Projects: 0
+  - Additional Info: 2
+  - Custom Sections: 0
+  - Driver License present: true
+  - sectionHeaders present: true
+  - localizedStrings present: true
+[UnifiedAgent] Generating cover letter in language: de
+[UnifiedAgent] Generating email in language: de
+[UnifiedAgent] Retrying application email response after validation miss: Application email body was empty or exceeded four sentences
+[UnifiedAgent] Generating follow-up email in language: de
+[20/20] syn-15 rep3 partial 47s calls=11 failures=write_email
+prompt variant files used: <repo>/evals/prompt-variants/sonnet55/cv-prompt.ts, <repo>/evals/prompt-variants/sonnet55/cover-letter-prompt.ts, <repo>/evals/prompt-variants/sonnet55/email-prompts.ts, <repo>/evals/prompt-variants/sonnet55/fit-assessment-prompt.ts
+done in 1193s

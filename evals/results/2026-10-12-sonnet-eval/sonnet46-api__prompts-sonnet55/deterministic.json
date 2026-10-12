@@ -1,0 +1,1123 @@
+{
+ "run": "2026-10-12-sonnet-eval",
+ "arm": "sonnet46-api__prompts-sonnet55",
+ "scored_kits_rep1": 16,
+ "failure_counts_rep1": {
+  "F1": {
+   "kits": 16,
+   "findings": 46,
+   "byTask": {
+    "write_cover_letter": 29,
+    "fit_assessment": 16,
+    "optimize_cv": 1
+   }
+  },
+  "F6": {
+   "kits": 16,
+   "findings": 34,
+   "byTask": {
+    "write_cover_letter": 12,
+    "write_email": 15,
+    "write_follow_up_email": 7
+   }
+  },
+  "F4": {
+   "kits": 8,
+   "findings": 12,
+   "byTask": {
+    "write_follow_up_email": 5,
+    "write_cover_letter": 6,
+    "write_email": 1
+   }
+  },
+  "F8": {
+   "kits": 12,
+   "findings": 18,
+   "byTask": {
+    "fit_assessment": 11,
+    "write_cover_letter": 5,
+    "write_follow_up_email": 2
+   }
+  },
+  "F3": {
+   "kits": 9,
+   "findings": 22,
+   "byTask": {
+    "optimize_cv": 22
+   }
+  },
+  "F2": {
+   "kits": 13,
+   "findings": 15,
+   "byTask": {
+    "optimize_cv": 15
+   }
+  },
+  "F18": {
+   "kits": 1,
+   "findings": 2,
+   "byTask": {
+    "write_email": 1,
+    "write_follow_up_email": 1
+   }
+  },
+  "F7": {
+   "kits": 1,
+   "findings": 1,
+   "byTask": {
+    "write_cover_letter": 1
+   }
+  },
+  "F10": {
+   "kits": 1,
+   "findings": 1,
+   "byTask": {
+    "fit_assessment": 1
+   }
+  }
+ },
+ "stats": {
+  "calls_total": 174,
+  "calls_failed": 0,
+  "retries_total": 0,
+  "kits": {
+   "total": 16,
+   "complete": 15,
+   "partial": 1,
+   "aborted": 0
+  },
+  "kit_latency_all_reps": {
+   "n": 16,
+   "kit_ms_p50": 88500.5,
+   "kit_ms_p95": 99989.75
+  },
+  "kit_latency_clean_concurrency1": {
+   "n": 0,
+   "kit_ms_p50": null,
+   "kit_ms_p95": null
+  },
+  "cost_usd_total": 2.8675573500000002,
+  "cost_usd_per_kit_mean": 0.17922233437500001,
+  "perTask": [
+   {
+    "task": "parse_cv",
+    "calls": 16,
+    "latency_ms_p50": 20114.5,
+    "latency_ms_p95": 21766.75,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": 2119.4375,
+    "cache_read_tokens_mean": 0,
+    "cache_write_tokens_mean": 0,
+    "output_tokens_mean": 1289.1875,
+    "cost_usd_total": 0.4111380000000001,
+    "retries": 0
+   },
+   {
+    "task": "extract_applicant",
+    "calls": 16,
+    "latency_ms_p50": 6434.5,
+    "latency_ms_p95": 8339.5,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": 1124.4375,
+    "cache_read_tokens_mean": 0,
+    "cache_write_tokens_mean": 0,
+    "output_tokens_mean": 667.25,
+    "cost_usd_total": 0.21411300000000003,
+    "retries": 0
+   },
+   {
+    "task": "parse_job",
+    "calls": 16,
+    "latency_ms_p50": 10025,
+    "latency_ms_p95": 16100.25,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": 2262.375,
+    "cache_read_tokens_mean": 0,
+    "cache_write_tokens_mean": 0,
+    "output_tokens_mean": 568.75,
+    "cost_usd_total": 0.245094,
+    "retries": 0
+   },
+   {
+    "task": "skill_matching",
+    "calls": 16,
+    "latency_ms_p50": 12953.5,
+    "latency_ms_p95": 16500.75,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": 3961.75,
+    "cache_read_tokens_mean": 0,
+    "cache_write_tokens_mean": 0,
+    "output_tokens_mean": 820.5625,
+    "cost_usd_total": 0.3870990000000001,
+    "retries": 0
+   },
+   {
+    "task": "extract_metrics",
+    "calls": 16,
+    "latency_ms_p50": 4094,
+    "latency_ms_p95": 5612,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": 911.4375,
+    "cache_read_tokens_mean": 0,
+    "cache_write_tokens_mean": 0,
+    "output_tokens_mean": 229.6875,
+    "cost_usd_total": 0.09887399999999999,
+    "retries": 0
+   },
+   {
+    "task": "fit_assessment",
+    "calls": 16,
+    "latency_ms_p50": 5828,
+    "latency_ms_p95": 9456.75,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": 2360.5625,
+    "cache_read_tokens_mean": 0,
+    "cache_write_tokens_mean": 0,
+    "output_tokens_mean": 200.1875,
+    "cost_usd_total": 0.161352,
+    "retries": 0
+   },
+   {
+    "task": "optimize_cv",
+    "calls": 16,
+    "latency_ms_p50": 33245.5,
+    "latency_ms_p95": 38467,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": 1581.375,
+    "cache_read_tokens_mean": 6697.25,
+    "cache_write_tokens_mean": 956.75,
+    "output_tokens_mean": 2033,
+    "cost_usd_total": 0.6533778,
+    "retries": 0
+   },
+   {
+    "task": "write_cover_letter",
+    "calls": 16,
+    "latency_ms_p50": 10111,
+    "latency_ms_p95": 12144.5,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": 3190.4375,
+    "cache_read_tokens_mean": 2941.75,
+    "cache_write_tokens_mean": 420.25,
+    "output_tokens_mean": 389.125,
+    "cost_usd_total": 0.2858664,
+    "retries": 0
+   },
+   {
+    "task": "write_email",
+    "calls": 22,
+    "latency_ms_p50": 5351,
+    "latency_ms_p95": 7097.8,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": 1601.9545454545455,
+    "cache_read_tokens_mean": 1871.8181818181818,
+    "cache_write_tokens_mean": 187.1818181818182,
+    "output_tokens_mean": 197.22727272727272,
+    "cost_usd_total": 0.1986105,
+    "retries": 0
+   },
+   {
+    "task": "write_follow_up_email",
+    "calls": 24,
+    "latency_ms_p50": 4789.5,
+    "latency_ms_p95": 6586.5,
+    "clean_latency_ms_p50": null,
+    "clean_latency_ms_p95": null,
+    "clean_n": 0,
+    "input_tokens_mean": 1876.2916666666667,
+    "cache_read_tokens_mean": 1016.7916666666666,
+    "cache_write_tokens_mean": 44.208333333333336,
+    "output_tokens_mean": 182.33333333333334,
+    "cost_usd_total": 0.21203265,
+    "retries": 0
+   }
+  ]
+ },
+ "details": [
+  {
+   "case_id": "syn-04",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Hiring Manager"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: Hiring Team; CV"
+    },
+    {
+     "id": "F6",
+     "task": "write_follow_up_email",
+     "detail": "entity candidates: Hiring Team"
+    },
+    {
+     "id": "F4",
+     "task": "write_follow_up_email",
+     "detail": "mentions requirement(s) the CV does not support: Onboarding"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 22 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "fit_assessment",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Stakeholder presentations"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Parent and client communication"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Progress tracking and reporting"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-03",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "write_cover_letter",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Manager; Hiring Manager"
+    },
+    {
+     "id": "F4",
+     "task": "write_cover_letter",
+     "detail": "mentions requirement(s) the CV does not support: Lifecycle marketing; Customer lifecycle marketing; Renewal marketing"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: Elastic. My CV"
+    },
+    {
+     "id": "F8",
+     "task": "write_follow_up_email",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F4",
+     "task": "write_follow_up_email",
+     "detail": "mentions requirement(s) the CV does not support: Integrated demand generation; Webinars"
+    },
+    {
+     "id": "F8",
+     "task": "fit_assessment",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F2",
+     "task": "optimize_cv",
+     "detail": "degree not in CV: Bachelor of Arts in Communications"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-02",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "write_cover_letter",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Manager; Hiring Manager"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: QA-ing; Datadog. My CV"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 68 not in the CV or the ad"
+    },
+    {
+     "id": "F2",
+     "task": "optimize_cv",
+     "detail": "degree not in CV: Bachelor of Arts in Communications"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-01",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Manager; Hiring Manager"
+    },
+    {
+     "id": "F4",
+     "task": "write_cover_letter",
+     "detail": "mentions requirement(s) the CV does not support: End-to-end event logistics and execution"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: CV"
+    },
+    {
+     "id": "F8",
+     "task": "write_follow_up_email",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F8",
+     "task": "fit_assessment",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F2",
+     "task": "optimize_cv",
+     "detail": "degree not in CV: Bachelor of Arts in Communications"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-05",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F18",
+     "task": "write_email",
+     "detail": "Application email subject was empty or exceeded 60 characters"
+    },
+    {
+     "id": "F18",
+     "task": "write_follow_up_email",
+     "detail": "Follow-up email subject was empty or exceeded 60 characters"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: November"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 30 not in the CV or the ad"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Stakeholder Presentations"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Instructional Planning"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-06",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: CV"
+    },
+    {
+     "id": "F6",
+     "task": "write_follow_up_email",
+     "detail": "entity candidates: Up"
+    },
+    {
+     "id": "F4",
+     "task": "write_follow_up_email",
+     "detail": "mentions requirement(s) the CV does not support: Program management"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 28 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "optimize_cv",
+     "detail": "number 15 not in the CV or the ad"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Instructional content development"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Adult learning delivery"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Parent and senior leadership communication"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Multi-audience presentation"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Progress reporting"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Metrics tracking and analysis"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-08",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: JVM-based"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: CV"
+    },
+    {
+     "id": "F6",
+     "task": "write_follow_up_email",
+     "detail": "entity candidates: Up"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 74 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "fit_assessment",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F2",
+     "task": "optimize_cv",
+     "detail": "degree not in CV: Bachelor of Science"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: service decomposition"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: on-call ownership"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-07",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Manager; Hiring Manager; RFC"
+    },
+    {
+     "id": "F4",
+     "task": "write_cover_letter",
+     "detail": "mentions requirement(s) the CV does not support: Rust; RFC and design review"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: JVM; CV"
+    },
+    {
+     "id": "F4",
+     "task": "write_email",
+     "detail": "mentions requirement(s) the CV does not support: Rust"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 28 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "fit_assessment",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F2",
+     "task": "optimize_cv",
+     "detail": "degree not in CV: Bachelor of Science"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-11",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Hiring Manager"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: CV"
+    },
+    {
+     "id": "F6",
+     "task": "write_follow_up_email",
+     "detail": "entity candidates: Up"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 68 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "fit_assessment",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F2",
+     "task": "optimize_cv",
+     "detail": "degree not in CV: Bachelor of Science in Finance"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Dashboard Development"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-09",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Manager; Hiring Manager"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: CV"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 88 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "fit_assessment",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F2",
+     "task": "optimize_cv",
+     "detail": "title not in CV: Planned Family Caregiving Leave"
+    },
+    {
+     "id": "F2",
+     "task": "optimize_cv",
+     "detail": "degree not in CV: Bachelor of Science in Computer Science"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-10",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "write_cover_letter",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Manager; Hiring Manager"
+    },
+    {
+     "id": "F4",
+     "task": "write_cover_letter",
+     "detail": "mentions requirement(s) the CV does not support: Elasticsearch; Search relevance; Lucene"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: CV"
+    },
+    {
+     "id": "F4",
+     "task": "write_follow_up_email",
+     "detail": "mentions requirement(s) the CV does not support: Elasticsearch; Search algorithms"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 38 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "fit_assessment",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F2",
+     "task": "optimize_cv",
+     "detail": "title not in CV: Full-Time Family Caregiver"
+    },
+    {
+     "id": "F2",
+     "task": "optimize_cv",
+     "detail": "degree not in CV: Bachelor of Science"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-12",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "write_cover_letter",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F4",
+     "task": "write_cover_letter",
+     "detail": "mentions requirement(s) the CV does not support: Cloud billing analysis"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: Excel VBA. My CV"
+    },
+    {
+     "id": "F4",
+     "task": "write_follow_up_email",
+     "detail": "mentions requirement(s) the CV does not support: Vendor spend analysis; Cloud and AI vendor spend"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 47 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "fit_assessment",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F2",
+     "task": "optimize_cv",
+     "detail": "degree not in CV: Bachelor of Science in Finance"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Dashboard Development"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-13",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: CV"
+    },
+    {
+     "id": "F6",
+     "task": "write_follow_up_email",
+     "detail": "entity candidates: Up; JD"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 32 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "fit_assessment",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F2",
+     "task": "optimize_cv",
+     "detail": "degree not in CV: Bachelor of Science in Finance"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Dashboard Development"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-14",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "jd_only_number 12"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "write_cover_letter",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F4",
+     "task": "write_cover_letter",
+     "detail": "mentions requirement(s) the CV does not support: Program management; Workplace operations; Global program management"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: CV"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 22 not in the CV or the ad"
+    },
+    {
+     "id": "F8",
+     "task": "fit_assessment",
+     "detail": "Oxford comma pattern"
+    },
+    {
+     "id": "F2",
+     "task": "optimize_cv",
+     "detail": "degree not in CV: Bachelor of Science"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: VBA Automation"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-15",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Damen; Herren; Produkte; Lösungen; Probleme. Das; Grundlage"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: Damen; Herren; Kontakt; Angebot; Vertriebsstil; Bereich"
+    },
+    {
+     "id": "F6",
+     "task": "write_follow_up_email",
+     "detail": "entity candidates: Damen; Herren; Tagen; Bewerbung; Interesse; Ansatz"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 28 not in the CV or the ad"
+    },
+    {
+     "id": "F2",
+     "task": "optimize_cv",
+     "detail": "degree not in CV: Bachelor of Engineering"
+    }
+   ]
+  },
+  {
+   "case_id": "syn-16",
+   "origin": "synthetic",
+   "rep": 1,
+   "findings": [
+    {
+     "id": "F7",
+     "task": "write_cover_letter",
+     "detail": "0 em dash, 2 spaced en dash in raw output"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 12 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "write_cover_letter",
+     "detail": "number 2026 not in the CV or the ad"
+    },
+    {
+     "id": "F6",
+     "task": "write_cover_letter",
+     "detail": "entity candidates: Damen; Herren; Versicherer; Problem; Ablehnungsquote; Kostenplänen"
+    },
+    {
+     "id": "F6",
+     "task": "write_email",
+     "detail": "entity candidates: Damen; Herren; Stelle; Perspektive; Seiten; Bewerbungsunterlagen"
+    },
+    {
+     "id": "F6",
+     "task": "write_follow_up_email",
+     "detail": "entity candidates: Damen; Herren; Tagen; Bewerbung; Leistungssachbearbeiterin; Wert"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 72 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 8 not in the CV or the ad"
+    },
+    {
+     "id": "F1",
+     "task": "fit_assessment",
+     "detail": "number 3 not in the CV or the ad"
+    },
+    {
+     "id": "F10",
+     "task": "fit_assessment",
+     "detail": "informal du-form address"
+    },
+    {
+     "id": "F2",
+     "task": "optimize_cv",
+     "detail": "degree not in CV: Berufsschulabschluss Zahnmedizinische Fachangestellte"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Krankenkassen- und Versichererkommunikation"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Patientenkommunikation (telefonisch und schriftlich)"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Strukturiertes und präzises Arbeiten"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Teamfähigkeit"
+    },
+    {
+     "id": "F3",
+     "task": "optimize_cv",
+     "detail": "skill not in CV: Priorisierung"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,528 @@
+{
+ "case_id": "syn-02",
+ "rep": 1,
+ "arm": "sonnet55-low",
+ "detectedLanguage": "en",
+ "applicant": {
+  "name": "Maya Linden",
+  "email": "maya.linden@example.com",
+  "phone": "+1 555 0142",
+  "address": "Portland, OR, USA",
+  "headline": "Marketing graduate",
+  "skills": [
+   "copywriting",
+   "basic Adobe Photoshop",
+   "Google Analytics (basic)"
+  ],
+  "tools": [
+   "Canva",
+   "CapCut",
+   "basic Adobe Photoshop",
+   "Instagram",
+   "TikTok",
+   "Mailchimp",
+   "Hootsuite",
+   "Google Analytics (basic)",
+   "Instagram Insights",
+   "Excel"
+  ],
+  "languages": [
+   "English (native)",
+   "Spanish (conversational)"
+  ],
+  "experiences": [
+   {
+    "company": "Harbor Street Pet Supply",
+    "title": "Marketing Intern",
+    "startDate": "Jun 2025",
+    "endDate": "Sep 2025",
+    "bullets": [
+     "Wrote and scheduled 3 Instagram posts and 1 newsletter per week",
+     "Grew the newsletter list from 640 to 1,150 subscribers over the summer by adding a sign-up QR code at the till",
+     "Helped plan a weekend adoption event that brought in about 300 visitors"
+    ]
+   },
+   {
+    "company": "Westbrook Film Society",
+    "title": "Social Media Lead",
+    "startDate": "Sep 2022",
+    "endDate": "Jun 2025",
+    "bullets": [
+     "Ran the society's Instagram and TikTok accounts and trained two new volunteers",
+     "Raised average ticket sales for screenings from 35 to 60 per event through a weekly \"pick of the week\" reel"
+    ]
+   },
+   {
+    "company": "Corner Bean Cafe",
+    "title": "Barista",
+    "startDate": "Jun 2021",
+    "endDate": "Aug 2024",
+    "bullets": [
+     "Served up to 150 customers per shift and trained 4 new colleagues"
+    ]
+   }
+  ],
+  "certifications": [
+   "Google Analytics for Beginners (2024)",
+   "HubSpot Content Marketing course (2024)"
+  ]
+ },
+ "job": {
+  "title": "Marketing Operations Associate",
+  "companyName": "Datadog",
+  "location": "Singapore, Singapore",
+  "workType": "Hybrid",
+  "requiredSkills": [
+   "1+ year(s) of marketing experience, ideally in a B2B technology environment",
+   "Bachelor's degree in Marketing or related field",
+   "Interest in learning about marketing automation and reporting tools",
+   "Detail-oriented",
+   "Self-starter",
+   "Able to thrive in a dynamic environment",
+   "Strong verbal and written communication",
+   "Ability to collaborate effectively",
+   "Ability to manage multiple projects with multiple stakeholders simultaneously",
+   "Ability to meet tight deadlines without compromising quality",
+   "Positive, can-do attitude",
+   "Analytical mindset",
+   "Marketo",
+   "Email quality assurance",
+   "Audience segmentation",
+   "Campaign performance reporting",
+   "Problem solving",
+   "Strategic thinking",
+   "Email marketing compliance knowledge"
+  ],
+  "niceToHaveSkills": [
+   "Experience with Marketing Automation Platforms (Marketo, Eloqua, HubSpot, Salesforce Marketing Cloud)",
+   "Experience with CRM systems (Salesforce)",
+   "Knowledge of HTML",
+   "Strong analytical skills",
+   "Comfortable with Excel"
+  ],
+  "responsibilities": [
+   "Develop and execute emails in Marketo in collaboration with Demand Generation, Field Marketing, Partner Marketing, Product, and Sponsored Events teams; provide flawless quality assurance on email creative, copy, and links",
+   "Support the operational development and execution of multi-channel campaigns (excludes copywriting, content creation, or creative design)",
+   "Segment lead database to build targeted audiences for promotional activities",
+   "Report on campaign performance to identify trends and provide recommendations for ongoing optimization",
+   "Collaborate with cross-functional teams to understand campaign plans and provide guidance on digital marketing best practices and automation capabilities",
+   "Identify and escalate email calendar conflicts, audience overlap, and gaps in campaign strategy against department goals",
+   "Stay informed about the latest compliance and legal developments in email marketing and ensure adherence"
+  ]
+ },
+ "match": {
+  "score": 57,
+  "matchedRequirements": [
+   "1+ year(s) of marketing experience, ideally in a B2B technology environment",
+   "Bachelor's degree in Marketing or related field",
+   "Interest in learning about marketing automation and reporting tools",
+   "Detail-oriented",
+   "Self-starter",
+   "Able to thrive in a dynamic environment",
+   "Strong verbal and written communication",
+   "Ability to collaborate effectively",
+   "Ability to manage multiple projects with multiple stakeholders simultaneously",
+   "Ability to meet tight deadlines without compromising quality",
+   "Positive, can-do attitude",
+   "Analytical mindset",
+   "Campaign performance reporting",
+   "Problem solving",
+   "Strategic thinking",
+   "Experience with Marketing Automation Platforms (Marketo, Eloqua, HubSpot, Salesforce Marketing Cloud)",
+   "Strong analytical skills",
+   "Comfortable with Excel"
+  ],
+  "claimableEvidence": [
+   "Marketing Intern | Harbor Street Pet Supply",
+   "B.A. Communications, minor in Psychology",
+   "Instagram Insights",
+   "HubSpot Content Marketing course",
+   "Excel"
+  ],
+  "missingSkills": [
+   "Marketo",
+   "Email quality assurance",
+   "Audience segmentation",
+   "Email marketing compliance knowledge",
+   "Experience with CRM systems (Salesforce)",
+   "Knowledge of HTML"
+  ],
+  "details": [
+   {
+    "requirement": "1+ year(s) of marketing experience, ideally in a B2B technology environment",
+    "evidence": "Marketing Intern | Harbor Street Pet Supply",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Bachelor's degree in Marketing or related field",
+    "evidence": "B.A. Communications, minor in Psychology",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Interest in learning about marketing automation and reporting tools",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Detail-oriented",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Self-starter",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Able to thrive in a dynamic environment",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Strong verbal and written communication",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Ability to collaborate effectively",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Ability to manage multiple projects with multiple stakeholders simultaneously",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Ability to meet tight deadlines without compromising quality",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Positive, can-do attitude",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Analytical mindset",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Marketo",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Email quality assurance",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Audience segmentation",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Campaign performance reporting",
+    "evidence": "Instagram Insights",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Problem solving",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Strategic thinking",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Email marketing compliance knowledge",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Experience with Marketing Automation Platforms (Marketo, Eloqua, HubSpot, Salesforce Marketing Cloud)",
+    "evidence": "HubSpot Content Marketing course",
+    "tier": 2,
+    "claimable": true,
+    "required": false
+   },
+   {
+    "requirement": "Experience with CRM systems (Salesforce)",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Knowledge of HTML",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Strong analytical skills",
+    "tier": "implicit",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Comfortable with Excel",
+    "evidence": "Excel",
+    "tier": 1,
+    "claimable": true,
+    "required": false
+   }
+  ]
+ },
+ "verifiedMetrics": [
+  "two years running the social channels of a student society",
+  "one marketing internship",
+  "1 newsletter per week",
+  "trained two new volunteers",
+  "served up to 150 customers per shift",
+  "trained 4 new colleagues",
+  "Google Analytics for Beginners (2024)",
+  "HubSpot Content Marketing course (2024)"
+ ],
+ "fitAnalysis": {
+  "fitLevel": "fair",
+  "score": 57,
+  "assessment": "Your 57% match is a Fair Fit for this Marketing Operations Associate role.\n\n**Strengths:**\n- B.A. Communications plus Marketing Intern experience at Harbor Street Pet Supply\n- Excel, Instagram Insights, and Google Analytics (basic) for campaign reporting\n- HubSpot Content Marketing course shows early marketing automation exposure\n\n**Gaps:**\n- No Marketo experience, the core platform for this role\n- No email QA, audience segmentation, or compliance knowledge\n- No Salesforce CRM or HTML skills\n\n**Recommendation:** Apply now, but first complete a Marketo or HubSpot email certification and highlight your Mailchimp email work and reporting in your cover letter.",
+  "matchingSkills": [
+   "1+ year(s) of marketing experience, ideally in a B2B technology environment",
+   "Bachelor's degree in Marketing or related field",
+   "Interest in learning about marketing automation and reporting tools",
+   "Detail-oriented",
+   "Self-starter",
+   "Able to thrive in a dynamic environment",
+   "Strong verbal and written communication",
+   "Ability to collaborate effectively",
+   "Ability to manage multiple projects with multiple stakeholders simultaneously",
+   "Ability to meet tight deadlines without compromising quality",
+   "Positive, can-do attitude",
+   "Analytical mindset",
+   "Campaign performance reporting",
+   "Problem solving",
+   "Strategic thinking",
+   "Experience with Marketing Automation Platforms (Marketo, Eloqua, HubSpot, Salesforce Marketing Cloud)",
+   "Strong analytical skills",
+   "Comfortable with Excel"
+  ],
+  "missingSkills": [
+   "Marketo",
+   "Email quality assurance",
+   "Audience segmentation",
+   "Email marketing compliance knowledge",
+   "Experience with CRM systems (Salesforce)",
+   "Knowledge of HTML"
+  ]
+ },
+ "optimizedCVData": {
+  "personal": {
+   "fullName": "Maya Linden",
+   "email": "maya.linden@example.com",
+   "phone": "+1 555 0142",
+   "currentTitle": "Marketing Associate | Email and Social Content | Campaign Reporting",
+   "city": "Portland, OR",
+   "country": "USA",
+   "linkedIn": "linkedin.com/in/maya-linden-example"
+  },
+  "summary": "Communications graduate (B.A., minor in Psychology) with a marketing internship at Harbor Street Pet Supply and two years running the social channels of a student society. Experienced in planning and sending a weekly newsletter, growing its subscriber list from 640 to 1,150, and tracking results with Instagram Insights and Excel. Holds the HubSpot Content Marketing course and Google Analytics for Beginners certificates. Looking for a first full-time marketing role where careful, deadline-driven work with several stakeholders matters.",
+  "experience": [
+   {
+    "id": "exp-1",
+    "company": "Harbor Street Pet Supply",
+    "position": "Marketing Intern",
+    "location": "Portland, OR",
+    "startDate": "Jun 2025",
+    "endDate": "Sep 2025",
+    "current": false,
+    "bullets": [
+     "Grew the newsletter list from 640 to 1,150 subscribers over the summer by adding a sign-up QR code at the till",
+     "Wrote and scheduled 3 Instagram posts and 1 newsletter per week, keeping a steady publishing calendar alongside event work",
+     "Helped plan a weekend adoption event that brought in about 300 visitors",
+     "Reviewed Instagram Insights to see which content people responded to and shaped later posts around it"
+    ],
+    "technologies": [
+     "Instagram Insights",
+     "Excel"
+    ]
+   },
+   {
+    "id": "exp-2",
+    "company": "Westbrook Film Society",
+    "position": "Social Media Lead",
+    "location": "Westbrook University",
+    "startDate": "Sep 2022",
+    "endDate": "Jun 2025",
+    "current": false,
+    "bullets": [
+     "Raised average ticket sales for screenings from 35 to 60 per event through a weekly \"pick of the week\" reel",
+     "Ran the society's Instagram and TikTok accounts for two years and trained two new volunteers",
+     "Balanced content planning with coursework, delivering to a weekly screening schedule"
+    ],
+    "technologies": [
+     "Instagram",
+     "TikTok",
+     "Canva",
+     "CapCut"
+    ]
+   },
+   {
+    "id": "exp-3",
+    "company": "Corner Bean Cafe",
+    "position": "Barista",
+    "startDate": "Jun 2021",
+    "endDate": "Aug 2024",
+    "current": false,
+    "bullets": [
+     "Served up to 150 customers per shift and trained 4 new colleagues in a fast-paced setting"
+    ],
+    "technologies": []
+   }
+  ],
+  "education": [
+   {
+    "id": "edu-1",
+    "institution": "Westbrook University",
+    "degree": "B.A. Communications, minor in Psychology",
+    "startDate": "Sep 2021",
+    "endDate": "Jun 2025",
+    "grade": "3.6 GPA",
+    "highlights": [
+     "Thesis: how short-form video changes brand recall among 18 to 24 year olds (survey of 212 students)"
+    ]
+   }
+  ],
+  "skills": [
+   {
+    "category": "Analytics and Reporting",
+    "items": [
+     "Excel",
+     "Google Analytics (basic)",
+     "Instagram Insights"
+    ]
+   },
+   {
+    "category": "Email and Channels",
+    "items": [
+     "Mailchimp",
+     "Instagram",
+     "TikTok",
+     "Hootsuite"
+    ]
+   },
+   {
+    "category": "Content",
+    "items": [
+     "Copywriting",
+     "Canva",
+     "CapCut",
+     "Adobe Photoshop (basic)"
+    ]
+   }
+  ],
+  "languages": [
+   {
+    "language": "English",
+    "proficiency": "Native"
+   },
+   {
+    "language": "Spanish",
+    "proficiency": "Conversational"
+   }
+  ],
+  "certifications": [
+   {
+    "id": "cert-1",
+    "name": "HubSpot Content Marketing course",
+    "issuer": "HubSpot",
+    "date": "2024"
+   },
+   {
+    "id": "cert-2",
+    "name": "Google Analytics for Beginners",
+    "issuer": "Google",
+    "date": "2024"
+   }
+  ],
+  "projects": [],
+  "additionalInfo": [
+   "Location: Portland, OR, USA"
+  ],
+  "analysis": {
+   "summary": "Positioned Maya as an entry-level marketing candidate by leading with her marketing internship, newsletter work and analytics exposure, which match the role's email, reporting and multi-project demands. Only documented tools and verified metrics were used; required skills absent from her documents were left out.",
+   "key_changes": [
+    "Rewrote the headline around email, social content and campaign reporting, which are documented in her CV",
+    "Led the experience section with the Marketing Intern role and its newsletter and event work",
+    "Kept the verified figures from her CV (640 to 1,150 subscribers, 35 to 60 tickets per event, about 300 visitors) in the bullets",
+    "Moved Excel, Google Analytics (basic) and Instagram Insights to the front of the skills list for the reporting focus",
+    "Kept Mailchimp and HubSpot Content Marketing course as the documented email and marketing platform evidence",
+    "Reduced the barista role to one bullet to show reliability, training others and working under pressure"
+   ],
+   "ats_compatibility": 62,
+   "missing_keywords_added": [
+    "Excel",
+    "Instagram Insights",
+    "HubSpot Content Marketing course",
+    "Mailchimp",
+    "Google Analytics (basic)"
+   ]
+  },
+  "sectionHeaders": {
+   "summary": "Professional Summary",
+   "skills": "Skills",
+   "experience": "Professional Experience",
+   "education": "Education",
+   "certifications": "Certifications",
+   "languages": "Languages",
+   "contact": "Contact",
+   "additionalInfo": "Additional Information",
+   "projects": "Projects"
+  },
+  "localizedStrings": {
+   "present": "Present",
+   "gradePrefix": "GPA:",
+   "degreeConnector": "in",
+   "dateOfBirthLabel": "Date of Birth",
+   "nationalityLabel": "Nationality",
+   "photoPlaceholder": "Photo",
+   "websiteLabel": "Website",
+   "signatureLabel": "Signature",
+   "cityLabel": "City",
+   "dateLabel": "Date"
+  }
+ },
+ "coverLetter": "Maya Linden\nPortland, OR, USA\nmaya.linden@example.com\n+1 555 0142\n\nOctober 12, 2026\n\nHiring Manager\nDatadog\n\nDear Hiring Manager,\n\nGrowing an email list is easy to say and hard to do. At Harbor Street Pet Supply, my newsletter list sat at 640 subscribers until I added a sign-up QR code at the till, and it reached 1,150 over one summer. That is the kind of practical, measurable fix your Campaign Operations team needs as it supports the growing APJ Marketing team.\n\nAs a Marketing Intern, I wrote and scheduled one newsletter a week in Mailchimp and checked every link and line of copy before it went out, which taught me how much a small error costs an email program. I also ran the Westbrook Film Society's social channels for two years, and I used Instagram Insights and Excel to see what lifted screening attendance from 35 to 60 per event. I haven't worked in Marketo yet, but I've completed the HubSpot Content Marketing course and Google Analytics for Beginners, and I'm keen to learn marketing automation and campaign performance reporting. Working across a global email program with Demand Generation, Field Marketing and Partner Marketing teams calls for the detail-orientation and tight-deadline discipline I built juggling a weekly publishing schedule alongside my studies.\n\nI'd welcome a conversation about how I can support your campaign execution. I'm available to talk at your convenience.\n\nKind regards,\nMaya Linden",
+ "applicationEmail": null,
+ "followUpEmail": {
+  "subject": "Following Up: Marketing Operations Associate, Maya Linden",
+  "body": "Hello,\n\nI applied for the Marketing Operations Associate role last week. I am drawn to how Datadog's marketing operations team works with Demand Generation, Field Marketing and Partner Marketing on Marketo email campaigns. At Harbor Street Pet Supply, I grew the newsletter list from 640 to 1,150 subscribers, which taught me how audience segments and careful email checks drive results. I would welcome the chance to discuss how I can support your campaigns.\n\nBest regards,\nMaya Linden",
+  "recommendedDelay": 5
+ }
+}

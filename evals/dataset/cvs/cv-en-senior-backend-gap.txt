@@ -1,0 +1,36 @@
+Priya Raman
+Senior Backend Engineer
+priya.raman@example.com | +1 555 0176 | Toronto, Canada
+
+PROFILE
+Backend engineer with 11 years of experience building payment and event-processing services in Java, Kotlin and Python. I took a planned career break to care for a family member and I am returning to full-time engineering.
+
+EXPERIENCE
+Career break | Mar 2023 - Apr 2025
+- Full-time family caregiving
+- Kept my skills current by completing two online courses (AWS Solutions Architect Associate prep, Designing Data-Intensive Applications reading group) and contributing small bug fixes to an open-source Kotlin library
+
+Senior Software Engineer | Lumen Payments (fintech, 300 staff) | Feb 2019 - Feb 2023
+- Designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka
+- Cut p99 latency of the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis
+- Led a team of 4 engineers through a 9 month migration from a monolith to 6 services
+- On call for the payments platform and wrote the post-incident reviews for 14 incidents
+
+Software Engineer | Northgate Retail Systems | Aug 2015 - Jan 2019
+- Built order and inventory services in Java and Spring, backed by PostgreSQL and RabbitMQ
+- Introduced contract tests that reduced integration bugs found in staging by about a third
+
+Junior Developer | Brightpath Consulting | Jul 2013 - Jul 2015
+- Delivered internal web tools for two clients in Java and JavaScript
+
+EDUCATION
+B.Sc. Computer Science | University of Waterloo | 2009 - 2013
+
+SKILLS
+Languages: Kotlin, Java, Python, SQL
+Frameworks and data: Spring Boot, PostgreSQL, Redis, Kafka, RabbitMQ
+Cloud and tooling: AWS (EC2, RDS, SQS, S3), Docker, Terraform, GitHub Actions, Datadog
+Practices: API design, event-driven architecture, code review, mentoring
+
+CERTIFICATIONS
+AWS Certified Solutions Architect - Associate (2024)

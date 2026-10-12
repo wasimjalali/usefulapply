@@ -1,0 +1,1 @@
+{"run_id":"eda236c4-bf04-4b1d-9ef5-476d9df14665","case_id":"syn-01","rep":1,"arm":"sonnet46-api","prompt_variant":"production","concurrency":4,"started_at":"2026-10-12T14:44:02.655Z","status":"complete","failures":[],"phases":{"parse_cv_ms":19775,"fit_flow_ms":22286,"gen_flow_ms":53710,"kit_ms":95771},"calls":11,"mode":"chain","inputs_from":null}

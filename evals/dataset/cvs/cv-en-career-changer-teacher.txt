@@ -1,0 +1,34 @@
+Daniel Okafor
+Physics teacher moving into customer education and success
+daniel.okafor@example.org | +44 20 5550 0188 | Leeds, UK
+
+PROFILE
+Secondary school physics teacher with 8 years in the classroom, looking to move into a customer-facing role where explaining complex things clearly is the job. I have built and delivered training for adults, I am comfortable with data and I have started learning Python on my own.
+
+EXPERIENCE
+Teacher of Physics and Head of Year 9 | Ashgrove Academy, Leeds | Sep 2018 - Present
+- Teach physics to about 140 students a year across Years 9 to 13
+- Raised the share of Year 11 students reaching grade 5 or above from 71% to 86% over three years
+- Wrote the department's Year 9 practical curriculum and trained 12 colleagues to use it
+- Run weekly parent calls and two parents' evenings a term for a year group of 210 students
+- Track student progress in spreadsheets and present results to senior leadership each term
+
+Science Teacher | Millbank Secondary School, Bradford | Sep 2016 - Aug 2018
+- Taught KS3 and KS4 science, and coached the school robotics club (6 students)
+
+Volunteer coding mentor | Code Club (evenings) | Jan 2023 - Present
+- Mentor 8 children aged 9 to 12 on Scratch and introductory Python
+
+EDUCATION
+PGCE Secondary Science | University of Sheffield | 2015 - 2016
+MSci Physics | University of Manchester | 2011 - 2015
+
+SKILLS
+Teaching and training: curriculum design, workshop facilitation, one-to-one coaching
+Data: Excel (pivot tables, lookups), Google Sheets, basic Python (pandas for simple analysis)
+Tools: Google Workspace, Microsoft Teams, Notion
+Languages: English (native), French (school level)
+
+CERTIFICATIONS
+Python for Everybody (Coursera, 2024)
+Google Data Analytics Certificate (in progress)

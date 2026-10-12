@@ -1,0 +1,441 @@
+{
+ "run": "2026-10-12-sonnet-eval",
+ "mode": "fixed",
+ "note": "B arms ran only the writing tasks on arm A analysis; their cost, tokens and latency cover those tasks (plus parse_cv), not the full kit.",
+ "arms": {
+  "sonnet-4.6": {
+   "dir": "sonnet46-api",
+   "deterministic_present": true,
+   "kits_scored": 30,
+   "deterministic_fabrication_findings_per_kit": 6.533333333333333,
+   "deterministic_failure_counts": {
+    "F1": 30,
+    "F8": 23,
+    "F6": 29,
+    "F2": 25,
+    "F18": 3,
+    "F4": 7,
+    "F7": 10,
+    "F3": 17,
+    "F9": 6
+   },
+   "latency_clean_kit": {
+    "n": 20,
+    "kit_ms_p50": 102306.5,
+    "kit_ms_p95": 178057.45
+   },
+   "latency_clean_per_task": [
+    {
+     "task": "parse_cv",
+     "n": 20,
+     "p50_ms": 21600.5,
+     "p95_ms": 42446.95
+    },
+    {
+     "task": "extract_applicant",
+     "n": 20,
+     "p50_ms": 8069.5,
+     "p95_ms": 45083.65
+    },
+    {
+     "task": "parse_job",
+     "n": 20,
+     "p50_ms": 11118.5,
+     "p95_ms": 16260.4
+    },
+    {
+     "task": "skill_matching",
+     "n": 20,
+     "p50_ms": 16062,
+     "p95_ms": 27622.700000000008
+    },
+    {
+     "task": "extract_metrics",
+     "n": 20,
+     "p50_ms": 4881,
+     "p95_ms": 20691.250000000004
+    },
+    {
+     "task": "fit_assessment",
+     "n": 20,
+     "p50_ms": 5547.5,
+     "p95_ms": 8017.750000000001
+    },
+    {
+     "task": "optimize_cv",
+     "n": 20,
+     "p50_ms": 36787,
+     "p95_ms": 69870.3
+    },
+    {
+     "task": "write_cover_letter",
+     "n": 20,
+     "p50_ms": 10049.5,
+     "p95_ms": 16972.5
+    },
+    {
+     "task": "write_email",
+     "n": 24,
+     "p50_ms": 5981,
+     "p95_ms": 7811.599999999999
+    },
+    {
+     "task": "write_follow_up_email",
+     "n": 39,
+     "p50_ms": 5193,
+     "p95_ms": 6738.900000000001
+    }
+   ],
+   "tokens_per_kit": {
+    "input": 44580.53333333333,
+    "output": 9318.666666666666,
+    "cache_read": 16279.5,
+    "cache_write": 0
+   },
+   "cost_usd_per_kit": 0.27840545,
+   "calls": 337,
+   "refusal_rate": 0,
+   "truncation_rate": 0,
+   "failed_call_rate": 0
+  },
+  "5.5-low": {
+   "dir": "sonnet55-low__on-sonnet46-api",
+   "deterministic_present": true,
+   "kits_scored": 30,
+   "deterministic_fabrication_findings_per_kit": 3.966666666666667,
+   "deterministic_failure_counts": {
+    "F1": 30,
+    "F6": 30,
+    "F4": 12,
+    "F8": 6,
+    "F12": 2,
+    "F14": 2,
+    "F18": 4,
+    "F2": 12,
+    "F9": 6,
+    "F3": 5
+   },
+   "latency_clean_kit": {
+    "n": 0,
+    "kit_ms_p50": null,
+    "kit_ms_p95": null
+   },
+   "latency_clean_per_task": [
+    {
+     "task": "parse_cv",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    },
+    {
+     "task": "extract_applicant",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    },
+    {
+     "task": "parse_job",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    },
+    {
+     "task": "skill_matching",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    },
+    {
+     "task": "extract_metrics",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    },
+    {
+     "task": "fit_assessment",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    },
+    {
+     "task": "optimize_cv",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    },
+    {
+     "task": "write_cover_letter",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    },
+    {
+     "task": "write_email",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    },
+    {
+     "task": "write_follow_up_email",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    }
+   ],
+   "tokens_per_kit": {
+    "input": 33944.5,
+    "output": 6195.133333333333,
+    "cache_read": 20314.166666666668,
+    "cache_write": 1112.9
+   },
+   "cost_usd_per_kit": 0.13668541666666661,
+   "calls": 194,
+   "refusal_rate": 0,
+   "truncation_rate": 0,
+   "failed_call_rate": 0
+  },
+  "5.5-medium": {
+   "dir": "sonnet55-medium__on-sonnet46-api",
+   "deterministic_present": true,
+   "kits_scored": 30,
+   "deterministic_fabrication_findings_per_kit": 3.7,
+   "deterministic_failure_counts": {
+    "F1": 30,
+    "F6": 30,
+    "F4": 9,
+    "F12": 2,
+    "F14": 2,
+    "F18": 4,
+    "F8": 5,
+    "F9": 6,
+    "F2": 11,
+    "F17": 1,
+    "F3": 5
+   },
+   "latency_clean_kit": {
+    "n": 0,
+    "kit_ms_p50": null,
+    "kit_ms_p95": null
+   },
+   "latency_clean_per_task": [
+    {
+     "task": "parse_cv",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    },
+    {
+     "task": "extract_applicant",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    },
+    {
+     "task": "parse_job",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    },
+    {
+     "task": "skill_matching",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    },
+    {
+     "task": "extract_metrics",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    },
+    {
+     "task": "fit_assessment",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    },
+    {
+     "task": "optimize_cv",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    },
+    {
+     "task": "write_cover_letter",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    },
+    {
+     "task": "write_email",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    },
+    {
+     "task": "write_follow_up_email",
+     "n": 0,
+     "p50_ms": null,
+     "p95_ms": null
+    }
+   ],
+   "tokens_per_kit": {
+    "input": 33156.833333333336,
+    "output": 7143.166666666667,
+    "cache_read": 20070.566666666666,
+    "cache_write": 1161.8333333333333
+   },
+   "cost_usd_per_kit": 0.14466403,
+   "calls": 192,
+   "refusal_rate": 0,
+   "truncation_rate": 0,
+   "failed_call_rate": 0
+  }
+ },
+ "comparisons": [
+  {
+   "name": "4.6 vs 5.5-low",
+   "a": "sonnet46-api",
+   "b": "sonnet55-low__on-sonnet46-api",
+   "judged_pairs": 0,
+   "judged_kits": 0,
+   "by_doc_type": {
+    "cv": {
+     "n": 0,
+     "a_wins": 0,
+     "ties": 0,
+     "b_wins": 0,
+     "passes_disagreed": 0
+    },
+    "cover_letter": {
+     "n": 0,
+     "a_wins": 0,
+     "ties": 0,
+     "b_wins": 0,
+     "passes_disagreed": 0
+    },
+    "email": {
+     "n": 0,
+     "a_wins": 0,
+     "ties": 0,
+     "b_wins": 0,
+     "passes_disagreed": 0
+    },
+    "follow_up": {
+     "n": 0,
+     "a_wins": 0,
+     "ties": 0,
+     "b_wins": 0,
+     "passes_disagreed": 0
+    },
+    "fit": {
+     "n": 0,
+     "a_wins": 0,
+     "ties": 0,
+     "b_wins": 0,
+     "passes_disagreed": 0
+    }
+   },
+   "judge_fabrications_per_kit": {
+    "a": null,
+    "b": null
+   }
+  },
+  {
+   "name": "4.6 vs 5.5-medium",
+   "a": "sonnet46-api",
+   "b": "sonnet55-medium__on-sonnet46-api",
+   "judged_pairs": 150,
+   "judged_kits": 30,
+   "by_doc_type": {
+    "cv": {
+     "n": 30,
+     "a_wins": 0,
+     "ties": 0,
+     "b_wins": 30,
+     "passes_disagreed": 0
+    },
+    "cover_letter": {
+     "n": 30,
+     "a_wins": 2,
+     "ties": 0,
+     "b_wins": 28,
+     "passes_disagreed": 0
+    },
+    "email": {
+     "n": 30,
+     "a_wins": 9,
+     "ties": 5,
+     "b_wins": 16,
+     "passes_disagreed": 5
+    },
+    "follow_up": {
+     "n": 30,
+     "a_wins": 4,
+     "ties": 2,
+     "b_wins": 24,
+     "passes_disagreed": 1
+    },
+    "fit": {
+     "n": 30,
+     "a_wins": 2,
+     "ties": 5,
+     "b_wins": 23,
+     "passes_disagreed": 5
+    }
+   },
+   "judge_fabrications_per_kit": {
+    "a": 16.133333333333333,
+    "b": 5.666666666666667
+   }
+  },
+  {
+   "name": "5.5-low vs 5.5-medium",
+   "a": "sonnet55-low__on-sonnet46-api",
+   "b": "sonnet55-medium__on-sonnet46-api",
+   "judged_pairs": 0,
+   "judged_kits": 0,
+   "by_doc_type": {
+    "cv": {
+     "n": 0,
+     "a_wins": 0,
+     "ties": 0,
+     "b_wins": 0,
+     "passes_disagreed": 0
+    },
+    "cover_letter": {
+     "n": 0,
+     "a_wins": 0,
+     "ties": 0,
+     "b_wins": 0,
+     "passes_disagreed": 0
+    },
+    "email": {
+     "n": 0,
+     "a_wins": 0,
+     "ties": 0,
+     "b_wins": 0,
+     "passes_disagreed": 0
+    },
+    "follow_up": {
+     "n": 0,
+     "a_wins": 0,
+     "ties": 0,
+     "b_wins": 0,
+     "passes_disagreed": 0
+    },
+    "fit": {
+     "n": 0,
+     "a_wins": 0,
+     "ties": 0,
+     "b_wins": 0,
+     "passes_disagreed": 0
+    }
+   },
+   "judge_fabrications_per_kit": {
+    "a": null,
+    "b": null
+   }
+  }
+ ]
+}

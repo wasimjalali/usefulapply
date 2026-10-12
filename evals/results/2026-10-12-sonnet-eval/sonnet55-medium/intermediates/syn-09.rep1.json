@@ -1,0 +1,438 @@
+{
+ "case_id": "syn-09",
+ "rep": 1,
+ "arm": "sonnet55-medium",
+ "detectedLanguage": "en",
+ "applicant": {
+  "name": "Priya Raman",
+  "email": "priya.raman@example.com",
+  "phone": "+1 555 0176",
+  "address": "Toronto, Canada",
+  "headline": "Senior Backend Engineer",
+  "skills": [
+   "Kotlin",
+   "Java",
+   "Python",
+   "SQL",
+   "API design",
+   "event-driven architecture",
+   "code review",
+   "mentoring"
+  ],
+  "tools": [
+   "Spring Boot",
+   "PostgreSQL",
+   "Redis",
+   "Kafka",
+   "RabbitMQ",
+   "AWS (EC2, RDS, SQS, S3)",
+   "Docker",
+   "Terraform",
+   "GitHub Actions",
+   "Datadog"
+  ],
+  "languages": [],
+  "experiences": [
+   {
+    "company": "Lumen Payments (fintech, 300 staff)",
+    "title": "Senior Software Engineer",
+    "startDate": "Feb 2019",
+    "endDate": "Feb 2023",
+    "bullets": [
+     "Designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka",
+     "Cut p99 latency of the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis",
+     "Led a team of 4 engineers through a 9 month migration from a monolith to 6 services",
+     "On call for the payments platform and wrote the post-incident reviews for 14 incidents"
+    ]
+   },
+   {
+    "company": "Northgate Retail Systems",
+    "title": "Software Engineer",
+    "startDate": "Aug 2015",
+    "endDate": "Jan 2019",
+    "bullets": [
+     "Built order and inventory services in Java and Spring, backed by PostgreSQL and RabbitMQ",
+     "Introduced contract tests that reduced integration bugs found in staging by about a third"
+    ]
+   },
+   {
+    "company": "Brightpath Consulting",
+    "title": "Junior Developer",
+    "startDate": "Jul 2013",
+    "endDate": "Jul 2015",
+    "bullets": [
+     "Delivered internal web tools for two clients in Java and JavaScript"
+    ]
+   }
+  ],
+  "certifications": [
+   "AWS Certified Solutions Architect - Associate (2024)"
+  ]
+ },
+ "job": {
+  "title": "Senior/Software Engineer II, Backend",
+  "companyName": "Duolingo",
+  "location": "New York, NY; Pittsburgh, PA",
+  "requiredSkills": [
+   "Bachelor's degree in Computer Science or a related technical field",
+   "Data structures",
+   "Algorithms",
+   "Software design",
+   "Programming in Java, Python, or Kotlin",
+   "Understanding of one or more database technologies",
+   "Backend engineering fundamentals",
+   "Systems thinking",
+   "Building and operating reliable, scalable systems",
+   "Ownership of complex technical problems from design through production",
+   "Cross-functional collaboration"
+  ],
+  "niceToHaveSkills": [
+   "Industry experience building high-traffic APIs using public cloud providers",
+   "Experience with observability technology such as OpenTelemetry, Grafana, Prometheus, or DataDog"
+  ],
+  "responsibilities": [
+   "Collaborate on software projects with product design and backend aspects",
+   "Develop, release, and maintain backend services and/or infrastructure",
+   "Lead individual project priorities, milestones, and ensure continuous shipping",
+   "Ads team: work on ad serving, mediation and demand, in-product ad formats and surfaces",
+   "Ads team: work cross-functionally with product, design, data science, machine learning, and ad operations",
+   "AI Platform team: develop and maintain tools and services that power the use of AI in the product",
+   "AI Platform team: design systems for managing datasets, evaluating AI model performance, and building AI workflows"
+  ],
+  "expectedSalary": "$182,800-$247,300 USD (base salary, supplemented by equity compensation)"
+ },
+ "match": {
+  "score": 90,
+  "matchedRequirements": [
+   "Bachelor's degree in Computer Science or a related technical field",
+   "Data structures",
+   "Algorithms",
+   "Software design",
+   "Programming in Java, Python, or Kotlin",
+   "Understanding of one or more database technologies",
+   "Backend engineering fundamentals",
+   "Systems thinking",
+   "Building and operating reliable, scalable systems",
+   "Ownership of complex technical problems from design through production",
+   "Cross-functional collaboration",
+   "Industry experience building high-traffic APIs using public cloud providers",
+   "Experience with observability technology such as OpenTelemetry, Grafana, Prometheus, or DataDog"
+  ],
+  "claimableEvidence": [
+   "B.Sc. Computer Science | University of Waterloo | 2009 - 2013",
+   "Designed and ran the settlement service in Kotlin and Spring Boot",
+   "Languages: Kotlin, Java, Python, SQL",
+   "PostgreSQL",
+   "Backend engineer with 11 years of experience building payment and event-processing services",
+   "Designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka",
+   "AWS (EC2, RDS, SQS, S3)",
+   "Datadog"
+  ],
+  "missingSkills": [],
+  "details": [
+   {
+    "requirement": "Bachelor's degree in Computer Science or a related technical field",
+    "evidence": "B.Sc. Computer Science | University of Waterloo | 2009 - 2013",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Data structures",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Algorithms",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Software design",
+    "evidence": "Designed and ran the settlement service in Kotlin and Spring Boot",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Programming in Java, Python, or Kotlin",
+    "evidence": "Languages: Kotlin, Java, Python, SQL",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Understanding of one or more database technologies",
+    "evidence": "PostgreSQL",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Backend engineering fundamentals",
+    "evidence": "Backend engineer with 11 years of experience building payment and event-processing services",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Systems thinking",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Building and operating reliable, scalable systems",
+    "evidence": "Designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Ownership of complex technical problems from design through production",
+    "evidence": "Designed and ran the settlement service in Kotlin and Spring Boot",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Cross-functional collaboration",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Industry experience building high-traffic APIs using public cloud providers",
+    "evidence": "AWS (EC2, RDS, SQS, S3)",
+    "tier": 2,
+    "claimable": true,
+    "required": false
+   },
+   {
+    "requirement": "Experience with observability technology such as OpenTelemetry, Grafana, Prometheus, or DataDog",
+    "evidence": "Datadog",
+    "tier": 1,
+    "claimable": true,
+    "required": false
+   }
+  ]
+ },
+ "verifiedMetrics": [
+  "11 years of experience building payment and event-processing services",
+  "Lumen Payments (fintech, 300 staff)",
+  "Led a team of 4 engineers",
+  "9 month migration from a monolith to 6 services",
+  "post-incident reviews for 14 incidents",
+  "AWS Certified Solutions Architect - Associate (2024)"
+ ],
+ "fitAnalysis": {
+  "fitLevel": "strong",
+  "score": 90,
+  "assessment": "Your 90% match makes you a STRONG FIT for this Backend role at Duolingo.\n\n**Strengths:**\n- Ran Kotlin and Spring Boot settlement service at 40 million events daily\n- B.Sc. Computer Science, University of Waterloo, plus 11 years of backend experience\n- Kafka, AWS (EC2, RDS, SQS, S3) and Datadog match the cloud and observability preferences\n\n**Gaps:**\n- No ad serving or ad mediation experience, which this Ads team role centers on\n- Your most recent listed role ended February 2023\n\n**Recommendation:** Apply now, and in your cover letter connect your high-volume Kafka event processing at Lumen Payments to ad serving and demand workloads.",
+  "matchingSkills": [
+   "Bachelor's degree in Computer Science or a related technical field",
+   "Data structures",
+   "Algorithms",
+   "Software design",
+   "Programming in Java, Python, or Kotlin",
+   "Understanding of one or more database technologies",
+   "Backend engineering fundamentals",
+   "Systems thinking",
+   "Building and operating reliable, scalable systems",
+   "Ownership of complex technical problems from design through production",
+   "Cross-functional collaboration",
+   "Industry experience building high-traffic APIs using public cloud providers",
+   "Experience with observability technology such as OpenTelemetry, Grafana, Prometheus, or DataDog"
+  ],
+  "missingSkills": []
+ },
+ "optimizedCVData": {
+  "personal": {
+   "fullName": "Priya Raman",
+   "email": "priya.raman@example.com",
+   "phone": "+1 555 0176",
+   "currentTitle": "Senior Backend Engineer | Kotlin | Java | Python",
+   "city": "Toronto",
+   "country": "Canada"
+  },
+  "summary": "Backend engineer with 11 years of experience building payment and event-processing services in Java, Kotlin and Python. Designed and ran a Kotlin and Spring Boot settlement service on Kafka, led a team of 4 engineers through a 9 month migration from a monolith to 6 services, and carried on-call ownership for a payments platform. Holds the AWS Certified Solutions Architect - Associate certification and a B.Sc. in Computer Science, and is returning to full-time engineering after a planned career break.",
+  "experience": [
+   {
+    "id": "exp-1",
+    "company": "Lumen Payments (fintech, 300 staff)",
+    "position": "Senior Software Engineer",
+    "startDate": "Feb 2019",
+    "endDate": "Feb 2023",
+    "current": false,
+    "bullets": [
+     "Designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka",
+     "Cut p99 latency of the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis",
+     "Led a team of 4 engineers through a 9 month migration from a monolith to 6 services",
+     "Took on-call responsibility for the payments platform and wrote the post-incident reviews for 14 incidents"
+    ],
+    "technologies": [
+     "Kotlin",
+     "Spring Boot",
+     "Kafka",
+     "PostgreSQL",
+     "Redis"
+    ]
+   },
+   {
+    "id": "exp-2",
+    "company": "Northgate Retail Systems",
+    "position": "Software Engineer",
+    "startDate": "Aug 2015",
+    "endDate": "Jan 2019",
+    "current": false,
+    "bullets": [
+     "Built order and inventory services in Java and Spring, backed by PostgreSQL and RabbitMQ",
+     "Introduced contract tests that reduced integration bugs found in staging by about a third"
+    ],
+    "technologies": [
+     "Java",
+     "Spring",
+     "PostgreSQL",
+     "RabbitMQ"
+    ]
+   },
+   {
+    "id": "exp-3",
+    "company": "Career break",
+    "position": "Career break (family caregiving)",
+    "startDate": "Mar 2023",
+    "endDate": "Apr 2025",
+    "current": false,
+    "bullets": [
+     "Provided full-time family caregiving during a planned career break",
+     "Kept skills current through AWS Solutions Architect Associate prep and a Designing Data-Intensive Applications reading group",
+     "Contributed small bug fixes to an open-source Kotlin library"
+    ],
+    "technologies": [
+     "Kotlin",
+     "AWS"
+    ]
+   }
+  ],
+  "education": [
+   {
+    "id": "edu-1",
+    "institution": "University of Waterloo",
+    "degree": "B.Sc. Computer Science",
+    "startDate": "2009",
+    "endDate": "2013",
+    "highlights": []
+   }
+  ],
+  "skills": [
+   {
+    "category": "Languages",
+    "items": [
+     "Kotlin",
+     "Java",
+     "Python",
+     "SQL"
+    ]
+   },
+   {
+    "category": "Frameworks and Data",
+    "items": [
+     "Spring Boot",
+     "PostgreSQL",
+     "Kafka",
+     "Redis",
+     "RabbitMQ"
+    ]
+   },
+   {
+    "category": "Cloud and Observability",
+    "items": [
+     "AWS (EC2, RDS, SQS, S3)",
+     "Datadog",
+     "Docker",
+     "Terraform",
+     "GitHub Actions"
+    ]
+   },
+   {
+    "category": "Practices",
+    "items": [
+     "API design",
+     "Event-driven architecture",
+     "Code review",
+     "Mentoring"
+    ]
+   }
+  ],
+  "languages": [],
+  "certifications": [
+   {
+    "id": "cert-1",
+    "name": "AWS Certified Solutions Architect - Associate",
+    "issuer": "Amazon Web Services",
+    "date": "2024"
+   }
+  ],
+  "projects": [],
+  "additionalInfo": [
+   "Location: Toronto, Canada"
+  ],
+  "analysis": {
+   "summary": "Positioned Priya as a senior backend engineer with 11 years of experience in payment and event-processing systems, leading with the Kotlin, Java, Python, PostgreSQL and Datadog work that matches the role. The career break is shown transparently, with the skills-maintenance activity documented in the source CV.",
+   "key_changes": [
+    "Rewrote the headline and summary around backend engineering, Kotlin, Java and Python to match the target role",
+    "Reordered skills so languages, databases and Datadog observability appear first",
+    "Kept only verified numbers: 11 years, a team of 4 engineers, a 9 month migration from a monolith to 6 services and 14 post-incident reviews",
+    "Showed the career break honestly, with the certification and open-source Kotlin contributions from the source CV",
+    "Varied bullet structure and verbs to read as one person's voice, and kept the earliest role to a single bullet",
+    "Dropped the Brightpath Consulting role to fit the 3-4 role limit and keep focus on relevant backend work"
+   ],
+   "ats_compatibility": 88,
+   "missing_keywords_added": [
+    "Kotlin",
+    "Java",
+    "Python",
+    "PostgreSQL",
+    "Datadog",
+    "AWS",
+    "Kafka",
+    "API design"
+   ]
+  },
+  "sectionHeaders": {
+   "summary": "Professional Summary",
+   "skills": "Skills",
+   "experience": "Professional Experience",
+   "education": "Education",
+   "certifications": "Certifications",
+   "languages": "Languages",
+   "contact": "Contact",
+   "additionalInfo": "Additional Information",
+   "projects": "Projects"
+  },
+  "localizedStrings": {
+   "present": "Present",
+   "gradePrefix": "GPA:",
+   "degreeConnector": "in",
+   "dateOfBirthLabel": "Date of Birth",
+   "nationalityLabel": "Nationality",
+   "photoPlaceholder": "Photo",
+   "websiteLabel": "Website",
+   "signatureLabel": "Signature",
+   "cityLabel": "City",
+   "dateLabel": "Date"
+  }
+ },
+ "coverLetter": "Priya Raman\nToronto, Canada\npriya.raman@example.com\n+1 555 0176\n\nOctober 12, 2026\n\nHiring Manager\nDuolingo\n\nDear Hiring Manager,\n\nRunning reliable, scalable backend systems for a very large user base starts with fixing the slow paths before users notice them. At Lumen Payments, I cut the p99 latency of our payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis. That's the kind of systems thinking your Ads team needs for ad serving at Duolingo's scale.\n\nAs a Senior Software Engineer, I designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka. I owned it from design through production, including on-call duty and the post-incident reviews for 14 incidents. I also led a team of 4 engineers through a 9 month migration from a monolith to 6 services, working with product stakeholders throughout. My 11 years in Java, Kotlin and Python, my Datadog experience and my AWS Certified Solutions Architect - Associate (2024) map directly to your call for backend fundamentals and observability. After a planned career break to care for a family member, I'm back to full-time engineering and ready to take on complex technical problems.\n\nI'd welcome a conversation about how I can help the Ads team ship and scale. I'm available to talk at your convenience.\n\nKind regards,\nPriya Raman",
+ "applicationEmail": {
+  "subject": "Application: Software Engineer II, Priya Raman",
+  "body": "Hello,\n\nI've spent 11 years building payment and event-processing services, including a Kotlin and Spring Boot settlement service on Kafka that I designed and ran at Lumen Payments. That is the kind of backend work your Software Engineer II role centres on, from building services to releasing and maintaining them. I led a team of 4 engineers through a 9 month migration from a monolith to 6 services, so I'm comfortable owning priorities and shipping steadily. My CV and cover letter are attached, and I'm available to speak any weekday this month.\n\nBest regards,\nPriya Raman"
+ },
+ "followUpEmail": {
+  "subject": "Following Up: Software Engineer II, Backend, Priya Raman",
+  "body": "Hello,\n\nI applied for the Backend role last week and remain very interested. Duolingo's focus on continuous shipping of backend services is what draws me to the team. At Lumen Payments, I cut p99 latency on the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis. I'd welcome the chance to discuss how that approach could help your services.\n\nBest regards,\nPriya Raman",
+  "recommendedDelay": 5
+ }
+}

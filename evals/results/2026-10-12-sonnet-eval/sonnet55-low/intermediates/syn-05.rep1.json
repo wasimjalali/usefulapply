@@ -1,0 +1,429 @@
+{
+ "case_id": "syn-05",
+ "rep": 1,
+ "arm": "sonnet55-low",
+ "detectedLanguage": "en",
+ "applicant": {
+  "name": "Daniel Okafor",
+  "email": "daniel.okafor@example.org",
+  "phone": "+44 20 5550 0188",
+  "address": "Leeds, UK",
+  "headline": "Physics teacher moving into customer education and success",
+  "skills": [
+   "curriculum design",
+   "workshop facilitation",
+   "one-to-one coaching",
+   "Excel (pivot tables, lookups)",
+   "Google Sheets",
+   "basic Python (pandas for simple analysis)"
+  ],
+  "tools": [
+   "Google Workspace",
+   "Microsoft Teams",
+   "Notion"
+  ],
+  "languages": [
+   "English (native)",
+   "French (school level)"
+  ],
+  "experiences": [
+   {
+    "company": "Ashgrove Academy, Leeds",
+    "title": "Teacher of Physics and Head of Year 9",
+    "startDate": "Sep 2018",
+    "endDate": "Present",
+    "bullets": [
+     "Teach physics to about 140 students a year across Years 9 to 13",
+     "Raised the share of Year 11 students reaching grade 5 or above from 71% to 86% over three years",
+     "Wrote the department's Year 9 practical curriculum and trained 12 colleagues to use it",
+     "Run weekly parent calls and two parents' evenings a term for a year group of 210 students",
+     "Track student progress in spreadsheets and present results to senior leadership each term"
+    ]
+   },
+   {
+    "company": "Millbank Secondary School, Bradford",
+    "title": "Science Teacher",
+    "startDate": "Sep 2016",
+    "endDate": "Aug 2018",
+    "bullets": [
+     "Taught KS3 and KS4 science, and coached the school robotics club (6 students)"
+    ]
+   },
+   {
+    "company": "Code Club (evenings)",
+    "title": "Volunteer coding mentor",
+    "startDate": "Jan 2023",
+    "endDate": "Present",
+    "bullets": [
+     "Mentor 8 children aged 9 to 12 on Scratch and introductory Python"
+    ]
+   }
+  ],
+  "certifications": [
+   "Python for Everybody (Coursera, 2024)",
+   "Google Data Analytics Certificate (in progress)"
+  ]
+ },
+ "job": {
+  "title": "Senior Customer Enablement Manager",
+  "companyName": "Figma",
+  "location": "London, England, United Kingdom",
+  "workType": "On-site",
+  "requiredSkills": [
+   "4+ years of experience in Technical Account Management, Technical Customer Success, Customer Success, Customer Enablement, Account Management or a relevant customer-facing role in SaaS",
+   "Excellent communication skills",
+   "Ability to connect with a wide range of customer personas",
+   "Strong product knowledge",
+   "Customer-first, consultative approach to solving challenges and driving adoption",
+   "Track record of driving impactful outcomes",
+   "Adapting to evolving customer needs",
+   "Cross-functional collaboration",
+   "Building trusted relationships with stakeholders",
+   "Customer enablement strategy",
+   "Product adoption",
+   "Training delivery"
+  ],
+  "niceToHaveSkills": [
+   "Experience using Figma or working with design and collaboration tools",
+   "Background in UX/UI, Design Ops, or Frontend Development",
+   "Proficiency in additional languages such as French, Spanish, German"
+  ],
+  "responsibilities": [
+   "Manage the adoption journey for a portfolio of large, strategic customers",
+   "Understand customer goals and success metrics, and use product data to inform proactive engagement strategies that lead to measurable value delivery",
+   "Document proactive engagement strategies as part of high quality, bespoke enablement plans",
+   "Share best practices, use cases, and product expertise to help teams unlock the full value of Figma",
+   "Build trusted relationships with stakeholders across roles and departments, from individual contributors to senior leaders",
+   "Collaborate with Account Executives on account reviews, expansion opportunities, and renewal risk mitigation",
+   "Deliver live and scalable training sessions customized to customer maturity and needs",
+   "Partner cross-functionally with Onboarding Managers, Technical Account Managers, Solutions Consultants, and Industry Advocates to ensure customer success"
+  ]
+ },
+ "match": {
+  "score": 40,
+  "matchedRequirements": [
+   "Excellent communication skills",
+   "Ability to connect with a wide range of customer personas",
+   "Customer-first, consultative approach to solving challenges and driving adoption",
+   "Track record of driving impactful outcomes",
+   "Adapting to evolving customer needs",
+   "Cross-functional collaboration",
+   "Building trusted relationships with stakeholders",
+   "Training delivery",
+   "Experience using Figma or working with design and collaboration tools"
+  ],
+  "claimableEvidence": [
+   "Raised the share of Year 11 students reaching grade 5 or above from 71% to 86% over three years",
+   "trained 12 colleagues to use it",
+   "Notion"
+  ],
+  "missingSkills": [
+   "4+ years of experience in Technical Account Management, Technical Customer Success, Customer Success, Customer Enablement, Account Management or a relevant customer-facing role in SaaS",
+   "Strong product knowledge",
+   "Customer enablement strategy",
+   "Product adoption",
+   "Background in UX/UI, Design Ops, or Frontend Development",
+   "Proficiency in additional languages such as French, Spanish, German"
+  ],
+  "details": [
+   {
+    "requirement": "4+ years of experience in Technical Account Management, Technical Customer Success, Customer Success, Customer Enablement, Account Management or a relevant customer-facing role in SaaS",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Excellent communication skills",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Ability to connect with a wide range of customer personas",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Strong product knowledge",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Customer-first, consultative approach to solving challenges and driving adoption",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Track record of driving impactful outcomes",
+    "evidence": "Raised the share of Year 11 students reaching grade 5 or above from 71% to 86% over three years",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Adapting to evolving customer needs",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Cross-functional collaboration",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Building trusted relationships with stakeholders",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Customer enablement strategy",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Product adoption",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Training delivery",
+    "evidence": "trained 12 colleagues to use it",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Experience using Figma or working with design and collaboration tools",
+    "evidence": "Notion",
+    "tier": 2,
+    "claimable": true,
+    "required": false
+   },
+   {
+    "requirement": "Background in UX/UI, Design Ops, or Frontend Development",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Proficiency in additional languages such as French, Spanish, German",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   }
+  ]
+ },
+ "verifiedMetrics": [
+  "two parents' evenings a term",
+  "year group of 210 students",
+  "weekly parent calls",
+  "Head of Year 9",
+  "robotics club (6 students)",
+  "Mentor 8 children aged 9 to 12",
+  "Python for Everybody (Coursera, 2024)",
+  "Years 9 to 13",
+  "Year 11 students"
+ ],
+ "fitAnalysis": {
+  "fitLevel": "weak",
+  "score": 40,
+  "assessment": "Your 40% match is a WEAK FIT for this Senior Customer Enablement Manager role.\n\n**Strengths:**\n- Raised Year 11 grade 5+ share from 71% to 86%\n- Trained 12 colleagues to use Notion\n- Curriculum design, workshop facilitation and one-to-one coaching experience\n\n**Gaps:**\n- No 4+ years in customer-facing SaaS roles\n- No customer enablement strategy or product adoption experience\n- No UX/UI, Design Ops or frontend background\n\n**Recommendation:** Build SaaS customer success or enablement experience first (for example a junior enablement or training role), then reapply, using your teaching outcomes and Google Data Analytics Certificate as proof of training delivery.",
+  "matchingSkills": [
+   "Excellent communication skills",
+   "Ability to connect with a wide range of customer personas",
+   "Customer-first, consultative approach to solving challenges and driving adoption",
+   "Track record of driving impactful outcomes",
+   "Adapting to evolving customer needs",
+   "Cross-functional collaboration",
+   "Building trusted relationships with stakeholders",
+   "Training delivery",
+   "Experience using Figma or working with design and collaboration tools"
+  ],
+  "missingSkills": [
+   "4+ years of experience in Technical Account Management, Technical Customer Success, Customer Success, Customer Enablement, Account Management or a relevant customer-facing role in SaaS",
+   "Strong product knowledge",
+   "Customer enablement strategy",
+   "Product adoption",
+   "Background in UX/UI, Design Ops, or Frontend Development",
+   "Proficiency in additional languages such as French, Spanish, German"
+  ]
+ },
+ "optimizedCVData": {
+  "personal": {
+   "fullName": "Daniel Okafor",
+   "email": "daniel.okafor@example.org",
+   "phone": "+44 20 5550 0188",
+   "currentTitle": "Training Delivery | Curriculum Design | Stakeholder Communication",
+   "city": "Leeds",
+   "country": "UK"
+  },
+  "summary": "Physics teacher with 8 years in the classroom who designs and delivers training for both students and adult colleagues. Wrote a Year 9 practical curriculum and trained 12 colleagues to use it, and raised the share of Year 11 students reaching grade 5 or above from 71% to 86% over three years. Builds trusted relationships with parents and senior leadership through weekly calls and regular reporting. Comfortable with data and tools such as Excel, Google Sheets and Notion, and now moving into customer education.",
+  "experience": [
+   {
+    "id": "exp-1",
+    "company": "Ashgrove Academy",
+    "position": "Teacher of Physics and Head of Year 9",
+    "location": "Leeds, UK",
+    "startDate": "Sep 2018",
+    "current": true,
+    "bullets": [
+     "Wrote the department's Year 9 practical curriculum and trained 12 colleagues to use it",
+     "Raised the share of Year 11 students reaching grade 5 or above from 71% to 86% over three years",
+     "Run weekly parent calls and two parents' evenings a term for a year group of 210 students, keeping families informed and engaged",
+     "Track student progress in spreadsheets and present results to senior leadership each term"
+    ],
+    "technologies": [
+     "Excel",
+     "Google Sheets"
+    ]
+   },
+   {
+    "id": "exp-2",
+    "company": "Millbank Secondary School",
+    "position": "Science Teacher",
+    "location": "Bradford, UK",
+    "startDate": "Sep 2016",
+    "endDate": "Aug 2018",
+    "current": false,
+    "bullets": [
+     "Taught KS3 and KS4 science to varied classes",
+     "Coached the school robotics club (6 students)"
+    ],
+    "technologies": []
+   },
+   {
+    "id": "exp-3",
+    "company": "Code Club",
+    "position": "Volunteer coding mentor",
+    "startDate": "Jan 2023",
+    "current": true,
+    "bullets": [
+     "Mentor 8 children aged 9 to 12 on Scratch and introductory Python in evening sessions"
+    ],
+    "technologies": [
+     "Scratch",
+     "Python"
+    ]
+   }
+  ],
+  "education": [
+   {
+    "id": "edu-1",
+    "institution": "University of Sheffield",
+    "degree": "PGCE Secondary Science",
+    "startDate": "2015",
+    "endDate": "2016",
+    "highlights": []
+   },
+   {
+    "id": "edu-2",
+    "institution": "University of Manchester",
+    "degree": "MSci Physics",
+    "startDate": "2011",
+    "endDate": "2015",
+    "highlights": []
+   }
+  ],
+  "skills": [
+   {
+    "category": "Teaching and Training",
+    "items": [
+     "Workshop facilitation",
+     "Curriculum design",
+     "One-to-one coaching"
+    ]
+   },
+   {
+    "category": "Data",
+    "items": [
+     "Excel (pivot tables, lookups)",
+     "Google Sheets",
+     "Python (basic, pandas for simple analysis)"
+    ]
+   },
+   {
+    "category": "Tools",
+    "items": [
+     "Notion",
+     "Google Workspace",
+     "Microsoft Teams"
+    ]
+   }
+  ],
+  "languages": [
+   {
+    "language": "English",
+    "proficiency": "Native"
+   },
+   {
+    "language": "French",
+    "proficiency": "School level"
+   }
+  ],
+  "certifications": [
+   {
+    "id": "cert-1",
+    "name": "Python for Everybody",
+    "issuer": "Coursera",
+    "date": "2024"
+   },
+   {
+    "id": "cert-2",
+    "name": "Google Data Analytics Certificate (in progress)",
+    "issuer": "Google"
+   }
+  ],
+  "projects": [],
+  "additionalInfo": [],
+  "analysis": {
+   "summary": "Positioned Daniel's classroom and adult training experience as transferable evidence of training delivery, clear communication and stakeholder relationships. Used only documented metrics and skills, and left out SaaS, product and enablement claims that his documents do not support.",
+   "key_changes": [
+    "Rewrote the headline around documented strengths in training delivery, curriculum design and stakeholder communication",
+    "Reframed weekly parent calls and parents' evenings as stakeholder relationship building",
+    "Led the experience bullets with the colleague training and curriculum work, which is closest to enablement",
+    "Kept only metrics from the verified list, including the 71% to 86% grade improvement",
+    "Grouped skills by function and kept the 'basic' level on Python as the source states it"
+   ],
+   "ats_compatibility": 55,
+   "missing_keywords_added": [
+    "Notion",
+    "Training delivery",
+    "Cross-functional collaboration"
+   ]
+  },
+  "sectionHeaders": {
+   "summary": "Professional Summary",
+   "skills": "Skills",
+   "experience": "Professional Experience",
+   "education": "Education",
+   "certifications": "Certifications",
+   "languages": "Languages",
+   "contact": "Contact",
+   "additionalInfo": "Additional Information",
+   "projects": "Projects"
+  },
+  "localizedStrings": {
+   "present": "Present",
+   "gradePrefix": "Grade:",
+   "degreeConnector": "in",
+   "dateOfBirthLabel": "Date of Birth",
+   "nationalityLabel": "Nationality",
+   "photoPlaceholder": "Photo",
+   "websiteLabel": "Website",
+   "signatureLabel": "Signature",
+   "cityLabel": "City",
+   "dateLabel": "Date"
+  }
+ },
+ "coverLetter": "Daniel Okafor\nLeeds, UK\ndaniel.okafor@example.org\n+44 20 5550 0188\n\nOctober 12, 2026\n\nHiring Manager\nFigma\n\nDear Hiring Manager,\n\nHelping teams get real value from a tool they already own is mostly a teaching problem, and I've spent eight years solving it. At Ashgrove Academy I raised the share of Year 11 students reaching grade 5 or above from 71% to 86% over three years, by tracking progress in spreadsheets and changing what I taught based on what the data showed. That is the same loop your enablement plans need: understand the goal, read the data, adjust the approach.\n\nYour ad asks for bespoke enablement plans and live training sessions customized to customer maturity. As Head of Year 9, I wrote the department's practical curriculum and trained 12 colleagues to use it, so I know how to design and deliver workshops for adults at different levels of confidence. I also keep weekly parent calls going for a year group of 210 students, which means building trusted relationships with people who start out with very different expectations. I'm new to SaaS and to Figma, and I won't pretend otherwise. I do bring curriculum design, workshop facilitation, one-to-one coaching and a habit of presenting results to senior leadership each term, and I learn fast: I'm working through the Google Data Analytics Certificate and completed Python for Everybody in 2024.\n\nYour \"Grow as you go\" value describes how I'd approach this role. I'd welcome a conversation about how my teaching background could support your largest customers from the London hub, and I'm available to talk at your convenience.\n\nKind regards,\nDaniel Okafor",
+ "applicationEmail": null,
+ "followUpEmail": null
+}

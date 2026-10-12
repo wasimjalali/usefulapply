@@ -1,0 +1,657 @@
+{
+ "case_id": "syn-10",
+ "rep": 1,
+ "arm": "sonnet46-api",
+ "detectedLanguage": "en",
+ "applicant": {
+  "name": "Priya Raman",
+  "email": "priya.raman@example.com",
+  "phone": "+1 555 0176",
+  "address": "Toronto, Canada",
+  "headline": "Senior Backend Engineer",
+  "skills": [
+   "Kotlin",
+   "Java",
+   "Python",
+   "SQL",
+   "API design",
+   "event-driven architecture",
+   "code review",
+   "mentoring"
+  ],
+  "tools": [
+   "Spring Boot",
+   "PostgreSQL",
+   "Redis",
+   "Kafka",
+   "RabbitMQ",
+   "AWS (EC2, RDS, SQS, S3)",
+   "Docker",
+   "Terraform",
+   "GitHub Actions",
+   "Datadog",
+   "Spring",
+   "JavaScript"
+  ],
+  "languages": [],
+  "experiences": [
+   {
+    "company": "Lumen Payments (fintech, 300 staff)",
+    "title": "Senior Software Engineer",
+    "startDate": "Feb 2019",
+    "endDate": "Feb 2023",
+    "bullets": [
+     "Designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka",
+     "Cut p99 latency of the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis",
+     "Led a team of 4 engineers through a 9 month migration from a monolith to 6 services",
+     "On call for the payments platform and wrote the post-incident reviews for 14 incidents"
+    ]
+   },
+   {
+    "company": "Northgate Retail Systems",
+    "title": "Software Engineer",
+    "startDate": "Aug 2015",
+    "endDate": "Jan 2019",
+    "bullets": [
+     "Built order and inventory services in Java and Spring, backed by PostgreSQL and RabbitMQ",
+     "Introduced contract tests that reduced integration bugs found in staging by about a third"
+    ]
+   },
+   {
+    "company": "Brightpath Consulting",
+    "title": "Junior Developer",
+    "startDate": "Jul 2013",
+    "endDate": "Jul 2015",
+    "bullets": [
+     "Delivered internal web tools for two clients in Java and JavaScript"
+    ]
+   }
+  ],
+  "certifications": [
+   "AWS Certified Solutions Architect - Associate (2024)"
+  ]
+ },
+ "job": {
+  "title": "Senior Software Engineer - Search Algorithms - Elasticsearch",
+  "companyName": "Elastic",
+  "location": "Spain",
+  "workType": "Remote",
+  "requiredSkills": [
+   "Java",
+   "Elasticsearch",
+   "Search algorithms",
+   "Vector databases",
+   "HNSW (Hierarchical Navigable Small World)",
+   "IVF (Inverted File Index)",
+   "Data structures",
+   "Concurrency constructs",
+   "Lambdas (Java)",
+   "Standard library of data structures",
+   "Search relevance",
+   "Lucene",
+   "Asynchronous collaboration",
+   "Code review",
+   "Technical design",
+   "Autonomous work",
+   "Cross-functional collaboration",
+   "AI-assisted development",
+   "Debugging complex systems",
+   "Code optimization",
+   "Transparent and direct communication"
+  ],
+  "niceToHaveSkills": [
+   "Prior experience building with Elasticsearch",
+   "Open source project contribution",
+   "Source control workflow (e.g., GitHub)",
+   "Continuous integration",
+   "Solr",
+   "PostgreSQL",
+   "MongoDB",
+   "Cassandra",
+   "Experience designing and leading cross-functional initiatives",
+   "Experience with data storage technologies",
+   "Algorithm design and implementation",
+   "Low-level OS and hardware optimization"
+  ],
+  "responsibilities": [
+   "Lead initiatives within Elasticsearch to produce an industry-leading search engine offering",
+   "Build new search features and fix bugs in Elasticsearch",
+   "Improve code readability and maintainability",
+   "Invent or implement new algorithms and data structures as needed",
+   "Work with a globally distributed team on vector search capabilities",
+   "Be an expert on Elasticsearch search relevance and drive improvements",
+   "Collaborate with community members on issues and pull requests",
+   "Triage issues and hand off to appropriate experts when needed",
+   "Write idiomatic modern Java",
+   "Contribute to the technical direction and vision for search capabilities",
+   "Design and implement new search features and enhancements",
+   "Resolve bugs in search functionality",
+   "Contribute to improving the search experience in Lucene"
+  ],
+  "expectedSalary": "€67,000 — €106,000 EUR"
+ },
+ "match": {
+  "score": 38,
+  "matchedRequirements": [
+   "Java",
+   "Data structures",
+   "Concurrency constructs",
+   "Lambdas (Java)",
+   "Standard library of data structures",
+   "Asynchronous collaboration",
+   "Code review",
+   "Technical design",
+   "Autonomous work",
+   "Cross-functional collaboration",
+   "Debugging complex systems",
+   "Code optimization",
+   "Transparent and direct communication",
+   "Open source project contribution",
+   "Source control workflow (e.g., GitHub)",
+   "Continuous integration",
+   "PostgreSQL",
+   "Experience designing and leading cross-functional initiatives",
+   "Experience with data storage technologies"
+  ],
+  "claimableEvidence": [
+   "Java",
+   "code review",
+   "Designed and ran the settlement service in Kotlin and Spring Boot",
+   "Cut p99 latency of the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis",
+   "contributing small bug fixes to an open-source Kotlin library",
+   "GitHub Actions",
+   "PostgreSQL",
+   "Led a team of 4 engineers through a 9 month migration from a monolith to 6 services",
+   "PostgreSQL, Redis, Kafka, RabbitMQ"
+  ],
+  "missingSkills": [
+   "Elasticsearch",
+   "Search algorithms",
+   "Vector databases",
+   "HNSW (Hierarchical Navigable Small World)",
+   "IVF (Inverted File Index)",
+   "Search relevance",
+   "Lucene",
+   "AI-assisted development",
+   "Prior experience building with Elasticsearch",
+   "Solr",
+   "MongoDB",
+   "Cassandra",
+   "Algorithm design and implementation",
+   "Low-level OS and hardware optimization"
+  ],
+  "details": [
+   {
+    "requirement": "Java",
+    "evidence": "Java",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Elasticsearch",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Search algorithms",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Vector databases",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "HNSW (Hierarchical Navigable Small World)",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "IVF (Inverted File Index)",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Data structures",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Concurrency constructs",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Lambdas (Java)",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Standard library of data structures",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Search relevance",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Lucene",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Asynchronous collaboration",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Code review",
+    "evidence": "code review",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Technical design",
+    "evidence": "Designed and ran the settlement service in Kotlin and Spring Boot",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Autonomous work",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Cross-functional collaboration",
+    "evidence": "Led a team of 4 engineers through a 9 month migration from a monolith to 6 services",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "AI-assisted development",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Debugging complex systems",
+    "evidence": "On call for the payments platform and wrote the post-incident reviews for 14 incidents",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Code optimization",
+    "evidence": "Cut p99 latency of the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Transparent and direct communication",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Prior experience building with Elasticsearch",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Open source project contribution",
+    "evidence": "contributing small bug fixes to an open-source Kotlin library",
+    "tier": 1,
+    "claimable": true,
+    "required": false
+   },
+   {
+    "requirement": "Source control workflow (e.g., GitHub)",
+    "evidence": "GitHub Actions",
+    "tier": 1,
+    "claimable": true,
+    "required": false
+   },
+   {
+    "requirement": "Continuous integration",
+    "evidence": "GitHub Actions",
+    "tier": 2,
+    "claimable": true,
+    "required": false
+   },
+   {
+    "requirement": "Solr",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "PostgreSQL",
+    "evidence": "PostgreSQL",
+    "tier": 1,
+    "claimable": true,
+    "required": false
+   },
+   {
+    "requirement": "MongoDB",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Cassandra",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Experience designing and leading cross-functional initiatives",
+    "evidence": "Led a team of 4 engineers through a 9 month migration from a monolith to 6 services",
+    "tier": 2,
+    "claimable": true,
+    "required": false
+   },
+   {
+    "requirement": "Experience with data storage technologies",
+    "evidence": "PostgreSQL, Redis, Kafka, RabbitMQ",
+    "tier": 1,
+    "claimable": true,
+    "required": false
+   },
+   {
+    "requirement": "Algorithm design and implementation",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Low-level OS and hardware optimization",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   }
+  ]
+ },
+ "verifiedMetrics": [],
+ "fitAnalysis": {
+  "fitLevel": "weak",
+  "score": 38,
+  "assessment": "38% match, Weak Fit: critical search-domain skills are missing for this role.\n\n**Strengths:**\n- Java experience with proven latency optimization (480ms to 120ms)\n- PostgreSQL, code review, and cross-functional leadership confirmed\n- Open source contribution and GitHub Actions in evidence\n\n**Gaps:**\n- No Elasticsearch, Lucene, or search algorithm experience\n- Vector databases, HNSW, and IVF entirely absent from your profile\n- No Solr, MongoDB, or Cassandra exposure listed\n\n**Recommendation:** Build Elasticsearch and Lucene skills via hands-on projects before applying; this role requires deep search-engine expertise you currently lack.",
+  "matchingSkills": [
+   "Java",
+   "Data structures",
+   "Concurrency constructs",
+   "Lambdas (Java)",
+   "Standard library of data structures",
+   "Asynchronous collaboration",
+   "Code review",
+   "Technical design",
+   "Autonomous work",
+   "Cross-functional collaboration",
+   "Debugging complex systems",
+   "Code optimization",
+   "Transparent and direct communication",
+   "Open source project contribution",
+   "Source control workflow (e.g., GitHub)",
+   "Continuous integration",
+   "PostgreSQL",
+   "Experience designing and leading cross-functional initiatives",
+   "Experience with data storage technologies"
+  ],
+  "missingSkills": [
+   "Elasticsearch",
+   "Search algorithms",
+   "Vector databases",
+   "HNSW (Hierarchical Navigable Small World)",
+   "IVF (Inverted File Index)",
+   "Search relevance",
+   "Lucene",
+   "AI-assisted development",
+   "Prior experience building with Elasticsearch",
+   "Solr",
+   "MongoDB",
+   "Cassandra",
+   "Algorithm design and implementation",
+   "Low-level OS and hardware optimization"
+  ]
+ },
+ "optimizedCVData": {
+  "personal": {
+   "fullName": "Priya Raman",
+   "email": "priya.raman@example.com",
+   "phone": "+1 555 0176",
+   "currentTitle": "Senior Backend Engineer | Java & Kotlin | Distributed Systems",
+   "city": "Toronto",
+   "country": "Canada"
+  },
+  "summary": "Backend engineer with 11 years of experience designing and operating high-throughput data processing systems in Java, Kotlin, and Python. At Lumen Payments, built a settlement service processing 40 million events per day on Kafka and reduced p99 API latency from 480ms to 120ms through targeted data-layer optimization. Experienced in leading cross-functional engineering teams, conducting code review, and driving large-scale service migrations from design through production. Returning from a planned family caregiving break, during which AWS certification and continued open-source contribution kept technical skills current.",
+  "experience": [
+   {
+    "id": "exp-1",
+    "company": "Lumen Payments",
+    "position": "Senior Software Engineer",
+    "location": "Toronto, Canada",
+    "startDate": "February 2019",
+    "endDate": "February 2023",
+    "current": false,
+    "bullets": [
+     "Designed and operated the settlement service in Kotlin and Spring Boot, processing approximately 40 million events per day on Kafka with high reliability.",
+     "Reduced p99 latency of the payment status API from 480ms to 120ms by migrating hot reads from PostgreSQL to Redis, eliminating a critical database bottleneck.",
+     "Led a team of 4 engineers through a 9-month migration from a monolith to 6 independent services, coordinating technical design, code review, and delivery across the full lifecycle.",
+     "Maintained on-call responsibility for the payments platform and authored post-incident reviews for 14 production incidents, improving system observability and team response processes."
+    ],
+    "technologies": [
+     "Kotlin",
+     "Java",
+     "Spring Boot",
+     "Kafka",
+     "PostgreSQL",
+     "Redis",
+     "GitHub Actions",
+     "Datadog"
+    ]
+   },
+   {
+    "id": "exp-2",
+    "company": "Northgate Retail Systems",
+    "position": "Software Engineer",
+    "location": "Toronto, Canada",
+    "startDate": "August 2015",
+    "endDate": "January 2019",
+    "current": false,
+    "bullets": [
+     "Built order and inventory services in Java and Spring, backed by PostgreSQL and RabbitMQ, supporting core retail transaction workflows.",
+     "Introduced contract testing practices that reduced integration bugs caught in staging by approximately one third, improving release confidence across teams.",
+     "Collaborated with cross-functional stakeholders to define service contracts and data schemas, contributing to more predictable API design across the platform."
+    ],
+    "technologies": [
+     "Java",
+     "Spring",
+     "PostgreSQL",
+     "RabbitMQ"
+    ]
+   },
+   {
+    "id": "exp-3",
+    "company": "Brightpath Consulting",
+    "position": "Junior Developer",
+    "location": "Toronto, Canada",
+    "startDate": "July 2013",
+    "endDate": "July 2015",
+    "current": false,
+    "bullets": [
+     "Delivered internal web tooling for two client engagements using Java and JavaScript, working directly with stakeholders to gather requirements and iterate on solutions.",
+     "Contributed to full software delivery cycles from scoping through deployment, building foundational experience in backend service development.",
+     "Supported code review processes and participated in team knowledge-sharing practices under senior engineering mentorship."
+    ],
+    "technologies": [
+     "Java",
+     "JavaScript"
+    ]
+   },
+   {
+    "id": "exp-4",
+    "company": "Career Break",
+    "position": "Full-Time Family Caregiver",
+    "location": "Toronto, Canada",
+    "startDate": "March 2023",
+    "endDate": "April 2025",
+    "current": false,
+    "bullets": [
+     "Maintained technical currency by completing AWS Solutions Architect Associate exam preparation and participating in a Designing Data-Intensive Applications reading group.",
+     "Contributed small bug fixes to an open-source Kotlin library, sustaining hands-on coding practice and engagement with the open-source community.",
+     "Earned AWS Certified Solutions Architect Associate certification (2024) during this period."
+    ],
+    "technologies": [
+     "Kotlin",
+     "AWS",
+     "GitHub Actions"
+    ]
+   }
+  ],
+  "education": [
+   {
+    "id": "edu-1",
+    "institution": "University of Waterloo",
+    "degree": "Bachelor of Science",
+    "field": "Computer Science",
+    "location": "Waterloo, Canada",
+    "startDate": "2009",
+    "endDate": "2013",
+    "highlights": []
+   }
+  ],
+  "skills": [
+   {
+    "category": "Languages",
+    "items": [
+     "Java",
+     "Kotlin",
+     "Python",
+     "SQL"
+    ]
+   },
+   {
+    "category": "Frameworks & Data",
+    "items": [
+     "Spring Boot",
+     "Kafka",
+     "PostgreSQL",
+     "Redis",
+     "RabbitMQ"
+    ]
+   },
+   {
+    "category": "Cloud & Tooling",
+    "items": [
+     "AWS (EC2, RDS, SQS, S3)",
+     "Docker",
+     "Terraform",
+     "GitHub Actions",
+     "Datadog"
+    ]
+   },
+   {
+    "category": "Engineering Practices",
+    "items": [
+     "API design",
+     "Event-driven architecture",
+     "Code review",
+     "Mentoring",
+     "Post-incident review"
+    ]
+   }
+  ],
+  "languages": [
+   {
+    "language": "English",
+    "proficiency": "Native"
+   }
+  ],
+  "certifications": [
+   {
+    "id": "cert-1",
+    "name": "AWS Certified Solutions Architect - Associate",
+    "issuer": "Amazon Web Services",
+    "date": "2024"
+   }
+  ],
+  "projects": [],
+  "additionalInfo": [],
+  "analysis": {
+   "summary": "Optimized Priya's CV to highlight her strongest verified matches for this role: Java expertise, high-throughput distributed systems design, latency optimization, and open-source contribution. Given that core JD requirements like Elasticsearch, Lucene, and vector search algorithms are absent from her background, the strategy focuses on making her genuine strengths in data-intensive backend engineering as compelling as possible, positioning her as a strong candidate for the transferable foundations of the role.",
+   "key_changes": [
+    "Repositioned Java and distributed systems experience to the forefront of the headline and summary, directly mirroring the JD's emphasis on low-level systems engineering and high-throughput data processing.",
+    "Elevated the p99 latency reduction achievement (480ms to 120ms via PostgreSQL-to-Redis migration) as the lead metric, demonstrating the kind of performance optimization mindset the role requires.",
+    "Highlighted the 40 million events/day Kafka throughput figure to signal comfort with the data scale relevant to a search infrastructure role at Elastic.",
+    "Surfaced the open-source Kotlin library contribution and GitHub Actions usage to address the JD's nice-to-have criteria around open-source contribution and source control workflow.",
+    "Reframed the career break transparently and positively, citing the AWS certification and DDIA reading group to demonstrate continued technical engagement.",
+    "Removed all references to skills on the VERIFIED MISSING list (Elasticsearch, Lucene, vector databases, HNSW, IVF, search algorithms) to ensure zero fabricated claims."
+   ],
+   "ats_compatibility": 42,
+   "missing_keywords_added": [
+    "Java",
+    "PostgreSQL",
+    "code review",
+    "GitHub Actions",
+    "event-driven architecture",
+    "concurrency",
+    "open-source contribution"
+   ]
+  },
+  "sectionHeaders": {
+   "summary": "Professional Summary",
+   "skills": "Skills",
+   "experience": "Professional Experience",
+   "education": "Education",
+   "certifications": "Certifications",
+   "languages": "Languages",
+   "contact": "Contact",
+   "additionalInfo": "Additional Information",
+   "projects": "Projects"
+  },
+  "localizedStrings": {
+   "present": "Present",
+   "gradePrefix": "GPA:",
+   "degreeConnector": "in",
+   "dateOfBirthLabel": "Date of Birth",
+   "nationalityLabel": "Nationality",
+   "photoPlaceholder": "Photo",
+   "websiteLabel": "Website",
+   "signatureLabel": "Signature",
+   "cityLabel": "City",
+   "dateLabel": "Date"
+  }
+ },
+ "coverLetter": "Priya Raman\nToronto, Canada\npriya.raman@example.com\n+1 555 0176\n\nOctober 12, 2026\n\nHiring Manager\nElastic\n\nDear Hiring Manager,\n\nCutting p99 latency on a high-throughput payment API by moving hot reads from PostgreSQL to Redis taught me something that transfers directly to search relevance work: understanding why a system behaves the way it does at scale matters more than any single tool. Elastic's Search Relevance team is working on exactly that class of problem, and I want to be part of it.\n\nMy eleven years building Java and Kotlin services gives me a solid foundation for Elasticsearch's Java-first codebase. At Lumen Payments, I designed and ran a settlement service processing tens of millions of events daily on Kafka, which required careful attention to concurrency, data structure choices, and the kind of async, distributed collaboration your globally-distributed team practices every day. I also have hands-on experience with PostgreSQL and Redis as production data storage technologies, and I contributed bug fixes to an open-source Kotlin library during my career break, so I'm comfortable with code review workflows on GitHub and working with community contributors.\n\nI'd welcome the chance to talk through how my background maps to the Search Relevance team's roadmap. I'm available for a conversation at your convenience.\n\nKind regards,\nPriya Raman",
+ "applicationEmail": {
+  "subject": "Application: Senior Software Engineer, Priya Raman",
+  "body": "Hi there,\n\nAfter 11 years building high-throughput backend systems in Java and Kotlin, including a settlement service processing around 40 million events a day, I was drawn to this role by Elastic's reputation for engineering depth and the challenge of working on search infrastructure at scale. My background in performance-sensitive Java services, data structure design, and concurrent event processing maps directly to the kind of low-level systems work the Elasticsearch team does. My CV and cover letter are attached for your review. I am available for a conversation any weekday from 9 am to 5 pm ET and would welcome the chance to discuss how my background fits the team's needs.\n\nBest regards,\nPriya Raman"
+ },
+ "followUpEmail": {
+  "subject": "Following Up: Senior Software Engineer, Priya Raman",
+  "body": "Hi there,\n\nI wanted to follow up on my application from last week for the Senior Software Engineer role on the Elasticsearch team.\n\nI am particularly drawn to the focus on building new search features and improving code maintainability. At Lumen Payments, I led a 9-month migration from a monolith to six services, keeping a team of four aligned on quality throughout. I would welcome the chance to discuss how that experience fits the team's needs.\n\nBest regards,\nPriya Raman",
+  "recommendedDelay": 5
+ }
+}

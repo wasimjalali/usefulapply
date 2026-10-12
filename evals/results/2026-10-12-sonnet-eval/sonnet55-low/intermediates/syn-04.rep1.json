@@ -1,0 +1,476 @@
+{
+ "case_id": "syn-04",
+ "rep": 1,
+ "arm": "sonnet55-low",
+ "detectedLanguage": "en",
+ "applicant": {
+  "name": "Daniel Okafor",
+  "email": "daniel.okafor@example.org",
+  "phone": "+44 20 5550 0188",
+  "address": "Leeds, UK",
+  "headline": "Physics teacher moving into customer education and success",
+  "skills": [
+   "curriculum design",
+   "workshop facilitation",
+   "one-to-one coaching",
+   "Excel (pivot tables, lookups)",
+   "Google Sheets",
+   "basic Python (pandas for simple analysis)"
+  ],
+  "tools": [
+   "Google Workspace",
+   "Microsoft Teams",
+   "Notion"
+  ],
+  "languages": [
+   "English (native)",
+   "French (school level)"
+  ],
+  "experiences": [
+   {
+    "company": "Ashgrove Academy, Leeds",
+    "title": "Teacher of Physics and Head of Year 9",
+    "startDate": "Sep 2018",
+    "endDate": "Present",
+    "bullets": [
+     "Teach physics to about 140 students a year across Years 9 to 13",
+     "Raised the share of Year 11 students reaching grade 5 or above from 71% to 86% over three years",
+     "Wrote the department's Year 9 practical curriculum and trained 12 colleagues to use it",
+     "Run weekly parent calls and two parents' evenings a term for a year group of 210 students",
+     "Track student progress in spreadsheets and present results to senior leadership each term"
+    ]
+   },
+   {
+    "company": "Millbank Secondary School, Bradford",
+    "title": "Science Teacher",
+    "startDate": "Sep 2016",
+    "endDate": "Aug 2018",
+    "bullets": [
+     "Taught KS3 and KS4 science, and coached the school robotics club (6 students)"
+    ]
+   },
+   {
+    "company": "Code Club (evenings)",
+    "title": "Volunteer coding mentor",
+    "startDate": "Jan 2023",
+    "endDate": "Present",
+    "bullets": [
+     "Mentor 8 children aged 9 to 12 on Scratch and introductory Python"
+    ]
+   }
+  ],
+  "certifications": [
+   "Python for Everybody (Coursera, 2024)",
+   "Google Data Analytics Certificate (in progress)"
+  ]
+ },
+ "job": {
+  "title": "Customer Success Manager",
+  "companyName": "Datadog",
+  "location": "Boston, Massachusetts, USA",
+  "workType": "Hybrid",
+  "requiredSkills": [
+   "5-7 years of experience in a customer account facing role",
+   "Strong communication skills",
+   "Attention to detail",
+   "Relationship building",
+   "Customer-minded approach",
+   "Contract negotiation",
+   "Overcoming pricing objections",
+   "Up-selling",
+   "Cross-selling",
+   "Full sales cycle execution",
+   "Ability to work in an ever-evolving and fluid solution focused environment",
+   "Cross-functional collaboration",
+   "Customer onboarding",
+   "Customer advocacy",
+   "Usage trend analysis",
+   "Renewal risk identification"
+  ],
+  "niceToHaveSkills": [
+   "Passion for technology",
+   "MEDDIC",
+   "Command of the Message"
+  ],
+  "responsibilities": [
+   "Partner with the sales team to ensure smooth transition and onboarding experience",
+   "Proactively build relationships with customers to create mutual trust",
+   "Carry out the full sales cycle for growth opportunities in existing customer accounts",
+   "Act as advisor to customers to ensure they leverage the Datadog solution effectively",
+   "Monitor and identify usage trends to uncover renewal risks and promote greater adoption rates",
+   "Collaborate cross-functionally across internal Datadog teams (Support, Product, Finance, and Legal)",
+   "Drive new product attachment and strong relationships across the existing customer base through onboarding, up-selling and cross-selling",
+   "Advocate for the customer internally and focus on a positive customer experience"
+  ],
+  "expectedSalary": "$89,000 - $118,000 USD"
+ },
+ "match": {
+  "score": 38,
+  "matchedRequirements": [
+   "Strong communication skills",
+   "Attention to detail",
+   "Relationship building",
+   "Customer-minded approach",
+   "Ability to work in an ever-evolving and fluid solution focused environment",
+   "Cross-functional collaboration",
+   "Customer onboarding",
+   "Usage trend analysis",
+   "Passion for technology"
+  ],
+  "claimableEvidence": [
+   "Run weekly parent calls and two parents' evenings a term for a year group of 210 students",
+   "trained 12 colleagues to use it",
+   "Track student progress in spreadsheets and present results to senior leadership each term"
+  ],
+  "missingSkills": [
+   "5-7 years of experience in a customer account facing role",
+   "Contract negotiation",
+   "Overcoming pricing objections",
+   "Up-selling",
+   "Cross-selling",
+   "Full sales cycle execution",
+   "Customer advocacy",
+   "Renewal risk identification",
+   "MEDDIC",
+   "Command of the Message"
+  ],
+  "details": [
+   {
+    "requirement": "5-7 years of experience in a customer account facing role",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Strong communication skills",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Attention to detail",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Relationship building",
+    "evidence": "Run weekly parent calls and two parents' evenings a term for a year group of 210 students",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Customer-minded approach",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Contract negotiation",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Overcoming pricing objections",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Up-selling",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Cross-selling",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Full sales cycle execution",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Ability to work in an ever-evolving and fluid solution focused environment",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Cross-functional collaboration",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Customer onboarding",
+    "evidence": "trained 12 colleagues to use it",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Customer advocacy",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Usage trend analysis",
+    "evidence": "Track student progress in spreadsheets and present results to senior leadership each term",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Renewal risk identification",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Passion for technology",
+    "tier": 3,
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "MEDDIC",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Command of the Message",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   }
+  ]
+ },
+ "verifiedMetrics": [
+  "two parents' evenings a term",
+  "year group of 210 students",
+  "weekly parent calls",
+  "Head of Year 9",
+  "Mentor 8 children aged 9 to 12",
+  "Python for Everybody (Coursera, 2024)",
+  "Years 9 to 13",
+  "KS3 and KS4 science"
+ ],
+ "fitAnalysis": {
+  "fitLevel": "weak",
+  "score": 38,
+  "assessment": "Your 38% match is a WEAK FIT for this Customer Success Manager role.\n\n**Strengths:**\n- Weekly parent calls and two parents' evenings a term for 210 students\n- Spreadsheet progress tracking presented to senior leadership each term\n- Excel, pandas and Google Data Analytics study support usage trend analysis\n\n**Gaps:**\n- No 5-7 years in a customer account facing role\n- No contract negotiation, up-selling, cross-selling or full sales cycle experience\n- No renewal risk identification, MEDDIC or Command of the Message\n\n**Recommendation:** Build commercial experience first through a customer success or account coordinator role, then reapply to Datadog with sales-cycle results.",
+  "matchingSkills": [
+   "Strong communication skills",
+   "Attention to detail",
+   "Relationship building",
+   "Customer-minded approach",
+   "Ability to work in an ever-evolving and fluid solution focused environment",
+   "Cross-functional collaboration",
+   "Customer onboarding",
+   "Usage trend analysis",
+   "Passion for technology"
+  ],
+  "missingSkills": [
+   "5-7 years of experience in a customer account facing role",
+   "Contract negotiation",
+   "Overcoming pricing objections",
+   "Up-selling",
+   "Cross-selling",
+   "Full sales cycle execution",
+   "Customer advocacy",
+   "Renewal risk identification",
+   "MEDDIC",
+   "Command of the Message"
+  ]
+ },
+ "optimizedCVData": {
+  "personal": {
+   "fullName": "Daniel Okafor",
+   "email": "daniel.okafor@example.org",
+   "phone": "+44 20 5550 0188",
+   "currentTitle": "Customer Education | Stakeholder Communication | Data Analysis",
+   "city": "Leeds",
+   "country": "UK"
+  },
+  "summary": "Physics teacher with 8 years of experience explaining complex topics clearly and keeping regular communication with families and senior leadership. Raised the share of Year 11 students reaching grade 5 or above from 71% to 86% over three years and trained 12 colleagues on a curriculum he wrote. Comfortable with spreadsheets and basic Python for tracking progress and presenting results. Looking to move into a customer-facing role in technology, where clear teaching and trusted relationships drive outcomes.",
+  "experience": [
+   {
+    "id": "exp-1",
+    "company": "Ashgrove Academy",
+    "position": "Teacher of Physics and Head of Year 9",
+    "location": "Leeds",
+    "startDate": "Sep 2018",
+    "current": true,
+    "bullets": [
+     "Run weekly parent calls and two parents' evenings a term for a year group of 210 students, keeping families informed and building lasting working relationships",
+     "Track student progress in spreadsheets and present results to senior leadership each term",
+     "Raised the share of Year 11 students reaching grade 5 or above from 71% to 86% over three years",
+     "Wrote the department's Year 9 practical curriculum and trained 12 colleagues to use it"
+    ],
+    "technologies": [
+     "Excel",
+     "Google Sheets",
+     "Google Workspace",
+     "Microsoft Teams"
+    ]
+   },
+   {
+    "id": "exp-2",
+    "company": "Millbank Secondary School",
+    "position": "Science Teacher",
+    "location": "Bradford",
+    "startDate": "Sep 2016",
+    "endDate": "Aug 2018",
+    "current": false,
+    "bullets": [
+     "Taught KS3 and KS4 science to mixed-ability classes",
+     "Coached the school robotics club (6 students)"
+    ],
+    "technologies": []
+   },
+   {
+    "id": "exp-3",
+    "company": "Code Club",
+    "position": "Volunteer coding mentor",
+    "startDate": "Jan 2023",
+    "current": true,
+    "bullets": [
+     "Mentor 8 children aged 9 to 12 on Scratch and introductory Python, in evening sessions"
+    ],
+    "technologies": [
+     "Scratch",
+     "Python"
+    ]
+   }
+  ],
+  "education": [
+   {
+    "id": "edu-1",
+    "institution": "University of Sheffield",
+    "degree": "PGCE Secondary Science",
+    "startDate": "2015",
+    "endDate": "2016",
+    "highlights": []
+   },
+   {
+    "id": "edu-2",
+    "institution": "University of Manchester",
+    "degree": "MSci Physics",
+    "startDate": "2011",
+    "endDate": "2015",
+    "highlights": []
+   }
+  ],
+  "skills": [
+   {
+    "category": "Data",
+    "items": [
+     "Excel (pivot tables, lookups)",
+     "Google Sheets",
+     "Python (basic, pandas for simple analysis)"
+    ]
+   },
+   {
+    "category": "Teaching and Training",
+    "items": [
+     "Workshop facilitation",
+     "One-to-one coaching",
+     "Curriculum design"
+    ]
+   },
+   {
+    "category": "Tools",
+    "items": [
+     "Google Workspace",
+     "Microsoft Teams",
+     "Notion"
+    ]
+   }
+  ],
+  "languages": [
+   {
+    "language": "English",
+    "proficiency": "Native"
+   },
+   {
+    "language": "French",
+    "proficiency": "School level"
+   }
+  ],
+  "certifications": [
+   {
+    "id": "cert-1",
+    "name": "Python for Everybody",
+    "issuer": "Coursera",
+    "date": "2024"
+   },
+   {
+    "id": "cert-2",
+    "name": "Google Data Analytics Certificate (in progress)",
+    "issuer": "Google"
+   }
+  ],
+  "projects": [],
+  "additionalInfo": [],
+  "analysis": {
+   "summary": "The CV positions Daniel's eight years of teaching as transferable experience in clear communication, stakeholder relationships and data-informed reporting. Required sales and account skills that are not documented in his CVs were left out, so the CV presents a candid career-transition story.",
+   "key_changes": [
+    "Rewrote the headline and summary to frame teaching as customer education and relationship management",
+    "Moved parent communication and progress reporting to the top of the Ashgrove Academy bullets, since they are the closest documented match to account-facing work",
+    "Kept only verified numbers: 12 colleagues trained, 210 students, 8 children mentored, 71% to 86% improvement, 140 students, 6 students",
+    "Grouped Excel, Google Sheets and Python skills under a data category, preserving the 'basic' level for Python",
+    "Left out all sales-specific requirements (negotiation, upselling, renewals, MEDDIC) because no source document supports them"
+   ],
+   "ats_compatibility": 45,
+   "missing_keywords_added": [
+    "Relationship building",
+    "Cross-functional collaboration",
+    "Customer onboarding",
+    "Usage trend analysis",
+    "Strong communication skills"
+   ]
+  },
+  "sectionHeaders": {
+   "summary": "Professional Summary",
+   "skills": "Skills",
+   "experience": "Professional Experience",
+   "education": "Education",
+   "certifications": "Certifications",
+   "languages": "Languages",
+   "contact": "Contact",
+   "additionalInfo": "Additional Information",
+   "projects": "Projects"
+  },
+  "localizedStrings": {
+   "present": "Present",
+   "gradePrefix": "Grade:",
+   "degreeConnector": "in",
+   "dateOfBirthLabel": "Date of Birth",
+   "nationalityLabel": "Nationality",
+   "photoPlaceholder": "Photo",
+   "websiteLabel": "Website",
+   "signatureLabel": "Signature",
+   "cityLabel": "City",
+   "dateLabel": "Date"
+  }
+ },
+ "coverLetter": "Daniel Okafor\nLeeds, UK\ndaniel.okafor@example.org\n+44 20 5550 0188\n\nOctober 12, 2026\n\nHiring Manager\nDatadog\n\nDear Hiring Manager,\n\nYour ad describes a Customer Success Manager who has to build trust with customers and then help them get real value from a complex product. I do a version of that every week. As Head of Year 9 at Ashgrove Academy, I run weekly parent calls and two parents' evenings a term for a year group of 210 students, explaining complicated progress data to people who need to act on it.\n\nI'm moving from teaching into customer success, and I won't pretend the sales side is my background. What I do bring is the other half of the job: relationship-building, clear communication and attention to detail. I track student progress in Excel and Google Sheets, present results to senior leadership each term, and spot who is falling behind before it becomes a problem, much like the usage trends you want monitored. I also wrote our department's Year 9 practical curriculum and trained 12 colleagues to use it, which is onboarding in practice. Your ad mentions cross-functional collaboration, and I've worked across departments and with senior leadership throughout. My basic Python (pandas) and the Google Data Analytics Certificate I'm completing are my route into a technology company like Datadog, and I learn quickly.\n\nI'd welcome a conversation about how my experience could support your Boston team. I'm available to speak at your convenience.\n\nKind regards,\nDaniel Okafor",
+ "applicationEmail": {
+  "subject": "Application: Customer Success Manager, Daniel Okafor",
+  "body": "Hello Datadog Hiring Team,\n\nAs Head of Year 9, I run weekly parent calls and two parents' evenings a term for a year group of 210 students, so building trust with people who depend on clear communication is already my daily work. I also track progress in spreadsheets and present the results to senior leadership each term, and I've trained 12 colleagues on a curriculum I wrote, which is the kind of onboarding and data-informed conversation a Customer Success Manager has with customers. My CV and cover letter are attached, and I'd be glad to talk through how this fits the role. I'm available for a call any weekday after 4pm UK time, or at any time during school holidays.\n\nKind regards,\nDaniel Okafor"
+ },
+ "followUpEmail": {
+  "subject": "Following Up: Customer Success Manager, Daniel Okafor",
+  "body": "Hello Datadog Hiring Team,\n\nI applied for the Customer Success Manager role last week and remain very interested. The focus on building mutual trust with customers and growing existing accounts appeals to me.\n\nAt Ashgrove Academy, I raised the share of Year 11 students reaching grade 5 or above from 71% to 86% over three years, by tracking progress closely and acting on the data.\n\nI would welcome the chance to discuss how that approach could support your customers.\n\nKind regards,\nDaniel Okafor",
+  "recommendedDelay": 5
+ }
+}

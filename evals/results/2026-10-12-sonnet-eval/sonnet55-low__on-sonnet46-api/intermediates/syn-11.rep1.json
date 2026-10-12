@@ -1,0 +1,514 @@
+{
+ "case_id": "syn-11",
+ "rep": 1,
+ "arm": "sonnet55-low",
+ "detectedLanguage": "en",
+ "applicant": {
+  "name": "Tomas Brandt",
+  "email": "tomas.brandt@example.com",
+  "phone": "+1 555 0123",
+  "address": "Chicago, IL, USA",
+  "headline": "Financial Analyst",
+  "skills": [
+   "budgeting",
+   "rolling forecasts",
+   "variance analysis",
+   "working capital",
+   "management reporting",
+   "month-end reporting",
+   "forecasting",
+   "INDEX/MATCH",
+   "pivot tables",
+   "VBA",
+   "basic SQL"
+  ],
+  "tools": [
+   "Excel",
+   "Power BI",
+   "SAP (reporting)"
+  ],
+  "languages": [
+   "English (native)",
+   "German (basic)"
+  ],
+  "experiences": [
+   {
+    "company": "Calder Industrial Components",
+    "title": "Financial Analyst",
+    "startDate": "Mar 2022",
+    "endDate": "Present",
+    "bullets": [
+     "Own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD",
+     "Improved forecast accuracy for the larger unit from 88% to 96% by rebuilding the model around order backlog",
+     "Shortened month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA",
+     "Build Power BI dashboards on SAP data for plant managers"
+    ]
+   },
+   {
+    "company": "Redfern Stores",
+    "title": "Junior Financial Analyst",
+    "startDate": "Sep 2019",
+    "endDate": "Feb 2022",
+    "bullets": [
+     "Prepared weekly store P&L packs and the annual budget for the regional team",
+     "Found a recurring supplier rebate that was not being claimed, worth about 120,000 USD a year"
+    ]
+   },
+   {
+    "company": "Lakeshore Logistics",
+    "title": "Finance Intern",
+    "startDate": "Jun 2018",
+    "endDate": "Aug 2018",
+    "bullets": [
+     "Reconciled freight invoices and supported the audit file"
+    ]
+   }
+  ],
+  "certifications": [
+   "ACCA: 9 of 13 papers passed (in progress)"
+  ]
+ },
+ "job": {
+  "title": "FP&A Analyst",
+  "companyName": "Datadog",
+  "location": "New York, New York, USA",
+  "workType": "Hybrid",
+  "requiredSkills": [
+   "2+ years of experience in FP&A / Strategic Finance, Corporate Finance, Investment Banking, or related field",
+   "Bachelor's degree in finance, accounting, business, or economics",
+   "Excel",
+   "PowerPoint",
+   "Financial modeling",
+   "Complex data management",
+   "Financial forecasting",
+   "Analytics",
+   "Budgeting",
+   "Clear and concise communication",
+   "Team player",
+   "Cross-functional collaboration",
+   "Business intelligence (BI) tools",
+   "Pigment",
+   "Tableau",
+   "Metabase",
+   "ROI analysis",
+   "Profitability analysis",
+   "Trend analysis",
+   "Board materials preparation",
+   "Strategic thinking"
+  ],
+  "niceToHaveSkills": [
+   "Solid understanding of Pigment",
+   "Experience with consumption-based software business model",
+   "Proficiency in AI tools (e.g. ChatGPT, Claude)"
+  ],
+  "responsibilities": [
+   "Partner with senior business leaders to manage departmental budgets, including the company's co-founder and CTO",
+   "Manage financial forecasts and analytics across revenue, customers, product, company expenses, and headcount/workforce",
+   "Help manage significant portions of company spend, including AI and GPU spend",
+   "Work on trend, ROI, and profitability analyses on product and customer levels",
+   "Work with finance management on quarterly Board materials, including coordination and consolidation across stakeholders",
+   "Assist in planning and budgeting cycles, ensuring consistency in tools, templates, and processes",
+   "Work on ad hoc projects and strategic initiatives for senior management, including assessing potential acquisition opportunities and negotiations with strategic partners",
+   "Become proficient with financial planning and BI tools including Pigment, Tableau, and Metabase"
+  ],
+  "expectedSalary": "$99,000 - $132,000 USD per year"
+ },
+ "match": {
+  "score": 68,
+  "matchedRequirements": [
+   "2+ years of experience in FP&A / Strategic Finance, Corporate Finance, Investment Banking, or related field",
+   "Bachelor's degree in finance, accounting, business, or economics",
+   "Excel",
+   "Financial modeling",
+   "Complex data management",
+   "Financial forecasting",
+   "Analytics",
+   "Budgeting",
+   "Clear and concise communication",
+   "Team player",
+   "Cross-functional collaboration",
+   "Business intelligence (BI) tools",
+   "Profitability analysis",
+   "Trend analysis",
+   "Strategic thinking"
+  ],
+  "claimableEvidence": [
+   "Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting for manufacturing and retail businesses.",
+   "B.S. Finance | University of Illinois Chicago | 2015 - 2019",
+   "Excel (advanced: INDEX/MATCH, pivot tables, VBA)",
+   "rebuilding the model around order backlog",
+   "Build Power BI dashboards on SAP data for plant managers",
+   "rolling forecasts",
+   "variance analysis",
+   "budgeting",
+   "Power BI",
+   "Prepared weekly store P&L packs"
+  ],
+  "missingSkills": [
+   "PowerPoint",
+   "Pigment",
+   "Tableau",
+   "Metabase",
+   "ROI analysis",
+   "Board materials preparation",
+   "Solid understanding of Pigment",
+   "Experience with consumption-based software business model",
+   "Proficiency in AI tools (e.g. ChatGPT, Claude)"
+  ],
+  "details": [
+   {
+    "requirement": "2+ years of experience in FP&A / Strategic Finance, Corporate Finance, Investment Banking, or related field",
+    "evidence": "Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting for manufacturing and retail businesses.",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Bachelor's degree in finance, accounting, business, or economics",
+    "evidence": "B.S. Finance | University of Illinois Chicago | 2015 - 2019",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Excel",
+    "evidence": "Excel (advanced: INDEX/MATCH, pivot tables, VBA)",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "PowerPoint",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Financial modeling",
+    "evidence": "rebuilding the model around order backlog",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Complex data management",
+    "evidence": "Build Power BI dashboards on SAP data for plant managers",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Financial forecasting",
+    "evidence": "rolling forecasts",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Analytics",
+    "evidence": "variance analysis",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Budgeting",
+    "evidence": "budgeting",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Clear and concise communication",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Team player",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Cross-functional collaboration",
+    "evidence": "Build Power BI dashboards on SAP data for plant managers",
+    "tier": 3,
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Business intelligence (BI) tools",
+    "evidence": "Power BI",
+    "tier": 1,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Pigment",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Tableau",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Metabase",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "ROI analysis",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Profitability analysis",
+    "evidence": "Prepared weekly store P&L packs",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Trend analysis",
+    "evidence": "variance analysis",
+    "tier": 2,
+    "claimable": true,
+    "required": true
+   },
+   {
+    "requirement": "Board materials preparation",
+    "tier": "missing",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Strategic thinking",
+    "tier": "implicit",
+    "claimable": false,
+    "required": true
+   },
+   {
+    "requirement": "Solid understanding of Pigment",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Experience with consumption-based software business model",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   },
+   {
+    "requirement": "Proficiency in AI tools (e.g. ChatGPT, Claude)",
+    "tier": "missing",
+    "claimable": false,
+    "required": false
+   }
+  ]
+ },
+ "verifiedMetrics": [
+  "5 years of experience in budgeting, forecasting and month-end reporting"
+ ],
+ "fitAnalysis": {
+  "fitLevel": "fair",
+  "score": 68,
+  "assessment": "You are a FAIR FIT at 68%: your FP&A core is solid, but the tooling and Board-level gaps need preparation.\n\n**Strengths:**\n- 5 years in budgeting, rolling forecasts and variance analysis\n- Advanced Excel (INDEX/MATCH, pivot tables, VBA) plus Power BI dashboards on SAP data\n- B.S. Finance and ACCA progress (9 of 13 papers)\n\n**Gaps:**\n- No Pigment, Tableau or Metabase experience (Pigment is a must-have)\n- No ROI analysis or Board materials preparation shown\n- No PowerPoint or consumption-based software model experience\n\n**Recommendation:** Apply now, build a small Pigment or Tableau sample project first, and use your cover letter to link your order-backlog forecast rebuild to Datadog's consumption-driven forecasting.",
+  "matchingSkills": [
+   "2+ years of experience in FP&A / Strategic Finance, Corporate Finance, Investment Banking, or related field",
+   "Bachelor's degree in finance, accounting, business, or economics",
+   "Excel",
+   "Financial modeling",
+   "Complex data management",
+   "Financial forecasting",
+   "Analytics",
+   "Budgeting",
+   "Clear and concise communication",
+   "Team player",
+   "Cross-functional collaboration",
+   "Business intelligence (BI) tools",
+   "Profitability analysis",
+   "Trend analysis",
+   "Strategic thinking"
+  ],
+  "missingSkills": [
+   "PowerPoint",
+   "Pigment",
+   "Tableau",
+   "Metabase",
+   "ROI analysis",
+   "Board materials preparation",
+   "Solid understanding of Pigment",
+   "Experience with consumption-based software business model",
+   "Proficiency in AI tools (e.g. ChatGPT, Claude)"
+  ]
+ },
+ "optimizedCVData": {
+  "personal": {
+   "fullName": "Tomas Brandt",
+   "email": "tomas.brandt@example.com",
+   "phone": "+1 555 0123",
+   "currentTitle": "Financial Analyst | Forecasting | Budgeting | Variance Analysis",
+   "city": "Chicago, IL",
+   "country": "USA"
+  },
+  "summary": "Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting for manufacturing and retail businesses. Owns monthly forecast and variance reporting at a manufacturing company and builds Power BI dashboards on SAP data. Strong in advanced Excel, including VBA automation, and working towards the ACCA qualification.",
+  "experience": [
+   {
+    "id": "exp-1",
+    "company": "Calder Industrial Components",
+    "position": "Financial Analyst",
+    "location": "Chicago, IL, USA",
+    "startDate": "Mar 2022",
+    "current": true,
+    "bullets": [
+     "Own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD",
+     "Improved forecast accuracy for the larger unit from 88% to 96% by rebuilding the model around order backlog",
+     "Shortened month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA",
+     "Build Power BI dashboards on SAP data for plant managers"
+    ],
+    "technologies": [
+     "Excel",
+     "VBA",
+     "Power BI",
+     "SAP"
+    ]
+   },
+   {
+    "id": "exp-2",
+    "company": "Redfern Stores",
+    "position": "Junior Financial Analyst",
+    "startDate": "Sep 2019",
+    "endDate": "Feb 2022",
+    "current": false,
+    "bullets": [
+     "Prepared the annual budget for the regional team",
+     "Delivered weekly store P&L packs to support regional decisions",
+     "Found a recurring supplier rebate that was not being claimed, worth about 120,000 USD a year"
+    ],
+    "technologies": []
+   },
+   {
+    "id": "exp-3",
+    "company": "Lakeshore Logistics",
+    "position": "Finance Intern",
+    "startDate": "Jun 2018",
+    "endDate": "Aug 2018",
+    "current": false,
+    "bullets": [
+     "Reconciled freight invoices and supported the audit file"
+    ],
+    "technologies": []
+   }
+  ],
+  "education": [
+   {
+    "id": "edu-1",
+    "institution": "University of Illinois Chicago",
+    "degree": "B.S. Finance",
+    "startDate": "2015",
+    "endDate": "2019",
+    "highlights": []
+   }
+  ],
+  "skills": [
+   {
+    "category": "Analysis & Planning",
+    "items": [
+     "Budgeting",
+     "Rolling forecasts",
+     "Variance analysis",
+     "Management reporting",
+     "Working capital"
+    ]
+   },
+   {
+    "category": "Tools",
+    "items": [
+     "Excel (advanced: INDEX/MATCH, pivot tables, VBA)",
+     "Power BI",
+     "SAP (reporting)",
+     "SQL (basic)"
+    ]
+   }
+  ],
+  "languages": [
+   {
+    "language": "English",
+    "proficiency": "Native"
+   },
+   {
+    "language": "German",
+    "proficiency": "Basic"
+   }
+  ],
+  "certifications": [
+   {
+    "id": "cert-1",
+    "name": "ACCA: 9 of 13 papers passed (in progress)",
+    "issuer": "ACCA"
+   }
+  ],
+  "projects": [],
+  "additionalInfo": [],
+  "analysis": {
+   "summary": "Positioned Tomas as a forecasting and budgeting specialist, leading with his documented Excel, Power BI and variance analysis strengths. Only metrics and tools found in his CV are used; missing JD skills such as PowerPoint, Pigment and Tableau are left out.",
+   "key_changes": [
+    "Rewrote the headline and summary around forecasting, budgeting and variance analysis to match the FP&A role",
+    "Reordered bullets so forecast ownership and model rebuilding lead the current role",
+    "Moved Excel, Power BI and financial skills to the front of the skills section",
+    "Kept the 5 years of experience phrasing exactly as the source states it",
+    "Reframed the Redfern Stores budget work as a documented budgeting and reporting achievement",
+    "Preserved the ACCA progress in certifications and both language levels exactly as stated"
+   ],
+   "ats_compatibility": 68,
+   "missing_keywords_added": [
+    "Excel",
+    "Power BI",
+    "budgeting",
+    "rolling forecasts",
+    "variance analysis"
+   ]
+  },
+  "sectionHeaders": {
+   "summary": "Professional Summary",
+   "skills": "Skills",
+   "experience": "Professional Experience",
+   "education": "Education",
+   "certifications": "Certifications",
+   "languages": "Languages",
+   "contact": "Contact",
+   "additionalInfo": "Additional Information",
+   "projects": "Projects"
+  },
+  "localizedStrings": {
+   "present": "Present",
+   "gradePrefix": "GPA:",
+   "degreeConnector": "in",
+   "dateOfBirthLabel": "Date of Birth",
+   "nationalityLabel": "Nationality",
+   "photoPlaceholder": "Photo",
+   "websiteLabel": "Website",
+   "signatureLabel": "Signature",
+   "cityLabel": "City",
+   "dateLabel": "Date"
+  }
+ },
+ "coverLetter": "Tomas Brandt\nChicago, IL, USA\ntomas.brandt@example.com\n+1 555 0123\n\nOctober 12, 2026\n\nHiring Manager\nDatadog\n\nDear Hiring Manager,\n\nBudgets and forecasts only help leaders when they trust the numbers. At Calder Industrial Components, forecast accuracy for our larger business unit sat at 88%, so I rebuilt the model around order backlog and brought it to 96%. That is the problem your R&D Finance team solves for Engineering and Product leadership: turning financial data into decisions they can act on.\n\nAs a Financial Analyst, I own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD. With 5 years of experience in budgeting, forecasting and month-end reporting, I'm used to sitting with operational leaders and explaining what the variances mean. I also shortened our month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA, and I build Power BI dashboards on SAP data for plant managers. Your ad mentions managing departmental budgets, financial forecasts and analytics, and consistency in tools, templates and processes across planning cycles. That is the work I do now. I haven't used Pigment, Tableau or Metabase, but I'm comfortable with BI tooling and I learn new systems quickly. I hold a B.S. in Finance and have passed 9 of 13 ACCA papers.\n\nI'd welcome a conversation about how I could support your R&D Finance team and its partnership with technical leadership. I'm available to talk at your convenience.\n\nKind regards,\nTomas Brandt",
+ "applicationEmail": {
+  "subject": "Application: FP&A Analyst, Tomas Brandt",
+  "body": "Dear Datadog Hiring Team,\n\nYou're looking for someone to manage forecasts and budgets with senior leaders, and that's the work I've done for 5 years, including rebuilding a forecast model around order backlog so it tracked the business more closely. I bring advanced Excel and a finance degree, and I build Power BI dashboards that turn messy data into clear numbers for decision makers. My CV and cover letter are attached for you to look through. I'm available for a call any weekday afternoon (Central Time) and can start a conversation about timing whenever suits you.\n\nBest regards,\nTomas Brandt"
+ },
+ "followUpEmail": {
+  "subject": "Following Up: FP&A Analyst, Tomas Brandt",
+  "body": "Dear Datadog Hiring Team,\n\nI applied for the FP&A Analyst role last week and remain very interested. Managing forecasts across revenue, headcount and AI and GPU spend is the kind of scope I want to work in.\n\nAt Calder Industrial Components, I cut month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA. Faster, cleaner reporting would help your leaders steer budgets sooner.\n\nI would welcome the chance to discuss how I can contribute.\n\nBest regards,\nTomas Brandt",
+  "recommendedDelay": 5
+ }
+}
