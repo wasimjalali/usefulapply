@@ -23,7 +23,9 @@ Work these as their own fix batches in phase 4, alongside the hunt's findings. E
 3. **Structured outputs.** Replace the "respond with ONLY valid JSON" suffix and the brace scanner with `output_config.format` JSON schemas on every JSON task (CV, emails, extraction). Check Sonnet 5.5 support in the current Anthropic docs first.
 4. **Native PDF parse path on 5.5.** Type-checked only. Run a real PDF and a DOCX through `/api/parse-cv` on production or local and confirm the Sonnet 5.5 request shape works.
 5. **Banned-phrase lists.** Optional: an ablation of the cover-letter banned-phrase lists, and the validator phrases missing from the prompt (see `evals/prompt-variants/sonnet55/CHANGES.md`).
-6. **Open decision for Wasim, not code:** when evals and judges run on subscription agents versus the paid Anthropic API credit (the Opus API judge cost $74 in the 5.5 eval).
+6. **Email subjects built in code.** Optional now that length no longer fails a document: build the subject from the localized prefix, the role title and the applicant name in code, so subjects stay consistent and under 60 characters without relying on the model.
+7. **Watch production after the switch.** Check the LLM ledger and PostHog for availability or start-date lines in emails (the one fabrication class 5.5 showed in the eval) and for the retry rate per email task since the parser change. Report numbers in `REPORT.md`.
+8. **Open decision for Wasim, not code:** when evals and judges run on subscription agents versus the paid Anthropic API credit (the Opus API judge cost $74 in the 5.5 eval).
 
 ## Phases
 
