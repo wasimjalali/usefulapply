@@ -87,9 +87,9 @@ Keep this current: update when the product, stack or direction changes.
 
 ### Tech stack
 
-> Next.js 16 with React 19 and TypeScript, Tailwind CSS 4 and Zustand, running on Cloudflare Workers via OpenNext. Cloudflare D1 for data with Drizzle, R2 for file storage, KV for caching, Better Auth for accounts, Cloudflare Email Service for transactional email, Stripe for payments, PostHog for analytics. Generation runs on Claude Sonnet 4.6 through Amazon Bedrock. Lighter high-volume tasks like chat and job-feed ranking run on open-weight GPT-OSS-120B through Cloudflare Workers AI, with SerpAPI for job data. I write all the code with Claude Code, Cursor and similar AI coding tools.
+> Next.js 16 with React 19 and TypeScript, Tailwind CSS 4 and Zustand, running on Cloudflare Workers via OpenNext. Cloudflare D1 for data with Drizzle, R2 for file storage, KV for caching, Better Auth for accounts, Cloudflare Email Service for transactional email, Stripe for payments, PostHog for analytics. Generation runs on Claude Sonnet 5.5 through the Anthropic API. Lighter high-volume tasks like chat and job-feed ranking run on open-weight GPT-OSS-120B through Cloudflare Workers AI, with SerpAPI for job data. I write all the code with Claude Code, Cursor and similar AI coding tools.
 
-*If they push on model choice:* the documents a user actually sends to an employer run on Sonnet 4.6 via Bedrock, because output quality there is the product. High-volume auxiliary tasks run on cost-efficient open-weight models through Workers AI, which keeps unit economics sane without touching what gets read. **Do not claim any model upgrade before it ships.**
+*If they push on model choice:* the documents a user actually sends to an employer run on Sonnet 5.5 via the Anthropic API, because output quality there is the product. It replaced Sonnet 4.6 after an October 2026 eval where it invented fewer claims and ran faster for less. High-volume auxiliary tasks run on cost-efficient open-weight models through Workers AI, which keeps unit economics sane without touching what gets read. **Do not claim any model upgrade before it ships.**
 
 ### Who writes the code?
 
@@ -220,7 +220,7 @@ Why it likely failed:
 | Why does nobody get past page one? | Name it as the top product problem, say what you are testing next. Do not deflect. |
 | One paying customer, why so few? | Because nobody has tried yet. Zero marketing spend to date, no launch, and I was unfunded and job hunting for the first five months, then employed full time. That's the honest answer, and it's better than it sounds: it means the conversion question is still open rather than already answered badly. Then point at what the first funded months go to: activation first, conversion second. |
 | Job search ends when someone gets hired. What's the retention story? | Acknowledge the built-in churn event, and that you are the example. Then give the actual plan, as a sequence: consumer today, institutions next (universities, bootcamps, outplacement renew even when individuals churn), a talent marketplace last. **[confirm] which stage you actually believe in most.** |
-| What does a full application kit cost you? | About $0.21 of inference today on Sonnet 4.6, modelled July 2026. Revenue is $0.40 per credit, so a paid subscription runs 73 to 80% gross margin at realistic utilization. |
+| What does a full application kit cost you? | About $0.21 of inference today on Sonnet 5.5, measured in the October 2026 eval. Revenue is $0.40 per credit, so a paid subscription runs 73 to 80% gross margin at realistic utilization. |
 | So the economics work? | For paid users, yes. Blended is the honest answer: free credits cost against zero revenue, so break-even is about 4.7% free-to-paid against a 2-5% freemium norm. We sit on that line, which makes activation the single most important number in the business. |
 | Why do you win in a category with hundreds of entrants? | Mechanism, not absence of competitors: the full grounded loop with trust as the product, multi-market depth the free incumbents lack, and a data flywheel from fit analyses. Concede all three are early, and concede Jobscan and Career.io already ship a full loop. |
 | You are solo and employed. Is this real? | The job came through the product and it seeded real applied-AI experience. If funded, you leave. Say it plainly. |
@@ -244,7 +244,7 @@ Why it likely failed:
 10. **Never claim full-time.** You are employed. Own it, the job is the best story you have.
 11. **Never quote 122 WAU or DAU figures.** Use the ~120 weekly visitors framing from the source-of-truth file.
 12. **The brand name is Useful Apply.** Never write Cargo or Carco. Historical references may say Karko AI once, clearly marked as the former name.
-13. **Never write Claude Sonnet 4.5.** Production is Sonnet 4.6. And never claim a model upgrade before it ships.
+13. **Never write Claude Sonnet 4.5 or 4.6 as the production model.** Production is Sonnet 5.5. And never claim a model upgrade before it ships.
 14. **Never write 70% equity.** You own 100% of the issued stock.
 15. **Never promise zero hallucinations.** Grounding is a design commitment plus human review. Pair every trust claim with "you review before it goes anywhere".
 16. **No em dashes** in any application text.

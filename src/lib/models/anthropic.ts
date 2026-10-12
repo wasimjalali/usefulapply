@@ -1,8 +1,10 @@
 /**
  * Anthropic Claude Client
- * Primary: Claude Sonnet 4.6 — frontier performance, improved coding, instruction following, agents
- * Previous: Claude Sonnet 4.5 — toggle via USE_PREVIOUS_MODEL=true env var
- * Fallback: Claude Haiku 4.5 — faster, cheaper, toggle via USE_FALLBACK_MODEL env var
+ * Primary: Claude Sonnet 5.5 on the direct Anthropic API (adaptive thinking, effort low, no temperature).
+ * Bedrock and DigitalOcean stay on Claude Sonnet 4.6 with the old request shape, as the fallback
+ * selected through AI_PROVIDER.
+ * Previous: Claude Sonnet 4.5, toggle via USE_PREVIOUS_MODEL=true env var
+ * Fallback: Claude Haiku 4.5, faster and cheaper, toggle via USE_FALLBACK_MODEL env var
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -164,11 +166,15 @@ const HAS_DIGITALOCEAN = !!(process.env.DIGITALOCEAN_AGENT_ENDPOINT && process.e
 // Resolve active provider
 const USE_DIGITALOCEAN = AI_PROVIDER === 'digitalocean' || (!AI_PROVIDER && HAS_DIGITALOCEAN && !HAS_BEARER_TOKEN && !HAS_TRADITIONAL_KEYS);
 const USE_BEDROCK = AI_PROVIDER === 'bedrock' || (!AI_PROVIDER && !USE_DIGITALOCEAN && (HAS_BEARER_TOKEN || HAS_TRADITIONAL_KEYS));
+// Request routing uses this, not HAS_BEARER_TOKEN alone: with AI_PROVIDER=anthropic the Bedrock bearer
+// secret can stay set for the fallback without pulling calls onto Bedrock.
+const USE_BEDROCK_BEARER = USE_BEDROCK && HAS_BEARER_TOKEN;
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 
-// Primary model: Claude Sonnet 4.6 — frontier performance, improved coding, agents, instruction following
+// Primary model. Bedrock stays on Claude Sonnet 4.6 (fallback provider); the direct Anthropic API
+// runs Claude Sonnet 5.5, which won the 2026-10-12 eval on grounding, speed and cost.
 const BEDROCK_MODEL_ID = `${AWS_REGION === 'us-east-1' ? 'us' : AWS_REGION.startsWith('eu') ? 'eu' : 'us'}.anthropic.claude-sonnet-4-6`;
-const DIRECT_MODEL_ID = 'claude-sonnet-4-6';
+const DIRECT_MODEL_ID = 'claude-sonnet-5-5';
 
 // Previous model: Claude Sonnet 4.5 — kept as fallback, toggle via USE_PREVIOUS_MODEL=true
 const BEDROCK_PREVIOUS_MODEL_ID = `${AWS_REGION === 'us-east-1' ? 'us' : AWS_REGION.startsWith('eu') ? 'eu' : 'us'}.anthropic.claude-sonnet-4-5-20250929-v1:0`;
@@ -231,7 +237,7 @@ class BedrockBearerTokenClient {
     }));
 
     // Converse API: modelId goes in URL path only, NOT in the request body
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       messages: bedrockMessages,
       inferenceConfig: {
         maxTokens: params.max_tokens,
@@ -545,12 +551,176 @@ function getBearerTokenClient(): BedrockBearerTokenClient {
 }
 
 // Export the active model IDs (used by the rest of the codebase)
-// Priority: USE_FALLBACK_MODEL (Haiku) > USE_PREVIOUS_MODEL (Sonnet 4.5) > default (Sonnet 4.6)
+// Priority: USE_FALLBACK_MODEL (Haiku) > USE_PREVIOUS_MODEL (Sonnet 4.5) > default
+// (Sonnet 5.5 on the direct API, Sonnet 4.6 on Bedrock and DigitalOcean)
 const ACTIVE_BEDROCK_MODEL_ID = USE_FALLBACK ? BEDROCK_FALLBACK_MODEL_ID : USE_PREVIOUS ? BEDROCK_PREVIOUS_MODEL_ID : BEDROCK_MODEL_ID;
 const ACTIVE_DIRECT_MODEL_ID = USE_FALLBACK ? DIRECT_FALLBACK_MODEL_ID : USE_PREVIOUS ? DIRECT_PREVIOUS_MODEL_ID : DIRECT_MODEL_ID;
 const ACTIVE_DO_MODEL_ID = USE_FALLBACK ? DO_FALLBACK_MODEL_ID : USE_PREVIOUS ? DO_PREVIOUS_MODEL_ID : DO_MODEL_ID;
 
 const MODEL_ID = USE_DIGITALOCEAN ? ACTIVE_DO_MODEL_ID : USE_BEDROCK ? ACTIVE_BEDROCK_MODEL_ID : ACTIVE_DIRECT_MODEL_ID;
+
+// Sonnet 5.5 request shape: only the direct Anthropic API on the primary model. Bedrock,
+// DigitalOcean and the USE_PREVIOUS_MODEL / USE_FALLBACK_MODEL toggles keep the 4.x shape
+// (temperature, no thinking, task max_tokens).
+const USE_SONNET_55_SHAPE = MODEL_ID === DIRECT_MODEL_ID;
+// Effort low won the eval for every task: medium bought nothing measurable on the documents
+// and added latency and fit-score inflation.
+const SONNET_55_EFFORT = 'low';
+// The SDK refuses non-streaming requests it estimates could run past its HTTP timeout, so
+// requests above this budget stream and wait for the final message.
+const STREAM_ABOVE_MAX_TOKENS = 16_000;
+
+/**
+ * Thinking counts toward max_tokens and the Sonnet 5.5 tokenizer produces about 30% more
+ * tokens than Sonnet 4.6 for the same text, so the 4.6-tuned task budget is scaled up.
+ */
+function sonnet55MaxTokens(taskMaxTokens: number): number {
+  return Math.max(4000, 4 * taskMaxTokens);
+}
+
+export interface ModelPricing {
+  /** USD per million tokens */
+  inputPerM: number;
+  outputPerM: number;
+  /** 5-minute cache write, 1.25x input */
+  cacheWritePerM: number;
+  /** Cache read: 0.1x input on Sonnet 4.x and Haiku 4.5, 0.05x on Sonnet 5.5 */
+  cacheReadPerM: number;
+}
+
+// Cache read is $0.10 (5% of input) per the Sonnet 5.5 model page on platform.claude.com.
+const SONNET_55_PRICING: ModelPricing = { inputPerM: 2, outputPerM: 10, cacheWritePerM: 2.5, cacheReadPerM: 0.1 };
+const SONNET_4X_PRICING: ModelPricing = { inputPerM: 3, outputPerM: 15, cacheWritePerM: 3.75, cacheReadPerM: 0.3 };
+const HAIKU_45_PRICING: ModelPricing = { inputPerM: 1, outputPerM: 5, cacheWritePerM: 1.25, cacheReadPerM: 0.1 };
+
+/** The model id every Claude call in this process uses (what the ledger and PostHog record). */
+export const ACTIVE_MODEL_ID = MODEL_ID;
+/** List price of ACTIVE_MODEL_ID. Same rates on Bedrock, DigitalOcean and the direct API. */
+export const ACTIVE_MODEL_PRICING: ModelPricing = USE_FALLBACK
+  ? HAIKU_45_PRICING
+  : USE_SONNET_55_SHAPE
+    ? SONNET_55_PRICING
+    : SONNET_4X_PRICING;
+
+type SystemParam = string | Array<{ type: 'text'; text: string; cache_control?: { type: 'ephemeral' } }>;
+
+/**
+ * Request body for the Anthropic SDK path (direct API, or Bedrock with traditional keys).
+ * Typed loosely on purpose: @anthropic-ai/sdk 0.71.2 has no `adaptive` thinking type and no
+ * `output_config`, but forwards unknown body fields unchanged, so it is cast at the call.
+ * Sonnet 5.5: no temperature/top_p/top_k (non-default values are a 400; voice and variety are
+ * steered in the prompts), adaptive thinking, explicit effort, scaled max_tokens, no prefill,
+ * no server-side fallbacks.
+ */
+function buildSdkParams(params: {
+  maxTokens: number;
+  temperature: number;
+  system?: SystemParam;
+  messages: Array<{ role: 'user' | 'assistant'; content: unknown }>;
+}): Record<string, unknown> {
+  if (!USE_SONNET_55_SHAPE) {
+    return {
+      model: MODEL_ID,
+      max_tokens: params.maxTokens,
+      temperature: params.temperature,
+      ...(params.system && { system: params.system }),
+      messages: params.messages,
+    };
+  }
+  return {
+    model: MODEL_ID,
+    max_tokens: sonnet55MaxTokens(params.maxTokens),
+    ...(params.system && { system: params.system }),
+    messages: params.messages,
+    thinking: { type: 'adaptive' },
+    output_config: { effort: SONNET_55_EFFORT },
+  };
+}
+
+type SdkMessage = Anthropic.Message & { _request_id?: string | null };
+
+/** One SDK Messages call. Streams (and waits for the final message) above STREAM_ABOVE_MAX_TOKENS. */
+async function sendSdkMessage(params: Record<string, unknown>): Promise<SdkMessage> {
+  if (!anthropic) throw new Error('Anthropic client not initialized. Check API key configuration');
+  const client = anthropic as Anthropic;
+  if ((params.max_tokens as number) > STREAM_ABOVE_MAX_TOKENS) {
+    const stream = client.messages.stream(params as unknown as Anthropic.MessageStreamParams);
+    const message = await stream.finalMessage();
+    return Object.assign(message, { _request_id: stream.request_id ?? null });
+  }
+  return client.messages.create(params as unknown as Anthropic.MessageCreateParamsNonStreaming);
+}
+
+/** A completed response that must not be treated as success (refusal or truncation). */
+class ModelStopError extends Error {
+  constructor(
+    message: string,
+    readonly errorKind: 'provider_refusal' | 'provider_max_tokens',
+    /** The response was billed, so its usage and request id still go in the failed ledger row. */
+    readonly billed: { usage: unknown; providerRequestId: string | null },
+  ) {
+    super(message);
+    this.name = 'ModelStopError';
+  }
+}
+
+/**
+ * Fail loud on a stop reason that leaves no usable answer. A refusal is an HTTP 200 with
+ * `stop_reason: "refusal"`; returning its (empty or partial) text as success would ship an empty
+ * document. On Sonnet 5.5 a `max_tokens` stop means thinking plus answer ran out of budget, which
+ * truncates the JSON or the letter.
+ */
+function assertUsableStop(
+  stopReason: string | null | undefined,
+  stopDetails: unknown,
+  maxTokens: number,
+  billed: { usage: unknown; providerRequestId: string | null },
+): void {
+  if (stopReason === 'refusal') {
+    const category = stopDetails && typeof stopDetails === 'object' && 'category' in stopDetails
+      ? String((stopDetails as { category?: unknown }).category)
+      : 'unknown';
+    throw new ModelStopError(`Model declined the request (stop_reason refusal, category ${category})`, 'provider_refusal', billed);
+  }
+  if (stopReason === 'max_tokens' && USE_SONNET_55_SHAPE) {
+    throw new ModelStopError(`Model output hit max_tokens (${maxTokens}) before finishing`, 'provider_max_tokens', billed);
+  }
+}
+
+/** Read text by block type: thinking blocks come first (empty by default) and are skipped. */
+function sdkMessageText(message: SdkMessage, params: Record<string, unknown>): string {
+  assertUsableStop(
+    message.stop_reason,
+    (message as unknown as { stop_details?: unknown }).stop_details,
+    params.max_tokens as number,
+    { usage: message.usage, providerRequestId: message._request_id ?? message.id ?? null },
+  );
+  return message.content.map((block) => (block.type === 'text' ? block.text : '')).join('');
+}
+
+function providerErrorKind(error: unknown, fallback: string): string {
+  if (error instanceof ProviderHttpError) return 'provider_http_error';
+  if (error instanceof ModelStopError) return error.errorKind;
+  return fallback;
+}
+
+/**
+ * Usage and request id of a billed response that still failed (refusal or truncation), for the
+ * single failed ledger row. Empty for errors where no response came back.
+ */
+function billedFailureUsage(error: unknown): Partial<Parameters<typeof failLlmGeneration>[0]> {
+  if (!(error instanceof ModelStopError)) return {};
+  const normalized = normalizeProviderUsage(error.billed.usage);
+  return {
+    providerRequestId: error.billed.providerRequestId,
+    inputTokens: normalized.inputTokens,
+    outputTokens: normalized.outputTokens,
+    cacheReadInputTokens: normalized.cacheReadInputTokens,
+    cacheWriteInputTokens: normalized.cacheWriteInputTokens,
+    providerTotalTokens: normalized.providerTotalTokens,
+    providerUsage: normalized.providerUsage,
+  };
+}
 
 if (USE_DIGITALOCEAN) {
   console.log(`[Anthropic] Using DigitalOcean Gradient AI provider (model: ${MODEL_ID})`);
@@ -561,7 +731,7 @@ if (USE_DIGITALOCEAN) {
     console.log(`[Anthropic] Using Amazon Bedrock provider with traditional keys (region: ${AWS_REGION}, model: ${MODEL_ID})`);
   }
 } else {
-  console.log('[Anthropic] Using direct Anthropic API');
+  console.log(`[Anthropic] Using direct Anthropic API (model: ${MODEL_ID})`);
 }
 
 export interface AnthropicCallOptions {
@@ -577,7 +747,8 @@ export interface AnthropicCallOptions {
 }
 
 /**
- * Call Claude Sonnet 4.6 (or Sonnet 4.5 / Haiku 4.5 fallback) for all AI tasks
+ * Call Claude (Sonnet 5.5 on the direct API, Sonnet 4.6 on Bedrock / DigitalOcean,
+ * or the Sonnet 4.5 / Haiku 4.5 toggles) for all AI tasks
  */
 export async function callAnthropic(options: AnthropicCallOptions): Promise<ModelResponse> {
   const { prompt, systemPrompt, systemBlocks, temperature = 0.7, maxTokens = 4096, jsonMode = false, conversationHistory } = options;
@@ -626,6 +797,7 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
 
   try {
     let response;
+    let content: string;
 
     if (USE_DIGITALOCEAN) {
       // Use DigitalOcean Gradient AI (OpenAI-compatible endpoint)
@@ -637,7 +809,8 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
         ...(systemParam && { system: systemParam }),
         messages,
       });
-    } else if (HAS_BEARER_TOKEN) {
+      content = response.content[0]?.text || '';
+    } else if (USE_BEDROCK_BEARER) {
       // Use cached bearer token client
       const bearerClient = getBearerTokenClient();
       response = await bearerClient.create({
@@ -647,16 +820,13 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
         ...(systemParam && { system: systemParam }),
         messages,
       });
+      content = response.content[0]?.text || '';
     } else {
       // Use Anthropic SDK (either Bedrock with traditional keys or direct Anthropic)
-      if (!anthropic) throw new Error('Anthropic client not initialized — check API key configuration');
-      response = await (anthropic as Anthropic).messages.create({
-        model: MODEL_ID,
-        max_tokens: maxTokens,
-        temperature,
-        ...(systemParam && { system: systemParam }),
-        messages,
-      });
+      const params = buildSdkParams({ maxTokens, temperature, system: systemParam, messages });
+      response = await sendSdkMessage(params);
+      // Throws on a refusal or truncation before the ledger marks the call complete.
+      content = sdkMessageText(response, params);
     }
 
     providerResponseReceived = true;
@@ -665,10 +835,6 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
       startedAtMs: startTime,
       response: response as LedgerAwareResponse,
     });
-
-    // Extract text content
-    const textContent = response.content.find(block => block.type === 'text');
-    const content = textContent?.type === 'text' ? textContent.text : '';
 
     // Extract cache metrics from usage (if available)
     const usage = response.usage as unknown as Record<string, number>;
@@ -698,8 +864,9 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
         id: ledger.id,
         latencyMs: Date.now() - startTime,
         attemptCount: providerAttemptCount(error),
-        errorKind: error instanceof ProviderHttpError ? 'provider_http_error' : 'provider_error',
+        errorKind: providerErrorKind(error, 'provider_error'),
         httpStatus: providerHttpStatus(error),
+        ...billedFailureUsage(error),
       });
     }
     console.error('Anthropic API error:', error);
@@ -708,7 +875,7 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
 }
 
 /**
- * Call Claude Sonnet 4.6 with streaming response
+ * Call Claude with a streaming response (same model and request shape as callAnthropic)
  */
 export async function callAnthropicStream(
   options: AnthropicCallOptions,
@@ -724,6 +891,9 @@ export async function callAnthropicStream(
   let cacheReadTokens = 0;
   let providerRequestId: string | null = null;
   const finalUsage: Record<string, number> = {};
+  let stopReason: string | null | undefined;
+  let stopDetails: unknown;
+  let streamParams: Record<string, unknown> = {};
 
   // Build system parameter — mirrors callAnthropic: prefer systemBlocks (with cache_control)
   // over plain systemPrompt string
@@ -783,7 +953,7 @@ export async function callAnthropicStream(
 
     let stream;
 
-    if (HAS_BEARER_TOKEN) {
+    if (USE_BEDROCK_BEARER) {
       // Bearer token path uses non-streaming (streaming can be added later)
       const bearerClient = getBearerTokenClient();
       const response = await bearerClient.create({
@@ -819,21 +989,27 @@ export async function callAnthropicStream(
       };
     } else {
       // Use Anthropic SDK streaming
-      if (!anthropic) throw new Error('Anthropic client not initialized — check API key configuration');
-      stream = (anthropic as Anthropic).messages.stream({
-        model: MODEL_ID,
-        max_tokens: maxTokens,
+      if (!anthropic) throw new Error('Anthropic client not initialized. Check API key configuration');
+      streamParams = buildSdkParams({
+        maxTokens,
         temperature,
-        ...(systemParam && { system: systemParam }),
+        system: systemParam,
         messages: [{ role: 'user', content: prompt }],
       });
+      stream = (anthropic as Anthropic).messages.stream(streamParams as unknown as Anthropic.MessageStreamParams);
     }
 
     for await (const event of stream) {
+      // Text deltas only: thinking and signature deltas never reach the caller.
       if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
         const text = event.delta.text;
         fullContent += text;
         onChunk(text);
+      }
+
+      if (event.type === 'message_delta') {
+        stopReason = event.delta.stop_reason;
+        stopDetails = (event.delta as unknown as { stop_details?: unknown }).stop_details;
       }
 
       if (event.type === 'message_delta' && event.usage) {
@@ -868,6 +1044,15 @@ export async function callAnthropicStream(
       }
     }
 
+    // The HTTP request id is what Anthropic support asks for; the message id is only a fallback.
+    providerRequestId = (stream as { request_id?: string | null }).request_id ?? providerRequestId;
+
+    // A refusal or truncation already streamed partial text, but it is not a usable answer.
+    assertUsableStop(stopReason, stopDetails, streamParams.max_tokens as number, {
+      usage: Object.keys(finalUsage).length > 0 ? finalUsage : null,
+      providerRequestId,
+    });
+
     providerResponseReceived = true;
     await completeProviderGeneration({
       id: ledger.id,
@@ -897,8 +1082,9 @@ export async function callAnthropicStream(
         id: ledger.id,
         latencyMs: Date.now() - startTime,
         attemptCount: providerAttemptCount(error),
-        errorKind: error instanceof ProviderHttpError ? 'provider_http_error' : 'provider_stream_error',
+        errorKind: providerErrorKind(error, 'provider_stream_error'),
         httpStatus: providerHttpStatus(error),
+        ...billedFailureUsage(error),
       });
     }
     console.error('Anthropic streaming error:', error);
@@ -956,7 +1142,7 @@ export async function extractDocumentText(
       return text;
     }
 
-    if (HAS_BEARER_TOKEN) {
+    if (USE_BEDROCK_BEARER) {
       // Bedrock Converse API with document content block
       const bearerToken = process.env.AWS_BEARER_TOKEN_BEDROCK!;
       const region = process.env.AWS_BEDROCK_ENDPOINT_URL || AWS_REGION;
@@ -1008,11 +1194,8 @@ export async function extractDocumentText(
     }
 
     // Anthropic SDK (Bedrock traditional keys or direct API)
-    if (!anthropic) throw new Error('Anthropic client not initialized');
-
-    const response = await (anthropic as any).messages.create({
-      model: MODEL_ID,
-      max_tokens: 8192,
+    const params = buildSdkParams({
+      maxTokens: 8192,
       temperature: 0,
       system: systemPrompt,
       messages: [{
@@ -1030,6 +1213,8 @@ export async function extractDocumentText(
         ],
       }],
     });
+    const response = await sendSdkMessage(params);
+    const text = sdkMessageText(response, params);
 
     providerResponseReceived = true;
     await completeProviderGeneration({
@@ -1038,8 +1223,6 @@ export async function extractDocumentText(
       response: response as LedgerAwareResponse,
     });
 
-    const textContent = response.content.find((b: any) => b.type === 'text');
-    const text = textContent?.text || '';
     console.log(`[Anthropic] PDF document extraction: ${text.length} chars in ${Date.now() - startTime}ms`);
     return text;
   } catch (error) {
@@ -1048,8 +1231,9 @@ export async function extractDocumentText(
         id: ledger.id,
         latencyMs: Date.now() - startTime,
         attemptCount: providerAttemptCount(error),
-        errorKind: error instanceof ProviderHttpError ? 'provider_http_error' : 'document_extraction_provider_error',
+        errorKind: providerErrorKind(error, 'document_extraction_provider_error'),
         httpStatus: providerHttpStatus(error),
+        ...billedFailureUsage(error),
       });
     }
     console.error('[Anthropic] Document extraction failed:', error);
@@ -1085,7 +1269,7 @@ export async function parseDocumentAsCV(options: {
   if (USE_DIGITALOCEAN) {
     throw new Error('DigitalOcean provider does not support document content blocks. Switch to Bedrock or direct Anthropic.');
   }
-  if (!HAS_BEARER_TOKEN && docFormat !== 'pdf') {
+  if (!USE_BEDROCK_BEARER && docFormat !== 'pdf') {
     throw new Error('Native DOCX document blocks are only supported through the Bedrock bearer path in this client.');
   }
 
@@ -1098,7 +1282,7 @@ export async function parseDocumentAsCV(options: {
   let providerResponseReceived = false;
 
   try {
-    if (HAS_BEARER_TOKEN) {
+    if (USE_BEDROCK_BEARER) {
       // Bedrock Converse API: native document block support (pdf, docx, txt, md, csv, etc.)
       const bearerToken = process.env.AWS_BEARER_TOKEN_BEDROCK!;
       const region = process.env.AWS_BEDROCK_ENDPOINT_URL || AWS_REGION;
@@ -1158,8 +1342,6 @@ export async function parseDocumentAsCV(options: {
     }
 
     // Anthropic SDK (Bedrock traditional keys or direct Anthropic API) - PDF only
-    if (!anthropic) throw new Error('Anthropic client not initialized');
-
     // Build document block with optional citations for visual mode
     const sdkDocumentBlock: Record<string, unknown> = {
       type: 'document',
@@ -1173,9 +1355,8 @@ export async function parseDocumentAsCV(options: {
       sdkDocumentBlock.citations = { enabled: true };
     }
 
-    const response = await (anthropic as any).messages.create({
-      model: MODEL_ID,
-      max_tokens: maxTokens,
+    const params = buildSdkParams({
+      maxTokens,
       temperature,
       system: systemPrompt,
       messages: [{
@@ -1186,6 +1367,9 @@ export async function parseDocumentAsCV(options: {
         ],
       }],
     });
+    const response = await sendSdkMessage(params);
+    // With citations enabled the answer can arrive as several text blocks, so all are joined.
+    const text = sdkMessageText(response, params);
 
     providerResponseReceived = true;
     await completeProviderGeneration({
@@ -1194,8 +1378,6 @@ export async function parseDocumentAsCV(options: {
       response: response as LedgerAwareResponse,
     });
 
-    const textContent = response.content.find((b: any) => b.type === 'text');
-    const text = textContent?.text || '';
     console.log(`[Anthropic] CV document parse (visualMode=${visualMode}): ${text.length} chars in ${Date.now() - startTime}ms`);
     return text;
   } catch (error) {
@@ -1204,8 +1386,9 @@ export async function parseDocumentAsCV(options: {
         id: ledger.id,
         latencyMs: Date.now() - startTime,
         attemptCount: providerAttemptCount(error),
-        errorKind: error instanceof ProviderHttpError ? 'provider_http_error' : 'document_parse_provider_error',
+        errorKind: providerErrorKind(error, 'document_parse_provider_error'),
         httpStatus: providerHttpStatus(error),
+        ...billedFailureUsage(error),
       });
     }
     throw error;

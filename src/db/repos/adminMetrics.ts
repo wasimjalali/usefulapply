@@ -2,6 +2,18 @@ import { and, eq } from 'drizzle-orm';
 import { getDb, nowIso } from '../client';
 import { adminAuthEvents, llmGenerations, type Json } from '../schema';
 
+/** JSON with object keys sorted at every depth, so equal usage objects compare equal whatever their key order. */
+function canonicalJson(value: unknown): string {
+  const sort = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(sort);
+    if (v !== null && typeof v === 'object') {
+      return Object.fromEntries(Object.keys(v as Record<string, unknown>).sort().map((k) => [k, sort((v as Record<string, unknown>)[k])]));
+    }
+    return v;
+  };
+  return JSON.stringify(sort(value ?? null));
+}
+
 export type AdminAuthEventType = 'signup' | 'session_started';
 export type LlmUsageProvider = 'anthropic' | 'bedrock' | 'digitalocean' | 'workers-ai';
 
@@ -151,7 +163,7 @@ export async function completeLlmGeneration(params: {
       && row.cache_read_input_tokens === values.cache_read_input_tokens
       && row.cache_write_input_tokens === values.cache_write_input_tokens
       && row.provider_total_tokens === values.provider_total_tokens
-      && JSON.stringify(row.provider_usage) === JSON.stringify(values.provider_usage);
+      && canonicalJson(row.provider_usage) === canonicalJson(values.provider_usage);
     if (isIdenticalTerminalWrite) return;
     throw new Error('LLM generation ledger completion conflicted');
   }
@@ -164,6 +176,18 @@ export async function failLlmGeneration(params: {
   attemptCount?: number;
   errorKind: string;
   httpStatus?: number | null;
+  /**
+   * A response can be billed and still fail (a refusal, or output cut off at max_tokens).
+   * Its token counts and request id are kept here. usage_reported stays false: the schema
+   * reserves it for response_received rows.
+   */
+  providerRequestId?: string | null;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  cacheReadInputTokens?: number | null;
+  cacheWriteInputTokens?: number | null;
+  providerTotalTokens?: number | null;
+  providerUsage?: Json | null;
 }): Promise<void> {
   const db = await getDb();
   const failedAt = params.failedAt ?? nowIso();
@@ -176,6 +200,13 @@ export async function failLlmGeneration(params: {
       attempt_count: params.attemptCount ?? 1,
       error_kind: params.errorKind,
       http_status: params.httpStatus ?? null,
+      provider_request_id: params.providerRequestId ?? null,
+      input_tokens: params.inputTokens ?? null,
+      output_tokens: params.outputTokens ?? null,
+      cache_read_input_tokens: params.cacheReadInputTokens ?? null,
+      cache_write_input_tokens: params.cacheWriteInputTokens ?? null,
+      provider_total_tokens: params.providerTotalTokens ?? null,
+      provider_usage: params.providerUsage ?? null,
       updated_at: failedAt,
     })
     .where(and(eq(llmGenerations.id, params.id), eq(llmGenerations.status, 'started')))
@@ -193,7 +224,14 @@ export async function failLlmGeneration(params: {
       && row.latency_ms === params.latencyMs
       && row.attempt_count === (params.attemptCount ?? 1)
       && row.error_kind === params.errorKind
-      && row.http_status === (params.httpStatus ?? null);
+      && row.http_status === (params.httpStatus ?? null)
+      && row.provider_request_id === (params.providerRequestId ?? null)
+      && row.input_tokens === (params.inputTokens ?? null)
+      && row.output_tokens === (params.outputTokens ?? null)
+      && row.cache_read_input_tokens === (params.cacheReadInputTokens ?? null)
+      && row.cache_write_input_tokens === (params.cacheWriteInputTokens ?? null)
+      && row.provider_total_tokens === (params.providerTotalTokens ?? null)
+      && canonicalJson(row.provider_usage) === canonicalJson(params.providerUsage ?? null);
     if (isIdenticalTerminalWrite) return;
     throw new Error('LLM generation ledger failure update conflicted');
   }

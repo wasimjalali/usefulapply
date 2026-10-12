@@ -116,7 +116,7 @@ A Fit Analysis mode lets users check their match score before spending credits.
 - Built-in application tracker (match score, status, company) — no spreadsheet needed
 - ATS-first by default — passes Workday, Greenhouse, Lever
 - Anti-hallucination system: every claim traces to the user's real experience (Master CV)
-- Powered by Claude Sonnet 4.6 (frontier-grade AI vs. cheaper models competitors use)
+- Powered by Claude Sonnet 5.5 (frontier-grade AI vs. cheaper models competitors use)
 
 ---
 
@@ -261,7 +261,8 @@ A Fit Analysis mode lets users check their match score before spending credits.
 > "If you are someone who's looking for jobs like me this is the best site for you. It saves so much time and energy for you. You can create targeted CV, Cover Letter and Email + follow up email in a matter of seconds for any Job application you want." — Zaeem Jalali, 5 stars
 
 **Technology differentiator:**
-- Powered by Claude Sonnet 4.6 by Anthropic (frontier-grade AI)
+- Powered by Claude Sonnet 5.5 by Anthropic (frontier-grade AI)
+- Sonnet 5.5 was chosen for grounding, speed and cost, not as a claimed writing upgrade. Don't market it as better writing.
 - Anti-hallucination: every claim in output traces to the user's Master CV
 
 **Claims NOT to make (unverified):**

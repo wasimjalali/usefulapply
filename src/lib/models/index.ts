@@ -1,9 +1,10 @@
 /**
  * Model Abstraction Layer
- * Primary: Claude Sonnet 4.6 | Previous: Claude Sonnet 4.5 (USE_PREVIOUS_MODEL=true) | Fallback: Claude Haiku 4.5 (USE_FALLBACK_MODEL=true)
+ * Primary: Claude Sonnet 5.5 on the direct Anthropic API (Sonnet 4.6 on the Bedrock / DigitalOcean fallback)
+ * Previous: Claude Sonnet 4.5 (USE_PREVIOUS_MODEL=true) | Fallback: Claude Haiku 4.5 (USE_FALLBACK_MODEL=true)
  */
 
-import { callAnthropic, callAnthropicStream, parseAnthropicJSON } from './anthropic';
+import { callAnthropic, callAnthropicStream, parseAnthropicJSON, ACTIVE_MODEL_ID, ACTIVE_MODEL_PRICING } from './anthropic';
 import { 
   type TaskType, 
   type ModelResponse, 
@@ -13,10 +14,11 @@ import {
 } from './types';
 
 export * from './types';
-export { parseAnthropicJSON };
+export { parseAnthropicJSON, ACTIVE_MODEL_ID, ACTIVE_MODEL_PRICING };
+export type { ModelPricing } from './anthropic';
 
 /**
- * Main function to call Claude Sonnet 4.6 (or Sonnet 4.5 / Haiku 4.5 fallback)
+ * Main function to call Claude (model resolved at runtime in anthropic.ts)
  */
 export async function callModel(options: ModelCallOptions): Promise<ModelResponse> {
   const { task, prompt, systemPrompt, systemBlocks, temperature, maxTokens, jsonMode, conversationHistory, generationContext } = options;
@@ -46,7 +48,7 @@ export async function callModel(options: ModelCallOptions): Promise<ModelRespons
 }
 
 /**
- * Call Claude Sonnet 4.6 (or Sonnet 4.5 / Haiku 4.5 fallback) with streaming response
+ * Call Claude (model resolved at runtime in anthropic.ts) with streaming response
  */
 export async function callModelStream(
   options: ModelCallOptions,
@@ -86,15 +88,21 @@ export function parseModelJSON<T>(content: string): T {
 }
 
 /**
- * Get estimated cost for a model call (in USD)
- * Sonnet 4.6 pricing: $3/M input, $15/M output (same across Bedrock, DigitalOcean, and direct Anthropic)
- * Haiku 4.5 pricing: $1/M input, $5/M output
+ * Get estimated cost for a model call (in USD), at the active model's list price
+ * (Sonnet 5.5: $2/M input, $10/M output; Sonnet 4.6: $3/$15; Haiku 4.5: $1/$5;
+ * cache writes 1.25x input; cache reads 0.05x input on Sonnet 5.5, 0.1x on the others)
  */
-export function estimateCost(task: TaskType, inputTokens: number, outputTokens: number): number {
-  const isFallback = process.env.USE_FALLBACK_MODEL === 'true';
-  const inputCost = (inputTokens / 1_000_000) * (isFallback ? 1.00 : 3.00);
-  const outputCost = (outputTokens / 1_000_000) * (isFallback ? 5.00 : 15.00);
-  return inputCost + outputCost;
+export function estimateCost(
+  task: TaskType,
+  inputTokens: number,
+  outputTokens: number,
+  cache: { writeTokens?: number; readTokens?: number } = {},
+): number {
+  const p = ACTIVE_MODEL_PRICING;
+  return (inputTokens * p.inputPerM
+    + outputTokens * p.outputPerM
+    + (cache.writeTokens ?? 0) * p.cacheWritePerM
+    + (cache.readTokens ?? 0) * p.cacheReadPerM) / 1_000_000;
 }
 
 /**
@@ -105,7 +113,10 @@ export function logModelUsage(
   response: ModelResponse,
   context?: string
 ): void {
-  const cost = estimateCost(task, response.usage.inputTokens, response.usage.outputTokens);
+  const cost = estimateCost(task, response.usage.inputTokens, response.usage.outputTokens, {
+    writeTokens: response.usage.cacheCreationInputTokens,
+    readTokens: response.usage.cacheReadInputTokens,
+  });
   
   console.log(`[Model] ${task} | ${response.provider}/${response.model} | ` +
     `${response.usage.inputTokens}in/${response.usage.outputTokens}out | ` +

@@ -205,7 +205,7 @@ export default function FreeNoSignupTestPage() {
               analysis is included in each application.
             </p>
             <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
-              The same AI quality (Claude Sonnet 4.6 via Bedrock) as paid tiers. No difference in
+              The same AI quality (Claude Sonnet 5.5 by Anthropic) as paid tiers. No difference in
               output quality between free and paid. Only the volume limit changes.
             </p>
             </ScrollReveal>

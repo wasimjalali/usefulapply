@@ -1,7 +1,8 @@
 /**
  * Model Types and Interfaces
  * Defines the types for multi-model AI system
- * Primary: Claude Sonnet 4.6 | Fallback: Claude Haiku 4.5 (toggle via USE_FALLBACK_MODEL env var)
+ * Primary: Claude Sonnet 5.5 on the direct Anthropic API (Sonnet 4.6 on the Bedrock / DigitalOcean fallback)
+ * Fallback: Claude Haiku 4.5 (toggle via USE_FALLBACK_MODEL env var)
  */
 
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
@@ -70,35 +71,38 @@ export interface ModelCallOptions {
   generationContext?: LlmGenerationContext;
 }
 
-// Model configurations - All tasks use Claude Sonnet 4.6 (model ID resolved at runtime in anthropic.ts)
+// Model configurations. The model ID is resolved at runtime in anthropic.ts; `model` here is informational.
+// temperature applies only to the 4.x request shape (Bedrock / DigitalOcean / toggles): Sonnet 5.5 rejects
+// it, so its voice and variety live in the prompts. On Sonnet 5.5, maxTokens is scaled to max(4000, 4x)
+// because thinking counts toward it and the tokenizer is ~30% larger.
 export const MODEL_CONFIGS: Record<TaskType, ModelConfig> = {
   // Extraction & analysis
   extract_applicant: {
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-5-5',
     provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 4096,
   },
   parse_job: {
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-5-5',
     provider: 'anthropic',
     temperature: 0.3,
     maxTokens: 4096,
   },
   skill_matching: {
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-5-5',
     provider: 'anthropic',
     temperature: 0.1,  // Low temp for consistent, deterministic matching
     maxTokens: 2048,
   },
   extract_metrics: {
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-5-5',
     provider: 'anthropic',
     temperature: 0.2,
     maxTokens: 2048,
   },
   fit_assessment: {
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-5-5',
     provider: 'anthropic',
     temperature: 0.4,  // More precise analytical evaluations
     maxTokens: 400,
@@ -106,31 +110,31 @@ export const MODEL_CONFIGS: Record<TaskType, ModelConfig> = {
 
   // Generation
   optimize_cv: {
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-5-5',
     provider: 'anthropic',
     temperature: 0.5,  // Variety for natural-sounding bullet points
     maxTokens: 10000,  // Covers 3-page CV (~5K tokens) + analysis + headroom
   },
   write_cover_letter: {
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-5-5',
     provider: 'anthropic',
     temperature: 0.6,  // Sonnet 4.6: maintained — needs warmth and personality
     maxTokens: 2048,
   },
   write_email: {
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-5-5',
     provider: 'anthropic',
     temperature: 0.55,  // Sonnet 4.6: maintained — emails need warmth
     maxTokens: 1024,
   },
   write_follow_up_email: {
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-5-5',
     provider: 'anthropic',
     temperature: 0.5,  // Slightly lower than primary email — follow-up needs precision
     maxTokens: 512,
   },
   general_chat: {
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-5-5',
     provider: 'anthropic',
     temperature: 0.7,
     maxTokens: 150,  // Reconciled: was 2048 in config but overridden to 100 in chat route. 150 gives Sonnet 4.6 headroom for helpful responses.

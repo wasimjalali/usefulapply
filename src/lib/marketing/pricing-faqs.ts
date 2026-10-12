@@ -47,7 +47,7 @@ export const pricingFAQs: PricingFAQ[] = [
   {
     question: 'What AI model powers Useful Apply?',
     answer:
-      'Useful Apply runs on Claude Sonnet 4.6 by Anthropic, one of the most capable models available for writing. Most competitors use cheaper open-source models. We pay for the better model because the output has to survive both an ATS scan and a recruiter’s read. On top of that, the workflow around the model is tuned specifically for job applications.',
+      'Useful Apply runs on Claude Sonnet 5.5 by Anthropic, one of the most capable models available for writing. Most competitors use cheaper open-source models. We pay for the better model because the output has to survive both an ATS scan and a recruiter’s read. On top of that, the workflow around the model is tuned specifically for job applications.',
   },
   {
     question: 'How does Useful Apply pricing compare to Teal?',
