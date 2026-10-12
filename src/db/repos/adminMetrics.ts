@@ -215,7 +215,11 @@ export async function failLlmGeneration(params: {
       && row.http_status === (params.httpStatus ?? null)
       && row.provider_request_id === (params.providerRequestId ?? null)
       && row.input_tokens === (params.inputTokens ?? null)
-      && row.output_tokens === (params.outputTokens ?? null);
+      && row.output_tokens === (params.outputTokens ?? null)
+      && row.cache_read_input_tokens === (params.cacheReadInputTokens ?? null)
+      && row.cache_write_input_tokens === (params.cacheWriteInputTokens ?? null)
+      && row.provider_total_tokens === (params.providerTotalTokens ?? null)
+      && JSON.stringify(row.provider_usage) === JSON.stringify(params.providerUsage ?? null);
     if (isIdenticalTerminalWrite) return;
     throw new Error('LLM generation ledger failure update conflicted');
   }

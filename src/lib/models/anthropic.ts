@@ -1044,6 +1044,9 @@ export async function callAnthropicStream(
       }
     }
 
+    // The HTTP request id is what Anthropic support asks for; the message id is only a fallback.
+    providerRequestId = (stream as { request_id?: string | null }).request_id ?? providerRequestId;
+
     // A refusal or truncation already streamed partial text, but it is not a usable answer.
     assertUsableStop(stopReason, stopDetails, streamParams.max_tokens as number, {
       usage: Object.keys(finalUsage).length > 0 ? finalUsage : null,

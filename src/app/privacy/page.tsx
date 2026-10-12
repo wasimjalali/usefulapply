@@ -114,7 +114,7 @@ export default function PrivacyPage() {
         <LegalP>
           Your CV, job descriptions, chat prompts and related content are processed by AI
           providers so we can generate application materials, rank roles, synthesize a career
-          profile and run in-product chat. Today that includes Anthropic Claude via the Claude
+          profile and run in-product chat. Today that includes Anthropic Claude via the Anthropic
           API (with Amazon Bedrock as a fallback) and Cloudflare Workers AI. Those providers
           process the content you submit in order to return a result. We do not use your CV or
           application materials to train our own models. We instruct providers not to use that
@@ -169,8 +169,8 @@ export default function PrivacyPage() {
             storage, cache, email delivery and Workers AI).
           </li>
           <li>
-            <strong className="text-charcoal">Anthropic</strong> (Claude API, for writing, parsing
-            and fit analysis).
+            <strong className="text-charcoal">Anthropic</strong> (Claude via the Anthropic API, for
+            writing, parsing and fit analysis).
           </li>
           <li>
             <strong className="text-charcoal">Amazon Web Services / Amazon Bedrock</strong> (Claude

@@ -233,7 +233,7 @@ A decision recorded in July 2026 to cut the free tier to 2 credits has **not shi
 
 Every tier prices credits identically at **$0.40 revenue per credit**.
 
-- Cost per full application on the current all-Sonnet configuration: **about $0.21** of inference.
+- Cost per full application on Sonnet 5.5: **about $0.21** of inference ($0.214 per kit measured in the October 2026 eval, `evals/results/2026-10-12-sonnet-46-vs-55.md`, before the cache-read price correction to $0.10 per million tokens, which lowers it slightly).
 - Paid subscription gross margin at realistic utilization: **73 to 80%**, including Stripe fees.
 - Blended break-even sits at **about 4.7% free-to-paid conversion**, against a 2 to 5% freemium norm. Below that line, each free signup loses money. This makes activation a solvency problem, not just a growth problem.
 - The daily feed cost for free users is unmeasured and uncharged against credits.
@@ -268,7 +268,9 @@ Migrated from Vercel + Supabase to Cloudflare. Source: README. [verified]
 
 Job data comes from SerpAPI. [verified] `src/lib/job-feed/`
 
-Never claim a model upgrade before it ships. Production generation is Sonnet 5.5, chosen in an October 2026 eval against Sonnet 4.6. Grounding, speed and cost drove the choice; on a manual read, writing quality was roughly even. Say nothing else.
+Never claim a model upgrade before it ships. Public line: production generation is Sonnet 5.5, chosen in an eval against Sonnet 4.6. Say nothing else.
+
+Internal context, not for public copy: grounding, speed and cost drove the choice; on a manual read, writing quality was roughly even. Don't present 5.5 as a writing upgrade.
 
 ### Leftover `src/lib/supabase/` names
 

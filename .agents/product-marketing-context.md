@@ -262,6 +262,7 @@ A Fit Analysis mode lets users check their match score before spending credits.
 
 **Technology differentiator:**
 - Powered by Claude Sonnet 5.5 by Anthropic (frontier-grade AI)
+- Sonnet 5.5 was chosen for grounding, speed and cost, not as a claimed writing upgrade. Don't market it as better writing.
 - Anti-hallucination: every claim in output traces to the user's Master CV
 
 **Claims NOT to make (unverified):**
