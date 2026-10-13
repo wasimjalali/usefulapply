@@ -1022,7 +1022,7 @@ export class JsonAnswerCorrectedError extends Error {
 /**
  * Parse the model's JSON answer. Sonnet 5.5 sometimes notices a limit it broke
  * after emitting the JSON and writes a corrected object after a short note
- * ("Wait, the subject must be 60 characters or fewer. Corrected output: {...}").
+ * ("Wait, the body must be four sentences or fewer. Corrected output: {...}").
  *
  * With a check, the last object that passes the shape check is THE answer, and
  * only it is validated; an earlier complete answer is never used, because the
@@ -1031,8 +1031,8 @@ export class JsonAnswerCorrectedError extends Error {
  * `Corrected summary: {...}`, an unparseable corrected object, an array), the
  * model changed its answer in a way that can't be applied safely, so this
  * throws JsonAnswerCorrectedError: the email retry runs and the CV fails loud.
- * The only exception is a pure format-template echo (`{"subject": "...",
- * "body": "..."}`), which carries no content.
+ * The only exception is a pure format-template echo (`{"body": "..."}`),
+ * which carries no content.
  *
  * Without a check, the last object wins. Errors never quote model output.
  */
@@ -1095,11 +1095,9 @@ function isRealString(value: unknown): boolean {
   return typeof value === 'string' && !isPlaceholderValue(value);
 }
 
-/** An application or follow-up email: string subject and body, not both template values. */
+/** An application or follow-up email: a string body that isn't a template value. Any subject is ignored. */
 export function isEmailAnswerShape(parsed: Record<string, unknown>): boolean {
-  return typeof parsed.subject === 'string'
-    && typeof parsed.body === 'string'
-    && (isRealString(parsed.subject) || isRealString(parsed.body));
+  return isRealString(parsed.body);
 }
 
 /** A whole optimized CV: a personal section and an experience list, not a schema echo. */
@@ -1137,20 +1135,95 @@ function cleanEmailPlaceholders(value: string, language: SupportedLanguage): str
     .replace(/\[Name\]/gi, language === 'en' ? 'Hiring Team' : greeting.replace(/,$/, ''));
 }
 
+const APPLICATION_SUBJECT_PREFIXES: Record<string, string> = {
+  en: 'Application',
+  de: 'Bewerbung als',
+  fr: 'Candidature',
+  es: 'Candidatura',
+  pt: 'Candidatura',
+  it: 'Candidatura',
+  nl: 'Sollicitatie',
+};
+
+const FOLLOW_UP_SUBJECT_PREFIXES: Record<string, string> = {
+  en: 'Following Up',
+  de: 'Nachfrage',
+  fr: 'Suivi de candidature',
+  es: 'Seguimiento',
+  pt: 'Acompanhamento',
+  it: 'Seguito candidatura',
+  nl: 'Opvolging sollicitatie',
+};
+
+const EMAIL_SUBJECT_MAX_LENGTH = 60;
+// A slash, pipe or hyphen only separates when spaced: "Senior/Software Engineer",
+// German "Fachangestellte/r" and "E-Commerce" stay whole, "Webentwickler / E-Commerce"
+// is two. An en or em dash separates spaced or not.
+const PRIMARY_TITLE_DELIMITER = / \/ | \| |\(| - |\s*[\u2013\u2014]\s*/u;
+const CUT_TITLE_TRAILING_PUNCTUATION = /[\s.,;:!?&/|(\-\u2013\u2014"'\u201c\u201d\u2018\u2019\u00ab\u00bb]+$/u;
+
+/** Control characters become spaces too: title and name are ad text or user input. */
+function collapseWhitespace(value: string | undefined): string {
+  return (value ?? '').replace(/[\s\p{Cc}]+/gu, ' ').trim();
+}
+
+/**
+ * Build an email subject in code: `<lead><title>, <name>`, at most 60
+ * characters after the dash and typo cleanup. Over the cap it tries, in order,
+ * the primary title, the primary title without the name, then the primary
+ * title cut at its last fitting word boundary, then `<bare>: <name>` for a
+ * single word too long to cut. Without a title it is `<bare>: <name>`; with
+ * neither title nor name, the bare prefix.
+ */
+function buildEmailSubject(lead: string, bare: string, rawTitle: string | undefined, rawName: string | undefined): string {
+  const title = collapseWhitespace(rawTitle);
+  const name = collapseWhitespace(rawName);
+  const compose = (t: string, n: string): string => {
+    if (!t) return n ? `${bare}: ${n}` : bare;
+    return n ? `${lead}${t}, ${n}` : `${lead}${t}`;
+  };
+  // A title that opens with a delimiter, such as "(Senior) Engineer", keeps its whole text.
+  const primaryTitle = title.split(PRIMARY_TITLE_DELIMITER)[0].trim() || title;
+  const words = primaryTitle.split(' ');
+  const candidates = [compose(title, name), compose(primaryTitle, name), compose(primaryTitle, '')];
+  for (let count = words.length - 1; count > 0; count--) {
+    candidates.push(compose(words.slice(0, count).join(' ').replace(CUT_TITLE_TRAILING_PUNCTUATION, ''), ''));
+  }
+  candidates.push(compose('', name));
+  for (const candidate of candidates) {
+    const subject = sanitizeDashes(fixTypos(candidate)).trim();
+    if (subject.length <= EMAIL_SUBJECT_MAX_LENGTH) return subject;
+  }
+  return bare;
+}
+
+function buildApplicationEmailSubject(context: MasterContext, language: SupportedLanguage): string {
+  const prefix = APPLICATION_SUBJECT_PREFIXES[language] || APPLICATION_SUBJECT_PREFIXES.en;
+  // German reads "Bewerbung als <title>", with no colon, and "Bewerbung" alone.
+  return language === 'de'
+    ? buildEmailSubject(`${prefix} `, 'Bewerbung', context.job?.title, context.applicant?.name)
+    : buildEmailSubject(`${prefix}: `, prefix, context.job?.title, context.applicant?.name);
+}
+
+function buildFollowUpEmailSubject(context: MasterContext, language: SupportedLanguage): string {
+  const prefix = FOLLOW_UP_SUBJECT_PREFIXES[language] || FOLLOW_UP_SUBJECT_PREFIXES.en;
+  return buildEmailSubject(`${prefix}: `, prefix, context.job?.title, context.applicant?.name);
+}
+
 function validateApplicationEmail(
   parsed: Record<string, unknown>,
   language: SupportedLanguage,
-  applicantName?: string,
+  applicantName: string | undefined,
+  subject: string,
 ): { subject: string; body: string } {
-  if (typeof parsed.subject !== 'string' || typeof parsed.body !== 'string') {
-    throw new EmailValidationError('Application email subject and body must be strings');
+  if (typeof parsed.body !== 'string') {
+    throw new EmailValidationError('Application email body must be a string');
   }
-  const subject = sanitizeDashes(fixTypos(parsed.subject)).trim();
   let body = cleanEmailPlaceholders(parsed.body, language);
   body = sanitizeDashes(fixTypos(body)).trim();
-  // Subject and body length are prompt standards (60 characters, four
-  // sentences), never a reason to fail or retry. Only emptiness fails here.
-  if (!subject) throw new EmailValidationError('Application email subject was empty');
+  // The subject is built in code; any subject the model returns is ignored.
+  // Body length is a prompt standard (four sentences), never a reason to fail
+  // or retry. Only emptiness fails here.
   if (!body) throw new EmailValidationError('Application email body was empty');
   if (/\[[^\]]+\]/u.test(body)) throw new EmailValidationError('Application email contained a placeholder');
   if (applicantName?.trim() && !normalizeComparisonText(body).includes(normalizeComparisonText(applicantName))) {
@@ -1164,16 +1237,16 @@ function validateFollowUpEmail(
   language: SupportedLanguage,
   applicantName: string | undefined,
   recommendedDelay: number,
+  subject: string,
 ): { subject: string; body: string; recommendedDelay: number } {
-  if (typeof parsed.subject !== 'string' || typeof parsed.body !== 'string') {
-    throw new EmailValidationError('Follow-up email subject and body must be strings');
+  if (typeof parsed.body !== 'string') {
+    throw new EmailValidationError('Follow-up email body must be a string');
   }
-  const subject = sanitizeDashes(fixTypos(parsed.subject)).trim();
   let body = cleanEmailPlaceholders(parsed.body, language);
   body = sanitizeDashes(fixTypos(body)).trim();
-  // Subject and body length are prompt standards (60 characters, 80 words),
-  // never a reason to fail or retry. Only emptiness fails here.
-  if (!subject) throw new EmailValidationError('Follow-up email subject was empty');
+  // The subject is built in code; any subject the model returns is ignored.
+  // Body length is a prompt standard (80 words), never a reason to fail or
+  // retry. Only emptiness fails here.
   if (!body) throw new EmailValidationError('Follow-up email body was empty');
   if (Number(parsed.recommendedDelay) !== recommendedDelay) throw new EmailValidationError('Follow-up email returned an invalid recommended delay');
   if (/\[[^\]]+\]/u.test(body)) throw new EmailValidationError('Follow-up email contained a placeholder');
@@ -1246,6 +1319,7 @@ export async function generateApplicationEmailWithRetry(
   modelCall: EmailModelCall = callModel,
 ): Promise<WithTokens<{ subject: string; body: string }>> {
   const outputLang = normalizeLanguage(context.userLanguageOverride || context.detectedLanguage);
+  const subject = buildApplicationEmailSubject(context, outputLang);
   return generateEmailWithValidationRetry(
     {
       task: 'write_email',
@@ -1255,8 +1329,8 @@ export async function generateApplicationEmailWithRetry(
       generationContext,
     },
     'Application email response',
-    'Keep the standard: a subject of 60 characters or fewer and a body of at most four sentences, with the attachment reference and the applicant signature.',
-    (parsed) => validateApplicationEmail(parsed, outputLang, context.applicant?.name),
+    'Keep the standard: a body of at most four sentences, with the attachment reference and the applicant signature.',
+    (parsed) => validateApplicationEmail(parsed, outputLang, context.applicant?.name, subject),
     modelCall,
   );
 }
@@ -1268,6 +1342,7 @@ export async function generateFollowUpEmailWithRetry(
 ): Promise<WithTokens<{ subject: string; body: string; recommendedDelay: number }>> {
   const outputLang = normalizeLanguage(context.userLanguageOverride || context.detectedLanguage);
   const recommendedDelay = outputLang === 'de' ? 7 : 5;
+  const subject = buildFollowUpEmailSubject(context, outputLang);
   return generateEmailWithValidationRetry(
     {
       task: 'write_follow_up_email',
@@ -1277,8 +1352,8 @@ export async function generateFollowUpEmailWithRetry(
       generationContext,
     },
     'Follow-up email response',
-    `Keep the standard: a subject of 60 characters or fewer and a body of at most 80 words. Set recommendedDelay to exactly ${recommendedDelay} and keep the applicant signature.`,
-    (parsed) => validateFollowUpEmail(parsed, outputLang, context.applicant?.name, recommendedDelay),
+    `Keep the standard: a body of at most 80 words. Set recommendedDelay to exactly ${recommendedDelay} and keep the applicant signature.`,
+    (parsed) => validateFollowUpEmail(parsed, outputLang, context.applicant?.name, recommendedDelay, subject),
     modelCall,
   );
 }
@@ -2222,7 +2297,7 @@ export const unifiedWriterAgent = {
 
   /**
    * Generate application email
-   * Returns JSON with separate subject and body fields
+   * The model writes the body; the subject is built in code
    */
   async generateApplicationEmail(context: MasterContext, generationContext?: LlmGenerationContext): Promise<WithTokens<{ subject: string; body: string }>> {
     const outputLang = this.getOutputLanguage(context);

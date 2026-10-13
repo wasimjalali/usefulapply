@@ -64,6 +64,8 @@ const LONG_SUBJECT_APPLICATION_EMAIL = JSON.stringify({
   body: 'Dear Hiring Team,\n\nI am applying for the Software Engineer role. My CV and cover letter are attached. I am available to discuss the role next week.\n\nKind regards,\nAda Lovelace',
 });
 
+const LONG_JOB_TITLE = 'Senior Software Engineer / Platform Infrastructure (m/w/d)';
+
 // A non-length miss: a bracketed placeholder still fails validation.
 const PLACEHOLDER_APPLICATION_EMAIL = JSON.stringify({
   subject: 'Application: Software Engineer, Ada Lovelace',
@@ -71,13 +73,14 @@ const PLACEHOLDER_APPLICATION_EMAIL = JSON.stringify({
 });
 
 for (const mode of ['cached', 'direct'] as const) {
-test(`an overlong subject renders as written, with no retry, in the ${mode} kit`, async () => {
+test(`the subject is built in code from a long job title and the model's subject is ignored, with no retry, in the ${mode} kit`, async () => {
   const calls: ModelCallOptions[] = [];
   const modelCall = async (options: ModelCallOptions): Promise<ModelResponse> => {
     calls.push(options);
     return response(LONG_SUBJECT_APPLICATION_EMAIL, `generation-${calls.length}`, 10, 5);
   };
   const masterContext = context();
+  masterContext.job!.title = LONG_JOB_TITLE;
   const harness: typeof unifiedWriterAgent = {
     ...unifiedWriterAgent,
     async extractApplicantProfile() {
@@ -127,11 +130,51 @@ test(`an overlong subject renders as written, with no retry, in the ${mode} kit`
       }, () => undefined);
 
   assert.equal(result.success, true);
-  assert.equal(result.data?.context.applicationEmail?.subject, JSON.parse(LONG_SUBJECT_APPLICATION_EMAIL).subject);
+  assert.equal(result.data?.context.applicationEmail?.subject, 'Application: Senior Software Engineer, Ada Lovelace');
+  assert.doesNotMatch(calls[0].prompt, /60 characters|60-character|"subject"/u);
   assert.equal(result.data?.context.followUpEmail?.recommendedDelay, 5);
   assert.deepEqual(result.data?.documentErrors, {});
   assert.equal(calls.length, 1);
 });
+}
+
+function roleContext(language: string, title: string, name: string): MasterContext {
+  const value = context();
+  value.detectedLanguage = language;
+  value.job!.title = title;
+  value.applicant!.name = name;
+  return value;
+}
+
+function bodyOnly(name: string, recommendedDelay?: number): ModelResponse {
+  return response(
+    JSON.stringify({ body: `Dear Hiring Team,\n\nMy CV and cover letter are attached.\n\nKind regards,\n${name}`, recommendedDelay }),
+    'generation-1',
+  );
+}
+
+const SUBJECT_CASES: Array<{ name: string; kind: 'application' | 'follow-up'; language: string; title: string; applicant: string; subject: string }> = [
+  { name: 'German application, whitespace collapsed, primary title', kind: 'application', language: 'de', title: '  Junior   Webentwickler / E-Commerce ', applicant: 'Max  Mustermann', subject: 'Bewerbung als Junior Webentwickler, Max Mustermann' },
+  { name: 'name dropped when the primary title alone fits', kind: 'application', language: 'en', title: 'Principal Machine Learning Engineer', applicant: 'Maximilian Alexander von Habsburg', subject: 'Application: Principal Machine Learning Engineer' },
+  { name: 'follow-up title cut at a word boundary without trailing punctuation', kind: 'follow-up', language: 'en', title: 'Head of International Business Development, Strategic Partnerships and Alliances', applicant: 'Ada Lovelace', subject: 'Following Up: Head of International Business Development' },
+  { name: 'German follow-up keeps the colon', kind: 'follow-up', language: 'de', title: 'Data Analyst (m/w/d)', applicant: 'Max Mustermann', subject: 'Nachfrage: Data Analyst (m/w/d), Max Mustermann' },
+  { name: 'dash cleanup on a fitting title', kind: 'application', language: 'en', title: 'Engineer \u2013 Platform', applicant: 'Ada Lovelace', subject: 'Application: Engineer, Platform, Ada Lovelace' },
+  { name: 'missing name', kind: 'application', language: 'fr', title: 'Développeur', applicant: '', subject: 'Candidature: Développeur' },
+  { name: 'German application without a title', kind: 'application', language: 'de', title: ' ', applicant: 'Max Mustermann', subject: 'Bewerbung: Max Mustermann' },
+  { name: 'German follow-up without a title', kind: 'follow-up', language: 'de', title: '', applicant: 'Max Mustermann', subject: 'Nachfrage: Max Mustermann' },
+  { name: 'German application with neither title nor name', kind: 'application', language: 'de', title: '', applicant: '', subject: 'Bewerbung' },
+  { name: 'English follow-up with neither title nor name', kind: 'follow-up', language: 'en', title: '', applicant: '', subject: 'Following Up' },
+];
+
+for (const subjectCase of SUBJECT_CASES) {
+  test(`subject: ${subjectCase.name}`, async () => {
+    const masterContext = roleContext(subjectCase.language, subjectCase.title, subjectCase.applicant);
+    const { result } = subjectCase.kind === 'application'
+      ? await generateApplicationEmailWithRetry(masterContext, GENERATION_CONTEXT, async () => bodyOnly(subjectCase.applicant))
+      : await generateFollowUpEmailWithRetry(masterContext, GENERATION_CONTEXT, async () => bodyOnly(subjectCase.applicant, subjectCase.language === 'de' ? 7 : 5));
+    assert.equal(result.subject, subjectCase.subject);
+    assert.ok(result.subject.length <= 60);
+  });
 }
 
 test('malformed email JSON retries without copying draft text into correction instructions', async () => {
@@ -217,6 +260,7 @@ test('follow-up email validation gets the same bounded correction', async () => 
   assert.equal(calls.length, 2);
   assert.deepEqual(result.tokens, { input: 8, output: 4 });
   assert.equal(result.result.recommendedDelay, 5);
+  assert.equal(result.result.subject, 'Following Up: Software Engineer, Ada Lovelace');
   assert.equal(calls[1].generationContext?.parentGenerationId, 'generation-1');
 });
 
