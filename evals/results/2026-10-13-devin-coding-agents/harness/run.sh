@@ -1,9 +1,9 @@
 #!/bin/bash
 # usage: run.sh <task a|b> <label opus|sonnet|argon> <devin model>
-S=/private/tmp/claude-501/-Users-wasimjalali-Desktop-Useful-Apply/b1c03b7f-7cd4-4ef9-88f2-82a54991f33f/scratchpad/eval
+S=${EVAL_DIR:?set EVAL_DIR to the eval working folder}
 T=$1; L=$2; M=$3
 BRIEF=$S/brief-a-lint.md; [ "$T" = b ] && BRIEF=$S/brief-b-subjects.md
-WT=/Users/wasimjalali/Desktop/Useful_Apply/.claude/worktrees/eval-$T-$L
+WT=${REPO:?set REPO to the repo checkout}/.claude/worktrees/eval-$T-$L
 OUT=$S/runs/$T-$L
 mkdir -p $OUT
 cd $WT || exit 1

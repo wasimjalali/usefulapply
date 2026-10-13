@@ -10,7 +10,7 @@ Argon is a Sonnet-class coder, not an Opus-class one, and on this harness it's t
 
 | | Opus 5.5 high | Sonnet 5.5 high | Gemini 4 Argon high |
 |---|---|---|---|
-| Blind quality rank (Codex judge) | 1st on both tasks | 2nd | 3rd |
+| Blind quality rank (Codex judge) | 1st on both tasks | 2nd overall (3rd on A) | 3rd overall (2nd on A) |
 | Judge scores, Task A / Task B (of 10) | 10 / 9 | 9 / 8 | 9 / 7 |
 | Wall time, both tasks | 462 s | **317 s** | 745 s |
 | Cost at Devin list prices, both tasks | $1.89 | **$0.91** | $1.43 |
@@ -39,7 +39,7 @@ Argon's list price is a quarter of Opus's and half of Sonnet's per token. It los
 
 All three: 0 ESLint errors, `tsc` clean, scripts pass `node --check`, no disables, both ignore globs added, and the same auth-page fix (derive from `useSearchParams` during render). The difference was in the three Node scripts:
 
-- **Opus:** ESM imports plus `import.meta.dirname`. The smallest diff. Judge: 10.
+- **Opus:** ESM imports plus `import.meta.dirname`. The cleanest diff (Argon's is two lines shorter). Judge: 10.
 - **Argon:** ESM plus the `fileURLToPath(import.meta.url)` `__dirname` shim. Correct, more boilerplate. Judge: 9.
 - **Sonnet:** kept CommonJS by moving `await import()` inside the functions. It works without a module warning, but a missing dependency now reaches `.catch(console.error)` and exits 0. Sonnet also changed `let tableLines` to `const` instead of deleting the dead variable. Judge: 9.
 
@@ -54,8 +54,8 @@ All three: 0 ESLint errors, `tsc` clean, scripts pass `node --check`, no disable
 All three passed `tsc`, lint and their updated test suites, and scored 17/17 on the hidden acceptance test after one correction to the test (below). All three removed the subject rules from the prompts the same way. The difference was in judgment around the spec:
 
 - **Opus (9):** private helpers in the writer agent, one candidate list measured after cleanup. It was the only one to add a prompt line telling the model the subject is set separately, so it doesn't put one in the body.
-- **Sonnet (8):** the same algorithm in a new module, `prompts/email-subjects.ts`, explicitly because the eval prompt variants replace `email-prompts.ts` wholesale and would shadow the helper. That's a good catch nobody asked for. It added the most tests (5).
-- **Argon (7):** correct, but the most code (+321 lines): exported prefix maps, separate raw and cleaned length checks, and extra behaviour outside the spec (it truncates an overlong name when there's no title, and cuts inside a single word). The judge flagged three lows the others didn't have.
+- **Sonnet (8):** the same algorithm in a new module, `prompts/email-subjects.ts`, explicitly because the eval prompt variants replace `email-prompts.ts` wholesale and would shadow the helper. That's a good catch nobody asked for.
+- **Argon (7):** correct, but the most code (+321 lines): exported prefix maps, separate raw and cleaned length checks, and extra behaviour outside the spec (it truncates an overlong name when there's no title, and cuts inside a single word). The judge gave it four lows, two of them unique (cutting inside a single word, truncating an overlong name).
 
 | | wall | turns | tool calls | output tok | uncached in | cache hit | cost |
 |---|---|---|---|---|---|---|---|
@@ -67,21 +67,21 @@ Argon's export carried 56.6k characters of visible reasoning on Task B, against 
 
 ### The real-model check found a spec bug none of the models could
 
-The first live Sonnet 5.5 run on syn-09 produced `Application: Senior, Priya Raman` for the ad title "Senior/Software Engineer II, Backend". The spec (mine) said to split a title at any `/`, which also breaks German gendered forms such as "Medizinische/r Fachangestellte/r". All three models implemented the spec faithfully, and the hidden test and the blind judge both passed it, because they checked against the same spec. Only running the real pipeline on a real ad title caught it. The fix (only a spaced ` / ` or ` | ` separates) was rerun live and gave `Application: Senior/Software Engineer II, Backend`. Body-only JSON parsed first time on all six live email calls (three kits), with no retries.
+The first live Sonnet 5.5 run on syn-09 produced `Application: Senior, Priya Raman` for the ad title "Senior/Software Engineer II, Backend". The spec (mine) said to split a title at any `/`, which also breaks German gendered forms such as "Medizinische/r Fachangestellte/r". All three models implemented the spec faithfully, and the hidden test and the blind judge both passed it, because they checked against the same spec. Only running the real pipeline on a real ad title caught it. The fix (only a spaced ` / ` or ` | ` separates) was rerun live and gave `Application: Senior/Software Engineer II, Backend` (both subjects are in `realcheck/*/sonnet55-low/intermediates/syn-09.rep1.json`). Body-only JSON parsed first time on all six live email calls (three kits), with no retries.
 
 ## Caveats
 
-- One run per model per task, two tasks. The ranking agreed across both tasks and with my own reading, but this is a small sample, not a benchmark.
+- One run per model per task, two tasks. Opus ranked first on both tasks and overall, which matched my own reading. Sonnet and Argon swapped places between tasks (on Task A both scored 9 and the judge ranked Argon above Sonnet). This is a small sample, not a benchmark.
 - These are Devin list prices, not invoices, and Devin's token counts. Whether `completion_tokens` includes hidden reasoning isn't documented, so treat output-token comparisons across vendors as indicative.
 - The Devin harness (tool schemas, system prompt, caching) may suit some models better than others. Argon's low cache hit rate could be partly the harness's doing.
-- **Harness attempts that didn't count** (kept in `invalid-attempts/`): attempt 1 used `--sandbox`, where Devin's edit tool can't be approved in print mode. Opus and Argon stopped, and Sonnet worked around it by editing through the shell. Attempt 2 used a narrow allow-list, and any refused command ends a print session, so all three stopped within 25 s. The scored runs use a broader allow-list that the brief lists explicitly, the same for every model. Nobody reran until all three had a fair setup.
+- **Harness attempts that didn't count** (kept in `invalid-attempts/`): attempt 1 used `--sandbox`, where Devin's edit tool can't be approved in print mode. Opus and Argon stopped, and Sonnet worked around it by editing through the shell. Attempt 2 used a narrow allow-list, and any refused command ends a print session, so all three stopped within 27 s. The scored runs use a broader allow-list that the brief lists explicitly, the same for every model. Nobody reran until all three had a fair setup.
 - **Two corrections to my own grading, applied to every model:** (1) v1 of the hidden test failed any prompt line mentioning "subject", which marked Opus's helpful "the subject is set separately" line as a failure (15/17). v2 checks for subject rules instead (`harness/hidden-subjects.v1-strict.test.ts`, `grade-b.v1-strict.jsonl`). (2) The first judge run omitted Sonnet's new untracked file from its patch. It was stopped, the patches were regenerated with `git add -N`, and the judge was rerun. Only the complete run counts.
 - One reviewer subagent (Sonnet) broke its read-only brief during the later PR review and ran an image script that wrote a stray file into a worktree. It was deleted before merge.
 
 ## Cost of the eval
 
 - Devin runs (scored): $4.23 at list price, from Opus $1.89, Sonnet $0.91 and Argon $1.43. The invalid attempts used another 1.63M tokens ($1.28) and are in their folders.
-- Live Anthropic API check: $0.46 (3 kits on Sonnet 5.5).
+- Live Anthropic API check: $0.46 (3 kits, 30 calls on Sonnet 5.5: 89.4k input, 22.3k output, 41.2k cache read and 20.6k cache write tokens at $2 / $10 / $0.20 / $2.50 per 1M).
 - Codex judge and reviews: subscription.
 
 ## What changed because of it
@@ -93,7 +93,8 @@ The first live Sonnet 5.5 run on syn-09 produced `Application: Senior, Priya Ram
 ## Reproduce
 
 ```
-# per task (a|b) and model; worktrees from main 38f59306 with harness/devin-config.local.json as .devin/config.local.json
+# set REPO (the repo checkout) and EVAL_DIR (a working folder holding the briefs); worktrees eval-<task>-<model> from main 38f59306,
+# each with harness/devin-config.local.json copied to .devin/config.local.json
 harness/run.sh a opus   claude-opus-5-5-high
 harness/run.sh a sonnet claude-sonnet-5-5-high
 harness/run.sh a argon  gemini-4-argon-high

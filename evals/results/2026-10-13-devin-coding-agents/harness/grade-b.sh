@@ -1,6 +1,6 @@
 #!/bin/bash
-S=/private/tmp/claude-501/-Users-wasimjalali-Desktop-Useful-Apply/b1c03b7f-7cd4-4ef9-88f2-82a54991f33f/scratchpad/eval
-L=$1; cd /Users/wasimjalali/Desktop/Useful_Apply/.claude/worktrees/eval-b-$L
+S=${EVAL_DIR:?set EVAL_DIR to the eval working folder}
+L=$1; cd ${REPO:?set REPO to the repo checkout}/.claude/worktrees/eval-b-$L
 TSC=$(npx tsc --noEmit 2>&1 | grep -c "error TS")
 EXIST=$(node --import tsx --test src/lib/agents/unified-writer-agent.email-validation.test.ts 2>&1 | grep -E "^# (pass|fail)" | tr '\n' ' ')
 LINT=$(npx eslint $(git diff --name-only) 2>&1 | grep -E "^✖" || echo "clean")
