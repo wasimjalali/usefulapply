@@ -1022,7 +1022,7 @@ export class JsonAnswerCorrectedError extends Error {
 /**
  * Parse the model's JSON answer. Sonnet 5.5 sometimes notices a limit it broke
  * after emitting the JSON and writes a corrected object after a short note
- * ("Wait, the subject must be 60 characters or fewer. Corrected output: {...}").
+ * ("Wait, the body must be four sentences or fewer. Corrected output: {...}").
  *
  * With a check, the last object that passes the shape check is THE answer, and
  * only it is validated; an earlier complete answer is never used, because the
@@ -1031,8 +1031,8 @@ export class JsonAnswerCorrectedError extends Error {
  * `Corrected summary: {...}`, an unparseable corrected object, an array), the
  * model changed its answer in a way that can't be applied safely, so this
  * throws JsonAnswerCorrectedError: the email retry runs and the CV fails loud.
- * The only exception is a pure format-template echo (`{"subject": "...",
- * "body": "..."}`), which carries no content.
+ * The only exception is a pure format-template echo (`{"body": "..."}`),
+ * which carries no content.
  *
  * Without a check, the last object wins. Errors never quote model output.
  */
@@ -1156,21 +1156,24 @@ const FOLLOW_UP_SUBJECT_PREFIXES: Record<string, string> = {
 };
 
 const EMAIL_SUBJECT_MAX_LENGTH = 60;
-// A slash or pipe only separates when spaced: "Senior/Software Engineer" and
-// German "Fachangestellte/r" are one title, "Webentwickler / E-Commerce" is two.
-const PRIMARY_TITLE_DELIMITER = / \/ | \| |\(| - | \u2013 | \u2014 /u;
+// A slash, pipe or hyphen only separates when spaced: "Senior/Software Engineer",
+// German "Fachangestellte/r" and "E-Commerce" stay whole, "Webentwickler / E-Commerce"
+// is two. An en or em dash separates spaced or not.
+const PRIMARY_TITLE_DELIMITER = / \/ | \| |\(| - |\s*[\u2013\u2014]\s*/u;
 const CUT_TITLE_TRAILING_PUNCTUATION = /[\s.,;:!?&/|(\-\u2013\u2014"'\u201c\u201d\u2018\u2019\u00ab\u00bb]+$/u;
 
+/** Control characters become spaces too: title and name are ad text or user input. */
 function collapseWhitespace(value: string | undefined): string {
-  return (value ?? '').replace(/\s+/gu, ' ').trim();
+  return (value ?? '').replace(/[\s\p{Cc}]+/gu, ' ').trim();
 }
 
 /**
  * Build an email subject in code: `<lead><title>, <name>`, at most 60
  * characters after the dash and typo cleanup. Over the cap it tries, in order,
  * the primary title, the primary title without the name, then the primary
- * title cut at its last fitting word boundary. Without a title it is
- * `<bare>: <name>`; with neither title nor name, the bare prefix.
+ * title cut at its last fitting word boundary, then `<bare>: <name>` for a
+ * single word too long to cut. Without a title it is `<bare>: <name>`; with
+ * neither title nor name, the bare prefix.
  */
 function buildEmailSubject(lead: string, bare: string, rawTitle: string | undefined, rawName: string | undefined): string {
   const title = collapseWhitespace(rawTitle);
@@ -1186,6 +1189,7 @@ function buildEmailSubject(lead: string, bare: string, rawTitle: string | undefi
   for (let count = words.length - 1; count > 0; count--) {
     candidates.push(compose(words.slice(0, count).join(' ').replace(CUT_TITLE_TRAILING_PUNCTUATION, ''), ''));
   }
+  candidates.push(compose('', name));
   for (const candidate of candidates) {
     const subject = sanitizeDashes(fixTypos(candidate)).trim();
     if (subject.length <= EMAIL_SUBJECT_MAX_LENGTH) return subject;
@@ -2293,7 +2297,7 @@ export const unifiedWriterAgent = {
 
   /**
    * Generate application email
-   * Returns JSON with separate subject and body fields
+   * The model writes the body; the subject is built in code
    */
   async generateApplicationEmail(context: MasterContext, generationContext?: LlmGenerationContext): Promise<WithTokens<{ subject: string; body: string }>> {
     const outputLang = this.getOutputLanguage(context);
