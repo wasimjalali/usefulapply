@@ -214,7 +214,6 @@ function renderMarkdown(md: string, hasComparisonTable: boolean): string {
   let inList = false;
   let listType: 'ul' | 'ol' = 'ul';
   let inTable = false;
-  let tableLines: string[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];

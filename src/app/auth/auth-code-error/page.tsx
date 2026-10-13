@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
@@ -23,20 +23,9 @@ export default function AuthCodeErrorPage() {
 
 function AuthCodeErrorContent() {
   const searchParams = useSearchParams();
-  const [errorMessage, setErrorMessage] = useState<string>('');
-  const [errorDescription, setErrorDescription] = useState<string>('');
-
-  useEffect(() => {
-    const error = searchParams.get('error');
-    const errorDesc = searchParams.get('error_description');
-
-    if (error) {
-      setErrorMessage(error);
-    }
-    if (errorDesc) {
-      setErrorDescription(decodeURIComponent(errorDesc));
-    }
-  }, [searchParams]);
+  const errorMessage = searchParams.get('error') || '';
+  const errorDesc = searchParams.get('error_description');
+  const errorDescription = errorDesc ? decodeURIComponent(errorDesc) : '';
 
   const getErrorTitle = () => {
     switch (errorMessage) {

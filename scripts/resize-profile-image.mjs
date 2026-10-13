@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 
-const sharp = require('sharp');
-const path = require('path');
+import sharp from 'sharp';
+import path from 'path';
+import fs from 'fs';
 
-const INPUT = path.join(__dirname, '../public/wasim-founder.jpg');
-const OUTPUT_SMALL = path.join(__dirname, '../public/wasim-avatar.jpg');
-const OUTPUT_MEDIUM = path.join(__dirname, '../public/wasim-profile.jpg');
+const INPUT = path.join(import.meta.dirname, '../public/wasim-founder.jpg');
+const OUTPUT_SMALL = path.join(import.meta.dirname, '../public/wasim-avatar.jpg');
+const OUTPUT_MEDIUM = path.join(import.meta.dirname, '../public/wasim-profile.jpg');
 
 async function resizeImages() {
   console.log('Resizing profile images...\n');
@@ -19,7 +20,7 @@ async function resizeImages() {
     .jpeg({ quality: 90, progressive: true })
     .toFile(OUTPUT_SMALL);
 
-  const statsSmall = require('fs').statSync(OUTPUT_SMALL);
+  const statsSmall = fs.statSync(OUTPUT_SMALL);
   console.log(`✓ Avatar (80x80): ${(statsSmall.size / 1024).toFixed(1)} KB`);
 
   // Medium profile (200x200) for blog author section
@@ -31,7 +32,7 @@ async function resizeImages() {
     .jpeg({ quality: 90, progressive: true })
     .toFile(OUTPUT_MEDIUM);
 
-  const statsMedium = require('fs').statSync(OUTPUT_MEDIUM);
+  const statsMedium = fs.statSync(OUTPUT_MEDIUM);
   console.log(`✓ Profile (200x200): ${(statsMedium.size / 1024).toFixed(1)} KB`);
 
   console.log('\n✅ Profile images resized successfully!');

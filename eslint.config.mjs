@@ -14,6 +14,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // OpenNext build output for Cloudflare Workers.
     ".open-next/**",
+    // Gitignored verification artifacts and agent worktree copies.
+    "verify/**",
+    ".claude/worktrees/**",
   ]),
 ]);
 
