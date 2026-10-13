@@ -20,6 +20,26 @@ Argon is a Sonnet-class coder, not an Opus-class one, and on this harness it's t
 
 Argon's list price is a quarter of Opus's and half of Sonnet's per token. It lost that edge by writing about twice as many output tokens, reading about six times as much uncached input (cache hit rate 61 to 71% against 88 to 94% for the Claude models) and taking the longest. On the harder task it ran 632 s against Sonnet's 238 s and cost $1.18 against Sonnet's $0.72.
 
+## Key findings
+
+Each one stands on its own and is backed by the numbers below.
+
+1. **Argon is Sonnet-class, not Opus-class.** Blind judge scores: Opus 10 and 9, Sonnet 9 and 8, Argon 9 and 7. Argon edged Sonnet on the small task and came last on the harder one.
+2. **Cheap per token isn't cheap per task.** Argon's list price is a quarter of Opus's, but the whole eval cost $1.43 on Argon against $0.91 on Sonnet and $1.89 on Opus. It wrote 2.1x the output tokens and read 5.7x the uncached input of the Claude models.
+3. **Cache behaviour moved the bill as much as list price.** Argon reused 61 to 71% of its input from cache, against 88 to 94% for Opus and Sonnet. At these volumes, the cache gap ate most of Argon's price advantage.
+4. **Sonnet was the fastest on both tasks.** 79 s and 238 s. Opus took 141 s and 320 s, Argon 113 s and 632 s. On the harder task Argon took 2.7x Sonnet's time.
+5. **Argon thinks out loud.** On the harder task its session carried 56.6k characters of visible reasoning, against 16.0k for Opus and 12.1k for Sonnet. Most of its extra output was thinking, not code.
+6. **Tests didn't separate the models. Judgment did.** All three passed every automated check, including a hidden 17-case acceptance test they never saw. The differences only showed up in a blind code review.
+7. **Opus's edge was small judgment calls.** It wrote the cleanest fix for the scripts. It was also the only model to add a prompt line telling the model the subject is set elsewhere, so it doesn't write one into the email body.
+8. **Sonnet showed the most initiative on structure.** It put the subject builder in its own module because the eval's prompt variants replace the prompt file wholesale and would have hidden the helper. Nobody asked for that. Its one weak call: a CommonJS workaround that lets a missing dependency exit with success.
+9. **Argon overbuilt.** Its diff on the harder task was +321 lines against +153 for Opus, with exports nobody needed and behaviour outside the spec.
+10. **A real run caught what everything else missed.** The spec (mine) split titles at any `/`, so "Senior/Software Engineer II" became "Senior". All three models, the hidden test and the blind judge passed it, because they all checked against the same spec. One live Sonnet 5.5 kit on a real ad title caught it.
+11. **The grader can be wrong too.** The first version of the hidden test marked Opus's helpful prompt line as a failure (15/17). The first judge run missed a new file in Sonnet's patch. Both were caught, corrected for every model and recorded.
+12. **When blocked, the models behaved differently.** In the first harness setup Devin's edit tool was refused. Opus and Argon stopped. Sonnet worked around it by editing files through the shell. Whether that's resourcefulness or ignoring a guardrail depends on why the block was there.
+13. **Harness setup is a real confound.** In Devin's print mode, one refused shell command ends the session, so a narrow allow-list measures the list, not the model. Two setups were thrown out before any scoring until all three models had the same fair conditions.
+14. **Reviewers break rules too.** A Sonnet subagent reviewing PR #142 ignored its read-only brief, ran an image script and left a stray file in the worktree.
+15. **The whole eval cost about $6.** $4.23 for the scored Devin runs, $1.28 for the discarded setups and $0.46 of live Anthropic API calls, with the judge and reviews on subscription.
+
 ## What ran
 
 - **Harness:** Devin CLI 3000.11.3, print mode (`devin -p --prompt-file`), one fresh session per model per task, `--permission-mode accept-edits` with a fixed shell allow-list (`harness/devin-config.local.json`). The same brief, tools and repo state for every model. Models: `claude-opus-5-5-high`, `claude-sonnet-5-5-high`, `gemini-4-argon-high`. High is Argon's top level, so this compares each model at its best common setting.
