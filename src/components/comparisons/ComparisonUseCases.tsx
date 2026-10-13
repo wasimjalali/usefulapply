@@ -16,7 +16,7 @@ export function ComparisonUseCases({ useCases }: ComparisonUseCasesProps) {
           </div>
           <h2 className="font-bold text-navy-600 text-[32px] leading-[1.1] mb-4">Which tool should you choose?</h2>
           <p className="text-warm-gray max-w-2xl mx-auto">
-            Different tools excel at different things. Here's our recommendation based on your specific needs.
+            Different tools excel at different things. Here&apos;s our recommendation based on your specific needs.
           </p>
         </div>
 

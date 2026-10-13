@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-const sharp = require('sharp');
-const path = require('path');
-const fs = require('fs');
+import sharp from 'sharp';
+import path from 'path';
+import fs from 'fs';
 
-const BLOG_DIR = path.join(__dirname, '../public/blog');
+const BLOG_DIR = path.join(import.meta.dirname, '../public/blog');
 
 const imagesToCompress = [
   'master-cv-concept-diagram.jpg',
