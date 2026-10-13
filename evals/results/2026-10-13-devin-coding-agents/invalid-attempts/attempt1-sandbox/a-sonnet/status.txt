@@ -1,0 +1,8 @@
+ M eslint.config.mjs
+ M scripts/compress-blog-images.js
+ M scripts/generate-blur-placeholders.js
+ M scripts/resize-profile-image.js
+ M src/app/auth/auth-code-error/page.tsx
+ M src/app/not-found.tsx
+ M src/components/blog/BlogContent.tsx
+ M src/components/comparisons/ComparisonUseCases.tsx

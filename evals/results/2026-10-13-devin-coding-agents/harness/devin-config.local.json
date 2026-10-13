@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Write(**)",
+      "Exec(npx tsc)", "Exec(npx eslint)", "Exec(npm run lint)",
+      "Exec(node --check)", "Exec(node --import tsx --test)", "Exec(node -v)", "Exec(node --version)",
+      "Exec(git diff)", "Exec(git status)", "Exec(git log)", "Exec(git show)", "Exec(git grep)",
+      "Exec(ls)", "Exec(cat)", "Exec(head)", "Exec(tail)", "Exec(grep)", "Exec(rg)", "Exec(wc)", "Exec(sed -n)",
+      "Exec(echo)", "Exec(pwd)", "Exec(sort)", "Exec(uniq)", "Exec(diff)", "Exec(cd)", "Exec(true)"
+    ],
+    "deny": ["Exec(git commit)", "Exec(git push)", "Exec(git reset)", "Exec(git checkout)", "Exec(rm)", "Exec(npm install)", "Exec(npx wrangler)"]
+  }
+}

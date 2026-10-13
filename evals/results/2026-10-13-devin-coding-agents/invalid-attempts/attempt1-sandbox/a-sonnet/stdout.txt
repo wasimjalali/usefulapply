@@ -1,0 +1,10 @@
+`npx eslint scripts src` now reports 0 errors (16 warnings left, as allowed). `npx tsc --noEmit` is clean and `node --check` passes on all three scripts. I didn't run the scripts themselves, because they overwrite images and `blur-data.ts`. I did check that `sharp`, `node:path` and `node:fs` load through `import()` here.
+
+- **`eslint.config.mjs`**: added `verify/**` and `.claude/worktrees/**` to `globalIgnores`.
+- **`scripts/compress-blog-images.js`, `generate-blur-placeholders.js`, `resize-profile-image.js`:** I replaced the top-level `require()` calls with `await import()` inside each script's async function. `package.json` has no `"type": "module"`, so `.js` files are CommonJS and ESM `import` syntax would only work through Node's module-syntax auto-detection. Dynamic `import()` runs under plain `node scripts/<name>.js` on any Node version and leaves the scripts as CommonJS.
+  - The constants that used `path` now sit at the top of the function that uses them (`BLOG_DIR`, `OUTPUT_FILE`, `INPUT`, `OUTPUT_*`).
+  - `generateBlurDataUrl` now takes `sharp` as its first argument.
+  - In `resize-profile-image.js` the two inline `require('fs')` calls now use the imported `fs`.
+- **`src/app/auth/auth-code-error/page.tsx`:** I removed the effect and the two `useState` hooks. `errorMessage` and `errorDescription` are now computed straight from `searchParams` during render, so the page shows the same content. I also dropped the `useEffect` and `useState` imports.
+- **`src/app/not-found.tsx`, `src/components/comparisons/ComparisonUseCases.tsx`:** straight apostrophes in the JSX text are now `&apos;`, which renders the same characters.
+- **`src/components/blog/BlogContent.tsx`:** I deleted `let tableLines`. Nothing used it, and removing it fixes the `prefer-const` error and the unused-variable warning on that line.

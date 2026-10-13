@@ -1,0 +1,7 @@
+`npx eslint scripts src` now reports 0 errors (17 warnings, unchanged), and `npm run lint` also reports 0 errors. `npx tsc --noEmit` is clean and `node --check` passes on all three scripts. I haven't run the scripts themselves, so the dynamic imports are untested at runtime.
+
+- **`eslint.config.mjs`**: added `verify/**` and `.claude/worktrees/**` to `globalIgnores`.
+- **`scripts/compress-blog-images.js`, `generate-blur-placeholders.js`, `resize-profile-image.js`**: `package.json` has no `"type"`, so the scripts are CommonJS, and I couldn't rename them to `.mjs` because they're run as `node scripts/<name>.js`. I replaced each `require()` with `await import(...)` inside the async functions, and moved the `path.join(__dirname, ...)` constants into those functions. In `resize-profile-image.js` the inline `require('fs')` calls now use the imported `fs`.
+- **`src/app/auth/auth-code-error/page.tsx`**: the effect that copied the URL params into state is gone. `errorMessage` and `errorDescription` are now read straight from `searchParams`, with the same `decodeURIComponent` on the description. I removed the `useEffect` and `useState` imports.
+- **`src/app/not-found.tsx` and `src/components/comparisons/ComparisonUseCases.tsx`**: apostrophes in the JSX text became `&apos;`, which renders the same straight `'`.
+- **`src/components/blog/BlogContent.tsx`**: `let tableLines` became `const`.

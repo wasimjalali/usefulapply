@@ -1,0 +1,26 @@
+Now the prompt edits.Now the agent code.Now the tests. Updating the old overlong-subject test and adding spec cases to the existing file.All 18 pass. Type check and lint next.Subjects for both emails are now built in code, and the model only writes the body. All three checks pass: `npx tsc --noEmit` has 0 errors, the email test suite passes 18 of 18, and `npx eslint` reports 0 errors on the three changed files.
+
+**`src/lib/agents/unified-writer-agent.ts`**
+- A new `buildEmailSubject` builds the subject from the job title and applicant name, with whitespace tidied. It follows your spec: German application as `Bewerbung als <title>, <name>`, then the 60-character steps (primary title, drop name, cut at a word), then the rules for missing values.
+- Dash and typo cleanup runs on each candidate subject before the length check, so cleanup can't push a subject past 60.
+- `generateApplicationEmailWithRetry` and `generateFollowUpEmailWithRetry` build the subject and pass it into the validators. The returned objects keep their old shapes.
+- The validators only require a string `body`. A `subject` from the model is ignored, and a response without one is accepted. `isEmailAnswerShape` now just checks for a real body.
+- The retry correction text no longer mentions the subject.
+- The two prefix maps moved here from `email-prompts.ts`, unchanged. Exporting them from the prompts file broke `tsc` in `evals/prompt-variants/sonnet55/exports.typecheck.ts`, which requires the eval prompt variant to export exactly what the production prompts file does. The prompts no longer use the maps, so moving them was the cleaner fix.
+
+**`src/lib/agents/prompts/email-prompts.ts`**
+- I removed every subject rule from both prompts: the subject instruction, the German "Subject line in German format" bullet, "subject included" and "subject prefix" in the language lines, and the 60-character mentions in the rewrite-instruction limits.
+- Both JSON contracts are body-only now, and the follow-up keeps `recommendedDelay`.
+- I added one line to each prompt saying the subject is set separately, so the body doesn't contain one. This guards against the model putting a "Subject:" line inside the body. It's easy to drop if you'd rather not have it.
+- The follow-up prompt still shows the primary email's stored subject as context.
+
+**`src/lib/agents/unified-writer-agent.email-validation.test.ts`**
+- The "overlong subject renders as written" test now uses a long title. It checks the result is `Application: Senior Software Engineer, Ada Lovelace` and that the prompt has no subject rules left.
+- The follow-up retry test now checks the built subject.
+- I added 10 subject cases to this existing file. They cover German, step b, step c with the trailing comma removed, dash cleanup, missing values and body-only responses.
+
+**Choices the spec didn't settle:**
+- If a title starts with a delimiter, like "(Senior) Engineer", the primary title would be empty, so it keeps the full title.
+- If not even one word fits in step c, the subject falls back to the bare prefix.
+- Length counts UTF-16 units, which is never fewer than the visible characters, so a subject can't go over 60.
+- Trailing punctuation removed after a cut is `. , ; : ! ? & / | (` and the three dashes. `#` and `+` are kept so titles like "C#" and "C++" survive.

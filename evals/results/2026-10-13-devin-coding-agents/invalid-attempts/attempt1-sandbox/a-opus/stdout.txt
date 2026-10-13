@@ -1,0 +1,1 @@
+I'll start by running the linter and reading the affected files.Applying all the edits now.
