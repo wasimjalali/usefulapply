@@ -1,0 +1,168 @@
+diff --git a/eslint.config.mjs b/eslint.config.mjs
+index 725d8245..250a69f1 100644
+--- a/eslint.config.mjs
++++ b/eslint.config.mjs
+@@ -14,6 +14,9 @@ const eslintConfig = defineConfig([
+     "next-env.d.ts",
+     // OpenNext build output for Cloudflare Workers.
+     ".open-next/**",
++    // Gitignored verification artifacts and agent worktree copies.
++    "verify/**",
++    ".claude/worktrees/**",
+   ]),
+ ]);
+ 
+diff --git a/scripts/compress-blog-images.js b/scripts/compress-blog-images.js
+index a9ea09a7..2b4e515d 100755
+--- a/scripts/compress-blog-images.js
++++ b/scripts/compress-blog-images.js
+@@ -1,10 +1,10 @@
+ #!/usr/bin/env node
+ 
+-const sharp = require('sharp');
+-const path = require('path');
+-const fs = require('fs');
++import sharp from 'sharp';
++import path from 'path';
++import fs from 'fs';
+ 
+-const BLOG_DIR = path.join(__dirname, '../public/blog');
++const BLOG_DIR = path.join(import.meta.dirname, '../public/blog');
+ 
+ const imagesToCompress = [
+   'master-cv-concept-diagram.jpg',
+diff --git a/scripts/generate-blur-placeholders.js b/scripts/generate-blur-placeholders.js
+index 789b9a21..83ab93bc 100644
+--- a/scripts/generate-blur-placeholders.js
++++ b/scripts/generate-blur-placeholders.js
+@@ -1,11 +1,11 @@
+ #!/usr/bin/env node
+ 
+-const sharp = require('sharp');
+-const fs = require('fs');
+-const path = require('path');
++import sharp from 'sharp';
++import fs from 'fs';
++import path from 'path';
+ 
+-const BLOG_DIR = path.join(__dirname, '../public/blog');
+-const OUTPUT_FILE = path.join(__dirname, '../src/lib/blog/blur-data.ts');
++const BLOG_DIR = path.join(import.meta.dirname, '../public/blog');
++const OUTPUT_FILE = path.join(import.meta.dirname, '../src/lib/blog/blur-data.ts');
+ 
+ async function generateBlurDataUrl(filePath) {
+   const image = sharp(filePath);
+diff --git a/scripts/resize-profile-image.js b/scripts/resize-profile-image.js
+index 80548dc0..b037f239 100644
+--- a/scripts/resize-profile-image.js
++++ b/scripts/resize-profile-image.js
+@@ -1,11 +1,12 @@
+ #!/usr/bin/env node
+ 
+-const sharp = require('sharp');
+-const path = require('path');
++import sharp from 'sharp';
++import path from 'path';
++import fs from 'fs';
+ 
+-const INPUT = path.join(__dirname, '../public/wasim-founder.jpg');
+-const OUTPUT_SMALL = path.join(__dirname, '../public/wasim-avatar.jpg');
+-const OUTPUT_MEDIUM = path.join(__dirname, '../public/wasim-profile.jpg');
++const INPUT = path.join(import.meta.dirname, '../public/wasim-founder.jpg');
++const OUTPUT_SMALL = path.join(import.meta.dirname, '../public/wasim-avatar.jpg');
++const OUTPUT_MEDIUM = path.join(import.meta.dirname, '../public/wasim-profile.jpg');
+ 
+ async function resizeImages() {
+   console.log('Resizing profile images...\n');
+@@ -19,7 +20,7 @@ async function resizeImages() {
+     .jpeg({ quality: 90, progressive: true })
+     .toFile(OUTPUT_SMALL);
+ 
+-  const statsSmall = require('fs').statSync(OUTPUT_SMALL);
++  const statsSmall = fs.statSync(OUTPUT_SMALL);
+   console.log(`✓ Avatar (80x80): ${(statsSmall.size / 1024).toFixed(1)} KB`);
+ 
+   // Medium profile (200x200) for blog author section
+@@ -31,7 +32,7 @@ async function resizeImages() {
+     .jpeg({ quality: 90, progressive: true })
+     .toFile(OUTPUT_MEDIUM);
+ 
+-  const statsMedium = require('fs').statSync(OUTPUT_MEDIUM);
++  const statsMedium = fs.statSync(OUTPUT_MEDIUM);
+   console.log(`✓ Profile (200x200): ${(statsMedium.size / 1024).toFixed(1)} KB`);
+ 
+   console.log('\n✅ Profile images resized successfully!');
+diff --git a/src/app/auth/auth-code-error/page.tsx b/src/app/auth/auth-code-error/page.tsx
+index 50f0075d..566e828a 100644
+--- a/src/app/auth/auth-code-error/page.tsx
++++ b/src/app/auth/auth-code-error/page.tsx
+@@ -1,6 +1,6 @@
+ 'use client';
+ 
+-import { Suspense, useEffect, useState } from 'react';
++import { Suspense } from 'react';
+ import { useSearchParams } from 'next/navigation';
+ import Link from 'next/link';
+ import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
+@@ -23,20 +23,9 @@ export default function AuthCodeErrorPage() {
+ 
+ function AuthCodeErrorContent() {
+   const searchParams = useSearchParams();
+-  const [errorMessage, setErrorMessage] = useState<string>('');
+-  const [errorDescription, setErrorDescription] = useState<string>('');
+-
+-  useEffect(() => {
+-    const error = searchParams.get('error');
+-    const errorDesc = searchParams.get('error_description');
+-
+-    if (error) {
+-      setErrorMessage(error);
+-    }
+-    if (errorDesc) {
+-      setErrorDescription(decodeURIComponent(errorDesc));
+-    }
+-  }, [searchParams]);
++  const errorMessage = searchParams.get('error') || '';
++  const errorDesc = searchParams.get('error_description');
++  const errorDescription = errorDesc ? decodeURIComponent(errorDesc) : '';
+ 
+   const getErrorTitle = () => {
+     switch (errorMessage) {
+diff --git a/src/app/not-found.tsx b/src/app/not-found.tsx
+index 536110ba..17bbd4f0 100644
+--- a/src/app/not-found.tsx
++++ b/src/app/not-found.tsx
+@@ -21,7 +21,7 @@ export default function NotFound() {
+             Page Not Found
+           </h1>
+           <p className="text-lg text-charcoal mb-12 max-w-2xl mx-auto">
+-            The page you're looking for doesn't exist or has been moved. Let's get you back on track.
++            The page you&apos;re looking for doesn&apos;t exist or has been moved. Let&apos;s get you back on track.
+           </p>
+ 
+           {/* Quick Links */}
+diff --git a/src/components/blog/BlogContent.tsx b/src/components/blog/BlogContent.tsx
+index a84517c9..a96f35d3 100644
+--- a/src/components/blog/BlogContent.tsx
++++ b/src/components/blog/BlogContent.tsx
+@@ -214,7 +214,6 @@ function renderMarkdown(md: string, hasComparisonTable: boolean): string {
+   let inList = false;
+   let listType: 'ul' | 'ol' = 'ul';
+   let inTable = false;
+-  let tableLines: string[] = [];
+ 
+   for (let i = 0; i < lines.length; i++) {
+     const line = lines[i];
+diff --git a/src/components/comparisons/ComparisonUseCases.tsx b/src/components/comparisons/ComparisonUseCases.tsx
+index 0a70887e..0fc43f89 100644
+--- a/src/components/comparisons/ComparisonUseCases.tsx
++++ b/src/components/comparisons/ComparisonUseCases.tsx
+@@ -16,7 +16,7 @@ export function ComparisonUseCases({ useCases }: ComparisonUseCasesProps) {
+           </div>
+           <h2 className="font-bold text-navy-600 text-[32px] leading-[1.1] mb-4">Which tool should you choose?</h2>
+           <p className="text-warm-gray max-w-2xl mx-auto">
+-            Different tools excel at different things. Here's our recommendation based on your specific needs.
++            Different tools excel at different things. Here&apos;s our recommendation based on your specific needs.
+           </p>
+         </div>
+ 

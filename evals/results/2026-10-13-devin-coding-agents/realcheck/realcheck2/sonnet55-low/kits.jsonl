@@ -1,0 +1,1 @@
+{"run_id":"4ea57782-2b19-42d6-981f-d55e747af0ac","case_id":"syn-09","rep":1,"arm":"sonnet55-low","prompt_variant":"production","concurrency":4,"started_at":"2026-10-13T19:08:17.628Z","status":"complete","failures":[],"phases":{"parse_cv_ms":7750,"fit_flow_ms":12099,"gen_flow_ms":24958,"kit_ms":44808},"calls":10,"mode":"chain","inputs_from":null}

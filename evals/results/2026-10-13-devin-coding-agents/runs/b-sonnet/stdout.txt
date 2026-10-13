@@ -1,0 +1,12 @@
+Now the prompt edits.Tests and lint pass, but tsc reports errors in an evals file. I'll check whether they come from my change.Both email subjects are now built in code, and `npx tsc --noEmit` reports 0 errors. The email-validation tests pass (23/23) and `eslint` is clean on every touched file.
+
+- **`src/lib/agents/prompts/email-subjects.ts` (new):** holds the code that builds both subjects, plus the two prefix maps moved here from `email-prompts.ts`. I made it a separate module because `evals/prompt-variants/sonnet55/email-prompts.ts` replaces `email-prompts.ts` wholesale and is type-checked against it. Adding exports there broke `tsc` (`exports.typecheck.ts`).
+  - **Build order:** it applies the spec in order: full subject, then primary title, then drop the name, then cut at a word boundary. A subject that would exceed 60 only after dash cleanup also takes the next step. If even one word doesn't fit, it falls back to the bare prefix.
+  - **German prefix:** I changed `APPLICATION_SUBJECT_PREFIXES.de` from `Bewerbung als` to `Bewerbung`, so the title, name-only and bare cases share one prefix.
+- **`src/lib/agents/prompts/email-prompts.ts`:** removed every subject rule from both prompts, including the rewrite-instruction "hard limits" lines. The JSON contract is body-only (`{"body": "..."}`), and the follow-up still returns `recommendedDelay`. The follow-up prompt still shows the primary email's stored subject as context.
+- **`src/lib/agents/unified-writer-agent.ts`:**
+  - `isEmailAnswerShape` now needs only a real `body`, so a model `subject` is ignored and a missing one is fine.
+  - The two validators take the code-built subject, and `generateApplicationEmailWithRetry` and `generateFollowUpEmailWithRetry` build it from the language, `job.title` and `applicant.name`. The retry correction text no longer mentions a subject. Return shapes are unchanged, so no caller changes.
+- **`src/lib/agents/unified-writer-agent.email-validation.test.ts`:** the "overlong subject renders as written" test now expects the code-built subject. I added tests for a body-only response, a retry prompt with no subject text, and a table of 13 subject cases across languages. They cover the primary-title, drop-name, word-cut, missing-title, missing-name, German and dash-cleanup paths, all within 60 characters.
+
+I left the eval variant `evals/prompt-variants/sonnet55/email-prompts.ts` alone. Its prompts still ask the model for a subject, which is now ignored.
