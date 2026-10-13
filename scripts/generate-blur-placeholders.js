@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-const sharp = require('sharp');
-const fs = require('fs');
-const path = require('path');
+import sharp from 'sharp';
+import fs from 'fs';
+import path from 'path';
 
-const BLOG_DIR = path.join(__dirname, '../public/blog');
-const OUTPUT_FILE = path.join(__dirname, '../src/lib/blog/blur-data.ts');
+const BLOG_DIR = path.join(import.meta.dirname, '../public/blog');
+const OUTPUT_FILE = path.join(import.meta.dirname, '../src/lib/blog/blur-data.ts');
 
 async function generateBlurDataUrl(filePath) {
   const image = sharp(filePath);
