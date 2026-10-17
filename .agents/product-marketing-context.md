@@ -287,4 +287,4 @@ A Fit Analysis mode lets users check their match score before spending credits.
 
 ---
 
-*Run `/product-marketing-context` to update any section.*
+*Edit this file directly to update any section.*
