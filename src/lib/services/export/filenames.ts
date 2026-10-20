@@ -1,4 +1,5 @@
 import type { CvLocale } from '@/lib/cv-templates/locale';
+import { exportText } from './export-text';
 
 /**
  * File names a recruiter's inbox and an ATS both handle: ASCII, no spaces, the
@@ -116,25 +117,29 @@ export const CONTENT_TYPES: Record<string, string> = {
 };
 
 function build(format: ExportFormat, name: string, locale: CvLocale | 'other'): string {
-  const de = locale === 'de';
+  const words = exportText(locale);
   const ext = EXTENSION[format];
   const [prefix, suffix] = (() => {
     switch (format) {
       case 'cv_pdf':
       case 'cv_docx':
-        return de ? ['Lebenslauf_', ''] : ['', '_CV'];
+        return words.fileCv;
       case 'cover_letter_pdf':
       case 'cover_letter_docx':
-        return de ? ['Anschreiben_', ''] : ['', '_Cover_Letter'];
+        return words.fileLetter;
       case 'emails_txt':
-        return de ? ['E-Mails_', ''] : ['', '_Emails'];
+        return words.fileEmails;
       case 'answers_pdf':
       case 'answers_txt':
-        return de ? ['Screening-Antworten_', ''] : ['', '_Screening_Answers'];
+        return words.fileAnswers;
     }
   })();
   const room = MAX_FILE_NAME - prefix.length - suffix.length - ext.length - 1;
-  return `${prefix}${name.slice(0, Math.max(8, room)).replace(/[_-]+$/, '')}${suffix}.${ext}`;
+  // Cut by code point, not UTF-16 unit, so an emoji or a rare letter is never split in half, then
+  // make the result well formed (a lone surrogate would break the header it ends up in).
+  const cut = Array.from(name).slice(0, Math.max(8, room)).join('');
+  const wellFormed = typeof cut.toWellFormed === 'function' ? cut.toWellFormed() : cut.replace(/[\uD800-\uDFFF]/g, '\uFFFD');
+  return `${prefix}${wellFormed.replace(/[_-]+$/, '')}${suffix}.${ext}`;
 }
 
 /** The ASCII file name an ATS, a mail client and a file system all accept, 80 characters at most. */
@@ -145,4 +150,9 @@ export function exportFileName(format: ExportFormat, fullName: string, locale: C
 /** The same name with the applicant's own letters, for the `filename*` of the download. */
 export function exportDisplayFileName(format: ExportFormat, fullName: string, locale: CvLocale | 'other'): string {
   return build(format, unicodeNameForFile(fullName), locale);
+}
+
+/** RFC 5987 `filename*` value: encodeURIComponent leaves ' ( ) * alone, and the standard allows them only encoded. */
+export function encodeRfc5987(value: string): string {
+  return encodeURIComponent(value).replace(/['()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
 }

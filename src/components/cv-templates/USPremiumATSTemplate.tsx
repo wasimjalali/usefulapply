@@ -19,7 +19,7 @@ import { CVData, CVTemplate } from '@/lib/cv-templates/types';
 import { rootBox, type CvRenderMode } from '@/lib/cv-templates/print-spec';
 import { cvPaper } from '@/lib/cv-templates/paper';
 import { sectionHeading, formatDateRange, formatSingleDate, uiText } from '@/lib/cv-templates/locale';
-import { ContactRows, LanguageLine, SkillLines } from './shared';
+import { ContactRows, LanguageLine, SkillLines, stackGap } from './shared';
 import { Award } from 'lucide-react';
 
 interface Props {
@@ -53,7 +53,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
       style={{ 
         fontFamily: "'Arimo', 'Arial', 'Helvetica', sans-serif",  // 2026: Clean sans-serif body
         color: premiumColors.text,
-        lineHeight: 1.2,  // 2026: Tighter line spacing (1.15-1.2)
+        lineHeight: 'calc(1.2 * var(--cv-ld, 1))',  // 2026: Tighter line spacing (1.15-1.2)
         pageBreakAfter: 'auto',
         pageBreakInside: 'auto',
         ...rootBox(template.id, mode, cvPaper(data)),
@@ -81,14 +81,14 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
       )}
 
       {/* Header - Clean, ATS-optimized with 2026 Navy theme */}
-      <header style={{ paddingBottom: '16px', borderBottom: `2px solid ${premiumColors.primary}`, marginBottom: '20px' }}>
+      <header style={{ paddingBottom: 'calc(16px * var(--cv-d, 1))', borderBottom: `2px solid ${premiumColors.primary}`, marginBottom: 'calc(20px * var(--cv-d, 1))' }}>
         <h1 
           style={{ 
             fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",  // 2026: Serif headers for authority
             fontSize: '28px',
             fontWeight: 'bold',
             letterSpacing: '-0.5px',
-            marginBottom: '4px',
+            marginBottom: 'calc(4px * var(--cv-d, 1))',
             color: premiumColors.primary,
           }}
         >
@@ -102,7 +102,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '16px',
               fontWeight: 500,
-              marginBottom: '16px',
+              marginBottom: 'calc(16px * var(--cv-d, 1))',
               color: premiumColors.primary,
             }}
           >
@@ -114,10 +114,10 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
         <ContactRows data={data} iconSize={14} iconGap={6} textColor={premiumColors.textLight} columnGap={16} rowGap={4} />
       </header>
 
-      <div style={{ marginTop: '20px' }}>
+      <div style={{ marginTop: 'calc(20px * var(--cv-d, 1))' }}>
         {/* Professional Summary - Critical for ATS */}
         {data.summary && (
-          <section style={{ marginBottom: '16px' }}>
+          <section style={{ marginBottom: 'calc(16px * var(--cv-d, 1))' }}>
             <h2 
               style={{ 
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -125,8 +125,8 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
-                marginBottom: '8px',
-                paddingBottom: '8px',
+                marginBottom: 'calc(8px * var(--cv-d, 1))',
+                paddingBottom: 'calc(8px * var(--cv-d, 1))',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
@@ -136,7 +136,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
             <p 
               style={{ 
                 fontSize: '10pt',
-                lineHeight: 1.5,
+                lineHeight: 'calc(1.5 * var(--cv-ld, 1))',
                 color: premiumColors.text,
               }}
             >
@@ -147,7 +147,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
 
         {/* Core Competencies / Skills - 2026: 3-Column Grid with Languages integrated */}
         {data.skills.length > 0 && (
-          <section style={{ marginBottom: '16px' }}>
+          <section style={{ marginBottom: 'calc(16px * var(--cv-d, 1))' }}>
             <h2 
               style={{ 
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -155,8 +155,8 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
-                marginBottom: '12px',
-                paddingBottom: '8px',
+                marginBottom: 'calc(12px * var(--cv-d, 1))',
+                paddingBottom: 'calc(8px * var(--cv-d, 1))',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
@@ -169,7 +169,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
 
         {/* Professional Experience */}
         {data.experience.length > 0 && (
-          <section style={{ marginBottom: '16px' }}>
+          <section style={{ marginBottom: 'calc(16px * var(--cv-d, 1))' }}>
             <h2 
               style={{ 
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -177,19 +177,19 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
-                marginBottom: '8px',
-                paddingBottom: '8px',
+                marginBottom: 'calc(8px * var(--cv-d, 1))',
+                paddingBottom: 'calc(8px * var(--cv-d, 1))',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
             >
               {sectionHeading(data, 'experience')}
             </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="cv-stack" style={stackGap(16)}>
               {data.experience.map((exp, idx) => (
                 <div className="cv-exp" key={exp.id || idx}>
                   {/* Role Header */}
-                  <div className="cv-entry-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                  <div className="cv-entry-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'calc(4px * var(--cv-d, 1))' }}>
                     <h3 
                       style={{ 
                         fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -218,7 +218,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
                     style={{ 
                       fontSize: '10pt',
                       fontWeight: '500',
-                      marginBottom: '8px',
+                      marginBottom: 'calc(8px * var(--cv-d, 1))',
                       color: premiumColors.accent,
                     }}
                   >
@@ -230,7 +230,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
                   
                   {/* Bullets - Explicit bullet characters for PDF compatibility */}
                   {exp.bullets.length > 0 && (
-                    <div className={exp.bullets.length <= 3 ? 'cv-bullets cv-bullets-short' : 'cv-bullets'} style={{ marginTop: '6px', marginLeft: '4px' }}>
+                    <div className="cv-bullets" style={{ marginTop: 'calc(6px * var(--cv-d, 1))', marginLeft: '4px' }}>
                       {exp.bullets.map((bullet, bulletIdx) => (
                         <div className="cv-bullet"
                           key={bulletIdx} 
@@ -238,14 +238,14 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
                             display: 'flex',
                             alignItems: 'flex-start',
                             breakInside: 'avoid',
-                            gap: '8px',
+                            gap: 'calc(8px * var(--cv-d, 1))',
                             fontSize: '10pt',
-                            lineHeight: 1.4,
-                            marginBottom: '4px',
+                            lineHeight: 'calc(1.4 * var(--cv-ld, 1))',
+                            marginBottom: 'calc(4px * var(--cv-d, 1))',
                             color: premiumColors.text,
                           }}
                         >
-                          <span style={{ flexShrink: 0, marginTop: '2px' }}>•</span>
+                          <span style={{ flexShrink: 0, marginTop: 'calc(2px * var(--cv-d, 1))' }}>•</span>
                           <span>{bullet}</span>
                         </div>
                       ))}
@@ -259,7 +259,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
 
         {/* Education */}
         {data.education.length > 0 && (
-          <section style={{ marginBottom: '16px' }}>
+          <section style={{ marginBottom: 'calc(16px * var(--cv-d, 1))' }}>
             <h2 
               style={{ 
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -267,15 +267,15 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
-                marginBottom: '8px',
-                paddingBottom: '8px',
+                marginBottom: 'calc(8px * var(--cv-d, 1))',
+                paddingBottom: 'calc(8px * var(--cv-d, 1))',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
             >
               {sectionHeading(data, 'education')}
             </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div className="cv-stack" style={stackGap(8)}>
               {data.education.map((edu, idx) => (
                 <div className="cv-entry" key={edu.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <div>
@@ -320,7 +320,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
 
         {/* Certifications */}
         {data.certifications.length > 0 && (
-          <section style={{ marginBottom: '16px' }}>
+          <section style={{ marginBottom: 'calc(16px * var(--cv-d, 1))' }}>
             <h2 
               style={{ 
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -328,22 +328,22 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
-                marginBottom: '8px',
-                paddingBottom: '8px',
+                marginBottom: 'calc(8px * var(--cv-d, 1))',
+                paddingBottom: 'calc(8px * var(--cv-d, 1))',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
             >
               {sectionHeading(data, 'certifications')}
             </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '24px', rowGap: '6px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '24px', rowGap: 'calc(6px * var(--cv-d, 1))' }}>
               {data.certifications.map((cert, idx) => (
                 <div 
                   key={cert.id || idx} 
                   style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
-                    gap: '8px', 
+                    gap: 'calc(8px * var(--cv-d, 1))', 
                     fontSize: '10pt' 
                   }}
                 >
@@ -368,7 +368,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
         )}
 
       {data.languages.length > 0 && (
-        <section style={{ marginBottom: '16px' }}>
+        <section style={{ marginBottom: 'calc(16px * var(--cv-d, 1))' }}>
           <h2 
               style={{ 
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -376,8 +376,8 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
-                marginBottom: '8px',
-                paddingBottom: '8px',
+                marginBottom: 'calc(8px * var(--cv-d, 1))',
+                paddingBottom: 'calc(8px * var(--cv-d, 1))',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
@@ -392,7 +392,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
 
         {/* Projects */}
         {data.projects && data.projects.length > 0 && (
-          <section style={{ marginBottom: '16px' }}>
+          <section style={{ marginBottom: 'calc(16px * var(--cv-d, 1))' }}>
             <h2
               style={{
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -400,8 +400,8 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
-                marginBottom: '8px',
-                paddingBottom: '8px',
+                marginBottom: 'calc(8px * var(--cv-d, 1))',
+                paddingBottom: 'calc(8px * var(--cv-d, 1))',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
@@ -414,7 +414,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
               const description = project.description?.trim();
               const showDescription = Boolean(description && description.toLowerCase() !== project.name.trim().toLowerCase());
               return (
-                <div key={project.id} style={{ fontSize: '10pt', lineHeight: 1.5, color: premiumColors.textLight, marginBottom: '4px' }}>
+                <div key={project.id} style={{ fontSize: '10pt', lineHeight: 'calc(1.5 * var(--cv-ld, 1))', color: premiumColors.textLight, marginBottom: 'calc(4px * var(--cv-d, 1))' }}>
                   <span style={{ fontWeight: 600, fontSize: '10pt', color: premiumColors.text }}>{project.name}</span>
                   {showDescription && <span>: {description}</span>}
                   {project.technologies && project.technologies.length > 0 && (
@@ -428,7 +428,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
 
         {/* Additional Information */}
         {data.additionalInfo && data.additionalInfo.length > 0 && (
-          <section style={{ marginBottom: '16px' }}>
+          <section style={{ marginBottom: 'calc(16px * var(--cv-d, 1))' }}>
             <h2 
               style={{ 
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -436,8 +436,8 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
-                marginBottom: '8px',
-                paddingBottom: '8px',
+                marginBottom: 'calc(8px * var(--cv-d, 1))',
+                paddingBottom: 'calc(8px * var(--cv-d, 1))',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
@@ -457,7 +457,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
 
         {/* Custom Sections (generic fallback for achievements, references, volunteer, publications, etc.) */}
         {data.customSections && data.customSections.length > 0 && data.customSections.map((section) => (
-          <section key={section.id} style={{ marginBottom: '20px' }}>
+          <section key={section.id} style={{ marginBottom: 'calc(20px * var(--cv-d, 1))' }}>
             <h2
               style={{
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -465,8 +465,8 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
-                marginBottom: '8px',
-                paddingBottom: '8px',
+                marginBottom: 'calc(8px * var(--cv-d, 1))',
+                paddingBottom: 'calc(8px * var(--cv-d, 1))',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
@@ -475,7 +475,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
             </h2>
             <ul style={{ listStyleType: 'disc', paddingLeft: '18px', margin: 0 }}>
               {section.items.map((item, idx) => (
-                <li key={idx} style={{ fontSize: '10pt', color: premiumColors.text, marginBottom: '3px', lineHeight: 1.5 }}>
+                <li key={idx} style={{ fontSize: '10pt', color: premiumColors.text, marginBottom: 'calc(3px * var(--cv-d, 1))', lineHeight: 'calc(1.5 * var(--cv-ld, 1))' }}>
                   {item}
                 </li>
               ))}

@@ -78,9 +78,18 @@ export function rootBox(templateId: string, mode: CvRenderMode | undefined, pape
   };
 }
 
+/**
+ * Browser Run's Chrome rounds an A4 page up to whole CSS pixels: 595.92 pt wide, not 595.28. The text
+ * area is that much wider than the canvas's 210 mm sheet, and a line that just fits on the page would
+ * wrap differently on the canvas. The extra width (0.64 pt, 0.2257 mm) comes off the right margin so
+ * both break lines at the same place. Letter is exact and needs none.
+ */
+export const A4_PRINT_WIDTH_EXCESS_MM = 0.2257;
+
 /** The `@page` rule for the export. */
 export function pageRule(templateId: string, paperOverride?: PaperSize): string {
   const spec = getPrintSpec(templateId, paperOverride);
   const m = spec.marginMm;
-  return `@page { size: ${spec.paper === 'a4' ? 'A4' : 'Letter'}; margin: ${mm(m.top)} ${mm(m.right)} ${mm(m.bottom)} ${mm(m.left)}; }`;
+  const right = m.right + (spec.paper === 'a4' ? A4_PRINT_WIDTH_EXCESS_MM : 0);
+  return `@page { size: ${spec.paper === 'a4' ? 'A4' : 'Letter'}; margin: ${mm(m.top)} ${mm(right)} ${mm(m.bottom)} ${mm(m.left)}; }`;
 }

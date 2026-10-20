@@ -1045,7 +1045,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
 
       {/* Custom Sections (achievements, references, volunteer, publications, etc.) */}
       {(data.customSections || []).map((section, secIndex) => (
-        <section key={section.id || `custom-${secIndex}`} className="mb-6">
+        <section key={section.id || `custom-${secIndex}`} className={`mb-6 ${dim(section.hidden)}`}>
           <div className="flex items-center justify-between mb-3">
             <EditableField
               value={section.title}
@@ -1058,6 +1058,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
               placeholder="Section title"
               className="text-sm font-bold uppercase tracking-wider text-navy-600"
             />
+            <HideToggle hidden={Boolean(section.hidden)} onToggle={() => toggleEntryHidden('customSections', secIndex)} label="this section" />
             <button
               onClick={() => {
                 const newSections = (data.customSections || []).filter((_, i) => i !== secIndex);

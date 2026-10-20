@@ -12,9 +12,11 @@ import { checkDinDocxPositions } from './letter-checks';
 import type { StructuredCoverLetter } from '../../../src/lib/cover-letter/contract';
 import { checkPersonalAndLinks, checkText, expectationsFor, norm, squash } from './expect';
 import { pdfinfo, pdftotext } from './poppler';
+import { sofficePath } from './soffice';
+import { displayUrl, fullUrl, pickLetterLinks } from '../../../src/lib/cv-templates/url';
+import { recipientLinesFor } from '../../../src/lib/services/export/letter-html';
 
 const run = promisify(execFile);
-const SOFFICE = process.env.SOFFICE ?? '/Applications/LibreOffice.app/Contents/MacOS/soffice';
 
 export interface DocxReport {
   fixture: string;
@@ -136,7 +138,7 @@ export async function checkCvDocx(
   let lo: DocxReport['metrics']['lo'] = null;
   try {
     const profile = `file://${join(dir, 'profile')}`;
-    await run(SOFFICE, ['--headless', `-env:UserInstallation=${profile}`, '--convert-to', 'pdf', '--outdir', dir, path], { timeout: 120_000 });
+    await run(sofficePath(), ['--headless', `-env:UserInstallation=${profile}`, '--convert-to', 'pdf', '--outdir', dir, path], { timeout: 120_000 });
     const pdf = new Uint8Array(await readFile(join(dir, 'cv.pdf')));
     const [info, loText] = await Promise.all([pdfinfo(pdf), pdftotext(pdf, 'reading-order')]);
     const loCheck = checkText(loText, exp);
@@ -185,7 +187,13 @@ export interface LetterDocxReport {
 }
 
 /** A cover letter DOCX: no tables or text boxes, and a LibreOffice render that still holds every field. */
-export async function checkLetterDocx(bytes: Uint8Array, name: string, fields: string[], expectDinClosing: string | null, din?: StructuredCoverLetter): Promise<LetterDocxReport> {
+export async function checkLetterDocx(
+  bytes: Uint8Array,
+  name: string,
+  fields: string[],
+  expectDinClosing: string | null,
+  layout?: { kind: 'din' | 'us'; letter: StructuredCoverLetter },
+): Promise<LetterDocxReport> {
   const dir = await mkdtemp(join(tmpdir(), 'letterdocx-'));
   const path = join(dir, 'letter.docx');
   await writeFile(path, bytes);
@@ -193,10 +201,19 @@ export async function checkLetterDocx(bytes: Uint8Array, name: string, fields: s
   const failures: string[] = [];
   if (/<w:tbl>/.test(xml)) failures.push('the letter has a table');
   if (/<w:txbxContent|<wps:txbx|<v:textbox/.test(xml)) failures.push('the letter has a text box');
+  // The sender's links are real hyperlinks to the full address, shown clean, and at most two.
+  if (layout) {
+    const rels = await unzipEntry(path, 'word/_rels/document.xml.rels');
+    const targets = [...rels.matchAll(/Target="([^"]+)"[^>]*TargetMode="External"|TargetMode="External"[^>]*Target="([^"]+)"/g)].map((m) => decode(m[1] ?? m[2]));
+    const picked = pickLetterLinks(layout.letter.sender.links);
+    for (const link of picked) if (!targets.includes(fullUrl(link))) failures.push(`no hyperlink to ${fullUrl(link)}`);
+    if ((xml.match(/<w:hyperlink /g) ?? []).length < picked.length) failures.push('fewer w:hyperlink elements than sender links');
+    if (targets.length > picked.length) failures.push(`${targets.length} hyperlinks, the letterhead carries at most ${picked.length}`);
+  }
   let loPages: number | null = null;
   let measured: Record<string, number> | undefined;
   try {
-    await run(SOFFICE, ['--headless', `-env:UserInstallation=file://${join(dir, 'profile')}`, '--convert-to', 'pdf', '--outdir', dir, path], { timeout: 120_000 });
+    await run(sofficePath(), ['--headless', `-env:UserInstallation=file://${join(dir, 'profile')}`, '--convert-to', 'pdf', '--outdir', dir, path], { timeout: 120_000 });
     const pdf = new Uint8Array(await readFile(join(dir, 'letter.pdf')));
     const [info, text] = await Promise.all([pdfinfo(pdf), pdftotext(pdf, 'reading-order')]);
     loPages = info.pages;
@@ -206,10 +223,25 @@ export async function checkLetterDocx(bytes: Uint8Array, name: string, fields: s
     }
     if (expectDinClosing && !norm(text).includes(expectDinClosing)) failures.push('DIN closing is missing');
     if (expectDinClosing && new RegExp(`${expectDinClosing},`).test(text)) failures.push('DIN closing has a comma');
-    if (din) {
-      const result = await checkDinDocxPositions(pdf, din);
+    if (layout?.kind === 'din') {
+      const result = await checkDinDocxPositions(pdf, layout.letter);
       failures.push(...result.failures.map((f) => `DOCX position: ${f}`));
       measured = result.measured;
+    }
+    if (layout) {
+      // Clean link text in the render, never the scheme.
+      for (const link of pickLetterLinks(layout.letter.sender.links)) {
+        if (!squashed.includes(squash(displayUrl(link)))) failures.push(`link text "${displayUrl(link)}" is not in the render`);
+        if (squashed.includes(squash(fullUrl(link)))) failures.push(`the letter prints the scheme of ${fullUrl(link)}`);
+      }
+    }
+    if (layout?.kind === 'us') {
+      // Block order on the page: date, then the recipient, then the salutation, then the closing.
+      const lines = text.split('\n').map((line) => norm(line));
+      const at = (needle: string) => lines.findIndex((line) => line.includes(norm(needle)));
+      const l = layout.letter;
+      const order = [at(l.date), at(recipientLinesFor(l, 'us')[0] ?? ''), at(l.salutation), at(l.closing)];
+      if (order.some((index) => index < 0) || order.some((index, i) => i > 0 && index <= order[i - 1])) failures.push(`letter blocks are out of order in the render (date, recipient, salutation, closing at ${order.join(', ')})`);
     }
   } catch (error) {
     failures.push(`LibreOffice conversion failed: ${error instanceof Error ? error.message.slice(0, 80) : 'error'}`);

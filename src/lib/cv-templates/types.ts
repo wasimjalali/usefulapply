@@ -314,6 +314,11 @@ export interface CVTemplate {
   style: CVTemplateStyle;
   includesPhoto: boolean;
   pageSize: 'letter' | 'a4';
+  /**
+   * How a parser reads the page. Every template is a single column, read top to bottom; the field is here
+   * for the template list the MCP `list_cv_templates` tool exposes.
+   */
+  atsReadingOrder: 'single-column';
   
   // Styling configuration
   colors: {
@@ -503,6 +508,7 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
     style: 'modern-ats',
     includesPhoto: false,
     pageSize: 'letter',
+    atsReadingOrder: 'single-column',
     colors: {
       primary: '#1a365d',      // Navy - trust, reliability
       secondary: '#2d3748',    // Dark gray
@@ -528,6 +534,7 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
     style: 'modern-ats',
     includesPhoto: false,
     pageSize: 'letter',
+    atsReadingOrder: 'single-column',
     colors: {
       primary: '#0f172a',      // Slate
       secondary: '#334155',    // Gray
@@ -553,6 +560,7 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
     style: 'professional',
     includesPhoto: false,
     pageSize: 'letter',
+    atsReadingOrder: 'single-column',
     colors: {
       primary: '#1a365d',      // Navy executive
       secondary: '#2d3748',    // Dark gray
@@ -566,18 +574,19 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
       heading: 'Georgia, Cambria, serif',      // 9/10 ATS, executive feel
       body: 'Calibri, Arial, sans-serif',
     },
-    sectionOrder: ['header', 'summary', 'experience', 'projects', 'skills', 'education', 'certifications', 'languages'],
+    sectionOrder: ['header', 'summary', 'experience', 'education', 'skills', 'certifications', 'languages', 'projects'],
   },
 
-  // 4. Portrait ATS - Two-column with photo (EU/A4 format)
+  // 4. Portrait ATS - Single column with photo (EU/A4 format)
   {
     id: 'german-ats',
     name: 'Portrait ATS',
-    description: 'Two-column A4 layout with photo. CEFR language levels, ideal for EU job markets.',
+    description: 'Single-column A4 layout with photo. CEFR language levels, ideal for EU job markets.',
     region: 'EU',
     style: 'classic',
     includesPhoto: true,
     pageSize: 'a4',
+    atsReadingOrder: 'single-column',
     colors: {
       primary: '#1a365d',      // Navy - professional
       secondary: '#2d3748',    // Dark gray
@@ -591,7 +600,7 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
       heading: 'Arial, Helvetica, sans-serif',  // German standard
       body: 'Arial, Helvetica, sans-serif',
     },
-    sectionOrder: ['header', 'photo', 'summary', 'experience', 'projects', 'education', 'skills', 'languages', 'certifications'],
+    sectionOrder: ['header', 'photo', 'summary', 'experience', 'education', 'skills', 'languages', 'certifications', 'projects'],
   },
 
   // 5. Portrait Classic - Single-column with photo (better ATS than two-column)
@@ -603,6 +612,7 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
     style: 'classic',
     includesPhoto: true,
     pageSize: 'a4',
+    atsReadingOrder: 'single-column',
     colors: {
       primary: '#374151',      // Charcoal/Anthracite - neutral, professional
       secondary: '#4B5563',    // Medium grey
@@ -628,6 +638,7 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
     style: 'modern-ats',
     includesPhoto: false,
     pageSize: 'letter',
+    atsReadingOrder: 'single-column',
     colors: {
       primary: '#2D6A4F',      // Forest Green - calm, professional
       secondary: '#4B5563',    // Medium grey

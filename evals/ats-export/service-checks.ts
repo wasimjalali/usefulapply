@@ -1,13 +1,18 @@
+import { createHash } from 'node:crypto';
 import { resolveExport, exportCacheHash } from '../../src/lib/services/export/resolve';
 import { resolveLetterLayout } from '../../src/lib/services/export/layout';
-import { exportFileName, nameForFile } from '../../src/lib/services/export/filenames';
+import { encodeRfc5987, exportDisplayFileName, exportFileName, nameForFile } from '../../src/lib/services/export/filenames';
 import { exportPathKey, signExportLink, verifyExportLink, SIGNED_URL_TTL_SECONDS } from '../../src/lib/services/export/signing';
 import { sanitizeCvData, sanitizeStructuredLetter } from '../../src/lib/services/export/sanitize';
 import { formatCvDate, formatDateRange, sectionHeading } from '../../src/lib/cv-templates/locale';
+import { formatBirthDate } from '../../src/lib/cv-templates/birthdate';
+import { displayUrl, fullUrl } from '../../src/lib/cv-templates/url';
+import { hashRendererSources, type HashDeps } from '../../src/lib/services/export/renderer-source-hash';
+import type { CVData } from '../../src/lib/cv-templates/types';
 import { buildCvData } from '../../src/lib/cv-templates/build-cv-data';
 import { visibleCvData } from '../../src/lib/cv-templates/hidden';
 import { RENDERER_VERSION } from '../../src/lib/services/export/renderer-version';
-import { DE_TWO_PAGE, DIN_LETTER, US_LETTER, US_ONE_PAGE } from './fixtures';
+import { CV_FIXTURES, DE_TWO_PAGE, DIN_LETTER, US_LETTER, US_ONE_PAGE, US_PERSONAL } from './fixtures';
 import { kitFor } from './render-all';
 
 export interface ServiceReport {
@@ -221,6 +226,100 @@ export async function runServiceChecks(): Promise<ServiceReport[]> {
     const long = exportFileName('cv_pdf', `${'Abcdefghij '.repeat(20)}Zed`, 'en');
     if (long.length > 80) failures.push(`a long name gives a ${long.length} character file name`);
     out.push(report('file-names-transliteration', failures));
+  }
+
+  // The renderer version is a hash of every output-shaping file, fonts included.
+  {
+    const failures: string[] = [];
+    const files: Record<string, string> = {
+      'src/components/cv-templates/A.tsx': 'template',
+      'src/lib/cv-templates/print.ts': 'css',
+      'src/lib/services/export/pdf.ts': 'pdf',
+      'public/fonts/f.woff2': 'font bytes',
+    };
+    const makeDeps = (map: Record<string, string>): HashDeps => ({
+      fs: {
+        readdirSync: (dir: string) => {
+          const prefix = `${dir.replace(/^\//, '')}/`;
+          const names = new Set<string>();
+          for (const key of Object.keys(map)) if (key.startsWith(prefix)) names.add(key.slice(prefix.length).split('/')[0]);
+          return [...names].map((name) => ({ name, isDirectory: () => Object.keys(map).some((key) => key.startsWith(`${prefix}${name}/`)), isFile: () => `${prefix}${name}` in map }));
+        },
+        readFileSync: (path: string) => new TextEncoder().encode(map[path.replace(/^\//, '')]),
+      },
+      path: { join: (...parts: string[]) => parts.join('/').replace(/\/+/g, '/') },
+      crypto: { createHash: (a: string) => createHash(a) as never },
+    });
+    const empty = (dir: string) => ({ [`${dir}/placeholder.txt`]: '' });
+    const hashOf = (map: Record<string, string>) => hashRendererSources('', makeDeps({ ...empty('src/components/cv-templates'), ...empty('src/lib/cv-templates'), ...empty('src/lib/services/export'), ...empty('public/fonts'), ...map }));
+    const base = hashOf(files);
+    if (base !== hashOf(files)) failures.push('the hash is not stable');
+    for (const file of Object.keys(files)) {
+      if (hashOf({ ...files, [file]: `${files[file]} changed` }) === base) failures.push(`an edit to ${file} does not change the version`);
+    }
+    out.push(report('renderer-source-hash', failures));
+  }
+
+  // A date of birth is written the way the CV's language and market write it.
+  {
+    const failures: string[] = [];
+    const withDob = (data: typeof US_ONE_PAGE, dateOfBirth: string, language: string, country?: string) => ({ ...data, language, personal: { ...data.personal, dateOfBirth, country: country ?? data.personal.country } });
+    const cases: Array<[CVData, string]> = [
+      [US_PERSONAL, 'April 7, 1989'],
+      [withDob(US_ONE_PAGE, '07.04.1989', 'en', 'United Kingdom'), '7 April 1989'],
+      [withDob(US_ONE_PAGE, '1989-04-07', 'en'), 'April 7, 1989'],
+      [DE_TWO_PAGE, '12.03.1986'],
+      [withDob(DE_TWO_PAGE, '1989-04-07', 'de'), '07.04.1989'],
+      [withDob(US_ONE_PAGE, '07.04.1989', 'fr', 'France'), '7 avril 1989'],
+      [withDob(US_ONE_PAGE, '07.04.1989', 'es', 'España'), '7 de abril de 1989'],
+      [withDob(US_ONE_PAGE, '07.04.1989', 'pt', 'Portugal'), '7 de abril de 1989'],
+      [withDob(US_ONE_PAGE, '07.04.1989', 'it', 'Italia'), '7 aprile 1989'],
+      [withDob(US_ONE_PAGE, '07.04.1989', 'nl', 'Nederland'), '7 april 1989'],
+      [withDob(US_ONE_PAGE, 'around 1989', 'en'), 'around 1989'],
+    ];
+    for (const [data, want] of cases) {
+      const got = formatBirthDate(data);
+      if (got !== want) failures.push(`"${data.personal.dateOfBirth}" (${data.language}, ${data.personal.country}) became "${got}", want "${want}"`);
+    }
+    out.push(report('birth-date-format', failures));
+  }
+
+  // Every supported language: the headings, the open-ended label and the date format, against the hand-written table.
+  {
+    const failures: string[] = [];
+    for (const fixture of CV_FIXTURES.filter((f) => f.locale)) {
+      const lx = fixture.locale!;
+      const keys = ['summary', 'experience', 'education', 'skills', 'certifications', 'languages'] as const;
+      for (const key of keys) {
+        const got = sectionHeading(fixture.data, key);
+        if (got !== lx.headings[key]) failures.push(`${fixture.name}: ${key} heading is "${got}", want "${lx.headings[key]}"`);
+      }
+      const range = formatDateRange(fixture.data, { startDate: '03/2021', current: true });
+      if (range !== `03/2021 - ${lx.present}`) failures.push(`${fixture.name}: range "${range}", want "03/2021 - ${lx.present}"`);
+    }
+    // The parser's own unaccented headings are normalised to the accented standard.
+    const frParsed = { ...CV_FIXTURES.find((f) => f.name === 'fr-one-page')!.data, sectionHeaders: { experience: 'EXPERIENCE PROFESSIONNELLE', skills: 'COMPETENCES CLES', education: 'FORMATION' } };
+    if (sectionHeading(frParsed, 'experience') !== 'Expérience' || sectionHeading(frParsed, 'skills') !== 'Compétences') failures.push('unaccented French headings are not normalised to the accented standard');
+    out.push(report('locale-headings-and-dates', failures));
+  }
+
+  // Links, file names and the download header.
+  {
+    const failures: string[] = [];
+    const long = 'https://portfolio.jordan-ellis.example/work/selected-case-studies-2020-2026/payments-platform-migration';
+    const shown = displayUrl(long);
+    if (shown !== 'portfolio.jordan-ellis.example/work/selected-ca…' || Array.from(shown).length !== 48) failures.push(`a long link shows "${shown}"`);
+    if (fullUrl(long) !== long) failures.push('the full address of a long link changed');
+    if (fullUrl('mailto:jordan@example.com') !== 'mailto:jordan@example.com') failures.push('mailto: got a scheme glued in front');
+    if (displayUrl('mailto:jordan@example.com') !== 'jordan@example.com') failures.push('a mailto: link shows its scheme');
+    if (fullUrl('tel:+14155550142') !== 'tel:+14155550142') failures.push('tel: got a scheme glued in front');
+    // Names are cut by code point and stay well formed.
+    const wide = '\u{1D518}'.repeat(120);
+    const display = exportDisplayFileName('cv_pdf', wide, 'en');
+    if (Array.from(display).length > 80) failures.push(`a display name of ${Array.from(display).length} code points`);
+    if (!display.isWellFormed()) failures.push('a cut name holds a lone surrogate');
+    if (encodeRfc5987("O'Brien (CV)*.pdf") !== 'O%27Brien%20%28CV%29%2A.pdf') failures.push(`filename* is ${encodeRfc5987("O'Brien (CV)*.pdf")}`);
+    out.push(report('links-file-names-header', failures));
   }
 
   return out;

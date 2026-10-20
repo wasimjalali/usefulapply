@@ -1,7 +1,17 @@
 import type { NextConfig } from "next";
 import { withPostHogConfig } from "@posthog/nextjs-config";
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { hashRendererSources } from "./src/lib/services/export/renderer-source-hash";
 
 const nextConfig: NextConfig = {
+  // A hash of every source file that shapes an exported CV or letter, baked into the bundle. It is the
+  // export cache key's renderer version, so an edit to a template, the print CSS, the DOCX builders or a
+  // font changes it without anyone bumping a number.
+  env: {
+    RENDERER_SOURCE_HASH: hashRendererSources(process.cwd(), { fs, path, crypto } as never),
+  },
   // Image optimization — serve modern formats for smaller payloads
   images: {
     formats: ['image/avif', 'image/webp'],

@@ -40,6 +40,14 @@ export type Multiset = Map<string, number>;
  * silently stops covering any field added later, and the whole value of the
  * assertion is that it covers everything.
  */
+/**
+ * Bookkeeping about the CV, not CV text: which headings were renamed, which
+ * sections or skills are hidden. They name keys and skills that are counted where
+ * they live, so a rename adding "experience" to `renamedHeadings` is not new
+ * wording and a deleted skill's `hiddenItems` copy is not a second skill.
+ */
+const METADATA_KEYS = new Set(['renamedHeadings', 'hiddenSections', 'hiddenItems']);
+
 export function leafMultiset(value: unknown, into: Multiset = new Map()): Multiset {
   if (typeof value === 'string') {
     into.set(value, (into.get(value) ?? 0) + 1);
@@ -50,7 +58,9 @@ export function leafMultiset(value: unknown, into: Multiset = new Map()): Multis
     return into;
   }
   if (value && typeof value === 'object') {
-    for (const item of Object.values(value as Record<string, unknown>)) leafMultiset(item, into);
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      if (!METADATA_KEYS.has(key)) leafMultiset(item, into);
+    }
     return into;
   }
   return into;

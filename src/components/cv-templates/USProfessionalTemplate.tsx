@@ -19,7 +19,7 @@ import { CVData, CVTemplate } from '@/lib/cv-templates/types';
 import { rootBox, type CvRenderMode } from '@/lib/cv-templates/print-spec';
 import { cvPaper } from '@/lib/cv-templates/paper';
 import { sectionHeading, formatDateRange, formatSingleDate, uiText } from '@/lib/cv-templates/locale';
-import { ContactRows, LanguageLine, SkillLines } from './shared';
+import { ContactRows, LanguageLine, SkillLines, stackGap } from './shared';
 
 interface Props {
   data: CVData;
@@ -45,7 +45,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
       style={{ 
         fontFamily: "'Arimo', 'Arial', 'Helvetica Neue', 'Helvetica', sans-serif",
         fontSize: '10pt',
-        lineHeight: 1.15,
+        lineHeight: 'calc(1.15 * var(--cv-ld, 1))',
         color: executiveColors.text,
         backgroundColor: 'white',
         pageBreakAfter: 'auto',
@@ -55,14 +55,14 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
       }}
     >
       {/* Header - Name and Contact */}
-      <header style={{ marginBottom: '18px', paddingBottom: '16px', borderBottom: `2px solid ${executiveColors.primary}` }}>
+      <header style={{ marginBottom: 'calc(18px * var(--cv-d, 1))', paddingBottom: 'calc(16px * var(--cv-d, 1))', borderBottom: `2px solid ${executiveColors.primary}` }}>
         <h1 
           style={{ 
             fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
             fontSize: '28px',
             fontWeight: 'bold',
             color: executiveColors.primary,
-            marginBottom: '4px',
+            marginBottom: 'calc(4px * var(--cv-d, 1))',
             letterSpacing: '0.5px',
           }}
         >
@@ -77,7 +77,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
               fontSize: '10.5pt',
               fontWeight: '600',
               color: executiveColors.textLight,
-              marginBottom: '16px',
+              marginBottom: 'calc(16px * var(--cv-d, 1))',
             }}
           >
             {data.personal.currentTitle}
@@ -92,7 +92,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
       {data.summary && (
         <section 
           style={{ 
-            marginBottom: '18px',
+            marginBottom: 'calc(18px * var(--cv-d, 1))',
             padding: '16px 20px',
             backgroundColor: executiveColors.summaryBg,
             borderLeft: `3px solid ${executiveColors.primary}`,
@@ -106,12 +106,12 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
               color: executiveColors.primary,
-              marginBottom: '8px',
+              marginBottom: 'calc(8px * var(--cv-d, 1))',
             }}
           >
             {sectionHeading(data, 'summary')}
           </h2>
-          <p style={{ fontSize: '10pt', lineHeight: 1.5, color: executiveColors.text }}>
+          <p style={{ fontSize: '10pt', lineHeight: 'calc(1.5 * var(--cv-ld, 1))', color: executiveColors.text }}>
             {data.summary}
           </p>
         </section>
@@ -119,7 +119,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
 
       {/* Core Competencies - 2026: 3-Column Grid with Languages integrated */}
       {data.skills.length > 0 && (
-        <section style={{ marginBottom: '14px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -128,8 +128,8 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
               color: executiveColors.primary,
-              marginBottom: '12px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(12px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${executiveColors.primary}`,
             }}
           >
@@ -141,7 +141,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
 
       {/* Professional Experience */}
       {data.experience.length > 0 && (
-        <section style={{ marginBottom: '14px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -150,17 +150,17 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
               color: executiveColors.primary,
-              marginBottom: '14px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(14px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${executiveColors.primary}`,
             }}
           >
             {sectionHeading(data, 'experience')}
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          <div className="cv-stack" style={stackGap(18)}>
             {data.experience.map((exp) => (
               <div className="cv-exp" key={exp.id}>
-                <div className="cv-entry-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                <div className="cv-entry-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'calc(4px * var(--cv-d, 1))' }}>
                   <h3 
                     style={{ 
                       fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -179,7 +179,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
                   style={{ 
                     fontSize: '10pt',
                     fontWeight: '500',
-                    marginBottom: '8px',
+                    marginBottom: 'calc(8px * var(--cv-d, 1))',
                     color: executiveColors.primary,
                   }}
                 >
@@ -188,7 +188,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
                 </p>
                 {/* Explicit bullet characters for PDF compatibility */}
                 {exp.bullets.length > 0 && (
-                  <div className={exp.bullets.length <= 3 ? 'cv-bullets cv-bullets-short' : 'cv-bullets'} style={{ marginTop: '6px', marginLeft: '4px' }}>
+                  <div className="cv-bullets" style={{ marginTop: 'calc(6px * var(--cv-d, 1))', marginLeft: '4px' }}>
                     {exp.bullets.map((bullet, idx) => (
                       <div className="cv-bullet"
                         key={idx} 
@@ -196,14 +196,14 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
                           display: 'flex',
                           alignItems: 'flex-start',
                           breakInside: 'avoid',
-                          gap: '8px',
+                          gap: 'calc(8px * var(--cv-d, 1))',
                           fontSize: '10pt',
-                          lineHeight: 1.5,
-                          marginBottom: '4px',
+                          lineHeight: 'calc(1.5 * var(--cv-ld, 1))',
+                          marginBottom: 'calc(4px * var(--cv-d, 1))',
                           color: executiveColors.text,
                         }}
                       >
-                        <span style={{ flexShrink: 0, marginTop: '2px' }}>•</span>
+                        <span style={{ flexShrink: 0, marginTop: 'calc(2px * var(--cv-d, 1))' }}>•</span>
                         <span>{bullet}</span>
                       </div>
                     ))}
@@ -217,7 +217,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
 
       {/* Education */}
       {data.education.length > 0 && (
-        <section style={{ marginBottom: '14px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -226,14 +226,14 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
               color: executiveColors.primary,
-              marginBottom: '8px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(8px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${executiveColors.primary}`,
             }}
           >
             {sectionHeading(data, 'education')}
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="cv-stack" style={stackGap(8)}>
             {data.education.map((edu) => (
               <div className="cv-entry" key={edu.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <div>
@@ -265,7 +265,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
 
       {/* Certifications - Languages section REMOVED (now integrated into Core Competencies grid) */}
       {data.certifications.length > 0 && (
-        <section style={{ marginBottom: '14px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -274,14 +274,14 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
               color: executiveColors.primary,
-              marginBottom: '8px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(8px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${executiveColors.primary}`,
             }}
           >
             {sectionHeading(data, 'certifications')}
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '24px', rowGap: '4px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '24px', rowGap: 'calc(4px * var(--cv-d, 1))' }}>
             {data.certifications.map((cert) => (
               <div className="cv-entry" key={cert.id} style={{ fontSize: '10pt' }}>
                 <span style={{ fontWeight: '500', color: executiveColors.text }}>{cert.name}</span>
@@ -293,7 +293,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
       )}
 
       {data.languages.length > 0 && (
-        <section style={{ marginBottom: '14px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -302,8 +302,8 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
               color: executiveColors.primary,
-              marginBottom: '8px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(8px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${executiveColors.primary}`,
             }}
           >
@@ -315,7 +315,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
 
       {/* Projects */}
       {data.projects && data.projects.length > 0 && (
-        <section style={{ marginBottom: '14px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2
             style={{
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -324,8 +324,8 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
               color: executiveColors.primary,
-              marginBottom: '8px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(8px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${executiveColors.primary}`,
             }}
           >
@@ -337,7 +337,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
             const description = project.description?.trim();
             const showDescription = Boolean(description && description.toLowerCase() !== project.name.trim().toLowerCase());
             return (
-              <div key={project.id} style={{ fontSize: '10pt', lineHeight: 1.5, color: executiveColors.textLight, marginBottom: '4px' }}>
+              <div key={project.id} style={{ fontSize: '10pt', lineHeight: 'calc(1.5 * var(--cv-ld, 1))', color: executiveColors.textLight, marginBottom: 'calc(4px * var(--cv-d, 1))' }}>
                 <span style={{ fontWeight: 600, color: executiveColors.text }}>{project.name}</span>
                 {showDescription && <span>: {description}</span>}
                 {project.technologies && project.technologies.length > 0 && (
@@ -351,7 +351,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
 
       {/* Additional Information */}
       {data.additionalInfo && data.additionalInfo.length > 0 && (
-        <section style={{ marginTop: '24px' }}>
+        <section style={{ marginTop: 'calc(24px * var(--cv-d, 1))' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -360,8 +360,8 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
               color: executiveColors.primary,
-              marginBottom: '8px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(8px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${executiveColors.primary}`,
             }}
           >
@@ -375,7 +375,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
 
       {/* Custom Sections (generic fallback) */}
       {data.customSections && data.customSections.length > 0 && data.customSections.map((section) => (
-        <section key={section.id} style={{ marginTop: '24px' }}>
+        <section key={section.id} style={{ marginTop: 'calc(24px * var(--cv-d, 1))' }}>
           <h2
             style={{
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -383,8 +383,8 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
               fontWeight: 'bold',
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
-              marginBottom: '10px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(10px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${executiveColors.primary}`,
             }}
           >
@@ -392,7 +392,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
           </h2>
           <ul style={{ listStyleType: 'disc', paddingLeft: '18px', margin: 0 }}>
             {section.items.map((item, idx) => (
-              <li key={idx} style={{ fontSize: '10pt', color: executiveColors.text, marginBottom: '3px', lineHeight: 1.5 }}>
+              <li key={idx} style={{ fontSize: '10pt', color: executiveColors.text, marginBottom: 'calc(3px * var(--cv-d, 1))', lineHeight: 'calc(1.5 * var(--cv-ld, 1))' }}>
                 {item}
               </li>
             ))}

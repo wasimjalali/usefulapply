@@ -139,7 +139,8 @@ export const US_PERSONAL: CVData = {
     dateOfBirth: '07.04.1989',
     nationality: 'American',
     website: 'https://www.jordan-ellis.example/?utm_source=cv&utm_medium=pdf',
-    portfolio: 'https://portfolio.jordan-ellis.example/work/',
+    // Longer than the 48 characters a link shows: the text is cut with an ellipsis, the link opens the whole address.
+    portfolio: 'https://portfolio.jordan-ellis.example/work/selected-case-studies-2020-2026/payments-platform-migration',
   },
 };
 
@@ -162,12 +163,6 @@ export const HOSTILE: CVData = {
     job('Platform Engineer', HOSTILE_TEXT.company, 'Remote', 'Jan 2020', undefined, [HOSTILE_TEXT.bulletScript, HOSTILE_TEXT.bulletImage], true),
     US_ONE_PAGE.experience[1],
   ],
-};
-
-/** Sixty certifications: the sidebar of a two-column template runs past a page, so its heading has to repeat on the next one. */
-export const MANY_CERTS: CVData = {
-  ...DE_TWO_PAGE,
-  certifications: Array.from({ length: 60 }, (_, i) => ({ id: `fx-cert-${i}`, name: `Zertifizierung Nummer ${i + 1} im Bereich Plattform`, issuer: 'Prüfstelle', date: `${2000 + (i % 25)}` })),
 };
 
 /** A French CV: it must not get German dates, headings or footers, and prints on A4. */
@@ -200,6 +195,74 @@ export const FR_ONE_PAGE: CVData = {
   ],
   languages: [{ language: 'Français', proficiency: 'Langue maternelle' }, { language: 'Anglais', proficiency: 'Courant' }],
   certifications: [{ id: id(), name: 'Certified Kubernetes Administrator', issuer: 'CNCF', date: '2022' }],
+};
+
+function localized(language: string, base: Omit<CVData, 'language' | 'certifications' | 'projects'> & { certName: string }): CVData {
+  const { certName, ...rest } = base;
+  return { ...rest, language, certifications: [{ id: id(), name: certName, issuer: 'CNCF', date: '2022' }] } as CVData;
+}
+
+/** Spanish, Italian, Dutch and Portuguese CVs: every heading, the present label and the degree connector in their own language. */
+export const ES_ONE_PAGE: CVData = localized('es', {
+  personal: { fullName: 'Lucía Fernández Ortega', email: 'lucia.fernandez@example.es', phone: '+34 612 345 678', currentTitle: 'Ingeniera de software sénior', city: 'Valencia', country: 'España', linkedIn: 'https://www.linkedin.com/in/lucia-fernandez-example' },
+  summary: 'Ingeniera de software con ocho años de experiencia en logística y pagos. Dirigió la migración de cuarenta servicios a Kubernetes sin interrupciones.',
+  experience: [
+    job('Ingeniera de software sénior', 'Transportes Levante', 'Valencia', '03/2021', undefined, ['Dirigió un equipo de cinco ingenieros en la migración de cuarenta servicios a Kubernetes.', 'Redujo la latencia p99 un 38 % rediseñando la caché de seguimiento de envíos.'], true),
+    job('Ingeniera de software', 'Banco Mediterráneo', 'Madrid', '09/2016', '02/2021', ['Diseñó el servicio de libro mayor que procesa dos millones de transacciones al día.', 'Redujo el tiempo de resolución de disputas de tres días a cuatro horas.']),
+  ],
+  education: [{ id: id(), institution: 'Universidad Politécnica de Valencia', degree: 'Grado en Ingeniería', field: 'Informática', startDate: '2011', endDate: '2016' }],
+  skills: [{ category: 'Lenguajes', items: ['Go', 'Python', 'SQL', 'TypeScript'] }, { category: 'Infraestructura', items: ['Kubernetes', 'Terraform', 'AWS'] }],
+  languages: [{ language: 'Español', proficiency: 'Nativo' }, { language: 'Inglés', proficiency: 'C1' }],
+  certName: 'Administrador certificado de Kubernetes',
+});
+
+export const IT_ONE_PAGE: CVData = localized('it', {
+  personal: { fullName: 'Giulia Moretti', email: 'giulia.moretti@example.it', phone: '+39 347 123 4567', currentTitle: 'Ingegnera del software senior', city: 'Torino', country: 'Italia', linkedIn: 'https://www.linkedin.com/in/giulia-moretti-example' },
+  summary: 'Ingegnera del software con otto anni di esperienza nella logistica e nei pagamenti. Ha guidato la migrazione di quaranta servizi su Kubernetes senza interruzioni.',
+  experience: [
+    job('Ingegnera del software senior', 'Trasporti Piemonte', 'Torino', '03/2021', undefined, ['Ha guidato un team di cinque ingegneri nella migrazione di quaranta servizi su Kubernetes.', 'Ha ridotto la latenza p99 del 38 % riprogettando la cache di tracciamento delle spedizioni.'], true),
+    job('Ingegnera del software', 'Banca Adriatica', 'Milano', '09/2016', '02/2021', ['Ha progettato il servizio di contabilità che elabora due milioni di transazioni al giorno.', 'Ha ridotto i tempi di gestione delle contestazioni da tre giorni a quattro ore.']),
+  ],
+  education: [{ id: id(), institution: 'Politecnico di Torino', degree: 'Laurea magistrale', field: 'Ingegneria informatica', startDate: '2011', endDate: '2016' }],
+  skills: [{ category: 'Linguaggi', items: ['Go', 'Python', 'SQL', 'TypeScript'] }, { category: 'Infrastruttura', items: ['Kubernetes', 'Terraform', 'AWS'] }],
+  languages: [{ language: 'Italiano', proficiency: 'Madrelingua' }, { language: 'Inglese', proficiency: 'C1' }],
+  certName: 'Amministratore Kubernetes certificato',
+});
+
+export const NL_ONE_PAGE: CVData = localized('nl', {
+  personal: { fullName: 'Sanne de Vries', email: 'sanne.devries@example.nl', phone: '+31 6 1234 5678', currentTitle: 'Senior software engineer', city: 'Utrecht', country: 'Nederland', linkedIn: 'https://www.linkedin.com/in/sanne-de-vries-example' },
+  summary: 'Software engineer met acht jaar ervaring in logistiek en betalingen. Leidde de migratie van veertig services naar Kubernetes zonder downtime.',
+  experience: [
+    job('Senior software engineer', 'Transport Midden-Nederland', 'Utrecht', '03/2021', undefined, ['Leidde een team van vijf engineers bij de migratie van veertig services naar Kubernetes.', 'Verlaagde de p99-latentie met 38 % door de cache voor zendingen te herontwerpen.'], true),
+    job('Software engineer', 'Hollandse Bank', 'Amsterdam', '09/2016', '02/2021', ['Ontwierp de grootboekservice die twee miljoen transacties per dag verwerkt.', 'Bracht de afhandeltijd van geschillen terug van drie dagen naar vier uur.']),
+  ],
+  education: [{ id: id(), institution: 'Technische Universiteit Delft', degree: 'Master', field: 'Informatica', startDate: '2011', endDate: '2016' }],
+  skills: [{ category: 'Talen', items: ['Go', 'Python', 'SQL', 'TypeScript'] }, { category: 'Infrastructuur', items: ['Kubernetes', 'Terraform', 'AWS'] }],
+  languages: [{ language: 'Nederlands', proficiency: 'Moedertaal' }, { language: 'Engels', proficiency: 'C1' }],
+  certName: 'Gecertificeerd Kubernetes-beheerder',
+});
+
+export const PT_ONE_PAGE: CVData = localized('pt', {
+  personal: { fullName: 'Inês Carvalho', email: 'ines.carvalho@example.pt', phone: '+351 912 345 678', currentTitle: 'Engenheira de software sénior', city: 'Porto', country: 'Portugal', linkedIn: 'https://www.linkedin.com/in/ines-carvalho-example' },
+  summary: 'Engenheira de software com oito anos de experiência em logística e pagamentos. Liderou a migração de quarenta serviços para o Kubernetes sem interrupções.',
+  experience: [
+    job('Engenheira de software sénior', 'Transportes do Norte', 'Porto', '03/2021', undefined, ['Liderou uma equipa de cinco engenheiros na migração de quarenta serviços para o Kubernetes.', 'Reduziu a latência p99 em 38 % ao redesenhar a cache de seguimento de envios.'], true),
+    job('Engenheira de software', 'Banco Atlântico', 'Lisboa', '09/2016', '02/2021', ['Desenhou o serviço de contabilidade que processa dois milhões de transações por dia.', 'Reduziu o tempo de resolução de disputas de três dias para quatro horas.']),
+  ],
+  education: [{ id: id(), institution: 'Universidade do Porto', degree: 'Mestrado', field: 'Engenharia Informática', startDate: '2011', endDate: '2016' }],
+  skills: [{ category: 'Linguagens', items: ['Go', 'Python', 'SQL', 'TypeScript'] }, { category: 'Infraestrutura', items: ['Kubernetes', 'Terraform', 'AWS'] }],
+  languages: [{ language: 'Português', proficiency: 'Língua materna' }, { language: 'Inglês', proficiency: 'C1' }],
+  certName: 'Administrador Kubernetes certificado',
+});
+
+/** A French CV long enough for a second page: the footer and the localized text on every page. */
+export const FR_TWO_PAGE: CVData = {
+  ...FR_ONE_PAGE,
+  experience: [
+    job('Ingénieure logicielle senior', 'Transports Rhône-Alpes', 'Lyon', '03/2021', undefined,
+      Array.from({ length: 14 }, (_, i) => `Mise en production de la livraison ${i + 1} : pilotage du périmètre, de la recette et de la reprise d’astreinte pour la plateforme ${['facturation', 'identité', 'recherche'][i % 3]}, avec des gains mesurés sur ${10 + i} régions.`), true),
+    ...FR_ONE_PAGE.experience.slice(1),
+  ],
 };
 
 function manySkills(): CVData['skills'] {
@@ -312,22 +375,73 @@ export const DIN_LETTER_LONG_SENDER: StructuredCoverLetter = {
   },
 };
 
+/**
+ * What a CV in another language must print, written by hand (not read back from the locale tables under
+ * test): the six headings, the label for an open-ended role and the connector between degree and field.
+ */
+/** A French cover letter: the file name, PDF title and /Lang are French. */
+export const FR_LETTER: StructuredCoverLetter = {
+  version: 2,
+  language: 'fr',
+  market: 'us',
+  sender: { name: 'Camille Lefèvre', addressLines: ['12 rue des Capucins', '69001 Lyon'], phone: '+33 6 12 34 56 78', email: 'camille.lefevre@example.fr', links: ['linkedin.com/in/camille-lefevre-example'] },
+  recipient: { companyName: 'Société Rhodanienne de Logistique', contactPerson: 'Madame Hélène Garnier', department: 'Ressources humaines', addressLines: ['8 quai Saint-Antoine', '69002 Lyon'] },
+  date: '20 octobre 2026',
+  subject: 'Candidature au poste d’ingénieure logicielle senior',
+  salutation: 'Madame,',
+  paragraphs: [
+    'Je vous écris pour vous proposer ma candidature au poste d’ingénieure logicielle senior au sein de votre équipe plateforme. J’ai dirigé la migration de quarante services vers Kubernetes sans aucune interruption pour nos clients.',
+    'Chez Banque Lumière, j’ai conçu le service de grand livre qui traite deux millions de transactions par jour. Cette expérience de la fiabilité sous charge correspond aux besoins de vos systèmes de suivi.',
+    'Je serais heureuse de vous rencontrer pour échanger sur votre feuille de route. Je vous remercie de votre attention.',
+  ],
+  closing: 'Je vous prie d’agréer, Madame, mes salutations distinguées.',
+  signatureName: 'Camille Lefèvre',
+};
+
+export interface LocaleExpectation {
+  language: 'fr' | 'es' | 'it' | 'nl' | 'pt' | 'de' | 'en';
+  headings: { summary: string; experience: string; education: string; skills: string; certifications: string; languages: string };
+  present: string;
+  connector: string;
+}
+
+export const LOCALE_EXPECTATIONS: Record<'fr' | 'es' | 'it' | 'nl' | 'pt', LocaleExpectation> = {
+  fr: { language: 'fr', headings: { summary: 'Profil', experience: 'Expérience', education: 'Formation', skills: 'Compétences', certifications: 'Certifications', languages: 'Langues' }, present: "Aujourd'hui", connector: 'en' },
+  es: { language: 'es', headings: { summary: 'Perfil', experience: 'Experiencia', education: 'Formación', skills: 'Competencias', certifications: 'Certificaciones', languages: 'Idiomas' }, present: 'Actualidad', connector: 'en' },
+  it: { language: 'it', headings: { summary: 'Profilo', experience: 'Esperienza', education: 'Formazione', skills: 'Competenze', certifications: 'Certificazioni', languages: 'Lingue' }, present: 'Presente', connector: 'in' },
+  nl: { language: 'nl', headings: { summary: 'Profiel', experience: 'Werkervaring', education: 'Opleiding', skills: 'Vaardigheden', certifications: 'Certificeringen', languages: 'Talen' }, present: 'Heden', connector: 'in' },
+  pt: { language: 'pt', headings: { summary: 'Perfil', experience: 'Experiência', education: 'Formação', skills: 'Competências', certifications: 'Certificações', languages: 'Línguas' }, present: 'Atualmente', connector: 'em' },
+};
+
 export interface CvFixture {
   name: string;
+  /** The paper this CV needs, written by hand: Letter for a US CV, A4 for everyone else. */
+  paper: 'letter' | 'a4';
   data: CVData;
   /** Page count the US templates must hit, when the fixture is built to a size. */
   expectedUsPages?: number;
+  /** Only these templates (a language fixture needs two, not six). */
+  templates?: readonly string[];
+  locale?: LocaleExpectation;
 }
 
 export const CV_FIXTURES: CvFixture[] = [
-  { name: 'us-one-page', data: US_ONE_PAGE, expectedUsPages: 1 },
-  { name: 'de-two-page', data: DE_TWO_PAGE },
-  { name: 'over-cap', data: OVER_CAP },
-  { name: 'long-entry', data: LONG_ENTRY },
-  { name: 'us-personal', data: US_PERSONAL, expectedUsPages: 1 },
-  { name: 'hostile', data: HOSTILE },
-  { name: 'fr-one-page', data: FR_ONE_PAGE },
+  { name: 'us-one-page', paper: 'letter', data: US_ONE_PAGE, expectedUsPages: 1 },
+  { name: 'de-two-page', paper: 'a4', data: DE_TWO_PAGE },
+  { name: 'over-cap', paper: 'letter', data: OVER_CAP },
+  { name: 'long-entry', paper: 'letter', data: LONG_ENTRY },
+  { name: 'us-personal', paper: 'letter', data: US_PERSONAL, expectedUsPages: 1 },
+  { name: 'hostile', paper: 'letter', data: HOSTILE },
+  { name: 'fr-one-page', paper: 'a4', data: FR_ONE_PAGE, locale: LOCALE_EXPECTATIONS.fr },
+  { name: 'fr-two-page', paper: 'a4', data: FR_TWO_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.fr },
+  { name: 'es-one-page', paper: 'a4', data: ES_ONE_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.es },
+  { name: 'it-one-page', paper: 'a4', data: IT_ONE_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.it },
+  { name: 'nl-one-page', paper: 'a4', data: NL_ONE_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.nl },
+  { name: 'pt-one-page', paper: 'a4', data: PT_ONE_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.pt },
 ];
+
+/** The templates a fixture runs through. */
+export const templatesFor = (fixture: CvFixture): readonly string[] => fixture.templates ?? TEMPLATE_IDS;
 
 export const TEMPLATE_IDS = [
   'premium-ats',

@@ -22,7 +22,7 @@ import { join } from 'node:path';
 import type { CVData } from '../../../src/lib/cv-templates/types';
 import { visibleCvData } from '../../../src/lib/cv-templates/hidden';
 import { formatDateRange } from '../../../src/lib/cv-templates/locale';
-import { norm } from './expect';
+import { hasToken, norm } from './expect';
 
 export const OPENRESUME_COMMIT = readFileSync(join(__dirname, '..', 'vendor', 'open-resume', 'PINNED_COMMIT'), 'utf8').trim();
 
@@ -84,9 +84,10 @@ export function scoreOpenResume(resume: Resume, source: CVData): OpenResumeScore
   const totalBullets = data.experience.flatMap((exp) => exp.bullets).length;
   const schools = norm(resume.educations.map((edu) => `${edu.school} ${edu.degree}`).join(' ')).toLowerCase();
   const education = data.education.filter((edu) => schools.includes(lower(edu.institution)));
-  const skillText = lower([...resume.skills.descriptions, ...resume.skills.featuredSkills.map((s) => s.skill)].join(' '));
+  const skillText = norm([...resume.skills.descriptions, ...resume.skills.featuredSkills.map((s) => s.skill)].join(' '));
   const allSkills = data.skills.flatMap((g) => g.items);
-  const skills = allSkills.filter((skill) => skillText.includes(lower(skill)));
+  // Whole tokens: "Go" is not found inside "Google", "SQL" not inside "PostgreSQL".
+  const skills = allSkills.filter((skill) => hasToken(skillText, skill));
   return {
     name: lower(resume.profile.name) === lower(data.personal.fullName),
     email: lower(resume.profile.email) === lower(data.personal.email),

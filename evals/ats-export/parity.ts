@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import { build } from 'esbuild';
 import { chromium } from '@playwright/test';
 import sharp from 'sharp';
-import { CV_FIXTURES, TEMPLATE_IDS } from './fixtures';
+import { CV_FIXTURES, templatesFor } from './fixtures';
 import { pdfPagePngs } from './lib/contact-sheet';
 import { COMMITTED_RAW, REPO_ROOT } from './lib/render';
 import { fontFaceCssFromUrls } from '../../src/lib/cv-templates/fonts';
@@ -75,7 +75,7 @@ async function main() {
 
   const rows: Array<{ name: string; page1Diff: number }> = [];
   for (const fixture of CV_FIXTURES) {
-    for (const templateId of TEMPLATE_IDS) {
+    for (const templateId of templatesFor(fixture)) {
       await page.evaluate(([data, id]) => (window as unknown as { mountCv: (d: unknown, t: string) => void }).mountCv(data, id as string), [fixture.data, templateId] as const);
       await page.evaluate(() => document.fonts.ready);
       await page.waitForTimeout(150);

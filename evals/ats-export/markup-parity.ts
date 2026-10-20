@@ -10,7 +10,7 @@ import { renderToStaticMarkup as reference } from 'react-dom/server';
 import { CvTemplateSwitch } from '../../src/components/cv-templates/render';
 import { renderToStaticMarkup as mine } from '../../src/lib/services/export/static-markup';
 import { renderLetterHtml } from '../../src/lib/services/export/letter-html';
-import { CV_FIXTURES, DIN_LETTER, TEMPLATE_IDS, US_LETTER } from './fixtures';
+import { CV_FIXTURES, DIN_LETTER, templatesFor, US_LETTER } from './fixtures';
 import { loadFontFromDisk } from './lib/render';
 
 /** React writes void elements with a closing slash and escapes apostrophes. Neither changes the page. */
@@ -22,7 +22,7 @@ async function main() {
   let compared = 0;
   const problems: string[] = [];
   for (const fixture of CV_FIXTURES) {
-    for (const templateId of TEMPLATE_IDS) {
+    for (const templateId of templatesFor(fixture)) {
       for (const mode of ['print', 'screen'] as const) {
         const element = createElement(CvTemplateSwitch, { data: fixture.data, templateId, mode });
         const a = normalize(reference(element));

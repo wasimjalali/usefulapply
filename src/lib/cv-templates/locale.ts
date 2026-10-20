@@ -8,7 +8,9 @@
 
 import type { CVData } from './types';
 
-export type CvLocale = 'en' | 'de';
+/** The seven languages the product writes CVs in (the parser's base codes). */
+export const CV_LOCALES = ['en', 'de', 'fr', 'es', 'pt', 'it', 'nl'] as const;
+export type CvLocale = (typeof CV_LOCALES)[number];
 
 /** `other` is a CV in a language the exports have no standard headings for. Its text is left as written. */
 export type CvTextLocale = CvLocale | 'other';
@@ -44,43 +46,139 @@ const STANDARD_HEADINGS: Record<CvLocale, Record<HeadingKey, string>> = {
     projects: 'Projekte',
     additionalInfo: 'Weitere Angaben',
   },
+  fr: {
+    summary: 'Profil',
+    experience: 'Expérience',
+    education: 'Formation',
+    skills: 'Compétences',
+    certifications: 'Certifications',
+    languages: 'Langues',
+    projects: 'Projets',
+    additionalInfo: 'Informations complémentaires',
+  },
+  es: {
+    summary: 'Perfil',
+    experience: 'Experiencia',
+    education: 'Formación',
+    skills: 'Competencias',
+    certifications: 'Certificaciones',
+    languages: 'Idiomas',
+    projects: 'Proyectos',
+    additionalInfo: 'Información adicional',
+  },
+  pt: {
+    summary: 'Perfil',
+    experience: 'Experiência',
+    education: 'Formação',
+    skills: 'Competências',
+    certifications: 'Certificações',
+    languages: 'Línguas',
+    projects: 'Projetos',
+    additionalInfo: 'Informações adicionais',
+  },
+  it: {
+    summary: 'Profilo',
+    experience: 'Esperienza',
+    education: 'Formazione',
+    skills: 'Competenze',
+    certifications: 'Certificazioni',
+    languages: 'Lingue',
+    projects: 'Progetti',
+    additionalInfo: 'Informazioni aggiuntive',
+  },
+  nl: {
+    summary: 'Profiel',
+    experience: 'Werkervaring',
+    education: 'Opleiding',
+    skills: 'Vaardigheden',
+    certifications: 'Certificeringen',
+    languages: 'Talen',
+    projects: 'Projecten',
+    additionalInfo: 'Aanvullende informatie',
+  },
 };
 
-/** Wordings the AI and the parser produce for each section. They normalize to the standard heading. */
+/** Lowercase, accents removed, so "COMPÉTENCES CLÉS" and "competences cles" are the same wording. */
+function fold(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036F]/g, '').toLowerCase();
+}
+
+/** Wordings the AI and the parser produce for each section, in every supported language. They normalize to the standard heading. */
 const SYNONYMS: Record<HeadingKey, string[]> = {
   summary: [
     'summary', 'professional summary', 'executive summary', 'career summary', 'profile', 'professional profile',
     'about me', 'objective', 'career objective', 'profil', 'berufsprofil', 'kurzprofil', 'zusammenfassung',
     'persönliches profil', 'berufliches profil', 'über mich', 'kurzvorstellung',
+    'profil professionnel', 'résumé', 'résumé professionnel', 'synthèse', 'à propos', 'objectif professionnel',
+    'perfil', 'perfil profesional', 'resumen', 'resumen profesional', 'objetivo profesional',
+    'perfil profissional', 'resumo', 'resumo profissional', 'objetivo profissional',
+    'profilo', 'profilo professionale', 'sommario', 'riepilogo', 'obiettivo professionale',
+    'profiel', 'persoonlijk profiel', 'professioneel profiel', 'samenvatting',
   ],
   experience: [
     'experience', 'professional experience', 'work experience', 'employment history', 'work history',
     'career history', 'relevant experience', 'employment', 'berufserfahrung', 'beruflicher werdegang',
     'berufliche erfahrung', 'werdegang', 'praxiserfahrung', 'berufliche laufbahn', 'beruflicher hintergrund',
+    'expérience', 'expérience professionnelle', 'expériences professionnelles', 'parcours professionnel', 'expérience de travail',
+    'experiencia', 'experiencia profesional', 'experiencia laboral', 'historial laboral', 'trayectoria profesional',
+    'experiência', 'experiência profissional', 'histórico profissional', 'percurso profissional',
+    'esperienza', 'esperienza professionale', 'esperienze lavorative', 'esperienza lavorativa', 'percorso professionale',
+    'werkervaring', 'ervaring', 'beroepservaring', 'professionele ervaring', 'loopbaan',
   ],
   education: [
     'education', 'education & training', 'education and training', 'academic background', 'academic qualifications',
     'ausbildung', 'bildungsweg', 'akademischer werdegang', 'schulbildung', 'studium', 'ausbildung & studium',
     'bildung', 'akademische ausbildung',
+    'formation', 'formations', 'études', 'parcours académique', 'éducation', 'diplômes', 'formation et diplômes',
+    'educación', 'formación', 'formación académica', 'estudios',
+    'formação', 'formação académica', 'formação acadêmica', 'educação', 'escolaridade',
+    'formazione', 'istruzione', 'titoli di studio', 'istruzione e formazione',
+    'opleiding', 'opleidingen', 'onderwijs', 'opleiding en training',
   ],
   skills: [
     'skills', 'core competencies', 'technical skills', 'key skills', 'competencies', 'core skills',
     'skills & competencies', 'skills and competencies', 'areas of expertise', 'kenntnisse', 'fähigkeiten',
     'kompetenzen', 'kernkompetenzen', 'fachkenntnisse', 'it-kenntnisse', 'kenntnisse & fähigkeiten',
     'kenntnisse und fähigkeiten', 'fertigkeiten',
+    'compétences', 'compétences clés', 'compétences techniques', 'savoir-faire', 'aptitudes',
+    'competencias', 'habilidades', 'competencias clave', 'conocimientos', 'aptitudes y competencias',
+    'competências', 'competências principais', 'aptidões',
+    'competenze', 'competenze tecniche', 'abilità', 'capacità', 'competenze chiave',
+    'vaardigheden', 'competenties', 'kennis', 'kernvaardigheden', 'kennis en vaardigheden',
   ],
   certifications: [
     'certifications', 'certificates', 'licenses & certifications', 'licenses and certifications',
     'certifications & licenses', 'zertifikate', 'zertifizierungen', 'weiterbildungen', 'weiterbildung',
     'fortbildungen', 'fortbildung',
+    'certificats', 'certifications et licences', 'formations complémentaires',
+    'certificaciones', 'certificados', 'cursos',
+    'certificações', 'cursos e certificações',
+    'certificazioni', 'certificati', 'corsi',
+    'certificeringen', 'certificaten', 'cursussen',
   ],
-  languages: ['languages', 'language skills', 'sprachen', 'sprachkenntnisse'],
-  projects: ['projects', 'selected projects', 'projekte', 'ausgewählte projekte'],
+  languages: [
+    'languages', 'language skills', 'sprachen', 'sprachkenntnisse',
+    'langues', 'compétences linguistiques', 'idiomas', 'línguas', 'idiomas e línguas',
+    'lingue', 'conoscenze linguistiche', 'talen', 'taalvaardigheid', 'talenkennis',
+  ],
+  projects: [
+    'projects', 'selected projects', 'projekte', 'ausgewählte projekte',
+    'projets', 'projets personnels', 'proyectos', 'projetos', 'projectos', 'progetti', 'projecten',
+  ],
   additionalInfo: [
     'additional information', 'additional info', 'weitere angaben', 'zusätzliche angaben', 'sonstiges',
     'weitere informationen',
+    'informations complémentaires', 'autres informations', 'divers',
+    'información adicional', 'otros datos', 'informaciones adicionales',
+    'informações adicionais', 'outras informações',
+    'informazioni aggiuntive', 'altre informazioni',
+    'aanvullende informatie', 'overige informatie', 'extra informatie',
   ],
 };
+
+const FOLDED_SYNONYMS: Record<HeadingKey, Set<string>> = Object.fromEntries(
+  (Object.keys(SYNONYMS) as HeadingKey[]).map((key) => [key, new Set(SYNONYMS[key].map(fold))]),
+) as Record<HeadingKey, Set<string>>;
 
 const GERMAN_STOPWORDS = new Set([
   'und', 'der', 'die', 'das', 'mit', 'für', 'von', 'im', 'bei', 'zur', 'zum', 'den', 'dem', 'ein', 'eine',
@@ -128,13 +226,45 @@ export function looksGerman(text: string): boolean {
   return german > 0.12 && german >= other;
 }
 
+/** The best-matching supported language other than German and English for a bag of words. */
+function bestOtherLanguage(words: string[]): { language: Exclude<CvLocale, 'en' | 'de'>; share: number } {
+  let best: Exclude<CvLocale, 'en' | 'de'> = 'fr';
+  let share = 0;
+  for (const [language, set] of Object.entries(OTHER_STOPWORDS)) {
+    const ratio = stopwordRatio(words, set);
+    if (ratio > share) {
+      share = ratio;
+      best = language as Exclude<CvLocale, 'en' | 'de'>;
+    }
+  }
+  return { language: best, share };
+}
+
+/** A language code or name ("fr", "pt-PT", "english") as one of the supported languages, or `other`. */
+export function localeFromLanguageCode(code: string | null | undefined): CvTextLocale {
+  const value = code?.trim().toLowerCase();
+  if (!value) return 'other';
+  return CV_LOCALES.find((known) => value === known || value.startsWith(`${known}-`) || value.startsWith(`${known}_`)) ?? 'other';
+}
+
+/**
+ * The language free text is written in, by function words: any of the seven, English when nothing
+ * stands out. Offline and deterministic, like looksGerman, so the export cache key can depend on it.
+ */
+export function detectTextLocale(text: string): CvTextLocale {
+  if (GERMAN_PHRASES.test(text)) return 'de';
+  const words = text.toLowerCase().match(/[\p{L}]+/gu);
+  if (!words || words.length < 12) return 'en';
+  const german = stopwordRatio(words, GERMAN_STOPWORDS);
+  const other = bestOtherLanguage(words);
+  if (other.share > 0.12 && other.share > german * 1.1) return other.language;
+  return german > 0.12 ? 'de' : 'en';
+}
+
 /** The language the CV text is written in, for headings and dates. Explicit `data.language` wins. */
 export function inferCvLocale(data: CVData): CvTextLocale {
-  const explicit = data.language?.toLowerCase();
-  if (explicit) {
-    if (explicit.startsWith('de')) return 'de';
-    return explicit.startsWith('en') ? 'en' : 'other';
-  }
+  const explicit = data.language?.trim();
+  if (explicit) return localeFromLanguageCode(explicit);
   const headers = Object.values(data.sectionHeaders ?? {}).join(' ');
   if (GERMAN_HEADER_HINT.test(headers)) return 'de';
   if (/^(heute|aktuell|gegenwart|derzeit)$/i.test(data.localizedStrings?.present ?? '')) return 'de';
@@ -143,9 +273,10 @@ export function inferCvLocale(data: CVData): CvTextLocale {
     .toLowerCase()
     .match(/[\p{L}]+/gu);
   if (sample && sample.length >= 12) {
-    const { german, other } = languageShares(sample);
+    const german = stopwordRatio(sample, GERMAN_STOPWORDS);
+    const other = bestOtherLanguage(sample);
     // The other languages are checked first: French and Dutch share words with German and English.
-    if (other > 0.12 && other > german * 1.1) return 'other';
+    if (other.share > 0.12 && other.share > german * 1.1) return other.language;
     if (german > 0.12) return 'de';
   }
   return 'en';
@@ -164,7 +295,7 @@ export function resolveHeading(args: { provided?: string | null; renamed?: boole
   const standard = STANDARD_HEADINGS[args.locale === 'other' ? 'en' : args.locale][args.key];
   if (!provided) return standard;
   if (args.renamed) return provided;
-  if (args.locale !== 'other' && SYNONYMS[args.key].includes(stripLabel(provided))) return standard;
+  if (args.locale !== 'other' && FOLDED_SYNONYMS[args.key].has(fold(stripLabel(provided)))) return standard;
   return provided;
 }
 
@@ -181,28 +312,45 @@ const EN_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'
 
 const MONTH_LOOKUP: Record<string, number> = {};
 [
-  ['jan', 'january', 'januar', 'janvier', 'enero', 'gennaio', 'januari'],
-  ['feb', 'february', 'februar', 'février', 'fevrier', 'febrero', 'febbraio', 'februari'],
-  ['mar', 'march', 'märz', 'maerz', 'mrz', 'mars', 'marzo', 'maart'],
-  ['apr', 'april', 'avril', 'abril', 'aprile'],
-  ['may', 'mai', 'mayo', 'maggio', 'mei'],
-  ['jun', 'june', 'juni', 'juin', 'junio', 'giugno'],
-  ['jul', 'july', 'juli', 'juillet', 'julio', 'luglio'],
-  ['aug', 'august', 'août', 'aout', 'agosto', 'augustus'],
-  ['sep', 'sept', 'september', 'septembre', 'septiembre', 'settembre'],
-  ['oct', 'october', 'okt', 'oktober', 'octobre', 'octubre', 'ottobre', 'okt'],
-  ['nov', 'november', 'novembre', 'noviembre'],
-  ['dec', 'december', 'dez', 'dezember', 'décembre', 'decembre', 'diciembre', 'dicembre', 'dic'],
+  ['jan', 'january', 'januar', 'janvier', 'janv', 'enero', 'ene', 'janeiro', 'gennaio', 'gen', 'januari'],
+  ['feb', 'february', 'februar', 'février', 'fevrier', 'févr', 'febrero', 'fevereiro', 'fev', 'febbraio', 'februari'],
+  ['mar', 'march', 'märz', 'maerz', 'mrz', 'mars', 'marzo', 'março', 'marco', 'maart', 'mrt'],
+  ['apr', 'april', 'avril', 'avr', 'abril', 'abr', 'aprile'],
+  ['may', 'mai', 'mayo', 'maio', 'maggio', 'mag', 'mei'],
+  ['jun', 'june', 'juni', 'juin', 'junio', 'junho', 'giugno', 'giu'],
+  ['jul', 'july', 'juli', 'juillet', 'juil', 'julio', 'julho', 'luglio', 'lug'],
+  ['aug', 'august', 'août', 'aout', 'agosto', 'ago', 'augustus', 'aug'],
+  ['sep', 'sept', 'september', 'septembre', 'septiembre', 'setembro', 'set', 'settembre'],
+  ['oct', 'october', 'okt', 'oktober', 'octobre', 'octubre', 'outubro', 'out', 'ottobre', 'ott'],
+  ['nov', 'november', 'novembre', 'noviembre', 'novembro'],
+  ['dec', 'december', 'dez', 'dezember', 'décembre', 'decembre', 'diciembre', 'dezembro', 'dicembre', 'dic', 'déc'],
 ].forEach((names, index) => names.forEach((name) => { MONTH_LOOKUP[name] = index + 1; }));
 
-const PRESENT_TOKENS = /^(present|current|now|ongoing|today|heute|aktuell|gegenwart|derzeit|bis heute|présent|actuel|actualidad|presente|heden)$/i;
+/** Full month names, for dates printed in words (a date of birth). */
+export const MONTH_NAMES: Record<CvLocale, string[]> = {
+  en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+  de: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'],
+  fr: ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'],
+  es: ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'],
+  pt: ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'],
+  it: ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'],
+  nl: ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'],
+};
+
+/** 1 to 12 for a month name or abbreviation in any supported language, or null. */
+export function monthFromWord(word: string): number | null {
+  return MONTH_LOOKUP[word.toLowerCase().replace(/\.$/, '')] ?? null;
+}
+
+const PRESENT_TOKENS = /^(present|current|now|ongoing|today|heute|aktuell|gegenwart|derzeit|bis heute|présent|actuel|aujourd['’]hui|à ce jour|en cours|actualidad|actual|actualmente|hoy|presente|atual|atualmente|atualidade|attuale|oggi|ad oggi|in corso|heden|nu|huidig|momenteel|tot nu)$/i;
 
 function normalizeDashes(value: string): string {
   return value.replace(/\s*[‐-―−]\s*/g, ' - ').replace(/\s{2,}/g, ' ').trim();
 }
 
 function formatMonthYear(month: number, year: number, locale: CvLocale): string {
-  if (locale === 'de') return `${String(month).padStart(2, '0')}/${year}`;
+  // English prints a short month name; every other supported language prints MM/YYYY.
+  if (locale !== 'en') return `${String(month).padStart(2, '0')}/${year}`;
   return `${EN_MONTHS[month - 1]} ${year}`;
 }
 
@@ -234,10 +382,20 @@ export function formatCvDate(raw: string | undefined, locale: CvTextLocale): str
   return value;
 }
 
+/** What each language prints for an open-ended role. */
+const PRESENT_LABELS: Record<CvLocale, string> = {
+  en: 'Present',
+  de: 'heute',
+  fr: "Aujourd'hui",
+  es: 'Actualidad',
+  pt: 'Atualmente',
+  it: 'Presente',
+  nl: 'Heden',
+};
+
 /** What the CV says for an open-ended role. */
 export function presentLabel(data: CVData, locale: CvTextLocale): string {
-  if (locale === 'de') return 'heute';
-  if (locale === 'en') return 'Present';
+  if (locale !== 'other') return PRESENT_LABELS[locale];
   return data.localizedStrings?.present || 'Present';
 }
 
@@ -295,10 +453,70 @@ const UI_DEFAULTS: Record<CvLocale, Record<UiTextKey, string>> = {
     signatureLabel: 'Unterschrift',
     photoPlaceholder: 'Foto',
   },
+  fr: {
+    gradePrefix: 'Mention:',
+    degreeConnector: 'en',
+    websiteLabel: 'Site web',
+    dateOfBirthLabel: 'Date de naissance',
+    nationalityLabel: 'Nationalité',
+    cityLabel: 'Ville',
+    dateLabel: 'Date',
+    signatureLabel: 'Signature',
+    photoPlaceholder: 'Photo',
+  },
+  es: {
+    gradePrefix: 'Nota:',
+    degreeConnector: 'en',
+    websiteLabel: 'Sitio web',
+    dateOfBirthLabel: 'Fecha de nacimiento',
+    nationalityLabel: 'Nacionalidad',
+    cityLabel: 'Ciudad',
+    dateLabel: 'Fecha',
+    signatureLabel: 'Firma',
+    photoPlaceholder: 'Foto',
+  },
+  pt: {
+    gradePrefix: 'Nota:',
+    degreeConnector: 'em',
+    websiteLabel: 'Sítio Web',
+    dateOfBirthLabel: 'Data de nascimento',
+    nationalityLabel: 'Nacionalidade',
+    cityLabel: 'Cidade',
+    dateLabel: 'Data',
+    signatureLabel: 'Assinatura',
+    photoPlaceholder: 'Foto',
+  },
+  it: {
+    gradePrefix: 'Voto:',
+    degreeConnector: 'in',
+    websiteLabel: 'Sito web',
+    dateOfBirthLabel: 'Data di nascita',
+    nationalityLabel: 'Nazionalità',
+    cityLabel: 'Città',
+    dateLabel: 'Data',
+    signatureLabel: 'Firma',
+    photoPlaceholder: 'Foto',
+  },
+  nl: {
+    gradePrefix: 'Cijfer:',
+    degreeConnector: 'in',
+    websiteLabel: 'Website',
+    dateOfBirthLabel: 'Geboortedatum',
+    nationalityLabel: 'Nationaliteit',
+    cityLabel: 'Plaats',
+    dateLabel: 'Datum',
+    signatureLabel: 'Handtekening',
+    photoPlaceholder: 'Foto',
+  },
 };
 
-/** A small label the templates print. What the parser localized wins; the default follows the CV language. */
+/**
+ * A small label the templates print. For the seven supported languages the table above is
+ * authoritative (it has the proper accents and wording); what the parser localized is used only
+ * for a language outside them.
+ */
 export function uiText(data: CVData, key: UiTextKey): string {
   const locale = inferCvLocale(data);
-  return data.localizedStrings?.[key] || UI_DEFAULTS[locale === 'de' ? 'de' : 'en'][key];
+  if (locale !== 'other') return UI_DEFAULTS[locale][key];
+  return data.localizedStrings?.[key] || UI_DEFAULTS.en[key];
 }

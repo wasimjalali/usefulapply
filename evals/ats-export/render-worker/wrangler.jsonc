@@ -6,6 +6,8 @@
 	"name": "ua-render-eval",
 	"main": "index.ts",
 	"compatibility_date": "2026-08-17",
+	// Never published: this Worker only ever runs under `wrangler dev` on this machine.
+	"workers_dev": false,
 	"browser": { "binding": "BROWSER", "remote": true },
 	"ai": { "binding": "AI" }
 }

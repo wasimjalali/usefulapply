@@ -1,7 +1,7 @@
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { FALLBACK_TEMPLATE_ID } from '@/lib/cv-templates/default-template';
 import { isCvTemplateId } from '@/lib/cv-templates/catalog';
-import { inferCvLocale, looksGerman, type CvTextLocale } from '@/lib/cv-templates/locale';
+import { detectTextLocale, inferCvLocale, localeFromLanguageCode, type CvTextLocale } from '@/lib/cv-templates/locale';
 import { cvPaper } from '@/lib/cv-templates/paper';
 import { getPrintSpec, type PaperSize } from '@/lib/cv-templates/print-spec';
 import { visibleCvData } from '@/lib/cv-templates/hidden';
@@ -111,8 +111,8 @@ export function resolveExport(kit: ExportKit, format: ExportFormat, options: Exp
       // the layout: a US-layout letter on a German CV is English, an explicit DIN layout on German text is German.
       const letterLanguage = letter.kind === 'structured' ? letter.letter.language : null;
       const letterLocale: CvTextLocale = letterLanguage
-        ? (letterLanguage.toLowerCase().startsWith('de') ? 'de' : letterLanguage.toLowerCase().startsWith('en') ? 'en' : 'other')
-        : looksGerman(letter.kind === 'legacy' ? letter.text : '') ? 'de' : 'en';
+        ? localeFromLanguageCode(letterLanguage)
+        : detectTextLocale(letter.kind === 'legacy' ? letter.text : '');
       return {
         ...base,
         locale: letterLocale,

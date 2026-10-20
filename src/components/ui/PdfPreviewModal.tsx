@@ -27,6 +27,8 @@ export function PdfPreviewModal({ url, title, onClose, returnFocusTo }: PdfPrevi
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     const opener = returnFocusTo ?? (document.activeElement as HTMLElement | null);
@@ -86,7 +88,23 @@ export function PdfPreviewModal({ url, title, onClose, returnFocusTo }: PdfPrevi
             <X className="w-4 h-4" />
           </button>
         </div>
-        <iframe src={url} title={title} className="h-full w-full flex-1 bg-white" />
+        <iframe
+          src={url}
+          title={title}
+          className="h-full w-full flex-1 bg-white"
+          onLoad={(event) => {
+            // The PDF is a same-origin blob, so its window is reachable and a key press inside it can close the dialog.
+            // Chrome's own PDF viewer runs in a separate process and does not hand its key presses to the page, so
+            // Escape may not arrive from inside the viewer. Close is the first thing Tab reaches and has focus on open.
+            try {
+              event.currentTarget.contentWindow?.addEventListener('keydown', (keyEvent) => {
+                if (keyEvent.key === 'Escape') onCloseRef.current();
+              });
+            } catch {
+              // Not reachable: Close and Escape on the dialog still work.
+            }
+          }}
+        />
       </div>
     </div>,
     document.body,

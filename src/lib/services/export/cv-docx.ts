@@ -30,6 +30,8 @@ import {
 import { PAPER_MM, getPrintSpec, type PaperSize } from '@/lib/cv-templates/print-spec';
 import { CV_TEMPLATE_DEFINITIONS } from '@/lib/cv-templates/types';
 import { displayUrl, fullUrl } from '@/lib/cv-templates/url';
+import { formatBirthDate } from '@/lib/cv-templates/birthdate';
+import { exportText } from './export-text';
 import { PDF_PRODUCER } from './pdf';
 
 /**
@@ -53,8 +55,8 @@ export const SECTION_ORDER: Record<string, Array<HeadingKey | 'custom'>> = {
   executive: ['summary', 'skills', 'experience', 'education', 'certifications', 'languages', 'projects', 'additionalInfo', 'custom'],
   'classic-green': ['summary', 'skills', 'experience', 'education', 'certifications', 'languages', 'projects', 'additionalInfo', 'custom'],
   'german-classic': ['summary', 'skills', 'experience', 'education', 'certifications', 'languages', 'projects', 'additionalInfo', 'custom'],
-  'modern-professional': ['summary', 'experience', 'education', 'projects', 'additionalInfo', 'custom', 'skills', 'languages', 'certifications'],
-  'german-ats': ['summary', 'experience', 'education', 'projects', 'additionalInfo', 'custom', 'skills', 'languages', 'certifications'],
+  'modern-professional': ['summary', 'experience', 'education', 'skills', 'certifications', 'languages', 'projects', 'additionalInfo', 'custom'],
+  'german-ats': ['summary', 'experience', 'education', 'skills', 'languages', 'certifications', 'projects', 'additionalInfo', 'custom'],
 };
 
 function templateColor(templateId: string): string {
@@ -163,7 +165,7 @@ export async function buildCvDocx(input: CvDocxInput): Promise<Uint8Array> {
   }
   // Date of birth and nationality belong to the DACH CV. A US CV never prints them, as in the PDF.
   const personalFacts = spec.market !== 'dach' ? [] : [
-    data.personal.dateOfBirth ? `${uiText(data, 'dateOfBirthLabel')}: ${data.personal.dateOfBirth}` : '',
+    data.personal.dateOfBirth ? `${uiText(data, 'dateOfBirthLabel')}: ${formatBirthDate(data)}` : '',
     data.personal.nationality ? `${uiText(data, 'nationalityLabel')}: ${data.personal.nationality}` : '',
   ].filter(Boolean);
   if (personalFacts.length > 0) paragraphs.push(body([run(personalFacts.join('   '))], 20));
@@ -288,12 +290,12 @@ export async function buildCvDocx(input: CvDocxInput): Promise<Uint8Array> {
   const doc = new Document({
     creator: PDF_PRODUCER,
     title: input.title,
-    subject: locale === 'de' ? 'Lebenslauf' : 'Curriculum vitae',
+    subject: exportText(locale).cvSubject,
     description: input.author,
     styles: {
       default: {
         document: {
-          run: { font: BODY_FONT, size: BODY_SIZE, language: { value: locale === 'de' ? 'de-DE' : 'en-US' } },
+          run: { font: BODY_FONT, size: BODY_SIZE, language: { value: exportText(locale).bcp47 } },
           paragraph: { spacing: { line: 264 } },
         },
         heading1: { run: { font: HEADING_FONT, bold: true, size: 21, color } },

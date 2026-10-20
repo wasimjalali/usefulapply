@@ -25,7 +25,8 @@ import { CVData, CVTemplate } from '@/lib/cv-templates/types';
 import { rootBox, type CvRenderMode } from '@/lib/cv-templates/print-spec';
 import { cvPaper } from '@/lib/cv-templates/paper';
 import { sectionHeading, formatDateRange, formatSingleDate, uiText } from '@/lib/cv-templates/locale';
-import { ContactRows, LanguageLine, SignatureBlock, SkillLines } from './shared';
+import { formatBirthDate } from '@/lib/cv-templates/birthdate';
+import { ContactRows, LanguageLine, SignatureBlock, SkillLines, stackGap } from './shared';
 
 interface Props {
   data: CVData;
@@ -55,15 +56,15 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
         pageBreakInside: 'auto',
         fontFamily: "'Arimo', 'Arial', 'Helvetica Neue', 'Helvetica', sans-serif",
         fontSize: '10pt',
-        lineHeight: 1.2,
+        lineHeight: 'calc(1.2 * var(--cv-ld, 1))',
         color: classicColors.text,
         ...rootBox(template.id, mode, cvPaper(data)),
         fontVariantLigatures: 'none',
       }}
     >
       {/* HEADER WITH PHOTO — Single-column, ATS-optimized, Photo Top-Right (German Standard) */}
-      <header style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: `2px solid ${classicColors.primary}` }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px' }}>
+      <header style={{ marginBottom: 'calc(20px * var(--cv-d, 1))', paddingBottom: 'calc(16px * var(--cv-d, 1))', borderBottom: `2px solid ${classicColors.primary}` }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'calc(20px * var(--cv-d, 1))' }}>
           {/* Name + Contact */}
           <div style={{ flex: 1 }}>
             <h1 
@@ -72,7 +73,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
                 fontSize: '24px',
                 fontWeight: 'bold',
                 color: classicColors.primary,
-                marginBottom: '4px',
+                marginBottom: 'calc(4px * var(--cv-d, 1))',
               }}
             >
               {data.personal.fullName || 'Your Name'}
@@ -84,7 +85,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
                   fontSize: '10.5pt',
                   fontWeight: '600',
                   color: classicColors.textLight,
-                  marginBottom: '16px',
+                  marginBottom: 'calc(16px * var(--cv-d, 1))',
                 }}
               >
                 {data.personal.currentTitle}
@@ -99,14 +100,14 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
                 style={{
                   display: 'flex',
                   flexWrap: 'wrap',
-                  gap: '14px',
+                  gap: 'calc(14px * var(--cv-d, 1))',
                   fontSize: '10pt',
                   color: classicColors.textLight,
-                  marginTop: '6px',
+                  marginTop: 'calc(6px * var(--cv-d, 1))',
                 }}
               >
                 {data.personal.dateOfBirth && (
-                  <span><strong style={{ color: classicColors.primary }}>{uiText(data, 'dateOfBirthLabel')}:</strong> {data.personal.dateOfBirth}</span>
+                  <span><strong style={{ color: classicColors.primary }}>{uiText(data, 'dateOfBirthLabel')}:</strong> {formatBirthDate(data)}</span>
                 )}
                 {data.personal.nationality && (
                   <span><strong style={{ color: classicColors.primary }}>{uiText(data, 'nationalityLabel')}:</strong> {data.personal.nationality}</span>
@@ -136,7 +137,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
 
       {/* PROFESSIONAL SUMMARY */}
       {data.summary && (
-        <section style={{ marginBottom: '14px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -145,14 +146,14 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
               textTransform: 'uppercase',
               letterSpacing: '0.4px',
               color: classicColors.primary,
-              marginBottom: '6px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(6px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
             {sectionHeading(data, 'summary')}
           </h2>
-          <p style={{ fontSize: '10pt', lineHeight: 1.5, color: classicColors.text }}>
+          <p style={{ fontSize: '10pt', lineHeight: 'calc(1.5 * var(--cv-ld, 1))', color: classicColors.text }}>
             {data.summary}
           </p>
         </section>
@@ -160,7 +161,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
 
       {/* CORE COMPETENCIES — 3-Column Grid with Languages */}
       {data.skills.length > 0 && (
-        <section style={{ marginBottom: '14px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -169,8 +170,8 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
               textTransform: 'uppercase',
               letterSpacing: '0.4px',
               color: classicColors.primary,
-              marginBottom: '8px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(8px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
@@ -182,7 +183,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
 
       {/* PROFESSIONAL EXPERIENCE */}
       {data.experience.length > 0 && (
-        <section style={{ marginBottom: '14px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -191,17 +192,17 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
               textTransform: 'uppercase',
               letterSpacing: '0.4px',
               color: classicColors.primary,
-              marginBottom: '10px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(10px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
             {sectionHeading(data, 'experience')}
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div className="cv-stack" style={stackGap(14)}>
             {data.experience.map((exp) => (
               <div className="cv-exp" key={exp.id}>
-                <div className="cv-entry-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '2px' }}>
+                <div className="cv-entry-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'calc(2px * var(--cv-d, 1))' }}>
                   <h3 style={{ fontSize: '10pt', fontWeight: 'bold', color: classicColors.text }}>
                     {exp.position}
                   </h3>
@@ -209,12 +210,12 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
                     {formatDateRange(data, exp)}
                   </span>
                 </div>
-                <p className="cv-entry-head" style={{ fontSize: '10pt', fontWeight: '600', marginBottom: '5px', color: classicColors.primary }}>
+                <p className="cv-entry-head" style={{ fontSize: '10pt', fontWeight: '600', marginBottom: 'calc(5px * var(--cv-d, 1))', color: classicColors.primary }}>
                   {exp.company}
                   {exp.location && <span style={{ color: classicColors.textLight }}> | {exp.location}</span>}
                 </p>
                 {exp.bullets.length > 0 && (
-                  <div className={exp.bullets.length <= 3 ? 'cv-bullets cv-bullets-short' : 'cv-bullets'} style={{ marginTop: '3px', marginLeft: '4px' }}>
+                  <div className="cv-bullets" style={{ marginTop: 'calc(3px * var(--cv-d, 1))', marginLeft: '4px' }}>
                     {exp.bullets.map((bullet, idx) => (
                       <div className="cv-bullet"
                         key={idx} 
@@ -222,14 +223,14 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
                           display: 'flex',
                           alignItems: 'flex-start',
                           breakInside: 'avoid',
-                          gap: '7px',
+                          gap: 'calc(7px * var(--cv-d, 1))',
                           fontSize: '10pt',
-                          lineHeight: 1.4,
-                          marginBottom: '2px',
+                          lineHeight: 'calc(1.4 * var(--cv-ld, 1))',
+                          marginBottom: 'calc(2px * var(--cv-d, 1))',
                           color: classicColors.text,
                         }}
                       >
-                        <span style={{ flexShrink: 0, marginTop: '1px' }}>•</span>
+                        <span style={{ flexShrink: 0, marginTop: 'calc(1px * var(--cv-d, 1))' }}>•</span>
                         <span>{bullet}</span>
                       </div>
                     ))}
@@ -243,7 +244,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
 
       {/* EDUCATION */}
       {data.education.length > 0 && (
-        <section style={{ marginBottom: '14px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -252,14 +253,14 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
               textTransform: 'uppercase',
               letterSpacing: '0.4px',
               color: classicColors.primary,
-              marginBottom: '6px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(6px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
             {sectionHeading(data, 'education')}
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="cv-stack" style={stackGap(8)}>
             {data.education.map((edu) => (
               <div className="cv-entry" key={edu.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <div>
@@ -284,7 +285,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
 
       {/* CERTIFICATIONS */}
       {data.certifications.length > 0 && (
-        <section style={{ marginBottom: '14px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -293,14 +294,14 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
               textTransform: 'uppercase',
               letterSpacing: '0.4px',
               color: classicColors.primary,
-              marginBottom: '6px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(6px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
             {sectionHeading(data, 'certifications')}
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '20px', rowGap: '4px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '20px', rowGap: 'calc(4px * var(--cv-d, 1))' }}>
             {data.certifications.map((cert) => (
               <div className="cv-entry" key={cert.id} style={{ fontSize: '10pt' }}>
                 <span style={{ fontWeight: '500', color: classicColors.text }}>{cert.name}</span>
@@ -312,7 +313,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
       )}
 
       {data.languages.length > 0 && (
-        <section style={{ marginBottom: '14px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -321,8 +322,8 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
               textTransform: 'uppercase',
               letterSpacing: '0.4px',
               color: classicColors.primary,
-              marginBottom: '6px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(6px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
@@ -334,7 +335,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
 
       {/* PROJECTS */}
       {data.projects && data.projects.length > 0 && (
-        <section style={{ marginBottom: '14px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2
             style={{
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -343,8 +344,8 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
               textTransform: 'uppercase',
               letterSpacing: '0.4px',
               color: classicColors.primary,
-              marginBottom: '6px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(6px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
@@ -356,7 +357,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
             const description = project.description?.trim();
             const showDescription = Boolean(description && description.toLowerCase() !== project.name.trim().toLowerCase());
             return (
-              <div key={project.id} style={{ fontSize: '10pt', lineHeight: 1.5, color: classicColors.textLight, marginBottom: '4px' }}>
+              <div key={project.id} style={{ fontSize: '10pt', lineHeight: 'calc(1.5 * var(--cv-ld, 1))', color: classicColors.textLight, marginBottom: 'calc(4px * var(--cv-d, 1))' }}>
                 <span style={{ fontWeight: 600, fontSize: '10pt', color: classicColors.text }}>{project.name}</span>
                 {showDescription && <span>: {description}</span>}
                 {project.technologies && project.technologies.length > 0 && (
@@ -370,7 +371,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
 
       {/* ADDITIONAL INFORMATION */}
       {data.additionalInfo && data.additionalInfo.length > 0 && (
-        <section style={{ marginBottom: '14px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -379,8 +380,8 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
               textTransform: 'uppercase',
               letterSpacing: '0.4px',
               color: classicColors.primary,
-              marginBottom: '6px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(6px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
@@ -394,7 +395,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
 
       {/* Custom Sections (generic fallback) */}
       {data.customSections && data.customSections.length > 0 && data.customSections.map((section) => (
-        <section key={section.id} style={{ marginBottom: '18px' }}>
+        <section key={section.id} style={{ marginBottom: 'calc(18px * var(--cv-d, 1))' }}>
           <h2
             style={{
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -402,8 +403,8 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
               fontWeight: 'bold',
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
-              marginBottom: '8px',
-              paddingBottom: '6px',
+              marginBottom: 'calc(8px * var(--cv-d, 1))',
+              paddingBottom: 'calc(6px * var(--cv-d, 1))',
               borderBottom: `2px solid ${classicColors.primary}`,
               color: classicColors.primary,
             }}
@@ -412,7 +413,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
           </h2>
           <ul style={{ listStyleType: 'disc', paddingLeft: '18px', margin: 0 }}>
             {section.items.map((item, idx) => (
-              <li key={idx} style={{ fontSize: '10pt', color: classicColors.text, marginBottom: '3px', lineHeight: 1.5 }}>
+              <li key={idx} style={{ fontSize: '10pt', color: classicColors.text, marginBottom: 'calc(3px * var(--cv-d, 1))', lineHeight: 'calc(1.5 * var(--cv-ld, 1))' }}>
                 {item}
               </li>
             ))}

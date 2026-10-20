@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-import { CONTENT_TYPES } from '@/lib/services/export/filenames';
+import { CONTENT_TYPES, encodeRfc5987 } from '@/lib/services/export/filenames';
 import { verifyExportLink } from '@/lib/services/export/signing';
 import { readExport } from '@/lib/services/export/storage';
 import { splitStorageKey } from '@/storage/paths';
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ key
     headers.set('Content-Type', CONTENT_TYPES[ext] ?? 'application/octet-stream');
     headers.set(
       'Content-Disposition',
-      `${ext === 'pdf' ? 'inline' : 'attachment'}; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(displayName)}`,
+      `${ext === 'pdf' ? 'inline' : 'attachment'}; filename="${asciiName}"; filename*=UTF-8''${encodeRfc5987(displayName)}`,
     );
     headers.set('Cache-Control', 'private, no-store');
     headers.set('Referrer-Policy', 'no-referrer');

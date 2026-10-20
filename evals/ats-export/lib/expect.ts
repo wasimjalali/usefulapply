@@ -1,5 +1,6 @@
 import { visibleCvData } from '../../../src/lib/cv-templates/hidden';
 import { displayUrl, fullUrl } from '../../../src/lib/cv-templates/url';
+import { formatBirthDate } from '../../../src/lib/cv-templates/birthdate';
 import {
   formatDateRange,
   formatSingleDate,
@@ -114,8 +115,9 @@ export function expectationsFor(source: CVData): CvExpectations {
     skillLines: data.skills.map((g) => `${g.category}: ${g.items.join(', ')}`),
     languageLine: data.languages.map((l) => (l.proficiency ? `${l.language}: ${l.proficiency}` : l.language)).join(', '),
     personalData: [
-      { value: data.personal.dateOfBirth, label: /Geburtsdatum|Date of birth|Birth date/i },
-      { value: data.personal.nationality, label: /Staatsangeh(ö|oe)rigkeit|Nationality/i },
+      // The date prints the way the CV's language writes it ("April 7, 1989"); fixtures also assert the exact text by hand.
+      { value: formatBirthDate(data), label: /Geburtsdatum|Date of birth|Birth date|Date de naissance|Fecha de nacimiento|Data de nascimento|Data di nascita|Geboortedatum/i },
+      { value: data.personal.nationality, label: /Staatsangeh(ö|oe)rigkeit|Nationality|Nationalité|Nacionalidad|Nacionalidade|Nazionalità|Nationaliteit/i },
     ].filter((entry): entry is { value: string; label: RegExp } => Boolean(entry.value)),
     links: [data.personal.linkedIn, data.personal.github, data.personal.website, data.personal.portfolio]
       .filter((link): link is string => Boolean(link))
@@ -175,12 +177,7 @@ export function consumeAll(text: string, needles: string[]): { found: string[]; 
 }
 
 export interface CheckOptions {
-  /**
-   * The extraction follows the content stream, so a skill group must read as
-   * one "Label: a, b, c" line. A geometric reader (pdftotext reading order,
-   * PyMuPDF, pdfminer, the LibreOffice round trip) may interleave the columns
-   * of a two-column template, so there each skill is matched as a whole token.
-   */
+  /** Each skill group must read as one "Label: a, b, c" line, in order, with nothing between. Otherwise each skill is matched as a whole token. */
   contiguous?: boolean;
 }
 
@@ -230,7 +227,8 @@ export function checkText(text: string, exp: CvExpectations, options: CheckOptio
   tally('companies', exp.jobs.map((j) => j.company));
   tally('dates', [...exp.jobs.map((j) => j.dateRange), ...exp.education.map((e) => e.date)]);
   tally('education', exp.education.flatMap((e) => [e.degree, e.institution]));
-  tally('certifications', exp.certifications);
+  // A name can wrap at its hyphen ("Kubernetes-" / "beheerder"), so spaces and hyphens do not count.
+  tally('certifications', exp.certifications, 'squash');
   tally('languages', exp.languages);
 
   const lines = text.split(/[\n\f]/);
@@ -240,32 +238,25 @@ export function checkText(text: string, exp: CvExpectations, options: CheckOptio
     else missing.push(`heading: ${heading.text}`);
   }
 
-  // Date-to-employer pairing: between a job's title line and the next job's
-  // title line, its employer and its date range must both appear.
+  // Title, employer and dates together: starting at the line of a job's title, the employer must be on that
+  // line or the next two, and the date range on the line before, that line or the next two. A reader that
+  // scatters them fails this even when every word is somewhere in the text.
   const pairingFailures: string[] = [];
+  const nonEmpty = lines.map((line, index) => ({ line: norm(line), index })).filter((entry) => entry.line !== '');
   const expHeading = norm(exp.headings.find((h) => h.key === 'experience')?.text ?? '').toLowerCase();
-  const expLine = lines.findIndex((line) => norm(line).toLowerCase() === expHeading);
+  const expLine = nonEmpty.findIndex((entry) => entry.line.toLowerCase() === expHeading);
   let cursor = Math.max(0, expLine + 1);
-  const starts = exp.jobs.map((job) => {
+  exp.jobs.forEach((job) => {
     const title = norm(job.position).toLowerCase();
-    const at = lines.findIndex((line, index) => {
-      if (index < cursor) return false;
-      const value = norm(line).toLowerCase();
-      return value === title || value.startsWith(`${title} `);
-    });
-    if (at >= 0) cursor = at + 1;
-    return at;
-  });
-  exp.jobs.forEach((job, index) => {
-    const from = starts[index];
-    if (from < 0) {
+    const at = nonEmpty.findIndex((entry, i) => i >= cursor && (entry.line.toLowerCase() === title || entry.line.toLowerCase().startsWith(`${title} `)));
+    if (at < 0) {
       pairingFailures.push(`${job.position}: title line not found`);
       return;
     }
-    const nextStart = starts.slice(index + 1).find((start) => start > from) ?? lines.length;
-    const segment = squash(lines.slice(from, nextStart).join(' '));
-    if (!segment.includes(squash(job.company))) pairingFailures.push(`${job.position}: employer "${job.company}" not with its title`);
-    if (!segment.includes(squash(job.dateRange))) pairingFailures.push(`${job.position}: dates "${job.dateRange}" not with its title`);
+    cursor = at + 1;
+    const window = (from: number, to: number) => squash(nonEmpty.slice(Math.max(0, from), to + 1).map((entry) => entry.line).join(' '));
+    if (!window(at, at + 2).includes(squash(job.company))) pairingFailures.push(`${job.position}: employer "${job.company}" is not within two lines of its title`);
+    if (!window(at - 1, at + 2).includes(squash(job.dateRange))) pairingFailures.push(`${job.position}: dates "${job.dateRange}" are not within two lines of its title`);
   });
 
   const nonAsciiLost = exp.nonAscii.filter((char) => !text.normalize('NFC').includes(char));

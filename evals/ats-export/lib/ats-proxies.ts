@@ -24,9 +24,6 @@ const ROOT = join(__dirname, '..');
 export const EXTRACTORS = ['tika', 'pymupdf', 'pdfminer'] as const;
 export type Extractor = (typeof EXTRACTORS)[number];
 
-/** Which extractors follow the content stream (a failure when they disagree with the template's DOM order) and which follow the page geometry (a warning). */
-export const STREAM_ORDER: Record<Extractor, boolean> = { tika: true, pymupdf: true, pdfminer: false };
-
 export const TIKA_VERSION = '3.3.3';
 const TIKA_JAR = join(ROOT, 'vendor', 'tika', `tika-app-${TIKA_VERSION}.jar`);
 const PYTHON = join(ROOT, '.venv', 'bin', 'python');

@@ -1,0 +1,29 @@
+{
+  "fixture": "fr-one-page",
+  "template": "german-ats",
+  "raw": "{\n  \"name\": \"Camille Lefèvre\",\n  \"email\": \"camille.lefevre@example.fr\",\n  \"phone\": \"+33 6 12 34 56 78\",\n  \"jobs\": [\n    {\n      \"title\": \"Ingénieure logicielle senior\",\n      \"company\": \"Transports Rhône-Alpes\",\n      \"dates\": \"03/2021 - Aujourd'hui\",\n      \"bullets\": [\n        \"Direction d’une équipe de cinq ingénieurs pour la migration de quarante services vers Kubernetes.\",\n        \"Réduction de la latence p99 de 38 % grâce à une refonte du cache de suivi des expéditions.\"\n      ]\n    },\n    {\n      \"title\": \"Ingénieure logicielle\",\n      \"company\": \"Banque Lumière\",\n      \"dates\": \"09/2016 - 02/2021\",\n      \"bullets\": [\n        \"Conception du service de grand livre traitant deux millions de transactions par jour.\",\n        \"Réduction du délai de traitement des litiges de trois jours à quatre heures.\"\n      ]\n    }\n  ],\n  \"skills\": [\n    \"Go\",\n    \"Python\",\n    \"SQL\",\n    \"TypeScript\",\n    \"Kubernetes\",\n    \"Terraform\",\n    \"AWS\"\n  ],\n  \"education\": [\n    {\n      \"school\": \"INSA Lyon\",\n      \"degree\": \"Diplôme d’ingénieur, Informatique\",\n      \"date\": \"2016\"\n    }\n  ]\n}",
+  "error": null,
+  "score": {
+    "name": true,
+    "email": true,
+    "phone": true,
+    "jobs": {
+      "matched": 2,
+      "total": 2
+    },
+    "bullets": {
+      "matched": 4,
+      "total": 4
+    },
+    "skills": {
+      "matched": 7,
+      "total": 7
+    },
+    "education": {
+      "matched": 1,
+      "total": 1
+    },
+    "missedJobs": [],
+    "missedSkills": []
+  }
+}

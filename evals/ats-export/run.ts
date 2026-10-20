@@ -31,10 +31,11 @@ import {
   CV_FIXTURES,
   DE_TWO_PAGE,
   DIN_LETTER,
+  FR_LETTER,
   DIN_LETTER_LONG_SENDER,
   HOSTILE_TEXT,
-  MANY_CERTS,
   TEMPLATE_IDS,
+  templatesFor,
   US_LETTER,
   US_LETTER_ON_GERMAN_CV,
   US_ONE_PAGE,
@@ -44,18 +45,22 @@ import { EXTRACTORS, TIKA_VERSION, extractText, proxiesAvailable } from './lib/a
 import { checkCvPdf, type CvPdfReport } from './lib/cv-checks';
 import { checkCvDocx, checkLetterDocx, type DocxReport, type LetterDocxReport } from './lib/docx-checks';
 import { checkLetterPdf, type LetterReport } from './lib/letter-checks';
+import { measureLastPage } from '../../src/lib/services/export/fit';
+import { getPrintSpec } from '../../src/lib/cv-templates/print-spec';
+import { runChatToolScenarios } from './chat-tool-scenarios';
 import { OPENRESUME_COMMIT, parseWithOpenResume, scoreOpenResume, type OpenResumeScore } from './lib/openresume';
 import { COMMITTED_RAW, RUN_DIR, WRITE_RESULTS, ensureWorker, loadFontFromDisk, workerBinding, writeOut, type RenderTiming } from './lib/render';
 import { kitFor } from './render-all';
 import { runServiceChecks, type ServiceReport } from './service-checks';
 import { extractWithPdfJs } from './lib/pdf-text';
 import { pdfImageCount, pdfinfo, pdftotext } from './lib/poppler';
-import { norm, squash } from './lib/expect';
+import { hasToken, norm, squash } from './lib/expect';
 
 const run = promisify(execFile);
 const OUT = RUN_DIR;
 
 interface CvRow {
+  renders: number;
   pdf: CvPdfReport;
   docx: DocxReport;
   openResume: OpenResumeScore | null;
@@ -96,15 +101,7 @@ function pool(limit: number) {
   };
 }
 
-const PAPER_BY_FIXTURE: Record<string, PaperSize> = {
-  'us-one-page': 'letter',
-  'de-two-page': 'a4',
-  'over-cap': 'letter',
-  'long-entry': 'letter',
-  'us-personal': 'letter',
-  hostile: 'letter',
-  'fr-one-page': 'a4',
-};
+const PAPER_BY_FIXTURE: Record<string, PaperSize> = Object.fromEntries(CV_FIXTURES.map((f) => [f.name, f.paper]));
 
 async function main() {
   const missing = proxiesAvailable();
@@ -120,7 +117,7 @@ async function main() {
 
   // 1. CV PDFs and DOCX for every fixture and template.
   for (const fixture of CV_FIXTURES) {
-    for (const templateId of TEMPLATE_IDS) {
+    for (const templateId of templatesFor(fixture)) {
       const expectPhoto = isDachTemplate(templateId) && Boolean(fixture.data.personal.photoUrl);
       const pdf = await renderCv(fixture.data, templateId, 'cv_pdf', deps);
       const docx = await renderCv(fixture.data, templateId, 'cv_docx', deps);
@@ -136,6 +133,7 @@ async function main() {
         expectedPages: fixture.expectedUsPages,
         expectedPaper: PAPER_BY_FIXTURE[fixture.name],
         locale: pdf.locale,
+        localeExpect: fixture.locale,
       });
       const docxReport = await checkCvDocx(docx.rendered.bytes, { fixture: fixture.name, templateId, source: fixture.data, expectPhoto });
       let openResume: OpenResumeScore | null = null;
@@ -145,11 +143,18 @@ async function main() {
       } catch (error) {
         openResumeError = error instanceof Error ? error.message.slice(0, 120) : 'error';
       }
-      const row: CvRow = { pdf: pdfReport, docx: docxReport, openResume, openResumeError, ai: null };
+      const row: CvRow = { renders: pdf.rendered.renders, pdf: pdfReport, docx: docxReport, openResume, openResumeError, ai: null };
       cvRows.push(row);
       // The AI parser reads what Tika extracted, the way a pipeline of Tika and a model would.
       const tikaText = await extractText('tika', pdf.rendered.bytes);
-      aiWork.push(aiLimit(async () => void (row.ai = scoreAi(await parseWithAi(tikaText), fixture.data))));
+      aiWork.push(
+        aiLimit(async () => {
+          const result = await parseWithAi(tikaText);
+          row.ai = scoreAi(result, fixture.data);
+          // The model's answer exactly as it came back, for triage.
+          await writeOut(join(OUT, 'ai'), `${base}.json`, JSON.stringify({ fixture: fixture.name, template: templateId, raw: result.raw ?? null, error: result.error ?? null, score: row.ai }, null, 2));
+        }),
+      );
       console.log(`${pdfReport.ok ? 'PASS' : 'FAIL'} pdf  ${base}  ${pdfReport.failures[0] ?? ''}`);
       console.log(`${docxReport.ok ? 'PASS' : 'FAIL'} docx ${base}  ${docxReport.failures[0] ?? ''}`);
     }
@@ -158,10 +163,13 @@ async function main() {
   // 2. Cover letters: both layouts as PDF and DOCX, the long forms, the legacy body.
   const letterRows: LetterReport[] = [];
   const letterDocxRows: LetterDocxReport[] = [];
-  const letterCases: Array<{ name: string; letter: StructuredCoverLetter; layout: 'us' | 'din'; templateId: string }> = [
+  // The DIN return line is the name, the street and the postcode with city, written out by hand: a trailing
+  // country or a title line in the sender block never reaches it.
+  const letterCases: Array<{ name: string; letter: StructuredCoverLetter; layout: 'us' | 'din'; templateId: string; returnLine?: string }> = [
     { name: 'letter-us', letter: US_LETTER, layout: 'us', templateId: 'premium-ats' },
-    { name: 'letter-din', letter: DIN_LETTER, layout: 'din', templateId: 'german-ats' },
-    { name: 'letter-din-long-sender', letter: DIN_LETTER_LONG_SENDER, layout: 'din', templateId: 'german-ats' },
+    { name: 'letter-din', letter: DIN_LETTER, layout: 'din', templateId: 'german-ats', returnLine: 'Jürgen Müller-Schäfer · Lindenallee 14 · 80331 München' },
+    { name: 'letter-din-long-sender', letter: DIN_LETTER_LONG_SENDER, layout: 'din', templateId: 'german-ats', returnLine: 'Jürgen Müller-Schäfer · Lindenallee 14 · 80331 München' },
+    { name: 'letter-fr', letter: FR_LETTER, layout: 'us', templateId: 'premium-ats' },
   ];
   for (const c of letterCases) {
     const kit = kitFor({ applicantName: c.letter.sender.name, coverLetter: { structured: c.letter, legacyText: null } });
@@ -169,14 +177,14 @@ async function main() {
     const docx = await renderExport(resolveExport(kit, 'cover_letter_docx', { templateId: c.templateId }), deps);
     await writeOut(join(OUT, 'letters'), `${c.name}.pdf`, pdf.bytes);
     await writeOut(join(OUT, 'letters'), `${c.name}.docx`, docx.bytes);
-    const report = await checkLetterPdf(pdf.bytes, c.name, c.layout, c.letter);
+    const report = await checkLetterPdf(pdf.bytes, c.name, c.layout, c.letter, { returnLine: c.returnLine });
     letterRows.push(report);
     const letterDocx = await checkLetterDocx(
       docx.bytes,
       `${c.name}.docx`,
       [c.letter.sender.name, c.letter.recipient.companyName ?? '', c.letter.subject, c.letter.salutation, c.letter.paragraphs[0], c.letter.signatureName, c.letter.date],
       c.layout === 'din' ? 'Mit freundlichen Grüßen' : null,
-      c.layout === 'din' ? c.letter : undefined,
+      { kind: c.layout, letter: c.letter },
     );
     letterDocxRows.push(letterDocx);
     console.log(`${letterDocx.ok ? 'PASS' : 'FAIL'} ${letterDocx.name}  ${letterDocx.failures[0] ?? ''}`);
@@ -306,28 +314,7 @@ async function main() {
     console.log(`${failures.length === 0 ? 'PASS' : 'FAIL'} us-letter-on-german-cv ${failures[0] ?? ''}`);
   }
   {
-    // A sidebar section that runs past a page repeats its heading at the top of each later page.
-    const failures: string[] = [];
-    const detail: Record<string, unknown> = {};
-    for (const templateId of ['modern-professional', 'german-ats'] as const) {
-      const rendered = (await renderCv(MANY_CERTS, templateId, 'cv_pdf', deps)).rendered;
-      await writeOut(join(OUT, 'overrides'), `many-certs__${templateId}.pdf`, rendered.bytes);
-      const pdfjs = await extractWithPdfJs(rendered.bytes);
-      const heading = 'zertifikate';
-      const withHeading = pdfjs.pageTexts.map((page) => page.toLowerCase().includes(heading));
-      detail[templateId] = { pages: pdfjs.pageTexts.length, headingOnPage: withHeading };
-      const sidebarPages = pdfjs.pageTexts.map((page, index) => ({ index, hasCert: /Zertifizierung Nummer \d+/.test(page) })).filter((p) => p.hasCert);
-      for (const { index } of sidebarPages) if (!withHeading[index]) failures.push(`${templateId}: page ${index + 1} continues the certifications without their heading`);
-      if (sidebarPages.length < 2) failures.push(`${templateId}: the certifications did not run past a page, so the check proved nothing`);
-      // Every certification is still there, once.
-      const text = await extractText('tika', rendered.bytes);
-      for (let n = 1; n <= 60; n++) if (!new RegExp(`Zertifizierung Nummer ${n} im`).test(text)) failures.push(`${templateId}: certification ${n} is missing`);
-    }
-    extra.push({ name: 'sidebar-continuation-heading', ok: failures.length === 0, failures, detail });
-    console.log(`${failures.length === 0 ? 'PASS' : 'FAIL'} sidebar-continuation-heading ${failures[0] ?? ''}`);
-  }
-  {
-    // A French CV: no German dates, headings or footers, on A4.
+    // A French CV: no German dates, headings or footers, on A4 (the headings and dates themselves are asserted per PDF).
     const failures: string[] = [];
     for (const templateId of ['premium-ats', 'german-ats'] as const) {
       const text = await pdftotext(pdfBytes.get(`fr-one-page__${templateId}`)!, 'raw');
@@ -336,6 +323,72 @@ async function main() {
     if (cvPaper(CV_FIXTURES.find((f) => f.name === 'fr-one-page')!.data) !== 'a4') failures.push('a French CV is not on A4');
     extra.push({ name: 'french-cv-not-german', ok: failures.length === 0, failures });
     console.log(`${failures.length === 0 ? 'PASS' : 'FAIL'} french-cv-not-german ${failures[0] ?? ''}`);
+  }
+  {
+    // A French letter: the file name, the PDF title and the document language are French.
+    const failures: string[] = [];
+    const kit = kitFor({ applicantName: FR_LETTER.sender.name, coverLetter: { structured: FR_LETTER, legacyText: null } });
+    const resolved = resolveExport(kit, 'cover_letter_pdf', { templateId: 'premium-ats' });
+    const rendered = await renderExport(resolved, deps);
+    const info = await pdfinfo(rendered.bytes);
+    const lang = Buffer.from(rendered.bytes).toString('latin1').match(/\/Lang\s*\(([^)]*)\)/)?.[1] ?? '';
+    if (rendered.fileName !== 'Lettre_de_motivation_Camille_Lefevre.pdf') failures.push(`file name "${rendered.fileName}"`);
+    if (info.title !== 'Lettre de motivation - Camille Lefèvre') failures.push(`title "${info.title}"`);
+    if (info.subject !== 'Lettre de motivation') failures.push(`subject "${info.subject}"`);
+    if (!lang.toLowerCase().startsWith('fr')) failures.push(`language "${lang}"`);
+    extra.push({ name: 'french-letter', ok: failures.length === 0, failures, detail: { fileName: rendered.fileName, title: info.title, lang } });
+    console.log(`${failures.length === 0 ? 'PASS' : 'FAIL'} french-letter ${failures[0] ?? ''}`);
+  }
+  {
+    // The fit pass measures the last page with pdf-lib. It has to agree with pdf.js on every multi-page PDF.
+    const failures: string[] = [];
+    const detail: Record<string, unknown> = { measured: 0, maxDifference: 0, fitPassRan: [] as string[] };
+    for (const row of cvRows) {
+      if (row.pdf.metrics.pages < 2) continue;
+      const base = `${row.pdf.fixture}__${row.pdf.templateId}`;
+      const spec = getPrintSpec(row.pdf.templateId, PAPER_BY_FIXTURE[row.pdf.fixture]);
+      const measured = await measureLastPage(pdfBytes.get(base)!, spec.marginMm);
+      const difference = Math.abs(measured.fill - row.pdf.lastPageFill);
+      detail.measured = (detail.measured as number) + 1;
+      detail.maxDifference = Math.max(detail.maxDifference as number, Number(difference.toFixed(3)));
+      if (measured.pages !== row.pdf.metrics.pages) failures.push(`${base}: pdf-lib sees ${measured.pages} pages, pdfinfo ${row.pdf.metrics.pages}`);
+      if (difference > 0.04) failures.push(`${base}: last page ${(measured.fill * 100).toFixed(0)}% by pdf-lib, ${(row.pdf.lastPageFill * 100).toFixed(0)}% by pdf.js`);
+    }
+    // Which CVs the fit pass re-rendered (more browser renders than the first one and the footer overlay).
+    for (const row of cvRows) {
+      const base = row.pdf.metrics.pages > 1 ? 2 : 1;
+      if (row.renders > base) (detail.fitPassRan as string[]).push(`${row.pdf.fixture}__${row.pdf.templateId} (${row.renders} renders)`);
+    }
+    extra.push({ name: 'fit-measure', ok: failures.length === 0, failures, detail });
+    console.log(`${failures.length === 0 ? 'PASS' : 'FAIL'} fit-measure ${failures[0] ?? ''}`);
+  }
+  {
+    // A long link shows its first 47 characters and an ellipsis; the annotation opens the whole address.
+    const failures: string[] = [];
+    const bytes = pdfBytes.get('us-personal__premium-ats')!;
+    const pdfjs = await extractWithPdfJs(bytes);
+    const long = 'https://portfolio.jordan-ellis.example/work/selected-case-studies-2020-2026/payments-platform-migration';
+    const annotation = pdfjs.links.find((l) => l.url === long);
+    if (!annotation) failures.push('no clickable link to the whole long address');
+    else if (squash(annotation.text) !== squash('portfolio.jordan-ellis.example/work/selected-ca…')) failures.push(`the long link shows "${annotation.text}"`);
+    extra.push({ name: 'long-link-truncation', ok: failures.length === 0, failures });
+    console.log(`${failures.length === 0 ? 'PASS' : 'FAIL'} long-link-truncation ${failures[0] ?? ''}`);
+  }
+  {
+    // A date of birth printed on a German template is in the CV's language: an English US CV reads "April 7, 1989".
+    const failures: string[] = [];
+    for (const templateId of ['german-ats', 'german-classic'] as const) {
+      const text = squash(await pdftotext(pdfBytes.get(`us-personal__${templateId}`)!, 'raw'));
+      if (!text.includes(squash('April 7, 1989'))) failures.push(`${templateId}: the date of birth is not "April 7, 1989"`);
+      if (text.includes(squash('07.04.1989'))) failures.push(`${templateId}: the date of birth is in German format on an English CV`);
+    }
+    extra.push({ name: 'birth-date-language', ok: failures.length === 0, failures });
+    console.log(`${failures.length === 0 ? 'PASS' : 'FAIL'} birth-date-language ${failures[0] ?? ''}`);
+  }
+  {
+    // Chat tools: the first heading rename succeeds and renders; hidden sections protect their entries.
+    const scenario = await runChatToolScenarios();
+    extra.push({ name: 'chat-tool-scenarios', ok: scenario.ok, failures: scenario.failures, detail: { checks: scenario.checks.length } });
   }
 
   // 4. Service checks: cache key, signing, sanitizing, layout choice, hidden state, headings.
@@ -358,6 +411,8 @@ async function main() {
     extraction: CvPdfReport['extraction'];
     openResume: OpenResumeScore | null;
     ai: AiScore;
+    /** Skills Tika's OCR text holds as whole tokens (the strict count, one "Label: a, b, c" line each, is in extraction.tika). */
+    tikaSkillsToken: string;
     failures: number;
   }> = [];
   for (const file of (await readdir(baselineDir)).filter((f) => f.endsWith('.pdf')).sort()) {
@@ -378,6 +433,17 @@ async function main() {
     } catch {
       // a picture has no text to parse
     }
+    // The old PDFs are pictures. Tika runs Tesseract OCR on a page with no text layer, so what it returns is
+    // what an OCR-ing pipeline reads from them. That text, not an assumed zero, goes to the AI parser.
+    const ocrText = await extractText('tika', bytes);
+    const ocrFlat = norm(ocrText);
+    const skillTotal = fixture.data.skills.reduce((n, g) => n + g.items.length, 0);
+    const skillTokens = fixture.data.skills.flatMap((g) => g.items).filter((skill) => hasToken(ocrFlat, skill)).length;
+    const ocrAi = await aiLimit(async () => {
+      const result = await parseWithAi(ocrText);
+      return { score: scoreAi(result, fixture.data), result };
+    });
+    await writeOut(join(OUT, 'ai-baseline'), `${file.replace(/\.pdf$/, '')}.json`, JSON.stringify({ raw: ocrAi.result.raw ?? null, error: ocrAi.result.error ?? null, score: ocrAi.score }, null, 2));
     baseline.push({
       name: file,
       pages: report.metrics.pages,
@@ -386,8 +452,8 @@ async function main() {
       fileSizeKB: report.metrics.fileSizeKB,
       extraction: report.extraction,
       openResume,
-      // A page that is a picture has no text for the model to read.
-      ai: scoreAi({ parsed: null, error: 'no text layer' }, fixture.data),
+      ai: ocrAi.score,
+      tikaSkillsToken: `${skillTokens}/${skillTotal}`,
       failures: report.failures.length,
     });
   }

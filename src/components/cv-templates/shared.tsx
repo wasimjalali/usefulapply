@@ -15,18 +15,6 @@ import { displayUrl, fullUrl } from '@/lib/cv-templates/url';
  * all-caps bold line as a section title.
  */
 
-/**
- * A sidebar is about 50 mm wide. A CV with a lot of skills would run the
- * sidebar past the main column and leave sidebar-only pages, so past this many
- * characters the two-column templates print Skills full width above the
- * columns instead.
- */
-export const SIDEBAR_SKILLS_LIMIT = 700;
-
-export function skillsOverflowSidebar(data: CVData): boolean {
-  return data.skills.reduce((sum, group) => sum + group.category.length + 2 + group.items.join(', ').length, 0) > SIDEBAR_SKILLS_LIMIT;
-}
-
 interface SkillLinesProps {
   data: CVData;
   primary: string;
@@ -35,13 +23,23 @@ interface SkillLinesProps {
   lineHeight: number;
 }
 
+/**
+ * A vertical stack with a gap between its children, as a block with margins rather than a flex column.
+ * A page can break inside a block stack at any child boundary, honouring `break-after: avoid` chains; a
+ * flex column container pushed a heading and its first entry to the next page as one piece. The rule that
+ * spaces the children is `.cv-stack > * + *` (print-css.ts for the export, globals.css for the canvas).
+ */
+export function stackGap(px: number): CSSProperties {
+  return { ['--stack-gap' as string]: `calc(${px}px * var(--cv-d, 1))` };
+}
+
 export function SkillLines({ data, primary, text, gap, lineHeight }: SkillLinesProps) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: `${gap}px` }}>
+    <div className="cv-stack" style={stackGap(gap)}>
       {data.skills.map((group, index) => (
         <p
           key={`skill-${index}`}
-          style={{ fontSize: '10pt', lineHeight, color: text, overflowWrap: 'break-word', breakInside: 'avoid' }}
+          style={{ fontSize: '10pt', lineHeight: `calc(${lineHeight} * var(--cv-ld, 1))`, color: text, overflowWrap: 'break-word', breakInside: 'avoid' }}
         >
           <strong style={{ color: primary, fontWeight: 700 }}>{group.category}:</strong>{' '}
           {group.items.join(', ')}
@@ -60,7 +58,7 @@ interface LanguageLineProps {
 /** Spoken languages: "Deutsch: Muttersprache, Englisch: C1". Its own section, never inside Skills. */
 export function LanguageLine({ data, text, lineHeight }: LanguageLineProps) {
   return (
-    <p style={{ fontSize: '10pt', lineHeight, color: text, overflowWrap: 'break-word' }}>
+    <p style={{ fontSize: '10pt', lineHeight: `calc(${lineHeight} * var(--cv-ld, 1))`, color: text, overflowWrap: 'break-word' }}>
       {data.languages.map((lang, index) => (
         <span key={`lang-${index}`}>
           {index > 0 ? ', ' : ''}
@@ -98,9 +96,8 @@ function locationText(data: CVData): string {
 }
 
 /**
- * The contact line. Up to three items sit on one row. More are split into two
- * balanced rows, so a lone "GitHub" never wraps onto a line of its own. Contact
- * details stay in the page body, never in a header or footer.
+ * The contact line: every item in one wrapping row. Contact details stay in the
+ * page body, never in a header or footer.
  */
 export function ContactRows({ data, iconSize, iconColor, iconGap, textColor, columnGap, rowGap, fontSize = '10pt' }: ContactRowsProps) {
   const p = data.personal;
@@ -146,14 +143,11 @@ export function ContactRows({ data, iconSize, iconColor, iconGap, textColor, col
   if (p.portfolio) items.push(link(p.portfolio, Globe, 'portfolio'));
   if (p.website) items.push(link(p.website, Globe, 'website'));
 
-  const rows = items.length <= 3 ? [items] : [items.slice(0, Math.ceil(items.length / 2)), items.slice(Math.ceil(items.length / 2))];
+  // One flowing row: items wrap where the line ends. No balancing, so nothing is left alone on a line
+  // while the line above still has room, and a long address or portfolio link flows like text.
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', rowGap: `${rowGap}px`, fontSize, color: textColor }}>
-      {rows.map((row, index) => (
-        <div key={index} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: `${columnGap}px`, rowGap: `${rowGap}px` }}>
-          {row}
-        </div>
-      ))}
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: `${columnGap}px`, rowGap: `calc(${rowGap}px * var(--cv-d, 1))`, fontSize, color: textColor }}>
+      {items}
     </div>
   );
 }
@@ -173,9 +167,9 @@ export function SignatureBlock({ data, color, lineColor }: SignatureBlockProps) 
   const signature = data.signature;
   if (!signature?.includeSignature) return null;
   const placeDate = [signature.city, signature.date].filter((part) => part && part.trim()).join(', ');
-  const line: CSSProperties = { borderTop: `1px solid ${lineColor}`, marginTop: '0px', paddingTop: '3px', fontSize: '10pt', color };
+  const line: CSSProperties = { borderTop: `1px solid ${lineColor}`, marginTop: '0px', paddingTop: 'calc(3px * var(--cv-d, 1))', fontSize: '10pt', color };
   return (
-    <div style={{ marginTop: '14mm', breakInside: 'avoid', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '24px' }}>
+    <div style={{ marginTop: 'calc(14mm * var(--cv-d, 1))', breakInside: 'avoid', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '24px' }}>
       <div style={{ width: '60mm' }}>
         <div style={{ minHeight: '5mm', fontSize: '10pt', color: '#1A1A1A', paddingBottom: '2px' }}>{placeDate}</div>
         <div style={line}>{uiText(data, 'cityLabel')}, {uiText(data, 'dateLabel')}</div>
@@ -185,35 +179,5 @@ export function SignatureBlock({ data, color, lineColor }: SignatureBlockProps) 
         <div style={line}>{uiText(data, 'signatureLabel')}</div>
       </div>
     </div>
-  );
-}
-
-/**
- * A sidebar section whose heading repeats at the top of every page the section
- * continues on, so no item is ever left at the top of a page without its
- * section. Chrome repeats a real `thead` on each page a table spans (it does not
- * for `display: table-header-group` on a div, checked on Browser Run). A page can
- * only break between rows, so a list that may run past a page is given as `rows`.
- * The repeated heading is identical on every page: print CSS cannot turn the
- * copy on a later page into "(continued)".
- */
-export function SideSection({ heading, children, rows, marginBottom = 0 }: { heading: ReactNode; children?: ReactNode; rows?: ReactNode[]; marginBottom?: number }) {
-  const body = rows ?? [children];
-  const cell: CSSProperties = { padding: 0, textAlign: 'left', verticalAlign: 'top', fontWeight: 'normal' };
-  return (
-    <table style={{ width: '100%', borderCollapse: 'collapse', borderSpacing: 0, tableLayout: 'fixed', marginBottom: `${marginBottom}px` }}>
-      <thead>
-        <tr>
-          <td style={cell}>{heading}</td>
-        </tr>
-      </thead>
-      <tbody>
-        {body.map((row, index) => (
-          <tr key={index}>
-            <td style={cell}>{row}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
   );
 }

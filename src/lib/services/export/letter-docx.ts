@@ -13,7 +13,9 @@ import {
 } from 'docx';
 import { displayUrl, fullUrl, pickLetterLinks } from '@/lib/cv-templates/url';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
-import { DIN, dinClosing, dinReturnLine, recipientLinesFor, type LetterInput, type LetterLayout } from './letter-html';
+import { DIN, dinClosing, dinReturnLine, plainContactLines, recipientLinesFor, type LetterInput, type LetterLayout } from './letter-html';
+import { localeFromLanguageCode } from '@/lib/cv-templates/locale';
+import { exportText } from './export-text';
 import { PDF_PRODUCER } from './pdf';
 
 /**
@@ -54,9 +56,11 @@ function exact(children: TextRun[], heightMm: number, before = 0, border = false
 }
 
 /** The sender's contact lines as runs: address, phone, email, then at most two clean links, clickable. */
-function senderLines(letter: StructuredCoverLetter, size = BODY): Array<Array<TextRun | ExternalHyperlink>> {
+function senderLines(letter: StructuredCoverLetter, size = BODY, din = false): Array<Array<TextRun | ExternalHyperlink>> {
   const { sender } = letter;
-  const plain = [...sender.addressLines, sender.phone, sender.email].filter((x): x is string => Boolean(x && x.trim()));
+  const plain = din
+    ? plainContactLines(letter)
+    : [...sender.addressLines, sender.phone, sender.email].filter((x): x is string => Boolean(x && x.trim()));
   return [
     ...plain.map((text) => [line(text, { size })] as Array<TextRun | ExternalHyperlink>),
     ...pickLetterLinks(sender.links).map(
@@ -103,13 +107,13 @@ function usChildren(letter: StructuredCoverLetter): Paragraph[] {
  */
 function dinChildren(letter: StructuredCoverLetter): Paragraph[] {
   const topMargin = 15;
-  const headCount = 1 + senderLines(letter, 20).length;
+  const headCount = 1 + senderLines(letter, 20, true).length;
   // Never overprint the address field: past 7 lines the letterhead shrinks to fit its 31 mm.
   const available = DIN.addressTop - topMargin - 1;
   const lineHeight = headCount <= 7 ? 4.45 : Math.floor((available / headCount) * 100) / 100;
   const headSize = headCount <= 7 ? 20 : Math.max(13, Math.round(lineHeight * 4.4));
   // The contact lines shrink with the line height, so a tall letterhead never prints lines over each other.
-  const contactRuns = senderLines(letter, headSize);
+  const contactRuns = senderLines(letter, headSize, true);
   const recipient = recipientLinesFor(letter, 'din').slice(0, 6);
   const returnLine = dinReturnLine(letter);
   const dateLine = [letter.place, letter.date].filter((part) => part && part.trim()).join(', ');
@@ -200,7 +204,7 @@ export async function buildLetterDocx(args: LetterDocxInput): Promise<Uint8Array
     creator: PDF_PRODUCER,
     title: args.title,
     styles: {
-      default: { document: { run: { font: FONT, size: BODY, language: { value: args.language.startsWith('de') ? 'de-DE' : 'en-US' } } } },
+      default: { document: { run: { font: FONT, size: BODY, language: { value: exportText(localeFromLanguageCode(args.language)).bcp47 } } } },
     },
     sections: [{ properties: { page }, children }],
   });

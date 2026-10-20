@@ -11,7 +11,9 @@ const MAX_DISPLAY_LENGTH = 48;
 /** The full URL a link points to: a scheme is added when the text has none. */
 export function fullUrl(raw: string): string {
   const trimmed = raw.trim();
-  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  // mailto: and tel: are already complete links; a scheme must never be glued in front of them.
+  if (/^(https?:\/\/|mailto:|tel:)/i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
 }
 
 /**
@@ -22,6 +24,9 @@ export function fullUrl(raw: string): string {
 export function displayUrl(raw: string, maxLength = MAX_DISPLAY_LENGTH): string {
   let text = raw.trim();
   if (!text) return '';
+  // An address or a number shows without its scheme.
+  const direct = text.match(/^(?:mailto|tel):(.+)$/i);
+  if (direct) return direct[1].length > maxLength ? `${direct[1].slice(0, maxLength - 1)}…` : direct[1];
   let host = '';
   let path = '';
   try {

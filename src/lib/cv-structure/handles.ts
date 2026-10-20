@@ -416,6 +416,14 @@ function itemLabel(cv: TailoredCV, list: string, index: number): string {
  * unsatisfiable, because the model cannot name items it was not shown. Only the
  * label text is capped.
  */
+/** The `hiddenSections` key a list lives in. Custom sections hide by their own flag only. */
+function sectionOfList(list: string): 'experience' | 'education' | 'skills' | 'certifications' | 'languages' | 'projects' | null {
+  if (list === 'experience' || list.startsWith('bullets:')) return 'experience';
+  if (list === 'skills' || list.startsWith('skillitems:')) return 'skills';
+  if (list === 'education' || list === 'certifications' || list === 'languages' || list === 'projects') return list;
+  return null;
+}
+
 /**
  * Is this entry hidden from the CV? Whole entries and skill groups carry
  * `hidden`, a single skill is listed in its group's `hiddenItems`, and the
@@ -424,6 +432,9 @@ function itemLabel(cv: TailoredCV, list: string, index: number): string {
 export function isItemHidden(cv: TailoredCV, list: string, index: number): boolean {
   const items = readList(cv, list);
   if (!items) return false;
+  // Hiding a whole section hides everything in it.
+  const section = sectionOfList(list);
+  if (section && (cv.hiddenSections ?? []).includes(section)) return true;
   const entry = items[index];
   if (entry && typeof entry === 'object') return (entry as { hidden?: boolean }).hidden === true;
   const parent = nestedParent(cv, list);
@@ -472,8 +483,7 @@ export function cvLanguage(cv: TailoredCV): CvHeaderLanguage {
 export function currentHeading(cv: TailoredCV, sectionKey: string, lang: CvHeaderLanguage): string {
   const stored = cv.sectionHeaders?.[sectionKey as keyof NonNullable<TailoredCV['sectionHeaders']>];
   if (typeof stored === 'string' && stored.trim()) {
-    const locale = lang === 'de' ? 'de' : lang === 'en' ? 'en' : 'other';
-    return resolveHeading({ provided: stored, renamed: cv.renamedHeadings?.includes(sectionKey), key: sectionKey as HeadingKey, locale });
+    return resolveHeading({ provided: stored, renamed: cv.renamedHeadings?.includes(sectionKey), key: sectionKey as HeadingKey, locale: lang });
   }
   return generateLocalizedHeaders(lang).sectionHeaders[sectionKey] ?? '';
 }

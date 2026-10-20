@@ -179,9 +179,38 @@ function UsLetter({ letter }: { letter: StructuredCoverLetter }) {
  * letterhead and gives the return line only the last two address lines.
  */
 export function dinReturnLine(letter: StructuredCoverLetter): string {
-  const address = letter.sender.addressLines.filter((part) => part && part.trim());
-  const short = address.length > 2 ? address.slice(-2) : address;
-  return [letter.sender.name, ...short].filter(Boolean).join(' · ');
+  const address = letter.sender.addressLines.map((part) => part.trim()).filter(Boolean);
+  // The line with the postcode and city is the end of the return address, whatever follows it (a country).
+  let end = -1;
+  address.forEach((line, index) => {
+    if (/\b\d{4,5}\s+\p{L}/u.test(line)) end = index;
+  });
+  if (end < 0) end = address.length - 1;
+  const street = end > 0 ? address[end - 1] : undefined;
+  return [letter.sender.name, street, address[end]].filter(Boolean).join(' · ');
+}
+
+/** The most contact lines under the sender's name in a DIN letterhead (it has 31 mm above the address field). */
+export const LETTERHEAD_MAX_CONTACT_LINES = 8;
+
+/**
+ * The sender's address, phone and email as letterhead lines, merged when there are too many: phone and
+ * email share a line first, then the top address lines are joined, so the type never has to shrink until
+ * lines overlap. The links come after these and keep their own lines.
+ */
+export function plainContactLines(letter: StructuredCoverLetter, cap = LETTERHEAD_MAX_CONTACT_LINES): string[] {
+  const links = pickLetterLinks(letter.sender.links).length;
+  const room = Math.max(1, cap - links);
+  let address = letter.sender.addressLines.map((part) => part.trim()).filter(Boolean);
+  let reach = [letter.sender.phone, letter.sender.email].map((part) => part?.trim() ?? '').filter(Boolean);
+  if (address.length + reach.length > room && reach.length === 2) reach = [reach.join(' · ')];
+  while (address.length + reach.length > room && address.length > 1) address = [`${address[0]} · ${address[1]}`, ...address.slice(2)];
+  return [...address, ...reach];
+}
+
+/** Every letterhead line of a DIN letter under the name: the capped plain lines, then the clean links. */
+export function dinSenderLines(letter: StructuredCoverLetter): string[] {
+  return [...plainContactLines(letter), ...pickLetterLinks(letter.sender.links).map((link) => displayUrl(link))];
 }
 
 export function letterheadStyle(lines: number): { lineHeight?: string; fontSize?: string } {
@@ -196,9 +225,9 @@ function DinLetter({ letter }: { letter: StructuredCoverLetter }) {
   const subject = letter.subject.trim();
   return (
     <>
-      <div className="abs letterhead" style={letterheadStyle(1 + senderContactLines(letter).length)}>
+      <div className="abs letterhead" style={letterheadStyle(1 + dinSenderLines(letter).length)}>
         <div className="name">{letter.sender.name}</div>
-        {senderContactLines(letter).map((line, index) => <div key={index}><ContactLine line={line} letter={letter} /></div>)}
+        {dinSenderLines(letter).map((line, index) => <div key={index}><ContactLine line={line} letter={letter} /></div>)}
       </div>
       <div className="abs field">
         <div className="return-line">{returnLine}</div>

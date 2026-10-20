@@ -14,7 +14,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { build } from 'esbuild';
 import { chromium } from '@playwright/test';
-import { CV_FIXTURES, DIN_LETTER, TEMPLATE_IDS, US_LETTER } from './fixtures';
+import { CV_FIXTURES, DIN_LETTER, templatesFor, US_LETTER } from './fixtures';
 import { COMMITTED_RAW, REPO_ROOT, writeOut } from './lib/render';
 import type { StructuredCoverLetter } from '../../src/lib/cover-letter/contract';
 import { PRINT_BASE_CSS } from '../../src/lib/services/export/print-css';
@@ -134,7 +134,7 @@ async function main() {
   await page.addScriptTag({ content: await readFile(bundle, 'utf8') });
   const results: Array<{ name: string; bytes: number; ms: number }> = [];
   for (const fixture of CV_FIXTURES) {
-    for (const templateId of TEMPLATE_IDS) {
+    for (const templateId of templatesFor(fixture)) {
       const started = Date.now();
       const base64 = await page.evaluate(
         ([data, id]) => (window as unknown as { renderBaseline: (d: unknown, t: string) => Promise<string> }).renderBaseline(data, id as string),

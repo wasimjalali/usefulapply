@@ -95,13 +95,14 @@ export async function applyPdfMetadata(bytes: Uint8Array, metadata: PdfMetadata)
 }
 
 /**
- * Page footers on continuation pages: "Name · Page 2 of 3", nothing on page 1.
+ * Page footers on every page of a multi-page document: "Name · Page 1 of 3". A
+ * one-page document carries none.
  *
  * CSS cannot do this in the Chrome that Browser Run runs (no page margin boxes,
  * and `position: fixed` repeats on page 1 too), and an absolutely positioned
  * footer can only sit inside a page's content box. So a second, tiny render
  * draws the footers on transparent pages of the same size and pdf-lib lays them
- * over pages 2 to N. They are real text in an embedded font, in the bottom
+ * over every page. They are real text in an embedded font, in the bottom
  * margin. Contact details never go here: they stay in the body.
  */
 export async function addContinuationFooters(args: {
@@ -109,18 +110,17 @@ export async function addContinuationFooters(args: {
   pdf: Uint8Array;
   paper: PaperSize;
   name: string;
-  de: boolean;
+  /** The footer text for page n of total, in the document's language. */
+  footer: (name: string, page: number, total: number) => string;
   loadFont: FontFileLoader;
 }): Promise<Uint8Array> {
   const doc = await PDFDocument.load(args.pdf, { updateMetadata: false });
   const total = doc.getPageCount();
   if (total < 2) return args.pdf;
 
-  const label = (n: number) => (args.de ? `${args.name} · Seite ${n} von ${total}` : `${args.name} · Page ${n} of ${total}`);
+  const label = (n: number) => args.footer(args.name, n, total);
   const size = args.paper === 'a4' ? { w: 210, h: 297 } : { w: 215.9, h: 279.4 };
-  const pages = Array.from({ length: total }, (_, index) =>
-    index === 0 ? '<div class="pg"></div>' : `<div class="pg"><div class="f">${escapeHtml(label(index + 1))}</div></div>`,
-  ).join('');
+  const pages = Array.from({ length: total }, (_, index) => `<div class="pg"><div class="f">${escapeHtml(label(index + 1))}</div></div>`).join('');
   const fonts = await fontFaceCssInline(args.loadFont, args.name);
   const html = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${EXPORT_CSP}"><style>${fonts}
 @page{size:${size.w}mm ${size.h}mm;margin:0}*{margin:0;padding:0;box-sizing:border-box}html,body{width:${size.w}mm;background:transparent}
@@ -128,7 +128,7 @@ export async function addContinuationFooters(args: {
 .f{position:absolute;left:0;right:0;bottom:5mm;text-align:center;font:8pt 'Arimo',Arial,sans-serif;color:#555}</style></head><body>${pages}</body></html>`;
   const overlayBytes = await renderHtmlToPdf(args.browser, html, args.paper);
   const overlay = await PDFDocument.load(overlayBytes, { updateMetadata: false });
-  const indices = Array.from({ length: total - 1 }, (_, index) => index + 1);
+  const indices = Array.from({ length: total }, (_, index) => index);
   const embedded = await doc.embedPdf(overlay, indices);
   indices.forEach((pageIndex, position) => {
     const target = doc.getPage(pageIndex);

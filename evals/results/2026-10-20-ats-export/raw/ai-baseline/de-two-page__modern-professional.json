@@ -1,0 +1,36 @@
+{
+  "raw": "{\n  \"name\": \"Jurgen Miuller-Schafer\",\n  \"email\": \"juergen.mueller-schaefer@example.de\",\n  \"phone\": \"+49 151 2345 6789\",\n  \"jobs\": [\n    {\n      \"title\": \"Leiter Softwareentwicklung\",\n      \"company\": \"Bayerische Fahrzeugwerke AG | Munchen\",\n      \"dates\": \"04/2019 — Present\",\n      \"bullets\": [\n        \"Aufbau und Fiihrung eines Teams von 22 Entwicklerinnen und Entwicklern an drei Standorten in Stiddeutschland.\",\n        \"Einfihrung einer Cloud-Plattform ftir die Flottentberwachung von tiber 3.000 Fahrzeugen, Betriebskosten um 27 Prozent gesenkt.\",\n        \"Verantwortung fur ein jaéhrliches Budget von 4,8 Millionen Euro und die Zusammenarbeit mit Einkauf, Recht und Datenschutz.\",\n        \"Umstellung von Wasserfall auf agile Methoden: Releasezyklus von 6 Monaten auf 3 Wochen verkurzt.\",\n        \"Zusammenarbeit mit dem Betriebsrat bei der Einfuhrung neuer Arbeitszeitmodelle fiir Schichtbetrieb im Rechenzentrum.\"\n      ]\n    },\n    {\n      \"title\": \"Teamleiter Backend-Entwicklung\",\n      \"company\": \"Siiddeutsche Logistik GmbH | Augsburg\",\n      \"dates\": \"09/2014 — 03/2019\",\n      \"bullets\": [\n        \"Leitung von acht Entwicklern, Verantwortung fir die Auftragsverwaltung mit taglich 120.000 Sendungen.\",\n        \"Migration der Monolith-Anwendung auf Microservices unter Beibehaltung der Verlligbarkeit von 99,95 Prozent.\",\n        \"Einfihrung von Codereviews und automatisierten Tests, Fehlerquote in der Produktion um 44 Prozent reduziert.\",\n        \"Betreuung von sechs Werkstudierenden und zwei Auszubildenden, davon vier in Festanstellung Ubernommen.\"\n      ]\n    },\n    {\n      \"title\": \"Softwareentwickler\",\n      \"company\": \"Alpen Systemhaus GmbH | Rosenheim\",\n      \"dates\": \"10/2010 — 08/2014\",\n      \"bullets\": [\n        \"Entwicklung von Java-Anwendungen fur Maschinenbau-Kunden in Bayern und Osterreich.\",\n        \"Anbindung von SAP-Schnittstellen und Erstellung der technischen Dokumentation nach ISO 9001.\",\n        \"Schulung von Anwenderinnen und Anwendem vor Ort bei Kunden in Salzburg und\"\n      ]\n    }\n  ],\n  \"skills\": [\n    \"Java\",\n    \"Kotlin\",\n    \"Kubernetes\",\n    \"PostgreSQL\",\n    \"Apache Kafka\",\n    \"Scrum\",\n    \"Kanban\",\n    \"Domain-driven Design\",\n    \"Continuous Delivery\",\n    \"Automobilindustrie\",\n    \"Logistik\",\n    \"ISO 9001\",\n    \"DSGVO\",\n    \"Deutsch\",\n    \"Englisch\",\n    \"Französisch\"\n  ],\n  \"education\": [\n    {\n      \"school\": \"Technische Universitat Munchen\",\n      \"degree\": \"Diplom-Informatiker, Informatik\",\n      \"date\": \"09/2010\"\n    },\n    {\n      \"school\": \"Staatliches Gymnasium Rosenheim\",\n      \"degree\": \"Abitur\",\n      \"date\": \"07/2004\"\n    }\n  ]\n}",
+  "error": null,
+  "score": {
+    "name": false,
+    "email": true,
+    "phone": true,
+    "jobs": {
+      "matched": 0,
+      "total": 3
+    },
+    "bullets": {
+      "matched": 1,
+      "total": 12
+    },
+    "skills": {
+      "matched": 13,
+      "total": 17
+    },
+    "education": {
+      "matched": 1,
+      "total": 2
+    },
+    "missedJobs": [
+      "Leiter Softwareentwicklung | Bayerische Fahrzeugwerke AG | 04/2019 - heute",
+      "Teamleiter Backend-Entwicklung | Süddeutsche Logistik GmbH | 09/2014 - 03/2019",
+      "Softwareentwickler | Alpen Systemhaus GmbH | 10/2010 - 08/2014"
+    ],
+    "missedSkills": [
+      "Teamführung",
+      "Budgetverantwortung",
+      "Agile Transformation",
+      "Stakeholder-Management"
+    ]
+  }
+}

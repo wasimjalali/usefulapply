@@ -50,9 +50,23 @@ async function defaultRenderLimits(userId: string, env: CloudflareEnv | null): P
   await kv.put(key, String(used + 1), { expirationTtl: 90_000 });
 }
 
+/**
+ * A render can take more than one browser call (the footer overlay, the fit pass). The first is counted by
+ * `defaultRenderLimits`; these are counted against the same daily budget afterwards.
+ */
+async function defaultCountExtraRenders(userId: string, extra: number, env: CloudflareEnv | null): Promise<void> {
+  const kv = env?.CONTEXT_CACHE;
+  if (!kv || extra <= 0) return;
+  const key = `export-render:${userId}:${new Date().toISOString().slice(0, 10)}`;
+  const used = Number((await kv.get(key)) ?? 0);
+  await kv.put(key, String(used + extra), { expirationTtl: 90_000 });
+}
+
 export interface ExportDeps {
   /** Called before a render that missed the cache. Defaults to the per-minute and per-day limits. */
   beforeRender?: (userId: string) => Promise<void>;
+  /** Called after a render with the browser renders beyond the first, so they count against the daily budget. */
+  afterRender?: (userId: string, extraRenders: number) => Promise<void>;
   /** Called before a rendered file is stored, so an account deleted mid-render leaves nothing behind. */
   userExists?: (userId: string) => Promise<boolean>;
   loadKit?: KitLoader;
@@ -150,6 +164,7 @@ export async function exportDocument(req: ExportRequest, deps: ExportDeps = {}):
       browser: deps.browser === undefined ? env?.BROWSER ?? null : deps.browser,
       loadFont: deps.loadFont ?? assetFontLoader(env),
     });
+    await (deps.afterRender ?? ((userId: string, extra: number) => defaultCountExtraRenders(userId, extra, env)))(req.userId, rendered.renders - 1);
     if (!(await (deps.userExists ?? defaultUserExists)(req.userId))) throw new ExportInputError('NOT_FOUND', 'Application not found.');
     await storeExport(pathKey, rendered.bytes, rendered.contentType, { userId: req.userId, fileName: rendered.fileName, displayName: rendered.displayName });
     fileName = rendered.fileName;

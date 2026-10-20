@@ -1,6 +1,9 @@
 import type { FontFileLoader } from '@/lib/cv-templates/fonts';
 import { buildCvDocx } from './cv-docx';
+import { exportText } from './export-text';
 import { renderCvHtml } from './cv-html';
+import { fitToFewerPages } from './fit';
+import { getPrintSpec } from '@/lib/cv-templates/print-spec';
 import { renderAnswersHtml, answersPlainText, answersTitle } from './answers-html';
 import { CONTENT_TYPES, exportDisplayFileName, exportFileName, extensionFor } from './filenames';
 import { buildLetterDocx } from './letter-docx';
@@ -25,6 +28,8 @@ export interface RenderedExport {
   contentType: string;
   fileName: string;
   displayName: string;
+  /** Browser Run renders this export used. Counted against the user's daily render budget. */
+  renders: number;
 }
 
 /** The document is bigger than an ATS upload limit allows. Returned as a failure, never as a degraded file. */
@@ -36,7 +41,7 @@ export class ExportTooLargeError extends Error {
 }
 
 function pdfLanguage(resolved: ResolvedExport): string {
-  return resolved.locale === 'de' ? 'de-DE' : 'en-US';
+  return exportText(resolved.locale).bcp47;
 }
 
 function requireBrowser(deps: RenderDeps): BrowserRunBinding {
@@ -55,21 +60,34 @@ export async function renderExport(resolved: ResolvedExport, deps: RenderDeps): 
   const { format } = resolved;
   const ext = extensionFor(format);
   const contentType = CONTENT_TYPES[ext];
-  const de = resolved.locale === 'de';
+  const words = exportText(resolved.locale);
   const fileName = exportFileName(format, resolved.applicantName, resolved.locale);
   const name = resolved.applicantName;
   let bytes: Uint8Array;
+  let renders = 0;
 
   switch (format) {
     case 'cv_pdf': {
       const cv = resolved.cv!;
-      const { html } = await renderCvHtml({ data: cv, templateId: resolved.templateId, paper: resolved.paper, loadFont: deps.loadFont });
-      const rendered = await renderHtmlToPdf(requireBrowser(deps), html, resolved.paper);
-      const raw = await addContinuationFooters({ browser: requireBrowser(deps), pdf: rendered, paper: resolved.paper, name, de: resolved.locale === 'de', loadFont: deps.loadFont });
+      const browser = requireBrowser(deps);
+      const build = async (density?: { spacing: number; lineHeight: number }) => {
+        const { html } = await renderCvHtml({ data: cv, templateId: resolved.templateId, paper: resolved.paper, loadFont: deps.loadFont, density });
+        renders++;
+        return renderHtmlToPdf(browser, html, resolved.paper);
+      };
+      const first = await build();
+      // A last page with only a few lines is re-rendered a little tighter and kept if that saves a page.
+      const fit = await fitToFewerPages({ first, margins: getPrintSpec(resolved.templateId, resolved.paper).marginMm, render: build });
+      if (fit.extraRenders > 0) {
+        console.log('[export] fit pass', JSON.stringify({ template: resolved.templateId, pagesBefore: fit.pagesBefore, pagesAfter: fit.pagesAfter, step: fit.step, extraRenders: fit.extraRenders }));
+      }
+      const rendered = fit.pdf;
+      if (fit.pagesAfter > 1) renders++;
+      const raw = await addContinuationFooters({ browser: requireBrowser(deps), pdf: rendered, paper: resolved.paper, name, footer: words.footer, loadFont: deps.loadFont });
       bytes = await applyPdfMetadata(raw, {
-        title: de ? `Lebenslauf - ${name}` : `${name} - CV`,
+        title: words.cvTitle(name),
         author: name,
-        subject: de ? 'Lebenslauf' : 'Curriculum vitae',
+        subject: words.cvSubject,
         language: pdfLanguage(resolved),
       });
       break;
@@ -79,7 +97,7 @@ export async function renderExport(resolved: ResolvedExport, deps: RenderDeps): 
         data: resolved.cv!,
         templateId: resolved.templateId,
         paper: resolved.paper,
-        title: de ? `Lebenslauf - ${name}` : `${name} - CV`,
+        title: words.cvTitle(name),
         author: name,
       });
       break;
@@ -89,14 +107,15 @@ export async function renderExport(resolved: ResolvedExport, deps: RenderDeps): 
         input: resolved.letter!,
         layout,
         loadFont: deps.loadFont,
-        title: de ? `Anschreiben - ${name}` : `${name} - Cover Letter`,
-        language: de ? 'de' : 'en',
+        title: words.letterTitle(name),
+        language: words.htmlLang,
       });
       const raw = await renderHtmlToPdf(requireBrowser(deps), html, resolved.paper);
+      renders++;
       bytes = await applyPdfMetadata(raw, {
-        title: de ? `Anschreiben - ${name}` : `${name} - Cover Letter`,
+        title: words.letterTitle(name),
         author: name,
-        subject: de ? 'Anschreiben' : 'Cover letter',
+        subject: words.letterSubject,
         language: pdfLanguage(resolved),
       });
       break;
@@ -105,29 +124,30 @@ export async function renderExport(resolved: ResolvedExport, deps: RenderDeps): 
       bytes = await buildLetterDocx({
         input: resolved.letter!,
         layout: resolved.layout!,
-        title: de ? `Anschreiben - ${name}` : `${name} - Cover Letter`,
-        language: de ? 'de' : 'en',
+        title: words.letterTitle(name),
+        language: words.htmlLang,
       });
       break;
     case 'emails_txt':
       bytes = new TextEncoder().encode(emailsText(resolved));
       break;
     case 'answers_txt':
-      bytes = new TextEncoder().encode(`${answersTitle(resolved.company, de)}\n\n${answersPlainText(resolved.answers)}`);
+      bytes = new TextEncoder().encode(`${answersTitle(resolved.company, resolved.locale)}\n\n${answersPlainText(resolved.answers)}`);
       break;
     case 'answers_pdf': {
       const { html } = await renderAnswersHtml({
         answers: resolved.answers,
         company: resolved.company,
-        de,
+        locale: resolved.locale,
         paper: resolved.paper,
         loadFont: deps.loadFont,
       });
       const raw = await renderHtmlToPdf(requireBrowser(deps), html, resolved.paper);
+      renders++;
       bytes = await applyPdfMetadata(raw, {
-        title: answersTitle(resolved.company, de),
+        title: answersTitle(resolved.company, resolved.locale),
         author: name,
-        subject: de ? 'Screening-Antworten' : 'Screening answers',
+        subject: words.answersTitle,
         language: pdfLanguage(resolved),
       });
       break;
@@ -135,6 +155,6 @@ export async function renderExport(resolved: ResolvedExport, deps: RenderDeps): 
   }
 
   if (bytes.length > MAX_EXPORT_BYTES) throw new ExportTooLargeError(bytes.length);
-  return { bytes, contentType, fileName, displayName: exportDisplayFileName(format, resolved.applicantName, resolved.locale) };
+  return { bytes, contentType, fileName, displayName: exportDisplayFileName(format, resolved.applicantName, resolved.locale), renders };
 }
 

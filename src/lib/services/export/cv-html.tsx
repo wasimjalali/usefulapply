@@ -29,6 +29,8 @@ export interface CvHtmlInput {
   /** Overrides the template's own paper. The layout reflows to the new width. */
   paper?: PaperSize;
   loadFont: FontFileLoader;
+  /** The fit pass: spacing and line height scale by these factors (see fit.ts). Omitted, the page is as designed. */
+  density?: { spacing: number; lineHeight: number };
 }
 
 export interface CvHtmlResult {
@@ -54,6 +56,7 @@ export async function renderCvHtml(input: CvHtmlInput): Promise<CvHtmlResult> {
   const locale = inferCvLocale(data);
   const lang = locale === 'other' ? (data.language ?? 'en') : locale;
   const title = `${data.personal.fullName || 'CV'}`;
-  const html = `<!doctype html><html lang="${escapeHtml(lang)}"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${EXPORT_CSP}"><title>${escapeHtml(title)}</title><style>${fonts}\n${PRINT_BASE_CSS}\n${pageRule(input.templateId, input.paper)}</style></head><body>${markup}</body></html>`;
+  const density = input.density ? ` style="--cv-d:${input.density.spacing};--cv-ld:${input.density.lineHeight}"` : '';
+  const html = `<!doctype html><html lang="${escapeHtml(lang)}"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${EXPORT_CSP}"><title>${escapeHtml(title)}</title><style>${fonts}\n${PRINT_BASE_CSS}\n${pageRule(input.templateId, input.paper)}</style></head><body${density}>${markup}</body></html>`;
   return { html, text };
 }

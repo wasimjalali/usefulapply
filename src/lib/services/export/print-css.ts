@@ -22,13 +22,11 @@ strong,b{font-weight:700}
 .cv-entry{break-inside:avoid}
 .cv-exp{break-inside:auto}
 h1,h2,h3,h4{break-after:avoid}
-/* An experience entry: title and employer stay with its first two bullets and its last two stay together.
-   Entries of three bullets or fewer are kept whole. Nothing else is kept together: a block that can be
-   longer than the space left must be allowed to split. */
+/* An experience entry: title and employer stay with its first bullet, and the last bullet stays with the one
+   before it. An entry of three or more bullets can split between them; one of two stays whole. Nothing else is
+   kept together: a block that can be longer than the space left must be allowed to split. */
+.cv-stack>*+*{margin-top:var(--stack-gap,0)}
 .cv-entry-head{break-after:avoid}
-.cv-bullets>.cv-bullet:first-child{break-after:avoid}
 .cv-bullets>.cv-bullet:nth-last-child(2){break-after:avoid}
-.cv-bullets-short>.cv-bullet{break-after:avoid}
-.cv-bullets-short>.cv-bullet:last-child{break-after:auto}
 p,li,.cv-bullet{orphans:2;widows:2}
 `.trim();

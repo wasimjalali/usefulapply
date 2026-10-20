@@ -45,7 +45,14 @@ const SYSTEM = `You are the resume parser of an applicant tracking system. Read 
  "education": [{"school": string, "degree": string, "date": string}]}
 Copy every value exactly as written in the text. Do not correct, translate, infer or add anything. "skills" holds each individual skill as its own string (split lists on commas), without the group label. "dates" is the date range printed with the job. Return {} fields as empty strings or arrays when the text has nothing.`;
 
-async function callOnce(text: string): Promise<{ parsed: AiParsed | null; error?: string }> {
+export interface AiResult {
+  parsed: AiParsed | null;
+  error?: string;
+  /** The model's answer exactly as returned, kept in the results for triage. */
+  raw?: string;
+}
+
+async function callOnce(text: string): Promise<AiResult> {
   let res: Response;
   try {
     res = await fetch(`${WORKER_URL}/ai`, {
@@ -77,14 +84,14 @@ async function callOnce(text: string): Promise<{ parsed: AiParsed | null; error?
   aiUsage.costUsd = (aiUsage.promptTokens * PRICE_IN_PER_M + aiUsage.completionTokens * PRICE_OUT_PER_M) / 1_000_000;
   const content = body.choices?.[0]?.message?.content ?? '';
   try {
-    return { parsed: JSON.parse(content.slice(content.indexOf('{'), content.lastIndexOf('}') + 1)) as AiParsed };
+    return { parsed: JSON.parse(content.slice(content.indexOf('{'), content.lastIndexOf('}') + 1)) as AiParsed, raw: content };
   } catch {
-    return { parsed: null, error: 'the model did not return JSON' };
+    return { parsed: null, error: 'the model did not return JSON', raw: content };
   }
 }
 
 /** Parses extracted CV text. One retry, then the failure is returned, never swallowed. */
-export async function parseWithAi(text: string): Promise<{ parsed: AiParsed | null; error?: string }> {
+export async function parseWithAi(text: string): Promise<AiResult> {
   if (text.trim().length === 0) return { parsed: null, error: 'no text to parse' };
   const first = await callOnce(text);
   return first.parsed ? first : callOnce(text);
@@ -98,6 +105,9 @@ export interface AiScore {
   bullets: { matched: number; total: number };
   skills: { matched: number; total: number };
   education: { matched: number; total: number };
+  /** Source jobs and skills the model did not return exactly, for triage. */
+  missedJobs: string[];
+  missedSkills: string[];
   error?: string;
 }
 
@@ -106,7 +116,7 @@ const same = (a: string, b: string) => norm(a).toLowerCase() === norm(b).toLower
 const bulletText = (value: string) => squash(value.replace(/^[\s\u2022*\u2013-]+/, ''));
 
 /** Exact comparison: a field counts only when the parser returned the CV's own value. */
-export function scoreAi(result: { parsed: AiParsed | null; error?: string }, source: CVData): AiScore {
+export function scoreAi(result: AiResult, source: CVData): AiScore {
   const data = visibleCvData(source);
   const total = {
     jobs: data.experience.length,
@@ -122,6 +132,8 @@ export function scoreAi(result: { parsed: AiParsed | null; error?: string }, sou
     bullets: { matched: 0, total: total.bullets },
     skills: { matched: 0, total: total.skills },
     education: { matched: 0, total: total.education },
+    missedJobs: data.experience.map((exp) => exp.position),
+    missedSkills: data.skills.flatMap((group) => group.items),
     error: result.error,
   };
   const p = result.parsed;
@@ -130,17 +142,19 @@ export function scoreAi(result: { parsed: AiParsed | null; error?: string }, sou
   const parsedBullets = new Set(jobs.flatMap((job) => (Array.isArray(job.bullets) ? job.bullets : [])).map(bulletText));
   const parsedSkills = new Set((Array.isArray(p.skills) ? p.skills : []).map((skill) => norm(String(skill)).toLowerCase()));
   const schools = Array.isArray(p.education) ? p.education : [];
+  const jobMatches = data.experience.map((exp) => jobs.some((job) => same(job.title ?? '', exp.position) && same(job.company ?? '', exp.company) && same(job.dates ?? '', formatDateRange(data, exp))));
+  const allSkills = data.skills.flatMap((group) => group.items);
+  const skillMatches = allSkills.map((skill) => parsedSkills.has(norm(skill).toLowerCase()));
   return {
     name: same(p.name ?? '', data.personal.fullName),
     email: same(p.email ?? '', data.personal.email),
     phone: digits(p.phone ?? '').length >= 7 && digits(data.personal.phone).endsWith(digits(p.phone ?? '')),
-    jobs: {
-      matched: data.experience.filter((exp) => jobs.some((job) => same(job.title ?? '', exp.position) && same(job.company ?? '', exp.company) && same(job.dates ?? '', formatDateRange(data, exp)))).length,
-      total: total.jobs,
-    },
+    jobs: { matched: jobMatches.filter(Boolean).length, total: total.jobs },
     bullets: { matched: data.experience.flatMap((exp) => exp.bullets).filter((bullet) => parsedBullets.has(bulletText(bullet))).length, total: total.bullets },
-    skills: { matched: data.skills.flatMap((group) => group.items).filter((skill) => parsedSkills.has(norm(skill).toLowerCase())).length, total: total.skills },
+    skills: { matched: skillMatches.filter(Boolean).length, total: total.skills },
     education: { matched: data.education.filter((edu) => schools.some((school) => same(school.school ?? '', edu.institution))).length, total: total.education },
+    missedJobs: data.experience.filter((_, i) => !jobMatches[i]).map((exp) => `${exp.position} | ${exp.company} | ${formatDateRange(data, exp)}`),
+    missedSkills: allSkills.filter((_, i) => !skillMatches[i]),
     error: result.error,
   };
 }

@@ -5,7 +5,7 @@
  *   npx tsx --tsconfig evals/ats-export/tsconfig.json evals/ats-export/render-all.ts <outDir>
  */
 import { join } from 'node:path';
-import { CV_FIXTURES, DIN_LETTER, TEMPLATE_IDS, US_LETTER } from './fixtures';
+import { CV_FIXTURES, DIN_LETTER, templatesFor, US_LETTER } from './fixtures';
 import { resolveExport, exportCacheHash } from '../../src/lib/services/export/resolve';
 import { renderExport } from '../../src/lib/services/export/render';
 import type { ExportFormat, ExportKit } from '../../src/lib/services/export/types';
@@ -35,7 +35,7 @@ async function main() {
   const summary: Array<Record<string, unknown>> = [];
 
   for (const fixture of CV_FIXTURES) {
-    for (const templateId of TEMPLATE_IDS) {
+    for (const templateId of templatesFor(fixture)) {
       for (const format of ['cv_pdf', 'cv_docx'] as ExportFormat[]) {
         const photo = fixture.data.personal.photoUrl ?? null;
         const kit = kitFor({ cv: fixture.data, originalCv: fixture.data, applicantName: fixture.data.personal.fullName, photoDataUri: photo });

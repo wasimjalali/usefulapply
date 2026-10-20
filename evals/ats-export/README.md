@@ -16,7 +16,7 @@ brew install --cask libreoffice                # DOCX round trip (SOFFICE env va
 brew install openjdk@21                        # Tika needs a JDK 17+ (JAVA_BIN env var overrides)
 ```
 
-You also need to be logged in to wrangler: the renders go through real Browser Run and the AI parser stand-in uses the account's Workers AI binding (about 15 cents per full run). **No CV data goes to a third-party ATS.** Every extractor runs on this machine; the fixtures are invented.
+You also need to be logged in to wrangler: the renders go through real Browser Run and the AI parser stand-in uses the account's Workers AI binding (about $0.05 for the CVs and about the same again for the old PDFs' OCR text: roughly $0.10 per full run, logged in `results.json`). **No CV data goes to a third-party ATS.** Every extractor runs on this machine; the fixtures are invented.
 
 ## Run
 
@@ -44,11 +44,11 @@ All local. A CV that extracts cleanly from all of them reads cleanly to the pars
 
 | Proxy | What it is | Gate |
 |---|---|---|
-| pdftotext (reading order and raw) | poppler | every template |
+| pdftotext (reading order and raw) | poppler | every template, every check |
 | pdf.js | the engine in browsers and many Node parsers | every template |
 | Apache Tika 3.3.3 | the extractor inside many ATS and search products (stream order) | every template |
 | PyMuPDF `get_text()` | default block order | every template |
-| pdfminer.six | layout analysis | single-column templates; two-column templates report, because it merges a sidebar into the main column |
+| pdfminer.six | layout analysis (text boxes) | every template, every check but title, employer and dates adjacent, which is reported (it sets a title and its right-aligned date in separate boxes) |
 | OpenResume parser | a real open-source CV parser (single-column English only), pinned commit | `us-one-page` |
 | AI parser stand-in | Tika text into Workers AI `@cf/openai/gpt-oss-120b`, scored field by field | at least 90% of jobs, bullets and skills on the English one-page CVs |
 
@@ -79,5 +79,6 @@ The spec signs up two throwaway accounts on the local server, seeds one applicat
 | `lib/cv-checks.ts`, `docx-checks.ts`, `letter-checks.ts`, `expect.ts` | The checks |
 | `lib/ats-proxies.ts`, `ats/` | Tika, PyMuPDF and pdfminer.six drivers and their setup |
 | `lib/openresume.ts`, `lib/ai-parser.ts` | The OpenResume driver and the AI parser stand-in |
-| `service-checks.ts` | Cache key, signing, sanitizing, layout choice, names, dates, hidden state |
+| `service-checks.ts` | Cache key, signing, sanitizing, layout choice, names, dates, hidden state, renderer hash, birth dates, locale tables, links |
+| `chat-tool-scenarios.ts` | The chat CV tools through their real handlers: first heading rename, hidden sections, hidden summary (runs inside `run.ts` too) |
 | `e2e/` | The Playwright spec and its local seed |

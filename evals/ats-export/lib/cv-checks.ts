@@ -4,8 +4,9 @@ import { cvPaper } from '../../../src/lib/cv-templates/paper';
 import { getPrintSpec, isDachTemplate, PAPER_MM, type PaperSize } from '../../../src/lib/cv-templates/print-spec';
 import { visibleCvData } from '../../../src/lib/cv-templates/hidden';
 import { inferCvLocale, type CvTextLocale } from '../../../src/lib/cv-templates/locale';
+import type { LocaleExpectation } from '../fixtures';
 import { checkPersonalAndLinks, checkText, expectationsFor, norm, sameUrl, squash, type TextCheck, type CvExpectations } from './expect';
-import { EXTRACTORS, STREAM_ORDER, extractAll, type Extractor } from './ats-proxies';
+import { extractAll, type Extractor } from './ats-proxies';
 import { extractWithPdfJs, mmToPt, type PdfItem } from './pdf-text';
 import { pdfImageCount, pdfinfo, pdffonts, pdftotext } from './poppler';
 
@@ -22,6 +23,8 @@ export interface CvPdfContext {
   expectedPaper?: PaperSize;
   /** The language of the export (file name, metadata, footer), as the service resolved it. */
   locale?: CvTextLocale;
+  /** What a CV in this language must print, written by hand. */
+  localeExpect?: LocaleExpectation;
 }
 
 export interface ExtractionSummary {
@@ -61,6 +64,8 @@ export interface CvPdfReport {
   extraction: Record<'pdftotext' | 'pdftotextRaw' | 'pdfjs' | Extractor, ExtractionSummary>;
   /** Share of the printable height left empty at the foot of each page but the last. */
   emptyBand: number[];
+  /** Share of the printable height the last page's text reaches. */
+  lastPageFill: number;
   footers: string[];
 }
 
@@ -69,8 +74,8 @@ export const HEADING_ORDER: Record<string, string[]> = {
   executive: ['summary', 'skills', 'experience', 'education', 'certifications', 'languages', 'projects'],
   'classic-green': ['summary', 'skills', 'experience', 'education', 'certifications', 'languages', 'projects'],
   'german-classic': ['summary', 'skills', 'experience', 'education', 'certifications', 'languages', 'projects'],
-  'modern-professional': ['summary', 'experience', 'education', 'projects', 'skills', 'languages', 'certifications'],
-  'german-ats': ['summary', 'experience', 'education', 'projects', 'skills', 'languages', 'certifications'],
+  'modern-professional': ['summary', 'experience', 'education', 'skills', 'certifications', 'languages', 'projects'],
+  'german-ats': ['summary', 'experience', 'education', 'skills', 'languages', 'certifications', 'projects'],
 };
 
 function summarize(check: TextCheck): ExtractionSummary {
@@ -90,37 +95,6 @@ function summarize(check: TextCheck): ExtractionSummary {
 
 function textLines(text: string): string[] {
   return text.split(/[\n\f]/);
-}
-
-const TWO_COLUMN = new Set(['modern-professional', 'german-ats']);
-const MAIN_SECTIONS = ['summary', 'experience', 'education', 'projects'];
-/** A skills list too long for the sidebar prints full width above both columns (an independent copy of the 700 character rule). */
-const WIDE_SKILLS_CHARS = 700;
-const WIDE_SKILLS_ORDER = ['summary', 'skills', 'experience', 'education', 'projects', 'languages', 'certifications'];
-
-/**
- * Two-column templates are main column first, sidebar second, on every page:
- * a page fragments the main column and the sidebar, and each page's stream
- * holds the main part before the sidebar part. So the check is per page, and
- * across pages each column keeps its own order.
- */
-function twoColumnOrderProblems(pages: string[], exp: CvExpectations, domOrder: string[], mainSections: string[]): string[] {
-  const problems: string[] = [];
-  const mainOrder = domOrder.filter((k) => mainSections.includes(k));
-  const sideOrder = domOrder.filter((k) => !mainSections.includes(k));
-  const seenMain: string[] = [];
-  const seenSide: string[] = [];
-  pages.forEach((pageText, index) => {
-    const sequence = headingSequence(pageText, exp);
-    const firstSide = sequence.findIndex((k) => sideOrder.includes(k));
-    const lastMain = sequence.map((k) => mainSections.includes(k)).lastIndexOf(true);
-    if (firstSide >= 0 && lastMain > firstSide) problems.push(`page ${index + 1}: a sidebar section comes before a main section (${sequence.join(' > ')})`);
-    seenMain.push(...sequence.filter((k) => mainSections.includes(k)));
-    seenSide.push(...sequence.filter((k) => !mainSections.includes(k)));
-  });
-  if (seenMain.join() !== mainOrder.filter((k) => seenMain.includes(k)).join()) problems.push(`main sections out of order: ${seenMain.join(' > ')}`);
-  if (seenSide.join() !== sideOrder.filter((k) => seenSide.includes(k)).join()) problems.push(`sidebar sections out of order: ${seenSide.join(' > ')}`);
-  return problems;
 }
 
 /** Order in which the section headings appear in an extraction. */
@@ -185,28 +159,29 @@ export async function checkCvPdf(bytes: Uint8Array, ctx: CvPdfContext): Promise<
     extractAll(bytes),
   ]);
 
-  // Stream readers (raw, pdf.js, Tika) must find each skill group as one line.
+  // Every reader must find each skill group as one "Label: a, b, c" line.
   const checks = {
-    pdftotext: checkText(readingOrder, exp),
+    pdftotext: checkText(readingOrder, exp, { contiguous: true }),
     pdftotextRaw: checkText(raw, exp, { contiguous: true }),
     pdfjs: checkText(pdfjs.text, exp, { contiguous: true }),
     tika: checkText(proxies.tika, exp, { contiguous: true }),
     pymupdf: checkText(proxies.pymupdf, exp, { contiguous: true }),
-    pdfminer: checkText(proxies.pdfminer, exp),
+    pdfminer: checkText(proxies.pdfminer, exp, { contiguous: true }),
   };
   const texts: Record<keyof typeof checks, string> = { pdftotext: readingOrder, pdftotextRaw: raw, pdfjs: pdfjs.text, ...proxies };
 
-  // Content: every tool must find every word, in the right place, with umlauts.
+  // Content: every extractor, stream or layout reader, must find every word, in the right place, with umlauts.
+  // Every template is a single column, so there is no exemption for any reader.
   for (const [tool, check] of Object.entries(checks)) {
-    // pdftotext (reading order) and pdfminer.six read by page geometry, which merges a sidebar's lines into the main column's on the same row.
-    // On a two-column template that is a known limit of that reader (reported as a warning); single-column CVs must read clean.
-    const sink = (tool === 'pdfminer' || tool === 'pdftotext') && TWO_COLUMN.has(ctx.templateId) ? warnings : failures;
-    if (check.missing.length > 0) sink.push(`${tool}: missing ${check.missing.length} (${check.missing.slice(0, 3).join(' | ')})`);
-    if (check.pairingFailures.length > 0) sink.push(`${tool}: ${check.pairingFailures.length} job(s) lost title, employer and date pairing (${check.pairingFailures[0]})`);
+    // pdfminer.six sets a title and its right-aligned date in separate text boxes, so for that reader alone
+    // title, employer and dates adjacent is reported (the per-template numbers are in the write-up), not gated.
+    const pairSink = tool === 'pdfminer' ? warnings : failures;
+    if (check.missing.length > 0) failures.push(`${tool}: missing ${check.missing.length} (${check.missing.slice(0, 3).join(' | ')})`);
+    if (check.pairingFailures.length > 0) pairSink.push(`${tool}: ${check.pairingFailures.length} job(s) lost title, employer and date pairing (${check.pairingFailures[0]})`);
     if (check.nonAsciiLost.length > 0) failures.push(`${tool}: lost characters ${check.nonAsciiLost.join('')}`);
     if (check.mojibake) failures.push(`${tool}: mojibake in extracted text`);
     if (check.hasDashDates) failures.push(`${tool}: en or em dash in the text`);
-    for (const problem of checkPersonalAndLinks(texts[tool as keyof typeof checks], exp, dach, { ignoreUrlOnlyLines: tool === 'tika' })) sink.push(`${tool}: ${problem}`);
+    for (const problem of checkPersonalAndLinks(texts[tool as keyof typeof checks], exp, dach, { ignoreUrlOnlyLines: tool === 'tika' })) failures.push(`${tool}: ${problem}`);
   }
 
   // Link annotations: each link opens its full https URL and its visible text is the clean address, not a label.
@@ -217,10 +192,9 @@ export async function checkCvPdf(bytes: Uint8Array, ctx: CvPdfContext): Promise<
   }
   if (pdfjs.links.some((l) => !/^https:\/\//.test(l.url) && !/^mailto:/.test(l.url) && !/^tel:/.test(l.url))) failures.push('a link annotation does not open an https URL');
 
-  // Reading order: stream order (raw, pdf.js) must follow the DOM order of the template.
-  const wideSkills = TWO_COLUMN.has(ctx.templateId) && exp.skillLines.reduce((n, line) => n + line.length, 0) > WIDE_SKILLS_CHARS;
-  const mainSections = wideSkills ? [...MAIN_SECTIONS, 'skills'] : MAIN_SECTIONS;
-  const domOrder = wideSkills ? WIDE_SKILLS_ORDER : (HEADING_ORDER[ctx.templateId] ?? HEADING_ORDER['premium-ats']);
+  // Reading order: the headings come in the template's order in EVERY extractor (content stream, page geometry,
+  // text boxes), on every template.
+  const domOrder = HEADING_ORDER[ctx.templateId] ?? HEADING_ORDER['premium-ats'];
   const expectedSequence = domOrder.filter((key) => exp.headings.some((h) => h.key === key));
   const sequences = {
     raw: headingSequence(raw, exp),
@@ -230,31 +204,15 @@ export async function checkCvPdf(bytes: Uint8Array, ctx: CvPdfContext): Promise<
     pymupdf: headingSequence(proxies.pymupdf, exp),
     pdfminer: headingSequence(proxies.pdfminer, exp),
   };
-  if (TWO_COLUMN.has(ctx.templateId)) {
-    for (const [tool, pages] of [['raw', raw.split('\f')], ['pdfjs', pdfjs.pageTexts], ['tika', proxies.tika.split('\f')], ['pymupdf', proxies.pymupdf.split('\f')]] as const) {
-      for (const problem of twoColumnOrderProblems(pages, exp, domOrder, mainSections)) failures.push(`reading order (${tool}): ${problem}`);
-    }
-  } else {
-    for (const tool of ['raw', 'pdfjs', 'tika', 'pymupdf'] as const) {
-      if (sequences[tool].join() !== expectedSequence.join()) {
-        failures.push(`reading order (${tool}): ${sequences[tool].join(' > ')} expected ${expectedSequence.join(' > ')}`);
-      }
-    }
-  }
-  if (sequences.readingOrder.join() !== expectedSequence.join()) {
-    warnings.push(`pdftotext reading order follows the page geometry: ${sequences.readingOrder.join(' > ')}`);
-  }
-  for (const tool of EXTRACTORS.filter((e) => !STREAM_ORDER[e])) {
-    if (!TWO_COLUMN.has(ctx.templateId) && sequences[tool].join() !== expectedSequence.join()) {
-      warnings.push(`${tool} reading order: ${sequences[tool].join(' > ')}`);
-    }
+  for (const [tool, sequence] of Object.entries(sequences)) {
+    if (sequence.join() !== expectedSequence.join()) failures.push(`reading order (${tool}): ${sequence.join(' > ')} expected ${expectedSequence.join(' > ')}`);
   }
 
-  // Content must sit under its own heading in the stream. A positioned element
-  // paints late, which once pushed every experience entry behind the
-  // certifications in the text layer: the headings were in order, the content was not.
-  if (!TWO_COLUMN.has(ctx.templateId) && exp.headings.some((h) => h.key === 'experience')) {
-    for (const [tool, text] of [['raw', raw], ['pdfjs', pdfjs.text], ['tika', proxies.tika], ['pymupdf', proxies.pymupdf]] as const) {
+  // Content must sit under its own heading in every reader. A positioned element paints late, which once
+  // pushed every experience entry behind the certifications in the text layer: the headings were in
+  // order, the content was not.
+  if (exp.headings.some((h) => h.key === 'experience')) {
+    for (const [tool, text] of [['raw', raw], ['pdfjs', pdfjs.text], ['tika', proxies.tika], ['pymupdf', proxies.pymupdf], ['pdftotext', readingOrder], ['pdfminer', proxies.pdfminer]] as const) {
       const lines = textLines(text).map((line) => norm(line).toLowerCase());
       const at = (heading: string) => lines.findIndex((line) => line === norm(heading).toLowerCase());
       const expAt = at(exp.headings.find((h) => h.key === 'experience')!.text);
@@ -279,7 +237,7 @@ export async function checkCvPdf(bytes: Uint8Array, ctx: CvPdfContext): Promise<
   }
   // The continuation footer sits in the bottom margin by design; the margin check covers the body.
   const footerZone = mmToPt(8);
-  const isFooter = (item: PdfItem) => item.page > 1 && item.y > pdfjs.pages[item.page - 1].height - footerZone;
+  const isFooter = (item: PdfItem) => info.pages > 1 && item.y > pdfjs.pages[item.page - 1].height - footerZone;
   const margins = observedMargins(pdfjs.items.filter((item) => !isFooter(item)), pdfjs.pages);
   const m = spec.marginMm;
   const tol = 0.8;
@@ -298,7 +256,7 @@ export async function checkCvPdf(bytes: Uint8Array, ctx: CvPdfContext): Promise<
   if (info.author !== exp.name) failures.push(`author is "${info.author}", expected the applicant`);
   if (info.producer !== 'Useful Apply') failures.push(`producer is "${info.producer}"`);
   // The document language follows the CV's content, not the template's market.
-  const wantLang = locale === 'de' ? 'de' : 'en';
+  const wantLang = locale === 'other' ? 'en' : locale;
   if (!catalog.lang.toLowerCase().startsWith(wantLang)) failures.push(`language is "${catalog.lang}", expected ${wantLang}`);
   if (!catalog.displayDocTitle) warnings.push('DisplayDocTitle is not set');
   if (bytes.length > 2 * 1024 * 1024) failures.push(`file is ${(bytes.length / 1024 / 1024).toFixed(2)} MB, limit 2 MB`);
@@ -310,19 +268,23 @@ export async function checkCvPdf(bytes: Uint8Array, ctx: CvPdfContext): Promise<
   if (ctx.expectPhoto && images < 1) failures.push('expected a photo and found none');
   if (!ctx.expectPhoto && images > 0) failures.push(`${images} image(s) where the template prints none`);
 
-  // Continuation footer: "Name · Page 2 of 3" / "Name · Seite 2 von 3" on pages 2 and up, nothing on page 1, nothing else in the margin.
+  // Page footer on EVERY page of a multi-page CV, in the document's language, and none on a one-page CV.
+  // The words are written out here, not read back from the export code.
+  const footerWords: Record<string, [string, string]> = {
+    en: ['Page', 'of'], de: ['Seite', 'von'], fr: ['Page', 'sur'], es: ['Página', 'de'], pt: ['Página', 'de'], it: ['Pagina', 'di'], nl: ['Pagina', 'van'],
+  };
+  const [pageWord, ofWord] = footerWords[locale === 'other' ? 'en' : locale];
   const footers: string[] = [];
-  const footerPattern = /(Page \d+ of \d+|Seite \d+ von \d+)/;
+  const footerPattern = /(Page|Seite|Página|Pagina) \d+ (of|von|sur|de|di|van) \d+/;
   pdfjs.pageTexts.forEach((pageText, index) => {
     const n = index + 1;
-    const want = locale === 'de' ? `${exp.name} · Seite ${n} von ${info.pages}` : `${exp.name} · Page ${n} of ${info.pages}`;
-    const has = squash(pageText).toLowerCase().includes(squash(want).toLowerCase());
-    if (n === 1) {
-      if (footerPattern.test(pageText)) failures.push('page 1 carries a page footer');
-    } else {
-      footers.push(want);
-      if (!has) failures.push(`page ${n} has no footer "${want}"`);
+    const want = `${exp.name} · ${pageWord} ${n} ${ofWord} ${info.pages}`;
+    if (info.pages === 1) {
+      if (footerPattern.test(pageText)) failures.push('a one-page CV carries a page footer');
+      return;
     }
+    footers.push(want);
+    if (!squash(pageText).toLowerCase().includes(squash(want).toLowerCase())) failures.push(`page ${n} has no footer "${want}"`);
   });
   for (const [tool, text] of [['tika', proxies.tika], ['raw', raw]] as const) {
     if (info.pages === 1 && footerPattern.test(text)) failures.push(`${tool}: a one-page CV carries a page footer`);
@@ -346,7 +308,37 @@ export async function checkCvPdf(bytes: Uint8Array, ctx: CvPdfContext): Promise<
     if (band > 0.15) failures.push(`page ${index + 1} ends with ${(band * 100).toFixed(0)}% of the page empty`);
   });
   const expHeading = exp.headings.find((h) => h.key === 'experience');
-  if (expHeading && info.pages > 1 && !squash(pdfjs.pageTexts[0]).toLowerCase().includes(squash(expHeading.text).toLowerCase())) failures.push('Experience starts on page 2');
+  // A heading LINE on page 1, not a substring: "Experience" would otherwise match any bullet that says it.
+  const pageOneLines = pdfjs.pageTexts[0].split('\n').map((line) => norm(line).toLowerCase());
+  if (expHeading && info.pages > 1 && !pageOneLines.includes(norm(expHeading.text).toLowerCase())) failures.push('Experience starts on page 2');
+  // No near-empty last page: it must carry at least 15% of the printable height.
+  let lastPageFill = 1;
+  if (info.pages > 1) {
+    const lastBody = pdfjs.items.filter((item) => item.page === info.pages && item.str.trim() && !isFooter(item));
+    const lowest = lastBody.length ? Math.max(...lastBody.map((item) => item.y)) : mmToPt(spec.marginMm.top);
+    lastPageFill = Number(((lowest - mmToPt(spec.marginMm.top)) / printableH).toFixed(2));
+    if (lastPageFill < 0.15) failures.push(`the last page is ${(lastPageFill * 100).toFixed(0)}% full`);
+  }
+
+  // A CV in another language prints its own headings, present label and degree connector, none of them English.
+  if (ctx.localeExpect) {
+    const lx = ctx.localeExpect;
+    for (const [tool, text] of Object.entries(texts)) {
+      const lines = text.split(/[\n\f]/).map((line) => norm(line).toLowerCase().replace(/:$/, ''));
+      for (const [key, heading] of Object.entries(lx.headings)) {
+        if (!lines.includes(norm(heading).toLowerCase())) failures.push(`${tool}: ${lx.language} heading "${heading}" (${key}) is missing`);
+      }
+      for (const english of ['summary', 'experience', 'education', 'skills', 'languages']) {
+        if (!Object.values(lx.headings).some((h) => norm(h).toLowerCase() === english) && lines.includes(english)) failures.push(`${tool}: the English heading "${english}" is on a ${lx.language} CV`);
+      }
+      const flat = squash(text).toLowerCase();
+      if (!flat.includes(squash(` - ${lx.present}`).toLowerCase())) failures.push(`${tool}: "${lx.present}" is missing from the date range of the current role`);
+      if (/\bPresent\b/.test(text)) failures.push(`${tool}: "Present" is on a ${lx.language} CV`);
+      for (const edu of ctx.source.education) {
+        if (lx.connector !== 'in' && edu.field && flat.includes(squash(`${edu.degree} in ${edu.field}`).toLowerCase())) failures.push(`${tool}: the degree reads "${edu.degree} in ${edu.field}"`);
+      }
+    }
+  }
 
   return {
     fixture: ctx.fixture,
@@ -380,6 +372,7 @@ export async function checkCvPdf(bytes: Uint8Array, ctx: CvPdfContext): Promise<
       pdfminer: summarize(checks.pdfminer),
     },
     emptyBand,
+    lastPageFill,
     footers,
   };
 }

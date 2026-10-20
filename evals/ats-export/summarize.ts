@@ -32,13 +32,15 @@ async function main() {
     docx: { ok: boolean };
     openResume: Scored | null;
     ai: Scored | null;
+    renders?: number;
   };
   const cv = results.cv as CvRow[];
-  const baseline = results.baseline as Array<{ name: string; textChars: number; tagged: boolean; fileSizeKB: number; extraction: Record<Tool, Extraction>; openResume: Scored | null; ai: Scored }>;
+
+  const baseline = results.baseline as Array<{ name: string; textChars: number; tagged: boolean; fileSizeKB: number; extraction: Record<Tool, Extraction>; openResume: Scored | null; ai: Scored; tikaSkillsToken: string }>;
   const rows: string[] = [];
   const avg = (values: number[]) => Math.round(values.reduce((a, b) => a + b, 0) / Math.max(1, values.length));
 
-  rows.push(`CVs: ${cv.length} PDFs and DOCX (${CV_FIXTURES.length} fixtures x ${TEMPLATE_IDS.length} templates); baseline PDFs: ${baseline.length}`);
+  rows.push(`CVs: ${cv.length} PDFs and DOCX (${CV_FIXTURES.length} fixtures); baseline PDFs: ${baseline.length}`);
   rows.push(`PDF pass: ${cv.filter((r) => r.pdf.ok).length}/${cv.length}, DOCX pass: ${cv.filter((r) => r.docx.ok).length}/${cv.length}`);
   rows.push(`Mean PDF size KB: before ${avg(baseline.map((b) => b.fileSizeKB))}, after ${avg(cv.map((r) => r.pdf.metrics.fileSizeKB))}`);
   rows.push(`Text layer (non-space characters), mean: before ${avg(baseline.map((b) => b.textChars))}`);
@@ -65,12 +67,44 @@ async function main() {
   rows.push(`  before: ${score(baseline.map((b) => b.openResume))}`);
   rows.push(`  after:  ${score(cv.map((r) => r.openResume))}`);
   rows.push('AI parser stand-in (Tika text into Workers AI gpt-oss-120b), all rows:');
-  rows.push(`  before: ${score(baseline.map((b) => b.ai))}  (a picture has no text layer to read)`);
+  rows.push(`  before (the old PDFs' OCR text, read by Tika with Tesseract): ${score(baseline.map((b) => b.ai))}`);
   rows.push(`  after:  ${score(cv.map((r) => r.ai))}`);
   const usAi = cv.filter((r) => ['us-one-page', 'us-personal'].includes(r.pdf.fixture));
   rows.push(`  after, English one-page CVs only (gated): ${score(usAi.map((r) => r.ai))}`);
   const u = results.proxies.aiUsage;
   rows.push(`  cost: ${u.calls} calls, ${u.promptTokens} in / ${u.completionTokens} out tokens, $${u.costUsd.toFixed(3)} at list price`);
+
+  // Tika's "before" numbers, strict and token mode. They are scored against the NEW standard headings (Summary, Experience, ...),
+  // not the old ones the pictures actually print (PROFESSIONAL SUMMARY, CORE COMPETENCIES), so the headings figure understates what OCR read.
+  {
+    const strict = baseline.reduce((a, b) => { const [f, t] = frac(b.extraction.tika.skills); return [a[0] + f, a[1] + t]; }, [0, 0]);
+    const token = baseline.reduce((a, b) => { const [f, t] = frac(b.tikaSkillsToken); return [a[0] + f, a[1] + t]; }, [0, 0]);
+    const heads = baseline.reduce((a, b) => { const [f, t] = frac(b.extraction.tika.headings); return [a[0] + f, a[1] + t]; }, [0, 0]);
+    rows.push(`\nTika on the old PDFs (OCR): skills strict (one "Label: a, b, c" line per group) ${strict[0]}/${strict[1]}, skills as whole tokens ${token[0]}/${token[1]}, headings ${heads[0]}/${heads[1]} (scored against the new standard headings)`);
+  }
+
+  // Title, employer and dates adjacent (within two lines of the title), per extractor and template, over all fixtures.
+  {
+    rows.push('\nTitle, employer and dates adjacent, CVs passing per extractor and template (all fixtures that run the template):');
+    const templates = [...new Set(cv.map((r) => r.pdf.templateId))];
+    for (const tool of TOOLS) {
+      const parts = templates.map((id) => {
+        const rowsFor = cv.filter((r) => r.pdf.templateId === id);
+        return `${id} ${rowsFor.filter((r) => r.pdf.extraction[tool].pairingFailures.length === 0).length}/${rowsFor.length}`;
+      });
+      rows.push(`  ${tool.padEnd(13)} ${parts.join(', ')}`);
+    }
+  }
+
+  // The AI parser's misses, for triage.
+  {
+    const misses = cv.filter((r) => (r.ai as unknown as { missedJobs?: string[]; missedSkills?: string[] } | null)?.missedJobs?.length || (r.ai as unknown as { missedSkills?: string[] } | null)?.missedSkills?.length);
+    rows.push(`\nAI parser misses (${misses.length} CVs):`);
+    for (const r of misses) {
+      const a = r.ai as unknown as { missedJobs: string[]; missedSkills: string[] };
+      rows.push(`  ${r.pdf.fixture}__${r.pdf.templateId}: jobs [${a.missedJobs.join('; ')}] skills [${a.missedSkills.join(', ')}]`);
+    }
+  }
 
   const over = CV_FIXTURES.find((f) => f.name === 'over-cap')!.data;
   const groups = over.skills.map((g) => g.items.length);

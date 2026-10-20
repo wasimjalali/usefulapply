@@ -86,14 +86,25 @@ function allFields(letter: StructuredCoverLetter): string[] {
   ].filter(Boolean);
 }
 
-/** Names the lines that sit inside the DIN address field but are not the return line or the recipient: the letterhead must never print over it. */
+/**
+ * Nothing but the return line and the recipient may sit inside the DIN address field, whatever its size,
+ * and the letterhead lines above it must not overlap each other.
+ */
 function addressFieldProblems(lines: Line[], letter: StructuredCoverLetter): string[] {
   const recipient = new Set([letter.recipient.companyName, letter.recipient.contactPerson, letter.recipient.department, ...letter.recipient.addressLines].filter(Boolean).map((x) => norm(x as string)));
   const problems: string[] = [];
+  const returnLine = (l: Line) => norm(l.text).startsWith(`${norm(letter.sender.name)} · `);
   for (const l of lines) {
     if (l.page !== 1) continue;
     const inField = l.y > DIN.addressTop + 1 && l.y < DIN.addressTop + DIN.addressHeight + 1 && l.x < DIN.addressLeft + DIN.addressWidth && l.x < 105;
-    if (inField && l.sizePt > 8.2 && !recipient.has(norm(l.text))) problems.push(`"${l.text.slice(0, 40)}" prints inside the address field at ${l.y.toFixed(1)} mm`);
+    if (inField && !returnLine(l) && !recipient.has(norm(l.text))) problems.push(`"${l.text.slice(0, 40)}" (${l.sizePt.toFixed(1)} pt) prints inside the address field at ${l.y.toFixed(1)} mm`);
+  }
+  // Letterhead lines (left of the information block, above the field): each must have room for its own type.
+  const head = lines.filter((l) => l.page === 1 && l.y < DIN.addressTop && l.x < 105).sort((a, b) => a.y - b.y);
+  for (let i = 1; i < head.length; i++) {
+    const pitch = head[i].y - head[i - 1].y;
+    const needed = head[i].sizePt * 0.3528 * 0.85;
+    if (pitch < needed) problems.push(`letterhead lines overlap: "${head[i].text.slice(0, 30)}" is ${pitch.toFixed(2)} mm under the line above, its type needs ${needed.toFixed(2)}`);
   }
   return problems;
 }
@@ -158,7 +169,7 @@ async function markRows(bytes: Uint8Array, dpi: number, yMm: number): Promise<nu
   return darkest;
 }
 
-export async function checkLetterPdf(bytes: Uint8Array, name: string, layout: 'us' | 'din', letter: StructuredCoverLetter): Promise<LetterReport> {
+export async function checkLetterPdf(bytes: Uint8Array, name: string, layout: 'us' | 'din', letter: StructuredCoverLetter, expect: { returnLine?: string; language?: string } = {}): Promise<LetterReport> {
   const failures: string[] = [];
   const warnings: string[] = [];
   const measured: LetterReport['measured'] = {};
@@ -206,6 +217,8 @@ export async function checkLetterPdf(bytes: Uint8Array, name: string, layout: 'u
     if (!ret) failures.push('return line (Ruecksendeangabe) not found in the top 5 mm of the address field');
     else {
       approx('returnLine.x', ret.x, DIN.addressLeft, 1.2);
+      // The return line is the name, the street and the postcode with city, written out here by hand per fixture.
+      if (expect.returnLine !== undefined && norm(ret.text) !== norm(expect.returnLine)) failures.push(`return line reads "${ret.text}", expected "${expect.returnLine}"`);
       if (ret.y < DIN.addressTop || ret.y > DIN.addressTop + DIN.returnLineHeight + 0.5) failures.push(`return line baseline ${ret.y.toFixed(1)} mm is outside ${DIN.addressTop}-${DIN.addressTop + DIN.returnLineHeight}`);
       measured['returnLine.y'] = Number(ret.y.toFixed(1));
       measured['returnLine.pt'] = Number(ret.sizePt.toFixed(1));

@@ -1,0 +1,30 @@
+{
+  "raw": "{\n  \"name\": \"Inés Carvalho\",\n  \"email\": \"ines.carvalho@example.pt\",\n  \"phone\": \"+351 912345678\",\n  \"jobs\": [\n    {\n      \"title\": \"Engenheira de software sénior\",\n      \"company\": \"Transportes do Norte | Porto\",\n      \"dates\": \"03/2021 — Present\",\n      \"bullets\": [\n        \"Liderou uma equipa de cinco engenheiros na migragao de quarenta servicos para o Kubernetes.\",\n        \"Reduziu a laténcia p99 em 38 % ao redesenhar a cache de seguimento de envios.\"\n      ]\n    },\n    {\n      \"title\": \"Engenheira de software\",\n      \"company\": \"Banco Atlantico | Lisboa\",\n      \"dates\": \"09/2016 — 02/2021\",\n      \"bullets\": [\n        \"Desenhou 0 servigo de contabilidade que processa dois milhées de transagées por dia.\",\n        \"Reduziu o tempo de resolugao de disputas de trés dias para quatro horas.\"\n      ]\n    }\n  ],\n  \"skills\": [\n    \"Go\",\n    \"Python\",\n    \"SQL\",\n    \"TypeScript\",\n    \"Kubernetes\",\n    \"Terraform\",\n    \"AWS\"\n  ],\n  \"education\": [\n    {\n      \"school\": \"Universidade do Porto\",\n      \"degree\": \"Mestrado, Engenharia Informatica\",\n      \"date\": \"2016\"\n    }\n  ]\n}",
+  "error": null,
+  "score": {
+    "name": false,
+    "email": true,
+    "phone": true,
+    "jobs": {
+      "matched": 0,
+      "total": 2
+    },
+    "bullets": {
+      "matched": 0,
+      "total": 4
+    },
+    "skills": {
+      "matched": 7,
+      "total": 7
+    },
+    "education": {
+      "matched": 1,
+      "total": 1
+    },
+    "missedJobs": [
+      "Engenheira de software sénior | Transportes do Norte | 03/2021 - Atualmente",
+      "Engenheira de software | Banco Atlântico | 09/2016 - 02/2021"
+    ],
+    "missedSkills": []
+  }
+}

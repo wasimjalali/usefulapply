@@ -394,6 +394,8 @@ const proposeCvRewrite: ChatTool = {
       if (!cv.summary || !cv.summary.trim()) {
         return { data: { error: 'There is no summary on this CV to rewrite.' } };
       }
+      // A hidden summary is not on the page or in the downloads: no paid rewrite of it.
+      if ((cv.hiddenSections ?? []).includes('summary')) return { data: { error: HIDDEN_REFUSAL } };
       label = currentHeading(cv, 'summary', cvLanguage(cv));
     } else {
       if (typeof args.handle !== 'string' || !args.handle) {

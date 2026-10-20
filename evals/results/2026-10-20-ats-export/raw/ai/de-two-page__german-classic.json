@@ -1,0 +1,29 @@
+{
+  "fixture": "de-two-page",
+  "template": "german-classic",
+  "raw": "{\n  \"name\": \"Jürgen Müller-Schäfer\",\n  \"email\": \"juergen.mueller-schaefer@example.de\",\n  \"phone\": \"+49 151 2345 6789\",\n  \"jobs\": [\n    {\n      \"title\": \"Leiter Softwareentwicklung\",\n      \"company\": \"Bayerische Fahrzeugwerke AG\",\n      \"dates\": \"04/2019 - heute\",\n      \"bullets\": [\n        \"Aufbau und Führung eines Teams von 22 Entwicklerinnen und Entwicklern an drei Standorten in Süddeutschland.\",\n        \"Einführung einer Cloud-Plattform für die Flottenüberwachung von über 3.000 Fahrzeugen, Betriebskosten um 27 Prozent gesenkt.\",\n        \"Verantwortung für ein jährliches Budget von 4,8 Millionen Euro und die Zusammenarbeit mit Einkauf, Recht und Datenschutz.\",\n        \"Umstellung von Wasserfall auf agile Methoden: Releasezyklus von 6 Monaten auf 3 Wochen verkürzt.\",\n        \"Zusammenarbeit mit dem Betriebsrat bei der Einführung neuer Arbeitszeitmodelle für Schichtbetrieb im Rechenzentrum.\"\n      ]\n    },\n    {\n      \"title\": \"Teamleiter Backend-Entwicklung\",\n      \"company\": \"Süddeutsche Logistik GmbH\",\n      \"dates\": \"09/2014 - 03/2019\",\n      \"bullets\": [\n        \"Leitung von acht Entwicklern, Verantwortung für die Auftragsverwaltung mit täglich 120.000 Sendungen.\",\n        \"Migration der Monolith-Anwendung auf Microservices unter Beibehaltung der Verfügbarkeit von 99,95 Prozent.\",\n        \"Einführung von Codereviews und automatisierten Tests, Fehlerquote in der Produktion um 44 Prozent reduziert.\",\n        \"Betreuung von sechs Werkstudierenden und zwei Auszubildenden, davon vier in Festanstellung übernommen.\"\n      ]\n    },\n    {\n      \"title\": \"Softwareentwickler\",\n      \"company\": \"Alpen Systemhaus GmbH\",\n      \"dates\": \"10/2010 - 08/2014\",\n      \"bullets\": [\n        \"Entwicklung von Java-Anwendungen für Maschinenbau-Kunden in Bayern und Österreich.\",\n        \"Anbindung von SAP-Schnittstellen und Erstellung der technischen Dokumentation nach ISO 9001.\",\n        \"Schulung von Anwenderinnen und Anwendern vor Ort bei Kunden in Salzburg und Innsbruck.\"\n      ]\n    }\n  ],\n  \"skills\": [\n    \"Teamführung\",\n    \"Budgetverantwortung\",\n    \"Agile Transformation\",\n    \"Stakeholder-Management\",\n    \"Java\",\n    \"Kotlin\",\n    \"Kubernetes\",\n    \"PostgreSQL\",\n    \"Apache Kafka\",\n    \"Scrum\",\n    \"Kanban\",\n    \"Domain-driven Design\",\n    \"Continuous Delivery\",\n    \"Automobilindustrie\",\n    \"Logistik\",\n    \"ISO 9001\",\n    \"DSGVO\"\n  ],\n  \"education\": [\n    {\n      \"school\": \"Technische Universität München\",\n      \"degree\": \"Diplom-Informatiker, Informatik\",\n      \"date\": \"09/2010\"\n    },\n    {\n      \"school\": \"Staatliches Gymnasium Rosenheim\",\n      \"degree\": \"Abitur\",\n      \"date\": \"07/2004\"\n    }\n  ]\n}",
+  "error": null,
+  "score": {
+    "name": true,
+    "email": true,
+    "phone": true,
+    "jobs": {
+      "matched": 3,
+      "total": 3
+    },
+    "bullets": {
+      "matched": 12,
+      "total": 12
+    },
+    "skills": {
+      "matched": 17,
+      "total": 17
+    },
+    "education": {
+      "matched": 2,
+      "total": 2
+    },
+    "missedJobs": [],
+    "missedSkills": []
+  }
+}
