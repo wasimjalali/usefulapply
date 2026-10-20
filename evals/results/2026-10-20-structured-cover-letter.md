@@ -197,7 +197,7 @@ The PR review (Sonnet and Codex at high) probed the run 3 code and found holes. 
 
 ### Offline checks (code-fixed, no model, no API key)
 
-`npx tsx evals/structured-cover-letter-offline.ts` loads run 3's committed answers and analysis context (`recipient-rerun-2/letters/`) and the committed ads. It changes one thing per check and writes `offline-checks.json`. **52 of 52 passed at run 4** (122 after round 2, see below). They include:
+`npx tsx evals/structured-cover-letter-offline.ts` loads run 3's committed answers and analysis context (`recipient-rerun-2/letters/`) and the committed ads. It changes one thing per check and writes `offline-checks.json`. **52 of 52 passed at run 4** (122 after round 2 and 147 after round 3, see below). They include:
 
 - **Address:**
   - the splice of two offices;
@@ -287,7 +287,7 @@ The second review (Sonnet, Codex and Opus at high) found one high and fifteen lo
     - "Haus 3" and "c/o" lines.
   - Lines are capped at 100 characters.
 - **Placement:**
-  - An explicit submission phrase within 80 characters before the address wins, even inside boilerplate. Examples: "send your application to", "Bewerbungen richten Sie an", "Ihre Unterlagen an", "adresser votre candidature ... à".
+  - (Round 2 wording, narrowed in round 3, see below.) An explicit submission phrase within 80 characters before the address won even inside boilerplate. Examples: "send your application to", "Bewerbungen richten Sie an", "adresser votre candidature ... à".
   - Boilerplate is checked before the block only.
   - Bare "Bewerbung" is no longer an anchor. "Contact:", "Our office" and "Headquarters" are.
   - A workplace label ("Einsatzort", "Arbeitsort", "work location", "job site", "on site at") rejects the address.
@@ -354,6 +354,36 @@ The job description reaches the model through `sanitizeAdText` (`src/lib/agents/
 
 Every recipient detail is matched against the raw ad, so a detail that differs only by these characters doesn't match and is dropped. The field comes back empty, never altered. Whitespace and case differences are already tolerated by the matcher.
 
+## Review round 3 (final, code only, no model run)
+
+Codex and Opus found nothing above low. Sonnet found one high, which it reproduced. The round 2 submission fast path returned "accepted" before the workplace, boilerplate and legal-name checks. So "To apply, send your CV to jobs@acme.com. Work location: 500 Main St, Austin, TX 78701" accepted the work location as the application address. The German pattern also read "Ihre Unterlagen geben wir nicht an Dritte weiter" as a submission instruction.
+
+**What changed:**
+- **Submission fast path:** it now applies only when the phrase's object is the detail. Between the end of the phrase and the address or contact there must be:
+  - no sentence break (`.`, `!` or `?` before whitespace, except after an abbreviation such as "Dr.", "Inc." or "z. B."; the period after "bewerbung@acme.de" counts as a break);
+  - no email address (then the email is what to write to);
+  - no workplace, boilerplate or legal-name wording.
+  - Otherwise the normal placement checks run. German phrasing must be an instruction ("senden Sie ... an", "Bewerbung an", "Bewerbungen richten Sie an").
+  - The same rule applies to the contact person.
+- **Titled correction:** a contact with a given name needs that given name next to the title in the source, so "Herr Brandl, Geschäftsführer" never lends "Herr" to Melanie Brandl.
+- **Greeting repeat check:** needs a whole-word match, so "Hi" doesn't catch "History shows...".
+- **Address occurrences:** every occurrence of the address block in the ad is evaluated. A later occurrence under "Bewerbungen richten Sie an" is accepted even when an imprint shows the same address first.
+- **New formats:** "75001 Paris Cedex 01", "06108 Halle (Saale)", "San Francisco CA 94103" and "New York NY 10001".
+- **One JD per run:** agent-v2 normalises the submitted job description with the shared narrow trim (`storedTextOrEmpty`) and compares with `isSameStoredText`. It uses one string for the whole run, the stored JD when it's the same job or the written one when it changed, for generation, the recipient lookup and the recipient save. A JD with an edge NBSP or BOM no longer looks like a new job.
+- **Fill condition:** moved to `src/db/recipient-fill.ts`. The save and the offline suite now run the same SQL.
+
+**Offline suite:** 147 of 147 pass. That's 122 from round 2 plus 25 for round 3:
+- the 5 address probes and 2 contact probes from the review, all rejected;
+- the legitimate "Bewerbungen richten Sie bitte an: Brenner Getriebe GmbH, Industriestraße 14, 90431 Nürnberg", accepted;
+- abbreviations versus sentence breaks;
+- a borrowed title, now refused;
+- the "Hi"/"History" case;
+- footer-then-application occurrences;
+- the four new formats;
+- the route's trim helpers, plus a `sqlite3` run of the route's run-JD with the real fill condition.
+
+The run 4 replay is still identical. `offline-checks.json` no longer carries a timestamp, so it changes only when a check does. Without a runnable `sqlite3` the SQL checks fail and are reported; they're never skipped.
+
 ## Limits
 
 - One run per case: six cases in run 1, two in runs 2 and 3, four in run 4. This shows the contract path works and the rules hold. It doesn't measure rates.
@@ -377,7 +407,7 @@ The structured contract works on the production model with no retries:
 - correct DACH and US subject and closing conventions;
 - each body an exact rendering of its structure.
 
-A recipient detail reaches the letter only from the session row or from the ad's own text. This covers the company, contact person, department and postal address. The address must be one anchored, well-formed block, not boilerplate. A fake, partly fake, spliced, numberless or boilerplate address is dropped. So are a fake contact, a guessed or cross-person title, and a name from a second person. An address in the paragraphs fails the letter's validation. Optional fields degrade to fixed forms instead of costing the letter. Run 4: 4 of 4 live letters pass 14 of 14 with no retries and no fallbacks, and after review round 2, 122 of 122 offline checks pass, including a replay of run 4's answers through the final code (identical letters).
+A recipient detail reaches the letter only from the session row or from the ad's own text. This covers the company, contact person, department and postal address. The address must be one anchored, well-formed block, not boilerplate. A fake, partly fake, spliced, numberless or boilerplate address is dropped. So are a fake contact, a guessed or cross-person title, and a name from a second person. An address in the paragraphs fails the letter's validation. Optional fields degrade to fixed forms instead of costing the letter. Run 4: 4 of 4 live letters pass 14 of 14 with no retries and no fallbacks, and after review round 3, 147 of 147 offline checks pass, including a replay of run 4's answers through the final code (identical letters).
 
 ## What changed because of it
 

@@ -18,11 +18,12 @@ import { sql, type SQL } from 'drizzle-orm';
 import { SQLiteSyncDialect } from 'drizzle-orm/sqlite-core';
 import { applicationSessions } from '../src/db/schema';
 import { withRecipientReset } from '../src/db/session-recipient-reset';
-import { sqlTrimStoredText, trimStoredText } from '../src/db/trim-text';
+import { isSameStoredText, sqlTrimStoredText, storedTextOrEmpty, trimStoredText } from '../src/db/trim-text';
+import { recipientFillCondition } from '../src/db/recipient-fill';
 import { loadCases, resolveCase } from './lib/cases';
 import type { MasterContext } from '../src/lib/agents/types';
 import { coverLetterFromModelOutput } from '../src/lib/agents/unified-writer-agent';
-import { extractAdAddress, resolveClosing, resolveSalutation, resolveSubject } from '../src/lib/agents/cover-letter-guards';
+import { adContactPerson, extractAdAddress, hasSentenceBoundary, resolveClosing, resolveSalutation, resolveSubject } from '../src/lib/agents/cover-letter-guards';
 import { resolveLetterMarket } from '../src/lib/agents/cover-letter-structure';
 import { isStructuredCoverLetter } from '../src/lib/cover-letter/contract';
 import type { SupportedLanguage } from '../src/lib/utils/language-detector';
@@ -365,6 +366,72 @@ check('contract_guard_rejects_shallow_object', !isStructuredCoverLetter({ versio
   check('r2_15_explicit_value_kept', explicit.company_address === 'Hauptstraße 5', String(explicit.company_address));
   check('r2_15_no_job_change_no_reset', !('company_address' in withRecipientReset({ status: 'applied' })), 'untouched');
 
+  // --- PR #152 review round 3 ---------------------------------------------
+  // 1. The submission fast path applies only when the phrase's object is the detail.
+  const r3Probes: Array<[string, string[], string, Record<string, string>]> = [
+    ['email_then_work_location', ['500 Main St', 'Austin, TX 78701'], 'To apply, send your CV to jobs@acme.com. Work location: 500 Main St, Austin, TX 78701', {}],
+    ['email_then_einsatzort', ['Hauptstraße 99', '10115 Berlin'], 'Bitte senden Sie Ihre Bewerbung an bewerbung@acme.de. Einsatzort: Hauptstraße 99, 10115 Berlin', {}],
+    ['sentence_then_einsatzort', ['Hauptstraße 99', '10115 Berlin'], 'Bewerbung an uns. Einsatzort beim Kunden: Hauptstraße 99, 10115 Berlin', {}],
+    ['email_then_eeo_footer', ['500 Main St', 'Austin, TX 78701'], 'Send your resume to jobs@acme.com. We are an equal opportunity employer. Acme Inc., 500 Main St, Austin, TX 78701', { companyName: 'Acme Inc.' }],
+    ['nicht_an_dritte_then_impressum', ['Hauptstraße 99', '10115 Berlin'], 'Ihre Unterlagen geben wir nicht an Dritte weiter. Impressum: Acme GmbH, Hauptstraße 99, 10115 Berlin', { companyName: 'Acme GmbH' }],
+  ];
+  for (const [name, lines, ad, anchors] of r3Probes) {
+    const got = extractAdAddress(lines, ad, anchors);
+    check(`r3_1_probe_${name}_rejected`, got.length === 0, got);
+  }
+  const contactProbes: Array<[string, string, string]> = [
+    ['impressum_geschaeftsfuehrer', 'Dr. Klaus Brenner', 'Bewerbung an bewerbung@brenner.de. Impressum: Brenner Getriebe GmbH, Geschäftsführer: Dr. Klaus Brenner'],
+    ['email_then_ceo', 'John Smith', 'Send your resume to jobs@acme.com. Our CEO, John Smith, founded the company in 2009.'],
+  ];
+  for (const [name, person, ad] of contactProbes) {
+    const got = adContactPerson(ad, person, []);
+    check(`r3_1_contact_probe_${name}_rejected`, got === undefined, String(got));
+  }
+  const legit = extractAdAddress(['Industriestraße 14', '90431 Nürnberg'], 'Bewerbungen richten Sie bitte an: Brenner Getriebe GmbH, Industriestraße 14, 90431 Nürnberg', { companyName: 'Brenner Getriebe GmbH' });
+  check('r3_1_legit_bewerbungen_richten_sie_an_kept', same(legit, ['Industriestraße 14', '90431 Nürnberg']), legit);
+  const abbreviationGap = extractAdAddress(['220 West Lake Street, Suite 1400', 'Chicago, IL 60606'], 'Please send your application to: Dr. Dana Whitfield, Northwind Freight Inc.\n220 West Lake Street, Suite 1400\nChicago, IL 60606', {});
+  check('r3_1_abbreviations_are_not_sentence_breaks', same(abbreviationGap, ['220 West Lake Street, Suite 1400', 'Chicago, IL 60606']), abbreviationGap);
+  check('r3_1_period_after_email_is_a_sentence_break', hasSentenceBoundary('an bewerbung@acme.de. Einsatzort'), 'bewerbung@acme.de.');
+  check('r3_1_inc_and_z_b_are_not_sentence_breaks', !hasSentenceBoundary('Acme Inc. z. B. e.g. Dr. Brandl'), 'Inc. z. B. e.g. Dr.');
+  check('r3_1_real_contact_still_kept', deRun({}).structured.recipient.contactPerson === 'Frau Melanie Brandl', String(deRun({}).structured.recipient.contactPerson));
+
+  // 2. A titled correction needs the given name next to the title.
+  const r3guard = (salutation: string, contactPerson: string, adText: string) => resolveSalutation({
+    salutation, language: 'de', adText, contactPerson, companyNames: [], isBlacklisted: () => false, isPlaceholder: () => false,
+  }).value;
+  const otherBrandl = 'Bewerbung an Melanie Brandl, Personalabteilung. Herr Brandl, Geschäftsführer';
+  check('r3_2_other_persons_title_not_borrowed', r3guard('Sehr geehrter Herr Brandl,', 'Melanie Brandl', otherBrandl) === 'Guten Tag Melanie Brandl,', r3guard('Sehr geehrter Herr Brandl,', 'Melanie Brandl', otherBrandl));
+  const statedFrau = 'Bewerbung an Frau Melanie Brandl, Personalabteilung. Herr Brandl, Geschäftsführer';
+  check('r3_2_stated_title_with_given_name_used', r3guard('Sehr geehrter Herr Brandl,', 'Melanie Brandl', statedFrau) === 'Sehr geehrte Frau Brandl,', r3guard('Sehr geehrter Herr Brandl,', 'Melanie Brandl', statedFrau));
+
+  // 3. The greeting repeat check needs a whole word.
+  const hi = coverLetterFromModelOutput(JSON.stringify({ ...us.answer, salutation: 'Hi', paragraphs: [`History shows that ${usParagraphs[0]}`, ...usParagraphs.slice(1)] }), us.context('en'), 'en');
+  check('r3_3_history_after_hi_passes', hi.structured.paragraphs[0].startsWith('History shows'), hi.structured.salutation);
+
+  // 4. Every occurrence of the address block is evaluated.
+  const twice = 'Impressum: Acme GmbH, Hauptstraße 5, 10115 Berlin, Handelsregister HRB 1.\n\nBewerbungen richten Sie bitte an: Acme GmbH, Hauptstraße 5, 10115 Berlin';
+  const second = extractAdAddress(['Hauptstraße 5', '10115 Berlin'], twice, { companyName: 'Acme GmbH' });
+  check('r3_4_later_anchored_occurrence_accepted', same(second, ['Hauptstraße 5', '10115 Berlin']), second);
+  const onlyFooter = extractAdAddress(['Hauptstraße 5', '10115 Berlin'], 'Impressum: Acme GmbH, Hauptstraße 5, 10115 Berlin, Handelsregister HRB 1.', { companyName: 'Acme GmbH' });
+  check('r3_4_footer_only_occurrence_rejected', onlyFooter.length === 0, onlyFooter);
+
+  // 5. More formats.
+  const r3formats: Array<[string, string[], string]> = [
+    ['paris_cedex', ['12 rue de Rivoli', '75001 Paris Cedex 01'], '12 rue de Rivoli\n75001 Paris Cedex 01'],
+    ['halle_saale', ['Hansering 15', '06108 Halle (Saale)'], 'Hansering 15\n06108 Halle (Saale)'],
+    ['san_francisco_no_comma', ['1234 Market Street', 'San Francisco CA 94103'], '1234 Market Street\nSan Francisco CA 94103'],
+    ['new_york_no_comma', ['350 Fifth Avenue', 'New York NY 10001'], '350 Fifth Avenue\nNew York NY 10001'],
+  ];
+  for (const [name, lines, block] of r3formats) {
+    const got = addr(lines, apply(block));
+    check(`r3_5_format_${name}_kept`, same(got, lines), got);
+  }
+
+  // 7. The route's helpers: one narrow trim, whitespace-only means empty.
+  check('r3_7_nbsp_edge_is_the_same_job', isSameStoredText(`${String.fromCharCode(0xa0)}Ad\n`, `${String.fromCharCode(0xa0)}Ad`), 'NBSP kept on both sides');
+  check('r3_7_string_trim_would_differ', !isSameStoredText(`${String.fromCharCode(0xa0)}Ad`.trim(), `${String.fromCharCode(0xa0)}Ad`), 'String.trim() drops the NBSP');
+  check('r3_7_whitespace_only_submission_is_empty', storedTextOrEmpty(` ${String.fromCharCode(0xa0)}\n`) === '', 'empty');
+
   // Replay: run 4's real model answers through today's post-model code. The
   // round 2 changes are code only, so each letter must come out as run 4 saved it.
   const RUN4 = path.join(RESULTS, 'recipient-rerun-3', 'letters');
@@ -387,9 +454,11 @@ check('contract_guard_rejects_shallow_object', !isStructuredCoverLetter({ versio
 }
 
 /**
- * Items 13 and 14 against real SQLite (D1 is SQLite), with the SQL the code
- * generates: the JD-change reset from withRecipientReset and the fill-only
- * predicate from persist-letter-recipient. Skipped (reported) without sqlite3.
+ * Items 13 and 14 (round 2) and item 7 (round 3) against real SQLite (D1 is
+ * SQLite), with the exact SQL the code builds: the JD-change reset from
+ * withRecipientReset and the fill condition from db/recipient-fill.ts, the
+ * one persist-letter-recipient uses. Without a runnable sqlite3 these checks
+ * FAIL (reported), they are never skipped.
  */
 function runSqliteChecks(nbsp: string, bom: string): Array<[string, boolean, string]> {
   const dialect = new SQLiteSyncDialect();
@@ -402,12 +471,20 @@ function runSqliteChecks(nbsp: string, bom: string): Array<[string, boolean, str
   const reset = inline(dialect.sqlToQuery(sql`update application_sessions set company_address = ${resetValues.company_address} where id = 'a'`));
   const changed = withRecipientReset({ job_description: 'Another ad' }) as Record<string, SQL>;
   const resetChanged = inline(dialect.sqlToQuery(sql`update application_sessions set company_address = ${changed.company_address} where id = 'b'`));
-  const fill = inline(dialect.sqlToQuery(sql`update application_sessions set company_address = 'Filled' where id = 'c' and ${sqlTrimStoredText(applicationSessions.job_description)} = ${trimStoredText(storedJd)} and (${applicationSessions.company_address} is null or ${sqlTrimStoredText(applicationSessions.company_address)} = '')`));
+  const fillWhere = (id: string, jobDescription: string) => recipientFillCondition({ sessionId: id, userId: 'u', jobDescription, column: applicationSessions.company_address });
+  const fill = inline(dialect.sqlToQuery(sql`update application_sessions set company_address = 'Filled' where ${fillWhere('c', storedJd)}`));
+  // Round 3 item 7: the route's one JD for the run. A browser that sends the
+  // ad without its edge NBSP/BOM is the same job, so the run uses the stored
+  // string and the fill matches. (The old route's String.trim() made it a
+  // different job and wrote the row, clearing the columns.)
+  const submitted = storedTextOrEmpty(`${nbsp}${bom}The ad text`);
+  const runJd = isSameStoredText(submitted, storedJd) ? storedJd : submitted;
+  const fillRun = inline(dialect.sqlToQuery(sql`update application_sessions set company_address = 'Filled' where ${fillWhere('d', runJd)}`));
   const escape = (value: string) => value.replace(/'/gu, "''");
   const script = [
-    'create table application_sessions (id text primary key, job_description text, company_address text);',
-    `insert into application_sessions values ('a', '${escape(storedJd)}', 'Saved 1'), ('b', '${escape(storedJd)}', 'Saved 2'), ('c', '${escape(storedJd)}', '  \t ');`,
-    `${reset};`, `${resetChanged};`, `${fill};`,
+    'create table application_sessions (id text primary key, user_id text, job_description text, company_address text);',
+    `insert into application_sessions values ('a', 'u', '${escape(storedJd)}', 'Saved 1'), ('b', 'u', '${escape(storedJd)}', 'Saved 2'), ('c', 'u', '${escape(storedJd)}', '  \t '), ('d', 'u', '${escape(storedJd)}', NULL);`,
+    `${reset};`, `${resetChanged};`, `${fill};`, `${fillRun};`,
     "select id || '=' || coalesce(company_address, 'NULL') from application_sessions order by id;",
   ].join('\n');
   try {
@@ -416,14 +493,16 @@ function runSqliteChecks(nbsp: string, bom: string): Array<[string, boolean, str
       ['r2_13_sqlite_nbsp_bom_jd_same_job_keeps_columns', out[0] === 'a=Saved 1', out[0]],
       ['r2_13_sqlite_changed_jd_clears_columns', out[1] === 'b=NULL', out[1]],
       ['r2_14_sqlite_whitespace_only_column_filled_on_nbsp_jd', out[2] === 'c=Filled', out[2]],
+      ['r3_7_sqlite_run_jd_from_route_helpers_fills', out[3] === 'd=Filled', out[3]],
     ];
   } catch (error) {
-    return [['r2_13_sqlite_available', false, `sqlite3 not runnable: ${(error as Error).message}`]];
+    return [['sqlite3_runnable', false, `sqlite3 not runnable: ${(error as Error).message}`]];
   }
 }
 
 const failed = checks.filter((c) => !c.pass);
-fs.writeFileSync(path.join(RESULTS, 'offline-checks.json'), JSON.stringify({ date: new Date().toISOString(), total: checks.length, failed: failed.length, checks }, null, 1) + '\n');
+// No timestamp: the committed file changes only when a check does.
+fs.writeFileSync(path.join(RESULTS, 'offline-checks.json'), JSON.stringify({ total: checks.length, failed: failed.length, checks }, null, 1) + '\n');
 for (const c of checks) console.log(`${c.pass ? 'pass' : 'FAIL'} ${c.name}: ${c.detail}`);
 console.log(`${checks.length - failed.length}/${checks.length} offline checks pass`);
 if (failed.length > 0) process.exit(1);

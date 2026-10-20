@@ -1,6 +1,5 @@
 {
- "date": "2026-10-20T11:28:39.210Z",
- "total": 122,
+ "total": 147,
  "failed": 0,
  "checks": [
   {
@@ -579,6 +578,11 @@
    "detail": "c=Filled"
   },
   {
+   "name": "r3_7_sqlite_run_jd_from_route_helpers_fills",
+   "pass": true,
+   "detail": "d=Filled"
+  },
+  {
    "name": "r2_15_explicit_undefined_still_resets",
    "pass": true,
    "detail": "object"
@@ -592,6 +596,126 @@
    "name": "r2_15_no_job_change_no_reset",
    "pass": true,
    "detail": "untouched"
+  },
+  {
+   "name": "r3_1_probe_email_then_work_location_rejected",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r3_1_probe_email_then_einsatzort_rejected",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r3_1_probe_sentence_then_einsatzort_rejected",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r3_1_probe_email_then_eeo_footer_rejected",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r3_1_probe_nicht_an_dritte_then_impressum_rejected",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r3_1_contact_probe_impressum_geschaeftsfuehrer_rejected",
+   "pass": true,
+   "detail": "undefined"
+  },
+  {
+   "name": "r3_1_contact_probe_email_then_ceo_rejected",
+   "pass": true,
+   "detail": "undefined"
+  },
+  {
+   "name": "r3_1_legit_bewerbungen_richten_sie_an_kept",
+   "pass": true,
+   "detail": "[\"Industriestraße 14\",\"90431 Nürnberg\"]"
+  },
+  {
+   "name": "r3_1_abbreviations_are_not_sentence_breaks",
+   "pass": true,
+   "detail": "[\"220 West Lake Street, Suite 1400\",\"Chicago, IL 60606\"]"
+  },
+  {
+   "name": "r3_1_period_after_email_is_a_sentence_break",
+   "pass": true,
+   "detail": "bewerbung@acme.de."
+  },
+  {
+   "name": "r3_1_inc_and_z_b_are_not_sentence_breaks",
+   "pass": true,
+   "detail": "Inc. z. B. e.g. Dr."
+  },
+  {
+   "name": "r3_1_real_contact_still_kept",
+   "pass": true,
+   "detail": "Frau Melanie Brandl"
+  },
+  {
+   "name": "r3_2_other_persons_title_not_borrowed",
+   "pass": true,
+   "detail": "Guten Tag Melanie Brandl,"
+  },
+  {
+   "name": "r3_2_stated_title_with_given_name_used",
+   "pass": true,
+   "detail": "Sehr geehrte Frau Brandl,"
+  },
+  {
+   "name": "r3_3_history_after_hi_passes",
+   "pass": true,
+   "detail": "Hi,"
+  },
+  {
+   "name": "r3_4_later_anchored_occurrence_accepted",
+   "pass": true,
+   "detail": "[\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r3_4_footer_only_occurrence_rejected",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r3_5_format_paris_cedex_kept",
+   "pass": true,
+   "detail": "[\"12 rue de Rivoli\",\"75001 Paris Cedex 01\"]"
+  },
+  {
+   "name": "r3_5_format_halle_saale_kept",
+   "pass": true,
+   "detail": "[\"Hansering 15\",\"06108 Halle (Saale)\"]"
+  },
+  {
+   "name": "r3_5_format_san_francisco_no_comma_kept",
+   "pass": true,
+   "detail": "[\"1234 Market Street\",\"San Francisco CA 94103\"]"
+  },
+  {
+   "name": "r3_5_format_new_york_no_comma_kept",
+   "pass": true,
+   "detail": "[\"350 Fifth Avenue\",\"New York NY 10001\"]"
+  },
+  {
+   "name": "r3_7_nbsp_edge_is_the_same_job",
+   "pass": true,
+   "detail": "NBSP kept on both sides"
+  },
+  {
+   "name": "r3_7_string_trim_would_differ",
+   "pass": true,
+   "detail": "String.trim() drops the NBSP"
+  },
+  {
+   "name": "r3_7_whitespace_only_submission_is_empty",
+   "pass": true,
+   "detail": "empty"
   },
   {
    "name": "replay_run4_sl-de-contact_unchanged",
