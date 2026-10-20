@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * German Classic Template
  *
@@ -24,28 +22,21 @@
  */
 
 import { CVData, CVTemplate } from '@/lib/cv-templates/types';
-import { Mail, Phone, MapPin, Linkedin, Globe, Github, User } from 'lucide-react';
-import { openSettings } from '@/store/useSettingsStore';
+import { rootBox, type CvRenderMode } from '@/lib/cv-templates/print-spec';
+import { cvPaper } from '@/lib/cv-templates/paper';
+import { sectionHeading, formatDateRange, formatSingleDate, degreeText, labelColon, uiText } from '@/lib/cv-templates/locale';
+import { formatBirthDate } from '@/lib/cv-templates/birthdate';
+import { ContactRows, LanguageLine, SignatureBlock, SkillLines, stackGap } from './shared';
 
 interface Props {
   data: CVData;
   template: CVTemplate;
   photoUrl?: string;
+  /** `print` hides edit affordances and drops the page box so the export owns the margins. */
+  mode?: CvRenderMode;
 }
 
-// Default English section headers — AI output overrides these via data.sectionHeaders
-const DEFAULT_HEADERS = {
-  summary: 'PROFESSIONAL SUMMARY',
-  skills: 'CORE COMPETENCIES',
-  experience: 'PROFESSIONAL EXPERIENCE',
-  education: 'EDUCATION',
-  certifications: 'CERTIFICATIONS',
-  languages: 'LANGUAGES',
-  additionalInfo: 'ADDITIONAL INFORMATION',
-  projects: 'PROJECTS',
-};
-
-export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
+export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props) {
   // 2026 Design: Charcoal/Anthracite palette — professional & neutral
   const classicColors = {
     primary: '#374151',      // Charcoal — neutral, professional
@@ -60,30 +51,29 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
     <div 
       className="cv-template"
       style={{ 
-        width: '210mm',
-        minHeight: '297mm',
         backgroundColor: 'white',
-        padding: '0.5in 0.75in',
         pageBreakAfter: 'auto',
         pageBreakInside: 'auto',
-        fontFamily: "'Arial', 'Helvetica Neue', 'Helvetica', sans-serif",
-        fontSize: '11px',
-        lineHeight: 1.2,
+        fontFamily: "'Arimo', 'Arial', 'Helvetica Neue', 'Helvetica', sans-serif",
+        fontSize: '10pt',
+        lineHeight: 'calc(1.2 * var(--cv-ld, 1))',
         color: classicColors.text,
+        ...rootBox(template.id, mode, cvPaper(data)),
+        fontVariantLigatures: 'none',
       }}
     >
       {/* HEADER WITH PHOTO — Single-column, ATS-optimized, Photo Top-Right (German Standard) */}
-      <header style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: `2px solid ${classicColors.primary}` }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px' }}>
+      <header style={{ marginBottom: 'calc(20px * var(--cv-d, 1))', paddingBottom: 'calc(16px * var(--cv-d, 1))', borderBottom: `2px solid ${classicColors.primary}` }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'calc(20px * var(--cv-d, 1))' }}>
           {/* Name + Contact */}
           <div style={{ flex: 1 }}>
             <h1 
               style={{ 
-                fontFamily: "'Georgia', 'Times New Roman', serif",
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '24px',
                 fontWeight: 'bold',
                 color: classicColors.primary,
-                marginBottom: '4px',
+                marginBottom: 'calc(4px * var(--cv-d, 1))',
               }}
             >
               {data.personal.fullName || 'Your Name'}
@@ -91,11 +81,11 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
             {data.personal.currentTitle && (
               <p 
                 style={{ 
-                  fontFamily: "'Georgia', 'Times New Roman', serif",
-                  fontSize: '13px',
+                  fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                  fontSize: '10.5pt',
                   fontWeight: '600',
                   color: classicColors.textLight,
-                  marginBottom: '16px',
+                  marginBottom: 'calc(16px * var(--cv-d, 1))',
                 }}
               >
                 {data.personal.currentTitle}
@@ -103,303 +93,144 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
             )}
 
             {/* Contact Info — Inline for ATS */}
-            <div 
-              style={{ 
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                gap: '14px',
-                fontSize: '11px',
-                color: classicColors.textLight,
-              }}
-            >
-              {data.personal.email && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Mail style={{ width: '11px', height: '11px', color: classicColors.primary }} />
-                  <span>{data.personal.email}</span>
-                </div>
-              )}
-              {data.personal.phone && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Phone style={{ width: '11px', height: '11px', color: classicColors.primary }} />
-                  <span>{data.personal.phone}</span>
-                </div>
-              )}
-              {(data.personal.address || data.personal.city || data.personal.country) && (() => {
-                const parts: string[] = [];
-                if (data.personal.address) {
-                  parts.push(data.personal.address);
-                  if (data.personal.city && !data.personal.address.toLowerCase().includes(data.personal.city.toLowerCase())) parts.push(data.personal.city);
-                  if (data.personal.country && !data.personal.address.toLowerCase().includes(data.personal.country.toLowerCase())) parts.push(data.personal.country);
-                } else {
-                  if (data.personal.city) parts.push(data.personal.city);
-                  if (data.personal.country) parts.push(data.personal.country);
-                }
-                return (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <MapPin style={{ width: '11px', height: '11px', color: classicColors.primary }} />
-                    <span>{parts.join(', ')}</span>
-                  </div>
-                );
-              })()}
-              {data.personal.linkedIn && (
-                <a href={data.personal.linkedIn} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'inherit', textDecoration: 'none' }}>
-                  <Linkedin style={{ width: '11px', height: '11px', color: classicColors.primary }} />
-                  <span>LinkedIn</span>
-                </a>
-              )}
-              {data.personal.github && (
-                <a href={data.personal.github} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'inherit', textDecoration: 'none' }}>
-                  <Github style={{ width: '11px', height: '11px', color: classicColors.primary }} />
-                  <span>GitHub</span>
-                </a>
-              )}
-              {data.personal.portfolio && (
-                <a href={data.personal.portfolio} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'inherit', textDecoration: 'none' }}>
-                  <Globe style={{ width: '11px', height: '11px', color: classicColors.primary }} />
-                  <span>Portfolio</span>
-                </a>
-              )}
-              {data.personal.website && (
-                <a href={data.personal.website} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'inherit', textDecoration: 'none' }}>
-                  <Globe style={{ width: '11px', height: '11px', color: classicColors.primary }} />
-                  <span>{data.localizedStrings?.websiteLabel || 'Website'}</span>
-                </a>
-              )}
-            </div>
+            <ContactRows data={data} iconSize={11} iconColor={classicColors.primary} iconGap={5} textColor={classicColors.textLight} columnGap={14} rowGap={4} />
             {/* Date of Birth & Nationality — standard for German CVs */}
             {(data.personal.dateOfBirth || data.personal.nationality) && (
               <div
                 style={{
                   display: 'flex',
                   flexWrap: 'wrap',
-                  gap: '14px',
-                  fontSize: '11px',
+                  gap: 'calc(14px * var(--cv-d, 1))',
+                  fontSize: '10pt',
                   color: classicColors.textLight,
-                  marginTop: '6px',
+                  marginTop: 'calc(6px * var(--cv-d, 1))',
                 }}
               >
                 {data.personal.dateOfBirth && (
-                  <span><strong style={{ color: classicColors.primary }}>{data.localizedStrings?.dateOfBirthLabel || 'Date of Birth'}:</strong> {data.personal.dateOfBirth}</span>
+                  <span><strong style={{ color: classicColors.primary }}>{uiText(data, 'dateOfBirthLabel')}{labelColon(data)}</strong> {formatBirthDate(data)}</span>
                 )}
                 {data.personal.nationality && (
-                  <span><strong style={{ color: classicColors.primary }}>{data.localizedStrings?.nationalityLabel || 'Nationality'}:</strong> {data.personal.nationality}</span>
+                  <span><strong style={{ color: classicColors.primary }}>{uiText(data, 'nationalityLabel')}{labelColon(data)}</strong> {data.personal.nationality}</span>
                 )}
               </div>
             )}
           </div>
 
-          {/* Photo — Top-right, German CV standard: 3.5cm x 4.7cm.
-              The empty placeholder opens settings, where the photo lives. */}
-          <div
-            onClick={photoUrl ? undefined : () => openSettings('general')}
-            title={photoUrl ? undefined : 'Add your photo in Settings'}
-            style={{
-              width: '35mm',
-              height: '47mm',
-              flexShrink: 0,
-              border: photoUrl ? `0.5px solid ${classicColors.photoBorder}` : `2px dashed ${classicColors.photoBorder}`,
-              borderRadius: '2px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-              backgroundColor: photoUrl ? 'transparent' : '#F9FAFB',
-              cursor: photoUrl ? undefined : 'pointer',
-            }}
-          >
-            {photoUrl ? (
-              <img
-                src={photoUrl}
-                alt="Profile Photo"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', imageRendering: 'crisp-edges' }}
-              />
-            ) : (
-              <div style={{ textAlign: 'center', padding: '6px' }}>
-                <User style={{ width: '24px', height: '24px', color: classicColors.photoBorder, margin: '0 auto 4px' }} />
-                <span style={{ fontSize: '8px', color: classicColors.textLight }}>{data.localizedStrings?.photoPlaceholder || 'Foto'}</span>
-              </div>
-            )}
-          </div>
+          {/* Photo, top right, German CV standard 3.5 x 4.7 cm. With no photo nothing is drawn, on screen
+              as in the PDF, so the header does not move. The canvas toolbar offers "Add photo". */}
+          {photoUrl && (
+            <div
+              style={{
+                width: '35mm',
+                height: '47mm',
+                flexShrink: 0,
+                border: `0.5px solid ${classicColors.photoBorder}`,
+                borderRadius: '2px',
+                overflow: 'hidden',
+              }}
+            >
+              <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
+          )}
         </div>
       </header>
 
       {/* PROFESSIONAL SUMMARY */}
       {data.summary && (
-        <section style={{ marginBottom: '18px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2 
             style={{ 
-              fontFamily: "'Georgia', 'Times New Roman', serif",
-              fontSize: '13px',
+              fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+              fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: '0.4px',
               color: classicColors.primary,
-              marginBottom: '6px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(6px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
-            {data.sectionHeaders?.summary || DEFAULT_HEADERS.summary}
+            {sectionHeading(data, 'summary')}
           </h2>
-          <p style={{ fontSize: '11px', lineHeight: 1.5, color: classicColors.text }}>
+          <p style={{ fontSize: '10pt', lineHeight: 'calc(1.5 * var(--cv-ld, 1))', color: classicColors.text }}>
             {data.summary}
           </p>
         </section>
       )}
 
       {/* CORE COMPETENCIES — 3-Column Grid with Languages */}
-      {(data.skills.length > 0 || data.languages.length > 0) && (
-        <section style={{ marginBottom: '18px' }}>
-          <h2 
+      {data.skills.length > 0 && (
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
+          
+          <SkillLines heading={<h2 
             style={{ 
-              fontFamily: "'Georgia', 'Times New Roman', serif",
-              fontSize: '13px',
+              fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+              fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: '0.4px',
               color: classicColors.primary,
-              marginBottom: '8px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(8px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
-            {data.sectionHeaders?.skills || DEFAULT_HEADERS.skills}
-          </h2>
-          <div 
-            style={{ 
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '16px',
-            }}
-          >
-            {data.skills.slice(0, 5).map((group, groupIdx) => (
-              <div key={groupIdx}>
-                <h4 
-                  style={{ 
-                    color: classicColors.primary, 
-                    fontWeight: 700, 
-                    fontSize: '10px', 
-                    marginBottom: '4px', 
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                  }}
-                >
-                  {group.category}
-                </h4>
-                <div style={{ margin: 0 }}>
-                  {group.items.slice(0, 5).map((skill, idx) => (
-                    <div 
-                      key={idx} 
-                      style={{ 
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '5px',
-                        fontSize: '11px',
-                        lineHeight: 1.3,
-                        marginBottom: '2px',
-                        color: classicColors.text,
-                      }}
-                    >
-                      <span style={{ flexShrink: 0 }}>•</span>
-                      <span>{skill}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-            
-            {/* Languages Column — always placed in the grid alongside skills */}
-            {data.languages.length > 0 && (
-              <div>
-                <h4 
-                  style={{ 
-                    color: classicColors.primary, 
-                    fontWeight: 700, 
-                    fontSize: '10px', 
-                    marginBottom: '4px', 
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                  }}
-                >
-                  {data.sectionHeaders?.languages || DEFAULT_HEADERS.languages}
-                </h4>
-                <div style={{ margin: 0 }}>
-                  {data.languages.map((lang, idx) => (
-                    <div 
-                      key={idx} 
-                      style={{ 
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '5px',
-                        fontSize: '11px',
-                        lineHeight: 1.3,
-                        marginBottom: '2px',
-                        color: classicColors.text,
-                      }}
-                    >
-                      <span style={{ flexShrink: 0 }}>•</span>
-                      <span>
-                        <strong>{lang.language}{lang.proficiency ? ':' : ''}</strong>{lang.proficiency ? ` ${lang.proficiency}` : ''}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+            {sectionHeading(data, 'skills')}
+          </h2>} data={data} primary={classicColors.primary} text={classicColors.text} gap={6} lineHeight={1.3} />
         </section>
       )}
 
       {/* PROFESSIONAL EXPERIENCE */}
       {data.experience.length > 0 && (
-        <section style={{ marginBottom: '18px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2 
             style={{ 
-              fontFamily: "'Georgia', 'Times New Roman', serif",
-              fontSize: '13px',
+              fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+              fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: '0.4px',
               color: classicColors.primary,
-              marginBottom: '10px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(10px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
-            {data.sectionHeaders?.experience || DEFAULT_HEADERS.experience}
+            {sectionHeading(data, 'experience')}
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div className="cv-stack" style={stackGap(14)}>
             {data.experience.map((exp) => (
-              <div key={exp.id}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '2px' }}>
-                  <h3 style={{ fontSize: '12px', fontWeight: 'bold', color: classicColors.text }}>
+              <div className={exp.bullets.length <= 3 ? 'cv-exp cv-exp-short' : 'cv-exp'} key={exp.id}>
+                <div className="cv-entry-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'calc(2px * var(--cv-d, 1))' }}>
+                  <h3 style={{ fontSize: '10pt', fontWeight: 'bold', color: classicColors.text }}>
                     {exp.position}
                   </h3>
-                  <span style={{ fontSize: '11px', whiteSpace: 'nowrap', color: classicColors.textLight }}>
-                    {exp.startDate} – {exp.current ? (data.localizedStrings?.present || 'Present') : exp.endDate}
+                  <span style={{ fontSize: '10pt', whiteSpace: 'nowrap', color: classicColors.textLight }}>
+                    {formatDateRange(data, exp)}
                   </span>
                 </div>
-                <p style={{ fontSize: '11px', fontWeight: '600', marginBottom: '5px', color: classicColors.primary }}>
+                <p className="cv-entry-head" style={{ fontSize: '10pt', fontWeight: '600', marginBottom: 'calc(5px * var(--cv-d, 1))', color: classicColors.primary }}>
                   {exp.company}
                   {exp.location && <span style={{ color: classicColors.textLight }}> | {exp.location}</span>}
                 </p>
                 {exp.bullets.length > 0 && (
-                  <div style={{ marginTop: '3px', marginLeft: '4px' }}>
+                  <div className="cv-bullets" style={{ marginTop: 'calc(3px * var(--cv-d, 1))', marginLeft: '4px' }}>
                     {exp.bullets.map((bullet, idx) => (
-                      <div 
+                      <div className="cv-bullet"
                         key={idx} 
                         style={{ 
                           display: 'flex',
                           alignItems: 'flex-start',
-                          gap: '7px',
-                          fontSize: '11px',
-                          lineHeight: 1.4,
-                          marginBottom: '2px',
+                          breakInside: 'avoid',
+                          gap: 'calc(7px * var(--cv-d, 1))',
+                          fontSize: '10pt',
+                          lineHeight: 'calc(1.4 * var(--cv-ld, 1))',
+                          marginBottom: 'calc(2px * var(--cv-d, 1))',
                           color: classicColors.text,
                         }}
                       >
-                        <span style={{ flexShrink: 0, marginTop: '1px' }}>•</span>
+                        <span style={{ flexShrink: 0, marginTop: 'calc(1px * var(--cv-d, 1))' }}>•</span>
                         <span>{bullet}</span>
                       </div>
                     ))}
@@ -413,37 +244,37 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
 
       {/* EDUCATION */}
       {data.education.length > 0 && (
-        <section style={{ marginBottom: '18px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2 
             style={{ 
-              fontFamily: "'Georgia', 'Times New Roman', serif",
-              fontSize: '13px',
+              fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+              fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: '0.4px',
               color: classicColors.primary,
-              marginBottom: '6px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(6px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
-            {data.sectionHeaders?.education || DEFAULT_HEADERS.education}
+            {sectionHeading(data, 'education')}
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="cv-stack" style={stackGap(8)}>
             {data.education.map((edu) => (
-              <div key={edu.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <div className="cv-entry" key={edu.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <div>
-                  <h3 style={{ fontSize: '12px', fontWeight: '600', color: classicColors.text }}>
-                    {edu.degree}{edu.field && `, ${edu.field}`}
+                  <h3 style={{ fontSize: '10pt', fontWeight: '600', color: classicColors.text }}>
+                    {degreeText(data, edu)}
                   </h3>
-                  <p style={{ fontSize: '11px', color: classicColors.textLight }}>
+                  <p style={{ fontSize: '10pt', color: classicColors.textLight }}>
                     {edu.institution}
-                    {edu.grade && <span> | {data.localizedStrings?.gradePrefix || 'GPA:'} {edu.grade}</span>}
+                    {edu.grade && <span> | {uiText(data, 'gradePrefix')} {edu.grade}</span>}
                   </p>
                 </div>
                 {edu.endDate && (
-                  <span style={{ fontSize: '11px', whiteSpace: 'nowrap', color: classicColors.textLight }}>
-                    {edu.endDate}
+                  <span style={{ fontSize: '10pt', whiteSpace: 'nowrap', color: classicColors.textLight }}>
+                    {formatSingleDate(data, edu.endDate)}
                   </span>
                 )}
               </div>
@@ -454,25 +285,25 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
 
       {/* CERTIFICATIONS */}
       {data.certifications.length > 0 && (
-        <section style={{ marginBottom: '18px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2 
             style={{ 
-              fontFamily: "'Georgia', 'Times New Roman', serif",
-              fontSize: '13px',
+              fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+              fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: '0.4px',
               color: classicColors.primary,
-              marginBottom: '6px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(6px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
-            {data.sectionHeaders?.certifications || DEFAULT_HEADERS.certifications}
+            {sectionHeading(data, 'certifications')}
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '20px', rowGap: '4px' }}>
+          <div className="cv-stack" style={stackGap(4)}>
             {data.certifications.map((cert) => (
-              <div key={cert.id} style={{ fontSize: '11px' }}>
+              <div className="cv-entry" key={cert.id} style={{ fontSize: '10pt' }}>
                 <span style={{ fontWeight: '500', color: classicColors.text }}>{cert.name}</span>
                 {cert.issuer && <span style={{ color: classicColors.textLight }}> ({cert.issuer})</span>}
               </div>
@@ -481,23 +312,44 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
         </section>
       )}
 
-      {/* PROJECTS */}
-      {data.projects && data.projects.length > 0 && (
-        <section style={{ marginBottom: '18px' }}>
-          <h2
-            style={{
-              fontFamily: "'Georgia', 'Times New Roman', serif",
-              fontSize: '13px',
+      {data.languages.length > 0 && (
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
+          <h2 
+            style={{ 
+              fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+              fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: '0.4px',
               color: classicColors.primary,
-              marginBottom: '6px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(6px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
-            {data.sectionHeaders?.projects || DEFAULT_HEADERS.projects}
+            {sectionHeading(data, 'languages')}
+          </h2>
+          <LanguageLine data={data} text={classicColors.text} lineHeight={1.4} />
+        </section>
+      )}
+
+      {/* PROJECTS */}
+      {data.projects && data.projects.length > 0 && (
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
+          <h2
+            style={{
+              fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+              fontSize: '10.5pt',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              letterSpacing: '0.4px',
+              color: classicColors.primary,
+              marginBottom: 'calc(6px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
+              borderBottom: `2px solid ${classicColors.primary}`,
+            }}
+          >
+            {sectionHeading(data, 'projects')}
           </h2>
           {/* One line per project keeps the section short; a description
               that just repeats the name is dropped. */}
@@ -505,11 +357,11 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
             const description = project.description?.trim();
             const showDescription = Boolean(description && description.toLowerCase() !== project.name.trim().toLowerCase());
             return (
-              <div key={project.id} style={{ fontSize: '11px', lineHeight: 1.5, color: classicColors.textLight, marginBottom: '4px' }}>
-                <span style={{ fontWeight: 600, fontSize: '12px', color: classicColors.text }}>{project.name}</span>
+              <div key={project.id} style={{ fontSize: '10pt', lineHeight: 'calc(1.5 * var(--cv-ld, 1))', color: classicColors.textLight, marginBottom: 'calc(4px * var(--cv-d, 1))' }}>
+                <span style={{ fontWeight: 600, fontSize: '10pt', color: classicColors.text }}>{project.name}</span>
                 {showDescription && <span>: {description}</span>}
                 {project.technologies && project.technologies.length > 0 && (
-                  <span style={{ fontSize: '10px', color: classicColors.primary }}> ({project.technologies.join(', ')})</span>
+                  <span style={{ fontSize: '10pt', color: classicColors.primary }}> ({project.technologies.join(', ')})</span>
                 )}
               </div>
             );
@@ -519,23 +371,23 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
 
       {/* ADDITIONAL INFORMATION */}
       {data.additionalInfo && data.additionalInfo.length > 0 && (
-        <section style={{ marginBottom: '18px' }}>
+        <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
           <h2 
             style={{ 
-              fontFamily: "'Georgia', 'Times New Roman', serif",
-              fontSize: '13px',
+              fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+              fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: '0.4px',
               color: classicColors.primary,
-              marginBottom: '6px',
-              paddingBottom: '8px',
+              marginBottom: 'calc(6px * var(--cv-d, 1))',
+              paddingBottom: 'calc(8px * var(--cv-d, 1))',
               borderBottom: `2px solid ${classicColors.primary}`,
             }}
           >
-            {data.sectionHeaders?.additionalInfo || DEFAULT_HEADERS.additionalInfo}
+            {sectionHeading(data, 'additionalInfo')}
           </h2>
-          <p style={{ fontSize: '11px', color: classicColors.text }}>
+          <p style={{ fontSize: '10pt', color: classicColors.text }}>
             {data.additionalInfo.join(' • ')}
           </p>
         </section>
@@ -543,16 +395,16 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
 
       {/* Custom Sections (generic fallback) */}
       {data.customSections && data.customSections.length > 0 && data.customSections.map((section) => (
-        <section key={section.id} style={{ marginBottom: '18px' }}>
+        <section key={section.id} style={{ marginBottom: 'calc(18px * var(--cv-d, 1))' }}>
           <h2
             style={{
-              fontFamily: "'Georgia', 'Times New Roman', serif",
-              fontSize: '12px',
+              fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+              fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1.5px',
-              marginBottom: '8px',
-              paddingBottom: '6px',
+              letterSpacing: '0.5px',
+              marginBottom: 'calc(8px * var(--cv-d, 1))',
+              paddingBottom: 'calc(6px * var(--cv-d, 1))',
               borderBottom: `2px solid ${classicColors.primary}`,
               color: classicColors.primary,
             }}
@@ -561,7 +413,7 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
           </h2>
           <ul style={{ listStyleType: 'disc', paddingLeft: '18px', margin: 0 }}>
             {section.items.map((item, idx) => (
-              <li key={idx} style={{ fontSize: '11px', color: classicColors.text, marginBottom: '3px', lineHeight: 1.5 }}>
+              <li key={idx} style={{ fontSize: '10pt', color: classicColors.text, marginBottom: 'calc(3px * var(--cv-d, 1))', lineHeight: 'calc(1.5 * var(--cv-ld, 1))' }}>
                 {item}
               </li>
             ))}
@@ -569,25 +421,7 @@ export function GermanClassicTemplate({ data, template, photoUrl }: Props) {
         </section>
       ))}
 
-      {/* SIGNATURE LINE — German standard */}
-      {data.signature?.includeSignature && (
-        <div style={{ marginTop: '36px', paddingTop: '16px', borderTop: `1px solid ${classicColors.border}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-            <div>
-              <p style={{ fontSize: '10px', color: classicColors.textLight, marginBottom: '4px' }}>
-                {data.signature?.city || (data.localizedStrings?.cityLabel || 'City')}, {data.signature?.date || (data.localizedStrings?.dateLabel || 'Date')}
-              </p>
-              <div style={{ width: '120px', borderBottom: `1px solid ${classicColors.text}` }} />
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: '10px', color: classicColors.textLight, marginBottom: '4px' }}>
-                {data.localizedStrings?.signatureLabel || 'Signature'}
-              </p>
-              <div style={{ width: '150px', borderBottom: `1px solid ${classicColors.text}` }} />
-            </div>
-          </div>
-        </div>
-      )}
+      <SignatureBlock data={data} color={classicColors.textLight} lineColor={classicColors.text} />
     </div>
   );
 }

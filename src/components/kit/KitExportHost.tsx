@@ -14,6 +14,9 @@ import { generateCvPdfBlob } from '@/lib/utils/cv-pdf';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import { buildCoverLetterDocxBlob, buildCoverLetterPdfBlob } from '@/lib/utils/cover-letter-export';
 import { buildAnswersPdfBlob, buildTextBlob, formatEmailAsText, kitFilename } from '@/lib/utils/kit-export';
+import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
+import { formatCoverLetterAsText } from '@/lib/utils/cover-letter-export';
+import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback, type ServerExportFormat } from '@/lib/utils/server-export';
 
 /**
  * Always mounted in the shell. Runs "Download all" for whichever control asked
@@ -72,11 +75,44 @@ export function KitExportHost() {
       const files: Array<{ blob: Blob; name: string }> = [];
       const failed: string[] = [];
       let delivered = 0;
+      let usedFallback = false;
+
+      // Server first (full quality), the browser export when the server cannot render.
+      const fromServer = async (
+        format: ServerExportFormat,
+        extra: Record<string, unknown>,
+      ): Promise<{ blob: Blob; name: string } | null> => {
+        try {
+          const { blob, fileName } = await serverExport({ applicationId: session.id, format, ...extra });
+          return { blob, name: fileName };
+        } catch (err) {
+          if (!shouldFallBack(err)) throw err;
+          trackExportFallback(format, err);
+          usedFallback = true;
+          return null;
+        }
+      };
+      const letter = session.coverLetter;
+      const letterBody = (() => {
+        if (!letter) return {};
+        const structured = (letter as { structured?: unknown }).structured;
+        return isStructuredCoverLetter(structured)
+          ? { structuredLetter: structured }
+          : { legacyLetterText: formatCoverLetterAsText(letter) };
+      })();
+
       try {
-        if (cvRef.current && cvData) {
+        if (cvData) {
           try {
-            const blob = await generateCvPdfBlob(cvRef.current, { templateId: cvTemplateId, photoUrl: cvData.personal.photoUrl });
-            files.push({ blob, name: kitFilename(applicant, company, 'CV', 'pdf') });
+            const served = await fromServer('cv_pdf', { templateId: cvTemplateId, variant: 'tailored', cv: cvData });
+            if (served) {
+              files.push(served);
+            } else if (cvRef.current) {
+              const blob = await generateCvPdfBlob(cvRef.current, { templateId: cvTemplateId, photoUrl: cvData.personal.photoUrl });
+              files.push({ blob, name: kitFilename(applicant, company, 'CV', 'pdf') });
+            } else {
+              failed.push('CV');
+            }
           } catch (err) {
             console.error('[DownloadAll] CV PDF failed:', err);
             failed.push('CV');
@@ -88,8 +124,14 @@ export function KitExportHost() {
         }
         if (session.coverLetter) {
           try {
-            files.push({ blob: buildCoverLetterPdfBlob(session.coverLetter), name: kitFilename(applicant, company, 'Cover_Letter', 'pdf') });
-            files.push({ blob: await buildCoverLetterDocxBlob(session.coverLetter), name: kitFilename(applicant, company, 'Cover_Letter', 'docx') });
+            files.push(
+              (await fromServer('cover_letter_pdf', letterBody))
+                ?? { blob: buildCoverLetterPdfBlob(session.coverLetter), name: kitFilename(applicant, company, 'Cover_Letter', 'pdf') },
+            );
+            files.push(
+              (await fromServer('cover_letter_docx', letterBody))
+                ?? { blob: await buildCoverLetterDocxBlob(session.coverLetter), name: kitFilename(applicant, company, 'Cover_Letter', 'docx') },
+            );
           } catch (err) {
             console.error('[DownloadAll] cover letter failed:', err);
             failed.push('cover letter');
@@ -108,7 +150,10 @@ export function KitExportHost() {
         }
         if (session.screeningAnswers && session.screeningAnswers.length > 0) {
           try {
-            files.push({ blob: buildAnswersPdfBlob(session.screeningAnswers, company), name: kitFilename(applicant, company, 'Screening_Answers', 'pdf') });
+            files.push(
+              (await fromServer('answers_pdf', { answers: session.screeningAnswers.map((item) => ({ question: item.question, answer: item.answer })) }))
+                ?? { blob: buildAnswersPdfBlob(session.screeningAnswers, company), name: kitFilename(applicant, company, 'Screening_Answers', 'pdf') },
+            );
           } catch (err) {
             console.error('[DownloadAll] answers PDF failed:', err);
             failed.push('answers');
@@ -134,6 +179,8 @@ export function KitExportHost() {
           toast.warning(`Downloaded ${fileCount(delivered)}. The ${joinList(failed)} didn't build. ${fromTabsSentence(failed)}${untailoredCvNote}`, 8000);
         } else if (untailoredCvNote) {
           toast.warning(`Downloaded ${fileCount(delivered)}.${untailoredCvNote}`, 8000);
+        } else if (usedFallback) {
+          toast.warning(`Downloaded ${fileCount(delivered)}. ${FALLBACK_NOTICE}`, 8000);
         } else {
           toast.success(`Downloaded ${fileCount(delivered)}.`);
         }

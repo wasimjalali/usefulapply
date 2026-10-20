@@ -6,34 +6,10 @@
 import { jsPDF } from 'jspdf';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import type { GeneratedCoverLetter } from '@/lib/types';
+import { legacyCoverLetterText } from '@/lib/cover-letter/legacy-text';
 
 export function formatCoverLetterAsText(letter: GeneratedCoverLetter): string {
-  // If body contains the full letter (3-agent architecture), return it directly
-  if (!letter.applicantAddress.name && letter.body) {
-    return letter.body;
-  }
-  // Otherwise, format structured data
-  return `${letter.applicantAddress.name}
-${letter.applicantAddress.street}
-${letter.applicantAddress.city}
-${letter.applicantAddress.country}
-${letter.applicantAddress.phone}
-${letter.applicantAddress.email}
-
-${letter.date}
-
-${letter.companyAddress.companyName}
-${letter.companyAddress.department || ''}
-${letter.companyAddress.street || ''}
-${letter.companyAddress.city || ''}
-
-${letter.salutation}
-
-${letter.body}
-
-${letter.closing}
-
-${letter.signatureName}`;
+  return legacyCoverLetterText(letter);
 }
 
 export function hasAddressPlaceholder(letter: GeneratedCoverLetter): boolean {

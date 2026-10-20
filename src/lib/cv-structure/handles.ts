@@ -41,6 +41,7 @@ import {
   generateLocalizedHeaders,
   type CvHeaderLanguage,
 } from '@/lib/cv-parser/section-splitter';
+import { resolveHeading, type HeadingKey } from '@/lib/cv-templates/locale';
 import type {
   CvOutline,
   ListHandle,
@@ -415,12 +416,44 @@ function itemLabel(cv: TailoredCV, list: string, index: number): string {
  * unsatisfiable, because the model cannot name items it was not shown. Only the
  * label text is capped.
  */
+/** The `hiddenSections` key a list lives in. Custom sections hide by their own flag only. */
+function sectionOfList(list: string): 'experience' | 'education' | 'skills' | 'certifications' | 'languages' | 'projects' | null {
+  if (list === 'experience' || list.startsWith('bullets:')) return 'experience';
+  if (list === 'skills' || list.startsWith('skillitems:')) return 'skills';
+  if (list === 'education' || list === 'certifications' || list === 'languages' || list === 'projects') return list;
+  return null;
+}
+
+/**
+ * Is this entry hidden from the CV? Whole entries and skill groups carry
+ * `hidden`, a single skill is listed in its group's `hiddenItems`, and the
+ * bullets or items of a hidden role or section are hidden with it.
+ */
+export function isItemHidden(cv: TailoredCV, list: string, index: number): boolean {
+  const items = readList(cv, list);
+  if (!items) return false;
+  // Hiding a whole section hides everything in it.
+  const section = sectionOfList(list);
+  if (section && (cv.hiddenSections ?? []).includes(section)) return true;
+  const entry = items[index];
+  if (entry && typeof entry === 'object') return (entry as { hidden?: boolean }).hidden === true;
+  const parent = nestedParent(cv, list);
+  if (!parent.ok) return false;
+  if (parent.kind === 'skillitems') {
+    const group = (cv.skills ?? [])[parent.index];
+    return group?.hidden === true || (typeof entry === 'string' && (group?.hiddenItems ?? []).includes(entry));
+  }
+  if (parent.kind === 'bullets') return (cv.experience ?? [])[parent.index]?.hidden === true;
+  return (cv.customSections ?? [])[parent.index]?.hidden === true;
+}
+
 export function buildListOutline(cv: TailoredCV, list: ListHandle): OutlineList | null {
   const handles = listHandles(cv, list);
   if (!handles) return null;
   const items: OutlineItem[] = handles.map((entry, index) => {
     const item: OutlineItem = { handle: entry.handle, label: itemLabel(cv, list, index) };
     if (entry.ambiguous) item.ambiguous = true;
+    if (isItemHidden(cv, list, index)) item.hidden = true;
     // An ambiguous parent gets no pointer to its own nested list. That list
     // handle would name two lists at once, so it resolves to neither, and
     // offering it would only invite an edit that has to be refused.
@@ -442,10 +475,16 @@ export function cvLanguage(cv: TailoredCV): CvHeaderLanguage {
   return inferCvLanguageFromHeaders(cv.sectionHeaders);
 }
 
-/** The heading a section shows today, falling back to the localized default. */
+/**
+ * The heading a section shows today, which is what the template renders: a
+ * renamed heading as chosen, an unrenamed default normalized to the standard
+ * ATS wording, and the localized default when nothing is stored.
+ */
 export function currentHeading(cv: TailoredCV, sectionKey: string, lang: CvHeaderLanguage): string {
   const stored = cv.sectionHeaders?.[sectionKey as keyof NonNullable<TailoredCV['sectionHeaders']>];
-  if (typeof stored === 'string' && stored.trim()) return stored;
+  if (typeof stored === 'string' && stored.trim()) {
+    return resolveHeading({ provided: stored, renamed: cv.renamedHeadings?.includes(sectionKey), key: sectionKey as HeadingKey, locale: lang });
+  }
   return generateLocalizedHeaders(lang).sectionHeaders[sectionKey] ?? '';
 }
 
@@ -496,6 +535,7 @@ export function buildOutline(cv: TailoredCV): CvOutline {
   }
 
   const outline: CvOutline = { lists, headings, renameable_as: renameableAs, language: lang };
+  if (cv.hiddenSections && cv.hiddenSections.length > 0) outline.hidden_sections = [...cv.hiddenSections];
   if (unaddressable.length > 0) outline.unaddressable = unaddressable;
   return outline;
 }

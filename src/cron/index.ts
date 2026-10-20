@@ -26,6 +26,7 @@ export async function dispatchScheduled(cron: string): Promise<void> {
         { deleteFinishedOperationsOlderThan },
         { purgeUnconsentedClients, purgeExpiredTokenBindings },
         { isMcpEnabled },
+        { deleteExpiredExports },
       ] = await Promise.all([
         import('@/lib/job-feed/cleanup'),
         import('@/lib/supabase/credits.server'),
@@ -33,6 +34,7 @@ export async function dispatchScheduled(cron: string): Promise<void> {
         import('@/lib/services/operations'),
         import('@/db/repos/mcpGrants'),
         import('@/lib/mcp/config'),
+        import('@/lib/services/export/storage'),
       ]);
       const results = await Promise.allSettled([
         cleanupHistoricalJobFeedData({ now: new Date() }),
@@ -45,6 +47,8 @@ export async function dispatchScheduled(cron: string): Promise<void> {
         isMcpEnabled()
           ? Promise.all([purgeUnconsentedClients(), purgeExpiredTokenBindings()])
           : Promise.resolve([0, 0]),
+        // Exports are kept 30 days, then deleted.
+        deleteExpiredExports(new Date()),
       ]);
       const problems: string[] = [];
       for (const r of results) {
@@ -70,6 +74,8 @@ export async function dispatchScheduled(cron: string): Promise<void> {
       }
       const purge = results[4];
       if (purge.status === 'fulfilled') console.log('[cron] MCP purge (clients without consent, expired token bindings)', purge.value);
+      const exportSweep = results[3];
+      if (exportSweep.status === 'fulfilled') console.log('[cron] expired exports', exportSweep.value);
       // Side effects are already committed; throwing only marks the run failed in Workers Logs.
       if (problems.length > 0) {
         throw new Error(`[cron] ${problems.join('; ')}`);

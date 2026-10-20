@@ -27,7 +27,7 @@ Rules:
 - **One family everywhere in the app UI: Inter** (self-hosted via `next/font` in `layout.tsx`, wired to `--font-sans` in `globals.css`). Headings, body, labels, buttons, chips, form fields all use it. The old Georgia/Arial split is retired; do NOT reintroduce `font-serif` anywhere in the app or landing.
 - **Hierarchy comes from size and weight, not family.** Page/panel titles: `font-semibold` at the existing size scale. Body and labels: `font-normal` / `font-medium`.
 - **`font-semibold` not `font-bold`** on headings.
-- **Exemptions:** `src/components/cv-templates/**` and the exported PDF/DOCX keep Arial + Georgia (ATS-safe fonts in the applicant's own document). Email templates keep their inline fonts. The brand wordmark keeps Plus Jakarta Sans.
+- **Exemptions:** `src/components/cv-templates/**` and the exported PDF/DOCX keep Arial + Georgia in spirit: the PDF and the canvas use Arimo + Gelasio (their metric-compatible OFL twins, self-hosted), and the DOCX uses Arial + Georgia (ATS-safe fonts in the applicant's own document). Email templates keep their inline fonts. The brand wordmark keeps Plus Jakarta Sans.
 
 ### Radius scale (3 + 1)
 Pick one role per element. Everything else is deprecated.

@@ -1,0 +1,29 @@
+{
+  "fixture": "it-two-page",
+  "template": "german-ats",
+  "raw": "{\n  \"name\": \"Giulia Moretti\",\n  \"email\": \"giulia.moretti@example.it\",\n  \"phone\": \"+39 347 123 4567\",\n  \"jobs\": [\n    {\n      \"title\": \"Ingegnera del software senior\",\n      \"company\": \"Trasporti Piemonte\",\n      \"dates\": \"03/2021 - Presente\",\n      \"bullets\": [\n        \"Rilascio 1: ha guidato ambito, collaudo e passaggio di reperibilità della piattaforma di identità, con miglioramenti misurati in 11 regioni.\",\n        \"Rilascio 2: ha guidato ambito, collaudo e passaggio di reperibilità della piattaforma di ricerca, con miglioramenti misurati in 12 regioni.\",\n        \"Rilascio 3: ha guidato ambito, collaudo e passaggio di reperibilità della piattaforma di fatturazione, con miglioramenti misurati in 13 regioni.\",\n        \"Rilascio 4: ha guidato ambito, collaudo e passaggio di reperibilità della piattaforma di identità, con miglioramenti misurati in 14 regioni.\",\n        \"Rilascio 5: ha guidato ambito, collaudo e passaggio di reperibilità della piattaforma di ricerca, con miglioramenti misurati in 15 regioni.\",\n        \"Rilascio 6: ha guidato ambito, collaudo e passaggio di reperibilità della piattaforma di fatturazione, con miglioramenti misurati in 16 regioni.\",\n        \"Rilascio 7: ha guidato ambito, collaudo e passaggio di reperibilità della piattaforma di identità, con miglioramenti misurati in 17 regioni.\",\n        \"Rilascio 8: ha guidato ambito, collaudo e passaggio di reperibilità della piattaforma di ricerca, con miglioramenti misurati in 18 regioni.\",\n        \"Rilascio 9: ha guidato ambito, collaudo e passaggio di reperibilità della piattaforma di fatturazione, con miglioramenti misurati in 19 regioni.\",\n        \"Rilascio 10: ha guidato ambito, collaudo e passaggio di reperibilità della piattaforma di identità, con miglioramenti misurati in 20 regioni.\",\n        \"Rilascio 11: ha guidato ambito, collaudo e passaggio di reperibilità della piattaforma di ricerca, con miglioramenti misurati in 21 regioni.\",\n        \"Rilascio 12: ha guidato ambito, collaudo e passaggio di reperibilità della piattaforma di fatturazione, con miglioramenti misurati in 22 regioni.\",\n        \"Rilascio 13: ha guidato ambito, collaudo e passaggio di reperibilità della piattaforma di identità, con miglioramenti misurati in 23 regioni.\",\n        \"Rilascio 14: ha guidato ambito, collaudo e passaggio di reperibilità della piattaforma di ricerca, con miglioramenti misurati in 24 regioni.\"\n      ]\n    },\n    {\n      \"title\": \"Ingegnera del software\",\n      \"company\": \"Banca Adriatica\",\n      \"dates\": \"09/2016 - 02/2021\",\n      \"bullets\": [\n        \"Ha progettato il servizio di contabilità che elabora due milioni di transazioni al giorno.\",\n        \"Ha ridotto i tempi di gestione delle contestazioni da tre giorni a quattro ore.\"\n      ]\n    }\n  ],\n  \"skills\": [\n    \"Go\",\n    \"Python\",\n    \"SQL\",\n    \"TypeScript\",\n    \"Kubernetes\",\n    \"Terraform\",\n    \"AWS\"\n  ],\n  \"education\": [\n    {\n      \"school\": \"Politecnico di Torino\",\n      \"degree\": \"Laurea magistrale in Ingegneria informatica\",\n      \"date\": \"2016\"\n    }\n  ]\n}",
+  "error": null,
+  "score": {
+    "name": true,
+    "email": true,
+    "phone": true,
+    "jobs": {
+      "matched": 2,
+      "total": 2
+    },
+    "bullets": {
+      "matched": 16,
+      "total": 16
+    },
+    "skills": {
+      "matched": 7,
+      "total": 7
+    },
+    "education": {
+      "matched": 1,
+      "total": 1
+    },
+    "missedJobs": [],
+    "missedSkills": []
+  }
+}

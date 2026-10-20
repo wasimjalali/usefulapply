@@ -1,0 +1,9 @@
+node_modules/
+# OpenResume is AGPL-3.0. It is fetched at a pinned commit by fetch-open-resume.sh and never committed.
+vendor/
+.wrangler/
+.worker.log
+baseline-work/
+parity-work/
+.venv/
+__pycache__/

@@ -1,0 +1,29 @@
+{
+  "fixture": "it-one-page",
+  "template": "premium-ats",
+  "raw": "{\n  \"name\": \"Giulia Moretti\",\n  \"email\": \"giulia.moretti@example.it\",\n  \"phone\": \"+39 347 123 4567\",\n  \"jobs\": [\n    {\n      \"title\": \"Ingegnera del software senior\",\n      \"company\": \"Trasporti Piemonte\",\n      \"dates\": \"03/2021 - Presente\",\n      \"bullets\": [\n        \"Ha guidato un team di cinque ingegneri nella migrazione di quaranta servizi su Kubernetes.\",\n        \"Ha ridotto la latenza p99 del 38 % riprogettando la cache di tracciamento delle spedizioni.\"\n      ]\n    },\n    {\n      \"title\": \"Ingegnera del software\",\n      \"company\": \"Banca Adriatica\",\n      \"dates\": \"09/2016 - 02/2021\",\n      \"bullets\": [\n        \"Ha progettato il servizio di contabilità che elabora due milioni di transazioni al giorno.\",\n        \"Ha ridotto i tempi di gestione delle contestazioni da tre giorni a quattro ore.\"\n      ]\n    }\n  ],\n  \"skills\": [\n    \"Go\",\n    \"Python\",\n    \"SQL\",\n    \"TypeScript\",\n    \"Kubernetes\",\n    \"Terraform\",\n    \"AWS\"\n  ],\n  \"education\": [\n    {\n      \"school\": \"Politecnico di Torino\",\n      \"degree\": \"Laurea magistrale in Ingegneria informatica\",\n      \"date\": \"2016\"\n    }\n  ]\n}",
+  "error": null,
+  "score": {
+    "name": true,
+    "email": true,
+    "phone": true,
+    "jobs": {
+      "matched": 2,
+      "total": 2
+    },
+    "bullets": {
+      "matched": 4,
+      "total": 4
+    },
+    "skills": {
+      "matched": 7,
+      "total": 7
+    },
+    "education": {
+      "matched": 1,
+      "total": 1
+    },
+    "missedJobs": [],
+    "missedSkills": []
+  }
+}

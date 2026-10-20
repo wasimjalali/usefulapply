@@ -166,6 +166,8 @@ export function applyRenameHeading(
   const updated: TailoredCV = {
     ...cv,
     sectionHeaders: { ...(cv.sectionHeaders ?? {}), [sectionKey]: match },
+    // A chosen heading is shown as written; only unrenamed defaults are normalized.
+    renamedHeadings: Array.from(new Set([...(cv.renamedHeadings ?? []), sectionKey])),
   };
   return { ok: true, cv: updated, from, fromLabel: currentEffective, to: match };
 }

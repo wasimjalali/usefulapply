@@ -112,6 +112,8 @@ export interface ApplicationSession {
       endDate?: string;
       current?: boolean;
       bullets: string[];
+      /** Kept in the CV but not shown. See cv-templates/hidden.ts. */
+      hidden?: boolean;
     }>;
     education: Array<{
       id: string;
@@ -123,20 +125,26 @@ export interface ApplicationSession {
       endDate?: string;
       grade?: string;
       highlights?: string[];
+      hidden?: boolean;
     }>;
     skills: Array<{
       category: string;
       items: string[];
+      hidden?: boolean;
+      /** Skills in `items` that are kept but not shown. */
+      hiddenItems?: string[];
     }>;
     languages: Array<{
       language: string;
       proficiency: string;
+      hidden?: boolean;
     }>;
     certifications: Array<{
       id: string;
       name: string;
       issuer: string;
       date?: string;
+      hidden?: boolean;
     }>;
     projects?: Array<{
       id: string;
@@ -144,11 +152,13 @@ export interface ApplicationSession {
       description: string;
       technologies?: string[];
       url?: string;
+      hidden?: boolean;
     }>;
     customSections?: Array<{
       id: string;
       title: string;
       items: string[];
+      hidden?: boolean;
     }>;
     analysis?: {
       summary: string;
@@ -176,6 +186,10 @@ export interface ApplicationSession {
       nationalityLabel?: string;
     };
     additionalInfo?: string[];
+    /** Section keys whose heading was chosen on purpose (chat rename). Shown exactly as written. */
+    renamedHeadings?: string[];
+    /** Sections kept in the CV but not shown. Item-level `hidden` flags ride on the entries themselves. */
+    hiddenSections?: import('@/lib/cv-templates/types').CVData['hiddenSections'];
   };
   
   coverLetter: GeneratedCoverLetter | null;

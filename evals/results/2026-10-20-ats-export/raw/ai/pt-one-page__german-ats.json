@@ -1,0 +1,29 @@
+{
+  "fixture": "pt-one-page",
+  "template": "german-ats",
+  "raw": "{\n  \"name\": \"Inês Carvalho\",\n  \"email\": \"ines.carvalho@example.pt\",\n  \"phone\": \"+351 912 345 678\",\n  \"jobs\": [\n    {\n      \"title\": \"Engenheira de software sénior\",\n      \"company\": \"Transportes do Norte\",\n      \"dates\": \"03/2021 - Atualmente\",\n      \"bullets\": [\n        \"Liderou uma equipa de cinco engenheiros na migração de quarenta serviços para o Kubernetes.\",\n        \"Reduziu a latência p99 em 38 % ao redesenhar a cache de seguimento de envios.\"\n      ]\n    },\n    {\n      \"title\": \"Engenheira de software\",\n      \"company\": \"Banco Atlântico\",\n      \"dates\": \"09/2016 - 02/2021\",\n      \"bullets\": [\n        \"Desenhou o serviço de contabilidade que processa dois milhões de transações por dia.\",\n        \"Reduziu o tempo de resolução de disputas de três dias para quatro horas.\"\n      ]\n    }\n  ],\n  \"skills\": [\n    \"Go\",\n    \"Python\",\n    \"SQL\",\n    \"TypeScript\",\n    \"Kubernetes\",\n    \"Terraform\",\n    \"AWS\"\n  ],\n  \"education\": [\n    {\n      \"school\": \"Universidade do Porto\",\n      \"degree\": \"Mestrado em Engenharia Informática\",\n      \"date\": \"2016\"\n    }\n  ]\n}",
+  "error": null,
+  "score": {
+    "name": true,
+    "email": true,
+    "phone": true,
+    "jobs": {
+      "matched": 2,
+      "total": 2
+    },
+    "bullets": {
+      "matched": 4,
+      "total": 4
+    },
+    "skills": {
+      "matched": 7,
+      "total": 7
+    },
+    "education": {
+      "matched": 1,
+      "total": 1
+    },
+    "missedJobs": [],
+    "missedSkills": []
+  }
+}

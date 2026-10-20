@@ -4,12 +4,13 @@ type FilesBucket = {
   put(
     key: string,
     value: ReadableStream | ArrayBuffer | ArrayBufferView | string | Blob,
-    options?: { httpMetadata?: { contentType?: string } },
+    options?: { httpMetadata?: { contentType?: string }; customMetadata?: Record<string, string> },
   ): Promise<unknown>;
   get(key: string): Promise<R2ObjectBodyLike | null>;
+  head(key: string): Promise<{ key: string; size: number; customMetadata?: Record<string, string> } | null>;
   delete(keys: string | string[]): Promise<void>;
   list(options?: { prefix?: string; cursor?: string; limit?: number }): Promise<{
-    objects: Array<{ key: string; size: number }>;
+    objects: Array<{ key: string; size: number; uploaded?: Date; customMetadata?: Record<string, string> }>;
     truncated: boolean;
     cursor?: string;
   }>;
@@ -20,6 +21,7 @@ export type R2ObjectBodyLike = {
   size: number;
   httpEtag?: string;
   httpMetadata?: { contentType?: string };
+  customMetadata?: Record<string, string>;
   writeHttpMetadata(headers: Headers): void;
 };
 
@@ -56,6 +58,21 @@ export async function putObject(
 ): Promise<void> {
   const bucket = await getFilesBucket();
   await bucket.put(key, body, options?.contentType ? { httpMetadata: { contentType: options.contentType } } : undefined);
+}
+
+/** put with custom metadata, for objects whose ownership or file name must travel with them. */
+export async function putObjectWithMetadata(
+  key: string,
+  body: ArrayBuffer | ArrayBufferView,
+  options: { contentType: string; customMetadata: Record<string, string> },
+): Promise<void> {
+  const bucket = await getFilesBucket();
+  await bucket.put(key, body, { httpMetadata: { contentType: options.contentType }, customMetadata: options.customMetadata });
+}
+
+export async function headObject(key: string): Promise<{ key: string; size: number; customMetadata?: Record<string, string> } | null> {
+  const bucket = await getFilesBucket();
+  return bucket.head(key);
 }
 
 export async function getObject(key: string): Promise<R2ObjectBodyLike | null> {

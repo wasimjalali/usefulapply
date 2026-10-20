@@ -19,6 +19,10 @@ const eslintConfig = defineConfig([
     // Gitignored verification artifacts and agent worktree copies.
     "verify/**",
     ".claude/worktrees/**",
+    // Third-party parser fetched at a pinned commit, and generated bundles, for the export eval.
+    "evals/ats-export/vendor/**",
+    "evals/ats-export/baseline-work/**",
+    "evals/ats-export/parity-work/**",
   ]),
 ]);
 
