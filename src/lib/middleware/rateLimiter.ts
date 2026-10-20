@@ -84,6 +84,9 @@ const RATE_LIMIT_BINDING_NAMES = {
   'search-strategy-generate': 'RATE_LIMIT_SEARCH_STRATEGY_GENERATE',
   'files-upload': 'RATE_LIMIT_FILES_UPLOAD',
   'files-get': 'RATE_LIMIT_FILES_GET',
+  'exports': 'RATE_LIMIT_EXPORTS',
+  'exports-get': 'RATE_LIMIT_EXPORTS_GET',
+  'exports-render': 'RATE_LIMIT_EXPORT_RENDER',
   'mcp': 'RATE_LIMIT_MCP',
   'mcp-oauth': 'RATE_LIMIT_MCP_OAUTH',
   'mcp-register': 'RATE_LIMIT_MCP_REGISTER',
@@ -123,6 +126,9 @@ declare global {
     RATE_LIMIT_SEARCH_STRATEGY_GENERATE?: RateLimitBinding;
     RATE_LIMIT_FILES_UPLOAD?: RateLimitBinding;
     RATE_LIMIT_FILES_GET?: RateLimitBinding;
+    RATE_LIMIT_EXPORTS?: RateLimitBinding;
+    RATE_LIMIT_EXPORTS_GET?: RateLimitBinding;
+    RATE_LIMIT_EXPORT_RENDER?: RateLimitBinding;
     RATE_LIMIT_MCP?: RateLimitBinding;
     RATE_LIMIT_MCP_OAUTH?: RateLimitBinding;
     RATE_LIMIT_MCP_REGISTER?: RateLimitBinding;
@@ -287,6 +293,11 @@ export const RATE_LIMITS = {
   'search-strategy-generate': { name: 'search-strategy-generate', limit: 3,  windowMs: 60_000 },
   'files-upload':            { name: 'files-upload', limit: 10, windowMs: 60_000 },
   'files-get':               { name: 'files-get', limit: 60, windowMs: 60_000 },
+  // Server-side CV and letter exports (Browser Run). Cached repeats are cheap, so 20 a minute is generous.
+  'exports':                 { name: 'exports', limit: 20, windowMs: 60_000 },
+  'exports-get':             { name: 'exports-get', limit: 60, windowMs: 60_000 },
+  // Only renders that miss the cache cost browser time: 6 a minute, and 100 a day (counted in KV, see export/index.ts).
+  'exports-render':          { name: 'exports-render', limit: 6, windowMs: 60_000 },
   // /mcp calls, keyed on the token's user. Claude.ai and ChatGPT call from shared egress IPs, so IP keys would throttle strangers together.
   'mcp':                     { name: 'mcp', limit: 120, windowMs: 60_000 },
   // /api/auth/oauth2/* (authorize, token, revoke, userinfo), keyed on IP. A flood gate, not a per-user limit, for the same shared-IP reason.

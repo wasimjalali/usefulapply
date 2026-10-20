@@ -10,15 +10,19 @@ import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore, type ApplicationSession } from '@/store/useSessionStore';
 
 import { CVTemplateRenderer } from './cv-templates';
+import { getTemplateById, hasDachPersonalData } from '@/lib/cv-templates/types';
 import { TemplateStrip } from './cv-templates/TemplateStrip';
 import { buildCvData } from '@/lib/cv-templates/build-cv-data';
 import { writeDefaultTemplate } from '@/lib/cv-templates/default-template';
 import type { CVData } from '@/lib/cv-templates/types';
 import { useUIStore } from '@/store/useUIStore';
-import { CV_PAGE_GUTTER_PX, generateCvPdfBlob } from '@/lib/utils/cv-pdf';
+import { generateCvPdfBlob } from '@/lib/utils/cv-pdf';
 import { kitFilename } from '@/lib/utils/kit-export';
 import {
   FileText,
+  FileType2,
+  Eye,
+  ImagePlus,
   Download,
   Copy,
   Check,
@@ -37,6 +41,8 @@ import { StepIndicator } from './StepIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from './ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
+import { PdfPreviewModal } from './ui/PdfPreviewModal';
+import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback } from '@/lib/utils/server-export';
 import type { Profile } from '@/lib/supabase/types';
 
 interface CVPanelProps {
@@ -82,10 +88,14 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const [showTemplates, setShowTemplates] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingWord, setIsDownloadingWord] = useState(false);
+  // The rendered PDF the server would export, shown with its real page breaks before anyone downloads.
+  const [pdfPreview, setPdfPreview] = useState<{ url: string } | null>(null);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const previewOpenerRef = useRef<HTMLElement | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showFullPreview, setShowFullPreview] = useState(false);
   const [editedCVData, setEditedCVData] = useState<CVData | null>(null);
-  const [pageBreaks, setPageBreaks] = useState<number[]>([]);
   const cvTemplateRef = useRef<HTMLDivElement>(null);
   const editableCVRef = useRef<EditableCVCanvasRef>(null);
   const editSessionIdRef = useRef<string | null>(null);
@@ -123,16 +133,6 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           setCvScale(1);
           setCvScaledHeight(null);
         }
-        // Page break indicator positions (in natural pixels, before any CSS transform).
-        // Use contentHeightPx (not full pageHeightPx) so the line matches the PDF cut point.
-        const isGerman = selectedTemplateId.startsWith('german');
-        const pageHeightPx = isGerman ? Math.round((297 / 25.4) * 96) : 1056;
-        const contentHeightPx = pageHeightPx - 2 * CV_PAGE_GUTTER_PX;
-        const breaks: number[] = [];
-        for (let y = contentHeightPx; y < naturalHeight; y += contentHeightPx) {
-          breaks.push(y);
-        }
-        setPageBreaks(breaks);
       });
     };
 
@@ -199,12 +199,36 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   };
 
   const handleDownloadPDF = async () => {
-    if (!cvTemplateRef.current || !cvData) return;
+    if (!cvData) return;
 
     setIsDownloading(true);
     // The step name lands in the error toast so a failure can be placed.
     let step = 'init';
     try {
+      // Full-quality path: the server renders the same template to a text PDF.
+      // What the canvas shows goes along, so a download right after an edit
+      // matches the screen.
+      const applicationId = currentSession?.id;
+      if (applicationId) {
+        try {
+          const { blob, fileName } = await serverExport({
+            applicationId,
+            format: 'cv_pdf',
+            templateId: selectedTemplateId,
+            variant: showOptimized ? 'tailored' : 'original',
+            cv: cvData,
+          });
+          await downloadBlob(blob, fileName);
+          toast.success('PDF downloaded.');
+          return;
+        } catch (err) {
+          if (!shouldFallBack(err)) throw err;
+          trackExportFallback('cv_pdf', err);
+        }
+      }
+
+      // Fallback: the in-browser export, with a notice so the quality drop is not silent.
+      if (!cvTemplateRef.current) throw new Error('canvas not ready');
       const filename = kitFilename(
         cvData.personal.fullName || 'Applicant',
         showOptimized ? (currentSession?.company || '') : '',
@@ -217,13 +241,63 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
         onStep: (name) => { step = name; },
       });
       await downloadBlob(blob, filename);
-      toast.success('PDF downloaded.');
+      toast.warning(FALLBACK_NOTICE, 7000);
     } catch (err) {
       console.error('PDF generation failed:', err);
       const errMsg = err instanceof Error ? err.message.slice(0, 80) : 'Unknown error';
       toast.error(`PDF failed at [${step}]: ${errMsg}`);
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handlePreviewPdf = async () => {
+    const applicationId = currentSession?.id;
+    if (!cvData || !applicationId) return;
+    previewOpenerRef.current = document.activeElement as HTMLElement | null;
+    setIsPreviewing(true);
+    try {
+      const { blob } = await serverExport({
+        applicationId,
+        format: 'cv_pdf',
+        templateId: selectedTemplateId,
+        variant: showOptimized ? 'tailored' : 'original',
+        cv: cvData,
+      });
+      setPdfPreview({ url: URL.createObjectURL(blob) });
+    } catch (err) {
+      console.error('PDF preview failed:', err);
+      toast.error("The preview didn't build. Try again in a moment.");
+    } finally {
+      setIsPreviewing(false);
+    }
+  };
+
+  const closePdfPreview = () => {
+    if (pdfPreview) URL.revokeObjectURL(pdfPreview.url);
+    setPdfPreview(null);
+  };
+
+  const handleDownloadWord = async () => {
+    const applicationId = currentSession?.id;
+    if (!cvData || !applicationId) return;
+    setIsDownloadingWord(true);
+    try {
+      const { blob, fileName } = await serverExport({
+        applicationId,
+        format: 'cv_docx',
+        templateId: selectedTemplateId,
+        variant: showOptimized ? 'tailored' : 'original',
+        cv: cvData,
+      });
+      await downloadBlob(blob, fileName);
+      toast.success('Word file downloaded.');
+    } catch (err) {
+      console.error('Word export failed:', err);
+      trackExportFallback('cv_docx', err);
+      toast.error("The Word file didn't build. Try again in a moment, or download the PDF.");
+    } finally {
+      setIsDownloadingWord(false);
     }
   };
 
@@ -377,6 +451,29 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
             {copied ? <Check className="w-4 h-4 text-gold-600" /> : <Copy className="w-4 h-4" />}
             Copy
           </button>
+          {/* A template with a photo slot and no photo yet: the way to add one lives here, so the page itself never
+              shows a placeholder the PDF would not have. */}
+          {getTemplateById(selectedTemplateId)?.includesPhoto && !cvData?.personal.photoUrl && (
+            <button
+              type="button"
+              onClick={() => openSettings('general')}
+              title="Add your photo in Settings"
+              className={TOOL_CLASS}
+            >
+              <ImagePlus className="w-4 h-4" />
+              Add photo
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handlePreviewPdf}
+            disabled={isPreviewing || !cvData || !currentSession?.id}
+            title="Preview the PDF with its page breaks"
+            className={`${TOOL_CLASS} disabled:opacity-60 disabled:cursor-wait`}
+          >
+            {isPreviewing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+            Preview PDF
+          </button>
           <button
             type="button"
             onClick={handleDownloadPDF}
@@ -391,6 +488,20 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
             )}
             Download PDF
           </button>
+          <button
+            type="button"
+            onClick={handleDownloadWord}
+            disabled={isDownloadingWord || !cvData || !currentSession?.id}
+            title="Download as Word"
+            className={`${TOOL_CLASS} disabled:opacity-60 disabled:cursor-wait`}
+          >
+            {isDownloadingWord ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <FileType2 className="w-4 h-4" />
+            )}
+            Download Word
+          </button>
         </>
       )}
     </>
@@ -398,6 +509,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
 
   return (
     <div className="h-full flex flex-col bg-cream-50">
+      {pdfPreview && <PdfPreviewModal url={pdfPreview.url} title="CV preview" onClose={closePdfPreview} returnFocusTo={previewOpenerRef.current} />}
       {/* Header row + toolbar: portal to the canvas chrome on desktop, inline on mobile */}
       {headerContent && headerPortal && createPortal(headerContent, headerPortal)}
       {toolbarContent && toolbarPortal && createPortal(toolbarContent, toolbarPortal)}
@@ -470,6 +582,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
               <TemplateStrip
                 selectedTemplateId={selectedTemplateId}
                 onSelect={setSelectedTemplateId}
+                hasDachData={Boolean(cvData && hasDachPersonalData(cvData.personal))}
               />
             )}
 
@@ -560,35 +673,6 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                       <div ref={cvTemplateRef}>
                         <CVTemplateRenderer data={cvData} templateId={selectedTemplateId} />
                       </div>
-                      {/* Page break indicators — outside cvTemplateRef so not captured in PDF.
-                          Keep the marker minimal so it communicates the split without obscuring content. */}
-                      {pageBreaks.map((y, i) => (
-                        <div
-                          key={y}
-                          style={{
-                            position: 'absolute',
-                            top: y,
-                            right: 10,
-                            transform: 'translateY(-50%)',
-                            pointerEvents: 'none',
-                            zIndex: 10,
-                          }}
-                        >
-                          <span style={{
-                            fontSize: 11,
-                            color: '#B8891C',
-                            background: 'rgba(248, 244, 234, 0.96)',
-                            padding: '3px 8px',
-                            borderRadius: 999,
-                            fontWeight: 600,
-                            lineHeight: 1.2,
-                            border: '1px solid rgba(212, 175, 55, 0.45)',
-                            boxShadow: '0 8px 18px -14px rgba(30, 58, 95, 0.25)',
-                          }}>
-                            Page {i + 1} → {i + 2}
-                          </span>
-                        </div>
-                      ))}
                     </div>
                   </div>
                 </div>

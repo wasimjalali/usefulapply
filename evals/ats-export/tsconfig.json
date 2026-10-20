@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["../../src/*"],
+      "lib/*": ["./vendor/open-resume/lib/*"]
+    },
+    "noEmit": true,
+    "incremental": false
+  },
+  "include": ["./**/*.ts", "./**/*.tsx", "../../src/**/*.ts", "../../src/**/*.tsx", "../../next-env.d.ts"],
+  "exclude": ["node_modules", "render-worker", "vendor"]
+}

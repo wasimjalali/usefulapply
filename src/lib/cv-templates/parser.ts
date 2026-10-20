@@ -11,6 +11,8 @@ import type { StructuredCV } from '@/lib/types/cv-schema';
  */
 export function structuredCVToCVData(cv: StructuredCV): CVData {
   return {
+    // The language the CV was parsed in. Headings and date formats follow it.
+    language: cv.settings?.language || undefined,
     personal: {
       fullName: cv.personal.fullName,
       email: cv.personal.email,

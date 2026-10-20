@@ -6,6 +6,7 @@
  * Generates localized sectionHeaders + localizedStrings for template rendering.
  */
 
+import { localizedStrings } from '@/lib/cv-templates/locale';
 import type { SupportedLanguage } from '@/lib/utils/language-detector';
 
 export type CvHeaderLanguage = SupportedLanguage;
@@ -384,16 +385,16 @@ export function generateLocalizedHeaders(lang: CvHeaderLanguage) {
       contact: 'KONTAKT', additionalInfo: 'WEITERE INFORMATIONEN', projects: 'PROJEKTE',
     },
     fr: {
-      summary: 'PROFIL PROFESSIONNEL', skills: 'COMPETENCES CLES',
-      experience: 'EXPERIENCE PROFESSIONNELLE', education: 'FORMATION',
+      summary: 'PROFIL PROFESSIONNEL', skills: 'COMPÉTENCES CLÉS',
+      experience: 'EXPÉRIENCE PROFESSIONNELLE', education: 'FORMATION',
       certifications: 'CERTIFICATIONS', languages: 'LANGUES',
-      contact: 'CONTACT', additionalInfo: 'INFORMATIONS COMPLEMENTAIRES', projects: 'PROJETS',
+      contact: 'CONTACT', additionalInfo: 'INFORMATIONS COMPLÉMENTAIRES', projects: 'PROJETS',
     },
     es: {
       summary: 'PERFIL PROFESIONAL', skills: 'COMPETENCIAS',
-      experience: 'EXPERIENCIA PROFESIONAL', education: 'EDUCACION',
+      experience: 'EXPERIENCIA PROFESIONAL', education: 'EDUCACIÓN',
       certifications: 'CERTIFICACIONES', languages: 'IDIOMAS',
-      contact: 'CONTACTO', additionalInfo: 'INFORMACION ADICIONAL', projects: 'PROYECTOS',
+      contact: 'CONTACTO', additionalInfo: 'INFORMACIÓN ADICIONAL', projects: 'PROYECTOS',
     },
     // The base `pt` product code consistently renders European Portuguese.
     pt: {
@@ -416,19 +417,13 @@ export function generateLocalizedHeaders(lang: CvHeaderLanguage) {
     },
   };
 
-  const strings: Record<string, Record<string, string>> = {
-    en: { present: 'Present', gradePrefix: 'GPA:', degreeConnector: 'in', photoPlaceholder: 'Photo', dateOfBirthLabel: 'Date of Birth', nationalityLabel: 'Nationality', websiteLabel: 'Website', signatureLabel: 'Signature', cityLabel: 'City', dateLabel: 'Date' },
-    de: { present: 'Heute', gradePrefix: 'Note:', degreeConnector: 'in', photoPlaceholder: 'Foto', dateOfBirthLabel: 'Geburtsdatum', nationalityLabel: 'Nationalität', websiteLabel: 'Webseite', signatureLabel: 'Unterschrift', cityLabel: 'Ort', dateLabel: 'Datum' },
-    fr: { present: 'Présent', gradePrefix: 'Mention:', degreeConnector: 'en', photoPlaceholder: 'Photo', dateOfBirthLabel: 'Date de naissance', nationalityLabel: 'Nationalité', websiteLabel: 'Site web', signatureLabel: 'Signature', cityLabel: 'Ville', dateLabel: 'Date' },
-    es: { present: 'Actual', gradePrefix: 'Nota:', degreeConnector: 'en', photoPlaceholder: 'Foto', dateOfBirthLabel: 'Fecha de nacimiento', nationalityLabel: 'Nacionalidad', websiteLabel: 'Sitio web', signatureLabel: 'Firma', cityLabel: 'Ciudad', dateLabel: 'Fecha' },
-    pt: { present: 'Presente', gradePrefix: 'Nota:', degreeConnector: 'em', photoPlaceholder: 'Foto', dateOfBirthLabel: 'Data de nascimento', nationalityLabel: 'Nacionalidade', websiteLabel: 'Sítio Web', signatureLabel: 'Assinatura', cityLabel: 'Cidade', dateLabel: 'Data' },
-    it: { present: 'Attuale', gradePrefix: 'Voto:', degreeConnector: 'in', photoPlaceholder: 'Foto', dateOfBirthLabel: 'Data di nascita', nationalityLabel: 'Nazionalità', websiteLabel: 'Sito web', signatureLabel: 'Firma', cityLabel: 'Città', dateLabel: 'Data' },
-    nl: { present: 'Heden', gradePrefix: 'Cijfer:', degreeConnector: 'in', photoPlaceholder: 'Foto', dateOfBirthLabel: 'Geboortedatum', nationalityLabel: 'Nationaliteit', websiteLabel: 'Website', signatureLabel: 'Handtekening', cityLabel: 'Stad', dateLabel: 'Datum' },
-  };
+  // The small labels and the open-ended word come from the export's own tables (cv-templates/locale.ts), so a rename
+  // option, the canvas and the PDF can never word them differently.
+  const strings = { [lang]: localizedStrings(lang) };
 
   return {
     sectionHeaders: headers[lang] || headers.en,
-    localizedStrings: strings[lang] || strings.en,
+    localizedStrings: strings[lang],
   };
 }
 
@@ -464,21 +459,26 @@ export function headingOptions(sectionKey: string, lang: CvHeaderLanguage): stri
  * often unaccented, so it is not in the recognised list). Modal winner; ties go
  * to the first language in CV_HEADER_LANGUAGES, which is English.
  */
+/** Uppercase with accents removed, so "EXPÉRIENCE" and "EXPERIENCE" count as the same heading. */
+function fold(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036F]/g, '').trim().toUpperCase();
+}
+
 export function inferCvLanguageFromHeaders(
   headers: Record<string, string | undefined> | null | undefined,
 ): CvHeaderLanguage {
   if (!headers) return 'en';
   const values = Object.values(headers)
     .filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))
-    .map((value) => value.trim().toUpperCase());
+    .map((value) => fold(value));
   if (values.length === 0) return 'en';
 
   let best: CvHeaderLanguage = 'en';
   let bestScore = 0;
   for (const lang of CV_HEADER_LANGUAGES) {
-    const recognised = new Set(HEADERS_BY_LANGUAGE[lang].map((header) => header.toUpperCase()));
+    const recognised = new Set(HEADERS_BY_LANGUAGE[lang].map((header) => fold(header)));
     const canonical = new Set(
-      Object.values(generateLocalizedHeaders(lang).sectionHeaders).map((header) => header.toUpperCase()),
+      Object.values(generateLocalizedHeaders(lang).sectionHeaders).map((header) => fold(header)),
     );
     const score = values.filter((value) => recognised.has(value) || canonical.has(value)).length;
     if (score > bestScore) {

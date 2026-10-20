@@ -78,6 +78,8 @@ export interface OutlineItem {
   bullets?: ListHandle;
   /** For a skill group or custom section: the handle of its own item list. */
   items?: ListHandle;
+  /** The entry is hidden from the CV: kept, but not shown on the canvas or in exports. */
+  hidden?: true;
 }
 
 export interface OutlineList {
@@ -92,6 +94,8 @@ export interface CvOutline {
   /** The closed set of headings each section may be renamed to, in this CV's language. */
   renameable_as: Record<string, string[]>;
   language: string;
+  /** Sections hidden from the CV as a whole. */
+  hidden_sections?: string[];
   /**
    * Parts of the CV no handle can reach, and what the user has to do about it.
    * Two roles with the same title, employer and start date share one parent

@@ -78,15 +78,18 @@ import {
   cvLanguage,
   currentHeading,
   handleRefusal,
+  isItemHidden,
   MAX_OUTLINE_ITEMS,
   outlineItemCount,
   resolveHandle,
 } from '@/lib/cv-structure/handles';
 import { applyDelete, applyRenameHeading, applyReorder } from '@/lib/cv-structure/ops';
-import { renderVisibility } from '@/lib/cv-structure/render-caps';
 import { cvStructureDigest, validateEdit } from '@/lib/cv-structure/validate';
 import type { ListHandle, TailoredCV } from '@/lib/cv-structure/types';
 import type { ChatTool, ChatToolContext, ChatToolResult } from './types';
+
+/** Hidden entries stay in the CV but are not on the page. The chat leaves them alone unless the user shows them again. */
+const HIDDEN_REFUSAL = 'That entry is hidden from the CV, so it is not on the page or in the downloads. I will not change or remove it. Show it again in the CV editor first, or tell me you want it shown.';
 
 const NO_CV = 'There\'s no tailored CV for this application yet.';
 const NO_OUTLINE = 'Call get_cv_outline first. Every edit works off handles from a fresh outline.';
@@ -141,29 +144,6 @@ function undoChip(ctx: ChatToolContext, cv: TailoredCV) {
     label: 'Undo',
     action: `undo-cv-edit:${ctx.sessionId}:${cvStructureDigest(cv)}`,
     icon: 'new',
-  };
-}
-
-/**
- * What an edit did to the rendered page, for the model to relay.
- *
- * Reorder is allowed to push a skill group or a skill off the page, because the
- * whole point of "put Cloud first" on a CV with six groups is to bring a group
- * INTO the five the template paints, and something has to leave to make room.
- * Refusing would make the most useful reorder on this surface impossible. So it
- * proceeds and says what left, rather than proceeding in silence, which is what
- * made this a defect: the object kept every word and the PDF quietly lost one.
- */
-function visibilityNote(
-  ctx: ChatToolContext,
-  before: TailoredCV,
-  after: TailoredCV,
-): { page_warning: string; dropped_from_page: string[] } | null {
-  const { droppedFromPage } = renderVisibility(before, after, ctx.cvTemplateId);
-  if (droppedFromPage.length === 0) return null;
-  return {
-    page_warning: 'This template only shows the first 5 skill groups and the first 5 skills in each group, so this move pushed something off the page and out of the PDF. Tell the user exactly which entries below are no longer on the CV, and that Undo puts it back.',
-    dropped_from_page: droppedFromPage.slice(0, 6),
   };
 }
 
@@ -251,7 +231,6 @@ const editCvStructure: ChatTool = {
       if (failure) return { data: { error: failure } };
 
       ctx.cvWorking = result.cv;
-      const visibility = visibilityNote(ctx, before, result.cv);
       return {
         data: {
           ok: true,
@@ -260,10 +239,7 @@ const editCvStructure: ChatTool = {
           // The refreshed outline for this list only, so a second operation in
           // the same turn works off current handles instead of stale ones.
           list_now: buildListOutline(result.cv, args.list as ListHandle),
-          ...(visibility ?? {}),
-          note: visibility
-            ? 'Applied to the CV canvas. Say in one line what moved AND relay the page_warning: the move took something off the page. An Undo button is shown.'
-            : 'Applied to the CV canvas. Say in one line what moved. An Undo button is shown, so there is no need to offer to put it back.',
+          note: 'Applied to the CV canvas. Say in one line what moved. An Undo button is shown, so there is no need to offer to put it back.',
         },
         executed: [updatedEffect(ctx, result.cv)],
         actions: [undoChip(ctx, result.cv)],
@@ -351,6 +327,8 @@ const deleteCvItem: ChatTool = {
       };
     }
 
+    if (isItemHidden(before, resolved.list, resolved.index)) return { data: { error: HIDDEN_REFUSAL } };
+
     // The delete is dry-run here so the refusals land before the button rather
     // than after the click, matching how propose_feed_application checks the CV
     // before offering to apply.
@@ -416,6 +394,8 @@ const proposeCvRewrite: ChatTool = {
       if (!cv.summary || !cv.summary.trim()) {
         return { data: { error: 'There is no summary on this CV to rewrite.' } };
       }
+      // A hidden summary is not on the page or in the downloads: no paid rewrite of it.
+      if ((cv.hiddenSections ?? []).includes('summary')) return { data: { error: HIDDEN_REFUSAL } };
       label = currentHeading(cv, 'summary', cvLanguage(cv));
     } else {
       if (typeof args.handle !== 'string' || !args.handle) {
@@ -435,6 +415,7 @@ const proposeCvRewrite: ChatTool = {
           },
         };
       }
+      if (isItemHidden(cv, resolved.list, resolved.index)) return { data: { error: HIDDEN_REFUSAL } };
       const outline = buildListOutline(cv, resolved.list);
       label = outline?.items[resolved.index]?.label ?? '';
       // The rewrite route resolves the target against the session's own CV, and

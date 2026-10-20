@@ -174,7 +174,8 @@ The full design system (surface roles, typography, radius/CTA/shadow scales, mot
 - **Amazon Bedrock** - Claude Sonnet 4.6 fallback for the same tasks, selected with `AI_PROVIDER=bedrock`, on the old request shape. AWS SDK path runs on Workers under `nodejs_compat`.
 - **Workers AI** - `@cf/openai/gpt-oss-120b` via the `AI` binding for chat, tracker chat, career-profile synthesis, search strategy and job-feed ranking (`src/lib/models/workers-ai.ts`, `src/lib/job-feed/workers-ai-ranking.ts`).
 - **D1 + Drizzle** - SQLite database behind `src/db/repos/*`. Ownership is checked per query. No RLS.
-- **R2** - file storage. Binding `FILES`, bucket `usefulapply-files`. Served through `/api/files`.
+- **R2** - file storage. Binding `FILES`, bucket `usefulapply-files`. Served through `/api/files`. Exports (rendered CV, letter, emails, answers) live under `exports/<userId>/<hash>`, served only by signed links through `/api/exports/...`, deleted after 30 days and on account deletion.
+- **Browser Run** - binding `BROWSER`, `quickAction("pdf")` renders the CV and cover letter PDFs server-side from the same template components as the canvas (`src/lib/services/export/`). The browser export in `src/lib/utils/cv-pdf.ts` is only the fallback.
 - **Better Auth** - email + password, Google OAuth, email verification, password reset. Session cookie `usefulapply.session`. Catch-all at `/api/auth/[...all]`.
 - **Workers** - Next.js 16 on Cloudflare via `@opennextjs/cloudflare`. Cron Triggers, Rate Limiting bindings, KV context cache, Workers Logs.
 

@@ -1,0 +1,32 @@
+{
+  "raw": "{\n  \"name\": \"Jordan Ellis\",\n  \"email\": \"jordan.ellis@example.com\",\n  \"phone\": \"+1 (415) 555-0142\",\n  \"jobs\": [\n    {\n      \"title\": \"Principal Engineer\",\n      \"company\": \"Atlas Infrastructure Group | Remote\",\n      \"dates\": \"Jan 2010 — Present\",\n      \"bullets\": [\n        \"Delivered platform initiative 1: owned scoping, rollout and on-call handover for the billing stack, with measurable latency gains across 10 regions and 3 customer segments.\",\n        \"Delivered platform initiative 2: owned scoping, rollout and on-call handover for the identity stack, with measurable cost gains across 11 regions and 4 customer segments.\",\n        \"Delivered platform initiative 3: owned scoping, rollout and on-call handover for the search stack, with measurable reliability gains across 12 regions and 5 customer segments.\",\n        \"Delivered platform initiative 4: owned scoping, rollout and on-call handover for the notifications stack, with measurable latency gains across 13 regions and 6 customer segments.\",\n        \"Delivered platform initiative 5: owned scoping, rollout and on-call handover for the reporting stack, with measurable cost gains across 14 regions and 7 customer segments.\",\n        \"Delivered platform initiative 6: owned scoping, rollout and on-call handover for the ingestion stack, with measurable reliability gains across 15 regions and 3 customer segments.\",\n        \"Delivered platform initiative 7: owned scoping, rollout and on-call handover for the billing stack, with measurable latency gains across 16 regions and 4 customer segments.\",\n        \"Delivered platform initiative 8: owned scoping, rollout and on-call handover for the identity stack, with measurable cost gains across 17 regions and 5 customer segments.\",\n        \"Delivered platform initiative 9: owned scoping, rollout and on-call handover for the search stack, with measurable reliability gains across 18 regions and 6 customer segments.\",\n        \"Delivered platform initiative 10: owned scoping, rollout and on-call handover for the notifications stack, with measurable latency gains across 19 regions and 7 customer segments.\",\n        \"Delivered platform initiative 11: owned scoping, rollout and on-call handover for the reporting stack, with measurable cost gains across 20 regions and 3 customer segments.\",\n        \"Delivered platform initiative 12: owned scoping, rollout and on-call handover for the ingestion stack, with measurable reliability gains across 21 regions and 4 customer segments.\"\n      ]\n    },\n    {\n      \"title\": \"Backend Engineer\",\n      \"company\": \"Lumen Payments | San Francisco, CA\",\n      \"dates\": \"Jun 2018 — Feb 2022\",\n      \"bullets\": [\n        \"Built the ledger service that processes 2.4 million transactions a day with exactly-once semantics.\",\n        \"Cut chargeback review from 3 days to 4 hours with an efficient office workflow tool.\"\n      ]\n    }\n  ],\n  \"skills\": [\n    \"Go\",\n    \"Kubernetes\",\n    \"English: Native\",\n    \"Python\",\n    \"Terraform\",\n    \"Spanish: Professional working\",\n    \"SQL\",\n    \"AWS\",\n    \"TypeScript\",\n    \"Docker\",\n    \"PostgreSQL\"\n  ],\n  \"education\": [\n    {\n      \"school\": \"University of Texas at Austin\",\n      \"degree\": \"B.S. in Computer Science\",\n      \"date\": \"May 2015\"\n    }\n  ]\n}",
+  "error": null,
+  "score": {
+    "name": true,
+    "email": true,
+    "phone": true,
+    "jobs": {
+      "matched": 0,
+      "total": 2
+    },
+    "bullets": {
+      "matched": 14,
+      "total": 50
+    },
+    "skills": {
+      "matched": 9,
+      "total": 10
+    },
+    "education": {
+      "matched": 1,
+      "total": 1
+    },
+    "missedJobs": [
+      "Principal Engineer | Atlas Infrastructure Group | Jan 2010 - Present",
+      "Backend Engineer | Lumen Payments | Jun 2018 - Feb 2022"
+    ],
+    "missedSkills": [
+      "Kafka"
+    ]
+  }
+}

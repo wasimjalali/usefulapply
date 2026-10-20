@@ -266,10 +266,7 @@ export async function POST(req: NextRequest) {
       tailoredCV: chatSessionId && UUID_RE.test(chatSessionId) ? acceptTailoredCv(context.optimizedCVData) : null,
       cvOutlineRead: false,
       cvWorking: null,
-      // What the canvas is painting, so an edit can be judged against the page
-      // and not only against the object. An id outside the catalog is dropped:
-      // CVTemplateRenderer falls those back to a group-capped template, which
-      // is what render-caps.ts assumes for null.
+      // What the canvas is painting. An id outside the catalog is dropped.
       cvTemplateId: isCvTemplateId(context.cvTemplateId) ? context.cvTemplateId : null,
     };
     const systemPrompt = buildMainChatPrompt(context, timeZone);

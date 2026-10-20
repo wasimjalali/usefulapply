@@ -1,0 +1,30 @@
+{
+  "raw": "{\n  \"name\": \"Sanne de Vries\",\n  \"email\": \"sanne.devries@example.nl\",\n  \"phone\": \"+31 6 1234 5678\",\n  \"jobs\": [\n    {\n      \"title\": \"Senior software engineer\",\n      \"company\": \"Transport Midden-Nederland | Utrecht\",\n      \"dates\": \"03/2021 — Present\",\n      \"bullets\": [\n        \"Leidde een team van vijf engineers bij de migratie van veertig services naar Kubernetes.\",\n        \"Verlaagde de p99-latentie met 38 % door de cache voor zendingen te herontwerpen.\"\n      ]\n    },\n    {\n      \"title\": \"Software engineer\",\n      \"company\": \"Hollandse Bank | Amsterdam\",\n      \"dates\": \"09/2016 — 02/2021\",\n      \"bullets\": [\n        \"Ontwierp de grootboekservice die twee miljoen transacties per dag verwerkt.\",\n        \"Bracht de afhandeltijd van geschillen terug van drie dagen naar vier uur.\"\n      ]\n    }\n  ],\n  \"skills\": [\n    \"Go\",\n    \"Kubernetes\",\n    \"Nederlands: Moedertaal\",\n    \"Python\",\n    \"Terraform\",\n    \"Engels: C1\",\n    \"SQL\",\n    \"AWS\",\n    \"TypeScript\"\n  ],\n  \"education\": [\n    {\n      \"school\": \"Technische Universiteit Delft\",\n      \"degree\": \"Master in Informatica\",\n      \"date\": \"2016\"\n    }\n  ]\n}",
+  "error": null,
+  "score": {
+    "name": true,
+    "email": true,
+    "phone": true,
+    "jobs": {
+      "matched": 0,
+      "total": 2
+    },
+    "bullets": {
+      "matched": 4,
+      "total": 4
+    },
+    "skills": {
+      "matched": 7,
+      "total": 7
+    },
+    "education": {
+      "matched": 1,
+      "total": 1
+    },
+    "missedJobs": [
+      "Senior software engineer | Transport Midden-Nederland | 03/2021 - Heden",
+      "Software engineer | Hollandse Bank | 09/2016 - 02/2021"
+    ],
+    "missedSkills": []
+  }
+}

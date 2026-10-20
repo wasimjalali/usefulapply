@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * US Premium ATS Template
  * 
@@ -18,7 +16,11 @@
  */
 
 import { CVData, CVTemplate } from '@/lib/cv-templates/types';
-import { Mail, Phone, MapPin, Linkedin, Globe, Github, Award } from 'lucide-react';
+import { rootBox, type CvRenderMode } from '@/lib/cv-templates/print-spec';
+import { cvPaper } from '@/lib/cv-templates/paper';
+import { sectionHeading, formatDateRange, formatSingleDate, degreeText, uiText } from '@/lib/cv-templates/locale';
+import { ContactRows, LanguageLine, SkillLines, stackGap } from './shared';
+import { Award } from 'lucide-react';
 
 interface Props {
   data: CVData;
@@ -27,16 +29,11 @@ interface Props {
   matchScore?: number;
   showScores?: boolean;
   photoUrl?: string;
+  /** `print` hides edit affordances and drops the page box so the export owns the margins. */
+  mode?: CvRenderMode;
 }
 
-export function USPremiumATSTemplate({ 
-  data, 
-  template, 
-  qualityScore,
-  matchScore,
-  showScores = false,
-  photoUrl,
-}: Props) {
+export function USPremiumATSTemplate({ data, template, qualityScore, matchScore, showScores = false, photoUrl, mode }: Props) {
   const { colors } = template;
   
   // 2026 Premium "Trust" Palette - Navy, clean, executive
@@ -54,18 +51,17 @@ export function USPremiumATSTemplate({
     <div 
       className="cv-template us-premium-ats bg-white shadow-lg mx-auto print:shadow-none"
       style={{ 
-        width: '8.5in',
-        minHeight: '11in',
-        fontFamily: "'Arial', 'Helvetica', sans-serif",  // 2026: Clean sans-serif body
+        fontFamily: "'Arimo', 'Arial', 'Helvetica', sans-serif",  // 2026: Clean sans-serif body
         color: premiumColors.text,
-        lineHeight: 1.2,  // 2026: Tighter line spacing (1.15-1.2)
+        lineHeight: 'calc(1.2 * var(--cv-ld, 1))',  // 2026: Tighter line spacing (1.15-1.2)
         pageBreakAfter: 'auto',
         pageBreakInside: 'auto',
-        padding: '0.5in 0.75in',  // Professional standard: 0.5in top/bottom, 0.75in left/right
+        ...rootBox(template.id, mode, cvPaper(data)),
+        fontVariantLigatures: 'none',
       }}
     >
       {/* Quality/Match Score Badge (only shown in preview, not print) */}
-      {showScores && (qualityScore || matchScore) && (
+      {mode !== 'print' && showScores && (qualityScore || matchScore) && (
         <div className="print:hidden absolute top-4 right-4 flex gap-2">
           {matchScore && (
             <div className="px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full">
@@ -85,14 +81,14 @@ export function USPremiumATSTemplate({
       )}
 
       {/* Header - Clean, ATS-optimized with 2026 Navy theme */}
-      <header style={{ paddingBottom: '16px', borderBottom: `2px solid ${premiumColors.primary}`, marginBottom: '20px' }}>
+      <header style={{ paddingBottom: 'calc(16px * var(--cv-d, 1))', borderBottom: `2px solid ${premiumColors.primary}`, marginBottom: 'calc(20px * var(--cv-d, 1))' }}>
         <h1 
           style={{ 
-            fontFamily: "'Georgia', 'Times New Roman', serif",  // 2026: Serif headers for authority
+            fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",  // 2026: Serif headers for authority
             fontSize: '28px',
             fontWeight: 'bold',
             letterSpacing: '-0.5px',
-            marginBottom: '4px',
+            marginBottom: 'calc(4px * var(--cv-d, 1))',
             color: premiumColors.primary,
           }}
         >
@@ -103,10 +99,10 @@ export function USPremiumATSTemplate({
         {data.personal.currentTitle && (
           <p 
             style={{ 
-              fontFamily: "'Georgia', 'Times New Roman', serif",
+              fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '16px',
               fontWeight: 500,
-              marginBottom: '16px',
+              marginBottom: 'calc(16px * var(--cv-d, 1))',
               color: premiumColors.primary,
             }}
           >
@@ -115,115 +111,32 @@ export function USPremiumATSTemplate({
         )}
         
         {/* Contact Info - Single line for ATS */}
-        <div 
-          style={{ 
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            columnGap: '16px',
-            rowGap: '4px',
-            fontSize: '12px',
-            color: premiumColors.textLight,
-          }}
-        >
-          {data.personal.email && (
-            <a 
-              href={`mailto:${data.personal.email}`} 
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
-            >
-              <Mail style={{ width: '14px', height: '14px' }} />
-              <span>{data.personal.email}</span>
-            </a>
-          )}
-          {data.personal.phone && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Phone style={{ width: '14px', height: '14px' }} />
-              <span>{data.personal.phone}</span>
-            </span>
-          )}
-          {(data.personal.address || data.personal.city || data.personal.country) && (() => {
-            const parts: string[] = [];
-            if (data.personal.address) {
-              parts.push(data.personal.address);
-              if (data.personal.city && !data.personal.address.toLowerCase().includes(data.personal.city.toLowerCase())) parts.push(data.personal.city);
-              if (data.personal.country && !data.personal.address.toLowerCase().includes(data.personal.country.toLowerCase())) parts.push(data.personal.country);
-            } else {
-              if (data.personal.city) parts.push(data.personal.city);
-              if (data.personal.country) parts.push(data.personal.country);
-            }
-            return (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <MapPin style={{ width: '14px', height: '14px' }} />
-                <span>{parts.join(', ')}</span>
-              </span>
-            );
-          })()}
-          {data.personal.linkedIn && (
-            <a 
-              href={data.personal.linkedIn} 
-              target="_blank" rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
-            >
-              <Linkedin style={{ width: '14px', height: '14px' }} />
-              <span>LinkedIn</span>
-            </a>
-          )}
-          {data.personal.github && (
-            <a 
-              href={data.personal.github} 
-              target="_blank" rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
-            >
-              <Github style={{ width: '14px', height: '14px' }} />
-              <span>GitHub</span>
-            </a>
-          )}
-          {data.personal.portfolio && (
-            <a 
-              href={data.personal.portfolio} 
-              target="_blank" rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
-            >
-              <Globe style={{ width: '14px', height: '14px' }} />
-              <span>Portfolio</span>
-            </a>
-          )}
-          {data.personal.website && (
-            <a 
-              href={data.personal.website} 
-              target="_blank" rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
-            >
-              <Globe style={{ width: '14px', height: '14px' }} />
-              <span>Website</span>
-            </a>
-          )}
-        </div>
+        <ContactRows data={data} iconSize={14} iconGap={6} textColor={premiumColors.textLight} columnGap={16} rowGap={4} />
       </header>
 
-      <div style={{ marginTop: '20px' }}>
+      <div style={{ marginTop: 'calc(20px * var(--cv-d, 1))' }}>
         {/* Professional Summary - Critical for ATS */}
         {data.summary && (
-          <section style={{ marginBottom: '20px' }}>
+          <section style={{ marginBottom: 'calc(16px * var(--cv-d, 1))' }}>
             <h2 
               style={{ 
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '14px',
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '2px',
-                marginBottom: '8px',
-                paddingBottom: '8px',
+                letterSpacing: '0.5px',
+                marginBottom: 'calc(8px * var(--cv-d, 1))',
+                paddingBottom: 'calc(8px * var(--cv-d, 1))',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
             >
-              {data.sectionHeaders?.summary || 'PROFESSIONAL SUMMARY'}
+              {sectionHeading(data, 'summary')}
             </h2>
             <p 
               style={{ 
-                fontSize: '12px',
-                lineHeight: 1.5,
+                fontSize: '10pt',
+                lineHeight: 'calc(1.5 * var(--cv-ld, 1))',
                 color: premiumColors.text,
               }}
             >
@@ -233,187 +146,54 @@ export function USPremiumATSTemplate({
         )}
 
         {/* Core Competencies / Skills - 2026: 3-Column Grid with Languages integrated */}
-        {(data.skills.length > 0 || data.languages.length > 0) && (
-          <section style={{ marginBottom: '20px' }}>
-            <h2 
+        {data.skills.length > 0 && (
+          <section style={{ marginBottom: 'calc(16px * var(--cv-d, 1))' }}>
+            
+          <SkillLines heading={<h2 
               style={{ 
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '14px',
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '2px',
-                marginBottom: '12px',
-                paddingBottom: '8px',
+                letterSpacing: '0.5px',
+                marginBottom: 'calc(12px * var(--cv-d, 1))',
+                paddingBottom: 'calc(8px * var(--cv-d, 1))',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
             >
-              {data.sectionHeaders?.skills || 'CORE COMPETENCIES'}
-            </h2>
-            {/* 2026 Premium: 3-Column Grid Layout - Max 5 categories + Languages */}
-            <div 
-              style={{ 
-                display: 'flex', 
-                flexWrap: 'wrap', 
-                justifyContent: 'flex-start', 
-                gap: '20px',
-              }}
-            >
-              {/* First row: 2 skill categories + Languages */}
-              {data.skills.slice(0, 2).map((group, groupIdx) => (
-                <div key={groupIdx} style={{ flex: '1', minWidth: '30%', maxWidth: '32%' }}>
-                  <h4 
-                    style={{ 
-                      color: premiumColors.primary, 
-                      fontWeight: 700, 
-                      fontSize: '10px', 
-                      marginBottom: '6px', 
-                      textTransform: 'uppercase',
-                      letterSpacing: '1px',
-                    }}
-                  >
-                    {group.category}
-                  </h4>
-                  <div style={{ margin: 0 }}>
-                    {group.items.slice(0, 5).map((skill, idx) => (
-                      <div 
-                        key={idx} 
-                        style={{ 
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: '6px',
-                          fontSize: '12px',
-                          lineHeight: 1.4,
-                          marginBottom: '3px',
-                          color: premiumColors.text,
-                        }}
-                      >
-                        <span style={{ flexShrink: 0 }}>•</span>
-                        <span>{skill}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              
-              {/* Languages Column - Integrated into first row */}
-              {data.languages.length > 0 && (
-                <div style={{ flex: '1', minWidth: '30%', maxWidth: '32%' }}>
-                  <h4 
-                    style={{ 
-                      color: premiumColors.primary, 
-                      fontWeight: 700, 
-                      fontSize: '10px', 
-                      marginBottom: '6px', 
-                      textTransform: 'uppercase',
-                      letterSpacing: '1px',
-                    }}
-                  >
-                    {data.sectionHeaders?.languages || 'LANGUAGES'}
-                  </h4>
-                  <div style={{ margin: 0 }}>
-                    {data.languages.map((lang, idx) => (
-                      <div 
-                        key={idx} 
-                        style={{ 
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: '6px',
-                          fontSize: '12px',
-                          lineHeight: 1.4,
-                          marginBottom: '3px',
-                          color: premiumColors.text,
-                        }}
-                      >
-                        <span style={{ flexShrink: 0 }}>•</span>
-                        <span>
-                          <strong>{lang.language}{lang.proficiency ? ':' : ''}</strong>{lang.proficiency ? ` ${lang.proficiency}` : ''}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            {/* Second row: Additional skill categories (3rd-5th) - 3-column layout */}
-            {data.skills.length > 2 && (
-              <div 
-                style={{ 
-                  display: 'flex', 
-                  flexWrap: 'wrap', 
-                  justifyContent: 'flex-start', 
-                  gap: '20px',
-                  marginTop: '12px',
-                }}
-              >
-                {data.skills.slice(2, 5).map((group, groupIdx) => (
-                  <div key={groupIdx} style={{ flex: '1', minWidth: '30%', maxWidth: '32%' }}>
-                    <h4 
-                      style={{ 
-                        color: premiumColors.primary, 
-                        fontWeight: 700, 
-                        fontSize: '10px', 
-                        marginBottom: '6px', 
-                        textTransform: 'uppercase',
-                        letterSpacing: '1px',
-                      }}
-                    >
-                      {group.category}
-                    </h4>
-                    <div style={{ margin: 0 }}>
-                      {group.items.slice(0, 5).map((skill, idx) => (
-                        <div 
-                          key={idx} 
-                          style={{ 
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: '6px',
-                            fontSize: '12px',
-                            lineHeight: 1.4,
-                            marginBottom: '3px',
-                            color: premiumColors.text,
-                          }}
-                        >
-                          <span style={{ flexShrink: 0 }}>•</span>
-                          <span>{skill}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+              {sectionHeading(data, 'skills')}
+            </h2>} data={data} primary={premiumColors.primary} text={premiumColors.text} gap={6} lineHeight={1.4} />
+        </section>
         )}
 
         {/* Professional Experience */}
         {data.experience.length > 0 && (
-          <section style={{ marginBottom: '20px' }}>
+          <section style={{ marginBottom: 'calc(16px * var(--cv-d, 1))' }}>
             <h2 
               style={{ 
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '14px',
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '2px',
-                marginBottom: '8px',
-                paddingBottom: '8px',
+                letterSpacing: '0.5px',
+                marginBottom: 'calc(8px * var(--cv-d, 1))',
+                paddingBottom: 'calc(8px * var(--cv-d, 1))',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
             >
-              {data.sectionHeaders?.experience || 'PROFESSIONAL EXPERIENCE'}
+              {sectionHeading(data, 'experience')}
             </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="cv-stack" style={stackGap(16)}>
               {data.experience.map((exp, idx) => (
-                <div key={exp.id || idx} style={{ position: 'relative' }}>
+                <div className={exp.bullets.length <= 3 ? 'cv-exp cv-exp-short' : 'cv-exp'} key={exp.id || idx}>
                   {/* Role Header */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                  <div className="cv-entry-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'calc(4px * var(--cv-d, 1))' }}>
                     <h3 
                       style={{ 
-                        fontFamily: "'Georgia', 'Times New Roman', serif",
-                        fontSize: '13px',
+                        fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                        fontSize: '10.5pt',
                         fontWeight: 'bold',
                         color: premiumColors.text,
                       }}
@@ -422,23 +202,23 @@ export function USPremiumATSTemplate({
                     </h3>
                     <span 
                       style={{ 
-                        fontSize: '12px',
+                        fontSize: '10pt',
                         fontWeight: '500',
                         whiteSpace: 'nowrap',
                         marginLeft: '16px',
                         color: premiumColors.textLight,
                       }}
                     >
-                      {exp.startDate} – {exp.current ? (data.localizedStrings?.present || 'Present') : exp.endDate}
+                      {formatDateRange(data, exp)}
                     </span>
                   </div>
                   
                   {/* Company */}
-                  <p 
+                  <p className="cv-entry-head" 
                     style={{ 
-                      fontSize: '12px',
+                      fontSize: '10pt',
                       fontWeight: '500',
-                      marginBottom: '8px',
+                      marginBottom: 'calc(8px * var(--cv-d, 1))',
                       color: premiumColors.accent,
                     }}
                   >
@@ -450,21 +230,22 @@ export function USPremiumATSTemplate({
                   
                   {/* Bullets - Explicit bullet characters for PDF compatibility */}
                   {exp.bullets.length > 0 && (
-                    <div style={{ marginTop: '6px', marginLeft: '4px' }}>
+                    <div className="cv-bullets" style={{ marginTop: 'calc(6px * var(--cv-d, 1))', marginLeft: '4px' }}>
                       {exp.bullets.map((bullet, bulletIdx) => (
-                        <div 
+                        <div className="cv-bullet"
                           key={bulletIdx} 
                           style={{ 
                             display: 'flex',
                             alignItems: 'flex-start',
-                            gap: '8px',
-                            fontSize: '12px',
-                            lineHeight: 1.4,
-                            marginBottom: '4px',
+                            breakInside: 'avoid',
+                            gap: 'calc(8px * var(--cv-d, 1))',
+                            fontSize: '10pt',
+                            lineHeight: 'calc(1.4 * var(--cv-ld, 1))',
+                            marginBottom: 'calc(4px * var(--cv-d, 1))',
                             color: premiumColors.text,
                           }}
                         >
-                          <span style={{ flexShrink: 0, marginTop: '2px' }}>•</span>
+                          <span style={{ flexShrink: 0, marginTop: 'calc(2px * var(--cv-d, 1))' }}>•</span>
                           <span>{bullet}</span>
                         </div>
                       ))}
@@ -478,57 +259,57 @@ export function USPremiumATSTemplate({
 
         {/* Education */}
         {data.education.length > 0 && (
-          <section style={{ marginBottom: '20px' }}>
+          <section style={{ marginBottom: 'calc(16px * var(--cv-d, 1))' }}>
             <h2 
               style={{ 
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '14px',
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '2px',
-                marginBottom: '8px',
-                paddingBottom: '8px',
+                letterSpacing: '0.5px',
+                marginBottom: 'calc(8px * var(--cv-d, 1))',
+                paddingBottom: 'calc(8px * var(--cv-d, 1))',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
             >
-              {data.sectionHeaders?.education || 'EDUCATION'}
+              {sectionHeading(data, 'education')}
             </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div className="cv-stack" style={stackGap(8)}>
               {data.education.map((edu, idx) => (
-                <div key={edu.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <div className="cv-entry" key={edu.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <div>
                     <h3 
                       style={{ 
-                        fontFamily: "'Georgia', 'Times New Roman', serif",
-                        fontSize: '13px',
+                        fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                        fontSize: '10.5pt',
                         fontWeight: '600',
                         color: premiumColors.text,
                       }}
                     >
                       {edu.degree}
-                      {edu.field && <span style={{ fontWeight: 'normal' }}> {data.localizedStrings?.degreeConnector || 'in'} {edu.field}</span>}
+                      {edu.field && <span style={{ fontWeight: 'normal' }}>{degreeText(data, edu).slice(edu.degree.trim().length)}</span>}
                     </h3>
                     <p 
                       style={{ 
-                        fontSize: '12px',
+                        fontSize: '10pt',
                         color: premiumColors.textLight,
                       }}
                     >
                       {edu.institution}
-                      {edu.grade && <span> • {data.localizedStrings?.gradePrefix || 'GPA:'} {edu.grade}</span>}
+                      {edu.grade && <span> • {uiText(data, 'gradePrefix')} {edu.grade}</span>}
                     </p>
                   </div>
                   {edu.endDate && (
                     <span 
                       style={{ 
-                        fontSize: '12px',
+                        fontSize: '10pt',
                         whiteSpace: 'nowrap',
                         marginLeft: '16px',
                         color: premiumColors.textLight,
                       }}
                     >
-                      {edu.endDate}
+                      {formatSingleDate(data, edu.endDate)}
                     </span>
                   )}
                 </div>
@@ -539,31 +320,31 @@ export function USPremiumATSTemplate({
 
         {/* Certifications */}
         {data.certifications.length > 0 && (
-          <section style={{ marginBottom: '20px' }}>
+          <section style={{ marginBottom: 'calc(16px * var(--cv-d, 1))' }}>
             <h2 
               style={{ 
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '14px',
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '2px',
-                marginBottom: '8px',
-                paddingBottom: '8px',
+                letterSpacing: '0.5px',
+                marginBottom: 'calc(8px * var(--cv-d, 1))',
+                paddingBottom: 'calc(8px * var(--cv-d, 1))',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
             >
-              {data.sectionHeaders?.certifications || 'CERTIFICATIONS'}
+              {sectionHeading(data, 'certifications')}
             </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '24px', rowGap: '6px' }}>
+            <div className="cv-stack" style={stackGap(6)}>
               {data.certifications.map((cert, idx) => (
                 <div 
                   key={cert.id || idx} 
                   style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
-                    gap: '8px', 
-                    fontSize: '12px' 
+                    gap: 'calc(8px * var(--cv-d, 1))', 
+                    fontSize: '10pt' 
                   }}
                 >
                   <Award 
@@ -586,25 +367,46 @@ export function USPremiumATSTemplate({
           </section>
         )}
 
-        {/* Languages section REMOVED - now integrated into Core Competencies grid above */}
-
-        {/* Projects */}
-        {data.projects && data.projects.length > 0 && (
-          <section style={{ marginBottom: '20px' }}>
-            <h2
-              style={{
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '14px',
+      {data.languages.length > 0 && (
+        <section style={{ marginBottom: 'calc(16px * var(--cv-d, 1))' }}>
+          <h2 
+              style={{ 
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '2px',
-                marginBottom: '8px',
-                paddingBottom: '8px',
+                letterSpacing: '0.5px',
+                marginBottom: 'calc(8px * var(--cv-d, 1))',
+                paddingBottom: 'calc(8px * var(--cv-d, 1))',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
             >
-              {data.sectionHeaders?.projects || 'PROJECTS'}
+              {sectionHeading(data, 'languages')}
+            </h2>
+          <LanguageLine data={data} text={premiumColors.text} lineHeight={1.4} />
+        </section>
+      )}
+
+        {/* Languages section REMOVED - now integrated into Core Competencies grid above */}
+
+        {/* Projects */}
+        {data.projects && data.projects.length > 0 && (
+          <section style={{ marginBottom: 'calc(16px * var(--cv-d, 1))' }}>
+            <h2
+              style={{
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                marginBottom: 'calc(8px * var(--cv-d, 1))',
+                paddingBottom: 'calc(8px * var(--cv-d, 1))',
+                borderBottom: `2px solid ${premiumColors.primary}`,
+                color: premiumColors.primary,
+              }}
+            >
+              {sectionHeading(data, 'projects')}
             </h2>
             {/* One line per project keeps the section short; a description
                 that just repeats the name is dropped. */}
@@ -612,11 +414,11 @@ export function USPremiumATSTemplate({
               const description = project.description?.trim();
               const showDescription = Boolean(description && description.toLowerCase() !== project.name.trim().toLowerCase());
               return (
-                <div key={project.id} style={{ fontSize: '11px', lineHeight: 1.5, color: premiumColors.textLight, marginBottom: '4px' }}>
-                  <span style={{ fontWeight: 600, fontSize: '12px', color: premiumColors.text }}>{project.name}</span>
+                <div key={project.id} style={{ fontSize: '10pt', lineHeight: 'calc(1.5 * var(--cv-ld, 1))', color: premiumColors.textLight, marginBottom: 'calc(4px * var(--cv-d, 1))' }}>
+                  <span style={{ fontWeight: 600, fontSize: '10pt', color: premiumColors.text }}>{project.name}</span>
                   {showDescription && <span>: {description}</span>}
                   {project.technologies && project.technologies.length > 0 && (
-                    <span style={{ fontSize: '10px', color: premiumColors.accent }}> ({project.technologies.join(', ')})</span>
+                    <span style={{ fontSize: '10pt', color: premiumColors.accent }}> ({project.technologies.join(', ')})</span>
                   )}
                 </div>
               );
@@ -626,23 +428,23 @@ export function USPremiumATSTemplate({
 
         {/* Additional Information */}
         {data.additionalInfo && data.additionalInfo.length > 0 && (
-          <section style={{ marginBottom: '20px' }}>
+          <section style={{ marginBottom: 'calc(16px * var(--cv-d, 1))' }}>
             <h2 
               style={{ 
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '14px',
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '2px',
-                marginBottom: '8px',
-                paddingBottom: '8px',
+                letterSpacing: '0.5px',
+                marginBottom: 'calc(8px * var(--cv-d, 1))',
+                paddingBottom: 'calc(8px * var(--cv-d, 1))',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
             >
-              {data.sectionHeaders?.additionalInfo || 'ADDITIONAL INFORMATION'}
+              {sectionHeading(data, 'additionalInfo')}
             </h2>
-            <div style={{ fontSize: '12px', color: premiumColors.text }}>
+            <div style={{ fontSize: '10pt', color: premiumColors.text }}>
               {data.additionalInfo.map((item, idx) => (
                 <span key={idx}>
                   {item}
@@ -655,16 +457,16 @@ export function USPremiumATSTemplate({
 
         {/* Custom Sections (generic fallback for achievements, references, volunteer, publications, etc.) */}
         {data.customSections && data.customSections.length > 0 && data.customSections.map((section) => (
-          <section key={section.id} style={{ marginBottom: '20px' }}>
+          <section key={section.id} style={{ marginBottom: 'calc(20px * var(--cv-d, 1))' }}>
             <h2
               style={{
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '14px',
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '2px',
-                marginBottom: '8px',
-                paddingBottom: '8px',
+                letterSpacing: '0.5px',
+                marginBottom: 'calc(8px * var(--cv-d, 1))',
+                paddingBottom: 'calc(8px * var(--cv-d, 1))',
                 borderBottom: `2px solid ${premiumColors.primary}`,
                 color: premiumColors.primary,
               }}
@@ -673,18 +475,13 @@ export function USPremiumATSTemplate({
             </h2>
             <ul style={{ listStyleType: 'disc', paddingLeft: '18px', margin: 0 }}>
               {section.items.map((item, idx) => (
-                <li key={idx} style={{ fontSize: '12px', color: premiumColors.text, marginBottom: '3px', lineHeight: 1.5 }}>
+                <li key={idx} style={{ fontSize: '10pt', color: premiumColors.text, marginBottom: 'calc(3px * var(--cv-d, 1))', lineHeight: 'calc(1.5 * var(--cv-ld, 1))' }}>
                   {item}
                 </li>
               ))}
             </ul>
           </section>
         ))}
-      </div>
-
-      {/* Print footer with page number */}
-      <div className="hidden print:block fixed bottom-4 right-8 text-xs text-gray-400">
-        Page 1 of 1
       </div>
     </div>
   );
