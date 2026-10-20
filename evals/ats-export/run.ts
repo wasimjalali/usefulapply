@@ -56,6 +56,7 @@ import { runServiceChecks, type ServiceReport } from './service-checks';
 import { extractWithPdfJs } from './lib/pdf-text';
 import { pdfImageCount, pdfinfo, pdftotext } from './lib/poppler';
 import { hasToken, norm, squash } from './lib/expect';
+import { formatLetterDate } from '../../src/lib/agents/cover-letter-structure';
 
 const run = promisify(execFile);
 const OUT = RUN_DIR;
@@ -190,7 +191,7 @@ async function main() {
     const letterDocx = await checkLetterDocx(
       docx.bytes,
       `${c.name}.docx`,
-      [c.letter.sender.name, c.letter.recipient.companyName ?? '', c.letter.subject, c.letter.salutation, c.letter.paragraphs[0], c.letter.signatureName, c.letter.date],
+      [c.letter.sender.name, c.letter.recipient.companyName ?? '', c.letter.subject, c.letter.salutation, c.letter.paragraphs[0], c.letter.signatureName, formatLetterDate(c.letter.date, c.letter.language)],
       c.layout === 'din' ? 'Mit freundlichen Grüßen' : null,
       { kind: c.layout, letter: c.letter },
     );

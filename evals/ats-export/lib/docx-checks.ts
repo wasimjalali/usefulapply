@@ -15,6 +15,7 @@ import { pdfinfo, pdftotext } from './poppler';
 import { sofficePath } from './soffice';
 import { displayUrl, fullUrl, pickLetterLinks } from '../../../src/lib/cv-templates/url';
 import { recipientLinesFor } from '../../../src/lib/services/export/letter-html';
+import { formatLetterDate } from '../../../src/lib/agents/cover-letter-structure';
 
 const run = promisify(execFile);
 
@@ -240,7 +241,7 @@ export async function checkLetterDocx(
       const lines = text.split('\n').map((line) => norm(line));
       const at = (needle: string) => lines.findIndex((line) => line.includes(norm(needle)));
       const l = layout.letter;
-      const order = [at(l.date), at(recipientLinesFor(l, 'us')[0] ?? ''), at(l.salutation), at(l.closing)];
+      const order = [at(formatLetterDate(l.date, l.language)), at(recipientLinesFor(l, 'us')[0] ?? ''), at(l.salutation), at(l.closing)];
       if (order.some((index) => index < 0) || order.some((index, i) => i > 0 && index <= order[i - 1])) failures.push(`letter blocks are out of order in the render (date, recipient, salutation, closing at ${order.join(', ')})`);
     }
   } catch (error) {

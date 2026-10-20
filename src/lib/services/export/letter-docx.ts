@@ -17,6 +17,7 @@ import { DIN, dinClosing, dinReturnLine, plainContactLines, recipientLinesFor, t
 import { localeFromLanguageCode } from '@/lib/cv-templates/locale';
 import { exportText } from './export-text';
 import { PDF_PRODUCER } from './pdf';
+import { formatLetterDate } from '@/lib/agents/cover-letter-structure';
 
 /**
  * Cover letter as a Word document, from the same structure as the PDF.
@@ -79,7 +80,7 @@ function usChildren(letter: StructuredCoverLetter): Paragraph[] {
     p(letter.sender.name, 0, { bold: true }),
     ...senderLines(letter).map((runs) => new Paragraph({ spacing: { after: 0, line: 276 }, children: runs })),
     blank(),
-    p(letter.date),
+    p(formatLetterDate(letter.date, letter.language)),
     blank(),
     ...recipient.map((text) => p(text)),
     ...(recipient.length > 0 ? [blank()] : []),
@@ -116,7 +117,7 @@ function dinChildren(letter: StructuredCoverLetter): Paragraph[] {
   const contactRuns = senderLines(letter, headSize, true);
   const recipient = recipientLinesFor(letter, 'din').slice(0, 6);
   const returnLine = dinReturnLine(letter);
-  const dateLine = [letter.place, letter.date].filter((part) => part && part.trim()).join(', ');
+  const dateLine = [letter.place, formatLetterDate(letter.date, letter.language)].filter((part) => part && part.trim()).join(', ');
 
   const headHeight = headCount * lineHeight;
   const beforeReturn = Math.max(0, DIN.addressTop - topMargin - headHeight);

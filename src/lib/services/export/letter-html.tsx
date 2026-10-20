@@ -6,6 +6,7 @@ import { fontFaceCssInline, type FontFileLoader } from '@/lib/cv-templates/fonts
 import type { PaperSize } from '@/lib/cv-templates/print-spec';
 import { EXPORT_CSP, escapeHtml } from './cv-html';
 import { PRINT_BASE_CSS } from './print-css';
+import { formatLetterDate } from '@/lib/agents/cover-letter-structure';
 
 /**
  * Cover letter pages. Two layouts, chosen by the letter's locale or the CV
@@ -153,7 +154,7 @@ function UsLetter({ letter }: { letter: StructuredCoverLetter }) {
         <div className="name">{letter.sender.name}</div>
         {senderContactLines(letter).map((line, index) => <div key={index}><ContactLine line={line} letter={letter} /></div>)}
       </div>
-      <div className="date">{letter.date}</div>
+      <div className="date">{formatLetterDate(letter.date, letter.language)}</div>
       {recipient.length > 0 && (
         <div className="recipient">
           {recipient.map((line, index) => <div key={index}>{line}</div>)}
@@ -222,7 +223,7 @@ export function letterheadStyle(lines: number): { lineHeight?: string; fontSize?
 
 function DinLetter({ letter }: { letter: StructuredCoverLetter }) {
   const returnLine = dinReturnLine(letter);
-  const dateLine = [letter.place, letter.date].filter((part) => part && part.trim()).join(', ');
+  const dateLine = [letter.place, formatLetterDate(letter.date, letter.language)].filter((part) => part && part.trim()).join(', ');
   const subject = letter.subject.trim();
   return (
     <>
@@ -275,7 +276,7 @@ export function letterPlainText(input: LetterInput, layout: LetterLayout): strin
     letter.sender.name,
     ...senderContactLines(letter),
     '',
-    [letter.place, letter.date].filter(Boolean).join(', '),
+    [letter.place, formatLetterDate(letter.date, letter.language)].filter(Boolean).join(', '),
     '',
     ...recipientLinesFor(letter, layout),
     '',

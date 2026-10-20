@@ -5,6 +5,7 @@ import { displayUrl, fullUrl, pickLetterLinks } from '../../../src/lib/cv-templa
 import { norm, sameUrl, squash } from './expect';
 import { extractWithPdfJs, mmToPt, ptToMm, type PdfItem } from './pdf-text';
 import { pdfPagePng, pdfinfo, pdftotext } from './poppler';
+import { formatLetterDate } from '../../../src/lib/agents/cover-letter-structure';
 
 export interface LetterReport {
   name: string;
@@ -78,7 +79,7 @@ function allFields(letter: StructuredCoverLetter): string[] {
     letter.recipient.contactPerson ?? '',
     letter.recipient.department ?? '',
     ...letter.recipient.addressLines,
-    letter.date,
+    formatLetterDate(letter.date, letter.language),
     letter.subject,
     letter.salutation,
     ...letter.paragraphs,
@@ -145,7 +146,7 @@ export async function checkDinDocxPositions(loPdf: Uint8Array, letter: Structure
   const find = (needle: string) => lines.find((l) => l.page === 1 && norm(l.text).includes(norm(needle)));
   const first = find(letter.recipient.companyName ?? letter.recipient.addressLines[0]);
   const last = find(letter.recipient.addressLines[letter.recipient.addressLines.length - 1]);
-  const date = find(letter.date);
+  const date = find(formatLetterDate(letter.date, letter.language));
   if (!first || !last || !date) return { failures: ['recipient or date not found in the LibreOffice render'], measured };
   const top = first.y - first.sizePt * 0.3528 * 0.8;
   measured['recipient.top'] = Number(top.toFixed(1));
@@ -187,6 +188,7 @@ export async function checkLetterPdf(bytes: Uint8Array, name: string, layout: 'u
     if (!squashed.includes(squash(field))) failures.push(`text is missing: ${field.slice(0, 60)}`);
   }
   if (/Betreff/i.test(text)) failures.push('"Betreff:" is printed');
+  if (text.split('\n').some((line) => /(^|,\s*)\d{4}-\d{2}-\d{2}\s*$/.test(line.trim()))) failures.push('a raw ISO date is printed as the letter date instead of a localized one');
   failures.push(...senderLinkProblems(text, pdfjs.links, letter));
   if (layout === 'din') failures.push(...addressFieldProblems(lines, letter));
   if (!info.tagged) failures.push('PDF is not tagged');
@@ -209,7 +211,7 @@ export async function checkLetterPdf(bytes: Uint8Array, name: string, layout: 'u
     // Block format: every line starts at the left margin.
     const indented = lines.filter((l) => l.x > 25.4 + 1);
     if (indented.length > 0) failures.push(`${indented.length} line(s) are indented, block format has none (${indented[0].text.slice(0, 30)})`);
-    const date = find(letter.date);
+    const date = find(formatLetterDate(letter.date, letter.language));
     const recipient = find(letter.recipient.companyName ?? '');
     const salutation = find(letter.salutation);
     const closing = find(letter.closing);
@@ -238,7 +240,7 @@ export async function checkLetterPdf(bytes: Uint8Array, name: string, layout: 'u
       if (lastRecipientLine.y > DIN.addressTop + DIN.addressHeight + 0.5) failures.push(`recipient ends at ${lastRecipientLine.y.toFixed(1)} mm, past the 90 mm bottom of the address field`);
       if (first.right > DIN.addressLeft + DIN.addressWidth + 0.5) failures.push('recipient line is wider than the 85 mm field');
     }
-    const dateLine = find(letter.date);
+    const dateLine = find(formatLetterDate(letter.date, letter.language));
     if (!dateLine) failures.push('date line not found');
     else {
       approx('date.rightEdge', dateLine.right, 210 - DIN.marginRight, 1.5);

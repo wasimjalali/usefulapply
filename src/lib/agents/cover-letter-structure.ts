@@ -154,7 +154,8 @@ export function isoToday(): string {
 export function formatLetterDate(isoDate: string, language: string): string {
   const date = new Date(`${isoDate}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return isoDate;
-  return date.toLocaleDateString(LETTER_LOCALES[language] || 'en-US', {
+  const code = (language || '').slice(0, 2).toLowerCase();
+  return date.toLocaleDateString(LETTER_LOCALES[code] || 'en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
