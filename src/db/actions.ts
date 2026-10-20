@@ -8,6 +8,7 @@ import * as sessionsRepo from './repos/sessions';
 import * as creditsRepo from './repos/credits';
 import * as subscriptionsRepo from './repos/subscriptions';
 import * as feedbackRepo from './repos/feedback';
+import * as mcpGrantsRepo from './repos/mcpGrants';
 import type { Profile } from '@/lib/supabase/types';
 
 async function requireCurrentUser(): Promise<{ id: string; email?: string }> {
@@ -330,4 +331,32 @@ export async function listUserFilesAction(bucket: FileBucket): Promise<string[]>
   }
   const objects = await listPrefix(userPrefix(bucket, user.id));
   return objects.map((object) => object.key);
+}
+
+// ---------------------------------------------------------------------------
+// Connected apps (MCP). The user comes from the session, never from the caller.
+// ---------------------------------------------------------------------------
+
+export async function listConnectedAppsAction() {
+  const user = await requireCurrentUser();
+  return mcpGrantsRepo.listConnectedApps(user.id);
+}
+
+export async function revokeConnectedAppAction(clientId: string) {
+  const user = await requireCurrentUser();
+  if (typeof clientId !== 'string' || clientId.length === 0 || clientId.length > 2048) {
+    throw new Error('Invalid app');
+  }
+  return mcpGrantsRepo.revokeConnectedApp(user.id, clientId);
+}
+
+export async function getAgentCreditLimitAction() {
+  const user = await requireCurrentUser();
+  return mcpGrantsRepo.getDailyAgentCreditLimit(user.id);
+}
+
+export async function setAgentCreditLimitAction(limit: number) {
+  const user = await requireCurrentUser();
+  if (!mcpGrantsRepo.isValidDailyAgentCreditLimit(limit)) throw new Error('Invalid limit');
+  await mcpGrantsRepo.setDailyAgentCreditLimit(user.id, limit);
 }
