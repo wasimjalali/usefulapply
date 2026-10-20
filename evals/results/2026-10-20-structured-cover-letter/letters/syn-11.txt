@@ -1,0 +1,21 @@
+Tomas Brandt
+Chicago, IL, USA
+tomas.brandt@example.com
++1 555 0123
+
+October 20, 2026
+
+Datadog
+
+Application for FP&A Analyst
+
+Dear Datadog team,
+
+Forecasts only help leaders if they can trust them. At Calder Industrial Components I rebuilt the forecast model for our larger business unit around order backlog, and accuracy rose from 88% to 96%. Your R&D Finance team needs that kind of reliability to guide Engineering and Product investment decisions.
+
+As a Financial Analyst I own monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD, and I know how to turn complex data into a clear message for non-finance leaders. I built Power BI dashboards on SAP data for plant managers and cut month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA. That is the discipline I'd bring to departmental budgets, the annual budget cycle and consistent templates across the organization. My B.S. in Finance and my progress toward ACCA (9 of 13 papers passed) support the financial modeling and analysis this role calls for, and I'm keen to build proficiency in BI tools like Tableau and Metabase.
+
+I'd welcome a conversation about how I can support your R&D Finance team and its partnership with technical leadership. I'm available to talk at your convenience and can discuss a start date that works for you.
+
+Kind regards,
+Tomas Brandt

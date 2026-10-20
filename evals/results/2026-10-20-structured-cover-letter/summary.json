@@ -1,0 +1,433 @@
+{
+ "run_id": "a5e81191-dc7d-4f49-a281-a7f0c2229436",
+ "date": "2026-10-20T10:24:36.262Z",
+ "model": "claude-sonnet-5-5",
+ "request_shape": {
+  "thinking": {
+   "type": "adaptive"
+  },
+  "effort": "low",
+  "temperature": null,
+  "maxTokensScale": {
+   "multiplier": 4,
+   "floor": 4000
+  }
+ },
+ "calls": 30,
+ "cover_letter_calls": 6,
+ "tokens": {
+  "input": 101137,
+  "output": 19980,
+  "cacheWrite": 10880,
+  "cacheRead": 21760
+ },
+ "cost_usd": 0.43145,
+ "cover_letter_cost_usd": 0.122294,
+ "cover_letter_latency_ms": [
+  4342,
+  5535,
+  4989,
+  5280,
+  5375,
+  6235
+ ],
+ "cases": [
+  {
+   "case_id": "syn-01",
+   "ok": true,
+   "error": null,
+   "cover_letter_calls": 1,
+   "checks": {
+    "contract_valid": {
+     "pass": true,
+     "detail": ""
+    },
+    "recipient_address_empty": {
+     "pass": true,
+     "detail": "[]"
+    },
+    "no_ad_address_in_body": {
+     "pass": true,
+     "detail": "ad address lines: 0"
+    },
+    "contact_rule": {
+     "pass": true,
+     "detail": "contact= dept= salutation=Dear Coinbase team,"
+    },
+    "numbers_traced": {
+     "pass": true,
+     "detail": "cv-or-ad: 3, ad-only (employer facts, review): none, untraced: none"
+    },
+    "no_missing_skill_named": {
+     "pass": true,
+     "detail": "none"
+    },
+    "no_dashes": {
+     "pass": true,
+     "detail": "body 0, raw model output 0"
+    },
+    "under_250_words": {
+     "pass": true,
+     "detail": "201 words in 3 paragraphs"
+    },
+    "three_paragraphs": {
+     "pass": true,
+     "detail": "3"
+    },
+    "market_rules": {
+     "pass": true,
+     "detail": "market=us closing=\"Best regards,\" subject=\"Application for Experiential Marketing Associate\""
+    },
+    "subject_numbers_from_ad": {
+     "pass": true,
+     "detail": "none"
+    },
+    "body_faithful": {
+     "pass": true,
+     "detail": "body === renderCoverLetterBody(structured)"
+    },
+    "sender_from_cv": {
+     "pass": true,
+     "detail": "{\"name\":\"Maya Linden\",\"addressLines\":[\"Portland, OR, USA\"],\"phone\":\"+1 555 0142\",\"email\":\"maya.linden@example.com\",\"links\":[\"linkedin.com/in/maya-linden-example\"]}"
+    },
+    "no_placeholders": {
+     "pass": true,
+     "detail": ""
+    }
+   }
+  },
+  {
+   "case_id": "syn-07",
+   "ok": true,
+   "error": null,
+   "cover_letter_calls": 1,
+   "checks": {
+    "contract_valid": {
+     "pass": true,
+     "detail": ""
+    },
+    "recipient_address_empty": {
+     "pass": true,
+     "detail": "[]"
+    },
+    "no_ad_address_in_body": {
+     "pass": true,
+     "detail": "ad address lines: 0"
+    },
+    "contact_rule": {
+     "pass": true,
+     "detail": "contact= dept= salutation=Dear Cloudflare team,"
+    },
+    "numbers_traced": {
+     "pass": true,
+     "detail": "cv-or-ad: 9, ad-only (employer facts, review): none, untraced: none"
+    },
+    "no_missing_skill_named": {
+     "pass": true,
+     "detail": "none"
+    },
+    "no_dashes": {
+     "pass": true,
+     "detail": "body 0, raw model output 0"
+    },
+    "under_250_words": {
+     "pass": true,
+     "detail": "229 words in 3 paragraphs"
+    },
+    "three_paragraphs": {
+     "pass": true,
+     "detail": "3"
+    },
+    "market_rules": {
+     "pass": true,
+     "detail": "market=us closing=\"Kind regards,\" subject=\"Application for Senior Software Engineer - Egress (Go/Rust)\""
+    },
+    "subject_numbers_from_ad": {
+     "pass": true,
+     "detail": "none"
+    },
+    "body_faithful": {
+     "pass": true,
+     "detail": "body === renderCoverLetterBody(structured)"
+    },
+    "sender_from_cv": {
+     "pass": true,
+     "detail": "{\"name\":\"Priya Raman\",\"addressLines\":[\"Toronto, Canada\"],\"phone\":\"+1 555 0176\",\"email\":\"priya.raman@example.com\"}"
+    },
+    "no_placeholders": {
+     "pass": true,
+     "detail": ""
+    }
+   }
+  },
+  {
+   "case_id": "syn-11",
+   "ok": true,
+   "error": null,
+   "cover_letter_calls": 1,
+   "checks": {
+    "contract_valid": {
+     "pass": true,
+     "detail": ""
+    },
+    "recipient_address_empty": {
+     "pass": true,
+     "detail": "[]"
+    },
+    "no_ad_address_in_body": {
+     "pass": true,
+     "detail": "ad address lines: 0"
+    },
+    "contact_rule": {
+     "pass": true,
+     "detail": "contact= dept= salutation=Dear Datadog team,"
+    },
+    "numbers_traced": {
+     "pass": true,
+     "detail": "cv-or-ad: 7, ad-only (employer facts, review): none, untraced: none"
+    },
+    "no_missing_skill_named": {
+     "pass": true,
+     "detail": "none"
+    },
+    "no_dashes": {
+     "pass": true,
+     "detail": "body 0, raw model output 0"
+    },
+    "under_250_words": {
+     "pass": true,
+     "detail": "208 words in 3 paragraphs"
+    },
+    "three_paragraphs": {
+     "pass": true,
+     "detail": "3"
+    },
+    "market_rules": {
+     "pass": true,
+     "detail": "market=us closing=\"Kind regards,\" subject=\"Application for FP&A Analyst\""
+    },
+    "subject_numbers_from_ad": {
+     "pass": true,
+     "detail": "none"
+    },
+    "body_faithful": {
+     "pass": true,
+     "detail": "body === renderCoverLetterBody(structured)"
+    },
+    "sender_from_cv": {
+     "pass": true,
+     "detail": "{\"name\":\"Tomas Brandt\",\"addressLines\":[\"Chicago, IL, USA\"],\"phone\":\"+1 555 0123\",\"email\":\"tomas.brandt@example.com\"}"
+    },
+    "no_placeholders": {
+     "pass": true,
+     "detail": ""
+    }
+   }
+  },
+  {
+   "case_id": "syn-15",
+   "ok": true,
+   "error": null,
+   "cover_letter_calls": 1,
+   "checks": {
+    "contract_valid": {
+     "pass": true,
+     "detail": ""
+    },
+    "recipient_address_empty": {
+     "pass": true,
+     "detail": "[]"
+    },
+    "no_ad_address_in_body": {
+     "pass": true,
+     "detail": "ad address lines: 0"
+    },
+    "contact_rule": {
+     "pass": true,
+     "detail": "contact= dept= salutation=Sehr geehrte Damen und Herren,"
+    },
+    "numbers_traced": {
+     "pass": true,
+     "detail": "cv-or-ad: 7, ad-only (employer facts, review): none, untraced: none"
+    },
+    "no_missing_skill_named": {
+     "pass": true,
+     "detail": "none"
+    },
+    "no_dashes": {
+     "pass": true,
+     "detail": "body 0, raw model output 0"
+    },
+    "under_250_words": {
+     "pass": true,
+     "detail": "179 words in 3 paragraphs"
+    },
+    "three_paragraphs": {
+     "pass": true,
+     "detail": "3"
+    },
+    "market_rules": {
+     "pass": true,
+     "detail": "market=dach closing=\"Mit freundlichen Grüßen\" subject=\"Bewerbung als Key Account Manager/in, Maklerbetreuer/in Firmengeschäft für die Krankenversicherung (m/w/d)\""
+    },
+    "subject_numbers_from_ad": {
+     "pass": true,
+     "detail": "none"
+    },
+    "body_faithful": {
+     "pass": true,
+     "detail": "body === renderCoverLetterBody(structured)"
+    },
+    "sender_from_cv": {
+     "pass": true,
+     "detail": "{\"name\":\"Jonas Hartmann\",\"addressLines\":[\"Nürnberg, Deutschland\"],\"phone\":\"+49 911 0000 0142\",\"email\":\"jonas.hartmann@example.de\"}"
+    },
+    "no_placeholders": {
+     "pass": true,
+     "detail": ""
+    }
+   }
+  },
+  {
+   "case_id": "syn-16",
+   "ok": true,
+   "error": null,
+   "cover_letter_calls": 1,
+   "checks": {
+    "contract_valid": {
+     "pass": true,
+     "detail": ""
+    },
+    "recipient_address_empty": {
+     "pass": true,
+     "detail": "[]"
+    },
+    "no_ad_address_in_body": {
+     "pass": true,
+     "detail": "ad address lines: 0"
+    },
+    "contact_rule": {
+     "pass": true,
+     "detail": "contact= dept= salutation=Sehr geehrte Damen und Herren,"
+    },
+    "numbers_traced": {
+     "pass": true,
+     "detail": "cv-or-ad: 4, ad-only (employer facts, review): none, untraced: none"
+    },
+    "no_missing_skill_named": {
+     "pass": true,
+     "detail": "none"
+    },
+    "no_dashes": {
+     "pass": true,
+     "detail": "body 0, raw model output 0"
+    },
+    "under_250_words": {
+     "pass": true,
+     "detail": "169 words in 3 paragraphs"
+    },
+    "three_paragraphs": {
+     "pass": true,
+     "detail": "3"
+    },
+    "market_rules": {
+     "pass": true,
+     "detail": "market=dach closing=\"Mit freundlichen Grüßen\" subject=\"Bewerbung als Quereinstieg Leistungssachbearbeitung (Zahn) als Medizinische/r Fachangestellte/r (m/w/d)\""
+    },
+    "subject_numbers_from_ad": {
+     "pass": true,
+     "detail": "none"
+    },
+    "body_faithful": {
+     "pass": true,
+     "detail": "body === renderCoverLetterBody(structured)"
+    },
+    "sender_from_cv": {
+     "pass": true,
+     "detail": "{\"name\":\"Sabine Köhler\",\"addressLines\":[\"München, Deutschland\"],\"phone\":\"+49 89 0000 0187\",\"email\":\"sabine.koehler@example.de\"}"
+    },
+    "no_placeholders": {
+     "pass": true,
+     "detail": ""
+    }
+   }
+  },
+  {
+   "case_id": "sl-de-contact",
+   "ok": true,
+   "error": null,
+   "cover_letter_calls": 1,
+   "checks": {
+    "contract_valid": {
+     "pass": true,
+     "detail": ""
+    },
+    "recipient_address_empty": {
+     "pass": true,
+     "detail": "[]"
+    },
+    "no_ad_address_in_body": {
+     "pass": true,
+     "detail": "ad address lines: 2"
+    },
+    "contact_rule": {
+     "pass": true,
+     "detail": "contact=Frau Melanie Brandl dept=Personalabteilung salutation=Sehr geehrte Frau Brandl,"
+    },
+    "numbers_traced": {
+     "pass": true,
+     "detail": "cv-or-ad: 5, ad-only (employer facts, review): none, untraced: none"
+    },
+    "no_missing_skill_named": {
+     "pass": true,
+     "detail": "none"
+    },
+    "no_dashes": {
+     "pass": true,
+     "detail": "body 0, raw model output 0"
+    },
+    "under_250_words": {
+     "pass": true,
+     "detail": "159 words in 3 paragraphs"
+    },
+    "three_paragraphs": {
+     "pass": true,
+     "detail": "3"
+    },
+    "market_rules": {
+     "pass": true,
+     "detail": "market=dach closing=\"Mit freundlichen Grüßen\" subject=\"Bewerbung als Key Account Manager (m/w/d) Antriebstechnik, Kennziffer KAM-2026-17\""
+    },
+    "subject_numbers_from_ad": {
+     "pass": true,
+     "detail": "2026,17"
+    },
+    "body_faithful": {
+     "pass": true,
+     "detail": "body === renderCoverLetterBody(structured)"
+    },
+    "sender_from_cv": {
+     "pass": true,
+     "detail": "{\"name\":\"Jonas Hartmann\",\"addressLines\":[\"Nürnberg, Deutschland\"],\"phone\":\"+49 911 0000 0142\",\"email\":\"jonas.hartmann@example.de\"}"
+    },
+    "no_placeholders": {
+     "pass": true,
+     "detail": ""
+    }
+   }
+  }
+ ],
+ "column_variant": {
+  "recipient": {
+   "addressLines": [
+    "Industriestraße 14",
+    "90431 Nürnberg"
+   ],
+   "companyName": "Brenner Getriebe GmbH",
+   "contactPerson": "Frau Melanie Brandl",
+   "department": "Personalabteilung"
+  },
+  "pass": true,
+  "body": "Jonas Hartmann\nNürnberg, Deutschland\njonas.hartmann@example.de\n+49 911 0000 0142\n\nBrenner Getriebe GmbH\nPersonalabteilung\nFrau Melanie Brandl\nIndustriestraße 14\n90431 Nürnberg\n\nNürnberg, 20. Oktober 2026\n\nBewerbung als Key Account Manager (m/w/d) Antriebstechnik, Kennziffer KAM-2026-17\n\nSehr geehrte Frau Brandl,\n\nIhre Schlüsselkunden in Bayern und Baden-Württemberg wollen langfristig betreut und weiterentwickelt werden, und genau das tue ich seit Jahren. Bei der Frankenmetall Antriebstechnik GmbH betreue ich rund 60 Bestandskunden in derselben Region und habe den Jahresumsatz meines Gebiets von 3,1 auf 4,2 Mio. EUR gesteigert.\n\nAls Technischer Vertriebsmitarbeiter im Außendienst erstelle ich Angebote und technische Auslegungen gemeinsam mit der Konstruktion, wie Sie es für Brenner Getriebe beschreiben. Mein B.Eng. Maschinenbau an der Technischen Hochschule Nürnberg gibt mir das technische Fundament für Gespräche mit Ihren Kunden im süddeutschen Maschinenbau. Verhandlungen und Messeauftritte gehören zu meinem Alltag; mein Englisch ist verhandlungssicher (C1), Deutsch ist meine Muttersprache. Meine Kontakte und Angebote pflege ich im CRM, derzeit in SAP CRM, und die Reisebereitschaft für Kundentermine bringe ich mit.\n\nEin Hersteller von Industriegetrieben mit Kunden in 18 Ländern, der seine Bestandskunden ausbauen will: Dazu würde ich gern mit Ihnen sprechen. Ich bin in Nürnberg zuhause und stehe für ein persönliches Gespräch jederzeit zur Verfügung.\n\nMit freundlichen Grüßen\nJonas Hartmann"
+ }
+}
