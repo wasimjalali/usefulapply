@@ -128,7 +128,10 @@ async function approveInBrowser(page: Page, authorizationUrl: string, callbackOr
   await expect(page.getByRole('button', { name: 'Approve' })).toBeVisible();
   if (shot) await page.screenshot({ path: `test-results/${shot}.png`, fullPage: true });
   await page.getByRole('button', { name: 'Approve' }).click();
-  return new URL((await callback).url());
+  const url = new URL((await callback).url());
+  // Let the (stubbed) callback page finish loading so the next navigation does not race it.
+  await page.waitForLoadState('load', { timeout: 15_000 }).catch(() => undefined);
+  return url;
 }
 
 /** Dynamic registration from a bucket of its own (a fresh fake client IP), unless one is given. */
@@ -197,7 +200,8 @@ async function codeFor(
 }
 
 async function revokeInUi(page: Page, name: string) {
-  await page.goto('/dashboard?settings=apps');
+  // A navigation still settling from the callback page can interrupt the first goto; once more is enough.
+  await page.goto('/dashboard?settings=apps').catch(() => page.goto('/dashboard?settings=apps'));
   await expect(page.getByRole('heading', { name: 'Connected apps' })).toBeVisible();
   const row = page.getByText(name, { exact: true }).locator('xpath=ancestor::div[contains(@class,"min-h-[52px]")]');
   await row.getByRole('button', { name: 'Revoke' }).click();
@@ -787,7 +791,9 @@ test.describe.serial('MCP OAuth', () => {
       'the unredeemed code is deleted',
     ).toBe(0);
 
-    // 3. Reconnect with read only.
+    // 3. Reconnect with read only. revoked_at is pushed an hour into the future first: a reconnect in the same
+    //    second as the revoke (iat rounds down) used to be refused for good, and now nothing reads revoked_at.
+    sqlLocal(`UPDATE mcp_grant_state SET revoked_at = ${Date.now() + 3_600_000} WHERE client_id = '${clientId}'`);
     const b = pkcePair();
     const narrowCb = await approveInBrowser(page, authorizeUrl({ clientId, redirectUri, scope: narrow, challenge: b.challenge }), origin);
     await context.close();
@@ -813,10 +819,139 @@ test.describe.serial('MCP OAuth', () => {
     const wide = await exchangeCode(request, { clientId, code: widenCb.searchParams.get('code')!, redirectUri, verifier: c.verifier });
     expect(wide.status).toBe(200);
     expect(String(wide.body.scope).split(' ')).toContain('write');
+    expect((await mcpStatus(request, wide.body.access_token)).status, 'the wide token works while the consent covers it').toBe(200);
     sqlLocal(`UPDATE oauth_consent SET scopes = '["read","offline_access"]' WHERE client_id = '${clientId}'`);
-    const tooBroad = await mcpStatus(request, wide.body.access_token);
+    // The grant lookup is cached for up to 30 s, so the narrowing shows up within that window.
+    let tooBroad = await mcpStatus(request, wide.body.access_token);
+    for (let i = 0; tooBroad.status === 200 && i < 14; i++) {
+      await new Promise((r) => setTimeout(r, 3_000));
+      tooBroad = await mcpStatus(request, wide.body.access_token);
+    }
     expect(tooBroad.status).toBe(401);
     expect(tooBroad.wwwAuthenticate).toContain('more access than this app was approved for');
+  });
+
+  test('an exchange paused inside the provider cannot revive a connection revoked and reconnected meanwhile', async ({ browser, request }) => {
+    const port = randomPort();
+    const redirectUri = `http://localhost:${port}/callback`;
+    const origin = `http://localhost:${port}`;
+    const full = 'read write spend offline_access';
+    const clientId = (
+      await (
+        await register(request, {
+          client_name: 'Paused probe',
+          redirect_uris: [redirectUri],
+          token_endpoint_auth_method: 'none',
+          grant_types: ['authorization_code', 'refresh_token'],
+        })
+      ).json()
+    ).client_id as string;
+    const count = (table: string, where: string) => sqlLocal(`SELECT COUNT(*) AS n FROM ${table} WHERE ${where}`)[0].n as number;
+
+    // A broad code under the first connection.
+    const a = pkcePair();
+    const context = await browser.newContext({ ...withSession(), ...recordVideo('video-paused-exchange') });
+    const page = await context.newPage();
+    const firstCb = await approveInBrowser(page, authorizeUrl({ clientId, redirectUri, scope: full, challenge: a.challenge }), origin);
+    const code = firstCb.searchParams.get('code')!;
+
+    // Redeem it, but hold the exchange inside the provider (test mode only) after the code is consumed.
+    const paused = request.post(`${API}/oauth2/token`, {
+      form: { grant_type: 'authorization_code', code, redirect_uri: redirectUri, client_id: clientId, code_verifier: a.verifier, resource: RESOURCE },
+      headers: { 'cf-connecting-ip': fakeIp(), 'x-test-issue-pause-ms': '12000' },
+    });
+    const codeRows = `json_valid(value) AND json_extract(value, '$.query.client_id') = '${clientId}'`;
+    for (let i = 0; i < 40 && count('verification', codeRows) > 0; i++) await new Promise((r) => setTimeout(r, 250));
+    expect(count('verification', codeRows), 'the code is consumed, so revoke cannot delete it').toBe(0);
+
+    // While it is held: revoke, then reconnect with read only.
+    await revokeInUi(page, 'Paused probe');
+    const b = pkcePair();
+    const narrowCb = await approveInBrowser(page, authorizeUrl({ clientId, redirectUri, scope: 'read offline_access', challenge: b.challenge }), origin);
+    await context.close();
+    const narrow = await exchangeCode(request, { clientId, code: narrowCb.searchParams.get('code')!, redirectUri, verifier: b.verifier });
+    expect(narrow.status, 'the new, narrower connection works').toBe(200);
+    expect((await mcpStatus(request, narrow.body.access_token)).status).toBe(200);
+
+    // Issuance resumes against the old connection: nothing is handed out, and the refresh token it made is gone.
+    const finished = await paused;
+    expect(finished.status()).toBe(400);
+    const finishedBody = (await finished.json()) as Record<string, string>;
+    expect(finishedBody.error).toBe('invalid_grant');
+    expect(finishedBody.error_description).toBe('authorization was revoked');
+    expect(count('oauth_refresh_token', `client_id = '${clientId}'`), 'only the new connection has a refresh token').toBe(1);
+    const consentId = sqlLocal(`SELECT id FROM oauth_consent WHERE client_id = '${clientId}'`)[0].id as string;
+    expect(count('mcp_token_generation', `client_id = '${clientId}' AND consent_id <> '${consentId}'`), 'what the paused exchange minted is bound to the old connection').toBeGreaterThan(0);
+    expect(count('mcp_token_generation', `client_id = '${clientId}' AND consent_id = '${consentId}'`), 'the new connection\'s tokens are bound to it').toBe(2);
+  });
+
+  test('tokens are bound to a consent generation: a stale or missing binding is refused at /mcp and on refresh', async ({ browser, request }) => {
+    const port = randomPort();
+    const redirectUri = `http://localhost:${port}/callback`;
+    const scope = 'read offline_access';
+    const clientId = (
+      await (
+        await register(request, {
+          client_name: 'Binding probe',
+          redirect_uris: [redirectUri],
+          token_endpoint_auth_method: 'none',
+          grant_types: ['authorization_code', 'refresh_token'],
+        })
+      ).json()
+    ).client_id as string;
+    // One approval in the browser; every later authorize for this client returns a code directly.
+    const context = await browser.newContext(withSession());
+    const first = pkcePair();
+    const approval = await approveInBrowser(
+      await context.newPage(),
+      authorizeUrl({ clientId, redirectUri, scope, challenge: first.challenge }),
+      `http://localhost:${port}`,
+    );
+    let firstCode: string | null = approval.searchParams.get('code');
+    const mint = async () => {
+      const pkce = first && firstCode ? first : pkcePair();
+      const code = firstCode ?? (await codeFor(context, { clientId, redirectUri, scope, challenge: pkce.challenge }));
+      firstCode = null;
+      const res = await exchangeCode(request, { clientId, code, redirectUri, verifier: pkce.verifier });
+      expect(res.status).toBe(200);
+      return res.body;
+    };
+
+    // Bound to the current consent: works.
+    const good = await mint();
+    expect((await mcpStatus(request, good.access_token)).status).toBe(200);
+    const bindings = sqlLocal(`SELECT token_key FROM mcp_token_generation WHERE client_id = '${clientId}'`).map((r) => String(r.token_key));
+    expect(bindings.filter((k) => k.startsWith('at:'))).toHaveLength(1);
+    expect(bindings.filter((k) => k.startsWith('rt:'))).toHaveLength(1);
+
+    // A token bound to some other generation is refused (use a fresh token: the grant lookup caches verdicts).
+    const stale = await mint();
+    const staleJti = String(jwtClaims(stale.access_token).jti);
+    sqlLocal(`UPDATE mcp_token_generation SET consent_id = 'an-older-consent' WHERE token_key = 'at:${staleJti}'`);
+    const staleCheck = await mcpStatus(request, stale.access_token);
+    expect(staleCheck.status).toBe(401);
+    expect(staleCheck.wwwAuthenticate).toContain('disconnected');
+
+    // A token that was never bound is refused.
+    const unbound = await mint();
+    sqlLocal(`DELETE FROM mcp_token_generation WHERE token_key = 'at:${String(jwtClaims(unbound.access_token).jti)}'`);
+    expect((await mcpStatus(request, unbound.access_token)).status).toBe(401);
+
+    // A refresh token bound to another generation gets a clean invalid_grant, not a loop of 401s.
+    const refreshStale = await mint();
+    sqlLocal(`UPDATE mcp_token_generation SET consent_id = 'an-older-consent' WHERE token_key LIKE 'rt:%' AND client_id = '${clientId}' AND consent_id <> 'an-older-consent'`);
+    const refreshed = await refreshRequest(request, clientId, refreshStale.refresh_token);
+    expect(refreshed.status).toBe(400);
+    expect(refreshed.body.error).toBe('invalid_grant');
+    expect(refreshed.body.error_description).toBe('authorization was revoked');
+
+    // A refresh token whose scopes the current consent no longer covers: the same clean error.
+    const narrowed = await mint();
+    sqlLocal(`UPDATE oauth_consent SET scopes = '["offline_access"]' WHERE client_id = '${clientId}'`);
+    const tooWide = await refreshRequest(request, clientId, narrowed.refresh_token);
+    expect(tooWide.status).toBe(400);
+    expect(tooWide.body.error).toBe('invalid_grant');
+    await context.close();
   });
 
   test('a code or refresh token issued before the current consent is refused, and so is a token with no consent', async ({ browser, request }) => {
