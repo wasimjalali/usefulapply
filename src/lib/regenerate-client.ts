@@ -7,13 +7,11 @@
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore, type ApplicationSession } from '@/store/useSessionStore';
 import type { KitTab } from '@/store/useUIStore';
-import type { GeneratedCoverLetter } from '@/lib/types';
-import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { generateRequestId } from '@/lib/utils/requestId';
 import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
+import { refreshFromServer } from '@/lib/session-sync';
 import { MAX_INSTRUCTION_CHARS, flattenInstruction } from '@/lib/agents/chat-tools/untrusted';
-import type { KitDocument } from '@/lib/agents/types';
 
 export type RegenTarget = 'cover-letter' | 'email' | 'follow-up';
 
@@ -172,36 +170,14 @@ export function isRegenInFlight(sessionId: string | null | undefined, target: Re
   return Boolean(sessionId) && inFlightRegens.has(regenKey(sessionId as string, target));
 }
 
-/** The kit document a regenerate target writes. */
-const REGEN_KIT_DOCUMENT: Record<RegenTarget, KitDocument> = {
-  'cover-letter': 'coverLetter',
-  email: 'applicationEmail',
-  'follow-up': 'followUpEmail',
-};
-
-/**
- * A partial kit marks its failed documents. Once one is written, its mark
- * goes, so the tab never shows an error next to a document that exists.
- */
-function clearKitDocumentError(sessionId: string, document: KitDocument): Partial<ApplicationSession> {
-  const state = useSessionStore.getState();
-  const session = state.sessions.find((candidate) => candidate.id === sessionId)
-    ?? (state.currentSession?.id === sessionId ? state.currentSession : undefined);
-  const errors = session?.kitDocumentErrors;
-  if (!errors?.[document]) return {};
-  const rest = { ...errors };
-  delete rest[document];
-  return { kitDocumentErrors: Object.keys(rest).length > 0 ? rest : null };
-}
-
 function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
 /**
- * Calls the regenerate route and writes the result into the session the
- * request was built for. If the user has moved to another application while
- * it ran, nothing is written. `requestId` becomes the server's idempotency
+ * Calls the regenerate route, which saves the document itself, then loads the
+ * saved row for the application the request was built for. The response text
+ * is never written into the store. `requestId` becomes the server's idempotency
  * key. Every caller currently passes a fresh one, so a genuine retry reserves
  * again: pass a stored id to make a retry dedupe.
  */
@@ -277,57 +253,22 @@ async function requestRegeneration(
     }
 
     const data = await response.json();
-    // Land the result on the application that asked for it, even if the user
-    // moved to another one while it ran.
-    const update = (updates: Partial<ApplicationSession>) =>
-      useSessionStore.getState().updateSessionById(sessionId, {
-        ...updates,
-        ...clearKitDocumentError(sessionId, REGEN_KIT_DOCUMENT[target]),
-      });
     let wordCount = 0;
-
     if (target === 'cover-letter') {
       if (typeof data.coverLetter !== 'string' || !data.coverLetter.trim()) return { ok: false, code: 'ERROR' };
-      const sessionState = useSessionStore.getState();
-      const existingLetter = sessionState.sessions.find((session) => session.id === sessionId)?.coverLetter
-        ?? (sessionState.currentSession?.id === sessionId ? sessionState.currentSession.coverLetter : undefined);
-      const letter: GeneratedCoverLetter = {
-        applicantAddress: existingLetter?.applicantAddress
-          ?? { name: '', street: '', city: '', country: '', phone: '', email: '' },
-        date: existingLetter?.date ?? '',
-        companyAddress: existingLetter?.companyAddress ?? { companyName: '', street: '' },
-        salutation: existingLetter?.salutation ?? '',
-        body: data.coverLetter,
-        closing: existingLetter?.closing ?? '',
-        signatureName: existingLetter?.signatureName ?? '',
-        updatedAt: new Date().toISOString(),
-        // The old letter's structured copy never carries over to the new body.
-        ...(isStructuredCoverLetter(data.coverLetterStructured) ? { structured: data.coverLetterStructured } : {}),
-      };
-      update({ coverLetter: letter });
       wordCount = countWords(data.coverLetter);
     } else if (target === 'email') {
       if (!data.email?.subject || !data.email?.body) return { ok: false, code: 'ERROR' };
-      update({
-        email: {
-          subject: data.email.subject,
-          body: data.email.body,
-          attachmentNote: 'Please find my CV and cover letter attached.',
-        },
-      });
       wordCount = countWords(data.email.body);
     } else {
       if (!data.followUpEmail?.subject || !data.followUpEmail?.body) return { ok: false, code: 'ERROR' };
-      update({
-        followUpEmail: {
-          subject: data.followUpEmail.subject,
-          body: data.followUpEmail.body,
-          recommendedDelay: data.followUpEmail.recommendedDelay || 5,
-        },
-      });
       wordCount = countWords(data.followUpEmail.body);
     }
 
+    // The route saved the document. The response text is not written into the
+    // store: it can arrive after a newer revision was loaded. Fetch the latest
+    // row instead, so the screen and the baseline both come from the server.
+    await refreshFromServer(sessionId);
     triggerCreditUpdate();
     return { ok: true, wordCount, sessionId };
   } catch (error) {
@@ -386,14 +327,8 @@ async function requestTrackerFollowUp(sessionId: string, requestId: string): Pro
 
     const data = await response.json();
     if (!data.followUpEmail?.subject || !data.followUpEmail?.body) return { ok: false, code: 'ERROR' };
-    useSessionStore.getState().updateSessionById(sessionId, {
-      followUpEmail: {
-        subject: data.followUpEmail.subject,
-        body: data.followUpEmail.body,
-        recommendedDelay: data.followUpEmail.recommendedDelay || 5,
-      },
-      ...clearKitDocumentError(sessionId, 'followUpEmail'),
-    });
+    // The server saved the follow-up; load it instead of writing the response into the store.
+    await refreshFromServer(sessionId);
     triggerCreditUpdate();
     return { ok: true, wordCount: countWords(data.followUpEmail.body), sessionId };
   } catch (error) {

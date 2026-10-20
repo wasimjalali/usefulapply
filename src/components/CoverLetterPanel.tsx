@@ -25,6 +25,7 @@ import { kitFilename } from '@/lib/utils/kit-export';
 import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback } from '@/lib/utils/server-export';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { useSessionStore } from '@/store/useSessionStore';
+import { commitEditorSave, editorShouldClose, getEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface CoverLetterPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -74,6 +75,9 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const downloadMenuRef = useRef<HTMLDivElement>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedCoverLetter, setEditedCoverLetter] = useState<GeneratedCoverLetter | null>(null);
+  // The draft as it is now, for the save that finishes later (the user keeps typing while it runs).
+  const editedCoverLetterRef = useRef<GeneratedCoverLetter | null>(null);
+  useEffect(() => { editedCoverLetterRef.current = editedCoverLetter; }, [editedCoverLetter]);
   const [showFullPreview, setShowFullPreview] = useState(false);
   // The rendered PDF the server would export, shown so people see the layout (US letter or DIN 5008) before they download.
   const [layoutPreview, setLayoutPreview] = useState<{ url: string } | null>(null);
@@ -85,6 +89,14 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const lastLetterRef = useRef<GeneratedCoverLetter | null>(null);
   const lastSessionIdRef = useRef<string | null>(null);
   const editSessionIdRef = useRef<string | null>(null);
+  // The revision the editor opened on. The draft lives here, outside the store, so
+  // it is bound to that revision and checked again at save time (commitEditorSave).
+  const editStartRef = useRef<EditorStart | undefined>(undefined);
+  // When the user deals with a conflict notice (restores, copies or discards their text), what this editor
+  // was opened against is stale: base it on the current revision, so its next Save is not refused again.
+  useEffect(() => subscribeConflictAcknowledged((acknowledged) => {
+    if (editSessionIdRef.current === acknowledged) editStartRef.current = getEditorStart(acknowledged, editStartRef.current);
+  }), []);
   const { toast } = useToast();
 
   // Check if cover letter still contains any address placeholder (old or new format)
@@ -380,11 +392,24 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
       // dropped and the export falls back to the body the user wrote.
       const { structured, ...rest } = editedCoverLetter;
       const keepStructured = structured && editedCoverLetter.body === coverLetter?.body;
-      useSessionStore.getState().updateSessionById(editSessionIdRef.current, {
-        coverLetter: { ...rest, ...(keepStructured ? { structured } : {}), updatedAt: new Date().toISOString() },
+      const sessionId = editSessionIdRef.current;
+      const sentDraft = JSON.stringify(editedCoverLetter);
+      // Save now, against the revision this editor opened on. If another write got
+      // in first the draft is not applied: the editor stays open with the text in it.
+      void commitEditorSave(sessionId, editStartRef.current, () => {
+        useSessionStore.getState().updateSessionById(sessionId, {
+          coverLetter: { ...rest, ...(keepStructured ? { structured } : {}), updatedAt: new Date().toISOString() },
+        });
+      }).then((outcome) => {
+        // Anything but a save the server confirmed leaves the editor open with the text in it.
+        // So does typing during the save: the newer draft stays, now based on what was just saved.
+        if (!editorShouldClose(outcome, sentDraft, JSON.stringify(editedCoverLetterRef.current))) {
+          if (outcome === 'saved' || outcome === 'clean') editStartRef.current = getEditorStart(sessionId, editStartRef.current);
+          return;
+        }
+        setIsEditMode(false);
+        editSessionIdRef.current = null;
       });
-      setIsEditMode(false);
-      editSessionIdRef.current = null;
     }
   };
 
@@ -457,6 +482,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
         <>
           <button type="button" onClick={() => {
             editSessionIdRef.current = currentSession?.id ?? null;
+            editStartRef.current = currentSession ? getEditorStart(currentSession.id) : undefined;
             setIsEditMode(true);
           }} className={TOOL_CLASS}>
             <Edit3 className="w-4 h-4 text-navy-500" />

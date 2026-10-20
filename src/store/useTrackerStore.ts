@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { deleteSessionAction, listTrackerOverviewAction, setTrackerStatusAction, updateProfileAction } from '@/db/actions';
 import { useSessionStore } from '@/store/useSessionStore';
+import { CONFLICT_NOTICE, refreshFromServer } from '@/lib/session-sync';
 import type { TrackerApplicationRow } from '@/db/repos/sessions';
 import {
   addBusinessDays,
@@ -154,12 +155,32 @@ export const useTrackerStore = create<TrackerState>((set, get) => ({
           : row,
       ),
     }));
+    // The status change is conditional on the revision this browser last saw.
+    // The row's own number can lag behind the user's edits in this same
+    // browser (the tracker does not reload on every save), so the open
+    // session's revision counts too and the higher one stands.
+    const sessionState = useSessionStore.getState();
+    const known = sessionState.sessions.find((session) => session.id === sessionId)
+      ?? (sessionState.currentSession?.id === sessionId ? sessionState.currentSession : null);
+    const expectedRevision = before || known
+      ? Math.max(before?.revision ?? 0, known?.revision ?? 0)
+      : undefined;
+    let conflicted = false;
     try {
-      await setTrackerStatusAction(userId, sessionId, {
+      const result = await setTrackerStatusAction(userId, sessionId, {
         status: next.status,
         interviewAt: dates.interviewAt,
         followUpDueAt: dates.followUpDueAt,
-      });
+      }, expectedRevision);
+      if (!result.ok) {
+        conflicted = result.reason === 'conflict';
+        throw new Error('Status update failed');
+      }
+      set((state) => ({
+        rows: state.rows.map((row) => (row.id === sessionId ? { ...row, revision: result.revision } : row)),
+      }));
+      // The status write bumped the revision. Load the row so the open copy and its baseline follow.
+      void refreshFromServer(sessionId);
     } catch {
       // Roll back this row only. Another row may have moved while this was
       // in flight, and its change is not ours to undo.
@@ -167,6 +188,12 @@ export const useTrackerStore = create<TrackerState>((set, get) => ({
         rows: before ? state.rows.map((row) => (row.id === sessionId ? before : row)) : state.rows,
         error: 'That status did not save. Try again.',
       }));
+      if (conflicted) {
+        // Someone else changed this application first. Show what is stored now
+        // and say so; `load` clears the message, so it goes back after.
+        await get().load(userId);
+        set({ error: CONFLICT_NOTICE });
+      }
       throw new Error('Status update failed');
     }
   },

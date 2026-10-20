@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "../..",
+    "paths": {
+      "@/lib/supabase": ["e2e/tools/legacy/fake-supabase.ts"],
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["../../src/**/*.ts", "./**/*.ts"]
+}

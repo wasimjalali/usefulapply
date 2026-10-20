@@ -10,6 +10,7 @@ import { getPostHogServer } from '@/lib/posthog-server';
 import { ACTIVE_MODEL_ID, ACTIVE_MODEL_PRICING } from '@/lib/models';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { clearKitDocumentError, getSession, updateSession, type ApplicationSession } from '@/db/repos/sessions';
+import { saveKitDocument } from '@/lib/services/kit';
 import { getDocumentByType, type Document } from '@/db/repos/documents';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
@@ -170,6 +171,7 @@ export async function POST(request: NextRequest) {
     const detectedLanguage = storedLanguage
       ?? await detectLanguage(session.job_description, generationContext);
     if (!storedLanguage) {
+      // `requirements` is a column the browser also writes, so the write bumps the revision (see the regenerate route).
       const persistedLanguage = await updateSession(user.id, session.id, {
         generated_artifacts: { ...(storedArtifacts ?? {}), detectedLanguage },
         requirements: { ...(storedRequirements ?? {}), detectedLanguage },
@@ -236,8 +238,15 @@ export async function POST(request: NextRequest) {
       recommendedDelay: followUpEmail.recommendedDelay || 5,
       reservationKey,
     };
-    const persist = await updateSession(user.id, session.id, { follow_up_email: written });
-    if (persist.error) {
+    let writtenRevision: number | undefined;
+    let persistError: unknown = null;
+    try {
+      writtenRevision = (await saveKitDocument(user.id, session.id, 'followUpEmail', written)).revision;
+    } catch (error) {
+      persistError = error;
+    }
+    if (persistError) {
+      console.error('[Tracker follow-up] could not save the follow-up:', persistError);
       await releaseReservation({
         idempotencyKey: reservationKey,
         userId: user.id,
@@ -292,6 +301,7 @@ export async function POST(request: NextRequest) {
       },
       creditsDeducted: CREDIT_COSTS.FOLLOW_UP_REGEN,
       tokens,
+      revision: writtenRevision,
     });
   } catch (error) {
     console.error('[Tracker follow-up] Error:', error);

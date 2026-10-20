@@ -44,6 +44,7 @@ import { downloadBlob } from '@/lib/utils/download-pdf';
 import { PdfPreviewModal } from './ui/PdfPreviewModal';
 import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback } from '@/lib/utils/server-export';
 import type { Profile } from '@/lib/supabase/types';
+import { commitEditorSave, editorSaveSucceeded, getEditorStart, persistSessionEdits, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface CVPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -83,6 +84,8 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
     // The application stores its own template too, so the chat can answer
     // "which template is this using" without guessing.
     useSessionStore.getState().updateCurrentSession({ selectedTemplate: id });
+    const templateSessionId = useSessionStore.getState().currentSession?.id;
+    if (templateSessionId) void persistSessionEdits(templateSessionId);
     writeDefaultTemplate(id);
   };
   const [showTemplates, setShowTemplates] = useState(false);
@@ -94,11 +97,20 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const [isPreviewing, setIsPreviewing] = useState(false);
   const previewOpenerRef = useRef<HTMLElement | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const isEditModeRef = useRef(false);
+  useEffect(() => { isEditModeRef.current = isEditMode; }, [isEditMode]);
   const [showFullPreview, setShowFullPreview] = useState(false);
   const [editedCVData, setEditedCVData] = useState<CVData | null>(null);
   const cvTemplateRef = useRef<HTMLDivElement>(null);
   const editableCVRef = useRef<EditableCVCanvasRef>(null);
   const editSessionIdRef = useRef<string | null>(null);
+  // The revision the editor opened on; the draft lives outside the store (see commitEditorSave).
+  const editStartRef = useRef<EditorStart | undefined>(undefined);
+  // When the user deals with a conflict notice (restores, copies or discards their text), what this editor
+  // was opened against is stale: base it on the current revision, so its next Save is not refused again.
+  useEffect(() => subscribeConflictAcknowledged((acknowledged) => {
+    if (editSessionIdRef.current === acknowledged) editStartRef.current = getEditorStart(acknowledged, editStartRef.current);
+  }), []);
   useEffect(() => {
     if (editSessionIdRef.current === null || editSessionIdRef.current === currentSession?.id) return;
     editSessionIdRef.current = null;
@@ -402,6 +414,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           onClick={() => {
             setIsEditMode(true);
             editSessionIdRef.current = currentSession?.id ?? null;
+            editStartRef.current = currentSession ? getEditorStart(currentSession.id) : undefined;
             setShowTemplates(false);
             if (cvData && !editedCVData) setEditedCVData(cvData);
           }}
@@ -607,13 +620,31 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                         const existingSession = sessionState.sessions.find((session) => session.id === editSessionId)
                           ?? (sessionState.currentSession?.id === editSessionId ? sessionState.currentSession : undefined);
                         const existing = existingSession?.optimizedCVData;
-                        useSessionStore.getState().updateSessionById(editSessionId, {
-                          optimizedCVData: {
-                            ...updatedData,
-                            analysis: existing?.analysis,
-                            sectionHeaders: existing?.sectionHeaders,
-                            localizedStrings: existing?.localizedStrings,
-                          } as ApplicationSession['optimizedCVData'],
+                        // Save now, against the revision this editor opened on. If another
+                        // write got in first the draft is not applied: the editor reopens
+                        // with the text in it so it can be copied.
+                        void commitEditorSave(editSessionId, editStartRef.current, () => {
+                          useSessionStore.getState().updateSessionById(editSessionId, {
+                            optimizedCVData: {
+                              ...updatedData,
+                              analysis: existing?.analysis,
+                              sectionHeaders: existing?.sectionHeaders,
+                              localizedStrings: existing?.localizedStrings,
+                            } as ApplicationSession['optimizedCVData'],
+                          });
+                        }).then((outcome) => {
+                          // Anything but a save the server confirmed reopens the editor with the text in it.
+                          if (editorSaveSucceeded(outcome)) {
+                            // An editor the user opened again while this save ran was opened against the old
+                            // revision; the save landed, so base it on the new one.
+                            if (isEditModeRef.current && editSessionIdRef.current === editSessionId) editStartRef.current = getEditorStart(editSessionId, editStartRef.current);
+                            return;
+                          }
+                          // The user may have opened the editor again while this save ran; theirs stands.
+                          if (isEditModeRef.current) return;
+                          editSessionIdRef.current = editSessionId;
+                          setEditedCVData(updatedData);
+                          setIsEditMode(true);
                         });
                       } else {
                         // For original CV, persist to CV store (syncs to Supabase via useSupabaseSync)

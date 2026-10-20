@@ -13,10 +13,7 @@
 
 import { NextRequest } from 'next/server';
 import {
-  runJobCopilot,
   runFitAnalysis,
-  runWithContext,
-  KIT_DOCUMENTS,
   type AgentEvent,
   type KitDocumentErrors,
   type MasterContext,
@@ -26,18 +23,13 @@ import { getSession, updateSession } from '@/db/repos/sessions';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { saveLetterRecipientFromAd } from '@/lib/agents/persist-letter-recipient';
 import { isSameStoredText, storedTextOrEmpty } from '@/db/trim-text';
-import { getDocumentByType } from '@/db/repos/documents';
-import { getJobPreferences } from '@/db/repos/jobFeed';
 import { claimAnonymousGeneration, releaseAnonymousGeneration } from '@/db/repos/anonymous';
 import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
-import { KIT_DOCUMENT_FAILURE_REFUND } from '@/lib/credit-costs';
 import {
   reserveCredits,
   captureReservation,
   releaseReservation,
   refundReservationPartially,
-  canUseFitContinuation,
-  claimFitContinuation,
   releaseFitContinuationClaim,
 } from '@/lib/supabase/credit-reservations';
 import { transitionJobFeedApplicationGenerationAdmin } from '@/lib/job-feed/server';
@@ -45,9 +37,23 @@ import { getPostHogServer } from '@/lib/posthog-server';
 import { ACTIVE_MODEL_ID, ACTIVE_MODEL_PRICING } from '@/lib/models';
 import { randomUUID, createHash } from 'crypto';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import type { ReserveCreditResult } from '@/lib/supabase/credit-reservations';
+import {
+  cacheContext,
+  getCachedContext,
+  normalizeCachedMatch,
+  removeCachedContext,
+} from '@/lib/services/context-cache';
+import { persistFitResult, persistKit, type KitResults } from '@/lib/services/kit';
+import { NotFoundError } from '@/lib/services/errors';
+import {
+  kitFailureRefund,
+  loadJobPreferences,
+  loadOwnedCvSources,
+  reserveKitCredits,
+  runKitPipeline,
+} from '@/lib/services/kit-generation';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -59,23 +65,6 @@ export const maxDuration = 300;
 // Prefers Workers KV (shared across isolates). Falls back to an in-memory
 // Map when the CONTEXT_CACHE binding is missing (plain `next dev`).
 // =====================================================
-type ContextCacheKv = {
-  get(key: string): Promise<string | null>;
-  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
-  delete(key: string): Promise<void>;
-};
-
-declare global {
-  interface CloudflareEnv {
-    CONTEXT_CACHE?: ContextCacheKv;
-  }
-}
-
-const memoryContextCache = new Map<string, { context: MasterContext; expiresAt: number }>();
-const CONTEXT_CACHE_TTL_SECONDS = 30 * 60;
-const CONTEXT_CACHE_TTL_MS = CONTEXT_CACHE_TTL_SECONDS * 1000;
-const MAX_CACHE_SIZE = 100; // Prevent unbounded memory growth
-
 function reservationErrorPayload(result: ReserveCreditResult, required: number) {
   if (result.code === 'RESERVATION_IN_FLIGHT') {
     return { type: 'error', code: 'REQUEST_IN_PROGRESS', message: 'This request is already in progress.' };
@@ -95,142 +84,6 @@ function reservationErrorPayload(result: ReserveCreditResult, required: number) 
   };
 }
 
-async function getContextCacheKv(): Promise<ContextCacheKv | undefined> {
-  try {
-    const { env } = await getCloudflareContext({ async: true });
-    return env.CONTEXT_CACHE;
-  } catch {
-    // Not running under OpenNext (plain Next server or a non-Cloudflare build). Use the in-memory cache.
-    return undefined;
-  }
-}
-
-// Cache keys are scoped to the owning user so a leaked or guessed contextId
-// can never read another user's parsed CV. Anonymous callers are scoped by
-// their server-derived IP hash.
-function contextCacheKey(ownerId: string, contextId: string): string {
-  return `${ownerId}:${contextId}`;
-}
-
-function setMemoryContext(key: string, context: MasterContext): void {
-  const now = Date.now();
-  for (const [k, value] of memoryContextCache.entries()) {
-    if (value.expiresAt < now) memoryContextCache.delete(k);
-  }
-  if (memoryContextCache.size >= MAX_CACHE_SIZE) {
-    const entriesToDelete = memoryContextCache.size - MAX_CACHE_SIZE + 1;
-    let deleted = 0;
-    for (const k of memoryContextCache.keys()) {
-      if (deleted >= entriesToDelete) break;
-      memoryContextCache.delete(k);
-      deleted++;
-    }
-  }
-  memoryContextCache.set(key, { context, expiresAt: now + CONTEXT_CACHE_TTL_MS });
-}
-
-function getMemoryContext(key: string): MasterContext | null {
-  const entry = memoryContextCache.get(key);
-  if (!entry) return null;
-  if (entry.expiresAt < Date.now()) {
-    memoryContextCache.delete(key);
-    return null;
-  }
-  return entry.context;
-}
-
-async function cacheContext(ownerId: string, contextId: string, context: MasterContext): Promise<void> {
-  const key = contextCacheKey(ownerId, contextId);
-  // Always write through to the isolate-local map: KV is eventually consistent
-  // and the follow-up request usually lands on the same isolate within seconds.
-  setMemoryContext(key, context);
-  const kv = await getContextCacheKv();
-  if (kv) {
-    await kv.put(key, JSON.stringify(context), { expirationTtl: CONTEXT_CACHE_TTL_SECONDS });
-  }
-}
-
-async function getCachedContext(ownerId: string, contextId: string): Promise<MasterContext | null> {
-  const key = contextCacheKey(ownerId, contextId);
-  const local = getMemoryContext(key);
-  if (local) {
-    console.log('[API_AGENT_V2] context cache hit');
-    return local;
-  }
-  const kv = await getContextCacheKv();
-  if (kv) {
-    const raw = await kv.get(key);
-    if (!raw) return null;
-    console.log('[API_AGENT_V2] context cache hit');
-    return JSON.parse(raw) as MasterContext;
-  }
-  return null;
-}
-
-async function removeCachedContext(ownerId: string, contextId: string): Promise<void> {
-  const key = contextCacheKey(ownerId, contextId);
-  memoryContextCache.delete(key);
-  const kv = await getContextCacheKv();
-  if (kv) {
-    await kv.delete(key);
-  }
-}
-
-function normalizeCachedMatch(context: MasterContext): void {
-  const rawMatch = context.match as unknown;
-  if (!rawMatch || typeof rawMatch !== 'object' || Array.isArray(rawMatch)) return;
-  const match = rawMatch as Record<string, unknown>;
-  const strings = (value: unknown): string[] => Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
-    : [];
-  const sourceText = [context.rawCV, context.masterCV].filter(Boolean).join('\n');
-  const containsWholeTerm = (value: string): boolean => {
-    const normalized = value.trim().normalize('NFKC').replace(/\s+/g, ' ');
-    if (!normalized) return false;
-    const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?=$|[^\\p{L}\\p{N}])`, 'iu')
-      .test(sourceText.normalize('NFKC').replace(/\s+/g, ' '));
-  };
-  const requiredSkills = context.job?.requiredSkills ?? [];
-  const rawDetails = Array.isArray(match.details) ? match.details : [];
-  const details: NonNullable<NonNullable<MasterContext['match']>['details']> = [];
-  for (const value of rawDetails) {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
-    const detail = value as Record<string, unknown>;
-    const requirement = typeof detail.requirement === 'string' ? detail.requirement.trim() : '';
-    const tier = detail.tier;
-    if (!requirement || (tier !== 1 && tier !== 2 && tier !== 3 && tier !== 'implicit' && tier !== 'missing')) continue;
-    const evidence = typeof detail.evidence === 'string' && containsWholeTerm(detail.evidence)
-      ? detail.evidence
-      : undefined;
-    details.push({
-      requirement,
-      evidence,
-      tier,
-      claimable: (tier === 1 || tier === 2) && detail.claimable === true && Boolean(evidence),
-      required: typeof detail.required === 'boolean'
-        ? detail.required
-        : requiredSkills.some((skill) => skill.trim().toLocaleLowerCase() === requirement.toLocaleLowerCase()),
-    });
-  }
-
-  const matchedRequirements = strings(match.matchedRequirements);
-  const claimableEvidence = strings(match.claimableEvidence).filter(containsWholeTerm);
-  context.match = {
-    score: typeof match.score === 'number' && Number.isFinite(match.score)
-      ? Math.max(0, Math.min(100, Math.round(match.score)))
-      : 0,
-    matchedRequirements: matchedRequirements.length > 0
-      ? matchedRequirements
-      : [...new Set(details.filter((detail) => detail.tier !== 'missing').map((detail) => detail.requirement))],
-    claimableEvidence: claimableEvidence.length > 0
-      ? claimableEvidence
-      : [...new Set(details.filter((detail) => detail.claimable && detail.evidence).map((detail) => detail.evidence!))],
-    missingSkills: strings(match.missingSkills),
-    details,
-  };
-}
-
 // Server-side artifact persistence — writes generated output to
 // application_sessions.generated_artifacts so results survive browser crashes.
 async function persistGeneratedArtifacts(
@@ -238,8 +91,6 @@ async function persistGeneratedArtifacts(
   userId: string,
   results: Record<string, unknown>,
   mergeExisting = false,
-  /** The job description the kit was written for; needed to save the letter's recipient. */
-  letterJobDescription?: string,
 ): Promise<void> {
   if (!sessionId || !userId || sessionId.startsWith('session-') || sessionId.startsWith('fit-')) {
     console.warn('[agent-v2] Generated artifacts were not persisted because no stored session was available');
@@ -254,30 +105,79 @@ async function persistGeneratedArtifacts(
         nextArtifacts = { ...existingArtifacts as Record<string, unknown>, ...results };
       }
     }
-    // The letter's language rides along so the export renderer can pick the
-    // letter layout for this session.
-    const letterLanguage = isStructuredCoverLetter(results.coverLetterStructured)
-      ? results.coverLetterStructured.language
-      : undefined;
-    const persisted = await updateSession(userId, sessionId, {
-      generated_artifacts: nextArtifacts,
-      ...(letterLanguage ? { cover_letter_language: letterLanguage } : {}),
-    });
+    // The pending-fit stash is workflow state, not content an editor ever
+    // writes back, so it does not bump the revision. Bumping it would make the
+    // browser conflict with its own fit analysis on the next save.
+    const persisted = await updateSession(userId, sessionId, { generated_artifacts: nextArtifacts }, { bumpRevision: false });
     if (persisted.error) {
       console.error('[agent-v2] Failed to persist generated artifacts:', persisted.error);
     }
   } catch (error) {
     console.error('[agent-v2] Failed to persist generated artifacts:', error);
   }
-  if (letterJobDescription && isStructuredCoverLetter(results.coverLetterStructured)) {
+}
+
+// A fit analysis's findings (requirements, match score and skills, a title and company
+// where the application has none) go to the same columns a kit writes. Best effort like
+// the pending-fit stash: the analysis was paid for and its results are cached either way.
+async function persistFitColumns(
+  sessionId: string | undefined,
+  userId: string,
+  ctx: { job?: KitResults['job']; match?: KitResults['match']; detectedLanguage?: string },
+): Promise<void> {
+  if (!sessionId || sessionId.startsWith('session-') || sessionId.startsWith('fit-')) return;
+  try {
+    await persistFitResult(userId, sessionId, { job: ctx.job, match: ctx.match, detectedLanguage: ctx.detectedLanguage });
+  } catch (error) {
+    console.error('[agent-v2] Failed to persist the fit analysis columns:', error);
+  }
+}
+
+// The finished kit goes to D1 through the kit service, the one writer of
+// generation output (the browser no longer writes it). Unlike the pending-fit
+// stash this is not best effort: the browser used to write the kit itself as a
+// backstop, now this is the only copy, so a write that keeps failing throws and
+// the catch block releases the reservation instead of charging for a kit that
+// would vanish on reload. A missing or local session is the one quiet case:
+// there is no stored application to write to.
+async function persistKitForSession(
+  sessionId: string | undefined,
+  userId: string | undefined,
+  results: KitResults,
+  /** The job description the kit was written for; needed to save the letter's recipient. */
+  letterJobDescription?: string,
+): Promise<void> {
+  if (!sessionId || !userId || sessionId.startsWith('session-') || sessionId.startsWith('fit-')) {
+    console.warn('[agent-v2] Kit was not persisted because no stored session was available');
+    return;
+  }
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      await saveLetterRecipientFromAd(userId, sessionId, letterJobDescription, results.coverLetterStructured);
+      await persistKit(userId, sessionId, results);
+      if (letterJobDescription && isStructuredCoverLetter(results.coverLetterStructured)) {
+        try {
+          await saveLetterRecipientFromAd(userId, sessionId, letterJobDescription, results.coverLetterStructured);
+        } catch (recipientError) {
+          // The letter already carries the recipient; only the editable copy on
+          // the session row is missing.
+          console.error('[agent-v2] Failed to save the cover letter recipient:', recipientError);
+        }
+      }
+      return;
     } catch (error) {
-      // The letter already carries the recipient; only the editable copy on
-      // the session row is missing.
-      console.error('[agent-v2] Failed to save the cover letter recipient:', error);
+      if (error instanceof NotFoundError) {
+        // The application was deleted while the kit was being written. There is
+        // nowhere to put the kit, so it must not be charged for: throwing sends
+        // this run to the failure path, which releases the reservation.
+        throw new Error('The application no longer exists');
+      }
+      lastError = error;
+      console.error('[agent-v2] Failed to persist the kit, attempt', attempt + 1, error);
+      await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
     }
   }
+  throw lastError instanceof Error ? lastError : new Error('Failed to persist the kit');
 }
 
 // Post-generation bookkeeping is best-effort: a D1 write failure here must
@@ -468,24 +368,8 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        // Fetch job preferences for cover letter context (best-effort, never blocks generation)
-        let jobPreferences: import('@/lib/agents/types').MasterContext['jobPreferences'] = undefined;
-        if (user) {
-          try {
-            const prefs = await getJobPreferences(user.id);
-            if (prefs) {
-              jobPreferences = {
-                salaryFloor: prefs.salary_floor,
-                remotePreference: prefs.remote_preference,
-                employmentTypes: prefs.employment_types,
-                targetMarket: prefs.target_market,
-                seniorityTarget: prefs.seniority_target,
-              };
-            }
-          } catch (prefsError) {
-            console.error('[agent-v2] Failed to load job preferences (continuing without):', prefsError);
-          }
-        }
+        // Job preferences for the cover letter (best-effort, never blocks generation).
+        const jobPreferences = user ? await loadJobPreferences(user.id) : undefined;
 
         const body: AgentRequest = await request.json();
         const {
@@ -594,15 +478,7 @@ export async function POST(request: NextRequest) {
         let ownedCvSourcesPromise: Promise<{ primaryCV: string; masterCV?: string }> | null = null;
         const getOwnedCvSources = () => {
           if (!user) return Promise.resolve({ primaryCV: '', masterCV: undefined });
-          if (!ownedCvSourcesPromise) {
-            ownedCvSourcesPromise = Promise.all([
-              getDocumentByType(user.id, 'primary_cv'),
-              getDocumentByType(user.id, 'master_cv'),
-            ]).then(([primaryDocument, masterDocument]) => ({
-              primaryCV: primaryDocument?.raw_text?.trim() || '',
-              masterCV: masterDocument?.raw_text?.trim() || undefined,
-            }));
-          }
+          if (!ownedCvSourcesPromise) ownedCvSourcesPromise = loadOwnedCvSources(user.id);
           return ownedCvSourcesPromise;
         };
         const generationContext: LlmGenerationContext = {
@@ -678,29 +554,6 @@ export async function POST(request: NextRequest) {
           }
         };
 
-        // The kit payload the client and the session row both get. A partial
-        // kit lists its failed documents; the missing ones are simply absent.
-        // A document listed as failed is nulled here as well, whatever the
-        // context says, so a failed document can never ship, persist and be
-        // refunded at once (defence in depth behind runWithContext's copy).
-        const buildKitResults = (ctx: MasterContext, documentErrors: KitDocumentErrors) => ({
-          job: ctx.job,
-          companyResearch: ctx.companyResearch,
-          match: ctx.match,
-          optimizedCV: documentErrors.cv ? null : ctx.optimizedCV,
-          optimizedCVData: documentErrors.cv ? null : ctx.optimizedCVData,
-          coverLetter: documentErrors.coverLetter ? null : ctx.coverLetter,
-          coverLetterStructured: documentErrors.coverLetter ? null : ctx.coverLetterStructured ?? null,
-          applicationEmail: documentErrors.applicationEmail ? null : ctx.applicationEmail,
-          followUpEmail: documentErrors.followUpEmail ? null : ctx.followUpEmail || null,
-          detectedLanguage: ctx.detectedLanguage,
-          documentErrors,
-          sourceContext: {
-            applicant: ctx.applicant,
-            verifiedMetrics: ctx.verifiedMetrics,
-          },
-        });
-
         // Capture the kit reservation (the user got a kit), then give back the
         // single-document price of every document that failed. Returns the
         // credits that actually came back, so the client never reports a
@@ -712,9 +565,8 @@ export async function POST(request: NextRequest) {
           if (!key || !reservationUserId) return 0;
           await captureReservationSafe({ idempotencyKey: key, userId: reservationUserId });
           activeReservationKey = null;
-          const failed = KIT_DOCUMENTS.filter((document) => documentErrors[document]);
+          const { failed, amount } = kitFailureRefund(documentErrors);
           if (failed.length === 0) return 0;
-          const amount = failed.reduce((sum, document) => sum + KIT_DOCUMENT_FAILURE_REFUND[document], 0);
           try {
             const refund = await refundReservationPartially({
               userId: reservationUserId,
@@ -856,6 +708,9 @@ export async function POST(request: NextRequest) {
                   createdAt: new Date().toISOString(),
                 },
               }, true);
+              // What the analysis learned about the ad is saved with a revision bump; the
+              // browser loads the row instead of writing these fields from the response.
+              await persistFitColumns(clientSessionId, user.id, ctx);
             }
 
             // Capture reservation — fit analysis produced usable results
@@ -917,65 +772,25 @@ export async function POST(request: NextRequest) {
             return;
           }
 
-          const canUseDiscount = user
-            ? await canUseFitContinuation(user.id, contextId, clientRequestId)
-            : false;
           const reserveContinuation = async () => {
-            let action = canUseDiscount ? 'GENERATION_AFTER_FIT' as const : 'FULL_APPLICATION' as const;
-            let key = `${action === 'GENERATION_AFTER_FIT' ? 'generation_after_fit' : 'full_application'}:${user!.id}:${clientRequestId}`;
-            let result = await reserveCredits({
+            // The shared helper decides the price (1.5 after a captured fit
+            // for this context, else 2.0), claims the discount and falls back
+            // to full price on a lost claim. It reports each reservation this
+            // request must release if it fails.
+            const reserved = await reserveKitCredits({
               userId: user!.id,
-              action,
-              idempotencyKey: key,
               sessionId: clientSessionId,
-              metadata: action === 'GENERATION_AFTER_FIT'
-                ? {
-                    fit_context_id: contextId,
-                    fit_continuation_request_id: clientRequestId,
-                  }
-                : undefined,
+              contextId,
+              requestId: clientRequestId,
+              keyFor: (kitAction) =>
+                `${kitAction === 'GENERATION_AFTER_FIT' ? 'generation_after_fit' : 'full_application'}:${user!.id}:${clientRequestId}`,
+              onReservation: (reservationKey) => {
+                activeReservationKey = reservationKey;
+                activeReservationUserId = reservationKey ? user!.id : null;
+              },
             });
-            if (result.success) {
-              activeReservationKey = key;
-              activeReservationUserId = user!.id;
-            }
-
-            if (result.success && action === 'GENERATION_AFTER_FIT') {
-              const claimed = await claimFitContinuation(
-                user!.id,
-                contextId,
-                clientRequestId,
-                result.reservation!.id,
-              );
-              if (claimed) {
-                activeFitContinuation = { userId: user!.id, contextId, requestId: clientRequestId };
-              } else {
-                const released = await releaseReservation({
-                  userId: user!.id,
-                  idempotencyKey: key,
-                  reason: 'fit_continuation_claim_lost',
-                });
-                if (!released.success) {
-                  throw new Error('Failed to release a superseded continuation reservation');
-                }
-                activeReservationKey = null;
-                activeReservationUserId = null;
-                action = 'FULL_APPLICATION';
-                key = `full_application:${user!.id}:${clientRequestId}`;
-                result = await reserveCredits({
-                  userId: user!.id,
-                  action,
-                  idempotencyKey: key,
-                  sessionId: clientSessionId,
-                });
-                if (result.success) {
-                  activeReservationKey = key;
-                  activeReservationUserId = user!.id;
-                }
-              }
-            }
-
-            return { result, key, cost: CREDIT_COSTS[action] };
+            activeFitContinuation = reserved.continuation;
+            return { result: reserved.result, key: reserved.key, cost: reserved.cost };
           };
 
           // Retrieve cached context
@@ -1033,32 +848,27 @@ export async function POST(request: NextRequest) {
               })}\n\n`));
 
               const eventHandler = createEventHandler((id) => getStepIndex(id));
-              const result = await runJobCopilot({
+              const run = await runKitPipeline({
                 sessionId: attributableSession?.id ?? clientSessionId ?? `session-${Date.now()}`,
                 jobDescription: runJobDescription,
                 primaryCV: serverPrimaryCV,
                 masterCV: serverMasterCV,
                 jobPreferences,
                 letterRecipient: letterRecipientFor(runJobDescription),
+                emit: eventHandler,
                 generationContext,
-              }, eventHandler);
+              });
+              const fallbackResults = run.results;
 
-              if (result.success && result.data) {
-                const documentErrors = result.data.documentErrors ?? {};
-                const fallbackResults = buildKitResults(result.data.context, documentErrors);
+              await persistKitForSession(clientSessionId, user?.id, fallbackResults, run.jobDescription);
+              await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
+              const creditsRefunded = await settleKitReservation(run.documentErrors);
 
-                await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', fallbackResults, false, result.data.context.jobDescription);
-                await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
-                const creditsRefunded = await settleKitReservation(documentErrors);
-
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                  type: 'workflow_complete',
-                  results: fallbackResults,
-                  creditsRefunded,
-                })}\n\n`));
-              } else {
-                throw new Error(result.error || 'Optimization failed');
-              }
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'workflow_complete',
+                results: fallbackResults,
+                creditsRefunded,
+              })}\n\n`));
 
               controller.close();
               return;
@@ -1089,30 +899,31 @@ export async function POST(request: NextRequest) {
           })}\n\n`));
 
           const eventHandler = createEventHandler((id) => getGenerateWithContextStepIndex(id));
-          if (jobPreferences) cachedContext.jobPreferences = jobPreferences;
-          cachedContext.letterRecipient = letterRecipientFor(cachedContext.jobDescription);
-          const result = await runWithContext(cachedContext, eventHandler, generationContext);
+          const run = await runKitPipeline({
+            sessionId: attributableSession?.id ?? clientSessionId ?? `session-${Date.now()}`,
+            jobDescription: cachedContext.jobDescription,
+            primaryCV: '',
+            jobPreferences,
+            cachedContext,
+            letterRecipient: letterRecipientFor(cachedContext.jobDescription),
+            emit: eventHandler,
+            generationContext,
+          });
+          const genResults = run.results;
 
-          if (result.success && result.data) {
-            const documentErrors = result.data.documentErrors ?? {};
-            const genResults = buildKitResults(result.data.context, documentErrors);
+          await persistKitForSession(clientSessionId, user?.id, genResults, run.jobDescription);
+          await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
+          const creditsRefunded = await settleKitReservation(run.documentErrors);
 
-            await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', genResults, false, result.data.context.jobDescription);
-            await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
-            const creditsRefunded = await settleKitReservation(documentErrors);
-
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-              type: 'workflow_complete',
-              results: genResults,
-              creditsRefunded,
-            })}\n\n`));
-            try {
-              await removeCachedContext(contextOwnerId, contextId);
-            } catch (cacheError) {
-              console.error('[API_AGENT_V2] Failed to remove completed context:', cacheError);
-            }
-          } else {
-            throw new Error(result.error || 'Generation failed');
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'workflow_complete',
+            results: genResults,
+            creditsRefunded,
+          })}\n\n`));
+          try {
+            await removeCachedContext(contextOwnerId, contextId);
+          } catch (cacheError) {
+            console.error('[API_AGENT_V2] Failed to remove completed context:', cacheError);
           }
 
           controller.close();
@@ -1181,23 +992,20 @@ export async function POST(request: NextRequest) {
 
         const eventHandler = createEventHandler((id) => getStepIndex(id));
         const runJobDescription = await settleRunJobDescription(submittedJobDescription);
-        const result = await runJobCopilot({
+        const run = await runKitPipeline({
           sessionId: attributableSession?.id ?? `session-${Date.now()}`,
           jobDescription: runJobDescription,
           primaryCV: fullCvSources.primaryCV,
           masterCV: fullCvSources.masterCV,
           jobPreferences,
           letterRecipient: letterRecipientFor(runJobDescription),
+          emit: eventHandler,
           generationContext,
-        }, eventHandler);
+        });
+        const documentErrors = run.documentErrors;
+        const results = run.results;
 
-        if (!result.success || !result.data) {
-          throw new Error(result.error || 'Optimization failed');
-        }
-        const documentErrors = result.data.documentErrors ?? {};
-        const results = buildKitResults(result.data.context, documentErrors);
-
-        await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', results, false, result.data.context.jobDescription);
+        await persistKitForSession(clientSessionId, user?.id, results, run.jobDescription);
         await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
         const creditsRefunded = await settleKitReservation(documentErrors);
 

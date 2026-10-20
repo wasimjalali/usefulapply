@@ -22,12 +22,16 @@ export async function dispatchScheduled(cron: string): Promise<void> {
       const [
         { cleanupHistoricalJobFeedData },
         { processOverdueMonthlyResets },
+        { reconcileCreditRefunds },
+        { deleteFinishedOperationsOlderThan },
         { purgeUnconsentedClients, purgeExpiredTokenBindings },
         { isMcpEnabled },
         { deleteExpiredExports },
       ] = await Promise.all([
         import('@/lib/job-feed/cleanup'),
         import('@/lib/supabase/credits.server'),
+        import('@/db/repos/credits'),
+        import('@/lib/services/operations'),
         import('@/db/repos/mcpGrants'),
         import('@/lib/mcp/config'),
         import('@/lib/services/export/storage'),
@@ -35,6 +39,10 @@ export async function dispatchScheduled(cron: string): Promise<void> {
       const results = await Promise.allSettled([
         cleanupHistoricalJobFeedData({ now: new Date() }),
         processOverdueMonthlyResets({ limit: 200 }),
+        // Finish refunds an interrupted release or partial refund left half done.
+        reconcileCreditRefunds({ limit: 100 }),
+        // Finished agent operations are kept 30 days, then dropped.
+        deleteFinishedOperationsOlderThan(30),
         // Nothing registers while MCP is off, and the tables may not be migrated yet.
         isMcpEnabled()
           ? Promise.all([purgeUnconsentedClients(), purgeExpiredTokenBindings()])
@@ -48,6 +56,15 @@ export async function dispatchScheduled(cron: string): Promise<void> {
           problems.push(r.reason instanceof Error ? r.reason.message : String(r.reason));
         }
       }
+      const refunds = results[2];
+      if (refunds.status === 'fulfilled') {
+        console.log('[cron] credit refund reconcile', refunds.value);
+        if (refunds.value.failed > 0) problems.push(`credit refund reconcile: ${refunds.value.failed} failed`);
+      }
+      const operationCleanup = results[3];
+      if (operationCleanup.status === 'fulfilled') {
+        console.log('[cron] agent operations deleted after 30 days', operationCleanup.value);
+      }
       const sweep = results[1];
       if (sweep.status === 'fulfilled') {
         console.log('[cron] monthly credit reset sweep', sweep.value);
@@ -55,9 +72,9 @@ export async function dispatchScheduled(cron: string): Promise<void> {
           problems.push(`monthly credit reset sweep: ${sweep.value.failed} failed, 0 succeeded`);
         }
       }
-      const purge = results[2];
+      const purge = results[4];
       if (purge.status === 'fulfilled') console.log('[cron] MCP purge (clients without consent, expired token bindings)', purge.value);
-      const exportSweep = results[3];
+      const exportSweep = results[5];
       if (exportSweep.status === 'fulfilled') console.log('[cron] expired exports', exportSweep.value);
       // Side effects are already committed; throwing only marks the run failed in Workers Logs.
       if (problems.length > 0) {
@@ -67,14 +84,21 @@ export async function dispatchScheduled(cron: string): Promise<void> {
     }
     case CRON_TEN_MINUTE_RECONCILE: {
       console.log('[cron] ten-minute reconcilers');
-      const [{ expireStaleJobFeedApplicationGenerations }, { releaseStaleReservations }] = await Promise.all([
+      const [
+        { expireStaleJobFeedApplicationGenerations },
+        { releaseStaleReservations },
+        { recoverStuckOperations },
+      ] = await Promise.all([
         import('@/lib/job-feed/server'),
         import('@/lib/supabase/credit-reservations'),
+        import('@/lib/services/generation-runner'),
       ]);
-      // Run both even if one fails, then surface the failure.
+      // Run all even if one fails, then surface the failure.
       const results = await Promise.allSettled([
         expireStaleJobFeedApplicationGenerations(),
         releaseStaleReservations({ maxAgeMs: 30 * 60 * 1000, limit: 50 }),
+        // Re-send lost queue messages, fail operations that used all their attempts.
+        recoverStuckOperations({ limit: 25 }),
       ]);
       const failed = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
       if (failed.length > 0) {

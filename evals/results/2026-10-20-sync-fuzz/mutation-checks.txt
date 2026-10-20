@@ -1,0 +1,22 @@
+M1 accept rows that are not newer than the baseline -> failing seeds: 94  by invariant {"I2":94}
+M2 a conflict drops the user text (no buffer entry) -> failing seeds: 400  by invariant {"I1":400}  cases: round-3 Restore and Copy act on their own notice only; round-3b Restore applies a whole entry or none of it; round-3b Copy with nothing left says so instead of cop
+M3 a conflict keeps the local value (the server change is lost) -> failing seeds: 400  by invariant {"I2":400,"I1":357}  cases: round-3 Restore and Copy act on their own notice only; round-3b Restore applies a whole entry or none of it
+M4 polling skips while there is an unsaved change -> failing seeds: 12  by invariant {"I3":12}  cases: low refused value does not block polling; round-3 Restore and Copy act on their own notice only; round-3b Restore applies a whole entry or none of it; round-3b Copy with nothing left says so instead of cop
+M5 the baseline revision jumps past the saved one -> failing seeds: 394  by invariant {"I2":394,"I3":371,"I1":3}  cases: codex-1 handoff registers a baseline; codex-3 edit made while an adoption reload is in fligh; round-1 h2 edit made while a poll reload is in flight; round-3 typing during a save is not lost; round-3 Restore and Copy act on their own notice only; round-3b Restore applies a whole entry or none of it; round-3b Copy with nothing left says so instead of cop
+M6 polling ignores revisions more than two ahead while dirty -> SURVIVED  failing seeds: 0
+M7 an editor is told saved without checking the draft -> failing seeds: 18  by invariant {"I1":18}
+M8 refused values are never forgotten after a merge -> SURVIVED  failing seeds: 0
+M9 Restore acts on every buffered entry, not the notice's -> failing seeds: 70  by invariant {"I1":64,"I2":10}  cases: round-3 Restore and Copy act on their own notice only
+M10 a save settles every buffer entry of its columns -> failing seeds: 70  by invariant {"I1":70}  cases: round-3b Restore applies a whole entry or none of it
+M11 the editor closes over text typed during its save -> failing seeds: 10  by invariant {"I1":10}  cases: round-3 typing during a save is not lost
+M12 Restore overwrites text the user typed since -> failing seeds: 22  by invariant {"I1":22}  cases: round-3b Restore applies a whole entry or none of it
+M13 Copy offers every buffered entry -> failing seeds: 41  by invariant {"I1":41}  cases: round-3 Restore and Copy act on their own notice only
+M14 Restore applies the unblocked properties of a blocked entry -> failing seeds: 4  by invariant {"I2":4}  cases: round-3b Restore applies a whole entry or none of it
+M15 a full buffer forgets its oldest entry even if unsettled -> failing seeds: 272  by invariant {"I1":272}
+M17 Restore ignores that the server changed the field again since the notice -> failing seeds: 5  by invariant {"I2":5}
+M18 a rebased editor forgets which columns its draft sets -> SURVIVED  failing seeds: 0
+M16 Copy with nothing left copies an empty string -> failing seeds: 33  by invariant {"I1":33}  cases: round-3b Copy with nothing left says so instead of cop
+--- at 6000 seeds each (the rare ones):
+M6 polling ignores revisions more than two ahead while dirty -> failing seeds: 21  by invariant {"I3":21}
+M8 refused values are never forgotten after a merge -> SURVIVED  failing seeds: 0
+M18 a rebased editor forgets which columns its draft sets -> failing seeds: 2  by invariant {"I1":2}

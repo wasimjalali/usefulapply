@@ -72,6 +72,11 @@ export interface ApplicationSession {
    * application the user has told us they sent.
    */
   status?: string;
+  /**
+   * The stored row's revision when this session was last loaded or written.
+   * Every save sends it back as the revision it expects; see session-sync.ts.
+   */
+  revision?: number;
   
   matchScore?: number;
   matchingSkills: string[];

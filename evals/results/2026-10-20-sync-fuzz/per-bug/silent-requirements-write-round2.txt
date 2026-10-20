@@ -1,0 +1,117 @@
+  500/2000 seeds, 408 failing
+  1000/2000 seeds, 837 failing
+  1500/2000 seeds, 1242 failing
+  2000/2000 seeds, 1659 failing
+
+2000 seeds (1..2000), 60 operations each, round2 engine, 14.8s
+totals {"ops":120000,"edits":52945,"editorSaves":0,"typedDuringSave":0,"regens":0,"workflows":0,"trackerWrites":0,"silentWrites":7859,"restores":0,"copies":0,"agentWrites":15777,"handoffs":0,"polls":21715,"saves":21704,"requests":100148,"dropped":6190,"lostAnswers":4468,"hung":6036,"conflictNotices":9088,"failureNotices":4044,"settleRounds":5124}
+failing seeds: 1659  by invariant {"I2":1600,"I1":311,"I3":30}
+seeds per kind of violation:
+   1600  I2: TAB baseline of APP claims requirements at revision N is not what the server held then 
+    190  I2: TAB save overwrote requirements of APP with a server value its store had never shown 
+    178  I1: TAB last edit of APP.cv 
+    139  I1: TAB last edit of APP.screening 
+     30  I3: TAB requirements on APP differs from the server after settling
+      7  I1: TAB saved requirements of APP was replaced by TAB, whose store had never shown it
+  seed 2
+      I2: A baseline of app-1 claims requirements at revision 5 is not what the server held then (at save)
+      I2: A baseline of app-1 claims requirements at revision 5 is not what the server held then (step 49)
+      I2: A baseline of app-1 claims requirements at revision 5 is not what the server held then (step 50)
+  seed 3
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 5)
+      I2: B baseline of app-1 claims requirements at revision 0 is not what the server held then (step 5)
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 6)
+  seed 5
+      I2: B baseline of app-1 claims requirements at revision 10 is not what the server held then (step 73)
+      I2: B baseline of app-1 claims requirements at revision 10 is not what the server held then (step 74)
+      I2: B baseline of app-1 claims requirements at revision 10 is not what the server held then (step 75)
+  seed 6
+      I2: B baseline of app-1 claims requirements at revision 3 is not what the server held then (step 39)
+      I2: B baseline of app-1 claims requirements at revision 3 is not what the server held then (step 40)
+      I2: B baseline of app-1 claims requirements at revision 3 is not what the server held then (step 41)
+  seed 7
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 4)
+      I2: B baseline of app-1 claims requirements at revision 0 is not what the server held then (step 4)
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 5)
+  seed 8
+      I2: A baseline of app-1 claims requirements at revision 8 is not what the server held then (at save)
+      I2: A baseline of app-1 claims requirements at revision 8 is not what the server held then (step 91)
+      I2: A baseline of app-1 claims requirements at revision 8 is not what the server held then (step 92)
+  seed 9
+      I2: A baseline of app-1 claims requirements at revision 5 is not what the server held then (step 86)
+      I2: A baseline of app-1 claims requirements at revision 5 is not what the server held then (step 87)
+      I2: A baseline of app-1 claims requirements at revision 5 is not what the server held then (step 88)
+  seed 10
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 0)
+      I2: B baseline of app-1 claims requirements at revision 0 is not what the server held then (step 0)
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 1)
+  seed 11
+      I2: A baseline of app-1 claims requirements at revision 5 is not what the server held then (step 82)
+      I2: A baseline of app-1 claims requirements at revision 5 is not what the server held then (step 83)
+      I2: A baseline of app-1 claims requirements at revision 5 is not what the server held then (step 84)
+  seed 12
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 5)
+      I2: B baseline of app-1 claims requirements at revision 0 is not what the server held then (step 5)
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 6)
+  seed 13
+      I2: A baseline of app-1 claims requirements at revision 2 is not what the server held then (step 24)
+      I2: A baseline of app-1 claims requirements at revision 2 is not what the server held then (step 25)
+      I2: A baseline of app-1 claims requirements at revision 2 is not what the server held then (step 26)
+  seed 14
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 2)
+      I2: B baseline of app-1 claims requirements at revision 0 is not what the server held then (step 2)
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 3)
+  seed 15
+      I2: B baseline of app-1 claims requirements at revision 7 is not what the server held then (step 79)
+      I2: B baseline of app-1 claims requirements at revision 7 is not what the server held then (step 80)
+      I2: B baseline of app-1 claims requirements at revision 7 is not what the server held then (step 81)
+  seed 16
+      I2: B baseline of app-1 claims requirements at revision 5 is not what the server held then (step 48)
+      I2: B baseline of app-1 claims requirements at revision 5 is not what the server held then (step 49)
+      I2: B baseline of app-1 claims requirements at revision 5 is not what the server held then (step 50)
+  seed 17
+      I2: B baseline of app-1 claims requirements at revision 7 is not what the server held then (step 77)
+      I2: B baseline of app-1 claims requirements at revision 7 is not what the server held then (step 78)
+      I2: B baseline of app-1 claims requirements at revision 7 is not what the server held then (step 79)
+  seed 18
+      I2: A baseline of app-1 claims requirements at revision 8 is not what the server held then (at save)
+      I2: A baseline of app-1 claims requirements at revision 8 is not what the server held then (step 100)
+      I2: A baseline of app-1 claims requirements at revision 8 is not what the server held then (step 101)
+  seed 19
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 5)
+      I2: B baseline of app-1 claims requirements at revision 0 is not what the server held then (step 5)
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (at save)
+  seed 20
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 4)
+      I2: B baseline of app-1 claims requirements at revision 0 is not what the server held then (step 4)
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (at save)
+  seed 21
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 1)
+      I2: B baseline of app-1 claims requirements at revision 0 is not what the server held then (step 1)
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 2)
+  seed 22
+      I2: A baseline of app-1 claims requirements at revision 6 is not what the server held then (step 53)
+      I2: A baseline of app-1 claims requirements at revision 6 is not what the server held then (step 54)
+      I2: A baseline of app-1 claims requirements at revision 6 is not what the server held then (step 55)
+  seed 23
+      I2: A baseline of app-1 claims requirements at revision 8 is not what the server held then (step 80)
+      I2: A baseline of app-1 claims requirements at revision 8 is not what the server held then (step 81)
+      I2: A baseline of app-1 claims requirements at revision 8 is not what the server held then (step 82)
+  seed 24
+      I2: A baseline of app-1 claims requirements at revision 4 is not what the server held then (step 58)
+      I2: A baseline of app-1 claims requirements at revision 4 is not what the server held then (step 59)
+      I2: A baseline of app-1 claims requirements at revision 4 is not what the server held then (step 60)
+  seed 27
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 3)
+      I2: B baseline of app-1 claims requirements at revision 0 is not what the server held then (step 3)
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 4)
+  seed 28
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 6)
+      I2: B baseline of app-1 claims requirements at revision 0 is not what the server held then (step 6)
+      I2: A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 7)
+  seed 29
+      I2: A baseline of app-1 claims requirements at revision 3 is not what the server held then (step 17)
+      I2: A baseline of app-1 claims requirements at revision 3 is not what the server held then (step 18)
+      I2: A baseline of app-1 claims requirements at revision 3 is not what the server held then (step 19)
+  ... and 1634 more
+seed list: 2,3,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,27,28,29,30,31,33,34,35,36,37,38,39,40,41,42,43,44,45,46,48,49,50,51,52,55,56,58,59,60,61,63,64,65,66,67,68,70,71,72,73,74,76,78,79,80,81,82,84,85,86,87,89,90,92,94,95,96,98,100,101,103,104,105,107,108,112,113,114,115,116,117,118,120,125,127,128,129,130, ... (1659 in all, see --out)

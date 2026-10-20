@@ -229,7 +229,17 @@ export async function listStaleReservations(cutoffIso: string, limit: number): P
   return await db
     .select()
     .from(creditReservations)
-    .where(and(eq(creditReservations.status, 'reserved'), lt(creditReservations.reserved_at, cutoffIso)))
+    .where(and(
+      eq(creditReservations.status, 'reserved'),
+      lt(creditReservations.reserved_at, cutoffIso),
+      // A reservation owned by a live queued operation is that operation's to
+      // settle (capture, or release when it fails); the sweeper must not
+      // refund a kit that is about to land.
+      sql`NOT EXISTS (
+        SELECT 1 FROM agent_operations o
+        WHERE o.reservation_key = ${creditReservations.idempotency_key} AND o.status IN ('pending', 'running')
+      )`,
+    ))
     .orderBy(creditReservations.reserved_at)
     .limit(limit) as CreditReservation[];
 }

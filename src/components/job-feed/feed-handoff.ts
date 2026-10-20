@@ -5,7 +5,9 @@
  * application kit are two columns of the same shell.
  */
 
-import type { JobFeedFeedItem } from '@/lib/job-feed/types';
+import type { JobFeedApplyResponse, JobFeedFeedItem } from '@/lib/job-feed/types';
+import type { StoredSessionRow } from '@/lib/session-row-mapping';
+import { applyServerRow } from '@/lib/session-sync';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
 import { useFeedStore } from '@/store/useFeedStore';
@@ -43,16 +45,21 @@ export async function startFeedHandoff(
   if (!created.ok) return created;
 
   const payload = created.data;
-  const mapped = toStoreApplicationSession(payload.session, payload.generation);
-  const sessionStore = useSessionStore.getState();
-  const existing = sessionStore.sessions.find((item) => item.id === mapped.id)
-    ?? (sessionStore.currentSession?.id === mapped.id ? sessionStore.currentSession : undefined);
-  const merged = mergeFeedSession(mapped, existing);
-  sessionStore.setSessions([
-    merged,
-    ...sessionStore.sessions.filter((item) => item.id !== merged.id),
-  ]);
-  sessionStore.loadSession(merged.id);
+  // The one door for server content, so the application gets a revision
+  // baseline and its edits save. The feed keeps its own extras (generation
+  // state, local chat and fit) through map and decorate.
+  const applied = await applyServerRow(
+    payload.session.id,
+    payload.session as unknown as StoredSessionRow,
+    'handoff',
+    {
+      placement: 'upsert',
+      map: (row) => toStoreApplicationSession(row as unknown as JobFeedApplyResponse['session'], payload.generation),
+      decorate: (merged, local) => mergeFeedSession(merged, local ?? undefined),
+    },
+  );
+  if (!applied.session) return { ok: false, error: 'That application did not load. Try again.' };
+  useSessionStore.getState().loadSession(applied.session.id);
 
   const uiStore = useUIStore.getState();
   const autostarted = payload.generation.status === 'intent_created';

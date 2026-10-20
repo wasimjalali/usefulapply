@@ -122,14 +122,21 @@ const LETTER_SENTENCES = [
   'At Redfern Stores I prepared the weekly store P&L packs and the annual budget for the regional team.',
   'I also found a supplier rebate that was not being claimed, worth about 120,000 USD a year.',
 ];
-const LONG_LETTER = [
-  'Dear Hiring Team,',
-  '',
-  ...Array.from({ length: 30 }, (_, i) => LETTER_SENTENCES[i % LETTER_SENTENCES.length]),
-  '',
-  'Kind regards,',
-  NAME,
-].join('\n');
+// The letter writer returns JSON (subject, salutation, three paragraphs,
+// closing, recipient); the header and the signature are added in code
+// (structured cover letter contract). 30 sentences keep it over-length.
+const LETTER_SENTENCE_LIST = Array.from({ length: 30 }, (_, i) => LETTER_SENTENCES[i % LETTER_SENTENCES.length]);
+const LONG_LETTER = JSON.stringify({
+  subject: 'Application: Senior FP&A Analyst',
+  salutation: 'Dear Hiring Team,',
+  paragraphs: [
+    LETTER_SENTENCE_LIST.slice(0, 10).join(' '),
+    LETTER_SENTENCE_LIST.slice(10, 20).join(' '),
+    LETTER_SENTENCE_LIST.slice(20, 30).join(' '),
+  ],
+  closing: 'Kind regards,',
+  recipient: { companyName: 'Northwind Foods', addressLines: [] },
+});
 
 const LONG_SUBJECT = `Application: Senior Financial Planning and Analysis Analyst, Corporate Finance, ${NAME}`;
 const LONG_APPLICATION_EMAIL = JSON.stringify({
@@ -338,8 +345,12 @@ async function main() {
       assert.equal(result.success, true);
       assert.deepEqual(result.data?.documentErrors, {});
       assert.deepEqual(stepErrors, []);
-      assert.equal(ctx?.applicationEmail?.subject, LONG_SUBJECT);
-      assert.ok((ctx?.applicationEmail?.subject.length ?? 0) > 60);
+      // Since 3ade5fe8 (2026-10-13) the subject is built in code from the job title and the
+      // applicant's name, capped at 60 characters. The stub still returns an over-long subject:
+      // it must be ignored, not rejected, so the email is written in one call (asserted below).
+      assert.equal(ctx?.applicationEmail?.subject, `Application: ${job.title}, ${NAME}`);
+      assert.notEqual(ctx?.applicationEmail?.subject, LONG_SUBJECT);
+      assert.ok((ctx?.applicationEmail?.subject.length ?? 0) <= 60);
       const followUpWords = ctx?.followUpEmail?.body.split(/\s+/).length ?? 0;
       const letterWords = ctx?.coverLetter?.split(/\s+/).length ?? 0;
       assert.ok(followUpWords > 80, `follow-up has ${followUpWords} words`);
@@ -574,7 +585,7 @@ async function main() {
     return { b0, b1, b2 };
   });
 
-  await scenario('X5. a thrown addCredits mid-refund is returned, not thrown, with the part that landed', async () => {
+  await scenario('X5. a failing credit restore mid-refund is returned, not thrown, and nothing lands (the refund is one atomic batch)', async () => {
     await setBuckets(0, 0.5, 10);
     const key = `full_application:${userId}:x5`;
     await credits.reserveCredits({ userId, action: 'FULL_APPLICATION', idempotencyKey: key });
@@ -589,14 +600,18 @@ async function main() {
     }
     const after = await balance();
     assert.equal(first.success, false);
-    assert.equal(first.refunded, 1.5, 'addon landed before the rollover bucket failed');
-    assert.equal(after.total - mid.total, 1.5);
+    assert.equal(first.refunded, 0, 'the batch rolled back: no bucket landed');
+    assert.equal(after.total - mid.total, 0);
+    const metadata = (await credits.getReservationByKey(userId, key))?.metadata as Record<string, unknown>;
+    assert.equal(metadata.partial_refund_at, undefined, 'the once-only marker was not left claimed');
+    // Because nothing was claimed, a retry pays the whole refund.
     const second = await credits.refundReservationPartially({ userId, idempotencyKey: key, amount: 2.0, reason: 'x5' });
-    assert.equal(second.alreadyRefunded, true);
-    return { mid, first, after, second };
+    assert.equal(second.success, true);
+    assert.equal(second.refunded, 2.0);
+    const final = await balance();
+    assert.equal(final.total - mid.total, 2.0);
+    return { mid, first, after, second, final };
   });
-
-  // ---- Review round 2 --------------------------------------------------------
 
   await scenario('R2a. concurrent regenerates on different documents both clear their marks, nothing else', async () => {
     const sessions = await import('../src/db/repos/sessions');
@@ -664,7 +679,7 @@ async function main() {
     }
   });
 
-  await scenario('R2c. a partial refund that fails partway records what was actually paid', async () => {
+  await scenario('R2c. a partial refund that fails partway leaves no half-paid marker', async () => {
     await setBuckets(0, 0.5, 10);
     const key = `full_application:${userId}:r2paid`;
     await credits.reserveCredits({ userId, action: 'FULL_APPLICATION', idempotencyKey: key });
@@ -677,10 +692,11 @@ async function main() {
       await db.prepare('DROP TRIGGER block_rollover_r2').run();
     }
     const metadata = (await credits.getReservationByKey(userId, key))?.metadata as Record<string, unknown>;
-    assert.equal(result.refunded, 1.5);
-    assert.equal(metadata.partial_refund_amount, 2);
-    assert.equal(metadata.partial_refund_paid, 1.5);
-    return { result, partial_refund_amount: metadata.partial_refund_amount, partial_refund_paid: metadata.partial_refund_paid };
+    assert.equal(result.success, false);
+    assert.equal(result.refunded, 0);
+    assert.equal(metadata.partial_refund_at, undefined);
+    assert.equal(metadata.partial_refund_paid, undefined);
+    return { result, metadata };
   });
 
   await proxy.dispose();

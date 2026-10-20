@@ -64,6 +64,13 @@
       "when": 1787238583115,
       "tag": "0009_oauth_provider",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1787238583116,
+      "tag": "0010_revision_and_agent_operations",
+      "breakpoints": true
     }
   ]
 }

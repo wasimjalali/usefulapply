@@ -9,6 +9,8 @@ import { defineConfig } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
+  // setup.spec.ts is the root config's way to run global-setup.ts; here globalSetup does it.
+  testMatch: 'web-downloads.spec.ts',
   globalSetup: './e2e/global-setup.ts',
   timeout: 180_000,
   fullyParallel: false,

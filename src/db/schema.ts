@@ -619,6 +619,10 @@ export const applicationSessions = sqliteTable(
     // production database takes one migration pass instead of two.
     prep_turns_used: integer('prep_turns_used').notNull().default(0),
     generated_artifacts: text('generated_artifacts', { mode: 'json' }).$type<Json>(),
+    // Bumped by every write to the application's content (migration 0010). A
+    // writer that loaded revision N updates `WHERE revision = N`, so a stale tab
+    // or a background generation cannot silently overwrite a newer write.
+    revision: integer('revision').notNull().default(0),
     created_at: text('created_at').notNull().$defaultFn(isoNow),
     updated_at: text('updated_at').notNull().$defaultFn(isoNow),
   },
@@ -1237,6 +1241,48 @@ export const creditReservations = sqliteTable(
     index('credit_reservations_session_idx').on(t.session_id),
     check('credit_reservations_amount_check', sql`${t.amount} > 0`),
     check('credit_reservations_status_check', sql`${t.status} in ('reserved', 'captured', 'released', 'refunded')`),
+  ],
+);
+
+// One row per idempotent agent request (queued kit generation today). The
+// Queue consumer claims it with a lease, the same pattern as
+// job_feed_application_generations. `reservation_key` names the credit
+// reservation the operation owns; `input` is what the runner needs, since the
+// queue message carries only the operation id.
+export const agentOperations = sqliteTable(
+  'agent_operations',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    user_id: text('user_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    session_id: text('session_id').references(() => applicationSessions.id, { onDelete: 'set null' }),
+    kind: text('kind').notNull(),
+    idempotency_key: text('idempotency_key').notNull(),
+    input_hash: text('input_hash').notNull(),
+    input: text('input', { mode: 'json' }).$type<Json>().notNull().$defaultFn(emptyObject),
+    status: text('status').notNull().default('pending'),
+    result_ref: text('result_ref'),
+    reservation_key: text('reservation_key'),
+    lease_owner: text('lease_owner'),
+    lease_expires_at: text('lease_expires_at'),
+    attempt: integer('attempt').notNull().default(0),
+    error_code: text('error_code'),
+    created_at: text('created_at').notNull().$defaultFn(isoNow),
+    updated_at: text('updated_at').notNull().$defaultFn(isoNow),
+  },
+  (t) => [
+    uniqueIndex('agent_operations_idempotency_uidx').on(t.user_id, t.kind, t.idempotency_key),
+    // At most one live operation per identical request, whatever idempotency key the client sent.
+    uniqueIndex('agent_operations_active_input_uidx')
+      .on(t.user_id, t.kind, t.input_hash)
+      .where(sql`${t.status} in ('pending', 'running')`),
+    index('agent_operations_user_status_idx').on(t.user_id, t.status),
+    index('agent_operations_status_updated_idx').on(t.status, t.updated_at),
+    index('agent_operations_session_idx').on(t.session_id),
+    index('agent_operations_reservation_idx').on(t.reservation_key),
+    check('agent_operations_status_check', sql`${t.status} in ('pending', 'running', 'succeeded', 'failed', 'cancelled')`),
+    check('agent_operations_attempt_check', sql`${t.attempt} >= 0`),
   ],
 );
 
