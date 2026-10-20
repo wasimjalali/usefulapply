@@ -287,8 +287,9 @@ export function isEditableCvPath(path: string): boolean {
   if (parts.length === 1) return parts[0] === 'summary';
   if (parts[0] === 'personal') return parts.length === 2 && PERSONAL_FIELDS.includes(parts[1]);
   if (parts[0] === 'additionalInfo') return parts.length === 2 && /^\d+$/.test(parts[1]);
-  if (parts.length === 3) return (ITEM_TEXT_FIELDS[parts[0]] ?? []).includes(parts[2]);
-  if (parts.length === 4) return (ITEM_TEXT_LISTS[parts[0]] ?? []).includes(parts[2]) && /^\d+$/.test(parts[3]);
+  // Own keys only: a path that starts with `constructor` or `__proto__` must read as "not editable", not reach an inherited member.
+  if (parts.length === 3) return (Object.hasOwn(ITEM_TEXT_FIELDS, parts[0]) ? ITEM_TEXT_FIELDS[parts[0]] : []).includes(parts[2]);
+  if (parts.length === 4) return (Object.hasOwn(ITEM_TEXT_LISTS, parts[0]) ? ITEM_TEXT_LISTS[parts[0]] : []).includes(parts[2]) && /^\d+$/.test(parts[3]);
   return false;
 }
 

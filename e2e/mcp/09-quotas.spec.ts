@@ -130,7 +130,7 @@ test.describe.serial('draft_screening_answers', () => {
     expect(readQuota('draft_screening_answers', user.id)).toBe(30);
   });
 
-  test('the per-minute limit: at most 5 requests a minute, then the limit message (the model behind screening is Workers AI, which a local preview does not have, so the requests before it fail on their own terms)', async () => {
+  test('the per-minute limit: at most 5 requests a minute, then the limit message', async () => {
     setPlan(user.id, 'plus');
     seedQuota('draft_screening_answers', user.id, 0);
     const outcomes: string[] = [];

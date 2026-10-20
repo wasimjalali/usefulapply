@@ -166,20 +166,23 @@ test.describe.serial('cancel and delete while a kit is being written', () => {
     await context?.close();
   });
 
+  const followUpCalls = async () => (await fakeCalls(MCP_FAKE_URL)).filter((call) => call.writer === 'followUpEmail').length;
+
   /** Start a kit with a slow model, and return once the consumer is inside it. */
   async function startSlowKit(applicationId: string) {
     await fake({ delayMs: 6_000 });
+    const followUpsBefore = await followUpCalls();
     const queued = await agent.ok<{ operationId: string; creditsReserved: number }>('generate_application_kit', { idempotencyKey: uuid(), applicationId });
     await expect.poll(() => operations(user.id).find((row) => row.id === queued.operationId)?.status, { timeout: 30_000, intervals: [300] }).toBe('running');
-    return queued;
+    return { ...queued, followUpsBefore };
   }
 
-  /** Let the run that was cancelled finish its writing, so what it does with the result can be seen. */
-  async function letLateRunFinish() {
-    const callsBefore = (await fakeCalls(MCP_FAKE_URL)).filter((call) => call.writer === 'followUpEmail').length;
-    await expect
-      .poll(async () => (await fakeCalls(MCP_FAKE_URL)).filter((call) => call.writer === 'followUpEmail').length, { timeout: 90_000, intervals: [1_000] })
-      .toBeGreaterThan(callsBefore - 1);
+  /**
+   * Let the run that was cancelled finish its writing, so what it does with the result can be seen: the last writer
+   * of the pipeline has been called, and after its own delay (plus a margin) the run has everything it needs to settle.
+   */
+  async function letLateRunFinish(followUpsBefore: number) {
+    await expect.poll(followUpCalls, { timeout: 90_000, intervals: [500] }).toBeGreaterThan(followUpsBefore);
     await new Promise((resolve) => setTimeout(resolve, 10_000));
     await fake({ delayMs: 0 });
   }
@@ -197,7 +200,7 @@ test.describe.serial('cancel and delete while a kit is being written', () => {
     const snapshot = { ledger: ledger(user.id), reservations: reservations(user.id) };
     expect(reservations(user.id).at(-1)?.status).toBe('released');
 
-    await letLateRunFinish();
+    await letLateRunFinish(queued.followUpsBefore);
     const app = await agent.ok<{ generation: { status: string }; kit: { hasKit: boolean } }>('get_application', { applicationId: draft.applicationId });
     expect(app.kit.hasKit, 'the late run wrote nothing').toBe(false);
     expect(app.generation.status).toBe('cancelled');
@@ -218,8 +221,7 @@ test.describe.serial('cancel and delete while a kit is being written', () => {
     expect(creditsOf(user.id).total, 'released by the delete, not left to a sweep').toBe(start);
     const snapshot = { ledger: ledger(user.id), reservations: reservations(user.id) };
 
-    await letLateRunFinish();
-    expect(applicationCount(user.id) >= 0).toBe(true);
+    await letLateRunFinish(queued.followUpsBefore);
     expect(await agent.fails('get_application', { applicationId: draft.applicationId })).toMatch(/not found/i);
     const operation = await agent.ok<{ status: string; documents: unknown }>('get_operation', { operationId: queued.operationId });
     expect(operation.status).toBe('cancelled');

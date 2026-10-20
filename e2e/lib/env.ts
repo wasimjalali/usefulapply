@@ -27,6 +27,11 @@ export const MCP_URL = `${MCP_BASE_URL}/mcp`;
 export const MCP_FAKE_PORT = Number(process.env.E2E_MCP_FAKE_PORT ?? 18798);
 export const MCP_FAKE_URL = `http://127.0.0.1:${MCP_FAKE_PORT}`;
 export const MCP_INSPECTOR_PORT = Number(process.env.E2E_MCP_INSPECTOR_PORT ?? 19398);
+/** The stand-in for the Workers AI binding (e2e/fake-ai/worker.mjs), a Worker of its own that the preview binds as `AI`. */
+export const MCP_AI_PORT = Number(process.env.E2E_MCP_AI_PORT ?? 18788);
+export const MCP_AI_INSPECTOR_PORT = Number(process.env.E2E_MCP_AI_INSPECTOR_PORT ?? 19388);
+/** The name that Worker registers under, one per lane port so two runs on one machine do not find each other's. */
+export const MCP_AI_WORKER_NAME = `ua-e2e-fake-ai-${MCP_PORT}`;
 
 export const REPO_ROOT = resolve(__dirname, '..', '..');
 

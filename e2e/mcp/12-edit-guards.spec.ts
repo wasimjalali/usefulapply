@@ -57,14 +57,15 @@ test.describe.serial('edit tools refuse what they cannot do safely, and change n
     const revision = outline.revision;
     const role = outline.lists.find((list) => list.list === 'experience')?.items[0];
     expect(role).toBeTruthy();
-    for (const path of ['__proto__.polluted', 'constructor.prototype.polluted', 'experience.0.id', 'experience.0.hidden', 'sectionHeaders.summary', 'analysis.summary', 'personal.nonexistent', 'nothing.here']) {
-      await refused('update_cv_content', { applicationId, revision, fields: [{ path, value: 'x' }] }, /./);
+    // Includes names every JavaScript object has: they must read as "not a field", never as an internal error.
+    for (const path of ['__proto__.polluted', 'constructor.prototype.polluted', 'constructor.name.first', 'toString.a.b.0', 'hasOwnProperty.a.b', 'experience.0.id', 'experience.0.hidden', 'sectionHeaders.summary', 'analysis.summary', 'personal.nonexistent', 'personal.constructor', 'nothing.here']) {
+      await refused('update_cv_content', { applicationId, revision, fields: [{ path, value: 'x' }] }, /is not a text field that can be edited/);
     }
     // All or nothing: the first field is valid, the second is not, and the first must not land.
     await refused(
       'update_cv_content',
       { applicationId, revision, fields: [{ path: 'summary', value: 'A summary that must not land.' }, { path: '__proto__.x', value: 'x' }] },
-      /./,
+      /is not a text field that can be edited/,
     );
     // Too long, empty list, stale revision.
     const longValue = await agent.call('update_cv_content', { applicationId, revision, fields: [{ path: 'summary', value: 'x'.repeat(5_001) }] });
@@ -118,6 +119,24 @@ test.describe.serial('edit tools refuse what they cannot do safely, and change n
     expect(remaining.items).toHaveLength(bullets.items.length - 1);
     if (remaining.items.length === 1) await refused('delete_cv_item', { applicationId, revision: one.revision, handle: remaining.items[0].handle }, /./);
     outline = await agent.ok<Outline>('get_cv_outline', { applicationId });
+  });
+
+  test('names every JavaScript object has are ordinary unknown handles and lists, never an internal error', async () => {
+    const revision = outline.revision;
+    for (const handle of ['__proto__', 'constructor', 'toString', 'hasOwnProperty:1', 'experience:__proto__', 'skills:constructor']) {
+      const text = await refused('delete_cv_item', { applicationId, revision, handle }, /./);
+      expect(text, handle).not.toMatch(/Something went wrong/);
+      const hide = await refused('set_cv_item_visibility', { applicationId, revision, handle, hidden: true }, /./);
+      expect(hide, handle).not.toMatch(/Something went wrong/);
+    }
+    for (const list of ['__proto__', 'constructor', 'toString', 'bullets:__proto__']) {
+      const text = await refused('edit_cv_structure', { applicationId, revision, operation: 'reorder', list, order: ['a', 'b'] }, /./);
+      expect(text, list).not.toMatch(/Something went wrong/);
+    }
+    const title = await refused('set_cv_template', { applicationId, templateId: 'constructor' }, /Unknown template/);
+    expect(title).not.toMatch(/Something went wrong/);
+    const heading = await refused('edit_cv_structure', { applicationId, revision, operation: 'rename_heading', section: 'experience', heading: 'constructor' }, /./);
+    expect(heading).not.toMatch(/Something went wrong/);
   });
 
   test('set_cv_template: an unknown id lists the valid ones; edit_document_text refuses what would change nothing or leave nothing', async () => {
