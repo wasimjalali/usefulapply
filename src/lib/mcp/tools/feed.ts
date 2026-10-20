@@ -24,7 +24,7 @@ import { readCareerProfile, readSearchStrategy } from '@/lib/services/feed/caree
 import { FeedError } from '@/lib/services/feed/errors';
 import { recordFeedFeedback } from '@/lib/services/feed/feedback';
 import { loadInboxPage, loadSavedJobs } from '@/lib/services/feed/inbox';
-import { explainFeedRunBlocker, startFeedRun } from '@/lib/services/feed/run';
+import { explainFeedRunBlocker, queueFeedRun } from '@/lib/services/feed/run';
 import {
   changedFeedSettingFields,
   loadFeedSettings,
@@ -415,13 +415,14 @@ const runJobFeed = defineTool({
   name: 'run_job_feed',
   title: 'Run job feed',
   description:
-    "Runs today's job search for the user and returns when the run ends, usually within a couple of minutes. It runs once a day and needs consent on file; read the jobs it found with get_job_feed.",
+    "Queues today's job search for the user and returns at once with a runId and its status: queued or running while it is in progress, completed or failed once it ended. The search runs in the background, usually within a couple of minutes, and the jobs it finds appear in get_job_feed when the run completes. It runs once a day and needs consent on file.",
   hints: { readOnly: false, destructive: false, idempotent: true, openWorld: true },
   input: z.object({}),
   output: z.object({
     runId: z.string().nullable(),
     status: z.string().nullable(),
     localDate: z.string().nullable(),
+    /** True when this call queued the run. False when today's run was already queued, running or done. */
     started: z.boolean(),
     alreadyRanToday: z.boolean(),
     nextRunAt: z.string().nullable(),
@@ -436,13 +437,14 @@ const runJobFeed = defineTool({
       const blocker = await explainFeedRunBlocker(userId);
       if (blocker) throw new ToolError(blocker.code, blocker.message);
       // An agent cannot give the user's consent, so the run only goes ahead on consent already on file.
-      const result = await startFeedRun({ userId, clientRequestId: null, consentAccepted: false });
+      // The run itself happens on the agent queue; this returns once it is queued.
+      const result = await queueFeedRun(userId);
       return ok({
         runId: result.runId,
         status: result.status,
         localDate: result.localDate,
-        started: result.created && !result.cooldown,
-        alreadyRanToday: result.cooldown || (result.skipped && result.status === 'completed'),
+        started: result.started,
+        alreadyRanToday: result.alreadyRanToday,
         nextRunAt: result.nextRunAt,
         rawJobsFetched: result.rawJobsFetched,
         jobsAfterPrefilter: result.jobsAfterPrefilter,

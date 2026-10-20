@@ -425,7 +425,7 @@ const updateApplication = defineTool({
     if (contactPerson !== undefined) patch.company_contact_person = contactPerson;
     if (letterLanguage !== undefined) patch.cover_letter_language = letterLanguage.toLowerCase();
     if (Object.keys(patch).length === 0) throw new InvalidInputError('Send at least one field to change.');
-    const result = await updateApplicationFields(userId, applicationId, revision, patch);
+    const result = await updateApplicationFields(userId, applicationId, revision, patch, { allowRecipient: true });
     return ok({ applicationId, revision: result.revision });
   },
 });
