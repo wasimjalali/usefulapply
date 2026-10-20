@@ -1,9 +1,9 @@
-# Useful Apply for AI agents: plan (v2)
+# Useful Apply for AI agents: plan (v3)
 
 **Status (2026-10-20):**
 - **v1:** Wasim accepted every recommendation and set the export bar: best-in-class ATS for the US and Germany, the same renderer for people and agents, cost no object.
 - **v2:** folds in the adversarial reviews from Fable 5.1 and GPT-6.1 Sol (medium). Raw reviews and the write-up are in `evals/results/2026-10-20-mcp-plan-review/`.
-- **Pending:** the DeepSeek Flash review, which needs its API key.
+- **v3:** folds in the DeepSeek Flash (V4.1) review: CIMD transport, out-of-band confirmation, grid-based reading order in both two-column templates, paper and margin ownership, DIN zones, dedupe by input, atomic success path, quotas for free operations, and 3 missing tools.
 
 **Later, out of scope here:** "Sign in with ChatGPT" and paying for generation with a user's ChatGPT or Claude subscription. The service layer keeps model calls behind one interface so this can plug in.
 
@@ -75,7 +75,15 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
   - Revoking in Connected apps kills the refresh token immediately. The verifier also checks a revocation table, so an access token dies within a minute.
   - Queued work that's already paid for completes, and its results show in the web app.
   - Account deletion revokes everything.
-- **Callbacks:** exact-match allowlist for Claude, ChatGPT and loopback (Claude Code, Cursor). PKCE S256 is required. The resource parameter is bound. CIMD fetches are capped for size and time.
+- **Callbacks:**
+  - Exact match for the claude.ai, claude.com and ChatGPT web callbacks.
+  - Loopback (Claude Code, Cursor) uses Better Auth's native validation with `clientRegistrationDefaultApplicationType: "infer"`, so localhost, 127.0.0.1 and [::1] work on any port.
+  - PKCE S256 is required, and the resource parameter is bound.
+- **CIMD safety on Workers** (Better Auth's CIMD security boundary):
+  - Resolve the hostname once, and reject RFC 6890 private and loopback ranges.
+  - Pin the approved IP while keeping TLS identity.
+  - Refuse redirects, and cap size and time.
+  - If Workers can't meet this, CIMD stays off and DCR stays on.
 
 **3.2 Service layer** (`src/lib/services/`)
 - One function per capability. Each takes `userId` from the verified token or session, checks ownership in the query, and persists its own result.
@@ -98,6 +106,7 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
 - **Spending tools require `idempotencyKey`, a client UUID:**
   - A retry with the same key returns the same operation.
   - A retry with the same key but different input is rejected.
+  - An identical request with a fresh key also returns the existing operation: same `(user, kind, input_hash)` within 10 minutes, while pending, running or just succeeded.
   - The fit-continuation discount is claimed server-side.
 - **Generation flow:**
   1. The tool reserves credits.
@@ -107,19 +116,30 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
 - **Consumer:**
   - It's a `queue()` handler in `src/worker.ts` that enters the same request context as `scheduled()`.
   - Settings: `max_batch_size: 1`, a dead-letter queue, and a lease claim by conditional update. A message whose claim affects 0 rows is acked without running the model.
-  - On success it runs `persistKit` and captures the reservation.
-  - On terminal failure it releases the reservation and sets the status to failed.
+  - On success, one D1 `batch()` does `persistKit`, the operation status, `generation_status` and the reservation capture.
+  - Success and cancel are conditional on `(status, attempt)`, so a late finisher never overwrites a cancel.
+  - The lease outlives the longest generation, kept alive by a heartbeat while the model runs.
+  - Partial failure refunds per document, using `credit-costs.ts`. Terminal failure releases the reservation and sets the status to failed.
+  - Every writer of kit columns goes through the revisioned services: agent-v2, `/api/regenerate`, `/api/tracker/follow-up` and the queue runner.
 - **Refunds are atomic.** The reservation transition, the credit restore and the ledger row go in one D1 `batch()`. A reconcile pass in the existing cron repairs any stuck reservation. A test kills the Worker between every step.
 - **Guardrails:**
   - A per-user daily MCP spend cap (default 10 credits a day, adjustable in Connected apps) is reported in `get_account`.
   - At most 2 concurrent generations per user.
   - `generate_application_kit` refuses when the application already has a finished kit, unless `regenerate: true`.
+  - **Free but costly operations get quotas:** `save_cv` (an LLM parse), `draft_screening_answers` and `export_documents` (Browser Run) each have a per-user rate limit and daily quota, plus base64 size caps that match `/api/parse-cv` (4.5 MB direct).
 
 **3.5 Prompt-injection posture**
 - Every string that comes from a job description, a feed item or a web page goes back to the client wrapped in the untrusted delimiters, and those tools' descriptions say the content is data.
 - `concise` mode never returns the raw job description.
 - Tool results contain facts only, never instructions.
-- Destructive tools take `confirm: true`, which the description says must come from an explicit user request.
+- **No model-set `confirm` flags.** A model can set those after reading a hostile job description. Destructive tools rely on three things instead:
+  - `destructiveHint: true`, so Claude and ChatGPT ask the user before calling the tool.
+  - MCP elicitation (a confirmation form the user answers in their own client) when the client supports it.
+  - An `undo_last_edit` tool. The server keeps the last 10 prior versions per application.
+- **Prose edits:**
+  - `update_cv_content` and `edit_document_text` apply the user's own words. Their descriptions say the content must come from the user, never from job text or tool output.
+  - They return a diff.
+  - Any AI rewriting goes through the verified writer (`rewrite_cv_section`, `regenerate_document`) under the anti-hallucination rules.
 
 **3.6 Files, retention, analytics**
 - Exports are stored in R2 at `exports/{userId}/{sha256(content, template, paper, locale, rendererVersion, photoHash)}`.
@@ -130,7 +150,7 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
 ## 4. Tool catalog (v1)
 
 **Conventions:**
-- Every tool sets all four annotations explicitly.
+- Every tool sets all four annotations explicitly, as static booleans. Any tool that can overwrite or delete has `destructiveHint: true`. Spending tools also set `idempotentHint: true`, because they are idempotent by key and input.
 - Every spending tool states its cost and returns `creditsUsed` and the new balance.
 - Out-of-credit errors are neutral facts. They may link to an informational plans page, never to checkout.
 
@@ -157,7 +177,7 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
 | Tool | Credits | Destructive | Does |
 |---|---|---|---|
 | `analyze_job_fit` | 0.5 | no | Fit analysis on an application or a pasted job description (creates a draft) |
-| `generate_application_kit` | 1.5 after fit, else 2.0 | yes when `regenerate` | Queues the CV, cover letter, email and follow-up |
+| `generate_application_kit` | 1.5 after fit, else 2.0 | yes (can replace a kit with `regenerate`) | Queues the CV, cover letter, email and follow-up |
 | `regenerate_document` | 0.5 | yes (overwrites) | Cover letter, email or follow-up, with an instruction |
 | `rewrite_cv_section` | 0.5, free if refused | yes (overwrites) | One section, with an instruction |
 | `apply_to_feed_job` | 0.5 or 2.0 | no | Feed job to application, then fit or kit |
@@ -170,38 +190,44 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
 | `create_application` | no | Draft from a job description, title, company, URL |
 | `update_application` | no | Title, company, URL, company address, contact person, letter language |
 | `update_application_status` | no | Status, interview date, follow-up date (these drive the reminder emails) |
-| `delete_application` | yes, `confirm` | Remove an application |
+| `delete_application` | yes | Remove an application |
 | `cancel_generation` | no | Stop a queued or running generation (unspent credits are released) |
-| `save_cv` | yes, `confirm` when replacing | Upload a CV (text, or PDF/DOCX/TXT/MD as base64), parse it, save as primary or master |
-| `delete_cv` | yes, `confirm` | Remove the primary or master CV |
-| `set_profile_photo` / `remove_profile_photo` | no / yes | Photo used by templates that support one |
-| `update_profile` | no | Contact details used in the CV header and letterhead |
-| `update_cv_content` | no | Field-level edits to the tailored CV (`revision` required) |
-| `edit_cv_structure` | no | Reorder sections and items, rename headings (`revision` required) |
+| `save_cv` | yes (can replace) | Upload a CV (text, or PDF/DOCX/TXT/MD as base64), parse it, save as primary or master |
+| `delete_cv` | yes | Remove the primary or master CV |
+| `set_profile_photo` / `remove_profile_photo` | yes (replaces) / yes | Photo used by templates that support one |
+| `update_profile` | yes (overwrites fields) | Contact details used in the CV header and letterhead |
+| `update_cv_content` | yes (overwrites fields) | Field-level edits to the tailored CV with the user's own words (`revision` required); returns a diff |
+| `add_cv_item` | no | Add an experience, education, project, certification, language, skill group or item, or custom section (`revision` required) |
+| `set_cv_item_visibility` | no | Hide or show an item, group or section without deleting it |
+| `undo_last_edit` | yes | Restore the previous version of a tailored CV or document |
+| `edit_cv_structure` | yes (reorders and renames) | Reorder sections and items, rename headings (`revision` required) |
 | `delete_cv_item` | yes | Remove an item (`revision` required) |
-| `edit_document_text` | yes (overwrites) | Directly edit cover letter, email or follow-up text |
-| `set_cv_template` | no | Choose a template for an application |
-| `export_documents` | no | `cv_pdf`, `cv_docx`, `cover_letter_pdf`, `cover_letter_docx`, `emails_txt`, with any `templateId` and an optional `paper` override; returns signed links |
+| `edit_document_text` | yes (overwrites) | Directly edit cover letter, email or follow-up text with the user's own words; returns a diff |
+| `set_cv_template` | yes (replaces the choice) | Choose a template for an application |
+| `export_documents` | no | `cv_pdf`, `cv_docx`, `cover_letter_pdf`, `cover_letter_docx`, `emails_txt`, `answers_pdf`, `answers_txt`, with any `templateId`, an optional `paper` override and `letterLocale`; returns signed links |
 | `run_job_feed` | no | Today's feed (one a day, consent required) |
-| `update_feed_settings` | no | Roles, countries, remote, salary floor, automation, timezone |
+| `update_feed_settings` | yes (overwrites settings) | Roles, countries, remote, salary floor, automation, timezone |
 | `give_job_feedback` | no | Save, unsave, dismiss, rate |
-| `withdraw_feed_consent` | yes, `confirm` | Stop feed data processing |
+| `withdraw_feed_consent` | yes | Stop feed data processing |
+| `update_notification_settings` | yes (overwrites settings) | Email notifications, reminders and the default CV template |
 
-**Left out:** checkout, plans, credit packs, account deletion, admin and the chat endpoint. The tool count is 40 (13 read, 6 spend, 21 free writes), which is within normal range for catalogs the directories have reviewed. Each description stays one or two sentences.
+**Left out:** checkout, plans, credit packs, account deletion, admin and the chat endpoint. The tool count is 44 (13 read, 6 spend, 25 free writes), which is within normal range for catalogs the directories have reviewed. Each description stays one or two sentences.
 
 **Claude Code skill `apply-to-job`:** check the account and CV, create the application, run the fit check, confirm spend with the user, generate, poll `get_operation`, review, export, set the tracker status.
 
 ## 5. Exports: one renderer for people and agents
 
 **Renderer:**
-- The export service renders the template to HTML on the server with `renderToStaticMarkup`, using the same template components as the canvas in a `print` mode that hides edit buttons.
+- The export service renders the template to HTML on the server with `renderToStaticMarkup`, in a `print` mode that hides edit buttons.
+- The templates are `'use client'`. If importing them on the server resolves to client references, shared server-safe presentational components serve both the canvas and the renderer.
+- A dedicated print stylesheet is inlined, so nothing depends on Tailwind classes. Spike 0b proves this through the real export path.
 - Everything is inlined: CSS, self-hosted fonts as base64 `@font-face`, and the photo as a data URI.
 - It calls `env.BROWSER.quickAction("pdf", { html, pdfOptions })`. There's no public print route, no render token and no subrequests.
 - `pdf-lib` then sets Title, Author, Subject, Language and Producer.
 
 **PDF options:**
-- Paper comes from the template or an override.
-- One owner sets margins: CSS `@page`, with `preferCSSPageSize`.
+- Width, paper and margins are renderer inputs, so an A4 override reflows rather than clips.
+- Margins have exactly one owner: either `@page { margin: 0 }` plus template padding, or the reverse. `preferCSSPageSize` is on.
 - `printBackground` is on. `tagged` is on, but it's treated as accessibility, not a parsing guarantee. Rendering waits for fonts and images to be decoded.
 
 **Web app:**
@@ -211,18 +237,26 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
 
 **Templates change too** (canvas and PDF stay identical):
 - **No silent truncation.** The `.slice()` caps and `render-caps.ts` go away, and layouts wrap to fit every skill. Anything the user excludes is an explicit, visible choice.
-- **`german-ats`** keeps its look, but its DOM order becomes main column then sidebar, with CSS `order` for the visual position. The sidebar background repeats on every page.
+- **Both two-column templates (`german-ats` and `modern-professional`)** keep their look.
+  - The DOM puts the main column first, and CSS grid column placement puts the sidebar back on the left.
+  - CSS `order` isn't used, because it changes paint order and therefore PDF text order.
+  - The sidebar background repeats on every page. Reading order is asserted per template.
+- **Hide, don't delete:** CV items, skill groups and items, and sections take an optional `hidden` flag, toggled in the canvas and skipped by the renderer.
+- **Date ranges** use a hyphen in every template. Today all six use an en dash.
 - **Page breaks:**
   - Entries don't break inside when they fit on a page.
   - An oversized entry continues with widow and orphan control.
   - Headings stay with their content.
-  - The minimum body size is 9.5 pt.
+  - The minimum body size is 10 pt. Today's 12 px is 9 pt, so the templates get re-baselined.
 - **Fonts:** Arimo and Gelasio, metric-compatible with Arial and Georgia, are self-hosted and bound explicitly in the templates. Screen and PDF use the same files, so output is deterministic. Ligatures are off.
 
 **Cover letter:**
 - The writer agent moves to a **structured letter contract**: sender, recipient (only verified details, never invented), date, subject, salutation, paragraphs and closing. This is an `agent-expert` change, and the anti-hallucination rules are unchanged.
 - The layout comes from that structure. Legacy body-only letters are rendered as they are, in letter typography, with no second header added.
 - DOCX is generated with `docx` from the same structure.
+- DIN or US layout follows `letterLocale`: the session's `cover_letter_language`, which the writer now persists, falling back to the template market. It is part of the export cache key.
+- The cover letter tab gets "Preview layout", which shows the rendered PDF.
+- Screening answers export as PDF and TXT too, as the web app does today.
 
 **Cost:**
 - Browser Run Quick Actions bill browser time only. Workers Paid includes 10 hours a month, then $0.09 an hour.
@@ -241,20 +275,24 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
   - German: Profil, Berufserfahrung, Ausbildung, Kenntnisse, Zertifikate, Sprachen.
 - Date ranges use a hyphen, never an en dash (product rule): "Mar 2022 - Present", "03/2022 - heute".
 - File names: `First_Last_CV.pdf`, `Lebenslauf_First_Last.pdf`, `First_Last_Cover_Letter.pdf`, `Anschreiben_First_Last.pdf`.
-- File size under 2 MB (Greenhouse caps uploads at 2.5 MB).
+- File size under 2 MB. Greenhouse recommends 2.5 MB or less for reliable parsing.
 
 **Market rules:**
 
 | | US / North America templates | DACH templates (`german-ats`, `german-classic`) |
 |---|---|---|
 | Paper | Letter, 0.5 to 0.75 in margins | A4, 25 mm left and 20 mm right margins |
-| Photo | Per template, as today. `list_cv_templates` and the skill state the US norm (no photo). No silent change for existing users | Optional, top right, Bewerbungsfoto ratio |
+| Photo | None. No US template renders a photo today (`premium-ats` accepts `photoUrl` but never renders it), and that matches the US norm | Optional, top right, Bewerbungsfoto ratio |
 | Personal data | Never date of birth, nationality or marital status | Only fields the user explicitly chose to show |
 | Length | Guidance: 1 page target, 2 max | Guidance: 2 pages |
 | Cover letter | US business letter, block format | DIN 5008:2020 Form B. See the measurements below |
 
 **DIN 5008 Form B, as print CSS measurements, checked in the eval by pdf.js text position:**
-- The address field is 85 × 45 mm, starting 45 mm from the top and 20 mm from the left. The return line sits in its top 5 mm.
+- **Address field:** 85 × 45 mm, starting 45 mm from the top and 20 mm from the left.
+  - The top 17.7 mm is a 5-line Zusatz- und Vermerkzone, with the return line on its top line.
+  - Below it is a 6-line Anschriftzone of 27.3 mm, where the recipient starts at about 62.7 mm from the top.
+- **Informationsblock:** 125 mm from the left, max 75 mm wide.
+- **Fold marks:** at 105 mm and 210 mm, with the hole mark at 148.5 mm.
 - The date is on the right ("Berlin, 20. Oktober 2026").
 - The subject is bold, two blank lines below the address block, with no "Betreff:".
 - One blank line after "Sehr geehrte …".
@@ -283,7 +321,8 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
   - Full text extracted with `pdftotext` and pdf.js matches the source CV data: every skill, bullet, job title, date-to-employer pairing and heading, in reading order, with umlauts intact.
   - Page size, margins, metadata, file size.
   - No photo where the template has none.
-  - DIN field positions.
+  - DIN positions: recipient, date and fold marks.
+  - Reading order for both two-column templates.
 - **DOCX checks:** XML content and order, plus a LibreOffice render to PDF that is then text-checked.
 - **ATS-parser proxy:** the OpenResume parser, version pinned, runs on the PDFs. Its parsed fields must match the source.
 - **Baseline:** the same checks run on today's html2canvas export.
@@ -298,7 +337,7 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
   3. Generate the kit and poll it.
   4. Edit a CV field, delete an item and rewrite a section.
   5. Regenerate the cover letter.
-  6. Export all five formats in two templates.
+  6. Export all seven formats in two templates.
   7. Set the status to interview with a date.
   8. Check that `/dashboard` shows the same kit and tracker state.
 - **Negative paths:**
@@ -309,7 +348,9 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
   - the same key with different input;
   - a Queue crash mid-run (no double charge, credits released);
   - a stale open tab writing after an agent edit (conflict, no overwrite);
-  - a hostile job description that tries to trigger `save_cv` or `delete_application`;
+  - a hostile job description that tries to trigger `save_cv`, `delete_application` or a CV prose edit (it must hit the client's approval or elicitation, and `undo_last_edit` must restore the content);
+  - quotas on `save_cv`, screening and exports;
+  - a retry with a fresh key and identical input (one charge);
   - the daily cap reached.
 - **Live checks:** Claude.ai custom connector (every tool), Claude Code, MCP Inspector, ChatGPT developer mode.
 
@@ -320,10 +361,10 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
 | **0a / 0b. Spikes** (no merge) | 0a: Better Auth MCP/CIMD on D1 + OpenNext. 0b: Browser Run `quickAction(pdf, html)` on one template with fonts, photo and tagging | n/a, findings committed to `docs/agent-integration/spikes.md` | now |
 | **1. OAuth + MCP skeleton** | Auth plugins, OAuth migration, consent page, well-known routes, Connected apps (revoke, daily cap), scopes, `/mcp` behind the env flag with `get_account` | Sensitive | spike 0a |
 | **2. Data integrity** | `revision` + `agent_operations` migration, revisioned services, web client off wholesale sync, `persistKit`, atomic refunds + reconcile, Queue + leased consumer in `worker.ts` | Sensitive | now (parallel with 1) |
-| **3. Renderer + ATS** | Export service, template fixes (caps, order, breaks, fonts, print mode), CV DOCX, cover letter layouts, web downloads switched, R2 cache, signed links, ATS eval | Sensitive (signed URLs) + design judge | spike 0b. Integrates with 2's kit service when 2 merges |
+| **3. Renderer + ATS** | Export service, template fixes (caps, grid order in both two-column templates, paper and margins, breaks, fonts, hyphens, `hidden` flag, print mode), `cv-tools.ts` kept compiling, CV DOCX, cover letter layouts and preview, answers export, web downloads switched, R2 cache, signed links, ATS eval | Sensitive (signed URLs) + design judge | spike 0b. Integrates with 2's kit service when 2 merges |
 | **4. Structured cover letter** | Writer prompt and output contract, legacy rendering path | Feature, `agent-expert` | now (parallel) |
-| **5. Tool catalog** | All tools, annotations, scopes, injection wrapping, caps, analytics, MCP E2E | Feature (high) | 1 and 2 |
-| **6. Distribution** | Plugin repo and skill, OpenAI manifest and domain file, `/integrations` docs page, privacy and terms updates, seeded reviewer account, submission pack | Feature (Sonnet + Codex): legal text and reviewer-account seed script | 3, 4 and 5 |
+| **5. Tool catalog** | All tools, annotations, scopes, injection wrapping, elicitation, undo history, quotas, daily cap, analytics, MCP E2E. Owns the chat-tool rewrite onto services | Feature (high) | 1, 2 and 3 |
+| **6. Distribution** | Plugin repo and skill, OpenAI manifest and domain file, `/integrations` docs page, privacy and terms updates, reviewer account seeded with a verified email, credits, a primary CV, a US and a German application with kits, and feed consent (no MFA), submission pack | Feature (Sonnet + Codex): legal text and reviewer-account seed script | 3, 4 and 5 |
 
 **Shared files:** the orchestrator alone edits `wrangler.jsonc`, `src/worker.ts`, migrations, `package.json` and the lockfile. Workers report back when they need a change there.
 
@@ -341,9 +382,10 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
 6. Accept legacy stateless MCP clients as well as the 2026-07-28 spec.
 
 **Routine calls I made from the reviews:**
-- The US photo stays per template, so nothing changes silently for existing users.
+- US templates stay photo-free, as they are today.
 - Silent skill truncation is removed.
-- Spending tools require an `idempotencyKey`.
+- Spending tools require an `idempotencyKey`, and identical input is deduped as well.
+- Destructive actions are confirmed in the user's own client (approval prompt or elicitation) and are undoable. There's no model-set `confirm` flag.
 - A daily MCP spend cap defaults to 10 credits.
 - Exports are kept 30 days.
 
