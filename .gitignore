@@ -73,3 +73,7 @@ landing-captures/
 
 # Eval private data (owner CV, owner JDs, raw outputs on owner cases)
 evals/private/
+
+# Playwright Test output (e2e/)
+/playwright-report/
+/test-results/
