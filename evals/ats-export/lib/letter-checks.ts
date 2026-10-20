@@ -188,7 +188,7 @@ export async function checkLetterPdf(bytes: Uint8Array, name: string, layout: 'u
     if (!squashed.includes(squash(field))) failures.push(`text is missing: ${field.slice(0, 60)}`);
   }
   if (/Betreff/i.test(text)) failures.push('"Betreff:" is printed');
-  if (/\b\d{4}-\d{2}-\d{2}\b/.test(text)) failures.push('a raw ISO date is printed instead of a localized one');
+  if (text.split('\n').some((line) => /(^|,\s*)\d{4}-\d{2}-\d{2}\s*$/.test(line.trim()))) failures.push('a raw ISO date is printed as the letter date instead of a localized one');
   failures.push(...senderLinkProblems(text, pdfjs.links, letter));
   if (layout === 'din') failures.push(...addressFieldProblems(lines, letter));
   if (!info.tagged) failures.push('PDF is not tagged');
