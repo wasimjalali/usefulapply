@@ -14,7 +14,7 @@ Last updated 2026-10-20, end of session 1. The plan is `PLAN.md` (v3) in this fo
 | #157 | Hotfix: localized letter dates ("20. Oktober 2026") | live |
 | #155 | Data integrity: revisioned writes, new client sync engine with sticky conflict notices, server-side `persistKit`, `agent_operations` with idempotency and single-flight, `agent-generation` queue plus DLQ, atomic reserve, refund and reconcile | live |
 
-**Production version:** `0d6ac237`.
+**Production version:** `0d6ac237` (recorded at deploy time).
 
 **Production state:**
 - **Migrations applied:** 0009 and 0010.
@@ -38,7 +38,7 @@ Last updated 2026-10-20, end of session 1. The plan is `PLAN.md` (v3) in this fo
 
 ## In flight (branches pushed, not merged)
 
-### PR 5: tool catalog, branch `feature/mcp-tool-catalog`
+### PR 5: tool catalog, branch `feature/mcp-tool-catalog` (no GitHub PR opened yet)
 - **State:** pushed at `2c9e4770`. Foundations only. **No catalog tools exist yet.** Nothing new is tested, and the web regenerate change has to pass the `data` project. `tsc` is clean.
 - **Built:**
   - Migration `0011_application_edit_history.sql` adds `application_edit_history` and `agent_operations.result`. It's in the schema and journal but hasn't been applied anywhere.
@@ -58,7 +58,7 @@ Last updated 2026-10-20, end of session 1. The plan is `PLAN.md` (v3) in this fo
   - **Elicitation** only applies to clients on the 2026-07-28 protocol; legacy clients run the tool directly.
   - **Open question:** `update_notification_settings` says it covers the default CV template, but there's no backing store for that. Either add a `profiles` column in 0011 or drop it from the tool.
 
-### Bug fixes, branch `fix/discard-and-short-jd`
+### Bug fixes, branch `fix/discard-and-short-jd` (no GitHub PR opened yet)
 - **State:** pushed at `f7c359a6`. Both bugs are fixed. `tsc` is clean, eslint has 0 errors and `test:sync` passes.
   - The new fuzz case for bug 2 failed 59 of 2,000 seeds before the fix and 0 after; the seeds are logged in the sync-fuzz write-up.
   - Spec `b-stale-tab` (b3) and the new `e2e/specs/i-short-job-ad.spec.ts` pass.
@@ -132,4 +132,4 @@ Last updated 2026-10-20, end of session 1. The plan is `PLAN.md` (v3) in this fo
 - **Deploy:** order is migration (with a time-travel bookmark first), then deploy from the main checkout after `npm ci --legacy-peer-deps`, then a smoke check, then a live check on Wasim's account through Aside.
 - **Secrets:** create them with `openssl rand -hex 32 | npx wrangler secret put NAME`, so no value is ever shown.
 - **Ports:** oauth 8791 (plus 8792, 8796, 8799 spawned by its spec), data 8794 with fake Anthropic on 18793, exports dev 8793, tool catalog 8798 and 18798. Workers kill only their own processes.
-- **DeepSeek CLI:** `dsh --profile headless` needs a `--patch` overlay enabling the credentials plugin (see the memory note).
+- **DeepSeek CLI:** `dsh --profile headless` can't see the API key unless you pass `--patch <file>`, where the file contains `- id: credentials` / `name: '@deepseek-ai/dsh-credentials-local'` / `disabled: false`. A copy is at `evals/results/2026-10-20-mcp-plan-review/dsh-headless-credentials.patch.yml`.
