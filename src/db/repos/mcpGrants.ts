@@ -33,7 +33,10 @@ interface CacheEntry {
   state: GrantState;
 }
 
-const grantCache = new Map<string, CacheEntry>();
+// On globalThis because the settings server action and the /mcp route are bundled separately, so a module-level Map
+// would be two Maps and a revoke would not clear the entry the token check reads.
+const globalForGrants = globalThis as typeof globalThis & { __uaMcpGrantCache?: Map<string, CacheEntry> };
+const grantCache: Map<string, CacheEntry> = (globalForGrants.__uaMcpGrantCache ??= new Map());
 
 function cacheKey(userId: string, clientId: string): string {
   return `${userId}\u0000${clientId}`;
