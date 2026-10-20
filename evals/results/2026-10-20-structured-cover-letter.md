@@ -197,7 +197,7 @@ The PR review (Sonnet and Codex at high) probed the run 3 code and found holes. 
 
 ### Offline checks (code-fixed, no model, no API key)
 
-`npx tsx evals/structured-cover-letter-offline.ts` loads run 3's committed answers and analysis context (`recipient-rerun-2/letters/`) and the committed ads. It changes one thing per check and writes `offline-checks.json`. **52 of 52 passed at run 4** (122 after round 2 and 147 after round 3, see below). They include:
+`npx tsx evals/structured-cover-letter-offline.ts` loads run 3's committed answers and analysis context (`recipient-rerun-2/letters/`) and the committed ads. It changes one thing per check and writes `offline-checks.json`. **52 of 52 passed at run 4** (122 after round 2 and 190 after the round 3 arbiter fixes, see below). They include:
 
 - **Address:**
   - the splice of two offices;
@@ -384,6 +384,21 @@ Codex and Opus found nothing above low. Sonnet found one high, which it reproduc
 
 The run 4 replay is still identical. `offline-checks.json` no longer carries a timestamp, so it changes only when a check does. Without a runnable `sqlite3` the SQL checks fail and are reported; they're never skipped.
 
+### Arbiter follow-up (after the round 3 ruling)
+
+An Opus arbiter ruled the round 3 high fixed. It probed 31 cases (Sonnet's 8 reproductions, 17 adversarial, 6 false-reject checks) plus 3 variants and 7 sentence-boundary checks, and left three lows. All are fixed in code:
+- **Word lists:**
+  - The workplace list adds "Location:", "Standort:", "Dienstort" and "Arbeitsplatz:".
+  - A shared imprint and company-register list ("Impressum", "Inhaber", "Sitz der Gesellschaft", HRB, HRA, Handelsregister, Registergericht, Amtsgericht, USt-IdNr, Ust-ID, "Registered office", "Company number") now feeds both the boilerplate test for addresses and the legal-name test for contacts.
+  - Probes A12 to A15 are rejected: an address in a "Sitz der Gesellschaft ... HRB" footer, "Location:" or "Standort:" after an email, and "Inhaber: Klaus Brenner" as a contact.
+- **Postal continuation:** an email followed by "or (by) mail/post to", "oder per Post an" or "ou par courrier à" keeps the submission fast path. The checks then run from the end of that continuation (no sentence break, email, workplace, boilerplate or legal wording before the address).
+  - The German pattern also covers "Ihre Bewerbung senden Sie bitte ... an".
+  - F1 and F2, an EEO or Schwerbehinderte notice before an "email or by post to" instruction, are now accepted.
+  - A workplace label after the continuation still rejects.
+- **Abbreviations:** "Attn." and "z. Hd." are no longer sentence breaks.
+
+**Offline suite:** 190 of 190 pass. That's 147 before, plus 34 arbiter cases reused as written (the 31 originals plus the short S6 and the A13 and A14 variants without a phrase, from its second script), one extra "workplace after continuation" case and 8 sentence-boundary checks (the arbiter's 7 plus "z. Hd."). The run 4 replay is still identical.
+
 ## Limits
 
 - One run per case: six cases in run 1, two in runs 2 and 3, four in run 4. This shows the contract path works and the rules hold. It doesn't measure rates.
@@ -407,7 +422,7 @@ The structured contract works on the production model with no retries:
 - correct DACH and US subject and closing conventions;
 - each body an exact rendering of its structure.
 
-A recipient detail reaches the letter only from the session row or from the ad's own text. This covers the company, contact person, department and postal address. The address must be one anchored, well-formed block, not boilerplate. A fake, partly fake, spliced, numberless or boilerplate address is dropped. So are a fake contact, a guessed or cross-person title, and a name from a second person. An address in the paragraphs fails the letter's validation. Optional fields degrade to fixed forms instead of costing the letter. Run 4: 4 of 4 live letters pass 14 of 14 with no retries and no fallbacks, and after review round 3, 147 of 147 offline checks pass, including a replay of run 4's answers through the final code (identical letters).
+A recipient detail reaches the letter only from the session row or from the ad's own text. This covers the company, contact person, department and postal address. The address must be one anchored, well-formed block, not boilerplate. A fake, partly fake, spliced, numberless or boilerplate address is dropped. So are a fake contact, a guessed or cross-person title, and a name from a second person. An address in the paragraphs fails the letter's validation. Optional fields degrade to fixed forms instead of costing the letter. Run 4: 4 of 4 live letters pass 14 of 14 with no retries and no fallbacks, and after review round 3, 190 of 190 offline checks pass, including a replay of run 4's answers through the final code (identical letters).
 
 ## What changed because of it
 

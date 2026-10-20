@@ -432,6 +432,72 @@ check('contract_guard_rejects_shallow_object', !isStructuredCoverLetter({ versio
   check('r3_7_string_trim_would_differ', !isSameStoredText(`${String.fromCharCode(0xa0)}Ad`.trim(), `${String.fromCharCode(0xa0)}Ad`), 'String.trim() drops the NBSP');
   check('r3_7_whitespace_only_submission_is_empty', storedTextOrEmpty(` ${String.fromCharCode(0xa0)}\n`) === '', 'empty');
 
+  // --- Opus arbiter probes (round 3 ruling), reused as written -------------
+  // S = Sonnet's reproductions, A = adversarial, F = must not be false-rejected.
+  // A12 to A15, F1 and F2 drove the last fixes (word lists, postal continuation).
+  {
+    const US = ['500 Main St', 'Austin, TX 78701'];
+    const DE = ['Hauptstraße 99', '10115 Berlin'];
+    type Probe = { id: string; kind: 'addr' | 'contact'; ad: string; value: string[] | string; company: string; expect: 'REJECT' | 'ACCEPT' };
+    const probes: Probe[] = [
+      { id: 'S1', kind: 'addr', ad: 'Acme Inc. is hiring. To apply, send your CV to jobs@acme.com. Work location: 500 Main St, Austin, TX 78701', value: US, company: 'Acme Inc.', expect: 'REJECT' },
+      { id: 'S2', kind: 'addr', ad: 'Acme GmbH sucht Sie. Bitte senden Sie Ihre Bewerbung an bewerbung@acme.de. Einsatzort: Hauptstraße 99, 10115 Berlin', value: DE, company: 'Acme GmbH', expect: 'REJECT' },
+      { id: 'S3', kind: 'addr', ad: 'Acme GmbH sucht Sie. Bewerbung an uns. Einsatzort beim Kunden: Hauptstraße 99, 10115 Berlin', value: DE, company: 'Acme GmbH', expect: 'REJECT' },
+      { id: 'S4', kind: 'addr', ad: 'Send your resume to jobs@acme.com. We are an equal opportunity employer. Acme Inc., 500 Main St, Austin, TX 78701', value: US, company: 'Acme Inc.', expect: 'REJECT' },
+      { id: 'S5', kind: 'addr', ad: 'Acme GmbH sucht Sie. Ihre Unterlagen geben wir nicht an Dritte weiter. Impressum: Acme GmbH, Hauptstraße 99, 10115 Berlin', value: DE, company: 'Acme GmbH', expect: 'REJECT' },
+      { id: 'S6', kind: 'contact', ad: 'Brenner Getriebe GmbH sucht Sie. Bewerbung an bewerbung@brenner.de. Impressum: Brenner Getriebe GmbH, Amtsgericht Nürnberg HRB 1234, Geschäftsführer: Dr. Klaus Brenner', value: 'Dr. Klaus Brenner', company: 'Brenner Getriebe GmbH', expect: 'REJECT' },
+      { id: 'S6_short', kind: 'contact', ad: 'Brenner GmbH. Bewerbung an bewerbung@brenner.de. Impressum: Geschäftsführer: Dr. Klaus Brenner', value: 'Dr. Klaus Brenner', company: 'Brenner GmbH', expect: 'REJECT' },
+      { id: 'S7', kind: 'contact', ad: 'Acme Inc. is hiring. Send your resume to jobs@acme.com. Our CEO, John Smith, founded the company in 1999.', value: 'John Smith', company: 'Acme Inc.', expect: 'REJECT' },
+      { id: 'S8', kind: 'addr', ad: 'Wir suchen Sie. Bewerbungen richten Sie bitte an: Brenner Getriebe GmbH, Industriestraße 14, 90431 Nürnberg', value: ['Industriestraße 14', '90431 Nürnberg'], company: 'Brenner Getriebe GmbH', expect: 'ACCEPT' },
+      { id: 'A1', kind: 'addr', ad: 'Acme GmbH\nSend applications to:\nEinsatzort beim Kunden:\nHauptstraße 99\n10115 Berlin', value: DE, company: 'Acme GmbH', expect: 'REJECT' },
+      { id: 'A2', kind: 'addr', ad: 'Acme Inc. Send your CV to HR; work location: 500 Main St, Austin, TX 78701', value: US, company: 'Acme Inc.', expect: 'REJECT' },
+      { id: 'A3', kind: 'addr', ad: 'Acme GmbH. Bewerbung an uns, z. B. Einsatzort Hauptstraße 99, 10115 Berlin', value: DE, company: 'Acme GmbH', expect: 'REJECT' },
+      { id: 'A4', kind: 'addr', ad: 'Acme GmbH. Bewerbung an bewerbung@acme.de, Einsatzort: Hauptstraße 99, 10115 Berlin', value: DE, company: 'Acme GmbH', expect: 'REJECT' },
+      { id: 'A5', kind: 'addr', ad: 'Acme GmbH sucht. Bewerbung an bewerbung@acme.de, Hauptstraße 99, 10115 Berlin', value: DE, company: 'Acme GmbH', expect: 'ACCEPT' },
+      { id: 'A6', kind: 'addr', ad: '## Acme GmbH\n**Bewerbung an:**\n- Acme GmbH\n- Hauptstraße 99\n- 10115 Berlin', value: DE, company: 'Acme GmbH', expect: 'ACCEPT' },
+      { id: 'A7', kind: 'addr', ad: '## Acme GmbH\n- Bewerbung an: bewerbung@acme.de\n- Einsatzort: Hauptstraße 99, 10115 Berlin', value: DE, company: 'Acme GmbH', expect: 'REJECT' },
+      { id: 'A8', kind: 'addr', ad: 'Acme Inc. sucht Sie. Bewerbung an: Acme Inc., 500 Main St, Austin, TX 78701', value: US, company: 'Acme Inc.', expect: 'ACCEPT' },
+      { id: 'A9', kind: 'addr', ad: 'Acme Inc. sucht Sie. Bewerbung an bewerbung@acme.de. Arbeitsort: 500 Main St, Austin, TX 78701', value: US, company: 'Acme Inc.', expect: 'REJECT' },
+      { id: 'A10', kind: 'addr', ad: 'Acme Inc. Submit your application to https://acme.com/careers. Work location: 500 Main St, Austin, TX 78701', value: US, company: 'Acme Inc.', expect: 'REJECT' },
+      { id: 'A11', kind: 'addr', ad: 'Acme Inc.\nSend your CV to https://acme.com/jobs\nJob site 500 Main St, Austin, TX 78701', value: US, company: 'Acme Inc.', expect: 'REJECT' },
+      { id: 'A12', kind: 'addr', ad: 'Acme GmbH sucht Sie. Bewerbung an bewerbung@acme.de.\n\nAcme GmbH · Sitz der Gesellschaft: Hauptstraße 99, 10115 Berlin · HRB 12345 B · USt-IdNr. DE123456789', value: DE, company: 'Acme GmbH', expect: 'REJECT' },
+      { id: 'A13', kind: 'addr', ad: 'Acme Inc. Send your resume to jobs@acme.com. Location: 500 Main St, Austin, TX 78701', value: US, company: 'Acme Inc.', expect: 'REJECT' },
+      { id: 'A13_no_phrase', kind: 'addr', ad: 'Acme Inc. is hiring. Location: 500 Main St, Austin, TX 78701', value: US, company: 'Acme Inc.', expect: 'REJECT' },
+      { id: 'A14', kind: 'addr', ad: 'Acme GmbH sucht Sie. Bewerbung an bewerbung@acme.de. Standort: Hauptstraße 99, 10115 Berlin', value: DE, company: 'Acme GmbH', expect: 'REJECT' },
+      { id: 'A14_no_phrase', kind: 'addr', ad: 'Acme GmbH sucht Sie. Standort: Hauptstraße 99, 10115 Berlin', value: DE, company: 'Acme GmbH', expect: 'REJECT' },
+      { id: 'A15', kind: 'contact', ad: 'Brenner GmbH. Bewerbung an bewerbung@brenner.de. Inhaber: Klaus Brenner', value: 'Klaus Brenner', company: 'Brenner GmbH', expect: 'REJECT' },
+      { id: 'A16', kind: 'addr', ad: 'Acme Inc. Send your CV to HR Dept. Work location 500 Main St, Austin, TX 78701', value: US, company: 'Acme Inc.', expect: 'REJECT' },
+      { id: 'A17', kind: 'addr', ad: 'Acme Inc. Mail your application to: Acme Inc., Attn. HR, 500 Main St, Austin, TX 78701', value: US, company: 'Acme Inc.', expect: 'ACCEPT' },
+      { id: 'F1', kind: 'addr', ad: 'Acme Inc. is an equal opportunity employer. Send your resume to jobs@acme.com or by mail to Acme Inc., 500 Main St, Austin, TX 78701', value: US, company: 'Acme Inc.', expect: 'ACCEPT' },
+      { id: 'F2', kind: 'addr', ad: 'Schwerbehinderte werden bevorzugt. Ihre Bewerbung senden Sie bitte per E-Mail an bewerbung@acme.de oder per Post an Acme GmbH, Hauptstraße 99, 10115 Berlin', value: DE, company: 'Acme GmbH', expect: 'ACCEPT' },
+      { id: 'F3', kind: 'contact', ad: 'Acme GmbH. Bitte senden Sie Ihre Bewerbung an Frau Anna Weber, Personalabteilung.', value: 'Anna Weber', company: 'Acme GmbH', expect: 'ACCEPT' },
+      { id: 'F4', kind: 'contact', ad: 'Acme GmbH. Bewerbung an bewerbung@acme.de. Ihre Ansprechpartnerin: Anna Weber', value: 'Anna Weber', company: 'Acme GmbH', expect: 'ACCEPT' },
+      { id: 'F5', kind: 'addr', ad: 'Hinweise zum Datenschutz finden Sie online. Bitte senden Sie Ihre Bewerbungsunterlagen an Acme GmbH, Hauptstraße 99, 10115 Berlin', value: DE, company: 'Acme GmbH', expect: 'ACCEPT' },
+      { id: 'F6', kind: 'addr', ad: 'Einsatzort: München. Bitte senden Sie Ihre Bewerbung an Acme GmbH, Hauptstraße 99, 10115 Berlin', value: DE, company: 'Acme GmbH', expect: 'ACCEPT' },
+      // The postal continuation never rescues an address with a workplace label after it.
+      { id: 'F1_workplace_after_continuation', kind: 'addr', ad: 'Send your resume to jobs@acme.com or by mail to our team. Work location: 500 Main St, Austin, TX 78701', value: US, company: 'Acme Inc.', expect: 'REJECT' },
+    ];
+    for (const p of probes) {
+      const got = p.kind === 'addr'
+        ? (extractAdAddress(p.value, p.ad, { companyName: p.company }).length ? 'ACCEPT' : 'REJECT')
+        : (adContactPerson(p.ad, p.value as string, [p.company]) ? 'ACCEPT' : 'REJECT');
+      check(`arbiter_${p.id}_${p.expect.toLowerCase()}`, got === p.expect, `${got} (expected ${p.expect})`);
+    }
+    const boundaries: Array<[string, boolean]> = [
+      [' bewerbung@acme.de. Einsatzort: ', true],
+      [' uns, z. B. ', false],
+      [' HR Dept. ', false],
+      [' us! Then ', true],
+      [' Acme Inc. Attn. HR, ', false],
+      [' z. Hd. Frau Weber, ', false],
+      [' Acme e.V. ', false],
+      [' St. Gallen ', false],
+    ];
+    for (const [text, expected] of boundaries) {
+      check(`arbiter_boundary_${text.trim().replace(/\W+/gu, '_')}`, hasSentenceBoundary(text) === expected, `${hasSentenceBoundary(text)} (expected ${expected})`);
+    }
+  }
+
   // Replay: run 4's real model answers through today's post-model code. The
   // round 2 changes are code only, so each letter must come out as run 4 saved it.
   const RUN4 = path.join(RESULTS, 'recipient-rerun-3', 'letters');

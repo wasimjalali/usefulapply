@@ -1,5 +1,5 @@
 {
- "total": 147,
+ "total": 190,
  "failed": 0,
  "checks": [
   {
@@ -716,6 +716,221 @@
    "name": "r3_7_whitespace_only_submission_is_empty",
    "pass": true,
    "detail": "empty"
+  },
+  {
+   "name": "arbiter_S1_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_S2_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_S3_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_S4_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_S5_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_S6_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_S6_short_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_S7_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_S8_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_A1_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A2_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A3_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A4_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A5_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_A6_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_A7_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A8_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_A9_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A10_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A11_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A12_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A13_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A13_no_phrase_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A14_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A14_no_phrase_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A15_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A16_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A17_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_F1_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_F2_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_F3_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_F4_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_F5_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_F6_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_F1_workplace_after_continuation_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_boundary_bewerbung_acme_de_Einsatzort_",
+   "pass": true,
+   "detail": "true (expected true)"
+  },
+  {
+   "name": "arbiter_boundary_uns_z_B_",
+   "pass": true,
+   "detail": "false (expected false)"
+  },
+  {
+   "name": "arbiter_boundary_HR_Dept_",
+   "pass": true,
+   "detail": "false (expected false)"
+  },
+  {
+   "name": "arbiter_boundary_us_Then",
+   "pass": true,
+   "detail": "true (expected true)"
+  },
+  {
+   "name": "arbiter_boundary_Acme_Inc_Attn_HR_",
+   "pass": true,
+   "detail": "false (expected false)"
+  },
+  {
+   "name": "arbiter_boundary_z_Hd_Frau_Weber_",
+   "pass": true,
+   "detail": "false (expected false)"
+  },
+  {
+   "name": "arbiter_boundary_Acme_e_V_",
+   "pass": true,
+   "detail": "false (expected false)"
+  },
+  {
+   "name": "arbiter_boundary_St_Gallen",
+   "pass": true,
+   "detail": "false (expected false)"
   },
   {
    "name": "replay_run4_sl-de-contact_unchanged",

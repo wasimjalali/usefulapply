@@ -65,6 +65,7 @@ const SUBMISSION = new RegExp([
   'bewerbung(?:en|sunterlagen)?\\s+(?:bitte\\s+)?(?:(?:per|via)\\s+(?:post|e-?mail)\\s+)?an\\b',
   'bewerbungen\\s+richten\\s+sie\\s+(?:bitte\\s+)?an\\b',
   'ihre\\s+(?:bewerbungs)?unterlagen\\s+(?:bitte\\s+)?(?:(?:per|via)\\s+(?:post|e-?mail)\\s+)?an\\b',
+  '(?:ihre\\s+)?(?:bewerbung(?:sunterlagen)?|unterlagen)\\s+(?:senden|schicken|richten|reichen|mailen)\\s+sie\\s+(?:uns\\s+)?(?:bitte\\s+)?[^.!?\\n]{0,60}?\\ban\\b',
   'adresser\\s+votre\\s+candidature[^.!?\\n]{0,70}?(?<!\\p{L})à(?!\\p{L})',
   'env[ií]a(?:r|nos)?\\s+(?:tu|su)\\s+(?:solicitud|cv|candidatura)[^.!?\\n]{0,70}?\\ba\\b',
   'stuur\\s+(?:je|uw)\\s+(?:sollicitatie|cv)[^.!?\\n]{0,70}?\\bnaar\\b',
@@ -75,20 +76,32 @@ const EMAIL = /[^\s@]+@[^\s@]+\.[^\s@]+/u;
 const ABBREVIATIONS = new Set([
   'dr', 'prof', 'st', 'str', 'nr', 'no', 'inc', 'ltd', 'co', 'corp', 'llc', 'plc', 'mr', 'mrs', 'ms', 'mme', 'jr', 'sr', 'sra',
   'ave', 'rd', 'blvd', 'bzw', 'ca', 'vgl', 'inkl', 'ggf', 'evtl', 'abt', 'tel', 'fax', 'ref', 'réf', 'req', 'dept', 'dipl', 'ing',
+  'attn', 'hd',
 ]);
+// After an email, an explicit second channel to a postal address: "or by mail
+// to", "oder per Post an", "ou par courrier à". The address it names keeps the
+// fast path (checked from the end of this continuation).
+const POSTAL_CONTINUATION = /\b(?:or|and)\s+(?:by\s+)?(?:post|mail|regular\s+mail|postal\s+mail|letter)\s+to\b|\boder\s+(?:per|auf\s+dem)\s+(?:post|postweg)\s+an\b|\bou\s+par\s+(?:courrier|la\s+poste)\s+(?:à|au)(?!\p{L})/giu;
 
 // Wording that tells applicants where to write or who to contact.
 const PLACEMENT_ANCHOR = /(?:contact|kontakt)\s*:|ansprechpartner|anschrift|our\s+office|headquarters|hauptsitz|firmensitz|address|adresse|apply|application|candidature|postuler|solicitud|sollicitatie|send\s+(?:your|us)|(?:mail|submit)\s+(?:resumes|applications)\s+to|mail\s+to|mail\s+your/iu;
 const ANCHOR_WINDOW = 250;
+// Imprint and company-register wording ("Impressum", "Sitz der Gesellschaft:
+// ... HRB 12345", "Registered office", "Inhaber:"). Both an address and a name
+// there belong to the legal footer, not to the application.
+const LEGAL_FOOTER = [
+  'impressum', 'inhaber', 'sitz\\s+der\\s+gesellschaft', '\\bhrb\\b', '\\bhra\\b', 'handelsregister', 'registergericht',
+  'amtsgericht', 'ust-?id(?:nr)?\\b', 'ust\\.?\\s*-?\\s*id(?:-?nr)?\\b', 'registered\\s+office', 'company\\s+(?:number|registration)',
+].join('|');
 // A place of work or a client site is not where applications go.
-const WORKPLACE = /einsatzort|arbeitsort|dienstort|work\s+location|job\s*site|on[-\s]site\s+at|place\s+of\s+work|workplace/iu;
+const WORKPLACE =/einsatzort|arbeitsort|dienstort|arbeitsplatz\s*:|standort\s*:|(?<!\p{L})location\s*:|work\s+location|job\s*site|on[-\s]site\s+at|place\s+of\s+work|workplace/iu;
 const WORKPLACE_WINDOW = 120;
 // Accommodation, equal-opportunity, privacy and legal notices: an address or
 // name there is not where applications go. Checked before the detail only.
-const BOILERPLATE = /accommodation|disabilit|equal\s+(?:employment|opportunity)|\beeo\b|veteran|privacy|datenschutz|impressum|handelsregister|registergericht|amtsgericht|copyright|©|barrierefrei|schwerbehindert/iu;
+const BOILERPLATE = new RegExp(`accommodation|disabilit|equal\\s+(?:employment|opportunity)|\\beeo\\b|veteran|privacy|datenschutz|copyright|©|barrierefrei|schwerbehindert|${LEGAL_FOOTER}`, 'iu');
 const BOILERPLATE_WINDOW = 300;
 // Imprint and legal names: an officer of the company is not an application contact.
-const LEGAL_NAME = /geschäftsführ|geschaeftsfuehr|impressum|vorstand|aufsichtsrat|registergericht|handelsregister|amtsgericht|\bceo\b|managing\s+director|board\s+of\s+directors|chairman|vorsitzende/iu;
+const LEGAL_NAME = new RegExp(`geschäftsführ|geschaeftsfuehr|vorstand|aufsichtsrat|\\bceo\\b|managing\\s+director|board\\s+of\\s+directors|chairman|vorsitzende|${LEGAL_FOOTER}`, 'iu');
 const LEGAL_BEFORE = 150;
 const LEGAL_AFTER = 60;
 
@@ -114,14 +127,25 @@ export function hasSentenceBoundary(text: string): boolean {
  * An explicit submission instruction whose object is the detail at `start`:
  * it ends within 80 characters before the detail, and the text in between
  * holds no sentence break, no email address (then the email is what to write
- * to, not this) and no workplace, boilerplate or legal-name wording.
+ * to, not this) and no workplace, boilerplate or legal-name wording. An email
+ * followed by "or by mail to" / "oder per Post an" is allowed: the checks then
+ * run from the end of that continuation.
  */
 function submissionAddressesDetail(ad: string, start: number): boolean {
   const before = ad.slice(Math.max(0, start - SUBMISSION_REACH - 160), start);
   let last: RegExpMatchArray | undefined;
   for (const match of before.matchAll(SUBMISSION)) last = match;
   if (!last) return false;
-  const gap = before.slice((last.index ?? 0) + last[0].length);
+  let gap = before.slice((last.index ?? 0) + last[0].length);
+  // "Send your CV to jobs@acme.com or by mail to Acme Inc., 500 Main St":
+  // the email is one channel and the continuation names the postal one, so
+  // the check restarts after the continuation.
+  if (EMAIL.test(gap)) {
+    let continuationEnd = -1;
+    for (const match of gap.matchAll(POSTAL_CONTINUATION)) continuationEnd = (match.index ?? 0) + match[0].length;
+    if (continuationEnd < 0) return false;
+    gap = gap.slice(continuationEnd);
+  }
   if (gap.length > SUBMISSION_REACH) return false;
   if (EMAIL.test(gap) || hasSentenceBoundary(gap)) return false;
   return !WORKPLACE.test(gap) && !BOILERPLATE.test(gap) && !LEGAL_NAME.test(gap);
