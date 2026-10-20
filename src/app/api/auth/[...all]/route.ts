@@ -124,16 +124,15 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const sub = subPath(request);
   if (oauthSurfaceBlocked(sub)) return notFound();
-  const limit: Limit | null =
-    sub.endsWith('/sign-up/email')
-      ? { key: 'signup', config: RATE_LIMITS.signup }
-      : sub.endsWith('/request-password-reset')
-        ? { key: 'forgot-password', config: RATE_LIMITS['forgot-password'] }
-        : sub.endsWith('/sign-in/email')
-          ? { key: 'signin', config: RATE_LIMITS.signin }
-          : sub.endsWith('/delete-user')
-            ? { key: 'delete-account', config: RATE_LIMITS['delete-account'] }
-            : oauthLimit(sub);
+  const byPath: [string, Limit][] = [
+    ['/sign-up/email', { key: 'signup', config: RATE_LIMITS.signup }],
+    ['/request-password-reset', { key: 'forgot-password', config: RATE_LIMITS['forgot-password'] }],
+    // Sends mail to any address, so it shares the forgot-password limits (its own counter per IP).
+    ['/send-verification-email', { key: 'send-verification', config: RATE_LIMITS['forgot-password'] }],
+    ['/sign-in/email', { key: 'signin', config: RATE_LIMITS.signin }],
+    ['/delete-user', { key: 'delete-account', config: RATE_LIMITS['delete-account'] }],
+  ];
+  const limit: Limit | null = byPath.find(([suffix]) => sub.endsWith(suffix))?.[1] ?? oauthLimit(sub);
 
   const blocked = await rateLimited(request, limit);
   if (blocked) return blocked;

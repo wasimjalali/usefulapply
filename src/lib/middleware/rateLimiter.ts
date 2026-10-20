@@ -212,7 +212,28 @@ export async function checkRateLimit(key: string, config: RateLimitConfig): Prom
 }
 
 /**
- * Extract client IP from request headers.
+ * An IPv6 address as its /64 prefix. One subscriber gets a whole /64 (or more)
+ * and can rotate through its 2^64 addresses for free, so keying a limit on the
+ * full address would be no limit at all. IPv4 and anything unparsable pass through.
+ */
+export function normalizeIpForLimit(ip: string): string {
+  if (!ip.includes(':')) return ip;
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(ip);
+  if (mapped) return mapped[1];
+  const [head, tail, ...extra] = ip.split('::');
+  if (extra.length > 0) return ip;
+  const left = head ? head.split(':') : [];
+  const right = tail !== undefined && tail !== '' ? tail.split(':') : [];
+  if (tail === undefined && left.length !== 8) return ip;
+  const missing = 8 - left.length - right.length;
+  if (missing < 0 || (tail !== undefined && missing < 1)) return ip;
+  const groups = [...left, ...Array<string>(tail === undefined ? 0 : missing).fill('0'), ...right];
+  if (groups.length !== 8 || !groups.every((g) => /^[0-9a-f]{1,4}$/i.test(g))) return ip;
+  return `${groups.slice(0, 4).map((g) => g.toLowerCase().replace(/^0+(?=.)/, '')).join(':')}::/64`;
+}
+
+/**
+ * Extract client IP from request headers (IPv6 reduced to its /64, see above).
  * On Cloudflare Workers only `cf-connecting-ip` is set by the edge and cannot be
  * spoofed by the client. `x-forwarded-for` is client-controlled (Cloudflare appends
  * to it), so it is only a fallback for local dev and tests.
@@ -220,14 +241,14 @@ export async function checkRateLimit(key: string, config: RateLimitConfig): Prom
 export function getClientIP(request: Request): string {
   const cloudflareIp = request.headers.get('cf-connecting-ip')?.trim();
   if (process.env.NODE_ENV === 'production') {
-    return cloudflareIp || 'unknown';
+    return normalizeIpForLimit(cloudflareIp || 'unknown');
   }
-  return (
+  return normalizeIpForLimit(
     cloudflareIp ||
     request.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() ||
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     request.headers.get('x-real-ip') ||
-    'unknown'
+    'unknown',
   );
 }
 

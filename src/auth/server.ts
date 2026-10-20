@@ -126,6 +126,19 @@ function createAuth(db: Database) {
           await revokeAllConnectedApps(resetUser.id);
         } catch (error) {
           console.error('[auth] revoking MCP grants after password reset failed', resetUser.id, error);
+          // A reset that leaves connected apps alive is a security failure: surface it in PostHog
+          // too (error tracking only, no user data in the properties).
+          try {
+            const { getPostHogServer } = await import('@/lib/posthog-server');
+            const posthog = getPostHogServer();
+            posthog.captureException(error as Error, 'server_error', {
+              endpoint: 'auth.onPasswordReset',
+              step: 'revoke_mcp_grants',
+            });
+            await posthog.flush();
+          } catch (captureError) {
+            console.error('[auth] PostHog capture failed', captureError);
+          }
         }
       },
       sendResetPassword: async ({ user: resetUser, url }) => {
@@ -303,6 +316,10 @@ function createAuth(db: Database) {
       // on migration 0009 and on BETTER_AUTH_SECRET decrypting the key. Only
       // the OAuth endpoints and /jwks use the keys.
       jwt({ disableSettingJwtHeader: true, jwks: { keyPairConfig: { alg: MCP_JWT_ALG } } }),
+      // Do not set `prefix`, `formatRefreshToken` or `storeTokens` here: the /oauth2/token
+      // hook in mcpOAuthGuards looks refresh tokens and codes up by their stored form
+      // (SHA-256, base64url, no padding, no prefix). Changing it makes the lookup miss, and
+      // with it the check that stops a revoked app's tokens from being redeemed.
       mcp({
         loginPage: '/auth/login',
         consentPage: '/oauth/consent',
