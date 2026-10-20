@@ -7,6 +7,7 @@
  */
 
 export type Writer =
+  | 'cvParse'
   | 'applicant'
   | 'job'
   | 'metrics'
@@ -147,6 +148,26 @@ const JOB = JSON.stringify({
   expectedSalary: null,
 });
 
+const CV_PARSE = JSON.stringify({
+  personal: { fullName: NAME, email: 'tomas.brandt@example.com', phone: '', city: 'Chicago', currentTitle: 'Financial Analyst' },
+  summary: '',
+  experience: [{
+    company: 'Calder Industrial Components',
+    position: 'Financial Analyst',
+    startDate: 'Mar 2022',
+    current: true,
+    bullets: [
+      'Own the monthly forecast and variance reporting for two business units',
+      'Improved forecast accuracy for the larger unit from 88% to 96%',
+    ],
+  }],
+  education: [],
+  skills: [{ category: 'Finance', skills: ['Forecasting', 'Variance reporting'] }],
+  languages: [],
+  certifications: [],
+  documentLanguage: 'en',
+});
+
 const METRICS = JSON.stringify(['88%', '96%']);
 
 const MATCH = JSON.stringify({
@@ -169,6 +190,7 @@ export function writerFor(system: unknown): Writer | null {
   if (text.includes('You write job application emails for Useful Apply')) return 'applicationEmail';
   if (text.includes('You are the follow-up email writer for Useful Apply')) return 'followUpEmail';
   if (text.includes('You are Useful Apply, a senior talent acquisition specialist')) return 'fit';
+  if (text.includes('You are a precise CV parser. Extract factual information only')) return 'cvParse';
   if (text.includes('You are a precise CV parser that extracts factual information')) return 'applicant';
   if (text.includes('You are a job description parser')) return 'job';
   if (text.includes('You are a precise data extraction tool')) return 'metrics';
@@ -178,6 +200,7 @@ export function writerFor(system: unknown): Writer | null {
 
 export function answerFor(writer: Writer): string {
   switch (writer) {
+    case 'cvParse': return CV_PARSE;
     case 'applicant': return APPLICANT;
     case 'job': return JOB;
     case 'metrics': return METRICS;

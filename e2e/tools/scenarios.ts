@@ -386,6 +386,28 @@ async function main(): Promise<void> {
     });
   }
 
+  if (mode === 'd') {
+    await scenario('d13. documents service: a CV given as text is parsed and stored like a web upload', async () => {
+      const user = await seedUser('d13', { monthly: 4 }, 0);
+      await run("DELETE FROM documents WHERE user_id = ?", user.id);
+      const documents = await import('../../src/lib/services/documents');
+      const saved = await documents.parseAndSaveCv(user.id, { type: 'primary_cv', fileName: 'tomas.txt', text: PRIMARY_CV });
+      assert.equal(saved.document.file_type, 'txt');
+      assert.equal(saved.document.type, 'primary_cv');
+      assert.equal(saved.structuredCV.personal.fullName, 'Tomas Brandt');
+      assert.ok(saved.rawText.includes('Calder Industrial Components'));
+      const stored = await one('SELECT file_name, raw_text, structured_data, sections FROM documents WHERE user_id = ?', user.id);
+      assert.equal(stored.file_name, 'tomas.txt');
+      assert.ok(String(stored.structured_data).includes('Tomas Brandt'));
+      assert.ok(String(stored.sections).includes('Calder Industrial Components'));
+      // Saving again replaces the document, it does not add a second one.
+      await documents.parseAndSaveCv(user.id, { type: 'primary_cv', fileName: 'tomas-2.txt', text: PRIMARY_CV });
+      assert.equal((await all('SELECT id FROM documents WHERE user_id = ?', user.id)).length, 1);
+      await assert.rejects(documents.parseAndSaveCv(user.id, { type: 'primary_cv', fileName: 'tomas.exe', bytes: new Uint8Array([1, 2, 3]) }), (error: unknown) => error instanceof errors.InvalidInputError);
+      return { documentId: saved.document.id };
+    });
+  }
+
   // =========================================================================
   // (e) refund atomicity
   // =========================================================================

@@ -47,8 +47,11 @@ export interface Signedin {
 
 export async function signedInPage(browser: Browser, request: APIRequestContext, label: string): Promise<Signedin> {
   const user = await createTestUser(request, label);
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  await signInContext(context, request, user.email);
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    extraHTTPHeaders: { 'cf-connecting-ip': user.ip, 'x-forwarded-for': user.ip },
+  });
+  await signInContext(context, request, user);
   const page = await context.newPage();
   return { user, context, page };
 }

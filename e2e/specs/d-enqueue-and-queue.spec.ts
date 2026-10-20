@@ -11,7 +11,7 @@ interface Report {
 }
 
 /**
- * (d) enqueueKitGeneration. The 12 scenarios in e2e/tools/scenarios.ts run the
+ * (d) enqueueKitGeneration. The 13 scenarios in e2e/tools/scenarios.ts run the
  * production service, runner and sweeper against a fresh local D1 with the
  * Queue simulated at its edge (send / ack / retry / attempts / dead-letter),
  * and the model scripted. They cover: one key twice is one reservation, one
@@ -20,13 +20,14 @@ interface Report {
  * a good run; the regenerate guard; a crash after reserve that retries out
  * (reservation released, balance restored exactly, ledger row present); a
  * killed worker (lease, sweeper, dead-letter queue); a partly failed kit
- * refunded per document; cancel beating a late finisher; enqueue failure.
+ * refunded per document; cancel beating a late finisher; enqueue failure; and
+ * the documents service parsing and storing a CV like a web upload.
  */
 test('(d) enqueueKitGeneration: idempotency, limits, retries, crash recovery', async () => {
   const report = await runTool<Report>('e2e/tools/scenarios.ts', ['d']);
   const failed = report.scenarios.filter((scenario) => !scenario.passed);
   expect(failed, JSON.stringify(failed, null, 2)).toEqual([]);
-  expect(report.scenarios).toHaveLength(12);
+  expect(report.scenarios).toHaveLength(13);
   test.info().attach('scenarios-d.json', { body: JSON.stringify(report, null, 2), contentType: 'application/json' });
 });
 

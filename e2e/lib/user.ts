@@ -36,6 +36,15 @@ function primaryCvStructured(): Record<string, unknown> {
 export interface TestUser {
   id: string;
   email: string;
+  /** A private address sent as `cf-connecting-ip`, so each test user has its own rate-limit buckets. */
+  ip: string;
+}
+
+let ipCounter = 0;
+function nextTestIp(): string {
+  ipCounter += 1;
+  const stamp = Date.now() % 60_000;
+  return `10.${Math.floor(stamp / 250) % 250}.${Math.floor(ipCounter / 250) % 250}.${(ipCounter % 250) + 1}`;
 }
 
 /**
@@ -48,8 +57,10 @@ export interface TestUser {
  */
 export async function createTestUser(request: APIRequestContext, label: string): Promise<TestUser> {
   const email = `di-${label}-${Date.now().toString(36)}@test.local`;
+  const ip = nextTestIp();
   const signUp = await request.post(`${BASE_URL}/api/auth/sign-up/email`, {
     data: { email, password: TEST_PASSWORD, name: `DI ${label}` },
+    headers: { 'cf-connecting-ip': ip, 'x-forwarded-for': ip },
   });
   if (!signUp.ok()) throw new Error(`sign-up failed: ${signUp.status()} ${await signUp.text()}`);
   const { user } = (await signUp.json()) as { user: { id: string } };
@@ -65,13 +76,14 @@ export async function createTestUser(request: APIRequestContext, label: string):
   } finally {
     db.close();
   }
-  return { id: user.id, email };
+  return { id: user.id, email, ip };
 }
 
 /** Sign in over the API and hand the session cookie to a browser context. */
-export async function signInContext(context: BrowserContext, request: APIRequestContext, email: string): Promise<void> {
+export async function signInContext(context: BrowserContext, request: APIRequestContext, user: TestUser): Promise<void> {
   const response = await request.post(`${BASE_URL}/api/auth/sign-in/email`, {
-    data: { email, password: TEST_PASSWORD },
+    data: { email: user.email, password: TEST_PASSWORD },
+    headers: { 'cf-connecting-ip': user.ip, 'x-forwarded-for': user.ip },
   });
   if (!response.ok()) throw new Error(`sign-in failed: ${response.status()} ${await response.text()}`);
   const state = await request.storageState();
