@@ -1,4 +1,4 @@
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToStaticMarkup } from './static-markup';
 import { CvTemplateSwitch } from '@/components/cv-templates/render';
 import type { CVData } from '@/lib/cv-templates/types';
 import { inferCvLocale } from '@/lib/cv-templates/locale';

@@ -7,19 +7,19 @@ import { ExportInputError, exportCacheHash, resolveExport } from './resolve';
 import { exportPathKey, signExportLink } from './signing';
 import { headExport, storeExport } from './storage';
 import { loadKitFromSession } from './kit-loader';
-import type { ExportKit, ExportRequest, ExportedFile, KitLoader } from './types';
+import type { ExportRequest, ExportedFile, KitLoader } from './types';
 
 export { ExportInputError } from './resolve';
 export { ExportRenderError } from './pdf';
 export { ExportTooLargeError } from './render';
 export { SigningUnavailableError } from './signing';
 export * from './filenames';
-export type { ExportRequest, ExportedFile, ExportKit, KitLoader, ExportOptions } from './types';
+export type { ExportRequest, ExportedFile, KitLoader, ExportOptions } from './types';
 
 declare global {
   interface CloudflareEnv {
     BROWSER?: BrowserRunBinding;
-    ASSETS?: { fetch(request: Request): Promise<Response> };
+    ASSETS?: { fetch(request: Request | string): Promise<Response> };
   }
 }
 
@@ -50,8 +50,13 @@ function assetFontLoader(env: CloudflareEnv | null): FontFileLoader {
     if (!pending) {
       pending = (async () => {
         if (env?.ASSETS) {
-          const res = await env.ASSETS.fetch(new Request(`https://assets.invalid/fonts/${file}`));
-          if (res.ok) return new Uint8Array(await res.arrayBuffer());
+          try {
+            // A URL string, not a Request: the dev proxy of the binding only takes strings.
+            const res = await env.ASSETS.fetch(`https://assets.invalid/fonts/${file}`);
+            if (res.ok) return new Uint8Array(await res.arrayBuffer());
+          } catch {
+            // Fall through to the file system in development.
+          }
         }
         if (process.env.NODE_ENV !== 'production') {
           const { readFile } = await import('node:fs/promises');

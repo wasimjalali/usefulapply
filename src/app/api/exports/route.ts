@@ -104,7 +104,8 @@ export async function POST(request: NextRequest) {
       if (error instanceof ExportTooLargeError) return bad('The document is too large to export.', 413, 'EXPORT_TOO_LARGE');
       // Renderer down, signing secret missing, storage error: the client falls back to its own export.
       const reason = error instanceof ExportRenderError ? 'render' : error instanceof SigningUnavailableError ? 'signing' : 'other';
-      console.error(`[exports] ${format} failed (${reason}):`, error instanceof Error ? error.name : 'unknown');
+      // Server logs only: the message never reaches the client.
+      console.error(`[exports] ${format} failed (${reason}):`, error instanceof Error ? `${error.name}: ${error.message.slice(0, 200)}` : 'unknown');
       const posthog = getPostHogServer();
       posthog?.capture({ distinctId: user.id, event: 'server_export_failed', properties: { format, reason } });
       await posthog?.flush();

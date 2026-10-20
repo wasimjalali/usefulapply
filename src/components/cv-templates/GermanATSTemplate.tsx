@@ -187,14 +187,14 @@ export function GermanATSTemplate({ data, template, photoUrl, mode }: Props) {
 
       {/* FULL-WIDTH PROFESSIONAL SUMMARY - Critical for ATS */}
       {data.summary && (
-        <section style={{ marginBottom: '20px' }}>
+        <section style={{ marginBottom: '16px' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: '0.4px',
               color: germanColors.primary,
               marginBottom: '6px',
               paddingBottom: '8px',
@@ -222,14 +222,14 @@ export function GermanATSTemplate({ data, template, photoUrl, mode }: Props) {
       <main style={{ gridColumn: 2, gridRow: 1, minWidth: 0, padding: '0 0 0 12px' }}>  {/* Zero right padding (outer handles it), small left padding for gap */}
         {/* Experience */}
         {data.experience.length > 0 && (
-          <section style={{ marginBottom: '18px' }}>
+          <section style={{ marginBottom: '14px' }}>
             <h2 
               style={{ 
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '1px',
+                letterSpacing: '0.4px',
                 color: germanColors.primary,
                 marginBottom: '10px',
                 paddingBottom: '8px',
@@ -284,14 +284,14 @@ export function GermanATSTemplate({ data, template, photoUrl, mode }: Props) {
 
         {/* Education */}
         {data.education.length > 0 && (
-          <section style={{ marginBottom: '18px' }}>
+          <section style={{ marginBottom: '14px' }}>
             <h2 
               style={{ 
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '1px',
+                letterSpacing: '0.4px',
                 color: germanColors.primary,
                 marginBottom: '6px',
                 paddingBottom: '8px',
@@ -325,14 +325,14 @@ export function GermanATSTemplate({ data, template, photoUrl, mode }: Props) {
 
         {/* Projects */}
         {data.projects && data.projects.length > 0 && (
-          <section style={{ marginBottom: '18px' }}>
+          <section style={{ marginBottom: '14px' }}>
             <h2
               style={{
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '1px',
+                letterSpacing: '0.4px',
                 color: germanColors.primary,
                 marginBottom: '6px',
                 paddingBottom: '8px',
@@ -361,14 +361,14 @@ export function GermanATSTemplate({ data, template, photoUrl, mode }: Props) {
 
         {/* Additional Information */}
         {data.additionalInfo && data.additionalInfo.length > 0 && (
-          <section style={{ marginBottom: '18px' }}>
+          <section style={{ marginBottom: '14px' }}>
             <h2
               style={{
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '1px',
+                letterSpacing: '0.4px',
                 color: germanColors.primary,
                 marginBottom: '6px',
                 paddingBottom: '8px',
@@ -391,7 +391,7 @@ export function GermanATSTemplate({ data, template, photoUrl, mode }: Props) {
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '1.5px',
+                letterSpacing: '0.5px',
                 marginBottom: '8px',
                 paddingBottom: '6px',
                 borderBottom: `2px solid ${germanColors.primary}`,
@@ -453,7 +453,7 @@ export function GermanATSTemplate({ data, template, photoUrl, mode }: Props) {
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '1px',
+                letterSpacing: '0.4px',
                 color: germanColors.primary,
                 marginBottom: '6px',
                 paddingBottom: '8px',
@@ -549,7 +549,7 @@ export function GermanATSTemplate({ data, template, photoUrl, mode }: Props) {
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '1px',
+                letterSpacing: '0.4px',
                 color: germanColors.primary,
                 marginBottom: '6px',
                 paddingBottom: '8px',

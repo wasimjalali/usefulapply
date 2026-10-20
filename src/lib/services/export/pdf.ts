@@ -38,7 +38,7 @@ export async function renderHtmlToPdf(
   html: string,
   paper: PaperSize,
 ): Promise<Uint8Array> {
-  const response = await browser.quickAction('pdf', {
+  const body = {
     html,
     gotoOptions: { waitUntil: 'load', timeout: 20_000 },
     pdfOptions: {
@@ -49,12 +49,25 @@ export async function renderHtmlToPdf(
       displayHeaderFooter: false,
       timeout: 30_000,
     },
-  });
-  if (!response.ok) {
-    // The body can echo the request, so it never reaches a log or a client.
-    throw new ExportRenderError('Browser Run returned an error.', response.status);
+  };
+  // Browser Run answers "internal error" now and then (seen 3 times in about 70
+  // renders in the spike). A render is cheap and has no side effects, so it is
+  // retried twice before the failure reaches the caller.
+  let lastStatus: number | undefined;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await browser.quickAction('pdf', body);
+      if (response.ok) return new Uint8Array(await response.arrayBuffer());
+      lastStatus = response.status;
+      // A 4xx is our request and will not improve on a retry.
+      if (response.status < 500) break;
+    } catch {
+      lastStatus = undefined;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
   }
-  return new Uint8Array(await response.arrayBuffer());
+  // The response body can echo the request, so it never reaches a log or a client.
+  throw new ExportRenderError('Browser Run could not render the page.', lastStatus);
 }
 
 /**

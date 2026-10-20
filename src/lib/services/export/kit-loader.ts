@@ -105,7 +105,6 @@ export const loadKitFromSession: KitLoader = async (userId, applicationId) => {
     jobTitle: row.job_title ?? '',
     company: row.company ?? '',
     templateId: row.selected_template ?? null,
-    letterLanguage: row.cover_letter_language ?? null,
     applicantName: tailored?.personal.fullName || profile?.full_name || '',
     cv: tailored,
     originalCv: original,

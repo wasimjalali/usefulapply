@@ -93,6 +93,21 @@ function stripLabel(value: string): string {
   return value.replace(/[:\s]+$/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
+const GERMAN_PHRASES = /\b(sehr geehrte[rs]?|mit freundlichen gr(?:ü|ue)(?:ß|ss)en|hiermit bewerbe ich|bewerbung als)\b/i;
+
+/**
+ * Is this free text German? An offline heuristic (German function words and the
+ * stock phrases of a Bewerbung), so the answer is deterministic and the export
+ * cache key can depend on it. It needs about a dozen words to judge.
+ */
+export function looksGerman(text: string): boolean {
+  if (GERMAN_PHRASES.test(text)) return true;
+  const words = text.toLowerCase().match(/[a-zäöüß]+/g);
+  if (!words || words.length < 12) return false;
+  const german = words.filter((word) => GERMAN_STOPWORDS.has(word)).length;
+  return german / words.length > 0.12;
+}
+
 /** The language the CV text is written in, for headings and dates. Explicit `data.language` wins. */
 export function inferCvLocale(data: CVData): CvTextLocale {
   const explicit = data.language?.toLowerCase();
@@ -166,6 +181,12 @@ export function formatCvDate(raw: string | undefined, locale: CvTextLocale): str
   if (match) {
     const month = Number(match[1]);
     if (month >= 1 && month <= 12) return formatMonthYear(month, Number(match[2]), locale);
+  }
+  // DD.MM.YYYY: only the month and year are kept.
+  match = value.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (match) {
+    const month = Number(match[2]);
+    if (month >= 1 && month <= 12) return formatMonthYear(month, Number(match[3]), locale);
   }
   match = value.match(/^(\d{4})\s*[./-]\s*(\d{1,2})$/);
   if (match) {

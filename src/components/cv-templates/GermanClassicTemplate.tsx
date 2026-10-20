@@ -220,14 +220,14 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode, onPhotoP
 
       {/* PROFESSIONAL SUMMARY */}
       {data.summary && (
-        <section style={{ marginBottom: '18px' }}>
+        <section style={{ marginBottom: '14px' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: '0.4px',
               color: classicColors.primary,
               marginBottom: '6px',
               paddingBottom: '8px',
@@ -244,14 +244,14 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode, onPhotoP
 
       {/* CORE COMPETENCIES — 3-Column Grid with Languages */}
       {(data.skills.length > 0 || data.languages.length > 0) && (
-        <section style={{ marginBottom: '18px' }}>
+        <section style={{ marginBottom: '14px' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: '0.4px',
               color: classicColors.primary,
               marginBottom: '8px',
               paddingBottom: '8px',
@@ -277,14 +277,14 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode, onPhotoP
 
       {/* PROFESSIONAL EXPERIENCE */}
       {data.experience.length > 0 && (
-        <section style={{ marginBottom: '18px' }}>
+        <section style={{ marginBottom: '14px' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: '0.4px',
               color: classicColors.primary,
               marginBottom: '10px',
               paddingBottom: '8px',
@@ -338,14 +338,14 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode, onPhotoP
 
       {/* EDUCATION */}
       {data.education.length > 0 && (
-        <section style={{ marginBottom: '18px' }}>
+        <section style={{ marginBottom: '14px' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: '0.4px',
               color: classicColors.primary,
               marginBottom: '6px',
               paddingBottom: '8px',
@@ -379,14 +379,14 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode, onPhotoP
 
       {/* CERTIFICATIONS */}
       {data.certifications.length > 0 && (
-        <section style={{ marginBottom: '18px' }}>
+        <section style={{ marginBottom: '14px' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: '0.4px',
               color: classicColors.primary,
               marginBottom: '6px',
               paddingBottom: '8px',
@@ -408,14 +408,14 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode, onPhotoP
 
       {/* PROJECTS */}
       {data.projects && data.projects.length > 0 && (
-        <section style={{ marginBottom: '18px' }}>
+        <section style={{ marginBottom: '14px' }}>
           <h2
             style={{
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: '0.4px',
               color: classicColors.primary,
               marginBottom: '6px',
               paddingBottom: '8px',
@@ -444,14 +444,14 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode, onPhotoP
 
       {/* ADDITIONAL INFORMATION */}
       {data.additionalInfo && data.additionalInfo.length > 0 && (
-        <section style={{ marginBottom: '18px' }}>
+        <section style={{ marginBottom: '14px' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: '0.4px',
               color: classicColors.primary,
               marginBottom: '6px',
               paddingBottom: '8px',
@@ -475,7 +475,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode, onPhotoP
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1.5px',
+              letterSpacing: '0.5px',
               marginBottom: '8px',
               paddingBottom: '6px',
               borderBottom: `2px solid ${classicColors.primary}`,

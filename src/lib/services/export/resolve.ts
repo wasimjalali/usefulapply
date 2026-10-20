@@ -65,7 +65,7 @@ export function resolveExport(kit: ExportKit, format: ExportFormat, options: Exp
   const layout = resolveLetterLayout({
     letterLocale: options.letterLocale,
     structured,
-    letterLanguage: kit.letterLanguage,
+    legacyText,
     templateId,
   });
 

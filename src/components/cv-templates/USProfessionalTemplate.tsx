@@ -55,7 +55,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
       }}
     >
       {/* Header - Name and Contact */}
-      <header style={{ marginBottom: '24px', paddingBottom: '16px', borderBottom: `2px solid ${executiveColors.primary}` }}>
+      <header style={{ marginBottom: '18px', paddingBottom: '16px', borderBottom: `2px solid ${executiveColors.primary}` }}>
         <h1 
           style={{ 
             fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -155,7 +155,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
       {data.summary && (
         <section 
           style={{ 
-            marginBottom: '24px',
+            marginBottom: '18px',
             padding: '16px 20px',
             backgroundColor: executiveColors.summaryBg,
             borderLeft: `3px solid ${executiveColors.primary}`,
@@ -167,7 +167,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1.5px',
+              letterSpacing: '0.5px',
               color: executiveColors.primary,
               marginBottom: '8px',
             }}
@@ -182,14 +182,14 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
 
       {/* Core Competencies - 2026: 3-Column Grid with Languages integrated */}
       {(data.skills.length > 0 || data.languages.length > 0) && (
-        <section style={{ marginBottom: '24px' }}>
+        <section style={{ marginBottom: '14px' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1.5px',
+              letterSpacing: '0.5px',
               color: executiveColors.primary,
               marginBottom: '12px',
               paddingBottom: '8px',
@@ -205,7 +205,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
             columnGap={20}
             rowGap={12}
             labelMarginBottom={6}
-            labelLetterSpacing="1px"
+            labelLetterSpacing="0.4px"
             itemGap={3}
             bulletGap={6}
             lineHeight={1.4}
@@ -216,14 +216,14 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
 
       {/* Professional Experience */}
       {data.experience.length > 0 && (
-        <section style={{ marginBottom: '24px' }}>
+        <section style={{ marginBottom: '14px' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1.5px',
+              letterSpacing: '0.5px',
               color: executiveColors.primary,
               marginBottom: '14px',
               paddingBottom: '8px',
@@ -292,14 +292,14 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
 
       {/* Education */}
       {data.education.length > 0 && (
-        <section style={{ marginBottom: '24px' }}>
+        <section style={{ marginBottom: '14px' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1.5px',
+              letterSpacing: '0.5px',
               color: executiveColors.primary,
               marginBottom: '8px',
               paddingBottom: '8px',
@@ -340,14 +340,14 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
 
       {/* Certifications - Languages section REMOVED (now integrated into Core Competencies grid) */}
       {data.certifications.length > 0 && (
-        <section style={{ marginBottom: '24px' }}>
+        <section style={{ marginBottom: '14px' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1.5px',
+              letterSpacing: '0.5px',
               color: executiveColors.primary,
               marginBottom: '8px',
               paddingBottom: '8px',
@@ -369,14 +369,14 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
 
       {/* Projects */}
       {data.projects && data.projects.length > 0 && (
-        <section style={{ marginBottom: '24px' }}>
+        <section style={{ marginBottom: '14px' }}>
           <h2
             style={{
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1.5px',
+              letterSpacing: '0.5px',
               color: executiveColors.primary,
               marginBottom: '8px',
               paddingBottom: '8px',
@@ -412,7 +412,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1.5px',
+              letterSpacing: '0.5px',
               color: executiveColors.primary,
               marginBottom: '8px',
               paddingBottom: '8px',
@@ -436,7 +436,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '2px',
+              letterSpacing: '0.5px',
               marginBottom: '10px',
               paddingBottom: '8px',
               borderBottom: `2px solid ${executiveColors.primary}`,

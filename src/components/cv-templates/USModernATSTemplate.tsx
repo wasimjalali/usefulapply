@@ -151,14 +151,14 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
 
       {/* FULL-WIDTH PROFESSIONAL SUMMARY - Critical for ATS */}
       {data.summary && (
-        <section style={{ marginBottom: '20px' }}>
+        <section style={{ marginBottom: '16px' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
+              letterSpacing: '0.4px',
               color: modernColors.primary,
               marginBottom: '8px',
               paddingBottom: '8px',
@@ -186,14 +186,14 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
       <main style={{ gridColumn: 2, gridRow: 1, minWidth: 0, padding: '0 0 0 12px' }}>  {/* Zero right padding (outer handles it), small left padding for gap */}
         {/* Professional Experience */}
         {data.experience.length > 0 && (
-          <section style={{ marginBottom: '20px' }}>
+          <section style={{ marginBottom: '16px' }}>
             <h2 
               style={{ 
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '1px',
+                letterSpacing: '0.4px',
                 color: modernColors.primary,
                 marginBottom: '12px',
                 paddingBottom: '8px',
@@ -248,14 +248,14 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
 
         {/* Education */}
         {data.education.length > 0 && (
-          <section style={{ marginBottom: '20px' }}>
+          <section style={{ marginBottom: '16px' }}>
             <h2 
               style={{ 
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '1px',
+                letterSpacing: '0.4px',
                 color: modernColors.primary,
                 marginBottom: '8px',
                 paddingBottom: '8px',
@@ -289,14 +289,14 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
 
         {/* Projects */}
         {data.projects && data.projects.length > 0 && (
-          <section style={{ marginBottom: '20px' }}>
+          <section style={{ marginBottom: '16px' }}>
             <h2
               style={{
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '1px',
+                letterSpacing: '0.4px',
                 color: modernColors.primary,
                 marginBottom: '8px',
                 paddingBottom: '8px',
@@ -332,7 +332,7 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '1px',
+                letterSpacing: '0.4px',
                 color: modernColors.primary,
                 marginBottom: '8px',
                 paddingBottom: '8px',
@@ -355,7 +355,7 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
                 fontSize: '10.5pt',
                 fontWeight: 700,
                 textTransform: 'uppercase',
-                letterSpacing: '1.5px',
+                letterSpacing: '0.5px',
                 marginBottom: '10px',
                 paddingBottom: '6px',
                 borderBottom: `2px solid ${modernColors.accent}`,
@@ -397,7 +397,7 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '1px',
+                letterSpacing: '0.4px',
                 color: modernColors.primary,
                 marginBottom: '8px',
                 paddingBottom: '8px',
@@ -493,7 +493,7 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '1px',
+                letterSpacing: '0.4px',
                 color: modernColors.primary,
                 marginBottom: '8px',
                 paddingBottom: '8px',

@@ -1,4 +1,4 @@
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToStaticMarkup } from './static-markup';
 import { fontFaceCssInline, type FontFileLoader } from '@/lib/cv-templates/fonts';
 import { EXPORT_CSP, escapeHtml } from './cv-html';
 import { PRINT_BASE_CSS } from './print-css';

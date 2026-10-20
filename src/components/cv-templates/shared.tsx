@@ -74,12 +74,13 @@ export function SkillGrid({
               fontWeight: 700,
               fontSize: '10pt',
               marginBottom: `${labelMarginBottom}px`,
-              textTransform: 'uppercase',
               letterSpacing: labelLetterSpacing,
               breakAfter: 'avoid',
             }}
           >
-            {cell.label}
+            {/* Bold, mixed case, with a colon. An all-caps bold line reads as a section
+                title to simple parsers, which then split the Skills section apart. */}
+            {cell.label}:
           </h4>
           <div style={{ margin: 0 }}>
             {cell.items.map((item, index) => (

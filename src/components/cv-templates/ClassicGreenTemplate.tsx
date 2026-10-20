@@ -195,7 +195,7 @@ export function ClassicGreenTemplate({ data, template, mode }: Props) {
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1.5px',
+              letterSpacing: '0.5px',
               color: greenColors.primary,
               marginBottom: '6px',
             }}
@@ -210,14 +210,14 @@ export function ClassicGreenTemplate({ data, template, mode }: Props) {
 
       {/* CORE COMPETENCIES — 3-Column Grid with Languages */}
       {(data.skills.length > 0 || data.languages.length > 0) && (
-        <section style={{ marginBottom: '20px' }}>
+        <section style={{ marginBottom: '16px' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1.5px',
+              letterSpacing: '0.5px',
               color: greenColors.primary,
               marginBottom: '10px',
               paddingBottom: '8px',
@@ -233,7 +233,7 @@ export function ClassicGreenTemplate({ data, template, mode }: Props) {
             columnGap={18}
             rowGap={10}
             labelMarginBottom={5}
-            labelLetterSpacing="0.8px"
+            labelLetterSpacing="0.4px"
             itemGap={2}
             bulletGap={6}
             lineHeight={1.4}
@@ -244,14 +244,14 @@ export function ClassicGreenTemplate({ data, template, mode }: Props) {
 
       {/* PROFESSIONAL EXPERIENCE */}
       {data.experience.length > 0 && (
-        <section style={{ marginBottom: '20px' }}>
+        <section style={{ marginBottom: '16px' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1.5px',
+              letterSpacing: '0.5px',
               color: greenColors.primary,
               marginBottom: '10px',
               paddingBottom: '8px',
@@ -319,14 +319,14 @@ export function ClassicGreenTemplate({ data, template, mode }: Props) {
 
       {/* EDUCATION */}
       {data.education.length > 0 && (
-        <section style={{ marginBottom: '20px' }}>
+        <section style={{ marginBottom: '16px' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1.5px',
+              letterSpacing: '0.5px',
               color: greenColors.primary,
               marginBottom: '8px',
               paddingBottom: '8px',
@@ -368,14 +368,14 @@ export function ClassicGreenTemplate({ data, template, mode }: Props) {
 
       {/* CERTIFICATIONS */}
       {data.certifications.length > 0 && (
-        <section style={{ marginBottom: '20px' }}>
+        <section style={{ marginBottom: '16px' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1.5px',
+              letterSpacing: '0.5px',
               color: greenColors.primary,
               marginBottom: '8px',
               paddingBottom: '8px',
@@ -397,14 +397,14 @@ export function ClassicGreenTemplate({ data, template, mode }: Props) {
 
       {/* PROJECTS */}
       {data.projects && data.projects.length > 0 && (
-        <section style={{ marginBottom: '20px' }}>
+        <section style={{ marginBottom: '16px' }}>
           <h2
             style={{
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1.5px',
+              letterSpacing: '0.5px',
               color: greenColors.primary,
               marginBottom: '8px',
               paddingBottom: '8px',
@@ -433,14 +433,14 @@ export function ClassicGreenTemplate({ data, template, mode }: Props) {
 
       {/* ADDITIONAL INFORMATION */}
       {data.additionalInfo && data.additionalInfo.length > 0 && (
-        <section style={{ marginBottom: '20px' }}>
+        <section style={{ marginBottom: '16px' }}>
           <h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1.5px',
+              letterSpacing: '0.5px',
               color: greenColors.primary,
               marginBottom: '8px',
               paddingBottom: '8px',
@@ -469,7 +469,7 @@ export function ClassicGreenTemplate({ data, template, mode }: Props) {
               fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1.5px',
+              letterSpacing: '0.5px',
               marginBottom: '8px',
               paddingBottom: '6px',
               borderBottom: `1.5px solid ${greenColors.primary}`,

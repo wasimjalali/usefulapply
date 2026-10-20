@@ -199,14 +199,14 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
       <div style={{ marginTop: '20px' }}>
         {/* Professional Summary - Critical for ATS */}
         {data.summary && (
-          <section style={{ marginBottom: '20px' }}>
+          <section style={{ marginBottom: '16px' }}>
             <h2 
               style={{ 
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '2px',
+                letterSpacing: '0.5px',
                 marginBottom: '8px',
                 paddingBottom: '8px',
                 borderBottom: `2px solid ${premiumColors.primary}`,
@@ -229,14 +229,14 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
 
         {/* Core Competencies / Skills - 2026: 3-Column Grid with Languages integrated */}
         {(data.skills.length > 0 || data.languages.length > 0) && (
-          <section style={{ marginBottom: '20px' }}>
+          <section style={{ marginBottom: '16px' }}>
             <h2 
               style={{ 
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '2px',
+                letterSpacing: '0.5px',
                 marginBottom: '12px',
                 paddingBottom: '8px',
                 borderBottom: `2px solid ${premiumColors.primary}`,
@@ -252,7 +252,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
             columnGap={20}
             rowGap={12}
             labelMarginBottom={6}
-            labelLetterSpacing="1px"
+            labelLetterSpacing="0.4px"
             itemGap={3}
             bulletGap={6}
             lineHeight={1.4}
@@ -263,14 +263,14 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
 
         {/* Professional Experience */}
         {data.experience.length > 0 && (
-          <section style={{ marginBottom: '20px' }}>
+          <section style={{ marginBottom: '16px' }}>
             <h2 
               style={{ 
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '2px',
+                letterSpacing: '0.5px',
                 marginBottom: '8px',
                 paddingBottom: '8px',
                 borderBottom: `2px solid ${premiumColors.primary}`,
@@ -281,7 +281,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {data.experience.map((exp, idx) => (
-                <div className="cv-entry" key={exp.id || idx} style={{ position: 'relative' }}>
+                <div className="cv-entry" key={exp.id || idx}>
                   {/* Role Header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
                     <h3 
@@ -353,14 +353,14 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
 
         {/* Education */}
         {data.education.length > 0 && (
-          <section style={{ marginBottom: '20px' }}>
+          <section style={{ marginBottom: '16px' }}>
             <h2 
               style={{ 
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '2px',
+                letterSpacing: '0.5px',
                 marginBottom: '8px',
                 paddingBottom: '8px',
                 borderBottom: `2px solid ${premiumColors.primary}`,
@@ -414,14 +414,14 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
 
         {/* Certifications */}
         {data.certifications.length > 0 && (
-          <section style={{ marginBottom: '20px' }}>
+          <section style={{ marginBottom: '16px' }}>
             <h2 
               style={{ 
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '2px',
+                letterSpacing: '0.5px',
                 marginBottom: '8px',
                 paddingBottom: '8px',
                 borderBottom: `2px solid ${premiumColors.primary}`,
@@ -465,14 +465,14 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
 
         {/* Projects */}
         {data.projects && data.projects.length > 0 && (
-          <section style={{ marginBottom: '20px' }}>
+          <section style={{ marginBottom: '16px' }}>
             <h2
               style={{
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '2px',
+                letterSpacing: '0.5px',
                 marginBottom: '8px',
                 paddingBottom: '8px',
                 borderBottom: `2px solid ${premiumColors.primary}`,
@@ -501,14 +501,14 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
 
         {/* Additional Information */}
         {data.additionalInfo && data.additionalInfo.length > 0 && (
-          <section style={{ marginBottom: '20px' }}>
+          <section style={{ marginBottom: '16px' }}>
             <h2 
               style={{ 
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '2px',
+                letterSpacing: '0.5px',
                 marginBottom: '8px',
                 paddingBottom: '8px',
                 borderBottom: `2px solid ${premiumColors.primary}`,
@@ -537,7 +537,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
                 fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
-                letterSpacing: '2px',
+                letterSpacing: '0.5px',
                 marginBottom: '8px',
                 paddingBottom: '8px',
                 borderBottom: `2px solid ${premiumColors.primary}`,

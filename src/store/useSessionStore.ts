@@ -171,6 +171,8 @@ export interface ApplicationSession {
       nationalityLabel?: string;
     };
     additionalInfo?: string[];
+    /** Sections kept in the CV but not shown. Item-level `hidden` flags ride on the entries themselves. */
+    hiddenSections?: import('@/lib/cv-templates/types').CVData['hiddenSections'];
   };
   
   coverLetter: GeneratedCoverLetter | null;

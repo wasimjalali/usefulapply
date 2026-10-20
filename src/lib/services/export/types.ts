@@ -36,8 +36,6 @@ export interface ExportKit {
   company: string;
   /** The template saved on the application, if any. */
   templateId: string | null;
-  /** application_sessions.cover_letter_language. */
-  letterLanguage: string | null;
   applicantName: string;
   /** The tailored CV, or the primary CV when no tailored one exists yet. Without a photo. */
   cv: CVData | null;

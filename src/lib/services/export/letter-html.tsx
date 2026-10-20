@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToStaticMarkup } from './static-markup';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { fontFaceCssInline, type FontFileLoader } from '@/lib/cv-templates/fonts';
 import type { PaperSize } from '@/lib/cv-templates/print-spec';
@@ -80,10 +80,10 @@ body{position:relative;font-family:'Arimo','Arial',sans-serif;font-size:11pt;lin
 .recipient{position:absolute;left:0;top:${DIN.recipientTop - DIN.addressTop}mm;width:${DIN.addressWidth}mm;height:${DIN.recipientZoneHeight}mm;display:flex;flex-direction:column;justify-content:flex-start;line-height:4.5mm}
 .info{left:${DIN.infoLeft}mm;top:${DIN.recipientTop}mm;width:${210 - DIN.marginRight - DIN.infoLeft}mm;text-align:right}
 .mark{left:0;height:0;border-top:0.25pt solid #333}
-.subject{font-weight:700;margin-bottom:1em}
-.salutation{margin-bottom:1em}
-.para{margin-bottom:1em;orphans:3;widows:3}
-.closing{margin-bottom:3em}
+.subject{font-weight:700;margin-bottom:4.9mm}
+.salutation{margin-bottom:4.9mm}
+.para{margin-bottom:4.9mm;orphans:3;widows:3}
+.closing{margin-bottom:14.7mm}
 .signature{}
 `;
 

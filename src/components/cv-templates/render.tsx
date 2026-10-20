@@ -1,5 +1,6 @@
 import { CVData, getTemplateById } from '@/lib/cv-templates/types';
 import type { CvRenderMode } from '@/lib/cv-templates/print-spec';
+import { visibleCvData } from '@/lib/cv-templates/hidden';
 import { USPremiumATSTemplate } from './USPremiumATSTemplate';
 import { USModernATSTemplate } from './USModernATSTemplate';
 import { USProfessionalTemplate } from './USProfessionalTemplate';
@@ -20,7 +21,9 @@ export interface CvTemplateSwitchProps {
   onPhotoPlaceholderClick?: () => void;
 }
 
-export function CvTemplateSwitch({ data, templateId, mode, onPhotoPlaceholderClick }: CvTemplateSwitchProps) {
+export function CvTemplateSwitch({ data: fullData, templateId, mode, onPhotoPlaceholderClick }: CvTemplateSwitchProps) {
+  // Hidden items stay in the CV and are skipped by the canvas and the exports alike.
+  const data = visibleCvData(fullData);
   // Any id outside the catalog (legacy ids included) renders as Premium ATS.
   const template = getTemplateById(templateId) ?? getTemplateById('premium-ats');
 

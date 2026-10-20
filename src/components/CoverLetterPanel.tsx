@@ -7,7 +7,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
 import { formatDate, formatDayMonth, type DatePrefs } from '@/lib/utils/format-date';
 import { useUIStore } from '@/store/useUIStore';
-import { Mail, Download, Copy, Check, FileText, Edit3, Maximize2, X, Zap, ChevronDown } from 'lucide-react';
+import { Mail, Download, Copy, Check, FileText, Edit3, Eye, Loader2, Maximize2, X, Zap, ChevronDown } from 'lucide-react';
 import type { GeneratedCoverLetter } from '@/lib/types';
 import { StepIndicator } from './StepIndicator';
 import { KitDocumentError } from './KitDocumentError';
@@ -21,6 +21,8 @@ import {
   hasAddressPlaceholder as letterHasAddressPlaceholder,
 } from '@/lib/utils/cover-letter-export';
 import { kitFilename } from '@/lib/utils/kit-export';
+import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback } from '@/lib/utils/server-export';
+import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { useSessionStore } from '@/store/useSessionStore';
 
 interface CoverLetterPanelProps {
@@ -72,6 +74,9 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedCoverLetter, setEditedCoverLetter] = useState<GeneratedCoverLetter | null>(null);
   const [showFullPreview, setShowFullPreview] = useState(false);
+  // The rendered PDF the server would export, shown so people see the layout (US letter or DIN 5008) before they download.
+  const [layoutPreview, setLayoutPreview] = useState<{ url: string } | null>(null);
+  const [layoutPreviewLoading, setLayoutPreviewLoading] = useState(false);
   // When the letter last changed. Seeded from the stamp the letter carries, so
   // a reload can still say it; null only for letters written before the stamp.
   const [updatedAtMs, setUpdatedAtMs] = useState<number | null>(() => stampOf(coverLetter));
@@ -178,6 +183,39 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     }
   };
 
+  /**
+   * What the server should lay out. The structured letter when the text is the
+   * writer's own; the plain text as it stands once the user has edited it,
+   * because an edit makes the structure stale.
+   */
+  const letterForServer = (letter: GeneratedCoverLetter) => {
+    const structured = (letter as { structured?: unknown }).structured;
+    const untouched = !coverLetter || formatCoverLetterAsText(letter) === formatCoverLetterAsText(coverLetter);
+    if (untouched && isStructuredCoverLetter(structured)) return { structuredLetter: structured };
+    return { legacyLetterText: formatCoverLetterAsText(letter) };
+  };
+
+  const openLayoutPreview = async () => {
+    const letter = editedCoverLetter || coverLetter;
+    const applicationId = currentSession?.id;
+    if (!letter || !applicationId) return;
+    setLayoutPreviewLoading(true);
+    try {
+      const { blob } = await serverExport({ applicationId, format: 'cover_letter_pdf', ...letterForServer(letter) });
+      setLayoutPreview({ url: URL.createObjectURL(blob) });
+    } catch (error) {
+      console.error('Layout preview failed:', error);
+      toast.error("The preview didn't build. Try again in a moment.");
+    } finally {
+      setLayoutPreviewLoading(false);
+    }
+  };
+
+  const closeLayoutPreview = () => {
+    if (layoutPreview) URL.revokeObjectURL(layoutPreview.url);
+    setLayoutPreview(null);
+  };
+
   const exportLetter = async (format: 'pdf' | 'docx') => {
     const letterToDownload = editedCoverLetter || coverLetter;
     if (!letterToDownload) return;
@@ -185,17 +223,40 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     setShowDownloadMenu(false);
     setDownloadFormat(format);
     try {
-      const applicantName =
-        letterToDownload.applicantAddress.name ||
-        letterToDownload.signatureName ||
-        structuredCV?.personal.fullName ||
-        'Applicant';
-      const companyName = letterToDownload.companyAddress.companyName || currentSession?.company || 'Company';
-      const blob = format === 'pdf'
-        ? buildCoverLetterPdfBlob(letterToDownload)
-        : await buildCoverLetterDocxBlob(letterToDownload);
-      await downloadBlob(blob, kitFilename(applicantName, companyName, 'Cover_Letter', format));
-      toast.success(`${format.toUpperCase()} downloaded.`);
+      let usedFallback = false;
+      let blob: Blob | null = null;
+      let fileName = '';
+      const applicationId = currentSession?.id;
+      if (applicationId) {
+        try {
+          const served = await serverExport({
+            applicationId,
+            format: format === 'pdf' ? 'cover_letter_pdf' : 'cover_letter_docx',
+            ...letterForServer(letterToDownload),
+          });
+          blob = served.blob;
+          fileName = served.fileName;
+        } catch (error) {
+          if (!shouldFallBack(error)) throw error;
+          trackExportFallback(format === 'pdf' ? 'cover_letter_pdf' : 'cover_letter_docx', error);
+        }
+      }
+      if (!blob) {
+        usedFallback = true;
+        const applicantName =
+          letterToDownload.applicantAddress.name ||
+          letterToDownload.signatureName ||
+          structuredCV?.personal.fullName ||
+          'Applicant';
+        const companyName = letterToDownload.companyAddress.companyName || currentSession?.company || 'Company';
+        blob = format === 'pdf'
+          ? buildCoverLetterPdfBlob(letterToDownload)
+          : await buildCoverLetterDocxBlob(letterToDownload);
+        fileName = kitFilename(applicantName, companyName, 'Cover_Letter', format);
+      }
+      await downloadBlob(blob, fileName);
+      if (usedFallback && format === 'pdf') toast.warning(FALLBACK_NOTICE, 7000);
+      else toast.success(`${format.toUpperCase()} downloaded.`);
       if (showAddressReminder) {
         setTimeout(() => toast.warning('Add the company address before you send it.', 6000), 500);
       }
@@ -396,6 +457,15 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
             {copied ? <Check className="w-4 h-4 text-gold-600" /> : <Copy className="w-4 h-4" />}
             {copied ? 'Copied' : 'Copy'}
           </button>
+          <button
+            type="button"
+            onClick={openLayoutPreview}
+            disabled={layoutPreviewLoading || !currentSession?.id}
+            className={`${TOOL_CLASS} disabled:opacity-60 disabled:cursor-wait`}
+          >
+            {layoutPreviewLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+            Preview layout
+          </button>
           <div className="relative flex-shrink-0">
             <button
               ref={downloadButtonRef}
@@ -491,6 +561,26 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
       </div>
 
 
+
+      {layoutPreview && createPortal(
+        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">
+          <div className="relative flex h-[92vh] w-full max-w-[900px] flex-col overflow-hidden rounded-[24px] border border-cream-200 bg-cream-100 shadow-lg">
+            <div className="flex items-center justify-between border-b border-cream-200 bg-cream-50 px-5 py-3">
+              <h2 className="text-sm font-semibold tracking-tight text-charcoal">Cover letter layout</h2>
+              <button
+                type="button"
+                onClick={closeLayoutPreview}
+                aria-label="Close preview"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-cream-200 bg-white text-warm-gray transition-colors hover:border-navy-200 hover:text-navy-700 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <iframe src={layoutPreview.url} title="Cover letter layout" className="h-full w-full flex-1 bg-white" />
+          </div>
+        </div>,
+        document.body
+      )}
 
       {showFullPreview && activeCoverLetter && createPortal(
         <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">

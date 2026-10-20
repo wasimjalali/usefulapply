@@ -176,6 +176,7 @@ export function buildCvData(input: BuildCvDataInput): CVData | null {
         : undefined),
       sectionHeaders: optimizedCVData.sectionHeaders,
       localizedStrings: optimizedCVData.localizedStrings,
+      hiddenSections: optimizedCVData.hiddenSections,
     };
     normalizePersonalLinks(tailored.personal);
     return resolveDuplicateHeaders(tailored);
