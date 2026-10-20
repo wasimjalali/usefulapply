@@ -1,7 +1,12 @@
 import { join, resolve } from 'node:path';
 
-/** The preview Worker the browser specs drive. Port 8792 is this PR's lane. */
-export const PREVIEW_PORT = Number(process.env.E2E_PREVIEW_PORT ?? 8792);
+/**
+ * The preview Worker the data specs drive. 8791 belongs to the OAuth project, and
+ * e2e/mcp-oauth.spec.ts starts its own previews on 8792 and 8796, so this lane is 8794.
+ */
+export const PREVIEW_PORT = Number(process.env.E2E_PREVIEW_PORT ?? 8794);
+/** The preview the OAuth project drives. */
+export const OAUTH_PORT = 8791;
 export const BASE_URL = `http://localhost:${PREVIEW_PORT}`;
 
 /** The scripted Anthropic stand-in (see e2e/fake-anthropic.ts). */

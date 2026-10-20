@@ -59,7 +59,9 @@
 	},
 	"vars": {
 		"JOB_FEED_RANKING_MODEL": "@cf/openai/gpt-oss-120b",
-		"JOB_FEED_RANKING_FALLBACK_MODEL": "@cf/deepseek-ai/deepseek-v4-flash-0731"
+		"JOB_FEED_RANKING_FALLBACK_MODEL": "@cf/deepseek-ai/deepseek-v4-flash-0731",
+		// MCP server (/mcp). Off until launch; .dev.vars turns it on locally.
+		"MCP_ENABLED": "false"
 	},
 	"kv_namespaces": [
 		{
@@ -336,6 +338,30 @@
 			"namespace_id": "3130",
 			"simple": {
 				"limit": 60,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_MCP",
+			"namespace_id": "3132",
+			"simple": {
+				"limit": 120,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_MCP_OAUTH",
+			"namespace_id": "3133",
+			"simple": {
+				"limit": 300,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_MCP_REGISTER",
+			"namespace_id": "3134",
+			"simple": {
+				"limit": 10,
 				"period": 60
 			}
 		}

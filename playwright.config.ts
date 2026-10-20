@@ -2,23 +2,29 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { defineConfig } from '@playwright/test';
-import { BASE_URL, FAKE_ANTHROPIC_PORT, FAKE_ANTHROPIC_URL, PREVIEW_PORT, REPO_ROOT } from './e2e/lib/env';
+import { BASE_URL, FAKE_ANTHROPIC_PORT, FAKE_ANTHROPIC_URL, OAUTH_PORT, PREVIEW_PORT, REPO_ROOT } from './e2e/lib/env';
 
 /**
- * Data-integrity e2e (PR 2). Headless, trace and video on, one worker: the
- * specs share the preview Worker's local D1.
+ * One Playwright config, two projects.
+ *
+ *   oauth  e2e/mcp-oauth.spec.ts   MCP OAuth server, real MCP client. Preview on 8791 with
+ *                                  MCP_ENABLED / MCP_TEST_MODE / MCP_CIMD_ENABLED. The spec starts
+ *                                  its own previews on 8792 (flag off) and 8796 (test-mode guard).
+ *   data   e2e/specs/**            Data integrity: revisioned saves, credits, the queue runner.
+ *                                  Preview on 8794 (E2E_PREVIEW_PORT) with the model pointed at
+ *                                  e2e/fake-anthropic.ts on 18793.
  *
  * Prerequisites:
- *   npx opennextjs-cloudflare build
+ *   npx opennextjs-cloudflare build        (npm run test:e2e does this first)
  *   CI=1 npx wrangler d1 migrations apply usefulapply-db --local     # local only, never --remote
- *   npx playwright install chromium          # or E2E_CHROMIUM=/path/to/chrome
- *   npm run test:e2e
+ *   An installed Google Chrome, or PW_CHANNEL=chromium after `npx playwright install chromium`,
+ *   or E2E_CHROMIUM=/path/to/chrome.
  *
- * The preview Worker is started with the model pointed at e2e/fake-anthropic.ts
- * (scripted answers, real SDK, real agents, real validators). Nothing in the
- * product reads a test flag. Servers are always started fresh
- * (`reuseExistingServer: false`), so a stale process on a port fails the run
- * instead of being tested by accident.
+ * Run both: npm run test:e2e. One project: npx playwright test --project=data.
+ * Servers are always started fresh (`reuseExistingServer: false`), so a stale process on a
+ * port fails the run instead of being tested by accident. Artifacts go to
+ * `<main checkout>/verify/<branch>/` (override with E2E_ARTIFACTS). PW_VIDEO=off skips video.
+ * Nothing in the product reads a test flag.
  */
 
 function git(...args: string[]): string {
@@ -79,9 +85,9 @@ function parseJsonc(text: string): Record<string, unknown> {
 }
 
 /**
- * The preview runs wrangler.jsonc minus the `ai` binding and the production
- * routes. Workers AI is remote-only (it would reach the real account and cost
- * credits from a test) and the only thing here that uses it is language
+ * The data project's preview runs wrangler.jsonc minus the `ai` binding and the
+ * production routes. Workers AI is remote-only (it would reach the real account and
+ * cost credits from a test) and the only thing here that uses it is language
  * detection, which falls back to English when the binding is absent.
  */
 const E2E_WRANGLER = 'wrangler.e2e.generated.json';
@@ -96,29 +102,63 @@ assertBuildIsFresh();
 writeE2eWranglerConfig();
 const artifacts = artifactRoot();
 
+const browser = process.env.E2E_CHROMIUM
+  ? { launchOptions: { executablePath: process.env.E2E_CHROMIUM } }
+  : { channel: process.env.PW_CHANNEL ?? 'chrome' };
+
 export default defineConfig({
-  testDir: './e2e/specs',
-  timeout: 180_000,
-  expect: { timeout: 20_000 },
-  fullyParallel: false,
   workers: 1,
+  fullyParallel: false,
   retries: 0,
   reporter: [
     ['list'],
     ['html', { outputFolder: join(artifacts, 'playwright-report'), open: 'never' }],
+    ['json', { outputFile: join(artifacts, 'results.json') }],
   ],
   outputDir: join(artifacts, 'test-results'),
   use: {
-    baseURL: BASE_URL,
     headless: true,
-    // CI installs the browser with `npx playwright install chromium`; E2E_CHROMIUM points at an existing one.
-    launchOptions: process.env.E2E_CHROMIUM ? { executablePath: process.env.E2E_CHROMIUM } : {},
+    ...browser,
     trace: 'on',
-    video: 'on',
+    // Video needs Playwright's ffmpeg (`npx playwright install ffmpeg`); PW_VIDEO=off skips it.
+    video: process.env.PW_VIDEO === 'off' ? 'off' : 'on',
     screenshot: 'on',
-    viewport: { width: 1440, height: 900 },
   },
+  projects: [
+    {
+      name: 'oauth',
+      testDir: './e2e',
+      testMatch: 'mcp-oauth.spec.ts',
+      timeout: 240_000,
+      use: { baseURL: `http://localhost:${OAUTH_PORT}` },
+    },
+    {
+      name: 'data',
+      testDir: './e2e/specs',
+      timeout: 180_000,
+      expect: { timeout: 20_000 },
+      use: { baseURL: BASE_URL, viewport: { width: 1440, height: 900 } },
+    },
+  ],
   webServer: [
+    {
+      command: [
+        'npx opennextjs-cloudflare preview --',
+        `--port ${OAUTH_PORT}`,
+        `--inspector-port ${Number(process.env.E2E_OAUTH_INSPECTOR_PORT ?? 19230)}`,
+        `--local-upstream localhost:${OAUTH_PORT}`,
+        '--test-scheduled',
+        '--var MCP_ENABLED:true',
+        '--var MCP_TEST_MODE:true',
+        '--var MCP_CIMD_ENABLED:true',
+        `--var BETTER_AUTH_URL:http://localhost:${OAUTH_PORT}`,
+      ].join(' '),
+      url: `http://localhost:${OAUTH_PORT}/.well-known/oauth-protected-resource/mcp`,
+      reuseExistingServer: false,
+      timeout: 180_000,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    },
     {
       command: `npx tsx e2e/fake-anthropic.ts ${FAKE_ANTHROPIC_PORT}`,
       url: `${FAKE_ANTHROPIC_URL}/__health`,
