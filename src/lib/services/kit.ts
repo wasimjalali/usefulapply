@@ -22,6 +22,7 @@ import type { ApplicationSession as StoredApplication } from '@/db/repos/session
 import type { KitDocumentErrors, MasterContext } from '@/lib/agents/types';
 import { mapSessionRowToStore, type StoredSessionRow } from '@/lib/session-row-mapping';
 import type { ApplicationSession as StoreSession } from '@/store/useSessionStore';
+import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { NotFoundError, RevisionConflict } from './errors';
 
 /** What a finished kit run hands over. Same shape the agent-v2 route streams as `workflow_complete.results`. */
@@ -32,6 +33,8 @@ export interface KitResults {
   optimizedCV?: MasterContext['optimizedCV'] | null;
   optimizedCVData?: MasterContext['optimizedCVData'] | null;
   coverLetter?: string | null;
+  /** The same letter as the structured contract the export renderer lays out. */
+  coverLetterStructured?: StructuredCoverLetter | null;
   applicationEmail?: { subject: string; body: string } | null;
   followUpEmail?: { subject: string; body: string; recommendedDelay?: number } | null;
   detectedLanguage?: string;
@@ -174,6 +177,7 @@ export function kitColumnsFromResults(
         closing: '',
         signatureName: '',
         updatedAt: now,
+        ...(results.coverLetterStructured ? { structured: results.coverLetterStructured } : {}),
       }
     : null;
 
@@ -197,6 +201,8 @@ export function kitColumnsFromResults(
   const columns: Json = {
     generated_cv: generatedCv,
     cover_letter: coverLetter,
+    // The export renderer picks the letter layout from the letter's language.
+    ...(coverLetter && results.coverLetterStructured ? { cover_letter_language: results.coverLetterStructured.language } : {}),
     email: applicationEmail,
     follow_up_email: followUpEmail,
     // The old browser sync kept these duplicates of the documents in step.
@@ -252,8 +258,9 @@ export function kitColumnsFromResults(
   }
 
   if (companyResearch) {
+    // company_address and company_contact_person are not written here: they
+    // are server-managed from the ad by the cover letter (fillLetterRecipient).
     columns.company_research = companyResearch;
-    columns.company_address = companyResearch.address ?? null;
   }
 
   return columns;
@@ -271,7 +278,7 @@ const JSON_COLUMNS = new Set([
 
 const WRITABLE_COLUMNS = new Set([
   ...JSON_COLUMNS,
-  'job_title', 'company', 'job_description', 'job_url', 'match_score', 'company_address', 'company_contact_person',
+  'job_title', 'company', 'job_description', 'job_url', 'match_score',
   'optimized_cv_text', 'email_subject', 'email_body', 'selected_template', 'cover_letter_language',
   'generation_completed', 'generation_status', 'generation_error', 'generation_started_at',
   'generation_completed_at', 'generation_failed_at', 'generation_cancelled_at',
@@ -373,10 +380,10 @@ export async function saveKitDocument(
   sessionId: string,
   document: KitDocumentKey,
   value: unknown,
-  options: { expectedRevision?: number } = {},
+  options: { expectedRevision?: number; extra?: Json } = {},
 ): Promise<{ revision: number }> {
   const column = DOCUMENT_COLUMN[document];
-  const extra: Json = {};
+  const extra: Json = { ...(options.extra ?? {}) };
   if (document === 'email' && value && typeof value === 'object') {
     const email = value as { subject?: unknown; body?: unknown };
     extra.email_subject = typeof email.subject === 'string' ? email.subject : null;

@@ -12,6 +12,11 @@
  * and, later, the MCP tools all call these.
  */
 
+import { sql } from 'drizzle-orm';
+import { getDb, nowIso } from '@/db/client';
+import { recipientFillCondition } from '@/db/recipient-fill';
+import { applicationSessions } from '@/db/schema';
+import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
 import * as sessionsRepo from '@/db/repos/sessions';
 import type { ApplicationSession, TrackerApplicationRow } from '@/db/repos/sessions';
 import { InvalidInputError, NotFoundError, RevisionConflict } from './errors';
@@ -38,8 +43,6 @@ export type ApplicationFieldPatch = Partial<{
   email: unknown;
   follow_up_email: unknown;
   company_research: unknown;
-  company_address: string | null;
-  company_contact_person: string | null;
   cv_edits: unknown[];
   optimized_cv_text: string | null;
   email_subject: string | null;
@@ -73,8 +76,6 @@ const EDITABLE_FIELDS: Record<keyof ApplicationFieldPatch, { kind: FieldKind; ma
   email: { kind: 'json' },
   follow_up_email: { kind: 'json' },
   company_research: { kind: 'json' },
-  company_address: { kind: 'text', max: 2_000 },
-  company_contact_person: { kind: 'text', max: 500 },
   cv_edits: { kind: 'json-array' },
   optimized_cv_text: { kind: 'text', max: 300_000 },
   email_subject: { kind: 'text', max: 2_000 },
@@ -260,4 +261,48 @@ export async function deleteApplication(
     if (error.message === 'Application not found') throw new NotFoundError();
     throw error;
   }
+}
+
+/**
+ * Save the recipient details a cover letter took from the ad onto its
+ * application, so the user can see and edit them later.
+ *
+ * Fill-only and atomic: each column is written by one conditional UPDATE that
+ * matches only while the column is empty and the row still holds the job
+ * description the letter was written for (db/recipient-fill.ts). A value the
+ * user saved is never overwritten, and a letter for a job the row no longer
+ * describes never fills it. A write that lands bumps the revision, so open
+ * tabs refresh; the newest revision is returned (undefined when nothing was
+ * written) so a caller that reports one can report the final value.
+ *
+ * company_address and company_contact_person are server-managed: the browser
+ * never writes them, and a job description change clears them
+ * (db/session-recipient-reset.ts, applied in `updateSession`).
+ */
+export async function fillLetterRecipient(
+  userId: string,
+  sessionId: string,
+  jobDescription: string,
+  letter: StructuredCoverLetter,
+): Promise<{ revision?: number }> {
+  const fills = [
+    { column: applicationSessions.company_address, key: 'company_address', value: letter.recipient.addressLines.join('\n') },
+    { column: applicationSessions.company_contact_person, key: 'company_contact_person', value: letter.recipient.contactPerson ?? '' },
+  ].filter((fill) => fill.value.trim());
+  if (fills.length === 0) return {};
+  const db = await getDb();
+  let revision: number | undefined;
+  for (const fill of fills) {
+    const written = await db
+      .update(applicationSessions)
+      .set({
+        [fill.key]: fill.value,
+        revision: sql`${applicationSessions.revision} + 1`,
+        updated_at: nowIso(),
+      } as never)
+      .where(recipientFillCondition({ sessionId, userId, jobDescription, column: fill.column }))
+      .returning({ revision: applicationSessions.revision });
+    if (written[0]) revision = written[0].revision;
+  }
+  return { revision };
 }

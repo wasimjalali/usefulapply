@@ -48,6 +48,7 @@ export function buildKitResults(ctx: MasterContext, documentErrors: KitDocumentE
     optimizedCV: documentErrors.cv ? null : ctx.optimizedCV,
     optimizedCVData: documentErrors.cv ? null : ctx.optimizedCVData,
     coverLetter: documentErrors.coverLetter ? null : ctx.coverLetter,
+    coverLetterStructured: documentErrors.coverLetter ? null : ctx.coverLetterStructured ?? null,
     applicationEmail: documentErrors.applicationEmail ? null : ctx.applicationEmail,
     followUpEmail: documentErrors.followUpEmail ? null : ctx.followUpEmail || null,
     detectedLanguage: ctx.detectedLanguage,
@@ -191,6 +192,8 @@ export async function runKitPipeline(params: {
   masterCV?: string;
   jobPreferences?: MasterContext['jobPreferences'];
   cachedContext?: MasterContext | null;
+  /** Recipient details from the stored row (never from the ad or the model). */
+  letterRecipient?: MasterContext['letterRecipient'];
   emit: AgentEventHandler;
   generationContext: LlmGenerationContext;
 }): Promise<{ results: KitResults; documentErrors: KitDocumentErrors }> {
@@ -198,6 +201,7 @@ export async function runKitPipeline(params: {
   if (params.cachedContext) {
     const context = params.cachedContext;
     if (params.jobPreferences) context.jobPreferences = params.jobPreferences;
+    context.letterRecipient = params.letterRecipient;
     result = await runWithContext(context, params.emit, params.generationContext);
   } else {
     result = await runJobCopilot({
@@ -206,6 +210,7 @@ export async function runKitPipeline(params: {
       primaryCV: params.primaryCV,
       masterCV: params.masterCV,
       jobPreferences: params.jobPreferences,
+      letterRecipient: params.letterRecipient,
       generationContext: params.generationContext,
     }, params.emit);
   }

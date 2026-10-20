@@ -44,6 +44,8 @@ import {
 } from '@/db/repos/credits';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import { releaseFitContinuationClaim, releaseReservation } from '@/lib/supabase/credit-reservations';
+import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
+import { fillLetterRecipient } from './applications';
 import { getCachedContext, normalizeCachedMatch, removeCachedContext } from './context-cache';
 import {
   InsufficientCreditsError,
@@ -289,6 +291,7 @@ function retryDelaySeconds(attempt: number): number {
 
 interface GeneratedKit {
   results: KitResults;
+  jobDescription: string;
   usedContextId: string | null;
 }
 
@@ -323,10 +326,15 @@ async function generateKit(operation: AgentOperation): Promise<GeneratedKit> {
     masterCV: sources.masterCV,
     jobPreferences: await loadJobPreferences(operation.user_id),
     cachedContext,
+    letterRecipient: {
+      companyName: session.company,
+      address: session.company_address,
+      contactPerson: session.company_contact_person,
+    },
     emit: () => {},
     generationContext,
   });
-  return { results, usedContextId: cachedContext ? contextId : null };
+  return { results, jobDescription: session.job_description, usedContextId: cachedContext ? contextId : null };
 }
 
 /**
@@ -420,6 +428,12 @@ export async function runKitOperation(operationId: string): Promise<RunOutcome> 
     if (leaseLost) return { outcome: 'dropped', reason: 'lease_lost' };
     const settled = await settleSuccess(claimedRow, claimed, generated.results);
     if (settled === 'lost') return { outcome: 'dropped', reason: 'lost_to_cancel_or_takeover' };
+    // The letter's recipient from the ad goes onto the row (fill-only, bumps the revision).
+    if (isStructuredCoverLetter(generated.results.coverLetterStructured)) {
+      await fillLetterRecipient(claimedRow.user_id, claimedRow.session_id as string, generated.jobDescription, generated.results.coverLetterStructured).catch((error) => {
+        console.error('[agent-queue] could not save the cover letter recipient:', error);
+      });
+    }
     if (generated.usedContextId) {
       await removeCachedContext(claimedRow.user_id, generated.usedContextId).catch((error) => {
         console.error('[agent-queue] could not remove the used context:', error);

@@ -1,0 +1,301 @@
+{
+ "case_id": "syn-01",
+ "language": "en",
+ "ok": true,
+ "error": null,
+ "cover_letter_calls": 1,
+ "body": "Maya Linden\nPortland, OR, USA\nmaya.linden@example.com\n+1 555 0142\nlinkedin.com/in/maya-linden-example\n\nOctober 20, 2026\n\nCoinbase\n\nApplication for Experiential Marketing Associate\n\nDear Coinbase team,\n\nCoinbase needs events that turn the crypto community into customers, and that takes someone who can fill a room and then show what the room delivered. At the Westbrook Film Society, I raised average ticket sales from 35 to 60 per screening with a weekly \"pick of the week\" reel. I also helped plan a weekend adoption event at Harbor Street Pet Supply that brought in about 300 visitors.\n\nI'm early in my career, and I bring the groundwork your Experiential Marketing Associate role builds on. I spent two years running the society's Instagram and TikTok accounts, where I trained two new volunteers and learned to hold quality steady while work piled up. At Harbor Street, I tracked results in Instagram Insights, Google Analytics and Excel, which prepared me for the post-event reporting on attendance and engagement that your team relies on. I also write copy and design in Canva and CapCut, so I can support invitations, signage and branded materials for on-site activations.\n\nI'd welcome the chance to talk about how I can support your experiential marketing calendar across Consumer and Institutional audiences. I'm available to start whenever suits your team and can set up a call at your convenience.\n\nBest regards,\nMaya Linden",
+ "structured": {
+  "version": 2,
+  "language": "en",
+  "market": "us",
+  "sender": {
+   "name": "Maya Linden",
+   "addressLines": [
+    "Portland, OR, USA"
+   ],
+   "phone": "+1 555 0142",
+   "email": "maya.linden@example.com",
+   "links": [
+    "linkedin.com/in/maya-linden-example"
+   ]
+  },
+  "recipient": {
+   "addressLines": [],
+   "companyName": "Coinbase"
+  },
+  "date": "2026-10-20",
+  "subject": "Application for Experiential Marketing Associate",
+  "salutation": "Dear Coinbase team,",
+  "paragraphs": [
+   "Coinbase needs events that turn the crypto community into customers, and that takes someone who can fill a room and then show what the room delivered. At the Westbrook Film Society, I raised average ticket sales from 35 to 60 per screening with a weekly \"pick of the week\" reel. I also helped plan a weekend adoption event at Harbor Street Pet Supply that brought in about 300 visitors.",
+   "I'm early in my career, and I bring the groundwork your Experiential Marketing Associate role builds on. I spent two years running the society's Instagram and TikTok accounts, where I trained two new volunteers and learned to hold quality steady while work piled up. At Harbor Street, I tracked results in Instagram Insights, Google Analytics and Excel, which prepared me for the post-event reporting on attendance and engagement that your team relies on. I also write copy and design in Canva and CapCut, so I can support invitations, signage and branded materials for on-site activations.",
+   "I'd welcome the chance to talk about how I can support your experiential marketing calendar across Consumer and Institutional audiences. I'm available to start whenever suits your team and can set up a call at your convenience."
+  ],
+  "closing": "Best regards,",
+  "signatureName": "Maya Linden",
+  "place": "Portland"
+ },
+ "raw_letter_outputs": [
+  "{\"subject\": \"Application for Experiential Marketing Associate\", \"salutation\": \"Dear Coinbase team,\", \"paragraphs\": [\"Coinbase needs events that turn the crypto community into customers, and that takes someone who can fill a room and then show what the room delivered. At the Westbrook Film Society, I raised average ticket sales from 35 to 60 per screening with a weekly \\\"pick of the week\\\" reel. I also helped plan a weekend adoption event at Harbor Street Pet Supply that brought in about 300 visitors.\", \"I'm early in my career, and I bring the groundwork your Experiential Marketing Associate role builds on. I spent two years running the society's Instagram and TikTok accounts, where I trained two new volunteers and learned to hold quality steady while work piled up. At Harbor Street, I tracked results in Instagram Insights, Google Analytics and Excel, which prepared me for the post-event reporting on attendance and engagement that your team relies on. I also write copy and design in Canva and CapCut, so I can support invitations, signage and branded materials for on-site activations.\", \"I'd welcome the chance to talk about how I can support your experiential marketing calendar across Consumer and Institutional audiences. I'm available to start whenever suits your team and can set up a call at your convenience.\"], \"closing\": \"Best regards,\", \"recipient\": {\"contactPerson\": \"\", \"department\": \"\"}}"
+ ],
+ "context": {
+  "applicant": {
+   "name": "Maya Linden",
+   "email": "maya.linden@example.com",
+   "phone": "+1 555 0142",
+   "address": "Portland, OR, USA",
+   "headline": "Marketing graduate",
+   "skills": [
+    "copywriting",
+    "Google Analytics (basic)",
+    "basic Adobe Photoshop"
+   ],
+   "tools": [
+    "Canva",
+    "CapCut",
+    "basic Adobe Photoshop",
+    "Instagram",
+    "TikTok",
+    "Mailchimp",
+    "Hootsuite",
+    "Google Analytics (basic)",
+    "Instagram Insights",
+    "Excel"
+   ],
+   "languages": [
+    "English (native)",
+    "Spanish (conversational)"
+   ],
+   "experiences": [
+    {
+     "company": "Harbor Street Pet Supply (local retailer, 14 staff)",
+     "title": "Marketing Intern",
+     "startDate": "Jun 2025",
+     "endDate": "Sep 2025",
+     "bullets": [
+      "Wrote and scheduled 3 Instagram posts and 1 newsletter per week",
+      "Grew the newsletter list from 640 to 1,150 subscribers over the summer by adding a sign-up QR code at the till",
+      "Helped plan a weekend adoption event that brought in about 300 visitors"
+     ]
+    },
+    {
+     "company": "Westbrook Film Society (student society)",
+     "title": "Social Media Lead",
+     "startDate": "Sep 2022",
+     "endDate": "Jun 2025",
+     "bullets": [
+      "Ran the society's Instagram and TikTok accounts and trained two new volunteers",
+      "Raised average ticket sales for screenings from 35 to 60 per event through a weekly \"pick of the week\" reel"
+     ]
+    },
+    {
+     "company": "Corner Bean Cafe",
+     "title": "Barista",
+     "startDate": "Jun 2021",
+     "endDate": "Aug 2024",
+     "bullets": [
+      "Served up to 150 customers per shift and trained 4 new colleagues"
+     ]
+    }
+   ],
+   "certifications": [
+    "Google Analytics for Beginners (2024)",
+    "HubSpot Content Marketing course (2024)"
+   ]
+  },
+  "job": {
+   "title": "Experiential Marketing Associate",
+   "companyName": "Coinbase",
+   "location": "USA",
+   "workType": "Remote",
+   "requiredSkills": [
+    "2+ years of experience in event management or experiential marketing",
+    "End-to-end event logistics and execution",
+    "Managing multiple events simultaneously",
+    "Maintaining quality and meeting deadlines across overlapping timelines",
+    "Vendor management",
+    "Venue management",
+    "Contract negotiation",
+    "Budget tracking",
+    "Event management platforms (e.g., Splash, Eventbrite, Cvent)",
+    "Project management tools (e.g., Asana, Monday.com)",
+    "Post-event reporting with measurable outcomes (attendance targets, engagement rates, attribution to leads and revenue)",
+    "Responsible use of generative AI with human oversight to deliver business-ready outputs and improve workflow efficiency, cost, and quality"
+   ],
+   "niceToHaveSkills": [],
+   "responsibilities": [
+    "Own end-to-end event execution across Coinbase's experiential marketing calendar, managing venue sourcing, vendor coordination, contract negotiation, budgets, and attendee management",
+    "Coordinate with internal stakeholders across Marketing, Sales, Product, and Communications to align event programming with business priorities and ensure seamless delivery",
+    "Build and maintain event project plans, timelines, and run-of-show documents, tracking milestones from pre-event planning through post-event wrap-up",
+    "Support creative development for event experiences, collaborating with design and brand teams on invitations, signage, branded materials, and on-site activations",
+    "Track event budgets, manage vendor invoices, and reconcile expenses to keep programs within approved spend",
+    "Measure event performance by compiling post-event reports with attendance data, engagement metrics, and attribution to pipeline or revenue goals"
+   ],
+   "expectedSalary": "$100,725–$118,500 USD annual base salary (excluding equity and bonus)"
+  },
+  "match": {
+   "score": 22,
+   "matchedRequirements": [
+    "End-to-end event logistics and execution",
+    "Maintaining quality and meeting deadlines across overlapping timelines",
+    "Post-event reporting with measurable outcomes (attendance targets, engagement rates, attribution to leads and revenue)"
+   ],
+   "claimableEvidence": [],
+   "missingSkills": [
+    "2+ years of experience in event management or experiential marketing",
+    "Managing multiple events simultaneously",
+    "Vendor management",
+    "Venue management",
+    "Contract negotiation",
+    "Budget tracking",
+    "Event management platforms (e.g., Splash, Eventbrite, Cvent)",
+    "Project management tools (e.g., Asana, Monday.com)",
+    "Responsible use of generative AI with human oversight to deliver business-ready outputs and improve workflow efficiency, cost, and quality"
+   ],
+   "details": [
+    {
+     "requirement": "2+ years of experience in event management or experiential marketing",
+     "tier": "missing",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "End-to-end event logistics and execution",
+     "evidence": "Helped plan a weekend adoption event that brought in about 300 visitors",
+     "tier": 3,
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Managing multiple events simultaneously",
+     "tier": "missing",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Maintaining quality and meeting deadlines across overlapping timelines",
+     "tier": "implicit",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Vendor management",
+     "tier": "missing",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Venue management",
+     "tier": "missing",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Contract negotiation",
+     "tier": "missing",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Budget tracking",
+     "tier": "missing",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Event management platforms (e.g., Splash, Eventbrite, Cvent)",
+     "tier": "missing",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Project management tools (e.g., Asana, Monday.com)",
+     "tier": "missing",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Post-event reporting with measurable outcomes (attendance targets, engagement rates, attribution to leads and revenue)",
+     "tier": 3,
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Responsible use of generative AI with human oversight to deliver business-ready outputs and improve workflow efficiency, cost, and quality",
+     "tier": "missing",
+     "claimable": false,
+     "required": true
+    }
+   ]
+  },
+  "verifiedMetrics": [
+   "two years running the social channels of a student society",
+   "one marketing internship",
+   "1 newsletter per week",
+   "trained two new volunteers",
+   "served up to 150 customers per shift",
+   "trained 4 new colleagues",
+   "Google Analytics for Beginners (2024)",
+   "HubSpot Content Marketing course (2024)"
+  ]
+ },
+ "checks": {
+  "contract_valid": {
+   "pass": true,
+   "detail": ""
+  },
+  "recipient_address_empty": {
+   "pass": true,
+   "detail": "[]"
+  },
+  "no_ad_address_in_body": {
+   "pass": true,
+   "detail": "ad address lines: 0"
+  },
+  "contact_rule": {
+   "pass": true,
+   "detail": "contact= dept= salutation=Dear Coinbase team,"
+  },
+  "numbers_traced": {
+   "pass": true,
+   "detail": "cv-or-ad: 3, ad-only (employer facts, review): none, untraced: none"
+  },
+  "no_missing_skill_named": {
+   "pass": true,
+   "detail": "none"
+  },
+  "no_dashes": {
+   "pass": true,
+   "detail": "body 0, raw model output 0"
+  },
+  "under_250_words": {
+   "pass": true,
+   "detail": "201 words in 3 paragraphs"
+  },
+  "three_paragraphs": {
+   "pass": true,
+   "detail": "3"
+  },
+  "market_rules": {
+   "pass": true,
+   "detail": "market=us closing=\"Best regards,\" subject=\"Application for Experiential Marketing Associate\""
+  },
+  "subject_numbers_from_ad": {
+   "pass": true,
+   "detail": "none"
+  },
+  "body_faithful": {
+   "pass": true,
+   "detail": "body === renderCoverLetterBody(structured)"
+  },
+  "sender_from_cv": {
+   "pass": true,
+   "detail": "{\"name\":\"Maya Linden\",\"addressLines\":[\"Portland, OR, USA\"],\"phone\":\"+1 555 0142\",\"email\":\"maya.linden@example.com\",\"links\":[\"linkedin.com/in/maya-linden-example\"]}"
+  },
+  "no_placeholders": {
+   "pass": true,
+   "detail": ""
+  }
+ }
+}

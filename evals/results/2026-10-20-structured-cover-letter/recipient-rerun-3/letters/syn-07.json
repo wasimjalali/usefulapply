@@ -1,0 +1,464 @@
+{
+ "case_id": "syn-07",
+ "language": "en",
+ "ok": true,
+ "error": null,
+ "cover_letter_calls": 1,
+ "body": "Priya Raman\nToronto, Canada\npriya.raman@example.com\n+1 555 0176\n\nOctober 20, 2026\n\nCloudflare\n\nApplication for Senior Software Engineer - Egress (Go/Rust)\n\nDear Hiring Team,\n\nYour Egress team owns connectivity that products like WARP depend on, so a failure there gets noticed quickly. I know that pressure from the payments side. I designed and ran a settlement service in Kotlin and Spring Boot that processed about 40 million events a day on Kafka, and I cut p99 latency on our payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis.\n\nOver 11 years of building payment and event-processing services, I've owned production-critical distributed systems, been on call for the payments platform and written the post-incident reviews for 14 incidents. That is how I learned to debug complex systems. I also led a team of 4 engineers through a 9 month migration from a monolith to 6 services, which meant running design discussions and being the person colleagues came to with technical questions. My background is in Kotlin, Java and Python rather than Go or Rust, but API design, event-driven architecture and code review carry over directly, and I like working in unfamiliar territory. Your Run What You Build model and the interest in people who spot problems others have learned to live with both suit how I work.\n\nI'd welcome a conversation about how my backend and on-call experience could support the Egress team. I'm available to start a discussion at your convenience.\n\nKind regards,\nPriya Raman",
+ "structured": {
+  "version": 2,
+  "language": "en",
+  "market": "us",
+  "sender": {
+   "name": "Priya Raman",
+   "addressLines": [
+    "Toronto, Canada"
+   ],
+   "phone": "+1 555 0176",
+   "email": "priya.raman@example.com"
+  },
+  "recipient": {
+   "addressLines": [],
+   "companyName": "Cloudflare"
+  },
+  "date": "2026-10-20",
+  "subject": "Application for Senior Software Engineer - Egress (Go/Rust)",
+  "salutation": "Dear Hiring Team,",
+  "paragraphs": [
+   "Your Egress team owns connectivity that products like WARP depend on, so a failure there gets noticed quickly. I know that pressure from the payments side. I designed and ran a settlement service in Kotlin and Spring Boot that processed about 40 million events a day on Kafka, and I cut p99 latency on our payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis.",
+   "Over 11 years of building payment and event-processing services, I've owned production-critical distributed systems, been on call for the payments platform and written the post-incident reviews for 14 incidents. That is how I learned to debug complex systems. I also led a team of 4 engineers through a 9 month migration from a monolith to 6 services, which meant running design discussions and being the person colleagues came to with technical questions. My background is in Kotlin, Java and Python rather than Go or Rust, but API design, event-driven architecture and code review carry over directly, and I like working in unfamiliar territory. Your Run What You Build model and the interest in people who spot problems others have learned to live with both suit how I work.",
+   "I'd welcome a conversation about how my backend and on-call experience could support the Egress team. I'm available to start a discussion at your convenience."
+  ],
+  "closing": "Kind regards,",
+  "signatureName": "Priya Raman",
+  "place": "Toronto"
+ },
+ "raw_letter_outputs": [
+  "{\"subject\": \"Application for Senior Software Engineer - Egress (Go/Rust)\", \"salutation\": \"Dear Hiring Team,\", \"paragraphs\": [\"Your Egress team owns connectivity that products like WARP depend on, so a failure there gets noticed quickly. I know that pressure from the payments side. I designed and ran a settlement service in Kotlin and Spring Boot that processed about 40 million events a day on Kafka, and I cut p99 latency on our payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis.\", \"Over 11 years of building payment and event-processing services, I've owned production-critical distributed systems, been on call for the payments platform and written the post-incident reviews for 14 incidents. That is how I learned to debug complex systems. I also led a team of 4 engineers through a 9 month migration from a monolith to 6 services, which meant running design discussions and being the person colleagues came to with technical questions. My background is in Kotlin, Java and Python rather than Go or Rust, but API design, event-driven architecture and code review carry over directly, and I like working in unfamiliar territory. Your Run What You Build model and the interest in people who spot problems others have learned to live with both suit how I work.\", \"I'd welcome a conversation about how my backend and on-call experience could support the Egress team. I'm available to start a discussion at your convenience.\"], \"closing\": \"Kind regards,\", \"recipient\": {\"companyName\": \"Cloudflare\", \"contactPerson\": \"\", \"department\": \"\", \"addressLines\": []}}"
+ ],
+ "context": {
+  "applicant": {
+   "name": "Priya Raman",
+   "email": "priya.raman@example.com",
+   "phone": "+1 555 0176",
+   "address": "Toronto, Canada",
+   "headline": "Senior Backend Engineer",
+   "skills": [
+    "Kotlin",
+    "Java",
+    "Python",
+    "SQL",
+    "API design",
+    "event-driven architecture",
+    "code review",
+    "mentoring"
+   ],
+   "tools": [
+    "Spring Boot",
+    "PostgreSQL",
+    "Redis",
+    "Kafka",
+    "RabbitMQ",
+    "AWS (EC2, RDS, SQS, S3)",
+    "Docker",
+    "Terraform",
+    "GitHub Actions",
+    "Datadog"
+   ],
+   "languages": [],
+   "experiences": [
+    {
+     "company": "Lumen Payments (fintech, 300 staff)",
+     "title": "Senior Software Engineer",
+     "startDate": "Feb 2019",
+     "endDate": "Feb 2023",
+     "bullets": [
+      "Designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka",
+      "Cut p99 latency of the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis",
+      "Led a team of 4 engineers through a 9 month migration from a monolith to 6 services",
+      "On call for the payments platform and wrote the post-incident reviews for 14 incidents"
+     ]
+    },
+    {
+     "company": "Northgate Retail Systems",
+     "title": "Software Engineer",
+     "startDate": "Aug 2015",
+     "endDate": "Jan 2019",
+     "bullets": [
+      "Built order and inventory services in Java and Spring, backed by PostgreSQL and RabbitMQ",
+      "Introduced contract tests that reduced integration bugs found in staging by about a third"
+     ]
+    },
+    {
+     "company": "Brightpath Consulting",
+     "title": "Junior Developer",
+     "startDate": "Jul 2013",
+     "endDate": "Jul 2015",
+     "bullets": [
+      "Delivered internal web tools for two clients in Java and JavaScript"
+     ]
+    }
+   ],
+   "certifications": [
+    "AWS Certified Solutions Architect - Associate (2024)"
+   ]
+  },
+  "job": {
+   "title": "Senior Software Engineer - Egress (Go/Rust)",
+   "companyName": "Cloudflare",
+   "location": "Austin, US; Lisbon, Portugal; London, UK",
+   "workType": "Hybrid",
+   "requiredSkills": [
+    "Programming experience in Go or Rust",
+    "8+ years of hands-on software engineering experience",
+    "Owning the architecture of complex, distributed, production-critical systems end to end",
+    "Technical leadership beyond your own code",
+    "Driving RFCs and design reviews",
+    "Technical escalation point",
+    "Networking protocols in Layers 3 and 4 of the OSI Model",
+    "Knowledge of HTTP, TLS, and CDN networks",
+    "Implementing secure and highly-available distributed systems",
+    "Strong ability to debug issues in complex systems",
+    "Strong collaboration and communication skills",
+    "Experience/interest in HTTP networking and VPN technologies",
+    "Experience/interest in network performance monitoring and tuning",
+    "Willingness to adopt and integrate AI tools and systems into engineering workflow",
+    "Growth-oriented mindset",
+    "Comfortable in a fast-paced work environment",
+    "Curiosity and empathy"
+   ],
+   "niceToHaveSkills": [
+    "Knowledge of TCP/IP and Internet routing",
+    "Professional systems-level programming experience in Rust",
+    "Experience building tools and APIs",
+    "Experience with monitoring, alerting, and debugging large-scale distributed systems",
+    "Experience participating in an on-call rotation",
+    "Experience using AI-assisted development tools (e.g., code completion, codebase analysis, log/data exploration) in a professional setting",
+    "Linux networking",
+    "ClickHouse",
+    "PostgreSQL",
+    "Grafana",
+    "Kubernetes",
+    "Git"
+   ],
+   "responsibilities": [
+    "Make daily progress on assigned engineering tasks such as designing systems, writing specs, writing and pushing code via git, writing release plans for complex changes, rolling out production releases and coordinating system actions with other teams",
+    "Participate in daily and ad-hoc team meetings to share progress and collaborate",
+    "Participate in the team's on-call schedule to ensure uptime of production systems",
+    "Investigate customer issues escalated to the Egress team for triage and resolution",
+    "Respond to questions from other teams in the Egress team's internal public chat room",
+    "Use AI-powered tools and systems in daily workflow to analyze and extend codebases, introspect production systems and datasets, and accelerate problem-solving",
+    "Translate requirements from Engineering teams into new platform capabilities",
+    "Partner with Network Engineering and SRE to make best use of Cloudflare's edge network",
+    "Participate in all stages of the software development lifecycle including designing, documenting, writing code and automated tests, and planning, managing and monitoring production deployments"
+   ],
+   "expectedSalary": "€66,000 - €91,000 annual (Portugal based hires)"
+  },
+  "match": {
+   "score": 54,
+   "matchedRequirements": [
+    "8+ years of hands-on software engineering experience",
+    "Owning the architecture of complex, distributed, production-critical systems end to end",
+    "Technical leadership beyond your own code",
+    "Driving RFCs and design reviews",
+    "Technical escalation point",
+    "Implementing secure and highly-available distributed systems",
+    "Strong ability to debug issues in complex systems",
+    "Strong collaboration and communication skills",
+    "Growth-oriented mindset",
+    "Comfortable in a fast-paced work environment",
+    "Curiosity and empathy",
+    "Experience building tools and APIs",
+    "Experience with monitoring, alerting, and debugging large-scale distributed systems",
+    "Experience participating in an on-call rotation",
+    "PostgreSQL",
+    "Git"
+   ],
+   "claimableEvidence": [
+    "Backend engineer with 11 years of experience building payment and event-processing services in Java, Kotlin and Python",
+    "Designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka",
+    "Led a team of 4 engineers through a 9 month migration from a monolith to 6 services",
+    "code review",
+    "On call for the payments platform and wrote the post-incident reviews for 14 incidents",
+    "event-driven architecture",
+    "wrote the post-incident reviews for 14 incidents",
+    "API design",
+    "Datadog",
+    "On call for the payments platform",
+    "PostgreSQL",
+    "GitHub Actions"
+   ],
+   "missingSkills": [
+    "Programming experience in Go or Rust",
+    "Networking protocols in Layers 3 and 4 of the OSI Model",
+    "Knowledge of HTTP, TLS, and CDN networks",
+    "Experience/interest in HTTP networking and VPN technologies",
+    "Experience/interest in network performance monitoring and tuning",
+    "Willingness to adopt and integrate AI tools and systems into engineering workflow",
+    "Knowledge of TCP/IP and Internet routing",
+    "Professional systems-level programming experience in Rust",
+    "Experience using AI-assisted development tools (e.g., code completion, codebase analysis, log/data exploration) in a professional setting",
+    "Linux networking",
+    "ClickHouse",
+    "Grafana",
+    "Kubernetes"
+   ],
+   "details": [
+    {
+     "requirement": "Programming experience in Go or Rust",
+     "tier": "missing",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "8+ years of hands-on software engineering experience",
+     "evidence": "Backend engineer with 11 years of experience building payment and event-processing services in Java, Kotlin and Python",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Owning the architecture of complex, distributed, production-critical systems end to end",
+     "evidence": "Designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka",
+     "tier": 2,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Technical leadership beyond your own code",
+     "evidence": "Led a team of 4 engineers through a 9 month migration from a monolith to 6 services",
+     "tier": 2,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Driving RFCs and design reviews",
+     "evidence": "code review",
+     "tier": 2,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Technical escalation point",
+     "evidence": "On call for the payments platform and wrote the post-incident reviews for 14 incidents",
+     "tier": 2,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Networking protocols in Layers 3 and 4 of the OSI Model",
+     "tier": "missing",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Knowledge of HTTP, TLS, and CDN networks",
+     "tier": "missing",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Implementing secure and highly-available distributed systems",
+     "evidence": "event-driven architecture",
+     "tier": 2,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Strong ability to debug issues in complex systems",
+     "evidence": "wrote the post-incident reviews for 14 incidents",
+     "tier": 2,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Strong collaboration and communication skills",
+     "tier": "implicit",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Experience/interest in HTTP networking and VPN technologies",
+     "tier": "missing",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Experience/interest in network performance monitoring and tuning",
+     "tier": "missing",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Willingness to adopt and integrate AI tools and systems into engineering workflow",
+     "tier": "missing",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Growth-oriented mindset",
+     "tier": "implicit",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Comfortable in a fast-paced work environment",
+     "tier": "implicit",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Curiosity and empathy",
+     "tier": "implicit",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Knowledge of TCP/IP and Internet routing",
+     "tier": "missing",
+     "claimable": false,
+     "required": false
+    },
+    {
+     "requirement": "Professional systems-level programming experience in Rust",
+     "tier": "missing",
+     "claimable": false,
+     "required": false
+    },
+    {
+     "requirement": "Experience building tools and APIs",
+     "evidence": "API design",
+     "tier": 1,
+     "claimable": true,
+     "required": false
+    },
+    {
+     "requirement": "Experience with monitoring, alerting, and debugging large-scale distributed systems",
+     "evidence": "Datadog",
+     "tier": 2,
+     "claimable": true,
+     "required": false
+    },
+    {
+     "requirement": "Experience participating in an on-call rotation",
+     "evidence": "On call for the payments platform",
+     "tier": 1,
+     "claimable": true,
+     "required": false
+    },
+    {
+     "requirement": "Experience using AI-assisted development tools (e.g., code completion, codebase analysis, log/data exploration) in a professional setting",
+     "tier": "missing",
+     "claimable": false,
+     "required": false
+    },
+    {
+     "requirement": "Linux networking",
+     "tier": "missing",
+     "claimable": false,
+     "required": false
+    },
+    {
+     "requirement": "ClickHouse",
+     "tier": "missing",
+     "claimable": false,
+     "required": false
+    },
+    {
+     "requirement": "PostgreSQL",
+     "evidence": "PostgreSQL",
+     "tier": 1,
+     "claimable": true,
+     "required": false
+    },
+    {
+     "requirement": "Grafana",
+     "tier": "missing",
+     "claimable": false,
+     "required": false
+    },
+    {
+     "requirement": "Kubernetes",
+     "tier": "missing",
+     "claimable": false,
+     "required": false
+    },
+    {
+     "requirement": "Git",
+     "evidence": "GitHub Actions",
+     "tier": 2,
+     "claimable": true,
+     "required": false
+    }
+   ]
+  },
+  "verifiedMetrics": [
+   "11 years of experience building payment and event-processing services",
+   "two online courses (AWS Solutions Architect Associate prep, Designing Data-Intensive Applications reading group)",
+   "Lumen Payments (fintech, 300 staff)",
+   "Led a team of 4 engineers",
+   "9 month migration from a monolith to 6 services",
+   "post-incident reviews for 14 incidents",
+   "internal web tools for two clients",
+   "AWS Certified Solutions Architect - Associate (2024)"
+  ]
+ },
+ "checks": {
+  "contract_valid": {
+   "pass": true,
+   "detail": ""
+  },
+  "recipient_address_rule": {
+   "pass": true,
+   "detail": "[]"
+  },
+  "no_address_in_letter_text": {
+   "pass": true,
+   "detail": "ad address lines: 0"
+  },
+  "contact_rule": {
+   "pass": true,
+   "detail": "company=Cloudflare contact= dept= salutation=Dear Hiring Team,"
+  },
+  "numbers_traced": {
+   "pass": true,
+   "detail": "cv-or-ad: 9, ad-only (employer facts, review): none, untraced: none"
+  },
+  "no_missing_skill_named": {
+   "pass": true,
+   "detail": "none"
+  },
+  "no_dashes": {
+   "pass": true,
+   "detail": "body 0, raw model output 0"
+  },
+  "under_250_words": {
+   "pass": true,
+   "detail": "225 words in 3 paragraphs"
+  },
+  "three_paragraphs": {
+   "pass": true,
+   "detail": "3"
+  },
+  "market_rules": {
+   "pass": true,
+   "detail": "market=us closing=\"Kind regards,\" subject=\"Application for Senior Software Engineer - Egress (Go/Rust)\""
+  },
+  "subject_numbers_from_ad": {
+   "pass": true,
+   "detail": "none"
+  },
+  "body_faithful": {
+   "pass": true,
+   "detail": "body === renderCoverLetterBody(structured)"
+  },
+  "sender_from_cv": {
+   "pass": true,
+   "detail": "{\"name\":\"Priya Raman\",\"addressLines\":[\"Toronto, Canada\"],\"phone\":\"+1 555 0176\",\"email\":\"priya.raman@example.com\"}"
+  },
+  "no_placeholders": {
+   "pass": true,
+   "detail": ""
+  }
+ }
+}

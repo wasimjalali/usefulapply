@@ -68,14 +68,19 @@ const LETTER_SENTENCES = [
   'At Redfern Stores I prepared the weekly store P&L packs and the annual budget for the regional team.',
   'I also found a supplier rebate that was not being claimed, worth about 120,000 USD a year.',
 ];
-const LETTER = [
-  'Dear Hiring Team,',
-  '',
-  ...Array.from({ length: 30 }, (_, i) => LETTER_SENTENCES[i % LETTER_SENTENCES.length]),
-  '',
-  'Kind regards,',
-  NAME,
-].join('\n');
+// The writer now returns the letter body as JSON (subject, salutation, three
+// paragraphs, closing, recipient); the header and signature are added in code.
+const LETTER = JSON.stringify({
+  subject: 'Application: Senior FP&A Analyst',
+  salutation: 'Dear Hiring Team,',
+  paragraphs: [
+    `${LETTER_SENTENCES[0]} ${LETTER_SENTENCES[1]} ${LETTER_SENTENCES[2]}`,
+    `${LETTER_SENTENCES[3]} ${LETTER_SENTENCES[4]} ${LETTER_SENTENCES[5]}`,
+    'I would bring the same forecasting discipline to Northwind Foods and I would like to talk about the rolling forecast.',
+  ],
+  closing: 'Kind regards,',
+  recipient: { companyName: 'Northwind Foods', addressLines: [] },
+});
 
 const APPLICATION_EMAIL = JSON.stringify({
   subject: `Application: Senior Financial Planning and Analysis Analyst, Corporate Finance, ${NAME}`,

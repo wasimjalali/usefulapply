@@ -416,6 +416,57 @@ async function main(): Promise<void> {
     });
   }
 
+  if (mode === 'd') {
+    await scenario('d14. letter rules on the revisioned path: structured letter persisted, recipient fill-only and revision-bumping, JD change clears it', async () => {
+      const user = await seedUser('d14', { monthly: 4, addon: 6 });
+      const [sessionId] = user.sessionIds;
+      const queued = await runners.enqueueKitGeneration(user.id, sessionId, 'key-d14', {});
+      await deliverUntilSettled(queued.operationId);
+      const kitRow = await one('SELECT cover_letter, cover_letter_language, company_address, company_contact_person, job_description, revision FROM application_sessions WHERE id = ?', sessionId);
+      const letter = JSON.parse(String(kitRow.cover_letter));
+      assert.ok(letter.body && letter.structured, 'cover_letter is { body, structured }');
+      assert.equal(letter.structured.version, 2);
+      assert.equal(kitRow.cover_letter_language, letter.structured.language);
+      assert.equal(kitRow.company_address, null, 'persistKit does not write company_address');
+
+      const applications = await import('../../src/lib/services/applications');
+      const structured = { ...letter.structured, recipient: { companyName: 'Northwind Foods', contactPerson: 'Ms Berg', addressLines: ['1 Main Street', 'Chicago'] } };
+      const jd = String(kitRow.job_description);
+      const filled = await applications.fillLetterRecipient(user.id, sessionId, jd, structured);
+      assert.equal(filled.revision, Number(kitRow.revision) + 2, 'one bump per column written');
+      const after = await one('SELECT company_address, company_contact_person FROM application_sessions WHERE id = ?', sessionId);
+      assert.equal(after.company_address, '1 Main Street\nChicago');
+      assert.equal(after.company_contact_person, 'Ms Berg');
+      // Fill-only: a second letter changes nothing and bumps nothing.
+      const again = await applications.fillLetterRecipient(user.id, sessionId, jd, { ...structured, recipient: { addressLines: ['Elsewhere'], contactPerson: 'Someone Else' } });
+      assert.equal(again.revision, undefined);
+      // A letter for another job never fills.
+      await run('UPDATE application_sessions SET company_address = NULL WHERE id = ?', sessionId);
+      const stale = await applications.fillLetterRecipient(user.id, sessionId, 'a different job', structured);
+      assert.equal(stale.revision, undefined);
+      assert.equal((await one('SELECT company_address FROM application_sessions WHERE id = ?', sessionId)).company_address, null);
+      await applications.fillLetterRecipient(user.id, sessionId, jd, structured);
+
+      // A job description change clears both columns in the same revisioned write; surrounding whitespace is not a change.
+      let current = await one('SELECT revision FROM application_sessions WHERE id = ?', sessionId);
+      const whitespace = await applications.updateApplicationFields(user.id, sessionId, Number(current.revision), { job_description: `  ${jd}\n` });
+      assert.equal(whitespace.revision, Number(current.revision) + 1);
+      assert.equal((await one('SELECT company_address FROM application_sessions WHERE id = ?', sessionId)).company_address, '1 Main Street\nChicago', 'whitespace-only edit keeps the recipient');
+      current = await one('SELECT revision FROM application_sessions WHERE id = ?', sessionId);
+      await applications.updateApplicationFields(user.id, sessionId, Number(current.revision), { job_description: 'A different ad entirely' });
+      const cleared = await one('SELECT company_address, company_contact_person, revision FROM application_sessions WHERE id = ?', sessionId);
+      assert.equal(cleared.company_address, null);
+      assert.equal(cleared.company_contact_person, null);
+      assert.equal(Number(cleared.revision), Number(current.revision) + 1);
+      // The browser patch cannot carry the server-managed columns.
+      await assert.rejects(
+        applications.updateApplicationFields(user.id, sessionId, Number(cleared.revision), { company_address: 'x' }),
+        (error: unknown) => error instanceof errors.InvalidInputError,
+      );
+      return { filled: filled.revision, cleared: cleared.revision };
+    });
+  }
+
   // =========================================================================
   // (e) refund atomicity
   // =========================================================================

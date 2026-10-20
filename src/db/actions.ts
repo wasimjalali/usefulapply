@@ -189,8 +189,13 @@ export async function saveApplicationEditsAction(
   patch: Record<string, unknown>,
 ): Promise<RevisionedWriteResult> {
   await requireUserId(userId);
+  // The cover letter recipient columns are server-managed (filled from the ad,
+  // cleared on a job change). A browser bundle, old or new, never writes them.
+  const { company_address: _address, company_contact_person: _contact, ...browserPatch } = patch;
+  void _address;
+  void _contact;
   try {
-    const { revision } = await applications.updateApplicationFields(userId, sessionId, expectedRevision, patch);
+    const { revision } = await applications.updateApplicationFields(userId, sessionId, expectedRevision, browserPatch);
     return { ok: true, revision };
   } catch (error) {
     return toWriteFailure(error);

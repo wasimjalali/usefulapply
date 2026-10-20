@@ -8,6 +8,7 @@ import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore, type ApplicationSession } from '@/store/useSessionStore';
 import type { KitTab } from '@/store/useUIStore';
 import type { GeneratedCoverLetter } from '@/lib/types';
+import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { generateRequestId } from '@/lib/utils/requestId';
 import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
@@ -308,6 +309,8 @@ async function requestRegeneration(
         closing: existingLetter?.closing ?? '',
         signatureName: existingLetter?.signatureName ?? '',
         updatedAt: new Date().toISOString(),
+        // The old letter's structured copy never carries over to the new body.
+        ...(isStructuredCoverLetter(data.coverLetterStructured) ? { structured: data.coverLetterStructured } : {}),
       };
       update({ coverLetter: letter });
       wordCount = countWords(data.coverLetter);

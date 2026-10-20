@@ -2,6 +2,7 @@
 import { and, asc, desc, eq, isNotNull, lt, sql } from 'drizzle-orm';
 import { getDb, nowIso, stripIdentity } from '../client';
 import { applicationSessions, chatMessages } from '../schema';
+import { withRecipientReset } from '../session-recipient-reset';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
 import { RevisionConflict } from '@/lib/services/errors';
 
@@ -143,8 +144,9 @@ export async function updateSession(
   const db = await getDb();
   const bump = options.bumpRevision !== false;
   // `updates` can arrive from a server action and must never re-parent the row
-  // or set the revision itself.
-  const values = stripServerOwnedCounters(stripIdentity(updates as Record<string, unknown>));
+  // or set the revision itself. A job description change clears the cover
+  // letter recipient columns in the same statement (db/session-recipient-reset.ts).
+  const values = withRecipientReset(stripServerOwnedCounters(stripIdentity(updates as Record<string, unknown>)));
   delete values.revision;
   const conditions = [eq(applicationSessions.id, sessionId), eq(applicationSessions.user_id, userId)];
   if (options.expectedRevision !== undefined) {

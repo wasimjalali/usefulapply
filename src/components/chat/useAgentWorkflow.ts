@@ -31,6 +31,7 @@ import { rememberUndo } from '@/lib/cv-structure/undo';
 import type { JobFeedApplicationGeneration } from '@/lib/supabase/types';
 import { readKitDocumentErrors, type StoredSessionRow } from '@/lib/open-session';
 import { forgetSession, rememberServerRow, reloadApplication } from '@/lib/session-sync';
+import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import type { KitDocument, KitDocumentErrors } from '@/lib/agents/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
 import {
@@ -1153,6 +1154,7 @@ export function useAgentWorkflow(options?: {
                       closing: '',
                       signatureName: '',
                       updatedAt: new Date().toISOString(),
+                      ...(isStructuredCoverLetter(ctx.coverLetterStructured) ? { structured: ctx.coverLetterStructured } : {}),
                     },
                   });
                 }

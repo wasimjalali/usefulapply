@@ -56,6 +56,20 @@ import {
   claimWords as words,
 } from './claim-token-normalization';
 import { buildCoverLetterSystemBlocks, buildCoverLetterUserPrompt } from './prompts/cover-letter-prompt';
+import { assembleStructuredCoverLetter, renderCoverLetterBody, splitAddressLines, type CoverLetterModelFields } from './cover-letter-structure';
+import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
+import {
+  adContactPerson,
+  adPhrase,
+  cleanLetterText,
+  extractAdAddress,
+  fallbackGreeting,
+  fallbackLetterSubject,
+  hasUnverifiedBrackets,
+  resolveClosing,
+  resolveSalutation,
+  resolveSubject,
+} from './cover-letter-guards';
 import { buildApplicationEmailUserPrompt, buildApplicationEmailSystemBlocks, buildFollowUpEmailUserPrompt, buildFollowUpEmailSystemBlocks } from './prompts/email-prompts';
 import { buildFitAssessmentPrompt, buildFitAssessmentSystemBlocks, computeFitLevel } from './prompts/fit-assessment-prompt';
 import { normalizeLanguage, type SupportedLanguage } from '@/lib/utils/language-detector';
@@ -114,6 +128,8 @@ export interface UnifiedAgentInput {
   primaryCV: string;
   masterCV?: string;
   jobPreferences?: MasterContext['jobPreferences'];
+  /** Recipient details from the stored application session row (see MasterContext). */
+  letterRecipient?: MasterContext['letterRecipient'];
   generationContext?: LlmGenerationContext;
 }
 
@@ -860,14 +876,221 @@ function findBoundaryBlacklistedPhrases(value: string): string[] {
   });
 }
 
-function validateCoverLetter(value: string): string {
-  const coverLetter = sanitizeDashes(fixTypos(value)).trim();
-  if (!coverLetter) throw new Error('Cover letter was empty');
-  // Length is a prompt standard, never a reason to fail or retry. The letter
-  // renders at whatever length it came back.
-  const issues = findBoundaryBlacklistedPhrases(coverLetter).map((phrase) => `blacklisted phrase "${phrase}"`);
-  if (issues.length > 0) throw new CoverLetterValidationError(issues);
-  return coverLetter;
+const LETTER_RECIPIENT_MAX_CHARS = 120;
+
+/**
+ * A cover letter answer: a paragraph list with real text, not a schema echo
+ * or a fragment. The subject is optional here: a missing one degrades to the
+ * code-built subject instead of failing the letter.
+ */
+export function isCoverLetterAnswerShape(parsed: Record<string, unknown>): boolean {
+  return Array.isArray(parsed.paragraphs) && parsed.paragraphs.some(isRealString);
+}
+
+/** The text contains the value as a whole phrase, ignoring case and spacing. */
+function textContainsPhrase(text: string, value: string): boolean {
+  const needle = normalizeComparisonText(value);
+  if (!needle) return false;
+  return new RegExp(`(?:^|[^\\p{L}\\p{N}])${escapeRegExp(needle)}(?=$|[^\\p{L}\\p{N}])`, 'u')
+    .test(normalizeComparisonText(text));
+}
+
+/**
+ * Validate the model's letter. Only the paragraphs can fail it, which takes
+ * the one retry: they are the letter. Length is a prompt standard, never a
+ * reason to fail. The optional fields degrade instead of failing
+ * (cover-letter-guards.ts): a salutation, subject or closing that breaks a rule
+ * is replaced by a fixed form, and a recipient detail the ad doesn't state
+ * verbatim is dropped.
+ */
+function validateCoverLetterFields(
+  parsed: Record<string, unknown>,
+  context: MasterContext,
+  language: SupportedLanguage,
+): CoverLetterModelFields {
+  const issues: string[] = [];
+  const adText = context.jobDescription || '';
+  const jobTitle = cleanLetterText(context.job?.title);
+  const isBlacklisted = (text: string) => findBoundaryBlacklistedPhrases(text).length > 0;
+  const isPlaceholder = (text: string) => isPlaceholderValue(text);
+  const typoFixed = (value: unknown) => (typeof value === 'string' ? fixTypos(value) : value);
+
+  if (!Array.isArray(parsed.paragraphs)) issues.push('the paragraphs were not a list');
+  // Each paragraph keeps its last raw line for the sign-off check below.
+  const paragraphParts = (Array.isArray(parsed.paragraphs) ? parsed.paragraphs : []).flatMap((value) => {
+    if (typeof value !== 'string') {
+      issues.push('a paragraph was not text');
+      return [];
+    }
+    return sanitizeDashes(fixTypos(value))
+      .split(/\n\s*\n/u)
+      .map((part) => {
+        const lines = part.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean);
+        return { text: part.replace(/[\s\p{Cc}]+/gu, ' ').trim(), lastLine: lines.at(-1) ?? '' };
+      })
+      .filter((part) => Boolean(part.text));
+  });
+  const paragraphs = paragraphParts.map((part) => part.text);
+  if (paragraphs.length === 0) issues.push('the letter had no paragraphs');
+
+  // Recipient details: the ad's own text, or nothing. Saved session values win.
+  const recipient = isRecord(parsed.recipient) ? parsed.recipient : {};
+  const usable = (value: unknown): value is string => (
+    typeof value === 'string' && value.length <= LETTER_RECIPIENT_MAX_CHARS && !isPlaceholderValue(value.trim())
+  );
+  const fromAd = (value: unknown): string | undefined => (usable(value) ? adPhrase(adText, value) : undefined);
+  const companyName = adPhrase(adText, context.job?.companyName) ?? fromAd(recipient.companyName);
+  const department = fromAd(recipient.department);
+  // A contact must sit where the ad tells applicants to write, not in an imprint.
+  const contactPerson = usable(recipient.contactPerson)
+    ? adContactPerson(adText, recipient.contactPerson, [companyName, department])
+    : undefined;
+  const savedCompany = cleanLetterText(context.letterRecipient?.companyName);
+  const savedContact = cleanLetterText(context.letterRecipient?.contactPerson);
+  const addressee = savedContact || contactPerson;
+  const addressLines = extractAdAddress(recipient.addressLines, adText, {
+    companyName: savedCompany || companyName,
+    contactPerson: addressee,
+    department,
+  });
+
+  const fallbacks: string[] = [];
+  const subjectResult = resolveSubject({ subject: typoFixed(parsed.subject), language, adText, jobTitle, isPlaceholder });
+  const salutationResult = resolveSalutation({
+    salutation: typoFixed(parsed.salutation),
+    language,
+    adText,
+    jobTitle,
+    contactPerson: addressee,
+    companyNames: [savedCompany, companyName ?? ''].filter(Boolean),
+    isBlacklisted,
+    isPlaceholder,
+  });
+  const closingResult = resolveClosing({
+    closing: typoFixed(parsed.closing),
+    language,
+    applicantName: context.applicant?.name,
+    isBlacklisted,
+    isPlaceholder,
+  });
+  let subject = subjectResult.value;
+  let salutation = salutationResult.value;
+  const closing = closingResult.value;
+  if (subjectResult.fallbackReason) fallbacks.push(`subject: ${subjectResult.fallbackReason}`);
+  if (salutationResult.fallbackReason) fallbacks.push(`salutation: ${salutationResult.fallbackReason}`);
+  if (closingResult.fallbackReason) fallbacks.push(`closing: ${closingResult.fallbackReason}`);
+
+  // The address belongs in the address block, which code builds. A paragraph
+  // that carries it fails; a subject or salutation that carries it is replaced.
+  // Each known address line, and its street part before the first comma, with
+  // a digit and at least 8 characters, so a short saved unit line ("Floor 5")
+  // can't false-fail a paragraph.
+  const knownAddressLines = [...addressLines, ...splitAddressLines(context.letterRecipient?.address)]
+    .flatMap((line) => [line, line.split(',')[0]])
+    .map((line) => line.trim())
+    .filter((line, index, all) => line.length >= 8 && /\d/u.test(line) && all.indexOf(line) === index);
+  const carriesAddress = (text: string) => knownAddressLines.some((line) => textContainsPhrase(text, line));
+  if (paragraphs.some(carriesAddress)) {
+    issues.push('the letter text contained the postal address, which belongs only in the recipient field');
+  }
+  if (carriesAddress(subject)) {
+    subject = fallbackLetterSubject(language, jobTitle);
+    fallbacks.push('subject: carried the address');
+  }
+  if (carriesAddress(salutation)) {
+    salutation = fallbackGreeting(language, addressee, [adText]);
+    fallbacks.push('salutation: carried the address');
+  }
+
+  // The frame (greeting, sign-off, name) is added in code; a paragraph that
+  // repeats it would print twice. The sign-off counts only when a paragraph's
+  // last line, or the text after its last sentence end, IS the closing, the
+  // name or both: "...and I will do my best." never matches "Best,".
+  const applicantName = normalizeComparisonText(context.applicant?.name ?? '');
+  const greetings = [salutation, typeof parsed.salutation === 'string' ? parsed.salutation : '']
+    .map(normalizeComparisonText)
+    .filter(Boolean);
+  const bare = (value: string) => normalizeComparisonText(value).replace(/[\s,.;:!-]+$/u, '');
+  const signOffs = [closing, typeof parsed.closing === 'string' ? parsed.closing : ''].map(bare).filter(Boolean);
+  const signOffForms = new Set([
+    ...signOffs,
+    ...(applicantName ? [applicantName, ...signOffs.map((signOff) => `${signOff} ${applicantName}`), ...signOffs.map((signOff) => `${signOff}, ${applicantName}`)] : []),
+  ]);
+  for (const part of paragraphParts) {
+    const text = normalizeComparisonText(part.text);
+    // A whole-word match: "Hi" must not catch "History shows...".
+    if (greetings.some((greeting) => text.startsWith(greeting) && !/[\p{L}\p{N}]/u.test(text.charAt(greeting.length)))) {
+      issues.push('a paragraph repeated the greeting');
+    }
+    const lastLine = bare(part.lastLine);
+    const afterLastSentence = bare(lastLine.split(/(?<=[.!?])\s+/u).at(-1) ?? '');
+    if (signOffForms.has(lastLine) || signOffForms.has(afterLastSentence)) {
+      issues.push('a paragraph repeated the sign-off or the signature');
+    }
+  }
+
+  if (paragraphs.some((paragraph) => hasUnverifiedBrackets(paragraph, adText, jobTitle))) {
+    issues.push('the letter contained a placeholder');
+  }
+  issues.push(...findBoundaryBlacklistedPhrases(paragraphs.join('\n')).map((phrase) => `blacklisted phrase "${phrase}"`));
+
+  if (issues.length > 0) throw new CoverLetterValidationError([...new Set(issues)]);
+  // Reasons are fixed strings from the guards, never model output.
+  if (fallbacks.length > 0) console.warn('[UnifiedAgent] Cover letter field fallbacks:', fallbacks.join('; '));
+  return {
+    subject,
+    salutation,
+    paragraphs,
+    closing,
+    ...(contactPerson ? { contactPerson } : {}),
+    ...(department ? { department } : {}),
+    ...(companyName ? { companyName } : {}),
+    ...(addressLines.length > 0 ? { addressLines } : {}),
+  };
+}
+
+/**
+ * The writer's post-model path on its own: validate a raw model answer and
+ * build the letter. Throws CoverLetterValidationError on a miss. Exported for
+ * the structured-letter eval, which feeds it doctored answers (an address that
+ * is not in the ad) to prove they are dropped.
+ */
+export function coverLetterFromModelOutput(
+  content: string,
+  context: MasterContext,
+  language: SupportedLanguage,
+): { body: string; structured: StructuredCoverLetter } {
+  return buildCoverLetter(content, context, language);
+}
+
+/** Parse the model's JSON letter; a malformed or self-corrected answer is a validation miss (one retry). */
+function parseCoverLetterAnswer(
+  content: string,
+  context: MasterContext,
+  language: SupportedLanguage,
+): CoverLetterModelFields {
+  try {
+    return parseStrictJsonObject(content, 'Cover letter response', {
+      shape: isCoverLetterAnswerShape,
+      validate: (parsed) => validateCoverLetterFields(parsed, context, language),
+    });
+  } catch (error) {
+    if (error instanceof CoverLetterValidationError) throw error;
+    if (error instanceof JsonAnswerCorrectedError) {
+      throw new CoverLetterValidationError(['the response must be one complete JSON object with nothing after it']);
+    }
+    throw new CoverLetterValidationError(['the response must be a valid JSON object']);
+  }
+}
+
+/** The validated fields plus the verified frame, as the contract and as plain text. */
+function buildCoverLetter(
+  content: string,
+  context: MasterContext,
+  language: SupportedLanguage,
+): { body: string; structured: StructuredCoverLetter } {
+  const structured = assembleStructuredCoverLetter(context, language, parseCoverLetterAnswer(content, context, language));
+  return { body: renderCoverLetterBody(structured), structured };
 }
 
 function normalizeComparisonText(value: string): string {
@@ -1444,6 +1667,7 @@ function withoutKitDocuments(context: MasterContext): MasterContext {
   delete context.optimizedCVData;
   delete context.optimizedCV;
   delete context.coverLetter;
+  delete context.coverLetterStructured;
   delete context.applicationEmail;
   delete context.followUpEmail;
   return context;
@@ -1471,6 +1695,7 @@ export const unifiedWriterAgent = {
       rawCV: input.primaryCV,
       masterCV: input.masterCV,
       jobPreferences: input.jobPreferences,
+      letterRecipient: input.letterRecipient,
     };
 
     try {
@@ -1782,7 +2007,10 @@ export const unifiedWriterAgent = {
       { id: 'cover_letter', started: 'Useful Apply: Composing tailored cover letter', completed: 'Cover letter ready' },
       { percent: percents.coverLetter, message: 'Writing your cover letter...' },
       () => this.generateCoverLetter(context, generationContext),
-      ({ result }) => { context.coverLetter = result; },
+      ({ result }) => {
+        context.coverLetter = result.body;
+        context.coverLetterStructured = result.structured;
+      },
     );
 
     await writeDocument(
@@ -2253,11 +2481,17 @@ export const unifiedWriterAgent = {
   },
 
   /**
-   * Generate cover letter using Problem-Solution format
+   * Generate the cover letter using the Problem-Solution format. The model
+   * writes the subject, salutation, paragraphs and closing as JSON; the frame
+   * (sender, recipient, date, place, signature) is filled in code from
+   * verified data. Returns the structured letter and its plain-text body.
    */
-  async generateCoverLetter(context: MasterContext, generationContext?: LlmGenerationContext): Promise<WithTokens<string>> {
+  async generateCoverLetter(
+    context: MasterContext,
+    generationContext?: LlmGenerationContext,
+  ): Promise<WithTokens<{ body: string; structured: StructuredCoverLetter }>> {
     const outputLang = this.getOutputLanguage(context);
-    
+
     console.log('[UnifiedAgent] Generating cover letter in language:', outputLang);
 
     // ---- PROMPT CACHING: Static cover letter rules into cacheable system blocks ----
@@ -2268,6 +2502,7 @@ export const unifiedWriterAgent = {
       task: 'write_cover_letter',
       prompt: basePrompt,
       systemBlocks: coverLetterSystemBlocks,
+      jsonMode: true,
       generationContext,
     });
 
@@ -2277,21 +2512,22 @@ export const unifiedWriterAgent = {
     };
 
     try {
-      return { result: validateCoverLetter(response.content), tokens };
+      return { result: buildCoverLetter(response.content, context, outputLang), tokens };
     } catch (error) {
       if (!(error instanceof CoverLetterValidationError)) throw error;
       console.warn('[UnifiedAgent] Retrying cover letter after validation miss:', error.issues.join(', '));
       const retry = await callModel({
         task: 'write_cover_letter',
-        prompt: `${basePrompt}\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.issues.join('; ')}. Rewrite the complete letter once. Remove every named phrase. Preserve every factuality rule.`,
+        prompt: `${basePrompt}\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.issues.join('; ')}. Rewrite the complete letter once and return only the JSON object. Fix every named issue. Preserve every factuality rule. Do not add any applicant fact, skill, metric or claim that is absent from the Primary CV and Master CV.`,
         systemBlocks: coverLetterSystemBlocks,
+        jsonMode: true,
         generationContext,
       });
       tokens = {
         input: tokens.input + retry.usage.inputTokens,
         output: tokens.output + retry.usage.outputTokens,
       };
-      return { result: validateCoverLetter(retry.content), tokens };
+      return { result: buildCoverLetter(retry.content, context, outputLang), tokens };
     }
   },
 

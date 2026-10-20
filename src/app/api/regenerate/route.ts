@@ -22,6 +22,7 @@ import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import { MAX_INSTRUCTION_CHARS, flattenInstruction } from '@/lib/agents/chat-tools/untrusted';
 import { clearKitDocumentError, getSession, updateSession } from '@/db/repos/sessions';
 import { saveKitDocument } from '@/lib/services/kit';
+import { saveLetterRecipientFromAd } from '@/lib/agents/persist-letter-recipient';
 import { getDocumentByType, type Document } from '@/db/repos/documents';
 
 /**
@@ -259,6 +260,11 @@ export async function POST(request: NextRequest) {
         : undefined,
       verifiedMetrics,
       userInstruction,
+      letterRecipient: {
+        companyName: session.company,
+        address: session.company_address,
+        contactPerson: session.company_contact_person,
+      },
     };
     // PostHog LLM analytics for regeneration
     const traceId = `trace_${randomUUID()}`;
@@ -303,7 +309,8 @@ export async function POST(request: NextRequest) {
     };
 
     if (type === 'cover-letter') {
-      const { result: coverLetter, tokens } = await unifiedWriterAgent.generateCoverLetter(masterContext, generationContext);
+      const { result: letter, tokens } = await unifiedWriterAgent.generateCoverLetter(masterContext, generationContext);
+      const coverLetter = letter.body;
       if (!coverLetter.trim()) {
         throw new Error('Empty cover letter generation');
       }
@@ -311,16 +318,30 @@ export async function POST(request: NextRequest) {
       const existingCoverLetter = session.cover_letter && typeof session.cover_letter === 'object'
         ? session.cover_letter as Record<string, unknown>
         : {};
+      // A new letter replaces any structured copy of the old one.
       const persistedCoverLetter = {
         ...existingCoverLetter,
         body: coverLetter,
+        structured: letter.structured,
         updatedAt: new Date().toISOString(),
       };
-      const { revision } = await saveKitDocument(user.id, session.id, 'coverLetter', persistedCoverLetter);
+      let { revision } = await saveKitDocument(user.id, session.id, 'coverLetter', persistedCoverLetter, {
+        extra: { cover_letter_language: letter.structured.language },
+      });
+      try {
+        const filled = await saveLetterRecipientFromAd(user.id, session.id, session.job_description, letter.structured);
+        // Filling the recipient bumps the revision once more; report the final one.
+        if (filled.revision !== undefined) revision = filled.revision;
+      } catch (error) {
+        // The letter already carries the recipient; only the editable copy on
+        // the session row is missing.
+        console.error('[Regenerate API] Failed to save the cover letter recipient:', error);
+      }
       await clearDocumentMark(user.id, session.id, 'coverLetter');
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({
         coverLetter,
+        coverLetterStructured: letter.structured,
         creditsDeducted: CREDIT_COSTS.COVER_LETTER_REGEN,
         tokens,
         revision,

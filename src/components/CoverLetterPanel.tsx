@@ -311,8 +311,12 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   // Save edited cover letter to store
   const handleSaveEdits = () => {
     if (editedCoverLetter && editSessionIdRef.current) {
+      // An edited body no longer matches its structured copy, so the copy is
+      // dropped and the export falls back to the body the user wrote.
+      const { structured, ...rest } = editedCoverLetter;
+      const keepStructured = structured && editedCoverLetter.body === coverLetter?.body;
       useSessionStore.getState().updateSessionById(editSessionIdRef.current, {
-        coverLetter: { ...editedCoverLetter, updatedAt: new Date().toISOString() },
+        coverLetter: { ...rest, ...(keepStructured ? { structured } : {}), updatedAt: new Date().toISOString() },
       });
       // Save now, against the revision this tab loaded.
       void persistSessionEdits(editSessionIdRef.current);
