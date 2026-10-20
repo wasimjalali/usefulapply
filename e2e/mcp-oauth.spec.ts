@@ -513,6 +513,14 @@ test.describe.serial('MCP OAuth', () => {
     expect(next.body.refresh_token).toBeTruthy();
     expect(next.body.refresh_token).not.toBe(tokens.refresh_token);
 
+    // The refresh token that was rotated out keeps its binding only for the replay window; the new one for 30 days.
+    const sha = (t: string) => createHash('sha256').update(t).digest('base64url');
+    const expiry = (t: string) => Number(sqlLocal(`SELECT expires_at AS e FROM mcp_token_generation WHERE token_key = 'rt:${sha(t)}'`)[0]?.e);
+    const oldExpiry = expiry(tokens.refresh_token!);
+    expect(oldExpiry, 'rotated-out binding is kept for about a minute').toBeLessThanOrEqual(Date.now() + 75_000);
+    expect(oldExpiry).toBeGreaterThan(Date.now() - 5_000);
+    expect(expiry(next.body.refresh_token), 'the live refresh token keeps its 30-day binding').toBeGreaterThan(Date.now() + 25 * 24 * 3600_000);
+
     const { client, transport } = staticClient(next.body.access_token);
     await client.connect(transport);
     const result = await client.callTool({ name: 'get_account', arguments: {} });
@@ -1192,6 +1200,98 @@ test.describe('Route rate limits', () => {
     expect(eleventh.status(), 'another address in the same /64 shares the bucket').toBe(429);
     const elsewhere = await register(request, body(), `2001:db8:${randomBytes(2).toString('hex')}:ffff::1`);
     expect(elsewhere.status(), 'a different /64 has its own bucket').toBe(201);
+  });
+});
+
+test.describe('Test mode is never honoured off localhost', () => {
+  let server: ChildProcess | null = null;
+  const guardBase = 'http://localhost:8796';
+
+  test.beforeAll(async () => {
+    // Its own local D1, migrated like the main one, so the provider can read its tables.
+    execFileSync(
+      'npx',
+      ['wrangler', 'd1', 'migrations', 'apply', 'usefulapply-db', '--local', '--persist-to', '.wrangler/e2e-test-mode-guard'],
+      { stdio: 'pipe' },
+    );
+    // MCP_TEST_MODE is set, but the auth host (BETTER_AUTH_URL) is not localhost.
+    server = spawn(
+      'npx',
+      [
+        'opennextjs-cloudflare',
+        'preview',
+        '--',
+        '--port',
+        '8796',
+        '--local-upstream',
+        'localhost:8796',
+        '--var',
+        'MCP_ENABLED:true',
+        '--var',
+        'MCP_TEST_MODE:true',
+        '--var',
+        'MCP_CIMD_ENABLED:true',
+        '--var',
+        'BETTER_AUTH_URL:https://usefulapply.example',
+        '--persist-to',
+        '.wrangler/e2e-test-mode-guard',
+      ],
+      { stdio: 'ignore', detached: true },
+    );
+    const deadline = Date.now() + 120_000;
+    for (;;) {
+      try {
+        const res = await fetch(`${guardBase}/auth/login`);
+        if (res.status < 500) break;
+      } catch {
+        // not up yet
+      }
+      if (Date.now() > deadline) throw new Error('test-mode guard preview did not start');
+      await new Promise((r) => setTimeout(r, 1_000));
+    }
+  });
+
+  test.afterAll(() => {
+    if (server?.pid) {
+      try {
+        process.kill(-server.pid, 'SIGTERM');
+      } catch {
+        // already gone
+      }
+    }
+  });
+
+  test('the CIMD fixture is not served, so test mode is off', async ({ request }) => {
+    // On localhost (the main server) this client id resolves to the in-code fixture. Here it must go to the
+    // network instead, where the host does not exist, so the client is rejected.
+    const url = new URL(`${guardBase}/api/auth/oauth2/authorize`);
+    url.searchParams.set('response_type', 'code');
+    url.searchParams.set('client_id', CIMD_CLIENT_ID);
+    url.searchParams.set('redirect_uri', CIMD_REDIRECT);
+    url.searchParams.set('scope', 'read');
+    url.searchParams.set('state', 'guard');
+    url.searchParams.set('code_challenge', pkcePair().challenge);
+    url.searchParams.set('code_challenge_method', 'S256');
+    // Earlier runs leave their log lines in this server's local store, so count what each request adds.
+    const warnings = async () => {
+      const res = await request.post(`${guardBase}/cdn-cgi/local/explorer/api/local/observability/query`, {
+        data: { sql: "SELECT COUNT(*) AS n FROM logs WHERE message LIKE '%MCP_TEST_MODE is set%'" },
+      });
+      const body = await res.json();
+      return Number(body.result?.rows?.[0]?.[0] ?? NaN);
+    };
+    const before = await warnings();
+    const res = await request.get(url.toString(), { maxRedirects: 0, headers: { 'cf-connecting-ip': fakeIp() } });
+    const text = (res.headers()['location'] ?? '') + (await res.text());
+    expect(text).toMatch(/invalid_client|Failed to fetch metadata/);
+    expect(text).not.toContain('/auth/login');
+
+    // And it said so, once: the first request logs the error, a second one does not repeat it.
+    const afterFirst = await warnings();
+    await request.get(url.toString(), { maxRedirects: 0, headers: { 'cf-connecting-ip': fakeIp() } });
+    const afterSecond = await warnings();
+    expect(afterFirst - before, 'logged on the first request').toBe(1);
+    expect(afterSecond, 'not logged again').toBe(afterFirst);
   });
 });
 
