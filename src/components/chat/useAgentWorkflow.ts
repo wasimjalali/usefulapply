@@ -30,7 +30,7 @@ import { cvStructureDigest } from '@/lib/cv-structure/validate';
 import { rememberUndo } from '@/lib/cv-structure/undo';
 import type { JobFeedApplicationGeneration } from '@/lib/supabase/types';
 import { readKitDocumentErrors, type StoredSessionRow } from '@/lib/open-session';
-import { forgetSession, rememberServerRow, reloadApplication } from '@/lib/session-sync';
+import { applyServerRow, forgetSession, refreshFromServer } from '@/lib/session-sync';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import type { KitDocument, KitDocumentErrors } from '@/lib/agents/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
@@ -931,7 +931,7 @@ export function useAgentWorkflow(options?: {
         eagerStoredSessionId = created.session.id;
         // The bare stored row is what the server holds. The local content goes
         // out afterwards as an ordinary revisioned save over it.
-        rememberServerRow(created.session as unknown as StoredSessionRow);
+        await applyServerRow(created.session.id, created.session as unknown as StoredSessionRow, 'handoff');
         if (!localSession) {
           throw new Error('Local application disappeared before generation');
         }
@@ -1255,7 +1255,7 @@ export function useAgentWorkflow(options?: {
                 // our copy back, so the screen and the database agree and the
                 // next edit starts from the right revision.
                 if (workflowSessionId && !workflowSessionId.startsWith('session-')) {
-                  void reloadApplication(workflowSessionId);
+                  void refreshFromServer(workflowSessionId);
                 }
                 break;
                 

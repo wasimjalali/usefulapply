@@ -5,11 +5,17 @@ import { X, CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface Toast {
   id: string;
   type: ToastType;
   message: string;
   duration?: number;
+  actions?: ToastAction[];
 }
 
 interface ToastContextValue {
@@ -18,7 +24,8 @@ interface ToastContextValue {
     success: (message: string, duration?: number) => void;
     error: (message: string, duration?: number) => void;
     warning: (message: string, duration?: number) => void;
-    info: (message: string, duration?: number) => void;
+    /** `actions` render as small buttons under the message; clicking one closes the toast. */
+    info: (message: string, duration?: number, actions?: ToastAction[]) => void;
   };
   removeToast: (id: string) => void;
 }
@@ -55,9 +62,9 @@ export function ToastProvider({ children }: ToastProviderProps) {
   }, []);
 
   const addToast = useCallback(
-    (type: ToastType, message: string, duration = 5000) => {
+    (type: ToastType, message: string, duration = 5000, actions?: ToastAction[]) => {
       const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const newToast: Toast = { id, type, message, duration };
+      const newToast: Toast = { id, type, message, duration, actions };
 
       setToasts((prev) => [...prev, newToast]);
 
@@ -76,7 +83,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
     success: (message: string, duration?: number) => addToast('success', message, duration),
     error: (message: string, duration?: number) => addToast('error', message, duration),
     warning: (message: string, duration?: number) => addToast('warning', message, duration),
-    info: (message: string, duration?: number) => addToast('info', message, duration),
+    info: (message: string, duration?: number, actions?: ToastAction[]) => addToast('info', message, duration, actions),
   };
 
   return (
@@ -126,7 +133,22 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
       role="alert"
     >
       <Icon className={`h-5 w-5 flex-shrink-0 ${style.iconColor}`} />
-      <p className={`text-sm flex-1 ${toast.type === 'success' || toast.type === 'info' ? 'text-cream-50' : 'text-charcoal'}`}>{toast.message}</p>
+      <div className="flex-1">
+        <p className={`text-sm ${toast.type === 'success' || toast.type === 'info' ? 'text-cream-50' : 'text-charcoal'}`}>{toast.message}</p>
+        {toast.actions && toast.actions.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {toast.actions.map((action) => (
+              <button
+                key={action.label}
+                onClick={() => { action.onClick(); onClose(); }}
+                className="rounded border border-cream-200 px-2 py-1 text-xs text-cream-50 hover:bg-navy-600"
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       <button
         onClick={onClose}
         className={`p-0.5 rounded transition-colors ${toast.type === 'success' || toast.type === 'info' ? 'text-cream-200 hover:text-white' : 'text-warm-gray hover:text-charcoal'}`}

@@ -152,7 +152,7 @@ export interface EnqueueKitResult {
   status: AgentOperation['status'];
   /** True when this call returned an operation that already existed. */
   deduped: boolean;
-  matchedBy?: 'key' | 'input';
+  matchedBy?: 'key' | 'input' | 'session';
   creditsReserved: number;
   reservationKey: string | null;
 }
@@ -178,7 +178,7 @@ export async function enqueueKitGeneration(
   const kind = OPERATION_KINDS.generateKit;
   const inputHash = await hashOperationInput(normalized);
 
-  const describe = (operation: AgentOperation, deduped: boolean, matchedBy?: 'key' | 'input'): EnqueueKitResult => ({
+  const describe = (operation: AgentOperation, deduped: boolean, matchedBy?: 'key' | 'input' | 'session'): EnqueueKitResult => ({
     operationId: operation.id,
     status: operation.status,
     deduped,
@@ -188,7 +188,7 @@ export async function enqueueKitGeneration(
   });
 
   // An identical request is answered before anything is charged.
-  const existing = await resolveExistingOperation({ userId, kind, idempotencyKey, inputHash });
+  const existing = await resolveExistingOperation({ userId, kind, idempotencyKey, inputHash, sessionId });
   if (existing) {
     // The first attempt may have died between the insert and the send. Sending
     // again is safe: a second delivery fails to claim and is dropped.
@@ -374,10 +374,17 @@ async function stillOwns(operationId: string, claimed: { attempt: number; leaseO
  * the per-document refund; a final guard aborts it, rolling the kit and the
  * completion back, if the operation completed without this batch capturing.
  */
-async function settleSuccess(
+/** Seams for the scenarios that need to act between the steps of a settle. Production passes none. */
+export interface SettleHooks {
+  /** Runs after the reservation was found held and before the batch. */
+  beforeBatch?: () => Promise<void>;
+}
+
+export async function settleSuccess(
   operation: AgentOperation,
   claimed: { attempt: number; leaseOwner: string },
   results: KitResults,
+  hooks: SettleHooks = {},
 ): Promise<'done' | 'lost'> {
   const sessionId = operation.session_id as string;
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -426,6 +433,7 @@ async function settleSuccess(
         ));
       }
     }
+    await hooks.beforeBatch?.();
     let batch;
     try {
       batch = await runBatch(statements);

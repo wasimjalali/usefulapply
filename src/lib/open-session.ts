@@ -21,7 +21,7 @@ import {
   mapChatRowsToStore,
   type StoredSessionRow,
 } from '@/lib/session-row-mapping';
-import { rememberServerRow } from '@/lib/session-sync';
+import { applyServerRow } from '@/lib/session-sync';
 
 export { mapChatRowsToStore, mapSessionRowToStore, readKitDocumentErrors, type StoredSessionRow } from '@/lib/session-row-mapping';
 
@@ -87,13 +87,11 @@ export async function openStoredSession(sessionId: string): Promise<boolean> {
   if (generation !== openGeneration) return false;
   if (!row) return false;
 
-  const mapped = rememberServerRow(row as StoredSessionRow);
-  const latest = useSessionStore.getState();
-  latest.setSessions([
-    mapped,
-    ...latest.sessions.filter((session) => session.id !== mapped.id),
-  ]);
-  latest.loadSession(sessionId);
+  // The one door for server content: registers the baseline and lists the application.
+  const applied = await applyServerRow(sessionId, row as StoredSessionRow, 'open', { placement: 'upsert' });
+  if (generation !== openGeneration) return false;
+  if (!applied.session) return false;
+  useSessionStore.getState().loadSession(sessionId);
   await hydrateChatIfEmpty(sessionId, generation).catch((err) => {
     console.error('[openStoredSession] Chat did not load:', err);
   });

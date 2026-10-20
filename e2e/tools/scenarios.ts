@@ -565,23 +565,19 @@ async function main(): Promise<void> {
       const operation = (await ops.getOperationById(queued.operationId))!;
       const claimed = (await ops.claimOperation(queued.operationId, 'queue:d19', 600_000))!;
       assert.equal(claimed.attempt, 1);
-      const kitService = await import('../../src/lib/services/kit');
       const reservation = (await credits.getReservationByKey(user.id, operation.reservation_key!))!;
-      const row = (await sessionsRepo.getSession(user.id, sessionId))!;
-      const now = new Date().toISOString();
-      const columns = kitService.kitColumnsFromResults({ coverLetter: 'x', optimizedCV: { content: 'cv', changes: [] }, documentErrors: {} }, row, now);
-      const guard = sql`EXISTS (SELECT 1 FROM agent_operations WHERE id = ${operation.id} AND status = 'running' AND attempt = 1 AND lease_owner = 'queue:d19')`;
-      // The capture matches no row because the reservation is already released.
-      await run("UPDATE credit_reservations SET status = 'released' WHERE id = ?", reservation.id);
-      await assert.rejects(dbClient.runBatch([
-        kitService.buildSessionUpdateStatement(user.id, sessionId, columns, row.revision, now, guard),
-        ops.buildCompleteOperationStatement({ operationId: operation.id, attempt: 1, leaseOwner: 'queue:d19', resultRef: 'ref-d19', now }),
-        credits.buildCaptureReservationStatement(reservation, { chained: true, now }),
-        sql`SELECT json(CASE
-          WHEN EXISTS (SELECT 1 FROM agent_operations WHERE id = ${operation.id} AND status = 'succeeded' AND result_ref = 'ref-d19')
-           AND NOT EXISTS (SELECT 1 FROM credit_reservations WHERE id = ${reservation.id} AND status = 'captured' AND captured_at = ${now})
-          THEN 'completed without a capture' ELSE '{}' END)`,
-      ]));
+      let hookRan = false;
+      // The real settle runs: it finds the reservation held, then the hook releases it before the batch is sent.
+      await assert.rejects(
+        runners.settleSuccess(claimed, { attempt: 1, leaseOwner: 'queue:d19' }, { coverLetter: 'x', optimizedCV: { content: 'cv', changes: [] }, documentErrors: {} } as never, {
+          beforeBatch: async () => {
+            hookRan = true;
+            await run("UPDATE credit_reservations SET status = 'released' WHERE id = ?", reservation.id);
+          },
+        }),
+        (error: unknown) => error instanceof errors.PermanentOperationError,
+      );
+      assert.ok(hookRan, 'the hook ran between the pre-check and the batch');
       assert.equal((await one('SELECT generated_cv FROM application_sessions WHERE id = ?', sessionId)).generated_cv, null);
       assert.equal((await operationsOf(user.id))[0].status, 'running');
       return { rolledBack: true };
@@ -643,6 +639,9 @@ async function main(): Promise<void> {
       const live = (await reservationsOf(user.id)).filter((row) => row.status === 'reserved');
       assert.deepEqual(live.map((row) => Number(row.amount)).sort(), [1.5, 2.0]);
       assert.equal(base.total - (await balanceOf(user.id)).total, 3.5, 'net charge is 1.5 + 2.0 (a lost claim is refunded)');
+      const lostClaims = (await ledgerOf(user.id)).filter((row) => row.transaction_type === 'reservation_released' && String(row.description).includes('fit_continuation_claim_lost'));
+      assert.equal(lostClaims.length, 1, 'the loser of the claim race has a fit_continuation_claim_lost release row in the ledger');
+      assert.equal(Number(lostClaims[0].amount), 1.5);
       // Run one to completion so a slot frees up; the discount stays spent for this fit.
       await deliverUntilSettled(a.operationId);
       const c = await runners.enqueueKitGeneration(user.id, user.sessionIds[2], 'key-d22-c', { contextId: 'ctx-d22' });
@@ -653,6 +652,62 @@ async function main(): Promise<void> {
   }
 
   if (mode === 'd') {
+    await scenario('d24. one generation at a time per application: a second enqueue with another key joins the first, in sequence and in a race', async () => {
+      const user = await seedUser('d24', { monthly: 10, addon: 10 }, 2);
+      const [sessionId, s2] = user.sessionIds;
+      const base = await balanceOf(user.id);
+      const first = await runners.enqueueKitGeneration(user.id, sessionId, 'key-d24-a', {});
+      const second = await runners.enqueueKitGeneration(user.id, sessionId, 'key-d24-b', { regenerate: true });
+      assert.equal(second.deduped, true);
+      assert.equal(second.matchedBy, 'session');
+      assert.equal(second.operationId, first.operationId);
+      assert.equal((await operationsOf(user.id)).length, 1);
+      assert.equal(base.total - (await balanceOf(user.id)).total, 2, 'one reservation held, nothing extra charged');
+      // The atomic guard, past the pre-check: insert directly with a fresh reservation while one is live.
+      const reserved = await credits.reserveCredits({ userId: user.id, action: 'FULL_APPLICATION', idempotencyKey: 'res-d24-c', sessionId });
+      assert.ok(reserved.success);
+      const raced = await ops.insertOperation({
+        userId: user.id, sessionId, kind: 'generate_kit', idempotencyKey: 'key-d24-c', inputHash: 'another-input', input: {}, reservationKey: 'res-d24-c',
+      });
+      assert.equal(raced.outcome, 'existing');
+      assert.equal(raced.outcome === 'existing' && raced.matchedBy, 'session');
+      assert.equal((await operationsOf(user.id)).length, 1, 'the insert itself was refused');
+      await credits.releaseReservation({ userId: user.id, idempotencyKey: 'res-d24-c', reason: 'test' });
+      // A race between two enqueues on another application: one operation, one charge.
+      const before = await balanceOf(user.id);
+      const [x, y] = await Promise.all([
+        runners.enqueueKitGeneration(user.id, s2, 'key-d24-x', {}),
+        runners.enqueueKitGeneration(user.id, s2, 'key-d24-y', { regenerate: true }),
+      ]);
+      assert.equal(x.operationId, y.operationId);
+      assert.equal(before.total - (await balanceOf(user.id)).total, 2, 'the loser of the race gave its reservation back');
+      // After the first finishes, the application can be generated again.
+      await deliverUntilSettled(first.operationId);
+      const again = await runners.enqueueKitGeneration(user.id, sessionId, 'key-d24-d', { regenerate: true });
+      assert.equal(again.deduped, false);
+      return { joined: second.matchedBy, raced: raced.outcome };
+    });
+
+    await scenario('d25. regenerate over a good kit when one document fails: the previous good letter stays in D1 and the failed document is refunded', async () => {
+      const user = await seedUser('d25', { monthly: 10, addon: 10 });
+      const [sessionId] = user.sessionIds;
+      const first = await runners.enqueueKitGeneration(user.id, sessionId, 'key-d25-1', {});
+      await deliverUntilSettled(first.operationId);
+      const good = await one('SELECT cover_letter, generated_cv FROM application_sessions WHERE id = ?', sessionId);
+      assert.ok(good.cover_letter && good.generated_cv, 'a good kit exists');
+      const before = await balanceOf(user.id);
+      await control({ failWriter: 'coverLetter' });
+      const second = await runners.enqueueKitGeneration(user.id, sessionId, 'key-d25-2', { regenerate: true });
+      await deliverUntilSettled(second.operationId);
+      await control({ failWriter: null });
+      assert.equal((await one('SELECT status FROM agent_operations WHERE id = ?', second.operationId)).status, 'succeeded');
+      const after = await one('SELECT cover_letter, generated_cv FROM application_sessions WHERE id = ?', sessionId);
+      assert.equal(after.cover_letter, good.cover_letter, 'the previous good letter body survives the failed regenerate');
+      assert.ok(after.generated_cv);
+      assert.equal(before.total - (await balanceOf(user.id)).total, 1.5, 'the failed letter is refunded: 2.0 charged, 0.5 back');
+      return { letterKept: true };
+    });
+
     await scenario('d23. operation housekeeping: attempt cap on claims, pending over an hour fails and releases, late enders stand down, workflow writes do not bump the revision', async () => {
       const user = await seedUser('d23', { monthly: 4, addon: 6 }, 3);
       const [s1, s2, s3] = user.sessionIds;

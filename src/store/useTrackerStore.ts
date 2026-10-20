@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { deleteSessionAction, listTrackerOverviewAction, setTrackerStatusAction, updateProfileAction } from '@/db/actions';
 import { useSessionStore } from '@/store/useSessionStore';
-import { adoptServerWrite, CONFLICT_NOTICE } from '@/lib/session-sync';
+import { CONFLICT_NOTICE, refreshFromServer } from '@/lib/session-sync';
 import type { TrackerApplicationRow } from '@/db/repos/sessions';
 import {
   addBusinessDays,
@@ -179,7 +179,8 @@ export const useTrackerStore = create<TrackerState>((set, get) => ({
       set((state) => ({
         rows: state.rows.map((row) => (row.id === sessionId ? { ...row, revision: result.revision } : row)),
       }));
-      void adoptServerWrite(sessionId, result.revision, []);
+      // The status write bumped the revision. Load the row so the open copy and its baseline follow.
+      void refreshFromServer(sessionId);
     } catch {
       // Roll back this row only. Another row may have moved while this was
       // in flight, and its change is not ours to undo.

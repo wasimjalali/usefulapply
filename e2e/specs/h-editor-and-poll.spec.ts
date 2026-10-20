@@ -55,11 +55,12 @@ test('(h1) an editor draft opened on an older revision cannot overwrite a newer 
 });
 
 /**
- * A poll that decides the store is clean must not apply the server's copy over
- * something the user changed while that copy was on its way. The change is
- * settled as a conflict, with a notice, instead of vanishing.
+ * A poll reload is in flight when the user changes something. The server's copy
+ * is judged against the store when it ARRIVES: the user's change is kept, saved
+ * on top of the newer revision, and the other writer's change still loads. Nothing
+ * is replaced and marked saved, nothing is dropped.
  */
-test('(h2) a change made while a poll reload is in flight is not silently replaced', async ({ browser, request }) => {
+test('(h2) a change made while a poll reload is in flight is kept and saved, and the newer copy loads', async ({ browser, request }) => {
   const { user, context, page } = await signedInPage(browser, request, 'race');
   await manualPolling(page);
   await generateKitThroughUi(page);
@@ -89,8 +90,7 @@ test('(h2) a change made while a poll reload is in flight is not silently replac
   await poll(page);
   await expect.poll(() => new Set(seen.slice(mark)).size, { timeout: 20_000 }).toBeGreaterThanOrEqual(2);
   const reloadAction = [...new Set(seen.slice(mark))][1];
-
-  // A clean poll reloads quietly: no conflict notice yet, so the one asserted below can only come from the race.
+  // A clean poll reloads quietly.
   await expect(page.getByText(CONFLICT)).toHaveCount(0);
 
   // Second change by another writer; hold the reload request when it is made.
@@ -105,10 +105,12 @@ test('(h2) a change made while a poll reload is in flight is not silently replac
   await page.getByRole('option', { name: /Executive/ }).click();
   release();
 
-  await expect(page.getByText(CONFLICT).first()).toBeVisible({ timeout: 20_000 });
-  expect(storedApplication(user.id)?.selected_template, 'the template choice was based on an old revision and did not overwrite').toBe(generated.selected_template);
+  // The template choice reaches the server on top of the other writer's revision, and that writer's email loads.
+  await expect.poll(() => storedApplication(user.id)?.selected_template, { timeout: 20_000 }).not.toBe(generated.selected_template);
+  expect(storedApplication(user.id)?.email?.body).toContain('Second change by another writer.');
   await page.getByRole('tab', { name: 'Emails' }).click();
   await expect(page.getByText('Second change by another writer.').first()).toBeVisible();
+  await expect(page.getByText(CONFLICT)).toHaveCount(0);
   await context.close();
 });
 

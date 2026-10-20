@@ -1,0 +1,28 @@
+{
+  "engine": "new",
+  "from": 2001,
+  "count": 20000,
+  "ops": 90,
+  "totals": {
+    "ops": 1800000,
+    "edits": 600184,
+    "editorSaves": 116827,
+    "regens": 140102,
+    "agentWrites": 179061,
+    "handoffs": 59770,
+    "polls": 240339,
+    "saves": 241006,
+    "requests": 1737070,
+    "dropped": 95366,
+    "lostAnswers": 71843,
+    "hung": 95582,
+    "conflictNotices": 187660,
+    "failureNotices": 75664,
+    "settleRounds": 52088
+  },
+  "byInvariant": {},
+  "byKind": {},
+  "failingSeeds": [],
+  "failures": [],
+  "cases": []
+}

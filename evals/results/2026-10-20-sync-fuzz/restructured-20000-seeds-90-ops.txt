@@ -1,0 +1,44 @@
+  500/20000 seeds, 0 failing
+  1000/20000 seeds, 0 failing
+  1500/20000 seeds, 0 failing
+  2000/20000 seeds, 0 failing
+  2500/20000 seeds, 0 failing
+  3000/20000 seeds, 0 failing
+  3500/20000 seeds, 0 failing
+  4000/20000 seeds, 0 failing
+  4500/20000 seeds, 0 failing
+  5000/20000 seeds, 0 failing
+  5500/20000 seeds, 0 failing
+  6000/20000 seeds, 0 failing
+  6500/20000 seeds, 0 failing
+  7000/20000 seeds, 0 failing
+  7500/20000 seeds, 0 failing
+  8000/20000 seeds, 0 failing
+  8500/20000 seeds, 0 failing
+  9000/20000 seeds, 0 failing
+  9500/20000 seeds, 0 failing
+  10000/20000 seeds, 0 failing
+  10500/20000 seeds, 0 failing
+  11000/20000 seeds, 0 failing
+  11500/20000 seeds, 0 failing
+  12000/20000 seeds, 0 failing
+  12500/20000 seeds, 0 failing
+  13000/20000 seeds, 0 failing
+  13500/20000 seeds, 0 failing
+  14000/20000 seeds, 0 failing
+  14500/20000 seeds, 0 failing
+  15000/20000 seeds, 0 failing
+  15500/20000 seeds, 0 failing
+  16000/20000 seeds, 0 failing
+  16500/20000 seeds, 0 failing
+  17000/20000 seeds, 0 failing
+  17500/20000 seeds, 0 failing
+  18000/20000 seeds, 0 failing
+  18500/20000 seeds, 0 failing
+  19000/20000 seeds, 0 failing
+  19500/20000 seeds, 0 failing
+  20000/20000 seeds, 0 failing
+
+20000 seeds (2001..22000), 90 operations each, new engine, 193.9s
+totals {"ops":1800000,"edits":600184,"editorSaves":116827,"regens":140102,"agentWrites":179061,"handoffs":59770,"polls":240339,"saves":241006,"requests":1737070,"dropped":95366,"lostAnswers":71843,"hung":95582,"conflictNotices":187660,"failureNotices":75664,"settleRounds":52088}
+failing seeds: 0

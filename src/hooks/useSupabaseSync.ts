@@ -20,9 +20,12 @@ import { isSameJob } from '@/lib/utils/same-job';
 import { hydrateChatIfEmpty, type StoredSessionRow } from '@/lib/open-session';
 import { sessionHasKit } from '@/components/shell/application-status';
 import { useToast } from '@/components/ui/Toast';
+import { mapSessionRowToStore } from '@/lib/session-row-mapping';
 import {
+  applyServerRow,
+  conflictBufferText,
   persistSessionEdits,
-  rememberServerRow,
+  restoreConflictBuffer,
   setSyncUser,
   startRevisionPolling,
   subscribeSyncNotices,
@@ -163,9 +166,25 @@ export function useSupabaseSync() {
     return () => setSyncUser(null);
   }, [user?.id]);
 
-  useEffect(() => subscribeSyncNotices((message, kind) => {
-    if (kind === 'error') toast.error(message);
-    else toast.info(message);
+  useEffect(() => subscribeSyncNotices(({ message, kind, conflictFor }) => {
+    if (kind === 'error') {
+      toast.error(message);
+      return;
+    }
+    if (!conflictFor) {
+      toast.info(message);
+      return;
+    }
+    // The user's own text lost to a newer version: offer it back, to copy or to restore.
+    toast.info(message, 20000, [
+      {
+        label: 'Copy my text',
+        onClick: () => {
+          void navigator.clipboard?.writeText(conflictBufferText(conflictFor));
+        },
+      },
+      { label: 'Restore my text', onClick: () => { void restoreConflictBuffer(conflictFor); } },
+    ]);
   }), [toast]);
 
   // While an application is open, look for changes made elsewhere (another
@@ -374,9 +393,22 @@ export function useSupabaseSync() {
           
           // Convert D1 rows to the store shape. Chat stays empty here; it
           // loads when that application opens (see openStoredSession).
-          const supabaseSessions: ApplicationSession[] = data.map((row) =>
-            rememberServerRow(row as unknown as StoredSessionRow),
-          );
+          // Each row goes through the one door for server content, which also
+          // registers the revision baseline the saves stand on.
+          const applied = await Promise.all(data.map((row) =>
+            applyServerRow(row.id, row as unknown as StoredSessionRow, 'hydrate'),
+          ));
+          if (!isActiveUser()) return;
+          // Read each application back from the store, not from the result: the user may have
+          // edited one while the others were being applied, and the list below replaces the array.
+          const supabaseSessions: ApplicationSession[] = applied.map((result, index) => {
+            const id = data[index].id;
+            const live = useSessionStore.getState();
+            return live.sessions.find((session) => session.id === id)
+              ?? (live.currentSession?.id === id ? live.currentSession : null)
+              ?? result.session
+              ?? mapSessionRowToStore(data[index] as unknown as StoredSessionRow);
+          });
           
           // Get current localStorage sessions — only keep truly local ones not yet in Supabase
           const { sessions: localSessions, currentSession: cachedCurrent } = useSessionStore.getState();
@@ -546,7 +578,7 @@ export function useSupabaseSync() {
           // What the server holds right now is the baseline: the bare new row,
           // or the reused entry as just read. The local content then goes out
           // as an ordinary revisioned save below, over that baseline.
-          rememberServerRow((reuseRow ?? newSession) as unknown as StoredSessionRow);
+          await applyServerRow(newSession.id, (reuseRow ?? newSession) as unknown as StoredSessionRow, 'handoff');
           updatedSession.revision = (reuseRow?.revision ?? (newSession as { revision?: number }).revision) ?? 0;
 
           // Replace the old local session with the stored session in the

@@ -1,0 +1,53 @@
+{
+  "engine": "new",
+  "from": 1,
+  "count": 2000,
+  "ops": 60,
+  "totals": {
+    "ops": 120000,
+    "edits": 40131,
+    "editorSaves": 6748,
+    "regens": 9398,
+    "agentWrites": 11898,
+    "handoffs": 4090,
+    "polls": 15858,
+    "saves": 15974,
+    "requests": 122241,
+    "dropped": 6387,
+    "lostAnswers": 4787,
+    "hung": 6325,
+    "conflictNotices": 11636,
+    "failureNotices": 5358,
+    "settleRounds": 5095
+  },
+  "byInvariant": {},
+  "byKind": {},
+  "failingSeeds": [],
+  "failures": [],
+  "cases": [
+    {
+      "name": "codex-1 handoff registers a baseline",
+      "violations": []
+    },
+    {
+      "name": "codex-2 editor survives a failed conflict reload",
+      "violations": []
+    },
+    {
+      "name": "codex-3 edit made while an adoption reload is in flight",
+      "violations": []
+    },
+    {
+      "name": "codex-4 late regenerate response after a newer revision",
+      "violations": []
+    },
+    {
+      "name": "low refused value does not block polling",
+      "violations": []
+    },
+    {
+      "name": "round-1 h2 edit made while a poll reload is in flight",
+      "violations": []
+    }
+  ]
+}

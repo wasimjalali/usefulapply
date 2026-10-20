@@ -1,0 +1,8 @@
+M1 accept stale rows -> ['failing seeds: 103  by invariant {"I2":103}']
+M2 drop local edits on conflict (no buffer, take server) -> ['failing seeds: 400  by invariant {"I1":400}']
+M3 keep local on conflict (server change lost) -> ['failing seeds: 400  by invariant {"I2":400}']
+M4 poll skips while rejected/dirty -> ['FAIL  low refused value does not block polling', 'failing seeds: 10  by invariant {"I3":10}']
+M5 baseline revision jumps on save -> ['FAIL  codex-1 handoff registers a baseline', 'FAIL  codex-3 edit made while an adoption reload is in flight', 'FAIL  round-1 h2 edit made while a poll reload is in flight', 'failing seeds: 396  by invariant {"I2":396,"I3":378}']
+M6 dirty decided before the row arrives is not modelled; instead: no revision check on poll -> ['failing seeds: 3  by invariant {"I3":3}']
+M7 editor says saved without checking the draft -> ['failing seeds: 27  by invariant {"I1":27}']
+M8 merge ignores rejected (keeps stale rejected) -> ['failing seeds: 0']

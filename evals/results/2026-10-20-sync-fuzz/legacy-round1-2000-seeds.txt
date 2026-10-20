@@ -1,0 +1,137 @@
+
+Deterministic cases (legacy engine)
+FAIL  codex-1 handoff registers a baseline
+      I1: an edit on a feed-created application never reached the server
+      I3: A holds app-2 with no baseline, so nothing it edits can save
+      I1: A's last edit of app-2.jobTitle (t:H1;) was lost: not on the server, not in a conflict buffer, not a refused value
+FAIL  codex-2 editor survives a failed conflict reload
+      I1: retry reported "clean" but the server never accepted the draft (the draft was lost)
+FAIL  codex-3 edit made while an adoption reload is in flight
+      I1: the edit made during the reload was overwritten
+      I1: A's last edit of app-1.company (t:C1;) was lost: not on the server, not in a conflict buffer, not a refused value
+FAIL  codex-4 late regenerate response after a newer revision
+      I1: the tab shows the older letter after the late response: {"applicantAddress":{"name":"","street":"","city":"","country":"","phone":"","em
+      I3: A's cover_letter on app-1 differs from the server after settling
+FAIL  low refused value does not block polling
+      I1: the poll did not load the newer company because a refused field was pending
+      I3: A's baseline of app-1 is revision 0, the server is at 1
+      I3: A's company on app-1 differs from the server after settling
+FAIL  round-1 h2 edit made while a poll reload is in flight
+      I1: the template change made during the reload never reached the server
+      I1: A's last edit of app-1.selectedTemplate (t:T1;) was lost: not on the server, not in a conflict buffer, not a refused value
+  500/2000 seeds, 500 failing
+  1000/2000 seeds, 1000 failing
+  1500/2000 seeds, 1500 failing
+  2000/2000 seeds, 2000 failing
+
+2000 seeds (1..2000), 60 operations each, legacy engine, 7.6s
+totals {"ops":120000,"edits":32067,"editorSaves":6925,"regens":9317,"agentWrites":19710,"handoffs":4087,"polls":16005,"saves":16149,"requests":55484,"dropped":3709,"lostAnswers":5615,"hung":0,"conflictNotices":8914,"failureNotices":2112,"settleRounds":4000}
+failing seeds: 2000  by invariant {"I1":2000,"I3":1569}
+seeds per kind of violation:
+   2000  I1: TAB last edit of APP.FIELD (T) was lost: not on the server, not in a conflict buffer, not a refused value
+   1567  I3: TAB holds APP with no baseline, so nothing it edits can save
+    649  I1: TAB editor on APP.FIELD was told "OUTCOME" but the server never accepted the draft
+     12  I3: TAB COLUMN on APP differs from the server after settling
+      7  I3: TAB baseline of APP is revision N, the server is at N
+  seed 1
+      I1: A's editor on app-1.coverLetter was told "failed" but the server never accepted the draft
+      I3: A holds app-2 with no baseline, so nothing it edits can save
+      I1: A's last edit of app-1.company (t:A1;) was lost: not on the server, not in a conflict buffer, not a refused value
+  seed 2
+      I3: A holds app-3 with no baseline, so nothing it edits can save
+      I1: A's last edit of app-1.selectedTemplate (t:A26;) was lost: not on the server, not in a conflict buffer, not a refused value
+      I1: A's last edit of app-1.email (t:A9;) was lost: not on the server, not in a conflict buffer, not a refused value
+  seed 3
+      I3: A holds app-2 with no baseline, so nothing it edits can save
+      I3: A holds app-3 with no baseline, so nothing it edits can save
+      I3: A holds app-4 with no baseline, so nothing it edits can save
+  seed 4
+      I3: A holds app-2 with no baseline, so nothing it edits can save
+      I3: A holds app-3 with no baseline, so nothing it edits can save
+      I3: A holds app-4 with no baseline, so nothing it edits can save
+  seed 5
+      I1: A's last edit of app-1.selectedTemplate (t:A22;) was lost: not on the server, not in a conflict buffer, not a refused value
+      I1: A's last edit of app-1.email (t:A28;) was lost: not on the server, not in a conflict buffer, not a refused value
+      I1: A's last edit of app-1.jobTitle (t:A12;) was lost: not on the server, not in a conflict buffer, not a refused value
+  seed 6
+      I3: A holds app-2 with no baseline, so nothing it edits can save
+      I3: A holds app-3 with no baseline, so nothing it edits can save
+      I3: A holds app-4 with no baseline, so nothing it edits can save
+  seed 7
+      I3: A holds app-2 with no baseline, so nothing it edits can save
+      I3: A holds app-3 with no baseline, so nothing it edits can save
+      I1: A's last edit of app-1.jobDescription (t:A1;) was lost: not on the server, not in a conflict buffer, not a refused value
+  seed 8
+      I1: A's editor on app-2.followUpEmail was told "skipped" but the server never accepted the draft
+      I3: A holds app-2 with no baseline, so nothing it edits can save
+      I3: A holds app-3 with no baseline, so nothing it edits can save
+  seed 9
+      I3: A holds app-2 with no baseline, so nothing it edits can save
+      I3: A holds app-3 with no baseline, so nothing it edits can save
+      I1: A's last edit of app-1.email (t:A11;) was lost: not on the server, not in a conflict buffer, not a refused value
+  seed 10
+      I3: A holds app-2 with no baseline, so nothing it edits can save
+      I3: A holds app-3 with no baseline, so nothing it edits can save
+      I1: A's last edit of app-1.company (t:A31;) was lost: not on the server, not in a conflict buffer, not a refused value
+  seed 11
+      I3: A holds app-2 with no baseline, so nothing it edits can save
+      I1: A's last edit of app-1.selectedTemplate (t:A18;) was lost: not on the server, not in a conflict buffer, not a refused value
+      I1: A's last edit of app-1.jobDescription (t:A25;) was lost: not on the server, not in a conflict buffer, not a refused value
+  seed 12
+      I3: A holds app-2 with no baseline, so nothing it edits can save
+      I3: A holds app-3 with no baseline, so nothing it edits can save
+      I1: A's last edit of app-1.jobTitle (t:A26;) was lost: not on the server, not in a conflict buffer, not a refused value
+  seed 13
+      I1: A's editor on app-1.followUpEmail was told "failed" but the server never accepted the draft
+      I1: A's last edit of app-1.jobDescription (t:A33;) was lost: not on the server, not in a conflict buffer, not a refused value
+      I1: A's last edit of app-1.email (t:A16;) was lost: not on the server, not in a conflict buffer, not a refused value
+  seed 14
+      I1: A's editor on app-2.followUpEmail was told "skipped" but the server never accepted the draft
+      I1: A's editor on app-2.coverLetter was told "skipped" but the server never accepted the draft
+      I3: A holds app-2 with no baseline, so nothing it edits can save
+  seed 15
+      I1: A's last edit of app-1.jobTitle (t:A19;) was lost: not on the server, not in a conflict buffer, not a refused value
+      I1: A's last edit of app-1.jobDescription (t:A9;) was lost: not on the server, not in a conflict buffer, not a refused value
+      I1: A's last edit of app-1.coverLetter (t:A29;) was lost: not on the server, not in a conflict buffer, not a refused value
+  seed 16
+      I1: A's editor on app-2.email was told "skipped" but the server never accepted the draft
+      I3: A holds app-2 with no baseline, so nothing it edits can save
+      I3: A holds app-3 with no baseline, so nothing it edits can save
+  seed 17
+      I1: A's editor on app-2.followUpEmail was told "skipped" but the server never accepted the draft
+      I3: A holds app-2 with no baseline, so nothing it edits can save
+      I3: A holds app-3 with no baseline, so nothing it edits can save
+  seed 18
+      I1: A's editor on app-2.followUpEmail was told "skipped" but the server never accepted the draft
+      I3: A holds app-2 with no baseline, so nothing it edits can save
+      I3: A holds app-3 with no baseline, so nothing it edits can save
+  seed 19
+      I3: A holds app-2 with no baseline, so nothing it edits can save
+      I3: A holds app-3 with no baseline, so nothing it edits can save
+      I1: A's last edit of app-1.company (t:A23;) was lost: not on the server, not in a conflict buffer, not a refused value
+  seed 20
+      I1: A's editor on app-3.coverLetter was told "skipped" but the server never accepted the draft
+      I3: A holds app-2 with no baseline, so nothing it edits can save
+      I3: A holds app-3 with no baseline, so nothing it edits can save
+  seed 21
+      I1: A's last edit of app-1.email (t:A30;) was lost: not on the server, not in a conflict buffer, not a refused value
+      I1: A's last edit of app-1.coverLetter (t:A11;) was lost: not on the server, not in a conflict buffer, not a refused value
+      I1: A's last edit of app-1.selectedTemplate (t:A28;) was lost: not on the server, not in a conflict buffer, not a refused value
+  seed 22
+      I1: A's last edit of app-1.selectedTemplate (t:A2;) was lost: not on the server, not in a conflict buffer, not a refused value
+      I1: A's last edit of app-1.email (t:A22;) was lost: not on the server, not in a conflict buffer, not a refused value
+      I1: A's last edit of app-1.jobTitle (t:A20;) was lost: not on the server, not in a conflict buffer, not a refused value
+  seed 23
+      I1: A's last edit of app-1.company (t:A19;) was lost: not on the server, not in a conflict buffer, not a refused value
+      I1: A's last edit of app-1.selectedTemplate (t:A17;) was lost: not on the server, not in a conflict buffer, not a refused value
+      I1: A's last edit of app-1.email (t:A13;) was lost: not on the server, not in a conflict buffer, not a refused value
+  seed 24
+      I3: A holds app-3 with no baseline, so nothing it edits can save
+      I1: A's last edit of app-1.followUpEmail (t:A22;) was lost: not on the server, not in a conflict buffer, not a refused value
+      I1: A's last edit of app-1.company (t:A3;) was lost: not on the server, not in a conflict buffer, not a refused value
+  seed 25
+      I1: A's editor on app-1.email was told "clean" but the server never accepted the draft
+      I1: A's editor on app-2.coverLetter was told "skipped" but the server never accepted the draft
+      I3: A holds app-2 with no baseline, so nothing it edits can save
+  ... and 1975 more
+seed list: 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100, ... (2000 in all, see --out)

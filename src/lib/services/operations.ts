@@ -150,8 +150,8 @@ export async function findReusableOperation(
 
 export interface ExistingOperation {
   operation: AgentOperation;
-  /** Why it was returned: the client's own key, or an identical request under another key. */
-  matchedBy: 'key' | 'input';
+  /** Why it was returned: the client's own key, an identical request under another key, or the application already has one running. */
+  matchedBy: 'key' | 'input' | 'session';
 }
 
 /**
@@ -163,6 +163,7 @@ export async function resolveExistingOperation(params: {
   kind: string;
   idempotencyKey: string;
   inputHash: string;
+  sessionId?: string | null;
 }): Promise<ExistingOperation | null> {
   const byKey = await findOperationByKey(params.userId, params.kind, params.idempotencyKey);
   if (byKey) {
@@ -171,7 +172,29 @@ export async function resolveExistingOperation(params: {
   }
   const byInput = await findReusableOperation(params.userId, params.kind, params.inputHash);
   if (byInput) return { operation: byInput, matchedBy: 'input' };
+  // One generation at a time per application: a second request, whatever its input, joins the first.
+  if (params.sessionId) {
+    const live = await findLiveOperationForSession(params.userId, params.kind, params.sessionId);
+    if (live) return { operation: live, matchedBy: 'session' };
+  }
   return null;
+}
+
+/** The pending or running operation of this kind on an application, if there is one. */
+export async function findLiveOperationForSession(userId: string, kind: string, sessionId: string): Promise<AgentOperation | null> {
+  const db = await getDb();
+  const rows = await db
+    .select()
+    .from(agentOperations)
+    .where(and(
+      eq(agentOperations.user_id, userId),
+      eq(agentOperations.kind, kind),
+      eq(agentOperations.session_id, sessionId),
+      inArray(agentOperations.status, ['pending', 'running']),
+    ))
+    .orderBy(sql`${agentOperations.created_at} desc`)
+    .limit(1);
+  return (rows[0] as AgentOperation | undefined) ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -180,7 +203,7 @@ export async function resolveExistingOperation(params: {
 
 export type InsertOperationResult =
   | { outcome: 'created'; operation: AgentOperation }
-  | { outcome: 'existing'; operation: AgentOperation; matchedBy: 'key' | 'input' }
+  | { outcome: 'existing'; operation: AgentOperation; matchedBy: 'key' | 'input' | 'session' }
   | { outcome: 'limit' }
   /** The reservation this operation was to hold is no longer reserved. */
   | { outcome: 'reservation_lost' };
@@ -221,6 +244,13 @@ export async function insertOperation(params: {
         ${params.reservationKey} IS NULL
         OR EXISTS (SELECT 1 FROM credit_reservations WHERE idempotency_key = ${params.reservationKey} AND status = 'reserved')
       )
+      AND (
+        ${params.sessionId} IS NULL
+        OR NOT EXISTS (
+          SELECT 1 FROM agent_operations
+          WHERE user_id = ${params.userId} AND kind = ${params.kind} AND session_id = ${params.sessionId} AND status IN ('pending', 'running')
+        )
+      )
       ON CONFLICT (user_id, kind, idempotency_key) DO NOTHING
     `]);
     changes = result.meta.changes;
@@ -240,6 +270,11 @@ export async function insertOperation(params: {
   if (byKey) {
     if (byKey.input_hash !== params.inputHash) throw new IdempotencyKeyMismatch();
     return { outcome: 'existing', operation: byKey, matchedBy: 'key' };
+  }
+  if (params.sessionId) {
+    // One generation at a time per application: the insert is refused while one is live.
+    const live = await findLiveOperationForSession(params.userId, params.kind, params.sessionId);
+    if (live) return { outcome: 'existing', operation: live, matchedBy: 'session' };
   }
   if (params.reservationKey) {
     const db = await getDb();

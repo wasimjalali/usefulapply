@@ -38,7 +38,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from './ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import type { Profile } from '@/lib/supabase/types';
-import { commitEditorSave, getBaselineRevision, persistSessionEdits } from '@/lib/session-sync';
+import { commitEditorSave, editorSaveSucceeded, getEditorStart, persistSessionEdits, type EditorStart } from '@/lib/session-sync';
 
 interface CVPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -93,7 +93,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const editableCVRef = useRef<EditableCVCanvasRef>(null);
   const editSessionIdRef = useRef<string | null>(null);
   // The revision the editor opened on; the draft lives outside the store (see commitEditorSave).
-  const editStartRevisionRef = useRef<number | undefined>(undefined);
+  const editStartRef = useRef<EditorStart | undefined>(undefined);
   useEffect(() => {
     if (editSessionIdRef.current === null || editSessionIdRef.current === currentSession?.id) return;
     editSessionIdRef.current = null;
@@ -333,7 +333,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           onClick={() => {
             setIsEditMode(true);
             editSessionIdRef.current = currentSession?.id ?? null;
-            editStartRevisionRef.current = currentSession ? getBaselineRevision(currentSession.id) : undefined;
+            editStartRef.current = currentSession ? getEditorStart(currentSession.id) : undefined;
             setShowTemplates(false);
             if (cvData && !editedCVData) setEditedCVData(cvData);
           }}
@@ -503,7 +503,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                         // Save now, against the revision this editor opened on. If another
                         // write got in first the draft is not applied: the editor reopens
                         // with the text in it so it can be copied.
-                        void commitEditorSave(editSessionId, editStartRevisionRef.current, () => {
+                        void commitEditorSave(editSessionId, editStartRef.current, () => {
                           useSessionStore.getState().updateSessionById(editSessionId, {
                             optimizedCVData: {
                               ...updatedData,
@@ -513,8 +513,8 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                             } as ApplicationSession['optimizedCVData'],
                           });
                         }).then((outcome) => {
-                          if (outcome !== 'conflict') return;
-                          editStartRevisionRef.current = getBaselineRevision(editSessionId);
+                          // Anything but a save the server confirmed reopens the editor with the text in it.
+                          if (editorSaveSucceeded(outcome)) return;
                           editSessionIdRef.current = editSessionId;
                           setEditedCVData(updatedData);
                           setIsEditMode(true);

@@ -27,7 +27,7 @@ test('(d) enqueueKitGeneration: idempotency, limits, retries, crash recovery', a
   const report = await runTool<Report>('e2e/tools/scenarios.ts', ['d']);
   const failed = report.scenarios.filter((scenario) => !scenario.passed);
   expect(failed, JSON.stringify(failed, null, 2)).toEqual([]);
-  expect(report.scenarios).toHaveLength(23);
+  expect(report.scenarios).toHaveLength(25);
   test.info().attach('scenarios-d.json', { body: JSON.stringify(report, null, 2), contentType: 'application/json' });
 });
 

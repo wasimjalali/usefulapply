@@ -12,7 +12,7 @@ import { useToast } from './ui/Toast';
 import { usePostHog } from 'posthog-js/react';
 import { formatEmailAsText } from '@/lib/utils/kit-export';
 import { useSessionStore } from '@/store/useSessionStore';
-import { commitEditorSave, getBaselineRevision } from '@/lib/session-sync';
+import { commitEditorSave, editorSaveSucceeded, getEditorStart, type EditorStart } from '@/lib/session-sync';
 
 interface EmailPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -60,7 +60,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   const [editBase, setEditBase] = useState<{ email: GeneratedEmail | null; followUp: FollowUp | null } | null>(null);
   const editSessionIdRef = useRef<string | null>(null);
   // The revision the editor opened on; the drafts live outside the store (see commitEditorSave).
-  const editStartRevisionRef = useRef<number | undefined>(undefined);
+  const editStartRef = useRef<EditorStart | undefined>(undefined);
   const { toast } = useToast();
 
   const editsCurrent = isEditMode || (editBase !== null && editBase.email === (email ?? null) && editBase.followUp === (followUpEmail ?? null));
@@ -98,14 +98,12 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
     }
     // Save now, against the revision this editor opened on. If another write got in
     // first the drafts are not applied: the editor stays open with the text in it.
-    void commitEditorSave(editSessionId, editStartRevisionRef.current, () => {
+    void commitEditorSave(editSessionId, editStartRef.current, () => {
       if (editedEmail) useSessionStore.getState().updateSessionById(editSessionId, { email: editedEmail });
       if (editedFollowUp) useSessionStore.getState().updateSessionById(editSessionId, { followUpEmail: editedFollowUp });
     }).then((outcome) => {
-      if (outcome === 'conflict') {
-        editStartRevisionRef.current = getBaselineRevision(editSessionId);
-        return;
-      }
+      // Anything but a save the server confirmed leaves the editor open with the text in it.
+      if (!editorSaveSucceeded(outcome)) return;
       setEditedEmail(null);
       setEditedFollowUp(null);
       setEditBase(null);
@@ -233,7 +231,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
           onClick={() => {
             setIsEditMode(true);
             editSessionIdRef.current = currentSession?.id ?? null;
-            editStartRevisionRef.current = currentSession ? getBaselineRevision(currentSession.id) : undefined;
+            editStartRef.current = currentSession ? getEditorStart(currentSession.id) : undefined;
             setEditedEmail(email ?? null);
             setEditedFollowUp(followUpEmail ?? null);
             setEditBase({ email: email ?? null, followUp: followUpEmail ?? null });

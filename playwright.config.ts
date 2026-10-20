@@ -20,7 +20,9 @@ import { BASE_URL, FAKE_ANTHROPIC_PORT, FAKE_ANTHROPIC_URL, OAUTH_PORT, PREVIEW_
  *   An installed Google Chrome, or PW_CHANNEL=chromium after `npx playwright install chromium`,
  *   or E2E_CHROMIUM=/path/to/chrome.
  *
- * Run both: npm run test:e2e. One project: npx playwright test --project=data.
+ * Run both: npm run test:e2e. One project: npx playwright test --project=data. Playwright's
+ * `webServer` list is global, not per project, so a single-project run still starts all three
+ * servers (8791, the fake model and 8794) and fails if any of those ports is taken.
  * Servers are always started fresh (`reuseExistingServer: false`), so a stale process on a
  * port fails the run instead of being tested by accident. Artifacts go to
  * `<main checkout>/verify/<branch>/` (override with E2E_ARTIFACTS). PW_VIDEO=off skips video.
