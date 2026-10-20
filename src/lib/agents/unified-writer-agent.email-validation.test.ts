@@ -11,6 +11,23 @@ import {
   unifiedWriterAgent,
 } from './unified-writer-agent';
 
+const STUB_COVER_LETTER = {
+  body: 'Cover letter',
+  structured: {
+    version: 2 as const,
+    language: 'en',
+    market: 'us' as const,
+    sender: { name: 'Ada Lovelace', addressLines: [] },
+    recipient: { companyName: 'Example Corp', addressLines: [] },
+    date: '2026-10-20',
+    subject: 'Application for Software Engineer',
+    salutation: 'Dear Hiring Manager,',
+    paragraphs: ['Cover letter'],
+    closing: 'Sincerely,',
+    signatureName: 'Ada Lovelace',
+  },
+};
+
 const GENERATION_CONTEXT: LlmGenerationContext = {
   requestExecutionId: 'request-1',
   route: '/api/agent-v2',
@@ -107,7 +124,7 @@ test(`the subject is built in code from a long job title and the model's subject
       };
     },
     async generateCoverLetter() {
-      return { result: 'Cover letter', tokens: { input: 1, output: 1 } };
+      return { result: STUB_COVER_LETTER, tokens: { input: 1, output: 1 } };
     },
     async generateApplicationEmail(generationContextValue, ledgerContext) {
       return generateApplicationEmailWithRetry(generationContextValue, ledgerContext, modelCall);
@@ -277,7 +294,7 @@ test('a follow-up validation failure leaves the rest of the kit intact', async (
       };
     },
     async generateCoverLetter() {
-      return { result: 'Cover letter', tokens: { input: 1, output: 1 } };
+      return { result: STUB_COVER_LETTER, tokens: { input: 1, output: 1 } };
     },
     async generateApplicationEmail() {
       return {

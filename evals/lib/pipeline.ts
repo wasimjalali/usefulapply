@@ -180,7 +180,7 @@ export async function runKit(c: ResolvedCase, ctx: CallContext, fixed?: KitInter
       fail('optimize_cv', e);
     }
     try {
-      context.coverLetter = (await unifiedWriterAgent.generateCoverLetter(context, gc)).result;
+      context.coverLetter = (await unifiedWriterAgent.generateCoverLetter(context, gc)).result.body;
     } catch (e) {
       fail('write_cover_letter', e);
       // Keep the chain going on the raw text so the email prompts see a letter.

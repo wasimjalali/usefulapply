@@ -1,0 +1,956 @@
+{
+ "total": 190,
+ "failed": 0,
+ "checks": [
+  {
+   "name": "real_address_kept",
+   "pass": true,
+   "detail": "[\"Industriestraße 14\",\"90431 Nürnberg\"]"
+  },
+  {
+   "name": "contract_guard_accepts_output",
+   "pass": true,
+   "detail": "isStructuredCoverLetter(output)"
+  },
+  {
+   "name": "fake_address_dropped",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "partly_fake_address_dropped_whole",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "splice_of_two_offices_dropped",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "street_without_house_number_dropped",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "phone_line_is_not_an_address",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "phone_line_set_aside",
+   "pass": true,
+   "detail": "[\"Industriestraße 14\",\"90431 Nürnberg\"]"
+  },
+  {
+   "name": "email_line_set_aside",
+   "pass": true,
+   "detail": "[\"Industriestraße 14\",\"90431 Nürnberg\"]"
+  },
+  {
+   "name": "digitless_address_dropped",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "ss_for_eszett_matches_and_keeps_ad_spelling",
+   "pass": true,
+   "detail": "[\"Industriestraße 14\",\"90431 Nürnberg\"]"
+  },
+  {
+   "name": "ad_casing_kept",
+   "pass": true,
+   "detail": "[\"Industriestraße 14\",\"90431 Nürnberg\"]"
+  },
+  {
+   "name": "saved_address_wins",
+   "pass": true,
+   "detail": "[\"Musterweg 3\",\"90402 Nürnberg\"]"
+  },
+  {
+   "name": "address_in_paragraph_rejected",
+   "pass": true,
+   "detail": "Cover letter validation failed: the letter text contained the postal address, which belongs only in the recipient field"
+  },
+  {
+   "name": "boilerplate_accommodation_address_dropped",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "us_application_address_kept",
+   "pass": true,
+   "detail": "[\"220 West Lake Street, Suite 1400\",\"Chicago, IL 60606\"]"
+  },
+  {
+   "name": "fr_application_address_kept",
+   "pass": true,
+   "detail": "[\"12 rue de la République\",\"69002 Lyon\"]"
+  },
+  {
+   "name": "fake_contact_dropped",
+   "pass": true,
+   "detail": "undefined"
+  },
+  {
+   "name": "cross_person_title_corrected_to_stated_title",
+   "pass": true,
+   "detail": "Sehr geehrte Frau Hoffmann,"
+  },
+  {
+   "name": "stated_title_for_same_person_kept",
+   "pass": true,
+   "detail": "Sehr geehrte Frau Hoffmann,"
+  },
+  {
+   "name": "first_and_last_name_from_two_people_falls_back",
+   "pass": true,
+   "detail": "Sehr geehrte Frau Hoffmann,"
+  },
+  {
+   "name": "geehrter_without_stated_title_falls_back",
+   "pass": true,
+   "detail": "Guten Tag Jordan Hoffmann,"
+  },
+  {
+   "name": "saved_contact_is_the_addressee",
+   "pass": true,
+   "detail": "Sehr geehrter Herr Kaiser,"
+  },
+  {
+   "name": "guessed_title_falls_back_to_neutral",
+   "pass": true,
+   "detail": "Dear Dana Whitfield,"
+  },
+  {
+   "name": "en_salutation_gets_its_comma",
+   "pass": true,
+   "detail": "Dear Dana Whitfield,"
+  },
+  {
+   "name": "placeholder_salutation_falls_back",
+   "pass": true,
+   "detail": "Dear Dana Whitfield,"
+  },
+  {
+   "name": "nobody_named_gets_generic_greeting",
+   "pass": true,
+   "detail": "Dear Hiring Team,"
+  },
+  {
+   "name": "title_without_name_gets_generic_greeting",
+   "pass": true,
+   "detail": "Sehr geehrte Damen und Herren,"
+  },
+  {
+   "name": "fr_stated_title_kept",
+   "pass": true,
+   "detail": "Madame Dubois,"
+  },
+  {
+   "name": "fr_chere_madame_kept",
+   "pass": true,
+   "detail": "Chère Madame Dubois,"
+  },
+  {
+   "name": "fr_wrong_title_corrected_to_stated_title",
+   "pass": true,
+   "detail": "Madame Dubois,"
+  },
+  {
+   "name": "fr_cher_adjective_falls_back",
+   "pass": true,
+   "detail": "Madame Dubois,"
+  },
+  {
+   "name": "fr_generic_kept",
+   "pass": true,
+   "detail": "Madame, Monsieur,"
+  },
+  {
+   "name": "es_estimada_without_title_falls_back",
+   "pass": true,
+   "detail": "Buenos días Laura García,"
+  },
+  {
+   "name": "nl_stated_title_kept",
+   "pass": true,
+   "detail": "Geachte mevrouw De Vries,"
+  },
+  {
+   "name": "it_signora_without_title_falls_back",
+   "pass": true,
+   "detail": "Gentile Giulia Rossi,"
+  },
+  {
+   "name": "subject_number_not_in_ad_falls_back",
+   "pass": true,
+   "detail": "Bewerbung als Key Account Manager"
+  },
+  {
+   "name": "subject_ad_number_kept",
+   "pass": true,
+   "detail": "KAM-2026-17"
+  },
+  {
+   "name": "subject_short_numbers_ignored",
+   "pass": true,
+   "detail": "Level 2"
+  },
+  {
+   "name": "subject_bracket_from_title_kept",
+   "pass": true,
+   "detail": "Engineer [Remote]"
+  },
+  {
+   "name": "subject_placeholder_falls_back",
+   "pass": true,
+   "detail": "Application for Engineer"
+  },
+  {
+   "name": "german_subject_without_bewerbung_falls_back",
+   "pass": true,
+   "detail": "Bewerbung als Key Account Manager"
+  },
+  {
+   "name": "closing_without_signature_name",
+   "pass": true,
+   "detail": "Kind regards,"
+  },
+  {
+   "name": "market_Vienna_VA_en_en",
+   "pass": true,
+   "detail": "us (expected us)"
+  },
+  {
+   "name": "market_Berlin_MA_en_en",
+   "pass": true,
+   "detail": "us (expected us)"
+  },
+  {
+   "name": "market_Geneva_IL_60134_en_en",
+   "pass": true,
+   "detail": "us (expected us)"
+  },
+  {
+   "name": "market_Berlin_en_en",
+   "pass": true,
+   "detail": "us (expected us)"
+  },
+  {
+   "name": "market_Berlin_Germany_en_en",
+   "pass": true,
+   "detail": "dach (expected dach)"
+  },
+  {
+   "name": "market_Wien_en_de",
+   "pass": true,
+   "detail": "dach (expected dach)"
+  },
+  {
+   "name": "market_Z_rich_Schweiz_en_en",
+   "pass": true,
+   "detail": "dach (expected dach)"
+  },
+  {
+   "name": "market_Remote_de_de",
+   "pass": true,
+   "detail": "dach (expected dach)"
+  },
+  {
+   "name": "contract_guard_rejects_shallow_object",
+   "pass": true,
+   "detail": "shallow object"
+  },
+  {
+   "name": "r2_1_us_4_digit_house_number_kept",
+   "pass": true,
+   "detail": "[\"1234 Market Street\",\"San Francisco, CA 94103\"]"
+  },
+  {
+   "name": "r2_1_us_5_digit_house_number_kept",
+   "pass": true,
+   "detail": "[\"10000 North Central Expressway\",\"Dallas, TX 75231\"]"
+  },
+  {
+   "name": "r2_1_us_two_line_kept",
+   "pass": true,
+   "detail": "[\"1234 Market Street\",\"San Francisco, CA 94103\"]"
+  },
+  {
+   "name": "r2_2_submission_phrase_wins_inside_boilerplate",
+   "pass": true,
+   "detail": "[\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_2_privacy_words_after_block_do_not_reject",
+   "pass": true,
+   "detail": "[\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_2_syn07_accommodation_address_still_dropped",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r2_3_contact_colon_anchors",
+   "pass": true,
+   "detail": "[\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_3_our_office_anchors",
+   "pass": true,
+   "detail": "[\"500 Main Street\",\"Boston, MA 02110\"]"
+  },
+  {
+   "name": "r2_3_headquarters_anchors",
+   "pass": true,
+   "detail": "[\"500 Main Street\",\"Boston, MA 02110\"]"
+  },
+  {
+   "name": "r2_3_bare_bewerbung_is_not_an_anchor",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r2_3_einsatzort_is_not_an_application_address",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r2_3_job_site_is_not_an_application_address",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r2_4_format_postfach_kept",
+   "pass": true,
+   "detail": "[\"Postfach 12 34 56\",\"90431 Nürnberg\"]"
+  },
+  {
+   "name": "r2_4_format_po_box_kept",
+   "pass": true,
+   "detail": "[\"PO Box 12345\",\"Chicago, IL 60606\"]"
+  },
+  {
+   "name": "r2_4_format_canada_kept",
+   "pass": true,
+   "detail": "[\"100 King Street West\",\"Toronto, ON M5X 1A9\"]"
+  },
+  {
+   "name": "r2_4_format_uk_kept",
+   "pass": true,
+   "detail": "[\"10 Downing Street\",\"London SW1A 2AA\"]"
+  },
+  {
+   "name": "r2_4_format_portugal_kept",
+   "pass": true,
+   "detail": "[\"Rua Augusta 100\",\"1100-053 Lisboa\"]"
+  },
+  {
+   "name": "r2_4_format_us_no_comma_kept",
+   "pass": true,
+   "detail": "[\"220 West Lake Street\",\"Chicago IL 60606\"]"
+  },
+  {
+   "name": "r2_4_format_us_full_state_kept",
+   "pass": true,
+   "detail": "[\"220 West Lake Street\",\"Chicago, Illinois 60606\"]"
+  },
+  {
+   "name": "r2_4_format_haus_line_kept",
+   "pass": true,
+   "detail": "[\"Campusweg 2\",\"Haus 3\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_4_format_c_o_line_kept",
+   "pass": true,
+   "detail": "[\"c/o Regus\",\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_4_pipe_separator_split",
+   "pass": true,
+   "detail": "[\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_4_middle_dot_separator_split",
+   "pass": true,
+   "detail": "[\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_4_spaced_hyphen_separator_split",
+   "pass": true,
+   "detail": "[\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_4_semicolon_separator_split",
+   "pass": true,
+   "detail": "[\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_4_markdown_stripped",
+   "pass": true,
+   "detail": "[\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_4_line_over_100_chars_dropped",
+   "pass": true,
+   "detail": "115 chars -> []"
+  },
+  {
+   "name": "r2_5_sentence_ending_in_best_passes",
+   "pass": true,
+   "detail": "Best,"
+  },
+  {
+   "name": "r2_5_sign_off_on_last_line_rejected",
+   "pass": true,
+   "detail": "Cover letter validation failed: a paragraph repeated the sign-off or the signature"
+  },
+  {
+   "name": "r2_6_market_Berlin_DE",
+   "pass": true,
+   "detail": "dach (expected dach)"
+  },
+  {
+   "name": "r2_6_market_Wien_AT",
+   "pass": true,
+   "detail": "dach (expected dach)"
+  },
+  {
+   "name": "r2_6_market_Z_rich_CH",
+   "pass": true,
+   "detail": "dach (expected dach)"
+  },
+  {
+   "name": "r2_6_market_Bern_BE",
+   "pass": true,
+   "detail": "dach (expected dach)"
+  },
+  {
+   "name": "r2_6_market_Dover_DE",
+   "pass": true,
+   "detail": "us (expected us)"
+  },
+  {
+   "name": "r2_6_market_Vienna_VA",
+   "pass": true,
+   "detail": "us (expected us)"
+  },
+  {
+   "name": "r2_7_contract_rejects_empty_subject",
+   "pass": true,
+   "detail": "empty subject"
+  },
+  {
+   "name": "r2_7_contract_rejects_no_paragraphs",
+   "pass": true,
+   "detail": "no paragraphs"
+  },
+  {
+   "name": "r2_7_contract_rejects_empty_language",
+   "pass": true,
+   "detail": "empty language"
+  },
+  {
+   "name": "r2_7_contract_rejects_numeric_place",
+   "pass": true,
+   "detail": "numeric place"
+  },
+  {
+   "name": "r2_7_contract_rejects_sender_phone_not_text",
+   "pass": true,
+   "detail": "sender phone not text"
+  },
+  {
+   "name": "r2_7_contract_rejects_sender_links_not_a_list",
+   "pass": true,
+   "detail": "sender links not a list"
+  },
+  {
+   "name": "r2_7_contract_rejects_recipient_contact_not_text",
+   "pass": true,
+   "detail": "recipient contact not text"
+  },
+  {
+   "name": "r2_7_contract_rejects_empty_signature_name",
+   "pass": true,
+   "detail": "empty signature name"
+  },
+  {
+   "name": "r2_8_missing_subject_degrades",
+   "pass": true,
+   "detail": "Application for Senior FP&A Analyst"
+  },
+  {
+   "name": "r2_8_null_subject_degrades_de",
+   "pass": true,
+   "detail": "Bewerbung als Key Account Manager (m/w/d) Antriebstechnik"
+  },
+  {
+   "name": "r2_9_one_word_contact_gets_generic",
+   "pass": true,
+   "detail": "Dear Hiring Team,"
+  },
+  {
+   "name": "r2_9_bare_surname_salutation_falls_back",
+   "pass": true,
+   "detail": "Dear Hiring Team,"
+  },
+  {
+   "name": "r2_9_wrong_gender_corrected_de",
+   "pass": true,
+   "detail": "Sehr geehrte Frau Brandl,"
+  },
+  {
+   "name": "r2_9_closing_honorific_and_separator_removed",
+   "pass": true,
+   "detail": "Best regards,"
+  },
+  {
+   "name": "r2_9_closing_unknown_after_strip_gets_default",
+   "pass": true,
+   "detail": "Sincerely,"
+  },
+  {
+   "name": "r2_10_imprint_name_dropped",
+   "pass": true,
+   "detail": "undefined"
+  },
+  {
+   "name": "r2_10_application_contact_kept",
+   "pass": true,
+   "detail": "Frau Melanie Brandl"
+  },
+  {
+   "name": "r2_11_street_part_alone_rejected",
+   "pass": true,
+   "detail": "Cover letter validation failed: the letter text contained the postal address, which belongs only in the recipient field"
+  },
+  {
+   "name": "r2_11_short_saved_unit_line_ignored",
+   "pass": true,
+   "detail": "[\"1 Harbor Plaza\",\"Floor 5\",\"Chicago, IL 60601\"]"
+  },
+  {
+   "name": "r2_12_unstated_reference_dropped_at_comma",
+   "pass": true,
+   "detail": "Application for Senior FP&A Analyst"
+  },
+  {
+   "name": "r2_12_unstated_code_without_comma_rebuilt",
+   "pass": true,
+   "detail": "Application for Senior FP&A Analyst"
+  },
+  {
+   "name": "r2_12_two_digit_reference_checked",
+   "pass": true,
+   "detail": "Bewerbung als Key Account Manager"
+  },
+  {
+   "name": "r2_12_stated_reference_kept",
+   "pass": true,
+   "detail": "#NW-4471"
+  },
+  {
+   "name": "r2_13_js_trim_keeps_nbsp_and_bom",
+   "pass": true,
+   "detail": "only space, tab, LF, CR stripped"
+  },
+  {
+   "name": "r2_13_sql_trim_uses_the_same_set",
+   "pass": true,
+   "detail": "trim(col, space tab LF CR)"
+  },
+  {
+   "name": "r2_13_sqlite_nbsp_bom_jd_same_job_keeps_columns",
+   "pass": true,
+   "detail": "a=Saved 1"
+  },
+  {
+   "name": "r2_13_sqlite_changed_jd_clears_columns",
+   "pass": true,
+   "detail": "b=NULL"
+  },
+  {
+   "name": "r2_14_sqlite_whitespace_only_column_filled_on_nbsp_jd",
+   "pass": true,
+   "detail": "c=Filled"
+  },
+  {
+   "name": "r3_7_sqlite_run_jd_from_route_helpers_fills",
+   "pass": true,
+   "detail": "d=Filled"
+  },
+  {
+   "name": "r2_15_explicit_undefined_still_resets",
+   "pass": true,
+   "detail": "object"
+  },
+  {
+   "name": "r2_15_explicit_value_kept",
+   "pass": true,
+   "detail": "Hauptstraße 5"
+  },
+  {
+   "name": "r2_15_no_job_change_no_reset",
+   "pass": true,
+   "detail": "untouched"
+  },
+  {
+   "name": "r3_1_probe_email_then_work_location_rejected",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r3_1_probe_email_then_einsatzort_rejected",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r3_1_probe_sentence_then_einsatzort_rejected",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r3_1_probe_email_then_eeo_footer_rejected",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r3_1_probe_nicht_an_dritte_then_impressum_rejected",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r3_1_contact_probe_impressum_geschaeftsfuehrer_rejected",
+   "pass": true,
+   "detail": "undefined"
+  },
+  {
+   "name": "r3_1_contact_probe_email_then_ceo_rejected",
+   "pass": true,
+   "detail": "undefined"
+  },
+  {
+   "name": "r3_1_legit_bewerbungen_richten_sie_an_kept",
+   "pass": true,
+   "detail": "[\"Industriestraße 14\",\"90431 Nürnberg\"]"
+  },
+  {
+   "name": "r3_1_abbreviations_are_not_sentence_breaks",
+   "pass": true,
+   "detail": "[\"220 West Lake Street, Suite 1400\",\"Chicago, IL 60606\"]"
+  },
+  {
+   "name": "r3_1_period_after_email_is_a_sentence_break",
+   "pass": true,
+   "detail": "bewerbung@acme.de."
+  },
+  {
+   "name": "r3_1_inc_and_z_b_are_not_sentence_breaks",
+   "pass": true,
+   "detail": "Inc. z. B. e.g. Dr."
+  },
+  {
+   "name": "r3_1_real_contact_still_kept",
+   "pass": true,
+   "detail": "Frau Melanie Brandl"
+  },
+  {
+   "name": "r3_2_other_persons_title_not_borrowed",
+   "pass": true,
+   "detail": "Guten Tag Melanie Brandl,"
+  },
+  {
+   "name": "r3_2_stated_title_with_given_name_used",
+   "pass": true,
+   "detail": "Sehr geehrte Frau Brandl,"
+  },
+  {
+   "name": "r3_3_history_after_hi_passes",
+   "pass": true,
+   "detail": "Hi,"
+  },
+  {
+   "name": "r3_4_later_anchored_occurrence_accepted",
+   "pass": true,
+   "detail": "[\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r3_4_footer_only_occurrence_rejected",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r3_5_format_paris_cedex_kept",
+   "pass": true,
+   "detail": "[\"12 rue de Rivoli\",\"75001 Paris Cedex 01\"]"
+  },
+  {
+   "name": "r3_5_format_halle_saale_kept",
+   "pass": true,
+   "detail": "[\"Hansering 15\",\"06108 Halle (Saale)\"]"
+  },
+  {
+   "name": "r3_5_format_san_francisco_no_comma_kept",
+   "pass": true,
+   "detail": "[\"1234 Market Street\",\"San Francisco CA 94103\"]"
+  },
+  {
+   "name": "r3_5_format_new_york_no_comma_kept",
+   "pass": true,
+   "detail": "[\"350 Fifth Avenue\",\"New York NY 10001\"]"
+  },
+  {
+   "name": "r3_7_nbsp_edge_is_the_same_job",
+   "pass": true,
+   "detail": "NBSP kept on both sides"
+  },
+  {
+   "name": "r3_7_string_trim_would_differ",
+   "pass": true,
+   "detail": "String.trim() drops the NBSP"
+  },
+  {
+   "name": "r3_7_whitespace_only_submission_is_empty",
+   "pass": true,
+   "detail": "empty"
+  },
+  {
+   "name": "arbiter_S1_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_S2_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_S3_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_S4_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_S5_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_S6_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_S6_short_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_S7_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_S8_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_A1_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A2_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A3_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A4_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A5_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_A6_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_A7_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A8_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_A9_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A10_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A11_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A12_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A13_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A13_no_phrase_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A14_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A14_no_phrase_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A15_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A16_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_A17_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_F1_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_F2_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_F3_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_F4_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_F5_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_F6_accept",
+   "pass": true,
+   "detail": "ACCEPT (expected ACCEPT)"
+  },
+  {
+   "name": "arbiter_F1_workplace_after_continuation_reject",
+   "pass": true,
+   "detail": "REJECT (expected REJECT)"
+  },
+  {
+   "name": "arbiter_boundary_bewerbung_acme_de_Einsatzort_",
+   "pass": true,
+   "detail": "true (expected true)"
+  },
+  {
+   "name": "arbiter_boundary_uns_z_B_",
+   "pass": true,
+   "detail": "false (expected false)"
+  },
+  {
+   "name": "arbiter_boundary_HR_Dept_",
+   "pass": true,
+   "detail": "false (expected false)"
+  },
+  {
+   "name": "arbiter_boundary_us_Then",
+   "pass": true,
+   "detail": "true (expected true)"
+  },
+  {
+   "name": "arbiter_boundary_Acme_Inc_Attn_HR_",
+   "pass": true,
+   "detail": "false (expected false)"
+  },
+  {
+   "name": "arbiter_boundary_z_Hd_Frau_Weber_",
+   "pass": true,
+   "detail": "false (expected false)"
+  },
+  {
+   "name": "arbiter_boundary_Acme_e_V_",
+   "pass": true,
+   "detail": "false (expected false)"
+  },
+  {
+   "name": "arbiter_boundary_St_Gallen",
+   "pass": true,
+   "detail": "false (expected false)"
+  },
+  {
+   "name": "replay_run4_sl-de-contact_unchanged",
+   "pass": true,
+   "detail": "identical"
+  },
+  {
+   "name": "replay_run4_sl-us-address_unchanged",
+   "pass": true,
+   "detail": "identical"
+  },
+  {
+   "name": "replay_run4_sl-fr-contact_unchanged",
+   "pass": true,
+   "detail": "identical"
+  },
+  {
+   "name": "replay_run4_syn-07_unchanged",
+   "pass": true,
+   "detail": "identical"
+  }
+ ]
+}

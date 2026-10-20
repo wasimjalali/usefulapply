@@ -163,7 +163,12 @@ export async function updateSessionAction(
   updates: Parameters<typeof sessionsRepo.updateSession>[2],
 ) {
   await requireUserId(userId);
-  return sessionsRepo.updateSession(userId, sessionId, updates);
+  // The cover letter recipient columns are server-managed (filled from the ad,
+  // cleared on a job change). A browser bundle, old or new, never writes them.
+  const { company_address: _address, company_contact_person: _contact, ...browserUpdates } = updates;
+  void _address;
+  void _contact;
+  return sessionsRepo.updateSession(userId, sessionId, browserUpdates);
 }
 
 export async function deleteSessionAction(userId: string, sessionId: string) {

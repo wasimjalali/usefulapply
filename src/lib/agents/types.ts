@@ -3,6 +3,8 @@
  * Useful Apply Unified Agent Architecture
  */
 
+import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
+
 // Token usage tracking for API calls
 export interface TokenUsage {
   input: number;
@@ -213,7 +215,10 @@ export interface MasterContext {
     };
     additionalInfo?: string[];
   };
+  /** The letter as complete plain text (canvas, copy, legacy export). */
   coverLetter?: string;
+  /** The same letter as the structured contract the export renderer lays out. */
+  coverLetterStructured?: StructuredCoverLetter;
   applicationEmail?: { subject: string; body: string };
   followUpEmail?: {
     subject: string;
@@ -238,6 +243,18 @@ export interface MasterContext {
     employmentTypes?: string[];
     targetMarket?: string | null;
     seniorityTarget?: string | null;
+  };
+
+  /**
+   * Recipient details saved on the application session row (company,
+   * company_address, company_contact_person). Set by the routes from the
+   * stored row, never from the ad or the model. The cover letter's recipient
+   * address comes only from here.
+   */
+  letterRecipient?: {
+    companyName?: string | null;
+    address?: string | null;
+    contactPerson?: string | null;
   };
 
   metadata?: Record<string, unknown>;

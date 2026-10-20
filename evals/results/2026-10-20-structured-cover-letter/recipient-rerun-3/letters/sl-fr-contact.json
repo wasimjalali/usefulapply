@@ -1,0 +1,310 @@
+{
+ "case_id": "sl-fr-contact",
+ "language": "fr",
+ "ok": true,
+ "error": null,
+ "cover_letter_calls": 1,
+ "body": "Tomas Brandt\nChicago, IL, USA\ntomas.brandt@example.com\n+1 555 0123\n\n20 octobre 2026\n\nMme Claire Dubois\nResponsable du recrutement\nLumière Logistique SAS\n12 rue de la République\n69002 Lyon\n\nCandidature au poste d'Analyste FP&A (H/F), réf. FPA-2026-031\n\nMadame Dubois,\n\nFiabiliser et accélérer la clôture mensuelle, c'est un sujet que je connais bien : chez Calder Industrial Components, j'ai ramené le reporting de clôture de 9 à 6 jours ouvrés en automatisant les contrôles d'écritures sous Excel VBA. Pour une équipe Contrôle de gestion qui accompagne les directions Opérations et Commerce, ce gain de temps change la qualité du pilotage.\n\nAnalyste financier depuis 5 ans en budgétisation, prévisions et reporting mensuel, je pilote aujourd'hui les prévisions mensuelles et l'analyse des écarts de deux unités d'activité réalisant ensemble environ 85 millions USD de chiffre d'affaires. En reconstruisant le modèle autour du carnet de commandes, j'ai fait passer la fiabilité des prévisions de la plus grande unité de 88 % à 96 %. J'ai aussi élaboré le budget annuel de l'équipe régionale chez Redfern Stores, et je construis des tableaux de bord Power BI sur données SAP pour des responsables de site non financiers, ce qui correspond à votre besoin de rendre les chiffres clairs pour les responsables d'agence du Sud-Est. Mon Excel est avancé et mon anglais est langue maternelle.\n\nJe serais heureux de vous présenter plus en détail ma méthode de prévision et de clôture lors d'un entretien, par téléphone ou en visioconférence. Je suis disponible pour échanger à la date qui vous conviendra.\n\nCordialement,\nTomas Brandt",
+ "structured": {
+  "version": 2,
+  "language": "fr",
+  "market": "us",
+  "sender": {
+   "name": "Tomas Brandt",
+   "addressLines": [
+    "Chicago, IL, USA"
+   ],
+   "phone": "+1 555 0123",
+   "email": "tomas.brandt@example.com"
+  },
+  "recipient": {
+   "addressLines": [
+    "12 rue de la République",
+    "69002 Lyon"
+   ],
+   "companyName": "Lumière Logistique SAS",
+   "contactPerson": "Mme Claire Dubois",
+   "department": "Responsable du recrutement"
+  },
+  "date": "2026-10-20",
+  "subject": "Candidature au poste d'Analyste FP&A (H/F), réf. FPA-2026-031",
+  "salutation": "Madame Dubois,",
+  "paragraphs": [
+   "Fiabiliser et accélérer la clôture mensuelle, c'est un sujet que je connais bien : chez Calder Industrial Components, j'ai ramené le reporting de clôture de 9 à 6 jours ouvrés en automatisant les contrôles d'écritures sous Excel VBA. Pour une équipe Contrôle de gestion qui accompagne les directions Opérations et Commerce, ce gain de temps change la qualité du pilotage.",
+   "Analyste financier depuis 5 ans en budgétisation, prévisions et reporting mensuel, je pilote aujourd'hui les prévisions mensuelles et l'analyse des écarts de deux unités d'activité réalisant ensemble environ 85 millions USD de chiffre d'affaires. En reconstruisant le modèle autour du carnet de commandes, j'ai fait passer la fiabilité des prévisions de la plus grande unité de 88 % à 96 %. J'ai aussi élaboré le budget annuel de l'équipe régionale chez Redfern Stores, et je construis des tableaux de bord Power BI sur données SAP pour des responsables de site non financiers, ce qui correspond à votre besoin de rendre les chiffres clairs pour les responsables d'agence du Sud-Est. Mon Excel est avancé et mon anglais est langue maternelle.",
+   "Je serais heureux de vous présenter plus en détail ma méthode de prévision et de clôture lors d'un entretien, par téléphone ou en visioconférence. Je suis disponible pour échanger à la date qui vous conviendra."
+  ],
+  "closing": "Cordialement,",
+  "signatureName": "Tomas Brandt",
+  "place": "Chicago"
+ },
+ "raw_letter_outputs": [
+  "{\"subject\": \"Candidature au poste d'Analyste FP&A (H/F), réf. FPA-2026-031\", \"salutation\": \"Madame Dubois,\", \"paragraphs\": [\"Fiabiliser et accélérer la clôture mensuelle, c'est un sujet que je connais bien : chez Calder Industrial Components, j'ai ramené le reporting de clôture de 9 à 6 jours ouvrés en automatisant les contrôles d'écritures sous Excel VBA. Pour une équipe Contrôle de gestion qui accompagne les directions Opérations et Commerce, ce gain de temps change la qualité du pilotage.\", \"Analyste financier depuis 5 ans en budgétisation, prévisions et reporting mensuel, je pilote aujourd'hui les prévisions mensuelles et l'analyse des écarts de deux unités d'activité réalisant ensemble environ 85 millions USD de chiffre d'affaires. En reconstruisant le modèle autour du carnet de commandes, j'ai fait passer la fiabilité des prévisions de la plus grande unité de 88 % à 96 %. J'ai aussi élaboré le budget annuel de l'équipe régionale chez Redfern Stores, et je construis des tableaux de bord Power BI sur données SAP pour des responsables de site non financiers, ce qui correspond à votre besoin de rendre les chiffres clairs pour les responsables d'agence du Sud-Est. Mon Excel est avancé et mon anglais est langue maternelle.\", \"Je serais heureux de vous présenter plus en détail ma méthode de prévision et de clôture lors d'un entretien, par téléphone ou en visioconférence. Je suis disponible pour échanger à la date qui vous conviendra.\"], \"closing\": \"Cordialement,\", \"recipient\": {\"companyName\": \"Lumière Logistique SAS\", \"contactPerson\": \"Mme Claire Dubois\", \"department\": \"Responsable du recrutement\", \"addressLines\": [\"12 rue de la République\", \"69002 Lyon\"]}}"
+ ],
+ "context": {
+  "applicant": {
+   "name": "Tomas Brandt",
+   "email": "tomas.brandt@example.com",
+   "phone": "+1 555 0123",
+   "address": "Chicago, IL, USA",
+   "headline": "Financial Analyst",
+   "skills": [
+    "budgeting",
+    "rolling forecasts",
+    "variance analysis",
+    "working capital",
+    "management reporting",
+    "forecasting",
+    "month-end reporting",
+    "basic SQL"
+   ],
+   "tools": [
+    "Excel",
+    "Power BI",
+    "SAP (reporting)",
+    "INDEX/MATCH",
+    "pivot tables",
+    "VBA",
+    "Excel VBA",
+    "SQL"
+   ],
+   "languages": [
+    "English (native)",
+    "German (basic)"
+   ],
+   "experiences": [
+    {
+     "company": "Calder Industrial Components (manufacturing, 900 staff)",
+     "title": "Financial Analyst",
+     "startDate": "Mar 2022",
+     "endDate": "Present",
+     "bullets": [
+      "Own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD",
+      "Improved forecast accuracy for the larger unit from 88% to 96% by rebuilding the model around order backlog",
+      "Shortened month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA",
+      "Build Power BI dashboards on SAP data for plant managers"
+     ]
+    },
+    {
+     "company": "Redfern Stores (retail chain, 60 stores)",
+     "title": "Junior Financial Analyst",
+     "startDate": "Sep 2019",
+     "endDate": "Feb 2022",
+     "bullets": [
+      "Prepared weekly store P&L packs and the annual budget for the regional team",
+      "Found a recurring supplier rebate that was not being claimed, worth about 120,000 USD a year"
+     ]
+    },
+    {
+     "company": "Lakeshore Logistics",
+     "title": "Finance Intern",
+     "startDate": "Jun 2018",
+     "endDate": "Aug 2018",
+     "bullets": [
+      "Reconciled freight invoices and supported the audit file"
+     ]
+    }
+   ],
+   "certifications": [
+    "ACCA: 9 of 13 papers passed (in progress)"
+   ]
+  },
+  "job": {
+   "title": "Analyste FP&A (H/F)",
+   "companyName": "Lumière Logistique SAS",
+   "location": "Lyon, France",
+   "workType": "Hybrid",
+   "requiredSkills": [
+    "4 ans d'expérience minimum en contrôle de gestion ou FP&A",
+    "Excel avancé",
+    "Power BI",
+    "Anglais courant",
+    "Prévisions mensuelles",
+    "Analyse des écarts",
+    "Élaboration budgétaire",
+    "Reporting de clôture mensuelle",
+    "Communication des chiffres à des interlocuteurs non financiers"
+   ],
+   "niceToHaveSkills": [
+    "Maîtrise de Tableau",
+    "Connaissance de SAP"
+   ],
+   "responsibilities": [
+    "Piloter les prévisions mensuelles et l'analyse des écarts pour les agences du Sud-Est",
+    "Construire le budget annuel avec les responsables d'agence",
+    "Rendre les chiffres clairs pour des interlocuteurs non financiers",
+    "Fiabiliser et accélérer le reporting de clôture mensuelle",
+    "Développer des tableaux de bord Power BI"
+   ]
+  },
+  "match": {
+   "score": 97,
+   "matchedRequirements": [
+    "4 ans d'expérience minimum en contrôle de gestion ou FP&A",
+    "Excel avancé",
+    "Power BI",
+    "Anglais courant",
+    "Prévisions mensuelles",
+    "Analyse des écarts",
+    "Élaboration budgétaire",
+    "Reporting de clôture mensuelle",
+    "Communication des chiffres à des interlocuteurs non financiers",
+    "Connaissance de SAP"
+   ],
+   "claimableEvidence": [
+    "Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting",
+    "Excel (advanced: INDEX/MATCH, pivot tables, VBA)",
+    "Power BI",
+    "English (native)",
+    "Own the monthly forecast and variance reporting",
+    "variance analysis",
+    "budgeting",
+    "month-end reporting",
+    "SAP (reporting)"
+   ],
+   "missingSkills": [
+    "Maîtrise de Tableau"
+   ],
+   "details": [
+    {
+     "requirement": "4 ans d'expérience minimum en contrôle de gestion ou FP&A",
+     "evidence": "Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting",
+     "tier": 2,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Excel avancé",
+     "evidence": "Excel (advanced: INDEX/MATCH, pivot tables, VBA)",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Power BI",
+     "evidence": "Power BI",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Anglais courant",
+     "evidence": "English (native)",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Prévisions mensuelles",
+     "evidence": "Own the monthly forecast and variance reporting",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Analyse des écarts",
+     "evidence": "variance analysis",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Élaboration budgétaire",
+     "evidence": "budgeting",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Reporting de clôture mensuelle",
+     "evidence": "month-end reporting",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Communication des chiffres à des interlocuteurs non financiers",
+     "tier": "implicit",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Maîtrise de Tableau",
+     "tier": "missing",
+     "claimable": false,
+     "required": false
+    },
+    {
+     "requirement": "Connaissance de SAP",
+     "evidence": "SAP (reporting)",
+     "tier": 1,
+     "claimable": true,
+     "required": false
+    }
+   ]
+  },
+  "verifiedMetrics": [
+   "5 years of experience in budgeting, forecasting and month-end reporting",
+   "two business units with combined revenue of about 85 million USD",
+   "ACCA: 9 of 13 papers passed (in progress)"
+  ]
+ },
+ "checks": {
+  "contract_valid": {
+   "pass": true,
+   "detail": ""
+  },
+  "recipient_address_rule": {
+   "pass": true,
+   "detail": "[\"12 rue de la République\",\"69002 Lyon\"]"
+  },
+  "no_address_in_letter_text": {
+   "pass": true,
+   "detail": "ad address lines: 1"
+  },
+  "contact_rule": {
+   "pass": true,
+   "detail": "company=Lumière Logistique SAS contact=Mme Claire Dubois dept=Responsable du recrutement salutation=Madame Dubois,"
+  },
+  "numbers_traced": {
+   "pass": true,
+   "detail": "cv-or-ad: 6, ad-only (employer facts, review): none, untraced: none"
+  },
+  "no_missing_skill_named": {
+   "pass": true,
+   "detail": "none"
+  },
+  "no_dashes": {
+   "pass": true,
+   "detail": "body 0, raw model output 0"
+  },
+  "under_250_words": {
+   "pass": true,
+   "detail": "214 words in 3 paragraphs"
+  },
+  "three_paragraphs": {
+   "pass": true,
+   "detail": "3"
+  },
+  "market_rules": {
+   "pass": true,
+   "detail": "market=us closing=\"Cordialement,\" subject=\"Candidature au poste d'Analyste FP&A (H/F), réf. FPA-2026-031\""
+  },
+  "subject_numbers_from_ad": {
+   "pass": true,
+   "detail": "2026,031"
+  },
+  "body_faithful": {
+   "pass": true,
+   "detail": "body === renderCoverLetterBody(structured)"
+  },
+  "sender_from_cv": {
+   "pass": true,
+   "detail": "{\"name\":\"Tomas Brandt\",\"addressLines\":[\"Chicago, IL, USA\"],\"phone\":\"+1 555 0123\",\"email\":\"tomas.brandt@example.com\"}"
+  },
+  "no_placeholders": {
+   "pass": true,
+   "detail": ""
+  }
+ }
+}
