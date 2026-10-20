@@ -50,7 +50,10 @@ const pkcePair = () => {
 };
 const randomPort = () => 20_000 + Math.floor(Math.random() * 30_000);
 /** The auth route keys its limits on cf-connecting-ip, so each test can have its own bucket. */
-const fakeIp = () => `203.0.113.${1 + Math.floor(Math.random() * 250)}`;
+const fakeIp = () => `198.51.100.${1 + Math.floor(Math.random() * 250)}`;
+/** Fixed addresses for the tests that need a bucket of their own; 203.0.113.0/24 is a range fakeIp never returns. */
+const FLOOD_IP = '203.0.113.10';
+const OTHER_IP = '203.0.113.11';
 
 class MemoryProvider implements OAuthClientProvider {
   authorizationUrl: URL | null = null;
@@ -711,7 +714,8 @@ test.describe.serial('MCP OAuth', () => {
       verifier: b.verifier,
     });
     expect(mismatch.status).toBe(400);
-    expect(mismatch.body.error).toMatch(/invalid_grant|invalid_request/);
+    expect(mismatch.body.error).toBe('invalid_grant');
+    expect(mismatch.body.error_description).toBe('redirect_uri mismatch');
 
     // A code works once.
     const c = pkcePair();
@@ -734,15 +738,126 @@ test.describe.serial('MCP OAuth', () => {
     const afterRevokeCode = await exchangeCode(request, { clientId, code: pendingCode, redirectUri, verifier: d.verifier });
     expect(afterRevokeCode.status, 'a code issued before the revoke is not redeemable').toBe(400);
     expect(afterRevokeCode.body.error).toBe('invalid_grant');
-    // The consent check in the token hook, not some later failure.
-    expect(afterRevokeCode.body.error_description).toBe('authorization was revoked');
+    // Revoke deleted the pending code outright, so the provider itself no longer knows it.
+    expect(afterRevokeCode.body.error_description).toBe('invalid code');
     const afterRevokeRefresh = await refreshRequest(request, clientId, rotated.body.refresh_token);
     expect(afterRevokeRefresh.status).toBe(400);
     expect(afterRevokeRefresh.body.error).toBe('invalid_grant');
-    expect(afterRevokeRefresh.body.error_description).toBe('authorization was revoked');
+    expect(afterRevokeRefresh.body.error_description).toBe('session not found');
     const staleRefresh = await refreshRequest(request, clientId, good.body.refresh_token);
     expect(staleRefresh.status).toBe(400);
     expect(staleRefresh.body.error).toBe('invalid_grant');
+  });
+
+  test('reconnecting with less access does not revive an old code; a token broader than the consent is refused', async ({ browser, request }) => {
+    const port = randomPort();
+    const redirectUri = `http://localhost:${port}/callback`;
+    const origin = `http://localhost:${port}`;
+    const full = 'read write spend offline_access';
+    const narrow = 'read offline_access';
+    const clientId = (
+      await (
+        await register(request, {
+          client_name: 'Revival probe',
+          redirect_uris: [redirectUri],
+          token_endpoint_auth_method: 'none',
+          grant_types: ['authorization_code', 'refresh_token'],
+        })
+      ).json()
+    ).client_id as string;
+
+    // 1. Approve everything, mint tokens, and leave one broad code unredeemed.
+    const a = pkcePair();
+    const context = await browser.newContext({ ...withSession(), ...recordVideo('video-revival') });
+    const page = await context.newPage();
+    const firstCb = await approveInBrowser(page, authorizeUrl({ clientId, redirectUri, scope: full, challenge: a.challenge }), origin);
+    const broad = await exchangeCode(request, { clientId, code: firstCb.searchParams.get('code')!, redirectUri, verifier: a.verifier });
+    expect(broad.status).toBe(200);
+    expect(String(broad.body.scope).split(' ')).toContain('spend');
+    const x = pkcePair();
+    const oldCode = await codeFor(context, { clientId, redirectUri, scope: full, challenge: x.challenge });
+
+    // 2. Revoke. The batch deletes the pending code and every token row for the pair, not just the consent.
+    await revokeInUi(page, 'Revival probe');
+    const count = (table: string, where: string) => sqlLocal(`SELECT COUNT(*) AS n FROM ${table} WHERE ${where}`)[0].n;
+    expect(count('oauth_refresh_token', `client_id = '${clientId}'`), 'refresh tokens deleted').toBe(0);
+    expect(count('oauth_access_token', `client_id = '${clientId}'`)).toBe(0);
+    expect(
+      count('verification', `json_valid(value) AND json_extract(value, '$.query.client_id') = '${clientId}'`),
+      'the unredeemed code is deleted',
+    ).toBe(0);
+
+    // 3. Reconnect with read only.
+    const b = pkcePair();
+    const narrowCb = await approveInBrowser(page, authorizeUrl({ clientId, redirectUri, scope: narrow, challenge: b.challenge }), origin);
+    await context.close();
+    const readTok = await exchangeCode(request, { clientId, code: narrowCb.searchParams.get('code')!, redirectUri, verifier: b.verifier });
+    expect(readTok.status, 'the new, narrower connection works').toBe(200);
+    expect(String(readTok.body.scope).split(' ')).not.toContain('write');
+    expect((await mcpStatus(request, readTok.body.access_token)).status).toBe(200);
+
+    // 4. The old broad code does not come back to life under the new consent, and the old access token stays dead.
+    const revived = await exchangeCode(request, { clientId, code: oldCode, redirectUri, verifier: x.verifier });
+    expect(revived.status).toBe(400);
+    expect(revived.body.error).toBe('invalid_grant');
+    expect((await mcpStatus(request, broad.body.access_token)).status, 'a token from before the revoke is refused').toBe(401);
+
+    // 5. /mcp itself refuses a token whose scopes exceed the current consent, even one issued after the revoke
+    //    (what a code that slipped through the revoke would have produced). Make one by widening the consent,
+    //    minting, then narrowing the consent behind it.
+    const c = pkcePair();
+    const context2 = await browser.newContext(withSession());
+    const page2 = await context2.newPage();
+    const widenCb = await approveInBrowser(page2, authorizeUrl({ clientId, redirectUri, scope: full, challenge: c.challenge }), origin);
+    await context2.close();
+    const wide = await exchangeCode(request, { clientId, code: widenCb.searchParams.get('code')!, redirectUri, verifier: c.verifier });
+    expect(wide.status).toBe(200);
+    expect(String(wide.body.scope).split(' ')).toContain('write');
+    sqlLocal(`UPDATE oauth_consent SET scopes = '["read","offline_access"]' WHERE client_id = '${clientId}'`);
+    const tooBroad = await mcpStatus(request, wide.body.access_token);
+    expect(tooBroad.status).toBe(401);
+    expect(tooBroad.wwwAuthenticate).toContain('more access than this app was approved for');
+  });
+
+  test('a code or refresh token issued before the current consent is refused, and so is a token with no consent', async ({ browser, request }) => {
+    const port = randomPort();
+    const redirectUri = `http://localhost:${port}/callback`;
+    const scope = 'read offline_access';
+    const clientId = (
+      await (
+        await register(request, {
+          client_name: 'Consent age probe',
+          redirect_uris: [redirectUri],
+          token_endpoint_auth_method: 'none',
+          grant_types: ['authorization_code', 'refresh_token'],
+        })
+      ).json()
+    ).client_id as string;
+    const a = pkcePair();
+    const context = await browser.newContext(withSession());
+    const page = await context.newPage();
+    const cb = await approveInBrowser(page, authorizeUrl({ clientId, redirectUri, scope, challenge: a.challenge }), `http://localhost:${port}`);
+    const minted = await exchangeCode(request, { clientId, code: cb.searchParams.get('code')!, redirectUri, verifier: a.verifier });
+    expect(minted.status).toBe(200);
+    const d = pkcePair();
+    const code = await codeFor(context, { clientId, redirectUri, scope, challenge: d.challenge });
+    await context.close();
+
+    // The consent now reads as newer than both the code and the refresh token (what a revoke-then-reconnect looks like).
+    sqlLocal(`UPDATE oauth_consent SET created_at = ${Date.now() + 60_000} WHERE client_id = '${clientId}'`);
+    const oldCode = await exchangeCode(request, { clientId, code, redirectUri, verifier: d.verifier });
+    expect(oldCode.status).toBe(400);
+    expect(oldCode.body.error).toBe('invalid_grant');
+    expect(oldCode.body.error_description).toBe('authorization was revoked');
+    const oldRefresh = await refreshRequest(request, clientId, minted.body.refresh_token);
+    expect(oldRefresh.status).toBe(400);
+    expect(oldRefresh.body.error_description).toBe('authorization was revoked');
+
+    // No consent row at all: /mcp refuses a token that was never checked before (so no cached verdict).
+    sqlLocal(`DELETE FROM oauth_consent WHERE client_id = '${clientId}'`);
+    const noConsent = await mcpStatus(request, minted.body.access_token);
+    expect(noConsent.status).toBe(401);
+    expect(noConsent.wwwAuthenticate).toContain('disconnected');
   });
 
   test('Connected apps lists the client; revoking kills the access token and the refresh token', async ({ browser, request }, testInfo) => {
@@ -833,8 +948,32 @@ test.describe.serial('MCP OAuth', () => {
     expect(left).toContain(oldConsented);
   });
 
-  test('a password reset revokes every connected app', async ({ request }) => {
-    expect((await mcpStatus(request, readOnly!.accessToken)).status, 'token works before the reset').toBe(200);
+  test('a password reset revokes every connected app', async ({ browser, request }) => {
+    // A token minted for this test, so it does not depend on what earlier tests left connected.
+    const port = randomPort();
+    const redirectUri = `http://localhost:${port}/callback`;
+    const clientId = (
+      await (
+        await register(request, {
+          client_name: 'Reset probe',
+          redirect_uris: [redirectUri],
+          token_endpoint_auth_method: 'none',
+          grant_types: ['authorization_code', 'refresh_token'],
+        })
+      ).json()
+    ).client_id as string;
+    const { verifier, challenge } = pkcePair();
+    const context = await browser.newContext(withSession());
+    const page = await context.newPage();
+    const callback = await approveInBrowser(
+      page,
+      authorizeUrl({ clientId, redirectUri, scope: 'read offline_access', challenge }),
+      `http://localhost:${port}`,
+    );
+    await context.close();
+    const minted = await exchangeCode(request, { clientId, code: callback.searchParams.get('code')!, redirectUri, verifier });
+    expect(minted.status).toBe(200);
+    expect((await mcpStatus(request, minted.body.access_token)).status, 'token works before the reset').toBe(200);
     expect(sqlLocal(`SELECT COUNT(*) AS n FROM oauth_consent WHERE user_id = (SELECT id FROM user WHERE email = '${USER.email}')`)[0].n).toBeGreaterThan(0);
 
     const ask = await request.post('/api/auth/request-password-reset', {
@@ -848,14 +987,18 @@ test.describe.serial('MCP OAuth', () => {
     expect(reset.status()).toBe(200);
 
     expect(sqlLocal(`SELECT COUNT(*) AS n FROM oauth_consent WHERE user_id = (SELECT id FROM user WHERE email = '${USER.email}')`)[0].n).toBe(0);
-    const after = await mcpStatus(request, readOnly!.accessToken);
+    expect(sqlLocal(`SELECT COUNT(*) AS n FROM oauth_refresh_token WHERE user_id = (SELECT id FROM user WHERE email = '${USER.email}')`)[0].n).toBe(0);
+    const after = await mcpStatus(request, minted.body.access_token);
     expect(after.status, 'an access token issued before the reset is refused').toBe(401);
+    const refreshed = await refreshRequest(request, clientId, minted.body.refresh_token);
+    expect(refreshed.status).toBe(400);
+    expect(refreshed.body.error).toBe('invalid_grant');
   });
 });
 
 test.describe('MCP rate limits', () => {
   test('dynamic client registration allows 10 a minute per IP, then 429 with Retry-After', async ({ request }) => {
-    const ip = fakeIp();
+    const ip = FLOOD_IP;
     const statuses: number[] = [];
     let retryAfter = '';
     for (let i = 0; i < 12; i++) {
@@ -875,9 +1018,45 @@ test.describe('MCP rate limits', () => {
     const other = await register(
       request,
       { client_name: 'Other IP', redirect_uris: [`http://localhost:${randomPort()}/cb`], token_endpoint_auth_method: 'none' },
-      fakeIp() === ip ? '198.51.100.7' : fakeIp(),
+      OTHER_IP,
     );
     expect(other.status()).toBe(201);
+  });
+});
+
+test.describe('Route rate limits', () => {
+  test('sending verification mail is limited per IP', async ({ request }) => {
+    const statuses: number[] = [];
+    for (let i = 0; i < 8; i++) {
+      const res = await request.post('/api/auth/send-verification-email', {
+        data: { email: `nobody-${i}@example.test`, callbackURL: `${BASE}/auth/callback` },
+        headers: { 'cf-connecting-ip': '203.0.113.20' },
+      });
+      statuses.push(res.status());
+    }
+    // Better Auth's own rule for this endpoint (3 a minute per IP, now that it can see the IP) trips first;
+    // the route bucket (the forgot-password limits, 5 a minute) is the backstop behind it.
+    expect(statuses.slice(0, 3), 'the first three are not limited').not.toContain(429);
+    expect(statuses.slice(3), 'then it is limited').toContain(429);
+    const other = await request.post('/api/auth/send-verification-email', {
+      data: { email: 'nobody-x@example.test', callbackURL: `${BASE}/auth/callback` },
+      headers: { 'cf-connecting-ip': '203.0.113.21' },
+    });
+    expect(other.status()).not.toBe(429);
+  });
+
+  test('IPv6 clients are limited by their /64, not by the single address', async ({ request }) => {
+    const prefix = `2001:db8:${randomBytes(2).toString('hex')}:${randomBytes(2).toString('hex')}`;
+    const body = () => ({ client_name: 'v6 probe', redirect_uris: [`http://localhost:${randomPort()}/cb`], token_endpoint_auth_method: 'none' });
+    for (let i = 0; i < 10; i++) {
+      // Ten different addresses inside one /64, written in different ways.
+      const ip = i % 2 === 0 ? `${prefix}::${i + 1}` : `${prefix}:0:${i}:${i}:${i + 1}`;
+      expect((await register(request, body(), ip)).status(), ip).toBe(201);
+    }
+    const eleventh = await register(request, body(), `${prefix}:ffff:ffff:ffff:ffff`);
+    expect(eleventh.status(), 'another address in the same /64 shares the bucket').toBe(429);
+    const elsewhere = await register(request, body(), `2001:db8:${randomBytes(2).toString('hex')}:ffff::1`);
+    expect(elsewhere.status(), 'a different /64 has its own bucket').toBe(201);
   });
 });
 
