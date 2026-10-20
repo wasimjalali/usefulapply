@@ -122,14 +122,21 @@ const LETTER_SENTENCES = [
   'At Redfern Stores I prepared the weekly store P&L packs and the annual budget for the regional team.',
   'I also found a supplier rebate that was not being claimed, worth about 120,000 USD a year.',
 ];
-const LONG_LETTER = [
-  'Dear Hiring Team,',
-  '',
-  ...Array.from({ length: 30 }, (_, i) => LETTER_SENTENCES[i % LETTER_SENTENCES.length]),
-  '',
-  'Kind regards,',
-  NAME,
-].join('\n');
+// The letter writer returns JSON (subject, salutation, three paragraphs,
+// closing, recipient); the header and the signature are added in code
+// (structured cover letter contract). 30 sentences keep it over-length.
+const LETTER_SENTENCE_LIST = Array.from({ length: 30 }, (_, i) => LETTER_SENTENCES[i % LETTER_SENTENCES.length]);
+const LONG_LETTER = JSON.stringify({
+  subject: 'Application: Senior FP&A Analyst',
+  salutation: 'Dear Hiring Team,',
+  paragraphs: [
+    LETTER_SENTENCE_LIST.slice(0, 10).join(' '),
+    LETTER_SENTENCE_LIST.slice(10, 20).join(' '),
+    LETTER_SENTENCE_LIST.slice(20, 30).join(' '),
+  ],
+  closing: 'Kind regards,',
+  recipient: { companyName: 'Northwind Foods', addressLines: [] },
+});
 
 const LONG_SUBJECT = `Application: Senior Financial Planning and Analysis Analyst, Corporate Finance, ${NAME}`;
 const LONG_APPLICATION_EMAIL = JSON.stringify({
@@ -338,8 +345,12 @@ async function main() {
       assert.equal(result.success, true);
       assert.deepEqual(result.data?.documentErrors, {});
       assert.deepEqual(stepErrors, []);
-      assert.equal(ctx?.applicationEmail?.subject, LONG_SUBJECT);
-      assert.ok((ctx?.applicationEmail?.subject.length ?? 0) > 60);
+      // Since 3ade5fe8 (2026-10-13) the subject is built in code from the job title and the
+      // applicant's name, capped at 60 characters. The stub still returns an over-long subject:
+      // it must be ignored, not rejected, so the email is written in one call (asserted below).
+      assert.equal(ctx?.applicationEmail?.subject, `Application: ${job.title}, ${NAME}`);
+      assert.notEqual(ctx?.applicationEmail?.subject, LONG_SUBJECT);
+      assert.ok((ctx?.applicationEmail?.subject.length ?? 0) <= 60);
       const followUpWords = ctx?.followUpEmail?.body.split(/\s+/).length ?? 0;
       const letterWords = ctx?.coverLetter?.split(/\s+/).length ?? 0;
       assert.ok(followUpWords > 80, `follow-up has ${followUpWords} words`);
