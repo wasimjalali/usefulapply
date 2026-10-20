@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
 import { getAllPosts } from '@/lib/blog';
 import { getComparisons } from '@/lib/comparisons';
+import { isMcpEnabled } from '@/lib/mcp/config';
 import { SEO_SITE_URL } from '@/lib/seo/site-url';
 
 const SITE_URL = SEO_SITE_URL;
@@ -42,12 +43,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly',
       priority: 0.9,
     },
-    {
-      url: `${SITE_URL}/integrations`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
+    ...(isMcpEnabled()
+      ? ([
+          {
+            url: `${SITE_URL}/integrations`,
+            lastModified: new Date(),
+            changeFrequency: 'monthly',
+            priority: 0.7,
+          },
+        ] as MetadataRoute.Sitemap)
+      : []),
     {
       url: `${SITE_URL}/master-cv`,
       lastModified: new Date(),

@@ -1,10 +1,15 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { buildPageMetadata } from '@/lib/seo/metadata';
 import { SEO_SITE_URL } from '@/lib/seo/site-url';
 import { BRAND } from '@/lib/brand';
+import { isMcpEnabled } from '@/lib/mcp/config';
+
+// Hidden until MCP launches. Read the flag per request, not at build.
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = buildPageMetadata({
   title: 'Use Useful Apply from Claude, ChatGPT and any AI assistant',
@@ -94,11 +99,12 @@ const scopes: { name: string; body: string }[] = [
 const h2 = 'text-[28px] md:text-[34px] font-bold text-navy-600 leading-[1.1] mb-4';
 const p = 'text-warm-gray leading-relaxed';
 const card = 'bg-white rounded-2xl p-6 border border-cream-200 shadow-sm';
-const code = 'font-mono text-sm bg-cream-100 border border-cream-200 rounded px-1.5 py-0.5 text-charcoal break-all';
+const code = 'font-mono text-sm bg-cream-100 border border-cream-200 rounded px-1.5 py-0.5 text-charcoal whitespace-nowrap';
 const pre =
-  'font-mono text-sm bg-navy-800 text-cream-100 rounded-xl p-4 whitespace-pre-wrap break-all leading-relaxed';
+  'font-mono text-sm bg-navy-800 text-cream-100 rounded-xl p-4 whitespace-pre overflow-x-auto leading-relaxed';
 
 export default function IntegrationsPage() {
+  if (!isMcpEnabled()) notFound();
   return (
     <div className="min-h-screen bg-cream-100">
       <script
@@ -148,11 +154,8 @@ export default function IntegrationsPage() {
               </div>
               <div className={card}>
                 <h3 className="text-xl font-semibold text-charcoal mb-3">Claude Code</h3>
-                <p className={`${p} mb-3`}>Install the plugin:</p>
-                <pre className={`${pre} mb-3`}>
-                  <code>/plugin marketplace add wasimjalali/usefulapply-plugin</code>
-                </pre>
-                <p className={`${p} mb-3`}>Or add the server directly:</p>
+                {/* The plugin line (/plugin marketplace add wasimjalali/usefulapply-plugin) is added at launch, when that repo ships. */}
+                <p className={`${p} mb-3`}>Add the server:</p>
                 <pre className={pre}>
                   <code>{`claude mcp add --transport http usefulapply ${MCP_URL}`}</code>
                 </pre>
