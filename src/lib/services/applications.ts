@@ -62,13 +62,11 @@ type FieldKind = 'text' | 'text-required' | 'int-0-100' | 'string-array' | 'json
  * ids) is owned by a server path and is rejected, not ignored: a client that
  * sends one has a bug worth hearing about.
  */
-const EDITABLE_FIELDS: Record<keyof ApplicationFieldPatch, { kind: FieldKind; max?: number }> = {
+const EDITABLE_FIELDS: Record<Exclude<keyof ApplicationFieldPatch, RecipientField>, { kind: FieldKind; max?: number }> = {
   job_title: { kind: 'text', max: 500 },
   company: { kind: 'text', max: 500 },
   job_description: { kind: 'text-required', max: 100_000 },
   job_url: { kind: 'text', max: 2_000 },
-  company_address: { kind: 'text', max: 1_000 },
-  company_contact_person: { kind: 'text', max: 300 },
   match_score: { kind: 'int-0-100' },
   matching_skills: { kind: 'string-array' },
   missing_skills: { kind: 'string-array' },
@@ -89,14 +87,29 @@ const EDITABLE_FIELDS: Record<keyof ApplicationFieldPatch, { kind: FieldKind; ma
   fit_assessment: { kind: 'json' },
 };
 
+type RecipientField = 'company_address' | 'company_contact_person';
+
+/**
+ * The cover letter recipient is server-managed (see fillLetterRecipient): a browser patch can't
+ * carry it. Only callers that edit it on the user's explicit request (the MCP update_application
+ * tool) pass `allowRecipient`.
+ */
+const RECIPIENT_FIELDS: Record<RecipientField, { kind: FieldKind; max?: number }> = {
+  company_address: { kind: 'text', max: 1_000 },
+  company_contact_person: { kind: 'text', max: 300 },
+};
+
 /** One patch may not carry more than this many serialized characters in total. */
 const MAX_PATCH_CHARS = 3_000_000;
 
-function validatePatch(patch: Record<string, unknown>): Record<string, unknown> {
+function validatePatch(patch: Record<string, unknown>, allowRecipient: boolean): Record<string, unknown> {
   const clean: Record<string, unknown> = {};
   let total = 0;
+  const rules: Record<string, { kind: FieldKind; max?: number } | undefined> = allowRecipient
+    ? { ...EDITABLE_FIELDS, ...RECIPIENT_FIELDS }
+    : EDITABLE_FIELDS;
   for (const [key, value] of Object.entries(patch)) {
-    const rule = (EDITABLE_FIELDS as Record<string, { kind: FieldKind; max?: number } | undefined>)[key];
+    const rule = Object.hasOwn(rules, key) ? rules[key] : undefined;
     if (!rule) throw new InvalidInputError(`Field "${key}" cannot be edited`, key);
     if (value === undefined) continue;
     switch (rule.kind) {
@@ -201,11 +214,12 @@ export async function updateApplicationFields(
   sessionId: string,
   expectedRevision: number,
   patch: Record<string, unknown>,
+  options: { allowRecipient?: boolean } = {},
 ): Promise<{ revision: number }> {
   if (!Number.isInteger(expectedRevision) || expectedRevision < 0) {
     throw new InvalidInputError('A revision is required');
   }
-  const clean = validatePatch(patch);
+  const clean = validatePatch(patch, options.allowRecipient === true);
   if (Object.keys(clean).length === 0) {
     const current = await sessionsRepo.getSessionRevision(userId, sessionId);
     if (!current) throw new NotFoundError();
