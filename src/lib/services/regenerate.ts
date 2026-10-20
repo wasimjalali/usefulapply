@@ -102,6 +102,8 @@ export interface PreparedRegeneration {
   sessionId: string;
   type: RegenerateType;
   creditAction: Extract<CreditAction, 'COVER_LETTER_REGEN' | 'EMAIL_REGEN' | 'FOLLOW_UP_REGEN' | 'CV_SECTION_REWRITE'>;
+  /** For `cv_section`: the section as it stands now (its `before` text), resolved while the request was checked. Null for documents. */
+  section: ResolvedCVSection | null;
   execute(generationContext: LlmGenerationContext, options?: ExecuteOptions): Promise<RegenerationResult>;
 }
 
@@ -192,6 +194,7 @@ export async function prepareRegeneration(userId: string, request: RegenerateReq
     sessionId: session.id,
     type: request.type,
     creditAction,
+    section: resolvedSection,
     async execute(generationContext, options = {}) {
       const storedArtifacts = readRecord(session.generated_artifacts);
       const storedRequirements = readRecord(session.requirements);

@@ -190,7 +190,11 @@ export async function enqueueKitGeneration(
     regenerate: Boolean(input.regenerate),
   };
   const kind = OPERATION_KINDS.generateKit;
-  const inputHash = await hashOperationInput(normalized);
+  // The fit context only decides the price and where the run starts, and the MCP tool derives it
+  // from the application's stored fit (a kit that lands removes that stash). So it is stored with
+  // the operation but is not part of the request's identity: a retry after the kit finished, or an
+  // identical request under a fresh key, must still match the first one.
+  const inputHash = await hashOperationInput({ sessionId: normalized.sessionId, regenerate: normalized.regenerate });
 
   const describe = (operation: AgentOperation, deduped: boolean, matchedBy?: 'key' | 'input' | 'session'): EnqueueKitResult => ({
     operationId: operation.id,
