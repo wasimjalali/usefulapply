@@ -3,7 +3,7 @@
 **Status (2026-10-20):**
 - **v1:** Wasim accepted every recommendation and set the export bar: best-in-class ATS for the US and Germany, the same renderer for people and agents, cost no object.
 - **v2:** folds in the adversarial reviews from Fable 5.1 and GPT-6.1 Sol (medium). Raw reviews and the write-up are in `evals/results/2026-10-20-mcp-plan-review/`.
-- **v3:** folds in the DeepSeek Flash (V4.1) review: CIMD transport, out-of-band confirmation, grid-based reading order in both two-column templates, paper and margin ownership, DIN zones, dedupe by input, atomic success path, quotas for free operations, and 3 missing tools.
+- **v3:** folds in the DeepSeek Flash (V4.1) review: CIMD transport, client-side confirmation, grid-based reading order in both two-column templates, paper and margin ownership, DIN zones, dedupe by input, atomic success path, quotas for free operations, and 3 missing tools.
 
 **Later, out of scope here:** "Sign in with ChatGPT" and paying for generation with a user's ChatGPT or Claude subscription. The service layer keeps model calls behind one interface so this can plug in.
 
@@ -392,6 +392,6 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
 ## 10. Risks
 
 - **ChatGPT commerce review** of a credit-metered product. Mitigation: no prices or upgrade text anywhere in tool output.
-- **New Better Auth MCP packages.** The PR 0 spike gates PR 1.
+- **New Better Auth MCP packages.** Spike 0a gates PR 1.
 - **Removing skill caps changes layout density.** The eval's over-cap fixture and the visual judge gate it.
 - **Client behaviour we can't verify ahead of time:** ChatGPT redirect URIs (copied from its dashboard), inline rendering of resources (signed links are the fallback), timeouts (covered by async operations).
