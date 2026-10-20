@@ -4,7 +4,11 @@
  *   npx tsx scripts/seed-reviewer-account.ts \
  *     --base-url http://localhost:8797 \
  *     --credentials-out /path/outside/the/repo/reviewer.json \
- *     [--email reviewer@usefulapply.com] [--credits 40] [--remote]
+ *     [--email reviewer@usefulapply.com] [--credits 200] [--remote --yes-production]
+ *
+ * Safety: --email must match reviewer@usefulapply.com or reviewer+<label>@usefulapply.com, and the
+ * delete path re-checks the stored email before it deletes anything. --remote (the live database)
+ * needs --yes-production as well, and the script prints what it is about to do first.
  *
  * What it does, in order:
  *   1. Signs the reviewer up through the app's own sign-up endpoint on --base-url
@@ -12,8 +16,15 @@
  *      credentials file still signs in.
  *   2. Marks the email verified and writes everything else through
  *      `wrangler d1 execute usefulapply-db` (--local unless --remote is passed):
- *      profile, credits plus a ledger row, a primary CV, one US and one German
- *      application with a stored kit and fit result, and job feed consent.
+ *      profile and a Max plan (no Stripe ids), credits plus a ledger row, a primary CV,
+ *      one US and one German application with a stored kit, fit result and chat
+ *      history, job feed consent and a few ranked feed items.
+ *
+ * Plan survival: the account is Max in profiles, user_credits and subscriptions, with
+ * `user_credits.subscription_status` NULL and no Stripe ids. The daily sweep
+ * (`processOverdueMonthlyResets`) only touches paid rows whose subscription_status is
+ * 'active', so it never selects this one, and no Stripe webhook can match it. Nothing
+ * refills credits or downgrades the plan. Re-run the seed to top credits back up.
  *
  * The kits are stored data, not model output. Everyone and everything in them is
  * fictional. The account has no MFA (the product has none).
@@ -45,14 +56,20 @@ interface Args {
   email: string;
   credits: number;
   remote: boolean;
+  yesProduction: boolean;
 }
+
+/** The only addresses this script will ever create, refresh or delete. */
+const REVIEWER_EMAIL = /^reviewer(\+[a-z0-9._-]+)?@usefulapply\.com$/;
 
 function parseArgs(argv: string[]): Args {
   const values = new Map<string, string>();
   let remote = false;
+  let yesProduction = false;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--remote') remote = true;
+    else if (arg === '--yes-production') yesProduction = true;
     else if (arg.startsWith('--')) {
       const value = argv[i + 1];
       if (value === undefined || value.startsWith('--')) fail(`Missing value for ${arg}`);
@@ -64,10 +81,12 @@ function parseArgs(argv: string[]): Args {
   const credentialsOut = values.get('credentials-out');
   if (!credentialsOut) fail('--credentials-out <path> is required');
   const email = (values.get('email') ?? 'reviewer@usefulapply.com').toLowerCase();
-  if (!/^[a-z0-9._+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(email)) fail(`Not a valid email: ${email}`);
-  const credits = Number(values.get('credits') ?? 40);
+  if (!REVIEWER_EMAIL.test(email)) fail(`--email must be reviewer@usefulapply.com or reviewer+<label>@usefulapply.com, got ${email}. This script only manages reviewer accounts.`);
+  const credits = Number(values.get('credits') ?? 200);
   if (!Number.isFinite(credits) || credits < 0 || credits > 1000) fail('--credits must be a number from 0 to 1000');
-  return { baseUrl, credentialsOut: resolve(credentialsOut), email, credits, remote };
+  if (remote && !yesProduction) fail('--remote writes to the production database. Add --yes-production to confirm.');
+  if (yesProduction && !remote) fail('--yes-production only makes sense together with --remote.');
+  return { baseUrl, credentialsOut: resolve(credentialsOut), email, credits, remote, yesProduction };
 }
 
 function fail(message: string): never {
@@ -817,6 +836,150 @@ function jobFeedSql(userId: string, now: string): string {
 );`;
 }
 
+/**
+ * The chat history a real fit-then-kit session leaves behind. The dashboard shows its "saved job" starter
+ * (with the 0.5-credit "Analyze this job description" chip) only while an application has no chat messages,
+ * so a seeded application needs these rows to look finished. Wording follows useAgentWorkflow.ts
+ * (formatFitAnalysisMessage and kitReadyMessage).
+ */
+function chatSql(userId: string, app: Fixture, nowDate: Date): string {
+  const fitLabel = app.fitLevel === 'strong' ? 'Strong Fit' : 'Good Fit';
+  const fitEmoji = app.fitLevel === 'strong' ? '🟢' : '🟡';
+  const fitText = [
+    `${fitEmoji} **${fitLabel}**`,
+    `**Role:** ${app.title} at ${app.company}`,
+    `**Match score:** ${app.score}%`,
+    app.assessment,
+    'If you want to move forward, generate the full application below.',
+  ].join('\n\n');
+  const kitText = `Your kit for ${app.company} is ready (ATS ${app.score}%): a tailored CV, a cover letter and two emails. Every claim comes from your CV. Review it before you send.`;
+  const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
+    { role: 'user', content: 'Analyze this job description' },
+    { role: 'assistant', content: fitText },
+    { role: 'user', content: 'Apply for This Job' },
+    { role: 'assistant', content: kitText },
+  ];
+  return messages
+    .map((message, index) => {
+      const at = new Date(nowDate.getTime() - (messages.length - index) * 60_000).toISOString();
+      return `INSERT INTO chat_messages (id, session_id, user_id, role, content, actions, created_at)
+VALUES (${sqlText(`c0000000-0000-4000-8000-${app.id.slice(-8)}${String(index).padStart(4, '0')}`)}, ${sqlText(app.id)}, ${sqlText(userId)}, ${sqlText(message.role)}, ${sqlText(message.content)}, '[]', ${sqlText(at)});`;
+    })
+    .join('\n');
+}
+
+interface FeedJob {
+  key: string;
+  title: string;
+  company: string;
+  location: string;
+  workMode: 'remote' | 'hybrid' | 'onsite';
+  salaryMin: number;
+  salaryMax: number;
+  fit: 'strong' | 'good';
+  reason: string;
+  description: string;
+}
+
+const FEED_KEY_PREFIX = 'reviewer-seed:';
+
+/** Fictional postings, owned by the reviewer seed through their `reviewer-seed:` key. */
+const FEED_JOBS: FeedJob[] = [
+  {
+    key: 'meridian-freight-staff-platform',
+    title: 'Staff Platform Engineer',
+    company: 'Meridian Freight Systems',
+    location: 'Austin, TX',
+    workMode: 'hybrid',
+    salaryMin: 185000,
+    salaryMax: 215000,
+    fit: 'strong',
+    reason: 'Platform work on Kubernetes and AWS, with TypeScript and PostgreSQL. Matches your billing platform and EKS migration experience.',
+    description: 'Meridian Freight Systems is hiring a Staff Platform Engineer to own the deployment and runtime platform for our routing services. You will lead a small team, run services on Kubernetes on AWS, manage infrastructure in Terraform and tune PostgreSQL-backed APIs. Requirements: 8+ years of backend experience, TypeScript or Go, Kubernetes, AWS. (Sample posting for the Useful Apply reviewer account. Meridian Freight Systems is fictional.)',
+  },
+  {
+    key: 'orchard-health-senior-backend',
+    title: 'Senior Backend Engineer',
+    company: 'Orchard Health Labs',
+    location: 'Remote (US)',
+    workMode: 'remote',
+    salaryMin: 160000,
+    salaryMax: 190000,
+    fit: 'strong',
+    reason: 'TypeScript, Node.js and PostgreSQL on AWS, remote in the US. Close to your current stack.',
+    description: 'Orchard Health Labs builds scheduling software for clinics. As a Senior Backend Engineer you will design APIs in TypeScript and Node.js, own PostgreSQL schemas and keep our AWS services reliable. Requirements: 6+ years of backend experience, strong PostgreSQL, CI/CD. (Sample posting for the Useful Apply reviewer account. Orchard Health Labs is fictional.)',
+  },
+  {
+    key: 'tallgrass-data-senior-infra',
+    title: 'Senior Software Engineer, Infrastructure',
+    company: 'Tallgrass Data',
+    location: 'Dallas, TX',
+    workMode: 'hybrid',
+    salaryMin: 155000,
+    salaryMax: 185000,
+    fit: 'good',
+    reason: 'Infrastructure and data pipeline work. Your ingestion service and Terraform modules apply, Go is a gap.',
+    description: 'Tallgrass Data runs event pipelines for retail analytics. The Infrastructure team needs a Senior Software Engineer to build ingestion services, manage Terraform and run Kubernetes clusters. Requirements: 6+ years of experience, Python or Go, AWS, Terraform. (Sample posting for the Useful Apply reviewer account. Tallgrass Data is fictional.)',
+  },
+  {
+    key: 'bluepeak-mobility-platform',
+    title: 'Platform Engineer',
+    company: 'Bluepeak Mobility',
+    location: 'Remote (US)',
+    workMode: 'remote',
+    salaryMin: 150000,
+    salaryMax: 180000,
+    fit: 'good',
+    reason: 'Kubernetes, AWS and CI/CD in a remote platform team. Fewer leadership duties than your current role.',
+    description: 'Bluepeak Mobility is looking for a Platform Engineer to improve deploy tooling and cluster reliability for our fleet software. Requirements: 5+ years of experience, Kubernetes, AWS, GitHub Actions or similar CI/CD. (Sample posting for the Useful Apply reviewer account. Bluepeak Mobility is fictional.)',
+  },
+  {
+    key: 'copperline-financial-payments',
+    title: 'Senior Software Engineer, Payments',
+    company: 'Copperline Financial',
+    location: 'Austin, TX',
+    workMode: 'hybrid',
+    salaryMin: 170000,
+    salaryMax: 200000,
+    fit: 'good',
+    reason: 'Payments APIs on PostgreSQL and AWS. Your billing platform experience transfers directly.',
+    description: 'Copperline Financial is hiring a Senior Software Engineer for its payments team. You will build and operate APIs that move money between accounts, with strong correctness and latency goals. Requirements: 6+ years of backend experience, PostgreSQL, TypeScript or Java, AWS. (Sample posting for the Useful Apply reviewer account. Copperline Financial is fictional.)',
+  },
+];
+
+/** The date in `America/Chicago`, `daysAgo` days back, as YYYY-MM-DD (the shape of job_feed_runs.local_date). */
+function chicagoDate(nowDate: Date, daysAgo: number): string {
+  const shifted = new Date(nowDate.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(shifted);
+}
+
+/**
+ * One completed run from yesterday (Chicago time) with 5 ranked items. Yesterday, so today's
+ * "run my feed" is still allowed for a reviewer, and these items sit in the inbox backlog.
+ */
+function feedItemsSql(userId: string, now: string, nowDate: Date): string {
+  const runId = 'f0000000-0000-4000-8000-00000000f001';
+  const lines: string[] = [
+    // The runs delete cascades the ranked items. Feedback goes with the jobs below.
+    `DELETE FROM job_feed_runs WHERE user_id = ${sqlText(userId)};`,
+    `DELETE FROM job_feed_feedback WHERE user_id = ${sqlText(userId)};`,
+    `DELETE FROM job_feed_canonical_jobs WHERE canonical_key LIKE ${sqlText(`${FEED_KEY_PREFIX}%`)};`,
+    `INSERT INTO job_feed_runs (id, user_id, local_date, local_timezone, trigger_source, status, idempotency_key, started_at, completed_at, result_summary, raw_jobs_fetched, jobs_after_prefilter, ranked_jobs_count, metadata, created_at, updated_at)
+VALUES (${sqlText(runId)}, ${sqlText(userId)}, ${sqlText(chicagoDate(nowDate, 1))}, 'America/Chicago', 'manual', 'completed', ${sqlText(`reviewer-seed-run:${userId}`)}, ${sqlText(now)}, ${sqlText(now)}, 'Sample run for the reviewer account', ${FEED_JOBS.length}, ${FEED_JOBS.length}, ${FEED_JOBS.length}, '{}', ${sqlText(now)}, ${sqlText(now)});`,
+  ];
+  FEED_JOBS.forEach((job, index) => {
+    const jobId = `f0000000-0000-4000-8000-0000000000${String(index + 10)}`;
+    const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    lines.push(
+      `INSERT INTO job_feed_canonical_jobs (id, canonical_key, source_provider, source_job_id, title, title_normalized, company, company_normalized, location_text, location_normalized, work_mode, employment_type, salary_text, salary_min, salary_max, salary_currency, description, apply_url, source_url, posted_at_text, freshness_days, source_identifiers, first_seen_at, last_seen_at, created_at, updated_at)
+VALUES (${sqlText(jobId)}, ${sqlText(`${FEED_KEY_PREFIX}${job.key}`)}, 'reviewer-seed', ${sqlText(job.key)}, ${sqlText(job.title)}, ${sqlText(normalize(job.title))}, ${sqlText(job.company)}, ${sqlText(normalize(job.company))}, ${sqlText(job.location)}, ${sqlText(normalize(job.location))}, ${sqlText(job.workMode)}, 'full_time', ${sqlText(`USD ${job.salaryMin.toLocaleString('en-US')} to ${job.salaryMax.toLocaleString('en-US')}`)}, ${job.salaryMin}, ${job.salaryMax}, 'USD', ${sqlText(job.description)}, ${sqlText(`https://example.com/jobs/${job.key}`)}, ${sqlText(`https://example.com/jobs/${job.key}`)}, '1 day ago', 1, '{}', ${sqlText(now)}, ${sqlText(now)}, ${sqlText(now)}, ${sqlText(now)});`,
+      `INSERT INTO job_feed_ranked_items (id, run_id, user_id, canonical_job_id, rank_position, fit_label, ranking_source, reason, deterministic_score, metadata, created_at)
+VALUES (${sqlText(`f0000000-0000-4000-8000-0000000001${String(index + 10)}`)}, ${sqlText(runId)}, ${sqlText(userId)}, ${sqlText(jobId)}, ${index + 1}, ${sqlText(job.fit)}, 'llm', ${sqlText(job.reason)}, ${job.fit === 'strong' ? 90 - index : 75 - index}, ${sqlJson({ company_display: job.company })}, ${sqlText(now)});`,
+    );
+  });
+  return lines.join('\n');
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -825,15 +988,26 @@ async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   assertSafeCredentialsPath(args.credentialsOut);
 
-  console.log(`Target: ${args.baseUrl}`);
-  console.log(`Database: ${DB_NAME} (${args.remote ? 'REMOTE' : 'local'})`);
   if (args.remote) {
-    console.log('--remote was passed: this writes to the live database for the reviewer account only.');
+    if (isLocalUrl(args.baseUrl)) fail('--remote needs a non-local --base-url (the production site), so sign-up and the data writes hit the same environment.');
   } else if (!isLocalUrl(args.baseUrl)) {
-    fail('A non-local --base-url needs --remote, so sign-up and the data writes hit the same environment.');
+    fail('A non-local --base-url needs --remote --yes-production, so sign-up and the data writes hit the same environment.');
   }
 
-  const existing = d1Rows<{ id: string }>(`SELECT id FROM user WHERE email = ${sqlText(args.email)}`, args.remote)[0];
+  console.log(`Target: ${args.baseUrl}`);
+  console.log(`Database: ${DB_NAME} (${args.remote ? 'REMOTE, PRODUCTION' : 'local'})`);
+  console.log(`Account: ${args.email} (reviewer pattern checked)`);
+  console.log('Plan:');
+  console.log('  1. Look the account up by that exact email. Sign in with the credentials file if it exists.');
+  console.log('  2. If the sign-in fails, delete that one reviewer user (checked by id and email) and sign it up again with a new password.');
+  console.log(`  3. Set it to Max, ${args.credits} credits, then replace its applications, CV, chat history, feed run and feed settings.`);
+  console.log('  4. Replace the shared feed postings whose key starts with "reviewer-seed:". No other user\'s rows are touched.');
+  if (args.remote) console.log('--remote and --yes-production were both passed. Proceeding against the live database.');
+
+  const existing = d1Rows<{ id: string; email: string }>(`SELECT id, email FROM user WHERE email = ${sqlText(args.email)}`, args.remote)[0];
+  if (existing && (existing.email.toLowerCase() !== args.email || !REVIEWER_EMAIL.test(existing.email.toLowerCase()))) {
+    fail(`The row found for ${args.email} has email ${existing.email}. Refusing to touch it.`);
+  }
 
   // Reuse the account when the stored password still signs in. Otherwise start clean.
   let password = readCredentials(args.credentialsOut, args.email)?.password ?? null;
@@ -844,8 +1018,9 @@ async function main(): Promise<void> {
   } else {
     if (existing) {
       console.log('Existing reviewer account found, but the credentials file does not sign in. Recreating the account.');
+      // Each delete is keyed on the id AND the reviewer email, so a wrong id can never match another user.
       d1Exec(
-        `DELETE FROM profiles WHERE id = ${sqlText(existing.id)};\nDELETE FROM user WHERE id = ${sqlText(existing.id)};`,
+        `DELETE FROM profiles WHERE id = ${sqlText(existing.id)} AND email = ${sqlText(args.email)};\nDELETE FROM user WHERE id = ${sqlText(existing.id)} AND email = ${sqlText(args.email)};`,
         args.remote,
       );
     }
@@ -869,8 +1044,12 @@ async function main(): Promise<void> {
   const statements: string[] = [
     `UPDATE user SET email_verified = 1, name = ${sqlText(NAME)} WHERE id = ${u};`,
     `UPDATE profiles SET full_name = ${sqlText(NAME)}, phone = ${sqlText(PERSONAL.phone)}, location = 'Austin, TX', linkedin_url = ${sqlText(PERSONAL.linkedIn)}, github_url = ${sqlText(PERSONAL.github)}, timezone = 'America/Chicago', mcp_daily_credit_limit = 20, updated_at = ${sqlText(now)} WHERE id = ${u};`,
-    `INSERT OR IGNORE INTO user_credits (id, user_id, plan_tier, version, created_at, updated_at) VALUES (${sqlText(randomUUID())}, ${u}, 'free', 0, ${sqlText(now)}, ${sqlText(now)});`,
-    `UPDATE user_credits SET monthly_credits = ${args.credits}, rollover_credits = 0, addon_credits = 0, version = version + 1, updated_at = ${sqlText(now)} WHERE user_id = ${u};`,
+    `UPDATE profiles SET subscription_tier = 'max', subscription_status = 'active' WHERE id = ${u};`,
+    `INSERT OR IGNORE INTO user_credits (id, user_id, plan_tier, version, created_at, updated_at) VALUES (${sqlText(randomUUID())}, ${u}, 'max', 0, ${sqlText(now)}, ${sqlText(now)});`,
+    // Max, no Stripe ids, subscription_status NULL: the monthly sweep only selects paid rows whose status is 'active'.
+    `UPDATE user_credits SET plan_tier = 'max', monthly_credits = ${args.credits}, rollover_credits = 0, addon_credits = 0, stripe_customer_id = NULL, stripe_subscription_id = NULL, subscription_status = NULL, last_reset_date = ${sqlText(now)}, next_reset_date = ${sqlText(new Date(nowDate.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString())}, version = version + 1, updated_at = ${sqlText(now)} WHERE user_id = ${u};`,
+    `DELETE FROM subscriptions WHERE user_id = ${u};`,
+    `INSERT INTO subscriptions (id, user_id, tier, status, applications_used, applications_limit, cancel_at_period_end, created_at, updated_at) VALUES (${sqlText(randomUUID())}, ${u}, 'max', 'active', 2, 100, 0, ${sqlText(now)}, ${sqlText(now)});`,
   ];
   if (delta !== 0) {
     statements.push(
@@ -884,13 +1063,19 @@ VALUES (${sqlText(randomUUID())}, ${u}, ${delta}, 'reviewer_grant', 'grant', 'Re
     primaryCvSql(userId, now),
     applicationSql(userId, US_APP, now, nowDate),
     applicationSql(userId, DE_APP, now, nowDate),
+    chatSql(userId, US_APP, nowDate),
+    chatSql(userId, DE_APP, nowDate),
     jobFeedSql(userId, now),
+    feedItemsSql(userId, now, nowDate),
   );
   d1Exec(`${statements.join('\n')}\n`, args.remote);
 
   // Read back, so a silent partial write fails loudly.
-  const check = d1Rows<{ apps: number; docs: number; credits: number; verified: number; consent: number }>(
+  const check = d1Rows<{ apps: number; docs: number; credits: number; verified: number; consent: number; chat: number; feed: number; maxPlan: number }>(
     `SELECT
+       (SELECT COUNT(*) FROM chat_messages WHERE user_id = ${u}) AS chat,
+       (SELECT COUNT(*) FROM job_feed_ranked_items WHERE user_id = ${u}) AS feed,
+       (SELECT COUNT(*) FROM profiles p JOIN user_credits c ON c.user_id = p.id JOIN subscriptions s ON s.user_id = p.id WHERE p.id = ${u} AND p.subscription_tier = 'max' AND c.plan_tier = 'max' AND s.tier = 'max' AND c.stripe_subscription_id IS NULL) AS maxPlan,
        (SELECT COUNT(*) FROM application_sessions WHERE user_id = ${u} AND generation_status = 'succeeded' AND cover_letter IS NOT NULL AND email IS NOT NULL AND follow_up_email IS NOT NULL AND generated_cv IS NOT NULL AND fit_assessment IS NOT NULL) AS apps,
        (SELECT COUNT(*) FROM documents WHERE user_id = ${u} AND type = 'primary_cv') AS docs,
        (SELECT monthly_credits + rollover_credits + addon_credits FROM user_credits WHERE user_id = ${u}) AS credits,
@@ -898,12 +1083,13 @@ VALUES (${sqlText(randomUUID())}, ${u}, ${delta}, 'reviewer_grant', 'grant', 'Re
        (SELECT COUNT(*) FROM job_feed_settings WHERE user_id = ${u} AND consent_accepted_at IS NOT NULL) AS consent`,
     args.remote,
   )[0];
-  if (!check || check.apps !== 2 || check.docs !== 1 || check.credits !== args.credits || check.verified !== 1 || check.consent !== 1) {
+  if (!check || check.apps !== 2 || check.docs !== 1 || check.credits !== args.credits || check.verified !== 1 || check.consent !== 1
+    || check.chat !== 8 || check.feed !== FEED_JOBS.length || check.maxPlan !== 1) {
     fail(`Read-back check failed: ${JSON.stringify(check)}`);
   }
   if (!(await signIn(args.baseUrl, args.email, password))) fail('Read-back sign-in failed');
 
-  console.log(`Seeded ${args.email}: 2 applications with full kits, 1 primary CV, ${check.credits} credits, feed consent on, email verified, sign-in works.`);
+  console.log(`Seeded ${args.email}: 2 applications with full kits, 1 primary CV, Max plan, ${check.credits} credits, ${check.feed} feed items, feed consent on, email verified, sign-in works.`);
   console.log(`Credentials file: ${args.credentialsOut} (mode 0600). The password is not printed.`);
 }
 

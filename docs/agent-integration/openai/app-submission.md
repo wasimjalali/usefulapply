@@ -137,7 +137,7 @@ Rules from the guidelines: explicit booleans on every tool, justification no lon
 
 - `readOnlyHint`: true for the 13 read tools. False for anything that saves, queues or spends, including `analyze_job_fit` (it creates a draft) and every generation tool (they queue work).
 - `destructiveHint`: true for anything that deletes, overwrites, cancels or revokes. Being undoable doesn't justify false, so `undo_last_edit`, `set_cv_template` and the edit tools stay true as PLAN.md has them.
-- `openWorldHint`: false for a bounded private account. Every tool acts on the user's own account, so false everywhere except one open question: `run_job_feed` searches public job listings. Treat it as true, and settle it in PR 5.
+- `openWorldHint`: false for a bounded private account. Every tool acts on the user's own account, so false everywhere except `run_job_feed`, which searches public job listings and is `true` (as it already is in the code).
 - Annotations aren't permission. The server still enforces scopes, ownership and the daily spend cap.
 
 Other guideline points we have to keep meeting:

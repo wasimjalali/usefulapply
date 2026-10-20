@@ -25,7 +25,10 @@ To revoke access at any point, go to Settings, Connected apps in the web app. Th
 | Primary CV | One CV, in English, with 2 roles, education, skills, a certification and languages (English, German B2, Spanish). |
 | US application | Senior Software Engineer, Platform at Halcyon Cloud Labs (fictional). Status applied. Fit result 82. Full kit: tailored CV, US cover letter, application email, follow-up email. Template premium-ats. |
 | German application | Senior Backend Engineer (m/w/d) at Fjordwerk GmbH, Berlin (fictional). Status drafted. Fit result 79. Full kit in German: tailored CV, DIN 5008 cover letter, application email, follow-up email. Template german-ats. |
-| Credits | 40 at the start. |
+| Plan | Max, so screening answers and the job feed are available. |
+| Credits | 200 at the start (a Max month). |
+| Job feed | A completed run from yesterday with 5 ranked, fictional postings, so the feed tools have something to act on before any live search. |
+| Chat history | Each application has its fit and kit conversation, so the web app shows a finished application. |
 | Daily agent limit | 20 credits a day (the default for new users is 10). |
 | Job feed | Consent given. Roles: Senior Software Engineer, Staff Software Engineer, Platform Engineer. Austin, TX or remote. Salary floor USD 150,000. |
 | Profile | Name, phone, location, LinkedIn and GitHub (fictional URLs), timezone America/Chicago. |
@@ -36,7 +39,7 @@ Run each step in a normal conversation. Tool names are the ones in the catalog. 
 
 ### 1. Read tools (no credits, scope Read)
 
-1. "What's in my Useful Apply account?" Expect `get_account`: balance 40, a CV on file, daily agent limit 20.
+1. "What's in my Useful Apply account?" Expect `get_account`: plan Max, balance 200, a CV on file, daily agent limit 20.
 2. "Show my recent credit use." Expect `get_credit_history`.
 3. "List my applications." Expect `list_applications` with both seeded applications.
 4. "Open the Halcyon Cloud Labs application." Expect `get_application`: fit result, status, kit, revision.
@@ -81,7 +84,7 @@ Each call needs an idempotency key the client generates. Repeat a call with the 
 35. Ask for a second kit on an application that has one. Expect a refusal unless the request says to regenerate.
 36. "Cancel the generation." While one runs, expect `cancel_generation` and the unspent credits released.
 
-Steps 29 to 36 use roughly 6 to 8 credits. The daily limit of 20 and a balance of 40 leave room for a second pass.
+Steps 29 to 36 use roughly 6 to 8 credits. The daily limit of 20 leaves room for a second pass, and the balance of 200 for many more.
 
 ### 4. Things that should fail
 
@@ -101,20 +104,30 @@ Steps 29 to 36 use roughly 6 to 8 credits. The daily limit of 20 and a balance o
 | Rewrite one CV section | 0.5 (free if refused) |
 | Everything else | 0 |
 
-A full walk-through of this guide costs about 8 credits. The account starts with 40.
+A full walk-through of this guide costs about 8 credits. The account starts with 200.
 
 ## Reset the account
 
-Re-run the seed script. It restores the applications, the CV, the credits and the feed settings to the state above and keeps the same login. Only the reviewer's own rows are touched.
+Re-run the seed script. It restores the plan, the credits, the applications, the CV, the chat history, the feed items and the feed settings to the state above and keeps the same login. Only the reviewer's own rows (and the shared feed postings keyed `reviewer-seed:`) are touched.
 
 ```
 npx tsx scripts/seed-reviewer-account.ts \
   --base-url https://usefulapply.com \
   --credentials-out <path outside the repo> \
-  --remote
+  --remote --yes-production
 ```
 
+The script only accepts `reviewer@usefulapply.com` or `reviewer+<label>@usefulapply.com`, and `--remote` needs `--yes-production`. It prints what it will do before it does it.
+
 Run it from the repo root with a Cloudflare login that can write to the production database. Use the same `--credentials-out` file as before. If that file is missing or stale, the script deletes the reviewer account and creates it again with a new password, so update the portals afterwards.
+
+### Does the plan survive?
+
+Yes. The account is Max in the profile, the credits row and the subscriptions row, with no Stripe ids and `user_credits.subscription_status` empty.
+
+- The daily cron sweep (`processOverdueMonthlyResets`) resets a paid row only when its `subscription_status` is `active` and its reset date is more than 3 days past. This row's status is empty, so the sweep never selects it.
+- Stripe webhooks look users up by customer or subscription id. The reviewer has none, so no event can match it.
+- Nothing refills credits automatically either. When the balance runs low, re-run the seed. Credits are the only thing that drifts, so re-run it after each review round and before a resubmission.
 
 ## Support
 

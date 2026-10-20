@@ -16,7 +16,7 @@ Status as of 2026-10-20, end of PR 6b's in-repo work. "Wasim" means it needs his
 | Every tool has `title` and explicit `readOnlyHint`, `destructiveHint`, `openWorldHint` | open, part of PR 5 | agent |
 | Tool names 64 characters or fewer, read and write tools separate | open, part of PR 5 | agent |
 | No prices or upgrade text in any tool output | open, part of PR 5, check before submit | agent |
-| `run_job_feed` `openWorldHint` decided | open | agent |
+| `run_job_feed` `openWorldHint: true` (searches public listings) | in the code. Docs match | done |
 | Each tool run once as a custom connector in Claude | open, launch live check | Wasim or agent |
 | Tested in ChatGPT developer mode, desktop and mobile | open, launch live check | Wasim |
 | MCP Inspector run clean | open, launch live check | agent |
@@ -26,7 +26,8 @@ Status as of 2026-10-20, end of PR 6b's in-repo work. "Wasim" means it needs his
 | Requirement | Status | Owner |
 |---|---|---|
 | Seed script written, idempotent, no MFA, verified email | done, `scripts/seed-reviewer-account.ts`, verified locally twice | done |
-| Seeded on production | open | Wasim runs it with `--remote` (Cloudflare login needed) |
+| Reviewer is on Max with no Stripe ids, so screening and the job feed work | done in the seed. The monthly sweep never selects it (see `reviewer-guide.md`) | done |
+| Seeded on production | open | Wasim runs it with `--remote --yes-production` (Cloudflare login needed) |
 | Credentials file kept outside git and entered in both portals | open | Wasim |
 | Account and data kept available for later reviews | ongoing | Wasim |
 
