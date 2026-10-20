@@ -1,0 +1,266 @@
+{
+ "case_id": "sl-de-contact",
+ "language": "de",
+ "ok": true,
+ "error": null,
+ "cover_letter_calls": 1,
+ "body": "Jonas Hartmann\nNürnberg, Deutschland\njonas.hartmann@example.de\n+49 911 0000 0142\n\nBrenner Getriebe GmbH\nPersonalabteilung\nFrau Melanie Brandl\nIndustriestraße 14\n90431 Nürnberg\n\nNürnberg, 20. Oktober 2026\n\nBewerbung als Key Account Manager (m/w/d) Antriebstechnik, Kennziffer KAM-2026-17\n\nSehr geehrte Frau Brandl,\n\nBestandskunden im süddeutschen Maschinenbau zu halten und auszubauen, gelingt nur mit technischer Glaubwürdigkeit und langfristiger Betreuung. Genau das mache ich bei der Frankenmetall Antriebstechnik GmbH: Ich betreue rund 60 Bestandskunden im Raum Bayern und Baden-Württemberg und habe den Jahresumsatz meines Gebiets von 3,1 auf 4,2 Mio. EUR gesteigert.\n\nAls Technischer Vertriebsmitarbeiter im Außendienst erstelle ich Angebote und technische Auslegungen gemeinsam mit der Konstruktion, so wie es Ihre Stelle für die Abstimmung mit Ihrer Konstruktion vorsieht. Mein B.Eng. Maschinenbau der Technischen Hochschule Nürnberg hilft mir, Kundenanforderungen in der Antriebstechnik präzise zu verstehen. Auf Messen und in Kundenschulungen vertrete ich mein Unternehmen regelmäßig, und alle Kontakte und Angebote pflege ich konsequent im CRM (SAP CRM), sodass mir der Umstieg auf Salesforce vertraut sein dürfte. Deutsch ist meine Muttersprache, Englisch beherrsche ich verhandlungssicher (C1). Reisebereitschaft bringe ich mit.\n\nGern erläutere ich Ihnen in einem persönlichen Gespräch, wie ich Ihre rund 40 Schlüsselkunden und Ihr Umsatzziel in Nürnberg voranbringen kann. Ich stehe Ihnen nach Absprache zur Verfügung.\n\nMit freundlichen Grüßen\nJonas Hartmann",
+ "structured": {
+  "version": 2,
+  "language": "de",
+  "market": "dach",
+  "sender": {
+   "name": "Jonas Hartmann",
+   "addressLines": [
+    "Nürnberg, Deutschland"
+   ],
+   "phone": "+49 911 0000 0142",
+   "email": "jonas.hartmann@example.de"
+  },
+  "recipient": {
+   "addressLines": [
+    "Industriestraße 14",
+    "90431 Nürnberg"
+   ],
+   "companyName": "Brenner Getriebe GmbH",
+   "contactPerson": "Frau Melanie Brandl",
+   "department": "Personalabteilung"
+  },
+  "date": "2026-10-20",
+  "subject": "Bewerbung als Key Account Manager (m/w/d) Antriebstechnik, Kennziffer KAM-2026-17",
+  "salutation": "Sehr geehrte Frau Brandl,",
+  "paragraphs": [
+   "Bestandskunden im süddeutschen Maschinenbau zu halten und auszubauen, gelingt nur mit technischer Glaubwürdigkeit und langfristiger Betreuung. Genau das mache ich bei der Frankenmetall Antriebstechnik GmbH: Ich betreue rund 60 Bestandskunden im Raum Bayern und Baden-Württemberg und habe den Jahresumsatz meines Gebiets von 3,1 auf 4,2 Mio. EUR gesteigert.",
+   "Als Technischer Vertriebsmitarbeiter im Außendienst erstelle ich Angebote und technische Auslegungen gemeinsam mit der Konstruktion, so wie es Ihre Stelle für die Abstimmung mit Ihrer Konstruktion vorsieht. Mein B.Eng. Maschinenbau der Technischen Hochschule Nürnberg hilft mir, Kundenanforderungen in der Antriebstechnik präzise zu verstehen. Auf Messen und in Kundenschulungen vertrete ich mein Unternehmen regelmäßig, und alle Kontakte und Angebote pflege ich konsequent im CRM (SAP CRM), sodass mir der Umstieg auf Salesforce vertraut sein dürfte. Deutsch ist meine Muttersprache, Englisch beherrsche ich verhandlungssicher (C1). Reisebereitschaft bringe ich mit.",
+   "Gern erläutere ich Ihnen in einem persönlichen Gespräch, wie ich Ihre rund 40 Schlüsselkunden und Ihr Umsatzziel in Nürnberg voranbringen kann. Ich stehe Ihnen nach Absprache zur Verfügung."
+  ],
+  "closing": "Mit freundlichen Grüßen",
+  "signatureName": "Jonas Hartmann",
+  "place": "Nürnberg"
+ },
+ "raw_letter_outputs": [
+  "{\"subject\": \"Bewerbung als Key Account Manager (m/w/d) Antriebstechnik, Kennziffer KAM-2026-17\", \"salutation\": \"Sehr geehrte Frau Brandl,\", \"paragraphs\": [\"Bestandskunden im süddeutschen Maschinenbau zu halten und auszubauen, gelingt nur mit technischer Glaubwürdigkeit und langfristiger Betreuung. Genau das mache ich bei der Frankenmetall Antriebstechnik GmbH: Ich betreue rund 60 Bestandskunden im Raum Bayern und Baden-Württemberg und habe den Jahresumsatz meines Gebiets von 3,1 auf 4,2 Mio. EUR gesteigert.\", \"Als Technischer Vertriebsmitarbeiter im Außendienst erstelle ich Angebote und technische Auslegungen gemeinsam mit der Konstruktion, so wie es Ihre Stelle für die Abstimmung mit Ihrer Konstruktion vorsieht. Mein B.Eng. Maschinenbau der Technischen Hochschule Nürnberg hilft mir, Kundenanforderungen in der Antriebstechnik präzise zu verstehen. Auf Messen und in Kundenschulungen vertrete ich mein Unternehmen regelmäßig, und alle Kontakte und Angebote pflege ich konsequent im CRM (SAP CRM), sodass mir der Umstieg auf Salesforce vertraut sein dürfte. Deutsch ist meine Muttersprache, Englisch beherrsche ich verhandlungssicher (C1). Reisebereitschaft bringe ich mit.\", \"Gern erläutere ich Ihnen in einem persönlichen Gespräch, wie ich Ihre rund 40 Schlüsselkunden und Ihr Umsatzziel in Nürnberg voranbringen kann. Ich stehe Ihnen nach Absprache zur Verfügung.\"], \"closing\": \"Mit freundlichen Grüßen\", \"recipient\": {\"companyName\": \"Brenner Getriebe GmbH\", \"contactPerson\": \"Frau Melanie Brandl\", \"department\": \"Personalabteilung\", \"addressLines\": [\"Industriestraße 14\", \"90431 Nürnberg\"]}}"
+ ],
+ "context": {
+  "applicant": {
+   "name": "Jonas Hartmann",
+   "email": "jonas.hartmann@example.de",
+   "phone": "+49 911 0000 0142",
+   "address": "Nürnberg, Deutschland",
+   "headline": "Technischer Vertriebsmitarbeiter, Maschinenbau",
+   "skills": [
+    "Kundenbetreuung",
+    "Angebotserstellung",
+    "Verhandlung",
+    "Messeauftritte",
+    "Antriebstechnik",
+    "Pumpen",
+    "technische Auslegung"
+   ],
+   "tools": [
+    "SAP CRM",
+    "SAP SD (Anwender)",
+    "MS Office",
+    "MS Teams"
+   ],
+   "languages": [
+    "Deutsch (Muttersprache)",
+    "Englisch (verhandlungssicher, C1)",
+    "Türkisch (Grundkenntnisse)"
+   ],
+   "experiences": [
+    {
+     "company": "Frankenmetall Antriebstechnik GmbH, Nürnberg",
+     "title": "Technischer Vertriebsmitarbeiter im Außendienst",
+     "startDate": "04/2021",
+     "bullets": [
+      "Betreue rund 60 Bestandskunden im Raum Bayern und Baden-Württemberg",
+      "Steigerte den Jahresumsatz meines Gebiets von 3,1 auf 4,2 Mio. EUR",
+      "Erstelle Angebote und technische Auslegungen gemeinsam mit der Konstruktion",
+      "Führe pro Jahr etwa 15 Messegespräche und Kundenschulungen durch",
+      "Pflege alle Kontakte und Angebote im CRM (SAP CRM)"
+     ]
+    },
+    {
+     "company": "Kessler Pumpen und Armaturen GmbH, Fürth",
+     "title": "Vertriebsinnendienst",
+     "startDate": "09/2018",
+     "endDate": "03/2021",
+     "bullets": [
+      "Bearbeitete täglich 20 bis 30 Kundenanfragen und erstellte Angebote und Auftragsbestätigungen",
+      "Reduzierte die durchschnittliche Angebotszeit von drei auf einen Arbeitstag durch Textbausteine und Vorlagen"
+     ]
+    },
+    {
+     "company": "Kessler Pumpen und Armaturen GmbH, Fürth",
+     "title": "Trainee Vertrieb",
+     "startDate": "09/2017",
+     "endDate": "08/2018",
+     "bullets": [
+      "Durchlief Konstruktion, Einkauf und Vertrieb"
+     ]
+    }
+   ],
+   "certifications": []
+  },
+  "job": {
+   "title": "Key Account Manager (m/w/d) Antriebstechnik",
+   "companyName": "Brenner Getriebe GmbH",
+   "location": "Nürnberg",
+   "requiredSkills": [
+    "Abgeschlossenes technisches Studium, idealerweise Maschinenbau",
+    "Mehrjährige Erfahrung im technischen Vertrieb von Antriebstechnik",
+    "Sicherer Umgang mit Salesforce",
+    "Verhandlungssicheres Deutsch",
+    "Verhandlungssicheres Englisch",
+    "Reisebereitschaft von etwa 40 Prozent"
+   ],
+   "niceToHaveSkills": [
+    "Französischkenntnisse"
+   ],
+   "responsibilities": [
+    "Betreuung und Entwicklung von rund 40 Schlüsselkunden in Bayern und Baden-Württemberg",
+    "Erstellung von Angeboten und technischen Auslegungen in enger Abstimmung mit der Konstruktion",
+    "Verhandlung von Rahmenverträgen und Verantwortung für das Umsatzziel",
+    "Vertretung von Brenner auf Fachmessen wie der Hannover Messe",
+    "Pflege von Kontakten und Verkaufschancen in Salesforce"
+   ],
+   "startDate": "ab sofort"
+  },
+  "match": {
+   "score": 92,
+   "matchedRequirements": [
+    "Abgeschlossenes technisches Studium, idealerweise Maschinenbau",
+    "Mehrjährige Erfahrung im technischen Vertrieb von Antriebstechnik",
+    "Sicherer Umgang mit Salesforce",
+    "Verhandlungssicheres Deutsch",
+    "Verhandlungssicheres Englisch",
+    "Reisebereitschaft von etwa 40 Prozent"
+   ],
+   "claimableEvidence": [
+    "B.Eng. Maschinenbau | Technische Hochschule Nürnberg | 2013 - 2017",
+    "Technischer Vertriebsmitarbeiter im Außendienst | Frankenmetall Antriebstechnik GmbH, Nürnberg | 04/2021 - heute",
+    "Pflege alle Kontakte und Angebote im CRM (SAP CRM)",
+    "Deutsch (Muttersprache)",
+    "Englisch (verhandlungssicher, C1)",
+    "Reisebereitschaft"
+   ],
+   "missingSkills": [
+    "Französischkenntnisse"
+   ],
+   "details": [
+    {
+     "requirement": "Abgeschlossenes technisches Studium, idealerweise Maschinenbau",
+     "evidence": "B.Eng. Maschinenbau | Technische Hochschule Nürnberg | 2013 - 2017",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Mehrjährige Erfahrung im technischen Vertrieb von Antriebstechnik",
+     "evidence": "Technischer Vertriebsmitarbeiter im Außendienst | Frankenmetall Antriebstechnik GmbH, Nürnberg | 04/2021 - heute",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Sicherer Umgang mit Salesforce",
+     "evidence": "Pflege alle Kontakte und Angebote im CRM (SAP CRM)",
+     "tier": 2,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Verhandlungssicheres Deutsch",
+     "evidence": "Deutsch (Muttersprache)",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Verhandlungssicheres Englisch",
+     "evidence": "Englisch (verhandlungssicher, C1)",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Reisebereitschaft von etwa 40 Prozent",
+     "evidence": "Reisebereitschaft",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Französischkenntnisse",
+     "tier": "missing",
+     "claimable": false,
+     "required": false
+    }
+   ]
+  },
+  "verifiedMetrics": [
+   "sieben Jahren Erfahrung im Verkauf erklärungsbedürftiger Industrieprodukte an Mittelständler",
+   "rund 60 Bestandskunden im Raum Bayern und Baden-Württemberg",
+   "Führerschein Klasse B"
+  ]
+ },
+ "checks": {
+  "contract_valid": {
+   "pass": true,
+   "detail": ""
+  },
+  "recipient_address_rule": {
+   "pass": true,
+   "detail": "[\"Industriestraße 14\",\"90431 Nürnberg\"]"
+  },
+  "no_address_in_letter_text": {
+   "pass": true,
+   "detail": "ad address lines: 2"
+  },
+  "contact_rule": {
+   "pass": true,
+   "detail": "company=Brenner Getriebe GmbH contact=Frau Melanie Brandl dept=Personalabteilung salutation=Sehr geehrte Frau Brandl,"
+  },
+  "numbers_traced": {
+   "pass": true,
+   "detail": "cv-or-ad: 5, ad-only (employer facts, review): 40, untraced: none"
+  },
+  "no_missing_skill_named": {
+   "pass": true,
+   "detail": "none"
+  },
+  "no_dashes": {
+   "pass": true,
+   "detail": "body 0, raw model output 0"
+  },
+  "under_250_words": {
+   "pass": true,
+   "detail": "163 words in 3 paragraphs"
+  },
+  "three_paragraphs": {
+   "pass": true,
+   "detail": "3"
+  },
+  "market_rules": {
+   "pass": true,
+   "detail": "market=dach closing=\"Mit freundlichen Grüßen\" subject=\"Bewerbung als Key Account Manager (m/w/d) Antriebstechnik, Kennziffer KAM-2026-17\""
+  },
+  "subject_numbers_from_ad": {
+   "pass": true,
+   "detail": "2026,17"
+  },
+  "body_faithful": {
+   "pass": true,
+   "detail": "body === renderCoverLetterBody(structured)"
+  },
+  "sender_from_cv": {
+   "pass": true,
+   "detail": "{\"name\":\"Jonas Hartmann\",\"addressLines\":[\"Nürnberg, Deutschland\"],\"phone\":\"+49 911 0000 0142\",\"email\":\"jonas.hartmann@example.de\"}"
+  },
+  "no_placeholders": {
+   "pass": true,
+   "detail": ""
+  }
+ }
+}

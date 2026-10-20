@@ -1,0 +1,290 @@
+{
+ "run_id": "1a124436-d5b1-405b-9ad1-aa4f3e7c1024",
+ "date": "2026-10-20T11:00:53.352Z",
+ "model": "claude-sonnet-5-5",
+ "request_shape": {
+  "thinking": {
+   "type": "adaptive"
+  },
+  "effort": "low",
+  "temperature": null,
+  "maxTokensScale": {
+   "multiplier": 4,
+   "floor": 4000
+  }
+ },
+ "calls": 20,
+ "cover_letter_calls": 4,
+ "tokens": {
+  "input": 59868,
+  "output": 12507,
+  "cacheWrite": 5977,
+  "cacheRead": 17931
+ },
+ "cost_usd": 0.2615416,
+ "cover_letter_cost_usd": 0.0734636,
+ "cover_letter_latency_ms": [
+  4957,
+  4791,
+  11012,
+  5207
+ ],
+ "cases": [
+  {
+   "case_id": "syn-07",
+   "ok": true,
+   "error": null,
+   "cover_letter_calls": 1,
+   "checks": {
+    "contract_valid": {
+     "pass": true,
+     "detail": ""
+    },
+    "recipient_address_rule": {
+     "pass": true,
+     "detail": "[]"
+    },
+    "no_address_in_letter_text": {
+     "pass": true,
+     "detail": "ad address lines: 0"
+    },
+    "contact_rule": {
+     "pass": true,
+     "detail": "company=Cloudflare contact= dept= salutation=Dear Hiring Team,"
+    },
+    "numbers_traced": {
+     "pass": true,
+     "detail": "cv-or-ad: 9, ad-only (employer facts, review): none, untraced: none"
+    },
+    "no_missing_skill_named": {
+     "pass": true,
+     "detail": "none"
+    },
+    "no_dashes": {
+     "pass": true,
+     "detail": "body 0, raw model output 0"
+    },
+    "under_250_words": {
+     "pass": true,
+     "detail": "225 words in 3 paragraphs"
+    },
+    "three_paragraphs": {
+     "pass": true,
+     "detail": "3"
+    },
+    "market_rules": {
+     "pass": true,
+     "detail": "market=us closing=\"Kind regards,\" subject=\"Application for Senior Software Engineer - Egress (Go/Rust)\""
+    },
+    "subject_numbers_from_ad": {
+     "pass": true,
+     "detail": "none"
+    },
+    "body_faithful": {
+     "pass": true,
+     "detail": "body === renderCoverLetterBody(structured)"
+    },
+    "sender_from_cv": {
+     "pass": true,
+     "detail": "{\"name\":\"Priya Raman\",\"addressLines\":[\"Toronto, Canada\"],\"phone\":\"+1 555 0176\",\"email\":\"priya.raman@example.com\"}"
+    },
+    "no_placeholders": {
+     "pass": true,
+     "detail": ""
+    }
+   }
+  },
+  {
+   "case_id": "sl-de-contact",
+   "ok": true,
+   "error": null,
+   "cover_letter_calls": 1,
+   "checks": {
+    "contract_valid": {
+     "pass": true,
+     "detail": ""
+    },
+    "recipient_address_rule": {
+     "pass": true,
+     "detail": "[\"Industriestraße 14\",\"90431 Nürnberg\"]"
+    },
+    "no_address_in_letter_text": {
+     "pass": true,
+     "detail": "ad address lines: 2"
+    },
+    "contact_rule": {
+     "pass": true,
+     "detail": "company=Brenner Getriebe GmbH contact=Frau Melanie Brandl dept=Personalabteilung salutation=Sehr geehrte Frau Brandl,"
+    },
+    "numbers_traced": {
+     "pass": true,
+     "detail": "cv-or-ad: 5, ad-only (employer facts, review): none, untraced: none"
+    },
+    "no_missing_skill_named": {
+     "pass": true,
+     "detail": "none"
+    },
+    "no_dashes": {
+     "pass": true,
+     "detail": "body 0, raw model output 0"
+    },
+    "under_250_words": {
+     "pass": true,
+     "detail": "177 words in 3 paragraphs"
+    },
+    "three_paragraphs": {
+     "pass": true,
+     "detail": "3"
+    },
+    "market_rules": {
+     "pass": true,
+     "detail": "market=dach closing=\"Mit freundlichen Grüßen\" subject=\"Bewerbung als Key Account Manager (m/w/d) Antriebstechnik, Kennziffer KAM-2026-17\""
+    },
+    "subject_numbers_from_ad": {
+     "pass": true,
+     "detail": "2026"
+    },
+    "body_faithful": {
+     "pass": true,
+     "detail": "body === renderCoverLetterBody(structured)"
+    },
+    "sender_from_cv": {
+     "pass": true,
+     "detail": "{\"name\":\"Jonas Hartmann\",\"addressLines\":[\"Nürnberg, Deutschland\"],\"phone\":\"+49 911 0000 0142\",\"email\":\"jonas.hartmann@example.de\"}"
+    },
+    "no_placeholders": {
+     "pass": true,
+     "detail": ""
+    }
+   }
+  },
+  {
+   "case_id": "sl-us-address",
+   "ok": true,
+   "error": null,
+   "cover_letter_calls": 1,
+   "checks": {
+    "contract_valid": {
+     "pass": true,
+     "detail": ""
+    },
+    "recipient_address_rule": {
+     "pass": true,
+     "detail": "[\"220 West Lake Street, Suite 1400\",\"Chicago, IL 60606\"]"
+    },
+    "no_address_in_letter_text": {
+     "pass": true,
+     "detail": "ad address lines: 2"
+    },
+    "contact_rule": {
+     "pass": true,
+     "detail": "company=Northwind Freight Inc. contact=Dana Whitfield dept=Talent Acquisition salutation=Dear Dana Whitfield,"
+    },
+    "numbers_traced": {
+     "pass": true,
+     "detail": "cv-or-ad: 7, ad-only (employer facts, review): none, untraced: none"
+    },
+    "no_missing_skill_named": {
+     "pass": true,
+     "detail": "none"
+    },
+    "no_dashes": {
+     "pass": true,
+     "detail": "body 0, raw model output 0"
+    },
+    "under_250_words": {
+     "pass": true,
+     "detail": "216 words in 3 paragraphs"
+    },
+    "three_paragraphs": {
+     "pass": true,
+     "detail": "3"
+    },
+    "market_rules": {
+     "pass": true,
+     "detail": "market=us closing=\"Kind regards,\" subject=\"Application for Senior FP&A Analyst, Req #NW-4471\""
+    },
+    "subject_numbers_from_ad": {
+     "pass": true,
+     "detail": "4471"
+    },
+    "body_faithful": {
+     "pass": true,
+     "detail": "body === renderCoverLetterBody(structured)"
+    },
+    "sender_from_cv": {
+     "pass": true,
+     "detail": "{\"name\":\"Tomas Brandt\",\"addressLines\":[\"Chicago, IL, USA\"],\"phone\":\"+1 555 0123\",\"email\":\"tomas.brandt@example.com\"}"
+    },
+    "no_placeholders": {
+     "pass": true,
+     "detail": ""
+    }
+   }
+  },
+  {
+   "case_id": "sl-fr-contact",
+   "ok": true,
+   "error": null,
+   "cover_letter_calls": 1,
+   "checks": {
+    "contract_valid": {
+     "pass": true,
+     "detail": ""
+    },
+    "recipient_address_rule": {
+     "pass": true,
+     "detail": "[\"12 rue de la République\",\"69002 Lyon\"]"
+    },
+    "no_address_in_letter_text": {
+     "pass": true,
+     "detail": "ad address lines: 1"
+    },
+    "contact_rule": {
+     "pass": true,
+     "detail": "company=Lumière Logistique SAS contact=Mme Claire Dubois dept=Responsable du recrutement salutation=Madame Dubois,"
+    },
+    "numbers_traced": {
+     "pass": true,
+     "detail": "cv-or-ad: 6, ad-only (employer facts, review): none, untraced: none"
+    },
+    "no_missing_skill_named": {
+     "pass": true,
+     "detail": "none"
+    },
+    "no_dashes": {
+     "pass": true,
+     "detail": "body 0, raw model output 0"
+    },
+    "under_250_words": {
+     "pass": true,
+     "detail": "214 words in 3 paragraphs"
+    },
+    "three_paragraphs": {
+     "pass": true,
+     "detail": "3"
+    },
+    "market_rules": {
+     "pass": true,
+     "detail": "market=us closing=\"Cordialement,\" subject=\"Candidature au poste d'Analyste FP&A (H/F), réf. FPA-2026-031\""
+    },
+    "subject_numbers_from_ad": {
+     "pass": true,
+     "detail": "2026,031"
+    },
+    "body_faithful": {
+     "pass": true,
+     "detail": "body === renderCoverLetterBody(structured)"
+    },
+    "sender_from_cv": {
+     "pass": true,
+     "detail": "{\"name\":\"Tomas Brandt\",\"addressLines\":[\"Chicago, IL, USA\"],\"phone\":\"+1 555 0123\",\"email\":\"tomas.brandt@example.com\"}"
+    },
+    "no_placeholders": {
+     "pass": true,
+     "detail": ""
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,366 @@
+{
+ "case_id": "syn-16",
+ "language": "de",
+ "ok": true,
+ "error": null,
+ "cover_letter_calls": 1,
+ "body": "Sabine Köhler\nMünchen, Deutschland\nsabine.koehler@example.de\n+49 89 0000 0187\n\nottonova\n\nMünchen, 20. Oktober 2026\n\nBewerbung als Quereinstieg Leistungssachbearbeitung (Zahn) als Medizinische/r Fachangestellte/r (m/w/d)\n\nSehr geehrte Damen und Herren,\n\nAbgelehnte Abrechnungen kosten Praxen, Versicherte und Kostenträger Zeit und Nerven. In meiner Zahnarztpraxis in München habe ich die Zahl abgelehnter Abrechnungen von etwa 8 auf unter 3 Prozent pro Quartal gesenkt, mit einer Prüfliste vor dem Versand. Wer Rechnungen so genau prüft, kennt die Seite, die Ihr Zahn-Team bei ottonova täglich bewertet.\n\nAls Zahnmedizinische Fachangestellte mit Schwerpunkt Abrechnung rechne ich Leistungen nach BEMA und GOZ für Kassen- und Privatpatienten ab, erstelle Heil- und Kostenpläne und kläre Rückfragen von Krankenkassen und privaten Versicherern. Dabei verbinde ich fachliche und rechtliche Vorgaben mit einer verständlichen, freundlichen Sprache, die ich täglich bei 30 bis 40 Patientenanfragen am Telefon und vor Ort einsetze. Mit der Dentalsoftware Charly und MS Office (Word, Excel) arbeite ich sicher. Ihre digitale, mobile-first Versicherung reizt mich, weil ich den Wechsel von der Praxis in die Leistungsbearbeitung gezielt suche und Prozesse für die täglichen Abrechnungsvorgänge gern mitgestalte.\n\nGern erläutere ich Ihnen in einem persönlichen Gespräch, wie ich Ihr Claims-Team in München unterstütze. Ich bin für ein erstes Kennenlernen kurzfristig erreichbar.\n\nMit freundlichen Grüßen\nSabine Köhler",
+ "structured": {
+  "version": 2,
+  "language": "de",
+  "market": "dach",
+  "sender": {
+   "name": "Sabine Köhler",
+   "addressLines": [
+    "München, Deutschland"
+   ],
+   "phone": "+49 89 0000 0187",
+   "email": "sabine.koehler@example.de"
+  },
+  "recipient": {
+   "addressLines": [],
+   "companyName": "ottonova"
+  },
+  "date": "2026-10-20",
+  "subject": "Bewerbung als Quereinstieg Leistungssachbearbeitung (Zahn) als Medizinische/r Fachangestellte/r (m/w/d)",
+  "salutation": "Sehr geehrte Damen und Herren,",
+  "paragraphs": [
+   "Abgelehnte Abrechnungen kosten Praxen, Versicherte und Kostenträger Zeit und Nerven. In meiner Zahnarztpraxis in München habe ich die Zahl abgelehnter Abrechnungen von etwa 8 auf unter 3 Prozent pro Quartal gesenkt, mit einer Prüfliste vor dem Versand. Wer Rechnungen so genau prüft, kennt die Seite, die Ihr Zahn-Team bei ottonova täglich bewertet.",
+   "Als Zahnmedizinische Fachangestellte mit Schwerpunkt Abrechnung rechne ich Leistungen nach BEMA und GOZ für Kassen- und Privatpatienten ab, erstelle Heil- und Kostenpläne und kläre Rückfragen von Krankenkassen und privaten Versicherern. Dabei verbinde ich fachliche und rechtliche Vorgaben mit einer verständlichen, freundlichen Sprache, die ich täglich bei 30 bis 40 Patientenanfragen am Telefon und vor Ort einsetze. Mit der Dentalsoftware Charly und MS Office (Word, Excel) arbeite ich sicher. Ihre digitale, mobile-first Versicherung reizt mich, weil ich den Wechsel von der Praxis in die Leistungsbearbeitung gezielt suche und Prozesse für die täglichen Abrechnungsvorgänge gern mitgestalte.",
+   "Gern erläutere ich Ihnen in einem persönlichen Gespräch, wie ich Ihr Claims-Team in München unterstütze. Ich bin für ein erstes Kennenlernen kurzfristig erreichbar."
+  ],
+  "closing": "Mit freundlichen Grüßen",
+  "signatureName": "Sabine Köhler",
+  "place": "München"
+ },
+ "raw_letter_outputs": [
+  "{\"subject\": \"Bewerbung als Quereinstieg Leistungssachbearbeitung (Zahn) als Medizinische/r Fachangestellte/r (m/w/d)\", \"salutation\": \"Sehr geehrte Damen und Herren,\", \"paragraphs\": [\"Abgelehnte Abrechnungen kosten Praxen, Versicherte und Kostenträger Zeit und Nerven. In meiner Zahnarztpraxis in München habe ich die Zahl abgelehnter Abrechnungen von etwa 8 auf unter 3 Prozent pro Quartal gesenkt, mit einer Prüfliste vor dem Versand. Wer Rechnungen so genau prüft, kennt die Seite, die Ihr Zahn-Team bei ottonova täglich bewertet.\", \"Als Zahnmedizinische Fachangestellte mit Schwerpunkt Abrechnung rechne ich Leistungen nach BEMA und GOZ für Kassen- und Privatpatienten ab, erstelle Heil- und Kostenpläne und kläre Rückfragen von Krankenkassen und privaten Versicherern. Dabei verbinde ich fachliche und rechtliche Vorgaben mit einer verständlichen, freundlichen Sprache, die ich täglich bei 30 bis 40 Patientenanfragen am Telefon und vor Ort einsetze. Mit der Dentalsoftware Charly und MS Office (Word, Excel) arbeite ich sicher. Ihre digitale, mobile-first Versicherung reizt mich, weil ich den Wechsel von der Praxis in die Leistungsbearbeitung gezielt suche und Prozesse für die täglichen Abrechnungsvorgänge gern mitgestalte.\", \"Gern erläutere ich Ihnen in einem persönlichen Gespräch, wie ich Ihr Claims-Team in München unterstütze. Ich bin für ein erstes Kennenlernen kurzfristig erreichbar.\"], \"closing\": \"Mit freundlichen Grüßen\", \"recipient\": {\"contactPerson\": \"\", \"department\": \"\"}}"
+ ],
+ "context": {
+  "applicant": {
+   "name": "Sabine Köhler",
+   "email": "sabine.koehler@example.de",
+   "phone": "+49 89 0000 0187",
+   "address": "München, Deutschland",
+   "headline": "Zahnmedizinische Fachangestellte",
+   "skills": [
+    "BEMA",
+    "GOZ",
+    "Heil- und Kostenpläne",
+    "Kassen- und Privatabrechnung"
+   ],
+   "tools": [
+    "Dentalsoftware Charly",
+    "MS Office (Word, Excel)",
+    "E-Mail"
+   ],
+   "languages": [
+    "Deutsch (Muttersprache)",
+    "Englisch (gute Grundkenntnisse, B1)",
+    "Spanisch (Grundkenntnisse)"
+   ],
+   "experiences": [
+    {
+     "company": "Zahnarztpraxis Dr. Albrecht und Kollegen, München",
+     "title": "Zahnmedizinische Fachangestellte, Schwerpunkt Abrechnung",
+     "startDate": "05/2021",
+     "bullets": [
+      "Rechne Leistungen nach BEMA und GOZ für Kassen- und Privatpatienten ab (etwa 400 Fälle pro Quartal)",
+      "Erstelle Heil- und Kostenpläne und kläre Rückfragen von Krankenkassen und privaten Versicherern",
+      "Senkte die Zahl abgelehnter Abrechnungen von etwa 8 auf unter 3 Prozent pro Quartal durch eine Prüfliste vor dem Versand",
+      "Betreue den Empfang und beantworte täglich 30 bis 40 Patientenanfragen am Telefon und vor Ort"
+     ]
+    },
+    {
+     "company": "Zahnarztpraxis Dr. Pohl, Augsburg",
+     "title": "Zahnmedizinische Fachangestellte",
+     "startDate": "08/2018",
+     "endDate": "04/2021",
+     "bullets": [
+      "Assistenz am Behandlungsstuhl, Terminplanung und Karteiführung",
+      "Einarbeitung von zwei Auszubildenden"
+     ]
+    },
+    {
+     "company": "Zahnarztpraxis Dr. Pohl, Augsburg",
+     "title": "Ausbildung zur Zahnmedizinischen Fachangestellten",
+     "startDate": "09/2015",
+     "endDate": "07/2018",
+     "bullets": []
+    }
+   ],
+   "certifications": [
+    "Kurs \"Abrechnung in der Zahnarztpraxis\" (2022)",
+    "Erste-Hilfe-Kurs (2024)"
+   ]
+  },
+  "job": {
+   "title": "Quereinstieg Leistungssachbearbeitung (Zahn) als Medizinische/r Fachangestellte/r (m/w/d)",
+   "companyName": "ottonova",
+   "location": "München",
+   "workType": "Hybrid",
+   "requiredSkills": [
+    "Ausbildung im zahnmedizinischen Bereich",
+    "Berufserfahrung im zahnmedizinischen Bereich",
+    "Tiefes fachliches Wissen in Zahnmedizin und/oder KFO",
+    "Kundenorientierung",
+    "Verbindung von fachlichen und rechtlichen Vorgaben",
+    "Empathische Kommunikationsstärke",
+    "Selbstvertrauen",
+    "Neugier auf Gesundheit und Medizin",
+    "Interesse an der digitalen Entwicklung des Versicherungsmarktes",
+    "Teamfähigkeit",
+    "Wissensaustausch mit Kollegen",
+    "Flexibilität",
+    "Präzise und strukturierte Arbeitsweise",
+    "Priorisierungsfähigkeit",
+    "IT-Affinität",
+    "Offenheit gegenüber neuen Technologien",
+    "Kommunikationsstärke",
+    "Individuelle und qualifizierte Schriftwechsel auf Deutsch",
+    "Schriftwechsel auf Englisch"
+   ],
+   "niceToHaveSkills": [
+    "Kenntnisse in gängigen MS Office Anwendungen"
+   ],
+   "responsibilities": [
+    "Bewertung und Bearbeitung eingereichter Rechnungen und Leistungsanträge",
+    "Erteilung von Leistungszusagen im Rahmen der Vollmachten und Veranlassung von Auszahlungen",
+    "Kompetente Ansprechperson für Kundenrückfragen schriftlich und telefonisch",
+    "Kontakt mit Leistungserbringern und Abstimmung mit Experten bei Unklarheiten",
+    "Mitarbeit an der Erstellung von Richtlinien",
+    "Erarbeitung und Weiterentwicklung von Prozessen und Strukturen für die täglichen Abrechnungsvorgänge",
+    "Zusammenarbeit mit Kollegen aus anderen Bereichen bei Projekten"
+   ]
+  },
+  "match": {
+   "score": 84,
+   "matchedRequirements": [
+    "Ausbildung im zahnmedizinischen Bereich",
+    "Berufserfahrung im zahnmedizinischen Bereich",
+    "Tiefes fachliches Wissen in Zahnmedizin und/oder KFO",
+    "Kundenorientierung",
+    "Verbindung von fachlichen und rechtlichen Vorgaben",
+    "Empathische Kommunikationsstärke",
+    "Selbstvertrauen",
+    "Neugier auf Gesundheit und Medizin",
+    "Interesse an der digitalen Entwicklung des Versicherungsmarktes",
+    "Teamfähigkeit",
+    "Wissensaustausch mit Kollegen",
+    "Flexibilität",
+    "Präzise und strukturierte Arbeitsweise",
+    "Priorisierungsfähigkeit",
+    "IT-Affinität",
+    "Offenheit gegenüber neuen Technologien",
+    "Kommunikationsstärke",
+    "Individuelle und qualifizierte Schriftwechsel auf Deutsch",
+    "Kenntnisse in gängigen MS Office Anwendungen"
+   ],
+   "claimableEvidence": [
+    "Ausbildung zur Zahnmedizinischen Fachangestellten",
+    "sechs Jahren Praxiserfahrung in Abrechnung und Patientenkommunikation",
+    "Rechne Leistungen nach BEMA und GOZ für Kassen- und Privatpatienten ab",
+    "Dentalsoftware Charly, MS Office (Word, Excel), E-Mail",
+    "kläre Rückfragen von Krankenkassen und privaten Versicherern",
+    "MS Office (Word, Excel)"
+   ],
+   "missingSkills": [
+    "Schriftwechsel auf Englisch"
+   ],
+   "details": [
+    {
+     "requirement": "Ausbildung im zahnmedizinischen Bereich",
+     "evidence": "Ausbildung zur Zahnmedizinischen Fachangestellten",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Berufserfahrung im zahnmedizinischen Bereich",
+     "evidence": "sechs Jahren Praxiserfahrung in Abrechnung und Patientenkommunikation",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Tiefes fachliches Wissen in Zahnmedizin und/oder KFO",
+     "evidence": "Rechne Leistungen nach BEMA und GOZ für Kassen- und Privatpatienten ab",
+     "tier": 2,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Kundenorientierung",
+     "tier": "implicit",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Verbindung von fachlichen und rechtlichen Vorgaben",
+     "evidence": "Rechne Leistungen nach BEMA und GOZ für Kassen- und Privatpatienten ab",
+     "tier": 2,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Empathische Kommunikationsstärke",
+     "tier": "implicit",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Selbstvertrauen",
+     "tier": "implicit",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Neugier auf Gesundheit und Medizin",
+     "tier": 3,
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Interesse an der digitalen Entwicklung des Versicherungsmarktes",
+     "tier": 3,
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Teamfähigkeit",
+     "tier": "implicit",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Wissensaustausch mit Kollegen",
+     "tier": 3,
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Flexibilität",
+     "tier": "implicit",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Präzise und strukturierte Arbeitsweise",
+     "tier": "implicit",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Priorisierungsfähigkeit",
+     "tier": "implicit",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "IT-Affinität",
+     "evidence": "Dentalsoftware Charly, MS Office (Word, Excel), E-Mail",
+     "tier": 2,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Offenheit gegenüber neuen Technologien",
+     "tier": "implicit",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Kommunikationsstärke",
+     "tier": "implicit",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Individuelle und qualifizierte Schriftwechsel auf Deutsch",
+     "evidence": "kläre Rückfragen von Krankenkassen und privaten Versicherern",
+     "tier": 2,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Schriftwechsel auf Englisch",
+     "tier": "missing",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Kenntnisse in gängigen MS Office Anwendungen",
+     "evidence": "MS Office (Word, Excel)",
+     "tier": 1,
+     "claimable": true,
+     "required": false
+    }
+   ]
+  },
+  "verifiedMetrics": [
+   "sechs Jahren Praxiserfahrung in Abrechnung und Patientenkommunikation",
+   "täglich 30 bis 40 Patientenanfragen am Telefon und vor Ort",
+   "Einarbeitung von zwei Auszubildenden",
+   "Kurs \"Abrechnung in der Zahnarztpraxis\" (2022)",
+   "Erste-Hilfe-Kurs (2024)"
+  ]
+ },
+ "checks": {
+  "contract_valid": {
+   "pass": true,
+   "detail": ""
+  },
+  "recipient_address_empty": {
+   "pass": true,
+   "detail": "[]"
+  },
+  "no_ad_address_in_body": {
+   "pass": true,
+   "detail": "ad address lines: 0"
+  },
+  "contact_rule": {
+   "pass": true,
+   "detail": "contact= dept= salutation=Sehr geehrte Damen und Herren,"
+  },
+  "numbers_traced": {
+   "pass": true,
+   "detail": "cv-or-ad: 4, ad-only (employer facts, review): none, untraced: none"
+  },
+  "no_missing_skill_named": {
+   "pass": true,
+   "detail": "none"
+  },
+  "no_dashes": {
+   "pass": true,
+   "detail": "body 0, raw model output 0"
+  },
+  "under_250_words": {
+   "pass": true,
+   "detail": "169 words in 3 paragraphs"
+  },
+  "three_paragraphs": {
+   "pass": true,
+   "detail": "3"
+  },
+  "market_rules": {
+   "pass": true,
+   "detail": "market=dach closing=\"Mit freundlichen Grüßen\" subject=\"Bewerbung als Quereinstieg Leistungssachbearbeitung (Zahn) als Medizinische/r Fachangestellte/r (m/w/d)\""
+  },
+  "subject_numbers_from_ad": {
+   "pass": true,
+   "detail": "none"
+  },
+  "body_faithful": {
+   "pass": true,
+   "detail": "body === renderCoverLetterBody(structured)"
+  },
+  "sender_from_cv": {
+   "pass": true,
+   "detail": "{\"name\":\"Sabine Köhler\",\"addressLines\":[\"München, Deutschland\"],\"phone\":\"+49 89 0000 0187\",\"email\":\"sabine.koehler@example.de\"}"
+  },
+  "no_placeholders": {
+   "pass": true,
+   "detail": ""
+  }
+ }
+}

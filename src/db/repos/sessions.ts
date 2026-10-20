@@ -2,6 +2,7 @@
 import { and, asc, desc, eq, isNotNull, lt, sql } from 'drizzle-orm';
 import { getDb, nowIso, stripIdentity } from '../client';
 import { applicationSessions, chatMessages } from '../schema';
+import { withRecipientReset } from '../session-recipient-reset';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
 
 export interface ApplicationSession {
@@ -122,9 +123,12 @@ export async function updateSession(
 ): Promise<{ error: Error | null }> {
   const db = await getDb();
   // `updates` can arrive from a server action and must never re-parent the row.
+  // A job description change clears the cover letter recipient columns in the
+  // same statement (db/session-recipient-reset.ts).
+  const values = withRecipientReset(stripServerOwnedCounters(stripIdentity(updates as Record<string, unknown>)));
   const updated = await db
     .update(applicationSessions)
-    .set({ ...stripServerOwnedCounters(stripIdentity(updates as Record<string, unknown>)), updated_at: nowIso() } as never)
+    .set({ ...values, updated_at: nowIso() } as never)
     .where(and(eq(applicationSessions.id, sessionId), eq(applicationSessions.user_id, userId)))
     .returning({ id: applicationSessions.id });
   // A write that matched nothing is a failure, not a quiet success, same as
