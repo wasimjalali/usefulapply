@@ -1686,7 +1686,21 @@ export async function refundReservationPartially(params: {
   }
   const plan = planPartialRefund(reservation, params.amount);
 
-  const results = await runBatch(buildPartialRefundStatements(reservation, plan, reason));
+  let results;
+  try {
+    results = await runBatch(buildPartialRefundStatements(reservation, plan, reason));
+  } catch (error) {
+    // The batch is atomic: nothing landed, the marker is not set, a retry can
+    // still pay the whole refund. Report it instead of throwing into a request
+    // that has already delivered the kit.
+    console.error('[credits] partial refund batch failed, nothing was refunded:', reservation.id, error);
+    return {
+      success: false,
+      refunded: 0,
+      alreadyRefunded: false,
+      error: error instanceof Error ? error.message : 'Partial refund failed',
+    };
+  }
 
   if (results[0].meta.changes === 0) {
     const current = await getReservationByKey(userId, idempotencyKey);

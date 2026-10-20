@@ -115,8 +115,6 @@ export function persistedColumns(session: ApplicationSession): Record<string, un
     optimized_cv_text: session.generatedCV?.content ?? null,
     email_subject: session.email?.subject ?? null,
     email_body: session.email?.body ?? null,
-    company_address: session.companyResearch?.address ?? null,
-    company_contact_person: session.companyResearch?.contactPerson ?? null,
     fit_assessment: session.fitAssessment ?? null,
   };
   // A session without a template keeps the stored one.

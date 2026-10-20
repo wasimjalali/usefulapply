@@ -165,6 +165,7 @@ export const useTrackerStore = create<TrackerState>((set, get) => ({
     const expectedRevision = before || known
       ? Math.max(before?.revision ?? 0, known?.revision ?? 0)
       : undefined;
+    let conflicted = false;
     try {
       const result = await setTrackerStatusAction(userId, sessionId, {
         status: next.status,
@@ -172,10 +173,7 @@ export const useTrackerStore = create<TrackerState>((set, get) => ({
         followUpDueAt: dates.followUpDueAt,
       }, expectedRevision);
       if (!result.ok) {
-        if (result.reason === 'conflict') {
-          set({ error: CONFLICT_NOTICE });
-          void get().load(userId);
-        }
+        conflicted = result.reason === 'conflict';
         throw new Error('Status update failed');
       }
       set((state) => ({
@@ -187,8 +185,14 @@ export const useTrackerStore = create<TrackerState>((set, get) => ({
       // in flight, and its change is not ours to undo.
       set((state) => ({
         rows: before ? state.rows.map((row) => (row.id === sessionId ? before : row)) : state.rows,
-        error: state.error === CONFLICT_NOTICE ? CONFLICT_NOTICE : 'That status did not save. Try again.',
+        error: 'That status did not save. Try again.',
       }));
+      if (conflicted) {
+        // Someone else changed this application first. Show what is stored now
+        // and say so; `load` clears the message, so it goes back after.
+        await get().load(userId);
+        set({ error: CONFLICT_NOTICE });
+      }
       throw new Error('Status update failed');
     }
   },
