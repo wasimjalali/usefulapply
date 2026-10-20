@@ -1,0 +1,210 @@
+{
+ "run_id": "436fd116-7054-494c-89af-4649f4b76010",
+ "date": "2026-10-20T10:34:34.613Z",
+ "model": "claude-sonnet-5-5",
+ "request_shape": {
+  "thinking": {
+   "type": "adaptive"
+  },
+  "effort": "low",
+  "temperature": null,
+  "maxTokensScale": {
+   "multiplier": 4,
+   "floor": 4000
+  }
+ },
+ "calls": 10,
+ "cover_letter_calls": 2,
+ "tokens": {
+  "input": 27628,
+  "output": 5478,
+  "cacheWrite": 5597,
+  "cacheRead": 5597
+ },
+ "cost_usd": 0.1245882,
+ "cover_letter_cost_usd": 0.040114199999999996,
+ "cover_letter_latency_ms": [
+  4454,
+  6399
+ ],
+ "cases": [
+  {
+   "case_id": "sl-de-contact",
+   "ok": true,
+   "error": null,
+   "cover_letter_calls": 1,
+   "checks": {
+    "contract_valid": {
+     "pass": true,
+     "detail": ""
+    },
+    "recipient_address_rule": {
+     "pass": true,
+     "detail": "[\"Industriestraße 14\",\"90431 Nürnberg\"]"
+    },
+    "no_address_in_letter_text": {
+     "pass": true,
+     "detail": "ad address lines: 2"
+    },
+    "contact_rule": {
+     "pass": true,
+     "detail": "company=Brenner Getriebe GmbH contact=Frau Melanie Brandl dept=Personalabteilung salutation=Sehr geehrte Frau Brandl,"
+    },
+    "numbers_traced": {
+     "pass": true,
+     "detail": "cv-or-ad: 5, ad-only (employer facts, review): 40, untraced: none"
+    },
+    "no_missing_skill_named": {
+     "pass": true,
+     "detail": "none"
+    },
+    "no_dashes": {
+     "pass": true,
+     "detail": "body 0, raw model output 0"
+    },
+    "under_250_words": {
+     "pass": true,
+     "detail": "154 words in 3 paragraphs"
+    },
+    "three_paragraphs": {
+     "pass": true,
+     "detail": "3"
+    },
+    "market_rules": {
+     "pass": true,
+     "detail": "market=dach closing=\"Mit freundlichen Grüßen\" subject=\"Bewerbung als Key Account Manager (m/w/d) Antriebstechnik, Kennziffer KAM-2026-17\""
+    },
+    "subject_numbers_from_ad": {
+     "pass": true,
+     "detail": "2026,17"
+    },
+    "body_faithful": {
+     "pass": true,
+     "detail": "body === renderCoverLetterBody(structured)"
+    },
+    "sender_from_cv": {
+     "pass": true,
+     "detail": "{\"name\":\"Jonas Hartmann\",\"addressLines\":[\"Nürnberg, Deutschland\"],\"phone\":\"+49 911 0000 0142\",\"email\":\"jonas.hartmann@example.de\"}"
+    },
+    "no_placeholders": {
+     "pass": true,
+     "detail": ""
+    }
+   }
+  },
+  {
+   "case_id": "sl-us-address",
+   "ok": true,
+   "error": null,
+   "cover_letter_calls": 1,
+   "checks": {
+    "contract_valid": {
+     "pass": true,
+     "detail": ""
+    },
+    "recipient_address_rule": {
+     "pass": true,
+     "detail": "[\"220 West Lake Street, Suite 1400\",\"Chicago, IL 60606\"]"
+    },
+    "no_address_in_letter_text": {
+     "pass": true,
+     "detail": "ad address lines: 2"
+    },
+    "contact_rule": {
+     "pass": true,
+     "detail": "company=Northwind Freight Inc. contact=Dana Whitfield dept=Talent Acquisition salutation=Dear Ms. Whitfield,"
+    },
+    "numbers_traced": {
+     "pass": true,
+     "detail": "cv-or-ad: 7, ad-only (employer facts, review): none, untraced: none"
+    },
+    "no_missing_skill_named": {
+     "pass": true,
+     "detail": "none"
+    },
+    "no_dashes": {
+     "pass": true,
+     "detail": "body 0, raw model output 0"
+    },
+    "under_250_words": {
+     "pass": true,
+     "detail": "206 words in 3 paragraphs"
+    },
+    "three_paragraphs": {
+     "pass": true,
+     "detail": "3"
+    },
+    "market_rules": {
+     "pass": true,
+     "detail": "market=us closing=\"Kind regards,\" subject=\"Application for Senior FP&A Analyst, Req #NW-4471\""
+    },
+    "subject_numbers_from_ad": {
+     "pass": true,
+     "detail": "4471"
+    },
+    "body_faithful": {
+     "pass": true,
+     "detail": "body === renderCoverLetterBody(structured)"
+    },
+    "sender_from_cv": {
+     "pass": true,
+     "detail": "{\"name\":\"Tomas Brandt\",\"addressLines\":[\"Chicago, IL, USA\"],\"phone\":\"+1 555 0123\",\"email\":\"tomas.brandt@example.com\"}"
+    },
+    "no_placeholders": {
+     "pass": true,
+     "detail": ""
+    }
+   }
+  }
+ ],
+ "column_variant": {
+  "recipient": {
+   "addressLines": [
+    "Industriestraße 14",
+    "90431 Nürnberg"
+   ],
+   "companyName": "Brenner Getriebe GmbH",
+   "contactPerson": "Frau Melanie Brandl",
+   "department": "Personalabteilung"
+  },
+  "pass": true,
+  "body": "Jonas Hartmann\nNürnberg, Deutschland\njonas.hartmann@example.de\n+49 911 0000 0142\n\nBrenner Getriebe GmbH\nPersonalabteilung\nFrau Melanie Brandl\nIndustriestraße 14\n90431 Nürnberg\n\nNürnberg, 20. Oktober 2026\n\nBewerbung als Key Account Manager (m/w/d) Antriebstechnik, Kennziffer KAM-2026-17\n\nSehr geehrte Frau Brandl,\n\nIhre rund 40 Schlüsselkunden in Bayern und Baden-Württemberg wollen langfristig betreut und weiterentwickelt werden, nicht nur verwaltet. Genau das tue ich bei der Frankenmetall Antriebstechnik GmbH: Ich betreue dort rund 60 Bestandskunden im selben Gebiet und habe den Jahresumsatz meines Gebiets von 3,1 auf 4,2 Mio. EUR gesteigert.\n\nAls Technischer Vertriebsmitarbeiter im Außendienst erstelle ich Angebote und technische Auslegungen gemeinsam mit der Konstruktion, so wie es auch Ihre Stelle vorsieht. Mit meinem B.Eng. Maschinenbau und meiner Erfahrung in der Antriebstechnik führe ich Verhandlungen auf technischer Augenhöhe. Messeauftritte und Kundenschulungen gehören für mich zum Alltag, und mein Englisch ist verhandlungssicher (C1). Meine Kontakte und Angebote pflege ich konsequent im CRM (SAP CRM); diese Disziplin bringe ich in die Arbeit mit Salesforce ein. Die erforderliche Reisebereitschaft bringe ich mit.\n\nGern erläutere ich Ihnen in einem persönlichen Gespräch in Nürnberg, wie ich die Bestandskunden der Brenner Getriebe GmbH ausbauen würde. Ich stehe Ihnen nach Absprache zur Verfügung.\n\nMit freundlichen Grüßen\nJonas Hartmann"
+ },
+ "doctored_answers": [
+  {
+   "name": "fake_address_dropped",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "partly_fake_address_dropped_whole",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "contact_line_set_aside",
+   "pass": true,
+   "detail": "[\"Industriestraße 14\",\"90431 Nürnberg\"]"
+  },
+  {
+   "name": "digitless_address_dropped",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "fake_contact_dropped",
+   "pass": true,
+   "detail": "undefined"
+  },
+  {
+   "name": "saved_address_wins",
+   "pass": true,
+   "detail": "[\"Musterweg 3\",\"90402 Nürnberg\"]"
+  },
+  {
+   "name": "address_in_paragraph_rejected",
+   "pass": true,
+   "detail": "Cover letter validation failed: the letter text contained the postal address, which belongs only in the recipient field"
+  }
+ ]
+}

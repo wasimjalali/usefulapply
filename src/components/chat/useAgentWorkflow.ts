@@ -30,6 +30,7 @@ import { cvStructureDigest } from '@/lib/cv-structure/validate';
 import { rememberUndo } from '@/lib/cv-structure/undo';
 import type { JobFeedApplicationGeneration } from '@/lib/supabase/types';
 import { readKitDocumentErrors } from '@/lib/open-session';
+import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import type { KitDocument, KitDocumentErrors } from '@/lib/agents/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
 import {
@@ -1149,6 +1150,7 @@ export function useAgentWorkflow(options?: {
                       closing: '',
                       signatureName: '',
                       updatedAt: new Date().toISOString(),
+                      ...(isStructuredCoverLetter(ctx.coverLetterStructured) ? { structured: ctx.coverLetterStructured } : {}),
                     },
                   });
                 }

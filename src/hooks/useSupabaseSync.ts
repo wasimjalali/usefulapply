@@ -670,8 +670,8 @@ export function useSupabaseSync() {
             email_subject: currentSession.email?.subject,
             email_body: currentSession.email?.body,
             selected_template: currentSession.selectedTemplate,
-            company_address: currentSession.companyResearch?.address,
-            company_contact_person: currentSession.companyResearch?.contactPerson,
+            // company_address and company_contact_person are server-managed
+            // (the cover letter fills them from the ad); the browser never writes them.
             fit_assessment: currentSession.fitAssessment ?? null,
             generation_completed: sessionHasKit(currentSession),
             generation_status: sessionHasKit(currentSession) ? 'succeeded' : currentSession.generationStatus,

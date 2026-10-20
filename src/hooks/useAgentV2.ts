@@ -14,6 +14,7 @@ import { useState, useCallback } from 'react';
 import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
 import { generateRequestId } from '@/lib/utils/requestId';
 import type { KitDocumentErrors } from '@/lib/agents/types';
+import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
 
 export interface AgentV2Step {
   id: string;
@@ -158,6 +159,8 @@ export interface AgentV2Result {
   companyResearch?: CompanyResearchData;
   optimizedCVData?: OptimizedCVData;  // Solution B: Structured JSON from AI
   coverLetter?: string;  // Now directly a string
+  /** The same letter as the structured contract; null when the letter failed. */
+  coverLetterStructured?: StructuredCoverLetter | null;
   email?: string;        // Now directly a string
   followUpEmail?: {
     subject: string;
