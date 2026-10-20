@@ -331,7 +331,11 @@ export async function setDailyLimitInUi(page: Page, value: string): Promise<void
   await page.goto('/dashboard?settings=apps').catch(() => page.goto('/dashboard?settings=apps'));
   await expect(page.getByRole('heading', { name: 'Connected apps' })).toBeVisible();
   const limit = page.getByLabel('Daily agent credit limit');
+  // The field shows the default until the saved value arrives, and the arrival overwrites what was typed: let it settle first.
+  await expect(limit).toBeEnabled();
+  await page.waitForLoadState('networkidle').catch(() => undefined);
   await limit.fill(value);
+  await expect(limit).toHaveValue(value);
   await page.getByRole('button', { name: 'Save' }).click();
   await expect(page.getByText('Saved.')).toBeVisible();
 }
