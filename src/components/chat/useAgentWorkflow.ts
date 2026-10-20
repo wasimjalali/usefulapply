@@ -795,38 +795,44 @@ export function useAgentWorkflow(options?: {
                   detectedLanguage,
                   fitAnalysis,
                 });
-                // Persist job title, company, and match data to the session
-                // so tracker shows correct info if user proceeds to apply.
-                // Keep a feed-provided title (e.g. "Product Manager - B2B SaaS")
-                // instead of the parser's shortened title.
-                if (job?.title || job?.companyName) {
-                  const existing = useSessionStore.getState().sessions.find((session) => session.id === fitWorkflowSessionId);
-                  if (fitWorkflowSessionId) useAppStore.getState().updateSessionById(fitWorkflowSessionId, {
-                    jobTitle: existing?.jobTitle?.trim() || job.title || '',
-                    company: existing?.company?.trim() || job.companyName || '',
-                    requirements: {
-                      title: job.title || '',
-                      company: job.companyName || '',
-                      hardSkills: job.requiredSkills || [],
-                      softSkills: [],
-                      experienceLevel: '',
-                      keywords: [],
-                      responsibilities: job.responsibilities || [],
-                      niceToHave: job.niceToHaveSkills || [],
-                      expectedSalary: job.expectedSalary,
-                      startDate: job.startDate,
-                      location: job.location,
-                      workType: job.workType,
-                      detectedLanguage,
-                    },
-                  });
-                }
-                if (match) {
-                  if (fitWorkflowSessionId) useAppStore.getState().updateSessionById(fitWorkflowSessionId, {
-                    matchScore: match.score,
-                    matchingSkills: match.matchedRequirements || [],
-                    missingSkills: match.missingSkills || [],
-                  });
+                // For a stored application the server saved what the analysis found (agent-v2
+                // writes the fit columns with a revision bump), so it is loaded below instead of
+                // written from this response. An unsaved session has no row and takes it directly.
+                const storedFit = Boolean(user) && typeof fitWorkflowSessionId === 'string' && !fitWorkflowSessionId.startsWith('session-');
+                if (!storedFit) {
+                  // Persist job title, company, and match data to the session
+                  // so tracker shows correct info if user proceeds to apply.
+                  // Keep a feed-provided title (e.g. "Product Manager - B2B SaaS")
+                  // instead of the parser's shortened title.
+                  if (job?.title || job?.companyName) {
+                    const existing = useSessionStore.getState().sessions.find((session) => session.id === fitWorkflowSessionId);
+                    if (fitWorkflowSessionId) useAppStore.getState().updateSessionById(fitWorkflowSessionId, {
+                      jobTitle: existing?.jobTitle?.trim() || job.title || '',
+                      company: existing?.company?.trim() || job.companyName || '',
+                      requirements: {
+                        title: job.title || '',
+                        company: job.companyName || '',
+                        hardSkills: job.requiredSkills || [],
+                        softSkills: [],
+                        experienceLevel: '',
+                        keywords: [],
+                        responsibilities: job.responsibilities || [],
+                        niceToHave: job.niceToHaveSkills || [],
+                        expectedSalary: job.expectedSalary,
+                        startDate: job.startDate,
+                        location: job.location,
+                        workType: job.workType,
+                        detectedLanguage,
+                      },
+                    });
+                  }
+                  if (match) {
+                    if (fitWorkflowSessionId) useAppStore.getState().updateSessionById(fitWorkflowSessionId, {
+                      matchScore: match.score,
+                      matchingSkills: match.matchedRequirements || [],
+                      missingSkills: match.missingSkills || [],
+                    });
+                  }
                 }
                 // Persist fit analysis state to session so it survives session switches
                 if (fitWorkflowSessionId) useAppStore.getState().updateSessionById(fitWorkflowSessionId, {
@@ -842,6 +848,7 @@ export function useAgentWorkflow(options?: {
                   content: formatFitAnalysisMessage(fitAnalysis, job),
                 });
                 triggerCreditUpdate();
+                if (storedFit) void refreshFromServer(fitWorkflowSessionId);
                 break;
               }
               case 'error':

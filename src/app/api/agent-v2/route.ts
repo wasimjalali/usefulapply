@@ -45,7 +45,7 @@ import {
   normalizeCachedMatch,
   removeCachedContext,
 } from '@/lib/services/context-cache';
-import { persistKit, type KitResults } from '@/lib/services/kit';
+import { persistFitResult, persistKit, type KitResults } from '@/lib/services/kit';
 import { NotFoundError } from '@/lib/services/errors';
 import {
   kitFailureRefund,
@@ -114,6 +114,22 @@ async function persistGeneratedArtifacts(
     }
   } catch (error) {
     console.error('[agent-v2] Failed to persist generated artifacts:', error);
+  }
+}
+
+// A fit analysis's findings (requirements, match score and skills, a title and company
+// where the application has none) go to the same columns a kit writes. Best effort like
+// the pending-fit stash: the analysis was paid for and its results are cached either way.
+async function persistFitColumns(
+  sessionId: string | undefined,
+  userId: string,
+  ctx: { job?: KitResults['job']; match?: KitResults['match']; detectedLanguage?: string },
+): Promise<void> {
+  if (!sessionId || sessionId.startsWith('session-') || sessionId.startsWith('fit-')) return;
+  try {
+    await persistFitResult(userId, sessionId, { job: ctx.job, match: ctx.match, detectedLanguage: ctx.detectedLanguage });
+  } catch (error) {
+    console.error('[agent-v2] Failed to persist the fit analysis columns:', error);
   }
 }
 
@@ -692,6 +708,9 @@ export async function POST(request: NextRequest) {
                   createdAt: new Date().toISOString(),
                 },
               }, true);
+              // What the analysis learned about the ad is saved with a revision bump; the
+              // browser loads the row instead of writing these fields from the response.
+              await persistFitColumns(clientSessionId, user.id, ctx);
             }
 
             // Capture reservation — fit analysis produced usable results

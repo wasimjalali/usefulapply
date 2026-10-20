@@ -5,26 +5,26 @@
   "ops": 60,
   "totals": {
     "ops": 120000,
-    "edits": 30232,
-    "editorSaves": 4844,
-    "typedDuringSave": 782,
-    "regens": 6683,
-    "workflows": 5573,
-    "trackerWrites": 3338,
+    "edits": 29555,
+    "editorSaves": 4786,
+    "typedDuringSave": 798,
+    "regens": 6555,
+    "workflows": 5550,
+    "trackerWrites": 3317,
     "silentWrites": 0,
-    "restores": 1894,
-    "copies": 976,
-    "agentWrites": 9074,
-    "handoffs": 3339,
-    "polls": 12379,
-    "saves": 12377,
-    "requests": 118273,
-    "dropped": 6520,
-    "lostAnswers": 4675,
-    "hung": 6303,
-    "conflictNotices": 11192,
-    "failureNotices": 5665,
-    "settleRounds": 5170
+    "restores": 1807,
+    "copies": 908,
+    "agentWrites": 8952,
+    "handoffs": 3358,
+    "polls": 12101,
+    "saves": 12018,
+    "requests": 116909,
+    "dropped": 6338,
+    "lostAnswers": 4703,
+    "hung": 6273,
+    "conflictNotices": 10445,
+    "failureNotices": 5600,
+    "settleRounds": 5204
   },
   "byInvariant": {},
   "byKind": {},
@@ -65,6 +65,14 @@
     },
     {
       "name": "round-3 Restore and Copy act on their own notice only",
+      "violations": []
+    },
+    {
+      "name": "round-3b Restore applies a whole entry or none of it",
+      "violations": []
+    },
+    {
+      "name": "round-3b Copy with nothing left says so instead of copying an empty string",
       "violations": []
     },
     {

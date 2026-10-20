@@ -260,6 +260,11 @@ export function editorShouldClose(outcome: EditorOutcome, sentDraft: string, cur
 export interface EditorStart {
   revision: number;
   fields: Record<string, string>;
+  /**
+   * Shared by every start of one editor (a rebase makes a new start with the same lineage), so the
+   * columns its draft sets are remembered across rebases, also one that happens while a save is running.
+   */
+  lineage: { columns: Set<string> };
 }
 
 export interface ConflictEntry {
@@ -302,20 +307,48 @@ export function createSyncEngine(deps: SyncDeps) {
   const conflictBuffers = new Map<string, Map<string, ConflictEntry>>();
   const reloadFailureAnnounced = new Set<string>();
   const chains = new Map<string, Promise<unknown>>();
-  /** Per editor (its opening snapshot): the columns its draft sets, so a retry still knows them. */
-  const draftColumns = new WeakMap<EditorStart, Set<string>>();
 
   let conflictSeq = 0;
   const notify = (message: string, kind: SyncNoticeKind, conflictFor?: string, conflictEntries?: string[]) =>
     deps.notify({ message, kind, ...(conflictFor ? { conflictFor, conflictEntries: conflictEntries ?? [] } : {}) });
 
-  /** Entries are kept per conflict, so every notice's text stays reachable; this many per application at most. */
-  const MAX_BUFFERED_ENTRIES = 40;
+  /** Entries are kept per conflict, so every notice's text stays reachable. */
+  const SOFT_BUFFER_LIMIT = 40;
+  const overLimitLogged = new Set<string>();
+
+  /** Is the user's text of this entry already on the server? Then nothing is lost by forgetting it. */
+  function entrySettled(sessionId: string, entry: ConflictEntry): boolean {
+    const server = serverSessions.get(sessionId);
+    return server !== undefined && entry.changed.every((prop) => sameValue(server[prop], entry.props[prop]));
+  }
+
+  /**
+   * Past the soft limit only an entry whose text is already on the server is forgotten, oldest
+   * first. Unsettled text is never dropped to make room: the buffer grows past the limit and
+   * says so loudly.
+   */
   function addEntry(sessionId: string, entry: ConflictEntry): void {
     const buffer = conflictBuffers.get(sessionId) ?? new Map<string, ConflictEntry>();
     buffer.set(entry.id, entry);
-    while (buffer.size > MAX_BUFFERED_ENTRIES) buffer.delete(buffer.keys().next().value as string);
+    for (const candidate of [...buffer.values()]) {
+      if (buffer.size <= SOFT_BUFFER_LIMIT) break;
+      if (candidate.id !== entry.id && entrySettled(sessionId, candidate)) buffer.delete(candidate.id);
+    }
+    if (buffer.size > SOFT_BUFFER_LIMIT && !overLimitLogged.has(sessionId)) {
+      overLimitLogged.add(sessionId);
+      console.error(`[session-sync] ${buffer.size} unsaved conflict entries are kept for ${sessionId}; none can be forgotten without losing text.`);
+    }
     conflictBuffers.set(sessionId, buffer);
+  }
+
+  const acknowledgedListeners = new Set<(sessionId: string) => void>();
+  /** Tell open editors the user has dealt with a conflict notice (restored, copied or discarded), so they can rebase. */
+  function acknowledgeConflict(sessionId: string): void {
+    acknowledgedListeners.forEach((listener) => listener(sessionId));
+  }
+  function subscribeConflictAcknowledged(listener: (sessionId: string) => void): () => void {
+    acknowledgedListeners.add(listener);
+    return () => { acknowledgedListeners.delete(listener); };
   }
 
   /** A buffer entry: the user's version of a group, set against what the store shows now. */
@@ -661,9 +694,14 @@ export function createSyncEngine(deps: SyncDeps) {
 
   // -- editors --------------------------------------------------------------
 
-  function getEditorStart(sessionId: string): EditorStart | undefined {
+  /**
+   * What an editor is based on. Pass the editor's previous start when rebasing an editor that is
+   * already open, so the engine still knows which columns its draft sets.
+   */
+  function getEditorStart(sessionId: string, previous?: EditorStart): EditorStart | undefined {
     const base = baselines.get(sessionId);
-    return base ? { revision: base.revision, fields: { ...base.fields } } : undefined;
+    if (!base) return undefined;
+    return { revision: base.revision, fields: { ...base.fields }, lineage: previous?.lineage ?? { columns: new Set<string>() } };
   }
 
   /**
@@ -698,12 +736,12 @@ export function createSyncEngine(deps: SyncDeps) {
       const draftFp = fingerprints(after);
       // The columns this draft sets: what apply() just changed, plus what an earlier try of the
       // same editor changed (a retry finds its own draft already in the store and changes nothing).
-      const remembered = start ? draftColumns.get(start) : undefined;
+      const remembered = start?.lineage.columns;
       const touched = [...new Set([
         ...Object.keys(draftFp).filter((column) => draftFp[column] !== beforeFp[column]),
         ...(remembered ?? []),
       ])];
-      if (start) draftColumns.set(start, new Set(touched));
+      if (start) for (const column of touched) start.lineage.columns.add(column);
 
       if (start) {
         const moved = touched.filter((column) => base.fields[column] !== start.fields[column] && draftFp[column] !== base.fields[column]);
@@ -835,12 +873,23 @@ export function createSyncEngine(deps: SyncDeps) {
   }
 
   /**
+   * The text to put on the clipboard for Copy, or null when there is nothing left to copy (the
+   * entries were restored, settled or forgotten). The caller says so instead of copying an empty string.
+   */
+  function copyConflict(sessionId: string, ids: string[]): string | null {
+    const text = conflictText(sessionId, ids);
+    if (text.trim() === '') return null;
+    acknowledgeConflict(sessionId);
+    return text;
+  }
+
+  /**
    * Put the user's version of the entries a notice named back as an unsaved
-   * edit, then save it the normal way: against the current baseline. It never
-   * overwrites a newer version: where the user has typed something since, or the
-   * server changed the field again since the notice, nothing is applied for that
-   * part and the entry stays in the buffer (with a new notice), instead of going
-   * over text the user has not seen.
+   * edit, then save it the normal way: against the current baseline. An entry is
+   * restored whole or not at all: if the user has typed something since, or the
+   * server changed the field again since the notice, none of it is applied (so the
+   * user's old text is never paired with the server's newer text) and the entry
+   * stays in the buffer with a fresh notice.
    */
   function restoreConflict(sessionId: string, ids: string[]): Promise<SaveOutcome> {
     return withLock(sessionId, async () => {
@@ -852,20 +901,30 @@ export function createSyncEngine(deps: SyncDeps) {
       const buffer = conflictBuffers.get(sessionId);
       const kept: string[] = [];
       for (const entry of entries) {
-        let blocked = false;
-        for (const prop of entry.changed) {
-          if (userEdited(sessionId, session, prop)) { blocked = true; continue; }  // newer typing stands; the entry stays
-          if (server && !sameValue(server[prop], entry.base[prop])) { blocked = true; continue; }  // the server moved on
-          (next as unknown as Record<string, unknown>)[prop] = entry.props[prop];
+        const blocked = entry.changed.some((prop) => userEdited(sessionId, session, prop)
+          || (server !== undefined && !sameValue(server[prop], entry.base[prop])));
+        if (blocked) {
+          kept.push(entry.id);
+          continue;
         }
-        if (blocked) kept.push(entry.id);
-        else buffer?.delete(entry.id);
+        for (const prop of entry.changed) (next as unknown as Record<string, unknown>)[prop] = entry.props[prop];
+        buffer?.delete(entry.id);
       }
-      writeSession(sessionId, next, 'replace');
+      if (kept.length < entries.length) writeSession(sessionId, next, 'replace');
       if (buffer && buffer.size === 0) conflictBuffers.delete(sessionId);
       if (kept.length > 0) notify(CONFLICT_NOTICE, 'info', sessionId, kept);
-      return saveUnlocked(sessionId);
+      const outcome = await saveUnlocked(sessionId);
+      acknowledgeConflict(sessionId);
+      return outcome;
     });
+  }
+
+  /** The user chose to throw the text away. */
+  function discardConflict(sessionId: string, ids: string[]): void {
+    const buffer = conflictBuffers.get(sessionId);
+    for (const id of ids) buffer?.delete(id);
+    if (buffer && buffer.size === 0) conflictBuffers.delete(sessionId);
+    acknowledgeConflict(sessionId);
   }
 
   return {
@@ -879,7 +938,11 @@ export function createSyncEngine(deps: SyncDeps) {
     checkForRemoteChange,
     getConflictBuffer,
     conflictText,
+    copyConflict,
     restoreConflict,
+    discardConflict,
+    acknowledgeConflict,
+    subscribeConflictAcknowledged,
     /** For tests: what the engine believes about an application. */
     debug: {
       baseline: (sessionId: string) => {

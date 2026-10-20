@@ -42,6 +42,7 @@
     "I2: TAB baseline of APP went back from revision N to 7 ": 7,
     "I2: TAB baseline of APP went back from revision N to 4 ": 4,
     "I2: TAB baseline of APP went back from revision N to 3 ": 5,
+    "I1: TAB save wrote older text over newer text in COLUMN of APP": 1,
     "I2: TAB baseline of APP went back from revision N to 6 ": 5,
     "I2: TAB baseline of APP went back from revision N to 1 ": 9,
     "I2: TAB baseline of APP went back from revision N to 8 ": 6,
@@ -58,6 +59,7 @@
     "I2: TAB baseline of APP went back from revision N to 9 ": 4,
     "I2: TAB baseline of APP went back from revision N to 2 ": 4,
     "I2: TAB baseline of APP went back from revision N to 5 ": 2,
+    "I1: TAB save wrote older text over newer text in generated_cv of APP": 1,
     "I2: TAB baseline of APP went back from revision N to 14 ": 1
   },
   "failingSeeds": [
@@ -6172,6 +6174,10 @@
       "seed": 94,
       "violations": [
         {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in job_description of app-1"
+        },
+        {
           "code": "I3",
           "message": "A holds app-3 with no baseline, so nothing it edits can save"
         },
@@ -11039,6 +11045,36 @@
         {
           "code": "I1",
           "message": "A's last edit of app-1.coverLetter (t:L1;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [])"
+        }
+      ]
+    },
+    {
+      "name": "round-3b Restore applies a whole entry or none of it",
+      "violations": [
+        {
+          "code": "I1",
+          "message": "the poll raised no conflict notice"
+        },
+        {
+          "code": "I1",
+          "message": "A's last edit of app-1.cv (t:P1;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [])"
+        },
+        {
+          "code": "I1",
+          "message": "A's last edit of app-1.screening (t:P2;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [])"
+        }
+      ]
+    },
+    {
+      "name": "round-3b Copy with nothing left says so instead of copying an empty string",
+      "violations": [
+        {
+          "code": "I1",
+          "message": "the poll raised no conflict notice"
+        },
+        {
+          "code": "I1",
+          "message": "A's last edit of app-1.company (t:E1;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [])"
         }
       ]
     },

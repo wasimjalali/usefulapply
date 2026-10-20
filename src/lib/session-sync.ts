@@ -87,7 +87,11 @@ export const commitEditorSave = engine.commitEditorSave;
 export const checkForRemoteChange = engine.checkForRemoteChange;
 export const getConflictBuffer = engine.getConflictBuffer;
 export const conflictText = engine.conflictText;
+export const copyConflict = engine.copyConflict;
 export const restoreConflict = engine.restoreConflict;
+export const discardConflict = engine.discardConflict;
+export const acknowledgeConflict = engine.acknowledgeConflict;
+export const subscribeConflictAcknowledged = engine.subscribeConflictAcknowledged;
 
 /** Poll the open application on focus and every `REVISION_POLL_MS`. Returns the stop function. */
 export function startRevisionPolling(getOpenSessionId: () => string | null): () => void {

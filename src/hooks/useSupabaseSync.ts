@@ -23,7 +23,8 @@ import { useToast } from '@/components/ui/Toast';
 import { mapSessionRowToStore } from '@/lib/session-row-mapping';
 import {
   applyServerRow,
-  conflictText,
+  copyConflict,
+  discardConflict,
   persistSessionEdits,
   restoreConflict,
   setSyncUser,
@@ -166,6 +167,10 @@ export function useSupabaseSync() {
     return () => setSyncUser(null);
   }, [user?.id]);
 
+  // The entries of the conflict notices still showing, per application. A notice about the user's own
+  // text stays until they copy it, restore it or dismiss it (and confirm), so the text always has a UI.
+  const pendingConflicts = useRef(new Map<string, Set<string>>());
+
   useEffect(() => subscribeSyncNotices(({ message, kind, conflictFor, conflictEntries }) => {
     if (kind === 'error') {
       toast.error(message);
@@ -175,16 +180,41 @@ export function useSupabaseSync() {
       toast.info(message);
       return;
     }
-    // The user's own text lost to a newer version: offer it back, to copy or to restore.
-    toast.info(message, 20000, [
-      {
-        label: 'Copy my text',
-        onClick: () => {
-          void navigator.clipboard?.writeText(conflictText(conflictFor, conflictEntries ?? []));
+    // Notices about the same application are one notice that covers all their text.
+    const ids = pendingConflicts.current.get(conflictFor) ?? new Set<string>();
+    for (const id of conflictEntries ?? []) ids.add(id);
+    pendingConflicts.current.set(conflictFor, ids);
+    const state = useSessionStore.getState();
+    const application = state.sessions.find((session) => session.id === conflictFor)
+      ?? (state.currentSession?.id === conflictFor ? state.currentSession : undefined);
+    const heading = [application?.jobTitle, application?.company].filter(Boolean).join(' at ') || undefined;
+    const handled = () => {
+      const list = [...ids];
+      pendingConflicts.current.delete(conflictFor);
+      return list;
+    };
+    toast.pin(conflictFor, {
+      heading,
+      message,
+      detail: ids.size > 1
+        ? `Your text from ${ids.size} changes is kept until you copy, restore or dismiss it.`
+        : 'Your text is kept until you copy, restore or dismiss it.',
+      actions: [
+        {
+          label: 'Copy my text',
+          onClick: () => {
+            const text = copyConflict(conflictFor, handled());
+            if (text === null) {
+              toast.info('Nothing left to copy.');
+              return;
+            }
+            void navigator.clipboard?.writeText(text);
+          },
         },
-      },
-      { label: 'Restore my text', onClick: () => { void restoreConflict(conflictFor, conflictEntries ?? []); } },
-    ]);
+        { label: 'Restore my text', onClick: () => { void restoreConflict(conflictFor, handled()); } },
+      ],
+      onDiscard: () => discardConflict(conflictFor, handled()),
+    });
   }), [toast]);
 
   // While an application is open, look for changes made elsewhere (another

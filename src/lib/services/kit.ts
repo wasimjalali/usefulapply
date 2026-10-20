@@ -159,6 +159,25 @@ function embedGeneratedCv(
   return base;
 }
 
+/** The `requirements` column for a parsed job. */
+function jobRequirements(job: NonNullable<KitResults['job']>, detectedLanguage: string | undefined): Json {
+  return {
+    title: job.title || '',
+    company: job.companyName || '',
+    hardSkills: job.requiredSkills || [],
+    softSkills: [],
+    experienceLevel: '',
+    keywords: [],
+    responsibilities: job.responsibilities || [],
+    niceToHave: job.niceToHaveSkills || [],
+    expectedSalary: job.expectedSalary,
+    startDate: job.startDate,
+    location: job.location,
+    workType: job.workType,
+    detectedLanguage,
+  };
+}
+
 function clampScore(score: unknown): number | undefined {
   return typeof score === 'number' && Number.isFinite(score)
     ? Math.round(Math.min(100, Math.max(0, score)))
@@ -252,21 +271,7 @@ export function kitColumnsFromResults(
   if (errors.followUpEmail && row.follow_up_email != null) delete columns.follow_up_email;
 
   if (job) {
-    columns.requirements = {
-      title: job.title || '',
-      company: job.companyName || '',
-      hardSkills: job.requiredSkills || [],
-      softSkills: [],
-      experienceLevel: '',
-      keywords: [],
-      responsibilities: job.responsibilities || [],
-      niceToHave: job.niceToHaveSkills || [],
-      expectedSalary: job.expectedSalary,
-      startDate: job.startDate,
-      location: job.location,
-      workType: job.workType,
-      detectedLanguage: results.detectedLanguage,
-    };
+    columns.requirements = jobRequirements(job, results.detectedLanguage);
     // A title or company the user already has stays. The ad's wording only
     // fills an empty field.
     if (!row.job_title?.trim() && job.title) columns.job_title = job.title;
@@ -428,6 +433,40 @@ export async function saveKitDocument(
   );
   if (written.error) {
     if (written.error instanceof RevisionConflict) throw written.error;
+    if (written.error.message === 'Application not found') throw new NotFoundError();
+    throw written.error;
+  }
+  return { revision: written.revision as number };
+}
+
+/**
+ * A fit analysis finished: save what it learned about the ad (requirements, the
+ * match score and skills, a title and company where the application has none)
+ * in the same columns a kit would, with a revision bump. The browser then loads
+ * the row instead of writing these fields from the response.
+ */
+export async function persistFitResult(
+  userId: string,
+  sessionId: string,
+  fit: Pick<KitResults, 'job' | 'match' | 'detectedLanguage'>,
+): Promise<{ revision: number } | null> {
+  const row = await sessionsRepo.getSession(userId, sessionId);
+  if (!row) return null;
+  const columns: Json = {};
+  if (fit.job) {
+    columns.requirements = jobRequirements(fit.job, fit.detectedLanguage);
+    if (!row.job_title?.trim() && fit.job.title) columns.job_title = fit.job.title;
+    if (!row.company?.trim() && fit.job.companyName) columns.company = fit.job.companyName;
+  }
+  if (fit.match) {
+    const score = clampScore(fit.match.score);
+    if (score !== undefined) columns.match_score = score;
+    columns.matching_skills = fit.match.matchedRequirements || [];
+    columns.missing_skills = fit.match.missingSkills || [];
+  }
+  if (Object.keys(columns).length === 0) return null;
+  const written = await sessionsRepo.updateSession(userId, sessionId, columns as Parameters<typeof sessionsRepo.updateSession>[2]);
+  if (written.error) {
     if (written.error.message === 'Application not found') throw new NotFoundError();
     throw written.error;
   }

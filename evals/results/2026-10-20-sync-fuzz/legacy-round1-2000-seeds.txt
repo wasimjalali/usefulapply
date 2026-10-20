@@ -29,13 +29,20 @@ FAIL  round-3 Restore and Copy act on their own notice only
       I1: Restore did not put the cover letter text back
       I1: A's last edit of app-1.company (t:C1;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [])
       I1: A's last edit of app-1.coverLetter (t:L1;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [])
+FAIL  round-3b Restore applies a whole entry or none of it
+      I1: the poll raised no conflict notice
+      I1: A's last edit of app-1.cv (t:P1;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [])
+      I1: A's last edit of app-1.screening (t:P2;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [])
+FAIL  round-3b Copy with nothing left says so instead of copying an empty string
+      I1: the poll raised no conflict notice
+      I1: A's last edit of app-1.company (t:E1;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [])
 PASS  low feed handoff mapper matches the standard mapper
   500/2000 seeds, 500 failing
   1000/2000 seeds, 1000 failing
   1500/2000 seeds, 1500 failing
   2000/2000 seeds, 2000 failing
 
-2000 seeds (1..2000), 60 operations each, legacy engine, 11.3s
+2000 seeds (1..2000), 60 operations each, legacy engine, 10.6s
 totals {"ops":120000,"edits":24658,"editorSaves":4773,"typedDuringSave":537,"regens":6728,"workflows":5679,"trackerWrites":3290,"silentWrites":0,"restores":0,"copies":0,"agentWrites":14547,"handoffs":3415,"polls":12366,"saves":12346,"requests":60435,"dropped":4052,"lostAnswers":5917,"hung":0,"conflictNotices":7788,"failureNotices":1533,"settleRounds":4000}
 failing seeds: 2000  by invariant {"I3":1284,"I1":2000,"I2":64}
 seeds per kind of violation:
@@ -65,6 +72,8 @@ seeds per kind of violation:
       2  I2: TAB baseline of APP went back from revision N to 11 
       2  I2: TAB baseline of APP went back from revision N to 13 
       2  I2: TAB baseline of APP went back from revision N to 5 
+      1  I1: TAB save wrote older text over newer text in COLUMN of APP
+      1  I1: TAB save wrote older text over newer text in generated_cv of APP
       1  I2: TAB baseline of APP went back from revision N to 14 
   seed 1
       I3: A holds app-2 with no baseline, so nothing it edits can save

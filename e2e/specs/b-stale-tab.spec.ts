@@ -60,6 +60,20 @@ test('(b) a stale tab that changes the same field gets the conflict toast and ov
   expect(final?.cover_letter?.body).toContain('tab A saved first');
   expect(final?.cover_letter?.body).not.toContain('stale tab');
   expect(final?.revision).toBe(afterA.revision);
+
+  // The notice about B's text does not close by itself: it is still there after the old 20 second lifetime,
+  // offers the text back, and asks before it throws the text away.
+  const notice = pageB.getByRole('alert').filter({ hasText: CONFLICT_TOAST });
+  await pageB.waitForTimeout(21_000);
+  await expect(notice.getByRole('button', { name: 'Copy my text' })).toBeVisible();
+  await expect(notice.getByRole('button', { name: 'Restore my text' })).toBeVisible();
+  await notice.getByRole('button', { name: 'Dismiss' }).click();
+  await expect(notice.getByText('Discard your text?')).toBeVisible();
+  await notice.getByRole('button', { name: 'Keep' }).click();
+  await expect(notice.getByRole('button', { name: 'Copy my text' })).toBeVisible();
+  await notice.getByRole('button', { name: 'Dismiss' }).click();
+  await notice.getByRole('button', { name: 'Discard' }).click();
+  await expect(notice).toHaveCount(0);
   await context.close();
 });
 

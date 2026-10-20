@@ -22,7 +22,7 @@ import {
 } from '@/lib/utils/cover-letter-export';
 import { kitFilename } from '@/lib/utils/kit-export';
 import { useSessionStore } from '@/store/useSessionStore';
-import { commitEditorSave, editorShouldClose, getEditorStart, type EditorStart } from '@/lib/session-sync';
+import { commitEditorSave, editorShouldClose, getEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface CoverLetterPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -85,6 +85,11 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   // The revision the editor opened on. The draft lives here, outside the store, so
   // it is bound to that revision and checked again at save time (commitEditorSave).
   const editStartRef = useRef<EditorStart | undefined>(undefined);
+  // When the user deals with a conflict notice (restores, copies or discards their text), what this editor
+  // was opened against is stale: base it on the current revision, so its next Save is not refused again.
+  useEffect(() => subscribeConflictAcknowledged((acknowledged) => {
+    if (editSessionIdRef.current === acknowledged) editStartRef.current = getEditorStart(acknowledged, editStartRef.current);
+  }), []);
   const { toast } = useToast();
 
   // Check if cover letter still contains any address placeholder (old or new format)
@@ -333,7 +338,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
         // Anything but a save the server confirmed leaves the editor open with the text in it.
         // So does typing during the save: the newer draft stays, now based on what was just saved.
         if (!editorShouldClose(outcome, sentDraft, JSON.stringify(editedCoverLetterRef.current))) {
-          if (outcome === 'saved' || outcome === 'clean') editStartRef.current = getEditorStart(sessionId);
+          if (outcome === 'saved' || outcome === 'clean') editStartRef.current = getEditorStart(sessionId, editStartRef.current);
           return;
         }
         setIsEditMode(false);

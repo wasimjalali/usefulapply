@@ -27,17 +27,19 @@
     "settleRounds": 5168
   },
   "byInvariant": {
-    "I1": 1320,
+    "I1": 1351,
     "I2": 1276,
     "I3": 149
   },
   "byKind": {
-    "I1: TAB save sent T, text that was set aside in a conflict buffer and that the user did not restore": 234,
+    "I1: TAB save sent T, text that was set aside in a conflict buffer and that the user did not restore": 197,
     "I1: TAB last edit of APP.FIELD ": 785,
     "I2: TAB baseline of APP claims requirements at revision N is not what the server held then ": 1262,
     "I3: TAB requirements on APP differs from the server after settling": 149,
     "I1: TAB last edit of APP.cv ": 415,
     "I1: TAB last edit of APP.requirements ": 367,
+    "I1: TAB Copy would put an empty string on the clipboard": 116,
+    "I1: TAB save wrote older text over newer text in COLUMN of APP": 15,
     "I1: TAB last edit of APP.screening ": 135,
     "I1: TAB Copy on a notice offered text that belongs to another notice": 198,
     "I2: TAB save overwrote requirements of APP with a server value its store had never shown ": 78,
@@ -45,7 +47,14 @@
     "I2: TAB save overwrote COLUMN of APP with a server value its store had never shown ": 28,
     "I1: TAB editor on APP.FIELD closed over text the user typed while the save ran": 30,
     "I2: TAB save overwrote fit_assessment of APP with a server value its store had never shown ": 3,
-    "I1: TAB last edit of APP.fitAssessment ": 11
+    "I1: TAB saved fit_assessment of APP was replaced by TAB, whose store had never shown it": 1,
+    "I1: TAB save wrote older text over newer text in fit_assessment of APP": 4,
+    "I1: TAB last edit of APP.fitAssessment ": 11,
+    "I1: TAB save wrote older text over newer text in generated_cv of APP": 5,
+    "I1: TAB saved COLUMN of APP was replaced by TAB, whose store had never shown it": 5,
+    "I1: TAB saved generated_cv of APP was replaced by TAB, whose store had never shown it": 1,
+    "I1: TAB saved requirements of APP was replaced by TAB, whose store had never shown it": 1,
+    "I1: TAB save wrote older text over newer text in requirements of APP": 1
   },
   "failingSeeds": [
     1,
@@ -53,6 +62,7 @@
     3,
     4,
     5,
+    6,
     7,
     8,
     9,
@@ -63,6 +73,7 @@
     15,
     16,
     17,
+    19,
     20,
     21,
     22,
@@ -407,12 +418,10 @@
     393,
     394,
     395,
-    397,
     398,
     399,
     402,
     403,
-    404,
     405,
     406,
     407,
@@ -576,6 +585,7 @@
     588,
     589,
     590,
+    591,
     592,
     593,
     594,
@@ -677,6 +687,7 @@
     706,
     707,
     708,
+    710,
     712,
     713,
     714,
@@ -950,6 +961,7 @@
     1018,
     1019,
     1020,
+    1021,
     1022,
     1023,
     1024,
@@ -976,6 +988,7 @@
     1046,
     1047,
     1048,
+    1049,
     1050,
     1052,
     1053,
@@ -1129,6 +1142,7 @@
     1215,
     1216,
     1217,
+    1219,
     1220,
     1221,
     1222,
@@ -1215,6 +1229,7 @@
     1316,
     1317,
     1318,
+    1319,
     1320,
     1321,
     1322,
@@ -1292,7 +1307,6 @@
     1405,
     1406,
     1407,
-    1408,
     1409,
     1410,
     1411,
@@ -1460,6 +1474,7 @@
     1595,
     1596,
     1597,
+    1598,
     1599,
     1601,
     1602,
@@ -1469,6 +1484,7 @@
     1607,
     1608,
     1609,
+    1611,
     1612,
     1613,
     1614,
@@ -1499,9 +1515,11 @@
     1642,
     1643,
     1644,
+    1645,
     1646,
     1647,
     1648,
+    1649,
     1650,
     1651,
     1652,
@@ -1516,6 +1534,7 @@
     1662,
     1663,
     1664,
+    1665,
     1666,
     1667,
     1668,
@@ -1541,6 +1560,7 @@
     1690,
     1691,
     1692,
+    1693,
     1694,
     1697,
     1698,
@@ -1555,6 +1575,7 @@
     1707,
     1708,
     1709,
+    1710,
     1711,
     1712,
     1713,
@@ -1666,6 +1687,7 @@
     1833,
     1836,
     1837,
+    1839,
     1840,
     1841,
     1842,
@@ -2077,6 +2099,10 @@
           "message": "B baseline of app-3 claims requirements at revision 0 is not what the server held then (step 109)"
         },
         {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
+        {
           "code": "I2",
           "message": "B baseline of app-3 claims requirements at revision 0 is not what the server held then (step 110)"
         },
@@ -2363,6 +2389,10 @@
         },
         {
           "code": "I1",
+          "message": "B's save wrote older text over newer text in company of app-1"
+        },
+        {
+          "code": "I1",
           "message": "B's save sent t:B18;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
@@ -2371,11 +2401,16 @@
         },
         {
           "code": "I1",
-          "message": "B's save sent t:B20;, text that was set aside in a conflict buffer and that the user did not restore"
-        },
+          "message": "A's last edit of app-1.followUpEmail (t:A14;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"company\":\"t:A19;\"},{\"generatedCV\":{\"content\":\"cv content\",\"changes\":[],\"optimizedFor\":\"Position\",\"_optimizedCVData\":{\"personal\":{\"fullName\":\"N\",\"email\":\"n@ex)"
+        }
+      ]
+    },
+    {
+      "seed": 6,
+      "violations": [
         {
           "code": "I1",
-          "message": "A's last edit of app-1.followUpEmail (t:A14;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"company\":\"t:A19;\"},{\"generatedCV\":{\"content\":\"cv content\",\"changes\":[],\"optimizedFor\":\"Position\",\"_optimizedCVData\":{\"personal\":{\"fullName\":\"N\",\"email\":\"n@ex)"
+          "message": "B's Copy would put an empty string on the clipboard"
         }
       ]
     },
@@ -3295,10 +3330,6 @@
         },
         {
           "code": "I1",
-          "message": "B's save sent t:B7;, text that was set aside in a conflict buffer and that the user did not restore"
-        },
-        {
-          "code": "I1",
           "message": "B's last edit of app-1.cv (t:B4;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [])"
         }
       ]
@@ -3914,6 +3945,15 @@
         {
           "code": "I2",
           "message": "A baseline of app-1 claims requirements at revision 0 is not what the server held then (step 105)"
+        }
+      ]
+    },
+    {
+      "seed": 19,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
         }
       ]
     },
@@ -6494,6 +6534,10 @@
         },
         {
           "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
           "message": "A's save sent t:A14;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
@@ -8630,6 +8674,10 @@
       "seed": 46,
       "violations": [
         {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
+        {
           "code": "I2",
           "message": "B baseline of app-3 claims requirements at revision 0 is not what the server held then (step 144)"
         },
@@ -8904,6 +8952,10 @@
         {
           "code": "I2",
           "message": "B baseline of app-1 claims requirements at revision 5 is not what the server held then (step 96)"
+        },
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in company of app-1"
         },
         {
           "code": "I1",
@@ -11545,14 +11597,6 @@
         {
           "code": "I1",
           "message": "A's save sent t:A16;, text that was set aside in a conflict buffer and that the user did not restore"
-        },
-        {
-          "code": "I1",
-          "message": "A's save sent t:A8;, text that was set aside in a conflict buffer and that the user did not restore"
-        },
-        {
-          "code": "I1",
-          "message": "A's save sent t:A4;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
           "code": "I1",
@@ -16715,6 +16759,10 @@
         },
         {
           "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
           "message": "A's last edit of app-1.email (t:A1;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"requirements\":{\"title\":\"t:K24;\",\"company\":\"c\",\"hardSkills\":[],\"softSkills\":[]}},{\"followUpEmail\":{\"subject\":\"f-t:K24;\",\"body\":\"t:K24;\",\"recommendedDelay\":5}})"
         },
         {
@@ -17495,10 +17543,6 @@
         {
           "code": "I2",
           "message": "A baseline of app-1 claims requirements at revision 5 is not what the server held then (step 114)"
-        },
-        {
-          "code": "I1",
-          "message": "B's save sent t:B17;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
           "code": "I1",
@@ -22997,6 +23041,10 @@
         },
         {
           "code": "I1",
+          "message": "A's save wrote older text over newer text in job_description of app-1"
+        },
+        {
+          "code": "I1",
           "message": "A's save sent t:A10;, text that was set aside in a conflict buffer and that the user did not restore"
         }
       ]
@@ -24792,6 +24840,10 @@
       "violations": [
         {
           "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
           "message": "A's last edit of app-1.requirements (t:A18;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"company\":\"t:A25;\"},{\"generatedCV\":{\"content\":\"cv content\",\"changes\":[],\"optimizedFor\":\"Position\",\"_optimizedCVData\":{\"personal\":{\"fullName\":\"N\",\"email\":\"n@ex)"
         },
         {
@@ -26120,10 +26172,6 @@
         {
           "code": "I1",
           "message": "B's save sent t:B31;, text that was set aside in a conflict buffer and that the user did not restore"
-        },
-        {
-          "code": "I1",
-          "message": "B's save sent t:B10;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
           "code": "I1",
@@ -32062,10 +32110,6 @@
         },
         {
           "code": "I1",
-          "message": "B's save sent t:B8;, text that was set aside in a conflict buffer and that the user did not restore"
-        },
-        {
-          "code": "I1",
           "message": "A's last edit of app-1.requirements (t:A19;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"jobTitle\":\"t:A21;\"},{\"requirements\":{\"title\":\"t:K20;\",\"company\":\"c\",\"hardSkills\":[],\"softSkills\":[]}}])"
         },
         {
@@ -33143,6 +33187,10 @@
         {
           "code": "I2",
           "message": "B baseline of app-1 claims requirements at revision 10 is not what the server held then (settle poll)"
+        },
+        {
+          "code": "I1",
+          "message": "A's saved fit_assessment of app-1 was replaced by B, whose store had never shown it"
         },
         {
           "code": "I1",
@@ -34460,10 +34508,6 @@
         },
         {
           "code": "I1",
-          "message": "A's save sent t:A15;, text that was set aside in a conflict buffer and that the user did not restore"
-        },
-        {
-          "code": "I1",
           "message": "A's last edit of app-1.requirements (t:A31;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [])"
         },
         {
@@ -35547,6 +35591,10 @@
         {
           "code": "I2",
           "message": "B baseline of app-1 claims requirements at revision 1 is not what the server held then (step 53)"
+        },
+        {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
         },
         {
           "code": "I1",
@@ -39553,6 +39601,10 @@
         {
           "code": "I2",
           "message": "A baseline of app-2 claims requirements at revision 0 is not what the server held then (step 71)"
+        },
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
         }
       ]
     },
@@ -40038,6 +40090,10 @@
         },
         {
           "code": "I1",
+          "message": "B's save wrote older text over newer text in fit_assessment of app-1"
+        },
+        {
+          "code": "I1",
           "message": "B's save sent t:B4;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
@@ -40289,6 +40345,10 @@
     {
       "seed": 209,
       "violations": [
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
         {
           "code": "I2",
           "message": "B baseline of app-2 claims requirements at revision 0 is not what the server held then (step 107)"
@@ -42530,6 +42590,10 @@
           "message": "B baseline of app-1 claims requirements at revision 8 is not what the server held then (step 93)"
         },
         {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
+        {
           "code": "I2",
           "message": "A baseline of app-1 claims requirements at revision 9 is not what the server held then (step 94)"
         },
@@ -43111,232 +43175,6 @@
           "message": "B's last edit of app-1.followUpEmail (t:B4;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"selectedTemplate\":\"tpl-t:O16;\"}])"
         }
       ]
-    },
-    {
-      "seed": 221,
-      "violations": [
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 78)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 79)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 80)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 81)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 82)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 83)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 84)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 85)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 86)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 87)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 88)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 89)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 90)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 91)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 92)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 93)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 94)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 95)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 96)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 97)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 98)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 99)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 100)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 101)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 102)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 103)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 104)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 105)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 106)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 107)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 108)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 109)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 110)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 111)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 112)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 113)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 114)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 115)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 116)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 117)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 118)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 119)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 120)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 121)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 122)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 123)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 124)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 125)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 126)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 127)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 128)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (step 129)"
-        },
-        {
-          "code": "I2",
-          "message": "A baseline of app-2 claims requirements at revision 2 is not what the server held then (drain)"
-        }
-      ]
-    },
-    {
-      "seed": 222,
-      "violations": [
-        {
-          "code": "I1",
-          "message": "A's last edit of app-1.screening (t:A2;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"generatedCV\":{\"content\":\"cv content\",\"changes\":[],\"optimizedFor\":\"Position\",\"_optimizedCVData\":{\"personal\":{\"fullName\":\"N\",\"email\":\"n@example.test\",\"currentT)"
-        }
-      ]
     }
   ],
   "cases": [
@@ -43396,6 +43234,44 @@
         {
           "code": "I1",
           "message": "Restore on the cover letter notice also restored the company text"
+        }
+      ]
+    },
+    {
+      "name": "round-3b Restore applies a whole entry or none of it",
+      "violations": [
+        {
+          "code": "I1",
+          "message": "a blocked entry was partly restored: the old title is back ({\"personal\":{\"fullName\":\"N\",\"email\":\"n@example.test\",\"currentTitle\":\"t:P1;\"},\"experience\":)"
+        },
+        {
+          "code": "I1",
+          "message": "the server's newer CV title is no longer shown"
+        },
+        {
+          "code": "I1",
+          "message": "a blocked entry left the buffer"
+        },
+        {
+          "code": "I1",
+          "message": "the blocked entry's text can no longer be copied"
+        },
+        {
+          "code": "I1",
+          "message": "a blocked Restore raised no fresh notice"
+        },
+        {
+          "code": "I1",
+          "message": "A's last edit of app-1.screening (t:P3;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [])"
+        }
+      ]
+    },
+    {
+      "name": "round-3b Copy with nothing left says so instead of copying an empty string",
+      "violations": [
+        {
+          "code": "I1",
+          "message": "Copy on a notice with nothing left gave \"\" instead of \"nothing left\""
         }
       ]
     },

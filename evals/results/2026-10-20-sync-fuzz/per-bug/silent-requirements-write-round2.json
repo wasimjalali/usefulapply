@@ -28,12 +28,13 @@
   },
   "byInvariant": {
     "I2": 1600,
-    "I1": 306,
+    "I1": 311,
     "I3": 30
   },
   "byKind": {
     "I2: TAB baseline of APP claims requirements at revision N is not what the server held then ": 1600,
     "I2: TAB save overwrote requirements of APP with a server value its store had never shown ": 190,
+    "I1: TAB saved requirements of APP was replaced by TAB, whose store had never shown it": 7,
     "I1: TAB last edit of APP.cv ": 178,
     "I3: TAB requirements on APP differs from the server after settling": 30,
     "I1: TAB last edit of APP.screening ": 139
@@ -3029,6 +3030,10 @@
         {
           "code": "I2",
           "message": "B baseline of app-1 claims requirements at revision 7 is not what the server held then (settle poll)"
+        },
+        {
+          "code": "I1",
+          "message": "A's saved requirements of app-1 was replaced by B, whose store had never shown it"
         }
       ]
     },
@@ -13436,6 +13441,10 @@
         {
           "code": "I2",
           "message": "A baseline of app-1 claims requirements at revision 11 is not what the server held then (at save)"
+        },
+        {
+          "code": "I1",
+          "message": "A's saved requirements of app-1 was replaced by B, whose store had never shown it"
         }
       ]
     },
@@ -69874,6 +69883,10 @@
         {
           "code": "I2",
           "message": "B baseline of app-1 claims requirements at revision 11 is not what the server held then (step 132)"
+        },
+        {
+          "code": "I1",
+          "message": "A's saved requirements of app-1 was replaced by B, whose store had never shown it"
         },
         {
           "code": "I1",

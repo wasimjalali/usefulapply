@@ -38,7 +38,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from './ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import type { Profile } from '@/lib/supabase/types';
-import { commitEditorSave, editorSaveSucceeded, getEditorStart, persistSessionEdits, type EditorStart } from '@/lib/session-sync';
+import { commitEditorSave, editorSaveSucceeded, getEditorStart, persistSessionEdits, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface CVPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -96,6 +96,11 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const editSessionIdRef = useRef<string | null>(null);
   // The revision the editor opened on; the draft lives outside the store (see commitEditorSave).
   const editStartRef = useRef<EditorStart | undefined>(undefined);
+  // When the user deals with a conflict notice (restores, copies or discards their text), what this editor
+  // was opened against is stale: base it on the current revision, so its next Save is not refused again.
+  useEffect(() => subscribeConflictAcknowledged((acknowledged) => {
+    if (editSessionIdRef.current === acknowledged) editStartRef.current = getEditorStart(acknowledged, editStartRef.current);
+  }), []);
   useEffect(() => {
     if (editSessionIdRef.current === null || editSessionIdRef.current === currentSession?.id) return;
     editSessionIdRef.current = null;
@@ -516,7 +521,12 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                           });
                         }).then((outcome) => {
                           // Anything but a save the server confirmed reopens the editor with the text in it.
-                          if (editorSaveSucceeded(outcome)) return;
+                          if (editorSaveSucceeded(outcome)) {
+                            // An editor the user opened again while this save ran was opened against the old
+                            // revision; the save landed, so base it on the new one.
+                            if (isEditModeRef.current && editSessionIdRef.current === editSessionId) editStartRef.current = getEditorStart(editSessionId, editStartRef.current);
+                            return;
+                          }
                           // The user may have opened the editor again while this save ran; theirs stands.
                           if (isEditModeRef.current) return;
                           editSessionIdRef.current = editSessionId;

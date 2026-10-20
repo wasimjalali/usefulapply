@@ -708,6 +708,31 @@ async function main(): Promise<void> {
       return { letterKept: true };
     });
 
+    await scenario('d26. a fit analysis saves what it found, with a revision bump, and keeps a title the application already has', async () => {
+      const user = await seedUser('d26', { monthly: 4, addon: 6 });
+      const [sessionId] = user.sessionIds;
+      const kit = await import('../../src/lib/services/kit');
+      const revisionOf = async () => Number((await one('SELECT revision FROM application_sessions WHERE id = ?', sessionId)).revision);
+      const before = await revisionOf();
+      const job = { title: 'Financial Analyst', companyName: 'Northwind Foods', requiredSkills: ['Excel'], responsibilities: ['Forecasting'], niceToHaveSkills: [] } as never;
+      const match = { score: 82.4, matchedRequirements: ['Excel'], missingSkills: ['SQL'] } as never;
+      const written = await kit.persistFitResult(user.id, sessionId, { job, match, detectedLanguage: 'en' });
+      assert.ok(written);
+      assert.equal(await revisionOf(), before + 1, 'the fit columns are a content write: the revision bumps');
+      const row = await one('SELECT job_title, company, requirements, match_score, matching_skills, missing_skills FROM application_sessions WHERE id = ?', sessionId);
+      assert.equal(row.job_title, 'Financial Analyst');
+      assert.equal(row.company, 'Northwind Foods');
+      assert.equal(JSON.parse(String(row.requirements)).title, 'Financial Analyst');
+      assert.equal(JSON.parse(String(row.requirements)).detectedLanguage, 'en');
+      assert.equal(Number(row.match_score), 82);
+      assert.deepEqual(JSON.parse(String(row.matching_skills)), ['Excel']);
+      assert.deepEqual(JSON.parse(String(row.missing_skills)), ['SQL']);
+      // A second analysis does not overwrite a title the application already has.
+      await kit.persistFitResult(user.id, sessionId, { job: { ...(job as object), title: 'Other Title' } as never, match, detectedLanguage: 'en' });
+      assert.equal((await one('SELECT job_title FROM application_sessions WHERE id = ?', sessionId)).job_title, 'Financial Analyst');
+      return { revision: await revisionOf() };
+    });
+
     await scenario('d23. operation housekeeping: attempt cap on claims, pending over an hour fails and releases, late enders stand down, workflow writes do not bump the revision', async () => {
       const user = await seedUser('d23', { monthly: 4, addon: 6 }, 3);
       const [s1, s2, s3] = user.sessionIds;

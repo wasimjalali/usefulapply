@@ -23,7 +23,12 @@
  *       server, and an editor never closes over text typed during its save.
  *       Text set aside in a conflict buffer reaches the server only when the
  *       user asked for it back with Restore on the notice that names it, and
- *       Copy offers only the text of the notice it was clicked on.
+ *       Copy offers only the text of the notice it was clicked on (or says there
+ *       is nothing left). A notice stays until the user restores, copies or
+ *       discards, so the text behind every open notice stays reachable. A save
+ *       never writes older user text over newer user text unless the user asked
+ *       for it, and a value one writer saved is only replaced by a writer that
+ *       had seen it.
  *   I2  no stale overwrite: every save names a revision the writer's baseline
  *       is a truthful snapshot of; a baseline never claims a revision whose
  *       content it does not hold and never moves backwards; a save only
@@ -40,6 +45,7 @@
  */
 
 import { columnFingerprints } from '@/lib/session-sync-engine';
+import type { SyncNotice } from '@/lib/session-sync-engine';
 import type { Adapter, EngineVariantName, MutationResponse } from './adapters';
 import { fieldMutation, kitProps, legacyClient, loadEngine, newClient, responseProps, tokensIn } from './adapters';
 import {
@@ -135,6 +141,10 @@ export interface VerifyContext {
   violate: (code: InvariantCode, message: string) => void;
   stats: RunStats;
   checkBaseline?: (adapter: Adapter, app: string, where: string) => void;
+  /** Text the user threw away on purpose (Dismiss, then Discard). */
+  discarded?: Set<string>;
+  /** Extra checks the run adds at the end (notices still open, values replaced by writers that had not seen them). */
+  finalChecks?: () => void;
   /** Called after every settle step: records what each store shows and checks baselines only move forward. */
   observe?: (where: string) => void;
 }
@@ -215,10 +225,13 @@ export async function settleAndVerify(ctx: VerifyContext): Promise<void> {
     }
   }
 
+  ctx.finalChecks?.();
+
   // I1: the last edit of each field.
   for (const edit of lastEdit.values()) {
     const client = clients.find((candidate) => candidate.id === edit.client)!;
     if (server.acceptedHas(edit.app, edit.token)) continue;
+    if (ctx.discarded?.has(edit.token)) continue;
     if (edit.viaEditor && openEditorTokens.has(edit.token)) continue;
     const buffered = client.conflictJson(edit.app).includes(edit.token);
     if (buffered && client.notices.some((notice) => notice.conflictFor === edit.app)) continue;
@@ -231,7 +244,7 @@ export async function settleAndVerify(ctx: VerifyContext): Promise<void> {
   }
 }
 
-export const OP_NAMES = ['edit', 'save', 'poll', 'editorOpen', 'type', 'editorSave', 'regen', 'workflow', 'tracker', 'agent', 'workflowWrite', 'silentRequirements', 'tabWrite', 'handoff', 'openOther', 'reopen', 'restore', 'copy'] as const;
+export const OP_NAMES = ['edit', 'save', 'poll', 'editorOpen', 'type', 'editorSave', 'regen', 'workflow', 'tracker', 'agent', 'workflowWrite', 'silentRequirements', 'tabWrite', 'handoff', 'openOther', 'reopen', 'restore', 'copy', 'dismiss'] as const;
 
 export interface RunOptions {
   /** `new`: the current engine and glue. `round2`: the review-round-2 engine, glue and server. `legacy`: the round-1 module. */
@@ -281,6 +294,17 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
   const furthest = new Map<string, number>();
   const buffered = new Set<string>();
   const intended = new Set<string>();
+  /** Text the user threw away with Dismiss and Discard. */
+  const discarded = new Set<string>();
+  /** Buffer entries a Restore took out of the buffer (client|id). */
+  const restoredEntries = new Set<string>();
+  /** Notices the user has restored, copied or discarded. A notice stays open until then. */
+  const handled = new WeakSet<SyncNotice>();
+  /** Per accepted write: the columns it overwrote that its writer's store had never shown. */
+  const unseenAt = new Map<string, Set<string>>();
+  /** Text the user chose to save: editor drafts sent with Save. */
+  const deliberate = new Set<string>();
+  const sequenceOf = (text: string): number => Math.max(-1, ...(text.match(/t:[ABO][0-9]+;/g) ?? []).map((token) => Number(token.slice(3, -1))));
   // generated_cv is one column holding several things a user edits (the structured CV, the screening answers):
   // each is "shown" on its own, so a save is judged by the parts it changes.
   const parts = (column: string, fp: string): Record<string, string> => {
@@ -317,21 +341,33 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
   };
   server.onAccept = (by, app, overwritten, patchJson) => {
     if (!clients.some((client) => client.id === by)) return;
+    say(`   server accepts ${by}'s write to ${app}: ${tokensIn(patchJson).join(' ')}`);
     // A save may only overwrite a server value its writer has displayed (or written itself).
     const patch = JSON.parse(patchJson) as Record<string, unknown>;
+    const unseenColumns = new Set<string>();
     for (const [column, fp] of Object.entries(overwritten)) {
       const before = parts(column, fp);
       const after = parts(column, JSON.stringify(patch[column] ?? null));
       const unseen = Object.keys({ ...before, ...after }).filter((part) => before[part] !== after[part] && before[part] !== undefined
         && !seen.get(`${by}|${app}|${column}#${part}`)?.has(before[part]));
       if (unseen.length > 0) {
+        unseenColumns.add(column);
         const mine = clients.find((client) => client.id === by);
         violate('I2', `${by}'s save overwrote ${column} of ${app} with a server value its store had never shown (server ${fp}; store ${mine?.fingerprints(app)?.[column]}; patch tokens ${tokensIn(patchJson).join(',')}; baseline@${mine?.baseline(app)?.revision} server@${server.revisionOf(app)})`);
       }
     }
+    unseenAt.set(`${app}@${(server.revisionOf(app) ?? 0) + 1}`, unseenColumns);
+    // A save does not write older user text over newer user text, unless the user asked for that text.
+    for (const [column, fp] of Object.entries(overwritten)) {
+      const writing = JSON.stringify(patch[column] ?? null);
+      const newest = sequenceOf(writing);
+      if (newest >= 0 && newest < sequenceOf(fp) && !tokensIn(writing).some((token) => intended.has(token) || deliberate.has(token))) {
+        violate('I1', `${by}'s save wrote older text over newer text in ${column} of ${app}`);
+      }
+    }
     // Text set aside in a conflict buffer goes back to the server only when the user restored the notice that holds it.
     for (const token of tokensIn(patchJson)) {
-      if (buffered.has(token) && !intended.has(token)) {
+      if (buffered.has(token) && !intended.has(token) && !deliberate.has(token)) {
         violate('I1', `${by}'s save sent ${token}, text that was set aside in a conflict buffer and that the user did not restore`);
       }
     }
@@ -404,6 +440,12 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
   };
 
   const noticesWithText = (client: Adapter) => client.notices.filter((notice) => notice.conflictFor);
+  // The panels rebase an open editor when the user has dealt with a conflict notice.
+  for (const client of clients) {
+    client.subscribeAcknowledged((app) => {
+      for (const editor of editors) if (editor.client === client && editor.app === app) editor.start = client.editorStart(app, editor.start);
+    });
+  }
 
   const ops: Array<{ weight: number; run: () => void }> = [
     {
@@ -472,6 +514,7 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         stats.editorSaves += 1;
         const { client, app, field } = editor;
         const sent = editor.draft;
+        deliberate.add(sent);
         const work = client.editorCommit(app, editor.start, () => {
           client.edit(app, fieldMutation(field, sent));
           // The draft replaces whatever the store held for that field.
@@ -486,7 +529,7 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
             lastEdit.delete(keyOf(client.id, app, field));
             openEditorTokens.delete(sent);
           }
-          const after = client.editorAfter(app, outcome, sent, editor.draft);
+          const after = client.editorAfter(app, outcome, sent, editor.draft, editor.start);
           if (after.close) {
             if (editor.draft !== sent && !server.acceptedHas(app, editor.draft)) {
               violate('I1', `${client.id}'s editor on ${app}.${field} closed over text the user typed while the save ran`);
@@ -659,13 +702,19 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         if (!notices.length) return;
         const notice = pick(rng, notices);
         for (const token of tokensIn(client.noticeText(notice))) intended.add(token);
+        handled.add(notice);
         stats.restores += 1;
         say(`${client.id} clicks Restore on a notice for ${notice.conflictFor}`);
-        track(client.restoreNotice(notice));
+        track(client.restoreNotice(notice).then((outcome) => {
+          // An entry the restore took out of the buffer has been dealt with, whichever notice names it.
+          const held = new Set(client.bufferIds(notice.conflictFor!));
+          for (const entry of client.noticeEntries(notice)) if (!held.has(entry.id)) restoredEntries.add(`${client.id}|${entry.id}`);
+          say(`   restore -> ${outcome}`);
+        }));
       },
     },
     {
-      // "Copy my text" on a random notice: it may only offer the text of that notice.
+      // "Copy my text" on a random notice: it may only offer the text of that notice, and says so when none is left.
       weight: 2,
       run: () => {
         const client = pick(rng, clients);
@@ -674,9 +723,25 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         const notice = pick(rng, notices);
         stats.copies += 1;
         const allowed = new Set(tokensIn(client.noticeText(notice)));
-        for (const token of tokensIn(client.copyNotice(notice))) {
+        const copied = client.copyNotice(notice);
+        if (copied === '') violate('I1', `${client.id}'s Copy would put an empty string on the clipboard`);
+        if (copied !== null) handled.add(notice);
+        for (const token of tokensIn(copied ?? '')) {
           if (!allowed.has(token)) violate('I1', `${client.id}'s Copy on a notice offered text that belongs to another notice`);
         }
+      },
+    },
+    {
+      // "Dismiss", then "Discard": the user throws the text of a notice away on purpose.
+      weight: options.engine === 'new' ? 2 : 0,
+      run: () => {
+        const client = pick(rng, clients);
+        const notices = noticesWithText(client);
+        if (!notices.length) return;
+        const notice = pick(rng, notices);
+        for (const token of tokensIn(client.noticeText(notice))) discarded.add(token);
+        handled.add(notice);
+        client.dismissNotice(notice);
       },
     },
   ].map((op, index) => ({ ...op, name: OP_NAMES[index] })).filter((op) => op.weight > 0 && (!options.only || options.only.includes(op.name)));
@@ -725,6 +790,38 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
     world, clients, lastEdit, openEditorTokens, violate, stats,
     checkBaseline: options.engine === 'legacy' ? undefined : checkBaseline,
     observe,
+    discarded,
+    finalChecks: () => {
+      // The text behind every notice that is still open must still be reachable: in the buffer, or on the server by now.
+      if (options.engine === 'new') {
+        for (const client of clients) {
+          for (const notice of client.notices) {
+            if (!notice.conflictFor || handled.has(notice)) continue;
+            const held = new Set(client.bufferIds(notice.conflictFor));
+            for (const entry of client.noticeEntries(notice)) {
+              const onServer = entry.tokens.length > 0 && entry.tokens.every((token) => server.acceptedAnywhere(token) || discarded.has(token));
+              if (!held.has(entry.id) && !onServer && !restoredEntries.has(`${client.id}|${entry.id}`) && entry.tokens.length > 0) {
+                violate('I1', `${client.id}'s open notice for ${notice.conflictFor} lost the text of entry ${entry.id} (${entry.tokens.join(' ')})`);
+              }
+            }
+          }
+        }
+      }
+      // A value one writer saved is only replaced by a writer that had seen it.
+      const latest = new Map<string, { revision: number; column: string }>();
+      for (const write of server.accepted) {
+        if (!clients.some((client) => client.id === write.by)) continue;
+        for (const column of Object.keys(JSON.parse(write.json) as Record<string, unknown>)) latest.set(`${write.by}|${write.app}|${column}`, { revision: write.revision, column });
+      }
+      for (const [key, saved] of latest) {
+        const [by, app] = key.split('|');
+        const next = server.accepted.find((write) => write.app === app && write.revision > saved.revision
+          && saved.column in (JSON.parse(write.json) as Record<string, unknown>));
+        if (next && clients.some((client) => client.id === next.by) && unseenAt.get(`${app}@${next.revision}`)?.has(saved.column)) {
+          violate('I1', `${by}'s saved ${saved.column} of ${app} was replaced by ${next.by}, whose store had never shown it`);
+        }
+      }
+    },
   });
 
   stats.requests = net.stats.requests;

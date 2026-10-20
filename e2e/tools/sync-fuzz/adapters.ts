@@ -56,11 +56,11 @@ export interface Adapter {
   open(row: StoredSessionRow): Promise<void>;
   save(app: string): Promise<string>;
   poll(app: string): Promise<string>;
-  editorStart(app: string): unknown;
+  editorStart(app: string, previous?: unknown): unknown;
   editorCommit(app: string, start: unknown, apply: () => void): Promise<string>;
   editorSucceeded(outcome: string): boolean;
   /** The app's reaction to an editor save that returned: close the editor, or keep it. */
-  editorAfter(app: string, outcome: string, sentDraft: string, currentDraft: string): EditorAfter;
+  editorAfter(app: string, outcome: string, sentDraft: string, currentDraft: string, previousStart: unknown): EditorAfter;
   /** A regenerate or follow-up answered: the document is already saved on the server. */
   mutationResponse(app: string, response: MutationResponse): Promise<void>;
   /** The generation finished (`workflow_complete`), carrying the generated fields. */
@@ -70,8 +70,17 @@ export interface Adapter {
   conflictJson(app: string): string;
   /** The buffer entries a notice is about, as text containing their tokens. */
   noticeText(notice: SyncNotice): string;
+  /** The buffer entries a notice named, with the user text each holds. */
+  noticeEntries(notice: SyncNotice): { id: string; tokens: string[] }[];
+  /** The ids of the entries the engine still holds for an application. */
+  bufferIds(app: string): string[];
   restoreNotice(notice: SyncNotice): Promise<string>;
-  copyNotice(notice: SyncNotice): string;
+  /** What Copy puts on the clipboard, or null when there is nothing left to copy. */
+  copyNotice(notice: SyncNotice): string | null;
+  /** Dismiss then Discard: the user throws the notice's text away. */
+  dismissNotice(notice: SyncNotice): void;
+  /** Called when the user has dealt with a conflict notice of an application (restore, copy, discard). */
+  subscribeAcknowledged(listener: (app: string) => void): () => void;
   rejectedColumns(app: string): string[];
   baseline(app: string): { revision: number; fields: Record<string, string> | null } | undefined;
 }
@@ -298,15 +307,15 @@ export function newClient(
     },
     save: (app) => engine.persistSessionEdits(app),
     poll: (app) => engine.checkForRemoteChange(app),
-    editorStart: (app) => engine.getEditorStart(app),
+    editorStart: (app, previous) => engine.getEditorStart(app, previous as never),
     editorCommit: (app, start, apply) => engine.commitEditorSave(app, start as never, apply),
     editorSucceeded: (outcome) => engineModule.editorSaveSucceeded(outcome as EditorOutcome),
-    editorAfter: (app, outcome, sent, now) => {
+    editorAfter: (app, outcome, sent, now, previousStart) => {
       if (!engineModule.editorSaveSucceeded(outcome as EditorOutcome)) return { close: false };
       // Round 2 closed the editor on any success, even if the user had typed more while it saved.
       if (!current) return { close: true };
       if (engineModule.editorShouldClose(outcome as EditorOutcome, sent, now)) return { close: true };
-      return { close: false, start: engine.getEditorStart(app) };
+      return { close: false, start: engine.getEditorStart(app, previousStart as never) };
     },
     mutationResponse: async (app) => { await engine.refreshFromServer(app); },
     workflowComplete: async (app, response) => {
@@ -318,6 +327,15 @@ export function newClient(
     // Only the user's text counts as buffered; `base` holds what the server showed instead.
     conflictJson: (app) => JSON.stringify(engine.getConflictBuffer(app).map(userText)),
     noticeText: (notice) => JSON.stringify((noticeEntries.get(notice) ?? []).map(userText)),
+    noticeEntries: (notice) => (noticeEntries.get(notice) ?? []).map((entry) => ({
+      id: entry.id ?? `${entry.key}@${entry.at}`,
+      tokens: tokensIn(JSON.stringify(userText(entry))),
+    })),
+    bufferIds: (app) => engine.getConflictBuffer(app).map((entry) => entry.id ?? `${entry.key}@${entry.at}`),
+    dismissNotice: (notice) => {
+      if (current && notice.conflictFor) anyEngine.discardConflict(notice.conflictFor, notice.conflictEntries ?? []);
+    },
+    subscribeAcknowledged: (listener) => (current ? (anyEngine.subscribeConflictAcknowledged(listener) as () => void) : () => undefined),
     restoreNotice: async (notice) => {
       if (!notice.conflictFor) return 'skipped';
       // Round 2 restored every buffered entry of the application, whichever notice was clicked.
@@ -325,9 +343,10 @@ export function newClient(
       return String(await anyEngine.restoreConflict(notice.conflictFor, notice.conflictEntries ?? []));
     },
     copyNotice: (notice) => {
-      if (!notice.conflictFor) return '';
+      if (!notice.conflictFor) return null;
+      // Round 2 had no "nothing left" answer: it copied whatever text it had, empty or not.
       if (!current) return String(anyEngine.conflictBufferText(notice.conflictFor));
-      return String(anyEngine.conflictText(notice.conflictFor, notice.conflictEntries ?? []));
+      return anyEngine.copyConflict(notice.conflictFor, notice.conflictEntries ?? []) as string | null;
     },
     rejectedColumns: (app) => engine.debug.rejected(app),
     baseline: (app) => engine.debug.baseline(app),
@@ -409,8 +428,12 @@ export async function legacyClient(id: string, world: World): Promise<Adapter> {
     statusRefresh: async () => undefined,
     conflictJson: () => '[]',
     noticeText: () => '',
+    noticeEntries: () => [],
+    bufferIds: () => [],
     restoreNotice: async () => 'skipped',
-    copyNotice: () => '',
+    copyNotice: () => null,
+    dismissNotice: () => undefined,
+    subscribeAcknowledged: () => () => undefined,
     rejectedColumns: () => [],
     baseline: (app) => {
       const revision = legacy.getBaselineRevision(app);

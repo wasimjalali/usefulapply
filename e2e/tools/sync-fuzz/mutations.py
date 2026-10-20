@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
 Mutation check for the sync fuzz test: break src/lib/session-sync-engine.ts in one place at a time and
-confirm the fuzz test notices. Each mutation is a (find, replace) pair applied to a copy of the engine;
+confirm the fuzz test notices. Each mutation is a (find, replace) pair, or a list of pairs, applied to a copy of the engine;
 the original is put back after every run, also on error.
 
-    python3 e2e/tools/sync-fuzz/mutations.py [name-prefix ...]
+    python3 e2e/tools/sync-fuzz/mutations.py [name-prefix ...]      # MUTATION_SEEDS=4000 to run more seeds per mutation
 
-Prints one line per mutation: how many of 400 seeds fail (and the deterministic cases that fail).
+Prints one line per mutation: how many of the seeds (400 by default) fail (and the deterministic cases that fail).
 A mutation that no seed catches is reported as SURVIVED. Writes nothing else.
 """
 import os
@@ -64,19 +64,48 @@ MUTATIONS = {
         "  return editorSaveSucceeded(outcome);",
     ),
     'M12 Restore overwrites text the user typed since': (
-        "          if (userEdited(sessionId, session, prop)) { blocked = true; continue; }  // newer typing stands; the entry stays",
-        "",
+        "        const blocked = entry.changed.some((prop) => userEdited(sessionId, session, prop)\n          || (server !== undefined && !sameValue(server[prop], entry.base[prop])));",
+        "        const blocked = entry.changed.some((prop) => (server !== undefined && !sameValue(server[prop], entry.base[prop])));",
     ),
     'M13 Copy offers every buffered entry': (
         "    return entriesFor(sessionId, ids)\n      .map((entry) => {",
         "    return getConflictBuffer(sessionId)\n      .map((entry) => {",
+    ),
+    'M14 Restore applies the unblocked properties of a blocked entry': [
+        (
+            "        const blocked = entry.changed.some((prop) => userEdited(sessionId, session, prop)\n          || (server !== undefined && !sameValue(server[prop], entry.base[prop])));",
+            "        const blocked = false;",
+        ),
+        (
+            "        for (const prop of entry.changed) (next as unknown as Record<string, unknown>)[prop] = entry.props[prop];\n        buffer?.delete(entry.id);",
+            "        for (const prop of entry.changed) if (!userEdited(sessionId, session, prop)) (next as unknown as Record<string, unknown>)[prop] = entry.props[prop];\n        buffer?.delete(entry.id);",
+        ),
+    ],
+    'M15 a full buffer forgets its oldest entry even if unsettled': [
+        ("  const SOFT_BUFFER_LIMIT = 40;", "  const SOFT_BUFFER_LIMIT = 3;"),
+        (
+            "      if (candidate.id !== entry.id && entrySettled(sessionId, candidate)) buffer.delete(candidate.id);",
+            "      if (candidate.id !== entry.id) buffer.delete(candidate.id);",
+        ),
+    ],
+    'M17 Restore ignores that the server changed the field again since the notice': (
+        "        const blocked = entry.changed.some((prop) => userEdited(sessionId, session, prop)\n          || (server !== undefined && !sameValue(server[prop], entry.base[prop])));",
+        "        const blocked = entry.changed.some((prop) => userEdited(sessionId, session, prop));",
+    ),
+    'M18 a rebased editor forgets which columns its draft sets': (
+        "lineage: previous?.lineage ?? { columns: new Set<string>() } };",
+        "lineage: { columns: new Set<string>() } };",
+    ),
+    'M16 Copy with nothing left copies an empty string': (
+        "    if (text.trim() === '') return null;",
+        "    if (false) return null;",
     ),
 }
 
 
 def run_fuzz() -> str:
     out = subprocess.run(
-        ['npx', 'tsx', '--tsconfig', 'e2e/tools/tsconfig.sync-fuzz.json', 'e2e/tools/sync-fuzz.ts', '--engine', 'new', '--seeds', '400'],
+        ['npx', 'tsx', '--tsconfig', 'e2e/tools/tsconfig.sync-fuzz.json', 'e2e/tools/sync-fuzz.ts', '--engine', 'new', '--seeds', os.environ.get('MUTATION_SEEDS', '400')],
         cwd=ROOT, capture_output=True, text=True,
     )
     lines = [line for line in out.stdout.splitlines() if line.startswith('failing seeds') or line.startswith('FAIL')]
@@ -92,15 +121,20 @@ def main() -> int:
     original = open(backup).read()
     survived = 0
     try:
-        for name, (old, new) in MUTATIONS.items():
+        for name, change in MUTATIONS.items():
             if wanted and not any(name.startswith(prefix) for prefix in wanted):
                 continue
-            if old not in original:
+            pairs = change if isinstance(change, list) else [change]
+            mutated = original
+            missing = [old for old, _ in pairs if old not in original]
+            if missing:
                 print(f'{name}: PATTERN NOT FOUND (the engine changed; update this script)')
                 survived += 1
                 continue
+            for old, new in pairs:
+                mutated = mutated.replace(old, new, 1)
             with open(ENGINE, 'w') as handle:
-                handle.write(original.replace(old, new, 1))
+                handle.write(mutated)
             result = run_fuzz()
             caught = not result.startswith('failing seeds: 0') or 'cases:' in result
             if not caught:

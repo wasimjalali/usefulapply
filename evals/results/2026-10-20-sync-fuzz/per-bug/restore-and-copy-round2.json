@@ -27,24 +27,34 @@
     "settleRounds": 5139
   },
   "byInvariant": {
-    "I1": 1094,
+    "I1": 1232,
     "I2": 78
   },
   "byKind": {
     "I1: TAB save sent T, text that was set aside in a conflict buffer and that the user did not restore": 627,
+    "I1: TAB Copy would put an empty string on the clipboard": 339,
     "I1: TAB last edit of APP.cv ": 225,
     "I1: TAB Copy on a notice offered text that belongs to another notice": 259,
+    "I1: TAB save wrote older text over newer text in fit_assessment of APP": 25,
+    "I1: TAB save wrote older text over newer text in generated_cv of APP": 43,
+    "I1: TAB save wrote older text over newer text in COLUMN of APP": 132,
     "I1: TAB last edit of APP.FIELD ": 291,
     "I2: TAB save overwrote requirements of APP with a server value its store had never shown ": 18,
     "I1: TAB last edit of APP.requirements ": 50,
     "I2: TAB save overwrote COLUMN of APP with a server value its store had never shown ": 63,
     "I1: TAB last edit of APP.screening ": 206,
     "I1: TAB last edit of APP.fitAssessment ": 59,
+    "I1: TAB save wrote older text over newer text in requirements of APP": 23,
     "I2: TAB save overwrote fit_assessment of APP with a server value its store had never shown ": 15,
-    "I2: TAB save overwrote generated_cv of APP with a server value its store had never shown ": 31
+    "I2: TAB save overwrote generated_cv of APP with a server value its store had never shown ": 31,
+    "I1: TAB saved COLUMN of APP was replaced by TAB, whose store had never shown it": 32,
+    "I1: TAB saved generated_cv of APP was replaced by TAB, whose store had never shown it": 12,
+    "I1: TAB saved requirements of APP was replaced by TAB, whose store had never shown it": 8,
+    "I1: TAB saved fit_assessment of APP was replaced by TAB, whose store had never shown it": 3
   },
   "failingSeeds": [
     2,
+    4,
     5,
     6,
     7,
@@ -56,11 +66,13 @@
     17,
     18,
     20,
+    21,
     22,
     24,
     25,
     29,
     30,
+    31,
     32,
     33,
     34,
@@ -70,7 +82,9 @@
     38,
     39,
     40,
+    41,
     42,
+    43,
     44,
     45,
     48,
@@ -137,6 +151,7 @@
     138,
     139,
     140,
+    141,
     142,
     145,
     147,
@@ -148,6 +163,7 @@
     157,
     161,
     162,
+    166,
     167,
     169,
     171,
@@ -168,6 +184,7 @@
     194,
     195,
     196,
+    197,
     198,
     199,
     200,
@@ -176,6 +193,7 @@
     204,
     205,
     207,
+    209,
     210,
     212,
     214,
@@ -209,7 +227,9 @@
     262,
     263,
     265,
+    268,
     270,
+    271,
     273,
     274,
     276,
@@ -221,6 +241,7 @@
     285,
     287,
     290,
+    291,
     293,
     294,
     298,
@@ -229,6 +250,7 @@
     301,
     302,
     303,
+    306,
     308,
     310,
     311,
@@ -242,6 +264,8 @@
     323,
     325,
     326,
+    327,
+    328,
     329,
     332,
     334,
@@ -257,11 +281,13 @@
     349,
     350,
     351,
+    352,
     353,
     357,
     358,
     361,
     362,
+    363,
     365,
     367,
     368,
@@ -269,6 +295,7 @@
     376,
     378,
     382,
+    383,
     387,
     389,
     390,
@@ -277,6 +304,7 @@
     395,
     396,
     399,
+    400,
     402,
     403,
     406,
@@ -285,6 +313,7 @@
     410,
     411,
     412,
+    413,
     414,
     415,
     416,
@@ -292,24 +321,30 @@
     418,
     419,
     421,
+    423,
     424,
     427,
+    429,
     430,
     431,
+    432,
     434,
     435,
     436,
     437,
     439,
+    441,
     442,
     443,
     444,
     445,
     447,
     449,
+    450,
     452,
     454,
     455,
+    456,
     457,
     460,
     461,
@@ -317,6 +352,7 @@
     463,
     464,
     465,
+    466,
     467,
     468,
     469,
@@ -334,7 +370,9 @@
     491,
     496,
     497,
+    498,
     500,
+    502,
     503,
     505,
     506,
@@ -353,6 +391,8 @@
     524,
     525,
     528,
+    529,
+    530,
     531,
     532,
     533,
@@ -367,6 +407,7 @@
     549,
     551,
     558,
+    559,
     560,
     561,
     565,
@@ -390,16 +431,22 @@
     598,
     599,
     601,
+    602,
+    603,
+    604,
     605,
+    606,
     607,
     610,
     613,
     614,
     615,
     616,
+    617,
     619,
     623,
     624,
+    625,
     626,
     628,
     632,
@@ -410,13 +457,16 @@
     641,
     644,
     645,
+    646,
     647,
     648,
+    649,
     650,
     653,
     654,
     655,
     656,
+    657,
     658,
     659,
     660,
@@ -442,11 +492,13 @@
     689,
     691,
     692,
+    694,
     698,
     699,
     703,
     704,
     705,
+    706,
     707,
     708,
     709,
@@ -458,7 +510,10 @@
     721,
     724,
     726,
+    728,
     731,
+    732,
+    734,
     735,
     736,
     737,
@@ -482,6 +537,7 @@
     763,
     765,
     767,
+    768,
     773,
     774,
     775,
@@ -503,12 +559,14 @@
     804,
     809,
     810,
+    812,
     813,
     817,
     821,
     822,
     827,
     828,
+    829,
     830,
     831,
     832,
@@ -519,6 +577,7 @@
     838,
     841,
     842,
+    844,
     845,
     847,
     848,
@@ -527,6 +586,7 @@
     852,
     853,
     855,
+    856,
     859,
     860,
     863,
@@ -545,11 +605,14 @@
     884,
     886,
     887,
+    889,
     890,
     893,
     894,
     895,
     896,
+    899,
+    902,
     903,
     904,
     905,
@@ -562,6 +625,7 @@
     914,
     916,
     917,
+    918,
     920,
     921,
     922,
@@ -569,6 +633,7 @@
     926,
     927,
     928,
+    929,
     931,
     933,
     934,
@@ -580,6 +645,7 @@
     943,
     944,
     946,
+    947,
     948,
     950,
     951,
@@ -590,11 +656,14 @@
     960,
     961,
     962,
+    964,
     967,
     968,
     970,
     972,
+    974,
     976,
+    977,
     978,
     980,
     981,
@@ -635,9 +704,11 @@
     1029,
     1030,
     1032,
+    1034,
     1036,
     1038,
     1041,
+    1044,
     1045,
     1046,
     1047,
@@ -646,15 +717,19 @@
     1050,
     1052,
     1055,
+    1056,
     1057,
     1059,
     1060,
+    1061,
     1062,
     1063,
     1064,
     1066,
+    1068,
     1069,
     1070,
+    1071,
     1074,
     1075,
     1077,
@@ -664,6 +739,7 @@
     1081,
     1082,
     1083,
+    1085,
     1087,
     1088,
     1090,
@@ -672,9 +748,11 @@
     1093,
     1096,
     1097,
+    1099,
     1101,
     1102,
     1103,
+    1104,
     1106,
     1107,
     1108,
@@ -682,7 +760,9 @@
     1110,
     1112,
     1113,
+    1114,
     1115,
+    1116,
     1117,
     1118,
     1120,
@@ -695,6 +775,8 @@
     1130,
     1132,
     1133,
+    1134,
+    1137,
     1138,
     1142,
     1144,
@@ -704,6 +786,8 @@
     1151,
     1152,
     1153,
+    1154,
+    1155,
     1157,
     1158,
     1160,
@@ -715,9 +799,11 @@
     1166,
     1167,
     1170,
+    1171,
     1172,
     1173,
     1175,
+    1180,
     1182,
     1183,
     1184,
@@ -725,7 +811,9 @@
     1187,
     1188,
     1189,
+    1190,
     1191,
+    1193,
     1194,
     1196,
     1197,
@@ -739,7 +827,9 @@
     1212,
     1213,
     1214,
+    1215,
     1216,
+    1218,
     1219,
     1221,
     1222,
@@ -747,6 +837,7 @@
     1224,
     1227,
     1228,
+    1230,
     1231,
     1232,
     1234,
@@ -760,6 +851,7 @@
     1245,
     1246,
     1250,
+    1252,
     1253,
     1254,
     1255,
@@ -775,9 +867,12 @@
     1274,
     1275,
     1276,
+    1277,
     1279,
     1280,
     1281,
+    1283,
+    1286,
     1289,
     1290,
     1291,
@@ -794,6 +889,7 @@
     1317,
     1318,
     1319,
+    1320,
     1321,
     1322,
     1324,
@@ -806,6 +902,8 @@
     1332,
     1333,
     1335,
+    1336,
+    1337,
     1340,
     1341,
     1343,
@@ -850,13 +948,16 @@
     1407,
     1408,
     1409,
+    1410,
     1411,
     1412,
     1413,
     1416,
     1418,
+    1420,
     1422,
     1425,
+    1426,
     1429,
     1433,
     1437,
@@ -881,6 +982,8 @@
     1473,
     1474,
     1478,
+    1481,
+    1482,
     1483,
     1486,
     1487,
@@ -890,12 +993,15 @@
     1492,
     1494,
     1495,
+    1496,
     1497,
     1498,
     1499,
     1500,
+    1502,
     1503,
     1505,
+    1506,
     1508,
     1509,
     1510,
@@ -904,6 +1010,7 @@
     1513,
     1514,
     1516,
+    1518,
     1519,
     1521,
     1525,
@@ -920,8 +1027,10 @@
     1540,
     1541,
     1542,
+    1543,
     1544,
     1545,
+    1546,
     1550,
     1552,
     1553,
@@ -957,6 +1066,7 @@
     1612,
     1613,
     1616,
+    1620,
     1624,
     1626,
     1627,
@@ -967,7 +1077,9 @@
     1633,
     1636,
     1637,
+    1638,
     1641,
+    1642,
     1645,
     1646,
     1648,
@@ -1014,16 +1126,21 @@
     1715,
     1718,
     1719,
+    1720,
     1722,
     1723,
+    1724,
+    1726,
     1727,
     1734,
     1735,
     1737,
+    1738,
     1739,
     1740,
     1742,
     1743,
+    1744,
     1745,
     1746,
     1750,
@@ -1043,6 +1160,7 @@
     1769,
     1770,
     1771,
+    1772,
     1773,
     1774,
     1775,
@@ -1078,13 +1196,16 @@
     1810,
     1811,
     1812,
+    1813,
     1814,
     1815,
     1818,
     1820,
+    1821,
     1822,
     1823,
     1826,
+    1829,
     1832,
     1833,
     1835,
@@ -1094,9 +1215,12 @@
     1841,
     1844,
     1845,
+    1847,
     1852,
     1853,
     1855,
+    1856,
+    1857,
     1858,
     1861,
     1862,
@@ -1125,8 +1249,10 @@
     1902,
     1903,
     1905,
+    1907,
     1909,
     1911,
+    1912,
     1915,
     1916,
     1917,
@@ -1134,10 +1260,15 @@
     1921,
     1922,
     1924,
+    1927,
     1928,
     1929,
     1930,
+    1931,
+    1933,
     1935,
+    1936,
+    1937,
     1940,
     1941,
     1942,
@@ -1150,10 +1281,12 @@
     1953,
     1956,
     1957,
+    1960,
     1967,
     1968,
     1969,
     1972,
+    1973,
     1974,
     1976,
     1977,
@@ -1190,6 +1323,19 @@
       ]
     },
     {
+      "seed": 4,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        }
+      ]
+    },
+    {
       "seed": 5,
       "violations": [
         {
@@ -1204,6 +1350,10 @@
         {
           "code": "I1",
           "message": "A's Copy on a notice offered text that belongs to another notice"
+        },
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in fit_assessment of app-1"
         },
         {
           "code": "I1",
@@ -1233,6 +1383,10 @@
       "violations": [
         {
           "code": "I1",
+          "message": "A's save wrote older text over newer text in generated_cv of app-1"
+        },
+        {
+          "code": "I1",
           "message": "A's save sent t:O5;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
@@ -1244,6 +1398,10 @@
     {
       "seed": 12,
       "violations": [
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in job_title of app-1"
+        },
         {
           "code": "I1",
           "message": "A's save sent t:A16;, text that was set aside in a conflict buffer and that the user did not restore"
@@ -1281,6 +1439,18 @@
         {
           "code": "I1",
           "message": "A's save sent t:A24;, text that was set aside in a conflict buffer and that the user did not restore"
+        },
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in email of app-1"
+        },
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in email_subject of app-1"
+        },
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in email_body of app-1"
         },
         {
           "code": "I1",
@@ -1333,11 +1503,24 @@
       ]
     },
     {
+      "seed": 21,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        }
+      ]
+    },
+    {
       "seed": 22,
       "violations": [
         {
           "code": "I1",
           "message": "A's Copy on a notice offered text that belongs to another notice"
+        },
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in job_title of app-1"
         },
         {
           "code": "I1",
@@ -1408,6 +1591,10 @@
       "violations": [
         {
           "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
           "message": "B's save sent t:B32;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
@@ -1417,6 +1604,10 @@
         {
           "code": "I1",
           "message": "A's save sent t:A34;, text that was set aside in a conflict buffer and that the user did not restore"
+        },
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in company of app-1"
         },
         {
           "code": "I1",
@@ -1442,8 +1633,21 @@
       ]
     },
     {
+      "seed": 31,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        }
+      ]
+    },
+    {
       "seed": 32,
       "violations": [
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in job_description of app-1"
+        },
         {
           "code": "I1",
           "message": "A's save sent t:A18;, text that was set aside in a conflict buffer and that the user did not restore"
@@ -1461,6 +1665,10 @@
     {
       "seed": 33,
       "violations": [
+        {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
         {
           "code": "I1",
           "message": "B's save sent t:B20;, text that was set aside in a conflict buffer and that the user did not restore"
@@ -1499,6 +1707,10 @@
         {
           "code": "I1",
           "message": "B's save sent t:B4;, text that was set aside in a conflict buffer and that the user did not restore"
+        },
+        {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
         }
       ]
     },
@@ -1555,6 +1767,15 @@
       ]
     },
     {
+      "seed": 41,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        }
+      ]
+    },
+    {
       "seed": 42,
       "violations": [
         {
@@ -1568,6 +1789,15 @@
         {
           "code": "I1",
           "message": "A's Copy on a notice offered text that belongs to another notice"
+        }
+      ]
+    },
+    {
+      "seed": 43,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
         }
       ]
     },
@@ -1594,6 +1824,14 @@
       "violations": [
         {
           "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in job_description of app-1"
+        },
+        {
+          "code": "I1",
           "message": "B's save sent t:B28;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
@@ -1607,7 +1845,15 @@
       "violations": [
         {
           "code": "I1",
+          "message": "A's save wrote older text over newer text in generated_cv of app-1"
+        },
+        {
+          "code": "I1",
           "message": "A's save sent t:A9;, text that was set aside in a conflict buffer and that the user did not restore"
+        },
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
         },
         {
           "code": "I2",
@@ -1632,13 +1878,33 @@
         },
         {
           "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in cover_letter of app-1"
+        },
+        {
+          "code": "I1",
           "message": "A's save sent t:A15;, text that was set aside in a conflict buffer and that the user did not restore"
+        },
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
         }
       ]
     },
     {
       "seed": 51,
       "violations": [
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in requirements of app-1"
+        },
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in follow_up_email of app-1"
+        },
         {
           "code": "I1",
           "message": "B's Copy on a notice offered text that belongs to another notice"
@@ -1698,6 +1964,14 @@
       "violations": [
         {
           "code": "I1",
+          "message": "A's save wrote older text over newer text in cover_letter of app-1"
+        },
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in fit_assessment of app-1"
+        },
+        {
+          "code": "I1",
           "message": "A's save sent t:A9;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
@@ -1718,6 +1992,10 @@
     {
       "seed": 67,
       "violations": [
+        {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
         {
           "code": "I1",
           "message": "B's last edit of app-1.fitAssessment (t:B30;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"followUpEmail\":{\"subject\":\"f-t:O22;\",\"body\":\"t:O22;\",\"recommendedDelay\":5}}])"
@@ -1783,6 +2061,10 @@
         },
         {
           "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
           "message": "A's save sent t:A20;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
@@ -1794,6 +2076,10 @@
     {
       "seed": 74,
       "violations": [
+        {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
         {
           "code": "I1",
           "message": "B's Copy on a notice offered text that belongs to another notice"
@@ -1870,7 +2156,15 @@
       "violations": [
         {
           "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
           "message": "A's Copy on a notice offered text that belongs to another notice"
+        },
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in follow_up_email of app-1"
         },
         {
           "code": "I1",
@@ -1920,6 +2214,14 @@
         },
         {
           "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
           "message": "B's save sent t:O23;, text that was set aside in a conflict buffer and that the user did not restore"
         }
       ]
@@ -1930,6 +2232,14 @@
         {
           "code": "I1",
           "message": "B's save sent t:O24;, text that was set aside in a conflict buffer and that the user did not restore"
+        },
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in company of app-1"
+        },
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in generated_cv of app-1"
         },
         {
           "code": "I1",
@@ -1991,6 +2301,34 @@
         },
         {
           "code": "I1",
+          "message": "A's save wrote older text over newer text in company of app-1"
+        },
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in follow_up_email of app-1"
+        },
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in selected_template of app-1"
+        },
+        {
+          "code": "I1",
+          "message": "B's saved company of app-1 was replaced by A, whose store had never shown it"
+        },
+        {
+          "code": "I1",
+          "message": "B's saved generated_cv of app-1 was replaced by A, whose store had never shown it"
+        },
+        {
+          "code": "I1",
+          "message": "B's saved follow_up_email of app-1 was replaced by A, whose store had never shown it"
+        },
+        {
+          "code": "I1",
+          "message": "B's saved selected_template of app-1 was replaced by A, whose store had never shown it"
+        },
+        {
+          "code": "I1",
           "message": "A's last edit of app-1.cv (t:A9;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [])"
         }
       ]
@@ -2001,6 +2339,10 @@
         {
           "code": "I1",
           "message": "B's Copy on a notice offered text that belongs to another notice"
+        },
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in job_title of app-1"
         },
         {
           "code": "I1",
@@ -2122,6 +2464,10 @@
       "violations": [
         {
           "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
           "message": "B's save sent t:B31;, text that was set aside in a conflict buffer and that the user did not restore"
         }
       ]
@@ -2142,6 +2488,10 @@
     {
       "seed": 100,
       "violations": [
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in generated_cv of app-1"
+        },
         {
           "code": "I1",
           "message": "B's save sent t:O22;, text that was set aside in a conflict buffer and that the user did not restore"
@@ -2165,6 +2515,10 @@
         },
         {
           "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
           "message": "B's last edit of app-1.fitAssessment (t:B27;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"jobTitle\":\"t:B3;\"},{\"coverLetter\":{\"applicantAddress\":{\"name\":\"\",\"street\":\"\",\"city\":\"\",\"country\":\"\",\"phone\":\"\",\"email\":\"\"},\"date\":\"\",\"companyAddress\":{\"compa)"
         },
         {
@@ -2180,6 +2534,10 @@
     {
       "seed": 102,
       "violations": [
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in fit_assessment of app-1"
+        },
         {
           "code": "I1",
           "message": "B's save sent t:B10;, text that was set aside in a conflict buffer and that the user did not restore"
@@ -2275,6 +2633,26 @@
         {
           "code": "I2",
           "message": "A's save overwrote fit_assessment of app-1 with a server value its store had never shown (server {\"summary\":\"t:G15;\",\"score\":50}; store {\"summary\":\"t:A21;\",\"score\":50}; patch tokens t:A27;,t:A13;,t:A3;,t:O18;,t:O18;,t:A25;,t:A25;,t:O18;,t:O18;,t:A21;; baseline@5 server@5)"
+        },
+        {
+          "code": "I1",
+          "message": "B's saved requirements of app-1 was replaced by A, whose store had never shown it"
+        },
+        {
+          "code": "I1",
+          "message": "B's saved email of app-1 was replaced by A, whose store had never shown it"
+        },
+        {
+          "code": "I1",
+          "message": "B's saved email_subject of app-1 was replaced by A, whose store had never shown it"
+        },
+        {
+          "code": "I1",
+          "message": "B's saved email_body of app-1 was replaced by A, whose store had never shown it"
+        },
+        {
+          "code": "I1",
+          "message": "B's saved generated_cv of app-1 was replaced by A, whose store had never shown it"
         }
       ]
     },
@@ -2290,6 +2668,10 @@
     {
       "seed": 111,
       "violations": [
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
         {
           "code": "I1",
           "message": "A's Copy on a notice offered text that belongs to another notice"
@@ -2356,6 +2738,10 @@
         },
         {
           "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
           "message": "A's last edit of app-1.screening (t:A27;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [])"
         }
       ]
@@ -2394,6 +2780,10 @@
     {
       "seed": 121,
       "violations": [
+        {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
         {
           "code": "I1",
           "message": "A's last edit of app-1.jobTitle (t:A20;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [])"
@@ -2491,6 +2881,10 @@
       "violations": [
         {
           "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
           "message": "A's last edit of app-1.cv (t:A23;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"jobTitle\":\"t:A26;\"}])"
         },
         {
@@ -2502,6 +2896,10 @@
     {
       "seed": 133,
       "violations": [
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in job_title of app-1"
+        },
         {
           "code": "I1",
           "message": "B's save sent t:B8;, text that was set aside in a conflict buffer and that the user did not restore"
@@ -2555,6 +2953,22 @@
         },
         {
           "code": "I1",
+          "message": "B's save wrote older text over newer text in requirements of app-1"
+        },
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in follow_up_email of app-1"
+        },
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in fit_assessment of app-1"
+        },
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in selected_template of app-1"
+        },
+        {
+          "code": "I1",
           "message": "B's save sent t:B35;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
@@ -2588,6 +3002,10 @@
       "violations": [
         {
           "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
           "message": "B's save sent t:B36;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
@@ -2614,8 +3032,21 @@
       ]
     },
     {
+      "seed": 141,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        }
+      ]
+    },
+    {
       "seed": 142,
       "violations": [
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in generated_cv of app-1"
+        },
         {
           "code": "I1",
           "message": "B's save sent t:B25;, text that was set aside in a conflict buffer and that the user did not restore"
@@ -2688,6 +3119,14 @@
       "violations": [
         {
           "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in generated_cv of app-1"
+        },
+        {
+          "code": "I1",
           "message": "B's save sent t:B12;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
@@ -2706,6 +3145,10 @@
         {
           "code": "I1",
           "message": "A's save sent t:A20;, text that was set aside in a conflict buffer and that the user did not restore"
+        },
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in follow_up_email of app-1"
         }
       ]
     },
@@ -2739,6 +3182,10 @@
       "seed": 162,
       "violations": [
         {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
+        {
           "code": "I2",
           "message": "B's save overwrote fit_assessment of app-1 with a server value its store had never shown (server {\"summary\":\"t:G24;\",\"score\":50}; store {\"summary\":\"t:B15;\",\"score\":50}; patch tokens t:B15;; baseline@13 server@13)"
         },
@@ -2749,8 +3196,21 @@
       ]
     },
     {
+      "seed": 166,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        }
+      ]
+    },
+    {
       "seed": 167,
       "violations": [
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
         {
           "code": "I1",
           "message": "B's save sent t:B3;, text that was set aside in a conflict buffer and that the user did not restore"
@@ -2823,6 +3283,10 @@
         },
         {
           "code": "I1",
+          "message": "B's save wrote older text over newer text in company of app-1"
+        },
+        {
+          "code": "I1",
           "message": "B's save sent t:B17;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
@@ -2842,6 +3306,10 @@
     {
       "seed": 172,
       "violations": [
+        {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
         {
           "code": "I1",
           "message": "A's save sent t:A29;, text that was set aside in a conflict buffer and that the user did not restore"
@@ -2865,6 +3333,10 @@
       "violations": [
         {
           "code": "I1",
+          "message": "B's save wrote older text over newer text in follow_up_email of app-1"
+        },
+        {
+          "code": "I1",
           "message": "B's save sent t:B23;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
@@ -2884,6 +3356,14 @@
     {
       "seed": 174,
       "violations": [
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in job_title of app-1"
+        },
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in selected_template of app-1"
+        },
         {
           "code": "I1",
           "message": "B's save sent t:B9;, text that was set aside in a conflict buffer and that the user did not restore"
@@ -2913,6 +3393,10 @@
     {
       "seed": 175,
       "violations": [
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in job_description of app-1"
+        },
         {
           "code": "I1",
           "message": "A's save sent t:A29;, text that was set aside in a conflict buffer and that the user did not restore"
@@ -2974,6 +3458,10 @@
         {
           "code": "I1",
           "message": "A's save sent t:A6;, text that was set aside in a conflict buffer and that the user did not restore"
+        },
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
         }
       ]
     },
@@ -3034,6 +3522,22 @@
       "violations": [
         {
           "code": "I1",
+          "message": "A's save wrote older text over newer text in generated_cv of app-1"
+        },
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in email of app-1"
+        },
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in email_subject of app-1"
+        },
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in email_body of app-1"
+        },
+        {
+          "code": "I1",
           "message": "A's save sent t:O6;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
@@ -3074,6 +3578,14 @@
     {
       "seed": 192,
       "violations": [
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in cover_letter of app-1"
+        },
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in fit_assessment of app-1"
+        },
         {
           "code": "I1",
           "message": "A's save sent t:A16;, text that was set aside in a conflict buffer and that the user did not restore"
@@ -3133,6 +3645,15 @@
         {
           "code": "I1",
           "message": "B's last edit of app-1.followUpEmail (t:B24;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"generatedCV\":{\"content\":\"cv content\",\"changes\":[],\"optimizedFor\":\"Position\",\"_optimizedCVData\":{\"personal\":{\"fullName\":\"N\",\"email\":\"n@example.test\",\"currentT)"
+        }
+      ]
+    },
+    {
+      "seed": 197,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
         }
       ]
     },
@@ -3223,6 +3744,10 @@
       "violations": [
         {
           "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
           "message": "A's last edit of app-1.requirements (t:A20;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [])"
         }
       ]
@@ -3241,8 +3766,21 @@
       ]
     },
     {
+      "seed": 209,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        }
+      ]
+    },
+    {
       "seed": 210,
       "violations": [
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
         {
           "code": "I1",
           "message": "B's Copy on a notice offered text that belongs to another notice"
@@ -3312,6 +3850,14 @@
       "violations": [
         {
           "code": "I1",
+          "message": "B's save wrote older text over newer text in generated_cv of app-1"
+        },
+        {
+          "code": "I1",
+          "message": "B's save wrote older text over newer text in fit_assessment of app-1"
+        },
+        {
+          "code": "I1",
           "message": "B's save sent t:B17;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
@@ -3332,6 +3878,10 @@
       "seed": 218,
       "violations": [
         {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
+        {
           "code": "I2",
           "message": "A's save overwrote cover_letter of app-1 with a server value its store had never shown (server {\"applicantAddress\":{\"name\":\"\",\"street\":\"\",\"city\":\"\",\"country\":\"\",\"phone\":\"\",\"email\":\"\"},\"date\":\"\",\"companyAddress\":{\"companyName\":\"\",\"street\":\"\"},\"salutation\":\"\",\"closing\":\"\",\"signatureName\":\"\",\"body\":\"t:G22;\",\"updatedAt\":\"x\"}; store {\"applicantAddress\":{\"name\":\"\",\"street\":\"\",\"city\":\"\",\"country\":\"\",\"phone\":\"\",\"email\":\"\"},\"date\":\"\",\"companyAddress\":{\"companyName\":\"\",\"street\":\"\"},\"salutation\":\"\",\"closing\":\"\",\"signatureName\":\"\",\"body\":\"t:A17;\",\"updatedAt\":\"x\"}; patch tokens t:O25;,t:A17;,t:A27;,t:A27;,t:A15;,t:A15;,t:A27;,t:A27;; baseline@9 server@9)"
         },
@@ -3346,6 +3896,18 @@
         {
           "code": "I2",
           "message": "A's save overwrote email_body of app-1 with a server value its store had never shown (server \"t:B7;\"; store \"t:A27;\"; patch tokens t:O25;,t:A17;,t:A27;,t:A27;,t:A15;,t:A15;,t:A27;,t:A27;; baseline@9 server@9)"
+        },
+        {
+          "code": "I1",
+          "message": "B's saved email of app-1 was replaced by A, whose store had never shown it"
+        },
+        {
+          "code": "I1",
+          "message": "B's saved email_subject of app-1 was replaced by A, whose store had never shown it"
+        },
+        {
+          "code": "I1",
+          "message": "B's saved email_body of app-1 was replaced by A, whose store had never shown it"
         }
       ]
     },
@@ -3427,6 +3989,14 @@
       "violations": [
         {
           "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in generated_cv of app-1"
+        },
+        {
+          "code": "I1",
           "message": "A's save sent t:A9;, text that was set aside in a conflict buffer and that the user did not restore"
         }
       ]
@@ -3457,6 +4027,10 @@
         },
         {
           "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
           "message": "B's last edit of app-1.screening (t:B17;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"generatedCV\":{\"content\":\"cv content\",\"changes\":[],\"optimizedFor\":\"Position\",\"_optimizedCVData\":{\"personal\":{\"fullName\":\"N\",\"email\":\"n@example.test\",\"currentT)"
         }
       ]
@@ -3464,6 +4038,10 @@
     {
       "seed": 230,
       "violations": [
+        {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
         {
           "code": "I1",
           "message": "A's save sent t:A11;, text that was set aside in a conflict buffer and that the user did not restore"
@@ -3562,6 +4140,10 @@
         {
           "code": "I1",
           "message": "B's Copy on a notice offered text that belongs to another notice"
+        },
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
         }
       ]
     },
@@ -3622,6 +4204,10 @@
       "violations": [
         {
           "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
           "message": "A's last edit of app-1.selectedTemplate (t:A25;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"selectedTemplate\":\"tpl-t:A18;\"},{\"fitAssessment\":{\"summary\":\"t:A36;\",\"score\":50}}])"
         }
       ]
@@ -3629,6 +4215,10 @@
     {
       "seed": 255,
       "violations": [
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in selected_template of app-1"
+        },
         {
           "code": "I1",
           "message": "A's save sent t:A20;, text that was set aside in a conflict buffer and that the user did not restore"
@@ -3662,6 +4252,10 @@
         {
           "code": "I1",
           "message": "A's save sent t:A4;, text that was set aside in a conflict buffer and that the user did not restore"
+        },
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
         }
       ]
     },
@@ -3690,6 +4284,10 @@
     {
       "seed": 263,
       "violations": [
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
         {
           "code": "I1",
           "message": "B's last edit of app-1.followUpEmail (t:B24;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"requirements\":{\"title\":\"t:B10;\",\"company\":\"c\",\"hardSkills\":[],\"softSkills\":[]}},{\"generatedCV\":{\"content\":\"cv content\",\"changes\":[],\"optimizedFor\":\"Position\")"
@@ -3722,6 +4320,23 @@
         {
           "code": "I1",
           "message": "B's save sent t:B8;, text that was set aside in a conflict buffer and that the user did not restore"
+        },
+        {
+          "code": "I1",
+          "message": "A's saved job_description of app-1 was replaced by B, whose store had never shown it"
+        },
+        {
+          "code": "I1",
+          "message": "A's saved selected_template of app-1 was replaced by B, whose store had never shown it"
+        }
+      ]
+    },
+    {
+      "seed": 268,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
         }
       ]
     },
@@ -3731,6 +4346,15 @@
         {
           "code": "I1",
           "message": "B's last edit of app-1.cv (t:B5;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"generatedCV\":{\"content\":\"cv content\",\"changes\":[],\"optimizedFor\":\"Position\",\"_optimizedCVData\":{\"personal\":{\"fullName\":\"N\",\"email\":\"n@example.test\",\"currentT)"
+        }
+      ]
+    },
+    {
+      "seed": 271,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
         }
       ]
     },
@@ -3858,6 +4482,14 @@
       "violations": [
         {
           "code": "I1",
+          "message": "A's save wrote older text over newer text in requirements of app-1"
+        },
+        {
+          "code": "I1",
+          "message": "A's save wrote older text over newer text in generated_cv of app-1"
+        },
+        {
+          "code": "I1",
           "message": "A's save sent t:O9;, text that was set aside in a conflict buffer and that the user did not restore"
         },
         {
@@ -3921,13 +4553,34 @@
       "violations": [
         {
           "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
           "message": "A's save sent t:A9;, text that was set aside in a conflict buffer and that the user did not restore"
+        },
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        }
+      ]
+    },
+    {
+      "seed": 291,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's Copy would put an empty string on the clipboard"
         }
       ]
     },
     {
       "seed": 293,
       "violations": [
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
         {
           "code": "I1",
           "message": "A's save sent t:A27;, text that was set aside in a conflict buffer and that the user did not restore"
@@ -3970,6 +4623,10 @@
         {
           "code": "I1",
           "message": "B's save sent t:B21;, text that was set aside in a conflict buffer and that the user did not restore"
+        },
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
         }
       ]
     },
@@ -3979,6 +4636,10 @@
         {
           "code": "I1",
           "message": "B's Copy on a notice offered text that belongs to another notice"
+        },
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
         },
         {
           "code": "I1",
@@ -3996,6 +4657,10 @@
         {
           "code": "I1",
           "message": "A's save sent t:A8;, text that was set aside in a conflict buffer and that the user did not restore"
+        },
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
         }
       ]
     },
@@ -4021,7 +4686,20 @@
       "violations": [
         {
           "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
+        },
+        {
+          "code": "I1",
           "message": "B's last edit of app-1.screening (t:B9;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"generatedCV\":{\"content\":\"cv content\",\"changes\":[],\"optimizedFor\":\"Position\",\"_optimizedCVData\":{\"personal\":{\"fullName\":\"N\",\"email\":\"n@example.test\",\"currentT)"
+        }
+      ]
+    },
+    {
+      "seed": 306,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's Copy would put an empty string on the clipboard"
         }
       ]
     },
@@ -4056,159 +4734,6 @@
         {
           "code": "I1",
           "message": "A's last edit of app-1.cv (t:O30;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"company\":\"t:A11;\"},{\"requirements\":{\"title\":\"t:A31;\",\"company\":\"c\",\"hardSkills\":[],\"softSkills\":[]}},{\"generatedCV\":{\"content\":\"cv content\",\"changes\":[],\"opt)"
-        }
-      ]
-    },
-    {
-      "seed": 311,
-      "violations": [
-        {
-          "code": "I1",
-          "message": "A's save sent t:O4;, text that was set aside in a conflict buffer and that the user did not restore"
-        },
-        {
-          "code": "I1",
-          "message": "A's save sent t:A1;, text that was set aside in a conflict buffer and that the user did not restore"
-        }
-      ]
-    },
-    {
-      "seed": 313,
-      "violations": [
-        {
-          "code": "I1",
-          "message": "B's last edit of app-1.followUpEmail (t:B17;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"generatedCV\":{\"content\":\"cv content\",\"changes\":[],\"optimizedFor\":\"Position\",\"_optimizedCVData\":{\"personal\":{\"fullName\":\"N\",\"email\":\"n@example.test\",\"currentT)"
-        }
-      ]
-    },
-    {
-      "seed": 314,
-      "violations": [
-        {
-          "code": "I1",
-          "message": "B's save sent t:B2;, text that was set aside in a conflict buffer and that the user did not restore"
-        }
-      ]
-    },
-    {
-      "seed": 316,
-      "violations": [
-        {
-          "code": "I1",
-          "message": "B's last edit of app-1.cv (t:B2;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"coverLetter\":{\"applicantAddress\":{\"name\":\"\",\"street\":\"\",\"city\":\"\",\"country\":\"\",\"phone\":\"\",\"email\":\"\"},\"date\":\"\",\"companyAddress\":{\"companyName\":\"\",\"street\":\")"
-        }
-      ]
-    },
-    {
-      "seed": 318,
-      "violations": [
-        {
-          "code": "I1",
-          "message": "B's last edit of app-1.followUpEmail (t:B30;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"jobDescription\":\"t:B32;\"},{\"fitAssessment\":{\"summary\":\"t:B36;\",\"score\":50}}])"
-        }
-      ]
-    },
-    {
-      "seed": 320,
-      "violations": [
-        {
-          "code": "I1",
-          "message": "A's save sent t:A22;, text that was set aside in a conflict buffer and that the user did not restore"
-        },
-        {
-          "code": "I1",
-          "message": "B's last edit of app-1.requirements (t:B25;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"requirements\":{\"title\":\"t:B6;\",\"company\":\"c\",\"hardSkills\":[],\"softSkills\":[]}},{\"generatedCV\":{\"content\":\"cv content\",\"changes\":[],\"optimizedFor\":\"Position\",)"
-        }
-      ]
-    },
-    {
-      "seed": 321,
-      "violations": [
-        {
-          "code": "I1",
-          "message": "A's last edit of app-1.cv (t:A26;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"selectedTemplate\":\"tpl-t:O17;\"},{\"requirements\":{\"title\":\"t:O31;\",\"company\":\"c\",\"hardSkills\":[],\"softSkills\":[]}}])"
-        },
-        {
-          "code": "I1",
-          "message": "B's last edit of app-1.cv (t:B25;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"selectedTemplate\":\"tpl-t:B22;\"},{\"requirements\":{\"title\":\"t:B28;\",\"company\":\"c\",\"hardSkills\":[],\"softSkills\":[]}},{\"generatedCV\":{\"content\":\"cv content\",\"cha)"
-        }
-      ]
-    },
-    {
-      "seed": 322,
-      "violations": [
-        {
-          "code": "I2",
-          "message": "A's save overwrote follow_up_email of app-1 with a server value its store had never shown (server {\"subject\":\"f-t:G15;\",\"body\":\"t:G15;\",\"recommendedDelay\":5}; store {\"subject\":\"f-t:A19;\",\"body\":\"t:A19;\",\"recommendedDelay\":5}; patch tokens t:A12;,t:A6;,t:A16;,t:A19;,t:A19;; baseline@7 server@7)"
-        }
-      ]
-    },
-    {
-      "seed": 323,
-      "violations": [
-        {
-          "code": "I1",
-          "message": "B's save sent t:B9;, text that was set aside in a conflict buffer and that the user did not restore"
-        },
-        {
-          "code": "I1",
-          "message": "B's save sent t:B14;, text that was set aside in a conflict buffer and that the user did not restore"
-        }
-      ]
-    },
-    {
-      "seed": 325,
-      "violations": [
-        {
-          "code": "I1",
-          "message": "A's Copy on a notice offered text that belongs to another notice"
-        },
-        {
-          "code": "I1",
-          "message": "A's save sent t:A11;, text that was set aside in a conflict buffer and that the user did not restore"
-        },
-        {
-          "code": "I1",
-          "message": "A's save sent t:A5;, text that was set aside in a conflict buffer and that the user did not restore"
-        },
-        {
-          "code": "I1",
-          "message": "B's save sent t:B20;, text that was set aside in a conflict buffer and that the user did not restore"
-        },
-        {
-          "code": "I1",
-          "message": "B's last edit of app-1.jobDescription (t:B21;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"jobDescription\":\"t:O12;\"}])"
-        }
-      ]
-    },
-    {
-      "seed": 326,
-      "violations": [
-        {
-          "code": "I1",
-          "message": "A's save sent t:A12;, text that was set aside in a conflict buffer and that the user did not restore"
-        }
-      ]
-    },
-    {
-      "seed": 329,
-      "violations": [
-        {
-          "code": "I1",
-          "message": "B's save sent t:O16;, text that was set aside in a conflict buffer and that the user did not restore"
-        },
-        {
-          "code": "I1",
-          "message": "B's save sent t:B6;, text that was set aside in a conflict buffer and that the user did not restore"
-        }
-      ]
-    },
-    {
-      "seed": 332,
-      "violations": [
-        {
-          "code": "I1",
-          "message": "B's Copy on a notice offered text that belongs to another notice"
         }
       ]
     }

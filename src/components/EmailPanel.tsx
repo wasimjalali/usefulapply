@@ -12,7 +12,7 @@ import { useToast } from './ui/Toast';
 import { usePostHog } from 'posthog-js/react';
 import { formatEmailAsText } from '@/lib/utils/kit-export';
 import { useSessionStore } from '@/store/useSessionStore';
-import { commitEditorSave, editorShouldClose, getEditorStart, type EditorStart } from '@/lib/session-sync';
+import { commitEditorSave, editorShouldClose, getEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface EmailPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -63,6 +63,11 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   const draftsRef = useRef<{ email: GeneratedEmail | null; followUp: FollowUp | null }>({ email: null, followUp: null });
   // The revision the editor opened on; the drafts live outside the store (see commitEditorSave).
   const editStartRef = useRef<EditorStart | undefined>(undefined);
+  // When the user deals with a conflict notice (restores, copies or discards their text), what this editor
+  // was opened against is stale: base it on the current revision, so its next Save is not refused again.
+  useEffect(() => subscribeConflictAcknowledged((acknowledged) => {
+    if (editSessionIdRef.current === acknowledged) editStartRef.current = getEditorStart(acknowledged, editStartRef.current);
+  }), []);
   const { toast } = useToast();
   useEffect(() => { draftsRef.current = { email: editedEmail, followUp: editedFollowUp }; }, [editedEmail, editedFollowUp]);
 
@@ -110,7 +115,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
       // So does typing during the save: the newer drafts stay, now based on what was just saved.
       const nowDrafts = JSON.stringify([draftsRef.current.email, draftsRef.current.followUp]);
       if (!editorShouldClose(outcome, sentDrafts, nowDrafts)) {
-        if (outcome === 'saved' || outcome === 'clean') editStartRef.current = getEditorStart(editSessionId);
+        if (outcome === 'saved' || outcome === 'clean') editStartRef.current = getEditorStart(editSessionId, editStartRef.current);
         return;
       }
       setEditedEmail(null);

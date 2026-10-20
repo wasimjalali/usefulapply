@@ -214,7 +214,7 @@ export const CASES: CaseDef[] = [
       await flush();                                // the save is in flight; the user types more
       await ctx.serve('save');
       const outcome = await first;
-      const after = client.editorAfter(app, outcome, sent, typed);
+      const after = client.editorAfter(app, outcome, sent, typed, start);
       ctx.check(!after.close, `the editor closed (${outcome}) over text typed while the save ran`);
       net.reliable = true;
       const second = await client.editorCommit(app, after.start ?? start, () => client.edit(app, fieldMutation('coverLetter', typed)));
@@ -236,13 +236,55 @@ export const CASES: CaseDef[] = [
       const notices = client.notices.filter((notice) => notice.conflictFor);
       ctx.check(notices.length >= 2, `expected two conflict notices, saw ${notices.length}`);
       const second = notices[notices.length - 1];
-      const copied = client.copyNotice(second);
+      const copied = client.copyNotice(second) ?? '';
       ctx.check(!copied.includes('t:C1;'), 'Copy on the cover letter notice offered the company text too');
       net.reliable = true;
       await client.restoreNotice(second);
       await flush();
       ctx.check(server.acceptedHas(app, 't:L1;'), 'Restore did not put the cover letter text back');
       ctx.check(!server.acceptedHas(app, 't:C1;'), 'Restore on the cover letter notice also restored the company text');
+    },
+  },
+  {
+    name: 'round-3b Restore applies a whole entry or none of it',
+    about: 'If any property of an entry is blocked (here the user typed new screening text), nothing of it is restored: the user\'s old title is never paired with the server\'s newer CV.',
+    run: async (ctx) => {
+      const { server, client, app } = ctx;
+      // Two things in the CV column, both edited here; then the server rewrites the column.
+      ctx.edit('cv', 't:P1;');
+      ctx.edit('screening', 't:P2;');
+      server.writeField(app, 'cv', 't:G1;', 'agent');
+      await pollNow(ctx);
+      const notice = [...client.notices].reverse().find((candidate) => candidate.conflictFor);
+      ctx.check(notice !== undefined, 'the poll raised no conflict notice');
+      if (!notice) return;
+      const entryIds = client.noticeEntries(notice).map((entry) => entry.id);
+      // New screening text typed after the conflict blocks the entry.
+      ctx.edit('screening', 't:P3;');
+      await client.restoreNotice(notice);
+      const shown = JSON.stringify(client.session(app)?.optimizedCVData);
+      ctx.check(!shown.includes('t:P1;'), `a blocked entry was partly restored: the old title is back (${shown.slice(0, 90)})`);
+      ctx.check(shown.includes('t:G1;'), 'the server\'s newer CV title is no longer shown');
+      ctx.check(entryIds.every((id) => client.bufferIds(app).includes(id)), 'a blocked entry left the buffer');
+      ctx.check((client.copyNotice(notice) ?? '').includes('t:P1;'), 'the blocked entry\'s text can no longer be copied');
+      const fresh = client.notices[client.notices.length - 1];
+      ctx.check(fresh !== notice && fresh.conflictFor === app, 'a blocked Restore raised no fresh notice');
+    },
+  },
+  {
+    name: 'round-3b Copy with nothing left says so instead of copying an empty string',
+    about: 'After the text was restored (or settled), Copy on the old notice must report nothing left, not write an empty clipboard.',
+    run: async (ctx) => {
+      const { server, client, app } = ctx;
+      ctx.edit('company', 't:E1;');
+      server.writeField(app, 'company', 't:G2;', 'agent');
+      await pollNow(ctx);
+      const notice = [...client.notices].reverse().find((candidate) => candidate.conflictFor);
+      ctx.check(notice !== undefined, 'the poll raised no conflict notice');
+      if (!notice) return;
+      await client.restoreNotice(notice);                       // the text goes back and is saved
+      const copied = client.copyNotice(notice);
+      ctx.check(copied === null, `Copy on a notice with nothing left gave ${JSON.stringify(copied)} instead of "nothing left"`);
     },
   },
   {
