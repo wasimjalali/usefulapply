@@ -1,12 +1,23 @@
 # MCP integration: status tracker
 
-Last updated 2026-10-20, during session 2. The plan is `PLAN.md` (v3) in this folder; this file says what's done, what's in flight and what's left. A new session starts here.
+Last updated 2026-10-20 21:55, end of session 2 (paused by Wasim, resume next morning). The plan is `PLAN.md` (v3) in this folder; this file says what's done, what's in flight and what's left. A new session starts here.
+
+## Resume here (session 3)
+
+1. **#159** (`fix/discard-and-short-jd`, pushed at 849012b7): round 2 found 3 highs (Codex) and 6 lows (Sonnet), listed below. Round 3 fix was started by the Opus `debugger` agent and paused; its WIP commit (if any) is on the local branch in worktree `.claude/worktrees/agent-a1d1f701dda8ae1ca`, not pushed. Finish it, push, run round 3 (Codex medium on engine and panels, Sonnet on the rest). If highs remain after round 3: Opus arbiter. Then merge and deploy. The original Discard bug is still live in production until this ships.
+   - Highs: EmailPanel Copy/Restore rebases the follow-up snapshot too (shared EditorStart); merge-created conflict entries have no editor lineage so Discard resets a newer draft; Copy/Restore ignores lineage and rebases another editor in the same group. Invariant: an acknowledgement affects only the originating editor and only its entry's groups.
+   - Lows: intent.ts note promises buttons on sub-80 messages; deferred JD replace isn't bound to its session (ChatPanel ~782); per-bug.sh hides crashed runs and overwrites old raw results; fuzz write-up wording (M18, M1/M5); fixed sleeps in i3, i4, b3.
+2. **PR 5** (`feature/mcp-tool-catalog`, pushed at 40a28448, no GitHub PR yet): the E2E worker's WIP is on local branch `mcp-tools/e2e` in worktree `.claude/worktrees/agent-aca32b6518d4684ac`, not pushed. Finish the `mcp` project (brief: happy path, every tool, PLAN 7 negative paths, remove `test_write_stub`, `E2E_MCP=1` gating, `E2E_OAUTH_PORT`), merge it in, run `data` + `oauth` + `mcp`, open the PR, review on the sensitive row (split: Codex owns spend tools and charging/queue services; Opus owns framework, auth, scopes, quotas, migration, edit history, applications and profile; Sonnet sweeper owns cv, feed, account, routes, specs, docs). Then 0011 remote with a bookmark, deploy.
+   - Known: `d14` in `e2e/tools/scenarios.ts` should pass again after 40a28448 (recipient fields back out of browser patches); confirm in the full `data` run.
+3. **#161** (draft, `feature/mcp-distribution-pack`): review after PR 5 merges (Sonnet + Codex: seed script and legal/listing text), update listing to the shipped tools, merge.
+4. **Plugin repo PR #1** (wasimjalali/usefulapply-plugin): Sonnet review against the final tool schemas, merge. Local clone at `~/Desktop/usefulapply-plugin` has a stale local `main` (95c551c); reset it to `origin/main` with `git branch -f main origin/main` after switching away.
+5. Then #156 round 2, launch, follow-ups, as in "Left to do" below.
 
 ## Session 2 progress (2026-10-20)
 
 - **#160 merged:** the lockfile was out of sync with `package.json` (not a better-sqlite3 peer conflict). A plain `npm ci` works again; `--legacy-peer-deps` is no longer needed.
-- **#159 (`fix/discard-and-short-jd`):** opened. Round 1: Codex found 2 highs (Discard reset every panel's draft, not just the conflicted one; an in-flight CV save could reopen a discarded draft without its revision guard), Sonnet 6 lows. Fixes in progress.
-- **PR 5 (`feature/mcp-tool-catalog`):** all 44 tools built by five workers in parallel and merged into the branch (`account`, `applications`, `cv`, `spend`, `feed`, `profile` modules under `src/lib/mcp/tools/`, registered through `catalog.ts`). In progress: the `mcp` Playwright project (E2E worker), `run_job_feed` moving onto the queue and feed rows finalized when an MCP kit completes.
+- **#159 (`fix/discard-and-short-jd`):** opened. Round 1: Codex 2 highs, Sonnet 6 lows; fixed in 849012b7 (fuzz: 563 of 2,000 seeds failing before, 0 after; `data` 27/27). Round 2: 3 new highs and 6 lows (see Resume here).
+- **PR 5 (`feature/mcp-tool-catalog`):** all 44 tools built by five workers in parallel and merged into the branch (`account`, `applications`, `cv`, `spend`, `feed`, `profile` modules under `src/lib/mcp/tools/`, registered through `catalog.ts`). `run_job_feed` now queues the run on `agent-generation` (message `{ kind: 'job_feed_run', userId, runId }`) and returns at once; kits queued by `apply_to_feed_job` finalize the feed row. tsc 0, eslint 0 errors. Not yet run end to end.
   - Decisions: `update_notification_settings` drops the default CV template (it's browser-local only); `notify_tips`, `notify_updates` and `notify_weekly` aren't exposed (nothing reads them). CV undo keeps the current screening answers. A regenerated kit has no undo (the runner's atomic batch writes no history; the confirm question says so).
 - **PR 6b:** plugin repo [wasimjalali/usefulapply-plugin](https://github.com/wasimjalali/usefulapply-plugin) created (public), PR #1 open there. OpenAI submission sheet, reviewer seed script and submission pack on `feature/mcp-distribution-pack` (not pushed yet); the seed runs locally only until launch.
 
