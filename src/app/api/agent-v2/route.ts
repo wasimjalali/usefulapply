@@ -23,6 +23,7 @@ import {
 } from '@/lib/agents';
 import { getCurrentUser } from '@/auth/server';
 import { getSession, updateSession } from '@/db/repos/sessions';
+import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { getDocumentByType } from '@/db/repos/documents';
 import { getJobPreferences } from '@/db/repos/jobFeed';
 import { claimAnonymousGeneration, releaseAnonymousGeneration } from '@/db/repos/anonymous';
@@ -249,7 +250,15 @@ async function persistGeneratedArtifacts(
         nextArtifacts = { ...existingArtifacts as Record<string, unknown>, ...results };
       }
     }
-    const persisted = await updateSession(userId, sessionId, { generated_artifacts: nextArtifacts });
+    // The letter's language rides along so the export renderer can pick the
+    // letter layout for this session.
+    const letterLanguage = isStructuredCoverLetter(results.coverLetterStructured)
+      ? results.coverLetterStructured.language
+      : undefined;
+    const persisted = await updateSession(userId, sessionId, {
+      generated_artifacts: nextArtifacts,
+      ...(letterLanguage ? { cover_letter_language: letterLanguage } : {}),
+    });
     if (persisted.error) {
       console.error('[agent-v2] Failed to persist generated artifacts:', persisted.error);
     }
@@ -544,6 +553,18 @@ export async function POST(request: NextRequest) {
           ? await getSession(user.id, clientSessionId)
           : null;
         const attributableSessionId = attributableSession?.id ?? null;
+        // The cover letter's recipient address comes only from the stored row,
+        // and only while that row still belongs to the job being written for:
+        // a session whose JD was just replaced may hold the old employer.
+        const letterRecipientFor = (jobDescriptionForRun: string): MasterContext['letterRecipient'] => (
+          attributableSession && attributableSession.job_description.trim() === jobDescriptionForRun.trim()
+            ? {
+                companyName: attributableSession.company,
+                address: attributableSession.company_address,
+                contactPerson: attributableSession.company_contact_person,
+              }
+            : undefined
+        );
         let ownedCvSourcesPromise: Promise<{ primaryCV: string; masterCV?: string }> | null = null;
         const getOwnedCvSources = () => {
           if (!user) return Promise.resolve({ primaryCV: '', masterCV: undefined });
@@ -643,6 +664,7 @@ export async function POST(request: NextRequest) {
           optimizedCV: documentErrors.cv ? null : ctx.optimizedCV,
           optimizedCVData: documentErrors.cv ? null : ctx.optimizedCVData,
           coverLetter: documentErrors.coverLetter ? null : ctx.coverLetter,
+          coverLetterStructured: documentErrors.coverLetter ? null : ctx.coverLetterStructured ?? null,
           applicationEmail: documentErrors.applicationEmail ? null : ctx.applicationEmail,
           followUpEmail: documentErrors.followUpEmail ? null : ctx.followUpEmail || null,
           detectedLanguage: ctx.detectedLanguage,
@@ -995,6 +1017,7 @@ export async function POST(request: NextRequest) {
                 primaryCV: serverPrimaryCV,
                 masterCV: serverMasterCV,
                 jobPreferences,
+                letterRecipient: letterRecipientFor(submittedJobDescription),
                 generationContext,
               }, eventHandler);
 
@@ -1045,6 +1068,7 @@ export async function POST(request: NextRequest) {
 
           const eventHandler = createEventHandler((id) => getGenerateWithContextStepIndex(id));
           if (jobPreferences) cachedContext.jobPreferences = jobPreferences;
+          cachedContext.letterRecipient = letterRecipientFor(cachedContext.jobDescription);
           const result = await runWithContext(cachedContext, eventHandler, generationContext);
 
           if (result.success && result.data) {
@@ -1145,6 +1169,7 @@ export async function POST(request: NextRequest) {
           primaryCV: fullCvSources.primaryCV,
           masterCV: fullCvSources.masterCV,
           jobPreferences,
+          letterRecipient: letterRecipientFor(submittedJobDescription),
           generationContext,
         }, eventHandler);
 

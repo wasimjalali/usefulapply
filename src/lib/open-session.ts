@@ -15,6 +15,7 @@ import {
 } from '@/lib/supabase';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
 import { KIT_DOCUMENTS, type KitDocumentErrors } from '@/lib/agents/types';
+import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import {
   useSessionStore,
   type ApplicationSession,
@@ -104,6 +105,7 @@ export function mapSessionRowToStore(row: StoredSessionRow): ApplicationSession 
         closing: '',
         signatureName: '',
         updatedAt: row.updated_at,
+        ...(isStructuredCoverLetter(artifacts.coverLetterStructured) ? { structured: artifacts.coverLetterStructured } : {}),
       }
     : null;
   const artifactEmail = artifacts?.applicationEmail && typeof artifacts.applicationEmail === 'object'

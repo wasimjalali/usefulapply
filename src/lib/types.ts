@@ -1,3 +1,5 @@
+import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
+
 // ============================================
 // DOCUMENT TYPES
 // ============================================
@@ -92,6 +94,13 @@ export interface GeneratedCoverLetter {
   signatureName: string;
   /** ISO stamp of the last write. Rides in the session JSON, so no schema change. */
   updatedAt?: string;
+  /**
+   * The letter as the structured contract, written with `body` by the writer
+   * agent. Dropped when the user edits the body, so the export renderer never
+   * lays out paragraphs the user has changed; it then falls back to `body`.
+   * Absent on letters written before the contract.
+   */
+  structured?: StructuredCoverLetter;
 }
 
 export interface GeneratedEmail {
