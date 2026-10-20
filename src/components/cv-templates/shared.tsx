@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { Github, Globe, Linkedin, Mail, MapPin, Phone } from 'lucide-react';
 import type { CVData } from '@/lib/cv-templates/types';
-import { uiText } from '@/lib/cv-templates/locale';
+import { labelColon, uiText } from '@/lib/cv-templates/locale';
 import { displayUrl, fullUrl } from '@/lib/cv-templates/url';
 
 /**
@@ -21,6 +21,14 @@ interface SkillLinesProps {
   text: string;
   gap: number;
   lineHeight: number;
+  /**
+   * The section heading. Given, the skills are a table whose `thead` is the heading, so a list that runs past a page
+   * repeats it at the top of the next page (Chrome repeats a `thead`, and nothing else, on each page a table spans).
+   * Only the heading repeats: no job title is ever repeated, so no parser can read a duplicate job.
+   */
+  heading?: ReactNode;
+  /** A tinted block with a bar on its left, as `modern-professional` draws its skills. */
+  tint?: { background: string; bar: string };
 }
 
 /**
@@ -33,19 +41,61 @@ export function stackGap(px: number): CSSProperties {
   return { ['--stack-gap' as string]: `calc(${px}px * var(--cv-d, 1))` };
 }
 
-export function SkillLines({ data, primary, text, gap, lineHeight }: SkillLinesProps) {
+export function SkillLines({ data, primary, text, gap, lineHeight, heading, tint }: SkillLinesProps) {
+  const colon = labelColon(data);
+  const lines = data.skills.map((group, index) => (
+    <p key={`skill-${index}`} style={{ fontSize: '10pt', lineHeight: `calc(${lineHeight} * var(--cv-ld, 1))`, color: text, overflowWrap: 'break-word', breakInside: 'avoid' }}>
+      <strong style={{ color: primary, fontWeight: 700 }}>{group.category}{colon}</strong>{' '}
+      {group.items.join(', ')}
+    </p>
+  ));
+  if (!heading) {
+    return (
+      <div className="cv-stack" style={stackGap(gap)}>
+        {lines}
+      </div>
+    );
+  }
+  const cell: CSSProperties = { padding: 0, textAlign: 'left', verticalAlign: 'top', fontWeight: 'normal' };
+  // A tinted block is drawn on every row and on a spacer row in the repeating head and foot, so each page's piece of
+  // it keeps its padding and its bar (box-decoration-break: clone does the same where the browser supports it).
+  const tintStyle = (vertical: 'none' | 'top' | 'bottom' | 'row', isLast = false): CSSProperties =>
+    tint
+      ? {
+          background: tint.background,
+          borderLeft: `3px solid ${tint.bar}`,
+          padding: `${vertical === 'top' ? 'calc(10px * var(--cv-d, 1))' : '0'} 14px ${vertical === 'row' && !isLast ? `calc(${gap}px * var(--cv-d, 1))` : '0'} 14px`,
+          boxDecorationBreak: 'clone',
+          WebkitBoxDecorationBreak: 'clone',
+        }
+      : { paddingBottom: vertical === 'row' && !isLast ? `calc(${gap}px * var(--cv-d, 1))` : 0 };
   return (
-    <div className="cv-stack" style={stackGap(gap)}>
-      {data.skills.map((group, index) => (
-        <p
-          key={`skill-${index}`}
-          style={{ fontSize: '10pt', lineHeight: `calc(${lineHeight} * var(--cv-ld, 1))`, color: text, overflowWrap: 'break-word', breakInside: 'avoid' }}
-        >
-          <strong style={{ color: primary, fontWeight: 700 }}>{group.category}:</strong>{' '}
-          {group.items.join(', ')}
-        </p>
-      ))}
-    </div>
+    <table style={{ width: '100%', borderCollapse: 'collapse', borderSpacing: 0, tableLayout: 'fixed' }}>
+      <thead>
+        <tr>
+          <td style={cell}>{heading}</td>
+        </tr>
+        {tint && (
+          <tr>
+            <td style={{ ...cell, ...tintStyle('top'), lineHeight: 0, fontSize: 0 }} />
+          </tr>
+        )}
+      </thead>
+      <tbody>
+        {lines.map((line, index) => (
+          <tr key={index}>
+            <td style={{ ...cell, ...tintStyle('row', index === lines.length - 1) }}>{line}</td>
+          </tr>
+        ))}
+      </tbody>
+      {tint && (
+        <tfoot>
+          <tr>
+            <td style={{ ...cell, ...tintStyle('top'), lineHeight: 0, fontSize: 0 }} />
+          </tr>
+        </tfoot>
+      )}
+    </table>
   );
 }
 
@@ -62,7 +112,7 @@ export function LanguageLine({ data, text, lineHeight }: LanguageLineProps) {
       {data.languages.map((lang, index) => (
         <span key={`lang-${index}`}>
           {index > 0 ? ', ' : ''}
-          <strong>{lang.language}{lang.proficiency ? ':' : ''}</strong>
+          <strong>{lang.language}{lang.proficiency ? labelColon(data) : ''}</strong>
           {lang.proficiency ? ` ${lang.proficiency}` : ''}
         </span>
       ))}
@@ -79,6 +129,11 @@ interface ContactRowsProps {
   columnGap: number;
   rowGap: number;
   fontSize?: string;
+}
+
+/** An address with a break opportunity after every slash, so a long one wraps there instead of being cut. */
+export function wrapAtSlashes(text: string): ReactNode[] {
+  return text.split('/').flatMap((part, index) => (index === 0 ? [part] : ['/', <wbr key={`wbr-${index}`} />, part]));
 }
 
 function locationText(data: CVData): string {
@@ -103,12 +158,14 @@ export function ContactRows({ data, iconSize, iconColor, iconGap, textColor, col
   const p = data.personal;
   const icon = (Icon: typeof Mail) => <Icon style={{ width: `${iconSize}px`, height: `${iconSize}px`, color: iconColor, flexShrink: 0 }} />;
   const itemStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: `${iconGap}px`, color: textColor, textDecoration: 'none', whiteSpace: 'nowrap' };
+  // A link may be longer than the line: it wraps after its slashes (see wrapAtSlashes), so it is not nowrap.
+  const linkStyle: CSSProperties = { ...itemStyle, whiteSpace: 'normal', minWidth: 0 };
   // The visible text is the address (linkedin.com/in/name), never a label alone: most ATS read only
   // the text, and a printed copy loses the link. The anchor keeps the full URL, so it stays clickable.
   const link = (raw: string, Icon: typeof Mail, key: string) => (
-    <a key={key} href={fullUrl(raw)} target="_blank" rel="noopener noreferrer" style={itemStyle}>
+    <a key={key} href={fullUrl(raw)} target="_blank" rel="noopener noreferrer" style={linkStyle}>
       {icon(Icon)}
-      <span>{displayUrl(raw)}</span>
+      <span>{wrapAtSlashes(displayUrl(raw))}</span>
     </a>
   );
 

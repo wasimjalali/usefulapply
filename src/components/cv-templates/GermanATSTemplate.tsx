@@ -14,7 +14,7 @@ import { CVData, CVTemplate } from '@/lib/cv-templates/types';
 import { rootBox, type CvRenderMode } from '@/lib/cv-templates/print-spec';
 import { cvPaper } from '@/lib/cv-templates/paper';
 import { ContactRows, LanguageLine, SignatureBlock, SkillLines, stackGap } from './shared';
-import { sectionHeading, formatDateRange, formatSingleDate, uiText, type HeadingKey } from '@/lib/cv-templates/locale';
+import { sectionHeading, formatDateRange, formatSingleDate, degreeText, labelColon, uiText, type HeadingKey } from '@/lib/cv-templates/locale';
 import { formatBirthDate } from '@/lib/cv-templates/birthdate';
 
 interface Props {
@@ -106,12 +106,12 @@ export function GermanATSTemplate({ data, template, photoUrl, mode }: Props) {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'calc(16px * var(--cv-d, 1))', fontSize: '10pt', color: germanColors.textLight, marginTop: 'calc(6px * var(--cv-d, 1))' }}>
                 {data.personal.dateOfBirth && (
                   <span>
-                    <strong style={{ color: germanColors.primary }}>{uiText(data, 'dateOfBirthLabel')}:</strong> {formatBirthDate(data)}
+                    <strong style={{ color: germanColors.primary }}>{uiText(data, 'dateOfBirthLabel')}{labelColon(data)}</strong> {formatBirthDate(data)}
                   </span>
                 )}
                 {data.personal.nationality && (
                   <span>
-                    <strong style={{ color: germanColors.primary }}>{uiText(data, 'nationalityLabel')}:</strong> {data.personal.nationality}
+                    <strong style={{ color: germanColors.primary }}>{uiText(data, 'nationalityLabel')}{labelColon(data)}</strong> {data.personal.nationality}
                   </span>
                 )}
               </div>
@@ -141,7 +141,7 @@ export function GermanATSTemplate({ data, template, photoUrl, mode }: Props) {
           {heading('experience', 10)}
           <div className="cv-stack" style={stackGap(14)}>
             {data.experience.map((exp) => (
-              <div className="cv-exp" key={exp.id}>
+              <div className={exp.bullets.length <= 3 ? 'cv-exp cv-exp-short' : 'cv-exp'} key={exp.id}>
                 <div className="cv-entry-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'calc(2px * var(--cv-d, 1))' }}>
                   <h3 style={{ fontSize: '10.5pt', fontWeight: 'bold', color: germanColors.text }}>{exp.position}</h3>
                   <span style={{ fontSize: '10pt', whiteSpace: 'nowrap', color: germanColors.textLight }}>{formatDateRange(data, exp)}</span>
@@ -189,8 +189,7 @@ export function GermanATSTemplate({ data, template, photoUrl, mode }: Props) {
               <div className="cv-entry" key={edu.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <div>
                   <h3 style={{ fontSize: '10pt', fontWeight: '600', color: germanColors.text }}>
-                    {edu.degree}
-                    {edu.field && `, ${edu.field}`}
+                    {degreeText(data, edu)}
                   </h3>
                   <p style={{ fontSize: '10pt', color: germanColors.textLight }}>
                     {edu.institution}
@@ -207,8 +206,7 @@ export function GermanATSTemplate({ data, template, photoUrl, mode }: Props) {
       {/* Kenntnisse: one "Label: a, b, c" line per group */}
       {data.skills.length > 0 && (
         <section style={SECTION}>
-          {heading('skills')}
-          <SkillLines data={data} primary={germanColors.text} text={germanColors.text} gap={8} lineHeight={1.35} />
+          <SkillLines heading={heading('skills')} data={data} primary={germanColors.text} text={germanColors.text} gap={8} lineHeight={1.35} />
         </section>
       )}
 

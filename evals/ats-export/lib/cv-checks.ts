@@ -4,7 +4,7 @@ import { cvPaper } from '../../../src/lib/cv-templates/paper';
 import { getPrintSpec, isDachTemplate, PAPER_MM, type PaperSize } from '../../../src/lib/cv-templates/print-spec';
 import { visibleCvData } from '../../../src/lib/cv-templates/hidden';
 import { inferCvLocale, type CvTextLocale } from '../../../src/lib/cv-templates/locale';
-import type { LocaleExpectation } from '../fixtures';
+import { ADDITIONAL_INFO_TEMPLATES, type LocaleExpectation } from '../fixtures';
 import { checkPersonalAndLinks, checkText, expectationsFor, norm, sameUrl, squash, type TextCheck, type CvExpectations } from './expect';
 import { extractAll, type Extractor } from './ats-proxies';
 import { extractWithPdfJs, mmToPt, type PdfItem } from './pdf-text';
@@ -25,6 +25,13 @@ export interface CvPdfContext {
   locale?: CvTextLocale;
   /** What a CV in this language must print, written by hand. */
   localeExpect?: LocaleExpectation;
+  /** The language the fixture is written in, by hand: /Lang and the footer follow it, not what the code under test inferred. */
+  expectedLang?: 'en' | 'de' | 'fr' | 'es' | 'pt' | 'it' | 'nl';
+  /** The last page is meant to be short (a fixture built to show the fit pass keeping the first render). */
+  allowShortLastPage?: boolean;
+  /** What the fit pass did for this export, and what it must have done (written by hand). */
+  fit?: { pagesBefore: number; pagesAfter: number; step: number | null; extraRenders: number };
+  expectFit?: { pagesBefore: number; pagesAfter: number; step: number | null; extraRenders: number };
 }
 
 export interface ExtractionSummary {
@@ -67,6 +74,8 @@ export interface CvPdfReport {
   /** Share of the printable height the last page's text reaches. */
   lastPageFill: number;
   footers: string[];
+  /** The fit pass for this export: pages before and after, the density step kept, extra renders. */
+  fit: { pagesBefore: number; pagesAfter: number; step: number | null; extraRenders: number } | null;
 }
 
 export const HEADING_ORDER: Record<string, string[]> = {
@@ -186,9 +195,13 @@ export async function checkCvPdf(bytes: Uint8Array, ctx: CvPdfContext): Promise<
 
   // Link annotations: each link opens its full https URL and its visible text is the clean address, not a label.
   for (const link of exp.links) {
-    const annotation = pdfjs.links.find((l) => sameUrl(l.url, link.full));
-    if (!annotation) failures.push(`no clickable link to ${link.full}`);
-    else if (squash(annotation.text) !== squash(link.display)) failures.push(`the link to ${link.full} shows "${annotation.text}", expected "${link.display}"`);
+    // A link that wraps onto a second line may be one annotation or one per line: their texts joined are the whole address.
+    const annotations = pdfjs.links.filter((l) => sameUrl(l.url, link.full));
+    if (annotations.length === 0) failures.push(`no clickable link to ${link.full}`);
+    else {
+      const shown = annotations.map((a) => a.text).join(' ');
+      if (squash(shown) !== squash(link.display)) failures.push(`the link to ${link.full} shows "${shown}", expected "${link.display}"`);
+    }
   }
   if (pdfjs.links.some((l) => !/^https:\/\//.test(l.url) && !/^mailto:/.test(l.url) && !/^tel:/.test(l.url))) failures.push('a link annotation does not open an https URL');
 
@@ -256,8 +269,10 @@ export async function checkCvPdf(bytes: Uint8Array, ctx: CvPdfContext): Promise<
   if (info.author !== exp.name) failures.push(`author is "${info.author}", expected the applicant`);
   if (info.producer !== 'Useful Apply') failures.push(`producer is "${info.producer}"`);
   // The document language follows the CV's content, not the template's market.
-  const wantLang = locale === 'other' ? 'en' : locale;
+  // The fixture's own language, written by hand, is the truth; what the service inferred is only the fallback.
+  const wantLang = ctx.expectedLang ?? (locale === 'other' ? 'en' : locale);
   if (!catalog.lang.toLowerCase().startsWith(wantLang)) failures.push(`language is "${catalog.lang}", expected ${wantLang}`);
+  if (ctx.expectedLang && locale !== ctx.expectedLang) failures.push(`the service inferred "${locale}" for a ${ctx.expectedLang} CV`);
   if (!catalog.displayDocTitle) warnings.push('DisplayDocTitle is not set');
   if (bytes.length > 2 * 1024 * 1024) failures.push(`file is ${(bytes.length / 1024 / 1024).toFixed(2)} MB, limit 2 MB`);
   for (const font of fonts) {
@@ -273,7 +288,7 @@ export async function checkCvPdf(bytes: Uint8Array, ctx: CvPdfContext): Promise<
   const footerWords: Record<string, [string, string]> = {
     en: ['Page', 'of'], de: ['Seite', 'von'], fr: ['Page', 'sur'], es: ['Página', 'de'], pt: ['Página', 'de'], it: ['Pagina', 'di'], nl: ['Pagina', 'van'],
   };
-  const [pageWord, ofWord] = footerWords[locale === 'other' ? 'en' : locale];
+  const [pageWord, ofWord] = ctx.localeExpect?.footer ?? footerWords[wantLang];
   const footers: string[] = [];
   const footerPattern = /(Page|Seite|Página|Pagina) \d+ (of|von|sur|de|di|van) \d+/;
   pdfjs.pageTexts.forEach((pageText, index) => {
@@ -317,7 +332,19 @@ export async function checkCvPdf(bytes: Uint8Array, ctx: CvPdfContext): Promise<
     const lastBody = pdfjs.items.filter((item) => item.page === info.pages && item.str.trim() && !isFooter(item));
     const lowest = lastBody.length ? Math.max(...lastBody.map((item) => item.y)) : mmToPt(spec.marginMm.top);
     lastPageFill = Number(((lowest - mmToPt(spec.marginMm.top)) / printableH).toFixed(2));
-    if (lastPageFill < 0.15) failures.push(`the last page is ${(lastPageFill * 100).toFixed(0)}% full`);
+    if (lastPageFill < 0.15 && !ctx.allowShortLastPage) failures.push(`the last page is ${(lastPageFill * 100).toFixed(0)}% full`);
+  }
+
+  // The fit pass, against what the fixture was built to make it do.
+  if (ctx.expectFit) {
+    const want = ctx.expectFit;
+    const got = ctx.fit;
+    if (!got) failures.push('no fit pass result for a fixture built to exercise it');
+    else {
+      if (got.pagesBefore !== want.pagesBefore || got.pagesAfter !== want.pagesAfter) failures.push(`fit pass: ${got.pagesBefore} to ${got.pagesAfter} pages, expected ${want.pagesBefore} to ${want.pagesAfter}`);
+      if (got.step !== want.step) failures.push(`fit pass kept step ${got.step}, expected ${want.step}`);
+      if (got.extraRenders !== want.extraRenders) failures.push(`fit pass used ${got.extraRenders} extra renders, expected ${want.extraRenders}`);
+    }
   }
 
   // A CV in another language prints its own headings, present label and degree connector, none of them English.
@@ -326,6 +353,8 @@ export async function checkCvPdf(bytes: Uint8Array, ctx: CvPdfContext): Promise<
     for (const [tool, text] of Object.entries(texts)) {
       const lines = text.split(/[\n\f]/).map((line) => norm(line).toLowerCase().replace(/:$/, ''));
       for (const [key, heading] of Object.entries(lx.headings)) {
+        // "Additional information" is printed by three templates only.
+        if (key === 'additionalInfo' && !ADDITIONAL_INFO_TEMPLATES.includes(ctx.templateId)) continue;
         if (!lines.includes(norm(heading).toLowerCase())) failures.push(`${tool}: ${lx.language} heading "${heading}" (${key}) is missing`);
       }
       for (const english of ['summary', 'experience', 'education', 'skills', 'languages']) {
@@ -334,9 +363,21 @@ export async function checkCvPdf(bytes: Uint8Array, ctx: CvPdfContext): Promise<
       const flat = squash(text).toLowerCase();
       if (!flat.includes(squash(` - ${lx.present}`).toLowerCase())) failures.push(`${tool}: "${lx.present}" is missing from the date range of the current role`);
       if (/\bPresent\b/.test(text)) failures.push(`${tool}: "Present" is on a ${lx.language} CV`);
+      // The degree and its field read the way the language writes them, with the connector (or comma) it needs and never two.
+      if (!flat.includes(squash(lx.degreeLine).toLowerCase())) failures.push(`${tool}: the degree does not read "${lx.degreeLine}"`);
       for (const edu of ctx.source.education) {
-        if (lx.connector !== 'in' && edu.field && flat.includes(squash(`${edu.degree} in ${edu.field}`).toLowerCase())) failures.push(`${tool}: the degree reads "${edu.degree} in ${edu.field}"`);
+        if (!edu.field) continue;
+        for (const word of ['in', 'en', 'em', 'of', 'de', 'di', 'van']) {
+          const doubled = squash(`${edu.degree} ${word} ${edu.field}`).toLowerCase();
+          if (doubled !== squash(lx.degreeLine).toLowerCase() && flat.includes(doubled)) failures.push(`${tool}: the degree reads "${edu.degree} ${word} ${edu.field}"`);
+        }
       }
+      // Skill labels carry the language's colon: "Langages :" (U+202F before the colon) in French.
+      if (!squash(text).includes(squash(lx.labelSample))) failures.push(`${tool}: the skill label "${lx.labelSample}" is missing`);
+    }
+    // Only Tika and PyMuPDF keep U+202F in the text layer; for them the exact character is the assertion.
+    for (const tool of ['tika', 'pymupdf'] as const) {
+      if (lx.labelSample.includes('\u202F') && !texts[tool].includes(lx.labelSample)) failures.push(`${tool}: the colon after "${lx.labelSample.split('\u202F')[0]}" is not preceded by U+202F`);
     }
   }
 
@@ -374,5 +415,6 @@ export async function checkCvPdf(bytes: Uint8Array, ctx: CvPdfContext): Promise<
     emptyBand,
     lastPageFill,
     footers,
+    fit: ctx.fit ?? null,
   };
 }

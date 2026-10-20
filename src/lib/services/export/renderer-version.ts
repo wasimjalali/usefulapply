@@ -38,4 +38,11 @@ function sourceHash(): string {
   throw new Error('RENDERER_SOURCE_HASH is not set. next.config.ts sets it at build time; outside Next run from the repo root.');
 }
 
-export const RENDERER_VERSION = `${RENDERER_REVISION}.${sourceHash()}`;
+/**
+ * In development the version also carries a per-process random value. The baked hash is computed when the dev
+ * server starts, so a template edit made after that would otherwise be served from the cache as the old render;
+ * a new value on every start (and on every module reload) means a dev export is never a stale one.
+ */
+const DEV_SUFFIX = process.env.NODE_ENV === 'development' ? `.dev${Math.random().toString(36).slice(2, 8)}` : '';
+
+export const RENDERER_VERSION = `${RENDERER_REVISION}.${sourceHash()}${DEV_SUFFIX}`;

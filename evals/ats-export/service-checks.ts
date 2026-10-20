@@ -4,7 +4,7 @@ import { resolveLetterLayout } from '../../src/lib/services/export/layout';
 import { encodeRfc5987, exportDisplayFileName, exportFileName, nameForFile } from '../../src/lib/services/export/filenames';
 import { exportPathKey, signExportLink, verifyExportLink, SIGNED_URL_TTL_SECONDS } from '../../src/lib/services/export/signing';
 import { sanitizeCvData, sanitizeStructuredLetter } from '../../src/lib/services/export/sanitize';
-import { formatCvDate, formatDateRange, sectionHeading } from '../../src/lib/cv-templates/locale';
+import { degreeText, formatCvDate, formatDateRange, sectionHeading } from '../../src/lib/cv-templates/locale';
 import { formatBirthDate } from '../../src/lib/cv-templates/birthdate';
 import { displayUrl, fullUrl } from '../../src/lib/cv-templates/url';
 import { hashRendererSources, type HashDeps } from '../../src/lib/services/export/renderer-source-hash';
@@ -12,7 +12,7 @@ import type { CVData } from '../../src/lib/cv-templates/types';
 import { buildCvData } from '../../src/lib/cv-templates/build-cv-data';
 import { visibleCvData } from '../../src/lib/cv-templates/hidden';
 import { RENDERER_VERSION } from '../../src/lib/services/export/renderer-version';
-import { CV_FIXTURES, DE_TWO_PAGE, DIN_LETTER, US_LETTER, US_ONE_PAGE, US_PERSONAL } from './fixtures';
+import { CV_FIXTURES, DE_TWO_PAGE, DIN_LETTER, LONG_PORTFOLIO_URL, US_LETTER, US_ONE_PAGE, US_PERSONAL } from './fixtures';
 import { kitFor } from './render-all';
 
 export interface ServiceReport {
@@ -276,6 +276,16 @@ export async function runServiceChecks(): Promise<ServiceReport[]> {
       [withDob(US_ONE_PAGE, '07.04.1989', 'it', 'Italia'), '7 aprile 1989'],
       [withDob(US_ONE_PAGE, '07.04.1989', 'nl', 'Nederland'), '7 april 1989'],
       [withDob(US_ONE_PAGE, 'around 1989', 'en'), 'around 1989'],
+      // A US or Canadian CV reads a slash date month first; anywhere else an ambiguous slash date stays as typed.
+      [withDob(US_ONE_PAGE, '04/07/1989', 'en'), 'April 7, 1989'],
+      [withDob(US_ONE_PAGE, '04/07/1989', 'en', 'United Kingdom'), '04/07/1989'],
+      [withDob(US_ONE_PAGE, '25/12/1990', 'en', 'United Kingdom'), '25 December 1990'],
+      [withDob(US_ONE_PAGE, '12/25/1990', 'en'), 'December 25, 1990'],
+      [withDob(US_ONE_PAGE, '04/07/1989', 'de', 'Deutschland'), '04/07/1989'],
+      [withDob(US_ONE_PAGE, '04/04/1989', 'de', 'Deutschland'), '04.04.1989'],
+      // French writes the first of the month as "1er".
+      [withDob(US_ONE_PAGE, '01.04.1989', 'fr', 'France'), '1er avril 1989'],
+      [withDob(US_ONE_PAGE, '02.04.1989', 'fr', 'France'), '2 avril 1989'],
     ];
     for (const [data, want] of cases) {
       const got = formatBirthDate(data);
@@ -303,12 +313,41 @@ export async function runServiceChecks(): Promise<ServiceReport[]> {
     out.push(report('locale-headings-and-dates', failures));
   }
 
+  // A degree and its field: the connector goes between them once, and never twice.
+  {
+    const failures: string[] = [];
+    const as = (language: string, country: string) => ({ ...US_ONE_PAGE, language, personal: { ...US_ONE_PAGE.personal, country } }) as CVData;
+    const cases: Array<[CVData, string, string | undefined, string]> = [
+      [as('en', 'United States'), 'B.S.', 'Computer Science', 'B.S. in Computer Science'],
+      [as('en', 'United States'), 'Master of Science', 'Computer Science', 'Master of Science, Computer Science'],
+      [as('en', 'United States'), 'Doctor of Philosophy', 'Physics', 'Doctor of Philosophy, Physics'],
+      [as('en', 'United States'), 'M.S.', undefined, 'M.S.'],
+      [as('de', 'Deutschland'), 'Diplom-Informatiker', 'Informatik', 'Diplom-Informatiker, Informatik'],
+      [as('fr', 'France'), 'Diplôme d’ingénieur', 'Informatique', 'Diplôme d’ingénieur, Informatique'],
+      [as('fr', 'France'), 'Master', 'Informatique', 'Master en Informatique'],
+      [as('es', 'España'), 'Grado en Ingeniería', 'Informática', 'Grado en Ingeniería, Informática'],
+      [as('es', 'España'), 'Máster', 'Informática', 'Máster, Informática'],
+      [as('pt', 'Portugal'), 'Mestrado em Engenharia', 'Informática', 'Mestrado em Engenharia, Informática'],
+      [as('pt', 'Portugal'), 'Mestrado', 'Informática', 'Mestrado em Informática'],
+      [as('it', 'Italia'), 'Laurea magistrale', 'Ingegneria informatica', 'Laurea magistrale in Ingegneria informatica'],
+      [as('it', 'Italia'), 'Laurea di primo livello', 'Fisica', 'Laurea di primo livello, Fisica'],
+      [as('nl', 'Nederland'), 'Master', 'Informatica', 'Master in Informatica'],
+      [as('nl', 'Nederland'), 'Bachelor van Wetenschappen', 'Informatica', 'Bachelor van Wetenschappen, Informatica'],
+    ];
+    for (const [data, degree, field, want] of cases) {
+      const got = degreeText(data, { degree, field });
+      if (got !== want) failures.push(`${data.language}: "${degree}" + "${field}" became "${got}", want "${want}"`);
+    }
+    out.push(report('degree-text', failures));
+  }
+
   // Links, file names and the download header.
   {
     const failures: string[] = [];
-    const long = 'https://portfolio.jordan-ellis.example/work/selected-case-studies-2020-2026/payments-platform-migration';
+    const long = LONG_PORTFOLIO_URL;
     const shown = displayUrl(long);
-    if (shown !== 'portfolio.jordan-ellis.example/work/selected-ca…' || Array.from(shown).length !== 48) failures.push(`a long link shows "${shown}"`);
+    // Never cut: the whole address, without the scheme, as text a reader and a parser both see.
+    if (shown !== long.replace(/^https:\/\//, '')) failures.push(`a long link shows "${shown}"`);
     if (fullUrl(long) !== long) failures.push('the full address of a long link changed');
     if (fullUrl('mailto:jordan@example.com') !== 'mailto:jordan@example.com') failures.push('mailto: got a scheme glued in front');
     if (displayUrl('mailto:jordan@example.com') !== 'jordan@example.com') failures.push('a mailto: link shows its scheme');

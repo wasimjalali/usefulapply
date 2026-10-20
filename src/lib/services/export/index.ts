@@ -160,11 +160,20 @@ export async function exportDocument(req: ExportRequest, deps: ExportDeps = {}):
   if (!fileName) {
     cached = false;
     await (deps.beforeRender ?? ((userId: string) => defaultRenderLimits(userId, env)))(req.userId);
-    const rendered: RenderedExport = await renderExport(resolved, {
-      browser: deps.browser === undefined ? env?.BROWSER ?? null : deps.browser,
-      loadFont: deps.loadFont ?? assetFontLoader(env),
-    });
-    await (deps.afterRender ?? ((userId: string, extra: number) => defaultCountExtraRenders(userId, extra, env)))(req.userId, rendered.renders - 1);
+    // Browser calls are counted as they happen, so an export that fails halfway still counts against the daily budget.
+    let browserCalls = 0;
+    let rendered: RenderedExport;
+    try {
+      rendered = await renderExport(resolved, {
+        browser: deps.browser === undefined ? env?.BROWSER ?? null : deps.browser,
+        loadFont: deps.loadFont ?? assetFontLoader(env),
+        onRender: () => {
+          browserCalls++;
+        },
+      });
+    } finally {
+      await (deps.afterRender ?? ((userId: string, extra: number) => defaultCountExtraRenders(userId, extra, env)))(req.userId, browserCalls - 1).catch(() => undefined);
+    }
     if (!(await (deps.userExists ?? defaultUserExists)(req.userId))) throw new ExportInputError('NOT_FOUND', 'Application not found.');
     await storeExport(pathKey, rendered.bytes, rendered.contentType, { userId: req.userId, fileName: rendered.fileName, displayName: rendered.displayName });
     fileName = rendered.fileName;

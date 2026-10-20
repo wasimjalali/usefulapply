@@ -18,7 +18,7 @@
 import { CVData, CVTemplate } from '@/lib/cv-templates/types';
 import { rootBox, type CvRenderMode } from '@/lib/cv-templates/print-spec';
 import { cvPaper } from '@/lib/cv-templates/paper';
-import { sectionHeading, formatDateRange, formatSingleDate, uiText } from '@/lib/cv-templates/locale';
+import { sectionHeading, formatDateRange, formatSingleDate, degreeText, uiText } from '@/lib/cv-templates/locale';
 import { ContactRows, LanguageLine, SkillLines, stackGap } from './shared';
 
 interface Props {
@@ -120,7 +120,8 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
       {/* Core Competencies - 2026: 3-Column Grid with Languages integrated */}
       {data.skills.length > 0 && (
         <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
-          <h2 
+          
+          <SkillLines heading={<h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
@@ -134,8 +135,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
             }}
           >
             {sectionHeading(data, 'skills')}
-          </h2>
-          <SkillLines data={data} primary={executiveColors.primary} text={executiveColors.text} gap={6} lineHeight={1.4} />
+          </h2>} data={data} primary={executiveColors.primary} text={executiveColors.text} gap={6} lineHeight={1.4} />
         </section>
       )}
 
@@ -159,7 +159,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
           </h2>
           <div className="cv-stack" style={stackGap(18)}>
             {data.experience.map((exp) => (
-              <div className="cv-exp" key={exp.id}>
+              <div className={exp.bullets.length <= 3 ? 'cv-exp cv-exp-short' : 'cv-exp'} key={exp.id}>
                 <div className="cv-entry-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'calc(4px * var(--cv-d, 1))' }}>
                   <h3 
                     style={{ 
@@ -245,7 +245,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
                       color: executiveColors.text,
                     }}
                   >
-                    {edu.degree}{edu.field && ` ${uiText(data, 'degreeConnector')} ${edu.field}`}
+                    {degreeText(data, edu)}
                   </h3>
                   <p style={{ fontSize: '10pt', color: executiveColors.textLight }}>
                     {edu.institution}
@@ -281,7 +281,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
           >
             {sectionHeading(data, 'certifications')}
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '24px', rowGap: 'calc(4px * var(--cv-d, 1))' }}>
+          <div className="cv-stack" style={stackGap(4)}>
             {data.certifications.map((cert) => (
               <div className="cv-entry" key={cert.id} style={{ fontSize: '10pt' }}>
                 <span style={{ fontWeight: '500', color: executiveColors.text }}>{cert.name}</span>

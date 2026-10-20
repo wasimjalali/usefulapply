@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { CV_TEMPLATE_DEFINITIONS } from '@/lib/cv-templates/types';
+import { CV_TEMPLATE_DEFINITIONS, US_TEMPLATE_PERSONAL_DATA_NOTE } from '@/lib/cv-templates/types';
 
 interface TemplateStripProps {
   selectedTemplateId: string;
   onSelect: (templateId: string) => void;
+  /** The CV holds a photo, date of birth or nationality, which a US template leaves out. */
+  hasDachData?: boolean;
 }
 
 const PREVIEW_IMAGES: Record<string, string> = {
@@ -68,9 +70,12 @@ function Thumb({ templateId, primary, accent, selected }: { templateId: string; 
   );
 }
 
-export function TemplateStrip({ selectedTemplateId, onSelect }: TemplateStripProps) {
+export function TemplateStrip({ selectedTemplateId, onSelect, hasDachData = false }: TemplateStripProps) {
+  const selected = CV_TEMPLATE_DEFINITIONS.find((template) => template.id === selectedTemplateId);
+  const showNote = hasDachData && selected !== undefined && !selected.includesPhoto;
   return (
-    <div className="flex items-start gap-0 overflow-x-auto scrollbar-hide border-b border-cream-200 bg-cream-50 px-5 pb-3 pt-4" role="listbox" aria-label="CV templates">
+    <div className="border-b border-cream-200 bg-cream-50">
+    <div className="flex items-start gap-0 overflow-x-auto scrollbar-hide px-5 pb-3 pt-4" role="listbox" aria-label="CV templates">
       {CV_TEMPLATE_DEFINITIONS.map((template) => {
         const selected = template.id === selectedTemplateId;
         const tag = BEST_FOR[template.id] ?? '';
@@ -102,6 +107,8 @@ export function TemplateStrip({ selectedTemplateId, onSelect }: TemplateStripPro
           </button>
         );
       })}
+    </div>
+    {showNote && <p className="px-5 pb-3 text-xs text-warm-gray">{US_TEMPLATE_PERSONAL_DATA_NOTE}</p>}
     </div>
   );
 }

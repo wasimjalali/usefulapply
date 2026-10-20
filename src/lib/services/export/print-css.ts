@@ -22,11 +22,16 @@ strong,b{font-weight:700}
 .cv-entry{break-inside:avoid}
 .cv-exp{break-inside:auto}
 h1,h2,h3,h4{break-after:avoid}
-/* An experience entry: title and employer stay with its first bullet, and the last bullet stays with the one
-   before it. An entry of three or more bullets can split between them; one of two stays whole. Nothing else is
-   kept together: a block that can be longer than the space left must be allowed to split. */
+/* A capital with an accent (O, E) can ink above its line box. When a heading starts a page, Chrome paints that ink on the
+   page before. The padding keeps the ink inside the box; the negative margin leaves every other position unchanged. */
+h2{padding-top:3px;margin-top:-3px}
+/* An experience entry. Three bullets or fewer stay together on one page (unless taller than a page). Four or more may
+   split, with the header and at least two bullets on the first page and at least two on the next. Nothing else is kept
+   together: a block that can be longer than the space left must be allowed to split. */
+.cv-exp-short{break-inside:avoid}
 .cv-stack>*+*{margin-top:var(--stack-gap,0)}
 .cv-entry-head{break-after:avoid}
+.cv-bullets>.cv-bullet:first-child{break-after:avoid}
 .cv-bullets>.cv-bullet:nth-last-child(2){break-after:avoid}
 p,li,.cv-bullet{orphans:2;widows:2}
 `.trim();

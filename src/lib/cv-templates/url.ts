@@ -6,8 +6,6 @@
  * to carry the address. The link itself stays clickable with the full URL.
  */
 
-const MAX_DISPLAY_LENGTH = 48;
-
 /** The full URL a link points to: a scheme is added when the text has none. */
 export function fullUrl(raw: string): string {
   const trimmed = raw.trim();
@@ -18,15 +16,16 @@ export function fullUrl(raw: string): string {
 
 /**
  * The clean visible form: scheme, "www." and a trailing slash removed, no query
- * string, no tracking parameters, no fragment, the path kept. Over-long paths
- * are cut with an ellipsis.
+ * string, no tracking parameters, no fragment, the path kept. Never cut: a
+ * long address wraps at its slashes where it is printed (`wbr`), so the text
+ * an ATS reads and the text on paper are the whole address.
  */
-export function displayUrl(raw: string, maxLength = MAX_DISPLAY_LENGTH): string {
+export function displayUrl(raw: string): string {
   let text = raw.trim();
   if (!text) return '';
   // An address or a number shows without its scheme.
   const direct = text.match(/^(?:mailto|tel):(.+)$/i);
-  if (direct) return direct[1].length > maxLength ? `${direct[1].slice(0, maxLength - 1)}…` : direct[1];
+  if (direct) return direct[1];
   let host = '';
   let path = '';
   try {
@@ -44,8 +43,7 @@ export function displayUrl(raw: string, maxLength = MAX_DISPLAY_LENGTH): string 
     path = text.slice(host.length);
   }
   path = path.replace(/\/+$/, '');
-  const clean = `${host}${path}`;
-  return clean.length > maxLength ? `${clean.slice(0, maxLength - 1)}…` : clean;
+  return `${host}${path}`;
 }
 
 const isLinkedIn = (link: string) => /(^|\/\/|\.)linkedin\.com\//i.test(link.trim());

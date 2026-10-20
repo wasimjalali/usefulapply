@@ -24,7 +24,7 @@
 import { CVData, CVTemplate } from '@/lib/cv-templates/types';
 import { rootBox, type CvRenderMode } from '@/lib/cv-templates/print-spec';
 import { cvPaper } from '@/lib/cv-templates/paper';
-import { sectionHeading, formatDateRange, formatSingleDate, uiText } from '@/lib/cv-templates/locale';
+import { sectionHeading, formatDateRange, formatSingleDate, degreeText, labelColon, uiText } from '@/lib/cv-templates/locale';
 import { formatBirthDate } from '@/lib/cv-templates/birthdate';
 import { ContactRows, LanguageLine, SignatureBlock, SkillLines, stackGap } from './shared';
 
@@ -107,10 +107,10 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
                 }}
               >
                 {data.personal.dateOfBirth && (
-                  <span><strong style={{ color: classicColors.primary }}>{uiText(data, 'dateOfBirthLabel')}:</strong> {formatBirthDate(data)}</span>
+                  <span><strong style={{ color: classicColors.primary }}>{uiText(data, 'dateOfBirthLabel')}{labelColon(data)}</strong> {formatBirthDate(data)}</span>
                 )}
                 {data.personal.nationality && (
-                  <span><strong style={{ color: classicColors.primary }}>{uiText(data, 'nationalityLabel')}:</strong> {data.personal.nationality}</span>
+                  <span><strong style={{ color: classicColors.primary }}>{uiText(data, 'nationalityLabel')}{labelColon(data)}</strong> {data.personal.nationality}</span>
                 )}
               </div>
             )}
@@ -162,7 +162,8 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
       {/* CORE COMPETENCIES — 3-Column Grid with Languages */}
       {data.skills.length > 0 && (
         <section style={{ marginBottom: 'calc(14px * var(--cv-d, 1))' }}>
-          <h2 
+          
+          <SkillLines heading={<h2 
             style={{ 
               fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '10.5pt',
@@ -176,8 +177,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
             }}
           >
             {sectionHeading(data, 'skills')}
-          </h2>
-          <SkillLines data={data} primary={classicColors.primary} text={classicColors.text} gap={6} lineHeight={1.3} />
+          </h2>} data={data} primary={classicColors.primary} text={classicColors.text} gap={6} lineHeight={1.3} />
         </section>
       )}
 
@@ -201,7 +201,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
           </h2>
           <div className="cv-stack" style={stackGap(14)}>
             {data.experience.map((exp) => (
-              <div className="cv-exp" key={exp.id}>
+              <div className={exp.bullets.length <= 3 ? 'cv-exp cv-exp-short' : 'cv-exp'} key={exp.id}>
                 <div className="cv-entry-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'calc(2px * var(--cv-d, 1))' }}>
                   <h3 style={{ fontSize: '10pt', fontWeight: 'bold', color: classicColors.text }}>
                     {exp.position}
@@ -265,7 +265,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
               <div className="cv-entry" key={edu.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <div>
                   <h3 style={{ fontSize: '10pt', fontWeight: '600', color: classicColors.text }}>
-                    {edu.degree}{edu.field && `, ${edu.field}`}
+                    {degreeText(data, edu)}
                   </h3>
                   <p style={{ fontSize: '10pt', color: classicColors.textLight }}>
                     {edu.institution}
@@ -301,7 +301,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props)
           >
             {sectionHeading(data, 'certifications')}
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '20px', rowGap: 'calc(4px * var(--cv-d, 1))' }}>
+          <div className="cv-stack" style={stackGap(4)}>
             {data.certifications.map((cert) => (
               <div className="cv-entry" key={cert.id} style={{ fontSize: '10pt' }}>
                 <span style={{ fontWeight: '500', color: classicColors.text }}>{cert.name}</span>

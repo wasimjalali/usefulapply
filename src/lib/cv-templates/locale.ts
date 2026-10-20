@@ -342,7 +342,27 @@ export function monthFromWord(word: string): number | null {
   return MONTH_LOOKUP[word.toLowerCase().replace(/\.$/, '')] ?? null;
 }
 
-const PRESENT_TOKENS = /^(present|current|now|ongoing|today|heute|aktuell|gegenwart|derzeit|bis heute|présent|actuel|aujourd['’]hui|à ce jour|en cours|actualidad|actual|actualmente|hoy|presente|atual|atualmente|atualidade|attuale|oggi|ad oggi|in corso|heden|nu|huidig|momenteel|tot nu)$/i;
+/** Wordings for "still in this role" in every supported language, compared lowercase, accents and apostrophes ignored. */
+const PRESENT_WORDS = new Set(
+  [
+    // en
+    'present', 'current', 'currently', 'now', 'ongoing', 'today', 'to date', 'till date',
+    // de
+    'heute', 'aktuell', 'gegenwart', 'derzeit', 'bis heute', 'bis jetzt', 'laufend',
+    // fr
+    'présent', 'actuel', "aujourd'hui", "aujourd’hui", 'à ce jour', 'en cours', 'actuellement', 'à présent', "jusqu'à aujourd'hui", "jusqu’à aujourd’hui",
+    // es
+    'actualidad', 'actual', 'actualmente', 'hoy', 'hasta la actualidad', 'hasta hoy', 'presente',
+    // pt
+    'atual', 'atualmente', 'atualidade', 'até ao presente', 'até hoje', 'até à data',
+    // it
+    'attuale', 'attualmente', 'oggi', 'ad oggi', 'fino ad oggi', 'in corso',
+    // nl
+    'heden', 'nu', 'huidig', 'momenteel', 'tot heden', 'tot nu', 'tot op heden',
+  ].map((word) => fold(word.replace(/[’]/g, "'"))),
+);
+
+const PRESENT_TOKENS = { test: (value: string): boolean => PRESENT_WORDS.has(fold(value.trim().replace(/[’]/g, "'")).replace(/\s+/g, ' ')) };
 
 function normalizeDashes(value: string): string {
   return value.replace(/\s*[‐-―−]\s*/g, ' - ').replace(/\s{2,}/g, ' ').trim();
@@ -386,7 +406,7 @@ export function formatCvDate(raw: string | undefined, locale: CvTextLocale): str
 const PRESENT_LABELS: Record<CvLocale, string> = {
   en: 'Present',
   de: 'heute',
-  fr: "Aujourd'hui",
+  fr: 'Aujourd’hui',
   es: 'Actualidad',
   pt: 'Atualmente',
   it: 'Presente',
@@ -454,7 +474,7 @@ const UI_DEFAULTS: Record<CvLocale, Record<UiTextKey, string>> = {
     photoPlaceholder: 'Foto',
   },
   fr: {
-    gradePrefix: 'Mention:',
+    gradePrefix: 'Mention\u202F:',
     degreeConnector: 'en',
     websiteLabel: 'Site web',
     dateOfBirthLabel: 'Date de naissance',
@@ -510,11 +530,41 @@ const UI_DEFAULTS: Record<CvLocale, Record<UiTextKey, string>> = {
   },
 };
 
+/** The small labels and the open-ended word of one language, in the shape the parser stores them (`localizedStrings`). */
+export function localizedStrings(locale: CvLocale): Record<string, string> {
+  return { present: PRESENT_LABELS[locale], ...UI_DEFAULTS[locale] };
+}
+
 /**
  * A small label the templates print. For the seven supported languages the table above is
  * authoritative (it has the proper accents and wording); what the parser localized is used only
  * for a language outside them.
  */
+/**
+ * The colon after a label ("Langages :"). French sets a narrow no-break space (U+202F) before it, so the colon
+ * never starts a line; every other supported language writes it directly after the word.
+ */
+export function labelColon(data: CVData): string {
+  return inferCvLocale(data) === 'fr' ? '\u202F:' : ':';
+}
+
+/** Prepositions that join a degree to its field, by language, as whole words (an apostrophe prefix counts: d’, l'). A word that only starts with one ("Diplom", "Informatik") does not. */
+const DEGREE_PREPOSITIONS = /(?:^|[\s(])(?:(?:in|of|on|en|de|del|du|des|em|do|da|di|van|voor|für|zu)(?=[\s),]|$)|[dl]['’])/iu;
+
+/**
+ * A degree and its field: "B.S. in Computer Science", "Diplôme d’ingénieur, Informatique". The connector word goes
+ * between them only when the degree does not already hold a preposition phrase ("Grado en Ingeniería"), and never in
+ * Spanish or German, which write the field after a comma. A connector is never doubled.
+ */
+export function degreeText(data: CVData, edu: { degree: string; field?: string }): string {
+  const degree = edu.degree.trim();
+  const field = edu.field?.trim();
+  if (!field) return degree;
+  const locale = inferCvLocale(data);
+  if (locale === 'es' || locale === 'de' || DEGREE_PREPOSITIONS.test(degree)) return `${degree}, ${field}`;
+  return `${degree} ${uiText(data, 'degreeConnector')} ${field}`;
+}
+
 export function uiText(data: CVData, key: UiTextKey): string {
   const locale = inferCvLocale(data);
   if (locale !== 'other') return UI_DEFAULTS[locale][key];

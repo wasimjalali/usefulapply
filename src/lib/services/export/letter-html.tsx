@@ -122,7 +122,8 @@ function senderContactLines(letter: StructuredCoverLetter): string[] {
 /** One contact line as it is printed: a link line stays clickable with its full URL. */
 function ContactLine({ line, letter }: { line: string; letter: StructuredCoverLetter }) {
   const target = pickLetterLinks(letter.sender.links).find((link) => displayUrl(link) === line);
-  return target ? <a href={fullUrl(target)}>{line}</a> : <>{line}</>;
+  // A long address wraps after its slashes instead of running past the letterhead.
+  return target ? <a href={fullUrl(target)} style={{ overflowWrap: 'anywhere' }}>{line.split('/').flatMap((part, i) => (i === 0 ? [part] : ['/', <wbr key={i} />, part]))}</a> : <>{line}</>;
 }
 
 /**

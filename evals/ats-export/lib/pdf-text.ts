@@ -24,6 +24,8 @@ export interface PdfLink {
   url: string;
   /** The visible text under the link's rectangle. */
   text: string;
+  /** Top of the rectangle, pt from the top of the page: a wrapped link's annotations sort by it, top line first. */
+  y: number;
 }
 
 export interface PdfJsResult {
@@ -96,15 +98,17 @@ export async function extractWithPdfJs(bytes: Uint8Array): Promise<PdfJsResult> 
       const bottom = viewport.height - y1;
       const under = items
         .filter((item) => item.page === pageNumber && item.y - item.size * 0.3 >= top && item.y - item.size * 0.3 <= bottom && item.x >= x1 - 2 && item.x + item.w <= x2 + 2)
-        .sort((a, b) => a.x - b.x)
+        // Reading order inside the rectangle: line by line (a wrapped link's one annotation spans both lines), then left to right.
+        .sort((a, b) => (Math.abs(a.y - b.y) > 2 ? a.y - b.y : a.x - b.x))
         .map((item) => item.str)
         .join('');
-      links.push({ page: pageNumber, url: annotation.url as string, text: under.trim() });
+      links.push({ page: pageNumber, url: annotation.url as string, text: under.trim(), y: top });
     }
     pageTexts.push(lines.join('\n'));
     lines.length = 0;
   }
   await doc.destroy();
+  links.sort((a, b) => a.page - b.page || a.y - b.y);
   return { pages, items, links, text: pageTexts.join('\n\f'), pageTexts };
 }
 

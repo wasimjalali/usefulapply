@@ -34,6 +34,7 @@ import {
   FR_LETTER,
   DIN_LETTER_LONG_SENDER,
   HOSTILE_TEXT,
+  LONG_PORTFOLIO_URL,
   TEMPLATE_IDS,
   templatesFor,
   US_LETTER,
@@ -58,6 +59,9 @@ import { hasToken, norm, squash } from './lib/expect';
 
 const run = promisify(execFile);
 const OUT = RUN_DIR;
+
+/** The fit pass measures the last page with pdf-lib; it must agree with pdf.js to within one percentage point. */
+const FIT_MEASURE_GATE = 0.01;
 
 interface CvRow {
   renders: number;
@@ -134,6 +138,10 @@ async function main() {
         expectedPaper: PAPER_BY_FIXTURE[fixture.name],
         locale: pdf.locale,
         localeExpect: fixture.locale,
+        expectedLang: fixture.lang,
+        allowShortLastPage: fixture.allowShortLastPage,
+        fit: pdf.rendered.fit,
+        expectFit: fixture.expectFit,
       });
       const docxReport = await checkCvDocx(docx.rendered.bytes, { fixture: fixture.name, templateId, source: fixture.data, expectPhoto });
       let openResume: OpenResumeScore | null = null;
@@ -342,7 +350,7 @@ async function main() {
   {
     // The fit pass measures the last page with pdf-lib. It has to agree with pdf.js on every multi-page PDF.
     const failures: string[] = [];
-    const detail: Record<string, unknown> = { measured: 0, maxDifference: 0, fitPassRan: [] as string[] };
+    const detail: Record<string, unknown> = { measured: 0, maxDifference: 0, gate: FIT_MEASURE_GATE };
     for (const row of cvRows) {
       if (row.pdf.metrics.pages < 2) continue;
       const base = `${row.pdf.fixture}__${row.pdf.templateId}`;
@@ -352,27 +360,39 @@ async function main() {
       detail.measured = (detail.measured as number) + 1;
       detail.maxDifference = Math.max(detail.maxDifference as number, Number(difference.toFixed(3)));
       if (measured.pages !== row.pdf.metrics.pages) failures.push(`${base}: pdf-lib sees ${measured.pages} pages, pdfinfo ${row.pdf.metrics.pages}`);
-      if (difference > 0.04) failures.push(`${base}: last page ${(measured.fill * 100).toFixed(0)}% by pdf-lib, ${(row.pdf.lastPageFill * 100).toFixed(0)}% by pdf.js`);
+      if (difference > FIT_MEASURE_GATE) failures.push(`${base}: last page ${(measured.fill * 100).toFixed(0)}% by pdf-lib, ${(row.pdf.lastPageFill * 100).toFixed(0)}% by pdf.js`);
     }
-    // Which CVs the fit pass re-rendered (more browser renders than the first one and the footer overlay).
+    // The fit pass for every CV it ran on: pages before and after, the step kept, the extra renders, as measured.
+    const fitRows: Array<{ cv: string; pagesBefore: number; pagesAfter: number; step: number | null; extraRenders: number }> = [];
     for (const row of cvRows) {
-      const base = row.pdf.metrics.pages > 1 ? 2 : 1;
-      if (row.renders > base) (detail.fitPassRan as string[]).push(`${row.pdf.fixture}__${row.pdf.templateId} (${row.renders} renders)`);
+      const fit = row.pdf.fit;
+      if (fit && fit.extraRenders > 0) fitRows.push({ cv: `${row.pdf.fixture}__${row.pdf.templateId}`, ...fit });
     }
+    detail.fitPass = fitRows;
     extra.push({ name: 'fit-measure', ok: failures.length === 0, failures, detail });
     console.log(`${failures.length === 0 ? 'PASS' : 'FAIL'} fit-measure ${failures[0] ?? ''}`);
   }
   {
-    // A long link shows its first 47 characters and an ellipsis; the annotation opens the whole address.
+    // A long link is never cut: the whole address is in the text, it wraps after a slash onto a second line, and
+    // the annotation opens the whole address.
     const failures: string[] = [];
-    const bytes = pdfBytes.get('us-personal__premium-ats')!;
-    const pdfjs = await extractWithPdfJs(bytes);
-    const long = 'https://portfolio.jordan-ellis.example/work/selected-case-studies-2020-2026/payments-platform-migration';
-    const annotation = pdfjs.links.find((l) => l.url === long);
-    if (!annotation) failures.push('no clickable link to the whole long address');
-    else if (squash(annotation.text) !== squash('portfolio.jordan-ellis.example/work/selected-ca…')) failures.push(`the long link shows "${annotation.text}"`);
-    extra.push({ name: 'long-link-truncation', ok: failures.length === 0, failures });
-    console.log(`${failures.length === 0 ? 'PASS' : 'FAIL'} long-link-truncation ${failures[0] ?? ''}`);
+    const wanted = 'portfolio.jordan-ellis.example/work/selected-case-studies-2020-2026/payments-platform-migration/architecture-reviews/ledger-service-exactly-once-semantics-and-idempotency-keys';
+    const detail: Record<string, unknown> = {};
+    for (const templateId of TEMPLATE_IDS) {
+      const bytes = pdfBytes.get(`us-personal__${templateId}`)!;
+      const pdfjs = await extractWithPdfJs(bytes);
+      const annotations = pdfjs.links.filter((l) => l.url === LONG_PORTFOLIO_URL);
+      if (annotations.length === 0) failures.push(`${templateId}: no clickable link to the whole long address`);
+      const shown = annotations.map((a) => a.text).join(' ');
+      if (annotations.length > 0 && squash(shown) !== squash(wanted)) failures.push(`${templateId}: the long link shows "${shown}"`);
+      if (shown.includes('\u2026')) failures.push(`${templateId}: the long link is cut with an ellipsis`);
+      detail[templateId] = { annotations: annotations.length };
+      for (const [tool, text] of [['pdftotext', await pdftotext(bytes, 'reading-order')], ['raw', await pdftotext(bytes, 'raw')], ['pdfjs', pdfjs.text]] as const) {
+        if (!squash(text).includes(squash(wanted))) failures.push(`${templateId}: ${tool} does not hold the whole address`);
+      }
+    }
+    extra.push({ name: 'long-link-wrap', ok: failures.length === 0, failures, detail });
+    console.log(`${failures.length === 0 ? 'PASS' : 'FAIL'} long-link-wrap ${failures[0] ?? ''}`);
   }
   {
     // A date of birth printed on a German template is in the CV's language: an English US CV reads "April 7, 1989".

@@ -20,7 +20,7 @@ import { CVData, CVTemplate } from '@/lib/cv-templates/types';
 import { rootBox, type CvRenderMode } from '@/lib/cv-templates/print-spec';
 import { cvPaper } from '@/lib/cv-templates/paper';
 import { ContactRows, LanguageLine, SkillLines, stackGap } from './shared';
-import { sectionHeading, formatDateRange, formatSingleDate, uiText, type HeadingKey } from '@/lib/cv-templates/locale';
+import { sectionHeading, formatDateRange, formatSingleDate, degreeText, uiText, type HeadingKey } from '@/lib/cv-templates/locale';
 
 interface Props {
   data: CVData;
@@ -120,7 +120,7 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
           {heading('experience', 12)}
           <div className="cv-stack" style={stackGap(16)}>
             {data.experience.map((exp) => (
-              <div className="cv-exp" key={exp.id}>
+              <div className={exp.bullets.length <= 3 ? 'cv-exp cv-exp-short' : 'cv-exp'} key={exp.id}>
                 <div className="cv-entry-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'calc(4px * var(--cv-d, 1))' }}>
                   <h3 style={{ fontSize: '10.5pt', fontWeight: 'bold', color: modernColors.text }}>{exp.position}</h3>
                   <span style={{ fontSize: '10pt', whiteSpace: 'nowrap', color: modernColors.textLight }}>{formatDateRange(data, exp)}</span>
@@ -168,8 +168,7 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
               <div className="cv-entry" key={edu.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <div>
                   <h3 style={{ fontSize: '10.5pt', fontWeight: '600', color: modernColors.text }}>
-                    {edu.degree}
-                    {edu.field && `, ${edu.field}`}
+                    {degreeText(data, edu)}
                   </h3>
                   <p style={{ fontSize: '10pt', color: modernColors.textLight }}>
                     {edu.institution}
@@ -186,10 +185,7 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
       {/* Skills: a tinted block with a teal bar, one "Label: a, b, c" line per group */}
       {data.skills.length > 0 && (
         <section style={SECTION}>
-          {heading('skills')}
-          <div style={{ background: modernColors.tint, borderLeft: `3px solid ${modernColors.primary}`, padding: 'calc(10px * var(--cv-d, 1)) 14px' }}>
-            <SkillLines data={data} primary={modernColors.primary} text={modernColors.text} gap={8} lineHeight={1.35} />
-          </div>
+          <SkillLines heading={heading('skills')} tint={{ background: modernColors.tint, bar: modernColors.primary }} data={data} primary={modernColors.primary} text={modernColors.text} gap={8} lineHeight={1.35} />
         </section>
       )}
 

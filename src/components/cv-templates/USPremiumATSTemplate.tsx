@@ -18,7 +18,7 @@
 import { CVData, CVTemplate } from '@/lib/cv-templates/types';
 import { rootBox, type CvRenderMode } from '@/lib/cv-templates/print-spec';
 import { cvPaper } from '@/lib/cv-templates/paper';
-import { sectionHeading, formatDateRange, formatSingleDate, uiText } from '@/lib/cv-templates/locale';
+import { sectionHeading, formatDateRange, formatSingleDate, degreeText, uiText } from '@/lib/cv-templates/locale';
 import { ContactRows, LanguageLine, SkillLines, stackGap } from './shared';
 import { Award } from 'lucide-react';
 
@@ -148,7 +148,8 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
         {/* Core Competencies / Skills - 2026: 3-Column Grid with Languages integrated */}
         {data.skills.length > 0 && (
           <section style={{ marginBottom: 'calc(16px * var(--cv-d, 1))' }}>
-            <h2 
+            
+          <SkillLines heading={<h2 
               style={{ 
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '10.5pt',
@@ -162,8 +163,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
               }}
             >
               {sectionHeading(data, 'skills')}
-            </h2>
-          <SkillLines data={data} primary={premiumColors.primary} text={premiumColors.text} gap={6} lineHeight={1.4} />
+            </h2>} data={data} primary={premiumColors.primary} text={premiumColors.text} gap={6} lineHeight={1.4} />
         </section>
         )}
 
@@ -187,7 +187,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
             </h2>
             <div className="cv-stack" style={stackGap(16)}>
               {data.experience.map((exp, idx) => (
-                <div className="cv-exp" key={exp.id || idx}>
+                <div className={exp.bullets.length <= 3 ? 'cv-exp cv-exp-short' : 'cv-exp'} key={exp.id || idx}>
                   {/* Role Header */}
                   <div className="cv-entry-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'calc(4px * var(--cv-d, 1))' }}>
                     <h3 
@@ -288,7 +288,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
                       }}
                     >
                       {edu.degree}
-                      {edu.field && <span style={{ fontWeight: 'normal' }}> {uiText(data, 'degreeConnector')} {edu.field}</span>}
+                      {edu.field && <span style={{ fontWeight: 'normal' }}>{degreeText(data, edu).slice(edu.degree.trim().length)}</span>}
                     </h3>
                     <p 
                       style={{ 
@@ -336,7 +336,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
             >
               {sectionHeading(data, 'certifications')}
             </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '24px', rowGap: 'calc(6px * var(--cv-d, 1))' }}>
+            <div className="cv-stack" style={stackGap(6)}>
               {data.certifications.map((cert, idx) => (
                 <div 
                   key={cert.id || idx} 

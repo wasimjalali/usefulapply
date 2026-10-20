@@ -306,6 +306,14 @@ export const TEMPLATE_SPECIFICATIONS = {
 
 export type CVTemplateStyle = 'classic' | 'modern-ats' | 'professional';
 
+/** Shown when a CV with a photo, a date of birth or a nationality is on a US template, which leaves them out. */
+export const US_TEMPLATE_PERSONAL_DATA_NOTE = 'US templates leave out your photo and personal details.';
+
+/** True when the CV holds details only a DACH template prints: a photo, a date of birth or a nationality. */
+export function hasDachPersonalData(personal: { photoUrl?: string; dateOfBirth?: string; nationality?: string }): boolean {
+  return Boolean(personal.photoUrl || personal.dateOfBirth?.trim() || personal.nationality?.trim());
+}
+
 export interface CVTemplate {
   id: string;
   name: string;

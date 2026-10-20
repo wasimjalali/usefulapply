@@ -10,7 +10,7 @@ import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore, type ApplicationSession } from '@/store/useSessionStore';
 
 import { CVTemplateRenderer } from './cv-templates';
-import { getTemplateById } from '@/lib/cv-templates/types';
+import { getTemplateById, hasDachPersonalData } from '@/lib/cv-templates/types';
 import { TemplateStrip } from './cv-templates/TemplateStrip';
 import { buildCvData } from '@/lib/cv-templates/build-cv-data';
 import { writeDefaultTemplate } from '@/lib/cv-templates/default-template';
@@ -582,6 +582,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
               <TemplateStrip
                 selectedTemplateId={selectedTemplateId}
                 onSelect={setSelectedTemplateId}
+                hasDachData={Boolean(cvData && hasDachPersonalData(cvData.personal))}
               />
             )}
 

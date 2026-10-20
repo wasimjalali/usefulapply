@@ -23,7 +23,9 @@ import {
   formatDateRange,
   formatSingleDate,
   inferCvLocale,
+  labelColon,
   sectionHeading,
+  degreeText,
   uiText,
   type HeadingKey,
 } from '@/lib/cv-templates/locale';
@@ -165,8 +167,8 @@ export async function buildCvDocx(input: CvDocxInput): Promise<Uint8Array> {
   }
   // Date of birth and nationality belong to the DACH CV. A US CV never prints them, as in the PDF.
   const personalFacts = spec.market !== 'dach' ? [] : [
-    data.personal.dateOfBirth ? `${uiText(data, 'dateOfBirthLabel')}: ${formatBirthDate(data)}` : '',
-    data.personal.nationality ? `${uiText(data, 'nationalityLabel')}: ${data.personal.nationality}` : '',
+    data.personal.dateOfBirth ? `${uiText(data, 'dateOfBirthLabel')}${labelColon(data)} ${formatBirthDate(data)}` : '',
+    data.personal.nationality ? `${uiText(data, 'nationalityLabel')}${labelColon(data)} ${data.personal.nationality}` : '',
   ].filter(Boolean);
   if (personalFacts.length > 0) paragraphs.push(body([run(personalFacts.join('   '))], 20));
 
@@ -176,7 +178,7 @@ export async function buildCvDocx(input: CvDocxInput): Promise<Uint8Array> {
       if (data.skills.length === 0) return [];
       return [
         h1('skills'),
-        ...data.skills.map((group) => body([run(`${group.category}: `, { bold: true }), run(group.items.join(', '))], 40)),
+        ...data.skills.map((group) => body([run(`${group.category}${labelColon(data)} `, { bold: true }), run(group.items.join(', '))], 40)),
       ];
     },
     experience: () => {
@@ -208,7 +210,7 @@ export async function buildCvDocx(input: CvDocxInput): Promise<Uint8Array> {
       if (data.education.length === 0) return [];
       const out: Paragraph[] = [h1('education')];
       for (const edu of data.education) {
-        const degree = edu.field ? `${edu.degree} ${uiText(data, 'degreeConnector')} ${edu.field}` : edu.degree;
+        const degree = degreeText(data, edu);
         out.push(
           new Paragraph({
             heading: HeadingLevel.HEADING_2,
@@ -241,7 +243,7 @@ export async function buildCvDocx(input: CvDocxInput): Promise<Uint8Array> {
             h1('languages'),
             body(data.languages.flatMap((lang, index) => [
               ...(index > 0 ? [run(', ')] : []),
-              run(lang.language + (lang.proficiency ? ':' : ''), { bold: true }),
+              run(lang.language + (lang.proficiency ? labelColon(data) : ''), { bold: true }),
               ...(lang.proficiency ? [run(` ${lang.proficiency}`)] : []),
             ]), 60),
           ],

@@ -6,7 +6,7 @@ import { checkCvPdf } from '../lib/cv-checks';
 import { checkLetterPdf } from '../lib/letter-checks';
 import { pdftotext } from '../lib/poppler';
 import { squash } from '../lib/expect';
-import { APPLICATION_ID } from './seed';
+import { APPLICATION_ID, E2E_PERSONAL } from './seed';
 import { ORIGIN, signedInContext } from './auth';
 
 async function openApplication(page: Page) {
@@ -23,6 +23,11 @@ test.describe('web downloads use the server renderer', () => {
 
   test('CV tab: Download PDF and Download Word', async ({ page }, info) => {
     await openApplication(page);
+    // The CV holds a date of birth and a nationality and Premium ATS is a US template: the picker says what it leaves out.
+    await page.getByRole('button', { name: 'Templates' }).click();
+    await expect(page.getByText('US templates leave out your photo and personal details.')).toBeVisible();
+    await page.screenshot({ path: info.outputPath('cv-tab-picker-note.png') });
+    await page.getByRole('button', { name: 'Templates' }).click();
     await page.screenshot({ path: info.outputPath('cv-tab.png') });
 
     const pdfDownload = page.waitForEvent('download');
@@ -32,7 +37,7 @@ test.describe('web downloads use the server renderer', () => {
     const pdfPath = info.outputPath('downloaded-cv.pdf');
     await pdf.saveAs(pdfPath);
     const report = await checkCvPdf(new Uint8Array(await readFile(pdfPath)), {
-      fixture: 'us-one-page', templateId: 'premium-ats', source: US_ONE_PAGE, expectPhoto: false, expectedPages: 1,
+      fixture: 'us-one-page', templateId: 'premium-ats', source: { ...US_ONE_PAGE, personal: { ...US_ONE_PAGE.personal, ...E2E_PERSONAL } }, expectPhoto: false, expectedPages: 1,
     });
     expect(report.failures, 'the downloaded PDF passes every ATS check').toEqual([]);
     await expect(page.getByText('We used the quick download')).toHaveCount(0);
@@ -55,7 +60,7 @@ test.describe('web downloads use the server renderer', () => {
     expect(word.suggestedFilename()).toBe('Jordan_Ellis_CV.docx');
     const docxPath = info.outputPath('downloaded-cv.docx');
     await word.saveAs(docxPath);
-    const docx = await checkCvDocx(new Uint8Array(await readFile(docxPath)), { fixture: 'us-one-page', templateId: 'premium-ats', source: US_ONE_PAGE, expectPhoto: false });
+    const docx = await checkCvDocx(new Uint8Array(await readFile(docxPath)), { fixture: 'us-one-page', templateId: 'premium-ats', source: { ...US_ONE_PAGE, personal: { ...US_ONE_PAGE.personal, ...E2E_PERSONAL } }, expectPhoto: false });
     expect(docx.failures, 'the downloaded DOCX passes every check').toEqual([]);
   });
 

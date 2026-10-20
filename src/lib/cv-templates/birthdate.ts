@@ -9,16 +9,17 @@ import type { CVData } from './types';
  *   English, US or Canada   April 7, 1989
  *   English, elsewhere      7 April 1989
  *   German                  07.04.1989
- *   French and Italian      7 avril 1989, 7 aprile 1989
+ *   French and Italian      1er avril 1989, 7 avril 1989, 7 aprile 1989
  *   Spanish and Portuguese  7 de abril de 1989
  *   Dutch                   7 april 1989
  *
- * Text that is not a recognisable date is returned as typed.
+ * Text that is not a recognisable date, or a slash date that could be day first or month first outside a US CV, is
+ * returned as typed.
  */
 export function formatBirthDate(data: CVData): string {
   const raw = (data.personal.dateOfBirth ?? '').trim();
   if (!raw) return '';
-  const parsed = parseDate(raw);
+  const parsed = parseDate(raw, cvPaper(data) === 'letter');
   if (!parsed) return raw;
   const { day, month, year } = parsed;
   const locale = inferCvLocale(data);
@@ -30,6 +31,8 @@ export function formatBirthDate(data: CVData): string {
     case 'pt':
       return `${day} de ${name} de ${year}`;
     case 'fr':
+      // "1er avril", then "2 avril".
+      return `${day === 1 ? '1er' : day} ${name} ${year}`;
     case 'it':
     case 'nl':
       return `${day} ${name} ${year}`;
@@ -43,7 +46,7 @@ function valid(day: number, month: number, year: number): { day: number; month: 
   return { day, month, year };
 }
 
-function parseDate(raw: string): { day: number; month: number; year: number } | null {
+function parseDate(raw: string, usMarket: boolean): { day: number; month: number; year: number } | null {
   let m = raw.match(/^(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})$/);
   if (m) return valid(Number(m[1]), Number(m[2]), Number(m[3]));
   m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
@@ -52,8 +55,13 @@ function parseDate(raw: string): { day: number; month: number; year: number } | 
   if (m) {
     const a = Number(m[1]);
     const b = Number(m[2]);
-    // Day first unless only the other reading is a real date.
-    return b > 12 && a <= 12 ? valid(b, a, Number(m[3])) : valid(a, b, Number(m[3]));
+    const year = Number(m[3]);
+    // One reading is impossible (a part over 12): the other is the date. Both fit and the numbers differ:
+    // a US or Canadian CV reads month first, anything else is ambiguous and stays as typed.
+    if (a > 12 && b <= 12) return valid(a, b, year);
+    if (b > 12 && a <= 12) return valid(b, a, year);
+    if (a === b) return valid(a, b, year);
+    return usMarket ? valid(b, a, year) : null;
   }
   m = raw.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+(?:de\s+)?([\p{L}.]+)\s+(?:de\s+)?(\d{4})$/u);
   if (m) {

@@ -116,9 +116,13 @@ function senderLinkProblems(text: string, links: Array<{ url: string; text: stri
   for (const link of picked) {
     if (!squash(text).includes(squash(displayUrl(link)))) problems.push(`sender link text "${displayUrl(link)}" is not in the text`);
     if (squash(text).includes(squash(fullUrl(link)))) problems.push(`sender link prints its scheme: ${fullUrl(link)}`);
-    const annotation = links.find((a) => sameUrl(a.url, fullUrl(link)));
-    if (!annotation) problems.push(`no clickable link to ${fullUrl(link)}`);
-    else if (squash(annotation.text) !== squash(displayUrl(link))) problems.push(`the link to ${fullUrl(link)} shows "${annotation.text}"`);
+    // A link that wraps may be one annotation or one per line: the texts joined are the whole address.
+    const annotations = links.filter((a) => sameUrl(a.url, fullUrl(link)));
+    if (annotations.length === 0) problems.push(`no clickable link to ${fullUrl(link)}`);
+    else {
+      const shown = annotations.map((a) => a.text).join(' ');
+      if (squash(shown) !== squash(displayUrl(link))) problems.push(`the link to ${fullUrl(link)} shows "${shown}"`);
+    }
   }
   for (const link of (letter.sender.links ?? []).filter((x) => !picked.includes(x))) {
     if (squash(text).includes(squash(displayUrl(link)))) problems.push(`a third link is printed: ${displayUrl(link)}`);

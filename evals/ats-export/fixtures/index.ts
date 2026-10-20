@@ -124,6 +124,8 @@ export const DE_TWO_PAGE: CVData = {
     { id: id(), name: 'Certified Scrum Professional', issuer: 'Scrum Alliance', date: '2018' },
     { id: id(), name: 'TOGAF 9 Zertifizierung', issuer: 'The Open Group', date: '2020' },
   ],
+  projects: [{ id: id(), name: 'Flottenportal', description: 'Webportal für die Disposition von 3.000 Fahrzeugen mit Echtzeit-Standortdaten.', technologies: ['Kotlin', 'Kafka'] }],
+  additionalInfo: ['Führerschein Klasse B', 'Reisebereitschaft'],
   signature: { city: 'München', date: '20.10.2026', includeSignature: true },
 };
 
@@ -132,6 +134,9 @@ export const DE_TWO_PAGE: CVData = {
  * with the noise real links have (www, a tracking query, a trailing slash).
  * Only a DACH template may print the date of birth and the nationality.
  */
+export const LONG_PORTFOLIO_URL =
+  'https://portfolio.jordan-ellis.example/work/selected-case-studies-2020-2026/payments-platform-migration/architecture-reviews/ledger-service-exactly-once-semantics-and-idempotency-keys';
+
 export const US_PERSONAL: CVData = {
   ...US_ONE_PAGE,
   personal: {
@@ -139,8 +144,8 @@ export const US_PERSONAL: CVData = {
     dateOfBirth: '07.04.1989',
     nationality: 'American',
     website: 'https://www.jordan-ellis.example/?utm_source=cv&utm_medium=pdf',
-    // Longer than the 48 characters a link shows: the text is cut with an ellipsis, the link opens the whole address.
-    portfolio: 'https://portfolio.jordan-ellis.example/work/selected-case-studies-2020-2026/payments-platform-migration',
+    // Longer than a line: the text is never cut, it wraps after a slash, and the link opens the whole address.
+    portfolio: LONG_PORTFOLIO_URL,
   },
 };
 
@@ -195,11 +200,13 @@ export const FR_ONE_PAGE: CVData = {
   ],
   languages: [{ language: 'Français', proficiency: 'Langue maternelle' }, { language: 'Anglais', proficiency: 'Courant' }],
   certifications: [{ id: id(), name: 'Certified Kubernetes Administrator', issuer: 'CNCF', date: '2022' }],
+  projects: [{ id: id(), name: 'Outil de tri des tickets', description: 'Classificateur de demandes d’assistance qui réduit le délai de première réponse de soixante pour cent.', technologies: ['Python', 'REST'] }],
+  additionalInfo: ['Permis B', 'Disponible sous un mois'],
 };
 
-function localized(language: string, base: Omit<CVData, 'language' | 'certifications' | 'projects'> & { certName: string }): CVData {
-  const { certName, ...rest } = base;
-  return { ...rest, language, certifications: [{ id: id(), name: certName, issuer: 'CNCF', date: '2022' }] } as CVData;
+function localized(language: string, base: Omit<CVData, 'language' | 'certifications' | 'projects' | 'additionalInfo'> & { certName: string; project: { name: string; description: string }; extra: string[] }): CVData {
+  const { certName, project, extra, ...rest } = base;
+  return { ...rest, language, certifications: [{ id: id(), name: certName, issuer: 'CNCF', date: '2022' }], projects: [{ id: id(), ...project, technologies: ['Python', 'REST'] }], additionalInfo: extra } as CVData;
 }
 
 /** Spanish, Italian, Dutch and Portuguese CVs: every heading, the present label and the degree connector in their own language. */
@@ -214,6 +221,8 @@ export const ES_ONE_PAGE: CVData = localized('es', {
   skills: [{ category: 'Lenguajes', items: ['Go', 'Python', 'SQL', 'TypeScript'] }, { category: 'Infraestructura', items: ['Kubernetes', 'Terraform', 'AWS'] }],
   languages: [{ language: 'Español', proficiency: 'Nativo' }, { language: 'Inglés', proficiency: 'C1' }],
   certName: 'Administrador certificado de Kubernetes',
+  project: { name: 'Clasificador de incidencias', description: 'Herramienta que clasifica solicitudes de soporte y reduce un sesenta por ciento el tiempo de primera respuesta.' },
+  extra: ['Carnet de conducir B', 'Disponibilidad inmediata'],
 });
 
 export const IT_ONE_PAGE: CVData = localized('it', {
@@ -227,6 +236,8 @@ export const IT_ONE_PAGE: CVData = localized('it', {
   skills: [{ category: 'Linguaggi', items: ['Go', 'Python', 'SQL', 'TypeScript'] }, { category: 'Infrastruttura', items: ['Kubernetes', 'Terraform', 'AWS'] }],
   languages: [{ language: 'Italiano', proficiency: 'Madrelingua' }, { language: 'Inglese', proficiency: 'C1' }],
   certName: 'Amministratore Kubernetes certificato',
+  project: { name: 'Classificatore di richieste', description: 'Strumento che classifica le richieste di assistenza e riduce del sessanta per cento il tempo di prima risposta.' },
+  extra: ['Patente B', 'Disponibile da subito'],
 });
 
 export const NL_ONE_PAGE: CVData = localized('nl', {
@@ -240,6 +251,8 @@ export const NL_ONE_PAGE: CVData = localized('nl', {
   skills: [{ category: 'Talen', items: ['Go', 'Python', 'SQL', 'TypeScript'] }, { category: 'Infrastructuur', items: ['Kubernetes', 'Terraform', 'AWS'] }],
   languages: [{ language: 'Nederlands', proficiency: 'Moedertaal' }, { language: 'Engels', proficiency: 'C1' }],
   certName: 'Gecertificeerd Kubernetes-beheerder',
+  project: { name: 'Ticketclassificatie', description: 'Hulpmiddel dat supportaanvragen indeelt en de tijd tot de eerste reactie met zestig procent verkort.' },
+  extra: ['Rijbewijs B', 'Direct beschikbaar'],
 });
 
 export const PT_ONE_PAGE: CVData = localized('pt', {
@@ -253,6 +266,8 @@ export const PT_ONE_PAGE: CVData = localized('pt', {
   skills: [{ category: 'Linguagens', items: ['Go', 'Python', 'SQL', 'TypeScript'] }, { category: 'Infraestrutura', items: ['Kubernetes', 'Terraform', 'AWS'] }],
   languages: [{ language: 'Português', proficiency: 'Língua materna' }, { language: 'Inglês', proficiency: 'C1' }],
   certName: 'Administrador Kubernetes certificado',
+  project: { name: 'Classificador de pedidos', description: 'Ferramenta que classifica pedidos de suporte e reduz em sessenta por cento o tempo da primeira resposta.' },
+  extra: ['Carta de condução B', 'Disponibilidade imediata'],
 });
 
 /** A French CV long enough for a second page: the footer and the localized text on every page. */
@@ -262,6 +277,28 @@ export const FR_TWO_PAGE: CVData = {
     job('Ingénieure logicielle senior', 'Transports Rhône-Alpes', 'Lyon', '03/2021', undefined,
       Array.from({ length: 14 }, (_, i) => `Mise en production de la livraison ${i + 1} : pilotage du périmètre, de la recette et de la reprise d’astreinte pour la plateforme ${['facturation', 'identité', 'recherche'][i % 3]}, avec des gains mesurés sur ${10 + i} régions.`), true),
     ...FR_ONE_PAGE.experience.slice(1),
+  ],
+};
+
+/** The first role stretched to fourteen bullets, so the CV needs a second page (footer and language checks on every page). */
+function twoPage(base: CVData, filler: (i: number) => string): CVData {
+  return {
+    ...base,
+    experience: [{ ...base.experience[0], bullets: Array.from({ length: 14 }, (_, i) => filler(i + 1)) }, ...base.experience.slice(1)],
+  };
+}
+
+export const ES_TWO_PAGE = twoPage(ES_ONE_PAGE, (i) => `Entrega ${i}: dirigió el alcance, las pruebas y el traspaso de guardia de la plataforma de ${['facturación', 'identidad', 'búsqueda'][i % 3]}, con mejoras medidas en ${10 + i} regiones.`);
+export const PT_TWO_PAGE = twoPage(PT_ONE_PAGE, (i) => `Entrega ${i}: liderou o âmbito, os testes e a passagem de turno da plataforma de ${['faturação', 'identidade', 'pesquisa'][i % 3]}, com ganhos medidos em ${10 + i} regiões.`);
+export const IT_TWO_PAGE = twoPage(IT_ONE_PAGE, (i) => `Rilascio ${i}: ha guidato ambito, collaudo e passaggio di reperibilità della piattaforma di ${['fatturazione', 'identità', 'ricerca'][i % 3]}, con miglioramenti misurati in ${10 + i} regioni.`);
+export const NL_TWO_PAGE = twoPage(NL_ONE_PAGE, (i) => `Oplevering ${i}: leidde de scope, de acceptatie en de overdracht van de bereikbaarheidsdienst voor het platform ${['facturatie', 'identiteit', 'zoeken'][i % 3]}, met gemeten winst in ${10 + i} regio’s.`);
+
+/** Nine bullets on the first role: two pages with a last page under the fit threshold, where a tighter render cannot save a page. */
+export const FIT_NO_GAIN: CVData = {
+  ...US_ONE_PAGE,
+  experience: [
+    { ...US_ONE_PAGE.experience[0], bullets: Array.from({ length: 9 }, (_, i) => `Shipped platform change ${i + 1}: owned scoping, rollout and on-call handover for the billing stack across ${10 + i} regions.`) },
+    ...US_ONE_PAGE.experience.slice(1),
   ],
 };
 
@@ -400,17 +437,27 @@ export const FR_LETTER: StructuredCoverLetter = {
 
 export interface LocaleExpectation {
   language: 'fr' | 'es' | 'it' | 'nl' | 'pt' | 'de' | 'en';
-  headings: { summary: string; experience: string; education: string; skills: string; certifications: string; languages: string };
+  headings: { summary: string; experience: string; education: string; skills: string; certifications: string; languages: string; projects: string; additionalInfo: string };
   present: string;
-  connector: string;
+  /** The first education entry as it must read, written by hand: the connector (or comma) between degree and field is part of it. */
+  degreeLine: string;
+  /** A skill label as the language writes it before its colon, with the spacing the language uses ("Langages :" in French). */
+  labelSample: string;
+  /** The footer words, written by hand: "Page 1 sur 2". */
+  footer: [string, string];
 }
 
-export const LOCALE_EXPECTATIONS: Record<'fr' | 'es' | 'it' | 'nl' | 'pt', LocaleExpectation> = {
-  fr: { language: 'fr', headings: { summary: 'Profil', experience: 'Expérience', education: 'Formation', skills: 'Compétences', certifications: 'Certifications', languages: 'Langues' }, present: "Aujourd'hui", connector: 'en' },
-  es: { language: 'es', headings: { summary: 'Perfil', experience: 'Experiencia', education: 'Formación', skills: 'Competencias', certifications: 'Certificaciones', languages: 'Idiomas' }, present: 'Actualidad', connector: 'en' },
-  it: { language: 'it', headings: { summary: 'Profilo', experience: 'Esperienza', education: 'Formazione', skills: 'Competenze', certifications: 'Certificazioni', languages: 'Lingue' }, present: 'Presente', connector: 'in' },
-  nl: { language: 'nl', headings: { summary: 'Profiel', experience: 'Werkervaring', education: 'Opleiding', skills: 'Vaardigheden', certifications: 'Certificeringen', languages: 'Talen' }, present: 'Heden', connector: 'in' },
-  pt: { language: 'pt', headings: { summary: 'Perfil', experience: 'Experiência', education: 'Formação', skills: 'Competências', certifications: 'Certificações', languages: 'Línguas' }, present: 'Atualmente', connector: 'em' },
+/** The templates that print the "additional information" section. */
+export const ADDITIONAL_INFO_TEMPLATES: readonly string[] = ['german-ats', 'german-classic', 'classic-green'];
+
+// U+202F (narrow no-break space) before a colon in French, a plain colon elsewhere.
+export const LOCALE_EXPECTATIONS: Record<'fr' | 'es' | 'it' | 'nl' | 'pt' | 'de', LocaleExpectation> = {
+  fr: { language: 'fr', headings: { summary: 'Profil', experience: 'Expérience', education: 'Formation', skills: 'Compétences', certifications: 'Certifications', languages: 'Langues', projects: 'Projets', additionalInfo: 'Informations complémentaires' }, present: 'Aujourd’hui', degreeLine: 'Diplôme d’ingénieur, Informatique', labelSample: 'Langages\u202F:', footer: ['Page', 'sur'] },
+  es: { language: 'es', headings: { summary: 'Perfil', experience: 'Experiencia', education: 'Formación', skills: 'Competencias', certifications: 'Certificaciones', languages: 'Idiomas', projects: 'Proyectos', additionalInfo: 'Información adicional' }, present: 'Actualidad', degreeLine: 'Grado en Ingeniería, Informática', labelSample: 'Lenguajes:', footer: ['Página', 'de'] },
+  it: { language: 'it', headings: { summary: 'Profilo', experience: 'Esperienza', education: 'Formazione', skills: 'Competenze', certifications: 'Certificazioni', languages: 'Lingue', projects: 'Progetti', additionalInfo: 'Informazioni aggiuntive' }, present: 'Presente', degreeLine: 'Laurea magistrale in Ingegneria informatica', labelSample: 'Linguaggi:', footer: ['Pagina', 'di'] },
+  nl: { language: 'nl', headings: { summary: 'Profiel', experience: 'Werkervaring', education: 'Opleiding', skills: 'Vaardigheden', certifications: 'Certificeringen', languages: 'Talen', projects: 'Projecten', additionalInfo: 'Aanvullende informatie' }, present: 'Heden', degreeLine: 'Master in Informatica', labelSample: 'Talen:', footer: ['Pagina', 'van'] },
+  pt: { language: 'pt', headings: { summary: 'Perfil', experience: 'Experiência', education: 'Formação', skills: 'Competências', certifications: 'Certificações', languages: 'Línguas', projects: 'Projetos', additionalInfo: 'Informações adicionais' }, present: 'Atualmente', degreeLine: 'Mestrado em Engenharia Informática', labelSample: 'Linguagens:', footer: ['Página', 'de'] },
+  de: { language: 'de', headings: { summary: 'Profil', experience: 'Berufserfahrung', education: 'Ausbildung', skills: 'Kenntnisse', certifications: 'Zertifikate', languages: 'Sprachen', projects: 'Projekte', additionalInfo: 'Weitere Angaben' }, present: 'heute', degreeLine: 'Diplom-Informatiker, Informatik', labelSample: 'Technologien:', footer: ['Seite', 'von'] },
 };
 
 export interface CvFixture {
@@ -423,21 +470,33 @@ export interface CvFixture {
   /** Only these templates (a language fixture needs two, not six). */
   templates?: readonly string[];
   locale?: LocaleExpectation;
+  /** The language the CV is written in, by hand: the PDF's /Lang and the page footer must follow it. */
+  lang: 'en' | 'de' | 'fr' | 'es' | 'pt' | 'it' | 'nl';
+  /** The last page is deliberately short (under the 15% fit threshold). */
+  allowShortLastPage?: boolean;
+  /** What the fit pass must do with this CV, written by hand. */
+  expectFit?: { pagesBefore: number; pagesAfter: number; step: number | null; extraRenders: number };
 }
 
 export const CV_FIXTURES: CvFixture[] = [
-  { name: 'us-one-page', paper: 'letter', data: US_ONE_PAGE, expectedUsPages: 1 },
-  { name: 'de-two-page', paper: 'a4', data: DE_TWO_PAGE },
-  { name: 'over-cap', paper: 'letter', data: OVER_CAP },
-  { name: 'long-entry', paper: 'letter', data: LONG_ENTRY },
-  { name: 'us-personal', paper: 'letter', data: US_PERSONAL, expectedUsPages: 1 },
-  { name: 'hostile', paper: 'letter', data: HOSTILE },
-  { name: 'fr-one-page', paper: 'a4', data: FR_ONE_PAGE, locale: LOCALE_EXPECTATIONS.fr },
-  { name: 'fr-two-page', paper: 'a4', data: FR_TWO_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.fr },
-  { name: 'es-one-page', paper: 'a4', data: ES_ONE_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.es },
-  { name: 'it-one-page', paper: 'a4', data: IT_ONE_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.it },
-  { name: 'nl-one-page', paper: 'a4', data: NL_ONE_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.nl },
-  { name: 'pt-one-page', paper: 'a4', data: PT_ONE_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.pt },
+  { name: 'us-one-page', paper: 'letter', lang: 'en', data: US_ONE_PAGE, expectedUsPages: 1 },
+  { name: 'de-two-page', paper: 'a4', lang: 'de', data: DE_TWO_PAGE, locale: LOCALE_EXPECTATIONS.de },
+  { name: 'over-cap', paper: 'letter', lang: 'en', data: OVER_CAP },
+  { name: 'long-entry', paper: 'letter', lang: 'en', data: LONG_ENTRY },
+  { name: 'us-personal', paper: 'letter', lang: 'en', data: US_PERSONAL, expectedUsPages: 1 },
+  { name: 'hostile', paper: 'letter', lang: 'en', data: HOSTILE },
+  { name: 'fr-one-page', paper: 'a4', lang: 'fr', data: FR_ONE_PAGE, locale: LOCALE_EXPECTATIONS.fr },
+  { name: 'fr-two-page', paper: 'a4', lang: 'fr', data: FR_TWO_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.fr },
+  { name: 'es-one-page', paper: 'a4', lang: 'es', data: ES_ONE_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.es },
+  { name: 'es-two-page', paper: 'a4', lang: 'es', data: ES_TWO_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.es },
+  { name: 'it-one-page', paper: 'a4', lang: 'it', data: IT_ONE_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.it },
+  { name: 'it-two-page', paper: 'a4', lang: 'it', data: IT_TWO_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.it },
+  { name: 'nl-one-page', paper: 'a4', lang: 'nl', data: NL_ONE_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.nl },
+  { name: 'nl-two-page', paper: 'a4', lang: 'nl', data: NL_TWO_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.nl },
+  { name: 'pt-one-page', paper: 'a4', lang: 'pt', data: PT_ONE_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.pt },
+  { name: 'pt-two-page', paper: 'a4', lang: 'pt', data: PT_TWO_PAGE, templates: ['premium-ats', 'german-ats'], locale: LOCALE_EXPECTATIONS.pt },
+  // The fit pass tries two tighter renders and keeps neither: 3% and 6% tighter cannot save a page here.
+  { name: 'fit-no-gain', paper: 'letter', lang: 'en', data: FIT_NO_GAIN, templates: ['premium-ats', 'modern-professional', 'executive'], allowShortLastPage: true, expectFit: { pagesBefore: 2, pagesAfter: 2, step: null, extraRenders: 2 } },
 ];
 
 /** The templates a fixture runs through. */

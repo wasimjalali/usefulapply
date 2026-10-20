@@ -1,0 +1,29 @@
+{
+  "fixture": "nl-two-page",
+  "template": "german-ats",
+  "raw": "{\n  \"name\": \"Sanne de Vries\",\n  \"email\": \"sanne.devries@example.nl\",\n  \"phone\": \"+31 6 1234 5678\",\n  \"jobs\": [\n    {\n      \"title\": \"Senior software engineer\",\n      \"company\": \"Transport Midden-Nederland\",\n      \"dates\": \"03/2021 - Heden\",\n      \"bullets\": [\n        \"Oplevering 1: leidde de scope, de acceptatie en de overdracht van de bereikbaarheidsdienst voor het platform identiteit, met gemeten winst in 11 regio’s.\",\n        \"Oplevering 2: leidde de scope, de acceptatie en de overdracht van de bereikbaarheidsdienst voor het platform zoeken, met gemeten winst in 12 regio’s.\",\n        \"Oplevering 3: leidde de scope, de acceptatie en de overdracht van de bereikbaarheidsdienst voor het platform facturatie, met gemeten winst in 13 regio’s.\",\n        \"Oplevering 4: leidde de scope, de acceptatie en de overdracht van de bereikbaarheidsdienst voor het platform identiteit, met gemeten winst in 14 regio’s.\",\n        \"Oplevering 5: leidde de scope, de acceptatie en de overdracht van de bereikbaarheidsdienst voor het platform zoeken, met gemeten winst in 15 regio’s.\",\n        \"Oplevering 6: leidde de scope, de acceptatie en de overdracht van de bereikbaarheidsdienst voor het platform facturatie, met gemeten winst in 16 regio’s.\",\n        \"Oplevering 7: leidde de scope, de acceptatie en de overdracht van de bereikbaarheidsdienst voor het platform identiteit, met gemeten winst in 17 regio’s.\",\n        \"Oplevering 8: leidde de scope, de acceptatie en de overdracht van de bereikbaarheidsdienst voor het platform zoeken, met gemeten winst in 18 regio’s.\",\n        \"Oplevering 9: leidde de scope, de acceptatie en de overdracht van de bereikbaarheidsdienst voor het platform facturatie, met gemeten winst in 19 regio’s.\",\n        \"Oplevering 10: leidde de scope, de acceptatie en de overdracht van de bereikbaarheidsdienst voor het platform identiteit, met gemeten winst in 20 regio’s.\",\n        \"Oplevering 11: leidde de scope, de acceptatie en de overdracht van de bereikbaarheidsdienst voor het platform zoeken, met gemeten winst in 21 regio’s.\",\n        \"Oplevering 12: leidde de scope, de acceptatie en de overdracht van de bereikbaarheidsdienst voor het platform facturatie, met gemeten winst in 22 regio’s.\",\n        \"Oplevering 13: leidde de scope, de acceptatie en de overdracht van de bereikbaarheidsdienst voor het platform identiteit, met gemeten winst in 23 regio’s.\",\n        \"Oplevering 14: leidde de scope, de acceptatie en de overdracht van de bereikbaarheidsdienst voor het platform zoeken, met gemeten winst in 24 regio’s.\"\n      ]\n    },\n    {\n      \"title\": \"Software engineer\",\n      \"company\": \"Hollandse Bank\",\n      \"dates\": \"09/2016 - 02/2021\",\n      \"bullets\": [\n        \"Ontwierp de grootboekservice die twee miljoen transacties per dag verwerkt.\",\n        \"Bracht de afhandeltijd van geschillen terug van drie dagen naar vier uur.\"\n      ]\n    }\n  ],\n  \"skills\": [\n    \"Go\",\n    \"Python\",\n    \"SQL\",\n    \"TypeScript\",\n    \"Kubernetes\",\n    \"Terraform\",\n    \"AWS\"\n  ],\n  \"education\": [\n    {\n      \"school\": \"Technische Universiteit Delft\",\n      \"degree\": \"Master in Informatica\",\n      \"date\": \"2016\"\n    }\n  ]\n}",
+  "error": null,
+  "score": {
+    "name": true,
+    "email": true,
+    "phone": true,
+    "jobs": {
+      "matched": 2,
+      "total": 2
+    },
+    "bullets": {
+      "matched": 16,
+      "total": 16
+    },
+    "skills": {
+      "matched": 7,
+      "total": 7
+    },
+    "education": {
+      "matched": 1,
+      "total": 1
+    },
+    "missedJobs": [],
+    "missedSkills": []
+  }
+}

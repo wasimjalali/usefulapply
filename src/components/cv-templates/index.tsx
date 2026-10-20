@@ -24,7 +24,7 @@ interface CVTemplateRendererProps {
  * 1. premium-ats - Default, best for most applications
  * 2. modern-professional - Tech/startups
  * 3. executive - Senior roles
- * 4. german-ats - German market (two-column with photo)
+ * 4. german-ats - German market (single-column with photo)
  * 5. german-classic - German market (single-column with photo)
  * 6. classic-green - English market, forest green accent
  */

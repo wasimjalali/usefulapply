@@ -21,6 +21,8 @@ import type { ResolvedExport } from './resolve';
 export interface RenderDeps {
   browser: BrowserRunBinding | null;
   loadFont: FontFileLoader;
+  /** Called for every Browser Run call, as it happens, so a render that fails halfway is still counted. */
+  onRender?: () => void;
 }
 
 export interface RenderedExport {
@@ -28,8 +30,10 @@ export interface RenderedExport {
   contentType: string;
   fileName: string;
   displayName: string;
-  /** Browser Run renders this export used. Counted against the user's daily render budget. */
+  /** Browser Run calls this export used, retries included. */
   renders: number;
+  /** The fit pass, for a CV: pages before and after, the density step kept (null when the first render stands). */
+  fit?: { pagesBefore: number; pagesAfter: number; step: number | null; extraRenders: number };
 }
 
 /** The document is bigger than an ATS upload limit allows. Returned as a failure, never as a degraded file. */
@@ -56,15 +60,30 @@ function emailsText(resolved: ResolvedExport): string {
 }
 
 /** Renders one export to bytes. No storage, no signing: those belong to the caller. */
-export async function renderExport(resolved: ResolvedExport, deps: RenderDeps): Promise<RenderedExport> {
+export async function renderExport(resolved: ResolvedExport, rawDeps: RenderDeps): Promise<RenderedExport> {
   const { format } = resolved;
+  // Every Browser Run call goes through one counter, and the caller hears about it as it happens.
+  let renders = 0;
+  const base = rawDeps.browser;
+  const deps: RenderDeps = {
+    ...rawDeps,
+    browser: base
+      ? {
+          quickAction: async (action, body) => {
+            renders++;
+            rawDeps.onRender?.();
+            return base.quickAction(action, body);
+          },
+        }
+      : null,
+  };
+  let fitResult: RenderedExport['fit'];
   const ext = extensionFor(format);
   const contentType = CONTENT_TYPES[ext];
   const words = exportText(resolved.locale);
   const fileName = exportFileName(format, resolved.applicantName, resolved.locale);
   const name = resolved.applicantName;
   let bytes: Uint8Array;
-  let renders = 0;
 
   switch (format) {
     case 'cv_pdf': {
@@ -72,7 +91,6 @@ export async function renderExport(resolved: ResolvedExport, deps: RenderDeps): 
       const browser = requireBrowser(deps);
       const build = async (density?: { spacing: number; lineHeight: number }) => {
         const { html } = await renderCvHtml({ data: cv, templateId: resolved.templateId, paper: resolved.paper, loadFont: deps.loadFont, density });
-        renders++;
         return renderHtmlToPdf(browser, html, resolved.paper);
       };
       const first = await build();
@@ -82,7 +100,7 @@ export async function renderExport(resolved: ResolvedExport, deps: RenderDeps): 
         console.log('[export] fit pass', JSON.stringify({ template: resolved.templateId, pagesBefore: fit.pagesBefore, pagesAfter: fit.pagesAfter, step: fit.step, extraRenders: fit.extraRenders }));
       }
       const rendered = fit.pdf;
-      if (fit.pagesAfter > 1) renders++;
+      fitResult = { pagesBefore: fit.pagesBefore, pagesAfter: fit.pagesAfter, step: fit.step, extraRenders: fit.extraRenders };
       const raw = await addContinuationFooters({ browser: requireBrowser(deps), pdf: rendered, paper: resolved.paper, name, footer: words.footer, loadFont: deps.loadFont });
       bytes = await applyPdfMetadata(raw, {
         title: words.cvTitle(name),
@@ -111,7 +129,6 @@ export async function renderExport(resolved: ResolvedExport, deps: RenderDeps): 
         language: words.htmlLang,
       });
       const raw = await renderHtmlToPdf(requireBrowser(deps), html, resolved.paper);
-      renders++;
       bytes = await applyPdfMetadata(raw, {
         title: words.letterTitle(name),
         author: name,
@@ -143,7 +160,6 @@ export async function renderExport(resolved: ResolvedExport, deps: RenderDeps): 
         loadFont: deps.loadFont,
       });
       const raw = await renderHtmlToPdf(requireBrowser(deps), html, resolved.paper);
-      renders++;
       bytes = await applyPdfMetadata(raw, {
         title: answersTitle(resolved.company, resolved.locale),
         author: name,
@@ -155,6 +171,6 @@ export async function renderExport(resolved: ResolvedExport, deps: RenderDeps): 
   }
 
   if (bytes.length > MAX_EXPORT_BYTES) throw new ExportTooLargeError(bytes.length);
-  return { bytes, contentType, fileName, displayName: exportDisplayFileName(format, resolved.applicantName, resolved.locale), renders };
+  return { bytes, contentType, fileName, displayName: exportDisplayFileName(format, resolved.applicantName, resolved.locale), renders, fit: fitResult };
 }
 
