@@ -28,6 +28,7 @@ import { getDb, isUniqueViolation, nowIso, runBatch } from '@/db/client';
 import { agentOperations } from '@/db/schema';
 import { buildReleaseReservationStatements, getReservationByKey, releaseFitContinuationClaim } from '@/db/repos/credits';
 import { IdempotencyKeyMismatch, NotFoundError } from './errors';
+import { finalizeFeedRowForKit } from './feed/kit-finalize';
 
 export const OPERATION_KINDS = {
   /** Queued: runs in the Queue consumer, finished by the runner's atomic batch. */
@@ -480,6 +481,11 @@ export async function finishOperationWithoutKit(
       await releaseFitContinuationClaim(operation.user_id, contextId, operation.idempotency_key).catch((error) => {
         console.error('[operations] could not release the fit continuation claim:', error);
       });
+    }
+    // A kit queued for a job from the feed leaves the pending state on the feed row too. After the
+    // batch above, and never failing it.
+    if (operation.kind === OPERATION_KINDS.generateKit) {
+      await finalizeFeedRowForKit(operation, failure.status, failure.errorCode);
     }
   }
   return ended;

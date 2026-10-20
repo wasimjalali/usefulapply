@@ -207,6 +207,45 @@ export async function claimQueuedRun(
   return (rows[0] as JobFeedRun | undefined) ?? null;
 }
 
+/**
+ * Put a run that ended badly (failed) or stalled (running) back on the queue. Conditional on the
+ * row still being in the state and at the `updated_at` the caller read, so two callers cannot both
+ * requeue it, and a run that moved on in the meantime is left alone. Null when the guard missed.
+ */
+export async function requeueRun(
+  userId: string,
+  runId: string,
+  expected: { status: 'failed' | 'running'; updatedAt: string },
+): Promise<JobFeedRun | null> {
+  const db = await getDb();
+  const rows = await db
+    .update(jobFeedRuns)
+    .set({ status: 'queued', error_message: null, completed_at: null, updated_at: nowIso() })
+    .where(and(
+      eq(jobFeedRuns.id, runId),
+      eq(jobFeedRuns.user_id, userId),
+      eq(jobFeedRuns.status, expected.status),
+      eq(jobFeedRuns.updated_at, expected.updatedAt),
+    ))
+    .returning();
+  return (rows[0] as JobFeedRun | undefined) ?? null;
+}
+
+/** End a run nobody ever claimed. Conditional on it still being queued, so a run that started is never touched. */
+export async function failQueuedRun(userId: string, runId: string, errorMessage: string): Promise<boolean> {
+  const db = await getDb();
+  const rows = await db
+    .update(jobFeedRuns)
+    .set({ status: 'failed', completed_at: nowIso(), error_message: errorMessage, updated_at: nowIso() })
+    .where(and(
+      eq(jobFeedRuns.id, runId),
+      eq(jobFeedRuns.user_id, userId),
+      eq(jobFeedRuns.status, 'queued'),
+    ))
+    .returning({ id: jobFeedRuns.id });
+  return rows.length > 0;
+}
+
 export async function deleteRunArtifacts(userId: string, runId: string): Promise<void> {
   const db = await getDb();
   await db.delete(jobFeedRawFetches).where(and(eq(jobFeedRawFetches.run_id, runId), eq(jobFeedRawFetches.user_id, userId)));
