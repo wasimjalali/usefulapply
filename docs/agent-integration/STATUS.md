@@ -1,6 +1,14 @@
 # MCP integration: status tracker
 
-Last updated 2026-10-20, end of session 1. The plan is `PLAN.md` (v3) in this folder; this file says what's done, what's in flight and what's left. A new session starts here.
+Last updated 2026-10-20, during session 2. The plan is `PLAN.md` (v3) in this folder; this file says what's done, what's in flight and what's left. A new session starts here.
+
+## Session 2 progress (2026-10-20)
+
+- **#160 merged:** the lockfile was out of sync with `package.json` (not a better-sqlite3 peer conflict). A plain `npm ci` works again; `--legacy-peer-deps` is no longer needed.
+- **#159 (`fix/discard-and-short-jd`):** opened. Round 1: Codex found 2 highs (Discard reset every panel's draft, not just the conflicted one; an in-flight CV save could reopen a discarded draft without its revision guard), Sonnet 6 lows. Fixes in progress.
+- **PR 5 (`feature/mcp-tool-catalog`):** all 44 tools built by five workers in parallel and merged into the branch (`account`, `applications`, `cv`, `spend`, `feed`, `profile` modules under `src/lib/mcp/tools/`, registered through `catalog.ts`). In progress: the `mcp` Playwright project (E2E worker), `run_job_feed` moving onto the queue and feed rows finalized when an MCP kit completes.
+  - Decisions: `update_notification_settings` drops the default CV template (it's browser-local only); `notify_tips`, `notify_updates` and `notify_weekly` aren't exposed (nothing reads them). CV undo keeps the current screening answers. A regenerated kit has no undo (the runner's atomic batch writes no history; the confirm question says so).
+- **PR 6b:** plugin repo [wasimjalali/usefulapply-plugin](https://github.com/wasimjalali/usefulapply-plugin) created (public), PR #1 open there. OpenAI submission sheet, reviewer seed script and submission pack on `feature/mcp-distribution-pack` (not pushed yet); the seed runs locally only until launch.
 
 ## Done: merged and live in production
 
