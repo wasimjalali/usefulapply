@@ -30,7 +30,13 @@ import { buildReleaseReservationStatements, getReservationByKey, releaseFitConti
 import { IdempotencyKeyMismatch, NotFoundError } from './errors';
 
 export const OPERATION_KINDS = {
+  /** Queued: runs in the Queue consumer, finished by the runner's atomic batch. */
   generateKit: 'generate_kit',
+  /** The kinds below run inside the tool call itself (inline-operations.ts); the queue never sees them. */
+  analyzeFit: 'analyze_fit',
+  regenerateDocument: 'regenerate_document',
+  rewriteCvSection: 'rewrite_cv_section',
+  draftScreeningAnswers: 'draft_screening_answers',
 } as const;
 export type OperationKind = (typeof OPERATION_KINDS)[keyof typeof OPERATION_KINDS];
 
@@ -46,6 +52,8 @@ export interface AgentOperation {
   input: Record<string, unknown>;
   status: OperationStatus;
   result_ref: string | null;
+  /** The JSON result of an operation that ran inline in its tool call. Null for queued kits (see result_ref). */
+  result: Record<string, unknown> | null;
   reservation_key: string | null;
   lease_owner: string | null;
   lease_expires_at: string | null;

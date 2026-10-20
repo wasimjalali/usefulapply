@@ -408,6 +408,62 @@ export async function listTrackerOverview(userId: string): Promise<TrackerApplic
     .limit(TRACKER_OVERVIEW_LIMIT);
 }
 
+export interface ApplicationSummaryRow {
+  id: string;
+  company: string | null;
+  job_title: string | null;
+  match_score: number | null;
+  status: string;
+  interview_at: string | null;
+  follow_up_due_at: string | null;
+  generation_status: string;
+  has_kit: boolean;
+  revision: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Every application of a user (drafts that only had a fit check included), newest first, as the
+ * short rows an agent lists: no job description, no documents. `status` narrows by tracker status.
+ */
+export async function listApplicationSummaries(
+  userId: string,
+  options: { status?: string; limit: number; offset: number },
+): Promise<{ rows: ApplicationSummaryRow[]; total: number }> {
+  const db = await getDb();
+  const where = options.status
+    ? and(eq(applicationSessions.user_id, userId), eq(applicationSessions.status, options.status))
+    : eq(applicationSessions.user_id, userId);
+  const [rows, counted] = await Promise.all([
+    db
+      .select({
+        id: applicationSessions.id,
+        company: applicationSessions.company,
+        job_title: applicationSessions.job_title,
+        match_score: applicationSessions.match_score,
+        status: applicationSessions.status,
+        interview_at: applicationSessions.interview_at,
+        follow_up_due_at: applicationSessions.follow_up_due_at,
+        generation_status: applicationSessions.generation_status,
+        has_kit: sql<number>`(${applicationSessions.generated_cv} is not null or ${applicationSessions.cover_letter} is not null or ${applicationSessions.email} is not null or ${applicationSessions.follow_up_email} is not null)`,
+        revision: applicationSessions.revision,
+        created_at: applicationSessions.created_at,
+        updated_at: applicationSessions.updated_at,
+      })
+      .from(applicationSessions)
+      .where(where)
+      .orderBy(desc(applicationSessions.created_at))
+      .limit(options.limit)
+      .offset(options.offset),
+    db.select({ count: sql<number>`count(*)` }).from(applicationSessions).where(where),
+  ]);
+  return {
+    rows: rows.map((row) => ({ ...row, has_kit: Boolean(row.has_kit) })),
+    total: Number(counted[0]?.count ?? 0),
+  };
+}
+
 /**
  * Tracker: move one application to a status, with the date that status implies.
  * `interview_at` and `follow_up_due_at` are always written together so a row

@@ -1071,7 +1071,34 @@ export interface ReserveCreditResult {
    * balance. Callers that surface a balance message can branch on it; the
    * ones that do not still fail closed, which is the half that matters.
    */
-  code?: 'RESERVATION_IN_FLIGHT' | 'RESERVATION_SPENT';
+  code?: 'RESERVATION_IN_FLIGHT' | 'RESERVATION_SPENT' | 'SPEND_LIMIT_REACHED';
+  /** With SPEND_LIMIT_REACHED: what this source has reserved or spent in the window, and its limit. */
+  spendLimit?: { spent: number; limit: number };
+}
+
+/** A cap on what one source (today: MCP agents) may reserve inside a window. Counted from `credit_reservations.metadata.source`. */
+export interface ReservationSpendLimit {
+  source: string;
+  limit: number;
+  /** Start of the window, ISO. */
+  since: string;
+}
+
+/** 00:00 UTC of the day `now` falls in. */
+export function utcDayStart(now: Date = new Date()): string {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
+}
+
+/** Credits a source has reserved (and not given back) or spent since `since`. */
+export async function reservedSpendSince(userId: string, source: string, since: string): Promise<number> {
+  const db = await getDb();
+  const rows = await db.all<{ spent: number }>(sql`
+    SELECT COALESCE(SUM(amount), 0) AS spent FROM credit_reservations
+    WHERE user_id = ${userId} AND reserved_at >= ${since}
+      AND status IN ('reserved', 'captured')
+      AND json_extract(metadata, '$.source') = ${source}
+  `);
+  return Number(rows[0]?.spent ?? 0);
 }
 
 export interface CaptureOrReleaseResult {
@@ -1240,6 +1267,8 @@ export function buildReserveStatements(params: {
   userId: string;
   action: CreditAction;
   amount: number;
+  /** Refuse the deduct (statement A matches nothing) while it would take this source's spend in the window over its limit. */
+  spendLimit?: ReservationSpendLimit;
   credits: Pick<UserCredits, 'version'>;
   totalBefore: number;
   next: DeductionAllocation;
@@ -1266,6 +1295,14 @@ export function buildReserveStatements(params: {
       WHERE user_id = ${userId}
         AND version = ${params.credits.version}
         AND (monthly_credits + rollover_credits + addon_credits) >= ${amount}
+        ${params.spendLimit
+          ? sql`AND (
+              SELECT COALESCE(SUM(amount), 0) FROM credit_reservations
+              WHERE user_id = ${userId} AND reserved_at >= ${params.spendLimit.since}
+                AND status IN ('reserved', 'captured')
+                AND json_extract(metadata, '$.source') = ${params.spendLimit.source}
+            ) + ${amount} <= ${params.spendLimit.limit}`
+          : sql``}
     `,
   ];
   if (params.reuseReleasedId) {
@@ -1314,9 +1351,26 @@ export async function reserveCredits(params: {
   generationId?: string | null;
   sessionId?: string | null;
   metadata?: Record<string, unknown>;
+  /** Refuse the reservation when it would take this source over its limit in the window. Tags the reservation with the source. */
+  spendLimit?: ReservationSpendLimit;
 }): Promise<ReserveCreditResult> {
-  const { userId, action, idempotencyKey, metadata = {} } = params;
+  const { userId, action, idempotencyKey, spendLimit } = params;
+  const metadata = spendLimit ? { ...(params.metadata ?? {}), source: spendLimit.source } : (params.metadata ?? {});
   const amount = CREDIT_COSTS[action];
+  const overLimit = async (): Promise<ReserveCreditResult | null> => {
+    if (!spendLimit) return null;
+    const spent = await reservedSpendSince(userId, spendLimit.source, spendLimit.since);
+    if (spent + amount <= spendLimit.limit) return null;
+    return {
+      success: false,
+      created: false,
+      reservation: null,
+      error: 'Daily spending limit reached',
+      code: 'SPEND_LIMIT_REACHED',
+      required: amount,
+      spendLimit: { spent, limit: spendLimit.limit },
+    };
+  };
   const replayResult = (reservation: CreditReservation): ReserveCreditResult => ({
     success: false,
     created: false,
@@ -1365,6 +1419,8 @@ export async function reserveCredits(params: {
         required: amount,
       };
     }
+    const limited = await overLimit();
+    if (limited) return limited;
     const { next, remaining } = allocateDeduction(credits, amount);
     const id = crypto.randomUUID();
     const now = nowIso();
@@ -1378,6 +1434,7 @@ export async function reserveCredits(params: {
       userId,
       action,
       amount,
+      spendLimit,
       credits,
       totalBefore,
       next,

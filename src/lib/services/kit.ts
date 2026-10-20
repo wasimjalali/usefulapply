@@ -405,6 +405,17 @@ const DOCUMENT_COLUMN: Record<KitDocumentKey, string> = {
   followUpEmail: 'follow_up_email',
 };
 
+/** The columns one document write sets: the document itself plus what rides with it (an email's subject and body copies). */
+export function kitDocumentColumns(document: KitDocumentKey, value: unknown, extra: Json = {}): Json {
+  const columns: Json = { [DOCUMENT_COLUMN[document]]: value, ...extra };
+  if (document === 'email' && value && typeof value === 'object') {
+    const email = value as { subject?: unknown; body?: unknown };
+    columns.email_subject = typeof email.subject === 'string' ? email.subject : null;
+    columns.email_body = typeof email.body === 'string' ? email.body : null;
+  }
+  return columns;
+}
+
 /**
  * Replace one document (a regenerate, a direct edit). Bumps the revision.
  * Conditional on `expectedRevision` when given; the regenerate routes pass
@@ -418,17 +429,10 @@ export async function saveKitDocument(
   value: unknown,
   options: { expectedRevision?: number; extra?: Json } = {},
 ): Promise<{ revision: number }> {
-  const column = DOCUMENT_COLUMN[document];
-  const extra: Json = { ...(options.extra ?? {}) };
-  if (document === 'email' && value && typeof value === 'object') {
-    const email = value as { subject?: unknown; body?: unknown };
-    extra.email_subject = typeof email.subject === 'string' ? email.subject : null;
-    extra.email_body = typeof email.body === 'string' ? email.body : null;
-  }
   const written = await sessionsRepo.updateSession(
     userId,
     sessionId,
-    { [column]: value, ...extra } as Parameters<typeof sessionsRepo.updateSession>[2],
+    kitDocumentColumns(document, value, options.extra) as Parameters<typeof sessionsRepo.updateSession>[2],
     options.expectedRevision !== undefined ? { expectedRevision: options.expectedRevision } : {},
   );
   if (written.error) {
@@ -448,11 +452,15 @@ export async function saveKitDocument(
 export async function persistFitResult(
   userId: string,
   sessionId: string,
-  fit: Pick<KitResults, 'job' | 'match' | 'detectedLanguage'>,
+  fit: Pick<KitResults, 'job' | 'match' | 'detectedLanguage'> & {
+    /** The written assessment. The web client saves it from the stream; a headless caller saves it here. */
+    fitAnalysis?: MasterContext['fitAnalysis'];
+  },
 ): Promise<{ revision: number } | null> {
   const row = await sessionsRepo.getSession(userId, sessionId);
   if (!row) return null;
   const columns: Json = {};
+  if (fit.fitAnalysis) columns.fit_assessment = fit.fitAnalysis;
   if (fit.job) {
     columns.requirements = jobRequirements(fit.job, fit.detectedLanguage);
     if (!row.job_title?.trim() && fit.job.title) columns.job_title = fit.job.title;

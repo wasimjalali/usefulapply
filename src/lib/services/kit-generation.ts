@@ -34,6 +34,7 @@ import {
   reserveCredits,
   type ReserveCreditResult,
 } from '@/lib/supabase/credit-reservations';
+import type { ReservationSpendLimit } from '@/db/repos/credits';
 import type { KitResults } from './kit';
 
 /** The payload a finished kit run is shaped into. Same fields the route has always streamed as `workflow_complete.results`. */
@@ -127,8 +128,10 @@ export async function reserveKitCredits(params: {
   requestId: string;
   keyFor: (action: KitCreditAction) => string;
   onReservation?: (key: string | null) => void;
+  /** A cap on what this source may reserve per window (the MCP daily limit). Tags the reservation with the source. */
+  spendLimit?: ReservationSpendLimit;
 }): Promise<ReservedKitCredits> {
-  const { userId, sessionId, contextId, requestId } = params;
+  const { userId, sessionId, contextId, requestId, spendLimit } = params;
   const discount = contextId ? await canUseFitContinuation(userId, contextId, requestId) : false;
   let action: KitCreditAction = discount ? 'GENERATION_AFTER_FIT' : 'FULL_APPLICATION';
   let key = params.keyFor(action);
@@ -140,6 +143,7 @@ export async function reserveKitCredits(params: {
     metadata: action === 'GENERATION_AFTER_FIT'
       ? { fit_context_id: contextId, fit_continuation_request_id: requestId }
       : undefined,
+    spendLimit,
   });
   let continuation: ReservedKitCredits['continuation'] = null;
   if (result.success) params.onReservation?.(key);
@@ -165,6 +169,7 @@ export async function reserveKitCredits(params: {
         action,
         idempotencyKey: key,
         sessionId,
+        spendLimit,
       });
       if (result.success) params.onReservation?.(key);
     }

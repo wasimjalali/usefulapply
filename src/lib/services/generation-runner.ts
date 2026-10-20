@@ -43,6 +43,7 @@ import {
   planPartialRefund,
 } from '@/db/repos/credits';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
+import type { ReservationSpendLimit } from '@/db/repos/credits';
 import { releaseFitContinuationClaim, releaseReservation } from '@/lib/supabase/credit-reservations';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { isSameStoredText } from '@/db/trim-text';
@@ -56,6 +57,7 @@ import {
   OperationLimitReached,
   PermanentOperationError,
   ReservationConflictError,
+  SpendLimitReachedError,
 } from './errors';
 import { buildSessionUpdateStatement, kitColumnsFromResults, kitFromRow, type KitResults } from './kit';
 import {
@@ -145,6 +147,11 @@ export interface KitGenerationInput {
   contextId?: string | null;
   /** Replace a kit that already exists. Without it an existing kit is an error. */
   regenerate?: boolean;
+  /**
+   * A cap on what the caller's channel may reserve per window (the MCP daily agent limit). Part of
+   * neither the operation's identity nor its hash: it only decides whether the reservation is made.
+   */
+  spendLimit?: ReservationSpendLimit;
 }
 
 export interface EnqueueKitResult {
@@ -213,9 +220,13 @@ export async function enqueueKitGeneration(
     requestId: idempotencyKey,
     keyFor: (action) => `generate_kit:${userId}:${sessionId}:${action}:${idempotencyKey}`,
     onReservation: (key) => { heldKey = key; },
+    spendLimit: input.spendLimit,
   });
   const reservation = reserved.result.reservation;
   if (!reserved.result.success) {
+    if (reserved.result.code === 'SPEND_LIMIT_REACHED' && reserved.result.spendLimit) {
+      throw new SpendLimitReachedError(reserved.result.spendLimit.spent, reserved.result.spendLimit.limit, reserved.cost);
+    }
     // A reservation under this very key with no operation is a first attempt
     // that died between reserving and inserting. It is ours: adopt it.
     if (reserved.result.code === 'RESERVATION_IN_FLIGHT' && reservation?.status === 'reserved') {
@@ -619,7 +630,12 @@ export async function recoverStuckOperations(options: { limit?: number } = {}): 
       const observed: FinishExpectation = operation.status === 'pending'
         ? { pending: true }
         : { attempt: operation.attempt, leaseOwner: operation.lease_owner };
-      if (operation.status === 'pending' && Date.parse(operation.created_at) < Date.now() - PENDING_OPERATION_MAX_AGE_MS) {
+      if (operation.kind !== OPERATION_KINDS.generateKit) {
+        // An operation that runs inside its tool call has no queue message to re-send. One that is
+        // still unfinished past its lease lost its worker: end it and give the credits back.
+        await finishFailed(operation, 'abandoned', 'the worker running the operation went away', observed);
+        result.failed += 1;
+      } else if (operation.status === 'pending' && Date.parse(operation.created_at) < Date.now() - PENDING_OPERATION_MAX_AGE_MS) {
         // Its message never produced a run for over an hour: give the credits back.
         await finishFailed(operation, 'stuck', 'the operation sat pending for over an hour', observed);
         result.failed += 1;

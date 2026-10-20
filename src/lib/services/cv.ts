@@ -13,6 +13,7 @@ import * as sessionsRepo from '@/db/repos/sessions';
 import type { ApplicationSession as StoreSession } from '@/store/useSessionStore';
 import { InvalidInputError, NotFoundError, RevisionConflict } from './errors';
 import { updateApplicationFields } from './applications';
+import { applyRecordedEdit } from './edit-history';
 import { kitFromRow } from './kit';
 
 type Json = Record<string, unknown>;
@@ -63,8 +64,13 @@ export async function saveTailoredCvData(
   // bare document and lose its content, changes and optimizedFor.
   const base = asRecord(row.generated_cv) ?? (kitFromRow(row).cv ? { ...(kitFromRow(row).cv as unknown as Json) } : {});
   const next = { ...base, _optimizedCVData: data };
-  return updateApplicationFields(userId, sessionId, expectedRevision, { generated_cv: next });
+  if (JSON.stringify(next).length > MAX_TAILORED_CV_CHARS) throw new InvalidInputError('That change makes the CV too large');
+  // The value this replaces is kept (the last 10 versions), so the edit can be undone.
+  return applyRecordedEdit(userId, sessionId, 'cv', { generated_cv: next }, { expectedRevision });
 }
+
+/** Same ceiling updateApplicationFields applies to one patch. */
+const MAX_TAILORED_CV_CHARS = 3_000_000;
 
 /**
  * Apply `mutate` to the stored structured CV and write the result. The

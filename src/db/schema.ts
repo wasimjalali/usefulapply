@@ -1263,6 +1263,8 @@ export const agentOperations = sqliteTable(
     input: text('input', { mode: 'json' }).$type<Json>().notNull().$defaultFn(emptyObject),
     status: text('status').notNull().default('pending'),
     result_ref: text('result_ref'),
+    // JSON result of an operation that runs inside the tool call (fit analysis, a regenerate), returned again on a retry.
+    result: text('result', { mode: 'json' }).$type<Json>(),
     reservation_key: text('reservation_key'),
     lease_owner: text('lease_owner'),
     lease_expires_at: text('lease_expires_at'),
@@ -1283,6 +1285,32 @@ export const agentOperations = sqliteTable(
     index('agent_operations_reservation_idx').on(t.reservation_key),
     check('agent_operations_status_check', sql`${t.status} in ('pending', 'running', 'succeeded', 'failed', 'cancelled')`),
     check('agent_operations_attempt_check', sql`${t.attempt} >= 0`),
+  ],
+);
+
+// The last 10 prior versions of an application's tailored CV and documents, for undo_last_edit.
+// One row is the value of the columns an edit changed, read just before the edit, and it is written
+// in the same batch as that edit. Rows older than 30 days are removed by the daily cron.
+export const applicationEditHistory = sqliteTable(
+  'application_edit_history',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    user_id: text('user_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    session_id: text('session_id')
+      .notNull()
+      .references(() => applicationSessions.id, { onDelete: 'cascade' }),
+    edit_group: text('edit_group').notNull(),
+    revision: integer('revision').notNull(),
+    prior_value: text('prior_value', { mode: 'json' }).$type<Json>().notNull(),
+    created_at: text('created_at').notNull().$defaultFn(isoNow),
+  },
+  (t) => [
+    index('application_edit_history_lookup_idx').on(t.user_id, t.session_id, t.edit_group, t.created_at),
+    index('application_edit_history_created_idx').on(t.created_at),
+    check('application_edit_history_group_check', sql`${t.edit_group} in ('cv', 'cover_letter', 'email', 'follow_up_email')`),
+    check('application_edit_history_revision_check', sql`${t.revision} >= 0`),
   ],
 );
 
