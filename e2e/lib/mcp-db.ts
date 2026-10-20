@@ -37,7 +37,8 @@ export function ledger(userId: string): LedgerRow[] {
 /** What the user was charged in total since the account's starting grant: spends are negative rows, refunds and releases positive. */
 export function netCharged(userId: string): number {
   const rows = ledger(userId).filter((row) => row.transaction_kind !== 'grant');
-  return Math.round(-rows.reduce((sum, row) => sum + row.amount, 0) * 100) / 100;
+  // + 0 turns -0 into 0, so a nothing-charged account compares equal to 0.
+  return Math.round(-rows.reduce((sum, row) => sum + row.amount, 0) * 100) / 100 + 0;
 }
 
 export interface ReservationRow {
