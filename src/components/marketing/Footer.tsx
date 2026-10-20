@@ -13,6 +13,7 @@ const productLinks: FooterLink[] = [
   { href: '/#what-you-get', label: 'What you get' },
   { href: '/ai-job-application/application-tracker', label: 'Application Tracker' },
   { href: '/pricing', label: 'Pricing' },
+  { href: '/integrations', label: 'AI integrations' },
 ];
 
 const companyLinks: FooterLink[] = [

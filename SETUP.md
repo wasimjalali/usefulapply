@@ -71,6 +71,8 @@ Builds with OpenNext, then runs the Worker locally (wrangler). Use this when you
 
 See `.dev.vars.example` and the env section in `README.md`. They stay in sync. Email sending has no API key: it uses the `EMAIL` binding.
 
+`OPENAI_APPS_CHALLENGE` is the domain verification token from the OpenAI app directory portal. Set it as a Worker secret or var (not in `wrangler.jsonc`). `/.well-known/openai-apps-challenge` serves it as plain text and returns 404 while it's unset.
+
 ## Typecheck and lint
 
 ```bash
