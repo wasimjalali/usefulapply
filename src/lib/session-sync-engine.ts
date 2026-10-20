@@ -89,6 +89,8 @@ export interface SyncNotice {
   kind: SyncNoticeKind;
   /** Set when the notice is about a conflict whose user text is in `getConflictBuffer(sessionId)`. */
   conflictFor?: string;
+  /** The buffer entries (`ConflictEntry.id`) this notice is about. Copy and Restore act on these and nothing else. */
+  conflictEntries?: string[];
 }
 
 export interface SyncDeps {
@@ -194,6 +196,8 @@ export const FIELD_GROUPS: FieldGroup[] = [
 const GROUP_OF_COLUMN = new Map<string, FieldGroup>();
 for (const group of FIELD_GROUPS) for (const column of group.columns) GROUP_OF_COLUMN.set(column, group);
 
+const sameValue = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
 function fingerprint(value: unknown): string {
   return JSON.stringify(value ?? null);
 }
@@ -243,6 +247,15 @@ export function editorSaveSucceeded(outcome: EditorOutcome): boolean {
   return outcome === 'saved' || outcome === 'clean' || outcome === 'local';
 }
 
+/**
+ * Does the editor close after a save? Only when the server holds the draft that
+ * was sent AND the user has not typed more since. Typing during the save keeps
+ * the editor open with the newer draft.
+ */
+export function editorShouldClose(outcome: EditorOutcome, sentDraft: string, currentDraft: string): boolean {
+  return editorSaveSucceeded(outcome) && sentDraft === currentDraft;
+}
+
 /** What an editor knew when it opened: the revision and the server-side fingerprints of the columns. */
 export interface EditorStart {
   revision: number;
@@ -250,10 +263,17 @@ export interface EditorStart {
 }
 
 export interface ConflictEntry {
+  /** Unique per entry. A later conflict in the same field group makes a new entry. */
+  id: string;
   key: string;
   label: string;
   columns: string[];
+  /** The user's version of each property of the group. */
   props: Partial<ApplicationSession>;
+  /** What the store showed instead (the server's value) when the entry was made. */
+  base: Partial<ApplicationSession>;
+  /** The properties where the user's version differs from `base`: the text the entry exists to keep. */
+  changed: (keyof ApplicationSession)[];
   at: number;
 }
 
@@ -271,6 +291,12 @@ export function createSyncEngine(deps: SyncDeps) {
 
   let userId: string | null = null;
   const baselines = new Map<string, Baseline>();
+  /**
+   * Per application: the store-shaped session as the server holds it (the last row applied,
+   * plus what our own saves wrote). A property of the store that differs from this is
+   * something the user typed and the server does not have yet.
+   */
+  const serverSessions = new Map<string, ApplicationSession>();
   /** Per application: column -> fingerprint of the value the server refused. */
   const rejected = new Map<string, Record<string, string>>();
   const conflictBuffers = new Map<string, Map<string, ConflictEntry>>();
@@ -279,12 +305,36 @@ export function createSyncEngine(deps: SyncDeps) {
   /** Per editor (its opening snapshot): the columns its draft sets, so a retry still knows them. */
   const draftColumns = new WeakMap<EditorStart, Set<string>>();
 
-  const notify = (message: string, kind: SyncNoticeKind, conflictFor?: string) =>
-    deps.notify({ message, kind, ...(conflictFor ? { conflictFor } : {}) });
+  let conflictSeq = 0;
+  const notify = (message: string, kind: SyncNoticeKind, conflictFor?: string, conflictEntries?: string[]) =>
+    deps.notify({ message, kind, ...(conflictFor ? { conflictFor, conflictEntries: conflictEntries ?? [] } : {}) });
+
+  /** Entries are kept per conflict, so every notice's text stays reachable; this many per application at most. */
+  const MAX_BUFFERED_ENTRIES = 40;
+  function addEntry(sessionId: string, entry: ConflictEntry): void {
+    const buffer = conflictBuffers.get(sessionId) ?? new Map<string, ConflictEntry>();
+    buffer.set(entry.id, entry);
+    while (buffer.size > MAX_BUFFERED_ENTRIES) buffer.delete(buffer.keys().next().value as string);
+    conflictBuffers.set(sessionId, buffer);
+  }
+
+  /** A buffer entry: the user's version of a group, set against what the store shows now. */
+  function makeEntry(group: FieldGroup, theirs: ApplicationSession, shown: ApplicationSession): ConflictEntry {
+    const props: Partial<ApplicationSession> = {};
+    const base: Partial<ApplicationSession> = {};
+    const changed: (keyof ApplicationSession)[] = [];
+    for (const prop of group.props) {
+      (props as Record<string, unknown>)[prop] = theirs[prop];
+      (base as Record<string, unknown>)[prop] = shown[prop];
+      if (!sameValue(theirs[prop], shown[prop])) changed.push(prop);
+    }
+    return { id: `c${++conflictSeq}`, key: group.key, label: group.label, columns: group.columns, props, base, changed, at: clock.now() };
+  }
 
   function setUser(next: string | null): void {
     if (userId !== next) {
       baselines.clear();
+      serverSessions.clear();
       rejected.clear();
       conflictBuffers.clear();
       reloadFailureAnnounced.clear();
@@ -294,6 +344,7 @@ export function createSyncEngine(deps: SyncDeps) {
 
   function forgetSession(sessionId: string): void {
     baselines.delete(sessionId);
+    serverSessions.delete(sessionId);
     rejected.delete(sessionId);
     conflictBuffers.delete(sessionId);
     reloadFailureAnnounced.delete(sessionId);
@@ -413,6 +464,7 @@ export function createSyncEngine(deps: SyncDeps) {
     if (!base || !local) {
       const installed = options.decorate ? options.decorate(mapped, local) : mapped;
       baselines.set(sessionId, nextBaseline);
+      serverSessions.set(sessionId, mapped);
       rejected.delete(sessionId);
       reloadFailureAnnounced.delete(sessionId);
       if (local || placement === 'upsert') writeSession(sessionId, installed, placement);
@@ -434,14 +486,13 @@ export function createSyncEngine(deps: SyncDeps) {
         for (const prop of group.props) (merged as unknown as Record<string, unknown>)[prop] = local[prop];
         continue;
       }
-      const props: Partial<ApplicationSession> = {};
-      for (const prop of group.props) (props as Record<string, unknown>)[prop] = local[prop];
-      conflicts.push({ key: group.key, label: group.label, columns: group.columns, props, at: clock.now() });
+      conflicts.push(makeEntry(group, local, merged));
     }
     merged.revision = incoming;
     const finalSession = options.decorate ? options.decorate(merged, local) : merged;
 
     baselines.set(sessionId, nextBaseline);
+    serverSessions.set(sessionId, mapped);
     writeSession(sessionId, finalSession, placement);
 
     // What stays refused is only what is still unsaved and still the same value.
@@ -458,10 +509,8 @@ export function createSyncEngine(deps: SyncDeps) {
     reloadFailureAnnounced.delete(sessionId);
 
     if (conflicts.length > 0) {
-      const buffer = conflictBuffers.get(sessionId) ?? new Map<string, ConflictEntry>();
-      for (const entry of conflicts) buffer.set(entry.key, entry);
-      conflictBuffers.set(sessionId, buffer);
-      notify(options.conflictNotice ?? CONFLICT_NOTICE, 'info', sessionId);
+      for (const entry of conflicts) addEntry(sessionId, entry);
+      notify(options.conflictNotice ?? CONFLICT_NOTICE, 'info', sessionId, conflicts.map((entry) => entry.id));
     }
     return { status: 'applied', conflicts: conflicts.map((entry) => entry.label), session: findSession(sessionId) ?? finalSession };
   }
@@ -574,6 +623,9 @@ export function createSyncEngine(deps: SyncDeps) {
         const fields = { ...base.fields };
         for (const column of Object.keys(patch)) fields[column] = sent[column];
         const jumped = result.revision > base.revision + 1;
+        // The user's newer text for what an entry holds reached the server: that entry is settled.
+        dropSettledEntries(sessionId, Object.keys(patch), session);
+        recordSaved(sessionId, Object.keys(patch), session);
         baselines.set(sessionId, { revision: result.revision, fields });
         setStoreRevision(sessionId, result.revision);
         const refused = rejected.get(sessionId);
@@ -658,18 +710,17 @@ export function createSyncEngine(deps: SyncDeps) {
         if (moved.length > 0) {
           // The draft is based on text that is no longer the server's. Put the store back, keep the draft aside.
           writeSession(sessionId, before, 'replace');
-          const buffer = conflictBuffers.get(sessionId) ?? new Map<string, ConflictEntry>();
           const seen = new Set<string>();
+          const entryIds: string[] = [];
           for (const column of moved) {
             const group = GROUP_OF_COLUMN.get(column);
             if (!group || seen.has(group.key)) continue;
             seen.add(group.key);
-            const props: Partial<ApplicationSession> = {};
-            for (const prop of group.props) (props as Record<string, unknown>)[prop] = after[prop];
-            buffer.set(group.key, { key: group.key, label: group.label, columns: group.columns, props, at: clock.now() });
+            const entry = makeEntry(group, after, before);
+            addEntry(sessionId, entry);
+            entryIds.push(entry.id);
           }
-          conflictBuffers.set(sessionId, buffer);
-          notify(EDITOR_CONFLICT_NOTICE, 'info', sessionId);
+          notify(EDITOR_CONFLICT_NOTICE, 'info', sessionId, entryIds);
           return 'conflict';
         }
       }
@@ -721,6 +772,47 @@ export function createSyncEngine(deps: SyncDeps) {
     return [...(conflictBuffers.get(sessionId)?.values() ?? [])];
   }
 
+  /** The entries a notice named that are still in the buffer. */
+  function entriesFor(sessionId: string, ids: string[]): ConflictEntry[] {
+    const wanted = new Set(ids);
+    return getConflictBuffer(sessionId).filter((entry) => wanted.has(entry.id));
+  }
+
+  /** Has the user typed into this property since the server's version of it was last applied or written? */
+  function userEdited(sessionId: string, session: ApplicationSession, prop: keyof ApplicationSession): boolean {
+    const server = serverSessions.get(sessionId);
+    return server ? !sameValue(session[prop], server[prop]) : false;
+  }
+
+  /** Our save wrote these columns: the server now holds what we sent for their properties. */
+  function recordSaved(sessionId: string, columns: string[], sent: ApplicationSession): void {
+    const server = serverSessions.get(sessionId);
+    if (!server) return;
+    const next = { ...server } as unknown as Record<string, unknown>;
+    for (const column of columns) {
+      const group = GROUP_OF_COLUMN.get(column);
+      if (group) for (const prop of group.props) next[prop] = sent[prop];
+    }
+    serverSessions.set(sessionId, next as unknown as ApplicationSession);
+  }
+
+  /**
+   * Forget the entries a save settled. An entry holds the text the user lost a
+   * conflict with; it is settled when this save put exactly that text on the
+   * server for every property it covers. A save that carries other text for those
+   * properties (the user typed something else, or the server's value) settles nothing:
+   * the entry stays, restorable until a newer version stands in its way.
+   */
+  function dropSettledEntries(sessionId: string, columns: string[], saved: ApplicationSession): void {
+    const buffer = conflictBuffers.get(sessionId);
+    if (!buffer) return;
+    for (const entry of [...buffer.values()]) {
+      if (!entry.columns.some((column) => columns.includes(column))) continue;
+      if (entry.changed.every((prop) => sameValue(saved[prop], entry.props[prop]))) buffer.delete(entry.id);
+    }
+    if (buffer.size === 0) conflictBuffers.delete(sessionId);
+  }
+
   function textOf(value: unknown): string {
     if (typeof value === 'string') return value;
     if (value && typeof value === 'object') {
@@ -732,30 +824,46 @@ export function createSyncEngine(deps: SyncDeps) {
     return value == null ? '' : String(value);
   }
 
-  /** The user's text from every conflicted field, ready to paste. */
-  function conflictBufferText(sessionId: string): string {
-    return getConflictBuffer(sessionId)
+  /** The user's text from the entries a notice named, ready to paste. */
+  function conflictText(sessionId: string, ids: string[]): string {
+    return entriesFor(sessionId, ids)
       .map((entry) => {
-        const text = Object.values(entry.props).map(textOf).filter(Boolean).join('\n\n');
+        const text = entry.changed.map((prop) => textOf(entry.props[prop])).filter(Boolean).join('\n\n');
         return `${entry.label}\n${text}`;
       })
       .join('\n\n---\n\n');
   }
 
-  function clearConflictBuffer(sessionId: string): void {
-    conflictBuffers.delete(sessionId);
-  }
-
-  /** Put the user's version back as an unsaved edit over the current baseline, then save it. */
-  function restoreConflictBuffer(sessionId: string): Promise<SaveOutcome> {
+  /**
+   * Put the user's version of the entries a notice named back as an unsaved
+   * edit, then save it the normal way: against the current baseline. It never
+   * overwrites a newer version: where the user has typed something since, or the
+   * server changed the field again since the notice, nothing is applied for that
+   * part and the entry stays in the buffer (with a new notice), instead of going
+   * over text the user has not seen.
+   */
+  function restoreConflict(sessionId: string, ids: string[]): Promise<SaveOutcome> {
     return withLock(sessionId, async () => {
-      const entries = getConflictBuffer(sessionId);
+      const entries = entriesFor(sessionId, ids);
       const session = findSession(sessionId);
       if (entries.length === 0 || !session) return 'skipped';
+      const server = serverSessions.get(sessionId);
       const next = { ...session } as ApplicationSession;
-      for (const entry of entries) Object.assign(next, entry.props);
+      const buffer = conflictBuffers.get(sessionId);
+      const kept: string[] = [];
+      for (const entry of entries) {
+        let blocked = false;
+        for (const prop of entry.changed) {
+          if (userEdited(sessionId, session, prop)) { blocked = true; continue; }  // newer typing stands; the entry stays
+          if (server && !sameValue(server[prop], entry.base[prop])) { blocked = true; continue; }  // the server moved on
+          (next as unknown as Record<string, unknown>)[prop] = entry.props[prop];
+        }
+        if (blocked) kept.push(entry.id);
+        else buffer?.delete(entry.id);
+      }
       writeSession(sessionId, next, 'replace');
-      conflictBuffers.delete(sessionId);
+      if (buffer && buffer.size === 0) conflictBuffers.delete(sessionId);
+      if (kept.length > 0) notify(CONFLICT_NOTICE, 'info', sessionId, kept);
       return saveUnlocked(sessionId);
     });
   }
@@ -770,9 +878,8 @@ export function createSyncEngine(deps: SyncDeps) {
     commitEditorSave,
     checkForRemoteChange,
     getConflictBuffer,
-    conflictBufferText,
-    clearConflictBuffer,
-    restoreConflictBuffer,
+    conflictText,
+    restoreConflict,
     /** For tests: what the engine believes about an application. */
     debug: {
       baseline: (sessionId: string) => {

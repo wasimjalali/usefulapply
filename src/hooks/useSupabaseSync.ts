@@ -23,9 +23,9 @@ import { useToast } from '@/components/ui/Toast';
 import { mapSessionRowToStore } from '@/lib/session-row-mapping';
 import {
   applyServerRow,
-  conflictBufferText,
+  conflictText,
   persistSessionEdits,
-  restoreConflictBuffer,
+  restoreConflict,
   setSyncUser,
   startRevisionPolling,
   subscribeSyncNotices,
@@ -166,7 +166,7 @@ export function useSupabaseSync() {
     return () => setSyncUser(null);
   }, [user?.id]);
 
-  useEffect(() => subscribeSyncNotices(({ message, kind, conflictFor }) => {
+  useEffect(() => subscribeSyncNotices(({ message, kind, conflictFor, conflictEntries }) => {
     if (kind === 'error') {
       toast.error(message);
       return;
@@ -180,10 +180,10 @@ export function useSupabaseSync() {
       {
         label: 'Copy my text',
         onClick: () => {
-          void navigator.clipboard?.writeText(conflictBufferText(conflictFor));
+          void navigator.clipboard?.writeText(conflictText(conflictFor, conflictEntries ?? []));
         },
       },
-      { label: 'Restore my text', onClick: () => { void restoreConflictBuffer(conflictFor); } },
+      { label: 'Restore my text', onClick: () => { void restoreConflict(conflictFor, conflictEntries ?? []); } },
     ]);
   }), [toast]);
 

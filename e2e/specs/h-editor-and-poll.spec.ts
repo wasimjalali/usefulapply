@@ -141,3 +141,51 @@ test('(h3) adopting a regenerate\'s revision loads changes made elsewhere in bet
   await expect(page.getByText('The email as edited in another tab.').first()).toBeVisible({ timeout: 20_000 });
   await context.close();
 });
+
+/**
+ * The user keeps typing while an editor save is on its way. The save carries the
+ * text as it was when Save was clicked; when it comes back the editor must not
+ * close over the newer text. It stays open with it, and the next Save writes it.
+ */
+test('(h4) text typed while an editor save is in flight is kept and saves on the next Save', async ({ browser, request }) => {
+  const { user, context, page } = await signedInPage(browser, request, 'typing');
+  await manualPolling(page);
+  await generateKitThroughUi(page);
+  await waitForStored(user.id, (row) => row.generation_status === 'succeeded', 'kit persisted');
+
+  await page.getByRole('tab', { name: 'Cover letter' }).click();
+  await page.getByRole('button', { name: 'Edit', exact: true }).click();
+  const box = page.getByPlaceholder('Cover letter content...');
+  const first = 'Dear Northwind team,\n\nThe first draft, sent with the save.\n\nKind regards,\nTomas Brandt';
+  const second = `${first}\n\nP.S. More typed while the save was on its way.`;
+  await box.fill(first);
+
+  // Hold the save request on its way out.
+  let release: () => void = () => undefined;
+  let held: () => void = () => undefined;
+  const heldRequest = new Promise<void>((resolve) => { held = resolve; });
+  let armed = true;
+  await page.route('**/dashboard**', async (route) => {
+    if (armed && route.request().method() === 'POST' && route.request().headers()['next-action']) {
+      armed = false;
+      held();
+      await new Promise<void>((resolve) => { release = resolve; });
+    }
+    await route.continue();
+  });
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await heldRequest;
+  await box.fill(second);
+  release();
+
+  // The first draft lands; the editor is still open with the newer text.
+  await expect.poll(() => storedApplication(user.id)?.cover_letter?.body ?? '', { timeout: 20_000 }).toContain('The first draft, sent with the save.');
+  expect(storedApplication(user.id)?.cover_letter?.body).not.toContain('More typed while');
+  await expect(box).toHaveValue(second);
+
+  // The next Save writes it.
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect.poll(() => storedApplication(user.id)?.cover_letter?.body ?? '', { timeout: 20_000 }).toContain('More typed while the save was on its way.');
+  await expect(box).toBeHidden();
+  await context.close();
+});

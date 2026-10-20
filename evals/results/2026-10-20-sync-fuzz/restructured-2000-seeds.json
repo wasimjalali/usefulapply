@@ -5,20 +5,26 @@
   "ops": 60,
   "totals": {
     "ops": 120000,
-    "edits": 40131,
-    "editorSaves": 6748,
-    "regens": 9398,
-    "agentWrites": 11898,
-    "handoffs": 4090,
-    "polls": 15858,
-    "saves": 15974,
-    "requests": 122241,
-    "dropped": 6387,
-    "lostAnswers": 4787,
-    "hung": 6325,
-    "conflictNotices": 11636,
-    "failureNotices": 5358,
-    "settleRounds": 5095
+    "edits": 30232,
+    "editorSaves": 4844,
+    "typedDuringSave": 782,
+    "regens": 6683,
+    "workflows": 5573,
+    "trackerWrites": 3338,
+    "silentWrites": 0,
+    "restores": 1894,
+    "copies": 976,
+    "agentWrites": 9074,
+    "handoffs": 3339,
+    "polls": 12379,
+    "saves": 12377,
+    "requests": 118273,
+    "dropped": 6520,
+    "lostAnswers": 4675,
+    "hung": 6303,
+    "conflictNotices": 11192,
+    "failureNotices": 5665,
+    "settleRounds": 5170
   },
   "byInvariant": {},
   "byKind": {},
@@ -47,6 +53,22 @@
     },
     {
       "name": "round-1 h2 edit made while a poll reload is in flight",
+      "violations": []
+    },
+    {
+      "name": "round-3 workflow_complete must not install older generated content",
+      "violations": []
+    },
+    {
+      "name": "round-3 typing during a save is not lost",
+      "violations": []
+    },
+    {
+      "name": "round-3 Restore and Copy act on their own notice only",
+      "violations": []
+    },
+    {
+      "name": "low feed handoff mapper matches the standard mapper",
       "violations": []
     }
   ]

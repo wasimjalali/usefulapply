@@ -4,21 +4,26 @@
  *
  *   npm run test:sync                                   # 2000 seeds on the restructured engine, plus the deterministic cases
  *   npm run test:sync -- --seeds 500 --from 1000        # a different slice
+ *   npm run test:sync -- --engine round2                # the review-round-2 engine, glue and server model (e2e/tools/legacy)
  *   npm run test:sync -- --engine legacy                # the round-1 module (e2e/tools/legacy), kept to show the test fails on it
  *   npm run test:sync -- --seed 42 --verbose            # one seed, with its operation log
+ *   npm run test:sync -- --only edit,save,poll,agent,workflow   # only these operations, to isolate one bug
  *
  * It runs through tsx with e2e/tools/tsconfig.sync-fuzz.json, which maps the
  * server actions (@/lib/supabase) to a fake so the legacy module can be loaded.
- * Exit code 1 when any seed or case fails. Failing seeds are printed and, with
- * --out, written as JSON.
+ * Exit code 1 when any seed or case fails, 2 on a bad flag or a crash of the
+ * harness itself (the message is always printed). Failing seeds are printed
+ * and, with --out, written as JSON.
  */
 
 import { writeFileSync } from 'node:fs';
 import { CASES, runCase, type CaseResult } from './sync-fuzz/cases';
-import { runSeed, type InvariantCode, type RunResult } from './sync-fuzz/driver';
+import { emptyStats, OP_NAMES, runSeed, type InvariantCode, type RunResult } from './sync-fuzz/driver';
+
+const realError = console.error.bind(console);
 
 interface Args {
-  engine: 'new' | 'legacy';
+  engine: 'new' | 'round2' | 'legacy';
   seeds: number;
   from: number;
   ops: number;
@@ -26,21 +31,46 @@ interface Args {
   verbose: boolean;
   out?: string;
   cases: boolean;
+  only?: string[];
 }
+
+class UsageError extends Error {}
 
 function parseArgs(argv: string[]): Args {
   const args: Args = { engine: 'new', seeds: 2000, from: 1, ops: 60, verbose: false, cases: true };
+  const number = (flag: string, raw: string | undefined, min: number): number => {
+    const value = Number(raw);
+    if (raw === undefined || raw.trim() === '' || !Number.isInteger(value) || value < min) {
+      throw new UsageError(`${flag} needs a whole number of at least ${min}, got "${raw ?? ''}"`);
+    }
+    return value;
+  };
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
     const value = () => argv[++i];
-    if (flag === '--engine') args.engine = value() === 'legacy' ? 'legacy' : 'new';
-    else if (flag === '--seeds') args.seeds = Number(value());
-    else if (flag === '--from') args.from = Number(value());
-    else if (flag === '--ops') args.ops = Number(value());
-    else if (flag === '--seed') args.seed = Number(value());
+    if (flag === '--engine') {
+      const name = value();
+      if (name !== 'new' && name !== 'round2' && name !== 'legacy') throw new UsageError(`--engine is new, round2 or legacy, got "${name ?? ''}"`);
+      args.engine = name;
+    }
+    else if (flag === '--seeds') args.seeds = number(flag, value(), 1);
+    else if (flag === '--from') args.from = number(flag, value(), 0);
+    else if (flag === '--ops') args.ops = number(flag, value(), 1);
+    else if (flag === '--seed') args.seed = number(flag, value(), 0);
     else if (flag === '--verbose') args.verbose = true;
-    else if (flag === '--out') args.out = value();
+    else if (flag === '--out') {
+      const path = value();
+      if (!path) throw new UsageError('--out needs a file path');
+      args.out = path;
+    }
+    else if (flag === '--only') {
+      const names = (value() ?? '').split(',').filter(Boolean);
+      const unknown = names.filter((name) => !(OP_NAMES as readonly string[]).includes(name));
+      if (names.length === 0 || unknown.length > 0) throw new UsageError(`--only takes a comma list of ${OP_NAMES.join(', ')}; unknown: ${unknown.join(', ') || '(none given)'}`);
+      args.only = names;
+    }
     else if (flag === '--no-cases') args.cases = false;
+    else throw new UsageError(`unknown flag ${flag}`);
   }
   return args;
 }
@@ -65,7 +95,15 @@ async function main(): Promise<void> {
   const failures: RunResult[] = [];
   const totals: Record<string, number> = {};
   for (let seed = from; seed < from + count; seed++) {
-    const result = await runSeed(seed, { engine: args.engine, ops: args.ops, verbose: args.verbose });
+    let result: RunResult;
+    try {
+      result = await runSeed(seed, { engine: args.engine, ops: args.ops, verbose: args.verbose, only: args.only });
+    } catch (error) {
+      // A crash inside the harness or the engine is a failure of that seed, never a quiet exit.
+      const message = error instanceof Error ? (error.stack ?? error.message) : String(error);
+      realError(`seed ${seed} crashed: ${message}`);
+      result = { seed, violations: [{ code: 'ERR', message: `the run crashed: ${message.split('\n')[0]}` }], stats: emptyStats() };
+    }
     for (const [key, value] of Object.entries(result.stats)) totals[key] = (totals[key] ?? 0) + value;
     if (result.violations.length > 0) failures.push(result);
     if (args.verbose || (count > 50 && (seed - from + 1) % 500 === 0)) {
@@ -119,6 +157,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error) => {
-  console.error(error);
+  realError(error instanceof UsageError ? `sync-fuzz: ${error.message}` : error);
   process.exit(2);
 });

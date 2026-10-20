@@ -1,28 +1,45 @@
 /**
- * One tab, seen by the tests. `newClient` wraps the sync engine on its own
- * store. `legacyClient` wraps the round-1 module (e2e/tools/legacy) on the real
- * session store, exactly as the app called it before the restructure; there can
- * be only one of those per process, so legacy runs have one real tab and
- * model the others as plain server writers.
+ * One tab, seen by the tests.
+ *
+ * `newClient` wraps a sync engine on its own store, together with the glue the
+ * app puts around it (what happens when a generation finishes, when an editor
+ * save returns, when a notice's Restore or Copy is clicked). Two variants:
+ *
+ *   current  the engine in src/lib/session-sync-engine.ts and today's glue.
+ *   round2   the engine as it was at review round 2 (e2e/tools/legacy/session-sync-engine.round2.ts)
+ *            with the glue of that round, kept so the harness can show it fail.
+ *
+ * `legacyClient` wraps the round-1 module (e2e/tools/legacy) on the real session
+ * store, as the app called it before the restructure; there can be only one of
+ * those per process, so legacy runs have one real tab and model the others as
+ * plain server writers.
  */
 
 import type { StoredSessionRow } from '@/lib/session-row-mapping';
-import {
-  createSyncEngine,
-  columnFingerprints,
-  editorSaveSucceeded,
-  type EditorOutcome,
-  type SessionStoreLike,
-  type SyncNotice,
+import { mapSessionRowToStore } from '@/lib/session-row-mapping';
+import type {
+  ConflictEntry,
+  EditorOutcome,
+  SessionStoreLike,
+  SyncNotice,
 } from '@/lib/session-sync-engine';
 import type { ApplicationSession } from '@/store/useSessionStore';
 import { letterObject, type Field, type FakeClock, type FakeServer, type RequestScheduler } from './world';
+
+type EngineModule = typeof import('@/lib/session-sync-engine');
 
 export interface MutationResponse {
   revision: number;
   /** What the route returned: the new document, as store props. */
   props: Partial<ApplicationSession>;
   columns: string[];
+}
+
+/** What the app does once an editor save has returned. */
+export interface EditorAfter {
+  close: boolean;
+  /** When the editor stays open after a save the server accepted: what its next save is based on. */
+  start?: unknown;
 }
 
 export interface Adapter {
@@ -42,8 +59,19 @@ export interface Adapter {
   editorStart(app: string): unknown;
   editorCommit(app: string, start: unknown, apply: () => void): Promise<string>;
   editorSucceeded(outcome: string): boolean;
+  /** The app's reaction to an editor save that returned: close the editor, or keep it. */
+  editorAfter(app: string, outcome: string, sentDraft: string, currentDraft: string): EditorAfter;
+  /** A regenerate or follow-up answered: the document is already saved on the server. */
   mutationResponse(app: string, response: MutationResponse): Promise<void>;
+  /** The generation finished (`workflow_complete`), carrying the generated fields. */
+  workflowComplete(app: string, response: MutationResponse): Promise<void>;
+  /** The tracker status write answered. */
+  statusRefresh(app: string): Promise<void>;
   conflictJson(app: string): string;
+  /** The buffer entries a notice is about, as text containing their tokens. */
+  noticeText(notice: SyncNotice): string;
+  restoreNotice(notice: SyncNotice): Promise<string>;
+  copyNotice(notice: SyncNotice): string;
   rejectedColumns(app: string): string[];
   baseline(app: string): { revision: number; fields: Record<string, string> | null } | undefined;
 }
@@ -100,6 +128,13 @@ function setCurrentIn(store: SessionStoreLike, app: string): void {
   }));
 }
 
+const cast = <T>(value: unknown) => value as T;
+
+const baseCvData = () => cast<NonNullable<ApplicationSession['optimizedCVData']>>({
+  personal: { fullName: 'N', email: 'n@example.test', currentTitle: 'seed title' },
+  experience: [], education: [], skills: [], languages: [], certifications: [],
+});
+
 /** The edit a user makes to a field, as a store mutation. */
 export function fieldMutation(field: Field, token: string, bad = false): (session: ApplicationSession) => ApplicationSession {
   switch (field) {
@@ -110,7 +145,7 @@ export function fieldMutation(field: Field, token: string, bad = false): (sessio
     case 'coverLetter':
       return (s) => ({
         ...s,
-        coverLetter: { ...(s.coverLetter ?? (letterObject('') as unknown as NonNullable<ApplicationSession['coverLetter']>)), body: token },
+        coverLetter: { ...(s.coverLetter ?? cast<NonNullable<ApplicationSession['coverLetter']>>(letterObject(''))), body: token },
       });
     case 'email':
       return (s) => ({
@@ -122,16 +157,33 @@ export function fieldMutation(field: Field, token: string, bad = false): (sessio
         ...s,
         followUpEmail: { subject: `f-${token}`, body: token, recommendedDelay: 5 },
       });
+    case 'cv':
+      return (s) => {
+        const data = s.optimizedCVData ?? baseCvData();
+        return {
+          ...s,
+          generatedCV: s.generatedCV ?? cast<NonNullable<ApplicationSession['generatedCV']>>({ content: 'cv content', changes: [], optimizedFor: 'Position' }),
+          optimizedCVData: { ...data, personal: { ...data.personal, currentTitle: token } },
+        };
+      };
+    case 'screening':
+      return (s) => ({
+        ...s,
+        screeningAnswers: [{ id: 's1', question: 'q', answer: token, createdAt: 'x' }],
+      });
+    case 'fitAssessment': return (s) => ({ ...s, fitAssessment: cast<ApplicationSession['fitAssessment']>({ summary: token, score: 50 }) });
+    case 'requirements':
+      return (s) => ({ ...s, requirements: cast<ApplicationSession['requirements']>({ ...(s.requirements ?? {}), title: token }) });
   }
 }
 
 /** The store props a regenerate response carries for a field. */
 export function responseProps(field: Field, token: string): { props: Partial<ApplicationSession>; columns: string[] } {
-  const probe = fieldMutation(field, token)({
+  const probe = fieldMutation(field, token)(cast<ApplicationSession>({
     id: 'probe', jobTitle: '', company: '', createdAt: '', updatedAt: '', jobDescription: '',
     matchingSkills: [], missingSkills: [], suggestions: [], requirements: null, gaps: null, generatedCV: null,
     chatMessages: [],
-  } as unknown as ApplicationSession);
+  }));
   switch (field) {
     case 'coverLetter': return { props: { coverLetter: probe.coverLetter }, columns: ['cover_letter'] };
     case 'email': return { props: { email: probe.email }, columns: ['email', 'email_subject', 'email_body'] };
@@ -140,15 +192,54 @@ export function responseProps(field: Field, token: string): { props: Partial<App
   }
 }
 
+/** What `workflow_complete` carries: the generated fields as the store shape, as of the revision the kit was written at. */
+export function kitProps(row: StoredSessionRow): Partial<ApplicationSession> {
+  const mapped = mapSessionRowToStore(row);
+  return {
+    generatedCV: mapped.generatedCV,
+    optimizedCVData: mapped.optimizedCVData,
+    coverLetter: mapped.coverLetter,
+    email: mapped.email,
+    followUpEmail: mapped.followUpEmail,
+    requirements: mapped.requirements,
+  };
+}
+
+/** The text an entry exists to keep: its changed properties (the round-2 engine kept every property). */
+function userText(entry: ConflictEntry): unknown {
+  if (!entry.changed) return entry.props;
+  const out: Record<string, unknown> = {};
+  for (const prop of entry.changed) out[prop] = (entry.props as Record<string, unknown>)[prop];
+  return out;
+}
+
+// The text a user types carries the tab's letter (A, B, or O for the other tab's edit); server writes carry G, K, R or S.
+const TOKEN = /t:[ABO][0-9]+;/g;
+/** The tokens in a piece of text that a user typed. */
+export const tokensIn = (text: string): string[] => text.match(TOKEN) ?? [];
+
 // ---------------------------------------------------------------------------
-// The restructured engine
+// The restructured engine and the app's glue around it
 // ---------------------------------------------------------------------------
 
-export function newClient(id: string, world: World, hooks: { onSaveCall?: (app: string, expected: number) => void } = {}): Adapter {
+export type EngineVariantName = 'current' | 'round2';
+
+export async function loadEngine(variant: EngineVariantName): Promise<EngineModule> {
+  if (variant === 'round2') return (await import('../legacy/session-sync-engine.round2')) as unknown as EngineModule;
+  return import('@/lib/session-sync-engine');
+}
+
+export function newClient(
+  id: string,
+  world: World,
+  engineModule: EngineModule,
+  variant: EngineVariantName,
+  hooks: { onSaveCall?: (app: string, expected: number) => void } = {},
+): Adapter {
   const store = makeStore();
   const notices: SyncNotice[] = [];
-  const apps = new Set<string>();
-  const engine = createSyncEngine({
+  const noticeEntries = new WeakMap<SyncNotice, ConflictEntry[]>();
+  const engine: ReturnType<EngineModule['createSyncEngine']> = engineModule.createSyncEngine({
     actions: {
       getRow: (app) => world.net.request(id, 'getRow', () => world.server.rowOf(app)),
       getRevision: (app) => world.net.request(id, 'getRevision', () => {
@@ -161,7 +252,15 @@ export function newClient(id: string, world: World, hooks: { onSaveCall?: (app: 
       },
     },
     store,
-    notify: (notice) => notices.push(notice),
+    notify: (notice) => {
+      notices.push(notice);
+      if (notice.conflictFor) {
+        // The entries this notice is about: named by id when the engine says so, otherwise the ones made just now.
+        const all = engine.getConflictBuffer(notice.conflictFor);
+        const named = notice.conflictEntries;
+        noticeEntries.set(notice, named ? all.filter((entry) => named.includes(entry.id)) : all.filter((entry) => entry.at === world.clock.now()));
+      }
+    },
     clock: {
       now: () => world.clock.now(),
       setTimeout: (fn, ms) => world.clock.setTimeout(fn, ms),
@@ -169,13 +268,17 @@ export function newClient(id: string, world: World, hooks: { onSaveCall?: (app: 
     },
   });
   engine.setUser('u');
+  const apps = new Set<string>();
+  const current = variant === 'current';
+  // The two engines expose the buffer actions under different names.
+  const anyEngine = engine as unknown as Record<string, (...args: unknown[]) => unknown>;
 
   return {
     id, kind: 'new', notices, apps,
     session: (app) => findIn(store, app),
     fingerprints: (app) => {
       const session = findIn(store, app);
-      return session ? columnFingerprints(session) : null;
+      return session ? engineModule.columnFingerprints(session) : null;
     },
     edit: (app, mutate) => editIn(store, app, mutate),
     setCurrent: (app) => setCurrentIn(store, app),
@@ -197,9 +300,35 @@ export function newClient(id: string, world: World, hooks: { onSaveCall?: (app: 
     poll: (app) => engine.checkForRemoteChange(app),
     editorStart: (app) => engine.getEditorStart(app),
     editorCommit: (app, start, apply) => engine.commitEditorSave(app, start as never, apply),
-    editorSucceeded: (outcome) => editorSaveSucceeded(outcome as EditorOutcome),
+    editorSucceeded: (outcome) => engineModule.editorSaveSucceeded(outcome as EditorOutcome),
+    editorAfter: (app, outcome, sent, now) => {
+      if (!engineModule.editorSaveSucceeded(outcome as EditorOutcome)) return { close: false };
+      // Round 2 closed the editor on any success, even if the user had typed more while it saved.
+      if (!current) return { close: true };
+      if (engineModule.editorShouldClose(outcome as EditorOutcome, sent, now)) return { close: true };
+      return { close: false, start: engine.getEditorStart(app) };
+    },
     mutationResponse: async (app) => { await engine.refreshFromServer(app); },
-    conflictJson: (app) => JSON.stringify(engine.getConflictBuffer(app)),
+    workflowComplete: async (app, response) => {
+      // Round 2 installed the generated fields from the response before it refreshed.
+      if (!current) editIn(store, app, (session) => ({ ...session, ...response.props }));
+      await engine.refreshFromServer(app);
+    },
+    statusRefresh: async (app) => { await engine.refreshFromServer(app); },
+    // Only the user's text counts as buffered; `base` holds what the server showed instead.
+    conflictJson: (app) => JSON.stringify(engine.getConflictBuffer(app).map(userText)),
+    noticeText: (notice) => JSON.stringify((noticeEntries.get(notice) ?? []).map(userText)),
+    restoreNotice: async (notice) => {
+      if (!notice.conflictFor) return 'skipped';
+      // Round 2 restored every buffered entry of the application, whichever notice was clicked.
+      if (!current) return String(await anyEngine.restoreConflictBuffer(notice.conflictFor));
+      return String(await anyEngine.restoreConflict(notice.conflictFor, notice.conflictEntries ?? []));
+    },
+    copyNotice: (notice) => {
+      if (!notice.conflictFor) return '';
+      if (!current) return String(anyEngine.conflictBufferText(notice.conflictFor));
+      return String(anyEngine.conflictText(notice.conflictFor, notice.conflictEntries ?? []));
+    },
     rejectedColumns: (app) => engine.debug.rejected(app),
     baseline: (app) => engine.debug.baseline(app),
   };
@@ -227,7 +356,7 @@ export async function legacyClient(id: string, world: World): Promise<Adapter> {
   };
   const legacy = await import('../legacy/session-sync.round1');
   const { useSessionStore } = await import('@/store/useSessionStore');
-  const { mapSessionRowToStore } = await import('@/lib/session-row-mapping');
+  const engineModule = await import('@/lib/session-sync-engine');
   const store = useSessionStore as unknown as SessionStoreLike;
   useSessionStore.setState({ sessions: [], currentSession: null });
   const notices: SyncNotice[] = [];
@@ -241,7 +370,7 @@ export async function legacyClient(id: string, world: World): Promise<Adapter> {
     session: (app) => findIn(store, app),
     fingerprints: (app) => {
       const session = findIn(store, app);
-      return session ? columnFingerprints(session) : null;
+      return session ? engineModule.columnFingerprints(session) : null;
     },
     edit: (app, mutate) => editIn(store, app, mutate),
     setCurrent: (app) => setCurrentIn(store, app),
@@ -267,12 +396,21 @@ export async function legacyClient(id: string, world: World): Promise<Adapter> {
     editorCommit: (app, start, apply) => legacy.commitEditorSave(app, start as number | undefined, apply),
     // The panels closed the editor on anything but a conflict.
     editorSucceeded: (outcome) => outcome !== 'conflict',
+    editorAfter: (_app, outcome) => ({ close: outcome !== 'conflict' }),
     // A regenerate response: write the returned content into the store, then adopt its revision.
     mutationResponse: async (app, response) => {
       editIn(store, app, (session) => ({ ...session, ...response.props }));
       await legacy.adoptServerWrite(app, response.revision, response.columns);
     },
+    workflowComplete: async (app, response) => {
+      editIn(store, app, (session) => ({ ...session, ...response.props }));
+      await legacy.adoptServerWrite(app, response.revision, []);
+    },
+    statusRefresh: async () => undefined,
     conflictJson: () => '[]',
+    noticeText: () => '',
+    restoreNotice: async () => 'skipped',
+    copyNotice: () => '',
     rejectedColumns: () => [],
     baseline: (app) => {
       const revision = legacy.getBaselineRevision(app);

@@ -1,8 +1,13 @@
-M1 accept stale rows -> ['failing seeds: 103  by invariant {"I2":103}']
-M2 drop local edits on conflict (no buffer, take server) -> ['failing seeds: 400  by invariant {"I1":400}']
-M3 keep local on conflict (server change lost) -> ['failing seeds: 400  by invariant {"I2":400}']
-M4 poll skips while rejected/dirty -> ['FAIL  low refused value does not block polling', 'failing seeds: 10  by invariant {"I3":10}']
-M5 baseline revision jumps on save -> ['FAIL  codex-1 handoff registers a baseline', 'FAIL  codex-3 edit made while an adoption reload is in flight', 'FAIL  round-1 h2 edit made while a poll reload is in flight', 'failing seeds: 396  by invariant {"I2":396,"I3":378}']
-M6 dirty decided before the row arrives is not modelled; instead: no revision check on poll -> ['failing seeds: 3  by invariant {"I3":3}']
-M7 editor says saved without checking the draft -> ['failing seeds: 27  by invariant {"I1":27}']
-M8 merge ignores rejected (keeps stale rejected) -> ['failing seeds: 0']
+M1 accept rows that are not newer than the baseline -> failing seeds: 130  by invariant {"I2":130}
+M2 a conflict drops the user text (no buffer entry) -> failing seeds: 400  by invariant {"I1":400}  cases: round-3 Restore and Copy act on their own notice only
+M3 a conflict keeps the local value (the server change is lost) -> failing seeds: 400  by invariant {"I2":400}  cases: round-3 Restore and Copy act on their own notice only
+M4 polling skips while there is an unsaved change -> failing seeds: 7  by invariant {"I3":7}  cases: low refused value does not block polling; round-3 Restore and Copy act on their own notice only
+M5 the baseline revision jumps past the saved one -> failing seeds: 394  by invariant {"I2":394,"I3":376}  cases: codex-1 handoff registers a baseline; codex-3 edit made while an adoption reload is in fligh; round-1 h2 edit made while a poll reload is in flight; round-3 typing during a save is not lost; round-3 Restore and Copy act on their own notice only
+M6 polling ignores revisions more than two ahead while dirty -> failing seeds: 1  by invariant {"I3":1}
+M7 an editor is told saved without checking the draft -> failing seeds: 20  by invariant {"I1":20}
+M8 refused values are never forgotten after a merge -> SURVIVED  failing seeds: 0
+M9 Restore acts on every buffered entry, not the notice's -> failing seeds: 68  by invariant {"I1":59,"I2":12}  cases: round-3 Restore and Copy act on their own notice only
+M10 a save settles every buffer entry of its columns -> failing seeds: 20  by invariant {"I1":20}
+M11 the editor closes over text typed during its save -> failing seeds: 7  by invariant {"I1":7}  cases: round-3 typing during a save is not lost
+M12 Restore overwrites text the user typed since -> failing seeds: 26  by invariant {"I1":26}
+M13 Copy offers every buffered entry -> failing seeds: 46  by invariant {"I1":46}  cases: round-3 Restore and Copy act on their own notice only

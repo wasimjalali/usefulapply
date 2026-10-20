@@ -1,6 +1,15 @@
 'use client';
 
 /**
+ * TEST ONLY. DO NOT IMPORT THIS FROM THE APP.
+ *
+ * The browser sync module as it was at PR #155 review round 1 (before the restructure).
+ * It is kept so e2e/tools/sync-fuzz.ts (--engine legacy) can keep showing that the
+ * randomized interleaving test fails on it. The app uses src/lib/session-sync.ts
+ * and src/lib/session-sync-engine.ts. Nothing in src/ may import from here.
+ */
+
+/**
  * How the browser keeps an open application in step with D1.
  *
  * The server is the writer of generation output (agent-v2 persists the kit,

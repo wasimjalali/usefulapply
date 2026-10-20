@@ -171,11 +171,11 @@ export async function POST(request: NextRequest) {
     const detectedLanguage = storedLanguage
       ?? await detectLanguage(session.job_description, generationContext);
     if (!storedLanguage) {
-      // A silent annotation of the stored ad's language, not an edit: no revision bump.
+      // `requirements` is a column the browser also writes, so the write bumps the revision (see the regenerate route).
       const persistedLanguage = await updateSession(user.id, session.id, {
         generated_artifacts: { ...(storedArtifacts ?? {}), detectedLanguage },
         requirements: { ...(storedRequirements ?? {}), detectedLanguage },
-      }, { bumpRevision: false });
+      });
       if (persistedLanguage.error) throw persistedLanguage.error;
     }
     const masterContext = buildContextFromSession(

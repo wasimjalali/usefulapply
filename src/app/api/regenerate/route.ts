@@ -221,13 +221,14 @@ export async function POST(request: NextRequest) {
     const detectedLanguage = storedLanguage
       ?? await detectLanguage(session.job_description || '', generationContext);
     if (!storedLanguage) {
-      // A silent annotation of the stored ad's language, not an edit: it does
-      // not bump the revision, or a first regenerate on an older kit would
-      // make the user's open tab conflict with it.
+      // `requirements` is a column the browser also writes, so this write bumps the
+      // revision: a write the revision does not announce could be overwritten by a
+      // browser save, or never seen by an open tab. An open tab merges it field by
+      // field, so it does not conflict with an unrelated edit.
       const persistedLanguage = await updateSession(user.id, session.id, {
         generated_artifacts: { ...(storedArtifacts ?? {}), detectedLanguage },
         requirements: { ...(storedRequirements ?? {}), detectedLanguage },
-      }, { bumpRevision: false });
+      });
       if (persistedLanguage.error) throw persistedLanguage.error;
     }
     

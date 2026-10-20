@@ -12,7 +12,7 @@ import { useToast } from './ui/Toast';
 import { usePostHog } from 'posthog-js/react';
 import { formatEmailAsText } from '@/lib/utils/kit-export';
 import { useSessionStore } from '@/store/useSessionStore';
-import { commitEditorSave, editorSaveSucceeded, getEditorStart, type EditorStart } from '@/lib/session-sync';
+import { commitEditorSave, editorShouldClose, getEditorStart, type EditorStart } from '@/lib/session-sync';
 
 interface EmailPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -59,9 +59,12 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   // is mid-edit, where their typing wins).
   const [editBase, setEditBase] = useState<{ email: GeneratedEmail | null; followUp: FollowUp | null } | null>(null);
   const editSessionIdRef = useRef<string | null>(null);
+  // The drafts as they are now, for the save that finishes later (the user keeps typing while it runs).
+  const draftsRef = useRef<{ email: GeneratedEmail | null; followUp: FollowUp | null }>({ email: null, followUp: null });
   // The revision the editor opened on; the drafts live outside the store (see commitEditorSave).
   const editStartRef = useRef<EditorStart | undefined>(undefined);
   const { toast } = useToast();
+  useEffect(() => { draftsRef.current = { email: editedEmail, followUp: editedFollowUp }; }, [editedEmail, editedFollowUp]);
 
   const editsCurrent = isEditMode || (editBase !== null && editBase.email === (email ?? null) && editBase.followUp === (followUpEmail ?? null));
   const activeEmail = editsCurrent && editedEmail ? editedEmail : email;
@@ -96,6 +99,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
       setIsEditMode(false);
       return;
     }
+    const sentDrafts = JSON.stringify([editedEmail, editedFollowUp]);
     // Save now, against the revision this editor opened on. If another write got in
     // first the drafts are not applied: the editor stays open with the text in it.
     void commitEditorSave(editSessionId, editStartRef.current, () => {
@@ -103,7 +107,12 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
       if (editedFollowUp) useSessionStore.getState().updateSessionById(editSessionId, { followUpEmail: editedFollowUp });
     }).then((outcome) => {
       // Anything but a save the server confirmed leaves the editor open with the text in it.
-      if (!editorSaveSucceeded(outcome)) return;
+      // So does typing during the save: the newer drafts stay, now based on what was just saved.
+      const nowDrafts = JSON.stringify([draftsRef.current.email, draftsRef.current.followUp]);
+      if (!editorShouldClose(outcome, sentDrafts, nowDrafts)) {
+        if (outcome === 'saved' || outcome === 'clean') editStartRef.current = getEditorStart(editSessionId);
+        return;
+      }
       setEditedEmail(null);
       setEditedFollowUp(null);
       setEditBase(null);

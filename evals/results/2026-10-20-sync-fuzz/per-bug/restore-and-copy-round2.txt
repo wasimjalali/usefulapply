@@ -1,0 +1,97 @@
+  500/2000 seeds, 291 failing
+  1000/2000 seeds, 567 failing
+  1500/2000 seeds, 850 failing
+  2000/2000 seeds, 1126 failing
+
+2000 seeds (1..2000), 60 operations each, round2 engine, 14.8s
+totals {"ops":120000,"edits":51281,"editorSaves":0,"typedDuringSave":0,"regens":0,"workflows":0,"trackerWrites":0,"silentWrites":0,"restores":3231,"copies":1677,"agentWrites":15446,"handoffs":0,"polls":20921,"saves":20943,"requests":102156,"dropped":6278,"lostAnswers":4785,"hung":6165,"conflictNotices":9087,"failureNotices":4312,"settleRounds":5139}
+failing seeds: 1126  by invariant {"I1":1094,"I2":78}
+seeds per kind of violation:
+    627  I1: TAB save sent T, text that was set aside in a conflict buffer and that the user did not restore
+    291  I1: TAB last edit of APP.FIELD 
+    259  I1: TAB Copy on a notice offered text that belongs to another notice
+    225  I1: TAB last edit of APP.cv 
+    206  I1: TAB last edit of APP.screening 
+     63  I2: TAB save overwrote COLUMN of APP with a server value its store had never shown 
+     59  I1: TAB last edit of APP.fitAssessment 
+     50  I1: TAB last edit of APP.requirements 
+     31  I2: TAB save overwrote generated_cv of APP with a server value its store had never shown 
+     18  I2: TAB save overwrote requirements of APP with a server value its store had never shown 
+     15  I2: TAB save overwrote fit_assessment of APP with a server value its store had never shown 
+  seed 2
+      I1: A's save sent t:A16;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: A's save sent t:A27;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: A's save sent t:A1;, text that was set aside in a conflict buffer and that the user did not restore
+  seed 5
+      I1: B's last edit of app-1.cv (t:B19;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullName":"N","email":"n@example.test","currentT)
+  seed 6
+      I1: A's Copy on a notice offered text that belongs to another notice
+      I1: A's save sent t:O6;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: A's save sent t:A9;, text that was set aside in a conflict buffer and that the user did not restore
+  seed 7
+      I1: A's Copy on a notice offered text that belongs to another notice
+  seed 9
+      I1: A's save sent t:O5;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: A's save sent t:A9;, text that was set aside in a conflict buffer and that the user did not restore
+  seed 12
+      I1: A's save sent t:A16;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: A's save sent t:A14;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: B's last edit of app-1.cv (t:B26;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullName":"N","email":"n@example.test","currentT)
+  seed 13
+      I1: A's last edit of app-1.coverLetter (t:A25;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"email":{"subject":"s-t:A30;","body":"t:A30;","attachmentNote":""}}])
+  seed 14
+      I1: A's save sent t:A19;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: A's save sent t:A21;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: A's save sent t:A24;, text that was set aside in a conflict buffer and that the user did not restore
+  seed 15
+      I1: B's last edit of app-1.cv (t:B25;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"jobDescription":"t:O26;"},{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullName":"N","email)
+  seed 17
+      I1: B's last edit of app-1.jobDescription (t:B23;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"jobTitle":"t:B27;"},{"company":"t:B18;"},{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullN)
+  seed 18
+      I2: B's save overwrote requirements of app-1 with a server value its store had never shown (server {"title":"t:G26;","company":"c","hardSkills":[],"softSkills":[]}; store {"title":"t:B6;","company":"c","hardSkills":[],"softSkills":[]}; patch tokens t:B6;,t:B18;; baseline@14 server@14)
+      I1: B's last edit of app-1.requirements (t:B25;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"jobTitle":"t:B17;"},{"jobDescription":"t:O15;"},{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":)
+  seed 20
+      I1: B's save sent t:O23;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: A's last edit of app-1.company (t:A22;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"requirements":{"title":"t:A25;","company":"c","hardSkills":[],"softSkills":[]}},{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position")
+  seed 22
+      I1: A's Copy on a notice offered text that belongs to another notice
+      I1: A's save sent t:A13;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: B's last edit of app-1.jobTitle (t:O16;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"jobTitle":"t:B3;"},{"company":"t:O28;"},{"requirements":{"title":"t:O29;","company":"c","hardSkills":[],"softSkills":[]}},{"generatedCV":{"content":"cv conte)
+  seed 24
+      I1: B's Copy on a notice offered text that belongs to another notice
+      I1: B's save sent t:B4;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: A's save sent t:A24;, text that was set aside in a conflict buffer and that the user did not restore
+  seed 25
+      I2: A's save overwrote job_title of app-1 with a server value its store had never shown (server "t:G20;"; store "t:O16;"; patch tokens t:O16;,t:A2;; baseline@10 server@10)
+      I2: A's save overwrote company of app-1 with a server value its store had never shown (server "t:G21;"; store "t:A2;"; patch tokens t:O16;,t:A2;; baseline@10 server@10)
+  seed 29
+      I1: B's save sent t:B32;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: B's save sent t:B27;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: A's save sent t:A34;, text that was set aside in a conflict buffer and that the user did not restore
+  seed 30
+      I1: B's last edit of app-1.cv (t:O27;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"company":"t:B34;"},{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullName":"N","email":"n@ex)
+  seed 32
+      I1: A's save sent t:A18;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: A's save sent t:O32;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: A's last edit of app-1.screening (t:A17;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [])
+  seed 33
+      I1: B's save sent t:B20;, text that was set aside in a conflict buffer and that the user did not restore
+  seed 34
+      I1: B's last edit of app-1.selectedTemplate (t:B24;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"selectedTemplate":"tpl-t:B12;"},{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullName":"N",)
+  seed 35
+      I1: B's save sent t:B13;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: B's save sent t:B29;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: B's last edit of app-1.followUpEmail (t:B32;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [])
+  seed 36
+      I1: B's save sent t:B4;, text that was set aside in a conflict buffer and that the user did not restore
+  seed 37
+      I1: A's last edit of app-1.requirements (t:A29;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"requirements":{"title":"t:A23;","company":"c","hardSkills":[],"softSkills":[]}},{"fitAssessment":{"summary":"t:A8;","score":50}}])
+  seed 38
+      I1: B's save sent t:B29;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: B's last edit of app-1.followUpEmail (t:B17;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"jobTitle":"t:B20;"},{"coverLetter":{"applicantAddress":{"name":"","street":"","city":"","country":"","phone":"","email":""},"date":"","companyAddress":{"comp)
+      I1: B's last edit of app-1.fitAssessment (t:B25;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"jobTitle":"t:B20;"},{"coverLetter":{"applicantAddress":{"name":"","street":"","city":"","country":"","phone":"","email":""},"date":"","companyAddress":{"comp)
+  seed 39
+      I1: B's save sent t:B16;, text that was set aside in a conflict buffer and that the user did not restore
+      I1: A's last edit of app-1.screening (t:O12;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullName":"N","email":"n@example.test","currentT)
+  ... and 1101 more
+seed list: 2,5,6,7,9,12,13,14,15,17,18,20,22,24,25,29,30,32,33,34,35,36,37,38,39,40,42,44,45,48,49,50,51,58,59,60,61,63,65,67,68,70,71,74,75,77,80,82,83,84,85,86,87,88,89,90,91,92,95,96,97,98,99,100,101,102,103,105,107,108,109,111,113,115,116,117,118,119,120,121,123,124,127,129,130,131,132,133,134,137,138,139,140,142,145,147,150,151,152,153, ... (1126 in all, see --out)

@@ -215,7 +215,14 @@ export type InsertOperationResult =
  * back as `existing`, never as an error, so the caller can release the
  * reservation it just made.
  */
-export async function insertOperation(params: {
+export async function insertOperation(params: InsertOperationParams): Promise<InsertOperationResult> {
+  const first = await insertOperationOnce(params);
+  // A refusal reported as "at the limit" can be stale: the live operation that filled the
+  // limit may have finished between the refused INSERT and the check. Ask once more.
+  return first.outcome === 'limit' ? insertOperationOnce(params) : first;
+}
+
+interface InsertOperationParams {
   userId: string;
   sessionId: string | null;
   kind: string;
@@ -224,7 +231,9 @@ export async function insertOperation(params: {
   input: Record<string, unknown>;
   reservationKey: string | null;
   maxActive?: number;
-}): Promise<InsertOperationResult> {
+}
+
+async function insertOperationOnce(params: InsertOperationParams): Promise<InsertOperationResult> {
   const id = crypto.randomUUID();
   const now = nowIso();
   const maxActive = params.maxActive ?? MAX_ACTIVE_OPERATIONS_PER_USER;

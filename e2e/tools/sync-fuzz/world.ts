@@ -63,7 +63,11 @@ export class FakeClock {
 // ---------------------------------------------------------------------------
 
 /** The names are the engine's field-group keys. */
-export const FIELDS = ['jobTitle', 'company', 'jobDescription', 'selectedTemplate', 'coverLetter', 'email', 'followUpEmail'] as const;
+export const FIELDS = [
+  'jobTitle', 'company', 'jobDescription', 'selectedTemplate', 'coverLetter', 'email', 'followUpEmail',
+  // The CV with its embedded structured data and the screening answers share one column (generated_cv).
+  'cv', 'screening', 'fitAssessment', 'requirements',
+] as const;
 export type Field = (typeof FIELDS)[number];
 
 /** Fields that have an editor outside the store. */
@@ -84,9 +88,34 @@ export function letterObject(body: string): Record<string, unknown> {
   };
 }
 
-/** The server columns a write of `field` with this token sets. */
-export function serverColumns(field: Field, token: string): Record<string, unknown> {
+export function cvObject(title: string, screeningAnswer = 'none'): Record<string, unknown> {
+  return {
+    content: 'cv content',
+    changes: [],
+    optimizedFor: 'Position',
+    _optimizedCVData: {
+      personal: { fullName: 'N', email: 'n@example.test', currentTitle: title },
+      experience: [], education: [], skills: [], languages: [], certifications: [],
+    },
+    _screeningAnswers: [{ id: 's1', question: 'q', answer: screeningAnswer, createdAt: 'x' }],
+    _screeningUsageCount: 0,
+  };
+}
+
+/** The server columns a write of `field` with this token sets. `current` is the column values the write starts from. */
+export function serverColumns(field: Field, token: string, current: Record<string, unknown> = {}): Record<string, unknown> {
   switch (field) {
+    case 'cv': {
+      const base = (current.generated_cv ?? cvObject('seed')) as Record<string, unknown>;
+      const answers = base._screeningAnswers as Array<{ answer: string }> | undefined;
+      return { generated_cv: cvObject(token, answers?.[0]?.answer ?? 'none') };
+    }
+    case 'screening': {
+      const base = (current.generated_cv ?? cvObject('seed')) as Record<string, { personal?: { currentTitle?: string } }>;
+      return { generated_cv: cvObject(base._optimizedCVData?.personal?.currentTitle ?? 'seed', token) };
+    }
+    case 'fitAssessment': return { fit_assessment: { summary: token, score: 50 } };
+    case 'requirements': return { requirements: { title: token, company: 'c', hardSkills: [], softSkills: [] } };
     case 'jobTitle': return { job_title: token };
     case 'company': return { company: token };
     case 'jobDescription': return { job_description: token };
@@ -121,7 +150,7 @@ export class FakeServer {
   history = new Map<string, Map<number, StoredSessionRow>>();
   accepted: AcceptedWrite[] = [];
   /** Called for each accepted browser write with the server's current fingerprint of every column it overwrites. */
-  onAccept?: (by: string, app: string, overwritten: Record<string, string>) => void;
+  onAccept?: (by: string, app: string, overwritten: Record<string, string>, patchJson: string) => void;
   private counter = 0;
   private truthCache = new Map<string, Record<string, string>>();
 
@@ -132,6 +161,11 @@ export class FakeServer {
       company: `Company ${id}`,
       job_description: `Seed description ${id}`,
       selected_template: 'classic',
+      generated_cv: cvObject('seed title'),
+      requirements: { title: 'seed', company: 'c', hardSkills: [], softSkills: [] },
+      fit_assessment: null,
+      status: 'drafted',
+      generation_status: 'none',
       cover_letter: letterObject(`seed letter ${id}`),
       email: { subject: `seed subject ${id}`, body: `seed email ${id}`, attachmentNote: '' },
       follow_up_email: { subject: `seed follow-up ${id}`, body: `seed follow-up body ${id}`, recommendedDelay: 5 },
@@ -151,10 +185,14 @@ export class FakeServer {
       company: app.cols.company as string,
       job_description: app.cols.job_description as string,
       selected_template: app.cols.selected_template as string,
+      generated_cv: clone(app.cols.generated_cv) as Record<string, unknown> | null,
+      requirements: clone(app.cols.requirements),
+      fit_assessment: clone(app.cols.fit_assessment),
+      generation_status: app.cols.generation_status as StoredSessionRow['generation_status'],
       cover_letter: clone(app.cols.cover_letter),
       email: clone(app.cols.email),
       follow_up_email: clone(app.cols.follow_up_email),
-      status: 'drafted',
+      status: app.cols.status as string,
       created_at: '2026-01-01T00:00:00.000Z',
       updated_at: `2026-01-01T00:00:${String(app.revision % 60).padStart(2, '0')}.000Z`,
     };
@@ -164,9 +202,36 @@ export class FakeServer {
 
   revisionOf(id: string): number | null { return this.apps.get(id)?.revision ?? null; }
 
+  statusOf(id: string): string { return String(this.apps.get(id)?.cols.status ?? 'drafted'); }
+
   rowOf(id: string): StoredSessionRow | null {
     const app = this.apps.get(id);
     return app ? clone(this.history.get(id)!.get(app.revision)!) : null;
+  }
+
+  /** A write that does not bump the revision: workflow state, or the old "silent" annotation of `requirements`. */
+  writeWithoutBump(id: string, columns: Record<string, unknown>): void {
+    const app = this.apps.get(id)!;
+    for (const [column, value] of Object.entries(columns)) app.cols[column] = clone(value);
+    this.truthCache.delete(`${id}@${app.revision}`);
+    this.snapshot(id);
+  }
+
+  /** A write of one field with a token, starting from the current columns. */
+  writeField(id: string, field: Field, token: string, by: string): number {
+    return this.write(id, serverColumns(field, token, this.apps.get(id)!.cols), by);
+  }
+
+  /** What persistKit does: the whole kit in one write. */
+  persistKit(id: string, token: string, by: string): number {
+    const cols = this.apps.get(id)!.cols;
+    return this.write(id, {
+      ...serverColumns('cv', token, cols),
+      ...serverColumns('coverLetter', token),
+      ...serverColumns('email', token),
+      ...serverColumns('followUpEmail', token),
+      ...serverColumns('requirements', token),
+    }, by);
   }
 
   /** A write that is not revision-conditional: the agent, a regenerate route. */
@@ -190,8 +255,13 @@ export class FakeServer {
     const current = this.truth(id, app.revision) ?? {};
     const overwritten: Record<string, string> = {};
     for (const column of Object.keys(patch)) if (column in current) overwritten[column] = current[column];
-    this.onAccept?.(by, id, overwritten);
+    this.onAccept?.(by, id, overwritten, JSON.stringify(patch));
     return { ok: true, revision: this.write(id, patch, by) };
+  }
+
+  /** Has any write on any application carried this text? */
+  acceptedAnywhere(token: string): boolean {
+    return this.accepted.some((write) => write.json.includes(token));
   }
 
   acceptedHas(id: string, token: string): boolean {

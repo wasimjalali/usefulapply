@@ -29,6 +29,7 @@ export {
   embedKitData,
   persistedColumns,
   editorSaveSucceeded,
+  editorShouldClose,
 } from '@/lib/session-sync-engine';
 export type {
   ApplyOptions,
@@ -85,9 +86,8 @@ export const getEditorStart = engine.getEditorStart;
 export const commitEditorSave = engine.commitEditorSave;
 export const checkForRemoteChange = engine.checkForRemoteChange;
 export const getConflictBuffer = engine.getConflictBuffer;
-export const conflictBufferText = engine.conflictBufferText;
-export const clearConflictBuffer = engine.clearConflictBuffer;
-export const restoreConflictBuffer = engine.restoreConflictBuffer;
+export const conflictText = engine.conflictText;
+export const restoreConflict = engine.restoreConflict;
 
 /** Poll the open application on focus and every `REVISION_POLL_MS`. Returns the stop function. */
 export function startRevisionPolling(getOpenSessionId: () => string | null): () => void {

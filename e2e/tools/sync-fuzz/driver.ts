@@ -6,15 +6,33 @@
  * operations whose requests are answered in random order, late, lost or never,
  * then a settle phase on a healthy network, then the invariants.
  *
+ * What the operations cover: local edits; autosaves; polls; editors that are
+ * opened, typed into (also while a save is in flight) and saved; regenerate and
+ * workflow_complete responses that carry generated content and arrive late;
+ * tracker status writes; writes that do NOT bump the revision (workflow state,
+ * and in the round-2 server model the silent `requirements` annotation); agent
+ * and other-tab writes; feed handoffs; opening and re-opening an application;
+ * Copy and Restore on conflict notices, new and old. The fields include the
+ * multi-column groups: the CV with its embedded structured data and screening
+ * answers, the email with its derived subject and body, the fit assessment.
+ *
  *   I1  no lost edit: the last thing a user typed into a field is on the server
  *       (an accepted write holds it), or in a conflict buffer with a notice
  *       raised, or still unsaved because the server refused it (and the user
- *       was told). An editor that was told "saved" has its exact draft on the server.
+ *       was told). An editor that was told "saved" has its exact draft on the
+ *       server, and an editor never closes over text typed during its save.
+ *       Text set aside in a conflict buffer reaches the server only when the
+ *       user asked for it back with Restore on the notice that names it, and
+ *       Copy offers only the text of the notice it was clicked on.
  *   I2  no stale overwrite: every save names a revision the writer's baseline
  *       is a truthful snapshot of; a baseline never claims a revision whose
- *       content it does not hold (checked after every step, and at every save).
+ *       content it does not hold and never moves backwards; a save only
+ *       overwrites a server value its writer's store had shown (so a value
+ *       the server changed without announcing it, or one that arrived stale,
+ *       is not overwritten unseen).
  *   I3  convergence: at quiescence every tab's store equals the server's row
- *       (except values the server refuses) and its baseline is the server's revision.
+ *       (except values the server refuses), its status is the server's, and its
+ *       baseline is the server's revision.
  *   I4  no loops: the settle phase reaches a fixed point, and a second pass
  *       over a converged world raises no notice and makes no write.
  *   I5  refused fields do not block others: covered by I3, plus a refused
@@ -22,8 +40,8 @@
  */
 
 import { columnFingerprints } from '@/lib/session-sync-engine';
-import type { Adapter, MutationResponse } from './adapters';
-import { fieldMutation, legacyClient, newClient, responseProps } from './adapters';
+import type { Adapter, EngineVariantName, MutationResponse } from './adapters';
+import { fieldMutation, kitProps, legacyClient, loadEngine, newClient, responseProps, tokensIn } from './adapters';
 import {
   EDITOR_FIELDS, FIELDS, FakeClock, FakeServer, RequestScheduler, flush, makeRng, serverColumns, tick, tokenOf,
   type Field, type Rng,
@@ -40,7 +58,13 @@ export interface RunStats {
   ops: number;
   edits: number;
   editorSaves: number;
+  typedDuringSave: number;
   regens: number;
+  workflows: number;
+  trackerWrites: number;
+  silentWrites: number;
+  restores: number;
+  copies: number;
   agentWrites: number;
   handoffs: number;
   polls: number;
@@ -53,6 +77,12 @@ export interface RunStats {
   failureNotices: number;
   settleRounds: number;
 }
+
+export const emptyStats = (): RunStats => ({
+  ops: 0, edits: 0, editorSaves: 0, typedDuringSave: 0, regens: 0, workflows: 0, trackerWrites: 0, silentWrites: 0,
+  restores: 0, copies: 0, agentWrites: 0, handoffs: 0, polls: 0, saves: 0, requests: 0, dropped: 0, lostAnswers: 0,
+  hung: 0, conflictNotices: 0, failureNotices: 0, settleRounds: 0,
+});
 
 export interface RunResult {
   seed: number;
@@ -73,9 +103,11 @@ interface Editor {
   client: Adapter;
   app: string;
   field: Field;
-  token: string;
+  /** What the user has typed so far. */
+  draft: string;
+  /** Every draft this editor held or sent, for the I1 accounting. */
+  tokens: Set<string>;
   start: unknown;
-  /** The commit that ran last, if any. */
   committing: boolean;
 }
 
@@ -87,6 +119,10 @@ export const GROUP_COLUMNS: Record<Field, string[]> = {
   coverLetter: ['cover_letter'],
   email: ['email', 'email_subject', 'email_body'],
   followUpEmail: ['follow_up_email'],
+  cv: ['generated_cv', 'optimized_cv_text'],
+  screening: ['generated_cv', 'optimized_cv_text'],
+  fitAssessment: ['fit_assessment'],
+  requirements: ['requirements'],
 };
 
 const pick = <T>(rng: Rng, items: readonly T[]): T => items[Math.floor(rng() * items.length)];
@@ -172,6 +208,10 @@ export async function settleAndVerify(ctx: VerifyContext): Promise<void> {
         }
         violate('I3', `${client.id}'s ${column} on ${app} differs from the server after settling`);
       }
+      // The tracker status rides every revision bump.
+      if (client.kind === 'new' && (session.status ?? 'drafted') !== server.statusOf(app)) {
+        violate('I3', `${client.id}'s status of ${app} is "${session.status}", the server has "${server.statusOf(app)}"`);
+      }
     }
   }
 
@@ -187,14 +227,19 @@ export async function settleAndVerify(ctx: VerifyContext): Promise<void> {
     const refusedColumns = client.rejectedColumns(edit.app);
     if (stillHeld && (client.kind === 'legacy' || GROUP_COLUMNS[edit.field].some((column) => refusedColumns.includes(column)))
       && client.notices.some((notice) => notice.message.includes('did not save'))) continue;
-    violate('I1', `${client.id}'s last edit of ${edit.app}.${edit.field} (${edit.token}) was lost: not on the server, not in a conflict buffer${buffered ? ' with a notice' : ''}, not a refused value`);
+    violate('I1', `${client.id}'s last edit of ${edit.app}.${edit.field} (${edit.token}) was lost: not on the server, not in a conflict buffer${buffered ? ' with a notice' : ''}, not a refused value (store still holds it: ${stillHeld}, buffer: ${client.conflictJson(edit.app).slice(0, 160)})`);
   }
 }
 
+export const OP_NAMES = ['edit', 'save', 'poll', 'editorOpen', 'type', 'editorSave', 'regen', 'workflow', 'tracker', 'agent', 'workflowWrite', 'silentRequirements', 'tabWrite', 'handoff', 'openOther', 'reopen', 'restore', 'copy'] as const;
+
 export interface RunOptions {
-  engine: 'new' | 'legacy';
+  /** `new`: the current engine and glue. `round2`: the review-round-2 engine, glue and server. `legacy`: the round-1 module. */
+  engine: 'new' | 'round2' | 'legacy';
   ops?: number;
   verbose?: boolean;
+  /** Run only these operations (see OP_NAMES), to isolate one bug. */
+  only?: string[];
 }
 
 export async function runSeed(seed: number, options: RunOptions): Promise<RunResult> {
@@ -202,18 +247,17 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
   const clock = new FakeClock();
   const server = new FakeServer();
   const net = new RequestScheduler(rng);
-  net.allowHang = options.engine === 'new';
+  net.allowHang = options.engine !== 'legacy';
   const world = { clock, server, net };
   const violations: Violation[] = [];
   const violate = (code: InvariantCode, message: string) => {
     if (!violations.some((existing) => existing.code === code && existing.message === message)) violations.push({ code, message });
   };
-  const stats: RunStats = {
-    ops: 0, edits: 0, editorSaves: 0, regens: 0, agentWrites: 0, handoffs: 0, polls: 0, saves: 0,
-    requests: 0, dropped: 0, lostAnswers: 0, hung: 0, conflictNotices: 0, failureNotices: 0, settleRounds: 0,
-  };
+  const stats = emptyStats();
   const log: string[] = [];
   const say = (line: string) => { if (options.verbose) log.push(line); };
+  // The round-2 server wrote `requirements` (a column the browser also writes) without bumping the revision.
+  const silentRequirements = options.engine === 'round2';
 
   // -- clients ------------------------------------------------------------
   const clients: Adapter[] = [];
@@ -232,20 +276,35 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
       }
     }
   };
-  // What each store has ever shown, and the furthest each baseline has got.
+  // What each store has ever shown, the furthest each baseline has got, and the text set aside in conflict buffers.
   const seen = new Map<string, Set<string>>();
   const furthest = new Map<string, number>();
+  const buffered = new Set<string>();
+  const intended = new Set<string>();
+  // generated_cv is one column holding several things a user edits (the structured CV, the screening answers):
+  // each is "shown" on its own, so a save is judged by the parts it changes.
+  const parts = (column: string, fp: string): Record<string, string> => {
+    if (column !== 'generated_cv') return { '': fp };
+    try {
+      const value = JSON.parse(fp) as Record<string, unknown> | null;
+      return Object.fromEntries(Object.entries(value ?? {}).map(([key, part]) => [key, JSON.stringify(part)]));
+    } catch { return { '': fp }; }
+  };
   const observe = (where: string) => {
     for (const client of clients) {
       for (const app of client.apps) {
         const fps = client.fingerprints(app);
         if (fps) {
           for (const [column, fp] of Object.entries(fps)) {
-            const key = `${client.id}|${app}|${column}`;
-            if (!seen.has(key)) seen.set(key, new Set());
-            seen.get(key)!.add(fp);
+            for (const [part, value] of Object.entries(parts(column, fp))) {
+              const key = `${client.id}|${app}|${column}#${part}`;
+              if (!seen.has(key)) seen.set(key, new Set());
+              seen.get(key)!.add(value);
+            }
           }
         }
+        // Text the server already carried when it was set aside (a save that timed out but landed) may come back from the server legitimately.
+        for (const token of tokensIn(client.conflictJson(app))) if (!buffered.has(token) && !server.acceptedAnywhere(token)) buffered.add(token);
         const base = client.baseline(app);
         if (base) {
           const key = `${client.id}|${app}`;
@@ -256,26 +315,40 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
       }
     }
   };
-  // A save may only overwrite a server value its writer has displayed (or written itself).
-  server.onAccept = (by, app, overwritten) => {
+  server.onAccept = (by, app, overwritten, patchJson) => {
+    if (!clients.some((client) => client.id === by)) return;
+    // A save may only overwrite a server value its writer has displayed (or written itself).
+    const patch = JSON.parse(patchJson) as Record<string, unknown>;
     for (const [column, fp] of Object.entries(overwritten)) {
-      if (!clients.some((client) => client.id === by)) return;
-      if (!seen.get(`${by}|${app}|${column}`)?.has(fp)) {
-        violate('I2', `${by}'s save overwrote ${column} of ${app} with a server value its store had never shown`);
+      const before = parts(column, fp);
+      const after = parts(column, JSON.stringify(patch[column] ?? null));
+      const unseen = Object.keys({ ...before, ...after }).filter((part) => before[part] !== after[part] && before[part] !== undefined
+        && !seen.get(`${by}|${app}|${column}#${part}`)?.has(before[part]));
+      if (unseen.length > 0) {
+        const mine = clients.find((client) => client.id === by);
+        violate('I2', `${by}'s save overwrote ${column} of ${app} with a server value its store had never shown (server ${fp}; store ${mine?.fingerprints(app)?.[column]}; patch tokens ${tokensIn(patchJson).join(',')}; baseline@${mine?.baseline(app)?.revision} server@${server.revisionOf(app)})`);
+      }
+    }
+    // Text set aside in a conflict buffer goes back to the server only when the user restored the notice that holds it.
+    for (const token of tokensIn(patchJson)) {
+      if (buffered.has(token) && !intended.has(token)) {
+        violate('I1', `${by}'s save sent ${token}, text that was set aside in a conflict buffer and that the user did not restore`);
       }
     }
   };
-  if (options.engine === 'new') {
+  if (options.engine === 'legacy') {
+    clients.push(await legacyClient('A', world));
+  } else {
+    const variant: EngineVariantName = options.engine === 'round2' ? 'round2' : 'current';
+    const engineModule = await loadEngine(variant);
     for (const id of ['A', 'B']) {
-      clients.push(newClient(id, world, { onSaveCall: (app, expected) => {
+      clients.push(newClient(id, world, engineModule, variant, { onSaveCall: (app, expected) => {
         const adapter = clients.find((client) => client.id === id)!;
         const base = adapter.baseline(app);
         if (base && base.revision !== expected) violate('I2', `${id} saved ${app} against revision ${expected} but its baseline is ${base.revision}`);
         checkBaseline(adapter, app, 'at save');
       } }));
     }
-  } else {
-    clients.push(await legacyClient('A', world));
   }
 
   // -- setup on a healthy network -----------------------------------------
@@ -330,9 +403,11 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
     say(`${client.id} edits ${app}.${field} ${token}`);
   };
 
+  const noticesWithText = (client: Adapter) => client.notices.filter((notice) => notice.conflictFor);
+
   const ops: Array<{ weight: number; run: () => void }> = [
     {
-      weight: 24,
+      weight: 22,
       run: () => {
         const client = pick(rng, clients);
         const apps = appsOf(client);
@@ -340,7 +415,7 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
       },
     },
     {
-      weight: 12,
+      weight: 11,
       run: () => {
         const client = pick(rng, clients);
         const apps = appsOf(client);
@@ -350,7 +425,7 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
       },
     },
     {
-      weight: 12,
+      weight: 11,
       run: () => {
         const client = pick(rng, clients);
         const apps = appsOf(client);
@@ -367,42 +442,60 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         if (!apps.length || editors.filter((editor) => editor.client === client).length >= 2) return;
         const app = pick(rng, apps);
         const field = pick(rng, EDITOR_FIELDS);
-        const editor: Editor = { client, app, field, token: nextToken(client.id), start: client.editorStart(app), committing: false };
+        const draft = nextToken(client.id);
+        const editor: Editor = { client, app, field, draft, tokens: new Set([draft]), start: client.editorStart(app), committing: false };
         editors.push(editor);
-        openEditorTokens.add(editor.token);
-        say(`${client.id} opens an editor on ${app}.${field} (draft ${editor.token})`);
+        openEditorTokens.add(draft);
+        say(`${client.id} opens an editor on ${app}.${field} (draft ${draft})`);
       },
     },
     {
-      weight: 9,
+      // The user keeps typing, also while a save is in flight.
+      weight: 5,
+      run: () => {
+        if (!editors.length) return;
+        const editor = pick(rng, editors);
+        editor.draft = nextToken(editor.client.id);
+        editor.tokens.add(editor.draft);
+        openEditorTokens.add(editor.draft);
+        if (editor.committing) stats.typedDuringSave += 1;
+        say(`${editor.client.id} types ${editor.draft} in the editor on ${editor.app}.${editor.field}${editor.committing ? ' (during a save)' : ''}`);
+      },
+    },
+    {
+      weight: 8,
       run: () => {
         const open = editors.filter((editor) => !editor.committing);
         if (!open.length) return;
         const editor = pick(rng, open);
         editor.committing = true;
         stats.editorSaves += 1;
-        const { client, app, field, token } = editor;
-        const group = field;
-        const describe = () => {
-          const session = client.session(app) as unknown as Record<string, { body?: string } | null> | null;
-          return `store ${field}=${session?.[field]?.body ?? '-'} baseline@${client.baseline(app)?.revision} server@${server.revisionOf(app)}`;
-        };
-        say(`${client.id} editor ${app}.${field} saving: ${describe()}`);
+        const { client, app, field } = editor;
+        const sent = editor.draft;
         const work = client.editorCommit(app, editor.start, () => {
-          client.edit(app, fieldMutation(field, token));
+          client.edit(app, fieldMutation(field, sent));
           // The draft replaces whatever the store held for that field.
-          lastEdit.set(keyOf(client.id, app, group), { client: client.id, app, field, token, viaEditor: true });
+          lastEdit.set(keyOf(client.id, app, field), { client: client.id, app, field, token: sent, viaEditor: true });
         }).then((outcome) => {
           editor.committing = false;
-          say(`${client.id} editor ${app}.${field} -> ${outcome}: ${describe()}`);
+          say(`${client.id} editor ${app}.${field} sent ${sent} -> ${outcome}`);
           if (client.editorSucceeded(outcome)) {
-            if (!server.acceptedHas(app, token)) {
+            if (!server.acceptedHas(app, sent)) {
               violate('I1', `${client.id}'s editor on ${app}.${field} was told "${outcome}" but the server never accepted the draft`);
+            }
+            lastEdit.delete(keyOf(client.id, app, field));
+            openEditorTokens.delete(sent);
+          }
+          const after = client.editorAfter(app, outcome, sent, editor.draft);
+          if (after.close) {
+            if (editor.draft !== sent && !server.acceptedHas(app, editor.draft)) {
+              violate('I1', `${client.id}'s editor on ${app}.${field} closed over text the user typed while the save ran`);
             }
             const index = editors.indexOf(editor);
             if (index >= 0) editors.splice(index, 1);
-            openEditorTokens.delete(token);
-            lastEdit.delete(keyOf(client.id, app, group));
+            for (const token of editor.tokens) openEditorTokens.delete(token);
+          } else if (after.start !== undefined) {
+            editor.start = after.start;
           }
         }, (error) => {
           editor.committing = false;
@@ -412,7 +505,7 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
       },
     },
     {
-      weight: 7,
+      weight: 6,
       run: () => {
         const client = pick(rng, clients);
         const apps = appsOf(client);
@@ -423,7 +516,7 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         stats.regens += 1;
         const { props, columns } = responseProps(field, token);
         const work = call(client, 'mutate', () => {
-          const revision = server.write(app, serverColumns(field, token), 'route');
+          const revision = server.writeField(app, field, token, 'route');
           return { revision, props, columns } satisfies MutationResponse;
         }).then((response) => client.mutationResponse(app, response));
         track(work);
@@ -431,26 +524,77 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
       },
     },
     {
-      weight: 9,
+      // A generation finishes: the kit is saved in one write, and the SSE result carrying the generated fields arrives later.
+      weight: 5,
+      run: () => {
+        const client = pick(rng, clients);
+        const apps = appsOf(client);
+        if (!apps.length) return;
+        const app = pick(rng, apps);
+        const token = nextToken('K');
+        stats.workflows += 1;
+        const work = call(client, 'mutate', () => {
+          const revision = server.persistKit(app, token, 'route');
+          return { revision, props: kitProps(server.rowOf(app)!), columns: [] } satisfies MutationResponse;
+        }).then((response) => client.workflowComplete(app, response));
+        track(work);
+        say(`${client.id} finishes a generation of ${app} (${token})`);
+      },
+    },
+    {
+      weight: 3,
+      run: () => {
+        const client = pick(rng, clients);
+        const apps = appsOf(client);
+        if (!apps.length) return;
+        const app = pick(rng, apps);
+        stats.trackerWrites += 1;
+        const status = pick(rng, ['drafted', 'applied', 'interview', 'offer', 'rejected']);
+        const work = call(client, 'mutate', () => server.write(app, { status }, 'tracker')).then(() => client.statusRefresh(app));
+        track(work);
+        say(`${client.id} sets ${app} to ${status}`);
+      },
+    },
+    {
+      weight: 8,
       run: () => {
         const ids = [...server.apps.keys()];
         const app = pick(rng, ids);
         const field = pick(rng, FIELDS);
         const token = nextToken('G');
-        server.write(app, serverColumns(field, token), 'agent');
+        server.writeField(app, field, token, 'agent');
         stats.agentWrites += 1;
         say(`agent writes ${app}.${field} ${token}`);
       },
     },
     {
+      // Workflow state moves without a revision bump; nothing a browser edits changes.
+      weight: 3,
+      run: () => {
+        const app = pick(rng, [...server.apps.keys()]);
+        server.writeWithoutBump(app, { generation_status: pick(rng, ['running', 'succeeded', 'failed']) });
+      },
+    },
+    {
+      // The round-2 server annotated `requirements` without announcing it.
+      weight: silentRequirements ? 4 : 0,
+      run: () => {
+        const app = pick(rng, [...server.apps.keys()]);
+        const token = nextToken('S');
+        server.writeWithoutBump(app, serverColumns('requirements', token));
+        stats.silentWrites += 1;
+        say(`server annotates ${app}.requirements without a revision bump (${token})`);
+      },
+    },
+    {
       // Another tab's edit followed straight away by its save. For the legacy run the other tab is modelled as a plain writer.
-      weight: 6,
+      weight: 5,
       run: () => {
         const field = pick(rng, FIELDS);
         const token = nextToken('O');
         if (options.engine === 'legacy') {
           const app = pick(rng, [...server.apps.keys()]);
-          server.write(app, serverColumns(field, token), 'other-tab');
+          server.writeField(app, field, token, 'other-tab');
           stats.agentWrites += 1;
           return;
         }
@@ -492,7 +636,51 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         track(work);
       },
     },
-  ];
+    {
+      // Open an application the tab already holds: an explicit load of a row that may be older or equal.
+      weight: 3,
+      run: () => {
+        const client = pick(rng, clients);
+        const apps = appsOf(client);
+        if (!apps.length) return;
+        const app = pick(rng, apps);
+        const work = call(client, 'getRow', () => server.rowOf(app)).then(async (row) => {
+          if (row) await client.open(row);
+        });
+        track(work);
+      },
+    },
+    {
+      // "Restore my text" on a random notice of this tab, including old ones.
+      weight: 4,
+      run: () => {
+        const client = pick(rng, clients);
+        const notices = noticesWithText(client);
+        if (!notices.length) return;
+        const notice = pick(rng, notices);
+        for (const token of tokensIn(client.noticeText(notice))) intended.add(token);
+        stats.restores += 1;
+        say(`${client.id} clicks Restore on a notice for ${notice.conflictFor}`);
+        track(client.restoreNotice(notice));
+      },
+    },
+    {
+      // "Copy my text" on a random notice: it may only offer the text of that notice.
+      weight: 2,
+      run: () => {
+        const client = pick(rng, clients);
+        const notices = noticesWithText(client);
+        if (!notices.length) return;
+        const notice = pick(rng, notices);
+        stats.copies += 1;
+        const allowed = new Set(tokensIn(client.noticeText(notice)));
+        for (const token of tokensIn(client.copyNotice(notice))) {
+          if (!allowed.has(token)) violate('I1', `${client.id}'s Copy on a notice offered text that belongs to another notice`);
+        }
+      },
+    },
+  ].map((op, index) => ({ ...op, name: OP_NAMES[index] })).filter((op) => op.weight > 0 && (!options.only || options.only.includes(op.name)));
+  if (ops.length === 0) throw new Error(`no operation left to run (--only ${options.only?.join(',')})`);
   const totalWeight = ops.reduce((sum, op) => sum + op.weight, 0);
   const startOp = () => {
     let r = rng() * totalWeight;
@@ -507,7 +695,7 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
   let started = 0;
   const checkAllBaselines = (where: string) => {
     observe(where);
-    if (options.engine !== 'new') return;
+    if (options.engine === 'legacy') return;
     for (const client of clients) for (const app of client.apps) checkBaseline(client, app, where);
   };
   observe('setup');
@@ -535,7 +723,7 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
 
   await settleAndVerify({
     world, clients, lastEdit, openEditorTokens, violate, stats,
-    checkBaseline: options.engine === 'new' ? checkBaseline : undefined,
+    checkBaseline: options.engine === 'legacy' ? undefined : checkBaseline,
     observe,
   });
 

@@ -86,6 +86,8 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const isEditModeRef = useRef(false);
+  useEffect(() => { isEditModeRef.current = isEditMode; }, [isEditMode]);
   const [showFullPreview, setShowFullPreview] = useState(false);
   const [editedCVData, setEditedCVData] = useState<CVData | null>(null);
   const [pageBreaks, setPageBreaks] = useState<number[]>([]);
@@ -515,6 +517,8 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                         }).then((outcome) => {
                           // Anything but a save the server confirmed reopens the editor with the text in it.
                           if (editorSaveSucceeded(outcome)) return;
+                          // The user may have opened the editor again while this save ran; theirs stands.
+                          if (isEditModeRef.current) return;
                           editSessionIdRef.current = editSessionId;
                           setEditedCVData(updatedData);
                           setIsEditMode(true);

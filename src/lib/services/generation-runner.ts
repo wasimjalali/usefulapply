@@ -152,6 +152,13 @@ export interface EnqueueKitResult {
   status: AgentOperation['status'];
   /** True when this call returned an operation that already existed. */
   deduped: boolean;
+  /**
+   * Why a deduped call returned this operation. `key`: the caller's own retry.
+   * `input`: an identical request under another key. `session`: the application
+   * already has a generation running, and this call JOINED it: the input of this
+   * call (regenerate, contextId) was NOT used, the running operation's input
+   * stands. A caller that took new input from the user (the MCP tool) should say so.
+   */
   matchedBy?: 'key' | 'input' | 'session';
   creditsReserved: number;
   reservationKey: string | null;

@@ -1,14 +1,19 @@
 /**
  * Deterministic cases: the four races Codex reproduced in round 2, the
- * refused-value poll block, and round 1's "change made while a poll reload is
- * in flight". Each one drives requests by hand, so the order is exact, then runs
- * the same settle-and-verify as the randomized runs.
+ * refused-value poll block, round 1's "change made while a poll reload is in
+ * flight", and the three review round 3 bugs (a late workflow_complete that
+ * installs older content, typing while a save is in flight, Restore acting on
+ * every buffered entry). Each one drives requests by hand, so the order is
+ * exact, then runs the same settle-and-verify as the randomized runs.
  */
 
+import { toStoreApplicationSession } from '@/components/job-feed/feed-session-mapper';
+import { mapSessionRowToStore } from '@/lib/session-row-mapping';
+import { columnFingerprints } from '@/lib/session-sync-engine';
 import type { Adapter } from './adapters';
-import { fieldMutation, legacyClient, newClient, responseProps } from './adapters';
-import { settleAndVerify, type InvariantCode, type RunStats, type Violation } from './driver';
-import { FakeClock, FakeServer, RequestScheduler, flush, makeRng, serverColumns, type Field, type RequestKind } from './world';
+import { fieldMutation, kitProps, legacyClient, loadEngine, newClient, responseProps } from './adapters';
+import { emptyStats, settleAndVerify, type InvariantCode, type Violation } from './driver';
+import { FakeClock, FakeServer, RequestScheduler, flush, makeRng, serverColumns, cvObject, type Field, type RequestKind } from './world';
 
 interface CaseContext {
   server: FakeServer;
@@ -36,10 +41,16 @@ export interface CaseResult {
   violations: Violation[];
 }
 
-const emptyStats = (): RunStats => ({
-  ops: 0, edits: 0, editorSaves: 0, regens: 0, agentWrites: 0, handoffs: 0, polls: 0, saves: 0, requests: 0,
-  dropped: 0, lostAnswers: 0, hung: 0, conflictNotices: 0, failureNotices: 0, settleRounds: 0,
-});
+/** Poll and answer the revision check and the row fetch by hand. */
+async function pollNow(ctx: CaseContext): Promise<void> {
+  const polled = ctx.client.poll(ctx.app);
+  await flush();
+  await ctx.serveIfPending('getRevision');
+  await flush();
+  await ctx.serveIfPending('getRow');
+  await ctx.drain();
+  await polled;
+}
 
 export const CASES: CaseDef[] = [
   {
@@ -162,18 +173,111 @@ export const CASES: CaseDef[] = [
       ctx.check(JSON.stringify(client.session(app)?.coverLetter).includes('t:X1;'), 'the other writer\'s letter did not load');
     },
   },
+  {
+    name: 'round-3 workflow_complete must not install older generated content',
+    about: 'A generation result that arrives after a newer generation was polled in must not put its older fields on screen.',
+    run: async (ctx) => {
+      const { server, net, client, app } = ctx;
+      // Generation 1 is saved (revision 1); its result is held on the way back.
+      const first = net.request(client.id, 'mutate', () => {
+        const revision = server.persistKit(app, 't:K1;', 'route');
+        return { revision, props: kitProps(server.rowOf(app)!), columns: [] as string[] };
+      });
+      const held = net.find(client.id, 'mutate')!;
+      net.advance(held);
+      // Generation 2 is saved (revision 2) and this tab polls it in.
+      server.persistKit(app, 't:K2;', 'agent');
+      const polled = client.poll(app);
+      await flush();
+      await ctx.serve('getRevision');
+      await flush();
+      await ctx.serve('getRow');
+      await polled;
+      // Now the first result arrives.
+      net.advance(held);
+      const response = await first;
+      net.reliable = true;
+      await client.workflowComplete(app, response);
+      const shown = JSON.stringify([client.session(app)?.coverLetter, client.session(app)?.optimizedCVData]);
+      ctx.check(shown.includes('t:K2;') && !shown.includes('t:K1;'), `the tab shows generation 1 after its late result: ${shown.slice(0, 90)}`);
+    },
+  },
+  {
+    name: 'round-3 typing during a save is not lost',
+    about: 'Text typed while an editor save is in flight keeps the editor open with the newer draft, which then saves on the new revision.',
+    run: async (ctx) => {
+      const { server, net, client, app } = ctx;
+      const start = client.editorStart(app);
+      const sent = 't:D1;';
+      const typed = 't:D2;';
+      const first = client.editorCommit(app, start, () => client.edit(app, fieldMutation('coverLetter', sent)));
+      await flush();                                // the save is in flight; the user types more
+      await ctx.serve('save');
+      const outcome = await first;
+      const after = client.editorAfter(app, outcome, sent, typed);
+      ctx.check(!after.close, `the editor closed (${outcome}) over text typed while the save ran`);
+      net.reliable = true;
+      const second = await client.editorCommit(app, after.start ?? start, () => client.edit(app, fieldMutation('coverLetter', typed)));
+      ctx.check(client.editorSucceeded(second) && server.acceptedHas(app, typed), `the newer draft did not reach the server (${second})`);
+    },
+  },
+  {
+    name: 'round-3 Restore and Copy act on their own notice only',
+    about: 'Two conflicts, two notices: Restore on the second puts back the second text only, and Copy offers only that.',
+    run: async (ctx) => {
+      const { server, net, client, app } = ctx;
+      ctx.edit('company', 't:C1;');
+      server.writeField(app, 'company', 't:G1;', 'agent');
+      await pollNow(ctx);
+      net.reliable = false;
+      ctx.edit('coverLetter', 't:L1;');
+      server.writeField(app, 'coverLetter', 't:G2;', 'agent');
+      await pollNow(ctx);
+      const notices = client.notices.filter((notice) => notice.conflictFor);
+      ctx.check(notices.length >= 2, `expected two conflict notices, saw ${notices.length}`);
+      const second = notices[notices.length - 1];
+      const copied = client.copyNotice(second);
+      ctx.check(!copied.includes('t:C1;'), 'Copy on the cover letter notice offered the company text too');
+      net.reliable = true;
+      await client.restoreNotice(second);
+      await flush();
+      ctx.check(server.acceptedHas(app, 't:L1;'), 'Restore did not put the cover letter text back');
+      ctx.check(!server.acceptedHas(app, 't:C1;'), 'Restore on the cover letter notice also restored the company text');
+    },
+  },
+  {
+    name: 'low feed handoff mapper matches the standard mapper',
+    about: 'A row loaded through the feed handoff has the same fields as the same row loaded any other way.',
+    run: async (ctx) => {
+      const row = {
+        ...ctx.server.rowOf(ctx.app)!,
+        selected_template: 'executive',
+        revision: 7,
+        generated_cv: null,
+        generated_artifacts: { optimizedCVData: cvObject('from artifacts')._optimizedCVData },
+      };
+      const generation = { id: 'g1', attempt: 1, status: 'queued', error_message: null };
+      const feed = toStoreApplicationSession(row as never, generation as never);
+      const standard = mapSessionRowToStore(row);
+      ctx.check(JSON.stringify(columnFingerprints(feed)) === JSON.stringify(columnFingerprints(standard)), 'the feed mapper produces other persisted fields than the standard mapper');
+      ctx.check(feed.revision === 7 && feed.selectedTemplate === 'executive', 'the feed mapper drops the revision or the template');
+      ctx.check(JSON.stringify(feed.optimizedCVData) === JSON.stringify(standard.optimizedCVData) && feed.optimizedCVData !== undefined, 'the feed mapper misses the generated_artifacts fallback for optimizedCVData');
+    },
+  },
 ];
 
-export async function runCase(def: CaseDef, engine: 'new' | 'legacy'): Promise<CaseResult> {
+export async function runCase(def: CaseDef, engine: 'new' | 'round2' | 'legacy'): Promise<CaseResult> {
   const rng = makeRng(7);
   const clock = new FakeClock();
   const server = new FakeServer();
   const net = new RequestScheduler(rng);
-  net.allowHang = engine === 'new';
+  net.allowHang = engine !== 'legacy';
   const world = { clock, server, net };
   const violations: Violation[] = [];
   const violate = (code: InvariantCode, message: string) => { violations.push({ code, message }); };
-  const client = engine === 'new' ? newClient('A', world) : await legacyClient('A', world);
+  const client = engine === 'legacy'
+    ? await legacyClient('A', world)
+    : newClient('A', world, await loadEngine(engine === 'round2' ? 'round2' : 'current'), engine === 'round2' ? 'round2' : 'current');
   const app = server.create('seed');
   await client.hydrate(server.rowOf(app)!);
   client.setCurrent(app);

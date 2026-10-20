@@ -22,7 +22,7 @@ import {
 } from '@/lib/utils/cover-letter-export';
 import { kitFilename } from '@/lib/utils/kit-export';
 import { useSessionStore } from '@/store/useSessionStore';
-import { commitEditorSave, editorSaveSucceeded, getEditorStart, type EditorStart } from '@/lib/session-sync';
+import { commitEditorSave, editorShouldClose, getEditorStart, type EditorStart } from '@/lib/session-sync';
 
 interface CoverLetterPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -72,6 +72,9 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const downloadMenuRef = useRef<HTMLDivElement>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedCoverLetter, setEditedCoverLetter] = useState<GeneratedCoverLetter | null>(null);
+  // The draft as it is now, for the save that finishes later (the user keeps typing while it runs).
+  const editedCoverLetterRef = useRef<GeneratedCoverLetter | null>(null);
+  useEffect(() => { editedCoverLetterRef.current = editedCoverLetter; }, [editedCoverLetter]);
   const [showFullPreview, setShowFullPreview] = useState(false);
   // When the letter last changed. Seeded from the stamp the letter carries, so
   // a reload can still say it; null only for letters written before the stamp.
@@ -319,6 +322,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
       const { structured, ...rest } = editedCoverLetter;
       const keepStructured = structured && editedCoverLetter.body === coverLetter?.body;
       const sessionId = editSessionIdRef.current;
+      const sentDraft = JSON.stringify(editedCoverLetter);
       // Save now, against the revision this editor opened on. If another write got
       // in first the draft is not applied: the editor stays open with the text in it.
       void commitEditorSave(sessionId, editStartRef.current, () => {
@@ -327,7 +331,11 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
         });
       }).then((outcome) => {
         // Anything but a save the server confirmed leaves the editor open with the text in it.
-        if (!editorSaveSucceeded(outcome)) return;
+        // So does typing during the save: the newer draft stays, now based on what was just saved.
+        if (!editorShouldClose(outcome, sentDraft, JSON.stringify(editedCoverLetterRef.current))) {
+          if (outcome === 'saved' || outcome === 'clean') editStartRef.current = getEditorStart(sessionId);
+          return;
+        }
         setIsEditMode(false);
         editSessionIdRef.current = null;
       });
