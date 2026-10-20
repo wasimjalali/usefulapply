@@ -19,9 +19,18 @@ export interface PdfItem {
   hasEOL: boolean;
 }
 
+export interface PdfLink {
+  page: number;
+  url: string;
+  /** The visible text under the link's rectangle. */
+  text: string;
+}
+
 export interface PdfJsResult {
   pages: Array<{ width: number; height: number }>;
   items: PdfItem[];
+  /** Link annotations with the text printed under each. */
+  links: PdfLink[];
   /** Items joined in content-stream order, one line per text row. */
   text: string;
   /** The same, one string per page. */
@@ -43,6 +52,7 @@ export async function extractWithPdfJs(bytes: Uint8Array): Promise<PdfJsResult> 
   const items: PdfItem[] = [];
   const lines: string[] = [];
   const pageTexts: string[] = [];
+  const links: PdfLink[] = [];
   for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber++) {
     const page = await doc.getPage(pageNumber);
     const viewport = page.getViewport({ scale: 1 });
@@ -79,11 +89,23 @@ export async function extractWithPdfJs(bytes: Uint8Array): Promise<PdfJsResult> 
       }
     }
     if (line) lines.push(line);
+    for (const annotation of await page.getAnnotations()) {
+      if (annotation.subtype !== 'Link' || !annotation.url) continue;
+      const [x1, y1, x2, y2] = annotation.rect as number[];
+      const top = viewport.height - y2;
+      const bottom = viewport.height - y1;
+      const under = items
+        .filter((item) => item.page === pageNumber && item.y - item.size * 0.3 >= top && item.y - item.size * 0.3 <= bottom && item.x >= x1 - 2 && item.x + item.w <= x2 + 2)
+        .sort((a, b) => a.x - b.x)
+        .map((item) => item.str)
+        .join('');
+      links.push({ page: pageNumber, url: annotation.url as string, text: under.trim() });
+    }
     pageTexts.push(lines.join('\n'));
     lines.length = 0;
   }
   await doc.destroy();
-  return { pages, items, text: pageTexts.join('\n\f'), pageTexts };
+  return { pages, items, links, text: pageTexts.join('\n\f'), pageTexts };
 }
 
 export const PT_PER_MM = 72 / 25.4;

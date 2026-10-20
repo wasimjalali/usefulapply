@@ -6,7 +6,7 @@ import { promisify } from 'node:util';
 
 const run = promisify(execFile);
 
-async function withTempFile<T>(bytes: Uint8Array, name: string, fn: (path: string) => Promise<T>): Promise<T> {
+export async function withTempFile<T>(bytes: Uint8Array, name: string, fn: (path: string) => Promise<T>): Promise<T> {
   const dir = await mkdtemp(join(tmpdir(), 'ats-'));
   const path = join(dir, name);
   await writeFile(path, bytes);

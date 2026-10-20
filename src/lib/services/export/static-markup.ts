@@ -63,12 +63,13 @@ function isElement(node: unknown): node is ElementLike {
   return typeof node === 'object' && node !== null && 'type' in node && 'props' in node && '$$typeof' in node;
 }
 
+/** The same five characters React escapes, in text and in attribute values, so the markup matches react-dom/server byte for byte. */
 export function escapeText(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
 }
 
 function escapeAttribute(value: string): string {
-  return escapeText(value).replace(/"/g, '&quot;');
+  return escapeText(value);
 }
 
 function kebab(name: string): string {

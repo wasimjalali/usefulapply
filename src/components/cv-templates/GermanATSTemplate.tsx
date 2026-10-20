@@ -446,18 +446,14 @@ export function GermanATSTemplate({ data, template, photoUrl, mode }: Props) {
               }}
             >
               {sectionHeading(data, 'certifications')}
-            </h2>}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              {data.certifications.map((cert) => (
-                <div className="cv-entry" key={cert.id} style={{ fontSize: '10pt' }}>
+            </h2>} rows={data.certifications.map((cert, index) => (
+                <div className="cv-entry" key={cert.id} style={{ fontSize: '10pt', paddingBottom: index < data.certifications.length - 1 ? '5px' : 0 }}>
                   <div style={{ fontWeight: 'bold', color: germanColors.text }}>{cert.name}</div>
                   {cert.issuer && (
                     <div style={{ fontSize: '10pt', color: germanColors.textLight }}>{cert.issuer}</div>
                   )}
                 </div>
-              ))}
-            </div>
-          </SideSection>
+              ))} />
         )}
       </aside>
       </div>

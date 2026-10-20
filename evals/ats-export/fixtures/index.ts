@@ -127,6 +127,81 @@ export const DE_TWO_PAGE: CVData = {
   signature: { city: 'München', date: '20.10.2026', includeSignature: true },
 };
 
+/**
+ * A US CV that carries a date of birth and a nationality and every link kind,
+ * with the noise real links have (www, a tracking query, a trailing slash).
+ * Only a DACH template may print the date of birth and the nationality.
+ */
+export const US_PERSONAL: CVData = {
+  ...US_ONE_PAGE,
+  personal: {
+    ...US_ONE_PAGE.personal,
+    dateOfBirth: '07.04.1989',
+    nationality: 'American',
+    website: 'https://www.jordan-ellis.example/?utm_source=cv&utm_medium=pdf',
+    portfolio: 'https://portfolio.jordan-ellis.example/work/',
+  },
+};
+
+/**
+ * Text that would break an HTML page if it were ever treated as markup. Every
+ * string must come out of the PDF text layer exactly as typed, and nothing may
+ * be fetched from the network.
+ */
+export const HOSTILE_TEXT = {
+  summary: 'Builds parsers. </title><script>window.__pwned=1</script> stays text, and so does <b>this</b> & that.',
+  bulletScript: 'Fixed a template bug where </style><script>document.title="x"</script> ran inside a bullet.',
+  bulletImage: 'Blocked <img src="https://www.cloudflare.com/img/logo-web-badges/cf-logo-on-white-bg.svg"> and <iframe src="https://example.com/frame"></iframe> in user text.',
+  company: 'Tag <i>Soup</i> & "Quotes" Co',
+};
+
+export const HOSTILE: CVData = {
+  ...US_ONE_PAGE,
+  summary: HOSTILE_TEXT.summary,
+  experience: [
+    job('Platform Engineer', HOSTILE_TEXT.company, 'Remote', 'Jan 2020', undefined, [HOSTILE_TEXT.bulletScript, HOSTILE_TEXT.bulletImage], true),
+    US_ONE_PAGE.experience[1],
+  ],
+};
+
+/** Sixty certifications: the sidebar of a two-column template runs past a page, so its heading has to repeat on the next one. */
+export const MANY_CERTS: CVData = {
+  ...DE_TWO_PAGE,
+  certifications: Array.from({ length: 60 }, (_, i) => ({ id: `fx-cert-${i}`, name: `Zertifizierung Nummer ${i + 1} im Bereich Plattform`, issuer: 'Prüfstelle', date: `${2000 + (i % 25)}` })),
+};
+
+/** A French CV: it must not get German dates, headings or footers, and prints on A4. */
+export const FR_ONE_PAGE: CVData = {
+  language: 'fr',
+  personal: {
+    fullName: 'Camille Lefèvre',
+    email: 'camille.lefevre@example.fr',
+    phone: '+33 6 12 34 56 78',
+    currentTitle: 'Ingénieure logicielle senior',
+    city: 'Lyon',
+    country: 'France',
+    linkedIn: 'https://www.linkedin.com/in/camille-lefevre-example',
+  },
+  summary: 'Ingénieure logicielle avec huit ans d’expérience dans la logistique et les paiements. A dirigé la migration de quarante services vers Kubernetes sans interruption.',
+  experience: [
+    job('Ingénieure logicielle senior', 'Transports Rhône-Alpes', 'Lyon', '03/2021', undefined, [
+      'Direction d’une équipe de cinq ingénieurs pour la migration de quarante services vers Kubernetes.',
+      'Réduction de la latence p99 de 38 % grâce à une refonte du cache de suivi des expéditions.',
+    ], true),
+    job('Ingénieure logicielle', 'Banque Lumière', 'Paris', '09/2016', '02/2021', [
+      'Conception du service de grand livre traitant deux millions de transactions par jour.',
+      'Réduction du délai de traitement des litiges de trois jours à quatre heures.',
+    ]),
+  ],
+  education: [{ id: id(), institution: 'INSA Lyon', degree: 'Diplôme d’ingénieur', field: 'Informatique', startDate: '2011', endDate: '2016' }],
+  skills: [
+    { category: 'Langages', items: ['Go', 'Python', 'SQL', 'TypeScript'] },
+    { category: 'Infrastructure', items: ['Kubernetes', 'Terraform', 'AWS'] },
+  ],
+  languages: [{ language: 'Français', proficiency: 'Langue maternelle' }, { language: 'Anglais', proficiency: 'Courant' }],
+  certifications: [{ id: id(), name: 'Certified Kubernetes Administrator', issuer: 'CNCF', date: '2022' }],
+};
+
 function manySkills(): CVData['skills'] {
   const groups = [
     'Languages', 'Frameworks', 'Cloud', 'Databases', 'Testing', 'DevOps', 'Security', 'Leadership', 'Domain Knowledge',
@@ -191,6 +266,13 @@ export const US_LETTER: StructuredCoverLetter = {
   signatureName: 'Jordan Ellis',
 };
 
+/** A US-layout letter written in English by an applicant whose CV is German: the file name, title, metadata and lang follow the letter. */
+export const US_LETTER_ON_GERMAN_CV: StructuredCoverLetter = {
+  ...US_LETTER,
+  sender: { ...US_LETTER.sender, name: 'Jürgen Müller-Schäfer', email: 'juergen.mueller-schaefer@example.de', phone: '+49 151 2345 6789', addressLines: ['Lindenallee 14', '80331 München'] },
+  signatureName: 'Jürgen Müller-Schäfer',
+};
+
 export const DIN_LETTER: StructuredCoverLetter = {
   version: 2,
   language: 'de',
@@ -220,6 +302,16 @@ export const DIN_LETTER: StructuredCoverLetter = {
   signatureName: 'Jürgen Müller-Schäfer',
 };
 
+/** A sender block of nine lines: the letterhead has to reflow instead of printing over the address field. */
+export const DIN_LETTER_LONG_SENDER: StructuredCoverLetter = {
+  ...DIN_LETTER,
+  sender: {
+    ...DIN_LETTER.sender,
+    addressLines: ['Dr.-Ing. Jürgen Müller-Schäfer', 'Leiter Softwareentwicklung', 'c/o Bayerische Fahrzeugwerke AG', 'Abteilung Plattform und Betrieb', 'Gebäude 7, Etage 3', 'Lindenallee 14', '80331 München', 'Deutschland'],
+    links: ['linkedin.com/in/juergen-mueller-schaefer-example', 'https://www.github.com/juergen-example', 'juergen-example.de'],
+  },
+};
+
 export interface CvFixture {
   name: string;
   data: CVData;
@@ -232,6 +324,9 @@ export const CV_FIXTURES: CvFixture[] = [
   { name: 'de-two-page', data: DE_TWO_PAGE },
   { name: 'over-cap', data: OVER_CAP },
   { name: 'long-entry', data: LONG_ENTRY },
+  { name: 'us-personal', data: US_PERSONAL, expectedUsPages: 1 },
+  { name: 'hostile', data: HOSTILE },
+  { name: 'fr-one-page', data: FR_ONE_PAGE },
 ];
 
 export const TEMPLATE_IDS = [

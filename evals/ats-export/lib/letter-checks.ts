@@ -1,7 +1,8 @@
 import sharp from 'sharp';
 import type { StructuredCoverLetter } from '../../../src/lib/cover-letter/contract';
 import { DIN } from '../../../src/lib/services/export/letter-html';
-import { norm, squash } from './expect';
+import { displayUrl, fullUrl, pickLetterLinks } from '../../../src/lib/cv-templates/url';
+import { norm, sameUrl, squash } from './expect';
 import { extractWithPdfJs, mmToPt, ptToMm, type PdfItem } from './pdf-text';
 import { pdfPagePng, pdfinfo, pdftotext } from './poppler';
 
@@ -85,6 +86,67 @@ function allFields(letter: StructuredCoverLetter): string[] {
   ].filter(Boolean);
 }
 
+/** Names the lines that sit inside the DIN address field but are not the return line or the recipient: the letterhead must never print over it. */
+function addressFieldProblems(lines: Line[], letter: StructuredCoverLetter): string[] {
+  const recipient = new Set([letter.recipient.companyName, letter.recipient.contactPerson, letter.recipient.department, ...letter.recipient.addressLines].filter(Boolean).map((x) => norm(x as string)));
+  const problems: string[] = [];
+  for (const l of lines) {
+    if (l.page !== 1) continue;
+    const inField = l.y > DIN.addressTop + 1 && l.y < DIN.addressTop + DIN.addressHeight + 1 && l.x < DIN.addressLeft + DIN.addressWidth && l.x < 105;
+    if (inField && l.sizePt > 8.2 && !recipient.has(norm(l.text))) problems.push(`"${l.text.slice(0, 40)}" prints inside the address field at ${l.y.toFixed(1)} mm`);
+  }
+  return problems;
+}
+
+/** The sender's clean links are printed and clickable, at most two, LinkedIn first. */
+function senderLinkProblems(text: string, links: Array<{ url: string; text: string }>, letter: StructuredCoverLetter): string[] {
+  const problems: string[] = [];
+  const picked = pickLetterLinks(letter.sender.links);
+  for (const link of picked) {
+    if (!squash(text).includes(squash(displayUrl(link)))) problems.push(`sender link text "${displayUrl(link)}" is not in the text`);
+    if (squash(text).includes(squash(fullUrl(link)))) problems.push(`sender link prints its scheme: ${fullUrl(link)}`);
+    const annotation = links.find((a) => sameUrl(a.url, fullUrl(link)));
+    if (!annotation) problems.push(`no clickable link to ${fullUrl(link)}`);
+    else if (squash(annotation.text) !== squash(displayUrl(link))) problems.push(`the link to ${fullUrl(link)} shows "${annotation.text}"`);
+  }
+  for (const link of (letter.sender.links ?? []).filter((x) => !picked.includes(x))) {
+    if (squash(text).includes(squash(displayUrl(link)))) problems.push(`a third link is printed: ${displayUrl(link)}`);
+  }
+  return problems;
+}
+
+/**
+ * The DIN letter as a Word document, measured after LibreOffice turns it into
+ * a PDF: the recipient sits in the address field, the date beside it in the
+ * information block, nothing prints over the field, the sender's links are
+ * clickable. Word has no page-absolute placement without text boxes, so the
+ * bounds are looser than for the PDF: a few millimetres, not one.
+ */
+export async function checkDinDocxPositions(loPdf: Uint8Array, letter: StructuredCoverLetter): Promise<{ failures: string[]; measured: Record<string, number> }> {
+  const failures: string[] = [];
+  const measured: Record<string, number> = {};
+  const [pdfjs, text] = await Promise.all([extractWithPdfJs(loPdf), pdftotext(loPdf, 'reading-order')]);
+  const lines = toLines(pdfjs.items);
+  const find = (needle: string) => lines.find((l) => l.page === 1 && norm(l.text).includes(norm(needle)));
+  const first = find(letter.recipient.companyName ?? letter.recipient.addressLines[0]);
+  const last = find(letter.recipient.addressLines[letter.recipient.addressLines.length - 1]);
+  const date = find(letter.date);
+  if (!first || !last || !date) return { failures: ['recipient or date not found in the LibreOffice render'], measured };
+  const top = first.y - first.sizePt * 0.3528 * 0.8;
+  measured['recipient.top'] = Number(top.toFixed(1));
+  measured['recipient.last'] = Number(last.y.toFixed(1));
+  measured['date.x'] = Number(date.x.toFixed(1));
+  measured['date.dy'] = Number((date.y - first.y).toFixed(1));
+  if (top < DIN.recipientTop - 3 || top > DIN.recipientTop + 4) failures.push(`recipient starts ${top.toFixed(1)} mm from the top, the Anschriftzone starts at ${DIN.recipientTop} (+/- 3)`);
+  if (last.y > DIN.addressTop + DIN.addressHeight + 2) failures.push(`recipient ends at ${last.y.toFixed(1)} mm, past the field`);
+  if (first.x < DIN.addressLeft - 2.5 || first.x > DIN.addressLeft + 2.5) failures.push(`recipient starts ${first.x.toFixed(1)} mm from the left, the field starts at ${DIN.addressLeft}`);
+  if (date.x < DIN.infoLeft - 3) failures.push(`date at ${date.x.toFixed(1)} mm is not in the information block (from ${DIN.infoLeft})`);
+  if (Math.abs(date.y - first.y) > 12) failures.push(`date is ${Math.abs(date.y - first.y).toFixed(1)} mm from the first recipient line, it belongs beside the address block`);
+  failures.push(...addressFieldProblems(lines, letter));
+  failures.push(...senderLinkProblems(text, pdfjs.links, letter));
+  return { failures, measured };
+}
+
 async function markRows(bytes: Uint8Array, dpi: number, yMm: number): Promise<number> {
   const png = await pdfPagePng(bytes, 1, dpi);
   const { data, info } = await sharp(png).greyscale().raw().toBuffer({ resolveWithObject: true });
@@ -110,6 +172,8 @@ export async function checkLetterPdf(bytes: Uint8Array, name: string, layout: 'u
     if (!squashed.includes(squash(field))) failures.push(`text is missing: ${field.slice(0, 60)}`);
   }
   if (/Betreff/i.test(text)) failures.push('"Betreff:" is printed');
+  failures.push(...senderLinkProblems(text, pdfjs.links, letter));
+  if (layout === 'din') failures.push(...addressFieldProblems(lines, letter));
   if (!info.tagged) failures.push('PDF is not tagged');
   if (info.producer !== 'Useful Apply') warnings.push(`producer is "${info.producer}" (set by the export service, not the renderer)`);
 
@@ -138,7 +202,7 @@ export async function checkLetterPdf(bytes: Uint8Array, name: string, layout: 'u
     else if (!(date.y < recipient.y && recipient.y < salutation.y && salutation.y < closing.y)) failures.push('block order is not date, recipient, salutation, closing');
   } else {
     if (Math.abs(info.pageSizePts.width - mmToPt(210)) > 2 || Math.abs(info.pageSizePts.height - mmToPt(297)) > 2) failures.push('page is not A4');
-    const ret = lines.find((l) => l.page === 1 && l.sizePt <= 8.2 && l.y > 40 && l.y < 55);
+    const ret = lines.find((l) => l.page === 1 && l.sizePt <= 8.2 && l.y > 40 && l.y < 55 && norm(l.text).startsWith(`${norm(letter.sender.name)} · `));
     if (!ret) failures.push('return line (Ruecksendeangabe) not found in the top 5 mm of the address field');
     else {
       approx('returnLine.x', ret.x, DIN.addressLeft, 1.2);

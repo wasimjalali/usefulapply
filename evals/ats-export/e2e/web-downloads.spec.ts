@@ -4,6 +4,8 @@ import { US_LETTER, US_ONE_PAGE } from '../fixtures';
 import { checkCvDocx, checkLetterDocx } from '../lib/docx-checks';
 import { checkCvPdf } from '../lib/cv-checks';
 import { checkLetterPdf } from '../lib/letter-checks';
+import { pdftotext } from '../lib/poppler';
+import { squash } from '../lib/expect';
 import { APPLICATION_ID } from './seed';
 import { ORIGIN, signedInContext } from './auth';
 
@@ -35,6 +37,18 @@ test.describe('web downloads use the server renderer', () => {
     expect(report.failures, 'the downloaded PDF passes every ATS check').toEqual([]);
     await expect(page.getByText('We used the quick download')).toHaveCount(0);
 
+    // Preview PDF: the server's PDF with its real page breaks, in a modal that traps focus, closes on Escape and gives focus back.
+    const previewButton = page.getByRole('button', { name: 'Preview PDF' });
+    await previewButton.click();
+    const cvDialog = page.getByRole('dialog', { name: 'CV preview' });
+    await expect(cvDialog).toBeVisible({ timeout: 60_000 });
+    await expect(cvDialog.locator('iframe[title="CV preview"]')).toBeVisible();
+    await expect(cvDialog.getByRole('button', { name: 'Close preview' })).toBeFocused();
+    await page.screenshot({ path: info.outputPath('cv-preview.png') });
+    await page.keyboard.press('Escape');
+    await expect(cvDialog).toHaveCount(0);
+    await expect(previewButton).toBeFocused();
+
     const wordDownload = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Download Word' }).click();
     const word = await wordDownload;
@@ -50,11 +64,19 @@ test.describe('web downloads use the server renderer', () => {
     await page.getByText('Cover letter', { exact: true }).first().click();
     await page.screenshot({ path: info.outputPath('letter-tab.png') });
 
-    await page.getByRole('button', { name: 'Preview layout' }).click();
-    const frame = page.locator('iframe[title="Cover letter layout"]');
-    await expect(frame).toBeVisible({ timeout: 60_000 });
+    const previewLayout = page.getByRole('button', { name: 'Preview layout' });
+    await previewLayout.click();
+    const dialog = page.getByRole('dialog', { name: 'Cover letter layout' });
+    await expect(dialog.locator('iframe[title="Cover letter layout"]')).toBeVisible({ timeout: 60_000 });
+    await expect(dialog.getByRole('button', { name: 'Close preview' })).toBeFocused();
     await page.screenshot({ path: info.outputPath('letter-preview.png') });
-    await page.getByRole('button', { name: 'Close preview' }).click();
+    // Tab stays inside the dialog, Escape closes it, focus returns to the button that opened it.
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
+    await expect(dialog.locator(':focus')).toHaveCount(1);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(previewLayout).toBeFocused();
 
     await page.getByRole('button', { name: 'Download', exact: true }).click();
     const pdfDownload = page.waitForEvent('download');
@@ -80,6 +102,35 @@ test.describe('web downloads use the server renderer', () => {
       null,
     );
     expect(docxReport.failures).toEqual([]);
+  });
+
+  test('Cover letter tab: an edited letter exports the edited text, not the stale layout', async ({ page }, info) => {
+    await openApplication(page);
+    await page.getByText('Cover letter', { exact: true }).first().click();
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
+    const edited = 'P.S. This line was typed in the browser before the download.';
+    const body = page.getByPlaceholder('Cover letter content...');
+    await body.fill(`${await body.inputValue()}\n\n${edited}`);
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+
+    await page.getByRole('button', { name: 'Download', exact: true }).click();
+    const pdfDownload = page.waitForEvent('download');
+    await page.getByRole('menuitem', { name: 'PDF' }).click();
+    const pdf = await pdfDownload;
+    const pdfPath = info.outputPath('downloaded-edited-letter.pdf');
+    await pdf.saveAs(pdfPath);
+    const text = await pdftotext(new Uint8Array(await readFile(pdfPath)), 'reading-order');
+    expect(squash(text), 'the PDF carries the edit').toContain(squash(edited));
+    expect(squash(text), 'and the original paragraphs').toContain(squash(US_LETTER.paragraphs[0]));
+
+    await page.getByRole('button', { name: 'Download', exact: true }).click();
+    const docxDownload = page.waitForEvent('download');
+    await page.getByRole('menuitem', { name: 'DOCX' }).click();
+    const docx = await docxDownload;
+    const docxPath = info.outputPath('downloaded-edited-letter.docx');
+    await docx.saveAs(docxPath);
+    const docxReport = await checkLetterDocx(new Uint8Array(await readFile(docxPath)), 'edited-letter.docx', [edited, US_LETTER.paragraphs[0]], null);
+    expect(docxReport.failures, 'the DOCX carries the edit').toEqual([]);
   });
 
   test('when the server cannot render, the browser export runs and says so', async ({ page }, info) => {

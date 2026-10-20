@@ -13,8 +13,8 @@ export default defineConfig({
   timeout: 180_000,
   fullyParallel: false,
   workers: 1,
-  reporter: [['list'], ['html', { outputFolder: process.env.E2E_REPORT_DIR ?? '/Users/wasimjalali/Desktop/Useful_Apply/verify/feature-mcp-renderer-ats/e2e-report', open: 'never' }]],
-  outputDir: process.env.E2E_OUTPUT_DIR ?? '/Users/wasimjalali/Desktop/Useful_Apply/verify/feature-mcp-renderer-ats/e2e-output',
+  reporter: [['list'], ['html', { outputFolder: process.env.E2E_REPORT_DIR ?? join(__dirname, '..', '..', 'verify', 'e2e-report'), open: 'never' }]],
+  outputDir: process.env.E2E_OUTPUT_DIR ?? join(__dirname, '..', '..', 'verify', 'e2e-output'),
   use: {
     baseURL: 'http://localhost:8793',
     trace: 'on',

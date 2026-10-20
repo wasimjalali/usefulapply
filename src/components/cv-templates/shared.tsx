@@ -191,19 +191,29 @@ export function SignatureBlock({ data, color, lineColor }: SignatureBlockProps) 
 /**
  * A sidebar section whose heading repeats at the top of every page the section
  * continues on, so no item is ever left at the top of a page without its
- * section. The heading is a table header group, which Chrome repeats on each
- * page fragment. (Print CSS cannot make the repeat read "(continued)": a
- * repeated header is identical on every page.)
+ * section. Chrome repeats a real `thead` on each page a table spans (it does not
+ * for `display: table-header-group` on a div, checked on Browser Run). A page can
+ * only break between rows, so a list that may run past a page is given as `rows`.
+ * The repeated heading is identical on every page: print CSS cannot turn the
+ * copy on a later page into "(continued)".
  */
-export function SideSection({ heading, children, marginBottom = 0 }: { heading: ReactNode; children: ReactNode; marginBottom?: number }) {
+export function SideSection({ heading, children, rows, marginBottom = 0 }: { heading: ReactNode; children?: ReactNode; rows?: ReactNode[]; marginBottom?: number }) {
+  const body = rows ?? [children];
+  const cell: CSSProperties = { padding: 0, textAlign: 'left', verticalAlign: 'top', fontWeight: 'normal' };
   return (
-    <div style={{ display: 'table', width: '100%', marginBottom: `${marginBottom}px` }}>
-      <div style={{ display: 'table-header-group' }}>{heading}</div>
-      <div style={{ display: 'table-row-group' }}>
-        <div style={{ display: 'table-row' }}>
-          <div style={{ display: 'table-cell' }}>{children}</div>
-        </div>
-      </div>
-    </div>
+    <table style={{ width: '100%', borderCollapse: 'collapse', borderSpacing: 0, tableLayout: 'fixed', marginBottom: `${marginBottom}px` }}>
+      <thead>
+        <tr>
+          <td style={cell}>{heading}</td>
+        </tr>
+      </thead>
+      <tbody>
+        {body.map((row, index) => (
+          <tr key={index}>
+            <td style={cell}>{row}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

@@ -7,8 +7,15 @@
 import { getPlatformProxy } from 'wrangler';
 import { EXPORT_RETENTION_DAYS } from '../../src/lib/services/export/storage';
 
+/** Just the bucket calls this check makes. */
+interface SweepBucket {
+  put(key: string, value: Uint8Array, options?: { customMetadata?: Record<string, string> }): Promise<unknown>;
+  list(options?: { prefix?: string }): Promise<{ objects: Array<{ uploaded?: Date; customMetadata?: Record<string, string> }> }>;
+  delete(key: string): Promise<void>;
+}
+
 async function main() {
-  const { env, dispose } = await getPlatformProxy<{ FILES: R2Bucket }>({ configPath: 'wrangler.jsonc' });
+  const { env, dispose } = await getPlatformProxy<{ FILES: SweepBucket }>({ configPath: 'wrangler.jsonc' });
   const key = `exports/sweep-test-user/${'a'.repeat(64)}.pdf`;
   await env.FILES.put(key, new Uint8Array([1, 2, 3]), { customMetadata: { userId: 'sweep-test-user', fileName: 'x.pdf' } });
   const listed = await env.FILES.list({ prefix: 'exports/sweep-test-user/' });

@@ -4,8 +4,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import type { CVData } from '../../../src/lib/cv-templates/types';
-import { getPrintSpec } from '../../../src/lib/cv-templates/print-spec';
-import { checkText, expectationsFor, norm } from './expect';
+import { getPrintSpec, isDachTemplate } from '../../../src/lib/cv-templates/print-spec';
+import { cvPaper } from '../../../src/lib/cv-templates/paper';
+import { visibleCvData } from '../../../src/lib/cv-templates/hidden';
+import { HEADING_ORDER } from './cv-checks';
+import { checkDinDocxPositions } from './letter-checks';
+import type { StructuredCoverLetter } from '../../../src/lib/cover-letter/contract';
+import { checkPersonalAndLinks, checkText, expectationsFor, norm, squash } from './expect';
 import { pdfinfo, pdftotext } from './poppler';
 
 const run = promisify(execFile);
@@ -70,16 +75,25 @@ export async function checkCvDocx(
   const [xml, core] = await Promise.all([unzipEntry(path, 'word/document.xml'), unzipEntry(path, 'docProps/core.xml')]);
   const failures: string[] = [];
   const warnings: string[] = [];
-  const spec = getPrintSpec(ctx.templateId);
+  const spec = getPrintSpec(ctx.templateId, cvPaper(visibleCvData(ctx.source)));
   const exp = expectationsFor(ctx.source);
 
   const paragraphs = paragraphsOf(xml);
   const text = paragraphs.map((p) => p.text).join('\n');
-  const check = checkText(text, exp);
+  const check = checkText(text, exp, { contiguous: true });
   if (check.missing.length > 0) failures.push(`docx text: missing ${check.missing.length} (${check.missing.slice(0, 3).join(' | ')})`);
   if (check.pairingFailures.length > 0) failures.push(`docx: ${check.pairingFailures[0]}`);
   if (check.nonAsciiLost.length > 0) failures.push(`docx lost characters ${check.nonAsciiLost.join('')}`);
   if (check.hasDashDates) failures.push('docx: en or em dash in the text');
+  // Date of birth and nationality print on DACH templates only, as in the PDF; links show a clean address.
+  for (const problem of checkPersonalAndLinks(text, exp, isDachTemplate(ctx.templateId))) failures.push(`docx: ${problem}`);
+  // Links are real DOCX hyperlinks to the full https URL.
+  const rels = await unzipEntry(path, 'word/_rels/document.xml.rels');
+  const targets = [...rels.matchAll(/Target="([^"]+)"[^>]*TargetMode="External"|TargetMode="External"[^>]*Target="([^"]+)"/g)].map((m) => decode(m[1] ?? m[2]));
+  for (const link of exp.links) {
+    if (!targets.includes(link.full)) failures.push(`docx: no hyperlink to ${link.full}`);
+  }
+  if (exp.links.length > 0 && (xml.match(/<w:hyperlink /g) ?? []).length < exp.links.length) failures.push('docx: fewer w:hyperlink elements than links');
 
   const tables = (xml.match(/<w:tbl>/g) ?? []).length;
   const textBoxes = (xml.match(/<w:txbxContent|<wps:txbx|<v:textbox/g) ?? []).length;
@@ -92,6 +106,14 @@ export async function checkCvDocx(
 
   // Section headings are Heading 1 paragraphs, with the standard text, in document order.
   const headingTexts = headings.map((h) => norm(h.text).toLowerCase());
+  // The same order the PDF stream has (HEADING_ORDER is the PDF check's template order).
+  const wantOrder = (HEADING_ORDER[ctx.templateId] ?? HEADING_ORDER['premium-ats']).filter((key) => exp.headings.some((h) => h.key === key));
+  const gotOrder = exp.headings
+    .map((h) => ({ key: h.key, at: headingTexts.indexOf(norm(h.text).toLowerCase()) }))
+    .filter((h) => h.at >= 0)
+    .sort((a, b) => a.at - b.at)
+    .map((h) => h.key);
+  if (gotOrder.join() !== wantOrder.join()) failures.push(`docx section order ${gotOrder.join(' > ')} differs from the PDF's ${wantOrder.join(' > ')}`);
   for (const heading of exp.headings) {
     if (!headingTexts.includes(norm(heading.text).toLowerCase())) failures.push(`no Heading 1 paragraph "${heading.text}"`);
   }
@@ -118,6 +140,7 @@ export async function checkCvDocx(
     const pdf = new Uint8Array(await readFile(join(dir, 'cv.pdf')));
     const [info, loText] = await Promise.all([pdfinfo(pdf), pdftotext(pdf, 'reading-order')]);
     const loCheck = checkText(loText, exp);
+    for (const problem of checkPersonalAndLinks(loText, exp, isDachTemplate(ctx.templateId))) failures.push(`LibreOffice render: ${problem}`);
     const c = loCheck.counts;
     lo = {
       pages: info.pages,
@@ -130,7 +153,8 @@ export async function checkCvDocx(
     if (loCheck.missing.length > 0) failures.push(`LibreOffice render: missing ${loCheck.missing.length} (${loCheck.missing.slice(0, 3).join(' | ')})`);
     if (loCheck.nonAsciiLost.length > 0) failures.push(`LibreOffice render lost characters ${loCheck.nonAsciiLost.join('')}`);
   } catch (error) {
-    warnings.push(`LibreOffice conversion unavailable: ${error instanceof Error ? error.message.slice(0, 80) : 'error'}`);
+    // A conversion that cannot run is a failed check, never a skipped one.
+    failures.push(`LibreOffice conversion failed: ${error instanceof Error ? error.message.slice(0, 80) : 'error'}`);
   }
 
   return {
@@ -156,10 +180,12 @@ export interface LetterDocxReport {
   ok: boolean;
   failures: string[];
   loPages: number | null;
+  /** DIN layout: millimetres measured on the LibreOffice render of the DOCX. */
+  measured?: Record<string, number>;
 }
 
 /** A cover letter DOCX: no tables or text boxes, and a LibreOffice render that still holds every field. */
-export async function checkLetterDocx(bytes: Uint8Array, name: string, fields: string[], expectDinClosing: string | null): Promise<LetterDocxReport> {
+export async function checkLetterDocx(bytes: Uint8Array, name: string, fields: string[], expectDinClosing: string | null, din?: StructuredCoverLetter): Promise<LetterDocxReport> {
   const dir = await mkdtemp(join(tmpdir(), 'letterdocx-'));
   const path = join(dir, 'letter.docx');
   await writeFile(path, bytes);
@@ -168,19 +194,25 @@ export async function checkLetterDocx(bytes: Uint8Array, name: string, fields: s
   if (/<w:tbl>/.test(xml)) failures.push('the letter has a table');
   if (/<w:txbxContent|<wps:txbx|<v:textbox/.test(xml)) failures.push('the letter has a text box');
   let loPages: number | null = null;
+  let measured: Record<string, number> | undefined;
   try {
     await run(SOFFICE, ['--headless', `-env:UserInstallation=file://${join(dir, 'profile')}`, '--convert-to', 'pdf', '--outdir', dir, path], { timeout: 120_000 });
     const pdf = new Uint8Array(await readFile(join(dir, 'letter.pdf')));
     const [info, text] = await Promise.all([pdfinfo(pdf), pdftotext(pdf, 'reading-order')]);
     loPages = info.pages;
-    const squashed = norm(text).replace(/[ -]/g, '');
+    const squashed = squash(text);
     for (const field of fields) {
-      if (!squashed.includes(norm(field).replace(/[ -]/g, ''))) failures.push(`LibreOffice render is missing: ${field.slice(0, 50)}`);
+      if (!squashed.includes(squash(field))) failures.push(`LibreOffice render is missing: ${field.slice(0, 50)}`);
     }
     if (expectDinClosing && !norm(text).includes(expectDinClosing)) failures.push('DIN closing is missing');
     if (expectDinClosing && new RegExp(`${expectDinClosing},`).test(text)) failures.push('DIN closing has a comma');
+    if (din) {
+      const result = await checkDinDocxPositions(pdf, din);
+      failures.push(...result.failures.map((f) => `DOCX position: ${f}`));
+      measured = result.measured;
+    }
   } catch (error) {
     failures.push(`LibreOffice conversion failed: ${error instanceof Error ? error.message.slice(0, 80) : 'error'}`);
   }
-  return { name, ok: failures.length === 0, failures, loPages };
+  return { name, ok: failures.length === 0, failures, loPages, measured };
 }

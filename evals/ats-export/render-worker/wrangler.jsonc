@@ -6,5 +6,6 @@
 	"name": "ua-render-eval",
 	"main": "index.ts",
 	"compatibility_date": "2026-08-17",
-	"browser": { "binding": "BROWSER", "remote": true }
+	"browser": { "binding": "BROWSER", "remote": true },
+	"ai": { "binding": "AI" }
 }

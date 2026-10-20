@@ -1,4 +1,5 @@
 import { visibleCvData } from '../../../src/lib/cv-templates/hidden';
+import { displayUrl, fullUrl } from '../../../src/lib/cv-templates/url';
 import {
   formatDateRange,
   formatSingleDate,
@@ -47,6 +48,14 @@ export interface CvExpectations {
   education: Array<{ degree: string; institution: string; date: string }>;
   certifications: string[];
   languages: string[];
+  /** "Label: a, b, c" for each visible skill group: the one line a group prints as. */
+  skillLines: string[];
+  /** "English: Native, Spanish: Professional working". */
+  languageLine: string;
+  /** Date of birth and nationality as typed, with the label each prints under: DACH templates only. */
+  personalData: Array<{ value: string; label: RegExp }>;
+  /** Every link in the personal block: the clean text it must show and the URL it must open. */
+  links: Array<{ display: string; full: string }>;
   summary?: string;
   /** Every non-ASCII character the source holds. All must survive extraction. */
   nonAscii: string[];
@@ -63,6 +72,7 @@ export function expectationsFor(source: CVData): CvExpectations {
   add('experience', data.experience.length > 0);
   add('education', data.education.length > 0);
   add('certifications', data.certifications.length > 0);
+  add('languages', data.languages.length > 0);
   add('projects', (data.projects?.length ?? 0) > 0);
 
   const jobs = data.experience.map((exp) => ({
@@ -101,6 +111,15 @@ export function expectationsFor(source: CVData): CvExpectations {
     education,
     certifications: data.certifications.map((c) => c.name),
     languages: data.languages.map((l) => l.language),
+    skillLines: data.skills.map((g) => `${g.category}: ${g.items.join(', ')}`),
+    languageLine: data.languages.map((l) => (l.proficiency ? `${l.language}: ${l.proficiency}` : l.language)).join(', '),
+    personalData: [
+      { value: data.personal.dateOfBirth, label: /Geburtsdatum|Date of birth|Birth date/i },
+      { value: data.personal.nationality, label: /Staatsangeh(ö|oe)rigkeit|Nationality/i },
+    ].filter((entry): entry is { value: string; label: RegExp } => Boolean(entry.value)),
+    links: [data.personal.linkedIn, data.personal.github, data.personal.website, data.personal.portfolio]
+      .filter((link): link is string => Boolean(link))
+      .map((link) => ({ display: displayUrl(link), full: fullUrl(link) })),
     summary: data.summary,
     nonAscii,
   };
@@ -123,8 +142,50 @@ function lineMatchesHeading(line: string, heading: string): boolean {
   return norm(line).toLowerCase().replace(/:$/, '') === norm(heading).toLowerCase();
 }
 
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** A whole-token hit: "Go" is not found inside "Google", "SQL" not inside "PostgreSQL". */
+export function hasToken(flatText: string, needle: string): boolean {
+  // A compound broken at its hyphen across two lines can come out joined ("StakeholderManagement")
+  // or with a space ("Stakeholder- Management"): all three are the same word.
+  const pattern = norm(needle).split('-').map(escapeRegExp).join('-?\\s?');
+  return new RegExp(`(?<![\\p{L}\\p{N}])${pattern}(?![\\p{L}\\p{N}])`, 'iu').test(flatText);
+}
+
+/**
+ * One-to-one matching of long strings (bullets): each needle takes its own
+ * occurrence out of the text, longest first, so a short bullet cannot be
+ * "found" inside a longer one and two equal bullets need two occurrences.
+ */
+export function consumeAll(text: string, needles: string[]): { found: string[]; missing: string[] } {
+  let rest = squash(text);
+  const found: string[] = [];
+  const missing: string[] = [];
+  for (const needle of [...needles].filter(Boolean).sort((a, b) => b.length - a.length)) {
+    const key = squash(needle);
+    const at = rest.indexOf(key);
+    if (at >= 0) {
+      rest = `${rest.slice(0, at)}\u0000${rest.slice(at + key.length)}`;
+      found.push(needle);
+    } else {
+      missing.push(needle);
+    }
+  }
+  return { found, missing };
+}
+
+export interface CheckOptions {
+  /**
+   * The extraction follows the content stream, so a skill group must read as
+   * one "Label: a, b, c" line. A geometric reader (pdftotext reading order,
+   * PyMuPDF, pdfminer, the LibreOffice round trip) may interleave the columns
+   * of a two-column template, so there each skill is matched as a whole token.
+   */
+  contiguous?: boolean;
+}
+
 /** Checks one extraction of a PDF (or DOCX conversion) against the source CV. */
-export function checkText(text: string, exp: CvExpectations): TextCheck {
+export function checkText(text: string, exp: CvExpectations, options: CheckOptions = {}): TextCheck {
   const flat = norm(text);
   const counts: TextCheck['counts'] = {};
   const missing: string[] = [];
@@ -145,10 +206,26 @@ export function checkText(text: string, exp: CvExpectations): TextCheck {
   };
 
   tally('contact', [exp.name, exp.email, exp.phone, ...(exp.title ? [exp.title] : [])]);
-  tally('skills', exp.skills);
+  if (options.contiguous) {
+    // A group is one line: label, colon, then its skills separated by commas, in order, nothing between.
+    const groups = consumeAll(text, exp.skillLines);
+    counts.skills = { found: exp.skills.length - groups.missing.reduce((n, line) => n + line.slice(line.indexOf(': ') + 2).split(', ').length, 0), total: exp.skills.length };
+    for (const line of groups.missing) missing.push(`skill line: ${line}`);
+  } else {
+    let found = 0;
+    for (const skill of exp.skills) {
+      if (hasToken(flat, skill)) found++;
+      else missing.push(`skills: ${skill}`);
+    }
+    counts.skills = { found, total: exp.skills.length };
+  }
   // Labels are drawn uppercase, so their glyphs are uppercase in the PDF.
   tally('skillGroups', exp.skillGroups, 'caseless');
-  tally('bullets', exp.jobs.flatMap((j) => j.bullets), 'squash');
+  {
+    const bullets = consumeAll(text, exp.jobs.flatMap((j) => j.bullets));
+    counts.bullets = { found: bullets.found.length, total: bullets.found.length + bullets.missing.length };
+    for (const bullet of bullets.missing) missing.push(`bullets: ${bullet}`);
+  }
   tally('jobTitles', exp.jobs.map((j) => j.position));
   tally('companies', exp.jobs.map((j) => j.company));
   tally('dates', [...exp.jobs.map((j) => j.dateRange), ...exp.education.map((e) => e.date)]);
@@ -206,4 +283,41 @@ export function checkText(text: string, exp: CvExpectations): TextCheck {
 
 export function localeOf(data: CVData) {
   return inferCvLocale(data);
+}
+
+/** Chrome writes https://host without a path as https://host/ in the link annotation; the two are the same address. */
+export function sameUrl(a: string, b: string): boolean {
+  try {
+    return new URL(a).href === new URL(b).href;
+  } catch {
+    return a === b;
+  }
+}
+
+const LINK_LABELS = /^(linkedin|github|website|portfolio|personal website|web|homepage|profile)$/i;
+
+/**
+ * Links show a clean address in the visible text (so a parser that ignores link
+ * annotations still gets it), never a label alone and never a raw https://
+ * URL. Date of birth and nationality print on DACH templates and nowhere else.
+ */
+export function checkPersonalAndLinks(text: string, exp: CvExpectations, dach: boolean, options: { ignoreUrlOnlyLines?: boolean } = {}): string[] {
+  const failures: string[] = [];
+  // Tika appends every link annotation's URL after the page text. That is the clickable target, not the visible text.
+  if (options.ignoreUrlOnlyLines) text = text.split('\n').filter((line) => !/^\s*(https?:\/\/|mailto:)\S+\s*$/.test(line)).join('\n');
+  const flat = squash(text);
+  for (const link of exp.links) {
+    if (!flat.includes(squash(link.display))) failures.push(`link text "${link.display}" is not in the text`);
+    if (flat.includes(squash(link.full))) failures.push(`the link prints its scheme: ${link.full}`);
+  }
+  for (const line of text.split(/[\n\f]/)) {
+    if (LINK_LABELS.test(norm(line))) failures.push(`label-only link text "${norm(line)}"`);
+  }
+  for (const { value, label } of exp.personalData) {
+    // A value alone proves nothing ("deutsch" is also a language), so the label that introduces it must be there too.
+    const present = label.test(text) && flat.includes(squash(value));
+    if (dach && !present) failures.push(`${label.source.split('|')[0]}: "${value}" is missing on a DACH template`);
+    if (!dach && (label.test(text) || flat.includes(squash(value)) && /^\d/.test(value))) failures.push(`${label.source.split('|')[0]} "${value}" is printed on a US template`);
+  }
+  return failures;
 }

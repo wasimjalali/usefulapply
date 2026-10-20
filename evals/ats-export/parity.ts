@@ -14,7 +14,7 @@ import { chromium } from '@playwright/test';
 import sharp from 'sharp';
 import { CV_FIXTURES, TEMPLATE_IDS } from './fixtures';
 import { pdfPagePngs } from './lib/contact-sheet';
-import { REPO_ROOT } from './lib/render';
+import { COMMITTED_RAW, REPO_ROOT } from './lib/render';
 import { fontFaceCssFromUrls } from '../../src/lib/cv-templates/fonts';
 import { PRINT_BASE_CSS } from '../../src/lib/services/export/print-css';
 import { PAPER_MM, getPrintSpec } from '../../src/lib/cv-templates/print-spec';
@@ -53,8 +53,8 @@ import { CvTemplateSwitch } from '@/components/cv-templates/render';
 }
 
 async function main() {
-  const out = process.argv[2] ?? '/Users/wasimjalali/Desktop/Useful_Apply/verify/feature-mcp-renderer-ats/parity';
-  const pdfDir = join(REPO_ROOT, 'evals', 'results', '2026-10-20-ats-export', 'raw', 'cv');
+  const out = process.argv[2] ?? process.env.PARITY_OUT ?? join(REPO_ROOT, 'verify', 'parity');
+  const pdfDir = join(process.env.ATS_EVAL_OUT ?? COMMITTED_RAW, 'cv');
   await mkdir(out, { recursive: true });
   const script = await readFile(await bundle(), 'utf8');
   const browser = await chromium.launch();

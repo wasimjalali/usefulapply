@@ -408,18 +408,14 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
               }}
             >
               {sectionHeading(data, 'certifications')}
-            </h2>}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {data.certifications.map((cert) => (
-                <div className="cv-entry" key={cert.id} style={{ fontSize: '10pt' }}>
+            </h2>} rows={data.certifications.map((cert, index) => (
+                <div className="cv-entry" key={cert.id} style={{ fontSize: '10pt', paddingBottom: index < data.certifications.length - 1 ? '6px' : 0 }}>
                   <div style={{ fontWeight: '500', color: modernColors.text }}>{cert.name}</div>
                   {cert.issuer && (
                     <div style={{ fontSize: '10pt', color: modernColors.textLight }}>{cert.issuer}</div>
                   )}
                 </div>
-              ))}
-            </div>
-          </SideSection>
+              ))} />
         )}
       </aside>
       </div>

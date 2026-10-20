@@ -32,9 +32,12 @@ function capitalize(value: string): string {
 }
 
 function asciiPart(value: string): string {
-  return transliterate(value)
+  // Letters with their own spelling (ä, ø, Cyrillic) first, then accents come off (Greek tonos, é), then what the accents hid.
+  // The Greek digraph ου is "ou" (ELOT 743), so it goes before its letters are mapped one by one.
+  const base = transliterate(value.replace(/ο[υύ]/g, 'ou').replace(/Ο[υύ]/g, 'Ou').replace(/ΟΥ|ΟΎ/g, 'OU'))
     .normalize('NFKD')
-    .replace(/[\u0300-\u036F]/g, '')
+    .replace(/[\u0300-\u036F]/g, '');
+  return transliterate(base)
     .replace(/[^A-Za-z0-9-]+/g, '_')
     .replace(/_+/g, '_')
     .replace(/^[_-]+|[_-]+$/g, '');

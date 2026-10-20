@@ -3,6 +3,7 @@
 # into evals/ats-export/vendor/open-resume/lib/ so the ATS proxy always runs the
 # same code. The vendor folder is gitignored on purpose: OpenResume is AGPL-3.0
 # and its source is not committed to this repo. Only this script and the pin are.
+# The adapter in lib/openresume.ts is our own code and copies none of it.
 # The imports inside the parser say `lib/...`, which tsconfig.json in this
 # folder maps to vendor/open-resume/lib/.
 set -euo pipefail
@@ -37,11 +38,11 @@ for f in \
   fetch "$f"
 done
 
-# The parser reads one constant from the redux slice. The slice itself pulls in
-# redux toolkit, so this shim carries just that constant, copied from the pin.
+# The parser imports one constant from the redux slice, which would pull in
+# redux toolkit. This shim stands in for it with a list of six empty featured
+# skills, the shape the parser expects.
 cat > "$DEST/redux/resumeSlice.ts" <<'SHIM'
-// Shim for the eval: initialFeaturedSkills as defined in open-resume resumeSlice.ts at the pinned commit.
-export const initialFeaturedSkills = Array(6).fill({ skill: "", rating: 4 });
+export const initialFeaturedSkills = Array.from({ length: 6 }, () => ({ skill: "", rating: 4 }));
 SHIM
 
 echo "$SHA" > "$DEST/../PINNED_COMMIT"

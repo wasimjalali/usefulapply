@@ -172,6 +172,18 @@ function UsLetter({ letter }: { letter: StructuredCoverLetter }) {
  * 7 lines at 4.4 mm fit. More shrink the type and the line height so the block
  * never overprints the field.
  */
+/**
+ * The return line (Rücksendeangabe) over the address window: the sender's name,
+ * street and postcode with city, on one short line. A sender block with more
+ * lines (a title, a department, a country) keeps its full text in the
+ * letterhead and gives the return line only the last two address lines.
+ */
+export function dinReturnLine(letter: StructuredCoverLetter): string {
+  const address = letter.sender.addressLines.filter((part) => part && part.trim());
+  const short = address.length > 2 ? address.slice(-2) : address;
+  return [letter.sender.name, ...short].filter(Boolean).join(' · ');
+}
+
 export function letterheadStyle(lines: number): { lineHeight?: string; fontSize?: string } {
   if (lines <= 7) return {};
   const lineHeightMm = Math.floor((30 / lines) * 100) / 100;
@@ -179,7 +191,7 @@ export function letterheadStyle(lines: number): { lineHeight?: string; fontSize?
 }
 
 function DinLetter({ letter }: { letter: StructuredCoverLetter }) {
-  const returnLine = [letter.sender.name, ...letter.sender.addressLines].filter(Boolean).join(' · ');
+  const returnLine = dinReturnLine(letter);
   const dateLine = [letter.place, letter.date].filter((part) => part && part.trim()).join(', ');
   const subject = letter.subject.trim();
   return (

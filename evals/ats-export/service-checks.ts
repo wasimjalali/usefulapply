@@ -4,6 +4,9 @@ import { exportFileName, nameForFile } from '../../src/lib/services/export/filen
 import { exportPathKey, signExportLink, verifyExportLink, SIGNED_URL_TTL_SECONDS } from '../../src/lib/services/export/signing';
 import { sanitizeCvData, sanitizeStructuredLetter } from '../../src/lib/services/export/sanitize';
 import { formatCvDate, formatDateRange, sectionHeading } from '../../src/lib/cv-templates/locale';
+import { buildCvData } from '../../src/lib/cv-templates/build-cv-data';
+import { visibleCvData } from '../../src/lib/cv-templates/hidden';
+import { RENDERER_VERSION } from '../../src/lib/services/export/renderer-version';
 import { DE_TWO_PAGE, DIN_LETTER, US_LETTER, US_ONE_PAGE } from './fixtures';
 import { kitFor } from './render-all';
 
@@ -160,6 +163,64 @@ export async function runServiceChecks(): Promise<ServiceReport[]> {
     if (sectionHeading({ ...US_ONE_PAGE, sectionHeaders: { skills: 'Tools I trust' } }, 'skills') !== 'Tools I trust') failures.push('a custom heading is overwritten');
     if (sectionHeading({ ...DE_TWO_PAGE, sectionHeaders: { experience: 'Werdegang' } }, 'experience') !== 'Berufserfahrung') failures.push('Werdegang is not normalized to Berufserfahrung');
     out.push(report('names-dates-headings', failures));
+  }
+
+  // Cache key covers what the file name and the document show; the renderer version is derived, not typed.
+  {
+    const failures: string[] = [];
+    const letterKit = (over: Partial<Parameters<typeof kitFor>[0]>) => kitFor({ applicantName: 'Jordan Ellis', coverLetter: { structured: US_LETTER, legacyText: null }, ...over });
+    const base = await exportCacheHash(resolveExport(letterKit({}), 'cover_letter_pdf', { templateId: 'premium-ats' }));
+    const otherName = await exportCacheHash(resolveExport(letterKit({ applicantName: 'Jordan Ellis Jr.' }), 'cover_letter_pdf', { templateId: 'premium-ats' }));
+    const otherCompany = await exportCacheHash(resolveExport(letterKit({ company: 'Other Corp' }), 'cover_letter_pdf', { templateId: 'premium-ats' }));
+    if (base === otherName) failures.push('the applicant name is not in the cache key');
+    if (base === otherCompany) failures.push('the company is not in the cache key');
+    if (!/^\d+\.[0-9a-z]{6,}$/.test(RENDERER_VERSION)) failures.push(`renderer version "${RENDERER_VERSION}" is not derived from a hash`);
+    const override = resolveExport(kitFor({ cv: US_ONE_PAGE, applicantName: 'Jordan Ellis' }), 'cv_pdf', {
+      templateId: 'premium-ats',
+      overrides: { cv: { ...US_ONE_PAGE, personal: { ...US_ONE_PAGE.personal, fullName: 'Alex Doe' } } },
+    });
+    if (override.applicantName !== 'Alex Doe') failures.push(`the file name uses "${override.applicantName}", not the override CV's name`);
+    out.push(report('cache-key-names-and-version', failures));
+  }
+
+  // Hidden state and chat renames: a hidden custom section is never folded into a visible one, and a rename is shown as chosen.
+  {
+    const failures: string[] = [];
+    const renamed = sectionHeading({ ...US_ONE_PAGE, sectionHeaders: { skills: 'CORE COMPETENCIES' }, renamedHeadings: ['skills'] }, 'skills');
+    if (renamed !== 'CORE COMPETENCIES') failures.push(`a renamed heading shows "${renamed}"`);
+    const unrenamed = sectionHeading({ ...US_ONE_PAGE, sectionHeaders: { skills: 'CORE COMPETENCIES' } }, 'skills');
+    if (unrenamed !== 'Skills') failures.push(`an unrenamed CORE COMPETENCIES shows "${unrenamed}"`);
+    const secret = 'Secret volunteering item';
+    const edited = {
+      ...US_ONE_PAGE,
+      sectionHeaders: { certifications: 'Extras' },
+      customSections: [{ id: 'c1', title: 'Extras', items: [secret], hidden: true }],
+    };
+    const minimal = { personal: { fullName: 'x', email: 'x@example.com', phone: '1' }, summary: '', experience: [], education: [], skills: [], languages: [], certifications: [], customSections: [], settings: {} };
+    const built = buildCvData({ structuredCV: minimal as never, showOptimized: false, editedOriginalCVData: edited });
+    if (!built) failures.push('buildCvData returned nothing');
+    else {
+      if (JSON.stringify(built.additionalInfo ?? []).includes(secret)) failures.push('a hidden custom section was folded into additional info');
+      if (JSON.stringify(visibleCvData(built)).includes(secret)) failures.push('a hidden custom section is visible');
+      if (!built.customSections?.[0]?.hidden) failures.push('the hidden flag was dropped');
+    }
+    out.push(report('hidden-and-renamed-headings', failures));
+  }
+
+  // File names: letters without a decomposition, other scripts, and the length cap.
+  {
+    const failures: string[] = [];
+    const cases: Array<[string, string]> = [
+      ['Søren Łukasz', 'Soren_Lukasz'],
+      ['Þórunn Æsa Đorđe', 'Thorunn_Aesa_Dorde'],
+      ['Иван Петров', 'Ivan_Petrov'],
+      ['Ελένη Παπαδοπούλου', 'Eleni_Papadopoulou'],
+      ['山田 太郎', 'Applicant'],
+    ];
+    for (const [input, want] of cases) if (nameForFile(input) !== want) failures.push(`"${input}" became "${nameForFile(input)}", want "${want}"`);
+    const long = exportFileName('cv_pdf', `${'Abcdefghij '.repeat(20)}Zed`, 'en');
+    if (long.length > 80) failures.push(`a long name gives a ${long.length} character file name`);
+    out.push(report('file-names-transliteration', failures));
   }
 
   return out;

@@ -5,3 +5,5 @@ vendor/
 .worker.log
 baseline-work/
 parity-work/
+.venv/
+__pycache__/

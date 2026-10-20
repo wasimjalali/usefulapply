@@ -87,3 +87,14 @@ export async function ensureWorker(): Promise<void> {
   }
   throw new Error('The Browser Run eval worker did not start. See evals/ats-export/.worker.log.');
 }
+
+/** The committed results folder. Only `--write` runs touch it. */
+export const COMMITTED_RAW = join(REPO_ROOT, 'evals', 'results', '2026-10-20-ats-export', 'raw');
+export const WRITE_RESULTS = process.argv.includes('--write');
+
+/**
+ * Where a run puts its files. A plain run writes to a scratch folder
+ * (ATS_EVAL_OUT, default verify/ats-export-run) so a rerun never overwrites the
+ * committed results; `--write` is the one flag that replaces them.
+ */
+export const RUN_DIR = WRITE_RESULTS ? COMMITTED_RAW : (process.env.ATS_EVAL_OUT ?? join(REPO_ROOT, 'verify', 'ats-export-run'));

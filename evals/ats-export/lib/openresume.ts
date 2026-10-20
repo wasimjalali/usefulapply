@@ -1,13 +1,16 @@
 /**
- * ATS proxy: the OpenResume PDF parser (xitanggg/open-resume, pinned commit in
- * vendor/open-resume/PINNED_COMMIT, fetched by fetch-open-resume.sh). It reads
- * a PDF the way a naive ATS does: text items grouped into lines, lines into
- * sections by heading, then fields by scoring rules. It only handles
- * single-column English CVs, so single-column templates are the fair test.
+ * ATS proxy: the OpenResume PDF parser (xitanggg/open-resume, AGPL-3.0). Its
+ * parsing source is NOT in this repository. fetch-open-resume.sh downloads it
+ * at the pinned commit in vendor/open-resume/PINNED_COMMIT (gitignored) and the
+ * three steps below call it from there, unmodified. What is committed is this
+ * adapter, which is our own code: it reads a PDF with pdf.js, hands the parser
+ * the shape of input it documents (position, size, font and end-of-line flag per
+ * text item) and scores the result against the CV. Nothing from OpenResume's own
+ * PDF reader is copied.
  *
- * Step 1 (reading the PDF) is reimplemented here against pdf.js 5, because the
- * original is written for pdf.js 3 in the browser. The conversion of each text
- * item is copied from read-pdf.ts.
+ * It reads a PDF the way a naive ATS does: items into lines, lines into sections
+ * by heading, then fields by scoring rules. It only handles single-column
+ * English CVs, so single-column templates are the fair test.
  */
 import { groupTextItemsIntoLines } from 'lib/parse-resume-from-pdf/group-text-items-into-lines';
 import { groupLinesIntoSections } from 'lib/parse-resume-from-pdf/group-lines-into-sections';
@@ -26,40 +29,33 @@ export const OPENRESUME_COMMIT = readFileSync(join(__dirname, '..', 'vendor', 'o
 export async function parseWithOpenResume(bytes: Uint8Array): Promise<Resume> {
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
   const doc = await pdfjs.getDocument({ data: new Uint8Array(bytes), verbosity: 0 }).promise;
-  let textItems: TextItem[] = [];
+  const stream: TextItem[] = [];
   for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber++) {
     const page = await doc.getPage(pageNumber);
     const content = await page.getTextContent();
+    // pdf.js names fonts by an internal id; the parser looks for "bold" in the real name, which the page loads once its operator list has run.
     await page.getOperatorList();
-    const items = content.items
-      .filter((item): item is Extract<typeof item, { str: string }> => 'str' in item)
-      .map((item) => {
-        let fontName = item.fontName;
-        try {
-          fontName = page.commonObjs.get(item.fontName).name ?? item.fontName;
-        } catch {
-          // keep the loaded name
-        }
-        return {
-          text: item.str.replace(/-\u00AD\u2010/g, '-'),
-          x: item.transform[4],
-          y: item.transform[5],
-          width: item.width,
-          height: item.height,
-          fontName,
-          hasEOL: item.hasEOL,
-        } satisfies TextItem;
-      });
-    // OpenResume reads all pages as one stream and glues the last item of a page to
-    // the first of the next when pdf.js sets no end-of-line flag. That is a limit of
-    // its reader, not of the document, so a page end is marked as a line end here.
-    if (items.length > 0) items[items.length - 1] = { ...items[items.length - 1], hasEOL: true };
-    textItems.push(...items);
+    const realFontName = (id: string): string => {
+      try {
+        return page.commonObjs.get(id).name ?? id;
+      } catch {
+        return id;
+      }
+    };
+    const pageItems: TextItem[] = [];
+    for (const item of content.items) {
+      if (!('str' in item)) continue;
+      const [, , , , x, y] = item.transform;
+      pageItems.push({ text: item.str, x, y, width: item.width, height: item.height, fontName: realFontName(item.fontName), hasEOL: item.hasEOL });
+    }
+    // The parser reads all pages as one stream and would glue the last item of a
+    // page to the first of the next. That is a limit of the reader, not of the
+    // document, so the end of a page counts as the end of a line.
+    if (pageItems.length > 0) pageItems[pageItems.length - 1].hasEOL = true;
+    stream.push(...pageItems);
   }
-  textItems = textItems.filter((item) => item.hasEOL || item.text.trim() !== '');
-  const lines = groupTextItemsIntoLines(textItems);
-  const sections = groupLinesIntoSections(lines);
-  return extractResumeFromSections(sections);
+  const items = stream.filter((item) => item.hasEOL || item.text.trim() !== '');
+  return extractResumeFromSections(groupLinesIntoSections(groupTextItemsIntoLines(items)));
 }
 
 export interface OpenResumeScore {
