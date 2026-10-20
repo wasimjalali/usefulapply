@@ -32,6 +32,8 @@ export type ApplicationFieldPatch = Partial<{
   company: string | null;
   job_description: string;
   job_url: string | null;
+  company_address: string | null;
+  company_contact_person: string | null;
   match_score: number | null;
   matching_skills: string[];
   missing_skills: string[];
@@ -65,6 +67,8 @@ const EDITABLE_FIELDS: Record<keyof ApplicationFieldPatch, { kind: FieldKind; ma
   company: { kind: 'text', max: 500 },
   job_description: { kind: 'text-required', max: 100_000 },
   job_url: { kind: 'text', max: 2_000 },
+  company_address: { kind: 'text', max: 1_000 },
+  company_contact_person: { kind: 'text', max: 300 },
   match_score: { kind: 'int-0-100' },
   matching_skills: { kind: 'string-array' },
   missing_skills: { kind: 'string-array' },
@@ -276,7 +280,7 @@ export async function deleteApplication(
  * written) so a caller that reports one can report the final value.
  *
  * company_address and company_contact_person are server-managed: the browser
- * never writes them, and a job description change clears them
+ * never writes them (only the MCP update_application tool does), and a job description change clears them
  * (db/session-recipient-reset.ts, applied in `updateSession`).
  */
 export async function fillLetterRecipient(
