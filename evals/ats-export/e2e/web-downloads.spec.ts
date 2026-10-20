@@ -1,0 +1,136 @@
+import { readFile } from 'node:fs/promises';
+import { expect, request as pwRequest, test, type Page } from '@playwright/test';
+import { US_LETTER, US_ONE_PAGE } from '../fixtures';
+import { checkCvDocx, checkLetterDocx } from '../lib/docx-checks';
+import { checkCvPdf } from '../lib/cv-checks';
+import { checkLetterPdf } from '../lib/letter-checks';
+import { APPLICATION_ID } from './seed';
+import { ORIGIN, signedInContext } from './auth';
+
+async function openApplication(page: Page) {
+  await page.goto('/dashboard');
+  await page.getByText('Senior Backend Engineer', { exact: false }).first().click();
+  // Opening an application loads its chat and resets the tab once. Switch tabs after that settles.
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(6000);
+}
+
+test.describe.configure({ mode: 'serial' });
+
+test.describe('web downloads use the server renderer', () => {
+
+  test('CV tab: Download PDF and Download Word', async ({ page }, info) => {
+    await openApplication(page);
+    await page.screenshot({ path: info.outputPath('cv-tab.png') });
+
+    const pdfDownload = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Download PDF' }).click();
+    const pdf = await pdfDownload;
+    expect(pdf.suggestedFilename()).toBe('Jordan_Ellis_CV.pdf');
+    const pdfPath = info.outputPath('downloaded-cv.pdf');
+    await pdf.saveAs(pdfPath);
+    const report = await checkCvPdf(new Uint8Array(await readFile(pdfPath)), {
+      fixture: 'us-one-page', templateId: 'premium-ats', source: US_ONE_PAGE, expectPhoto: false, expectedPages: 1,
+    });
+    expect(report.failures, 'the downloaded PDF passes every ATS check').toEqual([]);
+    await expect(page.getByText('We used the quick download')).toHaveCount(0);
+
+    const wordDownload = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Download Word' }).click();
+    const word = await wordDownload;
+    expect(word.suggestedFilename()).toBe('Jordan_Ellis_CV.docx');
+    const docxPath = info.outputPath('downloaded-cv.docx');
+    await word.saveAs(docxPath);
+    const docx = await checkCvDocx(new Uint8Array(await readFile(docxPath)), { fixture: 'us-one-page', templateId: 'premium-ats', source: US_ONE_PAGE, expectPhoto: false });
+    expect(docx.failures, 'the downloaded DOCX passes every check').toEqual([]);
+  });
+
+  test('Cover letter tab: preview layout, Download PDF and DOCX', async ({ page }, info) => {
+    await openApplication(page);
+    await page.getByText('Cover letter', { exact: true }).first().click();
+    await page.screenshot({ path: info.outputPath('letter-tab.png') });
+
+    await page.getByRole('button', { name: 'Preview layout' }).click();
+    const frame = page.locator('iframe[title="Cover letter layout"]');
+    await expect(frame).toBeVisible({ timeout: 60_000 });
+    await page.screenshot({ path: info.outputPath('letter-preview.png') });
+    await page.getByRole('button', { name: 'Close preview' }).click();
+
+    await page.getByRole('button', { name: 'Download', exact: true }).click();
+    const pdfDownload = page.waitForEvent('download');
+    await page.getByRole('menuitem', { name: 'PDF' }).click();
+    const pdf = await pdfDownload;
+    expect(pdf.suggestedFilename()).toBe('Jordan_Ellis_Cover_Letter.pdf');
+    const pdfPath = info.outputPath('downloaded-letter.pdf');
+    await pdf.saveAs(pdfPath);
+    const report = await checkLetterPdf(new Uint8Array(await readFile(pdfPath)), 'web-letter', 'us', US_LETTER);
+    expect(report.failures, 'the downloaded letter is laid out as a US business letter').toEqual([]);
+
+    await page.getByRole('button', { name: 'Download', exact: true }).click();
+    const docxDownload = page.waitForEvent('download');
+    await page.getByRole('menuitem', { name: 'DOCX' }).click();
+    const docx = await docxDownload;
+    expect(docx.suggestedFilename()).toBe('Jordan_Ellis_Cover_Letter.docx');
+    const docxPath = info.outputPath('downloaded-letter.docx');
+    await docx.saveAs(docxPath);
+    const docxReport = await checkLetterDocx(
+      new Uint8Array(await readFile(docxPath)),
+      'web-letter.docx',
+      [US_LETTER.sender.name, US_LETTER.subject, US_LETTER.salutation, US_LETTER.paragraphs[0], US_LETTER.signatureName],
+      null,
+    );
+    expect(docxReport.failures).toEqual([]);
+  });
+
+  test('when the server cannot render, the browser export runs and says so', async ({ page }, info) => {
+    await page.route('**/api/exports', (route) => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'unavailable', code: 'RENDER_UNAVAILABLE' }) }));
+    await openApplication(page);
+    const download = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Download PDF' }).click();
+    const file = await download;
+    // The in-browser export names the file after the company as well.
+    expect(file.suggestedFilename()).toMatch(/^Jordan_Ellis_.*CV\.pdf$/);
+    await expect(page.getByText('We used the quick download. The full-quality PDF will be back shortly.')).toBeVisible();
+    await page.screenshot({ path: info.outputPath('fallback-notice.png') });
+  });
+
+  test('signed links: plain HTTP works, tampering and other users do not', async ({ page }) => {
+    const create = await page.request.post('/api/exports', {
+      data: { applicationId: APPLICATION_ID, format: 'cv_pdf', templateId: 'executive' },
+      headers: { origin: ORIGIN },
+    });
+    expect(create.status()).toBe(200);
+    const body = await create.json();
+    const file = body.file as { url: string; cached: boolean; fileName: string; expiresAt: string };
+    expect(file.fileName).toBe('Jordan_Ellis_CV.pdf');
+    expect(new Date(file.expiresAt).getTime() - Date.now()).toBeLessThanOrEqual(15 * 60 * 1000);
+
+    // A second identical request is served from the cache.
+    const again = await page.request.post('/api/exports', { data: { applicationId: APPLICATION_ID, format: 'cv_pdf', templateId: 'executive' }, headers: { origin: ORIGIN } });
+    expect((await again.json()).file.cached).toBe(true);
+
+    // No cookies at all: an agent's plain HTTP client.
+    const anonymous = await pwRequest.newContext({ baseURL: ORIGIN, storageState: { cookies: [], origins: [] } });
+    const served = await anonymous.get(file.url);
+    expect(served.status()).toBe(200);
+    expect(served.headers()['content-type']).toBe('application/pdf');
+    expect(served.headers()['cache-control']).toBe('private, no-store');
+    expect(served.headers()['referrer-policy']).toBe('no-referrer');
+    expect(served.headers()['x-content-type-options']).toBe('nosniff');
+    expect((await served.body()).subarray(0, 5).toString()).toBe('%PDF-');
+
+    const tampered = file.url.replace(/sig=(.)/, (_m, c) => `sig=${c === 'A' ? 'B' : 'A'}`);
+    expect((await anonymous.get(tampered)).status()).toBe(404);
+    expect((await anonymous.get(file.url.replace(/exp=\d+/, `exp=${Math.floor(Date.now() / 1000) + 99999}`))).status()).toBe(404);
+    expect((await anonymous.get(file.url.split('?')[0])).status()).toBe(404);
+
+    // Another signed-in user cannot export this application.
+    const other = await signedInContext('e2e-other@example.test', 'Other User');
+    const foreign = await other.post('/api/exports', { data: { applicationId: APPLICATION_ID, format: 'cv_pdf' }, headers: { origin: ORIGIN } });
+    expect(foreign.status()).toBe(404);
+    // And unauthenticated requests are refused.
+    expect((await anonymous.post('/api/exports', { data: { applicationId: APPLICATION_ID, format: 'cv_pdf' }, headers: { origin: ORIGIN } })).status()).toBe(401);
+    await anonymous.dispose();
+    await other.dispose();
+  });
+});

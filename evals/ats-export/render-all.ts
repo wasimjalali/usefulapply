@@ -17,7 +17,6 @@ export function kitFor(overrides: Partial<ExportKit>): ExportKit {
     jobTitle: '',
     company: 'Harbor Freight Technologies',
     templateId: null,
-    letterLanguage: null,
     applicantName: '',
     cv: null,
     originalCv: null,

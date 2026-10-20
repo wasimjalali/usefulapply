@@ -73,3 +73,6 @@ landing-captures/
 
 # Eval private data (owner CV, owner JDs, raw outputs on owner cases)
 evals/private/
+
+# ATS export eval: the loose baseline PDFs are archived next to them as baseline.tar.gz
+evals/results/2026-10-20-ats-export/raw/baseline/

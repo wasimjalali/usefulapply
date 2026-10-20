@@ -39,7 +39,7 @@ export const US_ONE_PAGE: CVData = {
     github: 'https://github.com/jordan-ellis-example',
   },
   summary:
-    'Backend engineer with 9 years of experience building payment and logistics platforms in Go and Python. Cut p99 latency by 38% at Northwind Freight and led a team of five through a zero-downtime migration to Kubernetes.',
+    'Backend engineer with 9 years of experience building payment and logistics platforms in Go and Python. Led a team of five through a zero-downtime migration to Kubernetes.',
   experience: [
     job('Senior Backend Engineer', 'Northwind Freight', 'Austin, TX', 'Mar 2022', undefined, [
       'Led a five-engineer team that moved 40 services to Kubernetes with zero customer-facing downtime.',
@@ -47,7 +47,7 @@ export const US_ONE_PAGE: CVData = {
     ], true),
     job('Backend Engineer', 'Lumen Payments', 'San Francisco, CA', 'Jun 2018', 'Feb 2022', [
       'Built the ledger service that processes 2.4 million transactions a day with exactly-once semantics.',
-      'Reduced chargeback investigation time from 3 days to 4 hours with an internal reconciliation tool.',
+      'Cut chargeback review from 3 days to 4 hours with an efficient office workflow tool.',
     ]),
     job('Software Engineer', 'Brightpath Analytics', 'Denver, CO', 'Aug 2015', 'May 2018', [
       'Developed ETL pipelines in Python that ingested 800 GB of sensor data per day.',
@@ -58,9 +58,8 @@ export const US_ONE_PAGE: CVData = {
     { id: id(), institution: 'University of Texas at Austin', degree: 'B.S.', field: 'Computer Science', startDate: '2011', endDate: 'May 2015' },
   ],
   skills: [
-    { category: 'Languages', items: ['Go', 'Python', 'SQL', 'TypeScript'] },
+    { category: 'Backend', items: ['Go', 'Python', 'SQL', 'TypeScript', 'PostgreSQL', 'Kafka'] },
     { category: 'Infrastructure', items: ['Kubernetes', 'Terraform', 'AWS', 'Docker'] },
-    { category: 'Data', items: ['PostgreSQL', 'Redis', 'Kafka', 'ClickHouse'] },
   ],
   languages: [{ language: 'English', proficiency: 'Native' }, { language: 'Spanish', proficiency: 'Professional working' }],
   certifications: [

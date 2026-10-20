@@ -1,3 +1,5 @@
+import { spawn } from 'node:child_process';
+import { closeSync, openSync } from 'node:fs';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { FontFileLoader } from '../../../src/lib/cv-templates/fonts';
@@ -23,7 +25,16 @@ export function workerBinding(timings: RenderTiming[] = []): BrowserRunBinding {
   return {
     async quickAction(_action, body) {
       const started = Date.now();
-      const res = await fetch(WORKER_URL, { method: 'POST', body: JSON.stringify(body) });
+      let res: Response | null = null;
+      for (let attempt = 0; attempt < 4 && !res; attempt++) {
+        try {
+          res = await fetch(WORKER_URL, { method: 'POST', body: JSON.stringify(body) });
+        } catch {
+          // The detached worker can be reaped between runs; bring it back and retry.
+          await ensureWorker();
+        }
+      }
+      if (!res) throw new Error('The Browser Run eval worker is not answering.');
       const bytes = await res.arrayBuffer();
       timings.push({
         wallMs: Date.now() - started,
@@ -44,4 +55,35 @@ export async function writeOut(dir: string, name: string, data: Uint8Array | str
   const path = join(dir, name);
   await writeFile(path, data);
   return path;
+}
+
+async function workerAlive(): Promise<boolean> {
+  try {
+    const res = await fetch(WORKER_URL, { method: 'POST', body: JSON.stringify({ html: '<p>ping</p>' }), signal: AbortSignal.timeout(20_000) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Makes sure the Browser Run eval worker answers on 8793, starting it when it
+ * does not. It runs detached so it outlives this script and a second run
+ * reuses it.
+ */
+export async function ensureWorker(): Promise<void> {
+  if (await workerAlive()) return;
+  const log = openSync(join(REPO_ROOT, 'evals', 'ats-export', '.worker.log'), 'a');
+  const child = spawn(
+    'npx',
+    ['wrangler', 'dev', '--config', 'evals/ats-export/render-worker/wrangler.jsonc', '--port', new URL(WORKER_URL).port || '8793'],
+    { cwd: REPO_ROOT, detached: true, stdio: ['ignore', log, log] },
+  );
+  child.unref();
+  closeSync(log);
+  for (let i = 0; i < 45; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    if (await workerAlive()) return;
+  }
+  throw new Error('The Browser Run eval worker did not start. See evals/ats-export/.worker.log.');
 }
