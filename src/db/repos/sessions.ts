@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { and, asc, desc, eq, isNotNull, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNotNull, lt, lte, or, sql } from 'drizzle-orm';
 import { getDb, nowIso, stripIdentity } from '../client';
 import { applicationSessions, chatMessages } from '../schema';
 import { withRecipientReset } from '../session-recipient-reset';
@@ -33,6 +33,8 @@ export interface ApplicationSession {
   email_body?: string | null;
   selected_template?: string;
   status?: 'drafted' | 'applied' | 'interview' | 'rejected' | 'accepted' | 'follow_up';
+  interview_at?: string | null;
+  follow_up_due_at?: string | null;
   cover_letter_language?: string;
   fit_assessment?: any;
   generation_completed?: boolean;
@@ -462,6 +464,64 @@ export async function listApplicationSummaries(
     rows: rows.map((row) => ({ ...row, has_kit: Boolean(row.has_kit) })),
     total: Number(counted[0]?.count ?? 0),
   };
+}
+
+export interface BriefingApplicationRow {
+  id: string;
+  company: string | null;
+  job_title: string | null;
+  status: string;
+  interview_at: string | null;
+  follow_up_due_at: string | null;
+  generation_status: string;
+  generation_error: string | null;
+  updated_at: string;
+}
+
+/**
+ * The applications that need a look today: a follow-up that came due, an interview in the coming
+ * window, a generation that is still going, or one that failed since `failedSince`.
+ */
+export async function listBriefingApplications(
+  userId: string,
+  window: { now: string; interviewUntil: string; failedSince: string },
+): Promise<BriefingApplicationRow[]> {
+  const db = await getDb();
+  return db
+    .select({
+      id: applicationSessions.id,
+      company: applicationSessions.company,
+      job_title: applicationSessions.job_title,
+      status: applicationSessions.status,
+      interview_at: applicationSessions.interview_at,
+      follow_up_due_at: applicationSessions.follow_up_due_at,
+      generation_status: applicationSessions.generation_status,
+      generation_error: applicationSessions.generation_error,
+      updated_at: applicationSessions.updated_at,
+    })
+    .from(applicationSessions)
+    .where(and(
+      eq(applicationSessions.user_id, userId),
+      or(
+        and(
+          inArray(applicationSessions.status, ['applied', 'follow_up']),
+          isNotNull(applicationSessions.follow_up_due_at),
+          lte(applicationSessions.follow_up_due_at, window.now),
+        ),
+        and(
+          isNotNull(applicationSessions.interview_at),
+          gte(applicationSessions.interview_at, window.now),
+          lte(applicationSessions.interview_at, window.interviewUntil),
+        ),
+        inArray(applicationSessions.generation_status, ['pending', 'running']),
+        and(
+          eq(applicationSessions.generation_status, 'failed'),
+          gte(applicationSessions.generation_failed_at, window.failedSince),
+        ),
+      ),
+    ))
+    .orderBy(desc(applicationSessions.updated_at))
+    .limit(200);
 }
 
 /**
