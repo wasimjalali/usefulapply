@@ -56,18 +56,26 @@ export function adPhrase(adText: string, phrase: string | null | undefined): str
 // Where in the ad: application wording, workplaces, boilerplate, legal footers
 // ---------------------------------------------------------------------------
 
-// An explicit "send your application to" instruction. Within 80 characters
-// before a detail it wins over everything else.
+// An explicit "send your application to" instruction. German needs the
+// instruction form ("senden Sie ... an", "Bewerbung an", "Bewerbungen richten
+// Sie an"), so "Ihre Unterlagen geben wir nicht an Dritte weiter" is not one.
 const SUBMISSION = new RegExp([
   '(?:send|mail|submit|e-?mail|forward|direct)\\s+(?:us\\s+)?(?:your\\s+)?(?:application|applications|resume|resumes|résumé|résumés|cv|cvs|cover\\s+letter)\\b[^.!?\\n]{0,70}?\\bto\\b',
-  'bewerbung(?:en)?\\b[^.!?\\n]{0,70}?\\ban\\b',
-  'bewerbungen\\s+richten\\s+sie',
-  'ihre\\s+(?:bewerbungs)?unterlagen\\b[^.!?\\n]{0,70}?\\ban\\b',
+  '(?:senden|schicken|richten|reichen|mailen|übermitteln)\\s+sie\\s+(?:uns\\s+)?(?:bitte\\s+)?[^.!?\\n]{0,40}?(?:bewerbung(?:sunterlagen)?|unterlagen|lebenslauf|cv)\\b[^.!?\\n]{0,70}?\\ban\\b',
+  'bewerbung(?:en|sunterlagen)?\\s+(?:bitte\\s+)?(?:(?:per|via)\\s+(?:post|e-?mail)\\s+)?an\\b',
+  'bewerbungen\\s+richten\\s+sie\\s+(?:bitte\\s+)?an\\b',
+  'ihre\\s+(?:bewerbungs)?unterlagen\\s+(?:bitte\\s+)?(?:(?:per|via)\\s+(?:post|e-?mail)\\s+)?an\\b',
   'adresser\\s+votre\\s+candidature[^.!?\\n]{0,70}?(?<!\\p{L})à(?!\\p{L})',
   'env[ií]a(?:r|nos)?\\s+(?:tu|su)\\s+(?:solicitud|cv|candidatura)[^.!?\\n]{0,70}?\\ba\\b',
   'stuur\\s+(?:je|uw)\\s+(?:sollicitatie|cv)[^.!?\\n]{0,70}?\\bnaar\\b',
 ].join('|'), 'giu');
 const SUBMISSION_REACH = 80;
+const EMAIL = /[^\s@]+@[^\s@]+\.[^\s@]+/u;
+// Words a period follows without ending the sentence.
+const ABBREVIATIONS = new Set([
+  'dr', 'prof', 'st', 'str', 'nr', 'no', 'inc', 'ltd', 'co', 'corp', 'llc', 'plc', 'mr', 'mrs', 'ms', 'mme', 'jr', 'sr', 'sra',
+  'ave', 'rd', 'blvd', 'bzw', 'ca', 'vgl', 'inkl', 'ggf', 'evtl', 'abt', 'tel', 'fax', 'ref', 'réf', 'req', 'dept', 'dipl', 'ing',
+]);
 
 // Wording that tells applicants where to write or who to contact.
 const PLACEMENT_ANCHOR = /(?:contact|kontakt)\s*:|ansprechpartner|anschrift|our\s+office|headquarters|hauptsitz|firmensitz|address|adresse|apply|application|candidature|postuler|solicitud|sollicitatie|send\s+(?:your|us)|(?:mail|submit)\s+(?:resumes|applications)\s+to|mail\s+to|mail\s+your/iu;
@@ -84,22 +92,50 @@ const LEGAL_NAME = /geschäftsführ|geschaeftsfuehr|impressum|vorstand|aufsichts
 const LEGAL_BEFORE = 150;
 const LEGAL_AFTER = 60;
 
-function submissionWithinReach(ad: string, start: number): boolean {
-  const windowStart = Math.max(0, start - SUBMISSION_REACH - 140);
-  const before = ad.slice(windowStart, start);
-  let lastEnd = -1;
-  for (const match of before.matchAll(SUBMISSION)) lastEnd = (match.index ?? 0) + match[0].length;
-  return lastEnd >= 0 && before.length - lastEnd <= SUBMISSION_REACH;
+/**
+ * A sentence ends in the text: "!" or "?" before whitespace, or "." before
+ * whitespace unless it closes an abbreviation ("Dr.", "Inc.", "z. B.",
+ * "e.g."). The period after an email address ("bewerbung@acme.de. ") does end
+ * a sentence; the dots inside it are not followed by whitespace.
+ */
+export function hasSentenceBoundary(text: string): boolean {
+  for (const match of text.matchAll(/(\S*)([.!?])(?=\s)/gu)) {
+    if (match[2] !== '.') return true;
+    const token = match[1].replace(/^[("'„“]+/u, '');
+    const bare = token.toLocaleLowerCase();
+    const abbreviation = !token.includes('@')
+      && (ABBREVIATIONS.has(bare) || /^\p{L}$/u.test(token) || /^\p{L}+(?:\.\p{L}+)+$/u.test(token));
+    if (!abbreviation) return true;
+  }
+  return false;
 }
 
 /**
- * A detail at [start, end) in the ad sits where applications go: an explicit
- * submission instruction within reach wins; otherwise it must not follow a
- * workplace label or sit in boilerplate, and must follow a company name, the
- * contact person or application wording.
+ * An explicit submission instruction whose object is the detail at `start`:
+ * it ends within 80 characters before the detail, and the text in between
+ * holds no sentence break, no email address (then the email is what to write
+ * to, not this) and no workplace, boilerplate or legal-name wording.
+ */
+function submissionAddressesDetail(ad: string, start: number): boolean {
+  const before = ad.slice(Math.max(0, start - SUBMISSION_REACH - 160), start);
+  let last: RegExpMatchArray | undefined;
+  for (const match of before.matchAll(SUBMISSION)) last = match;
+  if (!last) return false;
+  const gap = before.slice((last.index ?? 0) + last[0].length);
+  if (gap.length > SUBMISSION_REACH) return false;
+  if (EMAIL.test(gap) || hasSentenceBoundary(gap)) return false;
+  return !WORKPLACE.test(gap) && !BOILERPLATE.test(gap) && !LEGAL_NAME.test(gap);
+}
+
+/**
+ * A detail at [start, end) in the ad sits where applications go. A submission
+ * instruction whose object is the detail wins (submissionAddressesDetail).
+ * Otherwise the detail must not follow a workplace label, sit in boilerplate
+ * or (for a person) near legal-name wording, and must follow a company name,
+ * the contact person or application wording.
  */
 function placedForApplications(ad: string, start: number, end: number, anchors: Array<string | undefined>, isPerson: boolean): boolean {
-  if (submissionWithinReach(ad, start)) return true;
+  if (submissionAddressesDetail(ad, start)) return true;
   if (WORKPLACE.test(ad.slice(Math.max(0, start - WORKPLACE_WINDOW), start))) return false;
   if (BOILERPLATE.test(ad.slice(Math.max(0, start - BOILERPLATE_WINDOW), start))) return false;
   if (isPerson && LEGAL_NAME.test(ad.slice(Math.max(0, start - LEGAL_BEFORE), Math.min(ad.length, end + LEGAL_AFTER)))) return false;
@@ -138,15 +174,14 @@ const STREET_NUMBER_FIRST = /^\d{1,6}[a-z]?,?\s+\p{L}[\p{L}\p{N}.,'#\- ]*$/iu;
 // "Postfach 12 34 56", "PO Box 12345", "P.O. Box 123456"
 const PO_BOX = /^(?:postfach\s+\d{1,6}(?:\s\d{1,3}){0,3}|p\.?\s?o\.?\s?box\s+\d{1,6})$/iu;
 // "90431 Nürnberg", "D-90431 Nürnberg", "1010 Wien": ends in a city, never a street suffix.
-const POSTCODE_CITY_EU = new RegExp(`^(?:[A-Z]{1,2}-)?\\d{4,5}\\s+(?!.*(?<!\\p{L})${STREET_SUFFIX}$)\\p{L}[\\p{L}.'\\- ]*$`, 'iu');
+// Also "75001 Paris Cedex 01" and "06108 Halle (Saale)".
+const POSTCODE_CITY_EU = new RegExp(`^(?:[A-Z]{1,2}-)?\\d{4,5}\\s+(?!.*(?<!\\p{L})${STREET_SUFFIX}$)\\p{L}[\\p{L}.'\\- ]*(?:\\s+\\([\\p{L}.' -]{1,30}\\))?(?:\\s+cedex(?:\\s+\\d{1,2})?)?$`, 'iu');
 // "1100-053 Lisboa"
 const POSTCODE_CITY_PT = /^\d{4}-\d{3}\s+\p{L}[\p{L}.'\- ]*$/u;
 // "Toronto, ON M5X 1A9"
 const POSTCODE_CITY_CA = /^\p{L}[\p{L}.'\- ]*,?\s+(?:AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT)\s+[A-Z]\d[A-Z]\s?\d[A-Z]\d$/u;
 // "London SW1A 2AA", "Manchester, M1 1AE"
 const POSTCODE_CITY_UK = /^\p{L}[\p{L}.'\- ]*,?\s+[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$/u;
-// "Chicago, IL 60606", "Chicago IL 60606", "Chicago, Illinois 60606"
-const POSTCODE_CITY_US = /^(\p{L}[\p{L}.'\- ]*?),?\s+(\p{L}[\p{L} ]*?)\s+\d{5}(?:-\d{4})?$/u;
 
 export const US_STATE_CODES = new Set([
   'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
@@ -172,11 +207,15 @@ const COUNTRY_LINE = /^\p{L}[\p{L} .'-]{1,29}$/u;
 const LINE_SEPARATOR = /\s+\|\s+|\s+·\s+|\s+-\s+|\s*;\s*/u;
 const LINE_GAP = '(?:[\\s,;|·*_]|\\s-\\s){1,10}';
 
+// "San Francisco CA 94103", "New York, NY 10001": the city expands lazily
+// until a real state code or name follows, so a multi-word city needs no comma.
+const US_ZIP = '\\s+\\d{5}(?:-\\d{4})?$';
+const US_CITY = "^\\p{L}[\\p{L}.'\\- ]*?,?\\s+";
+const US_CITY_CODE_LINE = new RegExp(`${US_CITY}(?:${[...US_STATE_CODES].join('|')})${US_ZIP}`, 'u');
+const US_CITY_NAME_LINE = new RegExp(`${US_CITY}(?:${[...US_STATE_NAMES].sort((a, b) => b.length - a.length).map((name) => name.replace(/ /gu, '\\s+')).join('|')})${US_ZIP}`, 'iu');
+
 function isUsCityLine(line: string): boolean {
-  const match = line.match(POSTCODE_CITY_US);
-  if (!match) return false;
-  const state = match[2].trim();
-  return US_STATE_CODES.has(state) || US_STATE_NAMES.has(state.toLocaleLowerCase());
+  return US_CITY_CODE_LINE.test(line) || US_CITY_NAME_LINE.test(line);
 }
 
 /** A postcode-plus-city line in any supported format. */
@@ -254,11 +293,16 @@ export function extractAdAddress(value: unknown, adText: string, anchors: Addres
   if (i !== lines.length) return [];
 
   const ad = adText.normalize('NFKC');
-  const block = new RegExp(`${BEFORE}${lines.map((line) => `(${phrasePattern(line)})`).join(LINE_GAP)}${AFTER}`, 'iu');
-  const match = block.exec(ad);
-  if (!match) return [];
-  if (!placedForApplications(ad, match.index, match.index + match[0].length, [anchors.companyName, anchors.contactPerson], false)) return [];
-  return match.slice(1).map((line) => cleanLetterText(line));
+  // Every occurrence counts: the same address in a footer first and under
+  // "send your application to" later is accepted from the later one.
+  const block = new RegExp(`${BEFORE}${lines.map((line) => `(${phrasePattern(line)})`).join(LINE_GAP)}${AFTER}`, 'giu');
+  for (const match of ad.matchAll(block)) {
+    const start = match.index ?? 0;
+    if (placedForApplications(ad, start, start + match[0].length, [anchors.companyName, anchors.contactPerson], false)) {
+      return match.slice(1).map((line) => cleanLetterText(line));
+    }
+  }
+  return [];
 }
 
 // ---------------------------------------------------------------------------
@@ -386,9 +430,11 @@ function titlesOf(gender: Gender, language: SupportedLanguage): string {
 function titleStatedFor(person: string, gender: Gender, language: SupportedLanguage, sources: string[]): boolean {
   const { given, surname } = surnameOf(personName(person));
   if (!surname) return false;
-  const optionalGiven = given.map((part) => `(?:${phrasePattern(part)}\\s+)?`).join('');
+  // A contact with a given name needs it next to the title too, so "Herr
+  // Brandl, Geschäftsführer" never lends "Herr" to Melanie Brandl.
+  const requiredGiven = given.map((part) => `${phrasePattern(part)}\\s+`).join('');
   const pattern = new RegExp(
-    `${BEFORE}(?:${titlesOf(gender, language)})\\.?\\s+(?:(?:dr|prof)\\.?\\s+)*${optionalGiven}${phrasePattern(surname)}${AFTER}`,
+    `${BEFORE}(?:${titlesOf(gender, language)})\\.?\\s+(?:(?:dr|prof)\\.?\\s+)*${requiredGiven}${phrasePattern(surname)}${AFTER}`,
     'iu',
   );
   return sources.some((source) => pattern.test(cleanLetterText(source.normalize('NFKC'))));

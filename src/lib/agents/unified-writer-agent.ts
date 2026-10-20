@@ -1018,7 +1018,10 @@ function validateCoverLetterFields(
   ]);
   for (const part of paragraphParts) {
     const text = normalizeComparisonText(part.text);
-    if (greetings.some((greeting) => text.startsWith(greeting))) issues.push('a paragraph repeated the greeting');
+    // A whole-word match: "Hi" must not catch "History shows...".
+    if (greetings.some((greeting) => text.startsWith(greeting) && !/[\p{L}\p{N}]/u.test(text.charAt(greeting.length)))) {
+      issues.push('a paragraph repeated the greeting');
+    }
     const lastLine = bare(part.lastLine);
     const afterLastSentence = bare(lastLine.split(/(?<=[.!?])\s+/u).at(-1) ?? '');
     if (signOffForms.has(lastLine) || signOffForms.has(afterLastSentence)) {

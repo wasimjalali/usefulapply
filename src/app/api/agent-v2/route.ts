@@ -25,7 +25,7 @@ import { getCurrentUser } from '@/auth/server';
 import { getSession, updateSession } from '@/db/repos/sessions';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { saveLetterRecipientFromAd } from '@/lib/agents/persist-letter-recipient';
-import { trimStoredText } from '@/db/trim-text';
+import { isSameStoredText, storedTextOrEmpty } from '@/db/trim-text';
 import { getDocumentByType } from '@/db/repos/documents';
 import { getJobPreferences } from '@/db/repos/jobFeed';
 import { claimAnonymousGeneration, releaseAnonymousGeneration } from '@/db/repos/anonymous';
@@ -570,7 +570,7 @@ export async function POST(request: NextRequest) {
         // and only while that row still belongs to the job being written for:
         // a session whose JD was just replaced may hold the old employer.
         const letterRecipientFor = (jobDescriptionForRun: string): MasterContext['letterRecipient'] => (
-          attributableSession && trimStoredText(attributableSession.job_description) === trimStoredText(jobDescriptionForRun)
+          attributableSession && isSameStoredText(attributableSession.job_description, jobDescriptionForRun)
             ? {
                 companyName: attributableSession.company,
                 address: attributableSession.company_address,
@@ -578,6 +578,19 @@ export async function POST(request: NextRequest) {
               }
             : undefined
         );
+        // One job description string for the whole run, so the recipient
+        // lookup, the generation and the recipient save all compare the same
+        // text: the stored JD when the submitted one is the same job (narrow
+        // trim), otherwise the submitted JD, written to the row first.
+        const settleRunJobDescription = async (submitted: string): Promise<string> => {
+          if (!user || !attributableSession) return submitted;
+          if (isSameStoredText(submitted, attributableSession.job_description)) {
+            return attributableSession.job_description;
+          }
+          const updated = await updateSession(user.id, attributableSession.id, { job_description: submitted });
+          if (updated.error) throw updated.error;
+          return submitted;
+        };
         let ownedCvSourcesPromise: Promise<{ primaryCV: string; masterCV?: string }> | null = null;
         const getOwnedCvSources = () => {
           if (!user) return Promise.resolve({ primaryCV: '', masterCV: undefined });
@@ -980,8 +993,9 @@ export async function POST(request: NextRequest) {
             }
 
             const { primaryCV: serverPrimaryCV, masterCV: serverMasterCV } = await getOwnedCvSources();
-            const submittedJobDescription = jobDescription?.trim()
-              || attributableSession?.job_description?.trim()
+            // The narrow trim (space, tab, LF, CR) the session row comparisons use.
+            const submittedJobDescription = storedTextOrEmpty(jobDescription)
+              || storedTextOrEmpty(attributableSession?.job_description)
               || '';
 
             if (!submittedJobDescription || !serverPrimaryCV) {
@@ -1005,12 +1019,7 @@ export async function POST(request: NextRequest) {
 
               // Only after the reservation succeeds: a failed reservation must
               // not leave the session pointing at a JD its artifacts don't match.
-              if (attributableSession && submittedJobDescription !== attributableSession.job_description.trim()) {
-                const updated = await updateSession(user.id, attributableSession.id, {
-                  job_description: submittedJobDescription,
-                });
-                if (updated.error) throw updated.error;
-              }
+              const runJobDescription = await settleRunJobDescription(submittedJobDescription);
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                 type: 'credits_deducted',
                 creditsUsed: continuation.cost,
@@ -1026,11 +1035,11 @@ export async function POST(request: NextRequest) {
               const eventHandler = createEventHandler((id) => getStepIndex(id));
               const result = await runJobCopilot({
                 sessionId: attributableSession?.id ?? clientSessionId ?? `session-${Date.now()}`,
-                jobDescription: submittedJobDescription,
+                jobDescription: runJobDescription,
                 primaryCV: serverPrimaryCV,
                 masterCV: serverMasterCV,
                 jobPreferences,
-                letterRecipient: letterRecipientFor(submittedJobDescription),
+                letterRecipient: letterRecipientFor(runJobDescription),
                 generationContext,
               }, eventHandler);
 
@@ -1113,8 +1122,9 @@ export async function POST(request: NextRequest) {
         // =====================================================
         // ACTION: FULL OPTIMIZATION (legacy - runs both phases)
         // =====================================================
-        const submittedJobDescription = jobDescription?.trim()
-          || attributableSession?.job_description?.trim()
+        // The narrow trim (space, tab, LF, CR) the session row comparisons use.
+        const submittedJobDescription = storedTextOrEmpty(jobDescription)
+          || storedTextOrEmpty(attributableSession?.job_description)
           || '';
         if (!submittedJobDescription || (isAnonymous && !currentCV)) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
@@ -1170,19 +1180,14 @@ export async function POST(request: NextRequest) {
         })}\n\n`));
 
         const eventHandler = createEventHandler((id) => getStepIndex(id));
-        if (user && attributableSession && submittedJobDescription !== attributableSession.job_description.trim()) {
-          const updated = await updateSession(user.id, attributableSession.id, {
-            job_description: submittedJobDescription,
-          });
-          if (updated.error) throw updated.error;
-        }
+        const runJobDescription = await settleRunJobDescription(submittedJobDescription);
         const result = await runJobCopilot({
           sessionId: attributableSession?.id ?? `session-${Date.now()}`,
-          jobDescription: submittedJobDescription,
+          jobDescription: runJobDescription,
           primaryCV: fullCvSources.primaryCV,
           masterCV: fullCvSources.masterCV,
           jobPreferences,
-          letterRecipient: letterRecipientFor(submittedJobDescription),
+          letterRecipient: letterRecipientFor(runJobDescription),
           generationContext,
         }, eventHandler);
 

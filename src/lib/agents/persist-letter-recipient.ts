@@ -15,9 +15,8 @@
  * session service when it lands.
  */
 
-import { and, eq, isNull, or, sql } from 'drizzle-orm';
 import { getDb, nowIso } from '@/db/client';
-import { sqlTrimStoredText, trimStoredText } from '@/db/trim-text';
+import { recipientFillCondition } from '@/db/recipient-fill';
 import { applicationSessions } from '@/db/schema';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
 
@@ -33,17 +32,12 @@ export async function saveLetterRecipientFromAd(
   ].filter((fill) => fill.value.trim());
   if (fills.length === 0) return;
   const db = await getDb();
-  // The same trim on both sides (db/trim-text.ts); a whitespace-only column is empty.
-  const sameJob = sql`${sqlTrimStoredText(applicationSessions.job_description)} = ${trimStoredText(jobDescription)}`;
+  // Same job (the shared narrow trim on both sides) and an empty column
+  // (NULL or whitespace only): db/recipient-fill.ts.
   for (const fill of fills) {
     await db
       .update(applicationSessions)
       .set({ [fill.key]: fill.value, updated_at: nowIso() } as never)
-      .where(and(
-        eq(applicationSessions.id, sessionId),
-        eq(applicationSessions.user_id, userId),
-        sameJob,
-        or(isNull(fill.column), sql`${sqlTrimStoredText(fill.column)} = ''`),
-      ));
+      .where(recipientFillCondition({ sessionId, userId, jobDescription, column: fill.column }));
   }
 }

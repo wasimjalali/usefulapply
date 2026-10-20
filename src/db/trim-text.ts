@@ -13,6 +13,16 @@ export function trimStoredText(value: string | null | undefined): string {
   return (value ?? '').replace(/^[ \t\n\r]+|[ \t\n\r]+$/g, '');
 }
 
+/** The narrow-trimmed text, or '' when nothing but whitespace (any kind) is left. */
+export function storedTextOrEmpty(value: string | null | undefined): string {
+  return value?.trim() ? trimStoredText(value) : '';
+}
+
+/** Same stored text under the narrow trim, as the SQL side compares it. */
+export function isSameStoredText(a: string | null | undefined, b: string | null | undefined): boolean {
+  return trimStoredText(a) === trimStoredText(b);
+}
+
 export function sqlTrimStoredText(column: AnySQLiteColumn): SQL {
   return sql`trim(${column}, ' ' || char(9) || char(10) || char(13))`;
 }
