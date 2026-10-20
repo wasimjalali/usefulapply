@@ -1,11 +1,12 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getSafeNextPath } from '@/lib/auth/safe-next';
+import { OAUTH_RESUME_KEY } from '@/lib/mcp/oauth-resume';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { CheckEmailCard } from '@/components/auth/CheckEmailCard';
 import { AuthField, AUTH_CARD, AUTH_SUBMIT } from '@/components/auth/parts';
@@ -17,8 +18,23 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { signIn } = useAuth();
+  // An MCP client (Claude, ChatGPT, Claude Code) sent the user here from
+  // /oauth2/authorize with a signed query. Email sign-in continues that request
+  // by itself (the auth client adds the query). Google leaves the site, so the
+  // query waits in sessionStorage and /oauth/resume replays it on the way back.
+  const oauthQuery =
+    searchParams.get('sig') && searchParams.get('client_id') ? searchParams.toString() : null;
+  useEffect(() => {
+    if (!oauthQuery) return;
+    try {
+      sessionStorage.setItem(OAUTH_RESUME_KEY, `?${oauthQuery}`);
+    } catch {
+      // Private mode: Google sign-in then lands on the dashboard and the app has to reconnect.
+    }
+  }, [oauthQuery]);
+
   // A user with no kit lands on the guided line, which is what /dashboard shows.
-  const next = getSafeNextPath(searchParams.get('next'), '/dashboard');
+  const next = oauthQuery ? '/oauth/resume' : getSafeNextPath(searchParams.get('next'), '/dashboard');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -59,7 +75,9 @@ function LoginForm() {
     const { error } = await signIn(email, password);
 
     if (!error) {
-      router.push(next);
+      // In the OAuth flow the browser is already being sent back to the app's
+      // authorize request. Pushing /dashboard here would race it.
+      if (!oauthQuery) router.push(next);
       return;
     }
 
