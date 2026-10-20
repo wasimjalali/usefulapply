@@ -311,7 +311,155 @@ export const CASES: CaseDef[] = [
       ctx.check(client.acknowledgementFor(heard.ack, ['cv'], cvStart) === 'ignore', 'discarding the letter text reaches the CV editor');
       ctx.check(client.acknowledgementFor(heard.ack, ['coverLetter'], letterStart) === 'reset', 'discarding the letter text does not reset the letter editor that holds it');
       ctx.check(client.acknowledgementFor(heard.ack, ['coverLetter'], freshLetterStart) === 'ignore', 'discarding an old notice resets a letter editor opened after the conflict');
-      ctx.check(client.acknowledgementFor(heard.ack, ['coverLetter'], undefined) === 'reset', 'a letter editor with no start is left holding discarded text');
+      // An editor with no start cannot be shown to hold this text, so the discard leaves it alone; its Save is then
+      // checked as stale and cannot write over the newer letter (the round 2 rule: no lineage matches no editor).
+      ctx.check(client.acknowledgementFor(heard.ack, ['coverLetter'], undefined) === 'ignore', 'a discard reached an editor with no start, which cannot be shown to hold its text');
+      server.writeField(app, 'coverLetter', 't:G2;', 'agent');
+      await client.poll(app);
+      const unchecked = await client.editorCommit(app, undefined, () => client.edit(app, fieldMutation('coverLetter', 't:L9;')));
+      ctx.check(unchecked === 'conflict' && !server.acceptedHas(app, 't:L9;'), `an editor with no start saved over a newer letter (${unchecked})`);
+    },
+  },
+  {
+    name: 'r2-1 Copy of an email conflict leaves the follow-up snapshot alone',
+    about: 'The email panel opens on r1 with both documents. An email-only conflict is copied after a newer follow-up arrived: only the email snapshot moves, so Save cannot write the r1 follow-up over the newer one.',
+    run: async (ctx) => {
+      const { server, net, client, app } = ctx;
+      net.reliable = true;
+      const opened = client.session(app);
+      const followUpCopy = opened?.followUpEmail;
+      let start = client.editorStart(app);
+      const apply = () => client.edit(app, (session) => ({ ...fieldMutation('email', 't:E1;')(session), ...(followUpCopy ? { followUpEmail: followUpCopy } : {}) }));
+      server.writeField(app, 'email', 't:G1;', 'agent');
+      await client.poll(app);
+      const first = await client.editorCommit(app, start, apply);
+      ctx.check(first === 'conflict', `the email draft on an older revision was not a conflict (${first})`);
+      const notice = [...client.notices].reverse().find((candidate) => candidate.conflictFor);
+      if (!notice) { ctx.check(false, 'the email conflict raised no notice'); return; }
+      server.writeField(app, 'followUpEmail', 't:G2;', 'agent');
+      await client.poll(app);
+      const actions: string[] = [];
+      client.subscribeAcknowledged((_app, ack) => {
+        const email = client.acknowledgementFor(ack, ['email'], start);
+        const followUp = client.acknowledgementFor(ack, ['followUpEmail'], start);
+        actions.push(`${email}/${followUp}`);
+        start = client.acknowledgedStart(ack, [...(email === 'rebase' ? ['email'] : []), ...(followUp === 'rebase' ? ['followUpEmail'] : [])], start);
+      });
+      client.copyNotice(notice);
+      ctx.check(actions[0] === 'rebase/ignore', `Copy of the email conflict acted on the panel as ${actions[0]}, expected rebase/ignore`);
+      const second = await client.editorCommit(app, start, apply);
+      const followUpNow = JSON.stringify(server.rowOf(app)?.follow_up_email ?? null);
+      ctx.check(second === 'conflict' && followUpNow.includes('t:G2;'), `Save after Copy replaced the newer follow-up with the r1 copy (${second}, follow-up ${followUpNow.slice(0, 80)})`);
+    },
+  },
+  {
+    name: 'r2-2 Discard of a save-reconciliation conflict spares a newer editor',
+    about: 'A save that conflicts at the server sets the draft aside in its reconciliation. That entry still names its editor: Discard resets that editor only, never a newer editor of the same field opened after Cancel.',
+    run: async (ctx) => {
+      const { server, net, client, app } = ctx;
+      const startA = client.editorStart(app);
+      const committing = client.editorCommit(app, startA, () => client.edit(app, fieldMutation('coverLetter', 't:A1;')));
+      await flush();
+      server.writeField(app, 'coverLetter', 't:G1;', 'agent');   // lands between the draft and its save
+      await ctx.serve('save');
+      await ctx.serve('getRow');
+      await ctx.drain();
+      const outcome = await committing;
+      ctx.check(outcome === 'conflict', `a save the server refused for a newer letter was not a conflict (${outcome})`);
+      const notice = [...client.notices].reverse().find((candidate) => candidate.conflictFor);
+      if (!notice) { ctx.check(false, 'the reconciliation conflict raised no notice'); return; }
+      // Cancel A, open B on the current revision and type.
+      const startB = client.editorStart(app);
+      const heard: { ack?: ConflictAcknowledgement } = {};
+      client.subscribeAcknowledged((_app, ack) => { heard.ack = ack; });
+      client.dismissNotice(notice);
+      if (!heard.ack) { ctx.check(false, 'Discard told no open editor'); return; }
+      ctx.check(client.acknowledgementFor(heard.ack, ['coverLetter'], startB) === 'ignore', 'discarding an old reconciliation notice reset a newer editor of the letter');
+      ctx.check(client.acknowledgementFor(heard.ack, ['coverLetter'], startA) === 'reset', 'discarding a reconciliation notice did not reach the editor whose text it holds');
+      net.reliable = true;
+      const saved = await client.editorCommit(app, startB, () => client.edit(app, fieldMutation('coverLetter', 't:B1;')));
+      ctx.check(saved === 'saved' && server.acceptedHas(app, 't:B1;'), `the newer editor's draft did not save (${saved})`);
+    },
+  },
+  {
+    name: 'r2-3 Copy of another editor\'s notice leaves a stale draft checked',
+    about: 'A conflict from editor A, A cancelled, editor B opened and typed, another remote letter polled, then Copy on A\'s old notice: B is not rebased, so its Save conflicts instead of overwriting the newer letter.',
+    run: async (ctx) => {
+      const { server, net, client, app } = ctx;
+      net.reliable = true;
+      const startA = client.editorStart(app);
+      server.writeField(app, 'coverLetter', 't:G1;', 'agent');
+      await client.poll(app);
+      const first = await client.editorCommit(app, startA, () => client.edit(app, fieldMutation('coverLetter', 't:A1;')));
+      ctx.check(first === 'conflict', `A's draft on an older revision was not a conflict (${first})`);
+      const notice = [...client.notices].reverse().find((candidate) => candidate.conflictFor);
+      if (!notice) { ctx.check(false, 'A\'s conflict raised no notice'); return; }
+      let startB = client.editorStart(app);
+      const actions: string[] = [];
+      client.subscribeAcknowledged((_app, ack) => {
+        const action = client.acknowledgementFor(ack, ['coverLetter'], startB);
+        actions.push(action);
+        if (action === 'rebase') startB = client.acknowledgedStart(ack, ['coverLetter'], startB);
+      });
+      server.writeField(app, 'coverLetter', 't:G2;', 'agent');
+      await client.poll(app);
+      client.copyNotice(notice);
+      ctx.check(actions[0] === 'ignore', `Copy on A's notice acted on editor B (${actions[0]})`);
+      const second = await client.editorCommit(app, startB, () => client.edit(app, fieldMutation('coverLetter', 't:B1;')));
+      ctx.check(second === 'conflict' && !server.acceptedHas(app, 't:B1;'), `B's Save overwrote the newer letter (${second})`);
+    },
+  },
+  {
+    name: 'r2-4 Copy moves the producing editor only to the version its notice showed',
+    about: 'Editor A conflicts at G1; the server moves to G2 before the user copies. A is rebased to G1, the version the notice showed, so its next Save conflicts on G2 instead of overwriting a letter the user never saw.',
+    run: async (ctx) => {
+      const { server, net, client, app } = ctx;
+      net.reliable = true;
+      let startA = client.editorStart(app);
+      server.writeField(app, 'coverLetter', 't:G1;', 'agent');
+      await client.poll(app);
+      const first = await client.editorCommit(app, startA, () => client.edit(app, fieldMutation('coverLetter', 't:A1;')));
+      ctx.check(first === 'conflict', `A's draft on an older revision was not a conflict (${first})`);
+      const notice = [...client.notices].reverse().find((candidate) => candidate.conflictFor);
+      if (!notice) { ctx.check(false, 'A\'s conflict raised no notice'); return; }
+      client.subscribeAcknowledged((_app, ack) => {
+        if (client.acknowledgementFor(ack, ['coverLetter'], startA) === 'rebase') startA = client.acknowledgedStart(ack, ['coverLetter'], startA);
+      });
+      server.writeField(app, 'coverLetter', 't:G2;', 'agent');
+      await client.poll(app);
+      client.copyNotice(notice);
+      const second = await client.editorCommit(app, startA, () => client.edit(app, fieldMutation('coverLetter', 't:A2;')));
+      ctx.check(second === 'conflict' && !server.acceptedHas(app, 't:A2;'), `A's Save after Copy overwrote a letter its notice never showed (${second})`);
+      // Copied at the version it showed, a second Save from A after copying the newer notice goes through.
+      const latest = [...client.notices].reverse().find((candidate) => candidate.conflictFor);
+      if (latest && latest !== notice) client.copyNotice(latest);
+      const third = await client.editorCommit(app, startA, () => client.edit(app, fieldMutation('coverLetter', 't:A3;')));
+      ctx.check(third === 'saved' && server.acceptedHas(app, 't:A3;'), `A could not save after copying the notice that showed the newer letter (${third})`);
+    },
+  },
+  {
+    name: 'r2-5 a confirmed save rebases only the columns it wrote',
+    about: 'The email panel saves while the server changes the follow-up underneath (merged in the save\'s reconciliation) and the user keeps typing. Only the email snapshot moves, so the next Save cannot put the old follow-up copy over the newer one.',
+    run: async (ctx) => {
+      const { server, net, client, app } = ctx;
+      const followUpCopy = client.session(app)?.followUpEmail;
+      const start = client.editorStart(app);
+      const applyWith = (token: string) => () => client.edit(app, (session) => ({ ...fieldMutation('email', token)(session), ...(followUpCopy ? { followUpEmail: followUpCopy } : {}) }));
+      const committing = client.editorCommit(app, start, applyWith('t:E1;'));
+      await flush();
+      server.writeField(app, 'followUpEmail', 't:G1;', 'agent');   // lands between the drafts and their save
+      await ctx.serve('save');
+      await ctx.serve('getRow');
+      await ctx.drain();
+      const outcome = await committing;
+      ctx.check(outcome === 'saved' && server.acceptedHas(app, 't:E1;'), `the email draft did not save (${outcome})`);
+      // The user typed more during the save, so the panel stays open on the confirmed columns.
+      const after = client.editorAfter(app, outcome, 'sent', 'typed more', start);
+      ctx.check(!after.close && after.start !== undefined, 'the panel closed over text typed during the save');
+      net.reliable = true;
+      const second = await client.editorCommit(app, after.start, applyWith('t:E2;'));
+      const followUpNow = JSON.stringify(server.rowOf(app)?.follow_up_email ?? null);
+      ctx.check(second === 'conflict' && followUpNow.includes('t:G1;'), `the next Save put the old follow-up copy over the newer one (${second}, follow-up ${followUpNow.slice(0, 80)})`);
     },
   },
   {

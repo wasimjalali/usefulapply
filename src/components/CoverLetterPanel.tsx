@@ -25,7 +25,7 @@ import { kitFilename } from '@/lib/utils/kit-export';
 import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback } from '@/lib/utils/server-export';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { useSessionStore } from '@/store/useSessionStore';
-import { acknowledgementFor, commitEditorSave, editorShouldClose, getEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
+import { acknowledgedStart, acknowledgementFor, commitEditorSave, editorShouldClose, getEditorStart, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface CoverLetterPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -98,9 +98,9 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   // Counts the discards of cover letter conflict text that reached this editor. A save still running when the
   // draft is discarded sees the count has moved and leaves the editor alone when its answer comes back.
   const discardEpochRef = useRef(0);
-  // When the user deals with a conflict notice about the letter (restores or copies their text), what this editor
-  // was opened against is stale: base it on the current revision, so its next Save is not refused again.
-  // Discarding the text the editor holds drops the draft, as Cancel does. Other fields' notices leave it alone.
+  // When the user deals with a conflict notice this editor's letter draft produced (restores or copies the text), the
+  // editor is based on the letter version that notice showed, so its next Save is not refused again for the same change.
+  // Discarding that text drops the draft, as Cancel does. Other editors' notices and other fields' leave it alone.
   useEffect(() => subscribeConflictAcknowledged((acknowledged, ack) => {
     if (editSessionIdRef.current !== acknowledged) return;
     const action = acknowledgementFor(ack, ['coverLetter'], editStartRef.current);
@@ -113,7 +113,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
       editStartRef.current = undefined;
       return;
     }
-    editStartRef.current = getEditorStart(acknowledged, editStartRef.current);
+    editStartRef.current = acknowledgedStart(ack, ['coverLetter'], editStartRef.current);
   }), []);
   const { toast } = useToast();
 
@@ -425,7 +425,10 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
         // Anything but a save the server confirmed leaves the editor open with the text in it.
         // So does typing during the save: the newer draft stays, now based on what was just saved.
         if (!editorShouldClose(outcome, sentDraft, JSON.stringify(editedCoverLetterRef.current))) {
-          if (outcome === 'saved' || outcome === 'clean') editStartRef.current = getEditorStart(sessionId, editStartRef.current);
+          // The save confirmed the columns this editor's draft sets: only those move to the new revision.
+          if ((outcome === 'saved' || outcome === 'clean') && editStartRef.current) {
+            editStartRef.current = rebaseEditorStart(sessionId, editStartRef.current, editStartRef.current.lineage.columns);
+          }
           return;
         }
         setIsEditMode(false);

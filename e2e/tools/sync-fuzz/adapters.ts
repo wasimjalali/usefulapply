@@ -21,6 +21,7 @@ import type {
   ConflictAcknowledgement,
   ConflictEntry,
   EditorOutcome,
+  EditorStart,
   SessionStoreLike,
   SyncNotice,
 } from '@/lib/session-sync-engine';
@@ -84,6 +85,12 @@ export interface Adapter {
   subscribeAcknowledged(listener: (app: string, ack: ConflictAcknowledgement) => void): () => void;
   /** What a panel whose editor holds these field groups does with an acknowledgement (the engine's own rule, which the panels call). */
   acknowledgementFor(ack: ConflictAcknowledgement, groups: string[], start: unknown): 'ignore' | 'rebase' | 'reset';
+  /** The start a panel moves its editor to after a Restore or Copy, for the groups `acknowledgementFor` said 'rebase' for. */
+  acknowledgedStart(ack: ConflictAcknowledgement, groups: string[], start: unknown): unknown;
+  /** The snapshot an editor start holds (column -> server fingerprint), for the checks; undefined for engines without one. */
+  startFields(start: unknown): Record<string, string> | undefined;
+  /** A buffer entry this tab has raised a notice about, by id: its group, columns, user tokens and the fingerprint of each changed property. */
+  entryInfo(id: string): { group: string; columns: string[]; tokens: string[]; changed: Record<string, string> } | undefined;
   /** What the CV panel does when the answer to a save comes back after it closed its editor on Save. */
   afterClosedEditorSave(outcome: string, epochAtSave: number, epochNow: number, start: unknown): { reopen: false } | { reopen: true; start: unknown };
   rejectedColumns(app: string): string[];
@@ -248,11 +255,16 @@ export function newClient(
   world: World,
   engineModule: EngineModule,
   variant: EngineVariantName,
-  hooks: { onSaveCall?: (app: string, expected: number) => void } = {},
+  hooks: {
+    onSaveCall?: (app: string, expected: number) => void;
+    /** A conflict notice was raised; its entries are already in the buffer. */
+    onNotice?: (notice: SyncNotice) => void;
+  } = {},
 ): Adapter {
   const store = makeStore();
   const notices: SyncNotice[] = [];
   const noticeEntries = new WeakMap<SyncNotice, ConflictEntry[]>();
+  const entriesById = new Map<string, ConflictEntry>();
   const engine: ReturnType<EngineModule['createSyncEngine']> = engineModule.createSyncEngine({
     actions: {
       getRow: (app) => world.net.request(id, 'getRow', () => world.server.rowOf(app)),
@@ -272,7 +284,10 @@ export function newClient(
         // The entries this notice is about: named by id when the engine says so, otherwise the ones made just now.
         const all = engine.getConflictBuffer(notice.conflictFor);
         const named = notice.conflictEntries;
-        noticeEntries.set(notice, named ? all.filter((entry) => named.includes(entry.id)) : all.filter((entry) => entry.at === world.clock.now()));
+        const entries = named ? all.filter((entry) => named.includes(entry.id)) : all.filter((entry) => entry.at === world.clock.now());
+        noticeEntries.set(notice, entries);
+        for (const entry of entries) if (entry.id && !entriesById.has(entry.id)) entriesById.set(entry.id, entry);
+        hooks.onNotice?.(notice);
       }
     },
     clock: {
@@ -312,7 +327,7 @@ export function newClient(
     },
     save: (app) => engine.persistSessionEdits(app),
     poll: (app) => engine.checkForRemoteChange(app),
-    editorStart: (app, previous) => engine.getEditorStart(app, previous as never),
+    editorStart: (app) => engine.getEditorStart(app),
     editorCommit: (app, start, apply) => engine.commitEditorSave(app, start as never, apply),
     editorSucceeded: (outcome) => engineModule.editorSaveSucceeded(outcome as EditorOutcome),
     editorAfter: (app, outcome, sent, now, previousStart) => {
@@ -320,7 +335,9 @@ export function newClient(
       // Round 2 closed the editor on any success, even if the user had typed more while it saved.
       if (!current) return { close: true };
       if (engineModule.editorShouldClose(outcome as EditorOutcome, sent, now)) return { close: true };
-      return { close: false, start: engine.getEditorStart(app, previousStart as never) };
+      // The save confirmed the columns the draft sets: only those move (the panels do the same).
+      const start = previousStart as EditorStart | undefined;
+      return { close: false, start: start ? engine.rebaseEditorStart(app, start, start.lineage.columns) : start };
     },
     mutationResponse: async (app) => { await engine.refreshFromServer(app); },
     workflowComplete: async (app, response) => {
@@ -343,6 +360,15 @@ export function newClient(
     },
     subscribeAcknowledged: (listener) => (current ? (anyEngine.subscribeConflictAcknowledged(listener) as () => void) : () => undefined),
     acknowledgementFor: (ack, groups, start) => (current ? engineModule.acknowledgementFor(ack, groups, start as never) : 'ignore'),
+    acknowledgedStart: (ack, groups, start) => (current ? engineModule.acknowledgedStart(ack, groups, start as never) : start),
+    startFields: (start) => (current && start ? { ...(start as EditorStart).fields } : undefined),
+    entryInfo: (id) => {
+      const entry = entriesById.get(id);
+      if (!entry) return undefined;
+      const changed: Record<string, string> = {};
+      for (const prop of entry.changed ?? []) changed[prop] = JSON.stringify((entry.props as Record<string, unknown>)[prop] ?? null);
+      return { group: entry.key, columns: entry.columns, tokens: tokensIn(JSON.stringify(userText(entry))), changed };
+    },
     afterClosedEditorSave: (outcome, epochAtSave, epochNow, start) => (current
       ? engineModule.afterClosedEditorSave(outcome as EditorOutcome, epochAtSave, epochNow, start as never)
       : { reopen: false }),
@@ -445,6 +471,9 @@ export async function legacyClient(id: string, world: World): Promise<Adapter> {
     dismissNotice: () => undefined,
     subscribeAcknowledged: () => () => undefined,
     acknowledgementFor: () => 'ignore',
+    acknowledgedStart: (_ack, _groups, start) => start,
+    startFields: () => undefined,
+    entryInfo: () => undefined,
     afterClosedEditorSave: () => ({ reopen: false }),
     rejectedColumns: () => [],
     baseline: (app) => {

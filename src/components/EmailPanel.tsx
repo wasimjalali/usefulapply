@@ -12,7 +12,7 @@ import { useToast } from './ui/Toast';
 import { usePostHog } from 'posthog-js/react';
 import { formatEmailAsText } from '@/lib/utils/kit-export';
 import { useSessionStore } from '@/store/useSessionStore';
-import { acknowledgementFor, commitEditorSave, editorShouldClose, getEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
+import { acknowledgedStart, acknowledgementFor, commitEditorSave, editorShouldClose, getEditorStart, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface EmailPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -69,10 +69,10 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   // Counts the discards of email conflict text that reached this editor. A save still running when a draft
   // is discarded sees the count has moved and leaves the editor alone when its answer comes back.
   const discardEpochRef = useRef(0);
-  // When the user deals with a conflict notice about the email or the follow-up (restores or copies their text),
-  // what this editor was opened against is stale: base it on the current revision, so its next Save is not refused again.
-  // Discarding the text a draft holds drops that draft, as Cancel does: the editor keeps the other one.
-  // Notices about other fields leave the editor alone.
+  // When the user deals with a conflict notice this editor produced (restores or copies the text), the editor is based
+  // on the version that notice showed, for that document only: the email and the follow-up each keep their own
+  // snapshot, so a Save still catches a newer server version of the other one. Discarding the text a draft holds
+  // drops that draft, as Cancel does: the editor keeps the other one. Other editors' notices and other fields' leave it alone.
   useEffect(() => subscribeConflictAcknowledged((acknowledged, ack) => {
     if (editSessionIdRef.current !== acknowledged) return;
     const emailAction = acknowledgementFor(ack, ['email'], editStartRef.current);
@@ -93,7 +93,8 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
       else setEditedFollowUp(currentDraftsRef.current.followUp);
       return;
     }
-    editStartRef.current = getEditorStart(acknowledged, editStartRef.current);
+    const rebased = [...(emailAction === 'rebase' ? ['email'] : []), ...(followUpAction === 'rebase' ? ['followUpEmail'] : [])];
+    editStartRef.current = acknowledgedStart(ack, rebased, editStartRef.current);
   }), []);
   const { toast } = useToast();
   useEffect(() => { draftsRef.current = { email: editedEmail, followUp: editedFollowUp }; }, [editedEmail, editedFollowUp]);
@@ -145,7 +146,10 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
       // So does typing during the save: the newer drafts stay, now based on what was just saved.
       const nowDrafts = JSON.stringify([draftsRef.current.email, draftsRef.current.followUp]);
       if (!editorShouldClose(outcome, sentDrafts, nowDrafts)) {
-        if (outcome === 'saved' || outcome === 'clean') editStartRef.current = getEditorStart(editSessionId, editStartRef.current);
+        // The save confirmed the columns this editor's drafts set: only those move to the new revision.
+        if ((outcome === 'saved' || outcome === 'clean') && editStartRef.current) {
+          editStartRef.current = rebaseEditorStart(editSessionId, editStartRef.current, editStartRef.current.lineage.columns);
+        }
         return;
       }
       setEditedEmail(null);

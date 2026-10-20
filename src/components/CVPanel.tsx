@@ -44,7 +44,7 @@ import { downloadBlob } from '@/lib/utils/download-pdf';
 import { PdfPreviewModal } from './ui/PdfPreviewModal';
 import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback } from '@/lib/utils/server-export';
 import type { Profile } from '@/lib/supabase/types';
-import { acknowledgementFor, afterClosedEditorSave, commitEditorSave, editorSaveSucceeded, getEditorStart, persistSessionEdits, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
+import { acknowledgedStart, acknowledgementFor, afterClosedEditorSave, commitEditorSave, editorSaveSucceeded, getEditorStart, persistSessionEdits, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface CVPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -109,9 +109,9 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   // Counts the discards of CV conflict text that reached this editor. A save that is still running when the
   // draft is discarded sees the count has moved and does not reopen the draft when its answer comes back.
   const discardEpochRef = useRef(0);
-  // When the user deals with a conflict notice about the CV (restores or copies their text), what this editor
-  // was opened against is stale: base it on the current revision, so its next Save is not refused again.
-  // Discarding the text the editor holds drops the draft, as Cancel does. Other fields' notices leave it alone.
+  // When the user deals with a conflict notice this editor's CV draft produced (restores or copies the text), the
+  // editor is based on the CV version that notice showed, so its next Save is not refused again for the same change.
+  // Discarding that text drops the draft, as Cancel does. Other editors' notices and other fields' leave it alone.
   useEffect(() => subscribeConflictAcknowledged((acknowledged, ack) => {
     if (editSessionIdRef.current !== acknowledged) return;
     const action = acknowledgementFor(ack, ['cv'], editStartRef.current);
@@ -124,7 +124,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
       editStartRef.current = undefined;
       return;
     }
-    editStartRef.current = getEditorStart(acknowledged, editStartRef.current);
+    editStartRef.current = acknowledgedStart(ack, ['cv'], editStartRef.current);
   }), []);
   useEffect(() => {
     if (editSessionIdRef.current === null || editSessionIdRef.current === currentSession?.id) return;
@@ -632,6 +632,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                         const editSessionId = editSessionIdRef.current;
                         if (!editSessionId) return;
                         const epochAtSave = discardEpochRef.current;
+                        const startAtSave = editStartRef.current;
                         const sessionState = useSessionStore.getState();
                         const existingSession = sessionState.sessions.find((session) => session.id === editSessionId)
                           ?? (sessionState.currentSession?.id === editSessionId ? sessionState.currentSession : undefined);
@@ -639,7 +640,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                         // Save now, against the revision this editor opened on. If another
                         // write got in first the draft is not applied: the editor reopens
                         // with the text in it so it can be copied.
-                        void commitEditorSave(editSessionId, editStartRef.current, () => {
+                        void commitEditorSave(editSessionId, startAtSave, () => {
                           useSessionStore.getState().updateSessionById(editSessionId, {
                             optimizedCVData: {
                               ...updatedData,
@@ -651,9 +652,11 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                         }).then((outcome) => {
                           // Anything but a save the server confirmed reopens the editor with the text in it.
                           if (editorSaveSucceeded(outcome)) {
-                            // An editor the user opened again while this save ran was opened against the old
-                            // revision; the save landed, so base it on the new one.
-                            if (isEditModeRef.current && editSessionIdRef.current === editSessionId) editStartRef.current = getEditorStart(editSessionId, editStartRef.current);
+                            // An editor the user opened again while this save ran was opened on the draft this save
+                            // wrote, against the old revision; the save landed, so base exactly those columns on it.
+                            if (isEditModeRef.current && editSessionIdRef.current === editSessionId && editStartRef.current) {
+                              editStartRef.current = rebaseEditorStart(editSessionId, editStartRef.current, startAtSave?.lineage.columns ?? []);
+                            }
                             return;
                           }
                           // The user may have opened the editor again while this save ran; theirs stands.
