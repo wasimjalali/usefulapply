@@ -2,14 +2,18 @@ import {
   AlignmentType,
   BorderStyle,
   Document,
+  ExternalHyperlink,
   LineRuleType,
   Packer,
   Paragraph,
+  Tab,
+  TabStopType,
   TextRun,
   convertMillimetersToTwip,
 } from 'docx';
+import { displayUrl, fullUrl, pickLetterLinks } from '@/lib/cv-templates/url';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
-import { DIN, dinClosing, type LetterInput, type LetterLayout } from './letter-html';
+import { DIN, dinClosing, recipientLinesFor, type LetterInput, type LetterLayout } from './letter-html';
 import { PDF_PRODUCER } from './pdf';
 
 /**
@@ -49,12 +53,27 @@ function exact(children: TextRun[], heightMm: number, before = 0, border = false
   });
 }
 
+/** The sender's contact lines as runs: address, phone, email, then at most two clean links, clickable. */
+function senderLines(letter: StructuredCoverLetter, size = BODY): Array<Array<TextRun | ExternalHyperlink>> {
+  const { sender } = letter;
+  const plain = [...sender.addressLines, sender.phone, sender.email].filter((x): x is string => Boolean(x && x.trim()));
+  return [
+    ...plain.map((text) => [line(text, { size })] as Array<TextRun | ExternalHyperlink>),
+    ...pickLetterLinks(sender.links).map(
+      (link) =>
+        [
+          new ExternalHyperlink({ link: fullUrl(link), children: [new TextRun({ text: displayUrl(link), size, font: FONT, color: '1F4E79' })] }),
+        ] as Array<TextRun | ExternalHyperlink>,
+    ),
+  ];
+}
+
 function usChildren(letter: StructuredCoverLetter): Paragraph[] {
   const subject = letter.subject.trim();
-  const sender = [letter.sender.name, ...letter.sender.addressLines, letter.sender.phone, letter.sender.email, ...(letter.sender.links ?? [])].filter((x): x is string => Boolean(x && x.trim()));
-  const recipient = [letter.recipient.companyName, letter.recipient.department, letter.recipient.contactPerson, ...letter.recipient.addressLines].filter((x): x is string => Boolean(x && x.trim()));
+  const recipient = recipientLinesFor(letter, 'us');
   return [
-    ...sender.map((text, index) => p(text, 0, { bold: index === 0 })),
+    p(letter.sender.name, 0, { bold: true }),
+    ...senderLines(letter).map((runs) => new Paragraph({ spacing: { after: 0, line: 276 }, children: runs })),
     blank(),
     p(letter.date),
     blank(),
@@ -72,34 +91,58 @@ function usChildren(letter: StructuredCoverLetter): Paragraph[] {
   ];
 }
 
+/**
+ * DIN 5008 Form B in Word. Word has no page-absolute placement without text
+ * boxes, which this export avoids, so the zones are built with exact line
+ * heights and spacing, measured from a LibreOffice render in the eval:
+ *   letterhead lines at the top margin (15 mm), the return line in the top 5 mm
+ *   of the address field (45 to 50 mm), then the 12.7 mm that finish the
+ *   Zusatz- und Vermerkzone (17.7 mm with the return line), then the
+ *   Anschriftzone, whose first line carries the date on a right tab, as the
+ *   PDF has it. The address field sits 5 mm into the left margin (20 mm).
+ */
 function dinChildren(letter: StructuredCoverLetter): Paragraph[] {
-  const lineHeight = 4.45;
   const topMargin = 15;
-  const headLines = [letter.sender.name, ...letter.sender.addressLines, letter.sender.phone, letter.sender.email].filter((x): x is string => Boolean(x && x.trim()));
-  const recipient = [letter.recipient.companyName, letter.recipient.department, letter.recipient.contactPerson, ...letter.recipient.addressLines].filter((x): x is string => Boolean(x && x.trim()));
+  const contactRuns = senderLines(letter, 20);
+  const headCount = 1 + contactRuns.length;
+  // Never overprint the address field: past 7 lines the letterhead shrinks to fit its 31 mm.
+  const available = DIN.addressTop - topMargin - 1;
+  const lineHeight = headCount <= 7 ? 4.45 : Math.floor((available / headCount) * 100) / 100;
+  const headSize = headCount <= 7 ? 20 : Math.max(13, Math.round(lineHeight * 4.4));
+  const recipient = recipientLinesFor(letter, 'din').slice(0, 6);
   const returnLine = [letter.sender.name, ...letter.sender.addressLines].filter(Boolean).join(' · ');
   const dateLine = [letter.place, letter.date].filter((part) => part && part.trim()).join(', ');
 
-  const headHeight = headLines.length * lineHeight;
+  const headHeight = headCount * lineHeight;
   const beforeReturn = Math.max(0, DIN.addressTop - topMargin - headHeight);
-  const recipientHeight = Math.min(recipient.length, 6) * 4.5;
+  const recipientHeight = recipient.length * 4.5;
   const afterRecipient = Math.max(0, DIN.addressTop + DIN.addressHeight - (DIN.recipientTop + recipientHeight));
   const subject = letter.subject.trim();
+  const fieldIndent = -mm(DIN.marginLeft - DIN.addressLeft);
+  const contentWidth = mm(210 - DIN.marginLeft - DIN.marginRight);
+
+  const recipientParagraphs = recipient.map((text, index) =>
+    new Paragraph({
+      indent: { left: fieldIndent },
+      tabStops: [{ type: TabStopType.RIGHT, position: contentWidth }],
+      spacing: { before: index === 0 ? mm(DIN.noteZoneHeight - DIN.returnLineHeight) : 0, after: 0, line: mm(4.5), lineRule: LineRuleType.EXACT },
+      children: index === 0 && dateLine ? [line(text), new TextRun({ children: [new Tab(), dateLine], font: FONT, size: BODY })] : [line(text)],
+    }),
+  );
 
   return [
-    ...headLines.map((text, index) => exact([line(text, { bold: index === 0, size: 20 })], lineHeight)),
-    exact([new TextRun({ text: returnLine, size: 14, font: FONT })], DIN.returnLineHeight, mm(beforeReturn), true),
-    ...recipient.map((text, index) =>
-      exact([line(text)], 4.5, index === 0 ? mm(DIN.noteZoneHeight) : 0),
-    ),
+    exact([line(letter.sender.name, { bold: true, size: headSize })], lineHeight),
+    ...contactRuns.map((runs) => new Paragraph({ spacing: { after: 0, line: mm(lineHeight), lineRule: LineRuleType.EXACT }, children: runs })),
     new Paragraph({
-      alignment: AlignmentType.RIGHT,
-      spacing: { before: mm(afterRecipient), after: 0, line: mm(4.9), lineRule: LineRuleType.EXACT },
-      children: [line(dateLine)],
+      indent: { left: fieldIndent, right: mm(DIN.marginRight) },
+      spacing: { before: mm(beforeReturn), after: 0, line: mm(DIN.returnLineHeight), lineRule: LineRuleType.EXACT },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: '444444', space: 0 } },
+      children: [new TextRun({ text: returnLine, size: 14, font: FONT })],
     }),
+    ...recipientParagraphs,
     ...(subject
-      ? [new Paragraph({ spacing: { before: mm(9.8), after: 0, line: 276 }, children: [line(subject, { bold: true })] }), blank()]
-      : [blank()]),
+      ? [new Paragraph({ spacing: { before: mm(afterRecipient + 9), after: 0, line: 276 }, children: [line(subject, { bold: true })] }), blank()]
+      : [new Paragraph({ spacing: { before: mm(afterRecipient), after: 0, line: 276 }, children: [line('')] })]),
     p(letter.salutation),
     blank(),
     ...letter.paragraphs.flatMap((paragraph) => [p(paragraph), blank()]),

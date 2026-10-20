@@ -18,10 +18,9 @@ export interface CvTemplateSwitchProps {
   data: CVData;
   templateId: string;
   mode?: CvRenderMode;
-  onPhotoPlaceholderClick?: () => void;
 }
 
-export function CvTemplateSwitch({ data: fullData, templateId, mode, onPhotoPlaceholderClick }: CvTemplateSwitchProps) {
+export function CvTemplateSwitch({ data: fullData, templateId, mode }: CvTemplateSwitchProps) {
   // Hidden items stay in the CV and are skipped by the canvas and the exports alike.
   const data = visibleCvData(fullData);
   // Any id outside the catalog (legacy ids included) renders as Premium ATS.
@@ -43,15 +42,7 @@ export function CvTemplateSwitch({ data: fullData, templateId, mode, onPhotoPlac
     case 'german-ats':
       return <GermanATSTemplate data={data} template={template} photoUrl={photoUrl} mode={mode} />;
     case 'german-classic':
-      return (
-        <GermanClassicTemplate
-          data={data}
-          template={template}
-          photoUrl={photoUrl}
-          mode={mode}
-          onPhotoPlaceholderClick={onPhotoPlaceholderClick}
-        />
-      );
+      return <GermanClassicTemplate data={data} template={template} photoUrl={photoUrl} mode={mode} />;
     case 'classic-green':
       return <ClassicGreenTemplate data={data} template={template} mode={mode} />;
     default:

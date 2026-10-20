@@ -60,14 +60,15 @@ const mm = (value: number) => `${Number(value.toFixed(2))}mm`;
 /**
  * The template root's box. Screen draws the page as a fixed-size sheet with the
  * margins as padding. Print drops both: the page box and `@page` margins do it.
+ * `paper` is the CV's paper (see paper.ts), not the template's.
  */
-export function rootBox(templateId: string, mode: CvRenderMode | undefined): {
+export function rootBox(templateId: string, mode: CvRenderMode | undefined, paper?: PaperSize): {
   width?: string;
   minHeight?: string;
   padding: string;
 } {
   if (mode === 'print') return { padding: '0' };
-  const spec = getPrintSpec(templateId);
+  const spec = getPrintSpec(templateId, paper);
   const size = PAPER_MM[spec.paper];
   const m = spec.marginMm;
   return {

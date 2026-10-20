@@ -21,6 +21,8 @@ export function exportUserPrefix(userId: string): string {
 export interface StoredExportMeta {
   userId: string;
   fileName: string;
+  /** The name with the applicant's own letters, for `filename*`. Stored percent-encoded so metadata stays ASCII. */
+  displayName?: string;
 }
 
 export async function headExport(pathKey: string) {
@@ -35,7 +37,7 @@ export async function storeExport(
 ): Promise<void> {
   await putObjectWithMetadata(exportObjectKey(pathKey), bytes, {
     contentType,
-    customMetadata: { userId: meta.userId, fileName: meta.fileName },
+    customMetadata: { userId: meta.userId, fileName: meta.fileName, ...(meta.displayName ? { displayName: encodeURIComponent(meta.displayName) } : {}) },
   });
 }
 

@@ -1,7 +1,6 @@
 'use client';
 
 import { CVData, CVTemplate, CV_TEMPLATE_DEFINITIONS, getTemplateById } from '@/lib/cv-templates/types';
-import { openSettings } from '@/store/useSettingsStore';
 import { USPremiumATSTemplate } from './USPremiumATSTemplate';
 import { GermanATSTemplate } from './GermanATSTemplate';
 import { GermanClassicTemplate } from './GermanClassicTemplate';
@@ -30,11 +29,5 @@ interface CVTemplateRendererProps {
  * 6. classic-green - English market, forest green accent
  */
 export function CVTemplateRenderer({ data, templateId }: CVTemplateRendererProps) {
-  return (
-    <CvTemplateSwitch
-      data={data}
-      templateId={templateId}
-      onPhotoPlaceholderClick={() => openSettings('general')}
-    />
-  );
+  return <CvTemplateSwitch data={data} templateId={templateId} />;
 }

@@ -23,21 +23,19 @@
 
 import { CVData, CVTemplate } from '@/lib/cv-templates/types';
 import { rootBox, type CvRenderMode } from '@/lib/cv-templates/print-spec';
+import { cvPaper } from '@/lib/cv-templates/paper';
 import { sectionHeading, formatDateRange, formatSingleDate, uiText } from '@/lib/cv-templates/locale';
-import { SkillGrid } from './shared';
-import { Mail, Phone, MapPin, Linkedin, Globe, Github, User } from 'lucide-react';
+import { ContactRows, LanguageLine, SignatureBlock, SkillLines } from './shared';
 
 interface Props {
   data: CVData;
   template: CVTemplate;
   photoUrl?: string;
-  /** Screen only: opens the place where the photo is set, when none is set yet. */
-  onPhotoPlaceholderClick?: () => void;
   /** `print` hides edit affordances and drops the page box so the export owns the margins. */
   mode?: CvRenderMode;
 }
 
-export function GermanClassicTemplate({ data, template, photoUrl, mode, onPhotoPlaceholderClick }: Props) {
+export function GermanClassicTemplate({ data, template, photoUrl, mode }: Props) {
   // 2026 Design: Charcoal/Anthracite palette — professional & neutral
   const classicColors = {
     primary: '#374151',      // Charcoal — neutral, professional
@@ -59,7 +57,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode, onPhotoP
         fontSize: '10pt',
         lineHeight: 1.2,
         color: classicColors.text,
-        ...rootBox(template.id, mode),
+        ...rootBox(template.id, mode, cvPaper(data)),
         fontVariantLigatures: 'none',
       }}
     >
@@ -94,70 +92,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode, onPhotoP
             )}
 
             {/* Contact Info — Inline for ATS */}
-            <div 
-              style={{ 
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                gap: '14px',
-                fontSize: '10pt',
-                color: classicColors.textLight,
-              }}
-            >
-              {data.personal.email && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Mail style={{ width: '11px', height: '11px', color: classicColors.primary }} />
-                  <span>{data.personal.email}</span>
-                </div>
-              )}
-              {data.personal.phone && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Phone style={{ width: '11px', height: '11px', color: classicColors.primary }} />
-                  <span>{data.personal.phone}</span>
-                </div>
-              )}
-              {(data.personal.address || data.personal.city || data.personal.country) && (() => {
-                const parts: string[] = [];
-                if (data.personal.address) {
-                  parts.push(data.personal.address);
-                  if (data.personal.city && !data.personal.address.toLowerCase().includes(data.personal.city.toLowerCase())) parts.push(data.personal.city);
-                  if (data.personal.country && !data.personal.address.toLowerCase().includes(data.personal.country.toLowerCase())) parts.push(data.personal.country);
-                } else {
-                  if (data.personal.city) parts.push(data.personal.city);
-                  if (data.personal.country) parts.push(data.personal.country);
-                }
-                return (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <MapPin style={{ width: '11px', height: '11px', color: classicColors.primary }} />
-                    <span>{parts.join(', ')}</span>
-                  </div>
-                );
-              })()}
-              {data.personal.linkedIn && (
-                <a href={data.personal.linkedIn} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'inherit', textDecoration: 'none' }}>
-                  <Linkedin style={{ width: '11px', height: '11px', color: classicColors.primary }} />
-                  <span>LinkedIn</span>
-                </a>
-              )}
-              {data.personal.github && (
-                <a href={data.personal.github} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'inherit', textDecoration: 'none' }}>
-                  <Github style={{ width: '11px', height: '11px', color: classicColors.primary }} />
-                  <span>GitHub</span>
-                </a>
-              )}
-              {data.personal.portfolio && (
-                <a href={data.personal.portfolio} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'inherit', textDecoration: 'none' }}>
-                  <Globe style={{ width: '11px', height: '11px', color: classicColors.primary }} />
-                  <span>Portfolio</span>
-                </a>
-              )}
-              {data.personal.website && (
-                <a href={data.personal.website} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'inherit', textDecoration: 'none' }}>
-                  <Globe style={{ width: '11px', height: '11px', color: classicColors.primary }} />
-                  <span>{uiText(data, 'websiteLabel')}</span>
-                </a>
-              )}
-            </div>
+            <ContactRows data={data} iconSize={11} iconColor={classicColors.primary} iconGap={5} textColor={classicColors.textLight} columnGap={14} rowGap={4} />
             {/* Date of Birth & Nationality — standard for German CVs */}
             {(data.personal.dateOfBirth || data.personal.nationality) && (
               <div
@@ -180,39 +115,20 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode, onPhotoP
             )}
           </div>
 
-          {/* Photo — Top-right, German CV standard: 3.5cm x 4.7cm. On screen, the empty
-              placeholder points at Settings, where the photo lives. The export never
-              prints a placeholder and never depends on the settings store. */}
-          {(photoUrl || mode !== 'print') && (
+          {/* Photo, top right, German CV standard 3.5 x 4.7 cm. With no photo nothing is drawn, on screen
+              as in the PDF, so the header does not move. The canvas toolbar offers "Add photo". */}
+          {photoUrl && (
             <div
-              onClick={photoUrl || mode === 'print' ? undefined : onPhotoPlaceholderClick}
-              title={photoUrl || mode === 'print' ? undefined : 'Add your photo in Settings'}
               style={{
                 width: '35mm',
                 height: '47mm',
                 flexShrink: 0,
-                border: photoUrl ? `0.5px solid ${classicColors.photoBorder}` : `2px dashed ${classicColors.photoBorder}`,
+                border: `0.5px solid ${classicColors.photoBorder}`,
                 borderRadius: '2px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
                 overflow: 'hidden',
-                backgroundColor: photoUrl ? 'transparent' : '#F9FAFB',
-                cursor: photoUrl ? undefined : 'pointer',
               }}
             >
-              {photoUrl ? (
-                <img
-                  src={photoUrl}
-                  alt=""
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                <div style={{ textAlign: 'center', padding: '6px' }}>
-                  <User style={{ width: '24px', height: '24px', color: classicColors.photoBorder, margin: '0 auto 4px' }} />
-                  <span style={{ fontSize: '8px', color: classicColors.textLight }}>{uiText(data, 'photoPlaceholder')}</span>
-                </div>
-              )}
+              <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
           )}
         </div>
@@ -243,7 +159,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode, onPhotoP
       )}
 
       {/* CORE COMPETENCIES — 3-Column Grid with Languages */}
-      {(data.skills.length > 0 || data.languages.length > 0) && (
+      {data.skills.length > 0 && (
         <section style={{ marginBottom: '14px' }}>
           <h2 
             style={{ 
@@ -260,18 +176,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode, onPhotoP
           >
             {sectionHeading(data, 'skills')}
           </h2>
-          <SkillGrid
-            data={data}
-            primary={classicColors.primary}
-            text={classicColors.text}
-            columnGap={16}
-            rowGap={16}
-            labelMarginBottom={4}
-            labelLetterSpacing="0.5px"
-            itemGap={2}
-            bulletGap={5}
-            lineHeight={1.3}
-          />
+          <SkillLines data={data} primary={classicColors.primary} text={classicColors.text} gap={6} lineHeight={1.3} />
         </section>
       )}
 
@@ -295,8 +200,8 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode, onPhotoP
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {data.experience.map((exp) => (
-              <div className="cv-entry" key={exp.id}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '2px' }}>
+              <div className="cv-exp" key={exp.id}>
+                <div className="cv-entry-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '2px' }}>
                   <h3 style={{ fontSize: '10pt', fontWeight: 'bold', color: classicColors.text }}>
                     {exp.position}
                   </h3>
@@ -304,14 +209,14 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode, onPhotoP
                     {formatDateRange(data, exp)}
                   </span>
                 </div>
-                <p style={{ fontSize: '10pt', fontWeight: '600', marginBottom: '5px', color: classicColors.primary }}>
+                <p className="cv-entry-head" style={{ fontSize: '10pt', fontWeight: '600', marginBottom: '5px', color: classicColors.primary }}>
                   {exp.company}
                   {exp.location && <span style={{ color: classicColors.textLight }}> | {exp.location}</span>}
                 </p>
                 {exp.bullets.length > 0 && (
-                  <div style={{ marginTop: '3px', marginLeft: '4px' }}>
+                  <div className={exp.bullets.length <= 3 ? 'cv-bullets cv-bullets-short' : 'cv-bullets'} style={{ marginTop: '3px', marginLeft: '4px' }}>
                     {exp.bullets.map((bullet, idx) => (
-                      <div 
+                      <div className="cv-bullet"
                         key={idx} 
                         style={{ 
                           display: 'flex',
@@ -406,6 +311,27 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode, onPhotoP
         </section>
       )}
 
+      {data.languages.length > 0 && (
+        <section style={{ marginBottom: '14px' }}>
+          <h2 
+            style={{ 
+              fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+              fontSize: '10.5pt',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              letterSpacing: '0.4px',
+              color: classicColors.primary,
+              marginBottom: '6px',
+              paddingBottom: '8px',
+              borderBottom: `2px solid ${classicColors.primary}`,
+            }}
+          >
+            {sectionHeading(data, 'languages')}
+          </h2>
+          <LanguageLine data={data} text={classicColors.text} lineHeight={1.4} />
+        </section>
+      )}
+
       {/* PROJECTS */}
       {data.projects && data.projects.length > 0 && (
         <section style={{ marginBottom: '14px' }}>
@@ -494,25 +420,7 @@ export function GermanClassicTemplate({ data, template, photoUrl, mode, onPhotoP
         </section>
       ))}
 
-      {/* SIGNATURE LINE — German standard */}
-      {data.signature?.includeSignature && (
-        <div style={{ marginTop: '36px', paddingTop: '16px', borderTop: `1px solid ${classicColors.border}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-            <div>
-              <p style={{ fontSize: '10pt', color: classicColors.textLight, marginBottom: '4px' }}>
-                {data.signature?.city || (uiText(data, 'cityLabel'))}, {data.signature?.date || (uiText(data, 'dateLabel'))}
-              </p>
-              <div style={{ width: '120px', borderBottom: `1px solid ${classicColors.text}` }} />
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: '10pt', color: classicColors.textLight, marginBottom: '4px' }}>
-                {uiText(data, 'signatureLabel')}
-              </p>
-              <div style={{ width: '150px', borderBottom: `1px solid ${classicColors.text}` }} />
-            </div>
-          </div>
-        </div>
-      )}
+      <SignatureBlock data={data} color={classicColors.textLight} lineColor={classicColors.text} />
     </div>
   );
 }

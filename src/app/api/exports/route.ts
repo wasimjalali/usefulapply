@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/auth/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import {
   ExportInputError,
+  ExportRateLimitedError,
   ExportRenderError,
   ExportTooLargeError,
   SigningUnavailableError,
@@ -14,6 +15,33 @@ import { sanitizeAnswers, sanitizeCvData, sanitizeEmails, sanitizeStructuredLett
 import { getPostHogServer } from '@/lib/posthog-server';
 
 export const runtime = 'nodejs';
+
+/** The body as text, or null when it is longer than `max` bytes. Counts bytes, not characters. */
+async function readBodyWithCap(request: NextRequest, max: number): Promise<string | null> {
+  const declared = Number(request.headers.get('content-length') ?? 0);
+  if (declared > max) return null;
+  const reader = request.body?.getReader();
+  if (!reader) return '';
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    received += value.byteLength;
+    if (received > max) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(received);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(bytes);
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_BODY_BYTES = 768 * 1024;
@@ -38,10 +66,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const declared = Number(request.headers.get('content-length') ?? 0);
-    if (declared > MAX_BODY_BYTES) return bad('Request is too large.', 413, 'TOO_LARGE');
-    const text = await request.text();
-    if (text.length > MAX_BODY_BYTES) return bad('Request is too large.', 413, 'TOO_LARGE');
+    // Read the body with a byte cap, so a chunked request with no Content-Length cannot get past it either.
+    const text = await readBodyWithCap(request, MAX_BODY_BYTES);
+    if (text === null) return bad('Request is too large.', 413, 'TOO_LARGE');
 
     let body: Record<string, unknown>;
     try {
@@ -101,6 +128,7 @@ export async function POST(request: NextRequest) {
         if (error.code === 'NOT_FOUND') return bad('Not found.', 404, 'NOT_FOUND');
         return bad(error.message, error.code === 'BAD_REQUEST' ? 400 : 422, error.code);
       }
+      if (error instanceof ExportRateLimitedError) return bad('Too many requests. Please try again later.', 429, 'RATE_LIMITED');
       if (error instanceof ExportTooLargeError) return bad('The document is too large to export.', 413, 'EXPORT_TOO_LARGE');
       // Renderer down, signing secret missing, storage error: the client falls back to its own export.
       const reason = error instanceof ExportRenderError ? 'render' : error instanceof SigningUnavailableError ? 'signing' : 'other';

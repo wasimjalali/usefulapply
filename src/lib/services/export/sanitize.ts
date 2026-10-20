@@ -188,6 +188,9 @@ export function sanitizeCvData(input: unknown): CVData | null {
       : undefined,
     sectionHeaders: Object.keys(sectionHeaders).length > 0 ? sectionHeaders : undefined,
     localizedStrings: Object.keys(localizedStrings).length > 0 ? localizedStrings : undefined,
+    renamedHeadings: Array.isArray(raw.renamedHeadings)
+      ? (raw.renamedHeadings.filter((key): key is NonNullable<CVData['renamedHeadings']>[number] => typeof key === 'string' && SECTION_KEYS.has(key)))
+      : undefined,
     hiddenSections: Array.isArray(raw.hiddenSections)
       ? (raw.hiddenSections.filter((key): key is NonNullable<CVData['hiddenSections']>[number] => typeof key === 'string' && SECTION_KEYS.has(key)))
       : undefined,

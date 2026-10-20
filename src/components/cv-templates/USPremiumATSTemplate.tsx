@@ -17,9 +17,10 @@
 
 import { CVData, CVTemplate } from '@/lib/cv-templates/types';
 import { rootBox, type CvRenderMode } from '@/lib/cv-templates/print-spec';
+import { cvPaper } from '@/lib/cv-templates/paper';
 import { sectionHeading, formatDateRange, formatSingleDate, uiText } from '@/lib/cv-templates/locale';
-import { SkillGrid } from './shared';
-import { Mail, Phone, MapPin, Linkedin, Globe, Github, Award } from 'lucide-react';
+import { ContactRows, LanguageLine, SkillLines } from './shared';
+import { Award } from 'lucide-react';
 
 interface Props {
   data: CVData;
@@ -55,7 +56,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
         lineHeight: 1.2,  // 2026: Tighter line spacing (1.15-1.2)
         pageBreakAfter: 'auto',
         pageBreakInside: 'auto',
-        ...rootBox(template.id, mode),
+        ...rootBox(template.id, mode, cvPaper(data)),
         fontVariantLigatures: 'none',
       }}
     >
@@ -110,90 +111,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
         )}
         
         {/* Contact Info - Single line for ATS */}
-        <div 
-          style={{ 
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            columnGap: '16px',
-            rowGap: '4px',
-            fontSize: '10pt',
-            color: premiumColors.textLight,
-          }}
-        >
-          {data.personal.email && (
-            <a 
-              href={`mailto:${data.personal.email}`} 
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
-            >
-              <Mail style={{ width: '14px', height: '14px' }} />
-              <span>{data.personal.email}</span>
-            </a>
-          )}
-          {data.personal.phone && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Phone style={{ width: '14px', height: '14px' }} />
-              <span>{data.personal.phone}</span>
-            </span>
-          )}
-          {(data.personal.address || data.personal.city || data.personal.country) && (() => {
-            const parts: string[] = [];
-            if (data.personal.address) {
-              parts.push(data.personal.address);
-              if (data.personal.city && !data.personal.address.toLowerCase().includes(data.personal.city.toLowerCase())) parts.push(data.personal.city);
-              if (data.personal.country && !data.personal.address.toLowerCase().includes(data.personal.country.toLowerCase())) parts.push(data.personal.country);
-            } else {
-              if (data.personal.city) parts.push(data.personal.city);
-              if (data.personal.country) parts.push(data.personal.country);
-            }
-            return (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <MapPin style={{ width: '14px', height: '14px' }} />
-                <span>{parts.join(', ')}</span>
-              </span>
-            );
-          })()}
-          {data.personal.linkedIn && (
-            <a 
-              href={data.personal.linkedIn} 
-              target="_blank" rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
-            >
-              <Linkedin style={{ width: '14px', height: '14px' }} />
-              <span>LinkedIn</span>
-            </a>
-          )}
-          {data.personal.github && (
-            <a 
-              href={data.personal.github} 
-              target="_blank" rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
-            >
-              <Github style={{ width: '14px', height: '14px' }} />
-              <span>GitHub</span>
-            </a>
-          )}
-          {data.personal.portfolio && (
-            <a 
-              href={data.personal.portfolio} 
-              target="_blank" rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
-            >
-              <Globe style={{ width: '14px', height: '14px' }} />
-              <span>Portfolio</span>
-            </a>
-          )}
-          {data.personal.website && (
-            <a 
-              href={data.personal.website} 
-              target="_blank" rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', color: premiumColors.textLight, textDecoration: 'none' }}
-            >
-              <Globe style={{ width: '14px', height: '14px' }} />
-              <span>Website</span>
-            </a>
-          )}
-        </div>
+        <ContactRows data={data} iconSize={14} iconGap={6} textColor={premiumColors.textLight} columnGap={16} rowGap={4} />
       </header>
 
       <div style={{ marginTop: '20px' }}>
@@ -228,7 +146,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
         )}
 
         {/* Core Competencies / Skills - 2026: 3-Column Grid with Languages integrated */}
-        {(data.skills.length > 0 || data.languages.length > 0) && (
+        {data.skills.length > 0 && (
           <section style={{ marginBottom: '16px' }}>
             <h2 
               style={{ 
@@ -245,19 +163,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
             >
               {sectionHeading(data, 'skills')}
             </h2>
-          <SkillGrid
-            data={data}
-            primary={premiumColors.primary}
-            text={premiumColors.text}
-            columnGap={20}
-            rowGap={12}
-            labelMarginBottom={6}
-            labelLetterSpacing="0.4px"
-            itemGap={3}
-            bulletGap={6}
-            lineHeight={1.4}
-            languagesAfter={2}
-          />
+          <SkillLines data={data} primary={premiumColors.primary} text={premiumColors.text} gap={6} lineHeight={1.4} />
         </section>
         )}
 
@@ -281,9 +187,9 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {data.experience.map((exp, idx) => (
-                <div className="cv-entry" key={exp.id || idx}>
+                <div className="cv-exp" key={exp.id || idx}>
                   {/* Role Header */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                  <div className="cv-entry-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
                     <h3 
                       style={{ 
                         fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -308,7 +214,7 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
                   </div>
                   
                   {/* Company */}
-                  <p 
+                  <p className="cv-entry-head" 
                     style={{ 
                       fontSize: '10pt',
                       fontWeight: '500',
@@ -324,9 +230,9 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
                   
                   {/* Bullets - Explicit bullet characters for PDF compatibility */}
                   {exp.bullets.length > 0 && (
-                    <div style={{ marginTop: '6px', marginLeft: '4px' }}>
+                    <div className={exp.bullets.length <= 3 ? 'cv-bullets cv-bullets-short' : 'cv-bullets'} style={{ marginTop: '6px', marginLeft: '4px' }}>
                       {exp.bullets.map((bullet, bulletIdx) => (
-                        <div 
+                        <div className="cv-bullet"
                           key={bulletIdx} 
                           style={{ 
                             display: 'flex',
@@ -460,6 +366,27 @@ export function USPremiumATSTemplate({ data, template, qualityScore, matchScore,
             </div>
           </section>
         )}
+
+      {data.languages.length > 0 && (
+        <section style={{ marginBottom: '16px' }}>
+          <h2 
+              style={{ 
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                marginBottom: '8px',
+                paddingBottom: '8px',
+                borderBottom: `2px solid ${premiumColors.primary}`,
+                color: premiumColors.primary,
+              }}
+            >
+              {sectionHeading(data, 'languages')}
+            </h2>
+          <LanguageLine data={data} text={premiumColors.text} lineHeight={1.4} />
+        </section>
+      )}
 
         {/* Languages section REMOVED - now integrated into Core Competencies grid above */}
 

@@ -1,7 +1,8 @@
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { FALLBACK_TEMPLATE_ID } from '@/lib/cv-templates/default-template';
 import { isCvTemplateId } from '@/lib/cv-templates/catalog';
-import { inferCvLocale, type CvTextLocale } from '@/lib/cv-templates/locale';
+import { inferCvLocale, looksGerman, type CvTextLocale } from '@/lib/cv-templates/locale';
+import { cvPaper } from '@/lib/cv-templates/paper';
 import { getPrintSpec, type PaperSize } from '@/lib/cv-templates/print-spec';
 import { visibleCvData } from '@/lib/cv-templates/hidden';
 import type { CVData } from '@/lib/cv-templates/types';
@@ -55,10 +56,11 @@ export function resolveExport(kit: ExportKit, format: ExportFormat, options: Exp
     throw new ExportInputError('BAD_REQUEST', 'Unknown template.');
   }
   const templateId = requestedTemplate || (kit.templateId && isCvTemplateId(kit.templateId) ? kit.templateId : FALLBACK_TEMPLATE_ID);
-  const spec = getPrintSpec(templateId, options.paper);
-
   const sourceCv = options.overrides?.cv ?? (options.variant === 'original' ? kit.originalCv ?? kit.cv : kit.cv);
   const cvLocale = sourceCv ? inferCvLocale(sourceCv) : 'en';
+  // Paper follows the CV's market, not the template. An explicit override wins.
+  const cvPaperSize: PaperSize = options.paper ?? (sourceCv ? cvPaper(sourceCv) : getPrintSpec(templateId).paper);
+  const spec = getPrintSpec(templateId, cvPaperSize);
 
   const structured = structuredOverride(options) ?? (options.overrides?.legacyLetterText ? null : kit.coverLetter?.structured ?? null);
   const legacyText = options.overrides?.legacyLetterText ?? kit.coverLetter?.legacyText ?? null;
@@ -73,7 +75,8 @@ export function resolveExport(kit: ExportKit, format: ExportFormat, options: Exp
     format,
     templateId,
     locale: cvLocale,
-    applicantName: kit.applicantName || sourceCv?.personal.fullName || '',
+    // The name on the document being exported wins: a CV sent from the canvas carries the name the user sees.
+    applicantName: (format === 'cv_pdf' || format === 'cv_docx' ? sourceCv?.personal.fullName : '') || kit.applicantName || sourceCv?.personal.fullName || '',
     company: kit.company,
     emails: [] as ExportEmail[],
     answers: [] as ExportAnswer[],
@@ -104,9 +107,15 @@ export function resolveExport(kit: ExportKit, format: ExportFormat, options: Exp
       if (structured) letter = { kind: 'structured', letter: structured };
       else if (legacyText && legacyText.trim()) letter = { kind: 'legacy', text: legacyText };
       if (!letter) throw new ExportInputError('NO_COVER_LETTER', 'This application has no cover letter yet.');
+      // The letter's file name, title and language follow the letter's own language, not the CV's and not
+      // the layout: a US-layout letter on a German CV is English, an explicit DIN layout on German text is German.
+      const letterLanguage = letter.kind === 'structured' ? letter.letter.language : null;
+      const letterLocale: CvTextLocale = letterLanguage
+        ? (letterLanguage.toLowerCase().startsWith('de') ? 'de' : letterLanguage.toLowerCase().startsWith('en') ? 'en' : 'other')
+        : looksGerman(letter.kind === 'legacy' ? letter.text : '') ? 'de' : 'en';
       return {
         ...base,
-        locale: layout === 'din' ? 'de' : cvLocale,
+        locale: letterLocale,
         paper: letterPaper(layout),
         layout,
         cv: null,
@@ -158,6 +167,9 @@ export async function exportCacheHash(resolved: ResolvedExport): Promise<string>
   return sha256Hex(
     canonicalJson({
       content: resolved.cacheInput,
+      // Everything that reaches the file name, the title or the footer is part of the key.
+      applicantName: resolved.applicantName,
+      company: resolved.company,
       format: resolved.format,
       template: resolved.templateId,
       paper: resolved.paper,

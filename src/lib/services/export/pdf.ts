@@ -1,5 +1,7 @@
 import { PDFDocument, PDFName, PDFBool } from 'pdf-lib';
 import type { PaperSize } from '@/lib/cv-templates/print-spec';
+import { fontFaceCssInline, type FontFileLoader } from '@/lib/cv-templates/fonts';
+import { EXPORT_CSP, escapeHtml } from './cv-html';
 
 /** The part of the Browser Run binding the exporter uses. */
 export interface BrowserRunBinding {
@@ -40,6 +42,9 @@ export async function renderHtmlToPdf(
 ): Promise<Uint8Array> {
   const body = {
     html,
+    // Second layer behind the page's own CSP: nothing but data: URIs may be requested. Checked in the
+    // spike: with a remote <img>, the PDF has the image without this and does not with it.
+    allowRequestPattern: ['^data:'],
     gotoOptions: { waitUntil: 'load', timeout: 20_000 },
     pdfOptions: {
       format: paper === 'a4' ? 'a4' : 'letter',
@@ -86,5 +91,49 @@ export async function applyPdfMetadata(bytes: Uint8Array, metadata: PdfMetadata)
   if (metadata.keywords?.length) doc.setKeywords(metadata.keywords);
   const prefs = doc.catalog.getOrCreateViewerPreferences();
   prefs.dict.set(PDFName.of('DisplayDocTitle'), PDFBool.True);
+  return doc.save({ useObjectStreams: false });
+}
+
+/**
+ * Page footers on continuation pages: "Name · Page 2 of 3", nothing on page 1.
+ *
+ * CSS cannot do this in the Chrome that Browser Run runs (no page margin boxes,
+ * and `position: fixed` repeats on page 1 too), and an absolutely positioned
+ * footer can only sit inside a page's content box. So a second, tiny render
+ * draws the footers on transparent pages of the same size and pdf-lib lays them
+ * over pages 2 to N. They are real text in an embedded font, in the bottom
+ * margin. Contact details never go here: they stay in the body.
+ */
+export async function addContinuationFooters(args: {
+  browser: BrowserRunBinding;
+  pdf: Uint8Array;
+  paper: PaperSize;
+  name: string;
+  de: boolean;
+  loadFont: FontFileLoader;
+}): Promise<Uint8Array> {
+  const doc = await PDFDocument.load(args.pdf, { updateMetadata: false });
+  const total = doc.getPageCount();
+  if (total < 2) return args.pdf;
+
+  const label = (n: number) => (args.de ? `${args.name} · Seite ${n} von ${total}` : `${args.name} · Page ${n} of ${total}`);
+  const size = args.paper === 'a4' ? { w: 210, h: 297 } : { w: 215.9, h: 279.4 };
+  const pages = Array.from({ length: total }, (_, index) =>
+    index === 0 ? '<div class="pg"></div>' : `<div class="pg"><div class="f">${escapeHtml(label(index + 1))}</div></div>`,
+  ).join('');
+  const fonts = await fontFaceCssInline(args.loadFont, args.name);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${EXPORT_CSP}"><style>${fonts}
+@page{size:${size.w}mm ${size.h}mm;margin:0}*{margin:0;padding:0;box-sizing:border-box}html,body{width:${size.w}mm;background:transparent}
+.pg{position:relative;width:${size.w}mm;height:${size.h - 0.6}mm;break-after:page;overflow:hidden}
+.f{position:absolute;left:0;right:0;bottom:5mm;text-align:center;font:8pt 'Arimo',Arial,sans-serif;color:#555}</style></head><body>${pages}</body></html>`;
+  const overlayBytes = await renderHtmlToPdf(args.browser, html, args.paper);
+  const overlay = await PDFDocument.load(overlayBytes, { updateMetadata: false });
+  const indices = Array.from({ length: total - 1 }, (_, index) => index + 1);
+  const embedded = await doc.embedPdf(overlay, indices);
+  indices.forEach((pageIndex, position) => {
+    const target = doc.getPage(pageIndex);
+    const { width, height } = target.getSize();
+    target.drawPage(embedded[position], { x: 0, y: 0, width, height });
+  });
   return doc.save({ useObjectStreams: false });
 }

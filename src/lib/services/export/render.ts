@@ -2,10 +2,11 @@ import type { FontFileLoader } from '@/lib/cv-templates/fonts';
 import { buildCvDocx } from './cv-docx';
 import { renderCvHtml } from './cv-html';
 import { renderAnswersHtml, answersPlainText, answersTitle } from './answers-html';
-import { CONTENT_TYPES, exportFileName, extensionFor } from './filenames';
+import { CONTENT_TYPES, exportDisplayFileName, exportFileName, extensionFor } from './filenames';
 import { buildLetterDocx } from './letter-docx';
 import { renderLetterHtml } from './letter-html';
 import {
+  addContinuationFooters,
   ExportRenderError,
   MAX_EXPORT_BYTES,
   applyPdfMetadata,
@@ -23,6 +24,7 @@ export interface RenderedExport {
   bytes: Uint8Array;
   contentType: string;
   fileName: string;
+  displayName: string;
 }
 
 /** The document is bigger than an ATS upload limit allows. Returned as a failure, never as a degraded file. */
@@ -34,8 +36,7 @@ export class ExportTooLargeError extends Error {
 }
 
 function pdfLanguage(resolved: ResolvedExport): string {
-  if (resolved.locale === 'de' || resolved.layout === 'din') return 'de-DE';
-  return 'en-US';
+  return resolved.locale === 'de' ? 'de-DE' : 'en-US';
 }
 
 function requireBrowser(deps: RenderDeps): BrowserRunBinding {
@@ -54,8 +55,8 @@ export async function renderExport(resolved: ResolvedExport, deps: RenderDeps): 
   const { format } = resolved;
   const ext = extensionFor(format);
   const contentType = CONTENT_TYPES[ext];
-  const de = resolved.locale === 'de' || resolved.layout === 'din';
-  const fileName = exportFileName(format, resolved.applicantName, de ? 'de' : resolved.locale);
+  const de = resolved.locale === 'de';
+  const fileName = exportFileName(format, resolved.applicantName, resolved.locale);
   const name = resolved.applicantName;
   let bytes: Uint8Array;
 
@@ -63,7 +64,8 @@ export async function renderExport(resolved: ResolvedExport, deps: RenderDeps): 
     case 'cv_pdf': {
       const cv = resolved.cv!;
       const { html } = await renderCvHtml({ data: cv, templateId: resolved.templateId, paper: resolved.paper, loadFont: deps.loadFont });
-      const raw = await renderHtmlToPdf(requireBrowser(deps), html, resolved.paper);
+      const rendered = await renderHtmlToPdf(requireBrowser(deps), html, resolved.paper);
+      const raw = await addContinuationFooters({ browser: requireBrowser(deps), pdf: rendered, paper: resolved.paper, name, de: resolved.locale === 'de', loadFont: deps.loadFont });
       bytes = await applyPdfMetadata(raw, {
         title: de ? `Lebenslauf - ${name}` : `${name} - CV`,
         author: name,
@@ -133,6 +135,6 @@ export async function renderExport(resolved: ResolvedExport, deps: RenderDeps): 
   }
 
   if (bytes.length > MAX_EXPORT_BYTES) throw new ExportTooLargeError(bytes.length);
-  return { bytes, contentType, fileName };
+  return { bytes, contentType, fileName, displayName: exportDisplayFileName(format, resolved.applicantName, resolved.locale) };
 }
 

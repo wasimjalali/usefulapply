@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from './static-markup';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
+import { displayUrl, fullUrl, pickLetterLinks } from '@/lib/cv-templates/url';
 import { fontFaceCssInline, type FontFileLoader } from '@/lib/cv-templates/fonts';
 import type { PaperSize } from '@/lib/cv-templates/print-spec';
 import { EXPORT_CSP, escapeHtml } from './cv-html';
@@ -74,7 +75,7 @@ body{position:relative;font-family:'Arimo','Arial',sans-serif;font-size:11pt;lin
 .flow.first{padding-top:${DIN.bodyTop}mm}
 .abs{position:absolute}
 .letterhead{left:${DIN.marginLeft}mm;top:14mm;width:${210 - DIN.marginLeft - DIN.marginRight}mm;font-size:10pt;line-height:4.4mm}
-.letterhead .name{font-weight:700;font-size:12pt}
+.letterhead .name{font-weight:700;font-size:1.2em}
 .field{left:${DIN.addressLeft}mm;top:${DIN.addressTop}mm;width:${DIN.addressWidth}mm;height:${DIN.addressHeight}mm}
 .return-line{height:${DIN.returnLineHeight}mm;font-size:7pt;line-height:${DIN.returnLineHeight}mm;white-space:nowrap;overflow:hidden;border-bottom:0.25pt solid #444;width:${DIN.addressWidth}mm}
 .recipient{position:absolute;left:0;top:${DIN.recipientTop - DIN.addressTop}mm;width:${DIN.addressWidth}mm;height:${DIN.recipientZoneHeight}mm;display:flex;flex-direction:column;justify-content:flex-start;line-height:4.5mm}
@@ -100,28 +101,41 @@ body{font-family:'Arimo','Arial',sans-serif;font-size:11pt;line-height:1.4;color
 p{white-space:pre-line;margin-bottom:1.3em;orphans:3;widows:3}
 `;
 
+/** Every letter stylesheet, for the renderer version hash. */
+export const LETTER_CSS = [US_STYLE, DIN_STYLE, LEGACY_STYLE('us'), LEGACY_STYLE('din')].join('\n');
+
 export function letterPaper(layout: LetterLayout): PaperSize {
   return layout === 'din' ? 'a4' : 'letter';
 }
 
+/** The sender's address lines, phone, email and at most two clean links (LinkedIn, then a personal site). */
 function senderContactLines(letter: StructuredCoverLetter): string[] {
   const { sender } = letter;
   return [
     ...sender.addressLines,
     ...(sender.phone ? [sender.phone] : []),
     ...(sender.email ? [sender.email] : []),
-    ...(sender.links ?? []),
+    ...pickLetterLinks(sender.links).map((link) => displayUrl(link)),
   ].filter((line) => line.trim().length > 0);
 }
 
-function recipientLines(letter: StructuredCoverLetter): string[] {
+/** One contact line as it is printed: a link line stays clickable with its full URL. */
+function ContactLine({ line, letter }: { line: string; letter: StructuredCoverLetter }) {
+  const target = pickLetterLinks(letter.sender.links).find((link) => displayUrl(link) === line);
+  return target ? <a href={fullUrl(target)}>{line}</a> : <>{line}</>;
+}
+
+/**
+ * The recipient block in the order the plain-text letter uses (see
+ * renderCoverLetterBody): DACH is company, department, contact person, address;
+ * US is contact person, department, company, address.
+ */
+export function recipientLinesFor(letter: StructuredCoverLetter, layout: LetterLayout): string[] {
   const { recipient } = letter;
-  return [
-    recipient.companyName,
-    recipient.department,
-    recipient.contactPerson,
-    ...recipient.addressLines,
-  ].filter((line): line is string => Boolean(line && line.trim()));
+  const order = layout === 'din'
+    ? [recipient.companyName, recipient.department, recipient.contactPerson]
+    : [recipient.contactPerson, recipient.department, recipient.companyName];
+  return [...order, ...recipient.addressLines].filter((line): line is string => Boolean(line && line.trim()));
 }
 
 /** DIN 5008 writes the closing without a comma. */
@@ -131,12 +145,12 @@ export function dinClosing(closing: string): string {
 
 function UsLetter({ letter }: { letter: StructuredCoverLetter }) {
   const subject = letter.subject.trim();
-  const recipient = recipientLines(letter);
+  const recipient = recipientLinesFor(letter, 'us');
   return (
     <>
       <div className="sender">
         <div className="name">{letter.sender.name}</div>
-        {senderContactLines(letter).map((line, index) => <div key={index}>{line}</div>)}
+        {senderContactLines(letter).map((line, index) => <div key={index}><ContactLine line={line} letter={letter} /></div>)}
       </div>
       <div className="date">{letter.date}</div>
       {recipient.length > 0 && (
@@ -153,20 +167,31 @@ function UsLetter({ letter }: { letter: StructuredCoverLetter }) {
   );
 }
 
+/**
+ * The letterhead has 31 mm (14 to 45 mm) before the address field begins. Up to
+ * 7 lines at 4.4 mm fit. More shrink the type and the line height so the block
+ * never overprints the field.
+ */
+export function letterheadStyle(lines: number): { lineHeight?: string; fontSize?: string } {
+  if (lines <= 7) return {};
+  const lineHeightMm = Math.floor((30 / lines) * 100) / 100;
+  return { lineHeight: `${lineHeightMm}mm`, fontSize: `${Math.max(6.5, Math.round(lineHeightMm * 2.2 * 10) / 10)}pt` };
+}
+
 function DinLetter({ letter }: { letter: StructuredCoverLetter }) {
   const returnLine = [letter.sender.name, ...letter.sender.addressLines].filter(Boolean).join(' · ');
   const dateLine = [letter.place, letter.date].filter((part) => part && part.trim()).join(', ');
   const subject = letter.subject.trim();
   return (
     <>
-      <div className="abs letterhead">
+      <div className="abs letterhead" style={letterheadStyle(1 + senderContactLines(letter).length)}>
         <div className="name">{letter.sender.name}</div>
-        {senderContactLines(letter).map((line, index) => <div key={index}>{line}</div>)}
+        {senderContactLines(letter).map((line, index) => <div key={index}><ContactLine line={line} letter={letter} /></div>)}
       </div>
       <div className="abs field">
         <div className="return-line">{returnLine}</div>
         <div className="recipient">
-          {recipientLines(letter).map((line, index) => <div key={index}>{line}</div>)}
+          {recipientLinesFor(letter, 'din').map((line, index) => <div key={index}>{line}</div>)}
         </div>
       </div>
       <div className="abs info">{dateLine}</div>
@@ -210,7 +235,7 @@ export function letterPlainText(input: LetterInput, layout: LetterLayout): strin
     '',
     [letter.place, letter.date].filter(Boolean).join(', '),
     '',
-    ...recipientLines(letter),
+    ...recipientLinesFor(letter, layout),
     '',
     letter.subject,
     '',

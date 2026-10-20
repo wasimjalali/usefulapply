@@ -334,6 +334,14 @@
 				"limit": 60,
 				"period": 60
 			}
+		},
+		{
+			"name": "RATE_LIMIT_EXPORT_RENDER",
+			"namespace_id": "3142",
+			"simple": {
+				"limit": 6,
+				"period": 60
+			}
 		}
 	],
 	// Paid plan default is 30s CPU. Fit analysis + generation is LLM-bound

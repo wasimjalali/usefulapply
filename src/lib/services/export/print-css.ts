@@ -20,6 +20,15 @@ img{max-width:100%;height:auto}
 strong,b{font-weight:700}
 .cv-template{font-variant-ligatures:none}
 .cv-entry{break-inside:avoid}
+.cv-exp{break-inside:auto}
 h1,h2,h3,h4{break-after:avoid}
+/* An experience entry: title and employer stay with its first two bullets and its last two stay together.
+   Entries of three bullets or fewer are kept whole. Nothing else is kept together: a block that can be
+   longer than the space left must be allowed to split. */
+.cv-entry-head{break-after:avoid}
+.cv-bullets>.cv-bullet:first-child{break-after:avoid}
+.cv-bullets>.cv-bullet:nth-last-child(2){break-after:avoid}
+.cv-bullets-short>.cv-bullet{break-after:avoid}
+.cv-bullets-short>.cv-bullet:last-child{break-after:auto}
 p,li,.cv-bullet{orphans:2;widows:2}
 `.trim();

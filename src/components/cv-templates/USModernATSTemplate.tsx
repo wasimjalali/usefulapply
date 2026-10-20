@@ -16,8 +16,9 @@
 
 import { CVData, CVTemplate } from '@/lib/cv-templates/types';
 import { rootBox, type CvRenderMode } from '@/lib/cv-templates/print-spec';
+import { cvPaper } from '@/lib/cv-templates/paper';
+import { ContactRows, LanguageLine, SideSection, SkillLines, skillsOverflowSidebar } from './shared';
 import { sectionHeading, formatDateRange, formatSingleDate, uiText } from '@/lib/cv-templates/locale';
-import { Mail, Phone, MapPin, Linkedin, Globe, Github } from 'lucide-react';
 
 
 interface Props {
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export function USModernATSTemplate({ data, template, mode }: Props) {
+  const wideSkills = skillsOverflowSidebar(data);
   // 2026 Design Refresh: Modern Professional palette
   const modernColors = {
     primary: '#2C7A7B',      // Teal accent
@@ -49,7 +51,7 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
         fontSize: '10.5pt',
         lineHeight: 1.15,
         color: modernColors.text,
-        ...rootBox(template.id, mode),
+        ...rootBox(template.id, mode, cvPaper(data)),
         fontVariantLigatures: 'none',
       }}
     >
@@ -83,70 +85,7 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
         )}
 
         {/* Contact Info - Inline for ATS */}
-        <div 
-          style={{ 
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            gap: '16px',
-            fontSize: '10pt',
-            color: modernColors.textLight,
-          }}
-        >
-          {data.personal.email && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Mail style={{ width: '12px', height: '12px', color: modernColors.primary }} />
-              <span>{data.personal.email}</span>
-            </div>
-          )}
-          {data.personal.phone && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Phone style={{ width: '12px', height: '12px', color: modernColors.primary }} />
-              <span>{data.personal.phone}</span>
-            </div>
-          )}
-          {(data.personal.address || data.personal.city || data.personal.country) && (() => {
-            const parts: string[] = [];
-            if (data.personal.address) {
-              parts.push(data.personal.address);
-              if (data.personal.city && !data.personal.address.toLowerCase().includes(data.personal.city.toLowerCase())) parts.push(data.personal.city);
-              if (data.personal.country && !data.personal.address.toLowerCase().includes(data.personal.country.toLowerCase())) parts.push(data.personal.country);
-            } else {
-              if (data.personal.city) parts.push(data.personal.city);
-              if (data.personal.country) parts.push(data.personal.country);
-            }
-            return (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <MapPin style={{ width: '12px', height: '12px', color: modernColors.primary }} />
-                <span>{parts.join(', ')}</span>
-              </div>
-            );
-          })()}
-          {data.personal.linkedIn && (
-            <a href={data.personal.linkedIn} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
-              <Linkedin style={{ width: '12px', height: '12px', color: modernColors.primary }} />
-              <span>LinkedIn</span>
-            </a>
-          )}
-          {data.personal.github && (
-            <a href={data.personal.github} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
-              <Github style={{ width: '12px', height: '12px', color: modernColors.primary }} />
-              <span>GitHub</span>
-            </a>
-          )}
-          {data.personal.portfolio && (
-            <a href={data.personal.portfolio} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
-              <Globe style={{ width: '12px', height: '12px', color: modernColors.primary }} />
-              <span>Portfolio</span>
-            </a>
-          )}
-          {data.personal.website && (
-            <a href={data.personal.website} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
-              <Globe style={{ width: '12px', height: '12px', color: modernColors.primary }} />
-              <span>Website</span>
-            </a>
-          )}
-        </div>
+        <ContactRows data={data} iconSize={12} iconColor={modernColors.primary} iconGap={6} textColor={modernColors.textLight} columnGap={16} rowGap={4} />
       </header>
 
       {/* FULL-WIDTH PROFESSIONAL SUMMARY - Critical for ATS */}
@@ -172,6 +111,29 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
           </p>
         </section>
       )}
+
+      {/* Many skills: full width above the columns, so a long list cannot leave sidebar-only pages. */}
+      {wideSkills && data.skills.length > 0 && (
+          <div style={{ marginBottom: '24px' }}>
+            <h2
+              style={{
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '0.4px',
+                color: modernColors.primary,
+                marginBottom: '8px',
+                paddingBottom: '8px',
+                borderBottom: `2px solid ${modernColors.primary}`,
+              }}
+            >
+              {sectionHeading(data, 'skills')}
+            </h2>
+            {/* Grouped skills by category - max 5 per category */}
+            <SkillLines data={data} primary={modernColors.text} text={modernColors.text} gap={8} lineHeight={1.35} />
+          </div>
+        )}
 
       {/* TWO-COLUMN LAYOUT STARTS HERE */}
       <div
@@ -204,8 +166,8 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {data.experience.map((exp) => (
-                <div className="cv-entry" key={exp.id}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                <div className="cv-exp" key={exp.id}>
+                  <div className="cv-entry-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
                     <h3 style={{ fontSize: '10.5pt', fontWeight: 'bold', color: modernColors.text }}>
                       {exp.position}
                     </h3>
@@ -213,15 +175,15 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
                       {formatDateRange(data, exp)}
                     </span>
                   </div>
-                  <p style={{ fontSize: '10pt', fontWeight: '500', marginBottom: '6px', color: modernColors.primary }}>
+                  <p className="cv-entry-head" style={{ fontSize: '10pt', fontWeight: '500', marginBottom: '6px', color: modernColors.primary }}>
                     {exp.company}
                     {exp.location && <span style={{ color: modernColors.textLight }}> | {exp.location}</span>}
                   </p>
                   {/* Explicit bullet characters for PDF compatibility */}
                   {exp.bullets.length > 0 && (
-                    <div style={{ marginTop: '4px', marginLeft: '4px' }}>
+                    <div className={exp.bullets.length <= 3 ? 'cv-bullets cv-bullets-short' : 'cv-bullets'} style={{ marginTop: '4px', marginLeft: '4px' }}>
                       {exp.bullets.map((bullet, idx) => (
-                        <div 
+                        <div className="cv-bullet"
                           key={idx} 
                           style={{ 
                             display: 'flex',
@@ -389,9 +351,8 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
         }}
       >
         {/* Core Competencies with Languages integrated - 2026 ATS Best Practice */}
-        {(data.skills.length > 0 || data.languages.length > 0) && (
-          <div style={{ marginBottom: '24px' }}>
-            <h2
+        {!wideSkills && data.skills.length > 0 && (
+          <SideSection marginBottom={24} heading={<h2
               style={{
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '10.5pt',
@@ -405,89 +366,35 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
               }}
             >
               {sectionHeading(data, 'skills')}
-            </h2>
+            </h2>}>
             {/* Grouped skills by category - max 5 per category */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {data.skills.map((group, groupIdx) => (
-                <div key={groupIdx} style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
-                  <div 
-                    style={{ 
-                      fontSize: '10pt',
-                      fontWeight: 'bold',
-                      color: modernColors.text,
-                      marginBottom: '4px',
-                    }}
-                  >
-                    {group.category}:
-                  </div>
-                  <div style={{ marginLeft: '8px' }}>
-                    {group.items.map((skill, idx) => (
-                      <div 
-                        key={idx} 
-                        style={{ 
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          breakInside: 'avoid',
-                          gap: '6px',
-                          fontSize: '10pt',
-                          lineHeight: 1.3,
-                          marginBottom: '2px',
-                          color: modernColors.text,
-                        }}
-                      >
-                        <span style={{ flexShrink: 0 }}>•</span>
-                        <span style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>{skill}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              
-              {/* Languages as final category within Core Competencies */}
-              {data.languages.length > 0 && (
-                <div style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
-                  <div 
-                    style={{ 
-                      fontSize: '10pt',
-                      fontWeight: 'bold',
-                      color: modernColors.text,
-                      marginBottom: '4px',
-                    }}
-                  >
-                    {sectionHeading(data, 'languages')}:
-                  </div>
-                  <div style={{ marginLeft: '8px' }}>
-                    {data.languages.map((lang, idx) => (
-                      <div 
-                        key={idx} 
-                        style={{ 
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          breakInside: 'avoid',
-                          gap: '6px',
-                          fontSize: '10pt',
-                          lineHeight: 1.3,
-                          marginBottom: '2px',
-                          color: modernColors.text,
-                        }}
-                      >
-                        <span style={{ flexShrink: 0 }}>•</span>
-                        <span style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
-                          <strong>{lang.language}{lang.proficiency ? ':' : ''}</strong>{lang.proficiency ? ` ${lang.proficiency}` : ''}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+            <SkillLines data={data} primary={modernColors.text} text={modernColors.text} gap={8} lineHeight={1.35} />
+          </SideSection>
         )}
 
         {/* Certifications in Sidebar */}
+        {data.languages.length > 0 && (
+          <SideSection marginBottom={24} heading={<h2
+              style={{
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '0.4px',
+                color: modernColors.primary,
+                marginBottom: '8px',
+                paddingBottom: '8px',
+                borderBottom: `2px solid ${modernColors.primary}`,
+              }}
+            >
+              {sectionHeading(data, 'languages')}
+            </h2>}>
+            <LanguageLine data={data} text={modernColors.text} lineHeight={1.35} />
+          </SideSection>
+        )}
+
         {data.certifications.length > 0 && (
-          <div>
-            <h2
+          <SideSection marginBottom={0} heading={<h2
               style={{
                 fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '10.5pt',
@@ -501,7 +408,7 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
               }}
             >
               {sectionHeading(data, 'certifications')}
-            </h2>
+            </h2>}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {data.certifications.map((cert) => (
                 <div className="cv-entry" key={cert.id} style={{ fontSize: '10pt' }}>
@@ -512,7 +419,7 @@ export function USModernATSTemplate({ data, template, mode }: Props) {
                 </div>
               ))}
             </div>
-          </div>
+          </SideSection>
         )}
       </aside>
       </div>

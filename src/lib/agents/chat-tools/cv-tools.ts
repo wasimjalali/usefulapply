@@ -78,6 +78,7 @@ import {
   cvLanguage,
   currentHeading,
   handleRefusal,
+  isItemHidden,
   MAX_OUTLINE_ITEMS,
   outlineItemCount,
   resolveHandle,
@@ -86,6 +87,9 @@ import { applyDelete, applyRenameHeading, applyReorder } from '@/lib/cv-structur
 import { cvStructureDigest, validateEdit } from '@/lib/cv-structure/validate';
 import type { ListHandle, TailoredCV } from '@/lib/cv-structure/types';
 import type { ChatTool, ChatToolContext, ChatToolResult } from './types';
+
+/** Hidden entries stay in the CV but are not on the page. The chat leaves them alone unless the user shows them again. */
+const HIDDEN_REFUSAL = 'That entry is hidden from the CV, so it is not on the page or in the downloads. I will not change or remove it. Show it again in the CV editor first, or tell me you want it shown.';
 
 const NO_CV = 'There\'s no tailored CV for this application yet.';
 const NO_OUTLINE = 'Call get_cv_outline first. Every edit works off handles from a fresh outline.';
@@ -323,6 +327,8 @@ const deleteCvItem: ChatTool = {
       };
     }
 
+    if (isItemHidden(before, resolved.list, resolved.index)) return { data: { error: HIDDEN_REFUSAL } };
+
     // The delete is dry-run here so the refusals land before the button rather
     // than after the click, matching how propose_feed_application checks the CV
     // before offering to apply.
@@ -407,6 +413,7 @@ const proposeCvRewrite: ChatTool = {
           },
         };
       }
+      if (isItemHidden(cv, resolved.list, resolved.index)) return { data: { error: HIDDEN_REFUSAL } };
       const outline = buildListOutline(cv, resolved.list);
       label = outline?.items[resolved.index]?.label ?? '';
       // The rewrite route resolves the target against the session's own CV, and

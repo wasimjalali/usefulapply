@@ -17,9 +17,9 @@
 
 import { CVData, CVTemplate } from '@/lib/cv-templates/types';
 import { rootBox, type CvRenderMode } from '@/lib/cv-templates/print-spec';
+import { cvPaper } from '@/lib/cv-templates/paper';
 import { sectionHeading, formatDateRange, formatSingleDate, uiText } from '@/lib/cv-templates/locale';
-import { SkillGrid } from './shared';
-import { Mail, Phone, MapPin, Linkedin, Globe, Github } from 'lucide-react';
+import { ContactRows, LanguageLine, SkillLines } from './shared';
 
 interface Props {
   data: CVData;
@@ -50,7 +50,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
         backgroundColor: 'white',
         pageBreakAfter: 'auto',
         pageBreakInside: 'auto',
-        ...rootBox(template.id, mode),
+        ...rootBox(template.id, mode, cvPaper(data)),
         fontVariantLigatures: 'none',
       }}
     >
@@ -85,70 +85,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
         )}
 
         {/* Contact Info - Single line */}
-        <div 
-          style={{ 
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            gap: '16px',
-            fontSize: '10pt',
-            color: executiveColors.textLight,
-          }}
-        >
-          {data.personal.email && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Mail style={{ width: '12px', height: '12px', color: executiveColors.primary }} />
-              <span>{data.personal.email}</span>
-            </div>
-          )}
-          {data.personal.phone && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Phone style={{ width: '12px', height: '12px', color: executiveColors.primary }} />
-              <span>{data.personal.phone}</span>
-            </div>
-          )}
-          {(data.personal.address || data.personal.city || data.personal.country) && (() => {
-            const parts: string[] = [];
-            if (data.personal.address) {
-              parts.push(data.personal.address);
-              if (data.personal.city && !data.personal.address.toLowerCase().includes(data.personal.city.toLowerCase())) parts.push(data.personal.city);
-              if (data.personal.country && !data.personal.address.toLowerCase().includes(data.personal.country.toLowerCase())) parts.push(data.personal.country);
-            } else {
-              if (data.personal.city) parts.push(data.personal.city);
-              if (data.personal.country) parts.push(data.personal.country);
-            }
-            return (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <MapPin style={{ width: '12px', height: '12px', color: executiveColors.primary }} />
-                <span>{parts.join(', ')}</span>
-              </div>
-            );
-          })()}
-          {data.personal.linkedIn && (
-            <a href={data.personal.linkedIn} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
-              <Linkedin style={{ width: '12px', height: '12px', color: executiveColors.primary }} />
-              <span>LinkedIn</span>
-            </a>
-          )}
-          {data.personal.github && (
-            <a href={data.personal.github} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
-              <Github style={{ width: '12px', height: '12px', color: executiveColors.primary }} />
-              <span>GitHub</span>
-            </a>
-          )}
-          {data.personal.portfolio && (
-            <a href={data.personal.portfolio} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
-              <Globe style={{ width: '12px', height: '12px', color: executiveColors.primary }} />
-              <span>Portfolio</span>
-            </a>
-          )}
-          {data.personal.website && (
-            <a href={data.personal.website} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
-              <Globe style={{ width: '12px', height: '12px', color: executiveColors.primary }} />
-              <span>Website</span>
-            </a>
-          )}
-        </div>
+        <ContactRows data={data} iconSize={12} iconColor={executiveColors.primary} iconGap={6} textColor={executiveColors.textLight} columnGap={16} rowGap={4} />
       </header>
 
       {/* Executive Summary - Shaded box */}
@@ -181,7 +118,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
       )}
 
       {/* Core Competencies - 2026: 3-Column Grid with Languages integrated */}
-      {(data.skills.length > 0 || data.languages.length > 0) && (
+      {data.skills.length > 0 && (
         <section style={{ marginBottom: '14px' }}>
           <h2 
             style={{ 
@@ -198,19 +135,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
           >
             {sectionHeading(data, 'skills')}
           </h2>
-          <SkillGrid
-            data={data}
-            primary={executiveColors.primary}
-            text={executiveColors.text}
-            columnGap={20}
-            rowGap={12}
-            labelMarginBottom={6}
-            labelLetterSpacing="0.4px"
-            itemGap={3}
-            bulletGap={6}
-            lineHeight={1.4}
-            languagesAfter={2}
-          />
+          <SkillLines data={data} primary={executiveColors.primary} text={executiveColors.text} gap={6} lineHeight={1.4} />
         </section>
       )}
 
@@ -234,8 +159,8 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             {data.experience.map((exp) => (
-              <div className="cv-entry" key={exp.id}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+              <div className="cv-exp" key={exp.id}>
+                <div className="cv-entry-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
                   <h3 
                     style={{ 
                       fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
@@ -250,7 +175,7 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
                     {formatDateRange(data, exp)}
                   </span>
                 </div>
-                <p 
+                <p className="cv-entry-head" 
                   style={{ 
                     fontSize: '10pt',
                     fontWeight: '500',
@@ -263,9 +188,9 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
                 </p>
                 {/* Explicit bullet characters for PDF compatibility */}
                 {exp.bullets.length > 0 && (
-                  <div style={{ marginTop: '6px', marginLeft: '4px' }}>
+                  <div className={exp.bullets.length <= 3 ? 'cv-bullets cv-bullets-short' : 'cv-bullets'} style={{ marginTop: '6px', marginLeft: '4px' }}>
                     {exp.bullets.map((bullet, idx) => (
-                      <div 
+                      <div className="cv-bullet"
                         key={idx} 
                         style={{ 
                           display: 'flex',
@@ -364,6 +289,27 @@ export function USProfessionalTemplate({ data, template, mode }: Props) {
               </div>
             ))}
           </div>
+        </section>
+      )}
+
+      {data.languages.length > 0 && (
+        <section style={{ marginBottom: '14px' }}>
+          <h2 
+            style={{ 
+              fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+              fontSize: '10.5pt',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: executiveColors.primary,
+              marginBottom: '8px',
+              paddingBottom: '8px',
+              borderBottom: `2px solid ${executiveColors.primary}`,
+            }}
+          >
+            {sectionHeading(data, 'languages')}
+          </h2>
+          <LanguageLine data={data} text={executiveColors.text} lineHeight={1.4} />
         </section>
       )}
 

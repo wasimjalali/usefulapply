@@ -1,10 +1,12 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { getProfile } from '@/db/repos/profiles';
 import type { FontFileLoader } from '@/lib/cv-templates/fonts';
 import { CONTENT_TYPES, extensionFor } from './filenames';
 import type { BrowserRunBinding } from './pdf';
 import { renderExport, type RenderedExport } from './render';
 import { ExportInputError, exportCacheHash, resolveExport } from './resolve';
-import { exportPathKey, signExportLink } from './signing';
+import { SigningUnavailableError, exportPathKey, signExportLink } from './signing';
 import { headExport, storeExport } from './storage';
 import { loadKitFromSession } from './kit-loader';
 import type { ExportRequest, ExportedFile, KitLoader } from './types';
@@ -23,12 +25,45 @@ declare global {
   }
 }
 
+/** The caller renders too often. Cache hits never raise this. */
+export class ExportRateLimitedError extends Error {
+  constructor() {
+    super('Too many exports.');
+    this.name = 'ExportRateLimitedError';
+  }
+}
+
+/** Renders that miss the cache cost browser time, so they have their own, tighter limits. */
+export const RENDER_LIMIT_PER_MINUTE = 6;
+export const RENDER_LIMIT_PER_DAY = 100;
+
+async function defaultRenderLimits(userId: string, env: CloudflareEnv | null): Promise<void> {
+  const minute = await checkRateLimit(`exports-render:${userId}`, RATE_LIMITS['exports-render']);
+  if (!minute.allowed) throw new ExportRateLimitedError();
+  // The daily count lives in KV with a one-day expiry. It is a guard against a runaway client, not a ledger,
+  // so a read-then-write race that lets a few extra renders through is fine.
+  const kv = env?.CONTEXT_CACHE;
+  if (!kv) return;
+  const key = `export-render:${userId}:${new Date().toISOString().slice(0, 10)}`;
+  const used = Number((await kv.get(key)) ?? 0);
+  if (used >= RENDER_LIMIT_PER_DAY) throw new ExportRateLimitedError();
+  await kv.put(key, String(used + 1), { expirationTtl: 90_000 });
+}
+
 export interface ExportDeps {
+  /** Called before a render that missed the cache. Defaults to the per-minute and per-day limits. */
+  beforeRender?: (userId: string) => Promise<void>;
+  /** Called before a rendered file is stored, so an account deleted mid-render leaves nothing behind. */
+  userExists?: (userId: string) => Promise<boolean>;
   loadKit?: KitLoader;
   browser?: BrowserRunBinding | null;
   loadFont?: FontFileLoader;
   secret?: string;
   now?: number;
+}
+
+async function defaultUserExists(userId: string): Promise<boolean> {
+  return (await getProfile(userId)) !== null;
 }
 
 async function envBindings(): Promise<CloudflareEnv | null> {
@@ -84,7 +119,10 @@ function assetFontLoader(env: CloudflareEnv | null): FontFileLoader {
  */
 export async function exportDocument(req: ExportRequest, deps: ExportDeps = {}): Promise<ExportedFile> {
   const started = Date.now();
-  const env = deps.browser === undefined || !deps.loadFont ? await envBindings() : null;
+  // Signing is checked first: without the secret a render would be wasted on a file nobody can fetch.
+  const secret = deps.secret ?? process.env.EXPORT_SIGNING_SECRET;
+  if (!secret) throw new SigningUnavailableError();
+  const env = await envBindings();
   const loadKit = deps.loadKit ?? loadKitFromSession;
 
   const kit = await loadKit(req.userId, req.applicationId);
@@ -107,11 +145,13 @@ export async function exportDocument(req: ExportRequest, deps: ExportDeps = {}):
 
   if (!fileName) {
     cached = false;
+    await (deps.beforeRender ?? ((userId: string) => defaultRenderLimits(userId, env)))(req.userId);
     const rendered: RenderedExport = await renderExport(resolved, {
       browser: deps.browser === undefined ? env?.BROWSER ?? null : deps.browser,
       loadFont: deps.loadFont ?? assetFontLoader(env),
     });
-    await storeExport(pathKey, rendered.bytes, rendered.contentType, { userId: req.userId, fileName: rendered.fileName });
+    if (!(await (deps.userExists ?? defaultUserExists)(req.userId))) throw new ExportInputError('NOT_FOUND', 'Application not found.');
+    await storeExport(pathKey, rendered.bytes, rendered.contentType, { userId: req.userId, fileName: rendered.fileName, displayName: rendered.displayName });
     fileName = rendered.fileName;
     size = rendered.bytes.length;
   }
@@ -119,7 +159,7 @@ export async function exportDocument(req: ExportRequest, deps: ExportDeps = {}):
   const link = await signExportLink({
     userId: req.userId,
     pathKey,
-    secret: deps.secret ?? process.env.EXPORT_SIGNING_SECRET,
+    secret,
     now: deps.now,
   });
 

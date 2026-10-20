@@ -480,6 +480,9 @@ export interface CVData {
     hidden?: boolean;
   }>;
 
+  /** Sections whose heading the user or the chat chose. Shown exactly as written, never normalized. */
+  renamedHeadings?: Array<'summary' | 'experience' | 'education' | 'skills' | 'certifications' | 'languages' | 'projects' | 'additionalInfo'>;
+
   /** Whole sections kept in the CV but not shown. See cv-templates/hidden.ts. */
   hiddenSections?: Array<'summary' | 'experience' | 'education' | 'skills' | 'certifications' | 'languages' | 'projects' | 'additionalInfo'>;
 }

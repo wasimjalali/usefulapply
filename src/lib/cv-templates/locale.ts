@@ -87,7 +87,27 @@ const GERMAN_STOPWORDS = new Set([
   'einer', 'als', 'auf', 'ist', 'sich', 'durch', 'bis', 'über', 'unter', 'nach', 'aus', 'wie', 'zu',
 ]);
 
-const GERMAN_HEADER_HINT = /berufserfahrung|werdegang|ausbildung|kenntnisse|sprachen|profil|zertifikat|fähigkeiten|kompetenzen/i;
+const GERMAN_HEADER_HINT = /berufserfahrung|werdegang|ausbildung|kenntnisse|sprachen|zertifikat|fähigkeiten|kompetenzen/i;
+
+/** Function words of the other supported languages, so French, Spanish, Italian, Portuguese and Dutch are not read as German or English. */
+const OTHER_STOPWORDS: Record<string, Set<string>> = {
+  fr: new Set(['le', 'la', 'les', 'des', 'du', 'un', 'une', 'et', 'en', 'pour', 'avec', 'dans', 'sur', 'par', 'au', 'aux', 'est', 'qui', 'que', 'ses', 'son', 'sa', 'chez']),
+  es: new Set(['el', 'los', 'las', 'del', 'y', 'en', 'para', 'con', 'por', 'una', 'un', 'es', 'se', 'que', 'su', 'sus', 'al', 'como', 'más']),
+  it: new Set(['il', 'lo', 'gli', 'di', 'del', 'della', 'dei', 'e', 'in', 'per', 'con', 'una', 'un', 'che', 'è', 'nel', 'nella', 'alla', 'sono']),
+  pt: new Set(['os', 'as', 'do', 'da', 'dos', 'das', 'e', 'em', 'para', 'com', 'uma', 'um', 'que', 'não', 'na', 'no', 'por', 'são']),
+  nl: new Set(['de', 'het', 'een', 'en', 'van', 'op', 'met', 'voor', 'is', 'dat', 'niet', 'aan', 'bij', 'naar', 'ook', 'zijn', 'door']),
+};
+
+function stopwordRatio(words: string[], set: Set<string>): number {
+  return words.filter((word) => set.has(word)).length / words.length;
+}
+
+/** The share of function words that mark German, and the best of the other languages, for a bag of words. */
+function languageShares(words: string[]): { german: number; other: number } {
+  const german = stopwordRatio(words, GERMAN_STOPWORDS);
+  const other = Math.max(...Object.values(OTHER_STOPWORDS).map((set) => stopwordRatio(words, set)));
+  return { german, other };
+}
 
 function stripLabel(value: string): string {
   return value.replace(/[:\s]+$/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -102,10 +122,10 @@ const GERMAN_PHRASES = /\b(sehr geehrte[rs]?|mit freundlichen gr(?:ü|ue)(?:ß|s
  */
 export function looksGerman(text: string): boolean {
   if (GERMAN_PHRASES.test(text)) return true;
-  const words = text.toLowerCase().match(/[a-zäöüß]+/g);
+  const words = text.toLowerCase().match(/[\p{L}]+/gu);
   if (!words || words.length < 12) return false;
-  const german = words.filter((word) => GERMAN_STOPWORDS.has(word)).length;
-  return german / words.length > 0.12;
+  const { german, other } = languageShares(words);
+  return german > 0.12 && german >= other;
 }
 
 /** The language the CV text is written in, for headings and dates. Explicit `data.language` wins. */
@@ -121,27 +141,40 @@ export function inferCvLocale(data: CVData): CvTextLocale {
   const sample = [data.summary ?? '', ...data.experience.flatMap((exp) => exp.bullets.slice(0, 3))]
     .join(' ')
     .toLowerCase()
-    .match(/[a-zäöüß]+/g);
+    .match(/[\p{L}]+/gu);
   if (sample && sample.length >= 12) {
-    const german = sample.filter((word) => GERMAN_STOPWORDS.has(word)).length;
-    if (german / sample.length > 0.12) return 'de';
+    const { german, other } = languageShares(sample);
+    // The other languages are checked first: French and Dutch share words with German and English.
+    if (other > 0.12 && other > german * 1.1) return 'other';
+    if (german > 0.12) return 'de';
   }
   return 'en';
 }
 
 /**
- * The section heading to print. For English and German CVs a known wording
- * ("Core Competencies", "Werdegang") becomes the standard ATS heading and a
- * deliberate custom heading is kept as written. Other languages keep what the
- * parser produced, with the English standard as the fallback.
+ * The heading a section shows. A heading the user or the chat renamed
+ * (`renamed`) is shown exactly as chosen. Otherwise, for English and German
+ * CVs, a known wording ("Core Competencies", "Werdegang") on an unrenamed
+ * section becomes the standard ATS heading, and any other wording is kept.
+ * Other languages keep what the parser produced, with the English standard as
+ * the fallback.
  */
-export function sectionHeading(data: CVData, key: HeadingKey): string {
-  const locale = inferCvLocale(data);
-  const provided = data.sectionHeaders?.[key as keyof NonNullable<CVData['sectionHeaders']>]?.trim();
-  const standard = STANDARD_HEADINGS[locale === 'other' ? 'en' : locale][key];
+export function resolveHeading(args: { provided?: string | null; renamed?: boolean; key: HeadingKey; locale: CvTextLocale }): string {
+  const provided = args.provided?.trim();
+  const standard = STANDARD_HEADINGS[args.locale === 'other' ? 'en' : args.locale][args.key];
   if (!provided) return standard;
-  if (locale !== 'other' && SYNONYMS[key].includes(stripLabel(provided))) return standard;
+  if (args.renamed) return provided;
+  if (args.locale !== 'other' && SYNONYMS[args.key].includes(stripLabel(provided))) return standard;
   return provided;
+}
+
+export function sectionHeading(data: CVData, key: HeadingKey): string {
+  return resolveHeading({
+    provided: data.sectionHeaders?.[key as keyof NonNullable<CVData['sectionHeaders']>],
+    renamed: data.renamedHeadings?.includes(key),
+    key,
+    locale: inferCvLocale(data),
+  });
 }
 
 const EN_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

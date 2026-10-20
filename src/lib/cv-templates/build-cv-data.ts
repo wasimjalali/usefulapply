@@ -5,6 +5,7 @@
  */
 
 import { structuredCVToCVData } from '@/lib/cv-templates/parser';
+import { inferCvLanguageFromHeaders } from '@/lib/cv-parser/section-splitter';
 import type { CVData } from '@/lib/cv-templates/types';
 import type { StructuredCV } from '@/lib/types/cv-schema';
 import type { ApplicationSession } from '@/store/useSessionStore';
@@ -53,15 +54,17 @@ type SectionHeaderKey = keyof NonNullable<CVData['sectionHeaders']>;
 function renderedHeaders(data: CVData): Array<[SectionHeaderKey, string]> {
   const headers = data.sectionHeaders;
   if (!headers) return [];
+  // A hidden section prints nothing, so its heading cannot collide with another.
+  const shown = (key: SectionHeaderKey, present: boolean) => present && !(data.hiddenSections as string[] | undefined)?.includes(key);
   const isRendered: Record<SectionHeaderKey, boolean> = {
-    summary: Boolean(data.summary?.trim()),
-    skills: data.skills.length > 0,
-    experience: data.experience.length > 0,
-    education: data.education.length > 0,
-    certifications: data.certifications.length > 0,
-    languages: data.languages.length > 0,
-    projects: (data.projects?.length ?? 0) > 0,
-    additionalInfo: (data.additionalInfo?.length ?? 0) > 0,
+    summary: shown('summary', Boolean(data.summary?.trim())),
+    skills: shown('skills', data.skills.some((group) => !group.hidden)),
+    experience: shown('experience', data.experience.some((entry) => !entry.hidden)),
+    education: shown('education', data.education.some((entry) => !entry.hidden)),
+    certifications: shown('certifications', data.certifications.some((entry) => !entry.hidden)),
+    languages: shown('languages', data.languages.some((entry) => !entry.hidden)),
+    projects: shown('projects', (data.projects ?? []).some((entry) => !entry.hidden)),
+    additionalInfo: shown('additionalInfo', (data.additionalInfo?.length ?? 0) > 0),
     contact: true,
   };
   const entries = Object.entries(headers) as Array<[SectionHeaderKey, string | undefined]>;
@@ -87,7 +90,8 @@ function resolveDuplicateHeaders(data: CVData): CVData {
 
   let result = data;
 
-  const repeats = (data.customSections ?? []).filter((section) => headerValues.has(section.title.trim().toLowerCase()));
+  // Hidden custom sections are left exactly as they are: folding one into additionalInfo would print its items.
+  const repeats = (data.customSections ?? []).filter((section) => !section.hidden && headerValues.has(section.title.trim().toLowerCase()));
   if (repeats.length > 0) {
     const kept = data.customSections!.filter((section) => !repeats.includes(section));
     const folded = [...(data.additionalInfo ?? []), ...repeats.flatMap((section) => section.items)];
@@ -147,6 +151,10 @@ export function buildCvData(input: BuildCvDataInput): CVData | null {
   // fall back to the original CV so the user never re-enters them per job.
   if (showOptimized && optimizedCVData) {
     const tailored: CVData = {
+      // The tailored CV's own headings say what language it was written in; the parsed CV's setting is the fallback.
+      language: optimizedCVData.sectionHeaders && Object.keys(optimizedCVData.sectionHeaders).length > 0
+        ? inferCvLanguageFromHeaders(optimizedCVData.sectionHeaders)
+        : parsed.language,
       personal: {
         fullName: optimizedCVData.personal.fullName,
         email: optimizedCVData.personal.email,
@@ -177,6 +185,7 @@ export function buildCvData(input: BuildCvDataInput): CVData | null {
       sectionHeaders: optimizedCVData.sectionHeaders,
       localizedStrings: optimizedCVData.localizedStrings,
       hiddenSections: optimizedCVData.hiddenSections,
+      renamedHeadings: optimizedCVData.renamedHeadings as CVData['renamedHeadings'],
     };
     normalizePersonalLinks(tailored.personal);
     return resolveDuplicateHeaders(tailored);

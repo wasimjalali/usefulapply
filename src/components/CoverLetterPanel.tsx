@@ -11,6 +11,7 @@ import { Mail, Download, Copy, Check, FileText, Edit3, Eye, Loader2, Maximize2, 
 import type { GeneratedCoverLetter } from '@/lib/types';
 import { StepIndicator } from './StepIndicator';
 import { KitDocumentError } from './KitDocumentError';
+import { PdfPreviewModal } from './ui/PdfPreviewModal';
 import { useToast } from './ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import {
@@ -184,14 +185,14 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   };
 
   /**
-   * What the server should lay out. The structured letter when the text is the
-   * writer's own; the plain text as it stands once the user has edited it,
-   * because an edit makes the structure stale.
+   * What the server should lay out. The rule, shared with saving: an edit to the
+   * body drops `structured` (see updateField and handleSaveEdits), so a letter
+   * that still carries a valid `structured` has its writer's own text, and a
+   * letter without one is laid out from its body, which is then the truth.
    */
   const letterForServer = (letter: GeneratedCoverLetter) => {
     const structured = (letter as { structured?: unknown }).structured;
-    const untouched = !coverLetter || formatCoverLetterAsText(letter) === formatCoverLetterAsText(coverLetter);
-    if (untouched && isStructuredCoverLetter(structured)) return { structuredLetter: structured };
+    if (isStructuredCoverLetter(structured)) return { structuredLetter: structured };
     return { legacyLetterText: formatCoverLetterAsText(letter) };
   };
 
@@ -365,6 +366,8 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
       obj = obj[keys[i]] as Record<string, unknown>;
     }
     obj[keys[keys.length - 1]] = value;
+    // The structure no longer matches an edited body: from here the body is the truth.
+    if (path === 'body') delete (newLetter as { structured?: unknown }).structured;
     setEditedCoverLetter(newLetter);
   };
 
@@ -566,25 +569,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
 
 
 
-      {layoutPreview && createPortal(
-        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">
-          <div className="relative flex h-[92vh] w-full max-w-[900px] flex-col overflow-hidden rounded-[24px] border border-cream-200 bg-cream-100 shadow-lg">
-            <div className="flex items-center justify-between border-b border-cream-200 bg-cream-50 px-5 py-3">
-              <h2 className="text-sm font-semibold tracking-tight text-charcoal">Cover letter layout</h2>
-              <button
-                type="button"
-                onClick={closeLayoutPreview}
-                aria-label="Close preview"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-cream-200 bg-white text-warm-gray transition-colors hover:border-navy-200 hover:text-navy-700 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <iframe src={layoutPreview.url} title="Cover letter layout" className="h-full w-full flex-1 bg-white" />
-          </div>
-        </div>,
-        document.body
-      )}
+      {layoutPreview && <PdfPreviewModal url={layoutPreview.url} title="Cover letter layout" onClose={closeLayoutPreview} />}
 
       {showFullPreview && activeCoverLetter && createPortal(
         <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">

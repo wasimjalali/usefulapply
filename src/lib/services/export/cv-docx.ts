@@ -10,6 +10,7 @@ import {
   LevelFormat,
   Packer,
   Paragraph,
+  Tab,
   TabStopType,
   TextRun,
   TextWrappingType,
@@ -28,6 +29,7 @@ import {
 } from '@/lib/cv-templates/locale';
 import { PAPER_MM, getPrintSpec, type PaperSize } from '@/lib/cv-templates/print-spec';
 import { CV_TEMPLATE_DEFINITIONS } from '@/lib/cv-templates/types';
+import { displayUrl, fullUrl } from '@/lib/cv-templates/url';
 import { PDF_PRODUCER } from './pdf';
 
 /**
@@ -46,13 +48,13 @@ const BODY_SIZE = 20; // half-points: 10 pt
 const SMALL_SIZE = 20;
 
 /** Linear reading order of each template, matching the order of its PDF. */
-const SECTION_ORDER: Record<string, Array<HeadingKey | 'custom'>> = {
-  'premium-ats': ['summary', 'skills', 'experience', 'education', 'certifications', 'projects', 'additionalInfo', 'custom'],
-  executive: ['summary', 'skills', 'experience', 'education', 'certifications', 'projects', 'additionalInfo', 'custom'],
-  'classic-green': ['summary', 'skills', 'experience', 'education', 'certifications', 'projects', 'additionalInfo', 'custom'],
-  'german-classic': ['summary', 'skills', 'experience', 'education', 'certifications', 'projects', 'additionalInfo', 'custom'],
-  'modern-professional': ['summary', 'experience', 'education', 'projects', 'additionalInfo', 'custom', 'skills', 'certifications'],
-  'german-ats': ['summary', 'experience', 'education', 'projects', 'additionalInfo', 'custom', 'skills', 'certifications'],
+export const SECTION_ORDER: Record<string, Array<HeadingKey | 'custom'>> = {
+  'premium-ats': ['summary', 'skills', 'experience', 'education', 'certifications', 'languages', 'projects', 'additionalInfo', 'custom'],
+  executive: ['summary', 'skills', 'experience', 'education', 'certifications', 'languages', 'projects', 'additionalInfo', 'custom'],
+  'classic-green': ['summary', 'skills', 'experience', 'education', 'certifications', 'languages', 'projects', 'additionalInfo', 'custom'],
+  'german-classic': ['summary', 'skills', 'experience', 'education', 'certifications', 'languages', 'projects', 'additionalInfo', 'custom'],
+  'modern-professional': ['summary', 'experience', 'education', 'projects', 'additionalInfo', 'custom', 'skills', 'languages', 'certifications'],
+  'german-ats': ['summary', 'experience', 'education', 'projects', 'additionalInfo', 'custom', 'skills', 'languages', 'certifications'],
 };
 
 function templateColor(templateId: string): string {
@@ -60,12 +62,17 @@ function templateColor(templateId: string): string {
   return template.colors.primary.replace('#', '').toUpperCase();
 }
 
-function contactLines(data: CVData): string[] {
+/** Contact items in the order the PDF prints them. Links carry their address as the visible text. */
+function contactItems(data: CVData): Array<{ text: string; link?: string }> {
   const p = data.personal;
   const place = [p.address, p.city, p.country]
     .filter((part, index, all): part is string => Boolean(part) && all.indexOf(part) === index)
     .join(', ');
-  return [p.email, p.phone, place, p.linkedIn, p.github, p.portfolio, p.website].filter((part): part is string => Boolean(part));
+  const links = [p.linkedIn, p.github, p.portfolio, p.website].filter((part): part is string => Boolean(part));
+  return [
+    ...[p.email, p.phone, place].filter((part): part is string => Boolean(part)).map((text) => ({ text })),
+    ...links.map((link) => ({ text: displayUrl(link), link: fullUrl(link) })),
+  ];
 }
 
 function parsePhoto(photoUrl: string | undefined): { type: 'jpg' | 'png'; data: Uint8Array } | null {
@@ -145,17 +152,17 @@ export async function buildCvDocx(input: CvDocxInput): Promise<Uint8Array> {
   if (data.personal.currentTitle) {
     paragraphs.push(body([run(data.personal.currentTitle, { color, font: HEADING_FONT, size: 26 })], 80));
   }
-  for (const line of contactLines(data)) {
-    const isUrl = /^https?:\/\//i.test(line);
+  for (const item of contactItems(data)) {
     paragraphs.push(
       body([
-        isUrl
-          ? new ExternalHyperlink({ link: line, children: [new TextRun({ text: line, style: 'Hyperlink' })] })
-          : run(line),
+        item.link
+          ? new ExternalHyperlink({ link: item.link, children: [new TextRun({ text: item.text, style: 'Hyperlink' })] })
+          : run(item.text),
       ], 20),
     );
   }
-  const personalFacts = [
+  // Date of birth and nationality belong to the DACH CV. A US CV never prints them, as in the PDF.
+  const personalFacts = spec.market !== 'dach' ? [] : [
     data.personal.dateOfBirth ? `${uiText(data, 'dateOfBirthLabel')}: ${data.personal.dateOfBirth}` : '',
     data.personal.nationality ? `${uiText(data, 'nationalityLabel')}: ${data.personal.nationality}` : '',
   ].filter(Boolean);
@@ -164,20 +171,11 @@ export async function buildCvDocx(input: CvDocxInput): Promise<Uint8Array> {
   const sections: Record<HeadingKey | 'custom', () => Paragraph[]> = {
     summary: () => (data.summary ? [h1('summary'), body([run(data.summary)], 80)] : []),
     skills: () => {
-      if (data.skills.length === 0 && data.languages.length === 0) return [];
-      const out: Paragraph[] = [h1('skills')];
-      for (const group of data.skills) {
-        out.push(body([run(`${group.category}: `, { bold: true }), run(group.items.join(', '))], 40));
-      }
-      if (data.languages.length > 0) {
-        out.push(
-          body([
-            run(`${sectionHeading(data, 'languages')}: `, { bold: true }),
-            run(data.languages.map((lang) => (lang.proficiency ? `${lang.language} (${lang.proficiency})` : lang.language)).join(', ')),
-          ], 40),
-        );
-      }
-      return out;
+      if (data.skills.length === 0) return [];
+      return [
+        h1('skills'),
+        ...data.skills.map((group) => body([run(`${group.category}: `, { bold: true }), run(group.items.join(', '))], 40)),
+      ];
     },
     experience: () => {
       if (data.experience.length === 0) return [];
@@ -191,7 +189,7 @@ export async function buildCvDocx(input: CvDocxInput): Promise<Uint8Array> {
             tabStops: [{ type: TabStopType.RIGHT, position: contentWidthTwip }],
             children: [
               run(exp.position, { bold: true, font: HEADING_FONT, size: 21 }),
-              run(`\t${formatDateRange(data, exp)}`, { color: '4A5568' }),
+              new TextRun({ children: [new Tab(), formatDateRange(data, exp)], color: '4A5568', font: BODY_FONT, size: BODY_SIZE }),
             ],
           }),
           new Paragraph({
@@ -217,7 +215,7 @@ export async function buildCvDocx(input: CvDocxInput): Promise<Uint8Array> {
             tabStops: [{ type: TabStopType.RIGHT, position: contentWidthTwip }],
             children: [
               run(degree, { bold: true, font: HEADING_FONT, size: 21 }),
-              ...(edu.endDate ? [run(`\t${formatSingleDate(data, edu.endDate)}`, { color: '4A5568' })] : []),
+              ...(edu.endDate ? [new TextRun({ children: [new Tab(), formatSingleDate(data, edu.endDate)], color: '4A5568', font: BODY_FONT, size: BODY_SIZE })] : []),
             ],
           }),
           body([run(edu.institution + (edu.grade ? ` | ${uiText(data, 'gradePrefix')} ${edu.grade}` : ''), { color: '4A5568' })], 40),
@@ -234,7 +232,17 @@ export async function buildCvDocx(input: CvDocxInput): Promise<Uint8Array> {
               body([run(cert.name, { bold: true }), run(cert.issuer ? ` (${cert.issuer})` : ''), run(cert.date ? `, ${formatSingleDate(data, cert.date)}` : '')], 40),
             ),
           ],
-    languages: () => [],
+    languages: () =>
+      data.languages.length === 0
+        ? []
+        : [
+            h1('languages'),
+            body(data.languages.flatMap((lang, index) => [
+              ...(index > 0 ? [run(', ')] : []),
+              run(lang.language + (lang.proficiency ? ':' : ''), { bold: true }),
+              ...(lang.proficiency ? [run(` ${lang.proficiency}`)] : []),
+            ]), 60),
+          ],
     projects: () =>
       !data.projects || data.projects.length === 0
         ? []

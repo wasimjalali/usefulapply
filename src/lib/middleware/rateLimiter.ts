@@ -86,6 +86,7 @@ const RATE_LIMIT_BINDING_NAMES = {
   'files-get': 'RATE_LIMIT_FILES_GET',
   'exports': 'RATE_LIMIT_EXPORTS',
   'exports-get': 'RATE_LIMIT_EXPORTS_GET',
+  'exports-render': 'RATE_LIMIT_EXPORT_RENDER',
 } as const;
 
 type BoundRateLimitRoute = keyof typeof RATE_LIMIT_BINDING_NAMES;
@@ -124,6 +125,7 @@ declare global {
     RATE_LIMIT_FILES_GET?: RateLimitBinding;
     RATE_LIMIT_EXPORTS?: RateLimitBinding;
     RATE_LIMIT_EXPORTS_GET?: RateLimitBinding;
+    RATE_LIMIT_EXPORT_RENDER?: RateLimitBinding;
   }
 }
 
@@ -267,6 +269,8 @@ export const RATE_LIMITS = {
   // Server-side CV and letter exports (Browser Run). Cached repeats are cheap, so 20 a minute is generous.
   'exports':                 { name: 'exports', limit: 20, windowMs: 60_000 },
   'exports-get':             { name: 'exports-get', limit: 60, windowMs: 60_000 },
+  // Only renders that miss the cache cost browser time: 6 a minute, and 100 a day (counted in KV, see export/index.ts).
+  'exports-render':          { name: 'exports-render', limit: 6, windowMs: 60_000 },
 } as const;
 
 export type RateLimitRoute = keyof typeof RATE_LIMITS;

@@ -45,6 +45,12 @@ export async function GET(request: NextRequest, context: { params: Promise<{ key
 
     const ext = segments[1].split('.')[1];
     const fileName = object.customMetadata?.fileName || `export.${ext}`;
+    let displayName = fileName;
+    try {
+      if (object.customMetadata?.displayName) displayName = decodeURIComponent(object.customMetadata.displayName);
+    } catch {
+      // keep the ASCII name
+    }
     const asciiName = fileName.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_');
 
     // writeHttpMetadata is not used, see the files route: everything is set here.
@@ -52,7 +58,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ key
     headers.set('Content-Type', CONTENT_TYPES[ext] ?? 'application/octet-stream');
     headers.set(
       'Content-Disposition',
-      `${ext === 'pdf' ? 'inline' : 'attachment'}; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+      `${ext === 'pdf' ? 'inline' : 'attachment'}; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(displayName)}`,
     );
     headers.set('Cache-Control', 'private, no-store');
     headers.set('Referrer-Policy', 'no-referrer');

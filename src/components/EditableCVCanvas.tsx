@@ -238,18 +238,31 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
   };
 
   const updateSkill = (categoryIndex: number, skillIndex: number, value: string) => {
-    const newItems = [...data.skills[categoryIndex].items];
+    const group = data.skills[categoryIndex];
+    const newItems = [...group.items];
+    const previous = newItems[skillIndex];
     newItems[skillIndex] = value;
+    // A skill is hidden by its text, so renaming carries the hide state to the new text
+    // instead of silently showing it again.
+    let hiddenItems = group.hiddenItems;
+    if (hiddenItems && previous !== value && hiddenItems.includes(previous)) {
+      const stillThere = newItems.some((item, index) => index !== skillIndex && item === previous);
+      hiddenItems = [...hiddenItems.filter((item) => stillThere || item !== previous), value];
+    }
     const newSkills = [...data.skills];
-    newSkills[categoryIndex] = { ...newSkills[categoryIndex], items: newItems };
+    newSkills[categoryIndex] = { ...group, items: newItems, hiddenItems };
     setData(prev => ({ ...prev, skills: newSkills }));
     setHasChanges(true);
   };
 
   const removeSkill = (categoryIndex: number, skillIndex: number) => {
-    const newItems = data.skills[categoryIndex].items.filter((_, i) => i !== skillIndex);
+    const group = data.skills[categoryIndex];
+    const removed = group.items[skillIndex];
+    const newItems = group.items.filter((_, i) => i !== skillIndex);
+    // A deleted skill takes its hide state with it (unless an identical skill remains).
+    const hiddenItems = group.hiddenItems?.filter((item) => item !== removed || newItems.includes(removed));
     const newSkills = [...data.skills];
-    newSkills[categoryIndex] = { ...newSkills[categoryIndex], items: newItems };
+    newSkills[categoryIndex] = { ...group, items: newItems, hiddenItems: hiddenItems && hiddenItems.length > 0 ? hiddenItems : undefined };
     setData(prev => ({ ...prev, skills: newSkills }));
     setHasChanges(true);
   };

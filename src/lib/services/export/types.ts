@@ -6,12 +6,7 @@ import type { LetterLayout } from './letter-html';
 
 export type { ExportFormat, LetterLayout };
 
-/**
- * Bump when a template, the print stylesheet, the fonts or a layout changes in
- * a way that alters the output. It is part of the cache key, so old exports are
- * never served for new rendering.
- */
-export const RENDERER_VERSION = '1.0.0';
+export { RENDERER_VERSION } from './renderer-version';
 
 export interface ExportEmail {
   /** "Application email", "Follow-up email" (or the German labels). */
