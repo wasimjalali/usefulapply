@@ -11,8 +11,14 @@
  * survive. Writes offline-checks.json beside the run folders and exits 1 on
  * any failure.
  */
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { sql, type SQL } from 'drizzle-orm';
+import { SQLiteSyncDialect } from 'drizzle-orm/sqlite-core';
+import { applicationSessions } from '../src/db/schema';
+import { withRecipientReset } from '../src/db/session-recipient-reset';
+import { sqlTrimStoredText, trimStoredText } from '../src/db/trim-text';
 import { loadCases, resolveCase } from './lib/cases';
 import type { MasterContext } from '../src/lib/agents/types';
 import { coverLetterFromModelOutput } from '../src/lib/agents/unified-writer-agent';
@@ -125,18 +131,18 @@ const REAL = ['Industriestraße 14', '90431 Nürnberg'];
 
   const twoPeople = jdOf('sl-de-contact').replace('Frau Melanie Brandl', 'Herr Jonas Müller und Frau Anna Hoffmann');
   const crossTitle = deRun({ recipient: { contactPerson: 'Frau Anna Hoffmann' }, salutation: 'Sehr geehrter Herr Hoffmann,' }, { jobDescription: twoPeople });
-  check('cross_person_title_falls_back_to_neutral', crossTitle.structured.salutation === 'Guten Tag Anna Hoffmann,', crossTitle.structured.salutation);
+  check('cross_person_title_corrected_to_stated_title', crossTitle.structured.salutation === 'Sehr geehrte Frau Hoffmann,', crossTitle.structured.salutation);
   const rightTitle = deRun({ recipient: { contactPerson: 'Frau Anna Hoffmann' }, salutation: 'Sehr geehrte Frau Hoffmann,' }, { jobDescription: twoPeople });
   check('stated_title_for_same_person_kept', rightTitle.structured.salutation === 'Sehr geehrte Frau Hoffmann,', rightTitle.structured.salutation);
   const mixedNames = deRun({ recipient: { contactPerson: 'Frau Anna Hoffmann' }, salutation: 'Guten Tag Jonas Hoffmann,' }, { jobDescription: twoPeople });
-  check('first_and_last_name_from_two_people_falls_back', mixedNames.structured.salutation === 'Guten Tag Anna Hoffmann,', mixedNames.structured.salutation);
+  check('first_and_last_name_from_two_people_falls_back', mixedNames.structured.salutation === 'Sehr geehrte Frau Hoffmann,', mixedNames.structured.salutation);
 
   const noTitle = jdOf('sl-de-contact').replace('Frau Melanie Brandl', 'Jordan Hoffmann');
   const geehrter = deRun({ recipient: { contactPerson: 'Jordan Hoffmann' }, salutation: 'Sehr geehrter Jordan Hoffmann,' }, { jobDescription: noTitle });
   check('geehrter_without_stated_title_falls_back', geehrter.structured.salutation === 'Guten Tag Jordan Hoffmann,', geehrter.structured.salutation);
 
   const savedContact = deRun({ salutation: 'Sehr geehrte Frau Brandl,' }, { letterRecipient: { contactPerson: 'Herr Paul Kaiser' } });
-  check('saved_contact_is_the_addressee', savedContact.structured.salutation === 'Guten Tag Paul Kaiser,' && savedContact.structured.recipient.contactPerson === 'Herr Paul Kaiser', savedContact.structured.salutation);
+  check('saved_contact_is_the_addressee', savedContact.structured.salutation === 'Sehr geehrter Herr Kaiser,' && savedContact.structured.recipient.contactPerson === 'Herr Paul Kaiser', savedContact.structured.salutation);
 
   const us = fixture('sl-us-address');
   const guessed = coverLetterFromModelOutput(JSON.stringify({ ...us.answer, salutation: 'Dear Ms. Whitfield,' }), us.context('en'), 'en');
@@ -154,8 +160,8 @@ const REAL = ['Industriestraße 14', '90431 Nürnberg'];
   const frAd = 'Merci d\'adresser votre candidature à : Mme Claire Dubois, Responsable du recrutement';
   check('fr_stated_title_kept', guard('Madame Dubois,', 'fr', 'Mme Claire Dubois', frAd) === 'Madame Dubois,', guard('Madame Dubois,', 'fr', 'Mme Claire Dubois', frAd));
   check('fr_chere_madame_kept', guard('Chère Madame Dubois,', 'fr', 'Mme Claire Dubois', frAd) === 'Chère Madame Dubois,', guard('Chère Madame Dubois,', 'fr', 'Mme Claire Dubois', frAd));
-  check('fr_wrong_title_falls_back', guard('Monsieur Dubois,', 'fr', 'Mme Claire Dubois', frAd) === 'Bonjour Claire Dubois,', guard('Monsieur Dubois,', 'fr', 'Mme Claire Dubois', frAd));
-  check('fr_cher_adjective_falls_back', guard('Cher Claire Dubois,', 'fr', 'Mme Claire Dubois', frAd) === 'Bonjour Claire Dubois,', guard('Cher Claire Dubois,', 'fr', 'Mme Claire Dubois', frAd));
+  check('fr_wrong_title_corrected_to_stated_title', guard('Monsieur Dubois,', 'fr', 'Mme Claire Dubois', frAd) === 'Madame Dubois,', guard('Monsieur Dubois,', 'fr', 'Mme Claire Dubois', frAd));
+  check('fr_cher_adjective_falls_back', guard('Cher Claire Dubois,', 'fr', 'Mme Claire Dubois', frAd) === 'Madame Dubois,', guard('Cher Claire Dubois,', 'fr', 'Mme Claire Dubois', frAd));
   check('fr_generic_kept', guard('Madame, Monsieur,', 'fr', undefined, frAd) === 'Madame, Monsieur,', guard('Madame, Monsieur,', 'fr', undefined, frAd));
   const esAd = 'Envía tu solicitud a Laura García, Recursos Humanos.';
   check('es_estimada_without_title_falls_back', guard('Estimada Sra. García:', 'es', 'Laura García', esAd) === 'Buenos días Laura García,', guard('Estimada Sra. García:', 'es', 'Laura García', esAd));
@@ -196,6 +202,225 @@ const REAL = ['Industriestraße 14', '90431 Nürnberg'];
 }
 
 check('contract_guard_rejects_shallow_object', !isStructuredCoverLetter({ version: 2, subject: '', paragraphs: [], sender: {}, recipient: {} }), 'shallow object');
+
+// --- PR #152 review round 2, one or more checks per item ------------------
+{
+  const apply = (block: string, lead = 'Please send your application to:\nAcme Ltd') => `${lead}\n${block}\nWe look forward to hearing from you.`;
+  const addr = (lines: string[], ad: string, anchors: Record<string, string> = { companyName: 'Acme Ltd' }) => extractAdAddress(lines, ad, anchors);
+
+  // 1. US house numbers with 4 or 5 digits.
+  const sf = addr(['1234 Market Street, San Francisco, CA 94103'], apply('1234 Market Street, San Francisco, CA 94103'));
+  check('r2_1_us_4_digit_house_number_kept', same(sf, ['1234 Market Street', 'San Francisco, CA 94103']), sf);
+  const dallas = addr(['10000 North Central Expressway, Dallas, TX 75231'], apply('10000 North Central Expressway, Dallas, TX 75231'));
+  check('r2_1_us_5_digit_house_number_kept', same(dallas, ['10000 North Central Expressway', 'Dallas, TX 75231']), dallas);
+  const twoLineSf = addr(['1234 Market Street', 'San Francisco, CA 94103'], apply('1234 Market Street\nSan Francisco, CA 94103'));
+  check('r2_1_us_two_line_kept', same(twoLineSf, ['1234 Market Street', 'San Francisco, CA 94103']), twoLineSf);
+
+  // 2. Boilerplate window.
+  const eeoThenSubmit = addr(['Hauptstraße 5', '10115 Berlin'], 'We are an equal opportunity employer and welcome applicants with disabilities. Please send your application to: Acme GmbH, Hauptstraße 5, 10115 Berlin.', { companyName: 'Acme GmbH' });
+  check('r2_2_submission_phrase_wins_inside_boilerplate', same(eeoThenSubmit, ['Hauptstraße 5', '10115 Berlin']), eeoThenSubmit);
+  const privacyAfter = addr(['Hauptstraße 5', '10115 Berlin'], 'Bewerbungen richten Sie an: Acme GmbH, Hauptstraße 5, 10115 Berlin. Datenschutzhinweise und Privacy Policy finden Sie auf unserer Website.', { companyName: 'Acme GmbH' });
+  check('r2_2_privacy_words_after_block_do_not_reject', same(privacyAfter, ['Hauptstraße 5', '10115 Berlin']), privacyAfter);
+  const cloudflare = extractAdAddress(['101 Townsend St.', 'San Francisco, CA 94107'], jdOf('syn-07'), { companyName: 'Cloudflare' });
+  check('r2_2_syn07_accommodation_address_still_dropped', cloudflare.length === 0, cloudflare);
+
+  // 3. Anchor vocabulary.
+  const contactColon = addr(['Hauptstraße 5', '10115 Berlin'], 'Wir freuen uns auf Sie.\nContact: Hauptstraße 5, 10115 Berlin', {});
+  check('r2_3_contact_colon_anchors', same(contactColon, ['Hauptstraße 5', '10115 Berlin']), contactColon);
+  const office = addr(['500 Main Street', 'Boston, MA 02110'], 'Great benefits.\nOur office: 500 Main Street, Boston, MA 02110', {});
+  check('r2_3_our_office_anchors', same(office, ['500 Main Street', 'Boston, MA 02110']), office);
+  const hq = addr(['500 Main Street', 'Boston, MA 02110'], 'Great benefits.\nHeadquarters: 500 Main Street, Boston, MA 02110', {});
+  check('r2_3_headquarters_anchors', same(hq, ['500 Main Street', 'Boston, MA 02110']), hq);
+  const bareBewerbung = addr(['Hauptstraße 5', '10115 Berlin'], 'Wir freuen uns auf Ihre Bewerbung.\nHauptstraße 5, 10115 Berlin', {});
+  check('r2_3_bare_bewerbung_is_not_an_anchor', bareBewerbung.length === 0, bareBewerbung);
+  const einsatzort = addr(['Kundenstraße 5', '10115 Berlin'], 'Acme GmbH sucht Sie für ein Projekt bei unserem Kunden.\nEinsatzort: Kundenstraße 5, 10115 Berlin', { companyName: 'Acme GmbH' });
+  check('r2_3_einsatzort_is_not_an_application_address', einsatzort.length === 0, einsatzort);
+  const jobSite = addr(['900 Harbor Road', 'Oakland, CA 94607'], 'Acme Ltd is hiring.\nJob site: 900 Harbor Road, Oakland, CA 94607', {});
+  check('r2_3_job_site_is_not_an_application_address', jobSite.length === 0, jobSite);
+
+  // 4. More address formats.
+  const formats: Array<[string, string[], string]> = [
+    ['postfach', ['Postfach 12 34 56', '90431 Nürnberg'], 'Postfach 12 34 56\n90431 Nürnberg'],
+    ['po_box', ['PO Box 12345', 'Chicago, IL 60606'], 'PO Box 12345\nChicago, IL 60606'],
+    ['canada', ['100 King Street West', 'Toronto, ON M5X 1A9'], '100 King Street West\nToronto, ON M5X 1A9'],
+    ['uk', ['10 Downing Street', 'London SW1A 2AA'], '10 Downing Street\nLondon SW1A 2AA'],
+    ['portugal', ['Rua Augusta 100', '1100-053 Lisboa'], 'Rua Augusta 100\n1100-053 Lisboa'],
+    ['us_no_comma', ['220 West Lake Street', 'Chicago IL 60606'], '220 West Lake Street\nChicago IL 60606'],
+    ['us_full_state', ['220 West Lake Street', 'Chicago, Illinois 60606'], '220 West Lake Street\nChicago, Illinois 60606'],
+    ['haus_line', ['Campusweg 2', 'Haus 3', '10115 Berlin'], 'Campusweg 2\nHaus 3\n10115 Berlin'],
+    ['c_o_line', ['c/o Regus', 'Hauptstraße 5', '10115 Berlin'], 'c/o Regus\nHauptstraße 5\n10115 Berlin'],
+  ];
+  for (const [name, lines, block] of formats) {
+    const got = addr(lines, apply(block));
+    check(`r2_4_format_${name}_kept`, same(got, lines), got);
+  }
+  const piped = addr(['Hauptstraße 5 | 10115 Berlin'], apply('Hauptstraße 5 | 10115 Berlin'));
+  check('r2_4_pipe_separator_split', same(piped, ['Hauptstraße 5', '10115 Berlin']), piped);
+  const dotted = addr(['Hauptstraße 5 · 10115 Berlin'], apply('Hauptstraße 5 · 10115 Berlin'));
+  check('r2_4_middle_dot_separator_split', same(dotted, ['Hauptstraße 5', '10115 Berlin']), dotted);
+  const dashed = addr(['Hauptstraße 5 - 10115 Berlin'], apply('Hauptstraße 5 - 10115 Berlin'));
+  check('r2_4_spaced_hyphen_separator_split', same(dashed, ['Hauptstraße 5', '10115 Berlin']), dashed);
+  const semicolon = addr(['Hauptstraße 5; 10115 Berlin'], apply('Hauptstraße 5; 10115 Berlin'));
+  check('r2_4_semicolon_separator_split', same(semicolon, ['Hauptstraße 5', '10115 Berlin']), semicolon);
+  const markdown = addr(['**Hauptstraße 5**', '_10115 Berlin_'], apply('**Hauptstraße 5**\n_10115 Berlin_'));
+  check('r2_4_markdown_stripped', same(markdown, ['Hauptstraße 5', '10115 Berlin']), markdown);
+  const longLine = `${'Langer Straßenname '.repeat(6)}5`;
+  const tooLong = addr([longLine, '10115 Berlin'], apply(`${longLine}\n10115 Berlin`));
+  check('r2_4_line_over_100_chars_dropped', tooLong.length === 0, `${longLine.length} chars -> ${JSON.stringify(tooLong)}`);
+
+  // 5. Sign-off check.
+  const us = fixture('sl-us-address');
+  const usParagraphs = us.answer.paragraphs;
+  const bestSentence = coverLetterFromModelOutput(JSON.stringify({ ...us.answer, closing: 'Best,', paragraphs: [...usParagraphs.slice(0, 2), `${usParagraphs[2]} I promise I will do my best.`] }), us.context('en'), 'en');
+  check('r2_5_sentence_ending_in_best_passes', bestSentence.structured.closing === 'Best,', bestSentence.structured.closing);
+  let signOff = 'no error';
+  try {
+    coverLetterFromModelOutput(JSON.stringify({ ...us.answer, closing: 'Kind regards,', paragraphs: [...usParagraphs.slice(0, 2), `${usParagraphs[2]}\nKind regards, Tomas Brandt`] }), us.context('en'), 'en');
+  } catch (error) {
+    signOff = (error as Error).message;
+  }
+  check('r2_5_sign_off_on_last_line_rejected', /sign-off/u.test(signOff), signOff);
+
+  // 6. US state codes versus DACH codes.
+  const markets: Array<[string, 'us' | 'dach']> = [['Berlin, DE', 'dach'], ['Wien, AT', 'dach'], ['Zürich, CH', 'dach'], ['Bern, BE', 'dach'], ['Dover, DE', 'us'], ['Vienna, VA', 'us']];
+  for (const [location, expected] of markets) {
+    const market = resolveLetterMarket('en', location, 'en');
+    check(`r2_6_market_${location.replace(/\W+/gu, '_')}`, market === expected, `${market} (expected ${expected})`);
+  }
+
+  // 7. Contract guard, field by field.
+  const good = deRun({}).structured;
+  const broken: Array<[string, unknown]> = [
+    ['empty subject', { ...good, subject: ' ' }],
+    ['no paragraphs', { ...good, paragraphs: [] }],
+    ['empty language', { ...good, language: '' }],
+    ['numeric place', { ...good, place: 5 }],
+    ['sender phone not text', { ...good, sender: { ...good.sender, phone: 123 } }],
+    ['sender links not a list', { ...good, sender: { ...good.sender, links: 'x' } }],
+    ['recipient contact not text', { ...good, recipient: { ...good.recipient, contactPerson: 1 } }],
+    ['empty signature name', { ...good, signatureName: '' }],
+  ];
+  for (const [name, value] of broken) check(`r2_7_contract_rejects_${name.replace(/\W+/gu, '_')}`, !isStructuredCoverLetter(value), name);
+
+  // 8. A missing or null subject degrades.
+  const noSubjectAnswer = { ...us.answer } as Record<string, unknown>;
+  delete noSubjectAnswer.subject;
+  const noSubject = coverLetterFromModelOutput(JSON.stringify(noSubjectAnswer), us.context('en'), 'en');
+  check('r2_8_missing_subject_degrades', noSubject.structured.subject === `Application for ${us.context('en').job?.title}`, noSubject.structured.subject);
+  const nullSubject = deRun({ subject: null as unknown as string });
+  check('r2_8_null_subject_degrades_de', nullSubject.structured.subject.startsWith('Bewerbung als '), nullSubject.structured.subject);
+
+  // 9. Fallbacks.
+  const guard = (salutation: string, language: SupportedLanguage, contactPerson: string | undefined, adText: string) => resolveSalutation({
+    salutation, language, adText, contactPerson, companyNames: [], isBlacklisted: () => false, isPlaceholder: () => false,
+  }).value;
+  check('r2_9_one_word_contact_gets_generic', guard('Dear Ms. Brandl,', 'en', 'Brandl', 'Send your application to Brandl.') === 'Dear Hiring Team,', guard('Dear Ms. Brandl,', 'en', 'Brandl', 'Send your application to Brandl.'));
+  check('r2_9_bare_surname_salutation_falls_back', guard('Dear Brandl,', 'en', 'Brandl', 'Send your application to Brandl.') === 'Dear Hiring Team,', guard('Dear Brandl,', 'en', 'Brandl', 'Send your application to Brandl.'));
+  check('r2_9_wrong_gender_corrected_de', guard('Sehr geehrter Herr Brandl,', 'de', 'Frau Melanie Brandl', 'Bewerbung an Frau Melanie Brandl') === 'Sehr geehrte Frau Brandl,', guard('Sehr geehrter Herr Brandl,', 'de', 'Frau Melanie Brandl', 'Bewerbung an Frau Melanie Brandl'));
+  const closing = (value: string) => resolveClosing({ closing: value, language: 'en', applicantName: 'Tomas Brandt', isBlacklisted: () => false, isPlaceholder: () => false }).value;
+  check('r2_9_closing_honorific_and_separator_removed', closing('Best regards, Mr. Tomas Brandt') === 'Best regards,', closing('Best regards, Mr. Tomas Brandt'));
+  check('r2_9_closing_unknown_after_strip_gets_default', closing('Thanks so much - Tomas Brandt') === 'Sincerely,', closing('Thanks so much - Tomas Brandt'));
+
+  // 10. Contact placement: an imprint name is not an application contact.
+  const imprintAd = `${jdOf('sl-de-contact')}\n\nImpressum: Brenner Getriebe GmbH, Geschäftsführer: Dr. Klaus Brenner, Registergericht Nürnberg HRB 12345`;
+  const imprintContact = deRun({ recipient: { contactPerson: 'Dr. Klaus Brenner' }, salutation: 'Sehr geehrte Damen und Herren,' }, { jobDescription: imprintAd });
+  check('r2_10_imprint_name_dropped', imprintContact.structured.recipient.contactPerson === undefined, String(imprintContact.structured.recipient.contactPerson));
+  check('r2_10_application_contact_kept', deRun({}).structured.recipient.contactPerson === 'Frau Melanie Brandl', String(deRun({}).structured.recipient.contactPerson));
+
+  // 11. Address in the letter text: the street part alone, and short saved unit lines.
+  let streetOnly = 'no error';
+  try {
+    coverLetterFromModelOutput(JSON.stringify({ ...us.answer, paragraphs: [`${usParagraphs[0]} I could visit you at 220 West Lake Street.`, ...usParagraphs.slice(1)] }), us.context('en'), 'en');
+  } catch (error) {
+    streetOnly = (error as Error).message;
+  }
+  check('r2_11_street_part_alone_rejected', /postal address/u.test(streetOnly), streetOnly);
+  const floor = coverLetterFromModelOutput(
+    JSON.stringify({ ...us.answer, paragraphs: [`${usParagraphs[0]} My team sat on Floor 5.`, ...usParagraphs.slice(1)] }),
+    us.context('en', { letterRecipient: { address: '1 Harbor Plaza\nFloor 5\nChicago, IL 60601' } }),
+    'en',
+  );
+  check('r2_11_short_saved_unit_line_ignored', floor.structured.recipient.addressLines.includes('Floor 5'), floor.structured.recipient.addressLines);
+
+  // 12. Subject references.
+  const subject = (value: string, adText: string, jobTitle: string, language: SupportedLanguage = 'en') => resolveSubject({ subject: value, language, adText, jobTitle, isPlaceholder: () => false }).value;
+  const usAd = jdOf('sl-us-address');
+  check('r2_12_unstated_reference_dropped_at_comma', subject('Application for Senior FP&A Analyst, Req #NW-9999', usAd, 'Senior FP&A Analyst') === 'Application for Senior FP&A Analyst', subject('Application for Senior FP&A Analyst, Req #NW-9999', usAd, 'Senior FP&A Analyst'));
+  check('r2_12_unstated_code_without_comma_rebuilt', subject('Application for Senior FP&A Analyst (ABC-XYZ)', usAd, 'Senior FP&A Analyst') === 'Application for Senior FP&A Analyst', subject('Application for Senior FP&A Analyst (ABC-XYZ)', usAd, 'Senior FP&A Analyst'));
+  check('r2_12_two_digit_reference_checked', subject('Bewerbung als Key Account Manager, Kennziffer 99', jdOf('sl-de-contact'), 'Key Account Manager', 'de') === 'Bewerbung als Key Account Manager', subject('Bewerbung als Key Account Manager, Kennziffer 99', jdOf('sl-de-contact'), 'Key Account Manager', 'de'));
+  check('r2_12_stated_reference_kept', subject('Application for Senior FP&A Analyst, Req #NW-4471', usAd, 'Senior FP&A Analyst').endsWith('#NW-4471'), '#NW-4471');
+
+  // 13 and 14. One trim rule in JS and SQL; whitespace-only columns are empty.
+  const NBSP = String.fromCharCode(0xa0);
+  const BOM = String.fromCharCode(0xfeff);
+  check('r2_13_js_trim_keeps_nbsp_and_bom', trimStoredText(`${NBSP}${BOM}Job ad\n \t`) === `${NBSP}${BOM}Job ad`, 'only space, tab, LF, CR stripped');
+  check('r2_13_sql_trim_uses_the_same_set', /trim\(.*' ' \|\| char\(9\) \|\| char\(10\) \|\| char\(13\)\)/u.test(new SQLiteSyncDialect().sqlToQuery(sqlTrimStoredText(applicationSessions.job_description)).sql), 'trim(col, space tab LF CR)');
+  const sqliteChecks = runSqliteChecks(NBSP, BOM);
+  for (const [name, pass, detail] of sqliteChecks) check(name, pass, detail);
+
+  // 15. Explicit undefined does not opt out of the reset; a value does.
+  const reset = withRecipientReset({ job_description: 'New ad', company_address: undefined });
+  check('r2_15_explicit_undefined_still_resets', typeof reset.company_address === 'object' && reset.company_address !== null, typeof reset.company_address);
+  const explicit = withRecipientReset({ job_description: 'New ad', company_address: 'Hauptstraße 5' });
+  check('r2_15_explicit_value_kept', explicit.company_address === 'Hauptstraße 5', String(explicit.company_address));
+  check('r2_15_no_job_change_no_reset', !('company_address' in withRecipientReset({ status: 'applied' })), 'untouched');
+
+  // Replay: run 4's real model answers through today's post-model code. The
+  // round 2 changes are code only, so each letter must come out as run 4 saved it.
+  const RUN4 = path.join(RESULTS, 'recipient-rerun-3', 'letters');
+  for (const id of ['sl-de-contact', 'sl-us-address', 'sl-fr-contact', 'syn-07']) {
+    const saved = JSON.parse(fs.readFileSync(path.join(RUN4, `${id}.json`), 'utf8')) as Fixture & {
+      language: SupportedLanguage;
+      structured: { subject: string; salutation: string; closing: string; recipient: unknown; paragraphs: string[] };
+    };
+    const replay = coverLetterFromModelOutput(saved.raw_letter_outputs.at(-1)!, {
+      sessionId: `replay-${id}`,
+      jobDescription: jdOf(id),
+      rawCV: cvOf(id),
+      detectedLanguage: saved.language,
+      applicant: saved.context.applicant,
+      job: saved.context.job,
+    }, saved.language).structured;
+    const fields = (s: typeof saved.structured) => ({ subject: s.subject, salutation: s.salutation, closing: s.closing, recipient: s.recipient, paragraphs: s.paragraphs });
+    check(`replay_run4_${id}_unchanged`, same(fields(replay), fields(saved.structured)), same(fields(replay), fields(saved.structured)) ? 'identical' : JSON.stringify(fields(replay)));
+  }
+}
+
+/**
+ * Items 13 and 14 against real SQLite (D1 is SQLite), with the SQL the code
+ * generates: the JD-change reset from withRecipientReset and the fill-only
+ * predicate from persist-letter-recipient. Skipped (reported) without sqlite3.
+ */
+function runSqliteChecks(nbsp: string, bom: string): Array<[string, boolean, string]> {
+  const dialect = new SQLiteSyncDialect();
+  const inline = (query: { sql: string; params: unknown[] }) => {
+    let i = 0;
+    return query.sql.replace(/\?/gu, () => `'${String(query.params[i++]).replace(/'/gu, "''")}'`);
+  };
+  const storedJd = `${nbsp}${bom}The ad text\n`;
+  const resetValues = withRecipientReset({ job_description: `${nbsp}${bom}The ad text` }) as Record<string, SQL>;
+  const reset = inline(dialect.sqlToQuery(sql`update application_sessions set company_address = ${resetValues.company_address} where id = 'a'`));
+  const changed = withRecipientReset({ job_description: 'Another ad' }) as Record<string, SQL>;
+  const resetChanged = inline(dialect.sqlToQuery(sql`update application_sessions set company_address = ${changed.company_address} where id = 'b'`));
+  const fill = inline(dialect.sqlToQuery(sql`update application_sessions set company_address = 'Filled' where id = 'c' and ${sqlTrimStoredText(applicationSessions.job_description)} = ${trimStoredText(storedJd)} and (${applicationSessions.company_address} is null or ${sqlTrimStoredText(applicationSessions.company_address)} = '')`));
+  const escape = (value: string) => value.replace(/'/gu, "''");
+  const script = [
+    'create table application_sessions (id text primary key, job_description text, company_address text);',
+    `insert into application_sessions values ('a', '${escape(storedJd)}', 'Saved 1'), ('b', '${escape(storedJd)}', 'Saved 2'), ('c', '${escape(storedJd)}', '  \t ');`,
+    `${reset};`, `${resetChanged};`, `${fill};`,
+    "select id || '=' || coalesce(company_address, 'NULL') from application_sessions order by id;",
+  ].join('\n');
+  try {
+    const out = execFileSync('sqlite3', [':memory:'], { input: script, encoding: 'utf8' }).trim().split('\n');
+    return [
+      ['r2_13_sqlite_nbsp_bom_jd_same_job_keeps_columns', out[0] === 'a=Saved 1', out[0]],
+      ['r2_13_sqlite_changed_jd_clears_columns', out[1] === 'b=NULL', out[1]],
+      ['r2_14_sqlite_whitespace_only_column_filled_on_nbsp_jd', out[2] === 'c=Filled', out[2]],
+    ];
+  } catch (error) {
+    return [['r2_13_sqlite_available', false, `sqlite3 not runnable: ${(error as Error).message}`]];
+  }
+}
 
 const failed = checks.filter((c) => !c.pass);
 fs.writeFileSync(path.join(RESULTS, 'offline-checks.json'), JSON.stringify({ date: new Date().toISOString(), total: checks.length, failed: failed.length, checks }, null, 1) + '\n');

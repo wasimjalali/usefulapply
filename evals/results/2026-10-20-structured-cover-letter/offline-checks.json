@@ -1,6 +1,6 @@
 {
- "date": "2026-10-20T11:02:51.163Z",
- "total": 52,
+ "date": "2026-10-20T11:28:39.210Z",
+ "total": 122,
  "failed": 0,
  "checks": [
   {
@@ -94,9 +94,9 @@
    "detail": "undefined"
   },
   {
-   "name": "cross_person_title_falls_back_to_neutral",
+   "name": "cross_person_title_corrected_to_stated_title",
    "pass": true,
-   "detail": "Guten Tag Anna Hoffmann,"
+   "detail": "Sehr geehrte Frau Hoffmann,"
   },
   {
    "name": "stated_title_for_same_person_kept",
@@ -106,7 +106,7 @@
   {
    "name": "first_and_last_name_from_two_people_falls_back",
    "pass": true,
-   "detail": "Guten Tag Anna Hoffmann,"
+   "detail": "Sehr geehrte Frau Hoffmann,"
   },
   {
    "name": "geehrter_without_stated_title_falls_back",
@@ -116,7 +116,7 @@
   {
    "name": "saved_contact_is_the_addressee",
    "pass": true,
-   "detail": "Guten Tag Paul Kaiser,"
+   "detail": "Sehr geehrter Herr Kaiser,"
   },
   {
    "name": "guessed_title_falls_back_to_neutral",
@@ -154,14 +154,14 @@
    "detail": "Chère Madame Dubois,"
   },
   {
-   "name": "fr_wrong_title_falls_back",
+   "name": "fr_wrong_title_corrected_to_stated_title",
    "pass": true,
-   "detail": "Bonjour Claire Dubois,"
+   "detail": "Madame Dubois,"
   },
   {
    "name": "fr_cher_adjective_falls_back",
    "pass": true,
-   "detail": "Bonjour Claire Dubois,"
+   "detail": "Madame Dubois,"
   },
   {
    "name": "fr_generic_kept",
@@ -262,6 +262,356 @@
    "name": "contract_guard_rejects_shallow_object",
    "pass": true,
    "detail": "shallow object"
+  },
+  {
+   "name": "r2_1_us_4_digit_house_number_kept",
+   "pass": true,
+   "detail": "[\"1234 Market Street\",\"San Francisco, CA 94103\"]"
+  },
+  {
+   "name": "r2_1_us_5_digit_house_number_kept",
+   "pass": true,
+   "detail": "[\"10000 North Central Expressway\",\"Dallas, TX 75231\"]"
+  },
+  {
+   "name": "r2_1_us_two_line_kept",
+   "pass": true,
+   "detail": "[\"1234 Market Street\",\"San Francisco, CA 94103\"]"
+  },
+  {
+   "name": "r2_2_submission_phrase_wins_inside_boilerplate",
+   "pass": true,
+   "detail": "[\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_2_privacy_words_after_block_do_not_reject",
+   "pass": true,
+   "detail": "[\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_2_syn07_accommodation_address_still_dropped",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r2_3_contact_colon_anchors",
+   "pass": true,
+   "detail": "[\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_3_our_office_anchors",
+   "pass": true,
+   "detail": "[\"500 Main Street\",\"Boston, MA 02110\"]"
+  },
+  {
+   "name": "r2_3_headquarters_anchors",
+   "pass": true,
+   "detail": "[\"500 Main Street\",\"Boston, MA 02110\"]"
+  },
+  {
+   "name": "r2_3_bare_bewerbung_is_not_an_anchor",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r2_3_einsatzort_is_not_an_application_address",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r2_3_job_site_is_not_an_application_address",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "r2_4_format_postfach_kept",
+   "pass": true,
+   "detail": "[\"Postfach 12 34 56\",\"90431 Nürnberg\"]"
+  },
+  {
+   "name": "r2_4_format_po_box_kept",
+   "pass": true,
+   "detail": "[\"PO Box 12345\",\"Chicago, IL 60606\"]"
+  },
+  {
+   "name": "r2_4_format_canada_kept",
+   "pass": true,
+   "detail": "[\"100 King Street West\",\"Toronto, ON M5X 1A9\"]"
+  },
+  {
+   "name": "r2_4_format_uk_kept",
+   "pass": true,
+   "detail": "[\"10 Downing Street\",\"London SW1A 2AA\"]"
+  },
+  {
+   "name": "r2_4_format_portugal_kept",
+   "pass": true,
+   "detail": "[\"Rua Augusta 100\",\"1100-053 Lisboa\"]"
+  },
+  {
+   "name": "r2_4_format_us_no_comma_kept",
+   "pass": true,
+   "detail": "[\"220 West Lake Street\",\"Chicago IL 60606\"]"
+  },
+  {
+   "name": "r2_4_format_us_full_state_kept",
+   "pass": true,
+   "detail": "[\"220 West Lake Street\",\"Chicago, Illinois 60606\"]"
+  },
+  {
+   "name": "r2_4_format_haus_line_kept",
+   "pass": true,
+   "detail": "[\"Campusweg 2\",\"Haus 3\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_4_format_c_o_line_kept",
+   "pass": true,
+   "detail": "[\"c/o Regus\",\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_4_pipe_separator_split",
+   "pass": true,
+   "detail": "[\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_4_middle_dot_separator_split",
+   "pass": true,
+   "detail": "[\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_4_spaced_hyphen_separator_split",
+   "pass": true,
+   "detail": "[\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_4_semicolon_separator_split",
+   "pass": true,
+   "detail": "[\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_4_markdown_stripped",
+   "pass": true,
+   "detail": "[\"Hauptstraße 5\",\"10115 Berlin\"]"
+  },
+  {
+   "name": "r2_4_line_over_100_chars_dropped",
+   "pass": true,
+   "detail": "115 chars -> []"
+  },
+  {
+   "name": "r2_5_sentence_ending_in_best_passes",
+   "pass": true,
+   "detail": "Best,"
+  },
+  {
+   "name": "r2_5_sign_off_on_last_line_rejected",
+   "pass": true,
+   "detail": "Cover letter validation failed: a paragraph repeated the sign-off or the signature"
+  },
+  {
+   "name": "r2_6_market_Berlin_DE",
+   "pass": true,
+   "detail": "dach (expected dach)"
+  },
+  {
+   "name": "r2_6_market_Wien_AT",
+   "pass": true,
+   "detail": "dach (expected dach)"
+  },
+  {
+   "name": "r2_6_market_Z_rich_CH",
+   "pass": true,
+   "detail": "dach (expected dach)"
+  },
+  {
+   "name": "r2_6_market_Bern_BE",
+   "pass": true,
+   "detail": "dach (expected dach)"
+  },
+  {
+   "name": "r2_6_market_Dover_DE",
+   "pass": true,
+   "detail": "us (expected us)"
+  },
+  {
+   "name": "r2_6_market_Vienna_VA",
+   "pass": true,
+   "detail": "us (expected us)"
+  },
+  {
+   "name": "r2_7_contract_rejects_empty_subject",
+   "pass": true,
+   "detail": "empty subject"
+  },
+  {
+   "name": "r2_7_contract_rejects_no_paragraphs",
+   "pass": true,
+   "detail": "no paragraphs"
+  },
+  {
+   "name": "r2_7_contract_rejects_empty_language",
+   "pass": true,
+   "detail": "empty language"
+  },
+  {
+   "name": "r2_7_contract_rejects_numeric_place",
+   "pass": true,
+   "detail": "numeric place"
+  },
+  {
+   "name": "r2_7_contract_rejects_sender_phone_not_text",
+   "pass": true,
+   "detail": "sender phone not text"
+  },
+  {
+   "name": "r2_7_contract_rejects_sender_links_not_a_list",
+   "pass": true,
+   "detail": "sender links not a list"
+  },
+  {
+   "name": "r2_7_contract_rejects_recipient_contact_not_text",
+   "pass": true,
+   "detail": "recipient contact not text"
+  },
+  {
+   "name": "r2_7_contract_rejects_empty_signature_name",
+   "pass": true,
+   "detail": "empty signature name"
+  },
+  {
+   "name": "r2_8_missing_subject_degrades",
+   "pass": true,
+   "detail": "Application for Senior FP&A Analyst"
+  },
+  {
+   "name": "r2_8_null_subject_degrades_de",
+   "pass": true,
+   "detail": "Bewerbung als Key Account Manager (m/w/d) Antriebstechnik"
+  },
+  {
+   "name": "r2_9_one_word_contact_gets_generic",
+   "pass": true,
+   "detail": "Dear Hiring Team,"
+  },
+  {
+   "name": "r2_9_bare_surname_salutation_falls_back",
+   "pass": true,
+   "detail": "Dear Hiring Team,"
+  },
+  {
+   "name": "r2_9_wrong_gender_corrected_de",
+   "pass": true,
+   "detail": "Sehr geehrte Frau Brandl,"
+  },
+  {
+   "name": "r2_9_closing_honorific_and_separator_removed",
+   "pass": true,
+   "detail": "Best regards,"
+  },
+  {
+   "name": "r2_9_closing_unknown_after_strip_gets_default",
+   "pass": true,
+   "detail": "Sincerely,"
+  },
+  {
+   "name": "r2_10_imprint_name_dropped",
+   "pass": true,
+   "detail": "undefined"
+  },
+  {
+   "name": "r2_10_application_contact_kept",
+   "pass": true,
+   "detail": "Frau Melanie Brandl"
+  },
+  {
+   "name": "r2_11_street_part_alone_rejected",
+   "pass": true,
+   "detail": "Cover letter validation failed: the letter text contained the postal address, which belongs only in the recipient field"
+  },
+  {
+   "name": "r2_11_short_saved_unit_line_ignored",
+   "pass": true,
+   "detail": "[\"1 Harbor Plaza\",\"Floor 5\",\"Chicago, IL 60601\"]"
+  },
+  {
+   "name": "r2_12_unstated_reference_dropped_at_comma",
+   "pass": true,
+   "detail": "Application for Senior FP&A Analyst"
+  },
+  {
+   "name": "r2_12_unstated_code_without_comma_rebuilt",
+   "pass": true,
+   "detail": "Application for Senior FP&A Analyst"
+  },
+  {
+   "name": "r2_12_two_digit_reference_checked",
+   "pass": true,
+   "detail": "Bewerbung als Key Account Manager"
+  },
+  {
+   "name": "r2_12_stated_reference_kept",
+   "pass": true,
+   "detail": "#NW-4471"
+  },
+  {
+   "name": "r2_13_js_trim_keeps_nbsp_and_bom",
+   "pass": true,
+   "detail": "only space, tab, LF, CR stripped"
+  },
+  {
+   "name": "r2_13_sql_trim_uses_the_same_set",
+   "pass": true,
+   "detail": "trim(col, space tab LF CR)"
+  },
+  {
+   "name": "r2_13_sqlite_nbsp_bom_jd_same_job_keeps_columns",
+   "pass": true,
+   "detail": "a=Saved 1"
+  },
+  {
+   "name": "r2_13_sqlite_changed_jd_clears_columns",
+   "pass": true,
+   "detail": "b=NULL"
+  },
+  {
+   "name": "r2_14_sqlite_whitespace_only_column_filled_on_nbsp_jd",
+   "pass": true,
+   "detail": "c=Filled"
+  },
+  {
+   "name": "r2_15_explicit_undefined_still_resets",
+   "pass": true,
+   "detail": "object"
+  },
+  {
+   "name": "r2_15_explicit_value_kept",
+   "pass": true,
+   "detail": "Hauptstraße 5"
+  },
+  {
+   "name": "r2_15_no_job_change_no_reset",
+   "pass": true,
+   "detail": "untouched"
+  },
+  {
+   "name": "replay_run4_sl-de-contact_unchanged",
+   "pass": true,
+   "detail": "identical"
+  },
+  {
+   "name": "replay_run4_sl-us-address_unchanged",
+   "pass": true,
+   "detail": "identical"
+  },
+  {
+   "name": "replay_run4_sl-fr-contact_unchanged",
+   "pass": true,
+   "detail": "identical"
+  },
+  {
+   "name": "replay_run4_syn-07_unchanged",
+   "pass": true,
+   "detail": "identical"
   }
  ]
 }

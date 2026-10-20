@@ -19,6 +19,7 @@ A same-day follow-up (runs 2 and 3) added a second question. A DIN letter with a
 | 2 | 2 (sl-de-contact, new sl-us-address) | `.../recipient-rerun/` | the model also returns the ad's company name and postal address; code keeps them only if verbatim |
 | 3 | the same 2 | `.../recipient-rerun-2/` | run 2 found a guessed title ("Dear Ms. Whitfield" for an ad that only says "Dana Whitfield"); the prompt and the validator now forbid unstated titles |
 | 4 | 4 (the 2 address cases, syn-07, new sl-fr-contact) plus 52 offline checks | `.../recipient-rerun-3/`, `offline-checks.json` | PR review round 1: address as one anchored block, salutation rules in all seven languages, optional fields degrade instead of failing, JD change clears the saved recipient |
+| round 2 | no live run (code only); 122 offline checks, including a replay of run 4's 4 answers | `offline-checks.json` | PR review round 2: US 4-5 digit house numbers, more address formats, submission phrases, workplace exclusions, contact placement, sign-off check, US state list, full contract guard, shared trim rule |
 
 ## What ran (run 1)
 
@@ -191,12 +192,12 @@ The PR review (Sonnet and Codex at high) probed the run 3 code and found holes. 
 - **Persistence and state:**
   - Changing `job_description` through any write path clears `company_address` and `company_contact_person` in the same SQL statement.
   - The browser sync no longer writes those two columns.
-  - The fill-only save is one conditional `UPDATE ... WHERE (col IS NULL OR col = '') AND trim(job_description) = <the letter's JD>` per column.
-- **Contract guard:** `isStructuredCoverLetter` now checks every required field (the text the renderer worker shares).
+  - The fill-only save is one conditional `UPDATE ... WHERE (col IS NULL OR trim(col) = '') AND trim(job_description) = <the letter's JD>` per column. Since round 2, both trims strip only space, tab, LF and CR, the same set on the JS side (`src/db/trim-text.ts`).
+- **Contract guard:** in round 1, `isStructuredCoverLetter` checked the core fields only. Round 2 replaced it with a guard that checks every field (see below).
 
 ### Offline checks (code-fixed, no model, no API key)
 
-`npx tsx evals/structured-cover-letter-offline.ts` loads run 3's committed answers and analysis context (`recipient-rerun-2/letters/`) and the committed ads. It changes one thing per check and writes `offline-checks.json`. **52 of 52 pass.** They include:
+`npx tsx evals/structured-cover-letter-offline.ts` loads run 3's committed answers and analysis context (`recipient-rerun-2/letters/`) and the committed ads. It changes one thing per check and writes `offline-checks.json`. **52 of 52 passed at run 4** (122 after round 2, see below). They include:
 
 - **Address:**
   - the splice of two offices;
@@ -271,6 +272,88 @@ The live script now requires `--out-sub` and refuses a folder that already holds
 | no_address_in_letter_text | code-fixed for extracted and saved addresses, model-dependent otherwise | |
 | numbers_traced, no_missing_skill_named, three_paragraphs, under_250_words | model-dependent | measured, not enforced; length never fails a letter by design |
 
+## Review round 2 (code only, no model run)
+
+The second review (Sonnet, Codex and Opus at high) found one high and fifteen lows. All were fixed in code. The prompt is unchanged, so no live rerun was needed. Instead, the offline suite **replays run 4's four real model answers through the new code**, and all four letters come out identical to what run 4 saved.
+
+**What changed:**
+- **Address formats:**
+  - A postcode line must end in a city and never in a street suffix, so "1234 Market Street" and "10000 North Central Expressway" are streets again. They were dropped as postcode lines before.
+  - Newly accepted:
+    - "Postfach 12 34 56" and "PO Box 12345";
+    - Canadian ("Toronto, ON M5X 1A9"), UK ("London SW1A 2AA") and Portuguese ("1100-053 Lisboa") postcodes;
+    - "Chicago IL 60606" and "Chicago, Illinois 60606";
+    - " | ", " · ", " - " and ";" separators, and markdown;
+    - "Haus 3" and "c/o" lines.
+  - Lines are capped at 100 characters.
+- **Placement:**
+  - An explicit submission phrase within 80 characters before the address wins, even inside boilerplate. Examples: "send your application to", "Bewerbungen richten Sie an", "Ihre Unterlagen an", "adresser votre candidature ... à".
+  - Boilerplate is checked before the block only.
+  - Bare "Bewerbung" is no longer an anchor. "Contact:", "Our office" and "Headquarters" are.
+  - A workplace label ("Einsatzort", "Arbeitsort", "work location", "job site", "on site at") rejects the address.
+- **Contact placement:** the contact person passes the same placement test, and an imprint or legal name never qualifies ("Geschäftsführer", "Vorstand", "CEO", "Managing Director"...).
+- **Fallbacks:**
+  - A wrong-gender title for a contact whose title the ad states is corrected to that title ("Sehr geehrte Frau Hoffmann,", "Madame Dubois,").
+  - A one-word contact gets the generic greeting.
+  - A closing that carried the name keeps only a known closing, otherwise the language default.
+  - A missing subject degrades to "Application for <title>" and its equivalents.
+  - A subject reference the ad doesn't state is cut at its comma, or the subject is rebuilt from the title.
+- **Sign-off check:** only a paragraph's last line, or the text after its last sentence end, that is the closing, the name or both fails. "…I will do my best." with "Best," passes.
+- **Address in the letter text:** the street part on its own also counts, and saved lines under 8 characters ("Floor 5") are ignored.
+- **Market:** a two-letter code counts as a US state only from the real list (50 states, DC, territories). "Berlin, DE", "Wien, AT", "Zürich, CH" and "Bern, BE" are `dach`, "Dover, DE" is `us`.
+- **State:**
+  - One trim rule (space, tab, LF, CR) on the JS and SQL sides.
+  - Whitespace-only columns count as empty.
+  - An explicit `undefined` no longer opts out of the JD-change reset.
+  - The browser server action strips both recipient columns.
+- **Contract guard:** `isStructuredCoverLetter` now checks every field, required and optional (the text the renderer worker shares). The live eval's `contractIssues` lists the same rules by name and flags any disagreement with the guard. The ISO date and empty-line checks are a separate `fields_well_formed` check.
+
+**Offline suite:** 122 of 122 pass (`offline-checks.json`). That's the 52 from run 4 (5 of them updated for the titled-correction fallback), 66 round 2 checks (at least one per item) and the 4-letter replay. The trim and empty-column checks (items 13 and 14) run the generated SQL in real `sqlite3`:
+- a JD with a leading NBSP and BOM keeps its columns;
+- a changed JD clears them;
+- a whitespace-only column is filled.
+
+### Cost
+
+Prices come from `evals/lib/pricing.ts`, the Sonnet 5.5 list rates: $2 per million input tokens, $10 per million output, cache write $2.50 (1.25x input), cache read $0.10 (0.05x input).
+
+| Run | Calls | Cost |
+|---|---|---|
+| 1 | 30 | $0.4315 |
+| 2 | 10 | $0.1246 |
+| 3 | 10 | $0.1389 |
+| 4 | 20 | $0.2615 |
+| Round 2 | 0 | $0 |
+| **Total** | **70** | **$0.9565** |
+
+### Remaining address false-rejection modes
+
+All of these leave the address field empty. None of them puts a wrong address in it.
+
+- **Street lines without a recognised shape:**
+  - a 4-5 digit number before a name with no street suffix ("1234 Market"), which reads as a postcode line;
+  - a street with no house number ("Am Markt");
+  - extra words after the number ("Hauptstraße 5 Hinterhaus").
+- **Postcodes not covered:** Swedish ("123 45 Stockholm"), Polish ("00-950 Warszawa"), Irish Eircodes, and a US state on its own line.
+- **One-line addresses with no comma or separator** between street and city, such as "Hauptstraße 5 10115 Berlin", or a country in the same model line as the city.
+- **Placement misses:**
+  - an address more than 250 characters after the last anchor;
+  - an address anchored only by wording outside the vocabulary;
+  - an address within 300 characters after boilerplate words with no submission phrase within 80 characters;
+  - an address within 120 characters after a workplace label.
+- **Size:** more than five lines, or a line over 100 characters.
+- **The model doesn't copy the address.** This one is model-dependent.
+
+### What `sanitizeAdText` does to copied details
+
+The job description reaches the model through `sanitizeAdText` (`src/lib/agents/chat-tools/untrusted.ts`), and some of what the model copies comes from that version:
+- `<` and `>` become `‹` and `›`;
+- runs of `===` become `==`;
+- the writer's own prompt labels are lowercased;
+- control characters become spaces.
+
+Every recipient detail is matched against the raw ad, so a detail that differs only by these characters doesn't match and is dropped. The field comes back empty, never altered. Whitespace and case differences are already tolerated by the matcher.
+
 ## Limits
 
 - One run per case: six cases in run 1, two in runs 2 and 3, four in run 4. This shows the contract path works and the rules hold. It doesn't measure rates.
@@ -294,7 +377,7 @@ The structured contract works on the production model with no retries:
 - correct DACH and US subject and closing conventions;
 - each body an exact rendering of its structure.
 
-A recipient detail reaches the letter only from the session row or from the ad's own text. This covers the company, contact person, department and postal address. The address must be one anchored, well-formed block, not boilerplate. A fake, partly fake, spliced, numberless or boilerplate address is dropped. So are a fake contact, a guessed or cross-person title, and a name from a second person. An address in the paragraphs fails the letter's validation. Optional fields degrade to fixed forms instead of costing the letter. Run 4: 4 of 4 live letters pass 14 of 14 with no retries and no fallbacks, and 52 of 52 offline checks pass.
+A recipient detail reaches the letter only from the session row or from the ad's own text. This covers the company, contact person, department and postal address. The address must be one anchored, well-formed block, not boilerplate. A fake, partly fake, spliced, numberless or boilerplate address is dropped. So are a fake contact, a guessed or cross-person title, and a name from a second person. An address in the paragraphs fails the letter's validation. Optional fields degrade to fixed forms instead of costing the letter. Run 4: 4 of 4 live letters pass 14 of 14 with no retries and no fallbacks, and after review round 2, 122 of 122 offline checks pass, including a replay of run 4's answers through the final code (identical letters).
 
 ## What changed because of it
 
@@ -302,5 +385,6 @@ A recipient detail reaches the letter only from the session row or from the ad's
 - **Run 2 and the orchestrator's follow-up:** the writer now fills the address block from the ad, verbatim only, and saves it to empty session columns so the user can edit it later.
 - **Run 2's guessed title:** led to the no-unstated-title rule in the prompt and the validator.
 - **The review probes and run 4:** led to the block-and-anchor address rule, the seven-language salutation rule, degrade-not-fail, the JD-change clear, the server-only recipient columns and the atomic fill.
+- **Review round 2:** led to the US house-number fix, the wider address formats, submission phrases and workplace exclusions, contact placement, titled corrections, the last-line sign-off rule, the real US state list, the full contract guard and the shared trim rule.
 
 One follow-up remains, outside this PR. The soft gap sentences need a prompt tweak to the `<gaps>` and learning-ability guidance: "keen to build proficiency in Tableau", "Umstieg auf Salesforce", "what I do best".

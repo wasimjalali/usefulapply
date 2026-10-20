@@ -85,36 +85,55 @@ interface CaseResult {
 const words = (text: string) => text.trim().split(/\s+/u).filter(Boolean).length;
 const norm = (text: string) => text.normalize('NFKC').toLocaleLowerCase().replace(/ß/gu, 'ss').replace(/\s+/gu, ' ').trim();
 
-/** Deep shape check against the contract, beyond the isStructuredCoverLetter guard. */
+/**
+ * The contract, field by field: the same conditions as isStructuredCoverLetter
+ * in src/lib/cover-letter/contract.ts, named so a failure says which field.
+ */
 function contractIssues(letter: unknown, isStructured: (v: unknown) => boolean): string[] {
+  if (!letter || typeof letter !== 'object') return ['not an object'];
+  const v = letter as Record<string, unknown>;
+  const sender = (v.sender ?? {}) as Record<string, unknown>;
+  const recipient = (v.recipient ?? {}) as Record<string, unknown>;
+  const isText = (x: unknown) => typeof x === 'string';
+  const isFilled = (x: unknown) => typeof x === 'string' && x.trim().length > 0;
+  const isTextList = (x: unknown) => Array.isArray(x) && x.every(isText);
+  const isOptionalText = (x: unknown) => x === undefined || isText(x);
+  const rules: Array<[string, boolean]> = [
+    ['version is 2', v.version === 2],
+    ['language filled', isFilled(v.language)],
+    ['market us or dach', v.market === 'us' || v.market === 'dach'],
+    ['date filled', isFilled(v.date)],
+    ['subject filled', isFilled(v.subject)],
+    ['salutation filled', isFilled(v.salutation)],
+    ['paragraphs a non-empty text list', isTextList(v.paragraphs) && (v.paragraphs as unknown[]).length > 0],
+    ['closing filled', isFilled(v.closing)],
+    ['signatureName filled', isFilled(v.signatureName)],
+    ['place optional text', isOptionalText(v.place)],
+    ['sender an object', !!v.sender && typeof v.sender === 'object'],
+    ['sender.name filled', isFilled(sender.name)],
+    ['sender.addressLines a text list', isTextList(sender.addressLines)],
+    ['sender.phone optional text', isOptionalText(sender.phone)],
+    ['sender.email optional text', isOptionalText(sender.email)],
+    ['sender.links optional text list', sender.links === undefined || isTextList(sender.links)],
+    ['recipient an object', !!v.recipient && typeof v.recipient === 'object'],
+    ['recipient.addressLines a text list', isTextList(recipient.addressLines)],
+    ['recipient.companyName optional text', isOptionalText(recipient.companyName)],
+    ['recipient.contactPerson optional text', isOptionalText(recipient.contactPerson)],
+    ['recipient.department optional text', isOptionalText(recipient.department)],
+  ];
+  const issues = rules.filter(([, ok]) => !ok).map(([name]) => name);
+  // The named rules and the shared guard must agree, or this copy has drifted.
+  if ((issues.length === 0) !== isStructured(letter)) issues.push('contractIssues and isStructuredCoverLetter disagree');
+  return issues;
+}
+
+/** Beyond the contract: an ISO date and no empty lines in the lists the renderer prints. */
+function formIssues(letter: StructuredCoverLetter): string[] {
   const issues: string[] = [];
-  if (!isStructured(letter)) return ['isStructuredCoverLetter() rejected it'];
-  const l = letter as StructuredCoverLetter;
-  const str = (v: unknown, name: string, optional = false) => {
-    if (v === undefined && optional) return;
-    if (typeof v !== 'string' || (!optional && !v.trim())) issues.push(`${name} is not a non-empty string`);
-  };
-  const strArr = (v: unknown, name: string) => {
-    if (!Array.isArray(v) || v.some((x) => typeof x !== 'string' || !x.trim())) issues.push(`${name} is not a string array`);
-  };
-  str(l.language, 'language');
-  str(l.sender.name, 'sender.name');
-  strArr(l.sender.addressLines, 'sender.addressLines');
-  str(l.sender.phone, 'sender.phone', true);
-  str(l.sender.email, 'sender.email', true);
-  if (l.sender.links !== undefined) strArr(l.sender.links, 'sender.links');
-  str(l.recipient.companyName, 'recipient.companyName', true);
-  str(l.recipient.contactPerson, 'recipient.contactPerson', true);
-  str(l.recipient.department, 'recipient.department', true);
-  strArr(l.recipient.addressLines, 'recipient.addressLines');
-  str(l.place, 'place', true);
-  if (!/^\d{4}-\d{2}-\d{2}$/u.test(l.date)) issues.push('date is not ISO YYYY-MM-DD');
-  str(l.subject, 'subject');
-  str(l.salutation, 'salutation');
-  strArr(l.paragraphs, 'paragraphs');
-  if (l.paragraphs.length === 0) issues.push('no paragraphs');
-  str(l.closing, 'closing');
-  str(l.signatureName, 'signatureName');
+  if (!/^\d{4}-\d{2}-\d{2}$/u.test(letter.date)) issues.push('date is not ISO YYYY-MM-DD');
+  for (const [name, list] of [['paragraphs', letter.paragraphs], ['sender.addressLines', letter.sender.addressLines], ['recipient.addressLines', letter.recipient.addressLines]] as const) {
+    if (list.some((line) => !line.trim())) issues.push(`${name} has an empty line`);
+  }
   return issues;
 }
 
@@ -234,6 +253,8 @@ async function main() {
 
     const contract = contractIssues(l, isStructuredCoverLetter);
     add('contract_valid', contract.length === 0, contract.join('; '));
+    const form = formIssues(l);
+    add('fields_well_formed', form.length === 0, form.join('; '));
 
     // An ad with an application address must give a filled block, every line
     // the ad's own text; any other ad gives an empty block. No address line
