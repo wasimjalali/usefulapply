@@ -6,11 +6,15 @@ import { mcpGrantState, oauthClient, oauthConsent, oauthRefreshToken, profiles, 
  * Connected apps: the OAuth clients a user has authorised for MCP, and the
  * revocation record the /mcp token check reads.
  *
- * Better Auth cannot revoke a JWT access token, so revoking a client does
- * three things in one D1 batch: revoke its refresh tokens (no new access
- * tokens), delete its consent (the next authorise asks again) and write
- * `revoked_at`. The /mcp check refuses any access token issued at or before
- * `revoked_at`, so access tokens die within GRANT_CACHE_TTL_MS.
+ * Better Auth cannot revoke a JWT access token, so revoking a client runs one
+ * D1 batch: delete its access and refresh tokens, its consent (the next
+ * authorise asks again), any authorization codes issued but not yet exchanged,
+ * and write `revoked_at`. The /mcp check then refuses an access token that
+ *   - was issued at or before `revoked_at`, or
+ *   - has no consent row behind it, or
+ *   - carries a scope the current consent does not include (a code that slipped
+ *     through a revoke, redeemed after the user reconnected with less access),
+ * so access tokens die within GRANT_CACHE_TTL_MS.
  */
 
 /** Longest a revocation can go unseen by another isolate. The brief allows 60 s. */
@@ -24,6 +28,8 @@ export const MAX_DAILY_AGENT_CREDIT_LIMIT = 1000;
 export interface GrantState {
   revokedAt: number | null;
   lastUsedAt: number | null;
+  /** Scopes of the user's current consent for this client, or null when there is none. */
+  consentScopes: string[] | null;
   /** The account is gone (deleted). Its tokens stay signed and unexpired for up to 10 minutes, so this refuses them. */
   userMissing?: boolean;
 }
@@ -42,10 +48,11 @@ function cacheKey(userId: string, clientId: string): string {
   return `${userId}\u0000${clientId}`;
 }
 
-export async function getGrantState(userId: string, clientId: string): Promise<GrantState> {
+/** `fresh` skips the cache, for re-checking a token the cached state would refuse. */
+export async function getGrantState(userId: string, clientId: string, fresh = false): Promise<GrantState> {
   const key = cacheKey(userId, clientId);
   const hit = grantCache.get(key);
-  if (hit && Date.now() - hit.at < GRANT_CACHE_TTL_MS) return hit.state;
+  if (!fresh && hit && Date.now() - hit.at < GRANT_CACHE_TTL_MS) return hit.state;
 
   const db = await getDb();
   const rows = await db
@@ -54,9 +61,15 @@ export async function getGrantState(userId: string, clientId: string): Promise<G
     .where(and(eq(mcpGrantState.user_id, userId), eq(mcpGrantState.client_id, clientId)))
     .limit(1);
   const owner = await db.select({ id: user.id }).from(user).where(eq(user.id, userId)).limit(1);
+  const consent = await db
+    .select({ scopes: oauthConsent.scopes })
+    .from(oauthConsent)
+    .where(and(eq(oauthConsent.userId, userId), eq(oauthConsent.clientId, clientId)))
+    .limit(1);
   const state: GrantState = {
     revokedAt: rows[0]?.revokedAt ?? null,
     lastUsedAt: rows[0]?.lastUsedAt ?? null,
+    consentScopes: consent[0] ? parseScopes(consent[0].scopes) : null,
     userMissing: owner.length === 0,
   };
   grantCache.set(key, { at: Date.now(), state });
@@ -75,6 +88,24 @@ export function isTokenRevoked(state: GrantState, issuedAtSeconds: number | unde
   // A token with no usable iat cannot be shown to postdate the revocation.
   if (typeof issuedAtSeconds !== 'number') return true;
   return issuedAtSeconds * 1000 <= state.revokedAt;
+}
+
+/**
+ * Why a token with this `iat` and these scopes may not use /mcp, or null when
+ * it may. See the header comment for the three rules.
+ */
+export function grantProblem(
+  state: GrantState,
+  issuedAtSeconds: number | undefined,
+  tokenScopes: readonly string[],
+): string | null {
+  if (isTokenRevoked(state, issuedAtSeconds)) return 'This app was disconnected';
+  if (state.consentScopes === null) return 'This app was disconnected';
+  const consented = new Set(state.consentScopes);
+  if (tokenScopes.some((scope) => !consented.has(scope))) {
+    return 'The access token has more access than this app was approved for';
+  }
+  return null;
 }
 
 /** Record a use for "last used" in Connected apps, without writing on every call. */
@@ -169,15 +200,23 @@ export async function revokeConnectedApp(userId: string, clientId: string): Prom
 
   const now = Date.now();
   await runBatch([
-    sql`UPDATE oauth_refresh_token SET revoked = ${now} WHERE user_id = ${userId} AND client_id = ${clientId} AND revoked IS NULL`,
+    // Access tokens first, then refresh tokens (access tokens also cascade from them).
     sql`DELETE FROM oauth_access_token WHERE user_id = ${userId} AND client_id = ${clientId}`,
+    sql`DELETE FROM oauth_refresh_token WHERE user_id = ${userId} AND client_id = ${clientId}`,
     sql`DELETE FROM oauth_consent WHERE user_id = ${userId} AND client_id = ${clientId}`,
+    // Authorization codes issued but not yet exchanged live in `verification` as JSON
+    // (identifier is the hashed code; value holds the user and the original query).
+    // json_valid in a CASE because other rows in that table are not JSON and SQLite
+    // does not promise to short-circuit an AND.
+    sql`DELETE FROM verification
+        WHERE CASE WHEN json_valid(value) THEN json_extract(value, '$.userId') END = ${userId}
+          AND CASE WHEN json_valid(value) THEN json_extract(value, '$.query.client_id') END = ${clientId}`,
     sql`INSERT INTO mcp_grant_state (user_id, client_id, revoked_at) VALUES (${userId}, ${clientId}, ${now})
         ON CONFLICT (user_id, client_id) DO UPDATE SET revoked_at = excluded.revoked_at`,
   ]);
   grantCache.set(cacheKey(userId, clientId), {
     at: now,
-    state: { revokedAt: now, lastUsedAt: null },
+    state: { revokedAt: now, lastUsedAt: null, consentScopes: null },
   });
   return true;
 }

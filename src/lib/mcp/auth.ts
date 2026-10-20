@@ -3,7 +3,7 @@ import { APIError } from 'better-auth/api';
 import { verifyJwsAccessToken } from 'better-auth/oauth2';
 import { errors as joseErrors, type JWTPayload } from 'jose';
 import { getAuth } from '@/auth/server';
-import { getGrantState, isTokenRevoked, touchGrantLastUsed } from '@/db/repos/mcpGrants';
+import { getGrantState, grantProblem, touchGrantLastUsed } from '@/db/repos/mcpGrants';
 import { getMcpResourceUrl, MCP_JWT_ALG } from '@/lib/mcp/config';
 import { parseScopeClaim } from '@/lib/mcp/scopes';
 
@@ -106,10 +106,16 @@ export async function verifyMcpBearer(request: Request): Promise<VerifiedMcpToke
   const clientId = typeof claims.azp === 'string' ? claims.azp : '';
   if (!userId || !clientId) return unauthorized('The access token is not valid');
 
-  const state = await getGrantState(userId, clientId);
-  if (isTokenRevoked(state, claims.iat)) {
-    return unauthorized('This app was disconnected');
+  const scopes = [...parseScopeClaim(claims.scope)];
+  let state = await getGrantState(userId, clientId);
+  let problem = grantProblem(state, claims.iat, scopes);
+  if (problem) {
+    // The cached state may predate a reconnect (a revoke, then a new consent and a new token).
+    // Re-read before refusing; a refused token costs one query, an accepted one still rides the cache.
+    state = await getGrantState(userId, clientId, true);
+    problem = grantProblem(state, claims.iat, scopes);
   }
+  if (problem) return unauthorized(problem);
   // Best effort: "last used" (written at most every 5 minutes) must not fail a request.
   try {
     await touchGrantLastUsed(userId, clientId, state);
@@ -121,7 +127,7 @@ export async function verifyMcpBearer(request: Request): Promise<VerifiedMcpToke
     token,
     userId,
     clientId,
-    scopes: [...parseScopeClaim(claims.scope)],
+    scopes,
     expiresAt: typeof claims.exp === 'number' ? claims.exp : undefined,
     claims,
   };

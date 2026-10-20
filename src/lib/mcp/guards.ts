@@ -11,9 +11,18 @@ import { isAllowedRedirectUri } from '@/lib/mcp/redirects';
  * route, before Better Auth reads it.
  *
  * Token (`/oauth2/token`): a code or refresh token is only redeemable while the
- * user's consent for that client still exists. Revoking a connected app deletes
- * the consent, so a code that was issued but not yet exchanged, or a refresh
- * request that was already in flight, stops working too.
+ * user's consent for that client exists AND was given before the code or
+ * refresh token was issued. Revoking deletes the consent; if the user then
+ * reconnects (new consent, maybe with fewer scopes), anything issued under the
+ * old consent is older than the new row and is refused, so an old broad code
+ * cannot come back to life. Revoke also deletes pending codes and refresh
+ * tokens outright (mcpGrants.ts); this is the backstop for a request that was
+ * already in flight.
+ *
+ * This hook hashes the token the way the provider stores it: SHA-256,
+ * base64url, no padding, no prefix. Setting `prefix.refreshToken` (or a custom
+ * `storeTokens`) on mcp() changes the stored form and silently disables the
+ * lookup below for refresh tokens, so the revoke check would stop working.
  */
 
 export const MAX_REGISTRATION_BODY_BYTES = 8 * 1024;
@@ -105,6 +114,7 @@ export function mcpOAuthGuards(): BetterAuthPlugin {
             const body = (ctx.body ?? {}) as Record<string, unknown>;
             let userId: string | undefined;
             let clientId: string | undefined;
+            let issuedAt: number | undefined;
 
             if (body.grant_type === 'authorization_code' && typeof body.code === 'string') {
               const pending = await ctx.context.internalAdapter.findVerificationValue(await hashToken(body.code));
@@ -113,30 +123,35 @@ export function mcpOAuthGuards(): BetterAuthPlugin {
                 const parsed = JSON.parse(pending.value) as { userId?: string; query?: { client_id?: string } };
                 userId = parsed.userId;
                 clientId = parsed.query?.client_id;
+                issuedAt = new Date(pending.createdAt).getTime();
               } catch {
                 return;
               }
             } else if (body.grant_type === 'refresh_token' && typeof body.refresh_token === 'string') {
-              const row = await ctx.context.adapter.findOne<{ userId: string; clientId: string }>({
+              const row = await ctx.context.adapter.findOne<{ userId: string; clientId: string; createdAt: Date }>({
                 model: 'oauthRefreshToken',
                 where: [{ field: 'token', value: await hashToken(body.refresh_token) }],
               });
               if (!row) return;
               userId = row.userId;
               clientId = row.clientId;
+              issuedAt = new Date(row.createdAt).getTime();
             } else {
               return;
             }
 
             if (!userId || !clientId) return;
-            const consent = await ctx.context.adapter.findOne({
+            const consent = await ctx.context.adapter.findOne<{ createdAt: Date }>({
               model: 'oauthConsent',
               where: [
                 { field: 'userId', value: userId },
                 { field: 'clientId', value: clientId },
               ],
             });
-            if (!consent) {
+            // Timestamps here have one-second resolution, and a code or refresh token is created
+            // after the consent in the same request, so "older" is strictly less.
+            const consentedAt = consent ? new Date(consent.createdAt).getTime() : null;
+            if (consentedAt === null || (issuedAt !== undefined && Number.isFinite(consentedAt) && issuedAt < consentedAt)) {
               throw new APIError('BAD_REQUEST', {
                 error: 'invalid_grant',
                 error_description: 'authorization was revoked',
