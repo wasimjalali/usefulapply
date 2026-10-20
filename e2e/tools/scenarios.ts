@@ -124,6 +124,14 @@ async function main(): Promise<void> {
     return { deliveries, deadLettered: true };
   }
 
+  /** A reservation of `amount` on a fresh user, via the real reserveCredits. */
+  async function reserve(label: string, balance: { monthly: number; rollover?: number; addon?: number }, key: string) {
+    const user = await seedUser(label, balance);
+    const result = await credits.reserveCredits({ userId: user.id, action: 'FULL_APPLICATION', idempotencyKey: key, sessionId: user.sessionIds[0] });
+    assert.ok(result.success && result.reservation, 'reserved');
+    return { user, reservation: result.reservation as import('../../src/db/repos/credits').CreditReservation };
+  }
+
   const scenario = async (name: string, body: () => Promise<Record<string, unknown>>) => {
     const observed: Record<string, unknown> = {};
     try {
@@ -412,13 +420,6 @@ async function main(): Promise<void> {
   // (e) refund atomicity
   // =========================================================================
   if (mode === 'e') {
-    /** A reservation of `amount` on a fresh user, via the real reserveCredits. */
-    async function reserve(label: string, balance: { monthly: number; rollover?: number; addon?: number }, key: string) {
-      const user = await seedUser(label, balance);
-      const result = await credits.reserveCredits({ userId: user.id, action: 'FULL_APPLICATION', idempotencyKey: key, sessionId: user.sessionIds[0] });
-      assert.ok(result.success && result.reservation, 'reserved');
-      return { user, reservation: result.reservation as import('../../src/db/repos/credits').CreditReservation };
-    }
     const POISON = sql`INSERT INTO table_that_does_not_exist (id) VALUES (1)`;
 
     await scenario('e1. release: a failure between the batch statements leaves nothing half done', async () => {
@@ -595,6 +596,117 @@ async function main(): Promise<void> {
       assert.equal((await balanceOf(user.id)).total, held.total + 2);
       assert.equal((await ledgerOf(user.id)).filter((row) => row.transaction_type === 'reservation_released').reduce((sum, row) => sum + Number(row.amount), 0), 2);
       return { balanceHeld: held.total, balanceAfter: (await balanceOf(user.id)).total };
+    });
+  }
+
+  if (mode === 'e') {
+    /** The statements reserveCredits would run for `userId` right now, so a test can break the batch at any position. */
+    async function reserveStatementsFor(userId: string, key: string, reuseReleasedId?: string) {
+      const { credits: row } = await credits.getUserCredits(userId);
+      assert.ok(row);
+      const totalBefore = credits.getTotalCredits(row);
+      // Same bucket order as the deduct: monthly, then rollover, then addon.
+      let left = 2;
+      const next = { monthly: row.monthly_credits, rollover: row.rollover_credits, addon: row.addon_credits };
+      for (const bucket of ['monthly', 'rollover', 'addon'] as const) {
+        const take = Math.min(left, next[bucket]);
+        next[bucket] -= take;
+        left -= take;
+      }
+      return credits.buildReserveStatements({
+        userId,
+        action: 'FULL_APPLICATION',
+        amount: 2,
+        credits: row,
+        totalBefore,
+        next,
+        reservationId: crypto.randomUUID(),
+        reuseReleasedId,
+        idempotencyKey: key,
+        generationId: null,
+        sessionId: null,
+        ledgerSessionId: null,
+        metadataJson: JSON.stringify({ deducted_from: { monthly: 1, rollover: 0.5, addon: 0.5 } }),
+        now: new Date().toISOString(),
+      });
+    }
+    const POISON_R = sql`INSERT INTO table_that_does_not_exist (id) VALUES (1)`;
+
+    await scenario('e7. reserve is one batch: a failure at every position leaves no deduct, no reservation, no ledger row', async () => {
+      const user = await seedUser('e7', { monthly: 1, rollover: 0.5, addon: 6 });
+      const base = await balanceOf(user.id);
+      const statements = await reserveStatementsFor(user.id, 'key-e7');
+      assert.ok(statements.length >= 3);
+      for (let position = 0; position <= statements.length; position++) {
+        await assert.rejects(dbClient.runBatch([...statements.slice(0, position), POISON_R, ...statements.slice(position)]));
+        assert.deepEqual(await balanceOf(user.id), base, `credits moved with a failure at position ${position}`);
+        assert.equal((await reservationsOf(user.id)).length, 0, `reservation written with a failure at position ${position}`);
+        assert.equal((await ledgerOf(user.id)).length, 0, `ledger row written with a failure at position ${position}`);
+      }
+      const ok = await dbClient.runBatch(statements);
+      assert.ok(ok[0].meta.changes > 0);
+      const after = await balanceOf(user.id);
+      assert.equal(after.total, base.total - 2);
+      assert.equal(after.version, base.version + 1);
+      assert.equal((await reservationsOf(user.id)).length, 1);
+      const ledger = await ledgerOf(user.id);
+      assert.equal(ledger.length, 1);
+      assert.equal(Number(ledger[0].amount), -2);
+      assert.equal(Number(ledger[0].balance_before) - Number(ledger[0].balance_after), 2);
+      return { positionsTried: statements.length + 1, after };
+    });
+
+    await scenario('e8. re-reserving a released key is one batch too, and a lost reuse aborts the deduct', async () => {
+      const { user, reservation } = await reserve('e8', { monthly: 1, rollover: 0.5, addon: 6 }, 'key-e8');
+      await credits.releaseReservation({ userId: user.id, idempotencyKey: 'key-e8', reason: 'e8' });
+      const base = await balanceOf(user.id);
+      const ledgerBase = (await ledgerOf(user.id)).length;
+      const statements = await reserveStatementsFor(user.id, 'key-e8', reservation.id);
+      for (let position = 0; position <= statements.length; position++) {
+        await assert.rejects(dbClient.runBatch([...statements.slice(0, position), POISON_R, ...statements.slice(position)]));
+        assert.deepEqual(await balanceOf(user.id), base, `credits moved with a failure at position ${position}`);
+        assert.equal((await reservationsOf(user.id))[0].status, 'released');
+        assert.equal((await ledgerOf(user.id)).length, ledgerBase);
+      }
+      // Someone else reused the released row first: the guard aborts, taking the deduct with it.
+      await run("UPDATE credit_reservations SET status = 'captured' WHERE id = ?", reservation.id);
+      await assert.rejects(dbClient.runBatch(statements));
+      assert.deepEqual(await balanceOf(user.id), base);
+      await run("UPDATE credit_reservations SET status = 'released' WHERE id = ?", reservation.id);
+      // The real function reuses it once.
+      const again = await credits.reserveCredits({ userId: user.id, action: 'FULL_APPLICATION', idempotencyKey: 'key-e8' });
+      assert.ok(again.success && again.created);
+      assert.equal((await balanceOf(user.id)).total, base.total - 2);
+      return { reused: again.reservation?.id === reservation.id };
+    });
+
+    await scenario('e9. reserve keeps its semantics: insufficient, in flight, spent, and one key racing itself charges once', async () => {
+      const poor = await seedUser('e9a', { monthly: 1 });
+      const insufficient = await credits.reserveCredits({ userId: poor.id, action: 'FULL_APPLICATION', idempotencyKey: 'key-e9a' });
+      assert.equal(insufficient.success, false);
+      assert.equal(insufficient.available, 1);
+      assert.equal(insufficient.required, 2);
+      assert.equal((await balanceOf(poor.id)).total, 1);
+      assert.equal((await reservationsOf(poor.id)).length, 0);
+
+      const user = await seedUser('e9b', { monthly: 1, rollover: 0.5, addon: 20 });
+      const base = await balanceOf(user.id);
+      const racers = await Promise.all(Array.from({ length: 5 }, () =>
+        credits.reserveCredits({ userId: user.id, action: 'FULL_APPLICATION', idempotencyKey: 'key-e9b' })));
+      assert.equal(racers.filter((result) => result.success && result.created).length, 1, 'exactly one creator');
+      assert.ok(racers.filter((result) => !result.success).every((result) => result.code === 'RESERVATION_IN_FLIGHT'));
+      assert.equal((await balanceOf(user.id)).total, base.total - 2, 'charged once');
+      assert.equal((await ledgerOf(user.id)).filter((row) => Number(row.amount) < 0).length, 1);
+      const inFlight = await credits.reserveCredits({ userId: user.id, action: 'FULL_APPLICATION', idempotencyKey: 'key-e9b' });
+      assert.equal(inFlight.code, 'RESERVATION_IN_FLIGHT');
+      await credits.captureReservation({ userId: user.id, idempotencyKey: 'key-e9b' });
+      const spent = await credits.reserveCredits({ userId: user.id, action: 'FULL_APPLICATION', idempotencyKey: 'key-e9b' });
+      assert.equal(spent.code, 'RESERVATION_SPENT');
+      assert.equal((await balanceOf(user.id)).total, base.total - 2);
+      // The deducted-from split on the reservation is what a later refund returns.
+      const metadata = JSON.parse(String((await reservationsOf(user.id))[0].metadata));
+      assert.deepEqual(metadata.deducted_from, { monthly: 1, rollover: 0.5, addon: 0.5 });
+      return { racers: racers.map((result) => result.code ?? 'created'), inFlight: inFlight.code, spent: spent.code };
     });
   }
 

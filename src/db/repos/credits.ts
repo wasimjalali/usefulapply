@@ -1216,6 +1216,97 @@ export async function releaseFitContinuationClaim(
     ));
 }
 
+/**
+ * The statements that reserve credits, built to run in ONE `runBatch`:
+ *
+ *   A  conditional deduct: `WHERE version = <read> AND total >= amount`, which
+ *      also bumps `user_credits.version`, so any other deduct that read the
+ *      old version fails its WHERE and retries;
+ *   G  (re-reserve only) an abort guard: if A deducted but the released
+ *      reservation is no longer there to be reused, the batch errors and rolls
+ *      back, deduct included;
+ *   B  the reservation row, gated on `changes() > 0` (A deducted). A fresh
+ *      reservation is an INSERT, so a racing creator of the same idempotency
+ *      key makes the batch fail on the unique index and roll back, deduct
+ *      included; a released one is flipped back to `reserved`;
+ *   C  the ledger row, gated on B having written.
+ *
+ * The deduct, the reservation and the ledger row commit together or not at
+ * all. A crash can no longer leave credits taken with no reservation to
+ * release. Statement A matching no row (a concurrent deduct, a balance that
+ * dropped) leaves the rest as no-ops and the caller re-reads and retries.
+ */
+export function buildReserveStatements(params: {
+  userId: string;
+  action: CreditAction;
+  amount: number;
+  credits: Pick<UserCredits, 'version'>;
+  totalBefore: number;
+  next: DeductionAllocation;
+  reservationId: string;
+  /** Set when a released reservation with this id is being reused instead of inserting a new row. */
+  reuseReleasedId?: string;
+  idempotencyKey: string;
+  generationId: string | null;
+  sessionId: string | null;
+  ledgerSessionId: string | null;
+  metadataJson: string;
+  now: string;
+}): SQL[] {
+  const { userId, action, amount, next, now } = params;
+  const totalAfter = next.monthly + next.rollover + next.addon;
+  const statements: SQL[] = [
+    sql`
+      UPDATE user_credits
+      SET monthly_credits = ${next.monthly},
+          rollover_credits = ${next.rollover},
+          addon_credits = ${next.addon},
+          version = version + 1,
+          updated_at = ${now}
+      WHERE user_id = ${userId}
+        AND version = ${params.credits.version}
+        AND (monthly_credits + rollover_credits + addon_credits) >= ${amount}
+    `,
+  ];
+  if (params.reuseReleasedId) {
+    statements.push(sql`
+      SELECT json(CASE
+        WHEN (SELECT changes()) > 0 AND NOT EXISTS (
+          SELECT 1 FROM credit_reservations
+          WHERE id = ${params.reuseReleasedId} AND user_id = ${userId} AND status = 'released'
+        ) THEN 'reservation no longer reusable' ELSE '{}' END)
+    `);
+    statements.push(sql`
+      UPDATE credit_reservations
+      SET generation_id = ${params.generationId}, session_id = ${params.sessionId},
+          action = ${action.toLowerCase()}, amount = ${amount}, status = 'reserved',
+          reserved_at = ${now}, captured_at = NULL, released_at = NULL, refunded_at = NULL,
+          metadata = ${params.metadataJson}, updated_at = ${now}
+      WHERE id = ${params.reuseReleasedId} AND user_id = ${userId} AND status = 'released'
+        AND (SELECT changes()) > 0
+    `);
+  } else {
+    statements.push(sql`
+      INSERT INTO credit_reservations (
+        id, user_id, generation_id, session_id, action, amount, status, reserved_at, idempotency_key, metadata, created_at, updated_at
+      )
+      SELECT ${params.reservationId}, ${userId}, ${params.generationId}, ${params.sessionId}, ${action.toLowerCase()}, ${amount},
+             'reserved', ${now}, ${params.idempotencyKey}, ${params.metadataJson}, ${now}, ${now}
+      WHERE (SELECT changes()) > 0
+    `);
+  }
+  statements.push(sql`
+    INSERT INTO credit_transactions (
+      id, user_id, amount, transaction_type, transaction_kind, session_id, description, metadata, balance_before, balance_after, created_at
+    )
+    SELECT ${crypto.randomUUID()}, ${userId}, ${-amount}, ${action.toLowerCase()}, ${CREDIT_ACTION_KIND[action]}, ${params.ledgerSessionId},
+           ${`Credit reservation for ${action}`}, ${JSON.stringify({ reservation_id: params.reuseReleasedId ?? params.reservationId })},
+           ${params.totalBefore}, ${totalAfter}, ${now}
+    WHERE (SELECT changes()) > 0
+  `);
+  return statements;
+}
+
 export async function reserveCredits(params: {
   userId: string;
   action: CreditAction;
@@ -1236,7 +1327,7 @@ export async function reserveCredits(params: {
     code: reservation.status === 'reserved' ? 'RESERVATION_IN_FLIGHT' : 'RESERVATION_SPENT',
     required: amount,
   });
-  const existing = await getReservationByKey(userId, idempotencyKey);
+  let existing = await getReservationByKey(userId, idempotencyKey);
   if (existing && existing.status !== 'released') {
     // Only a reservation still in flight dedupes. That is what the idempotency
     // key is for: a retried fetch, or a double-fired click, reuses the credits
@@ -1253,119 +1344,92 @@ export async function reserveCredits(params: {
     return replayResult(existing);
   }
 
-  const deductResult = await deductCredits(userId, action, {
-    sessionId: params.sessionId ?? undefined,
-    description: `Credit reservation for ${action}`,
-  });
-  if (!deductResult.success) {
-    return {
-      success: false,
-      created: false,
-      reservation: null,
-      error: deductResult.error?.message ?? 'Deduction failed',
-      available: deductResult.remainingCredits,
-      required: amount,
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < MAX_OCC_RETRIES; attempt++) {
+    if (attempt > 0) {
+      existing = await getReservationByKey(userId, idempotencyKey);
+      if (existing && existing.status !== 'released') return replayResult(existing);
+    }
+    const { credits, error } = await getUserCredits(userId);
+    if (error || !credits) {
+      return { success: false, created: false, reservation: null, error: error?.message ?? 'Credits not found', available: 0, required: amount };
+    }
+    const totalBefore = getTotalCredits(credits);
+    if (totalBefore < amount) {
+      return {
+        success: false,
+        created: false,
+        reservation: null,
+        error: `Insufficient credits. Required: ${amount}, Available: ${totalBefore}`,
+        available: totalBefore,
+        required: amount,
+      };
+    }
+    const { next, remaining } = allocateDeduction(credits, amount);
+    const id = crypto.randomUUID();
+    const now = nowIso();
+    const reservationMetadata = {
+      ...metadata,
+      reservation_attempt_id: id,
+      remaining_after_reserve: next.monthly + next.rollover + next.addon,
+      deducted_from: remaining,
     };
-  }
-
-  const refundDeduction = async (reason: string, description: string) => {
-    const { deductedFrom } = deductResult;
-    if (deductedFrom.monthly > 0) await addCredits(userId, deductedFrom.monthly, 'monthly', reason, 'refund', description);
-    if (deductedFrom.rollover > 0) await addCredits(userId, deductedFrom.rollover, 'rollover', reason, 'refund', description);
-    if (deductedFrom.addon > 0) await addCredits(userId, deductedFrom.addon, 'addon', reason, 'refund', description);
-  };
-
-  const db = await getDb();
-  const now = nowIso();
-  const id = crypto.randomUUID();
-  const reservationMetadata = {
-    ...metadata,
-    reservation_attempt_id: id,
-    remaining_after_reserve: deductResult.remainingCredits,
-    deducted_from: deductResult.deductedFrom,
-  } as unknown as Record<string, never>;
-
-  if (existing?.status === 'released') {
-    try {
-      const rows = await db
-        .update(creditReservations)
-        .set({
-          generation_id: coerceUuidOrNull(params.generationId),
-          session_id: coerceUuidOrNull(params.sessionId),
-          action: action.toLowerCase(),
-          amount,
-          status: 'reserved',
-          reserved_at: now,
-          captured_at: null,
-          released_at: null,
-          refunded_at: null,
-          metadata: reservationMetadata,
-          updated_at: now,
-        })
-        .where(and(
-          eq(creditReservations.id, existing.id),
-          eq(creditReservations.user_id, userId),
-          eq(creditReservations.status, 'released'),
-        ))
-        .returning();
-      if (rows[0]) {
-        return { success: true, created: true, reservation: rows[0] as CreditReservation, error: null };
-      }
-    } catch {
-      const verified = await getReservationByKey(userId, idempotencyKey);
-      if (
-        verified?.status === 'reserved'
-        && (verified.metadata as Record<string, unknown>).reservation_attempt_id === id
-      ) {
-        return { success: true, created: true, reservation: verified, error: null };
-      }
-    }
-
-    const winner = await getReservationByKey(userId, idempotencyKey);
-    await refundDeduction('reservation_retry_race_refund', `Reservation retry race refund for ${idempotencyKey}`);
-    return winner
-      ? replayResult(winner)
-      : { success: false, created: false, reservation: null, error: 'Failed to recreate reservation' };
-  }
-
-  try {
-    await db.insert(creditReservations).values({
-      id,
-      user_id: userId,
-      generation_id: coerceUuidOrNull(params.generationId),
-      session_id: coerceUuidOrNull(params.sessionId),
-      action: action.toLowerCase(),
+    const statements = buildReserveStatements({
+      userId,
+      action,
       amount,
-      status: 'reserved',
-      reserved_at: now,
-      idempotency_key: idempotencyKey,
-      metadata: reservationMetadata,
-      created_at: now,
-      updated_at: now,
+      credits,
+      totalBefore,
+      next,
+      reservationId: id,
+      reuseReleasedId: existing?.status === 'released' ? existing.id : undefined,
+      idempotencyKey,
+      generationId: coerceUuidOrNull(params.generationId),
+      sessionId: coerceUuidOrNull(params.sessionId),
+      ledgerSessionId: params.sessionId ?? null,
+      metadataJson: JSON.stringify(reservationMetadata),
+      now,
     });
-  } catch (insertError) {
-    // Verify before refunding. If this exact row committed and D1 dropped the
-    // response, this call owns the held credits and can proceed.
-    const persisted = await getReservationByKey(userId, idempotencyKey);
-    if (persisted?.id === id) {
-      return { success: true, created: true, reservation: persisted, error: null };
-    }
-    if (persisted) {
-      await refundDeduction('reservation_duplicate_refund', `Duplicate reservation refund for ${idempotencyKey}`);
-      return replayResult(persisted);
-    }
-    console.error('[credits] reservation insert failed:', insertError);
-    await refundDeduction('reservation_failed_refund', `Failed reservation refund for ${idempotencyKey}`);
-    return { success: false, created: false, reservation: null, error: 'Failed to create reservation' };
-  }
 
-  const reservation = await getReservationByKey(userId, idempotencyKey);
-  return {
-    success: Boolean(reservation),
-    created: Boolean(reservation),
-    reservation,
-    error: reservation ? null : 'Failed to create reservation',
-  };
+    let results;
+    try {
+      results = await runBatch(statements);
+    } catch (batchError) {
+      // The batch is atomic, so a failure means nothing was deducted. Look at
+      // what is there before deciding what it was.
+      const persisted = await getReservationByKey(userId, idempotencyKey);
+      if (persisted && (persisted.metadata as Record<string, unknown>).reservation_attempt_id === id) {
+        // The batch committed and only the response was lost: this call owns the held credits.
+        return { success: true, created: true, reservation: persisted, error: null };
+      }
+      if (persisted && persisted.status !== 'released') {
+        // Lost a race for this key (unique index, or the released row was reused first).
+        return replayResult(persisted);
+      }
+      if (isUniqueViolation(batchError) || (persisted && existing?.status === 'released')) {
+        lastError = batchError instanceof Error ? batchError : new Error(String(batchError));
+        continue;
+      }
+      console.error('[credits] reservation batch failed, nothing was deducted:', batchError);
+      return { success: false, created: false, reservation: null, error: 'Failed to create reservation', required: amount };
+    }
+
+    if (results[0].meta.changes > 0) {
+      const reservation = await getReservationByKey(userId, idempotencyKey);
+      return {
+        success: Boolean(reservation),
+        created: Boolean(reservation),
+        reservation,
+        error: reservation ? null : 'Failed to create reservation',
+      };
+    }
+    // The deduct matched nothing: another deduct moved the version, or the
+    // balance dropped under the amount. Re-read and try again.
+    lastError = new Error('Credit reservation failed due to concurrent access. Please try again.');
+    const raced = await getReservationByKey(userId, idempotencyKey);
+    if (raced && raced.status !== 'released') return replayResult(raced);
+  }
+  throw lastError ?? new Error('Credit reservation failed due to concurrent access. Please try again.');
 }
 
 async function transitionReservation(params: {
