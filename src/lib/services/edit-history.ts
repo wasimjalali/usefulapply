@@ -159,6 +159,25 @@ export interface UndoResult {
 }
 
 /**
+ * Screening answers and their turn count live inside `generated_cv` but aren't part of a CV edit,
+ * and saving them records no history. Restoring an older `generated_cv` keeps the current ones.
+ */
+function keepScreeningAnswers(prior: Json, current: Json): Json {
+  const restored = prior.generated_cv;
+  const now = current.generated_cv;
+  if (!restored || typeof restored !== 'object' || !now || typeof now !== 'object') return prior;
+  const live = now as Json;
+  return {
+    ...prior,
+    generated_cv: {
+      ...(restored as Json),
+      _screeningAnswers: live._screeningAnswers ?? [],
+      _screeningUsageCount: live._screeningUsageCount ?? 0,
+    },
+  };
+}
+
+/**
  * Restore the newest prior version of one group. Conditional on the revision it
  * read (and on `expectedRevision` when the caller passes the one it last saw), so
  * it bumps the revision and conflicts instead of overwriting a newer write.
@@ -188,7 +207,7 @@ export async function undoLastEdit(
       .limit(2);
     const latest = entries[0];
     if (!latest) throw new InvalidInputError('There is no earlier version to restore for this part of the application.');
-    const prior = latest.prior_value as Json;
+    const prior = keepScreeningAnswers(latest.prior_value as Json, row as unknown as Json);
     const now = nowIso();
     const results = await runBatch([
       buildSessionUpdateStatement(userId, sessionId, prior, row.revision, now),
