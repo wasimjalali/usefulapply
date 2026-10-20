@@ -57,6 +57,13 @@
       "when": 1787238583114,
       "tag": "0008_unique_anonymous_ip_hash",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1787238583115,
+      "tag": "0009_oauth_provider",
+      "breakpoints": true
     }
   ]
 }

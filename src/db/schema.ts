@@ -178,11 +178,14 @@ export const account = sqliteTable(
   'account',
   {
     id: text('id').primaryKey(),
-    // Better Auth 1.7: 'local:credential' for password accounts,
-    // the provider's accountIssuer for social accounts (Google:
-    // 'https://accounts.google.com'; providers without one get 'local:oauth:<id>').
-    // Sign-in matches on (issuer, accountId).
-    issuer: text('issuer').notNull(),
+    // Better Auth 1.7.0 to 1.7.2 wrote this ('local:credential' for password
+    // accounts, the provider's issuer for social ones) and matched sign-in on
+    // (issuer, accountId). 1.7.3 and later never write it and match on
+    // (providerId, accountId), as in 1.6. The column stays NOT NULL in D1, so
+    // the default below fills it for new rows and old rows keep their value.
+    // Nothing reads it. Drop it, and its unique index, in a later migration
+    // once 1.7.11 is live (SQLite: DROP INDEX, then ALTER TABLE DROP COLUMN).
+    issuer: text('issuer').notNull().$defaultFn(() => 'unset'),
     accountId: text('account_id').notNull(),
     providerId: text('provider_id').notNull(),
     userId: text('user_id')
@@ -228,6 +231,228 @@ export const verification = sqliteTable(
 );
 
 // ---------------------------------------------------------------------------
+// MCP OAuth (migration 0009)
+//
+// Tables for `jwt()`, `@better-auth/mcp` (on `@better-auth/oauth-provider`) and
+// `@better-auth/cimd`. Field names are Better Auth's (camelCase keys), columns
+// are snake_case like the tables above. Better Auth's SQLite path stores
+// string[] and json fields as JSON text, so they are plain text columns here.
+// On a Better Auth upgrade, compare these with `getAuthTables({ plugins })`
+// from `better-auth/db` (the field list is what the adapter reads and writes).
+// ---------------------------------------------------------------------------
+
+const baDate = (column: string) => integer(column, { mode: 'timestamp_ms' });
+
+export const jwks = sqliteTable('jwks', {
+  id: text('id').primaryKey(),
+  publicKey: text('public_key').notNull(),
+  privateKey: text('private_key').notNull(),
+  createdAt: baDate('created_at').notNull(),
+  expiresAt: baDate('expires_at'),
+  alg: text('alg'),
+  crv: text('crv'),
+});
+
+export const oauthClient = sqliteTable(
+  'oauth_client',
+  {
+    id: text('id').primaryKey(),
+    clientId: text('client_id').notNull(),
+    clientSecret: text('client_secret'),
+    clientDiscoveryId: text('client_discovery_id'),
+    disabled: integer('disabled', { mode: 'boolean' }).default(false),
+    skipConsent: integer('skip_consent', { mode: 'boolean' }),
+    enableEndSession: integer('enable_end_session', { mode: 'boolean' }),
+    subjectType: text('subject_type'),
+    scopes: text('scopes'),
+    clientCredentialsScopes: text('client_credentials_scopes'),
+    userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
+    createdAt: baDate('created_at'),
+    updatedAt: baDate('updated_at'),
+    name: text('name'),
+    uri: text('uri'),
+    icon: text('icon'),
+    contacts: text('contacts'),
+    tos: text('tos'),
+    policy: text('policy'),
+    softwareId: text('software_id'),
+    softwareVersion: text('software_version'),
+    softwareStatement: text('software_statement'),
+    redirectUris: text('redirect_uris').notNull(),
+    postLogoutRedirectUris: text('post_logout_redirect_uris'),
+    backchannelLogoutUri: text('backchannel_logout_uri'),
+    backchannelLogoutSessionRequired: integer('backchannel_logout_session_required', { mode: 'boolean' }),
+    tokenEndpointAuthMethod: text('token_endpoint_auth_method'),
+    applicationType: text('application_type'),
+    jwks: text('jwks'),
+    jwksUri: text('jwks_uri'),
+    grantTypes: text('grant_types'),
+    responseTypes: text('response_types'),
+    requirePKCE: integer('require_pkce', { mode: 'boolean' }),
+    dpopBoundAccessTokens: integer('dpop_bound_access_tokens', { mode: 'boolean' }).default(false),
+    referenceId: text('reference_id'),
+    metadata: text('metadata'),
+  },
+  (t) => [
+    uniqueIndex('oauth_client_client_id_uidx').on(t.clientId),
+    index('oauth_client_user_id_idx').on(t.userId),
+  ],
+);
+
+export const oauthResource = sqliteTable(
+  'oauth_resource',
+  {
+    id: text('id').primaryKey(),
+    identifier: text('identifier').notNull(),
+    name: text('name').notNull(),
+    accessTokenTtl: integer('access_token_ttl'),
+    refreshTokenTtl: integer('refresh_token_ttl'),
+    signingAlgorithm: text('signing_algorithm'),
+    signingKeyId: text('signing_key_id'),
+    allowedScopes: text('allowed_scopes'),
+    customClaims: text('custom_claims'),
+    dpopBoundAccessTokensRequired: integer('dpop_bound_access_tokens_required', { mode: 'boolean' }).default(false),
+    disabled: integer('disabled', { mode: 'boolean' }).default(false),
+    createdAt: baDate('created_at'),
+    updatedAt: baDate('updated_at'),
+    policyVersion: integer('policy_version').default(1),
+    metadata: text('metadata'),
+  },
+  (t) => [uniqueIndex('oauth_resource_identifier_uidx').on(t.identifier)],
+);
+
+export const oauthClientResource = sqliteTable(
+  'oauth_client_resource',
+  {
+    id: text('id').primaryKey(),
+    clientId: text('client_id')
+      .notNull()
+      .references(() => oauthClient.clientId, { onDelete: 'cascade' }),
+    resourceId: text('resource_id')
+      .notNull()
+      .references(() => oauthResource.identifier, { onDelete: 'cascade' }),
+    metadata: text('metadata'),
+    createdAt: baDate('created_at'),
+  },
+  (t) => [
+    index('oauth_client_resource_client_id_idx').on(t.clientId),
+    index('oauth_client_resource_resource_id_idx').on(t.resourceId),
+  ],
+);
+
+export const oauthRefreshToken = sqliteTable(
+  'oauth_refresh_token',
+  {
+    id: text('id').primaryKey(),
+    token: text('token').notNull(),
+    clientId: text('client_id')
+      .notNull()
+      .references(() => oauthClient.clientId, { onDelete: 'cascade' }),
+    sessionId: text('session_id').references(() => session.id, { onDelete: 'set null' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    referenceId: text('reference_id'),
+    authorizationCodeId: text('authorization_code_id'),
+    resources: text('resources'),
+    requestedUserInfoClaims: text('requested_user_info_claims'),
+    expiresAt: baDate('expires_at').notNull(),
+    createdAt: baDate('created_at').notNull(),
+    revoked: baDate('revoked'),
+    rotatedAt: baDate('rotated_at'),
+    rotationReplayResponse: text('rotation_replay_response'),
+    rotationReplayExpiresAt: baDate('rotation_replay_expires_at'),
+    authTime: baDate('auth_time'),
+    confirmation: text('confirmation'),
+    scopes: text('scopes').notNull(),
+  },
+  (t) => [
+    uniqueIndex('oauth_refresh_token_token_uidx').on(t.token),
+    index('oauth_refresh_token_client_id_idx').on(t.clientId),
+    index('oauth_refresh_token_session_id_idx').on(t.sessionId),
+    index('oauth_refresh_token_user_id_idx').on(t.userId),
+    index('oauth_refresh_token_auth_code_idx').on(t.authorizationCodeId),
+  ],
+);
+
+export const oauthAccessToken = sqliteTable(
+  'oauth_access_token',
+  {
+    id: text('id').primaryKey(),
+    token: text('token').notNull(),
+    clientId: text('client_id')
+      .notNull()
+      .references(() => oauthClient.clientId, { onDelete: 'cascade' }),
+    sessionId: text('session_id').references(() => session.id, { onDelete: 'set null' }),
+    userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
+    referenceId: text('reference_id'),
+    authorizationCodeId: text('authorization_code_id'),
+    resources: text('resources'),
+    requestedUserInfoClaims: text('requested_user_info_claims'),
+    refreshId: text('refresh_id').references(() => oauthRefreshToken.id, { onDelete: 'cascade' }),
+    expiresAt: baDate('expires_at').notNull(),
+    createdAt: baDate('created_at').notNull(),
+    revoked: baDate('revoked'),
+    confirmation: text('confirmation'),
+    scopes: text('scopes').notNull(),
+  },
+  (t) => [
+    uniqueIndex('oauth_access_token_token_uidx').on(t.token),
+    index('oauth_access_token_client_id_idx').on(t.clientId),
+    index('oauth_access_token_session_id_idx').on(t.sessionId),
+    index('oauth_access_token_user_id_idx').on(t.userId),
+    index('oauth_access_token_auth_code_idx').on(t.authorizationCodeId),
+    index('oauth_access_token_refresh_id_idx').on(t.refreshId),
+  ],
+);
+
+export const oauthConsent = sqliteTable(
+  'oauth_consent',
+  {
+    id: text('id').primaryKey(),
+    clientId: text('client_id')
+      .notNull()
+      .references(() => oauthClient.clientId, { onDelete: 'cascade' }),
+    userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
+    referenceId: text('reference_id'),
+    resources: text('resources'),
+    requestedUserInfoClaims: text('requested_user_info_claims'),
+    scopes: text('scopes').notNull(),
+    createdAt: baDate('created_at').notNull(),
+    updatedAt: baDate('updated_at').notNull(),
+  },
+  (t) => [
+    index('oauth_consent_client_id_idx').on(t.clientId),
+    index('oauth_consent_user_id_idx').on(t.userId),
+  ],
+);
+
+export const oauthClientAssertion = sqliteTable('oauth_client_assertion', {
+  id: text('id').primaryKey(),
+  expiresAt: baDate('expires_at').notNull(),
+});
+
+/**
+ * Our own record per (user, OAuth client), beside Better Auth's tables.
+ * `revoked_at` is the revocation record the /mcp token check reads: an access
+ * token minted before it is refused, so JWT access tokens (which Better Auth
+ * cannot revoke) die within the verifier's cache window. `last_used_at` feeds
+ * "last used" in Settings > Connected apps.
+ */
+export const mcpGrantState = sqliteTable(
+  'mcp_grant_state',
+  {
+    user_id: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    client_id: text('client_id').notNull(),
+    revoked_at: integer('revoked_at'),
+    last_used_at: integer('last_used_at'),
+  },
+  (t) => [uniqueIndex('mcp_grant_state_user_client_uidx').on(t.user_id, t.client_id)],
+);
+
+// ---------------------------------------------------------------------------
 // Users
 // ---------------------------------------------------------------------------
 
@@ -261,6 +486,9 @@ export const profiles = sqliteTable(
     hide_rejected: integer('hide_rejected', { mode: 'boolean' }).notNull().default(false),
     timezone: text('timezone'),
     date_format: text('date_format'),
+    // Credits AI agents (MCP) may spend per UTC day on this account. Enforced
+    // from the tool catalog PR on; the Connected apps pane edits it.
+    mcp_daily_credit_limit: real('mcp_daily_credit_limit').notNull().default(10),
     job_searches_used: integer('job_searches_used').notNull().default(0),
     job_searches_reset_at: text('job_searches_reset_at').notNull().$defaultFn(isoNow),
     job_feed_last_seen_run_date: text('job_feed_last_seen_run_date'),

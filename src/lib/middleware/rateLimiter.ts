@@ -84,6 +84,9 @@ const RATE_LIMIT_BINDING_NAMES = {
   'search-strategy-generate': 'RATE_LIMIT_SEARCH_STRATEGY_GENERATE',
   'files-upload': 'RATE_LIMIT_FILES_UPLOAD',
   'files-get': 'RATE_LIMIT_FILES_GET',
+  'mcp': 'RATE_LIMIT_MCP',
+  'mcp-oauth': 'RATE_LIMIT_MCP_OAUTH',
+  'mcp-register': 'RATE_LIMIT_MCP_REGISTER',
 } as const;
 
 type BoundRateLimitRoute = keyof typeof RATE_LIMIT_BINDING_NAMES;
@@ -120,6 +123,9 @@ declare global {
     RATE_LIMIT_SEARCH_STRATEGY_GENERATE?: RateLimitBinding;
     RATE_LIMIT_FILES_UPLOAD?: RateLimitBinding;
     RATE_LIMIT_FILES_GET?: RateLimitBinding;
+    RATE_LIMIT_MCP?: RateLimitBinding;
+    RATE_LIMIT_MCP_OAUTH?: RateLimitBinding;
+    RATE_LIMIT_MCP_REGISTER?: RateLimitBinding;
   }
 }
 
@@ -260,6 +266,12 @@ export const RATE_LIMITS = {
   'search-strategy-generate': { name: 'search-strategy-generate', limit: 3,  windowMs: 60_000 },
   'files-upload':            { name: 'files-upload', limit: 10, windowMs: 60_000 },
   'files-get':               { name: 'files-get', limit: 60, windowMs: 60_000 },
+  // /mcp calls, keyed on the token's user. Claude.ai and ChatGPT call from shared egress IPs, so IP keys would throttle strangers together.
+  'mcp':                     { name: 'mcp', limit: 120, windowMs: 60_000 },
+  // /api/auth/oauth2/* (authorize, token, revoke, userinfo), keyed on IP. A flood gate, not a per-user limit, for the same shared-IP reason.
+  'mcp-oauth':               { name: 'mcp-oauth', limit: 300, windowMs: 60_000 },
+  // Dynamic client registration is unauthenticated, so this one is tight and keyed on IP.
+  'mcp-register':            { name: 'mcp-register', limit: 10, windowMs: 60_000 },
 } as const;
 
 export type RateLimitRoute = keyof typeof RATE_LIMITS;

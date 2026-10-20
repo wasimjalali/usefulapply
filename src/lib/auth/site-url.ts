@@ -27,3 +27,17 @@ export function getSiteUrl(fallbackOrigin?: string): string {
 
   return BRAND.url;
 }
+
+/**
+ * Origin Better Auth treats as its own base (OAuth issuer, MCP resource host).
+ * Explicit auth/app env wins, then the site URL, so `localhost` works in dev
+ * and preview without a second setting.
+ */
+export function getAuthBaseUrl(): string {
+  return (
+    process.env.BETTER_AUTH_URL?.replace(/\/$/, '')
+    || process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')
+    || process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '')
+    || getSiteUrl()
+  );
+}

@@ -1,14 +1,35 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
+import { jwt } from 'better-auth/plugins';
+import { cimd } from '@better-auth/cimd';
+import { mcp } from '@better-auth/mcp';
 import { BRAND } from '@/lib/brand';
-import { getSiteUrl } from '@/lib/auth/site-url';
+import { getAuthBaseUrl } from '@/lib/auth/site-url';
+import { fetchClientMetadataResource } from '@/lib/mcp/cimd-fetch';
+import { getMcpResourceUrl, isMcpCimdEnabled } from '@/lib/mcp/config';
+import { mcpRegistrationGuard } from '@/lib/mcp/guards';
+import { isAllowedRedirectUri } from '@/lib/mcp/redirects';
+import { OAUTH_SCOPES } from '@/lib/mcp/scopes';
 import { sendEmail } from '@/lib/email/send';
 import { buildConfirmationEmail } from '@/lib/email/templates/confirmation';
 import { buildPasswordResetEmail } from '@/lib/email/templates/password-reset';
 import { buildDeleteAccountEmail } from '@/lib/email/templates/delete-account';
 import { getDb, getDbBinding, type Database } from '@/db/client';
-import { account, session, user, verification } from '@/db/schema';
+import {
+  account,
+  jwks,
+  oauthAccessToken,
+  oauthClient,
+  oauthClientAssertion,
+  oauthClientResource,
+  oauthConsent,
+  oauthRefreshToken,
+  oauthResource,
+  session,
+  user,
+  verification,
+} from '@/db/schema';
 import { initializeUserCredits } from '@/db/repos/credits';
 import { recordAuthMetricEvent } from '@/db/repos/adminMetrics';
 import { getConfirmationResendMeta, getOrCreateProfile } from '@/db/repos/profiles';
@@ -42,14 +63,7 @@ export type AuthInstance = ReturnType<typeof createAuth>;
 
 const SESSION_COOKIE_NAME = 'usefulapply.session';
 
-function authBaseURL(): string {
-  return (
-    process.env.BETTER_AUTH_URL?.replace(/\/$/, '')
-    || process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')
-    || process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '')
-    || getSiteUrl()
-  );
-}
+const authBaseURL = getAuthBaseUrl;
 
 function googleProvider() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -76,12 +90,26 @@ function createAuth(db: Database) {
       'http://localhost:8787',
       'http://localhost:8788',
       'http://localhost:8790',
+      'http://localhost:8791',
     ],
     database: drizzleAdapter(db, {
       provider: 'sqlite',
       // D1 has no interactive transactions. Sequential writes only.
       transaction: false,
-      schema: { user, session, account, verification },
+      schema: {
+        user,
+        session,
+        account,
+        verification,
+        jwks,
+        oauthClient,
+        oauthResource,
+        oauthClientResource,
+        oauthRefreshToken,
+        oauthAccessToken,
+        oauthConsent,
+        oauthClientAssertion,
+      },
     }),
     emailAndPassword: {
       enabled: true,
@@ -250,7 +278,40 @@ function createAuth(db: Database) {
         },
       },
     },
-    plugins: [nextCookies()],
+    plugins: [
+      // MCP OAuth: signing keys, the authorization server (on
+      // @better-auth/oauth-provider) bound to the /mcp resource, and Client ID
+      // Metadata Documents. `mcp()` is the OAuth provider, so there is no
+      // separate oauthProvider(). Migration 0009 holds the tables.
+      jwt(),
+      mcp({
+        loginPage: '/auth/login',
+        consentPage: '/oauth/consent',
+        resource: getMcpResourceUrl(),
+        scopes: [...OAUTH_SCOPES],
+        accessTokenExpiresIn: 10 * 60,
+        refreshTokenExpiresIn: 30 * 24 * 60 * 60,
+        // Browser-approved grants only: no client_credentials (machine-to-machine) tokens.
+        grantTypes: ['authorization_code', 'refresh_token'],
+        // Open dynamic client registration (RFC 7591). Redirect URIs are
+        // checked at registration by mcpRegistrationGuard and again at authorize.
+        allowDynamicClientRegistration: true,
+        allowUnauthenticatedClientRegistration: true,
+        clientRegistrationDefaultApplicationType: 'infer',
+        // Exact-match allowlist plus loopback (see redirects.ts). Applied on top
+        // of the built-in match, so a URI must pass both.
+        validateRedirectUri: (redirectUri, _registered, defaultResult) =>
+          defaultResult && isAllowedRedirectUri(redirectUri),
+      }),
+      // Client ID Metadata Documents stay off until the fetch boundary is proven
+      // on Workers (see cimd-fetch.ts and docs/agent-integration/spikes.md).
+      // Dynamic client registration covers every client meanwhile.
+      ...(isMcpCimdEnabled()
+        ? [cimd({ fetchClientMetadataResource, metadataProfile: 'mcp-2026-07-28' })]
+        : []),
+      mcpRegistrationGuard(),
+      nextCookies(),
+    ],
   });
 }
 
