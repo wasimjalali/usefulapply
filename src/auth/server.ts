@@ -9,6 +9,7 @@ import { getAuthBaseUrl } from '@/lib/auth/site-url';
 import { fetchClientMetadataResource } from '@/lib/mcp/cimd-fetch';
 import { getMcpResourceUrl, isMcpCimdEnabled, MCP_JWT_ALG } from '@/lib/mcp/config';
 import { mcpOAuthGuards } from '@/lib/mcp/guards';
+import { takeTestIssuePause } from '@/lib/mcp/test-hooks';
 import { isAllowedRedirectUri } from '@/lib/mcp/redirects';
 import { OAUTH_SCOPES } from '@/lib/mcp/scopes';
 import { sendEmail } from '@/lib/email/send';
@@ -329,6 +330,12 @@ function createAuth(db: Database) {
         refreshTokenExpiresIn: 30 * 24 * 60 * 60,
         // Browser-approved grants only: no client_credentials (machine-to-machine) tokens.
         grantTypes: ['authorization_code', 'refresh_token'],
+        // Runs while the provider mints a token, after it consumed the code. A no-op outside the
+        // E2E (test-hooks.ts only ever holds a pause there).
+        customAccessTokenClaims: async () => {
+          await takeTestIssuePause();
+          return {};
+        },
         // The provider's built-in limits (token 20 a minute, register 5) are per
         // IP, and Claude and ChatGPT call from shared egress IPs, so they would
         // throttle every user of a client together. Our Workers rate limit

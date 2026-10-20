@@ -22,7 +22,7 @@ export async function dispatchScheduled(cron: string): Promise<void> {
       const [
         { cleanupHistoricalJobFeedData },
         { processOverdueMonthlyResets },
-        { purgeUnconsentedClients },
+        { purgeUnconsentedClients, purgeExpiredTokenBindings },
         { isMcpEnabled },
       ] = await Promise.all([
         import('@/lib/job-feed/cleanup'),
@@ -34,7 +34,9 @@ export async function dispatchScheduled(cron: string): Promise<void> {
         cleanupHistoricalJobFeedData({ now: new Date() }),
         processOverdueMonthlyResets({ limit: 200 }),
         // Nothing registers while MCP is off, and the tables may not be migrated yet.
-        isMcpEnabled() ? purgeUnconsentedClients() : Promise.resolve(0),
+        isMcpEnabled()
+          ? Promise.all([purgeUnconsentedClients(), purgeExpiredTokenBindings()])
+          : Promise.resolve([0, 0]),
       ]);
       const problems: string[] = [];
       for (const r of results) {
@@ -50,7 +52,7 @@ export async function dispatchScheduled(cron: string): Promise<void> {
         }
       }
       const purge = results[2];
-      if (purge.status === 'fulfilled') console.log('[cron] purged unconsented OAuth clients', purge.value);
+      if (purge.status === 'fulfilled') console.log('[cron] MCP purge (clients without consent, expired token bindings)', purge.value);
       // Side effects are already committed; throwing only marks the run failed in Workers Logs.
       if (problems.length > 0) {
         throw new Error(`[cron] ${problems.join('; ')}`);

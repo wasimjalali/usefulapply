@@ -1,20 +1,25 @@
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { getDb, runBatch } from '../client';
-import { mcpGrantState, oauthClient, oauthConsent, oauthRefreshToken, profiles, user } from '../schema';
+import { mcpGrantState, mcpTokenGeneration, oauthClient, oauthConsent, oauthRefreshToken, profiles, user } from '../schema';
 
 /**
  * Connected apps: the OAuth clients a user has authorised for MCP, and the
- * revocation record the /mcp token check reads.
+ * checks the /mcp token verifier makes.
  *
  * Better Auth cannot revoke a JWT access token, so revoking a client runs one
  * D1 batch: delete its access and refresh tokens, its consent (the next
- * authorise asks again), any authorization codes issued but not yet exchanged,
- * and write `revoked_at`. The /mcp check then refuses an access token that
- *   - was issued at or before `revoked_at`, or
- *   - has no consent row behind it, or
- *   - carries a scope the current consent does not include (a code that slipped
- *     through a revoke, redeemed after the user reconnected with less access),
- * so access tokens die within GRANT_CACHE_TTL_MS.
+ * authorise asks again), the token bindings, and any authorization codes issued
+ * but not yet exchanged, and write `revoked_at` (kept for the record; nothing
+ * reads it).
+ *
+ * Every token is bound to a consent "generation" (the consent row's id, see
+ * mcpTokenGeneration). /mcp refuses an access token when
+ *   - its generation is not the current consent's id (revoked, or revoked and
+ *     reconnected), or
+ *   - there is no consent, or
+ *   - it carries a scope the current consent does not include,
+ * so a token dies within GRANT_CACHE_TTL_MS of a revoke and cannot come back
+ * when the user reconnects, however late its exchange finished.
  */
 
 /** Longest a revocation can go unseen by another isolate. The brief allows 60 s. */
@@ -30,6 +35,8 @@ export interface GrantState {
   lastUsedAt: number | null;
   /** Scopes of the user's current consent for this client, or null when there is none. */
   consentScopes: string[] | null;
+  /** The current consent row's id (the generation tokens must be bound to), or null when there is none. */
+  consentId: string | null;
   /** The account is gone (deleted). Its tokens stay signed and unexpired for up to 10 minutes, so this refuses them. */
   userMissing?: boolean;
 }
@@ -62,7 +69,7 @@ export async function getGrantState(userId: string, clientId: string, fresh = fa
     .limit(1);
   const owner = await db.select({ id: user.id }).from(user).where(eq(user.id, userId)).limit(1);
   const consent = await db
-    .select({ scopes: oauthConsent.scopes })
+    .select({ id: oauthConsent.id, scopes: oauthConsent.scopes })
     .from(oauthConsent)
     .where(and(eq(oauthConsent.userId, userId), eq(oauthConsent.clientId, clientId)))
     .limit(1);
@@ -70,6 +77,7 @@ export async function getGrantState(userId: string, clientId: string, fresh = fa
     revokedAt: rows[0]?.revokedAt ?? null,
     lastUsedAt: rows[0]?.lastUsedAt ?? null,
     consentScopes: consent[0] ? parseScopes(consent[0].scopes) : null,
+    consentId: consent[0]?.id ?? null,
     userMissing: owner.length === 0,
   };
   grantCache.set(key, { at: Date.now(), state });
@@ -81,31 +89,79 @@ export async function getGrantState(userId: string, clientId: string, fresh = fa
   return state;
 }
 
-/** True when an access token minted at `issuedAtSeconds` predates this client's revocation. */
-export function isTokenRevoked(state: GrantState, issuedAtSeconds: number | undefined): boolean {
-  if (state.userMissing) return true;
-  if (state.revokedAt === null) return false;
-  // A token with no usable iat cannot be shown to postdate the revocation.
-  if (typeof issuedAtSeconds !== 'number') return true;
-  return issuedAtSeconds * 1000 <= state.revokedAt;
-}
-
 /**
- * Why a token with this `iat` and these scopes may not use /mcp, or null when
- * it may. See the header comment for the three rules.
+ * Why a token with this generation and these scopes may not use /mcp, or null
+ * when it may. `generation` is what the token was bound to (null: unbound).
  */
 export function grantProblem(
   state: GrantState,
-  issuedAtSeconds: number | undefined,
+  generation: string | null,
   tokenScopes: readonly string[],
 ): string | null {
-  if (isTokenRevoked(state, issuedAtSeconds)) return 'This app was disconnected';
-  if (state.consentScopes === null) return 'This app was disconnected';
+  if (state.userMissing || state.consentId === null || state.consentScopes === null) return 'This app was disconnected';
+  if (generation === null || generation !== state.consentId) return 'This app was disconnected';
   const consented = new Set(state.consentScopes);
   if (tokenScopes.some((scope) => !consented.has(scope))) {
     return 'The access token has more access than this app was approved for';
   }
   return null;
+}
+
+// Bindings never change once written, so a hit is cached; a miss is not (it may be about to be written).
+const globalForBindings = globalThis as typeof globalThis & { __uaMcpBindingCache?: Map<string, { at: number; consentId: string }> };
+const bindingCache: Map<string, { at: number; consentId: string }> = (globalForBindings.__uaMcpBindingCache ??= new Map());
+
+/** The consent generation a token (`at:<jti>` or `rt:<hash>`) was issued under, or null if it was never bound. */
+export async function getTokenGeneration(tokenKey: string, fresh = false): Promise<string | null> {
+  const hit = bindingCache.get(tokenKey);
+  if (!fresh && hit && Date.now() - hit.at < GRANT_CACHE_TTL_MS) return hit.consentId;
+  const db = await getDb();
+  const rows = await db
+    .select({ consentId: mcpTokenGeneration.consent_id })
+    .from(mcpTokenGeneration)
+    .where(eq(mcpTokenGeneration.token_key, tokenKey))
+    .limit(1);
+  if (!rows[0]) return null;
+  bindingCache.set(tokenKey, { at: Date.now(), consentId: rows[0].consentId });
+  if (bindingCache.size > 10_000) {
+    for (const [k, v] of bindingCache) {
+      if (Date.now() - v.at >= GRANT_CACHE_TTL_MS) bindingCache.delete(k);
+    }
+  }
+  return rows[0].consentId;
+}
+
+export interface TokenBinding {
+  tokenKey: string;
+  consentId: string;
+  userId: string;
+  clientId: string;
+  /** Epoch ms after which the token cannot be used anyway, so the row can be purged. */
+  expiresAt: number;
+}
+
+export async function bindTokens(bindings: TokenBinding[]): Promise<void> {
+  if (bindings.length === 0) return;
+  const db = await getDb();
+  await db
+    .insert(mcpTokenGeneration)
+    .values(
+      bindings.map((b) => ({
+        token_key: b.tokenKey,
+        consent_id: b.consentId,
+        user_id: b.userId,
+        client_id: b.clientId,
+        expires_at: b.expiresAt,
+      })),
+    )
+    // A replayed refresh response re-binds the same tokens to the same generation.
+    .onConflictDoNothing();
+}
+
+/** Daily cleanup: bindings of tokens that have expired. */
+export async function purgeExpiredTokenBindings(now = Date.now()): Promise<number> {
+  const [result] = await runBatch([sql`DELETE FROM mcp_token_generation WHERE expires_at < ${now}`]);
+  return result?.meta.changes ?? 0;
 }
 
 /** Record a use for "last used" in Connected apps, without writing on every call. */
@@ -204,6 +260,7 @@ export async function revokeConnectedApp(userId: string, clientId: string): Prom
     sql`DELETE FROM oauth_access_token WHERE user_id = ${userId} AND client_id = ${clientId}`,
     sql`DELETE FROM oauth_refresh_token WHERE user_id = ${userId} AND client_id = ${clientId}`,
     sql`DELETE FROM oauth_consent WHERE user_id = ${userId} AND client_id = ${clientId}`,
+    sql`DELETE FROM mcp_token_generation WHERE user_id = ${userId} AND client_id = ${clientId}`,
     // Authorization codes issued but not yet exchanged live in `verification` as JSON
     // (identifier is the hashed code; value holds the user and the original query).
     // json_valid in a CASE because other rows in that table are not JSON and SQLite
@@ -216,7 +273,7 @@ export async function revokeConnectedApp(userId: string, clientId: string): Prom
   ]);
   grantCache.set(cacheKey(userId, clientId), {
     at: now,
-    state: { revokedAt: now, lastUsedAt: null, consentScopes: null },
+    state: { revokedAt: now, lastUsedAt: null, consentScopes: null, consentId: null },
   });
   return true;
 }
@@ -263,7 +320,18 @@ export async function revokeAllConnectedApps(userId: string): Promise<number> {
     .from(oauthRefreshToken)
     .where(and(eq(oauthRefreshToken.userId, userId), isNull(oauthRefreshToken.revoked)));
   const clientIds = [...new Set([...consents, ...refresh].map((row) => row.clientId))];
-  for (const clientId of clientIds) await revokeConnectedApp(userId, clientId);
+  // One client failing must not leave the others connected: try them all, then report.
+  const errors: unknown[] = [];
+  for (const clientId of clientIds) {
+    try {
+      await revokeConnectedApp(userId, clientId);
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  if (errors.length > 0) {
+    throw new AggregateError(errors, `Revoking ${errors.length} of ${clientIds.length} connected apps failed`);
+  }
   return clientIds.length;
 }
 

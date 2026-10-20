@@ -3,7 +3,7 @@ import { APIError } from 'better-auth/api';
 import { verifyJwsAccessToken } from 'better-auth/oauth2';
 import { errors as joseErrors, type JWTPayload } from 'jose';
 import { getAuth } from '@/auth/server';
-import { getGrantState, grantProblem, touchGrantLastUsed } from '@/db/repos/mcpGrants';
+import { getGrantState, getTokenGeneration, grantProblem, touchGrantLastUsed } from '@/db/repos/mcpGrants';
 import { getMcpResourceUrl, MCP_JWT_ALG } from '@/lib/mcp/config';
 import { parseScopeClaim } from '@/lib/mcp/scopes';
 
@@ -35,6 +35,27 @@ export interface VerifiedMcpToken {
 export const MCP_CHALLENGE_SCOPES = ['read', 'write', 'spend', 'offline_access'] as const;
 
 const jwksCacheKey = {};
+
+/** How long a refusal is remembered per token (by jti). Short, so a reconnect is never blocked for long. */
+const REFUSAL_CACHE_MS = 5_000;
+const globalForRefusals = globalThis as typeof globalThis & { __uaMcpRefused?: Map<string, number> };
+const refused: Map<string, number> = (globalForRefusals.__uaMcpRefused ??= new Map());
+
+function refusedRecently(jti: string): boolean {
+  const until = refused.get(jti);
+  if (until === undefined) return false;
+  if (until > Date.now()) return true;
+  refused.delete(jti);
+  return false;
+}
+
+function markRefused(jti: string): void {
+  refused.set(jti, Date.now() + REFUSAL_CACHE_MS);
+  if (refused.size > 5_000) {
+    const now = Date.now();
+    for (const [key, until] of refused) if (until <= now) refused.delete(key);
+  }
+}
 
 export function resourceMetadataUrl(): string {
   const resource = new URL(getMcpResourceUrl());
@@ -106,16 +127,27 @@ export async function verifyMcpBearer(request: Request): Promise<VerifiedMcpToke
   const clientId = typeof claims.azp === 'string' ? claims.azp : '';
   if (!userId || !clientId) return unauthorized('The access token is not valid');
 
+  const jti = typeof claims.jti === 'string' ? claims.jti : '';
+  if (!jti) return unauthorized('The access token is not valid');
+
+  // A token refused a moment ago is refused again without touching the database, so a revoked
+  // client replaying a still-signed token costs one set of reads per REFUSAL_CACHE_MS, not per request.
+  if (refusedRecently(jti)) return unauthorized('This app was disconnected');
+
   const scopes = [...parseScopeClaim(claims.scope)];
+  const tokenKey = `at:${jti}`;
   let state = await getGrantState(userId, clientId);
-  let problem = grantProblem(state, claims.iat, scopes);
+  let problem = grantProblem(state, await getTokenGeneration(tokenKey), scopes);
   if (problem) {
     // The cached state may predate a reconnect (a revoke, then a new consent and a new token).
-    // Re-read before refusing; a refused token costs one query, an accepted one still rides the cache.
+    // Re-read before refusing; a refused token costs a few queries, an accepted one still rides the cache.
     state = await getGrantState(userId, clientId, true);
-    problem = grantProblem(state, claims.iat, scopes);
+    problem = grantProblem(state, await getTokenGeneration(tokenKey, true), scopes);
   }
-  if (problem) return unauthorized(problem);
+  if (problem) {
+    markRefused(jti);
+    return unauthorized(problem);
+  }
   // Best effort: "last used" (written at most every 5 minutes) must not fail a request.
   try {
     await touchGrantLastUsed(userId, clientId, state);

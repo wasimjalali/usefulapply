@@ -1,5 +1,8 @@
 import type { BetterAuthPlugin } from 'better-auth';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
+import { bindTokens, getTokenGeneration } from '@/db/repos/mcpGrants';
+import { isMcpTestMode } from '@/lib/mcp/config';
+import { setTestIssuePause } from '@/lib/mcp/test-hooks';
 import { isAllowedRedirectUri } from '@/lib/mcp/redirects';
 
 /**
@@ -10,19 +13,25 @@ import { isAllowedRedirectUri } from '@/lib/mcp/redirects';
  * fields and rejects the rest. The raw body size is capped earlier, in the auth
  * route, before Better Auth reads it.
  *
- * Token (`/oauth2/token`): a code or refresh token is only redeemable while the
- * user's consent for that client exists AND was given before the code or
- * refresh token was issued. Revoking deletes the consent; if the user then
- * reconnects (new consent, maybe with fewer scopes), anything issued under the
- * old consent is older than the new row and is refused, so an old broad code
- * cannot come back to life. Revoke also deletes pending codes and refresh
- * tokens outright (mcpGrants.ts); this is the backstop for a request that was
- * already in flight.
+ * Token (`/oauth2/token`): every token is bound to a consent generation (the
+ * consent row's id; see mcpTokenGeneration). The before-hook refuses a code or
+ * refresh token unless a consent exists, was given before the code or refresh
+ * token was issued, and (for a refresh token) is the generation the refresh
+ * token is bound to and covers its scopes. It remembers the consent id it
+ * checked. The after-hook binds the access and refresh tokens the provider
+ * issued to that id, then re-reads the consent: if the user revoked (and maybe
+ * reconnected) while the provider was issuing, the refresh row is deleted and
+ * the response becomes invalid_grant, so a late exchange cannot revive a
+ * connection. /mcp checks the same binding, which covers whatever slips
+ * through between those steps.
  *
- * This hook hashes the token the way the provider stores it: SHA-256,
- * base64url, no padding, no prefix. Setting `prefix.refreshToken` (or a custom
- * `storeTokens`) on mcp() changes the stored form and silently disables the
- * lookup below for refresh tokens, so the revoke check would stop working.
+ * Revoke deletes pending codes, tokens, bindings and the consent outright
+ * (mcpGrants.ts); the hooks are the backstop for requests already in flight.
+ *
+ * The hooks hash a token the way the provider stores it: SHA-256, base64url, no
+ * padding, no prefix. Setting `prefix.refreshToken` (or a custom `storeTokens`)
+ * on mcp() changes the stored form and silently disables the lookups for refresh
+ * tokens, so the revoke checks would stop working.
  */
 
 export const MAX_REGISTRATION_BODY_BYTES = 8 * 1024;
@@ -97,6 +106,47 @@ async function hashToken(token: string): Promise<string> {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+/** Refresh tokens live 30 days (mcp() refreshTokenExpiresIn in server.ts). */
+export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+interface ExchangeStash {
+  userId: string;
+  clientId: string;
+  /** The consent row id the exchange was authorised under, read when it started. */
+  consentId: string;
+}
+
+/** Hand-off from the before-hook to the after-hook of one /oauth2/token request. */
+const exchanges = new WeakMap<Request, ExchangeStash>();
+
+function asScopes(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string');
+  if (typeof value === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed.filter((v): v is string => typeof v === 'string');
+    } catch {
+      return value.split(/\s+/).filter(Boolean);
+    }
+  }
+  return [];
+}
+
+function revoked(): APIError {
+  return new APIError('BAD_REQUEST', { error: 'invalid_grant', error_description: 'authorization was revoked' });
+}
+
+function jwtPayload(token: string): { jti?: unknown; exp?: unknown } | null {
+  const part = token.split('.')[1];
+  if (!part) return null;
+  try {
+    const normalized = part.replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '='))) as { jti?: unknown; exp?: unknown };
+  } catch {
+    return null;
+  }
+}
+
 export function mcpOAuthGuards(): BetterAuthPlugin {
   return {
     id: 'ua-mcp-oauth-guards',
@@ -115,6 +165,8 @@ export function mcpOAuthGuards(): BetterAuthPlugin {
             let userId: string | undefined;
             let clientId: string | undefined;
             let issuedAt: number | undefined;
+            let refreshHash: string | undefined;
+            let refreshScopes: string[] | undefined;
 
             if (body.grant_type === 'authorization_code' && typeof body.code === 'string') {
               const pending = await ctx.context.internalAdapter.findVerificationValue(await hashToken(body.code));
@@ -128,34 +180,93 @@ export function mcpOAuthGuards(): BetterAuthPlugin {
                 return;
               }
             } else if (body.grant_type === 'refresh_token' && typeof body.refresh_token === 'string') {
-              const row = await ctx.context.adapter.findOne<{ userId: string; clientId: string; createdAt: Date }>({
+              refreshHash = await hashToken(body.refresh_token);
+              const row = await ctx.context.adapter.findOne<{ userId: string; clientId: string; createdAt: Date; scopes: unknown }>({
                 model: 'oauthRefreshToken',
-                where: [{ field: 'token', value: await hashToken(body.refresh_token) }],
+                where: [{ field: 'token', value: refreshHash }],
               });
               if (!row) return;
               userId = row.userId;
               clientId = row.clientId;
               issuedAt = new Date(row.createdAt).getTime();
+              refreshScopes = asScopes(row.scopes);
             } else {
               return;
             }
 
             if (!userId || !clientId) return;
-            const consent = await ctx.context.adapter.findOne<{ createdAt: Date }>({
+            const consent = await ctx.context.adapter.findOne<{ id: string; createdAt: Date; scopes: unknown }>({
               model: 'oauthConsent',
               where: [
                 { field: 'userId', value: userId },
                 { field: 'clientId', value: clientId },
               ],
             });
+            if (!consent) throw revoked();
             // Timestamps here have one-second resolution, and a code or refresh token is created
             // after the consent in the same request, so "older" is strictly less.
-            const consentedAt = consent ? new Date(consent.createdAt).getTime() : null;
-            if (consentedAt === null || (issuedAt !== undefined && Number.isFinite(consentedAt) && issuedAt < consentedAt)) {
-              throw new APIError('BAD_REQUEST', {
-                error: 'invalid_grant',
-                error_description: 'authorization was revoked',
-              });
+            const consentedAt = new Date(consent.createdAt).getTime();
+            if (issuedAt !== undefined && Number.isFinite(consentedAt) && issuedAt < consentedAt) throw revoked();
+
+            if (refreshHash !== undefined && refreshScopes !== undefined) {
+              // The refresh token belongs to the connection the user has now, and does not exceed it.
+              if ((await getTokenGeneration(`rt:${refreshHash}`, true)) !== consent.id) throw revoked();
+              const consented = new Set(asScopes(consent.scopes));
+              if (refreshScopes.some((scope) => !consented.has(scope))) throw revoked();
+            }
+
+            if (ctx.request) exchanges.set(ctx.request, { userId, clientId, consentId: consent.id });
+            if (isMcpTestMode()) {
+              // Test only: stretch the provider's issuance step so the E2E can revoke and reconnect mid-exchange.
+              setTestIssuePause(Number(ctx.request?.headers.get('x-test-issue-pause-ms')) || 0);
+            }
+          }),
+        },
+      ],
+      after: [
+        {
+          matcher: (ctx) => ctx.path === '/oauth2/token',
+          handler: createAuthMiddleware(async (ctx) => {
+            const exchange = ctx.request ? exchanges.get(ctx.request) : undefined;
+            if (!exchange || !ctx.request) return;
+            exchanges.delete(ctx.request);
+
+            const returned = ctx.context.returned as Record<string, unknown> | undefined;
+            const access = typeof returned?.access_token === 'string' ? returned.access_token : null;
+            if (!access) return; // an error response: nothing was issued
+            const refresh = typeof returned?.refresh_token === 'string' ? returned.refresh_token : null;
+
+            // Bind first, to the consent the exchange was authorised under (not whatever is current now).
+            const now = Date.now();
+            const claims = jwtPayload(access);
+            const bindings = [];
+            if (typeof claims?.jti === 'string') {
+              const exp = typeof claims.exp === 'number' ? claims.exp * 1000 : now + 15 * 60_000;
+              bindings.push({ tokenKey: `at:${claims.jti}`, consentId: exchange.consentId, userId: exchange.userId, clientId: exchange.clientId, expiresAt: exp });
+            }
+            const refreshHash = refresh ? await hashToken(refresh) : null;
+            if (refreshHash) {
+              bindings.push({ tokenKey: `rt:${refreshHash}`, consentId: exchange.consentId, userId: exchange.userId, clientId: exchange.clientId, expiresAt: now + REFRESH_TOKEN_TTL_MS });
+            }
+            await bindTokens(bindings);
+
+            // Then check the connection is still the one it was authorised under. If the user revoked
+            // (and perhaps reconnected) while the provider was issuing, drop what it just made.
+            const consent = await ctx.context.adapter.findOne<{ id: string }>({
+              model: 'oauthConsent',
+              where: [
+                { field: 'userId', value: exchange.userId },
+                { field: 'clientId', value: exchange.clientId },
+              ],
+            });
+            if (!consent || consent.id !== exchange.consentId) {
+              if (refreshHash) {
+                await ctx.context.adapter.deleteMany({
+                  model: 'oauthRefreshToken',
+                  where: [{ field: 'token', value: refreshHash }],
+                });
+              }
+              throw revoked();
             }
           }),
         },

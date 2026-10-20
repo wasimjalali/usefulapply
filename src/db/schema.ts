@@ -1348,3 +1348,29 @@ export const llmGenerations = sqliteTable(
     ),
   ],
 );
+
+/**
+ * Which consent a token belongs to. A consent row's id is its "generation":
+ * revoking deletes the row and reconnecting creates a new one. Every access
+ * token (`at:<jti>`) and refresh token (`rt:<sha256 b64url>`) is bound to the
+ * generation it was issued under, captured when the exchange started, so a
+ * token minted by an exchange that was already past the revoke check is still
+ * tied to the connection the user revoked. /mcp and the refresh grant refuse a
+ * token whose generation is not the current consent's id.
+ */
+export const mcpTokenGeneration = sqliteTable(
+  'mcp_token_generation',
+  {
+    token_key: text('token_key').primaryKey(),
+    consent_id: text('consent_id').notNull(),
+    user_id: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    client_id: text('client_id').notNull(),
+    expires_at: integer('expires_at').notNull(),
+  },
+  (t) => [
+    index('mcp_token_generation_user_client_idx').on(t.user_id, t.client_id),
+    index('mcp_token_generation_expires_idx').on(t.expires_at),
+  ],
+);

@@ -1,6 +1,6 @@
 -- MCP OAuth: tables for Better Auth's jwt(), @better-auth/mcp
 -- (on @better-auth/oauth-provider) and @better-auth/cimd, plus our own
--- mcp_grant_state revocation record and the per-account daily agent credit limit.
+-- mcp_grant_state revocation record, the mcp_token_generation binding of tokens to a consent, and the per-account daily agent credit limit.
 -- Mirrors src/db/schema.ts. Local first: `npx wrangler d1 migrations apply usefulapply-db --local`.
 
 CREATE TABLE `jwks` (
@@ -173,4 +173,15 @@ CREATE TABLE `mcp_grant_state` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `mcp_grant_state_user_client_uidx` ON `mcp_grant_state` (`user_id`,`client_id`);--> statement-breakpoint
+CREATE TABLE `mcp_token_generation` (
+	`token_key` text PRIMARY KEY NOT NULL,
+	`consent_id` text NOT NULL,
+	`user_id` text NOT NULL,
+	`client_id` text NOT NULL,
+	`expires_at` integer NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `mcp_token_generation_user_client_idx` ON `mcp_token_generation` (`user_id`,`client_id`);--> statement-breakpoint
+CREATE INDEX `mcp_token_generation_expires_idx` ON `mcp_token_generation` (`expires_at`);--> statement-breakpoint
 ALTER TABLE `profiles` ADD `mcp_daily_credit_limit` real DEFAULT 10 NOT NULL;
