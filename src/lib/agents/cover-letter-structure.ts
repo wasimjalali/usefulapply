@@ -19,7 +19,7 @@
 
 import type { MasterContext } from './types';
 import type { CoverLetterRecipient, CoverLetterSender, StructuredCoverLetter } from '@/lib/cover-letter/contract';
-import { cleanLetterText } from './cover-letter-guards';
+import { cleanLetterText, US_STATE_CODES } from './cover-letter-guards';
 
 /** Recipient details from the application session row, set by the routes. */
 export interface LetterRecipientSource {
@@ -57,8 +57,12 @@ const LETTER_LOCALES: Record<string, string> = {
 // Matched on letter boundaries, so "Bern" never matches inside "Berner".
 const DACH_COUNTRY = /(?:^|[^\p{L}])(deutschland|germany|österreich|oesterreich|austria|schweiz|switzerland|suisse|svizzera)(?=$|[^\p{L}])/iu;
 const DACH_CITY = /(?:^|[^\p{L}])(berlin|hamburg|münchen|muenchen|munich|köln|koeln|cologne|frankfurt|stuttgart|düsseldorf|duesseldorf|leipzig|dresden|hannover|nürnberg|nuernberg|nuremberg|bremen|dortmund|bonn|mannheim|karlsruhe|wien|vienna|graz|linz|salzburg|innsbruck|zürich|zurich|basel|bern|genf|geneva|lausanne|luzern|lucerne)(?=$|[^\p{L}])/iu;
-// "Vienna, VA", "Berlin, MA", "Geneva, IL 60134": a US state code after a comma.
-const US_STATE_SUFFIX = /,\s*[A-Z]{2}(?:\s+\d{5}(?:-\d{4})?)?(?=$|[\s,;)])/u;
+// A two-letter code after a comma ("Vienna, VA", "Berlin, DE", "Bern, BE"),
+// with an optional US ZIP.
+const REGION_SUFFIX = /,\s*([A-Z]{2})(\s+\d{5}(?:-\d{4})?)?(?=$|[\s,;)])/u;
+const DACH_COUNTRY_CODES = new Set(['DE', 'AT', 'CH']);
+// Swiss canton codes that are not also US state codes.
+const SWISS_CANTON_CODES = new Set(['AG', 'AI', 'BE', 'BL', 'BS', 'FR', 'GE', 'GL', 'GR', 'JU', 'LU', 'NW', 'OW', 'SG', 'SH', 'SO', 'SZ', 'TG', 'TI', 'UR', 'VD', 'VS', 'ZG', 'ZH']);
 
 function collapse(value: string | null | undefined): string {
   return (value ?? '').replace(/[\s\p{Cc}]+/gu, ' ').trim();
@@ -66,15 +70,23 @@ function collapse(value: string | null | undefined): string {
 
 /**
  * `dach` for a German letter, or a job located in Germany, Austria or
- * Switzerland. A DACH city counts only beside a DACH country or with a
- * German-language ad, and never with a US state code ("Vienna, VA"). An
- * English letter for a DACH job gets the DIN layout but keeps its English
- * subject and closing.
+ * Switzerland. A DACH city counts only beside a DACH country (name, or the
+ * code DE/AT/CH or a Swiss canton code) or with a German-language ad, and
+ * never with a US state code or ZIP ("Vienna, VA", "Geneva, IL 60134"). "DE"
+ * is Delaware unless a DACH city stands before it. An English letter for a
+ * DACH job gets the DIN layout but keeps its English subject and closing.
  */
 export function resolveLetterMarket(language: string, jobLocation: string | undefined, adLanguage?: string): 'us' | 'dach' {
   if (language === 'de') return 'dach';
   const location = jobLocation ?? '';
-  if (US_STATE_SUFFIX.test(location)) return 'us';
+  const region = location.match(REGION_SUFFIX);
+  if (region) {
+    const [, code, zip] = region;
+    const dachCity = DACH_CITY.test(location.slice(0, region.index));
+    if (zip) return 'us';
+    if (dachCity && (DACH_COUNTRY_CODES.has(code) || SWISS_CANTON_CODES.has(code))) return 'dach';
+    if (US_STATE_CODES.has(code)) return 'us';
+  }
   if (DACH_COUNTRY.test(location)) return 'dach';
   return adLanguage === 'de' && DACH_CITY.test(location) ? 'dach' : 'us';
 }

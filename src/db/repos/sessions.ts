@@ -2,6 +2,7 @@
 import { and, asc, desc, eq, isNotNull, lt, sql } from 'drizzle-orm';
 import { getDb, nowIso, stripIdentity } from '../client';
 import { applicationSessions, chatMessages } from '../schema';
+import { withRecipientReset } from '../session-recipient-reset';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
 
 export interface ApplicationSession {
@@ -122,20 +123,9 @@ export async function updateSession(
 ): Promise<{ error: Error | null }> {
   const db = await getDb();
   // `updates` can arrive from a server action and must never re-parent the row.
-  const values: Record<string, unknown> = stripServerOwnedCounters(stripIdentity(updates as Record<string, unknown>));
-  // The recipient address and contact belong to the job the row describes. A
-  // write that changes the job description clears them in the same statement
-  // (SQLite reads the old row in SET), so the cover letter can refill them for
-  // the new job. Surrounding whitespace is not a change. A caller that sets
-  // them explicitly keeps its value.
-  if (typeof values.job_description === 'string') {
-    const nextJob = values.job_description.trim();
-    const keepIfSameJob = (column: typeof applicationSessions.company_address | typeof applicationSessions.company_contact_person) => (
-      sql`CASE WHEN trim(${applicationSessions.job_description}, ' ' || char(9) || char(10) || char(13)) = ${nextJob} THEN ${column} ELSE NULL END`
-    );
-    if (!('company_address' in values)) values.company_address = keepIfSameJob(applicationSessions.company_address);
-    if (!('company_contact_person' in values)) values.company_contact_person = keepIfSameJob(applicationSessions.company_contact_person);
-  }
+  // A job description change clears the cover letter recipient columns in the
+  // same statement (db/session-recipient-reset.ts).
+  const values = withRecipientReset(stripServerOwnedCounters(stripIdentity(updates as Record<string, unknown>)));
   const updated = await db
     .update(applicationSessions)
     .set({ ...values, updated_at: nowIso() } as never)

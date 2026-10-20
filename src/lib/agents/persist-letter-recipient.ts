@@ -17,6 +17,7 @@
 
 import { and, eq, isNull, or, sql } from 'drizzle-orm';
 import { getDb, nowIso } from '@/db/client';
+import { sqlTrimStoredText, trimStoredText } from '@/db/trim-text';
 import { applicationSessions } from '@/db/schema';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
 
@@ -32,7 +33,8 @@ export async function saveLetterRecipientFromAd(
   ].filter((fill) => fill.value.trim());
   if (fills.length === 0) return;
   const db = await getDb();
-  const sameJob = sql`trim(${applicationSessions.job_description}, ' ' || char(9) || char(10) || char(13)) = ${jobDescription.trim()}`;
+  // The same trim on both sides (db/trim-text.ts); a whitespace-only column is empty.
+  const sameJob = sql`${sqlTrimStoredText(applicationSessions.job_description)} = ${trimStoredText(jobDescription)}`;
   for (const fill of fills) {
     await db
       .update(applicationSessions)
@@ -41,7 +43,7 @@ export async function saveLetterRecipientFromAd(
         eq(applicationSessions.id, sessionId),
         eq(applicationSessions.user_id, userId),
         sameJob,
-        or(isNull(fill.column), eq(fill.column, '')),
+        or(isNull(fill.column), sql`${sqlTrimStoredText(fill.column)} = ''`),
       ));
   }
 }

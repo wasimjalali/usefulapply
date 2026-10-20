@@ -25,6 +25,7 @@ import { getCurrentUser } from '@/auth/server';
 import { getSession, updateSession } from '@/db/repos/sessions';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { saveLetterRecipientFromAd } from '@/lib/agents/persist-letter-recipient';
+import { trimStoredText } from '@/db/trim-text';
 import { getDocumentByType } from '@/db/repos/documents';
 import { getJobPreferences } from '@/db/repos/jobFeed';
 import { claimAnonymousGeneration, releaseAnonymousGeneration } from '@/db/repos/anonymous';
@@ -569,7 +570,7 @@ export async function POST(request: NextRequest) {
         // and only while that row still belongs to the job being written for:
         // a session whose JD was just replaced may hold the old employer.
         const letterRecipientFor = (jobDescriptionForRun: string): MasterContext['letterRecipient'] => (
-          attributableSession && attributableSession.job_description.trim() === jobDescriptionForRun.trim()
+          attributableSession && trimStoredText(attributableSession.job_description) === trimStoredText(jobDescriptionForRun)
             ? {
                 companyName: attributableSession.company,
                 address: attributableSession.company_address,

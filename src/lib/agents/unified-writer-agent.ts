@@ -59,11 +59,12 @@ import { buildCoverLetterSystemBlocks, buildCoverLetterUserPrompt } from './prom
 import { assembleStructuredCoverLetter, renderCoverLetterBody, splitAddressLines, type CoverLetterModelFields } from './cover-letter-structure';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
 import {
+  adContactPerson,
   adPhrase,
   cleanLetterText,
   extractAdAddress,
+  fallbackGreeting,
   fallbackLetterSubject,
-  GENERIC_LETTER_GREETINGS,
   hasUnverifiedBrackets,
   resolveClosing,
   resolveSalutation,
@@ -877,11 +878,13 @@ function findBoundaryBlacklistedPhrases(value: string): string[] {
 
 const LETTER_RECIPIENT_MAX_CHARS = 120;
 
-/** A cover letter answer: a paragraph list with real text, not a schema echo or a fragment. */
+/**
+ * A cover letter answer: a paragraph list with real text, not a schema echo
+ * or a fragment. The subject is optional here: a missing one degrades to the
+ * code-built subject instead of failing the letter.
+ */
 export function isCoverLetterAnswerShape(parsed: Record<string, unknown>): boolean {
-  return typeof parsed.subject === 'string'
-    && Array.isArray(parsed.paragraphs)
-    && parsed.paragraphs.some(isRealString);
+  return Array.isArray(parsed.paragraphs) && parsed.paragraphs.some(isRealString);
 }
 
 /** The text contains the value as a whole phrase, ignoring case and spacing. */
@@ -913,28 +916,35 @@ function validateCoverLetterFields(
   const typoFixed = (value: unknown) => (typeof value === 'string' ? fixTypos(value) : value);
 
   if (!Array.isArray(parsed.paragraphs)) issues.push('the paragraphs were not a list');
-  const paragraphs = (Array.isArray(parsed.paragraphs) ? parsed.paragraphs : []).flatMap((value) => {
+  // Each paragraph keeps its last raw line for the sign-off check below.
+  const paragraphParts = (Array.isArray(parsed.paragraphs) ? parsed.paragraphs : []).flatMap((value) => {
     if (typeof value !== 'string') {
       issues.push('a paragraph was not text');
       return [];
     }
     return sanitizeDashes(fixTypos(value))
       .split(/\n\s*\n/u)
-      .map((part) => part.replace(/[\s\p{Cc}]+/gu, ' ').trim())
-      .filter(Boolean);
+      .map((part) => {
+        const lines = part.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean);
+        return { text: part.replace(/[\s\p{Cc}]+/gu, ' ').trim(), lastLine: lines.at(-1) ?? '' };
+      })
+      .filter((part) => Boolean(part.text));
   });
+  const paragraphs = paragraphParts.map((part) => part.text);
   if (paragraphs.length === 0) issues.push('the letter had no paragraphs');
 
   // Recipient details: the ad's own text, or nothing. Saved session values win.
   const recipient = isRecord(parsed.recipient) ? parsed.recipient : {};
-  const fromAd = (value: unknown): string | undefined => (
+  const usable = (value: unknown): value is string => (
     typeof value === 'string' && value.length <= LETTER_RECIPIENT_MAX_CHARS && !isPlaceholderValue(value.trim())
-      ? adPhrase(adText, value)
-      : undefined
   );
-  const contactPerson = fromAd(recipient.contactPerson);
-  const department = fromAd(recipient.department);
+  const fromAd = (value: unknown): string | undefined => (usable(value) ? adPhrase(adText, value) : undefined);
   const companyName = adPhrase(adText, context.job?.companyName) ?? fromAd(recipient.companyName);
+  const department = fromAd(recipient.department);
+  // A contact must sit where the ad tells applicants to write, not in an imprint.
+  const contactPerson = usable(recipient.contactPerson)
+    ? adContactPerson(adText, recipient.contactPerson, [companyName, department])
+    : undefined;
   const savedCompany = cleanLetterText(context.letterRecipient?.companyName);
   const savedContact = cleanLetterText(context.letterRecipient?.contactPerson);
   const addressee = savedContact || contactPerson;
@@ -972,8 +982,13 @@ function validateCoverLetterFields(
 
   // The address belongs in the address block, which code builds. A paragraph
   // that carries it fails; a subject or salutation that carries it is replaced.
+  // Each known address line, and its street part before the first comma, with
+  // a digit and at least 8 characters, so a short saved unit line ("Floor 5")
+  // can't false-fail a paragraph.
   const knownAddressLines = [...addressLines, ...splitAddressLines(context.letterRecipient?.address)]
-    .filter((line) => /\d/u.test(line));
+    .flatMap((line) => [line, line.split(',')[0]])
+    .map((line) => line.trim())
+    .filter((line, index, all) => line.length >= 8 && /\d/u.test(line) && all.indexOf(line) === index);
   const carriesAddress = (text: string) => knownAddressLines.some((line) => textContainsPhrase(text, line));
   if (paragraphs.some(carriesAddress)) {
     issues.push('the letter text contained the postal address, which belongs only in the recipient field');
@@ -983,24 +998,30 @@ function validateCoverLetterFields(
     fallbacks.push('subject: carried the address');
   }
   if (carriesAddress(salutation)) {
-    salutation = GENERIC_LETTER_GREETINGS[language];
+    salutation = fallbackGreeting(language, addressee, [adText]);
     fallbacks.push('salutation: carried the address');
   }
 
   // The frame (greeting, sign-off, name) is added in code; a paragraph that
-  // repeats it would print twice.
+  // repeats it would print twice. The sign-off counts only when a paragraph's
+  // last line, or the text after its last sentence end, IS the closing, the
+  // name or both: "...and I will do my best." never matches "Best,".
   const applicantName = normalizeComparisonText(context.applicant?.name ?? '');
   const greetings = [salutation, typeof parsed.salutation === 'string' ? parsed.salutation : '']
     .map(normalizeComparisonText)
     .filter(Boolean);
-  const signOffs = [closing, typeof parsed.closing === 'string' ? parsed.closing : '']
-    .map((value) => normalizeComparisonText(value).replace(/,$/u, ''))
-    .filter(Boolean);
-  for (const paragraph of paragraphs) {
-    const text = normalizeComparisonText(paragraph);
+  const bare = (value: string) => normalizeComparisonText(value).replace(/[\s,.;:!-]+$/u, '');
+  const signOffs = [closing, typeof parsed.closing === 'string' ? parsed.closing : ''].map(bare).filter(Boolean);
+  const signOffForms = new Set([
+    ...signOffs,
+    ...(applicantName ? [applicantName, ...signOffs.map((signOff) => `${signOff} ${applicantName}`), ...signOffs.map((signOff) => `${signOff}, ${applicantName}`)] : []),
+  ]);
+  for (const part of paragraphParts) {
+    const text = normalizeComparisonText(part.text);
     if (greetings.some((greeting) => text.startsWith(greeting))) issues.push('a paragraph repeated the greeting');
-    const stripped = text.replace(/[,.]$/u, '');
-    if ((applicantName && stripped.endsWith(applicantName)) || signOffs.some((signOff) => stripped.endsWith(signOff))) {
+    const lastLine = bare(part.lastLine);
+    const afterLastSentence = bare(lastLine.split(/(?<=[.!?])\s+/u).at(-1) ?? '');
+    if (signOffForms.has(lastLine) || signOffForms.has(afterLastSentence)) {
       issues.push('a paragraph repeated the sign-off or the signature');
     }
   }
