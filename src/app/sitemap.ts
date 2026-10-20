@@ -6,6 +6,9 @@ import { SEO_SITE_URL } from '@/lib/seo/site-url';
 
 const SITE_URL = SEO_SITE_URL;
 
+// Read MCP_ENABLED per request, not at build.
+export const dynamic = 'force-dynamic';
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const blogPosts = getAllPosts();
   const comparisons = getComparisons();

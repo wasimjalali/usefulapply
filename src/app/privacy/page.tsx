@@ -480,28 +480,31 @@ export default function PrivacyPage() {
 
         <LegalH3>What an assistant can read and write</LegalH3>
         <LegalP>
-          Once you connect it, your assistant can read and change your account details, CVs,
-          applications, generated kit documents, job feed and settings, and your credit balance
-          and history. What it can do depends on the scopes you grant: read, write and spend.
+          What your assistant can do depends on the scopes you grant: read, write and spend. It
+          can read, change and delete your account details, profile and photo, CVs,
+          applications, kit documents, job feed and settings. It can see your credit balance and
+          history. With the spend scope, it can use your credits.
         </LegalP>
 
         <LegalH3>Consent and access</LegalH3>
         <LegalP>
           An assistant gets access only through OAuth, after you sign in and approve the scopes
-          on our consent screen. Access tokens are short-lived. You can set a daily limit on the
-          credits assistants can spend.
+          on our consent screen. Access tokens are short-lived. A daily agent credit limit caps the
+          credits assistants can spend. You can change it in Connected apps.
         </LegalP>
 
         <LegalH3>Revoking access</LegalH3>
         <LegalP>
           Open Settings, then Connected apps, and remove the app. Access stops within a minute.
-          Deleting your account revokes every connection. You can also disconnect from inside the
-          assistant.
+          Removing the connection inside your assistant may not revoke it on our side. To be
+          sure, remove it in Connected apps. Deleting your account revokes every connection.
         </LegalP>
 
         <LegalH3>AI provider processing</LegalH3>
         <LegalP>
-          The assistant&apos;s provider (for example Anthropic or OpenAI) processes the content
+          We receive only what your assistant sends to a tool, such as a job description or an
+          edit. We don&apos;t receive the rest of your conversation. The assistant&apos;s provider
+          (for example Anthropic or OpenAI) processes the content
           your assistant retrieves from Useful Apply and the conversation you have with it. That
           processing is governed by the provider&apos;s own terms and privacy policy, not ours.
           Only connect an assistant whose provider you&apos;re comfortable sharing your CV and
@@ -510,15 +513,16 @@ export default function PrivacyPage() {
 
         <LegalH3>Exports and PDF rendering</LegalH3>
         <LegalP>
-          When an assistant exports a document, we store the file in Cloudflare R2 for 30 days
-          and give a signed download link. We delete the files when you delete your account. We
-          render PDFs through Cloudflare Browser Run.
+          When an assistant exports a document, we store the file in Cloudflare R2 for up to 30
+          days and give you a signed download link. Anyone with the link can open the file until
+          it expires. We delete the files sooner if you delete your account. Cloudflare Browser
+          Run turns your documents into PDFs.
         </LegalP>
 
         <LegalH3>Usage analytics</LegalH3>
         <LegalP>
-          For integration usage we record the tool name, the client, the duration and the
-          outcome. We don&apos;t record document content in these analytics.
+          For integration usage we record which tool ran, which assistant app called it, how long it took and whether
+          it worked. We don&apos;t record document content in these analytics.
         </LegalP>
 
         <LegalH3>Summary</LegalH3>
@@ -563,10 +567,10 @@ export default function PrivacyPage() {
                 <td className="py-2">Delete your account</td>
               </tr>
               <tr className="align-top">
-                <td className="py-2 pr-3">Tool name, client, duration and outcome</td>
+                <td className="py-2 pr-3">Tool used, assistant app, duration and outcome</td>
                 <td className="py-2 pr-3">Reliability, abuse prevention and improvement</td>
                 <td className="py-2 pr-3">Cloudflare, PostHog</td>
-                <td className="py-2 pr-3">Same as other product analytics</td>
+                <td className="py-2 pr-3">Kept like other product analytics (see section 2).</td>
                 <td className="py-2">Email {LEGAL.email}</td>
               </tr>
             </tbody>

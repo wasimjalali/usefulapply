@@ -30,7 +30,8 @@ const legalLinks: FooterLink[] = [
 ];
 
 export default function Footer() {
-  // The integrations page exists only once MCP is on.
+  // The integrations page exists only once MCP is on. The flag is read at build time, so the
+  // link appears only after a redeploy (launch flips the var and redeploys).
   const productLinksShown: FooterLink[] = isMcpEnabled()
     ? [...productLinks, { href: '/integrations', label: 'AI integrations' }]
     : productLinks;

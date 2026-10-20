@@ -12,7 +12,7 @@ import { isMcpEnabled } from '@/lib/mcp/config';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = buildPageMetadata({
-  title: 'Use Useful Apply from Claude, ChatGPT and any AI assistant',
+  title: 'Use Useful Apply from Claude, ChatGPT and other AI assistants',
   description:
     'Connect Useful Apply to Claude, ChatGPT, Claude Code, Cursor or any MCP client. See what your assistant can do, what it costs and how to revoke access.',
   canonical: '/integrations',
@@ -40,12 +40,12 @@ const cursorConfig = `{
 const toolGroups: { title: string; body: string; tools: string }[] = [
   {
     title: 'Read your account',
-    body: 'Check your plan, credit balance, daily agent limit, credit history and a morning briefing of what needs attention.',
+    body: 'Check your plan, credits and daily agent credit limit. Get a morning briefing of what needs your attention.',
     tools: 'get_account, get_credit_history, morning_briefing',
   },
   {
     title: 'Read applications and CVs',
-    body: 'List and open applications, see the status of a generation, read your CVs and CV outline, see the six templates and get a plain-language fit explanation.',
+    body: 'Open your applications and check on any that are still being written. Read your CVs, browse the six templates and get a plain explanation of your fit.',
     tools: 'list_applications, get_application, get_operation, get_cv, get_cv_outline, list_cv_templates, explain_fit',
   },
   {
@@ -55,27 +55,27 @@ const toolGroups: { title: string; body: string; tools: string }[] = [
   },
   {
     title: 'Manage applications',
-    body: 'Create, update and delete applications, move them through your tracker and set interview and follow-up dates.',
+    body: 'Create, update and delete applications. Move them through your tracker, set interview and follow-up dates and stop a generation in progress.',
     tools: 'create_application, update_application, update_application_status, delete_application, cancel_generation',
   },
   {
     title: 'Manage your CV and profile',
-    body: 'Upload or remove a CV, edit your own words, add, hide, reorder or delete items, undo the last edit, pick a template and update your contact details and photo.',
+    body: 'Upload or remove a CV. Edit, add, hide, reorder or delete items, and undo your last edit. Pick a template and update your contact details and photo.',
     tools:
       'save_cv, delete_cv, update_profile, set_profile_photo, remove_profile_photo, update_cv_content, add_cv_item, set_cv_item_visibility, edit_cv_structure, delete_cv_item, undo_last_edit, set_cv_template',
   },
   {
     title: 'Edit documents and export',
-    body: 'Edit a cover letter, email or follow-up directly. Export PDF, Word or text files and get a signed download link.',
+    body: 'Edit a cover letter, email or follow-up directly. Export PDF, Word or text files with a download link.',
     tools: 'edit_document_text, export_documents',
   },
   {
     title: 'Run your job feed',
-    body: 'Run today’s feed, update feed settings, save or dismiss jobs and withdraw feed consent.',
+    body: 'Run today’s feed, change its settings and save or dismiss jobs. You can also turn off the feed and withdraw your consent.',
     tools: 'run_job_feed, update_feed_settings, give_job_feedback, withdraw_feed_consent',
   },
   {
-    title: 'Notifications',
+    title: 'Update your settings',
     body: 'Change email notifications, reminders and your default template.',
     tools: 'update_notification_settings',
   },
@@ -85,21 +85,21 @@ const spendTools: { name: string; what: string; cost: string }[] = [
   { name: 'analyze_job_fit', what: 'Fit analysis for a job', cost: '0.5' },
   { name: 'generate_application_kit', what: 'CV, cover letter, email and follow-up', cost: '1.5 after a fit check, otherwise 2' },
   { name: 'regenerate_document', what: 'Rewrite a cover letter, email or follow-up', cost: '0.5' },
-  { name: 'rewrite_cv_section', what: 'Rewrite one CV section', cost: '0.5 (free if refused)' },
-  { name: 'apply_to_feed_job', what: 'Turn a feed job into an application', cost: '0.5 or 2' },
-  { name: 'draft_screening_answers', what: 'Screening answers on Plus and Max', cost: 'Same as the web app' },
+  { name: 'rewrite_cv_section', what: 'Rewrite one CV section', cost: '0.5, or free if it declines' },
+  { name: 'apply_to_feed_job', what: 'Check your fit for a feed job or write the application', cost: '0.5 for a fit check, 2 for the application' },
+  { name: 'draft_screening_answers', what: 'Answer screening questions (Plus and Max)', cost: 'Free on Plus and Max, up to 5 per application' },
 ];
 
 const scopes: { name: string; body: string }[] = [
   { name: 'Read', body: 'See your account, CVs, applications, kit documents, job feed and credits.' },
-  { name: 'Write', body: 'Create and change applications, CVs, settings and exports. These actions don’t spend credits.' },
-  { name: 'Spend', body: 'Use your credits for fit checks and generation. Needed for any tool that costs credits.' },
+  { name: 'Write', body: 'Create and change applications, CVs and settings, and export files. None of this spends credits.' },
+  { name: 'Spend', body: 'Use your credits to check your fit and write applications. Any tool that costs credits needs this.' },
 ];
 
-const h2 = 'text-[28px] md:text-[34px] font-bold text-navy-600 leading-[1.1] mb-4';
+const h2 = 'text-[28px] md:text-[34px] font-semibold text-navy-600 leading-[1.1] mb-4';
 const p = 'text-warm-gray leading-relaxed';
-const card = 'bg-white rounded-2xl p-6 border border-cream-200 shadow-sm';
-const code = 'font-mono text-sm bg-cream-100 border border-cream-200 rounded px-1.5 py-0.5 text-charcoal whitespace-nowrap';
+const card = 'bg-cream-50 rounded-2xl p-6 border border-cream-200 shadow-sm';
+const code = 'font-mono text-sm bg-cream-100 border border-cream-200 rounded-lg px-1.5 py-0.5 text-charcoal whitespace-nowrap';
 const pre =
   'font-mono text-sm bg-navy-800 text-cream-100 rounded-xl p-4 whitespace-pre overflow-x-auto leading-relaxed';
 
@@ -115,57 +115,62 @@ export default function IntegrationsPage() {
       <main>
         <section className="pt-20 pb-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto">
-            <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-4">
+            <p className="text-xs font-semibold text-gold-700 uppercase tracking-[0.12em] mb-4">
               Integrations
             </p>
-            <h1 className="font-bold text-navy-600 text-[40px] sm:text-[48px] leading-[1.05] tracking-tight mb-6">
+            <h1 className="font-semibold text-navy-600 text-[40px] sm:text-[48px] leading-[1.05] tracking-tight mb-6">
               Use Useful Apply from your AI assistant.
             </h1>
             <p className="text-xl text-warm-gray max-w-2xl leading-relaxed">
-              Connect Claude, ChatGPT, Claude Code, Cursor or any MCP client. Your assistant can
-              check your fit, write your application and update your tracker. You approve what it
-              can do, and you review before anything is sent.
+              Connect Claude, ChatGPT, Claude Code, Cursor or another MCP app. Your assistant can
+              check your fit, write your application and update your tracker. You choose what it
+              can do, and you review everything before it goes anywhere.
             </p>
           </div>
         </section>
 
-        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-cream-50">
+        <section className="py-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto">
             <h2 className={h2}>Connect</h2>
             <p className={`${p} mb-8`}>
-              The server address is <code className={code}>{MCP_URL}</code>. You sign in with your
-              Useful Apply account and approve access.
+              Your connection link is <code className={code}>{MCP_URL}</code>. You&apos;ll sign in to
+              Useful Apply and approve access.
             </p>
             <div className="grid md:grid-cols-2 gap-6">
               <div className={card}>
                 <h3 className="text-xl font-semibold text-charcoal mb-3">Claude.ai and Desktop</h3>
                 <p className={p}>
                   Open Settings, then Connectors, then Add custom connector. Paste{' '}
-                  <code className={code}>{MCP_URL}</code>. Once our listing is live, choose Browse
-                  connectors instead.
+                  <code className={code}>{MCP_URL}</code>. Once we&apos;re listed, you can pick
+                  Useful Apply from Browse connectors instead.
                 </p>
               </div>
               <div className={card}>
                 <h3 className="text-xl font-semibold text-charcoal mb-3">ChatGPT</h3>
                 <p className={p}>
-                  Find Useful Apply in the ChatGPT app directory. Or turn on developer mode and add{' '}
+                  Once we&apos;re listed, find Useful Apply in the ChatGPT app directory. Until then, turn
+                  on developer mode and add{' '}
                   <code className={code}>{MCP_URL}</code> as a connector.
                 </p>
               </div>
               <div className={card}>
                 <h3 className="text-xl font-semibold text-charcoal mb-3">Claude Code</h3>
                 {/* The plugin line (/plugin marketplace add wasimjalali/usefulapply-plugin) is added at launch, when that repo ships. */}
-                <p className={`${p} mb-3`}>Add the server:</p>
-                <pre className={pre}>
+                <p className={`${p} mb-3`}>Run this in your terminal:</p>
+                <pre className={pre} tabIndex={0} role="region" aria-label="Claude Code command">
                   <code>{`claude mcp add --transport http usefulapply ${MCP_URL}`}</code>
                 </pre>
+                <p className={`${p} mt-3`}>
+                  Then run <code className={code}>/mcp</code> in Claude Code to sign in.
+                </p>
               </div>
               <div className={card}>
                 <h3 className="text-xl font-semibold text-charcoal mb-3">Cursor</h3>
                 <p className={`${p} mb-3`}>
-                  Add this to your <code className={code}>mcp.json</code>:
+                  Add this to <code className={code}>.cursor/mcp.json</code> in a project, or{' '}
+                  <code className={code}>~/.cursor/mcp.json</code> for all projects:
                 </p>
-                <pre className={pre}>
+                <pre className={pre} tabIndex={0} role="region" aria-label="Cursor mcp.json">
                   <code>{cursorConfig}</code>
                 </pre>
               </div>
@@ -188,15 +193,21 @@ export default function IntegrationsPage() {
 
             <h3 className="text-2xl font-semibold text-navy-600 mt-12 mb-2">What costs credits</h3>
             <p className={`${p} mb-4`}>
-              These tools use the same credits as the web app. Everything else is free.
+              These tools cost the same as in the web app. Everything else is free.
             </p>
-            <div className="overflow-x-auto bg-white rounded-2xl border border-cream-200 shadow-sm">
+            <div
+              className="overflow-x-auto bg-cream-50 rounded-2xl border border-cream-200 shadow-sm"
+              tabIndex={0}
+              role="region"
+              aria-label="Tools that cost credits"
+            >
               <table className="w-full text-sm text-left border-collapse">
+                <caption className="sr-only">Tools that cost credits and what each one costs</caption>
                 <thead>
                   <tr className="border-b border-cream-200 text-charcoal">
-                    <th className="py-3 px-4 font-semibold">Tool</th>
-                    <th className="py-3 px-4 font-semibold">What it does</th>
-                    <th className="py-3 px-4 font-semibold">Credits</th>
+                    <th scope="col" className="py-3 px-4 font-semibold">Tool</th>
+                    <th scope="col" className="py-3 px-4 font-semibold">What it does</th>
+                    <th scope="col" className="py-3 px-4 font-semibold">Credits</th>
                   </tr>
                 </thead>
                 <tbody className="text-warm-gray">
@@ -213,11 +224,11 @@ export default function IntegrationsPage() {
           </div>
         </section>
 
-        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-cream-50">
+        <section className="py-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto">
             <h2 className={h2}>Permissions</h2>
             <p className={`${p} mb-8`}>
-              When you connect, you choose which of three scopes to grant.
+              When you connect, you choose what your assistant can do.
             </p>
             <div className="grid md:grid-cols-3 gap-6 mb-8">
               {scopes.map((scope) => (
@@ -228,12 +239,12 @@ export default function IntegrationsPage() {
               ))}
             </div>
             <p className={`${p} mb-4`}>
-              A daily agent credit limit caps what assistants can spend. It starts at 10 credits a
-              day and you can change it in Settings, under Connected apps.
+              Assistants can spend up to 10 credits a day. You can change that daily agent credit
+              limit in Settings, under Connected apps.
             </p>
             <p className={p}>
               To revoke access, open Settings, then Connected apps, and remove the app. Access
-              stops within a minute. Work that is already paid for finishes and appears in the
+              stops within a minute. Anything already paid for still finishes, and you&apos;ll find it in the
               web app.
             </p>
           </div>
@@ -243,18 +254,19 @@ export default function IntegrationsPage() {
           <div className="max-w-4xl mx-auto">
             <h2 className={h2}>Safety</h2>
             <p className={`${p} mb-4`}>
-              Assistants follow the same rules as the web app. Every skill, metric and claim in a
-              CV or cover letter has to trace back to your own CV. We built it to avoid inventing
-              facts about you, and we don’t treat that as a guarantee. Read what you send.
+              Assistants follow the same rules as the web app. Every skill, metric and claim in your
+              CV or cover letter has to come from your own CV. It&apos;s designed not to invent facts
+              about you, and you review everything before it goes anywhere.
             </p>
             <p className={p}>
-              You review before anything goes to an employer. Actions that overwrite or delete
-              ask for your approval in your assistant, and you can undo CV edits.
+              Useful Apply doesn&apos;t send anything to employers. You do, after you&apos;ve read it.
+              Tools that overwrite or delete are flagged so your assistant can ask you first, and
+              you can undo CV edits.
             </p>
           </div>
         </section>
 
-        <section className="py-12 pb-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
+        <section className="py-12 pb-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto">
             <h2 className={h2}>Support</h2>
             <p className={p}>
