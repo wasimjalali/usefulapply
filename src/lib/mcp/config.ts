@@ -15,19 +15,30 @@ export function getMcpResourceUrl(): string {
   return `${getAuthBaseUrl()}${MCP_PATH}`;
 }
 
+// On globalThis: this module is bundled into more than one chunk, and each copy would log once.
+const globalForTestMode = globalThis as typeof globalThis & { __uaMcpTestModeWarned?: boolean };
+
 /**
- * Test mode adds a stub write tool and lets the CIMD fetcher serve a fixture
- * document. It needs MCP_TEST_MODE=true AND a localhost origin, so setting the
- * flag on a deployed host does nothing.
+ * Test mode adds a stub write tool, lets the CIMD fetcher serve a fixture
+ * document and lets a test hold a token exchange open. It needs MCP_TEST_MODE=true
+ * AND a localhost origin. On any other host the flag is never honoured: it is
+ * logged once as an error (it should not be set there at all) and test mode
+ * stays off.
  */
 export function isMcpTestMode(): boolean {
   if (process.env.MCP_TEST_MODE !== 'true') return false;
+  let local = false;
   try {
     const { hostname } = new URL(getAuthBaseUrl());
-    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+    local = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
   } catch {
-    return false;
+    local = false;
   }
+  if (!local && !globalForTestMode.__uaMcpTestModeWarned) {
+    globalForTestMode.__uaMcpTestModeWarned = true;
+    console.error('[mcp] MCP_TEST_MODE is set but the auth host is not localhost: ignoring it. Remove the variable from this environment.');
+  }
+  return local;
 }
 
 /**

@@ -158,6 +158,13 @@ export async function bindTokens(bindings: TokenBinding[]): Promise<void> {
     .onConflictDoNothing();
 }
 
+/** Bring a binding's expiry forward (never later), e.g. for a refresh token that was just rotated out. */
+export async function shortenTokenBinding(tokenKey: string, expiresAt: number): Promise<void> {
+  await runBatch([
+    sql`UPDATE mcp_token_generation SET expires_at = MIN(expires_at, ${expiresAt}) WHERE token_key = ${tokenKey}`,
+  ]);
+}
+
 /** Daily cleanup: bindings of tokens that have expired. */
 export async function purgeExpiredTokenBindings(now = Date.now()): Promise<number> {
   const [result] = await runBatch([sql`DELETE FROM mcp_token_generation WHERE expires_at < ${now}`]);

@@ -1,6 +1,6 @@
 import type { BetterAuthPlugin } from 'better-auth';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
-import { bindTokens, getTokenGeneration } from '@/db/repos/mcpGrants';
+import { bindTokens, getTokenGeneration, shortenTokenBinding } from '@/db/repos/mcpGrants';
 import { isMcpTestMode } from '@/lib/mcp/config';
 import { setTestIssuePause } from '@/lib/mcp/test-hooks';
 import { isAllowedRedirectUri } from '@/lib/mcp/redirects';
@@ -108,12 +108,16 @@ async function hashToken(token: string): Promise<string> {
 
 /** Refresh tokens live 30 days (mcp() refreshTokenExpiresIn in server.ts). */
 export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+/** How long a rotated-out refresh token's binding is kept: the replay window (refreshTokenReuseInterval, 30 s) with margin. */
+export const ROTATED_BINDING_GRACE_MS = 60_000;
 
 interface ExchangeStash {
   userId: string;
   clientId: string;
   /** The consent row id the exchange was authorised under, read when it started. */
   consentId: string;
+  /** For a refresh grant: the refresh token being rotated out (its hash). */
+  rotatedRefreshHash?: string;
 }
 
 /** Hand-off from the before-hook to the after-hook of one /oauth2/token request. */
@@ -215,10 +219,10 @@ export function mcpOAuthGuards(): BetterAuthPlugin {
               if (refreshScopes.some((scope) => !consented.has(scope))) throw revoked();
             }
 
-            if (ctx.request) exchanges.set(ctx.request, { userId, clientId, consentId: consent.id });
+            if (ctx.request) exchanges.set(ctx.request, { userId, clientId, consentId: consent.id, rotatedRefreshHash: refreshHash });
             if (isMcpTestMode()) {
               // Test only: stretch the provider's issuance step so the E2E can revoke and reconnect mid-exchange.
-              setTestIssuePause(Number(ctx.request?.headers.get('x-test-issue-pause-ms')) || 0);
+              setTestIssuePause(userId, Number(ctx.request?.headers.get('x-test-issue-pause-ms')) || 0);
             }
           }),
         },
@@ -249,6 +253,12 @@ export function mcpOAuthGuards(): BetterAuthPlugin {
               bindings.push({ tokenKey: `rt:${refreshHash}`, consentId: exchange.consentId, userId: exchange.userId, clientId: exchange.clientId, expiresAt: now + REFRESH_TOKEN_TTL_MS });
             }
             await bindTokens(bindings);
+            // The refresh token that was just rotated out only has to outlive the provider's replay window
+            // (30 s), so its binding stops being kept for 30 days. Otherwise a steady connection leaves a
+            // row per refresh, about 4,300 a month.
+            if (exchange.rotatedRefreshHash && exchange.rotatedRefreshHash !== refreshHash) {
+              await shortenTokenBinding(`rt:${exchange.rotatedRefreshHash}`, now + ROTATED_BINDING_GRACE_MS);
+            }
 
             // Then check the connection is still the one it was authorised under. If the user revoked
             // (and perhaps reconnected) while the provider was issuing, drop what it just made.

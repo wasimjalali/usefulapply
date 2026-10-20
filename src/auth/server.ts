@@ -332,8 +332,8 @@ function createAuth(db: Database) {
         grantTypes: ['authorization_code', 'refresh_token'],
         // Runs while the provider mints a token, after it consumed the code. A no-op outside the
         // E2E (test-hooks.ts only ever holds a pause there).
-        customAccessTokenClaims: async () => {
-          await takeTestIssuePause();
+        customAccessTokenClaims: async ({ user: issuingFor }) => {
+          await takeTestIssuePause(issuingFor?.id);
           return {};
         },
         // The provider's built-in limits (token 20 a minute, register 5) are per
