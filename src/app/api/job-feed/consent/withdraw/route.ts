@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
-import { canViewJobFeed } from '@/lib/job-feed/helpers';
-import { getProfile } from '@/db/repos/profiles';
-import { withdrawConsent } from '@/db/repos/jobFeed';
+import { FeedError } from '@/lib/services/feed/errors';
+import { withdrawFeedConsent } from '@/lib/services/feed/settings';
 
 export const runtime = 'nodejs';
 
@@ -30,18 +29,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const profile = await getProfile(user.id);
-    if (!profile) {
-      return NextResponse.json({ error: 'Failed to load profile.' }, { status: 500 });
-    }
-
-    if (!canViewJobFeed(profile.subscription_tier)) {
-      return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
-    }
-
-    await withdrawConsent(user.id);
+    await withdrawFeedConsent(user.id);
     return NextResponse.json({ withdrawn: true });
   } catch (error) {
+    if (error instanceof FeedError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error('[job-feed/consent/withdraw] unexpected error:', error);
     return NextResponse.json({ error: 'Failed to withdraw feed consent.' }, { status: 500 });
   }

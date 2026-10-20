@@ -4,39 +4,17 @@ import { getCurrentUser } from '@/auth/server';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import { requireJobFeedView } from '@/lib/job-feed/auth';
 import {
-  computeSettingsHash,
-  isCurrentSearchStrategy,
-  SEARCH_STRATEGY_SCHEMA_VERSION,
-  type SearchStrategy,
-} from '@/lib/job-feed/search-strategy';
-import {
   getJobFeedSettingsAdmin,
   getUserCareerProfileAdmin,
   loadOrGenerateSearchStrategyAdmin,
 } from '@/lib/job-feed/server';
 import { getProfile } from '@/db/repos/profiles';
-import { getLatestSearchStrategyRow, getSearchStrategyRow } from '@/db/repos/jobFeed';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
-import { isUserConfirmedStrategy } from '@/lib/job-feed/search-plan';
+import { FeedError } from '@/lib/services/feed/errors';
+import { readSearchStrategy, type SearchStrategyResponseBody } from '@/lib/services/feed/career-profile';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-
-interface SearchStrategyResponseBody {
-  strategy: SearchStrategy | null;
-  /**
-   * "ok"           — strategy returned (cached or freshly generated).
-   * "no_profile"   — no AI career profile exists yet (user hasn't generated one).
-   * "profile_only" — profile exists but no strategy cached yet (generating shortly).
-   * "no_settings"  — no job feed settings saved.
-   * "no_countries" — settings exist but no target countries selected.
-   */
-  status: 'ok' | 'no_profile' | 'profile_only' | 'no_settings' | 'no_countries';
-  generatedAt: string | null;
-  sourceProfileGeneratedAt: string | null;
-  /** True when the cached strategy was synthesized against an older profile. */
-  profileNewerThanStrategy: boolean;
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -54,86 +32,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const settings = await getJobFeedSettingsAdmin(userId);
-    if (!settings) {
-      return NextResponse.json<SearchStrategyResponseBody>({
-        strategy: null,
-        status: 'no_settings',
-        generatedAt: null,
-        sourceProfileGeneratedAt: null,
-        profileNewerThanStrategy: false,
-      });
-    }
-
-    if (!settings.target_countries || settings.target_countries.length === 0) {
-      return NextResponse.json<SearchStrategyResponseBody>({
-        strategy: null,
-        status: 'no_countries',
-        generatedAt: null,
-        sourceProfileGeneratedAt: null,
-        profileNewerThanStrategy: false,
-      });
-    }
-
-    const profile = await getUserCareerProfileAdmin(userId);
-    if (!profile) {
-      return NextResponse.json<SearchStrategyResponseBody>({
-        strategy: null,
-        status: 'no_profile',
-        generatedAt: null,
-        sourceProfileGeneratedAt: null,
-        profileNewerThanStrategy: false,
-      });
-    }
-
-    const settingsHash = computeSettingsHash(settings);
-    let row;
-    try {
-      row = await getSearchStrategyRow(userId, settingsHash);
-      if (!row || row.version !== SEARCH_STRATEGY_SCHEMA_VERSION || !isCurrentSearchStrategy(row.strategy)) {
-        const latest = await getLatestSearchStrategyRow(userId);
-        if (
-          latest
-          && latest.version === SEARCH_STRATEGY_SCHEMA_VERSION
-          && isCurrentSearchStrategy(latest.strategy)
-          && isUserConfirmedStrategy(latest.strategy)
-        ) {
-          row = latest;
-        }
-      }
-    } catch (error) {
-      console.error('[job-feed/search-strategy] fetch error:', error instanceof Error ? error.message : error);
-      return NextResponse.json({ error: 'Failed to load search strategy.' }, { status: 500 });
-    }
-
-    if (!row || row.version !== SEARCH_STRATEGY_SCHEMA_VERSION || !isCurrentSearchStrategy(row.strategy)) {
-      // Profile exists but no cached strategy yet (or stale version).
-      // Use 'profile_only' so the consumer can show "Generating your search
-      // strategy..." rather than "Upload your CV to get started".
-      return NextResponse.json<SearchStrategyResponseBody>({
-        strategy: null,
-        status: 'profile_only',
-        generatedAt: null,
-        sourceProfileGeneratedAt: null,
-        profileNewerThanStrategy: false,
-      });
-    }
-
-    const strategy = row.strategy as SearchStrategy;
-    const profileNewerThanStrategy = Boolean(
-      row.source_profile_generated_at
-      && profile.generatedAt
-      && profile.generatedAt > row.source_profile_generated_at,
-    );
-
-    return NextResponse.json<SearchStrategyResponseBody>({
-      strategy,
-      status: 'ok',
-      generatedAt: strategy.generatedAt,
-      sourceProfileGeneratedAt: row.source_profile_generated_at,
-      profileNewerThanStrategy,
-    });
+    return NextResponse.json<SearchStrategyResponseBody>(await readSearchStrategy(userId));
   } catch (error) {
+    if (error instanceof FeedError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error('[job-feed/search-strategy] GET unexpected error:', error);
     return NextResponse.json({ error: 'Failed to load search strategy.' }, { status: 500 });
   }
