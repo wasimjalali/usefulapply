@@ -49,6 +49,8 @@ import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { isSameStoredText } from '@/db/trim-text';
 import { fillLetterRecipient } from './applications';
 import { getCachedContext, normalizeCachedMatch, removeCachedContext } from './context-cache';
+import { finalizeFeedRowForKit } from './feed/kit-finalize';
+import { failUnclaimedRun, runQueuedFeedRun } from './feed/run-queue';
 import {
   InsufficientCreditsError,
   InvalidInputError,
@@ -106,9 +108,19 @@ const HEARTBEAT_FAILURES_BEFORE_STOP = 3;
 export interface AgentQueueBinding {
   send(message: AgentQueueMessage, options?: { delaySeconds?: number }): Promise<void>;
 }
-export interface AgentQueueMessage {
+export const FEED_RUN_MESSAGE_KIND = 'job_feed_run';
+
+/** A kit operation to run. The original message shape: no `kind`. */
+export interface KitQueueMessage {
   operationId: string;
 }
+/** A queued job feed run (run_job_feed). The consumer claims the `queued` run row and runs the feed. */
+export interface FeedRunQueueMessage {
+  kind: typeof FEED_RUN_MESSAGE_KIND;
+  userId: string;
+  runId: string;
+}
+export type AgentQueueMessage = KitQueueMessage | FeedRunQueueMessage;
 
 declare global {
   interface CloudflareEnv {
@@ -136,6 +148,12 @@ async function getQueue(): Promise<AgentQueueBinding> {
     throw new Error('[agent-queue] AGENT_GENERATION_QUEUE is not bound. Add the queue to wrangler.jsonc and run through wrangler.');
   }
   return queue;
+}
+
+/** Put a queued job feed run on the queue. Throws when the queue is missing or the send fails; the caller owns the run row. */
+export async function sendFeedRunMessage(userId: string, runId: string): Promise<void> {
+  const queue = await getQueue();
+  await queue.send({ kind: FEED_RUN_MESSAGE_KIND, userId, runId });
 }
 
 // ---------------------------------------------------------------------------
@@ -516,6 +534,9 @@ export async function runKitOperation(operationId: string): Promise<RunOutcome> 
     if (leaseLost) return { outcome: 'dropped', reason: 'lease_lost' };
     const settled = await settleSuccess(claimedRow, claimed, generated.results);
     if (settled === 'lost') return { outcome: 'dropped', reason: 'lost_to_cancel_or_takeover' };
+    // Outside the settle batch: the kit and its charge are already stored, and a feed row that
+    // cannot be updated is logged, not rolled back.
+    await finalizeFeedRowForKit(claimedRow, 'succeeded');
     // The letter's recipient from the ad goes onto the row (fill-only, bumps the revision).
     if (isStructuredCoverLetter(generated.results.coverLetterStructured)) {
       await fillLetterRecipient(claimedRow.user_id, claimedRow.session_id as string, generated.jobDescription, generated.results.coverLetterStructured).catch((error) => {
@@ -558,10 +579,26 @@ async function finishFailed(
 // Consumer
 // ---------------------------------------------------------------------------
 
-function operationIdFrom(body: unknown): string | null {
-  if (!body || typeof body !== 'object') return null;
-  const id = (body as { operationId?: unknown }).operationId;
-  return typeof id === 'string' && id.length > 0 && id.length <= 100 ? id : null;
+/** What a queue message asks for. Anything that is not exactly one of the two known shapes is `null`. */
+type ParsedMessage =
+  | { type: 'kit'; operationId: string }
+  | { type: 'feed_run'; userId: string; runId: string };
+
+const ID_MAX_LENGTH = 100;
+const isId = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length <= ID_MAX_LENGTH;
+
+function parseMessage(body: unknown): ParsedMessage | null {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return null;
+  const record = body as Record<string, unknown>;
+  if ('kind' in record) {
+    // A feed run message carries exactly these three fields and nothing else.
+    const keys = Object.keys(record);
+    if (record.kind === FEED_RUN_MESSAGE_KIND && keys.length === 3 && isId(record.userId) && isId(record.runId)) {
+      return { type: 'feed_run', userId: record.userId, runId: record.runId };
+    }
+    return null;
+  }
+  return isId(record.operationId) ? { type: 'kit', operationId: record.operationId } : null;
 }
 
 /** A message that landed in the dead-letter queue: the operation will never be retried by the queue. */
@@ -583,18 +620,35 @@ async function handleDeadLetter(operationId: string): Promise<void> {
 export async function handleAgentQueueBatch(batch: MessageBatchLike): Promise<void> {
   for (const message of batch.messages) {
     try {
-      const operationId = operationIdFrom(message.body);
-      if (!operationId) {
-        console.error('[agent-queue] dropping a message without an operation id');
+      const parsed = parseMessage(message.body);
+      if (!parsed) {
+        console.error('[agent-queue] dropping a message of an unknown shape');
         message.ack();
+        continue;
+      }
+      if (parsed.type === 'feed_run') {
+        if (batch.queue === AGENT_DLQ_NAME) {
+          console.error('[agent-queue] dead-letter message for job feed run', parsed.runId);
+          await failUnclaimedRun(parsed.userId, parsed.runId);
+          message.ack();
+          continue;
+        }
+        const outcome = await runQueuedFeedRun({
+          userId: parsed.userId,
+          runId: parsed.runId,
+          attempt: message.attempts,
+          maxAttempts: QUEUE_MAX_RETRIES + 1,
+        });
+        if (outcome.outcome === 'retry') message.retry({ delaySeconds: retryDelaySeconds(message.attempts) });
+        else message.ack();
         continue;
       }
       if (batch.queue === AGENT_DLQ_NAME) {
-        await handleDeadLetter(operationId);
+        await handleDeadLetter(parsed.operationId);
         message.ack();
         continue;
       }
-      const outcome = await runKitOperation(operationId);
+      const outcome = await runKitOperation(parsed.operationId);
       if (outcome.outcome === 'retry') message.retry({ delaySeconds: outcome.delaySeconds });
       else message.ack();
     } catch (error) {
