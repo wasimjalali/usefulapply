@@ -19,8 +19,8 @@ export function getMcpResourceUrl(): string {
 const globalForTestMode = globalThis as typeof globalThis & { __uaMcpTestModeWarned?: boolean };
 
 /**
- * Test mode adds a stub write tool, lets the CIMD fetcher serve a fixture
- * document and lets a test hold a token exchange open. It needs MCP_TEST_MODE=true
+ * Test mode lets the CIMD fetcher serve a fixture document and lets a test
+ * hold a token exchange open. It needs MCP_TEST_MODE=true
  * AND a localhost origin. On any other host the flag is never honoured: it is
  * logged once as an error (it should not be set there at all) and test mode
  * stays off.

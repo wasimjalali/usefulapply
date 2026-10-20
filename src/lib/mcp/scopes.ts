@@ -72,20 +72,7 @@ export const TOOL_SCOPES = {
   update_notification_settings: 'write',
 } as const satisfies Record<string, McpScope>;
 
-/** Test-only tools (MCP_TEST_MODE on localhost). Same rule: scope declared next to the name. */
-export const TEST_TOOL_SCOPES = {
-  test_write_stub: 'write',
-} as const satisfies Record<string, McpScope>;
-
-export type ToolName = keyof typeof TOOL_SCOPES | keyof typeof TEST_TOOL_SCOPES;
-
-export function requiredScopeFor(tool: string, testMode: boolean): McpScope | null {
-  if (Object.hasOwn(TOOL_SCOPES, tool)) return TOOL_SCOPES[tool as keyof typeof TOOL_SCOPES];
-  if (testMode && Object.hasOwn(TEST_TOOL_SCOPES, tool)) {
-    return TEST_TOOL_SCOPES[tool as keyof typeof TEST_TOOL_SCOPES];
-  }
-  return null;
-}
+export type ToolName = keyof typeof TOOL_SCOPES;
 
 /** Space-separated `scope` claim (or an array) to a set. */
 export function parseScopeClaim(claim: unknown): Set<string> {
