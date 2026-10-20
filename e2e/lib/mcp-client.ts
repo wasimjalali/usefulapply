@@ -143,6 +143,30 @@ export class McpSession {
     return { status: response.status(), headers: response.headers(), body: parsed };
   }
 
+  /**
+   * One tools/call on the 2026-07-28 wire, as a client that can show a form (or not): the per-request envelope carries
+   * the client's capabilities. `inputResponses` is how such a client answers a confirmation on the retried call.
+   */
+  async callModern(
+    name: string,
+    args: Record<string, unknown>,
+    options: { elicitation?: boolean; inputResponses?: Record<string, unknown> } = {},
+  ): Promise<RawResponse> {
+    const capabilities = options.elicitation === false ? {} : { elicitation: { form: {} } };
+    return this.raw(
+      {
+        method: 'tools/call',
+        params: {
+          name,
+          arguments: args,
+          _meta: modernEnvelope(capabilities),
+          ...(options.inputResponses ? { inputResponses: options.inputResponses } : {}),
+        },
+      },
+      { headers: { 'mcp-protocol-version': '2026-07-28', 'mcp-method': 'tools/call', 'mcp-name': name } },
+    );
+  }
+
   /** A client on the 2026-07-28 wire that says it can show the user a form, and answers it as told. */
   async elicitingClient(answer: 'accept' | 'decline' | 'manual'): Promise<{ client: Client; asked: string[] }> {
     const asked: string[] = [];
