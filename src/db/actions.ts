@@ -168,12 +168,12 @@ export type RevisionedWriteResult =
   | { ok: true; revision: number }
   | { ok: false; reason: 'conflict'; currentRevision: number | null }
   | { ok: false; reason: 'not_found' }
-  | { ok: false; reason: 'invalid'; message: string };
+  | { ok: false; reason: 'invalid'; message: string; field?: string };
 
 function toWriteFailure(error: unknown): Exclude<RevisionedWriteResult, { ok: true }> {
   if (error instanceof RevisionConflict) return { ok: false, reason: 'conflict', currentRevision: error.currentRevision };
   if (error instanceof NotFoundError) return { ok: false, reason: 'not_found' };
-  if (error instanceof InvalidInputError) return { ok: false, reason: 'invalid', message: error.message };
+  if (error instanceof InvalidInputError) return { ok: false, reason: 'invalid', message: error.message, field: error.field };
   throw error;
 }
 

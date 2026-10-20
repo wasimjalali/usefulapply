@@ -12,7 +12,7 @@ import { useToast } from './ui/Toast';
 import { usePostHog } from 'posthog-js/react';
 import { formatEmailAsText } from '@/lib/utils/kit-export';
 import { useSessionStore } from '@/store/useSessionStore';
-import { persistSessionEdits } from '@/lib/session-sync';
+import { commitEditorSave, getBaselineRevision } from '@/lib/session-sync';
 
 interface EmailPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -59,6 +59,8 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   // is mid-edit, where their typing wins).
   const [editBase, setEditBase] = useState<{ email: GeneratedEmail | null; followUp: FollowUp | null } | null>(null);
   const editSessionIdRef = useRef<string | null>(null);
+  // The revision the editor opened on; the drafts live outside the store (see commitEditorSave).
+  const editStartRevisionRef = useRef<number | undefined>(undefined);
   const { toast } = useToast();
 
   const editsCurrent = isEditMode || (editBase !== null && editBase.email === (email ?? null) && editBase.followUp === (followUpEmail ?? null));
@@ -87,19 +89,29 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
 
   const handleSaveEdits = () => {
     const editSessionId = editSessionIdRef.current;
-    if (editedEmail && editSessionId) {
-      useSessionStore.getState().updateSessionById(editSessionId, { email: editedEmail });
+    if (!editSessionId) {
+      setEditedEmail(null);
+      setEditedFollowUp(null);
+      setEditBase(null);
+      setIsEditMode(false);
+      return;
     }
-    if (editedFollowUp && editSessionId) {
-      useSessionStore.getState().updateSessionById(editSessionId, { followUpEmail: editedFollowUp });
-    }
-    // Save now, against the revision this tab loaded.
-    if (editSessionId) void persistSessionEdits(editSessionId);
-    setEditedEmail(null);
-    setEditedFollowUp(null);
-    setEditBase(null);
-    setIsEditMode(false);
-    editSessionIdRef.current = null;
+    // Save now, against the revision this editor opened on. If another write got in
+    // first the drafts are not applied: the editor stays open with the text in it.
+    void commitEditorSave(editSessionId, editStartRevisionRef.current, () => {
+      if (editedEmail) useSessionStore.getState().updateSessionById(editSessionId, { email: editedEmail });
+      if (editedFollowUp) useSessionStore.getState().updateSessionById(editSessionId, { followUpEmail: editedFollowUp });
+    }).then((outcome) => {
+      if (outcome === 'conflict') {
+        editStartRevisionRef.current = getBaselineRevision(editSessionId);
+        return;
+      }
+      setEditedEmail(null);
+      setEditedFollowUp(null);
+      setEditBase(null);
+      setIsEditMode(false);
+      editSessionIdRef.current = null;
+    });
   };
 
   const copy = async (text: string, key: string, eventType?: string) => {
@@ -221,6 +233,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
           onClick={() => {
             setIsEditMode(true);
             editSessionIdRef.current = currentSession?.id ?? null;
+            editStartRevisionRef.current = currentSession ? getBaselineRevision(currentSession.id) : undefined;
             setEditedEmail(email ?? null);
             setEditedFollowUp(followUpEmail ?? null);
             setEditBase({ email: email ?? null, followUp: followUpEmail ?? null });

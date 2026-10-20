@@ -57,7 +57,12 @@ export async function saveTailoredCvData(
   const row = await sessionsRepo.getSession(userId, sessionId);
   if (!row) throw new NotFoundError();
   if (row.revision !== expectedRevision) throw new RevisionConflict(row.revision);
-  const next = { ...(asRecord(row.generated_cv) ?? {}), _optimizedCVData: data };
+  // A row whose CV only lives in generated_artifacts (older builds, headless
+  // runs) has no generated_cv to extend. Start from the CV document the reader
+  // already shows for it, so the first edit does not mask that fallback with a
+  // bare document and lose its content, changes and optimizedFor.
+  const base = asRecord(row.generated_cv) ?? (kitFromRow(row).cv ? { ...(kitFromRow(row).cv as unknown as Json) } : {});
+  const next = { ...base, _optimizedCVData: data };
   return updateApplicationFields(userId, sessionId, expectedRevision, { generated_cv: next });
 }
 

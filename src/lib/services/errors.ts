@@ -24,7 +24,7 @@ export class NotFoundError extends Error {
 /** The input failed validation. The message is safe to show to the user. */
 export class InvalidInputError extends Error {
   readonly code = 'INVALID_INPUT' as const;
-  constructor(message: string) {
+  constructor(message: string, readonly field?: string) {
     super(message);
     this.name = 'InvalidInputError';
   }

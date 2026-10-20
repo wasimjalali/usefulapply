@@ -9,6 +9,8 @@
  *   edit-cv-title     {userId, sessionId, title}      a field edit through the cv service (revision-conditional)
  *   persist-letter    {userId, sessionId, body}       persistKit with the stored kit and a new cover letter
  *   create-application {userId, jobDescription}       a stored application (the service the MCP tools will call)
+ *   edit-email        {userId, sessionId, body}       replace the application email through the kit service
+ *   seed-fit-capture  {userId, contextId}             a paid, captured fit analysis for a context (what a real fit leaves behind)
  *   enqueue           {userId, sessionId, key}        enqueueKitGeneration with a recording producer: the message is
  *                                                     captured and NOT delivered, so the sweeper path can be exercised
  */
@@ -40,6 +42,20 @@ async function main(): Promise<void> {
         followUpEmail: kit.followUpEmail,
         documentErrors: {},
       });
+    } else if (op === 'edit-email') {
+      const { saveKitDocument } = await import('../../src/lib/services/kit');
+      result = await saveKitDocument(args.userId, args.sessionId, 'email', {
+        subject: 'Application: edited elsewhere',
+        body: args.body,
+        attachmentNote: 'Please find my CV and cover letter attached.',
+      });
+    } else if (op === 'seed-fit-capture') {
+      const credits = await import('../../src/db/repos/credits');
+      const key = `fit_analysis:seed:${args.contextId}`;
+      const reserved = await credits.reserveCredits({ userId: args.userId, action: 'FIT_ANALYSIS', idempotencyKey: key, metadata: { context_id: args.contextId } });
+      if (!reserved.success) throw new Error(`could not reserve the fit: ${reserved.error}`);
+      await credits.captureReservation({ userId: args.userId, idempotencyKey: key });
+      result = { key };
     } else if (op === 'create-application') {
       const { createApplication } = await import('../../src/lib/services/applications');
       const created = await createApplication(args.userId, { jobDescription: args.jobDescription });

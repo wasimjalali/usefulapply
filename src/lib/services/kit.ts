@@ -101,6 +101,23 @@ export function kitFromRow(row: StoredApplication): Kit {
 
 type Json = Record<string, unknown>;
 
+/**
+ * The fields every stored cover letter carries besides its body. The canvas
+ * reads `applicantAddress.name` and friends unconditionally, so a letter
+ * written to an application that had none (a retry of a failed letter) starts
+ * from this shell rather than from `{}`.
+ */
+export function coverLetterShell(): Json {
+  return {
+    applicantAddress: { name: '', street: '', city: '', country: '', phone: '', email: '' },
+    date: '',
+    companyAddress: { companyName: '', street: '' },
+    salutation: '',
+    closing: '',
+    signatureName: '',
+  };
+}
+
 function asRecord(value: unknown): Json | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Json) : null;
 }
@@ -155,7 +172,8 @@ function clampScore(score: unknown): number | undefined {
  */
 export function kitColumnsFromResults(
   results: KitResults,
-  row: Pick<StoredApplication, 'job_title' | 'company' | 'generated_cv' | 'screening_turns_used'>,
+  row: Pick<StoredApplication, 'job_title' | 'company' | 'generated_cv' | 'screening_turns_used'>
+    & Partial<Pick<StoredApplication, 'cover_letter' | 'email' | 'follow_up_email'>>,
   now: string = nowIso(),
 ): Json {
   const errors = results.documentErrors ?? {};
@@ -169,13 +187,8 @@ export function kitColumnsFromResults(
 
   const coverLetter = !errors.coverLetter && results.coverLetter
     ? {
-        applicantAddress: { name: '', street: '', city: '', country: '', phone: '', email: '' },
-        date: '',
-        companyAddress: { companyName: '', street: '' },
-        salutation: '',
+        ...coverLetterShell(),
         body: results.coverLetter,
-        closing: '',
-        signatureName: '',
         updatedAt: now,
         ...(results.coverLetterStructured ? { structured: results.coverLetterStructured } : {}),
       }
@@ -219,6 +232,24 @@ export function kitColumnsFromResults(
     generation_failed_at: null,
     generation_cancelled_at: null,
   };
+
+  // A document that failed in a regenerate must not wipe the good one it was
+  // meant to replace (the refund for it still applies). On a first kit there is
+  // nothing to keep and the column simply stays empty.
+  if (errors.cv && row.generated_cv != null) {
+    delete columns.generated_cv;
+    delete columns.optimized_cv_text;
+  }
+  if (errors.coverLetter && row.cover_letter != null) {
+    delete columns.cover_letter;
+    delete columns.cover_letter_language;
+  }
+  if (errors.applicationEmail && row.email != null) {
+    delete columns.email;
+    delete columns.email_subject;
+    delete columns.email_body;
+  }
+  if (errors.followUpEmail && row.follow_up_email != null) delete columns.follow_up_email;
 
   if (job) {
     columns.requirements = {

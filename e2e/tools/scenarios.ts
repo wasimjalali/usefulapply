@@ -17,6 +17,7 @@
 import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
 import { FAKE_ANTHROPIC_URL } from '../lib/env';
+import { fakeCalls, fakeReset } from '../lib/fake-control';
 import { JOB_DESCRIPTION, PRIMARY_CV } from '../lib/model-script';
 import { freshStateDir, openPlatform, pointModelAtFake, type Platform } from '../lib/platform';
 
@@ -153,8 +154,10 @@ async function main(): Promise<void> {
       const user = await seedUser('d1', { monthly: 4, addon: 6 });
       const [sessionId] = user.sessionIds;
       const before = await balanceOf(user.id);
+      await fakeReset();
       const first = await runners.enqueueKitGeneration(user.id, sessionId, 'key-d1', {});
       const second = await runners.enqueueKitGeneration(user.id, sessionId, 'key-d1', {});
+      assert.equal((await fakeCalls()).length, 0, 'enqueueing, twice, calls no model');
       assert.equal(first.deduped, false);
       assert.equal(second.deduped, true);
       assert.equal(second.matchedBy, 'key');
@@ -218,10 +221,15 @@ async function main(): Promise<void> {
       const user = await seedUser('d5', { monthly: 4, addon: 6 });
       const [sessionId] = user.sessionIds;
       const before = await balanceOf(user.id);
+      await fakeReset();
       const queued = await runners.enqueueKitGeneration(user.id, sessionId, 'key-d5', {});
       const settled = await deliverUntilSettled(queued.operationId);
       assert.equal(settled.deadLettered, false);
       assert.equal(settled.deliveries.length, 1);
+      const writerCalls = (await fakeCalls()).filter((call) => ['cv', 'coverLetter', 'applicationEmail', 'followUpEmail'].includes(call.writer));
+      assert.equal(writerCalls.length, 4, 'one run: each document written once');
+      // The CV the model saw is the one in D1, read by the runner.
+      assert.ok((await fakeCalls()).find((call) => call.writer === 'applicant')?.user.includes('Calder Industrial Components'));
       const operation = await one('SELECT status, attempt, result_ref, lease_owner FROM agent_operations WHERE id = ?', queued.operationId);
       assert.equal(operation.status, 'succeeded');
       assert.equal(operation.lease_owner, null);
@@ -464,6 +472,219 @@ async function main(): Promise<void> {
         (error: unknown) => error instanceof errors.InvalidInputError,
       );
       return { filled: filled.revision, cleared: cleared.revision };
+    });
+  }
+
+  if (mode === 'd') {
+    await scenario('d15. editing a legacy CV (generated_cv empty, CV only in generated_artifacts) keeps the legacy content', async () => {
+      const user = await seedUser('d15', { monthly: 4 });
+      const [sessionId] = user.sessionIds;
+      const cvData = { personal: { fullName: 'Tomas Brandt', email: 't@example.com', currentTitle: 'Financial Analyst' }, experience: [], education: [], skills: [], languages: [], certifications: [] };
+      await run('UPDATE application_sessions SET generated_artifacts = ? WHERE id = ?', JSON.stringify({
+        optimizedCV: { content: 'LEGACY CV TEXT', changes: [{ section: 'Summary', before: 'a', after: 'b', reason: 'r' }] },
+        optimizedCVData: cvData,
+      }), sessionId);
+      const cv = await import('../../src/lib/services/cv');
+      const loaded = await cv.getTailoredCv(user.id, sessionId);
+      assert.equal(loaded.data?.personal.currentTitle, 'Financial Analyst');
+      await cv.setCvFields(user.id, sessionId, loaded.revision, [{ path: 'personal.currentTitle', value: 'Head of Forecasting' }]);
+      const stored = JSON.parse(String((await one('SELECT generated_cv FROM application_sessions WHERE id = ?', sessionId)).generated_cv));
+      assert.equal(stored.content, 'LEGACY CV TEXT');
+      assert.equal(stored.changes.length, 1);
+      assert.equal(stored.optimizedFor, 'Position');
+      assert.equal(stored._optimizedCVData.personal.currentTitle, 'Head of Forecasting');
+      return { keys: Object.keys(stored) };
+    });
+
+    await scenario('d16. a duplicate enqueue that hits the operation limit never releases a reservation it only adopted', async () => {
+      const user = await seedUser('d16', { monthly: 4, addon: 6 }, 3);
+      await runners.enqueueKitGeneration(user.id, user.sessionIds[0], 'key-d16-1', {});
+      await runners.enqueueKitGeneration(user.id, user.sessionIds[1], 'key-d16-2', {});
+      // "A" has reserved for the third application and has not inserted its operation yet.
+      const kitGen = await import('../../src/lib/services/kit-generation');
+      const [, , third] = user.sessionIds;
+      const heldByA = await kitGen.reserveKitCredits({
+        userId: user.id, sessionId: third, requestId: 'key-d16-3',
+        keyFor: (action) => `generate_kit:${user.id}:${third}:${action}:key-d16-3`,
+      });
+      assert.ok(heldByA.result.success && heldByA.result.created);
+      const balanceHeld = await balanceOf(user.id);
+      // "B" is the same request: it adopts A's reservation, then hits the limit.
+      await assert.rejects(
+        runners.enqueueKitGeneration(user.id, third, 'key-d16-3', {}),
+        (error: unknown) => error instanceof errors.OperationLimitReached,
+      );
+      const held = (await reservationsOf(user.id)).find((row) => row.idempotency_key === heldByA.key);
+      assert.equal(held?.status, 'reserved', 'A still owns it');
+      assert.deepEqual(await balanceOf(user.id), balanceHeld);
+      return { status: held?.status };
+    });
+
+    await scenario('d17. a live operation holds its reservation: release and the stale sweeper refuse it until the operation ends', async () => {
+      const user = await seedUser('d17', { monthly: 4, addon: 6 });
+      const [sessionId] = user.sessionIds;
+      const queued = await runners.enqueueKitGeneration(user.id, sessionId, 'key-d17', {});
+      const held = await balanceOf(user.id);
+      const refused = await credits.releaseReservation({ userId: user.id, idempotencyKey: queued.reservationKey as string, reason: 'a loser' });
+      assert.equal(refused.success, false);
+      await run("UPDATE credit_reservations SET reserved_at = '2020-01-01T00:00:00.000Z' WHERE user_id = ?", user.id);
+      const swept = await credits.releaseStaleReservations({ maxAgeMs: 60_000 });
+      assert.equal(swept.released, 0);
+      assert.equal((await reservationsOf(user.id))[0].status, 'reserved');
+      assert.deepEqual(await balanceOf(user.id), held);
+      // Once the operation ends the same release is allowed.
+      await ops.cancelOperation(user.id, queued.operationId);
+      assert.equal((await reservationsOf(user.id))[0].status, 'released');
+      assert.equal((await balanceOf(user.id)).total, held.total + 2);
+      return { refusedWhileLive: true };
+    });
+
+    await scenario('d18. no capture, no kit: a reservation released from under a finished run fails the operation and delivers nothing', async () => {
+      const user = await seedUser('d18', { monthly: 4, addon: 6 });
+      const [sessionId] = user.sessionIds;
+      const queued = await runners.enqueueKitGeneration(user.id, sessionId, 'key-d18', {});
+      // The loser of a duplicate enqueue released it (simulated; the guards above stop the real path).
+      await run("UPDATE credit_reservations SET status = 'released', released_at = ? WHERE user_id = ?", new Date().toISOString(), user.id);
+      const settled = await deliverUntilSettled(queued.operationId);
+      assert.equal(settled.deliveries.length, 1, 'permanent: no retries');
+      const operation = await one('SELECT status, error_code FROM agent_operations WHERE id = ?', queued.operationId);
+      assert.equal(operation.status, 'failed');
+      assert.equal(operation.error_code, 'reservation_not_held');
+      const session = await one('SELECT generated_cv, cover_letter, generation_status FROM application_sessions WHERE id = ?', sessionId);
+      assert.equal(session.generated_cv, null);
+      assert.equal(session.cover_letter, null);
+      assert.equal(session.generation_status, 'failed');
+      assert.equal((await reservationsOf(user.id))[0].status, 'released', 'never captured');
+      return { operation };
+    });
+
+    await scenario('d19. the guard inside the success batch: a reservation that stops being reserved mid-batch rolls the kit back', async () => {
+      const user = await seedUser('d19', { monthly: 4, addon: 6 });
+      const [sessionId] = user.sessionIds;
+      const queued = await runners.enqueueKitGeneration(user.id, sessionId, 'key-d19', {});
+      const operation = (await ops.getOperationById(queued.operationId))!;
+      const claimed = (await ops.claimOperation(queued.operationId, 'queue:d19', 600_000))!;
+      assert.equal(claimed.attempt, 1);
+      const kitService = await import('../../src/lib/services/kit');
+      const reservation = (await credits.getReservationByKey(user.id, operation.reservation_key!))!;
+      const row = (await sessionsRepo.getSession(user.id, sessionId))!;
+      const now = new Date().toISOString();
+      const columns = kitService.kitColumnsFromResults({ coverLetter: 'x', optimizedCV: { content: 'cv', changes: [] }, documentErrors: {} }, row, now);
+      const guard = sql`EXISTS (SELECT 1 FROM agent_operations WHERE id = ${operation.id} AND status = 'running' AND attempt = 1 AND lease_owner = 'queue:d19')`;
+      // The capture matches no row because the reservation is already released.
+      await run("UPDATE credit_reservations SET status = 'released' WHERE id = ?", reservation.id);
+      await assert.rejects(dbClient.runBatch([
+        kitService.buildSessionUpdateStatement(user.id, sessionId, columns, row.revision, now, guard),
+        ops.buildCompleteOperationStatement({ operationId: operation.id, attempt: 1, leaseOwner: 'queue:d19', resultRef: 'ref-d19', now }),
+        credits.buildCaptureReservationStatement(reservation, { chained: true, now }),
+        sql`SELECT json(CASE
+          WHEN EXISTS (SELECT 1 FROM agent_operations WHERE id = ${operation.id} AND status = 'succeeded' AND result_ref = 'ref-d19')
+           AND NOT EXISTS (SELECT 1 FROM credit_reservations WHERE id = ${reservation.id} AND status = 'captured' AND captured_at = ${now})
+          THEN 'completed without a capture' ELSE '{}' END)`,
+      ]));
+      assert.equal((await one('SELECT generated_cv FROM application_sessions WHERE id = ?', sessionId)).generated_cv, null);
+      assert.equal((await operationsOf(user.id))[0].status, 'running');
+      return { rolledBack: true };
+    });
+
+    await scenario('d20. insertOperation refuses a reservation that is no longer reserved', async () => {
+      const user = await seedUser('d20', { monthly: 4, addon: 6 });
+      const [sessionId] = user.sessionIds;
+      const reserved = await credits.reserveCredits({ userId: user.id, action: 'FULL_APPLICATION', idempotencyKey: 'res-d20' });
+      assert.ok(reserved.success);
+      await credits.releaseReservation({ userId: user.id, idempotencyKey: 'res-d20', reason: 'gone' });
+      const inserted = await ops.insertOperation({
+        userId: user.id, sessionId, kind: 'generate_kit', idempotencyKey: 'key-d20', inputHash: 'h', input: {}, reservationKey: 'res-d20',
+      });
+      assert.equal(inserted.outcome, 'reservation_lost');
+      assert.equal((await operationsOf(user.id)).length, 0);
+      return { outcome: inserted.outcome };
+    });
+
+    await scenario('d21. a cached fit context for another job: the recipient never crosses jobs', async () => {
+      const user = await seedUser('d21', { monthly: 4, addon: 6 });
+      const [sessionId] = user.sessionIds;
+      const oldAd = String((await one('SELECT job_description FROM application_sessions WHERE id = ?', sessionId)).job_description);
+      const agents = await import('../../src/lib/agents');
+      const contextCache = await import('../../src/lib/services/context-cache');
+      const fit = await agents.runFitAnalysis({ sessionId: 'fit-d21', jobDescription: oldAd, primaryCV: PRIMARY_CV }, () => {});
+      assert.ok(fit.success && fit.data);
+      await contextCache.cacheContext(user.id, 'ctx-d21', fit.data.context);
+      // The ad is replaced after the fit, and the row now holds the NEW job's recipient.
+      const applications = await import('../../src/lib/services/applications');
+      const rev = Number((await one('SELECT revision FROM application_sessions WHERE id = ?', sessionId)).revision);
+      await applications.updateApplicationFields(user.id, sessionId, rev, { job_description: 'Completely different ad for Other Corp. Required: Budgeting.' });
+      await run("UPDATE application_sessions SET company_address = 'NEW-JOB-ADDRESS 99' WHERE id = ?", sessionId);
+      await fakeReset();
+      const queued = await runners.enqueueKitGeneration(user.id, sessionId, 'key-d21', { contextId: 'ctx-d21' });
+      await deliverUntilSettled(queued.operationId);
+      assert.equal((await one('SELECT status FROM agent_operations WHERE id = ?', queued.operationId)).status, 'succeeded');
+      assert.ok((await fakeCalls()).find((call) => call.writer === 'coverLetter'), 'the letter was written');
+      const stored = JSON.parse(String((await one('SELECT cover_letter FROM application_sessions WHERE id = ?', sessionId)).cover_letter));
+      assert.ok(stored.structured, 'a structured letter was stored');
+      assert.ok(!JSON.stringify(stored.structured.recipient).includes('NEW-JOB-ADDRESS'), 'the new job\'s saved recipient is not on a letter about the old job');
+      const after = await one('SELECT company_address FROM application_sessions WHERE id = ?', sessionId);
+      assert.equal(after.company_address, 'NEW-JOB-ADDRESS 99', 'and nothing from the old job was written over it');
+      return { letterPromptChecked: true };
+    });
+
+    await scenario('d22. enqueue with a contextId: 1.5 after a paid fit, the claim race falls back to 2.0 for the loser, and the unclaimed price is 2.0', async () => {
+      const user = await seedUser('d22', { monthly: 10, addon: 10 }, 3);
+      const fitKey = 'fit_analysis:d22';
+      const fit = await credits.reserveCredits({ userId: user.id, action: 'FIT_ANALYSIS', idempotencyKey: fitKey, metadata: { context_id: 'ctx-d22' } });
+      assert.ok(fit.success);
+      await credits.captureReservation({ userId: user.id, idempotencyKey: fitKey });
+      const base = await balanceOf(user.id);
+      // Two enqueues for the same paid fit at once: one claims the discount, the other must pay full price.
+      const [a, b] = await Promise.all([
+        runners.enqueueKitGeneration(user.id, user.sessionIds[0], 'key-d22-a', { contextId: 'ctx-d22' }),
+        runners.enqueueKitGeneration(user.id, user.sessionIds[1], 'key-d22-b', { contextId: 'ctx-d22' }),
+      ]);
+      const live = (await reservationsOf(user.id)).filter((row) => row.status === 'reserved');
+      assert.deepEqual(live.map((row) => Number(row.amount)).sort(), [1.5, 2.0]);
+      assert.equal(base.total - (await balanceOf(user.id)).total, 3.5, 'net charge is 1.5 + 2.0 (a lost claim is refunded)');
+      // Run one to completion so a slot frees up; the discount stays spent for this fit.
+      await deliverUntilSettled(a.operationId);
+      const c = await runners.enqueueKitGeneration(user.id, user.sessionIds[2], 'key-d22-c', { contextId: 'ctx-d22' });
+      const lastAmount = Number((await reservationsOf(user.id)).find((row) => String(row.idempotency_key).includes('key-d22-c'))?.amount);
+      assert.equal(lastAmount, 2.0);
+      return { a: a.creditsReserved, b: b.creditsReserved, c: c.creditsReserved };
+    });
+  }
+
+  if (mode === 'd') {
+    await scenario('d23. operation housekeeping: attempt cap on claims, pending over an hour fails and releases, late enders stand down, workflow writes do not bump the revision', async () => {
+      const user = await seedUser('d23', { monthly: 4, addon: 6 }, 3);
+      const [s1, s2, s3] = user.sessionIds;
+      // (c) a claim past the attempt cap is refused.
+      const q1 = await runners.enqueueKitGeneration(user.id, s1, 'key-d23-1', {});
+      await run('UPDATE agent_operations SET attempt = ? WHERE id = ?', runners.MAX_RUN_ATTEMPTS, q1.operationId);
+      assert.equal(await ops.claimOperation(q1.operationId, 'queue:x', 60_000), null);
+      // (a) a pending operation older than an hour is failed by the sweeper and its credits come back.
+      await run('UPDATE agent_operations SET attempt = 0, created_at = ?, updated_at = ? WHERE id = ?', new Date(Date.now() - 2 * 3600_000).toISOString(), new Date(Date.now() - 2 * 3600_000).toISOString(), q1.operationId);
+      const before = await balanceOf(user.id);
+      const swept = await runners.recoverStuckOperations();
+      assert.equal(swept.failed, 1);
+      assert.equal((await one('SELECT status, error_code FROM agent_operations WHERE id = ?', q1.operationId)).error_code, 'stuck');
+      assert.equal((await balanceOf(user.id)).total, before.total + 2);
+      // (b) a late ender that observed "pending" cannot end an operation that has since started running.
+      const q2 = await runners.enqueueKitGeneration(user.id, s2, 'key-d23-2', {});
+      const observed = (await ops.getOperationById(q2.operationId))!;
+      await ops.claimOperation(q2.operationId, 'queue:y', 600_000);
+      const ended = await ops.finishOperationWithoutKit(observed, { status: 'failed', errorCode: 'late', reason: 'late' }, { pending: true });
+      assert.equal(ended, false);
+      assert.equal((await one('SELECT status FROM agent_operations WHERE id = ?', q2.operationId)).status, 'running');
+      // (e) a cancelled operation's late "running" write is a no-op, and cancelling does not bump the revision.
+      const revBefore = Number((await one('SELECT revision FROM application_sessions WHERE id = ?', s2)).revision);
+      await ops.cancelOperation(user.id, q2.operationId);
+      assert.equal(Number((await one('SELECT revision FROM application_sessions WHERE id = ?', s2)).revision), revBefore, 'workflow state: no bump');
+      await ops.markSessionRunning(observed, 1, 'queue:y');
+      assert.equal((await one('SELECT generation_status FROM application_sessions WHERE id = ?', s2)).generation_status, 'cancelled');
+      // (f) the reservation index exists.
+      const index = await one("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'agent_operations_reservation_idx'");
+      assert.ok(index);
+      void s3;
+      return { swept };
     });
   }
 

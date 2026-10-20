@@ -61,6 +61,23 @@ export function readKitDocumentErrors(value: unknown): KitDocumentErrors | null 
   return Object.keys(errors).length > 0 ? errors : null;
 }
 
+/**
+ * A stored letter written without the address blocks (older retries of a
+ * failed letter) would crash the canvas, which reads them unconditionally.
+ */
+function withLetterShell(letter: unknown): unknown {
+  if (!letter || typeof letter !== 'object' || Array.isArray(letter)) return letter;
+  return {
+    applicantAddress: { name: '', street: '', city: '', country: '', phone: '', email: '' },
+    date: '',
+    companyAddress: { companyName: '', street: '' },
+    salutation: '',
+    closing: '',
+    signatureName: '',
+    ...(letter as Record<string, unknown>),
+  };
+}
+
 export function mapSessionRowToStore(row: StoredSessionRow): ApplicationSession {
   const artifacts = row.generated_artifacts ?? null;
   const pendingFitCandidate = artifacts?.pendingFitAnalysis;
@@ -125,7 +142,7 @@ export function mapSessionRowToStore(row: StoredSessionRow): ApplicationSession 
     screeningAnswers: Array.isArray(generated?._screeningAnswers)
       ? (generated._screeningAnswers as ApplicationSession['screeningAnswers'])
       : [],
-    coverLetter: (row.cover_letter ?? artifactCoverLetter) as ApplicationSession['coverLetter'],
+    coverLetter: withLetterShell(row.cover_letter ?? artifactCoverLetter) as ApplicationSession['coverLetter'],
     email: (row.email ?? artifactEmail) as ApplicationSession['email'],
     followUpEmail: (row.follow_up_email ?? artifactFollowUp) as ApplicationSession['followUpEmail'],
     companyResearch: row.company_research

@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { callAgent, createSignedInApiUser, creditsOf } from '../lib/user';
+import { JOB_DESCRIPTION } from '../lib/model-script';
+import { runTool } from '../lib/run-tool';
 import {
   editCoverLetter,
   editCvTitle,
@@ -32,6 +35,11 @@ test('(a) fit, kit, edits and reload keep working, and the canonical columns are
   expect(generated.job_title).toBe('Senior FP&A Analyst');
   expect(generated.company).toBe('Northwind Foods');
   expect(generated.revision).toBeGreaterThanOrEqual(1);
+
+  // The server wrote it: after the browser has had time to load and show it, nothing of the
+  // browser's has been written on top (the revision is the server's, unchanged).
+  await page.waitForTimeout(4_000);
+  expect(storedApplication(user.id)?.revision, 'the browser wrote nothing after the server persisted the kit').toBe(generated.revision);
 
   // The canvas shows all three documents.
   await page.getByRole('tab', { name: 'CV' }).click();
@@ -70,5 +78,43 @@ test('(a) fit, kit, edits and reload keep working, and the canonical columns are
 
   // The reload and the open did not write anything: the revision is where the last edit left it.
   expect(storedApplication(user.id)?.revision).toBe(afterLetter.revision);
+  await context.close();
+});
+
+/**
+ * The kit lands through the SERVER alone: no browser exists while it is
+ * generated, yet the canonical columns and the revision are filled. Opening
+ * the application afterwards shows it and writes nothing.
+ */
+test('(a2) a kit generated with no browser lands in the canonical columns, and opening it writes nothing', async ({ browser, request }) => {
+  const user = await createSignedInApiUser(request, 'server');
+  const created = await runTool<{ id: string }>('e2e/tools/ops.ts', [
+    'create-application',
+    JSON.stringify({ userId: user.id, jobDescription: JOB_DESCRIPTION }),
+  ]);
+  const start = creditsOf(user.id).total;
+  const events = await callAgent(request, { action: 'full_optimization', jobDescription: JOB_DESCRIPTION, sessionId: created.id }, `req-a2-${Date.now()}`);
+  expect(events.find((event) => event.type === 'workflow_complete')).toBeTruthy();
+  expect(creditsOf(user.id).total).toBe(start - 2);
+
+  const server = storedApplication(user.id, created.id);
+  expect(server?.generated_cv?._optimizedCVData).toBeTruthy();
+  expect(server?.cover_letter?.body).toBeTruthy();
+  expect(server?.email?.subject).toBeTruthy();
+  expect(server?.follow_up_email?.subject).toBeTruthy();
+  expect(server?.generation_status).toBe('succeeded');
+  const revision = server?.revision ?? -1;
+  expect(revision).toBeGreaterThanOrEqual(1);
+
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, extraHTTPHeaders: { 'cf-connecting-ip': user.ip, 'x-forwarded-for': user.ip } });
+  // The API client is already signed in: hand its session cookie to the browser.
+  await context.addCookies((await request.storageState()).cookies);
+  const page = await context.newPage();
+  await page.goto('/dashboard');
+  await page.getByRole('button', { name: /Northwind Foods/ }).first().click();
+  await expect(page.getByRole('tab', { name: 'CV' })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('Tomas Brandt').first()).toBeVisible();
+  await page.waitForTimeout(4_000);
+  expect(storedApplication(user.id, created.id)?.revision, 'loading the kit from the server wrote nothing').toBe(revision);
   await context.close();
 });

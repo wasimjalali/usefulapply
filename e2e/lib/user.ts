@@ -41,7 +41,7 @@ export interface TestUser {
 }
 
 let ipCounter = 0;
-function nextTestIp(): string {
+export function nextTestIp(): string {
   ipCounter += 1;
   const stamp = Date.now() % 60_000;
   return `10.${Math.floor(stamp / 250) % 250}.${Math.floor(ipCounter / 250) % 250}.${(ipCounter % 250) + 1}`;
@@ -97,6 +97,50 @@ export function creditsOf(userId: string): { monthly: number; rollover: number; 
       { m: number; r: number; a: number; version: number } | undefined;
     if (!row) throw new Error(`no credits row for ${userId}`);
     return { monthly: row.m, rollover: row.r, addon: row.a, total: row.m + row.r + row.a, version: row.version };
+  } finally {
+    db.close();
+  }
+}
+
+/** A signed-in API client (the session cookie lives in `request`), for specs that never open a browser. */
+export async function createSignedInApiUser(request: APIRequestContext, label: string): Promise<TestUser> {
+  const user = await createTestUser(request, label);
+  const response = await request.post(`${BASE_URL}/api/auth/sign-in/email`, {
+    data: { email: user.email, password: TEST_PASSWORD },
+    headers: { 'cf-connecting-ip': user.ip, 'x-forwarded-for': user.ip },
+  });
+  if (!response.ok()) throw new Error(`sign-in failed: ${response.status()} ${await response.text()}`);
+  return user;
+}
+
+export interface AgentEvent { type: string; [key: string]: unknown }
+
+/** POST /api/agent-v2 and parse the server-sent events. A fresh private IP per call keeps the 5 per minute limit out of the way. */
+export async function callAgent(
+  request: APIRequestContext,
+  body: Record<string, unknown>,
+  requestId: string,
+): Promise<AgentEvent[]> {
+  const ip = nextTestIp();
+  const response = await request.post(`${BASE_URL}/api/agent-v2`, {
+    data: body,
+    headers: { 'x-request-id': requestId, 'cf-connecting-ip': ip, 'x-forwarded-for': ip },
+    timeout: 120_000,
+  });
+  const text = await response.text();
+  return text
+    .split('\n\n')
+    .map((chunk) => chunk.trim())
+    .filter((chunk) => chunk.startsWith('data: '))
+    .map((chunk) => JSON.parse(chunk.slice(6)) as AgentEvent)
+    .filter((event) => event.type !== 'heartbeat');
+}
+
+export function setBalance(userId: string, balance: { monthly: number; rollover?: number; addon?: number }): void {
+  const db = openLocalD1();
+  try {
+    db.prepare('UPDATE user_credits SET monthly_credits = ?, rollover_credits = ?, addon_credits = ?, version = version + 1 WHERE user_id = ?')
+      .run(balance.monthly, balance.rollover ?? 0, balance.addon ?? 0, userId);
   } finally {
     db.close();
   }

@@ -15,7 +15,7 @@ import { answerFor, messageFor, writerFor, type Writer } from './lib/model-scrip
 
 const port = Number(process.argv[2] ?? process.env.FAKE_ANTHROPIC_PORT ?? 18793);
 
-const calls: Array<{ writer: string; at: string; stream: boolean }> = [];
+const calls: Array<{ writer: string; at: string; stream: boolean; user: string }> = [];
 let failWriters = new Set<string>();
 let delayMs = 0;
 
@@ -66,9 +66,12 @@ createServer(async (request, response) => {
       return json(response, 200, { ok: true });
     }
     if (request.method === 'POST' && url.pathname.endsWith('/v1/messages')) {
-      const body = JSON.parse(await readBody(request)) as { system?: unknown; stream?: boolean };
+      const body = JSON.parse(await readBody(request)) as { system?: unknown; stream?: boolean; messages?: Array<{ content?: unknown }> };
       const writer = writerFor(body.system);
-      calls.push({ writer: writer ?? 'unknown', at: new Date().toISOString(), stream: Boolean(body.stream) });
+      // What the model was actually shown, so a test can check which CV and which ad reached it.
+      const first = body.messages?.[0]?.content;
+      const user = typeof first === 'string' ? first : JSON.stringify(first ?? '');
+      calls.push({ writer: writer ?? 'unknown', at: new Date().toISOString(), stream: Boolean(body.stream), user: user.slice(0, 20_000) });
       if (!writer) return json(response, 500, { type: 'error', error: { type: 'api_error', message: 'unscripted writer' } });
       if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));
       if (failWriters.has(writer as Writer)) {

@@ -93,38 +93,38 @@ function validatePatch(patch: Record<string, unknown>): Record<string, unknown> 
   let total = 0;
   for (const [key, value] of Object.entries(patch)) {
     const rule = (EDITABLE_FIELDS as Record<string, { kind: FieldKind; max?: number } | undefined>)[key];
-    if (!rule) throw new InvalidInputError(`Field "${key}" cannot be edited`);
+    if (!rule) throw new InvalidInputError(`Field "${key}" cannot be edited`, key);
     if (value === undefined) continue;
     switch (rule.kind) {
       case 'text':
       case 'text-required': {
         if (value === null && rule.kind === 'text') break;
-        if (typeof value !== 'string') throw new InvalidInputError(`Field "${key}" must be text`);
-        if (rule.kind === 'text-required' && !value.trim()) throw new InvalidInputError(`Field "${key}" cannot be empty`);
-        if (rule.max !== undefined && value.length > rule.max) throw new InvalidInputError(`Field "${key}" is too long`);
+        if (typeof value !== 'string') throw new InvalidInputError(`Field "${key}" must be text`, key);
+        if (rule.kind === 'text-required' && !value.trim()) throw new InvalidInputError(`Field "${key}" cannot be empty`, key);
+        if (rule.max !== undefined && value.length > rule.max) throw new InvalidInputError(`Field "${key}" is too long`, key);
         total += value.length;
         break;
       }
       case 'int-0-100': {
         if (value === null) break;
-        if (typeof value !== 'number' || !Number.isFinite(value)) throw new InvalidInputError(`Field "${key}" must be a number`);
+        if (typeof value !== 'number' || !Number.isFinite(value)) throw new InvalidInputError(`Field "${key}" must be a number`, key);
         break;
       }
       case 'string-array': {
         if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
-          throw new InvalidInputError(`Field "${key}" must be a list of text`);
+          throw new InvalidInputError(`Field "${key}" must be a list of text`, key);
         }
         total += JSON.stringify(value).length;
         break;
       }
       case 'json-array': {
-        if (!Array.isArray(value)) throw new InvalidInputError(`Field "${key}" must be a list`);
+        if (!Array.isArray(value)) throw new InvalidInputError(`Field "${key}" must be a list`, key);
         total += JSON.stringify(value).length;
         break;
       }
       case 'json': {
         if (value !== null && typeof value !== 'object' && typeof value !== 'string') {
-          throw new InvalidInputError(`Field "${key}" must be a document`);
+          throw new InvalidInputError(`Field "${key}" must be a document`, key);
         }
         total += JSON.stringify(value).length;
         break;

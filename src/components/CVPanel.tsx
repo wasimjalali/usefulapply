@@ -38,7 +38,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from './ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import type { Profile } from '@/lib/supabase/types';
-import { persistSessionEdits } from '@/lib/session-sync';
+import { commitEditorSave, getBaselineRevision, persistSessionEdits } from '@/lib/session-sync';
 
 interface CVPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -92,6 +92,8 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const cvTemplateRef = useRef<HTMLDivElement>(null);
   const editableCVRef = useRef<EditableCVCanvasRef>(null);
   const editSessionIdRef = useRef<string | null>(null);
+  // The revision the editor opened on; the draft lives outside the store (see commitEditorSave).
+  const editStartRevisionRef = useRef<number | undefined>(undefined);
   useEffect(() => {
     if (editSessionIdRef.current === null || editSessionIdRef.current === currentSession?.id) return;
     editSessionIdRef.current = null;
@@ -331,6 +333,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           onClick={() => {
             setIsEditMode(true);
             editSessionIdRef.current = currentSession?.id ?? null;
+            editStartRevisionRef.current = currentSession ? getBaselineRevision(currentSession.id) : undefined;
             setShowTemplates(false);
             if (cvData && !editedCVData) setEditedCVData(cvData);
           }}
@@ -497,16 +500,25 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                         const existingSession = sessionState.sessions.find((session) => session.id === editSessionId)
                           ?? (sessionState.currentSession?.id === editSessionId ? sessionState.currentSession : undefined);
                         const existing = existingSession?.optimizedCVData;
-                        useSessionStore.getState().updateSessionById(editSessionId, {
-                          optimizedCVData: {
-                            ...updatedData,
-                            analysis: existing?.analysis,
-                            sectionHeaders: existing?.sectionHeaders,
-                            localizedStrings: existing?.localizedStrings,
-                          } as ApplicationSession['optimizedCVData'],
+                        // Save now, against the revision this editor opened on. If another
+                        // write got in first the draft is not applied: the editor reopens
+                        // with the text in it so it can be copied.
+                        void commitEditorSave(editSessionId, editStartRevisionRef.current, () => {
+                          useSessionStore.getState().updateSessionById(editSessionId, {
+                            optimizedCVData: {
+                              ...updatedData,
+                              analysis: existing?.analysis,
+                              sectionHeaders: existing?.sectionHeaders,
+                              localizedStrings: existing?.localizedStrings,
+                            } as ApplicationSession['optimizedCVData'],
+                          });
+                        }).then((outcome) => {
+                          if (outcome !== 'conflict') return;
+                          editStartRevisionRef.current = getBaselineRevision(editSessionId);
+                          editSessionIdRef.current = editSessionId;
+                          setEditedCVData(updatedData);
+                          setIsEditMode(true);
                         });
-                        // Save now, against the revision this tab loaded.
-                        void persistSessionEdits(editSessionId);
                       } else {
                         // For original CV, persist to CV store (syncs to Supabase via useSupabaseSync)
                         useCVStore.getState().setEditedOriginalCVData(updatedData);

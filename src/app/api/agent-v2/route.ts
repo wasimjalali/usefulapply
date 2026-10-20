@@ -13,9 +13,7 @@
 
 import { NextRequest } from 'next/server';
 import {
-  runJobCopilot,
   runFitAnalysis,
-  runWithContext,
   type AgentEvent,
   type KitDocumentErrors,
   type MasterContext,
@@ -25,8 +23,6 @@ import { getSession, updateSession } from '@/db/repos/sessions';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { saveLetterRecipientFromAd } from '@/lib/agents/persist-letter-recipient';
 import { isSameStoredText, storedTextOrEmpty } from '@/db/trim-text';
-import { getDocumentByType } from '@/db/repos/documents';
-import { getJobPreferences } from '@/db/repos/jobFeed';
 import { claimAnonymousGeneration, releaseAnonymousGeneration } from '@/db/repos/anonymous';
 import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
 import {
@@ -51,7 +47,13 @@ import {
 } from '@/lib/services/context-cache';
 import { persistKit, type KitResults } from '@/lib/services/kit';
 import { NotFoundError } from '@/lib/services/errors';
-import { buildKitResults, kitFailureRefund, reserveKitCredits } from '@/lib/services/kit-generation';
+import {
+  kitFailureRefund,
+  loadJobPreferences,
+  loadOwnedCvSources,
+  reserveKitCredits,
+  runKitPipeline,
+} from '@/lib/services/kit-generation';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -149,8 +151,10 @@ async function persistKitForSession(
       return;
     } catch (error) {
       if (error instanceof NotFoundError) {
-        console.warn('[agent-v2] Kit was not persisted because the application no longer exists');
-        return;
+        // The application was deleted while the kit was being written. There is
+        // nowhere to put the kit, so it must not be charged for: throwing sends
+        // this run to the failure path, which releases the reservation.
+        throw new Error('The application no longer exists');
       }
       lastError = error;
       console.error('[agent-v2] Failed to persist the kit, attempt', attempt + 1, error);
@@ -348,24 +352,8 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        // Fetch job preferences for cover letter context (best-effort, never blocks generation)
-        let jobPreferences: import('@/lib/agents/types').MasterContext['jobPreferences'] = undefined;
-        if (user) {
-          try {
-            const prefs = await getJobPreferences(user.id);
-            if (prefs) {
-              jobPreferences = {
-                salaryFloor: prefs.salary_floor,
-                remotePreference: prefs.remote_preference,
-                employmentTypes: prefs.employment_types,
-                targetMarket: prefs.target_market,
-                seniorityTarget: prefs.seniority_target,
-              };
-            }
-          } catch (prefsError) {
-            console.error('[agent-v2] Failed to load job preferences (continuing without):', prefsError);
-          }
-        }
+        // Job preferences for the cover letter (best-effort, never blocks generation).
+        const jobPreferences = user ? await loadJobPreferences(user.id) : undefined;
 
         const body: AgentRequest = await request.json();
         const {
@@ -474,15 +462,7 @@ export async function POST(request: NextRequest) {
         let ownedCvSourcesPromise: Promise<{ primaryCV: string; masterCV?: string }> | null = null;
         const getOwnedCvSources = () => {
           if (!user) return Promise.resolve({ primaryCV: '', masterCV: undefined });
-          if (!ownedCvSourcesPromise) {
-            ownedCvSourcesPromise = Promise.all([
-              getDocumentByType(user.id, 'primary_cv'),
-              getDocumentByType(user.id, 'master_cv'),
-            ]).then(([primaryDocument, masterDocument]) => ({
-              primaryCV: primaryDocument?.raw_text?.trim() || '',
-              masterCV: masterDocument?.raw_text?.trim() || undefined,
-            }));
-          }
+          if (!ownedCvSourcesPromise) ownedCvSourcesPromise = loadOwnedCvSources(user.id);
           return ownedCvSourcesPromise;
         };
         const generationContext: LlmGenerationContext = {
@@ -849,32 +829,27 @@ export async function POST(request: NextRequest) {
               })}\n\n`));
 
               const eventHandler = createEventHandler((id) => getStepIndex(id));
-              const result = await runJobCopilot({
+              const run = await runKitPipeline({
                 sessionId: attributableSession?.id ?? clientSessionId ?? `session-${Date.now()}`,
                 jobDescription: runJobDescription,
                 primaryCV: serverPrimaryCV,
                 masterCV: serverMasterCV,
                 jobPreferences,
                 letterRecipient: letterRecipientFor(runJobDescription),
+                emit: eventHandler,
                 generationContext,
-              }, eventHandler);
+              });
+              const fallbackResults = run.results;
 
-              if (result.success && result.data) {
-                const documentErrors = result.data.documentErrors ?? {};
-                const fallbackResults = buildKitResults(result.data.context, documentErrors);
+              await persistKitForSession(clientSessionId, user?.id, fallbackResults, run.jobDescription);
+              await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
+              const creditsRefunded = await settleKitReservation(run.documentErrors);
 
-                await persistKitForSession(clientSessionId, user?.id, fallbackResults, result.data.context.jobDescription);
-                await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
-                const creditsRefunded = await settleKitReservation(documentErrors);
-
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                  type: 'workflow_complete',
-                  results: fallbackResults,
-                  creditsRefunded,
-                })}\n\n`));
-              } else {
-                throw new Error(result.error || 'Optimization failed');
-              }
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'workflow_complete',
+                results: fallbackResults,
+                creditsRefunded,
+              })}\n\n`));
 
               controller.close();
               return;
@@ -905,30 +880,31 @@ export async function POST(request: NextRequest) {
           })}\n\n`));
 
           const eventHandler = createEventHandler((id) => getGenerateWithContextStepIndex(id));
-          if (jobPreferences) cachedContext.jobPreferences = jobPreferences;
-          cachedContext.letterRecipient = letterRecipientFor(cachedContext.jobDescription);
-          const result = await runWithContext(cachedContext, eventHandler, generationContext);
+          const run = await runKitPipeline({
+            sessionId: attributableSession?.id ?? clientSessionId ?? `session-${Date.now()}`,
+            jobDescription: cachedContext.jobDescription,
+            primaryCV: '',
+            jobPreferences,
+            cachedContext,
+            letterRecipient: letterRecipientFor(cachedContext.jobDescription),
+            emit: eventHandler,
+            generationContext,
+          });
+          const genResults = run.results;
 
-          if (result.success && result.data) {
-            const documentErrors = result.data.documentErrors ?? {};
-            const genResults = buildKitResults(result.data.context, documentErrors);
+          await persistKitForSession(clientSessionId, user?.id, genResults, run.jobDescription);
+          await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
+          const creditsRefunded = await settleKitReservation(run.documentErrors);
 
-            await persistKitForSession(clientSessionId, user?.id, genResults, result.data.context.jobDescription);
-            await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
-            const creditsRefunded = await settleKitReservation(documentErrors);
-
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-              type: 'workflow_complete',
-              results: genResults,
-              creditsRefunded,
-            })}\n\n`));
-            try {
-              await removeCachedContext(contextOwnerId, contextId);
-            } catch (cacheError) {
-              console.error('[API_AGENT_V2] Failed to remove completed context:', cacheError);
-            }
-          } else {
-            throw new Error(result.error || 'Generation failed');
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'workflow_complete',
+            results: genResults,
+            creditsRefunded,
+          })}\n\n`));
+          try {
+            await removeCachedContext(contextOwnerId, contextId);
+          } catch (cacheError) {
+            console.error('[API_AGENT_V2] Failed to remove completed context:', cacheError);
           }
 
           controller.close();
@@ -997,23 +973,20 @@ export async function POST(request: NextRequest) {
 
         const eventHandler = createEventHandler((id) => getStepIndex(id));
         const runJobDescription = await settleRunJobDescription(submittedJobDescription);
-        const result = await runJobCopilot({
+        const run = await runKitPipeline({
           sessionId: attributableSession?.id ?? `session-${Date.now()}`,
           jobDescription: runJobDescription,
           primaryCV: fullCvSources.primaryCV,
           masterCV: fullCvSources.masterCV,
           jobPreferences,
           letterRecipient: letterRecipientFor(runJobDescription),
+          emit: eventHandler,
           generationContext,
-        }, eventHandler);
+        });
+        const documentErrors = run.documentErrors;
+        const results = run.results;
 
-        if (!result.success || !result.data) {
-          throw new Error(result.error || 'Optimization failed');
-        }
-        const documentErrors = result.data.documentErrors ?? {};
-        const results = buildKitResults(result.data.context, documentErrors);
-
-        await persistKitForSession(clientSessionId, user?.id, results, result.data.context.jobDescription);
+        await persistKitForSession(clientSessionId, user?.id, results, run.jobDescription);
         await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
         const creditsRefunded = await settleKitReservation(documentErrors);
 

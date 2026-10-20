@@ -21,7 +21,7 @@ import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateL
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import { MAX_INSTRUCTION_CHARS, flattenInstruction } from '@/lib/agents/chat-tools/untrusted';
 import { clearKitDocumentError, getSession, updateSession } from '@/db/repos/sessions';
-import { saveKitDocument } from '@/lib/services/kit';
+import { coverLetterShell, saveKitDocument } from '@/lib/services/kit';
 import { saveLetterRecipientFromAd } from '@/lib/agents/persist-letter-recipient';
 import { getDocumentByType, type Document } from '@/db/repos/documents';
 
@@ -320,6 +320,7 @@ export async function POST(request: NextRequest) {
         : {};
       // A new letter replaces any structured copy of the old one.
       const persistedCoverLetter = {
+        ...coverLetterShell(),
         ...existingCoverLetter,
         body: coverLetter,
         structured: letter.structured,

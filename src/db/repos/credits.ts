@@ -1583,6 +1583,12 @@ export function buildReleaseReservationStatements(
       UPDATE credit_reservations
       SET status = 'released', released_at = ${now}, updated_at = ${now}
       WHERE id = ${reservation.id} AND user_id = ${reservation.user_id} AND status = 'reserved'
+        -- A reservation a live queued operation holds is that operation's to settle. Anyone else
+        -- (a duplicate enqueue that adopted it, the stale sweeper) must not refund it from under it.
+        AND NOT EXISTS (
+          SELECT 1 FROM agent_operations o
+          WHERE o.reservation_key = ${reservation.idempotency_key} AND o.status IN ('pending', 'running')
+        )
         ${options.chained ? sql`AND (SELECT changes()) > 0` : sql``}
     `,
     ...buildRefundStatements({

@@ -196,7 +196,7 @@ export async function runKitPipeline(params: {
   letterRecipient?: MasterContext['letterRecipient'];
   emit: AgentEventHandler;
   generationContext: LlmGenerationContext;
-}): Promise<{ results: KitResults; documentErrors: KitDocumentErrors }> {
+}): Promise<{ results: KitResults; documentErrors: KitDocumentErrors; jobDescription: string }> {
   let result;
   if (params.cachedContext) {
     const context = params.cachedContext;
@@ -218,5 +218,9 @@ export async function runKitPipeline(params: {
     throw new Error(result.error || 'Generation failed');
   }
   const documentErrors = result.data.documentErrors ?? {};
-  return { results: buildKitResults(result.data.context, documentErrors), documentErrors };
+  return {
+    results: buildKitResults(result.data.context, documentErrors),
+    documentErrors,
+    jobDescription: result.data.context.jobDescription,
+  };
 }

@@ -48,6 +48,10 @@ test('(b) a stale tab gets the conflict toast and overwrites nothing', async ({ 
 
   await expect(pageB.getByText(CONFLICT_TOAST)).toBeVisible({ timeout: 20_000 });
 
+  // B's draft is still in the editor so it can be copied; leaving the editor shows what is stored.
+  await expect(pageB.getByPlaceholder('Cover letter content...')).toHaveValue(staleLetter);
+  await pageB.getByRole('button', { name: 'Cancel', exact: true }).click();
+
   // B now shows A's version, and B's letter did not survive.
   await pageB.getByRole('tab', { name: 'CV' }).click();
   await expect(pageB.getByText('Senior Forecasting Analyst', { exact: true }).first()).toBeVisible();

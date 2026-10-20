@@ -45,6 +45,7 @@ import {
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import { releaseFitContinuationClaim, releaseReservation } from '@/lib/supabase/credit-reservations';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
+import { isSameStoredText } from '@/db/trim-text';
 import { fillLetterRecipient } from './applications';
 import { getCachedContext, normalizeCachedMatch, removeCachedContext } from './context-cache';
 import {
@@ -68,8 +69,12 @@ import {
   MAX_ACTIVE_OPERATIONS_PER_USER,
   OPERATION_KINDS,
   buildCompleteOperationStatement,
+  MAX_RUN_ATTEMPTS,
+  PENDING_OPERATION_MAX_AGE_MS,
   claimOperation,
   extendOperationLease,
+  markSessionRunning,
+  type FinishExpectation,
   finishOperationWithoutKit,
   getOperationById,
   hashOperationInput,
@@ -84,11 +89,13 @@ export const AGENT_QUEUE_NAME = 'agent-generation';
 export const AGENT_DLQ_NAME = 'agent-generation-dlq';
 /** Matches `max_retries` in wrangler.jsonc: one delivery plus three retries. */
 export const QUEUE_MAX_RETRIES = 3;
-export const MAX_RUN_ATTEMPTS = QUEUE_MAX_RETRIES + 1;
+export { MAX_RUN_ATTEMPTS } from './operations';
 /** Twice the route's `maxDuration` (300 s), so a second worker never starts while the first is alive. */
 export const OPERATION_LEASE_MS = 10 * 60 * 1000;
 /** The runner pushes the lease out this often while the model runs. */
 export const LEASE_HEARTBEAT_MS = 2 * 60 * 1000;
+/** Consecutive failed heartbeats after which the runner stops and lets the lease go. */
+const HEARTBEAT_FAILURES_BEFORE_STOP = 3;
 
 // ---------------------------------------------------------------------------
 // Bindings and message shapes
@@ -217,7 +224,11 @@ export async function enqueueKitGeneration(
   if (!reservation) throw new Error('Reservation missing after reserve');
   const reservationKey = heldKey ?? reserved.key;
 
+  // A reservation adopted from another enqueue of the same key belongs to that
+  // enqueue's operation. Only the call that created it may give it back.
+  const createdHere = reserved.result.success && reserved.result.created;
   const releaseOnAbort = async (reason: string) => {
+    if (!createdHere) return;
     await releaseReservation({ userId, idempotencyKey: reservationKey, reason });
     if (reserved.continuation) {
       await releaseFitContinuationClaim(userId, reserved.continuation.contextId, reserved.continuation.requestId);
@@ -238,6 +249,10 @@ export async function enqueueKitGeneration(
   } catch (error) {
     await releaseOnAbort('operation_insert_failed');
     throw error;
+  }
+  if (inserted.outcome === 'reservation_lost') {
+    // Whoever created the shared reservation gave it back before our operation could hold it.
+    throw new ReservationConflictError('REQUEST_IN_PROGRESS');
   }
   if (inserted.outcome === 'limit') {
     await releaseOnAbort('operation_limit_reached');
@@ -310,6 +325,11 @@ async function generateKit(operation: AgentOperation): Promise<GeneratedKit> {
   // A cache miss reruns the whole pipeline from the server-held CV, like the web route does.
   if (contextId && !cachedContext) console.warn('[agent-queue] context cache miss for', operation.id);
 
+  // One job description for the whole run, like the web route: the cached fit
+  // context's when there is one. The stored recipient only counts while the
+  // row still describes that job, and the recipient fill compares the same text,
+  // so a replaced ad never lends its employer to a letter about another job.
+  const runJobDescription = cachedContext?.jobDescription ?? session.job_description;
   const generationContext: LlmGenerationContext = {
     requestExecutionId: crypto.randomUUID(),
     clientRequestId: operation.idempotency_key,
@@ -326,20 +346,33 @@ async function generateKit(operation: AgentOperation): Promise<GeneratedKit> {
     masterCV: sources.masterCV,
     jobPreferences: await loadJobPreferences(operation.user_id),
     cachedContext,
-    letterRecipient: {
-      companyName: session.company,
-      address: session.company_address,
-      contactPerson: session.company_contact_person,
-    },
+    letterRecipient: isSameStoredText(session.job_description, runJobDescription)
+      ? {
+          companyName: session.company,
+          address: session.company_address,
+          contactPerson: session.company_contact_person,
+        }
+      : undefined,
     emit: () => {},
     generationContext,
   });
-  return { results, jobDescription: session.job_description, usedContextId: cachedContext ? contextId : null };
+  return { results, jobDescription: runJobDescription, usedContextId: cachedContext ? contextId : null };
+}
+
+async function stillOwns(operationId: string, claimed: { attempt: number; leaseOwner: string }): Promise<boolean> {
+  const current = await getOperationById(operationId);
+  return Boolean(current && current.status === 'running' && current.attempt === claimed.attempt && current.lease_owner === claimed.leaseOwner);
 }
 
 /**
  * Finish a successful run in one batch. Returns 'done', or 'lost' when this
  * attempt no longer owns the operation (cancelled, taken over).
+ *
+ * No capture, no kit. A reservation that is no longer held (released by
+ * someone else, never made) fails the operation instead of delivering a free
+ * kit. The batch is the kit write, the operation completion, the capture and
+ * the per-document refund; a final guard aborts it, rolling the kit and the
+ * completion back, if the operation completed without this batch capturing.
  */
 async function settleSuccess(
   operation: AgentOperation,
@@ -353,8 +386,14 @@ async function settleSuccess(
     const reservation = operation.reservation_key
       ? await getReservationByKey(operation.user_id, operation.reservation_key)
       : null;
+    if (operation.reservation_key && reservation?.status !== 'reserved') {
+      // A cancel releases the reservation too: if we no longer own the operation, stand down quietly.
+      if (!(await stillOwns(operation.id, claimed))) return 'lost';
+      throw new PermanentOperationError('reservation_not_held', `reservation is ${reservation?.status ?? 'missing'}`);
+    }
     const now = nowIso();
     const columns = kitColumnsFromResults(results, row, now);
+    const resultRef = `application:${sessionId}#rev${row.revision + 1}`;
     const guard = sql`EXISTS (
       SELECT 1 FROM agent_operations
       WHERE id = ${operation.id} AND status = 'running' AND attempt = ${claimed.attempt} AND lease_owner = ${claimed.leaseOwner}
@@ -365,12 +404,18 @@ async function settleSuccess(
         operationId: operation.id,
         attempt: claimed.attempt,
         leaseOwner: claimed.leaseOwner,
-        resultRef: `application:${sessionId}#rev${row.revision + 1}`,
+        resultRef,
         now,
       }),
     ];
-    if (reservation && reservation.status === 'reserved') {
+    if (reservation) {
       statements.push(buildCaptureReservationStatement(reservation, { chained: true, now }));
+      statements.push(sql`
+        SELECT json(CASE
+          WHEN EXISTS (SELECT 1 FROM agent_operations WHERE id = ${operation.id} AND status = 'succeeded' AND result_ref = ${resultRef})
+           AND NOT EXISTS (SELECT 1 FROM credit_reservations WHERE id = ${reservation.id} AND status = 'captured' AND captured_at = ${now})
+          THEN 'completed without a capture' ELSE '{}' END)
+      `);
       const { failed, amount } = kitFailureRefund(results.documentErrors ?? {});
       if (failed.length > 0 && amount > 0) {
         statements.push(...buildPartialRefundStatements(
@@ -381,14 +426,24 @@ async function settleSuccess(
         ));
       }
     }
-    const batch = await runBatch(statements);
+    let batch;
+    try {
+      batch = await runBatch(statements);
+    } catch (error) {
+      // The guard aborted: the reservation is not ours to capture any more. Nothing was written.
+      const held = operation.reservation_key
+        ? await getReservationByKey(operation.user_id, operation.reservation_key)
+        : null;
+      if (operation.reservation_key && held?.status !== 'reserved') {
+        if (!(await stillOwns(operation.id, claimed))) return 'lost';
+        throw new PermanentOperationError('reservation_not_held', `reservation is ${held?.status ?? 'missing'}`);
+      }
+      throw error;
+    }
     if (batch[0].meta.changes > 0) return 'done';
     // Nothing was written. Either this attempt lost the operation, or a user
     // edit moved the revision under us. Look, then retry or stand down.
-    const current = await getOperationById(operation.id);
-    if (!current || current.status !== 'running' || current.attempt !== claimed.attempt || current.lease_owner !== claimed.leaseOwner) {
-      return 'lost';
-    }
+    if (!(await stillOwns(operation.id, claimed))) return 'lost';
   }
   throw new Error('Could not settle the kit after repeated revision conflicts');
 }
@@ -409,21 +464,24 @@ export async function runKitOperation(operationId: string): Promise<RunOutcome> 
   const claimed = { attempt: claimedRow.attempt, leaseOwner };
 
   let leaseLost = false;
+  let failedBeats = 0;
   const heartbeat = setInterval(() => {
     extendOperationLease(operationId, leaseOwner, claimed.attempt, OPERATION_LEASE_MS)
-      .then((ok) => { if (!ok) leaseLost = true; })
-      .catch((error) => console.error('[agent-queue] heartbeat failed for', operationId, error));
+      .then((ok) => {
+        failedBeats = 0;
+        if (!ok) leaseLost = true;
+      })
+      .catch((error) => {
+        // A lease that could not be extended for several beats in a row is
+        // about to expire under us: stop before another worker takes over.
+        failedBeats += 1;
+        console.error('[agent-queue] heartbeat failed for', operationId, failedBeats, error);
+        if (failedBeats >= HEARTBEAT_FAILURES_BEFORE_STOP) leaseLost = true;
+      });
   }, LEASE_HEARTBEAT_MS);
 
   try {
-    if (claimedRow.session_id) {
-      await sessionsRepo.updateSession(claimedRow.user_id, claimedRow.session_id, {
-        generation_status: 'running',
-        generation_started_at: nowIso(),
-        generation_error: null,
-        generation_completed: false,
-      }, { bumpRevision: false });
-    }
+    await markSessionRunning(claimedRow, claimed.attempt, leaseOwner);
     const generated = await generateKit(claimedRow);
     if (leaseLost) return { outcome: 'dropped', reason: 'lease_lost' };
     const settled = await settleSuccess(claimedRow, claimed, generated.results);
@@ -461,7 +519,7 @@ async function finishFailed(
   operation: AgentOperation,
   errorCode: string,
   reason: string,
-  expect?: { attempt: number; leaseOwner: string },
+  expect?: FinishExpectation,
 ): Promise<void> {
   await finishOperationWithoutKit(operation, { status: 'failed', errorCode, reason }, expect);
 }
@@ -484,7 +542,11 @@ async function handleDeadLetter(operationId: string): Promise<void> {
   if (operation.status !== 'pending' && operation.status !== 'running') return;
   // A live lease means a worker is still on it; the sweeper deals with it if it dies.
   if (operation.status === 'running' && operation.lease_expires_at && operation.lease_expires_at > nowIso()) return;
-  await finishFailed(operation, 'dead_lettered', 'the queue gave up delivering the message');
+  // End it only if it is still in the state we just looked at.
+  const observed: FinishExpectation = operation.status === 'pending'
+    ? { pending: true }
+    : { attempt: operation.attempt, leaseOwner: operation.lease_owner };
+  await finishFailed(operation, 'dead_lettered', 'the queue gave up delivering the message', observed);
 }
 
 /** The `queue()` handler body, for both the main queue and its dead-letter queue. */
@@ -539,8 +601,15 @@ export async function recoverStuckOperations(options: { limit?: number } = {}): 
   const queue = await getQueue();
   for (const operation of stuck) {
     try {
-      if (operation.attempt >= MAX_RUN_ATTEMPTS) {
-        await finishFailed(operation, 'stuck', 'the operation used all its attempts without finishing');
+      const observed: FinishExpectation = operation.status === 'pending'
+        ? { pending: true }
+        : { attempt: operation.attempt, leaseOwner: operation.lease_owner };
+      if (operation.status === 'pending' && Date.parse(operation.created_at) < Date.now() - PENDING_OPERATION_MAX_AGE_MS) {
+        // Its message never produced a run for over an hour: give the credits back.
+        await finishFailed(operation, 'stuck', 'the operation sat pending for over an hour', observed);
+        result.failed += 1;
+      } else if (operation.attempt >= MAX_RUN_ATTEMPTS) {
+        await finishFailed(operation, 'stuck', 'the operation used all its attempts without finishing', observed);
         result.failed += 1;
       } else {
         // Touch first so the next pass does not send it again while it is queued.

@@ -1052,6 +1052,7 @@ export const agentOperations = sqliteTable(
     index('agent_operations_user_status_idx').on(t.user_id, t.status),
     index('agent_operations_status_updated_idx').on(t.status, t.updated_at),
     index('agent_operations_session_idx').on(t.session_id),
+    index('agent_operations_reservation_idx').on(t.reservation_key),
     check('agent_operations_status_check', sql`${t.status} in ('pending', 'running', 'succeeded', 'failed', 'cancelled')`),
     check('agent_operations_attempt_check', sql`${t.attempt} >= 0`),
   ],

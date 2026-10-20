@@ -55,6 +55,10 @@ export interface AgentOperation {
   updated_at: string;
 }
 
+/** One claim per delivery: the first run plus three retries (matches `max_retries` in wrangler.jsonc). */
+export const MAX_RUN_ATTEMPTS = 4;
+/** A pending operation older than this has lost its message for good. */
+export const PENDING_OPERATION_MAX_AGE_MS = 60 * 60 * 1000;
 /** At most this many pending or running operations of one kind per user. */
 export const MAX_ACTIVE_OPERATIONS_PER_USER = 2;
 /** An identical request inside this window is the same request. */
@@ -177,7 +181,9 @@ export async function resolveExistingOperation(params: {
 export type InsertOperationResult =
   | { outcome: 'created'; operation: AgentOperation }
   | { outcome: 'existing'; operation: AgentOperation; matchedBy: 'key' | 'input' }
-  | { outcome: 'limit' };
+  | { outcome: 'limit' }
+  /** The reservation this operation was to hold is no longer reserved. */
+  | { outcome: 'reservation_lost' };
 
 /**
  * Insert the operation row. The count of live operations is part of the INSERT
@@ -211,6 +217,10 @@ export async function insertOperation(params: {
         SELECT COUNT(*) FROM agent_operations
         WHERE user_id = ${params.userId} AND kind = ${params.kind} AND status IN ('pending', 'running')
       ) < ${maxActive}
+      AND (
+        ${params.reservationKey} IS NULL
+        OR EXISTS (SELECT 1 FROM credit_reservations WHERE idempotency_key = ${params.reservationKey} AND status = 'reserved')
+      )
       ON CONFLICT (user_id, kind, idempotency_key) DO NOTHING
     `]);
     changes = result.meta.changes;
@@ -230,6 +240,11 @@ export async function insertOperation(params: {
   if (byKey) {
     if (byKey.input_hash !== params.inputHash) throw new IdempotencyKeyMismatch();
     return { outcome: 'existing', operation: byKey, matchedBy: 'key' };
+  }
+  if (params.reservationKey) {
+    const db = await getDb();
+    const held = await db.all<{ ok: number }>(sql`SELECT 1 AS ok FROM credit_reservations WHERE idempotency_key = ${params.reservationKey} AND status = 'reserved'`);
+    if (held.length === 0) return { outcome: 'reservation_lost' };
   }
   return { outcome: 'limit' };
 }
@@ -264,6 +279,8 @@ export async function claimOperation(
     .where(and(
       eq(agentOperations.id, operationId),
       inArray(agentOperations.status, ['pending', 'running']),
+      // An operation that used all its attempts is the sweeper's to end, not another run.
+      sql`${agentOperations.attempt} < ${MAX_RUN_ATTEMPTS}`,
       sql`(${agentOperations.lease_expires_at} is null or ${agentOperations.lease_expires_at} < ${nowIsoString})`,
     ))
     .returning();
@@ -352,10 +369,16 @@ export interface FinishFailure {
  * so a late failure cannot undo a success and a late success cannot undo a
  * cancel. Returns false when the operation was not in a state to end.
  */
+/**
+ * What the caller observed, so a late ender cannot end work that moved on: the
+ * attempt and lease owner it saw running, or that it saw the operation pending.
+ */
+export type FinishExpectation = { attempt: number; leaseOwner: string | null } | { pending: true };
+
 export async function finishOperationWithoutKit(
   operation: AgentOperation,
   failure: FinishFailure,
-  expect?: { attempt: number; leaseOwner: string },
+  expect?: FinishExpectation,
 ): Promise<boolean> {
   const now = nowIso();
   const reservation = operation.reservation_key
@@ -367,7 +390,11 @@ export async function finishOperationWithoutKit(
       SET status = ${failure.status}, error_code = ${failure.errorCode},
           lease_owner = NULL, lease_expires_at = NULL, updated_at = ${now}
       WHERE id = ${operation.id} AND status IN ('pending', 'running')
-        ${expect ? sql`AND attempt = ${expect.attempt} AND lease_owner = ${expect.leaseOwner}` : sql``}
+        ${!expect
+          ? sql``
+          : 'pending' in expect
+            ? sql`AND status = 'pending'`
+            : sql`AND attempt = ${expect.attempt} AND lease_owner IS ${expect.leaseOwner}`}
     `,
   ];
   if (reservation && reservation.status === 'reserved') {
@@ -385,7 +412,6 @@ export async function finishOperationWithoutKit(
           generation_error = ${cancelled ? null : failure.errorCode},
           generation_completed = 0,
           ${cancelled ? sql`generation_cancelled_at = ${now}` : sql`generation_failed_at = ${now}`},
-          revision = revision + 1,
           updated_at = ${now}
       WHERE id = ${operation.session_id} AND user_id = ${operation.user_id}
         AND generation_status IN ('pending', 'running')
@@ -459,4 +485,25 @@ export async function deleteFinishedOperationsOlderThan(days: number, now: Date 
     ))
     .returning({ id: agentOperations.id });
   return deleted.length;
+}
+
+/**
+ * `generation_status = 'running'` for an operation's application, written only
+ * while that operation is still the running attempt that owns the lease. A
+ * late starter must not flip an application that was already cancelled or
+ * finished back to running. Workflow state: no revision bump.
+ */
+export async function markSessionRunning(operation: AgentOperation, attempt: number, leaseOwner: string): Promise<void> {
+  if (!operation.session_id) return;
+  const now = nowIso();
+  await runBatch([sql`
+    UPDATE application_sessions
+    SET generation_status = 'running', generation_started_at = ${now}, generation_error = NULL,
+        generation_completed = 0, updated_at = ${now}
+    WHERE id = ${operation.session_id} AND user_id = ${operation.user_id}
+      AND EXISTS (
+        SELECT 1 FROM agent_operations
+        WHERE id = ${operation.id} AND status = 'running' AND attempt = ${attempt} AND lease_owner = ${leaseOwner}
+      )
+  `]);
 }

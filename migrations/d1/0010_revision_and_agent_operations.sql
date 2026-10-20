@@ -41,4 +41,6 @@ CREATE UNIQUE INDEX `agent_operations_idempotency_uidx` ON `agent_operations` (`
 CREATE UNIQUE INDEX `agent_operations_active_input_uidx` ON `agent_operations` (`user_id`,`kind`,`input_hash`) WHERE `status` in ('pending', 'running');--> statement-breakpoint
 CREATE INDEX `agent_operations_user_status_idx` ON `agent_operations` (`user_id`,`status`);--> statement-breakpoint
 CREATE INDEX `agent_operations_status_updated_idx` ON `agent_operations` (`status`,`updated_at`);--> statement-breakpoint
-CREATE INDEX `agent_operations_session_idx` ON `agent_operations` (`session_id`);
+CREATE INDEX `agent_operations_session_idx` ON `agent_operations` (`session_id`);--> statement-breakpoint
+-- The reservation release and the stale sweeper ask "does a live operation hold this reservation?".
+CREATE INDEX `agent_operations_reservation_idx` ON `agent_operations` (`reservation_key`);

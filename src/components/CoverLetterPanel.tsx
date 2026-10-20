@@ -22,7 +22,7 @@ import {
 } from '@/lib/utils/cover-letter-export';
 import { kitFilename } from '@/lib/utils/kit-export';
 import { useSessionStore } from '@/store/useSessionStore';
-import { persistSessionEdits } from '@/lib/session-sync';
+import { commitEditorSave, getBaselineRevision } from '@/lib/session-sync';
 
 interface CoverLetterPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -79,6 +79,9 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const lastLetterRef = useRef<GeneratedCoverLetter | null>(null);
   const lastSessionIdRef = useRef<string | null>(null);
   const editSessionIdRef = useRef<string | null>(null);
+  // The revision the editor opened on. The draft lives here, outside the store, so
+  // it is bound to that revision and checked again at save time (commitEditorSave).
+  const editStartRevisionRef = useRef<number | undefined>(undefined);
   const { toast } = useToast();
 
   // Check if cover letter still contains any address placeholder (old or new format)
@@ -315,13 +318,21 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
       // dropped and the export falls back to the body the user wrote.
       const { structured, ...rest } = editedCoverLetter;
       const keepStructured = structured && editedCoverLetter.body === coverLetter?.body;
-      useSessionStore.getState().updateSessionById(editSessionIdRef.current, {
-        coverLetter: { ...rest, ...(keepStructured ? { structured } : {}), updatedAt: new Date().toISOString() },
+      const sessionId = editSessionIdRef.current;
+      // Save now, against the revision this editor opened on. If another write got
+      // in first the draft is not applied: the editor stays open with the text in it.
+      void commitEditorSave(sessionId, editStartRevisionRef.current, () => {
+        useSessionStore.getState().updateSessionById(sessionId, {
+          coverLetter: { ...rest, ...(keepStructured ? { structured } : {}), updatedAt: new Date().toISOString() },
+        });
+      }).then((outcome) => {
+        if (outcome === 'conflict') {
+          editStartRevisionRef.current = getBaselineRevision(sessionId);
+          return;
+        }
+        setIsEditMode(false);
+        editSessionIdRef.current = null;
       });
-      // Save now, against the revision this tab loaded.
-      void persistSessionEdits(editSessionIdRef.current);
-      setIsEditMode(false);
-      editSessionIdRef.current = null;
     }
   };
 
@@ -394,6 +405,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
         <>
           <button type="button" onClick={() => {
             editSessionIdRef.current = currentSession?.id ?? null;
+            editStartRevisionRef.current = currentSession ? getBaselineRevision(currentSession.id) : undefined;
             setIsEditMode(true);
           }} className={TOOL_CLASS}>
             <Edit3 className="w-4 h-4 text-navy-500" />
