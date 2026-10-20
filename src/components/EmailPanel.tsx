@@ -12,6 +12,7 @@ import { useToast } from './ui/Toast';
 import { usePostHog } from 'posthog-js/react';
 import { formatEmailAsText } from '@/lib/utils/kit-export';
 import { useSessionStore } from '@/store/useSessionStore';
+import { persistSessionEdits } from '@/lib/session-sync';
 
 interface EmailPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -92,6 +93,8 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
     if (editedFollowUp && editSessionId) {
       useSessionStore.getState().updateSessionById(editSessionId, { followUpEmail: editedFollowUp });
     }
+    // Save now, against the revision this tab loaded.
+    if (editSessionId) void persistSessionEdits(editSessionId);
     setEditedEmail(null);
     setEditedFollowUp(null);
     setEditBase(null);

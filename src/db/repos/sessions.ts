@@ -3,6 +3,7 @@ import { and, asc, desc, eq, isNotNull, lt, sql } from 'drizzle-orm';
 import { getDb, nowIso, stripIdentity } from '../client';
 import { applicationSessions, chatMessages } from '../schema';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
+import { RevisionConflict } from '@/lib/services/errors';
 
 export interface ApplicationSession {
   id: string;
@@ -43,6 +44,8 @@ export interface ApplicationSession {
   generated_artifacts?: any;
   screening_turns_used?: number;
   prep_turns_used?: number;
+  /** Bumped by every write to the application's content. See `updateSession`. */
+  revision: number;
   created_at: string;
   updated_at: string;
 }
@@ -115,24 +118,77 @@ function stripServerOwnedCounters(values: Record<string, unknown>): Record<strin
   return rest;
 }
 
+export interface UpdateSessionOptions {
+  /**
+   * Only write if the application is still at this revision. A miss comes back
+   * as a `RevisionConflict` in `error` and nothing is written.
+   */
+  expectedRevision?: number;
+  /**
+   * Whether this write bumps the revision. Defaults to true, so a writer that
+   * forgets to think about it still invalidates every stale tab. Pass false
+   * only for pure workflow-state columns (generation_*, the pending-fit stash)
+   * that no editor ever writes back: bumping on those would make a web
+   * session conflict with its own generation.
+   */
+  bumpRevision?: boolean;
+}
+
 export async function updateSession(
   userId: string,
   sessionId: string,
-  updates: Partial<Omit<ApplicationSession, 'id' | 'user_id' | 'created_at' | 'screening_turns_used' | 'prep_turns_used'>>,
-): Promise<{ error: Error | null }> {
+  updates: Partial<Omit<ApplicationSession, 'id' | 'user_id' | 'created_at' | 'screening_turns_used' | 'prep_turns_used' | 'revision'>>,
+  options: UpdateSessionOptions = {},
+): Promise<{ error: Error | null; revision?: number }> {
   const db = await getDb();
-  // `updates` can arrive from a server action and must never re-parent the row.
+  const bump = options.bumpRevision !== false;
+  // `updates` can arrive from a server action and must never re-parent the row
+  // or set the revision itself.
+  const values = stripServerOwnedCounters(stripIdentity(updates as Record<string, unknown>));
+  delete values.revision;
+  const conditions = [eq(applicationSessions.id, sessionId), eq(applicationSessions.user_id, userId)];
+  if (options.expectedRevision !== undefined) {
+    conditions.push(eq(applicationSessions.revision, options.expectedRevision));
+  }
   const updated = await db
     .update(applicationSessions)
-    .set({ ...stripServerOwnedCounters(stripIdentity(updates as Record<string, unknown>)), updated_at: nowIso() } as never)
-    .where(and(eq(applicationSessions.id, sessionId), eq(applicationSessions.user_id, userId)))
-    .returning({ id: applicationSessions.id });
+    .set({
+      ...values,
+      ...(bump ? { revision: sql`${applicationSessions.revision} + 1` } : {}),
+      updated_at: nowIso(),
+    } as never)
+    .where(and(...conditions))
+    .returning({ revision: applicationSessions.revision });
   // A write that matched nothing is a failure, not a quiet success, same as
   // setTrackerStatus below. It matters more since the reuse path stopped
   // inserting: without this, a generation landing on a row that is no longer
   // there would vanish behind a success log.
-  if (updated.length === 0) return { error: new Error('Application not found') };
-  return { error: null };
+  if (updated.length === 0) {
+    if (options.expectedRevision !== undefined) {
+      const current = await getSessionRevision(userId, sessionId);
+      if (current) return { error: new RevisionConflict(current.revision) };
+    }
+    return { error: new Error('Application not found') };
+  }
+  return { error: null, revision: updated[0].revision };
+}
+
+/** Just the revision (and generation state) of one application, for cheap polling. */
+export async function getSessionRevision(
+  userId: string,
+  sessionId: string,
+): Promise<{ revision: number; updatedAt: string; generationStatus: string } | null> {
+  const db = await getDb();
+  const rows = await db
+    .select({
+      revision: applicationSessions.revision,
+      updatedAt: applicationSessions.updated_at,
+      generationStatus: applicationSessions.generation_status,
+    })
+    .from(applicationSessions)
+    .where(and(eq(applicationSessions.id, sessionId), eq(applicationSessions.user_id, userId)))
+    .limit(1);
+  return rows[0] ?? null;
 }
 
 /** The kit documents a single-document regenerate can write. */
@@ -236,13 +292,25 @@ export async function releaseScreeningTurn(
     ));
 }
 
-export async function deleteSession(userId: string, sessionId: string): Promise<{ error: Error | null }> {
+export async function deleteSession(
+  userId: string,
+  sessionId: string,
+  expectedRevision?: number,
+): Promise<{ error: Error | null }> {
   const db = await getDb();
+  const conditions = [eq(applicationSessions.id, sessionId), eq(applicationSessions.user_id, userId)];
+  if (expectedRevision !== undefined) conditions.push(eq(applicationSessions.revision, expectedRevision));
   const deleted = await db
     .delete(applicationSessions)
-    .where(and(eq(applicationSessions.id, sessionId), eq(applicationSessions.user_id, userId)))
+    .where(and(...conditions))
     .returning({ id: applicationSessions.id });
-  if (deleted.length === 0) return { error: new Error('Application not found') };
+  if (deleted.length === 0) {
+    if (expectedRevision !== undefined) {
+      const current = await getSessionRevision(userId, sessionId);
+      if (current) return { error: new RevisionConflict(current.revision) };
+    }
+    return { error: new Error('Application not found') };
+  }
   return { error: null };
 }
 
@@ -305,6 +373,8 @@ export interface TrackerApplicationRow {
   status: string;
   interview_at: string | null;
   follow_up_due_at: string | null;
+  /** The revision this row was read at, so a status change can be conditional on it. */
+  revision: number;
   created_at: string;
 }
 
@@ -327,6 +397,7 @@ export async function listTrackerOverview(userId: string): Promise<TrackerApplic
       status: applicationSessions.status,
       interview_at: applicationSessions.interview_at,
       follow_up_due_at: applicationSessions.follow_up_due_at,
+      revision: applicationSessions.revision,
       created_at: applicationSessions.created_at,
     })
     .from(applicationSessions)
@@ -345,8 +416,11 @@ export async function setTrackerStatus(
   userId: string,
   sessionId: string,
   next: { status: string; interview_at: string | null; follow_up_due_at: string | null },
-): Promise<{ error: Error | null }> {
+  expectedRevision?: number,
+): Promise<{ error: Error | null; revision?: number }> {
   const db = await getDb();
+  const conditions = [eq(applicationSessions.id, sessionId), eq(applicationSessions.user_id, userId)];
+  if (expectedRevision !== undefined) conditions.push(eq(applicationSessions.revision, expectedRevision));
   const updated = await db
     .update(applicationSessions)
     .set({
@@ -366,11 +440,18 @@ export async function setTrackerStatus(
         when coalesce(follow_up_due_at, '') <> ${next.follow_up_due_at ?? ''} then null
         when (status = 'accepted') <> (${next.status} = 'accepted') then null
         else follow_up_reminder_sent_at end`,
+      revision: sql`${applicationSessions.revision} + 1`,
       updated_at: nowIso(),
     })
-    .where(and(eq(applicationSessions.id, sessionId), eq(applicationSessions.user_id, userId)))
-    .returning({ id: applicationSessions.id });
+    .where(and(...conditions))
+    .returning({ revision: applicationSessions.revision });
   // A write that matched nothing is a failure, not a quiet success.
-  if (updated.length === 0) return { error: new Error('Application not found') };
-  return { error: null };
+  if (updated.length === 0) {
+    if (expectedRevision !== undefined) {
+      const current = await getSessionRevision(userId, sessionId);
+      if (current) return { error: new RevisionConflict(current.revision) };
+    }
+    return { error: new Error('Application not found') };
+  }
+  return { error: null, revision: updated[0].revision };
 }

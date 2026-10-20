@@ -22,6 +22,7 @@ import {
 } from '@/lib/utils/cover-letter-export';
 import { kitFilename } from '@/lib/utils/kit-export';
 import { useSessionStore } from '@/store/useSessionStore';
+import { persistSessionEdits } from '@/lib/session-sync';
 
 interface CoverLetterPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -313,6 +314,8 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
       useSessionStore.getState().updateSessionById(editSessionIdRef.current, {
         coverLetter: { ...editedCoverLetter, updatedAt: new Date().toISOString() },
       });
+      // Save now, against the revision this tab loaded.
+      void persistSessionEdits(editSessionIdRef.current);
       setIsEditMode(false);
       editSessionIdRef.current = null;
     }

@@ -29,7 +29,8 @@ import { useFeedStore } from '@/store/useFeedStore';
 import { cvStructureDigest } from '@/lib/cv-structure/validate';
 import { rememberUndo } from '@/lib/cv-structure/undo';
 import type { JobFeedApplicationGeneration } from '@/lib/supabase/types';
-import { readKitDocumentErrors } from '@/lib/open-session';
+import { readKitDocumentErrors, type StoredSessionRow } from '@/lib/open-session';
+import { forgetSession, rememberServerRow, reloadApplication } from '@/lib/session-sync';
 import type { KitDocument, KitDocumentErrors } from '@/lib/agents/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
 import {
@@ -927,6 +928,9 @@ export function useAgentWorkflow(options?: {
           throw created.error ?? new Error('Failed to save application before generation');
         }
         eagerStoredSessionId = created.session.id;
+        // The bare stored row is what the server holds. The local content goes
+        // out afterwards as an ordinary revisioned save over it.
+        rememberServerRow(created.session as unknown as StoredSessionRow);
         if (!localSession) {
           throw new Error('Local application disappeared before generation');
         }
@@ -935,7 +939,7 @@ export function useAgentWorkflow(options?: {
         const persistedId = workflowSessionId;
         useSessionStore.setState((state) => {
           const replace = (session: typeof localSession) => session.id === localSessionId
-            ? { ...session, id: persistedId }
+            ? { ...session, id: persistedId, revision: created.session?.revision ?? 0 }
             : session;
           return {
             sessions: state.sessions.map(replace),
@@ -1244,6 +1248,13 @@ export function useAgentWorkflow(options?: {
                   );
                 }
                 triggerCreditUpdate();
+                // The server saved this kit (agent-v2 persists it before it
+                // announces completion). Load what it saved instead of writing
+                // our copy back, so the screen and the database agree and the
+                // next edit starts from the right revision.
+                if (workflowSessionId && !workflowSessionId.startsWith('session-')) {
+                  void reloadApplication(workflowSessionId);
+                }
                 break;
                 
               case 'error':
@@ -1308,6 +1319,7 @@ export function useAgentWorkflow(options?: {
         try {
           const deleted = await deleteStoredSession(eagerStoredSessionId, user.id);
           if (deleted.error) throw deleted.error;
+          forgetSession(eagerStoredSessionId);
           if (eagerLocalSessionId) {
             const persistedId = eagerStoredSessionId;
             const localId = eagerLocalSessionId;

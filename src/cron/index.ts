@@ -19,19 +19,39 @@ export async function dispatchScheduled(cron: string): Promise<void> {
   switch (cron) {
     case CRON_DAILY_CLEANUP: {
       console.log('[cron] daily cleanup and monthly credit reset sweep');
-      const [{ cleanupHistoricalJobFeedData }, { processOverdueMonthlyResets }] = await Promise.all([
+      const [
+        { cleanupHistoricalJobFeedData },
+        { processOverdueMonthlyResets },
+        { reconcileCreditRefunds },
+        { deleteFinishedOperationsOlderThan },
+      ] = await Promise.all([
         import('@/lib/job-feed/cleanup'),
         import('@/lib/supabase/credits.server'),
+        import('@/db/repos/credits'),
+        import('@/lib/services/operations'),
       ]);
       const results = await Promise.allSettled([
         cleanupHistoricalJobFeedData({ now: new Date() }),
         processOverdueMonthlyResets({ limit: 200 }),
+        // Finish refunds an interrupted release or partial refund left half done.
+        reconcileCreditRefunds({ limit: 100 }),
+        // Finished agent operations are kept 30 days, then dropped.
+        deleteFinishedOperationsOlderThan(30),
       ]);
       const problems: string[] = [];
       for (const r of results) {
         if (r.status === 'rejected') {
           problems.push(r.reason instanceof Error ? r.reason.message : String(r.reason));
         }
+      }
+      const refunds = results[2];
+      if (refunds.status === 'fulfilled') {
+        console.log('[cron] credit refund reconcile', refunds.value);
+        if (refunds.value.failed > 0) problems.push(`credit refund reconcile: ${refunds.value.failed} failed`);
+      }
+      const operationCleanup = results[3];
+      if (operationCleanup.status === 'fulfilled') {
+        console.log('[cron] agent operations deleted after 30 days', operationCleanup.value);
       }
       const sweep = results[1];
       if (sweep.status === 'fulfilled') {
@@ -48,14 +68,21 @@ export async function dispatchScheduled(cron: string): Promise<void> {
     }
     case CRON_TEN_MINUTE_RECONCILE: {
       console.log('[cron] ten-minute reconcilers');
-      const [{ expireStaleJobFeedApplicationGenerations }, { releaseStaleReservations }] = await Promise.all([
+      const [
+        { expireStaleJobFeedApplicationGenerations },
+        { releaseStaleReservations },
+        { recoverStuckOperations },
+      ] = await Promise.all([
         import('@/lib/job-feed/server'),
         import('@/lib/supabase/credit-reservations'),
+        import('@/lib/services/generation-runner'),
       ]);
-      // Run both even if one fails, then surface the failure.
+      // Run all even if one fails, then surface the failure.
       const results = await Promise.allSettled([
         expireStaleJobFeedApplicationGenerations(),
         releaseStaleReservations({ maxAgeMs: 30 * 60 * 1000, limit: 50 }),
+        // Re-send lost queue messages, fail operations that used all their attempts.
+        recoverStuckOperations({ limit: 25 }),
       ]);
       const failed = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
       if (failed.length > 0) {

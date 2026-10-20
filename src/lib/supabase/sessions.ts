@@ -2,7 +2,8 @@ import {
   getSessionsAction,
   getSessionAction,
   createSessionAction,
-  updateSessionAction,
+  saveApplicationEditsAction,
+  getApplicationRevisionAction,
   deleteSessionAction,
   getChatMessagesAction,
   addChatMessageAction,
@@ -25,14 +26,26 @@ export async function createSession(userId: string, jobDescription: string) {
   return createSessionAction(userId, jobDescription);
 }
 
-export async function updateSession(
+/**
+ * Write the changed columns of an application, if it is still at
+ * `expectedRevision`. The result says whether it landed; a conflict means
+ * someone else wrote first and the caller should reload.
+ */
+export async function saveApplicationEdits(
   sessionId: string,
-  updates: Parameters<typeof updateSessionAction>[2],
+  expectedRevision: number,
+  patch: Record<string, unknown>,
   userId?: string,
 ) {
   const id = userId ?? (await currentUserId());
-  if (!id) return { error: new Error('Authentication required') };
-  return updateSessionAction(id, sessionId, updates);
+  if (!id) return { ok: false as const, reason: 'invalid' as const, message: 'Authentication required' };
+  return saveApplicationEditsAction(id, sessionId, expectedRevision, patch);
+}
+
+export async function getApplicationRevision(sessionId: string, userId?: string) {
+  const id = userId ?? (await currentUserId());
+  if (!id) return null;
+  return getApplicationRevisionAction(id, sessionId);
 }
 
 export async function deleteSession(sessionId: string, userId?: string) {

@@ -11,6 +11,7 @@ import type { GeneratedCoverLetter } from '@/lib/types';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { generateRequestId } from '@/lib/utils/requestId';
 import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
+import { adoptServerWrite } from '@/lib/session-sync';
 import { MAX_INSTRUCTION_CHARS, flattenInstruction } from '@/lib/agents/chat-tools/untrusted';
 import type { KitDocument } from '@/lib/agents/types';
 
@@ -171,6 +172,13 @@ export function isRegenInFlight(sessionId: string | null | undefined, target: Re
   return Boolean(sessionId) && inFlightRegens.has(regenKey(sessionId as string, target));
 }
 
+/** The stored columns a regenerate target writes server side. */
+const REGEN_COLUMNS: Record<RegenTarget, string[]> = {
+  'cover-letter': ['cover_letter'],
+  email: ['email', 'email_subject', 'email_body'],
+  'follow-up': ['follow_up_email'],
+};
+
 /** The kit document a regenerate target writes. */
 const REGEN_KIT_DOCUMENT: Record<RegenTarget, KitDocument> = {
   'cover-letter': 'coverLetter',
@@ -325,6 +333,9 @@ async function requestRegeneration(
       wordCount = countWords(data.followUpEmail.body);
     }
 
+    // The route saved the document and answered with the new revision. Take
+    // it, so the next edit is not sent against a revision that has moved on.
+    void adoptServerWrite(sessionId, typeof data.revision === 'number' ? data.revision : undefined, REGEN_COLUMNS[target]);
     triggerCreditUpdate();
     return { ok: true, wordCount, sessionId };
   } catch (error) {
@@ -391,6 +402,7 @@ async function requestTrackerFollowUp(sessionId: string, requestId: string): Pro
       },
       ...clearKitDocumentError(sessionId, 'followUpEmail'),
     });
+    void adoptServerWrite(sessionId, typeof data.revision === 'number' ? data.revision : undefined, REGEN_COLUMNS['follow-up']);
     triggerCreditUpdate();
     return { ok: true, wordCount: countWords(data.followUpEmail.body), sessionId };
   } catch (error) {

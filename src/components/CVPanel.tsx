@@ -38,6 +38,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from './ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import type { Profile } from '@/lib/supabase/types';
+import { persistSessionEdits } from '@/lib/session-sync';
 
 interface CVPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -77,6 +78,8 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
     // The application stores its own template too, so the chat can answer
     // "which template is this using" without guessing.
     useSessionStore.getState().updateCurrentSession({ selectedTemplate: id });
+    const templateSessionId = useSessionStore.getState().currentSession?.id;
+    if (templateSessionId) void persistSessionEdits(templateSessionId);
     writeDefaultTemplate(id);
   };
   const [showTemplates, setShowTemplates] = useState(false);
@@ -502,6 +505,8 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                             localizedStrings: existing?.localizedStrings,
                           } as ApplicationSession['optimizedCVData'],
                         });
+                        // Save now, against the revision this tab loaded.
+                        void persistSessionEdits(editSessionId);
                       } else {
                         // For original CV, persist to CV store (syncs to Supabase via useSupabaseSync)
                         useCVStore.getState().setEditedOriginalCVData(updatedData);
