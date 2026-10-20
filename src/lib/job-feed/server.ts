@@ -232,8 +232,10 @@ export async function getJobFeedApplicationSessionAdmin(params: {
 export async function createJobFeedApplicationSessionAdmin(params: {
   userId: string;
   job: JobFeedCanonicalJob;
+  /** Mark the new application's generation as pending. The web handoff does; the MCP fit check does not, because nothing generates a kit. Defaults to true. */
+  generationPending?: boolean;
 }): Promise<SupabaseApplicationSession> {
-  const { userId, job } = params;
+  const { userId, job, generationPending = true } = params;
   const { session, error } = await sessionsRepo.createSession(userId, job.description ?? buildFallbackJobDescription(job), {
     job_title: job.title,
     company: job.company,
@@ -242,6 +244,7 @@ export async function createJobFeedApplicationSessionAdmin(params: {
   if (error || !session) {
     throw new Error(`Failed to create application session from feed item: ${error?.message ?? 'unknown error'}`);
   }
+  if (!generationPending) return session as SupabaseApplicationSession;
   // Workflow state, not content: it must not bump the revision (see updateSession).
   await sessionsRepo.updateSession(userId, session.id, {
     generation_status: 'pending',

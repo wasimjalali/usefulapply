@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/auth/server';
-import { canViewJobFeed } from '@/lib/job-feed/helpers';
-import { listSavedJobFeedItemsAdmin } from '@/lib/job-feed/server';
-import { getProfile } from '@/db/repos/profiles';
 import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { FeedError } from '@/lib/services/feed/errors';
+import { loadSavedJobs } from '@/lib/services/feed/inbox';
 
 export const runtime = 'nodejs';
 
@@ -25,21 +24,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const profile = await getProfile(user.id);
-
-    if (!profile) {
-      console.error('[job-feed/saved] profile load error: profile not found');
-      return NextResponse.json({ error: 'Failed to load saved jobs.' }, { status: 500 });
-    }
-
-    if (!canViewJobFeed(profile.subscription_tier)) {
-      return NextResponse.json({ error: 'Job Feed is not available for this account.' }, { status: 403 });
-    }
-
-    const jobs = await listSavedJobFeedItemsAdmin({ userId: user.id });
+    const jobs = await loadSavedJobs(user.id);
 
     return NextResponse.json({ jobs });
   } catch (error) {
+    if (error instanceof FeedError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error('[job-feed/saved] unexpected error:', error);
     return NextResponse.json({ error: 'Failed to load saved jobs.' }, { status: 500 });
   }
