@@ -17,11 +17,16 @@ Before building the Useful Apply MCP server (Claude connector, ChatGPT plugin an
   - Command: `codex exec -C <worktree> -s read-only -c model_reasoning_effort="medium" -o gpt-6-1-sol-medium.md - < brief.md`
   - Settings: model `gpt-6.1-sol` from `~/.codex/config.toml`, reasoning effort medium. Same date and start time.
   - Run: 254 s, 194.7k tokens, on the Codex subscription with no per-run charge.
-- **DeepSeek Flash** via the DeepSeek Harness (`dsh --profile headless`, model `deepseek-flash`): blocked. The harness had no `DEEPSEEK_API_KEY` stored. It runs once Wasim adds the key, and its results get appended here.
+- **DeepSeek Flash** (`deepseek-flash`, DeepSeek-V4.1-Flash) via the DeepSeek Harness.
+  - The first attempt failed with `MISSING_CREDENTIAL`. The key existed, but the shipped `headless` profile disables the local credentials plugin, while the `web` profile enables it.
+  - Fixed per run with a `--patch` overlay (`dsh-headless-credentials.patch.yml`), leaving Wasim's profiles unchanged.
+  - Command: `DSH_PERMISSION_MODE=read-only dsh --profile headless --patch dsh-headless-credentials.patch.yml - < brief-deepseek-v2.md`
+  - It reviewed plan **v2**, not v1, because it ran after the first two reviews were folded in. The brief adds a note to that effect.
+  - Run: 493 s, harness default reasoning effort, on the DeepSeek API key (the harness reports no cost).
 - **Aborted run:** a first run of both models was stopped after about 3 minutes because the ATS section was added to the plan mid-run. Its partial files are kept with the `aborted-run1-` prefix.
 
 ## Results
-Raw output: `fable-5-1.md` (from `fable-5-1.json`) and `gpt-6-1-sol-medium.md`.
+Raw output: `fable-5-1.md` (from `fable-5-1.json`), `gpt-6-1-sol-medium.md` and `deepseek-flash.md`.
 
 | | Fable 5.1 | GPT-6.1 Sol (medium) |
 |---|---|---|
@@ -91,3 +96,32 @@ Cost: $3.95 plus subscription usage.
 - spikes before PR 1 and the renderer;
 - a negative-path E2E suite;
 - an ATS eval with a baseline and a manual real-ATS check.
+
+## Third review: DeepSeek Flash on plan v2
+
+- **Counts:** 16 findings (4 critical, 10 high, 2 low), 7 "missing" items and 15 dismissed.
+- **What it found that the first two reviews didn't, verified by the orchestrator where checkable:**
+  - **CIMD on Workers needs a pinned, redirect-refusing transport.** Better Auth's CIMD security boundary covers this, and a simple size and time cap isn't enough.
+  - **A `confirm: true` argument is set by the model,** so a hostile job description can defeat it. Replaced by client approval (`destructiveHint`), MCP elicitation where supported, and an `undo_last_edit` tool.
+  - **CSS `order` changes paint order,** so PDF text order would still follow it. Fix: grid column placement. `modern-professional` is a second sidebar-first template. Verified at `USModernATSTemplate.tsx:175-190`.
+  - **Fixed template widths plus `@page` margins would clip A4 overrides or double the margins.** Today's 12 px body is 9 pt, not 9.5 pt.
+  - **DIN 5008 zones:** the recipient starts in the Anschriftzone at about 62.7 mm, not at 45 mm. The Informationsblock and fold marks were missing.
+  - **Idempotency still relied on clients reusing keys.** Now there's also a dedupe on input hash within 10 minutes.
+  - **Persist, capture and cancel weren't one atomic state machine,** and other routes also write the kit columns.
+  - **Free but costly operations had no quota:** CV parse, screening answers and Browser Run exports.
+  - **Loopback redirects need Better Auth's `infer` application type,** not exact match.
+  - **`cv-tools.ts` imports `render-caps.ts`,** which PR 3 changes.
+  - **Every template uses an en dash in date ranges.** Verified.
+  - **Missing tools:** add a CV item, a hide toggle, notification settings, answers export and a cover letter layout preview.
+- **Where it corrected an earlier review:** it showed that `premium-ats` accepts `photoUrl` but never renders it. That contradicts Fable's finding 7. Verified, so the US templates already follow the no-photo norm.
+- **What was wrong or not adopted:**
+  - Its tool count of 39 counted the photo row as one tool. The real count is 40 for v2 and 44 for v3.
+  - It also said Greenhouse's upload cap is 100 MB with 2.5 MB as a parse target. Adopted as wording only.
+- **What changed:**
+  - `PLAN.md` v3.
+  - The running builders for PRs 1-4 got the relevant deltas by message the same hour:
+    - PR 1: CIMD transport, loopback.
+    - PR 2: dedupe, atomic success, all writers, hygiene.
+    - PR 3: grid order, paper and margins, server rendering, DIN zones, hyphens, `cv-tools.ts`, hide flag, letter locale, answers export, preview.
+    - PR 4: recipient handling, persisting `cover_letter_language`.
+- **Cost of all three reviews:** $3.95 (Fable via the API), plus Codex subscription usage, plus DeepSeek API usage (not reported by the harness).
