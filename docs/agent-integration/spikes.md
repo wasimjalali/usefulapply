@@ -145,7 +145,7 @@ await env.BROWSER.quickAction('pdf', {
 
 The page carries `@page { size; margin }` (the single margin owner, the template root has no padding in print mode), self-hosted Arimo and Gelasio as base64 `@font-face`, the photo as a `data:` URI, and a CSP of `default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:` so a hostile string in a CV can never make the render fetch anything. `pdf-lib` then sets Title, Author, Subject, Producer, Creator and `/Lang`, and `DisplayDocTitle`.
 
-### What came back (Premium ATS, German ATS with photo, both cover letters, 24 CV renders in the eval)
+### What came back (Premium ATS, German ATS with photo, both cover letters, 42 CV renders per format in the eval)
 
 | Check | Result |
 |---|---|
@@ -176,3 +176,7 @@ The page carries `@page { size; margin }` (the single margin owner, the template
 4. **An all-caps bold skill label reads as a section title** to a simple parser (OpenResume split Skills into empty sections). Skill group labels are now bold mixed case with a colon.
 5. **`pdftotext` drops the hyphen when a compound word breaks across lines** (`zero-downtime` becomes `zerodowntime`). pdf.js keeps it. The eval's text match ignores spaces and hyphens for that reason.
 6. **Page-wise reading order for two-column templates.** A page is fragmented into a main-column part and a sidebar part, in that order, so the stream reads main, sidebar, main, sidebar across pages. The eval asserts that per page.
+7. **Request blocking works, and an image count cannot show it.** `allowRequestPattern: ['^data:']` stops the page from fetching anything but `data:` URIs, behind the meta CSP. A blocked `<img>` still prints a broken-image placeholder, which `pdfimages` counts, so counting images proves nothing (4 with blocking, 2 without: the placeholders). The eval's probe page reports `onload` or `onerror` of a remote image into the page text instead, and runs the same page without the pattern as a control that must load the image.
+8. **A repeated heading needs a real `<table><thead>`.** Chrome repeats a `thead` at the top of each page a table spans, also inside a grid item. `display: table-header-group` on a div does not repeat. A page can only break between table rows, so the sidebar sections use `SideSection` (a table with the heading in `thead` and one row per certification). The repeated heading is identical on every page; print CSS cannot make a later copy read "(continued)".
+9. **Browser Run keeps `www.` and path-less URLs as Chrome writes them.** A link to `https://host` is `https://host/` in the annotation. Compare links as parsed URLs.
+10. **Tika appends the URL of every link annotation after the page text**, so an ATS built on Tika sees both the clean visible address and the full URL. The eval ignores those trailing URL-only lines when it checks that no `https://` is printed.

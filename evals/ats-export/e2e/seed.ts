@@ -41,7 +41,7 @@ export function seedKit(userId: string) {
   const structured = {
     id: 'cv-e2e', version: 1, createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-01T00:00:00Z', sourceFileName: 'cv.pdf', sourceFormat: 'pdf',
     settings: { region: 'US', includePhoto: false, pageSize: 'letter', maxPages: 1, language: 'en' },
-    personal: { fullName: cv.personal.fullName, email: cv.personal.email, phone: cv.personal.phone, currentTitle: cv.personal.currentTitle, city: cv.personal.city, country: cv.personal.country },
+    personal: { fullName: cv.personal.fullName, email: cv.personal.email, phone: cv.personal.phone, currentTitle: cv.personal.currentTitle, city: cv.personal.city, country: cv.personal.country, linkedIn: cv.personal.linkedIn, github: cv.personal.github },
     summary: cv.summary,
     experience: cv.experience.map((e) => ({ id: e.id, company: e.company, position: e.position, location: e.location, startDate: d(e.startDate), endDate: e.endDate ? d(e.endDate) : undefined, current: Boolean(e.current), bullets: e.bullets })),
     education: cv.education.map((e) => ({ id: e.id, institution: e.institution, degree: e.degree, field: e.field, endDate: e.endDate ? d(e.endDate) : undefined })),
@@ -50,7 +50,7 @@ export function seedKit(userId: string) {
     languages: cv.languages.map((l, i) => ({ id: `l${i}`, language: l.language, proficiency: l.proficiency })),
   };
   const optimized = {
-    personal: { fullName: cv.personal.fullName, email: cv.personal.email, phone: cv.personal.phone, currentTitle: cv.personal.currentTitle, city: cv.personal.city, country: cv.personal.country },
+    personal: { fullName: cv.personal.fullName, email: cv.personal.email, phone: cv.personal.phone, currentTitle: cv.personal.currentTitle, city: cv.personal.city, country: cv.personal.country, linkedIn: cv.personal.linkedIn, github: cv.personal.github },
     summary: cv.summary,
     experience: cv.experience,
     education: cv.education,

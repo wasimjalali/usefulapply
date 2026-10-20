@@ -70,10 +70,16 @@ test.describe('web downloads use the server renderer', () => {
     await expect(dialog.locator('iframe[title="Cover letter layout"]')).toBeVisible({ timeout: 60_000 });
     await expect(dialog.getByRole('button', { name: 'Close preview' })).toBeFocused();
     await page.screenshot({ path: info.outputPath('letter-preview.png') });
-    // Tab stays inside the dialog, Escape closes it, focus returns to the button that opened it.
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('Tab');
-    await expect(dialog.locator(':focus')).toHaveCount(1);
+    // Tab never reaches the app behind the dialog (it is inert), Escape closes the dialog, focus returns to the button that opened it.
+    for (let i = 0; i < 4; i++) {
+      await page.keyboard.press('Tab');
+      const inDialog = await page.evaluate(() => {
+        const active = document.activeElement;
+        return !active || active === document.body || Boolean(active.closest('[role="dialog"]'));
+      });
+      expect(inDialog, `Tab ${i + 1} stays in the dialog`).toBe(true);
+    }
+    await page.locator('[role="dialog"] button[aria-label="Close preview"]').focus();
     await page.keyboard.press('Escape');
     await expect(dialog).toHaveCount(0);
     await expect(previewLayout).toBeFocused();

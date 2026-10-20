@@ -7,8 +7,9 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CV_FIXTURES, TEMPLATE_IDS } from './fixtures';
-import { RUN_DIR } from './lib/render';
-import { expectationsFor } from './lib/expect';
+import { COMMITTED_RAW, RUN_DIR } from './lib/render';
+import { expectationsFor, hasToken, norm } from './lib/expect';
+import { extractText } from './lib/ats-proxies';
 
 type Extraction = { skills: string; bullets: string; contact: string; headings: string; pairingFailures: string[]; nonAsciiLost: string[] };
 const TOOLS = ['pdftotext', 'pdftotextRaw', 'pdfjs', 'tika', 'pymupdf', 'pdfminer'] as const;
@@ -77,7 +78,10 @@ async function main() {
   rows.push('\nover-cap skills on the page (before = computed from the old .slice() caps, not measured; after = measured by every extractor):');
   for (const id of TEMPLATE_IDS) {
     const after = cv.find((r) => r.pdf.fixture === 'over-cap' && r.pdf.templateId === id)!;
-    rows.push(`  ${id}: before ${oldVisibleSkills(id, groups)}/${total} (computed), after ${TOOLS.map((t) => `${t} ${after.pdf.extraction[t].skills}`).join(', ')}`);
+    // The old PDFs are pictures. Tika runs Tesseract OCR on a page with no text layer, so its text is what an OCR-ing ATS would read from them.
+    const ocr = norm(await extractText('tika', new Uint8Array(await readFile(join(COMMITTED_RAW, 'baseline', `over-cap__${id}.pdf`)))));
+    const ocrSkills = over.skills.flatMap((g) => g.items).filter((skill) => hasToken(ocr, skill)).length;
+    rows.push(`  ${id}: before ${oldVisibleSkills(id, groups)}/${total} (computed from the caps), ${ocrSkills}/${total} read by Tika with Tesseract OCR; after ${TOOLS.map((t) => `${t} ${after.pdf.extraction[t].skills}`).join(', ')}`);
   }
 
   rows.push('\nCover letters, before (today jsPDF) and after:');

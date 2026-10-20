@@ -92,6 +92,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   // The rendered PDF the server would export, shown with its real page breaks before anyone downloads.
   const [pdfPreview, setPdfPreview] = useState<{ url: string } | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
+  const previewOpenerRef = useRef<HTMLElement | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showFullPreview, setShowFullPreview] = useState(false);
   const [editedCVData, setEditedCVData] = useState<CVData | null>(null);
@@ -253,6 +254,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const handlePreviewPdf = async () => {
     const applicationId = currentSession?.id;
     if (!cvData || !applicationId) return;
+    previewOpenerRef.current = document.activeElement as HTMLElement | null;
     setIsPreviewing(true);
     try {
       const { blob } = await serverExport({
@@ -507,7 +509,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
 
   return (
     <div className="h-full flex flex-col bg-cream-50">
-      {pdfPreview && <PdfPreviewModal url={pdfPreview.url} title="CV preview" onClose={closePdfPreview} />}
+      {pdfPreview && <PdfPreviewModal url={pdfPreview.url} title="CV preview" onClose={closePdfPreview} returnFocusTo={previewOpenerRef.current} />}
       {/* Header row + toolbar: portal to the canvas chrome on desktop, inline on mobile */}
       {headerContent && headerPortal && createPortal(headerContent, headerPortal)}
       {toolbarContent && toolbarPortal && createPortal(toolbarContent, toolbarPortal)}

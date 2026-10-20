@@ -9,6 +9,11 @@ interface PdfPreviewModalProps {
   url: string;
   title: string;
   onClose: () => void;
+  /**
+   * What had focus when the preview was asked for. The button is disabled while the PDF builds, which drops
+   * its focus, so by the time the modal mounts `document.activeElement` is already the page body.
+   */
+  returnFocusTo?: HTMLElement | null;
 }
 
 const FOCUSABLE = 'button:not([disabled]), [href], iframe, [tabindex]:not([tabindex="-1"])';
@@ -18,14 +23,24 @@ const FOCUSABLE = 'button:not([disabled]), [href], iframe, [tabindex]:not([tabin
  * letter layout before they download. A modal dialog: Escape closes it, Tab
  * stays inside it, and focus goes back to what opened it.
  */
-export function PdfPreviewModal({ url, title, onClose }: PdfPreviewModalProps) {
+export function PdfPreviewModal({ url, title, onClose, returnFocusTo }: PdfPreviewModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const opener = document.activeElement as HTMLElement | null;
+    const opener = returnFocusTo ?? (document.activeElement as HTMLElement | null);
     closeRef.current?.focus();
-    return () => opener?.focus?.();
+    // Focus inside a PDF viewer iframe cannot be trapped by a key handler, so everything behind the dialog is made
+    // inert: Tab can only go to the dialog (or out of the page), never to the app underneath.
+    const inerted = Array.from(document.body.children).filter((el) => el !== overlayRef.current && !el.hasAttribute('inert'));
+    inerted.forEach((el) => el.setAttribute('inert', ''));
+    return () => {
+      inerted.forEach((el) => el.removeAttribute('inert'));
+      opener?.focus?.();
+    };
+    // Only on mount and unmount: the opener is fixed for the life of the dialog.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -51,7 +66,7 @@ export function PdfPreviewModal({ url, title, onClose }: PdfPreviewModalProps) {
 
   if (typeof document === 'undefined') return null;
   return createPortal(
-    <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]" onKeyDown={onKeyDown}>
+    <div ref={overlayRef} className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]" onKeyDown={onKeyDown}>
       <div
         ref={dialogRef}
         role="dialog"

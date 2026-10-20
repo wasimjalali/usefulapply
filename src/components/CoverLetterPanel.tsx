@@ -78,6 +78,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   // The rendered PDF the server would export, shown so people see the layout (US letter or DIN 5008) before they download.
   const [layoutPreview, setLayoutPreview] = useState<{ url: string } | null>(null);
   const [layoutPreviewLoading, setLayoutPreviewLoading] = useState(false);
+  const layoutOpenerRef = useRef<HTMLElement | null>(null);
   // When the letter last changed. Seeded from the stamp the letter carries, so
   // a reload can still say it; null only for letters written before the stamp.
   const [updatedAtMs, setUpdatedAtMs] = useState<number | null>(() => stampOf(coverLetter));
@@ -200,6 +201,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     const letter = editedCoverLetter || coverLetter;
     const applicationId = currentSession?.id;
     if (!letter || !applicationId) return;
+    layoutOpenerRef.current = document.activeElement as HTMLElement | null;
     setLayoutPreviewLoading(true);
     try {
       const { blob } = await serverExport({ applicationId, format: 'cover_letter_pdf', ...letterForServer(letter) });
@@ -569,7 +571,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
 
 
 
-      {layoutPreview && <PdfPreviewModal url={layoutPreview.url} title="Cover letter layout" onClose={closeLayoutPreview} />}
+      {layoutPreview && <PdfPreviewModal url={layoutPreview.url} title="Cover letter layout" onClose={closeLayoutPreview} returnFocusTo={layoutOpenerRef.current} />}
 
       {showFullPreview && activeCoverLetter && createPortal(
         <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">
