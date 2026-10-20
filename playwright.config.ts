@@ -32,7 +32,7 @@ export default defineConfig({
     command: [
       'npx opennextjs-cloudflare build',
       '&&',
-      `npx opennextjs-cloudflare preview -- --port ${E2E_PORT} --local-upstream localhost:${E2E_PORT}`,
+      `npx opennextjs-cloudflare preview -- --port ${E2E_PORT} --local-upstream localhost:${E2E_PORT} --test-scheduled`,
       '--var MCP_ENABLED:true',
       '--var MCP_TEST_MODE:true',
       '--var MCP_CIMD_ENABLED:true',
@@ -40,7 +40,7 @@ export default defineConfig({
     ].join(' '),
     url: `http://localhost:${E2E_PORT}/.well-known/oauth-protected-resource/mcp`,
     timeout: 600_000,
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     stdout: 'pipe',
     stderr: 'pipe',
   },

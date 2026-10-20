@@ -35,6 +35,7 @@ const USER = {
 
 // State shared by the serial tests below.
 let fullFlow: { provider: MemoryProvider; callbackPort: number } | null = null;
+let readOnly: { clientId: string; accessToken: string } | null = null;
 // Signed-in browser state from the first login, reused so the sign-in rate limit is not what the tests exercise.
 let signedIn: Awaited<ReturnType<BrowserContext['storageState']>> | null = null;
 const withSession = () => ({ storageState: signedIn ?? undefined });
@@ -48,6 +49,8 @@ const pkcePair = () => {
   return { verifier, challenge: b64url(createHash('sha256').update(verifier).digest()) };
 };
 const randomPort = () => 20_000 + Math.floor(Math.random() * 30_000);
+/** The auth route keys its limits on cf-connecting-ip, so each test can have its own bucket. */
+const fakeIp = () => `203.0.113.${1 + Math.floor(Math.random() * 250)}`;
 
 class MemoryProvider implements OAuthClientProvider {
   authorizationUrl: URL | null = null;
@@ -93,10 +96,12 @@ class MemoryProvider implements OAuthClientProvider {
   }
 }
 
-function sqlLocal(sql: string) {
-  execFileSync('npx', ['wrangler', 'd1', 'execute', 'usefulapply-db', '--local', '--command', sql], {
+function sqlLocal(sql: string): Record<string, unknown>[] {
+  const out = execFileSync('npx', ['wrangler', 'd1', 'execute', 'usefulapply-db', '--local', '--json', '--command', sql], {
     stdio: 'pipe',
-  });
+  }).toString();
+  const parsed = JSON.parse(out.slice(out.indexOf('['))) as { results?: Record<string, unknown>[] }[];
+  return parsed[0]?.results ?? [];
 }
 
 /**
@@ -123,30 +128,37 @@ async function approveInBrowser(page: Page, authorizationUrl: string, callbackOr
   return new URL((await callback).url());
 }
 
-/** Registration is limited to 10 per minute per IP; wait out a 429 instead of failing unrelated tests. */
-async function register(request: APIRequestContext, body: Record<string, unknown>) {
-  for (let attempt = 0; ; attempt++) {
-    const res = await request.post(`${API}/oauth2/register`, { data: body });
-    if (res.status() !== 429 || attempt >= 2) return res;
-    await new Promise((r) => setTimeout(r, (Number(res.headers()['retry-after']) || 60) * 1_000 + 500));
-  }
+/** Dynamic registration from a bucket of its own (a fresh fake client IP), unless one is given. */
+async function register(request: APIRequestContext, body: Record<string, unknown>, ip = fakeIp()) {
+  return request.post(`${API}/oauth2/register`, { data: body, headers: { 'cf-connecting-ip': ip } });
+}
+
+async function tokenRequest(request: APIRequestContext, form: Record<string, string>) {
+  const res = await request.post(`${API}/oauth2/token`, { form, headers: { 'cf-connecting-ip': fakeIp() } });
+  return { res, status: res.status(), body: (await res.json()) as Record<string, string> };
 }
 
 async function exchangeCode(
   request: APIRequestContext,
   p: { clientId: string; code: string; redirectUri: string; verifier: string },
 ) {
-  const res = await request.post(`${API}/oauth2/token`, {
-    form: {
-      grant_type: 'authorization_code',
-      code: p.code,
-      redirect_uri: p.redirectUri,
-      client_id: p.clientId,
-      code_verifier: p.verifier,
-      resource: RESOURCE,
-    },
+  return tokenRequest(request, {
+    grant_type: 'authorization_code',
+    code: p.code,
+    redirect_uri: p.redirectUri,
+    client_id: p.clientId,
+    code_verifier: p.verifier,
+    resource: RESOURCE,
   });
-  return { res, body: (await res.json()) as Record<string, unknown> };
+}
+
+function refreshRequest(request: APIRequestContext, clientId: string, refreshToken: string) {
+  return tokenRequest(request, {
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken,
+    client_id: clientId,
+    resource: RESOURCE,
+  });
 }
 
 function authorizeUrl(p: {
@@ -170,6 +182,26 @@ function authorizeUrl(p: {
   return url.toString();
 }
 
+/** An authorization code for a client the user already approved: authorize goes straight back to the client. */
+async function codeFor(
+  context: BrowserContext,
+  p: { clientId: string; redirectUri: string; scope: string; challenge: string },
+): Promise<string> {
+  const res = await context.request.get(authorizeUrl(p), { maxRedirects: 0 });
+  const location = res.headers()['location'] ?? '';
+  expect(location, 'authorize returns a code for an approved client').toContain(`${p.redirectUri}?code=`);
+  return new URL(location).searchParams.get('code')!;
+}
+
+async function revokeInUi(page: Page, name: string) {
+  await page.goto('/dashboard?settings=apps');
+  await expect(page.getByRole('heading', { name: 'Connected apps' })).toBeVisible();
+  const row = page.getByText(name, { exact: true }).locator('xpath=ancestor::div[contains(@class,"min-h-[52px]")]');
+  await row.getByRole('button', { name: 'Revoke' }).click();
+  await row.getByRole('button', { name: 'Confirm revoke' }).click();
+  await expect(page.getByText(name, { exact: true })).toHaveCount(0);
+}
+
 function staticClient(token: string) {
   const transport = new StreamableHTTPClientTransport(new URL(MCP_URL), {
     authProvider: { token: async () => token },
@@ -181,6 +213,18 @@ function staticClient(token: string) {
 
 function jwtClaims(token: string): Record<string, unknown> {
   return JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8'));
+}
+
+async function mcpStatus(request: APIRequestContext, token: string) {
+  const res = await request.post('/mcp', {
+    headers: {
+      'content-type': 'application/json',
+      accept: 'application/json, text/event-stream',
+      authorization: `Bearer ${token}`,
+    },
+    data: { jsonrpc: '2.0', id: 9, method: 'tools/list' },
+  });
+  return { status: res.status(), wwwAuthenticate: res.headers()['www-authenticate'] ?? '' };
 }
 
 test.describe.serial('MCP OAuth', () => {
@@ -199,17 +243,21 @@ test.describe.serial('MCP OAuth', () => {
     expect(prm.authorization_servers).toEqual([API]);
     expect(prm.scopes_supported).toEqual(['read', 'write', 'spend']);
 
-    for (const path of ['/.well-known/oauth-authorization-server/api/auth', '/.well-known/openid-configuration/api/auth']) {
-      const res = await request.get(path);
-      if (!res.ok()) continue; // openid-configuration is only served when openid is a scope
-      const as = await res.json();
-      expect(as.issuer).toBe(API);
-      expect(as.code_challenge_methods_supported).toEqual(['S256']);
-      expect(as.registration_endpoint).toBe(`${API}/oauth2/register`);
-      expect(as.client_id_metadata_document_supported).toBe(true);
-      expect(as.scopes_supported).toEqual(expect.arrayContaining(['read', 'write', 'spend', 'offline_access']));
-      expect(as.grant_types_supported).not.toContain('client_credentials');
-    }
+    // The issuer has a path (/api/auth), so RFC 8414 puts the document at the path-inserted URL.
+    // Clients that follow the MCP discovery order never ask for the bare root form, which stays a 404.
+    const res = await request.get('/.well-known/oauth-authorization-server/api/auth');
+    expect(res.status()).toBe(200);
+    const as = await res.json();
+    expect(as.issuer).toBe(API);
+    expect(as.code_challenge_methods_supported).toEqual(['S256']);
+    expect(as.registration_endpoint).toBe(`${API}/oauth2/register`);
+    expect(as.authorization_endpoint).toBe(`${API}/oauth2/authorize`);
+    expect(as.token_endpoint).toBe(`${API}/oauth2/token`);
+    expect(as.jwks_uri).toBe(`${API}/jwks`);
+    expect(as.client_id_metadata_document_supported).toBe(true);
+    expect(as.scopes_supported).toEqual(expect.arrayContaining(['read', 'write', 'spend', 'offline_access']));
+    expect(as.grant_types_supported).not.toContain('client_credentials');
+    expect((await request.get('/.well-known/oauth-authorization-server')).status()).toBe(404);
 
     const unauth = await request.post('/mcp', {
       headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
@@ -225,12 +273,12 @@ test.describe.serial('MCP OAuth', () => {
     const base = { client_name: 'Allowlist probe', token_endpoint_auth_method: 'none' };
 
     // Hosted callbacks match exactly; loopback matches on any port, in all three spellings.
-    // Two requests with several URIs each keep this under the registration rate limit.
     const hosted = [
       'https://claude.ai/api/mcp/auth_callback',
       'https://claude.com/api/mcp/auth_callback',
       'https://chatgpt.com/connector_platform_oauth_redirect',
       'https://platform.openai.com/apps-manage/oauth',
+      'https://www.cursor.com/agents/mcp/oauth/callback',
     ];
     const loopback = [
       `http://localhost:${randomPort()}/callback`,
@@ -246,13 +294,52 @@ test.describe.serial('MCP OAuth', () => {
     for (const uri of [
       'https://claude.ai/api/mcp/auth_callback/extra',
       'https://claude.ai.evil.example/api/mcp/auth_callback',
+      'https://www.cursor.com/agents/mcp/oauth/callback/extra',
       'https://evil.example/callback',
       'http://localhost.evil.example:3000/callback',
+      'http://localhost@evil.example/callback',
       'http://169.254.169.254/callback',
+      'cursor://anysphere.cursor-retrieval/oauth/callback',
+      'javascript:alert(1)',
     ]) {
       const res = await register(request, { ...base, redirect_uris: [uri] });
       expect(res.status(), `register ${uri}`).toBe(400);
     }
+  });
+
+  test('registration: oversize bodies and forbidden fields are rejected', async ({ request }) => {
+    const redirect_uris = [`http://localhost:${randomPort()}/callback`];
+    const ok = { client_name: 'x'.repeat(80), redirect_uris, token_endpoint_auth_method: 'none' };
+    expect((await register(request, ok)).status(), 'a name of exactly 80 characters is fine').toBe(201);
+
+    // Body size: over 8 KB is refused before it is parsed (once as a JSON body, once as raw bytes).
+    const big = await register(request, { ...ok, client_name: 'big', padding: 'p'.repeat(9 * 1024) });
+    expect(big.status()).toBe(413);
+    const chunked = await request.post(`${API}/oauth2/register`, {
+      headers: { 'content-type': 'application/json', 'cf-connecting-ip': fakeIp() },
+      data: Buffer.from(JSON.stringify({ ...ok, client_name: 'big', padding: 'p'.repeat(9 * 1024) })),
+    });
+    expect(chunked.status()).toBe(413);
+
+    const tooLong = {
+      'client_name over 80': { ...ok, client_name: 'n'.repeat(81) },
+      'logo_uri over 512': { ...ok, logo_uri: `https://example.com/${'l'.repeat(520)}` },
+      'client_uri over 512': { ...ok, client_uri: `https://example.com/${'c'.repeat(520)}` },
+      'contacts over 3': { ...ok, contacts: ['a@example.com', 'b@example.com', 'c@example.com', 'd@example.com'] },
+      'software_statement': { ...ok, software_statement: 'eyJhbGciOiJub25lIn0.e30.' },
+      'jwks': { ...ok, jwks: { keys: [] } , token_endpoint_auth_method: 'private_key_jwt' },
+      'jwks_uri': { ...ok, jwks_uri: 'https://example.com/jwks.json' },
+      'backchannel_logout_uri': { ...ok, backchannel_logout_uri: 'https://example.com/logout' },
+      'post_logout_redirect_uris': { ...ok, post_logout_redirect_uris: ['https://example.com/after'] },
+    };
+    for (const [name, body] of Object.entries(tooLong)) {
+      const res = await register(request, body);
+      expect(res.status(), name).toBe(400);
+      expect((await res.json()).error, name).toMatch(/invalid_client_metadata|invalid_redirect_uri/);
+    }
+    // Three contacts are fine.
+    const three = await register(request, { ...ok, contacts: ['a@example.com', 'b@example.com', 'c@example.com'] });
+    expect(three.status()).toBe(201);
   });
 
   test('full flow with the MCP client: login, consent, token, get_account', async ({ browser }) => {
@@ -285,11 +372,19 @@ test.describe.serial('MCP OAuth', () => {
     const tools = await client.listTools();
     const names = tools.tools.map((t) => t.name).sort();
     expect(names).toEqual(['get_account', 'test_write_stub']);
+    for (const tool of tools.tools) {
+      // Every annotation is an explicit boolean, as the directories require.
+      expect(typeof tool.annotations?.title, tool.name).toBe('string');
+      for (const hint of ['readOnlyHint', 'destructiveHint', 'idempotentHint', 'openWorldHint'] as const) {
+        expect(typeof tool.annotations?.[hint], `${tool.name} ${hint}`).toBe('boolean');
+      }
+    }
     const getAccount = tools.tools.find((t) => t.name === 'get_account');
     expect(getAccount?.annotations).toMatchObject({
       title: 'Get account',
       readOnlyHint: true,
       destructiveHint: false,
+      idempotentHint: true,
       openWorldHint: false,
     });
 
@@ -301,43 +396,128 @@ test.describe.serial('MCP OAuth', () => {
       nextResetDate: string | null;
       cvOnFile: { primary: boolean; master: boolean };
       profile: { name: string | null; email: string };
+      dailyAgentCreditLimit: number;
     };
     expect(account.profile.email).toBe(USER.email);
     expect(account.plan).toBe('free');
     expect(account.credits.total).toBe(account.credits.monthly + account.credits.rollover + account.credits.addon);
     expect(account.cvOnFile).toEqual({ primary: false, master: false });
+    expect(account.dailyAgentCreditLimit, 'default daily agent credit limit').toBe(10);
 
     const claims = jwtClaims(provider.tokens()!.access_token);
     expect(claims.aud).toBe(RESOURCE);
     expect(claims.scope).toEqual(expect.stringContaining('read'));
     expect((claims.exp as number) - (claims.iat as number)).toBe(600);
+    const header = JSON.parse(Buffer.from(provider.tokens()!.access_token.split('.')[0], 'base64url').toString('utf8'));
+    expect(header.typ).toBe('at+jwt');
+    expect(header.alg).toBe('EdDSA');
 
     fullFlow = { provider, callbackPort };
     await client.close();
   });
 
-  test('refresh rotates the refresh token and the new access token works', async ({ request }) => {
+  test('the consent screen names the destination and says the name is the app\'s own', async ({ browser, request }) => {
+    const port = randomPort();
+    const redirectUri = `https://www.cursor.com/agents/mcp/oauth/callback`;
+    const reg = await register(request, {
+      client_name: 'Totally Anthropic',
+      redirect_uris: [redirectUri],
+      token_endpoint_auth_method: 'none',
+    });
+    expect(reg.status()).toBe(201);
+    const clientId = (await reg.json()).client_id as string;
+    const context = await browser.newContext(withSession());
+    const page = await context.newPage();
+    await page.goto(authorizeUrl({ clientId, redirectUri, scope: 'read', challenge: pkcePair().challenge }));
+    await page.waitForURL((u) => u.pathname.startsWith('/oauth/consent'));
+    await expect(page.getByRole('heading', { name: /Totally Anthropic/ })).toBeVisible();
+    await expect(page.getByText('The app chose its own name. Approving sends you to www.cursor.com.')).toBeVisible();
+    await page.screenshot({ path: 'test-results/consent-destination.png' });
+    await context.close();
+
+    // A loopback client gets the plain phrase instead of a host.
+    const loop = await register(request, {
+      client_name: 'Local tool',
+      redirect_uris: [`http://localhost:${port}/callback`],
+      token_endpoint_auth_method: 'none',
+    });
+    const loopId = (await loop.json()).client_id as string;
+    const context2 = await browser.newContext(withSession());
+    const page2 = await context2.newPage();
+    await page2.goto(authorizeUrl({ clientId: loopId, redirectUri: `http://localhost:${port}/callback`, scope: 'read', challenge: pkcePair().challenge }));
+    await expect(page2.getByText('Approving sends you to a desktop app on this computer.')).toBeVisible();
+    await context2.close();
+  });
+
+  test('login, consent and authorize cannot be framed; other pages can', async ({ browser }) => {
+    const context = await browser.newContext(withSession());
+    const { challenge } = pkcePair();
+    const cid = fullFlow!.provider.clientInformation()!.client_id;
+    const targets = [
+      '/auth/login',
+      '/oauth/consent',
+      '/oauth/resume',
+      authorizeUrl({ clientId: cid, redirectUri: fullFlow!.provider.redirectUrl as string, scope: 'read', challenge }),
+    ];
+    for (const target of targets) {
+      const res = await context.request.get(target, { maxRedirects: 0 });
+      const headers = res.headers();
+      expect(headers['content-security-policy'], target).toContain("frame-ancestors 'none'");
+      expect(headers['x-frame-options'], target).toBe('DENY');
+    }
+    const other = await context.request.get('/pricing', { maxRedirects: 0 });
+    expect(other.headers()['x-frame-options'], 'scoped to the sign-in surfaces').toBeUndefined();
+    await context.close();
+  });
+
+  test('sessions do not sign a JWT; the unused provider and jwt endpoints are closed', async ({ browser }) => {
+    const context = await browser.newContext(withSession());
+    const session = await context.request.get('/api/auth/get-session');
+    expect(session.status()).toBe(200);
+    expect((await session.json()).user.email).toBe(USER.email);
+    // jwt() would put a signed session JWT here on every get-session (and read the jwks table to do it).
+    expect(session.headers()['set-auth-jwt']).toBeUndefined();
+    expect(session.headers()['access-control-expose-headers'] ?? '').not.toContain('set-auth-jwt');
+
+    for (const path of ['/api/auth/token']) {
+      expect((await context.request.get(path)).status(), path).toBe(404);
+    }
+    // Client administration and consent endpoints are not served, with a session or without one.
+    for (const path of ['create-client', 'update-client', 'delete-client', 'delete-consent', 'update-consent', 'get-clients', 'end-session']) {
+      const res = await context.request.post(`/api/auth/oauth2/${path}`, {
+        data: {},
+        headers: { origin: BASE },
+      });
+      expect(res.status(), path).toBe(404);
+    }
+    // The JWKS stays public.
+    expect((await context.request.get('/api/auth/jwks')).status()).toBe(200);
+    await context.close();
+  });
+
+  test('refresh rotates the refresh token; a write-scoped token can call a write tool', async ({ request }) => {
     const { provider } = fullFlow!;
     const tokens = provider.tokens()!;
     const clientId = provider.clientInformation()!.client_id;
 
-    const res = await request.post(`${API}/oauth2/token`, {
-      form: { grant_type: 'refresh_token', refresh_token: tokens.refresh_token!, client_id: clientId, resource: RESOURCE },
-    });
-    expect(res.status()).toBe(200);
-    const next = await res.json();
-    expect(next.access_token).toBeTruthy();
-    expect(next.refresh_token).toBeTruthy();
-    expect(next.refresh_token).not.toBe(tokens.refresh_token);
+    const next = await refreshRequest(request, clientId, tokens.refresh_token!);
+    expect(next.status).toBe(200);
+    expect(next.body.access_token).toBeTruthy();
+    expect(next.body.refresh_token).toBeTruthy();
+    expect(next.body.refresh_token).not.toBe(tokens.refresh_token);
 
-    const { client, transport } = staticClient(next.access_token);
+    const { client, transport } = staticClient(next.body.access_token);
     await client.connect(transport);
     const result = await client.callTool({ name: 'get_account', arguments: {} });
     expect(result.isError).toBeFalsy();
+    // Positive control for the read-only test below: with the write scope the stub is callable.
+    const write = await client.callTool({ name: 'test_write_stub', arguments: {} });
+    expect(write.isError).toBeFalsy();
+    expect(write.structuredContent).toEqual({ ok: true });
     await client.close();
 
     // Keep the rotated pair for the revocation test.
-    provider.saveTokens({ ...tokens, access_token: next.access_token, refresh_token: next.refresh_token });
+    provider.saveTokens({ ...tokens, access_token: next.body.access_token, refresh_token: next.body.refresh_token });
   });
 
   test('a read-only token is refused on a write tool', async ({ browser, request }) => {
@@ -362,15 +542,16 @@ test.describe.serial('MCP OAuth', () => {
       `http://127.0.0.1:${port}`,
     );
     await context.close();
-    const { res, body } = await exchangeCode(request, {
+    const { status, body } = await exchangeCode(request, {
       clientId,
       code: callback.searchParams.get('code')!,
       redirectUri,
       verifier,
     });
-    expect(res.status()).toBe(200);
+    expect(status).toBe(200);
     expect(String(body.scope).split(' ')).not.toContain('write');
     const token = body.access_token as string;
+    readOnly = { clientId, accessToken: token };
 
     const { client, transport } = staticClient(token);
     await client.connect(transport);
@@ -403,15 +584,15 @@ test.describe.serial('MCP OAuth', () => {
       'http://localhost:8799',
     );
     await context.close();
-    const { res, body } = await exchangeCode(request, {
+    const { status, body } = await exchangeCode(request, {
       clientId: CIMD_CLIENT_ID,
       code: callback.searchParams.get('code')!,
       redirectUri: CIMD_REDIRECT,
       verifier,
     });
-    expect(res.status()).toBe(200);
-    expect(jwtClaims(body.access_token as string).azp).toBe(CIMD_CLIENT_ID);
-    const { client, transport } = staticClient(body.access_token as string);
+    expect(status).toBe(200);
+    expect(jwtClaims(body.access_token).azp).toBe(CIMD_CLIENT_ID);
+    const { client, transport } = staticClient(body.access_token);
     await client.connect(transport);
     expect((await client.callTool({ name: 'get_account', arguments: {} })).isError).toBeFalsy();
     await client.close();
@@ -440,10 +621,17 @@ test.describe.serial('MCP OAuth', () => {
     };
 
     // A redirect_uri the client did not register: an error page on our own origin, never a redirect to that URI.
-    for (const bad of ['http://localhost:1/other', `http://localhost:${port}/evil-path`, 'https://evil.example/cb']) {
+    for (const bad of [
+      'http://localhost:1/other',
+      `http://localhost:${port}/evil-path`,
+      'https://evil.example/cb',
+      'http://localhost@evil.example/cb',
+      'http://localhost.evil.example/cb',
+      'cursor://anysphere.cursor-retrieval/oauth/callback',
+    ]) {
       const res = await authorize(authorizeUrl({ clientId, redirectUri: bad, scope: 'read', challenge }));
       expect(res.status, bad).toBe(302);
-      expect(res.location, bad).toMatch(/^http:\/\/localhost:8791\/api\/auth\/error\?error=invalid_redirect/);
+      expect(res.location, bad).toMatch(/^http:\/\/localhost:8791\/api\/auth\/error\?error=invalid_(redirect|request)/);
     }
 
     // No PKCE, a challenge without a method, and the plain method: the error goes back to the client, with no code.
@@ -454,6 +642,7 @@ test.describe.serial('MCP OAuth', () => {
 
     const noMethod = await authorize(authorizeUrl({ clientId, redirectUri, scope: 'read' }) + `&code_challenge=${challenge}`);
     expect(noMethod.location).toContain(`${redirectUri}?error=invalid_request`);
+    expect(noMethod.location, 'a challenge without a method issues no code').not.toContain('code=');
 
     const plain = await authorize(
       authorizeUrl({ clientId, redirectUri, scope: 'read' }) + `&code_challenge=${challenge}&code_challenge_method=plain`,
@@ -473,9 +662,92 @@ test.describe.serial('MCP OAuth', () => {
     await context.close();
   });
 
+  test('token endpoint: wrong verifier, redirect mismatch and replay fail; a revoked app\'s code and refresh token die', async ({ browser, request }) => {
+    const port = randomPort();
+    const redirectUri = `http://localhost:${port}/callback`;
+    const clientId = (
+      await (
+        await register(request, {
+          client_name: 'Token probe',
+          redirect_uris: [redirectUri],
+          token_endpoint_auth_method: 'none',
+          grant_types: ['authorization_code', 'refresh_token'],
+        })
+      ).json()
+    ).client_id as string;
+    const scope = 'read offline_access';
+    const base = { clientId, redirectUri, scope };
+
+    // One approval in the browser; every later authorize for this client returns a code directly.
+    const first = pkcePair();
+    const context = await browser.newContext({ ...withSession(), ...recordVideo('video-revoked-code') });
+    const page = await context.newPage();
+    const callback = await approveInBrowser(page, authorizeUrl({ ...base, challenge: first.challenge }), `http://localhost:${port}`);
+    const initial = await exchangeCode(request, {
+      clientId,
+      code: callback.searchParams.get('code')!,
+      redirectUri,
+      verifier: first.verifier,
+    });
+    expect(initial.status).toBe(200);
+
+    // Wrong code_verifier.
+    const a = pkcePair();
+    const wrongVerifier = await exchangeCode(request, {
+      clientId,
+      code: await codeFor(context, { ...base, challenge: a.challenge }),
+      redirectUri,
+      verifier: pkcePair().verifier,
+    });
+    expect(wrongVerifier.status).toBe(400);
+    expect(wrongVerifier.body.error).toBe('invalid_grant');
+
+    // redirect_uri that differs from the authorization request.
+    const b = pkcePair();
+    const mismatch = await exchangeCode(request, {
+      clientId,
+      code: await codeFor(context, { ...base, challenge: b.challenge }),
+      redirectUri: `http://localhost:${port}/other`,
+      verifier: b.verifier,
+    });
+    expect(mismatch.status).toBe(400);
+    expect(mismatch.body.error).toMatch(/invalid_grant|invalid_request/);
+
+    // A code works once.
+    const c = pkcePair();
+    const codeC = await codeFor(context, { ...base, challenge: c.challenge });
+    const good = await exchangeCode(request, { clientId, code: codeC, redirectUri, verifier: c.verifier });
+    expect(good.status).toBe(200);
+    const replay = await exchangeCode(request, { clientId, code: codeC, redirectUri, verifier: c.verifier });
+    expect(replay.status).toBe(400);
+    expect(replay.body.error).toBe('invalid_grant');
+
+    // Positive refresh, then revoke the app with a code issued but not yet exchanged.
+    const rotated = await refreshRequest(request, clientId, initial.body.refresh_token);
+    expect(rotated.status, 'refresh works before the revoke').toBe(200);
+    const d = pkcePair();
+    const pendingCode = await codeFor(context, { ...base, challenge: d.challenge });
+
+    await revokeInUi(page, 'Token probe');
+    await context.close();
+
+    const afterRevokeCode = await exchangeCode(request, { clientId, code: pendingCode, redirectUri, verifier: d.verifier });
+    expect(afterRevokeCode.status, 'a code issued before the revoke is not redeemable').toBe(400);
+    expect(afterRevokeCode.body.error).toBe('invalid_grant');
+    // The consent check in the token hook, not some later failure.
+    expect(afterRevokeCode.body.error_description).toBe('authorization was revoked');
+    const afterRevokeRefresh = await refreshRequest(request, clientId, rotated.body.refresh_token);
+    expect(afterRevokeRefresh.status).toBe(400);
+    expect(afterRevokeRefresh.body.error).toBe('invalid_grant');
+    expect(afterRevokeRefresh.body.error_description).toBe('authorization was revoked');
+    const staleRefresh = await refreshRequest(request, clientId, good.body.refresh_token);
+    expect(staleRefresh.status).toBe(400);
+    expect(staleRefresh.body.error).toBe('invalid_grant');
+  });
+
   test('Connected apps lists the client; revoking kills the access token and the refresh token', async ({ browser, request }, testInfo) => {
     const { provider } = fullFlow!;
-    const tokens = provider.tokens()!;
+    const clientId = provider.clientInformation()!.client_id;
 
     const context = await browser.newContext({ ...withSession(), ...recordVideo('video-revoke') });
     const page = await context.newPage();
@@ -499,11 +771,17 @@ test.describe.serial('MCP OAuth', () => {
     await page.goto('/dashboard?settings=apps');
     await expect(page.getByLabel('Daily agent credit limit')).toHaveValue('7.5');
 
-    // The token works before revoking.
-    const before = staticClient(tokens.access_token);
+    // The token works before revoking, and so does a refresh (this one is what the revoke has to kill).
+    const before = staticClient(provider.tokens()!.access_token);
     await before.client.connect(before.transport);
-    expect((await before.client.callTool({ name: 'get_account', arguments: {} })).isError).toBeFalsy();
+    const accountNow = await before.client.callTool({ name: 'get_account', arguments: {} });
+    expect(accountNow.isError).toBeFalsy();
+    expect((accountNow.structuredContent as { dailyAgentCreditLimit: number }).dailyAgentCreditLimit).toBe(7.5);
     await before.client.close();
+    const positive = await refreshRequest(request, clientId, provider.tokens()!.refresh_token!);
+    expect(positive.status, 'refresh works before the revoke').toBe(200);
+    provider.saveTokens({ ...provider.tokens()!, access_token: positive.body.access_token, refresh_token: positive.body.refresh_token });
+    const tokens = provider.tokens()!;
 
     await row.getByRole('button', { name: 'Revoke' }).click();
     await row.getByRole('button', { name: 'Confirm revoke' }).click();
@@ -515,17 +793,10 @@ test.describe.serial('MCP OAuth', () => {
     // Access token: refused within 70 s (the verifier caches a revocation for at most 30 s).
     let status = 200;
     while (Date.now() - revokedAt < 70_000) {
-      const res = await request.post('/mcp', {
-        headers: {
-          'content-type': 'application/json',
-          accept: 'application/json, text/event-stream',
-          authorization: `Bearer ${tokens.access_token}`,
-        },
-        data: { jsonrpc: '2.0', id: 9, method: 'tools/list' },
-      });
-      status = res.status();
+      const res = await mcpStatus(request, tokens.access_token);
+      status = res.status;
       if (status === 401) {
-        expect(res.headers()['www-authenticate']).toMatch(/invalid_token/);
+        expect(res.wwwAuthenticate).toMatch(/invalid_token/);
         break;
       }
       await new Promise((r) => setTimeout(r, 3_000));
@@ -534,33 +805,79 @@ test.describe.serial('MCP OAuth', () => {
     testInfo.annotations.push({ type: 'revocation-latency-ms', description: String(latency) });
     expect(status, `access token refused within 70 s (took ${latency} ms)`).toBe(401);
 
-    // Refresh token: dead immediately.
-    const refresh = await request.post(`${API}/oauth2/token`, {
-      form: {
-        grant_type: 'refresh_token',
-        refresh_token: tokens.refresh_token!,
-        client_id: provider.clientInformation()!.client_id,
-        resource: RESOURCE,
-      },
+    // Refresh token: dead immediately, with the standard error.
+    const refresh = await refreshRequest(request, clientId, tokens.refresh_token!);
+    expect(refresh.status).toBe(400);
+    expect(refresh.body.error).toBe('invalid_grant');
+  });
+
+  test('the daily cleanup purges old clients nobody consented to, and only those', async ({ request }) => {
+    const redirect_uris = [`http://localhost:${randomPort()}/callback`];
+    const mk = async (name: string) =>
+      (await (await register(request, { client_name: name, redirect_uris, token_endpoint_auth_method: 'none' })).json()).client_id as string;
+    const oldUnconsented = await mk('Old unconsented');
+    const newUnconsented = await mk('New unconsented');
+    const oldConsented = readOnly!.clientId; // approved earlier in this run, still connected
+    const twoDaysAgo = Date.now() - 48 * 3600_000;
+    sqlLocal(`UPDATE oauth_client SET created_at = ${twoDaysAgo} WHERE client_id IN ('${oldUnconsented}', '${oldConsented}')`);
+
+    // wrangler's --test-scheduled route runs the Worker's scheduled() for the daily cron.
+    const run = await request.get('/cdn-cgi/handler/scheduled?cron=0+3+*+*+*', { timeout: 120_000 });
+    expect(run.status(), 'scheduled handler ran').toBeLessThan(500);
+
+    const left = sqlLocal(
+      `SELECT client_id FROM oauth_client WHERE client_id IN ('${oldUnconsented}', '${newUnconsented}', '${oldConsented}')`,
+    ).map((r) => r.client_id);
+    expect(left).not.toContain(oldUnconsented);
+    expect(left).toContain(newUnconsented);
+    expect(left).toContain(oldConsented);
+  });
+
+  test('a password reset revokes every connected app', async ({ request }) => {
+    expect((await mcpStatus(request, readOnly!.accessToken)).status, 'token works before the reset').toBe(200);
+    expect(sqlLocal(`SELECT COUNT(*) AS n FROM oauth_consent WHERE user_id = (SELECT id FROM user WHERE email = '${USER.email}')`)[0].n).toBeGreaterThan(0);
+
+    const ask = await request.post('/api/auth/request-password-reset', {
+      data: { email: USER.email, redirectTo: `${BASE}/auth/reset-password` },
+      headers: { 'cf-connecting-ip': fakeIp() },
     });
-    expect(refresh.status()).toBeGreaterThanOrEqual(400);
-    expect(await refresh.text()).toMatch(/invalid_grant|invalid/);
+    expect(ask.status()).toBe(200);
+    const rows = sqlLocal(`SELECT identifier FROM verification WHERE identifier LIKE 'reset-password:%' ORDER BY created_at DESC LIMIT 1`);
+    const token = String(rows[0].identifier).slice('reset-password:'.length);
+    const reset = await request.post('/api/auth/reset-password', { data: { newPassword: `New-${randomBytes(9).toString('base64url')}`, token } });
+    expect(reset.status()).toBe(200);
+
+    expect(sqlLocal(`SELECT COUNT(*) AS n FROM oauth_consent WHERE user_id = (SELECT id FROM user WHERE email = '${USER.email}')`)[0].n).toBe(0);
+    const after = await mcpStatus(request, readOnly!.accessToken);
+    expect(after.status, 'an access token issued before the reset is refused').toBe(401);
   });
 });
 
 test.describe('MCP rate limits', () => {
-  test('dynamic client registration is limited per IP with a Retry-After', async ({ request }) => {
+  test('dynamic client registration allows 10 a minute per IP, then 429 with Retry-After', async ({ request }) => {
+    const ip = fakeIp();
     const statuses: number[] = [];
     let retryAfter = '';
-    for (let i = 0; i < 14; i++) {
-      const res = await request.post(`${API}/oauth2/register`, {
-        data: { client_name: 'Flood probe', redirect_uris: [`http://localhost:${randomPort()}/cb`], token_endpoint_auth_method: 'none' },
-      });
+    for (let i = 0; i < 12; i++) {
+      const res = await register(
+        request,
+        { client_name: 'Flood probe', redirect_uris: [`http://localhost:${randomPort()}/cb`], token_endpoint_auth_method: 'none' },
+        ip,
+      );
       statuses.push(res.status());
       if (res.status() === 429) retryAfter = res.headers()['retry-after'] ?? '';
     }
-    expect(statuses).toContain(429);
+    expect(statuses.slice(0, 10), 'the first ten pass').toEqual(Array(10).fill(201));
+    expect(statuses.slice(10), 'then it is limited').toEqual([429, 429]);
     expect(Number(retryAfter)).toBeGreaterThan(0);
+
+    // Another client IP has its own bucket (and shows the limit is keyed on IP).
+    const other = await register(
+      request,
+      { client_name: 'Other IP', redirect_uris: [`http://localhost:${randomPort()}/cb`], token_endpoint_auth_method: 'none' },
+      fakeIp() === ip ? '198.51.100.7' : fakeIp(),
+    );
+    expect(other.status()).toBe(201);
   });
 });
 
@@ -590,7 +907,7 @@ test.describe('MCP flag off', () => {
     const deadline = Date.now() + 120_000;
     for (;;) {
       try {
-        const res = await fetch(`${OFF_BASE}/.well-known/oauth-protected-resource/mcp`);
+        const res = await fetch(`${OFF_BASE}/auth/login`);
         if (res.status < 500) break;
       } catch {
         // not up yet
@@ -610,14 +927,29 @@ test.describe('MCP flag off', () => {
     }
   });
 
-  test('/mcp returns 404 when MCP_ENABLED is false', async ({ request }) => {
-    for (const method of ['GET', 'POST'] as const) {
-      const res = await request.fetch(`${OFF_BASE}/mcp`, {
-        method,
-        headers: { 'content-type': 'application/json', authorization: 'Bearer anything' },
-        data: method === 'POST' ? { jsonrpc: '2.0', id: 1, method: 'tools/list' } : undefined,
-      });
-      expect(res.status(), `${method} /mcp`).toBe(404);
+  test('with MCP_ENABLED false the MCP server, the authorization server and their pages are 404', async ({ request }) => {
+    const json = { 'content-type': 'application/json', authorization: 'Bearer anything' };
+    const cases: { method: 'GET' | 'POST'; path: string; data?: unknown }[] = [
+      { method: 'GET', path: '/mcp' },
+      { method: 'POST', path: '/mcp', data: { jsonrpc: '2.0', id: 1, method: 'tools/list' } },
+      { method: 'POST', path: '/api/auth/oauth2/register', data: { client_name: 'x', redirect_uris: ['http://localhost:1/cb'] } },
+      { method: 'POST', path: '/api/auth/oauth2/token', data: {} },
+      { method: 'GET', path: '/api/auth/oauth2/authorize?client_id=x' },
+      { method: 'GET', path: '/api/auth/jwks' },
+      { method: 'GET', path: '/.well-known/oauth-protected-resource' },
+      { method: 'GET', path: '/.well-known/oauth-protected-resource/mcp' },
+      { method: 'GET', path: '/.well-known/oauth-authorization-server' },
+      { method: 'GET', path: '/.well-known/oauth-authorization-server/api/auth' },
+      { method: 'GET', path: '/.well-known/openid-configuration' },
+      { method: 'GET', path: '/oauth/consent' },
+      { method: 'GET', path: '/oauth/resume' },
+    ];
+    for (const c of cases) {
+      const res = await request.fetch(`${OFF_BASE}${c.path}`, { method: c.method, headers: json, data: c.data });
+      expect(res.status(), `${c.method} ${c.path}`).toBe(404);
     }
+    // Everything else keeps working: sign-in page and session checks (no jwks involved).
+    expect((await request.get(`${OFF_BASE}/auth/login`)).status()).toBe(200);
+    expect((await request.get(`${OFF_BASE}/api/auth/get-session`)).status()).toBe(200);
   });
 });
