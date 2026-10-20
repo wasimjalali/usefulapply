@@ -233,6 +233,8 @@ export interface ConnectOptions {
   scopes?: readonly Scope[];
   /** The name shown in Connected apps. */
   name?: string;
+  /** A browser context already signed in as the user (the sign-in route allows 5 a minute per address). Left open. */
+  context?: BrowserContext;
 }
 
 /**
@@ -255,14 +257,17 @@ export async function authorizeAgent(
   const clientId = await registerClient(request, user.ip, options.name ?? `E2E agent ${randomBytes(3).toString('hex')}`, redirectUri, scope);
   const { verifier, challenge } = pkcePair();
 
-  const context = await browser.newContext({
-    baseURL: MCP_BASE_URL,
-    viewport: { width: 1440, height: 900 },
-    extraHTTPHeaders: { 'cf-connecting-ip': user.ip, 'x-forwarded-for': user.ip },
-  });
-  const signIn = await playwrightRequest.newContext();
-  await signInContext(context, signIn, user, MCP_BASE_URL);
-  await signIn.dispose();
+  let context = options.context;
+  if (!context) {
+    context = await browser.newContext({
+      baseURL: MCP_BASE_URL,
+      viewport: { width: 1440, height: 900 },
+      extraHTTPHeaders: { 'cf-connecting-ip': user.ip, 'x-forwarded-for': user.ip },
+    });
+    const signIn = await playwrightRequest.newContext();
+    await signInContext(context, signIn, user, MCP_BASE_URL);
+    await signIn.dispose();
+  }
   const page = await context.newPage();
   const authorize = new URL(`${API}/oauth2/authorize`);
   authorize.searchParams.set('response_type', 'code');
@@ -274,6 +279,7 @@ export async function authorizeAgent(
   authorize.searchParams.set('code_challenge', challenge);
   authorize.searchParams.set('code_challenge_method', 'S256');
   const callback = await approveConsent(page, authorize.toString(), `http://127.0.0.1:${port}`);
+  await page.close();
   const code = callback.searchParams.get('code');
   expect(code, 'the consent screen returned an authorization code').toBeTruthy();
 

@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { REPO_ROOT } from './env';
 import { openLocalD1 } from './sqlite';
+import { creditsOf } from './user';
 
 /**
  * Reads and seeds for the MCP specs, straight against the local D1 file and the local KV the preview
@@ -162,4 +163,23 @@ export function readQuota(tool: 'save_cv' | 'draft_screening_answers' | 'export_
   } catch {
     return 0;
   }
+}
+
+// ---------------------------------------------------------------------------
+// "Nothing changed"
+// ---------------------------------------------------------------------------
+
+/** Everything a tool could write for a user, in one value: two snapshots that are equal mean nothing changed. */
+export function accountSnapshot(userId: string): Record<string, unknown> {
+  const profile = { ...profileRow(userId) };
+  delete profile.updated_at;
+  return {
+    applications: applicationRows(userId),
+    documents: documentRows(userId),
+    credits: creditsOf(userId),
+    ledger: ledger(userId),
+    reservations: reservations(userId),
+    operations: operations(userId),
+    profile,
+  };
 }
