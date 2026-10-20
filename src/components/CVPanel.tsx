@@ -44,7 +44,7 @@ import { downloadBlob } from '@/lib/utils/download-pdf';
 import { PdfPreviewModal } from './ui/PdfPreviewModal';
 import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback } from '@/lib/utils/server-export';
 import type { Profile } from '@/lib/supabase/types';
-import { commitEditorSave, editorSaveSucceeded, getEditorStart, persistSessionEdits, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
+import { acknowledgementFor, afterClosedEditorSave, commitEditorSave, editorSaveSucceeded, getEditorStart, persistSessionEdits, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface CVPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -106,12 +106,18 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const editSessionIdRef = useRef<string | null>(null);
   // The revision the editor opened on; the draft lives outside the store (see commitEditorSave).
   const editStartRef = useRef<EditorStart | undefined>(undefined);
-  // When the user deals with a conflict notice (restores, copies or discards their text), what this editor
+  // Counts the discards of CV conflict text that reached this editor. A save that is still running when the
+  // draft is discarded sees the count has moved and does not reopen the draft when its answer comes back.
+  const discardEpochRef = useRef(0);
+  // When the user deals with a conflict notice about the CV (restores or copies their text), what this editor
   // was opened against is stale: base it on the current revision, so its next Save is not refused again.
-  useEffect(() => subscribeConflictAcknowledged((acknowledged, discarded) => {
+  // Discarding the text the editor holds drops the draft, as Cancel does. Other fields' notices leave it alone.
+  useEffect(() => subscribeConflictAcknowledged((acknowledged, ack) => {
     if (editSessionIdRef.current !== acknowledged) return;
-    if (discarded) {
-      // Same as Cancel: the draft is the text the user just threw away.
+    const action = acknowledgementFor(ack, ['cv'], editStartRef.current);
+    if (action === 'ignore') return;
+    if (action === 'reset') {
+      discardEpochRef.current += 1;
       setIsEditMode(false);
       setEditedCVData(null);
       editSessionIdRef.current = null;
@@ -625,6 +631,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                         // Preserve analysis, sectionHeaders, localizedStrings from original optimizedCVData
                         const editSessionId = editSessionIdRef.current;
                         if (!editSessionId) return;
+                        const epochAtSave = discardEpochRef.current;
                         const sessionState = useSessionStore.getState();
                         const existingSession = sessionState.sessions.find((session) => session.id === editSessionId)
                           ?? (sessionState.currentSession?.id === editSessionId ? sessionState.currentSession : undefined);
@@ -651,6 +658,11 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                           }
                           // The user may have opened the editor again while this save ran; theirs stands.
                           if (isEditModeRef.current) return;
+                          // A discard while the save ran threw this draft away: it must not come back. A draft
+                          // that does come back always has a start, so its next Save is checked against the server.
+                          const again = afterClosedEditorSave(outcome, epochAtSave, discardEpochRef.current, editStartRef.current);
+                          if (!again.reopen) return;
+                          editStartRef.current = again.start;
                           editSessionIdRef.current = editSessionId;
                           setEditedCVData(updatedData);
                           setIsEditMode(true);

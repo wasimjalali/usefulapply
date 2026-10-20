@@ -7,6 +7,7 @@ export interface StoredApplication {
   id: string;
   revision: number;
   job_title: string | null;
+  job_description: string;
   company: string | null;
   generation_status: string;
   generated_cv: Record<string, unknown> | null;

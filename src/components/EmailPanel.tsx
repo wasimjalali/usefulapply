@@ -12,7 +12,7 @@ import { useToast } from './ui/Toast';
 import { usePostHog } from 'posthog-js/react';
 import { formatEmailAsText } from '@/lib/utils/kit-export';
 import { useSessionStore } from '@/store/useSessionStore';
-import { commitEditorSave, editorShouldClose, getEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
+import { acknowledgementFor, commitEditorSave, editorShouldClose, getEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface EmailPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -63,18 +63,34 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   const draftsRef = useRef<{ email: GeneratedEmail | null; followUp: FollowUp | null }>({ email: null, followUp: null });
   // The revision the editor opened on; the drafts live outside the store (see commitEditorSave).
   const editStartRef = useRef<EditorStart | undefined>(undefined);
-  // When the user deals with a conflict notice (restores, copies or discards their text), what this editor
-  // was opened against is stale: base it on the current revision, so its next Save is not refused again.
-  useEffect(() => subscribeConflictAcknowledged((acknowledged, discarded) => {
+  // The email and follow-up as the store has them now, for the discard path in the conflict listener below.
+  const currentDraftsRef = useRef<{ email: GeneratedEmail | null; followUp: FollowUp | null }>({ email: null, followUp: null });
+  useEffect(() => { currentDraftsRef.current = { email: email ?? null, followUp: followUpEmail ?? null }; }, [email, followUpEmail]);
+  // Counts the discards of email conflict text that reached this editor. A save still running when a draft
+  // is discarded sees the count has moved and leaves the editor alone when its answer comes back.
+  const discardEpochRef = useRef(0);
+  // When the user deals with a conflict notice about the email or the follow-up (restores or copies their text),
+  // what this editor was opened against is stale: base it on the current revision, so its next Save is not refused again.
+  // Discarding the text a draft holds drops that draft, as Cancel does: the editor keeps the other one.
+  // Notices about other fields leave the editor alone.
+  useEffect(() => subscribeConflictAcknowledged((acknowledged, ack) => {
     if (editSessionIdRef.current !== acknowledged) return;
-    if (discarded) {
-      // Same as Cancel: the draft is the text the user just threw away.
-      setIsEditMode(false);
-      setEditedEmail(null);
-      setEditedFollowUp(null);
-      setEditBase(null);
-      editSessionIdRef.current = null;
-      editStartRef.current = undefined;
+    const emailAction = acknowledgementFor(ack, ['email'], editStartRef.current);
+    const followUpAction = acknowledgementFor(ack, ['followUpEmail'], editStartRef.current);
+    if (emailAction === 'ignore' && followUpAction === 'ignore') return;
+    if (emailAction === 'reset' || followUpAction === 'reset') {
+      discardEpochRef.current += 1;
+      if (emailAction === 'reset' && followUpAction === 'reset') {
+        setIsEditMode(false);
+        setEditedEmail(null);
+        setEditedFollowUp(null);
+        setEditBase(null);
+        editSessionIdRef.current = null;
+        editStartRef.current = undefined;
+        return;
+      }
+      if (emailAction === 'reset') setEditedEmail(currentDraftsRef.current.email);
+      else setEditedFollowUp(currentDraftsRef.current.followUp);
       return;
     }
     editStartRef.current = getEditorStart(acknowledged, editStartRef.current);
@@ -116,12 +132,15 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
       return;
     }
     const sentDrafts = JSON.stringify([editedEmail, editedFollowUp]);
+    const epochAtSave = discardEpochRef.current;
     // Save now, against the revision this editor opened on. If another write got in
     // first the drafts are not applied: the editor stays open with the text in it.
     void commitEditorSave(editSessionId, editStartRef.current, () => {
       if (editedEmail) useSessionStore.getState().updateSessionById(editSessionId, { email: editedEmail });
       if (editedFollowUp) useSessionStore.getState().updateSessionById(editSessionId, { followUpEmail: editedFollowUp });
     }).then((outcome) => {
+      // A draft was discarded while the save ran: what was sent is gone, and nothing here reopens or closes the editor.
+      if (epochAtSave !== discardEpochRef.current) return;
       // Anything but a save the server confirmed leaves the editor open with the text in it.
       // So does typing during the save: the newer drafts stay, now based on what was just saved.
       const nowDrafts = JSON.stringify([draftsRef.current.email, draftsRef.current.followUp]);

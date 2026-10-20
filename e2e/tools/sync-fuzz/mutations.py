@@ -8,6 +8,12 @@ the original is put back after every run, also on error.
 
 Prints one line per mutation: how many of the seeds (400 by default) fail (and the deterministic cases that fail).
 A mutation that no seed catches is reported as SURVIVED. Writes nothing else.
+
+    python3 e2e/tools/sync-fuzz/mutations.py --apply <name-prefix> -- <command ...>
+
+Applies that one mutation, runs the command from the repo root with SYNC_FUZZ_MUTATION set to the mutation's
+name (sync-fuzz.ts prints it and writes it into its --out file), then puts the engine back. per-bug.sh uses this
+for its "before" runs, so a before file says which mutation made it.
 """
 import os
 import shutil
@@ -19,10 +25,38 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')
 ENGINE = os.path.join(ROOT, 'src', 'lib', 'session-sync-engine.ts')
 
 MUTATIONS = {
-    'M-discard Discard acknowledges like Restore and Copy (the open editor keeps the discarded draft)': (
-        "    acknowledgeConflict(sessionId, true);",
-        "    acknowledgeConflict(sessionId);",
+    'M-discard-rebase Discard acknowledges like Restore and Copy (the open editor keeps the discarded draft)': (
+        "    acknowledgeConflict(sessionId, entries, true);",
+        "    acknowledgeConflict(sessionId, entries);",
     ),
+    'M-discard-scope Discard and every other acknowledgement reach every editor (PR #159 at f7c359a6, finding 1)': (
+        "entries.map((entry) => ({ group: entry.key, editor: entry.editor }))",
+        "FIELD_GROUPS.map((group) => ({ group: group.key }))",
+    ),
+    'M-discard-inflight a save that was running when its draft was discarded reopens the draft, and a draft that lost its EditorStart is saved unchecked (finding 2: no discard epoch, no stale start)': [
+        (
+            "  if (editorSaveSucceeded(outcome) || epochAtSave !== epochNow) return { reopen: false };",
+            "  if (editorSaveSucceeded(outcome)) return { reopen: false };",
+        ),
+        (
+            "  return { reopen: true, start: start ?? staleEditorStart() };",
+            "  return { reopen: true, start: start as EditorStart };",
+        ),
+    ],
+    'M-pr159 findings 1 and 2 together: what f7c359a6 did with the discard (all editors notified, no epoch, no stale start)': [
+        (
+            "entries.map((entry) => ({ group: entry.key, editor: entry.editor }))",
+            "FIELD_GROUPS.map((group) => ({ group: group.key }))",
+        ),
+        (
+            "  if (editorSaveSucceeded(outcome) || epochAtSave !== epochNow) return { reopen: false };",
+            "  if (editorSaveSucceeded(outcome)) return { reopen: false };",
+        ),
+        (
+            "  return { reopen: true, start: start ?? staleEditorStart() };",
+            "  return { reopen: true, start: start as EditorStart };",
+        ),
+    ],
     'M1 accept rows that are not newer than the baseline': (
         "if (base && !options.force && (incoming < base.revision || (incoming === base.revision && !explicitLoad))) {",
         "if (false) {",
@@ -118,8 +152,41 @@ def run_fuzz() -> str:
     return summary + ('  cases: ' + '; '.join(failing_cases) if failing_cases else '')
 
 
+def apply_and_run(prefix: str, command: list) -> int:
+    matches = [name for name in MUTATIONS if name.startswith(prefix)]
+    if len(matches) != 1:
+        print(f'--apply {prefix!r} matches {len(matches)} mutations; give a name prefix that matches exactly one', file=sys.stderr)
+        return 2
+    name = matches[0]
+    change = MUTATIONS[name]
+    pairs = change if isinstance(change, list) else [change]
+    backup = os.path.join(tempfile.mkdtemp(), 'engine.orig.ts')
+    shutil.copy(ENGINE, backup)
+    original = open(backup).read()
+    missing = [old for old, _ in pairs if old not in original]
+    if missing:
+        print(f'{name}: PATTERN NOT FOUND (the engine changed; update this script)', file=sys.stderr)
+        return 2
+    mutated = original
+    for old, new in pairs:
+        mutated = mutated.replace(old, new, 1)
+    try:
+        with open(ENGINE, 'w') as handle:
+            handle.write(mutated)
+        print(f'mutation applied: {name}', file=sys.stderr)
+        return subprocess.run(command, cwd=ROOT, env={**os.environ, 'SYNC_FUZZ_MUTATION': name}).returncode
+    finally:
+        shutil.copy(backup, ENGINE)
+
+
 def main() -> int:
-    wanted = sys.argv[1:]
+    args = sys.argv[1:]
+    if args and args[0] == '--apply':
+        if len(args) < 4 or args[2] != '--':
+            print('usage: mutations.py --apply <name-prefix> -- <command ...>', file=sys.stderr)
+            return 2
+        return apply_and_run(args[1], args[3:])
+    wanted = args
     backup = os.path.join(tempfile.mkdtemp(), 'engine.orig.ts')
     shutil.copy(ENGINE, backup)
     original = open(backup).read()

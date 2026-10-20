@@ -54,6 +54,7 @@ import { applyDelete } from '@/lib/cv-structure/ops';
 import { cvStructureDigest, validateEdit } from '@/lib/cv-structure/validate';
 import { parseUndoChip, takeUndo } from '@/lib/cv-structure/undo';
 import { looksLikeScreeningQuestion, parseScreeningAnswers, SCREENING_TURN_CAP } from '@/lib/screening-answers';
+import { isShortJobAd, isTooShortJobAd, SHORT_JOB_AD_HINT, TOO_SHORT_JOB_AD_NOTE } from '@/lib/job-ad-length';
 
 /**
  * The feed item behind a job_id the chat proposed an application for. Reads
@@ -134,11 +135,6 @@ export function looksAdShaped(text: string): boolean {
   if (text.length < 350) return false;
   return new Set((text.match(JOB_AD_MARKERS) || []).map((hit) => hit.toLowerCase())).size >= 2;
 }
-
-/** Below this a message is a question, whatever the model called it. Same floor as the hero box and the guided line. */
-const MIN_JOB_AD_CHARS = 80;
-/** From here a posting is long enough that the match is not hedged with a "looks short" hint. */
-const SHORT_JOB_AD_CHARS = 200;
 
 /**
  * A rewrite waiting on its cost chip. It carries the note the user typed and
@@ -253,11 +249,9 @@ export function ChatPanel({
     },
     onProposeApplication: (jd) => {
       // A very short message is a question whatever the model decided, and acting
-      // on it would overwrite the real job description with it. The reply is
-      // replaced, because the model's line says to pick a button.
-      if (jd.trim().length < MIN_JOB_AD_CHARS) {
-        return 'That\'s too short for me to work from. Paste the whole posting: the role, requirements and responsibilities.';
-      }
+      // on it would overwrite the real job description with it. The model's own
+      // reply stays; one line is added in case it really was an ad.
+      if (isTooShortJobAd(jd)) return TOO_SHORT_JOB_AD_NOTE;
       presentJobAdDecisionRef.current?.(jd);
       return null;
     },
@@ -763,7 +757,7 @@ export function ChatPanel({
     if (!currentSession) {
       useAppStore.getState().createNewSession(jd);
     } else if (!sessionHasKit(currentSession)) {
-      if (jd.trim().length < SHORT_JOB_AD_CHARS) deferredReplaceJdRef.current = jd;
+      if (isShortJobAd(jd)) deferredReplaceJdRef.current = jd;
       else replaceUnfinishedApplication(jd);
     }
     setAdFallbackJd(null);
@@ -2139,7 +2133,10 @@ export function ChatPanel({
                       onSelect: () => openSettings('usage'),
                     },
                   ]}
-                  hint={`The full kit needs ${CREDIT_COSTS.GENERATION_AFTER_FIT}. Your ${credits?.planTier === 'free' ? 'free ' : ''}credits reset${formatResetDate(credits?.nextResetDate) ? ` on ${formatResetDate(credits?.nextResetDate)}` : ' next month'}.`}
+                  hint={[
+                    isShortJobAd(pendingDecisionJd) ? SHORT_JOB_AD_HINT : null,
+                    `The full kit needs ${CREDIT_COSTS.GENERATION_AFTER_FIT}. Your ${credits?.planTier === 'free' ? 'free ' : ''}credits reset${formatResetDate(credits?.nextResetDate) ? ` on ${formatResetDate(credits?.nextResetDate)}` : ' next month'}.`,
+                  ].filter(Boolean).join(' ')}
                 />
               ) : (
                 <div className="flex flex-col gap-3">
@@ -2173,7 +2170,7 @@ export function ChatPanel({
                         },
                       },
                     ]}
-                    hint={pendingDecisionJd.trim().length < SHORT_JOB_AD_CHARS ? 'This looks short. Add more of the posting for a better match.' : undefined}
+                    hint={isShortJobAd(pendingDecisionJd) ? SHORT_JOB_AD_HINT : undefined}
                   />
                   <button
                     type="button"

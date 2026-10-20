@@ -186,7 +186,7 @@ export function useAgentWorkflow(options?: {
    * credit-aware decision card; the user's click is what starts a run, so
    * classification never spends credits.
    */
-  /** Returns a message to show instead of the model's reply when the proposal can't be acted on. */
+  /** Returns a line to add after the model's reply when the proposal can't be acted on. */
   onProposeApplication?: (jobDescription: string) => string | null;
   /**
    * The reply came back and the model did NOT read the message as an ad.
@@ -380,8 +380,8 @@ export function useAgentWorkflow(options?: {
     executed: unknown,
     userMessage: string,
     opts: { startedIn: string | null; suppressProposal: boolean },
-  ): string | null => {
-    if (!Array.isArray(executed)) return null;
+  ): { refusal: string | null; note: string | null } => {
+    if (!Array.isArray(executed)) return { refusal: null, note: null };
     // Effects that write to the open application only make sense if the user
     // is still looking at the one that asked. Switching applications mid
     // request would otherwise overwrite the wrong row.
@@ -395,14 +395,14 @@ export function useAgentWorkflow(options?: {
       .filter((effect) => effect.type === 'cv_structure_updated')
       .at(-1);
     let cvRefusal: string | null = null;
-    let proposalRefusal: string | null = null;
+    let proposalNote: string | null = null;
     for (const effect of executed as ExecutedEffect[]) {
       if (effect.type === 'propose_application') {
         if (opts.suppressProposal || !stillHere) continue;
         // Classification only. The decision card the client shows is where
         // the user picks fit analysis or the full kit, so nothing is spent
         // here and nothing starts.
-        proposalRefusal = options?.onProposeApplication?.(userMessage) ?? null;
+        proposalNote = options?.onProposeApplication?.(userMessage) ?? null;
       } else if (effect.type === 'set_cv_template') {
         if (!stillHere) continue;
         useUIStore.getState().setCvTemplateId(effect.templateId);
@@ -476,7 +476,7 @@ export function useAgentWorkflow(options?: {
         notifyJobFeedBadgeRefresh();
       }
     }
-    return cvRefusal ?? proposalRefusal;
+    return { refusal: cvRefusal, note: proposalNote };
   };
 
   // No proposal came back, either because the model read the ad as a question
@@ -559,13 +559,13 @@ export function useAgentWorkflow(options?: {
         // case the transcript must contain the refusal instead of the model's
         // stale success claim. The rejected edit cannot be undone because it
         // never landed, so its Undo action is removed too.
-        const effectRefusal = applyExecutedEffects(executed, message, {
+        const { refusal: effectRefusal, note: effectNote } = applyExecutedEffects(executed, message, {
           startedIn,
           suppressProposal: Boolean(opts?.suppressProposal),
         });
         addChatMessage({
           role: 'assistant',
-          content: effectRefusal || reply,
+          content: effectRefusal || (effectNote ? `${reply}\n\n${effectNote}` : reply),
           actions: effectRefusal
             ? (actions || []).filter((action: { action?: string }) => !action.action?.startsWith('undo-cv-edit:'))
             : actions || [],

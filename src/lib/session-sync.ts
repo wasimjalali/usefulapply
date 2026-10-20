@@ -30,11 +30,15 @@ export {
   persistedColumns,
   editorSaveSucceeded,
   editorShouldClose,
+  acknowledgementFor,
+  afterClosedEditorSave,
+  staleEditorStart,
 } from '@/lib/session-sync-engine';
 export type {
   ApplyOptions,
   ApplyResult,
   ApplySource,
+  ConflictAcknowledgement,
   ConflictEntry,
   EditorOutcome,
   EditorStart,

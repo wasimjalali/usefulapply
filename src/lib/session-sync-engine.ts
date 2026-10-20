@@ -280,6 +280,58 @@ export interface ConflictEntry {
   /** The properties where the user's version differs from `base`: the text the entry exists to keep. */
   changed: (keyof ApplicationSession)[];
   at: number;
+  /** The editor whose draft this entry holds (its `EditorStart.lineage`). Absent for an entry made by a merge. */
+  editor?: EditorStart['lineage'];
+}
+
+/** What the user did with a conflict notice, told to open editors so they can rebase or, on a discard, drop their draft. */
+export interface ConflictAcknowledgement {
+  /** True for Discard: the text of `entries` was thrown away. Restore and Copy are not discards. */
+  discarded: boolean;
+  /** The entries the notice named that were still in the buffer: their field group and the editor their text came from. */
+  entries: { group: string; editor?: EditorStart['lineage'] }[];
+}
+
+/**
+ * What a panel does with an acknowledgement. 'ignore': none of its field groups is named, so its draft is
+ * not the user's business here (a CV edit survives discarding an email conflict). 'rebase': Restore or Copy,
+ * so the editor is based on the current revision again. 'reset': the user discarded text this editor holds,
+ * so the draft goes, as with Cancel. An editor opened after the conflict (another lineage) is left alone;
+ * an editor with no start, or an entry that came from a merge, matches on the field group alone.
+ */
+export function acknowledgementFor(
+  ack: ConflictAcknowledgement,
+  groups: readonly string[],
+  start: EditorStart | undefined,
+): 'ignore' | 'rebase' | 'reset' {
+  const mine = ack.entries.filter((entry) => groups.includes(entry.group));
+  if (mine.length === 0) return 'ignore';
+  if (!ack.discarded) return 'rebase';
+  return mine.some((entry) => !entry.editor || !start || entry.editor === start.lineage) ? 'reset' : 'ignore';
+}
+
+/**
+ * What an editor is based on when nothing is known about it: a revision that never existed, so a save from it
+ * is checked as a stale draft (it is refused unless the server already holds exactly that text).
+ */
+export function staleEditorStart(): EditorStart {
+  return { revision: -1, fields: {}, lineage: { columns: new Set<string>() } };
+}
+
+/**
+ * The CV panel closes its editor when Save is clicked and reopens it if the save did not land. This says
+ * what the answer does. A discard of the editor's group while the save ran (the epoch moved) means the
+ * draft was thrown away: nothing reopens, whatever the outcome. A reopened draft always has a start;
+ * one that lost its start is treated as stale, never as "checked against nothing".
+ */
+export function afterClosedEditorSave(
+  outcome: EditorOutcome,
+  epochAtSave: number,
+  epochNow: number,
+  start: EditorStart | undefined,
+): { reopen: false } | { reopen: true; start: EditorStart } {
+  if (editorSaveSucceeded(outcome) || epochAtSave !== epochNow) return { reopen: false };
+  return { reopen: true, start: start ?? staleEditorStart() };
 }
 
 interface Baseline {
@@ -341,15 +393,17 @@ export function createSyncEngine(deps: SyncDeps) {
     conflictBuffers.set(sessionId, buffer);
   }
 
-  type AcknowledgedListener = (sessionId: string, discarded: boolean) => void;
+  type AcknowledgedListener = (sessionId: string, ack: ConflictAcknowledgement) => void;
   const acknowledgedListeners = new Set<AcknowledgedListener>();
   /**
    * Tell open editors the user has dealt with a conflict notice (restored, copied or discarded), so they can rebase.
-   * On a discard the editors also close and drop their draft: the draft is the text just thrown away, and
-   * rebasing it onto the current revision would let the next Save write it over the server's newer version.
+   * On a discard the editor whose draft the entries hold also drops it: that draft is the text just thrown away,
+   * and rebasing it onto the current revision would let the next Save write it over the server's newer version.
+   * The acknowledgement names the entries' field groups, so editors of other groups are left alone.
    */
-  function acknowledgeConflict(sessionId: string, discarded = false): void {
-    acknowledgedListeners.forEach((listener) => listener(sessionId, discarded));
+  function acknowledgeConflict(sessionId: string, entries: ConflictEntry[], discarded = false): void {
+    const ack: ConflictAcknowledgement = { discarded, entries: entries.map((entry) => ({ group: entry.key, editor: entry.editor })) };
+    acknowledgedListeners.forEach((listener) => listener(sessionId, ack));
   }
   function subscribeConflictAcknowledged(listener: AcknowledgedListener): () => void {
     acknowledgedListeners.add(listener);
@@ -357,7 +411,7 @@ export function createSyncEngine(deps: SyncDeps) {
   }
 
   /** A buffer entry: the user's version of a group, set against what the store shows now. */
-  function makeEntry(group: FieldGroup, theirs: ApplicationSession, shown: ApplicationSession): ConflictEntry {
+  function makeEntry(group: FieldGroup, theirs: ApplicationSession, shown: ApplicationSession, editor?: EditorStart['lineage']): ConflictEntry {
     const props: Partial<ApplicationSession> = {};
     const base: Partial<ApplicationSession> = {};
     const changed: (keyof ApplicationSession)[] = [];
@@ -366,7 +420,7 @@ export function createSyncEngine(deps: SyncDeps) {
       (base as Record<string, unknown>)[prop] = shown[prop];
       if (!sameValue(theirs[prop], shown[prop])) changed.push(prop);
     }
-    return { id: `c${++conflictSeq}`, key: group.key, label: group.label, columns: group.columns, props, base, changed, at: clock.now() };
+    return { id: `c${++conflictSeq}`, key: group.key, label: group.label, columns: group.columns, props, base, changed, at: clock.now(), ...(editor ? { editor } : {}) };
   }
 
   function setUser(next: string | null): void {
@@ -759,7 +813,7 @@ export function createSyncEngine(deps: SyncDeps) {
             const group = GROUP_OF_COLUMN.get(column);
             if (!group || seen.has(group.key)) continue;
             seen.add(group.key);
-            const entry = makeEntry(group, after, before);
+            const entry = makeEntry(group, after, before, start?.lineage);
             addEntry(sessionId, entry);
             entryIds.push(entry.id);
           }
@@ -884,7 +938,7 @@ export function createSyncEngine(deps: SyncDeps) {
   function copyConflict(sessionId: string, ids: string[]): string | null {
     const text = conflictText(sessionId, ids);
     if (text.trim() === '') return null;
-    acknowledgeConflict(sessionId);
+    acknowledgeConflict(sessionId, entriesFor(sessionId, ids));
     return text;
   }
 
@@ -919,17 +973,18 @@ export function createSyncEngine(deps: SyncDeps) {
       if (buffer && buffer.size === 0) conflictBuffers.delete(sessionId);
       if (kept.length > 0) notify(CONFLICT_NOTICE, 'info', sessionId, kept);
       const outcome = await saveUnlocked(sessionId);
-      acknowledgeConflict(sessionId);
+      acknowledgeConflict(sessionId, entries);
       return outcome;
     });
   }
 
   /** The user chose to throw the text away. */
   function discardConflict(sessionId: string, ids: string[]): void {
+    const entries = entriesFor(sessionId, ids);
     const buffer = conflictBuffers.get(sessionId);
     for (const id of ids) buffer?.delete(id);
     if (buffer && buffer.size === 0) conflictBuffers.delete(sessionId);
-    acknowledgeConflict(sessionId, true);
+    acknowledgeConflict(sessionId, entries, true);
   }
 
   return {

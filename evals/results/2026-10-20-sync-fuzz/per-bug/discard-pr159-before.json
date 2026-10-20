@@ -1,0 +1,3021 @@
+{
+  "engine": "new",
+  "mutation": "M-pr159 findings 1 and 2 together: what f7c359a6 did with the discard (all editors notified, no epoch, no stale start)",
+  "from": 1,
+  "count": 2000,
+  "ops": 60,
+  "totals": {
+    "ops": 120000,
+    "edits": 41913,
+    "editorSaves": 7237,
+    "typedDuringSave": 1218,
+    "regens": 0,
+    "workflows": 0,
+    "trackerWrites": 0,
+    "silentWrites": 0,
+    "restores": 0,
+    "copies": 0,
+    "agentWrites": 12552,
+    "handoffs": 0,
+    "polls": 17140,
+    "saves": 17131,
+    "requests": 91404,
+    "dropped": 5411,
+    "lostAnswers": 4159,
+    "hung": 5299,
+    "conflictNotices": 10921,
+    "failureNotices": 3729,
+    "settleRounds": 5058
+  },
+  "byInvariant": {
+    "I1": 563,
+    "I2": 1
+  },
+  "byKind": {
+    "I1: TAB discarded a notice about jobTitle, COLUMN, fitAssessment, selectedTemplate and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about coverLetter, COLUMN and the open draft of APP.cv (T) was reset with it": 3,
+    "I1: TAB editor on APP.cv reopened with T, which the user discarded while the save ran": 56,
+    "I1: TAB discarded a notice about cv and the open draft of APP.FIELD (T) was reset with it": 88,
+    "I1: TAB discarded a notice about selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 26,
+    "I1: TAB discarded a notice about COLUMN and the open draft of APP.FIELD (T) was reset with it": 63,
+    "I1: TAB discarded a notice about coverLetter and the open draft of APP.FIELD (T) was reset with it": 26,
+    "I1: TAB discarded a notice about jobDescription, cv and the open draft of APP.FIELD (T) was reset with it": 9,
+    "I1: TAB discarded a notice about jobTitle, requirements, fitAssessment and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about followUpEmail and the open draft of APP.FIELD (T) was reset with it": 27,
+    "I1: TAB discarded a notice about cv, fitAssessment and the open draft of APP.FIELD (T) was reset with it": 8,
+    "I1: TAB discarded a notice about  and the open draft of APP.FIELD (T) was reset with it": 43,
+    "I1: TAB discarded a notice about jobTitle, coverLetter and the open draft of APP.cv (T) was reset with it": 2,
+    "I1: TAB discarded a notice about fitAssessment and the open draft of APP.FIELD (T) was reset with it": 27,
+    "I1: TAB discarded a notice about fitAssessment and the open draft of APP.cv (T) was reset with it": 8,
+    "I1: TAB open editor on APP.cv saved T, which the user had discarded ": 14,
+    "I1: TAB editor on APP.cv saved T with no EditorStart, so the save is not checked against what the server holds now": 16,
+    "I1: TAB discarded a notice about COLUMN, selectedTemplate and the open draft of APP.cv (T) was reset with it": 3,
+    "I1: TAB discarded a notice about followUpEmail and the open draft of APP.cv (T) was reset with it": 22,
+    "I1: TAB discarded a notice about jobTitle, cv, followUpEmail and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobTitle, cv and the open draft of APP.FIELD (T) was reset with it": 4,
+    "I1: TAB discarded a notice about coverLetter and the open draft of APP.cv (T) was reset with it": 15,
+    "I1: TAB discarded a notice about  and the open draft of APP.cv (T) was reset with it": 14,
+    "I2: TAB save overwrote generated_cv of APP with a server value its store had never shown ": 1,
+    "I1: TAB saved generated_cv of APP was replaced by TAB, whose store had never shown it": 1,
+    "I1: TAB discarded a notice about cv, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 7,
+    "I1: TAB discarded a notice about jobTitle and the open draft of APP.FIELD (T) was reset with it": 30,
+    "I1: TAB discarded a notice about COLUMN, followUpEmail, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 2,
+    "I1: TAB discarded a notice about requirements and the open draft of APP.FIELD (T) was reset with it": 20,
+    "I1: TAB discarded a notice about jobDescription, requirements, coverLetter and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobDescription, requirements, coverLetter and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about cv, followUpEmail, fitAssessment and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobTitle, requirements, cv and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about COLUMN, cv, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about requirements and the open draft of APP.cv (T) was reset with it": 10,
+    "I1: TAB discarded a notice about requirements, cv, followUpEmail and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about fitAssessment, selectedTemplate and the open draft of APP.cv (T) was reset with it": 2,
+    "I1: TAB discarded a notice about fitAssessment, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about cv, coverLetter, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about cv, followUpEmail and the open draft of APP.FIELD (T) was reset with it": 2,
+    "I1: TAB discarded a notice about jobDescription and the open draft of APP.FIELD (T) was reset with it": 18,
+    "I1: TAB discarded a notice about COLUMN and the open draft of APP.cv (T) was reset with it": 19,
+    "I1: TAB discarded a notice about cv, COLUMN and the open draft of APP.FIELD (T) was reset with it": 5,
+    "I1: TAB discarded a notice about COLUMN, coverLetter and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobDescription and the open draft of APP.cv (T) was reset with it": 6,
+    "I1: TAB discarded a notice about jobTitle and the open draft of APP.cv (T) was reset with it": 11,
+    "I1: TAB discarded a notice about jobDescription, cv, COLUMN and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about coverLetter, followUpEmail and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobDescription, followUpEmail, fitAssessment and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about COLUMN, followUpEmail and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobDescription, followUpEmail and the open draft of APP.FIELD (T) was reset with it": 4,
+    "I1: TAB discarded a notice about jobDescription, cv, followUpEmail and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about COLUMN, requirements and the open draft of APP.FIELD (T) was reset with it": 4,
+    "I1: TAB discarded a notice about jobTitle, jobDescription, coverLetter, followUpEmail, selectedTemplate and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobTitle, COLUMN and the open draft of APP.FIELD (T) was reset with it": 3,
+    "I1: TAB discarded a notice about jobTitle, coverLetter, COLUMN and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobDescription, COLUMN and the open draft of APP.FIELD (T) was reset with it": 3,
+    "I1: TAB discarded a notice about COLUMN, jobDescription and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about COLUMN, jobDescription and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about selectedTemplate and the open draft of APP.cv (T) was reset with it": 5,
+    "I1: TAB discarded a notice about COLUMN, requirements and the open draft of APP.cv (T) was reset with it": 2,
+    "I1: TAB discarded a notice about requirements, followUpEmail and the open draft of APP.cv (T) was reset with it": 3,
+    "I1: TAB discarded a notice about requirements, cv and the open draft of APP.FIELD (T) was reset with it": 7,
+    "I1: TAB discarded a notice about jobDescription, fitAssessment, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobTitle, jobDescription and the open draft of APP.FIELD (T) was reset with it": 3,
+    "I1: TAB discarded a notice about jobTitle, fitAssessment and the open draft of APP.FIELD (T) was reset with it": 3,
+    "I1: TAB discarded a notice about jobDescription, fitAssessment and the open draft of APP.cv (T) was reset with it": 2,
+    "I1: TAB discarded a notice about jobDescription, fitAssessment and the open draft of APP.FIELD (T) was reset with it": 3,
+    "I1: TAB discarded a notice about COLUMN, followUpEmail, fitAssessment and the open draft of APP.cv (T) was reset with it": 2,
+    "I1: TAB discarded a notice about jobTitle, COLUMN, selectedTemplate and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobTitle, requirements and the open draft of APP.FIELD (T) was reset with it": 3,
+    "I1: TAB discarded a notice about requirements, followUpEmail, selectedTemplate and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about coverLetter, followUpEmail, fitAssessment and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about requirements, cv, fitAssessment and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about requirements, cv, COLUMN, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about COLUMN, requirements, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about COLUMN, requirements, selectedTemplate and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobTitle, cv, COLUMN and the open draft of APP.FIELD (T) was reset with it": 2,
+    "I1: TAB discarded a notice about COLUMN, cv, coverLetter, fitAssessment, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobDescription, coverLetter, fitAssessment and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobTitle, COLUMN, cv and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about cv, coverLetter, COLUMN and the open draft of APP.FIELD (T) was reset with it": 2,
+    "I1: TAB discarded a notice about COLUMN, cv and the open draft of APP.FIELD (T) was reset with it": 7,
+    "I1: TAB discarded a notice about followUpEmail, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 2,
+    "I1: TAB discarded a notice about jobDescription, requirements, cv, followUpEmail and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about COLUMN, jobDescription, requirements and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about COLUMN, jobDescription, requirements and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobTitle, COLUMN, COLUMN, selectedTemplate and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about coverLetter, COLUMN and the open draft of APP.FIELD (T) was reset with it": 3,
+    "I1: TAB discarded a notice about jobTitle, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobTitle, followUpEmail and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobDescription, cv, fitAssessment and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobTitle, COLUMN, jobDescription and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobDescription, cv, coverLetter, followUpEmail and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobDescription, followUpEmail, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobTitle, COLUMN, jobDescription and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about cv, coverLetter and the open draft of APP.FIELD (T) was reset with it": 2,
+    "I1: TAB discarded a notice about COLUMN, fitAssessment and the open draft of APP.FIELD (T) was reset with it": 3,
+    "I1: TAB discarded a notice about coverLetter, selectedTemplate and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about COLUMN, cv, fitAssessment and the open draft of APP.FIELD (T) was reset with it": 2,
+    "I1: TAB discarded a notice about requirements, cv, coverLetter and the open draft of APP.FIELD (T) was reset with it": 2,
+    "I1: TAB discarded a notice about jobTitle, COLUMN and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about COLUMN, cv, COLUMN and the open draft of APP.FIELD (T) was reset with it": 2,
+    "I1: TAB discarded a notice about coverLetter, followUpEmail and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about COLUMN, requirements, cv and the open draft of APP.FIELD (T) was reset with it": 2,
+    "I1: TAB discarded a notice about COLUMN, jobDescription, COLUMN and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about COLUMN, jobDescription, COLUMN and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobDescription, coverLetter, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about COLUMN, COLUMN and the open draft of APP.FIELD (T) was reset with it": 2,
+    "I1: TAB discarded a notice about cv, coverLetter, followUpEmail, fitAssessment and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about coverLetter, fitAssessment and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobDescription, COLUMN and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about coverLetter, fitAssessment and the open draft of APP.FIELD (T) was reset with it": 2,
+    "I1: TAB discarded a notice about COLUMN, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 2,
+    "I1: TAB discarded a notice about requirements, cv, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about requirements, selectedTemplate and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobTitle, jobDescription, fitAssessment, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about cv, fitAssessment, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobTitle, COLUMN, followUpEmail, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobTitle, COLUMN, COLUMN, fitAssessment and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about COLUMN, coverLetter, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about coverLetter, COLUMN, followUpEmail and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about COLUMN, jobDescription, cv, followUpEmail and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobDescription, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobTitle, COLUMN, jobDescription, cv and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about requirements, cv, coverLetter, COLUMN and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobTitle, jobDescription and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about COLUMN, jobDescription, coverLetter, COLUMN, fitAssessment and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about COLUMN, jobDescription, coverLetter, followUpEmail and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about COLUMN, coverLetter, fitAssessment, selectedTemplate and the open draft of APP.cv (T) was reset with it": 1,
+    "I1: TAB discarded a notice about requirements, fitAssessment and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about jobTitle, followUpEmail, selectedTemplate and the open draft of APP.FIELD (T) was reset with it": 1,
+    "I1: TAB discarded a notice about requirements, followUpEmail and the open draft of APP.FIELD (T) was reset with it": 1
+  },
+  "failingSeeds": [
+    9,
+    10,
+    11,
+    13,
+    20,
+    22,
+    28,
+    29,
+    32,
+    42,
+    46,
+    50,
+    51,
+    52,
+    54,
+    61,
+    67,
+    69,
+    70,
+    71,
+    72,
+    74,
+    75,
+    77,
+    84,
+    87,
+    98,
+    100,
+    101,
+    103,
+    109,
+    111,
+    121,
+    122,
+    124,
+    125,
+    129,
+    131,
+    132,
+    136,
+    138,
+    139,
+    142,
+    144,
+    150,
+    158,
+    162,
+    163,
+    168,
+    183,
+    186,
+    190,
+    196,
+    197,
+    199,
+    200,
+    201,
+    203,
+    209,
+    216,
+    229,
+    230,
+    235,
+    238,
+    239,
+    242,
+    252,
+    254,
+    255,
+    260,
+    265,
+    266,
+    267,
+    274,
+    282,
+    285,
+    287,
+    292,
+    296,
+    299,
+    300,
+    303,
+    304,
+    308,
+    313,
+    314,
+    318,
+    322,
+    323,
+    327,
+    328,
+    336,
+    337,
+    349,
+    351,
+    352,
+    357,
+    360,
+    364,
+    368,
+    375,
+    376,
+    378,
+    384,
+    385,
+    388,
+    389,
+    392,
+    395,
+    407,
+    414,
+    415,
+    417,
+    419,
+    421,
+    439,
+    441,
+    456,
+    457,
+    462,
+    464,
+    465,
+    469,
+    471,
+    477,
+    479,
+    480,
+    482,
+    484,
+    486,
+    490,
+    491,
+    494,
+    498,
+    500,
+    510,
+    514,
+    520,
+    524,
+    527,
+    531,
+    532,
+    536,
+    539,
+    542,
+    546,
+    550,
+    551,
+    558,
+    560,
+    563,
+    565,
+    568,
+    571,
+    574,
+    575,
+    580,
+    592,
+    594,
+    596,
+    599,
+    600,
+    614,
+    615,
+    619,
+    621,
+    624,
+    628,
+    630,
+    636,
+    638,
+    641,
+    643,
+    644,
+    645,
+    646,
+    647,
+    648,
+    650,
+    658,
+    665,
+    675,
+    676,
+    679,
+    680,
+    685,
+    689,
+    693,
+    695,
+    699,
+    700,
+    707,
+    710,
+    711,
+    714,
+    715,
+    719,
+    720,
+    721,
+    731,
+    736,
+    737,
+    740,
+    743,
+    744,
+    748,
+    761,
+    762,
+    768,
+    770,
+    772,
+    782,
+    783,
+    786,
+    787,
+    788,
+    790,
+    791,
+    795,
+    798,
+    800,
+    804,
+    805,
+    810,
+    814,
+    815,
+    818,
+    820,
+    828,
+    829,
+    832,
+    843,
+    848,
+    850,
+    855,
+    860,
+    862,
+    868,
+    876,
+    881,
+    882,
+    884,
+    886,
+    896,
+    899,
+    906,
+    911,
+    912,
+    913,
+    917,
+    922,
+    926,
+    927,
+    932,
+    933,
+    934,
+    940,
+    947,
+    948,
+    950,
+    953,
+    956,
+    964,
+    965,
+    968,
+    971,
+    972,
+    975,
+    976,
+    979,
+    981,
+    983,
+    986,
+    987,
+    990,
+    991,
+    994,
+    999,
+    1001,
+    1002,
+    1007,
+    1013,
+    1020,
+    1022,
+    1023,
+    1025,
+    1027,
+    1032,
+    1036,
+    1037,
+    1044,
+    1045,
+    1047,
+    1048,
+    1057,
+    1065,
+    1066,
+    1067,
+    1076,
+    1079,
+    1095,
+    1098,
+    1101,
+    1108,
+    1111,
+    1113,
+    1114,
+    1115,
+    1118,
+    1122,
+    1129,
+    1131,
+    1134,
+    1135,
+    1141,
+    1145,
+    1147,
+    1148,
+    1154,
+    1165,
+    1167,
+    1181,
+    1183,
+    1187,
+    1188,
+    1189,
+    1193,
+    1198,
+    1203,
+    1204,
+    1206,
+    1209,
+    1210,
+    1215,
+    1217,
+    1220,
+    1222,
+    1227,
+    1236,
+    1238,
+    1248,
+    1251,
+    1252,
+    1255,
+    1258,
+    1262,
+    1263,
+    1265,
+    1266,
+    1267,
+    1271,
+    1283,
+    1284,
+    1285,
+    1286,
+    1288,
+    1294,
+    1300,
+    1305,
+    1307,
+    1314,
+    1317,
+    1320,
+    1323,
+    1325,
+    1328,
+    1329,
+    1332,
+    1337,
+    1338,
+    1342,
+    1343,
+    1347,
+    1351,
+    1352,
+    1354,
+    1356,
+    1359,
+    1360,
+    1364,
+    1368,
+    1375,
+    1379,
+    1386,
+    1388,
+    1391,
+    1392,
+    1396,
+    1397,
+    1403,
+    1408,
+    1409,
+    1411,
+    1412,
+    1416,
+    1421,
+    1425,
+    1427,
+    1429,
+    1442,
+    1445,
+    1447,
+    1448,
+    1452,
+    1471,
+    1474,
+    1479,
+    1481,
+    1485,
+    1486,
+    1490,
+    1491,
+    1498,
+    1500,
+    1502,
+    1504,
+    1505,
+    1508,
+    1510,
+    1511,
+    1515,
+    1516,
+    1518,
+    1522,
+    1523,
+    1525,
+    1536,
+    1540,
+    1541,
+    1550,
+    1554,
+    1557,
+    1558,
+    1562,
+    1564,
+    1565,
+    1567,
+    1569,
+    1575,
+    1578,
+    1579,
+    1584,
+    1588,
+    1594,
+    1608,
+    1609,
+    1611,
+    1613,
+    1615,
+    1616,
+    1622,
+    1623,
+    1628,
+    1631,
+    1632,
+    1638,
+    1640,
+    1645,
+    1653,
+    1660,
+    1666,
+    1667,
+    1668,
+    1675,
+    1677,
+    1687,
+    1691,
+    1692,
+    1693,
+    1694,
+    1697,
+    1698,
+    1700,
+    1701,
+    1702,
+    1703,
+    1706,
+    1707,
+    1711,
+    1716,
+    1721,
+    1722,
+    1724,
+    1725,
+    1728,
+    1729,
+    1732,
+    1733,
+    1735,
+    1737,
+    1740,
+    1742,
+    1745,
+    1755,
+    1761,
+    1772,
+    1774,
+    1776,
+    1778,
+    1780,
+    1781,
+    1784,
+    1788,
+    1792,
+    1798,
+    1802,
+    1803,
+    1804,
+    1810,
+    1817,
+    1820,
+    1821,
+    1828,
+    1832,
+    1833,
+    1835,
+    1836,
+    1838,
+    1841,
+    1844,
+    1845,
+    1847,
+    1850,
+    1851,
+    1852,
+    1854,
+    1861,
+    1862,
+    1864,
+    1868,
+    1869,
+    1871,
+    1876,
+    1877,
+    1880,
+    1883,
+    1892,
+    1901,
+    1910,
+    1915,
+    1916,
+    1918,
+    1920,
+    1925,
+    1926,
+    1927,
+    1931,
+    1934,
+    1937,
+    1945,
+    1949,
+    1950,
+    1953,
+    1954,
+    1958,
+    1959,
+    1964,
+    1965,
+    1971,
+    1978,
+    1981,
+    1983,
+    1999
+  ],
+  "failures": [
+    {
+      "seed": 9,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle, company, fitAssessment, selectedTemplate and the open draft of app-1.cv (t:A22;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 10,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about coverLetter, email and the open draft of app-1.cv (t:B21;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B21;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 11,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.coverLetter (t:B24;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 13,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about selectedTemplate and the open draft of app-1.followUpEmail (t:A18;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 20,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv and the open draft of app-1.followUpEmail (t:A18;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 22,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about email and the open draft of app-1.followUpEmail (t:A13;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 28,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.followUpEmail (t:B14;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 29,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about coverLetter and the open draft of app-1.followUpEmail (t:A14;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 32,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about email and the open draft of app-1.coverLetter (t:B15;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 42,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobDescription, cv and the open draft of app-1.email (t:A13;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 46,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about selectedTemplate and the open draft of app-1.coverLetter (t:B17;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 50,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about email and the open draft of app-1.coverLetter (t:B28;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 51,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about coverLetter and the open draft of app-1.email (t:B33;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 52,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle, requirements, fitAssessment and the open draft of app-1.followUpEmail (t:A17;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 54,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about followUpEmail and the open draft of app-1.email (t:B26;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 61,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about email and the open draft of app-1.followUpEmail (t:B18;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about email and the open draft of app-1.followUpEmail (t:B17;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 67,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv, fitAssessment and the open draft of app-1.coverLetter (t:B12;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 69,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about company and the open draft of app-1.coverLetter (t:B7;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 70,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about  and the open draft of app-1.email (t:B24;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle, coverLetter and the open draft of app-1.cv (t:A31;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 71,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about fitAssessment and the open draft of app-1.coverLetter (t:B28;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about fitAssessment and the open draft of app-1.cv (t:B10;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B10;, which the user discarded while the save ran"
+        },
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B10;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv saved t:B10; with no EditorStart, so the save is not checked against what the server holds now"
+        }
+      ]
+    },
+    {
+      "seed": 72,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about company, selectedTemplate and the open draft of app-1.cv (t:B25;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 74,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.email (t:B22;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 75,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about followUpEmail and the open draft of app-1.cv (t:B8;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 77,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle, cv, followUpEmail and the open draft of app-1.email (t:A34;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle, cv, followUpEmail and the open draft of app-1.email (t:A33;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 84,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.followUpEmail (t:B11;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 87,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about coverLetter and the open draft of app-1.followUpEmail (t:A18;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 98,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about followUpEmail and the open draft of app-1.cv (t:A26;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 100,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about selectedTemplate and the open draft of app-1.followUpEmail (t:A11;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 101,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv and the open draft of app-1.email (t:A12;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 103,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about email and the open draft of app-1.followUpEmail (t:B3;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 109,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobTitle, cv and the open draft of app-1.followUpEmail (t:B28;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobTitle, cv and the open draft of app-1.coverLetter (t:B21;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about  and the open draft of app-1.coverLetter (t:B38;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 111,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about company and the open draft of app-1.coverLetter (t:A11;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 121,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv, fitAssessment and the open draft of app-1.coverLetter (t:B16;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about coverLetter and the open draft of app-1.cv (t:B26;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B26;, which the user discarded while the save ran"
+        },
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B26;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv saved t:B26; with no EditorStart, so the save is not checked against what the server holds now"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about  and the open draft of app-1.cv (t:B26;) was reset with it"
+        },
+        {
+          "code": "I2",
+          "message": "B's save overwrote generated_cv of app-1 with a server value its store had never shown (server {\"content\":\"cv content\",\"changes\":[],\"optimizedFor\":\"Position\",\"_optimizedCVData\":{\"personal\":{\"fullName\":\"N\",\"email\":\"n@example.test\",\"currentTitle\":\"t:A18;\"},\"experience\":[],\"education\":[],\"skills\":[],\"languages\":[],\"certifications\":[]},\"_screeningAnswers\":[{\"id\":\"s1\",\"question\":\"q\",\"answer\":\"t:O1;\",\"createdAt\":\"x\"}],\"_screeningUsageCount\":0}; store {\"content\":\"cv content\",\"changes\":[],\"optimizedFor\":\"Position\",\"_optimizedCVData\":{\"personal\":{\"fullName\":\"N\",\"email\":\"n@example.test\",\"currentTitle\":\"t:B26;\"},\"experience\":[],\"education\":[],\"skills\":[],\"languages\":[],\"certifications\":[]},\"_screeningAnswers\":[{\"id\":\"s1\",\"question\":\"q\",\"answer\":\"t:O1;\",\"createdAt\":\"x\"}],\"_screeningUsageCount\":0}; patch tokens t:B33;,t:B26;,t:O1;,t:B24;; baseline@10 server@10)"
+        },
+        {
+          "code": "I1",
+          "message": "A's saved generated_cv of app-1 was replaced by B, whose store had never shown it"
+        }
+      ]
+    },
+    {
+      "seed": 122,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about followUpEmail and the open draft of app-1.cv (t:A20;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 124,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about followUpEmail and the open draft of app-1.email (t:B10;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 125,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv, selectedTemplate and the open draft of app-1.coverLetter (t:B15;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 129,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about followUpEmail and the open draft of app-1.email (t:B22;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 131,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobTitle and the open draft of app-1.coverLetter (t:B19;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 132,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv and the open draft of app-1.followUpEmail (t:A25;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv and the open draft of app-1.followUpEmail (t:A27;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 136,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobTitle and the open draft of app-1.email (t:B23;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 138,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about company, followUpEmail, selectedTemplate and the open draft of app-1.coverLetter (t:B13;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 139,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about fitAssessment and the open draft of app-1.cv (t:B20;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 142,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about requirements and the open draft of app-1.followUpEmail (t:A30;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 144,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about  and the open draft of app-1.coverLetter (t:A26;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about  and the open draft of app-1.email (t:A19;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 150,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobDescription, requirements, coverLetter and the open draft of app-1.cv (t:B10;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobDescription, requirements, coverLetter and the open draft of app-1.email (t:B21;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 158,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about selectedTemplate and the open draft of app-1.email (t:A23;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 162,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about  and the open draft of app-1.email (t:A15;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.email (t:B23;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 163,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv, followUpEmail, fitAssessment and the open draft of app-1.email (t:A20;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 168,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle, requirements, cv and the open draft of app-1.followUpEmail (t:A14;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 183,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about followUpEmail and the open draft of app-1.coverLetter (t:A11;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 186,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about company, cv, selectedTemplate and the open draft of app-1.email (t:A1;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 190,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about requirements and the open draft of app-1.cv (t:A20;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about requirements and the open draft of app-1.followUpEmail (t:A18;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 196,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.email (t:B10;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 197,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about requirements, cv, followUpEmail and the open draft of app-1.coverLetter (t:B35;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 199,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv and the open draft of app-1.email (t:A17;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 200,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about fitAssessment, selectedTemplate and the open draft of app-1.cv (t:A1;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about fitAssessment, selectedTemplate and the open draft of app-1.followUpEmail (t:A8;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 201,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.followUpEmail (t:B5;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 203,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv, coverLetter, selectedTemplate and the open draft of app-1.email (t:A21;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv, coverLetter, selectedTemplate and the open draft of app-1.followUpEmail (t:A27;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.followUpEmail (t:B30;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 209,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about selectedTemplate and the open draft of app-1.email (t:A11;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about selectedTemplate and the open draft of app-1.followUpEmail (t:A12;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 216,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about  and the open draft of app-1.coverLetter (t:B19;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 229,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv, followUpEmail and the open draft of app-1.email (t:B7;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B3;, which the user discarded while the save ran"
+        },
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B3;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv saved t:B3; with no EditorStart, so the save is not checked against what the server holds now"
+        }
+      ]
+    },
+    {
+      "seed": 230,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobDescription and the open draft of app-1.coverLetter (t:B26;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobDescription and the open draft of app-1.coverLetter (t:B27;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 235,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about company and the open draft of app-1.cv (t:B20;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about company and the open draft of app-1.followUpEmail (t:B23;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 238,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B14;, which the user discarded while the save ran"
+        },
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B14;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv saved t:B14; with no EditorStart, so the save is not checked against what the server holds now"
+        }
+      ]
+    },
+    {
+      "seed": 239,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about coverLetter and the open draft of app-1.cv (t:B26;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 242,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv, email and the open draft of app-1.followUpEmail (t:A26;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 252,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about followUpEmail and the open draft of app-1.cv (t:B10;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B10;, which the user discarded while the save ran"
+        },
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B10;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv saved t:B10; with no EditorStart, so the save is not checked against what the server holds now"
+        }
+      ]
+    },
+    {
+      "seed": 254,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's editor on app-1.cv reopened with t:A8;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 255,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about fitAssessment and the open draft of app-1.followUpEmail (t:B22;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about fitAssessment and the open draft of app-1.email (t:B11;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 260,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about selectedTemplate and the open draft of app-1.coverLetter (t:A15;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about selectedTemplate and the open draft of app-1.email (t:A20;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 265,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about coverLetter and the open draft of app-1.cv (t:B27;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 266,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv, selectedTemplate and the open draft of app-1.followUpEmail (t:A39;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 267,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about company, coverLetter and the open draft of app-1.followUpEmail (t:B15;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about  and the open draft of app-1.coverLetter (t:B23;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 274,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about company and the open draft of app-1.cv (t:A18;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 282,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about  and the open draft of app-1.email (t:A18;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 285,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about coverLetter and the open draft of app-1.cv (t:B20;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B20;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 287,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle and the open draft of app-1.followUpEmail (t:A1;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 292,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobDescription and the open draft of app-1.cv (t:A13;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.email (t:B25;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.coverLetter (t:B16;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 296,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle and the open draft of app-1.cv (t:A9;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle and the open draft of app-1.cv (t:A14;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 299,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv, email and the open draft of app-1.coverLetter (t:A17;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 300,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobDescription, cv, email and the open draft of app-1.followUpEmail (t:A9;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobDescription, cv, email and the open draft of app-1.followUpEmail (t:A26;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 303,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle and the open draft of app-1.cv (t:A12;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 304,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about coverLetter, followUpEmail and the open draft of app-1.cv (t:A38;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 308,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv and the open draft of app-1.coverLetter (t:A8;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv and the open draft of app-1.email (t:A15;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 313,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv, selectedTemplate and the open draft of app-1.coverLetter (t:B17;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 314,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobDescription, followUpEmail, fitAssessment and the open draft of app-1.coverLetter (t:A21;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about company, followUpEmail and the open draft of app-1.email (t:A28;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 318,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobDescription, followUpEmail and the open draft of app-1.coverLetter (t:B19;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 322,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about  and the open draft of app-1.email (t:A24;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 323,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about email and the open draft of app-1.followUpEmail (t:B17;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about selectedTemplate and the open draft of app-1.email (t:A18;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about selectedTemplate and the open draft of app-1.email (t:A22;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 327,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about followUpEmail and the open draft of app-1.cv (t:A20;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 328,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about email and the open draft of app-1.coverLetter (t:B5;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about  and the open draft of app-1.email (t:B15;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about  and the open draft of app-1.coverLetter (t:B22;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 336,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about  and the open draft of app-1.followUpEmail (t:A15;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about  and the open draft of app-1.coverLetter (t:A28;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 337,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about  and the open draft of app-1.cv (t:B20;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about  and the open draft of app-1.coverLetter (t:B26;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B20;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 349,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobDescription, cv and the open draft of app-1.coverLetter (t:B13;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobDescription, cv and the open draft of app-1.followUpEmail (t:B21;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv and the open draft of app-1.followUpEmail (t:A10;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 351,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about requirements and the open draft of app-1.followUpEmail (t:A24;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about requirements and the open draft of app-1.cv (t:A25;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A's editor on app-1.cv reopened with t:A25;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 352,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about followUpEmail and the open draft of app-1.email (t:B19;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about followUpEmail and the open draft of app-1.cv (t:B18;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 357,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about fitAssessment and the open draft of app-1.email (t:B23;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 360,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobDescription and the open draft of app-1.cv (t:B25;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 364,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about requirements and the open draft of app-1.email (t:B8;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 368,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about followUpEmail and the open draft of app-1.cv (t:A32;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 375,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about requirements and the open draft of app-1.followUpEmail (t:B32;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about requirements and the open draft of app-1.followUpEmail (t:B27;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 376,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about fitAssessment and the open draft of app-1.email (t:A19;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 378,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about email and the open draft of app-1.cv (t:A13;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 384,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobDescription and the open draft of app-1.email (t:B13;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobDescription, cv, followUpEmail and the open draft of app-1.email (t:A25;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 385,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about company, requirements and the open draft of app-1.followUpEmail (t:A20;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about company, requirements and the open draft of app-1.coverLetter (t:A25;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 388,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about email and the open draft of app-1.cv (t:B18;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about email and the open draft of app-1.followUpEmail (t:B20;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 389,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.coverLetter (t:B34;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.coverLetter (t:B35;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 392,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about coverLetter and the open draft of app-1.followUpEmail (t:B27;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 395,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobDescription and the open draft of app-1.followUpEmail (t:A5;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobDescription and the open draft of app-1.followUpEmail (t:A9;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 407,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about email and the open draft of app-1.coverLetter (t:A20;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about email and the open draft of app-1.cv (t:A19;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 414,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle, jobDescription, coverLetter, followUpEmail, selectedTemplate and the open draft of app-1.cv (t:A29;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 415,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv and the open draft of app-1.coverLetter (t:A26;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 417,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about  and the open draft of app-1.email (t:B15;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 419,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.coverLetter (t:B10;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.followUpEmail (t:B16;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 421,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle, email and the open draft of app-1.followUpEmail (t:A20;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 439,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv and the open draft of app-1.email (t:A27;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 441,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about  and the open draft of app-1.followUpEmail (t:B17;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A's editor on app-1.cv reopened with t:A24;, which the user discarded while the save ran"
+        },
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.cv saved t:A24;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        },
+        {
+          "code": "I1",
+          "message": "A's editor on app-1.cv saved t:A24; with no EditorStart, so the save is not checked against what the server holds now"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about  and the open draft of app-1.cv (t:A24;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 456,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.email (t:B7;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.coverLetter (t:B18;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about  and the open draft of app-1.email (t:B24;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 457,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobTitle, coverLetter, email and the open draft of app-1.cv (t:B18;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 462,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about requirements and the open draft of app-1.email (t:A23;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about requirements and the open draft of app-1.coverLetter (t:A25;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 464,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about followUpEmail and the open draft of app-1.email (t:B11;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 465,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobTitle and the open draft of app-1.followUpEmail (t:B17;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobTitle and the open draft of app-1.coverLetter (t:B19;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 469,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about company and the open draft of app-1.followUpEmail (t:B10;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about email and the open draft of app-1.cv (t:A26;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 471,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about followUpEmail and the open draft of app-1.email (t:A15;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about followUpEmail and the open draft of app-1.email (t:A20;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about followUpEmail and the open draft of app-1.cv (t:B21;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about followUpEmail and the open draft of app-1.cv (t:B22;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B22;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 477,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle and the open draft of app-1.followUpEmail (t:A19;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle and the open draft of app-1.coverLetter (t:A18;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 479,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about coverLetter and the open draft of app-1.followUpEmail (t:A17;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 480,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle and the open draft of app-1.coverLetter (t:A9;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle and the open draft of app-1.coverLetter (t:A11;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 482,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about requirements and the open draft of app-1.cv (t:A25;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 484,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv and the open draft of app-1.followUpEmail (t:A28;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 486,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobDescription, email and the open draft of app-1.coverLetter (t:A26;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobDescription and the open draft of app-1.followUpEmail (t:B13;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobDescription and the open draft of app-1.followUpEmail (t:B17;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 490,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about email and the open draft of app-1.followUpEmail (t:B19;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 491,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about  and the open draft of app-1.coverLetter (t:A9;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 494,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about  and the open draft of app-1.email (t:B15;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 498,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about followUpEmail and the open draft of app-1.cv (t:A4;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.followUpEmail (t:B29;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.email (t:B31;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 500,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about requirements and the open draft of app-1.followUpEmail (t:B24;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 510,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about company, jobDescription and the open draft of app-1.cv (t:B5;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about company, jobDescription and the open draft of app-1.followUpEmail (t:B7;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 514,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about fitAssessment and the open draft of app-1.followUpEmail (t:B17;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about selectedTemplate and the open draft of app-1.coverLetter (t:A9;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about selectedTemplate and the open draft of app-1.cv (t:A18;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A's editor on app-1.cv reopened with t:A18;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 520,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about followUpEmail and the open draft of app-1.coverLetter (t:B24;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 524,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about followUpEmail and the open draft of app-1.email (t:B15;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 527,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about coverLetter and the open draft of app-1.email (t:A17;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about coverLetter and the open draft of app-1.followUpEmail (t:A22;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 531,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about followUpEmail and the open draft of app-1.coverLetter (t:B11;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 532,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv and the open draft of app-1.followUpEmail (t:A11;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 536,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about followUpEmail and the open draft of app-1.cv (t:B30;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 539,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about company, requirements and the open draft of app-1.cv (t:A11;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about company, requirements and the open draft of app-1.coverLetter (t:A16;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 542,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about fitAssessment and the open draft of app-1.followUpEmail (t:A11;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about fitAssessment and the open draft of app-1.followUpEmail (t:A8;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 546,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.email (t:B12;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 550,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about fitAssessment and the open draft of app-1.coverLetter (t:A19;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about fitAssessment and the open draft of app-1.followUpEmail (t:A17;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 551,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv, email and the open draft of app-1.coverLetter (t:A19;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 558,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv and the open draft of app-1.coverLetter (t:A24;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 560,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about email and the open draft of app-1.coverLetter (t:A10;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about email and the open draft of app-1.coverLetter (t:A5;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about requirements, followUpEmail and the open draft of app-1.cv (t:A24;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A's editor on app-1.cv reopened with t:A24;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 563,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B10;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 565,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B8;, which the user discarded while the save ran"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv saved t:B21; with no EditorStart, so the save is not checked against what the server holds now"
+        }
+      ]
+    },
+    {
+      "seed": 568,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv and the open draft of app-1.email (t:A20;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 571,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about requirements, cv and the open draft of app-1.coverLetter (t:B19;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 574,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv and the open draft of app-1.email (t:A2;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 575,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobDescription, fitAssessment, selectedTemplate and the open draft of app-1.email (t:B23;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle, jobDescription and the open draft of app-1.coverLetter (t:A18;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle, jobDescription and the open draft of app-1.email (t:A29;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 580,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about requirements and the open draft of app-1.cv (t:B8;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about requirements and the open draft of app-1.coverLetter (t:B21;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 592,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobTitle, company and the open draft of app-1.coverLetter (t:B13;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 594,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about fitAssessment and the open draft of app-1.followUpEmail (t:A19;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 596,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about selectedTemplate and the open draft of app-1.coverLetter (t:B27;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about selectedTemplate and the open draft of app-1.followUpEmail (t:B14;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 599,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv, selectedTemplate and the open draft of app-1.followUpEmail (t:B13;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 600,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B15;, which the user discarded while the save ran"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B6;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 614,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about fitAssessment and the open draft of app-1.email (t:B17;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about fitAssessment and the open draft of app-1.followUpEmail (t:B21;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 615,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv and the open draft of app-1.coverLetter (t:A19;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 619,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle, fitAssessment and the open draft of app-1.coverLetter (t:A2;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 621,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.followUpEmail (t:B23;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 624,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.email (t:B28;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 628,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about coverLetter and the open draft of app-1.email (t:B5;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 630,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about followUpEmail and the open draft of app-1.cv (t:A8;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A's editor on app-1.cv reopened with t:A8;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 636,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about email and the open draft of app-1.cv (t:A6;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 638,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobDescription, fitAssessment and the open draft of app-1.cv (t:B21;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobDescription, fitAssessment and the open draft of app-1.followUpEmail (t:B18;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 641,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about email and the open draft of app-1.coverLetter (t:A20;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 643,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about company, followUpEmail, fitAssessment and the open draft of app-1.cv (t:B15;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B15;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 644,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about fitAssessment and the open draft of app-1.cv (t:A19;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 645,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about followUpEmail and the open draft of app-1.coverLetter (t:B10;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 646,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobDescription and the open draft of app-1.coverLetter (t:A16;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobDescription and the open draft of app-1.followUpEmail (t:A27;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 647,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobDescription and the open draft of app-1.cv (t:B17;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobDescription and the open draft of app-1.cv (t:B26;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B17;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 648,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle, company, selectedTemplate and the open draft of app-1.cv (t:A26;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 650,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobDescription, fitAssessment and the open draft of app-1.cv (t:B24;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about jobDescription, fitAssessment and the open draft of app-1.coverLetter (t:B38;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 658,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about followUpEmail and the open draft of app-1.coverLetter (t:A8;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about followUpEmail and the open draft of app-1.coverLetter (t:A25;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 665,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about requirements and the open draft of app-1.cv (t:B18;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 675,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle, requirements and the open draft of app-1.followUpEmail (t:A18;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about  and the open draft of app-1.coverLetter (t:A23;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 676,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about company and the open draft of app-1.followUpEmail (t:B18;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about company and the open draft of app-1.followUpEmail (t:B8;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 679,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about requirements, followUpEmail, selectedTemplate and the open draft of app-1.cv (t:B18;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 680,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about coverLetter, email and the open draft of app-1.cv (t:A33;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 685,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.followUpEmail (t:B14;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 689,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about  and the open draft of app-1.email (t:B24;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 693,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle and the open draft of app-1.email (t:A16;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about jobTitle and the open draft of app-1.cv (t:A21;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B23;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 695,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv, selectedTemplate and the open draft of app-1.followUpEmail (t:A19;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 699,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about email and the open draft of app-1.coverLetter (t:A13;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about email and the open draft of app-1.coverLetter (t:A16;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 700,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about coverLetter and the open draft of app-1.cv (t:B3;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 707,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about followUpEmail and the open draft of app-1.coverLetter (t:B26;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 710,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about company and the open draft of app-1.coverLetter (t:B6;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about company and the open draft of app-1.cv (t:B15;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 711,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about fitAssessment and the open draft of app-1.followUpEmail (t:A22;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B10;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 714,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about cv and the open draft of app-1.coverLetter (t:A10;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 715,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about fitAssessment and the open draft of app-1.followUpEmail (t:A25;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 719,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about followUpEmail and the open draft of app-1.cv (t:B5;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 720,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about company and the open draft of app-1.cv (t:A7;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A discarded a notice about company and the open draft of app-1.followUpEmail (t:A17;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "A's editor on app-1.cv reopened with t:A7;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 721,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B discarded a notice about cv and the open draft of app-1.coverLetter (t:B20;) was reset with it"
+        }
+      ]
+    },
+    {
+      "seed": 731,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A discarded a notice about coverLetter, followUpEmail, fitAssessment and the open draft of app-1.cv (t:A16;) was reset with it"
+        },
+        {
+          "code": "I1",
+          "message": "B discarded a notice about requirements, cv, fitAssessment and the open draft of app-1.email (t:B17;) was reset with it"
+        }
+      ]
+    }
+  ],
+  "cases": []
+}

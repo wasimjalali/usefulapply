@@ -9,6 +9,9 @@
  *   npm run test:sync -- --seed 42 --verbose            # one seed, with its operation log
  *   npm run test:sync -- --only edit,save,poll,agent,workflow   # only these operations, to isolate one bug
  *
+ * With SYNC_FUZZ_MUTATION set (by `python3 e2e/tools/sync-fuzz/mutations.py --apply <name> -- <command>`) the engine
+ * under test was broken on purpose; the name is printed and recorded in the --out file.
+ *
  * It runs through tsx with e2e/tools/tsconfig.sync-fuzz.json, which maps the
  * server actions (@/lib/supabase) to a fake so the legacy module can be loaded.
  * Exit code 1 when any seed or case fails, 2 on a bad flag or a crash of the
@@ -80,6 +83,9 @@ async function main(): Promise<void> {
   // The engines log every failed request they handle; with thousands of injected failures that is noise.
   if (!args.verbose) console.error = () => undefined;
   const started = Date.now();
+  // Set by `mutations.py --apply`: the engine in src/ was broken on purpose for this run. Say so in the output and the --out file.
+  const mutation = process.env.SYNC_FUZZ_MUTATION;
+  if (mutation) console.log(`mutation: ${mutation}`);
   const caseResults: CaseResult[] = [];
   if (args.cases && args.seed === undefined) {
     for (const def of CASES) caseResults.push(await runCase(def, args.engine));
@@ -146,7 +152,7 @@ async function main(): Promise<void> {
 
   if (args.out) {
     writeFileSync(args.out, `${JSON.stringify({
-      engine: args.engine, from, count, ops: args.ops, totals, byInvariant: byCode, byKind,
+      engine: args.engine, ...(mutation ? { mutation } : {}), from, count, ops: args.ops, totals, byInvariant: byCode, byKind,
       failingSeeds: failures.map((failure) => failure.seed),
       failures: failures.slice(0, 200).map((failure) => ({ seed: failure.seed, violations: failure.violations })),
       cases: caseResults,

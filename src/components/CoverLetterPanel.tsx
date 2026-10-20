@@ -25,7 +25,7 @@ import { kitFilename } from '@/lib/utils/kit-export';
 import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback } from '@/lib/utils/server-export';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { useSessionStore } from '@/store/useSessionStore';
-import { commitEditorSave, editorShouldClose, getEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
+import { acknowledgementFor, commitEditorSave, editorShouldClose, getEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface CoverLetterPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -95,12 +95,18 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   // The revision the editor opened on. The draft lives here, outside the store, so
   // it is bound to that revision and checked again at save time (commitEditorSave).
   const editStartRef = useRef<EditorStart | undefined>(undefined);
-  // When the user deals with a conflict notice (restores, copies or discards their text), what this editor
+  // Counts the discards of cover letter conflict text that reached this editor. A save still running when the
+  // draft is discarded sees the count has moved and leaves the editor alone when its answer comes back.
+  const discardEpochRef = useRef(0);
+  // When the user deals with a conflict notice about the letter (restores or copies their text), what this editor
   // was opened against is stale: base it on the current revision, so its next Save is not refused again.
-  useEffect(() => subscribeConflictAcknowledged((acknowledged, discarded) => {
+  // Discarding the text the editor holds drops the draft, as Cancel does. Other fields' notices leave it alone.
+  useEffect(() => subscribeConflictAcknowledged((acknowledged, ack) => {
     if (editSessionIdRef.current !== acknowledged) return;
-    if (discarded) {
-      // Same as Cancel: the draft is the text the user just threw away.
+    const action = acknowledgementFor(ack, ['coverLetter'], editStartRef.current);
+    if (action === 'ignore') return;
+    if (action === 'reset') {
+      discardEpochRef.current += 1;
       setIsEditMode(false);
       setEditedCoverLetter(currentCoverLetterRef.current);
       editSessionIdRef.current = null;
@@ -406,6 +412,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
       const keepStructured = structured && editedCoverLetter.body === coverLetter?.body;
       const sessionId = editSessionIdRef.current;
       const sentDraft = JSON.stringify(editedCoverLetter);
+      const epochAtSave = discardEpochRef.current;
       // Save now, against the revision this editor opened on. If another write got
       // in first the draft is not applied: the editor stays open with the text in it.
       void commitEditorSave(sessionId, editStartRef.current, () => {
@@ -413,6 +420,8 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
           coverLetter: { ...rest, ...(keepStructured ? { structured } : {}), updatedAt: new Date().toISOString() },
         });
       }).then((outcome) => {
+        // The draft was discarded while the save ran: the editor is already closed and nothing here reopens it.
+        if (epochAtSave !== discardEpochRef.current) return;
         // Anything but a save the server confirmed leaves the editor open with the text in it.
         // So does typing during the save: the newer draft stays, now based on what was just saved.
         if (!editorShouldClose(outcome, sentDraft, JSON.stringify(editedCoverLetterRef.current))) {

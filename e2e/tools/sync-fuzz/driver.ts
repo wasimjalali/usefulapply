@@ -115,6 +115,12 @@ interface Editor {
   tokens: Set<string>;
   start: unknown;
   committing: boolean;
+  /** Whether the editor had a start when it opened. One that has lost it must never save as if it had none. */
+  hadStart: boolean;
+  /** The CV panel closes its editor when Save is clicked and reopens it only if the save did not land. */
+  closesOnSave: boolean;
+  /** Counts the discards of this editor's text, as the panels do: a save started before one must not reopen the draft. */
+  epoch: number;
 }
 
 export const GROUP_COLUMNS: Record<Field, string[]> = {
@@ -440,17 +446,32 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
   };
 
   const noticesWithText = (client: Adapter) => client.notices.filter((notice) => notice.conflictFor);
-  // The panels rebase an open editor when the user has dealt with a conflict notice.
+  const dropEditor = (editor: Editor) => {
+    const index = editors.indexOf(editor);
+    if (index >= 0) editors.splice(index, 1);
+    for (const token of editor.tokens) openEditorTokens.delete(token);
+  };
+  // The panels act on an acknowledgement through the engine's own rule (acknowledgementFor): an editor whose field
+  // group is named rebases on Restore and Copy and, on Discard, drops its draft as Cancel does; the others are left alone.
   for (const client of clients) {
-    client.subscribeAcknowledged((app, discarded) => {
+    client.subscribeAcknowledged((app, ack) => {
       for (const editor of [...editors]) {
         if (editor.client !== client || editor.app !== app) continue;
-        if (discarded) {
-          // Discard closes the open editor and drops its draft, as Cancel does: the draft is the text just thrown away.
-          editors.splice(editors.indexOf(editor), 1);
-          for (const token of editor.tokens) openEditorTokens.delete(token);
-        } else {
+        const action = client.acknowledgementFor(ack, [editor.field], editor.start);
+        say(`   ${client.id}'s editor on ${app}.${editor.field} (draft ${editor.draft}) hears ${ack.discarded ? 'a discard' : 'an acknowledgement'} of ${ack.entries.map((entry) => entry.group).join(', ')}: ${action}`);
+        if (action === 'ignore') continue;
+        if (action === 'rebase') {
           editor.start = client.editorStart(app, editor.start);
+          continue;
+        }
+        // The user threw away the text this editor holds.
+        editor.epoch += 1;
+        for (const token of editor.tokens) discarded.add(token);
+        if (editor.committing && editor.closesOnSave) {
+          // The CV panel's save is still running: its editor is closed, its start is cleared, and the answer decides nothing.
+          editor.start = undefined;
+        } else {
+          dropEditor(editor);
         }
       }
     });
@@ -492,9 +513,13 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         const apps = appsOf(client);
         if (!apps.length || editors.filter((editor) => editor.client === client).length >= 2) return;
         const app = pick(rng, apps);
-        const field = pick(rng, EDITOR_FIELDS);
+        const field = pick(rng, options.engine === 'new' ? [...EDITOR_FIELDS, 'cv' as Field] : EDITOR_FIELDS);
         const draft = nextToken(client.id);
-        const editor: Editor = { client, app, field, draft, tokens: new Set([draft]), start: client.editorStart(app), committing: false };
+        const start = client.editorStart(app);
+        const editor: Editor = {
+          client, app, field, draft, tokens: new Set([draft]), start, committing: false,
+          hadStart: start !== undefined, closesOnSave: field === 'cv', epoch: 0,
+        };
         editors.push(editor);
         openEditorTokens.add(draft);
         say(`${client.id} opens an editor on ${app}.${field} (draft ${draft})`);
@@ -504,8 +529,10 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
       // The user keeps typing, also while a save is in flight.
       weight: 5,
       run: () => {
-        if (!editors.length) return;
-        const editor = pick(rng, editors);
+        // An editor that closed on Save (the CV's) cannot be typed into until it reopens.
+        const typable = editors.filter((editor) => !(editor.committing && editor.closesOnSave));
+        if (!typable.length) return;
+        const editor = pick(rng, typable);
         editor.draft = nextToken(editor.client.id);
         editor.tokens.add(editor.draft);
         openEditorTokens.add(editor.draft);
@@ -523,7 +550,9 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         stats.editorSaves += 1;
         const { client, app, field } = editor;
         const sent = editor.draft;
+        const epochAtSave = editor.epoch;
         if (discarded.has(sent)) violate('I1', `${client.id}'s open editor on ${app}.${field} saved ${sent}, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)`);
+        if (editor.hadStart && editor.start === undefined) violate('I1', `${client.id}'s editor on ${app}.${field} saved ${sent} with no EditorStart, so the save is not checked against what the server holds now`);
         deliberate.add(sent);
         const work = client.editorCommit(app, editor.start, () => {
           client.edit(app, fieldMutation(field, sent));
@@ -539,14 +568,25 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
             lastEdit.delete(keyOf(client.id, app, field));
             openEditorTokens.delete(sent);
           }
+          if (editor.closesOnSave) {
+            // The CV panel: the editor closed on Save. A save that landed leaves it closed; one that did not reopens it
+            // with the text in it, unless the draft was discarded while the save ran.
+            if (client.editorSucceeded(outcome)) { dropEditor(editor); return; }
+            const again = client.afterClosedEditorSave(outcome, epochAtSave, editor.epoch, editor.start);
+            if (!again.reopen) { dropEditor(editor); return; }
+            if (editor.epoch !== epochAtSave) violate('I1', `${client.id}'s editor on ${app}.${field} reopened with ${sent}, which the user discarded while the save ran`);
+            editor.start = again.start;
+            if (!editors.includes(editor)) editors.push(editor);
+            return;
+          }
+          // The draft was discarded while the save ran: the editor is gone, and its answer decides nothing.
+          if (editor.epoch !== epochAtSave) return;
           const after = client.editorAfter(app, outcome, sent, editor.draft, editor.start);
           if (after.close) {
             if (editor.draft !== sent && !server.acceptedHas(app, editor.draft)) {
               violate('I1', `${client.id}'s editor on ${app}.${field} closed over text the user typed while the save ran`);
             }
-            const index = editors.indexOf(editor);
-            if (index >= 0) editors.splice(index, 1);
-            for (const token of editor.tokens) openEditorTokens.delete(token);
+            dropEditor(editor);
           } else if (after.start !== undefined) {
             editor.start = after.start;
           }
@@ -749,9 +789,23 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         const notices = noticesWithText(client);
         if (!notices.length) return;
         const notice = pick(rng, notices);
-        for (const token of tokensIn(client.noticeText(notice))) discarded.add(token);
         handled.add(notice);
+        say(`${client.id} clicks Dismiss, then Discard on a notice for ${notice.conflictFor}`);
+        // Only an entry still in the buffer is thrown away; the notice may name entries a Restore or a save already took out.
+        const held = new Set(client.bufferIds(notice.conflictFor!));
+        const thrown = client.noticeEntries(notice).filter((entry) => held.has(entry.id));
+        for (const entry of thrown) for (const token of entry.tokens) discarded.add(token);
+        // An open draft of a field this notice is not about is not the user's to lose.
+        const groups = new Set(thrown.map((entry) => entry.group));
+        const bystanders = editors
+          .filter((editor) => editor.client === client && editor.app === notice.conflictFor && !groups.has(editor.field))
+          .map((editor) => ({ editor, epoch: editor.epoch, start: editor.start }));
         client.dismissNotice(notice);
+        for (const { editor, epoch, start } of bystanders) {
+          if (!editors.includes(editor) || editor.epoch !== epoch || editor.start !== start) {
+            violate('I1', `${client.id} discarded a notice about ${[...groups].join(', ')} and the open draft of ${editor.app}.${editor.field} (${editor.draft}) was reset with it`);
+          }
+        }
       },
     },
   ].map((op, index) => ({ ...op, name: OP_NAMES[index] })).filter((op) => op.weight > 0 && (!options.only || options.only.includes(op.name)));

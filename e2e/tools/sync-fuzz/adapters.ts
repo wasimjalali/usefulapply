@@ -18,6 +18,7 @@
 import type { StoredSessionRow } from '@/lib/session-row-mapping';
 import { mapSessionRowToStore } from '@/lib/session-row-mapping';
 import type {
+  ConflictAcknowledgement,
   ConflictEntry,
   EditorOutcome,
   SessionStoreLike,
@@ -70,8 +71,8 @@ export interface Adapter {
   conflictJson(app: string): string;
   /** The buffer entries a notice is about, as text containing their tokens. */
   noticeText(notice: SyncNotice): string;
-  /** The buffer entries a notice named, with the user text each holds. */
-  noticeEntries(notice: SyncNotice): { id: string; tokens: string[] }[];
+  /** The buffer entries a notice named, with the user text each holds and the field group they are about. */
+  noticeEntries(notice: SyncNotice): { id: string; tokens: string[]; group: string }[];
   /** The ids of the entries the engine still holds for an application. */
   bufferIds(app: string): string[];
   restoreNotice(notice: SyncNotice): Promise<string>;
@@ -79,8 +80,12 @@ export interface Adapter {
   copyNotice(notice: SyncNotice): string | null;
   /** Dismiss then Discard: the user throws the notice's text away. */
   dismissNotice(notice: SyncNotice): void;
-  /** Called when the user has dealt with a conflict notice of an application (restore, copy, discard). `discarded` is true for Dismiss then Discard. */
-  subscribeAcknowledged(listener: (app: string, discarded: boolean) => void): () => void;
+  /** Called when the user has dealt with a conflict notice of an application (restore, copy, discard). `ack.discarded` is true for Dismiss then Discard. */
+  subscribeAcknowledged(listener: (app: string, ack: ConflictAcknowledgement) => void): () => void;
+  /** What a panel whose editor holds these field groups does with an acknowledgement (the engine's own rule, which the panels call). */
+  acknowledgementFor(ack: ConflictAcknowledgement, groups: string[], start: unknown): 'ignore' | 'rebase' | 'reset';
+  /** What the CV panel does when the answer to a save comes back after it closed its editor on Save. */
+  afterClosedEditorSave(outcome: string, epochAtSave: number, epochNow: number, start: unknown): { reopen: false } | { reopen: true; start: unknown };
   rejectedColumns(app: string): string[];
   baseline(app: string): { revision: number; fields: Record<string, string> | null } | undefined;
 }
@@ -330,12 +335,17 @@ export function newClient(
     noticeEntries: (notice) => (noticeEntries.get(notice) ?? []).map((entry) => ({
       id: entry.id ?? `${entry.key}@${entry.at}`,
       tokens: tokensIn(JSON.stringify(userText(entry))),
+      group: entry.key,
     })),
     bufferIds: (app) => engine.getConflictBuffer(app).map((entry) => entry.id ?? `${entry.key}@${entry.at}`),
     dismissNotice: (notice) => {
       if (current && notice.conflictFor) anyEngine.discardConflict(notice.conflictFor, notice.conflictEntries ?? []);
     },
     subscribeAcknowledged: (listener) => (current ? (anyEngine.subscribeConflictAcknowledged(listener) as () => void) : () => undefined),
+    acknowledgementFor: (ack, groups, start) => (current ? engineModule.acknowledgementFor(ack, groups, start as never) : 'ignore'),
+    afterClosedEditorSave: (outcome, epochAtSave, epochNow, start) => (current
+      ? engineModule.afterClosedEditorSave(outcome as EditorOutcome, epochAtSave, epochNow, start as never)
+      : { reopen: false }),
     restoreNotice: async (notice) => {
       if (!notice.conflictFor) return 'skipped';
       // Round 2 restored every buffered entry of the application, whichever notice was clicked.
@@ -434,6 +444,8 @@ export async function legacyClient(id: string, world: World): Promise<Adapter> {
     copyNotice: () => null,
     dismissNotice: () => undefined,
     subscribeAcknowledged: () => () => undefined,
+    acknowledgementFor: () => 'ignore',
+    afterClosedEditorSave: () => ({ reopen: false }),
     rejectedColumns: () => [],
     baseline: (app) => {
       const revision = legacy.getBaselineRevision(app);

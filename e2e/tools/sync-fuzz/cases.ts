@@ -10,6 +10,7 @@
 import { toStoreApplicationSession } from '@/components/job-feed/feed-session-mapper';
 import { mapSessionRowToStore } from '@/lib/session-row-mapping';
 import { columnFingerprints } from '@/lib/session-sync-engine';
+import type { ConflictAcknowledgement } from '@/lib/session-sync-engine';
 import type { Adapter } from './adapters';
 import { fieldMutation, kitProps, legacyClient, loadEngine, newClient, responseProps } from './adapters';
 import { emptyStats, settleAndVerify, type InvariantCode, type Violation } from './driver';
@@ -285,6 +286,48 @@ export const CASES: CaseDef[] = [
       await client.restoreNotice(notice);                       // the text goes back and is saved
       const copied = client.copyNotice(notice);
       ctx.check(copied === null, `Copy on a notice with nothing left gave ${JSON.stringify(copied)} instead of "nothing left"`);
+    },
+  },
+  {
+    name: 'pr159 Discard reaches only the editor whose text it throws away',
+    about: 'Two open editors (CV and cover letter) and a conflict notice about the letter: Discard resets the letter editor that holds the text, not the CV edit and not a letter editor opened after the conflict.',
+    run: async (ctx) => {
+      const { server, net, client, app } = ctx;
+      net.reliable = true;
+      const cvStart = client.editorStart(app);
+      const letterStart = client.editorStart(app);
+      server.writeField(app, 'coverLetter', 't:G1;', 'agent');
+      await client.poll(app);
+      const outcome = await client.editorCommit(app, letterStart, () => client.edit(app, fieldMutation('coverLetter', 't:L1;')));
+      ctx.check(outcome === 'conflict', `the letter draft on an older revision was not a conflict (${outcome})`);
+      const notice = [...client.notices].reverse().find((candidate) => candidate.conflictFor);
+      ctx.check(notice !== undefined, 'the conflicting editor save raised no notice');
+      if (!notice) return;
+      const freshLetterStart = client.editorStart(app);
+      const heard: { ack?: ConflictAcknowledgement } = {};
+      client.subscribeAcknowledged((_app, ack) => { heard.ack = ack; });
+      client.dismissNotice(notice);
+      if (!heard.ack) { ctx.check(false, 'Discard told no open editor'); return; }
+      ctx.check(client.acknowledgementFor(heard.ack, ['cv'], cvStart) === 'ignore', 'discarding the letter text reaches the CV editor');
+      ctx.check(client.acknowledgementFor(heard.ack, ['coverLetter'], letterStart) === 'reset', 'discarding the letter text does not reset the letter editor that holds it');
+      ctx.check(client.acknowledgementFor(heard.ack, ['coverLetter'], freshLetterStart) === 'ignore', 'discarding an old notice resets a letter editor opened after the conflict');
+      ctx.check(client.acknowledgementFor(heard.ack, ['coverLetter'], undefined) === 'reset', 'a letter editor with no start is left holding discarded text');
+    },
+  },
+  {
+    name: 'pr159 a draft that reopens with no start is checked as stale',
+    about: 'A save that was running when its draft was discarded reopens nothing; a draft that does reopen without an EditorStart is saved against a start that never matches, so it cannot overwrite a newer CV.',
+    run: async (ctx) => {
+      const { server, net, client, app } = ctx;
+      net.reliable = true;
+      server.writeField(app, 'cv', 't:G1;', 'agent');
+      await client.poll(app);
+      ctx.check(client.afterClosedEditorSave('conflict', 1, 2, undefined).reopen === false, 'a draft discarded while its save ran was reopened');
+      const again = client.afterClosedEditorSave('conflict', 1, 1, undefined);
+      ctx.check(again.reopen && again.start !== undefined, 'a reopened draft has no start');
+      if (!again.reopen) return;
+      const outcome = await client.editorCommit(app, again.start, () => client.edit(app, fieldMutation('cv', 't:D1;')));
+      ctx.check(outcome === 'conflict' && !server.acceptedHas(app, 't:D1;'), `a draft with a lost start was saved over the newer CV (${outcome})`);
     },
   },
   {

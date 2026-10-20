@@ -18,7 +18,7 @@ const proposeApplication: ChatTool = {
   handler: async (): Promise<ChatToolResult> => ({
     data: {
       ok: true,
-      note: 'The app shows buttons to check their fit or generate the kit when the posting is long enough, and replaces your reply with a short-posting message when it isn\'t. Do not summarize or answer the ad. Say one short line telling them to pick from the buttons.',
+      note: 'The app shows buttons to check their fit or generate the kit when the posting is long enough, and adds a line asking for the whole posting when it isn\'t. Do not summarize or answer the ad. Say one short line telling them to pick from the buttons.',
     },
     executed: [{ type: 'propose_application' }],
   }),
