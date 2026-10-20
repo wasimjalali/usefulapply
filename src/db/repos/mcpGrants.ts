@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { getDb, runBatch } from '../client';
 import { mcpGrantState, oauthClient, oauthConsent, oauthRefreshToken, profiles, user } from '../schema';
 
@@ -210,4 +210,38 @@ export async function setDailyAgentCreditLimit(userId: string, limit: number): P
     .update(profiles)
     .set({ mcp_daily_credit_limit: limit, updated_at: new Date().toISOString() })
     .where(eq(profiles.id, userId));
+}
+
+/** Revoke every connected app of a user (password reset, account takeover response). */
+export async function revokeAllConnectedApps(userId: string): Promise<number> {
+  const db = await getDb();
+  const consents = await db
+    .selectDistinct({ clientId: oauthConsent.clientId })
+    .from(oauthConsent)
+    .where(eq(oauthConsent.userId, userId));
+  const refresh = await db
+    .selectDistinct({ clientId: oauthRefreshToken.clientId })
+    .from(oauthRefreshToken)
+    .where(and(eq(oauthRefreshToken.userId, userId), isNull(oauthRefreshToken.revoked)));
+  const clientIds = [...new Set([...consents, ...refresh].map((row) => row.clientId))];
+  for (const clientId of clientIds) await revokeConnectedApp(userId, clientId);
+  return clientIds.length;
+}
+
+/** A client nobody consented to within this long is registration noise. */
+export const UNCONSENTED_CLIENT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Daily cleanup: dynamic registration is open, so delete clients older than 24 h
+ * that have no consent row. Tokens, resource links and anything else that
+ * references the client go with it (foreign keys cascade).
+ */
+export async function purgeUnconsentedClients(now = Date.now()): Promise<number> {
+  const cutoff = now - UNCONSENTED_CLIENT_MAX_AGE_MS;
+  const [result] = await runBatch([
+    sql`DELETE FROM oauth_client
+        WHERE COALESCE(created_at, 0) < ${cutoff}
+          AND NOT EXISTS (SELECT 1 FROM oauth_consent c WHERE c.client_id = oauth_client.client_id)`,
+  ]);
+  return result?.meta.changes ?? 0;
 }

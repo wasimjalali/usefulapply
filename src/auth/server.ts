@@ -7,8 +7,8 @@ import { mcp } from '@better-auth/mcp';
 import { BRAND } from '@/lib/brand';
 import { getAuthBaseUrl } from '@/lib/auth/site-url';
 import { fetchClientMetadataResource } from '@/lib/mcp/cimd-fetch';
-import { getMcpResourceUrl, isMcpCimdEnabled } from '@/lib/mcp/config';
-import { mcpRegistrationGuard } from '@/lib/mcp/guards';
+import { getMcpResourceUrl, isMcpCimdEnabled, MCP_JWT_ALG } from '@/lib/mcp/config';
+import { mcpOAuthGuards } from '@/lib/mcp/guards';
 import { isAllowedRedirectUri } from '@/lib/mcp/redirects';
 import { OAUTH_SCOPES } from '@/lib/mcp/scopes';
 import { sendEmail } from '@/lib/email/send';
@@ -119,6 +119,15 @@ function createAuth(db: Database) {
       // so it is set explicitly rather than left on Better Auth's 1 hour default.
       resetPasswordTokenExpiresIn: 60 * 30,
       revokeSessionsOnPasswordReset: true,
+      // A reset means the account may have been taken over: cut every connected app too.
+      onPasswordReset: async ({ user: resetUser }) => {
+        try {
+          const { revokeAllConnectedApps } = await import('@/db/repos/mcpGrants');
+          await revokeAllConnectedApps(resetUser.id);
+        } catch (error) {
+          console.error('[auth] revoking MCP grants after password reset failed', resetUser.id, error);
+        }
+      },
       sendResetPassword: async ({ user: resetUser, url }) => {
         const firstName = resetUser.name?.trim().split(/\s+/)[0] || null;
         const built = buildPasswordResetEmail({ resetLink: url, firstName });
@@ -214,6 +223,11 @@ function createAuth(db: Database) {
       },
     },
     advanced: {
+      // Better Auth's own rate limiter keys on client IP. Without this it cannot
+      // find one on Workers and puts every caller in a single shared bucket per
+      // path (its log says so), which throttles strangers together. Cloudflare
+      // sets cf-connecting-ip at the edge and the client cannot spoof it.
+      ipAddress: { ipAddressHeaders: ['cf-connecting-ip'] },
       cookiePrefix: 'usefulapply',
       cookies: {
         session_token: {
@@ -283,7 +297,12 @@ function createAuth(db: Database) {
       // @better-auth/oauth-provider) bound to the /mcp resource, and Client ID
       // Metadata Documents. `mcp()` is the OAuth provider, so there is no
       // separate oauthProvider(). Migration 0009 holds the tables.
-      jwt(),
+      // disableSettingJwtHeader: by default jwt() signs a session JWT on every
+      // /get-session (so on every authenticated request), which costs a jwks
+      // read and a signature per request and makes every session check depend
+      // on migration 0009 and on BETTER_AUTH_SECRET decrypting the key. Only
+      // the OAuth endpoints and /jwks use the keys.
+      jwt({ disableSettingJwtHeader: true, jwks: { keyPairConfig: { alg: MCP_JWT_ALG } } }),
       mcp({
         loginPage: '/auth/login',
         consentPage: '/oauth/consent',
@@ -293,6 +312,19 @@ function createAuth(db: Database) {
         refreshTokenExpiresIn: 30 * 24 * 60 * 60,
         // Browser-approved grants only: no client_credentials (machine-to-machine) tokens.
         grantTypes: ['authorization_code', 'refresh_token'],
+        // The provider's built-in limits (token 20 a minute, register 5) are per
+        // IP, and Claude and ChatGPT call from shared egress IPs, so they would
+        // throttle every user of a client together. Our Workers rate limit
+        // buckets (mcp-oauth, mcp-register in the auth route) replace them.
+        rateLimit: {
+          token: false,
+          authorize: false,
+          introspect: false,
+          revoke: false,
+          register: false,
+          rotateClientKeys: false,
+          userinfo: false,
+        },
         // Open dynamic client registration (RFC 7591). Redirect URIs are
         // checked at registration by mcpRegistrationGuard and again at authorize.
         allowDynamicClientRegistration: true,
@@ -309,7 +341,7 @@ function createAuth(db: Database) {
       ...(isMcpCimdEnabled()
         ? [cimd({ fetchClientMetadataResource, metadataProfile: 'mcp-2026-07-28' })]
         : []),
-      mcpRegistrationGuard(),
+      mcpOAuthGuards(),
       nextCookies(),
     ],
   });
