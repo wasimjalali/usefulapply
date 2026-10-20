@@ -733,6 +733,31 @@ async function main(): Promise<void> {
       return { revision: await revisionOf() };
     });
 
+    await scenario('d27. the export kit loader reads through getKit: a generated kit comes back whole, a stranger gets nothing', async () => {
+      const user = await seedUser('d27', { monthly: 4, addon: 6 });
+      const other = await seedUser('d27-other', { monthly: 4, addon: 6 });
+      const [sessionId] = user.sessionIds;
+      // The export reads the parsed primary CV next to the kit.
+      const parsed = { personal: { fullName: 'Tomas Brandt', email: 'tomas@example.test' }, experience: [], education: [], skills: [], languages: [], certifications: [] };
+      await run("UPDATE documents SET structured_data = ? WHERE user_id = ? AND type = 'primary_cv'", JSON.stringify(parsed), user.id);
+      const queued = await runners.enqueueKitGeneration(user.id, sessionId, 'key-d27', {});
+      await deliverUntilSettled(queued.operationId);
+      const { loadKitFromSession } = await import('../../src/lib/services/export/kit-loader');
+      const { getKit } = await import('../../src/lib/services/kit');
+      const stored = await getKit(user.id, sessionId);
+      const loaded = await loadKitFromSession(user.id, sessionId);
+      assert.ok(loaded, 'the loader found the application');
+      assert.equal(loaded.applicationId, sessionId);
+      assert.equal(loaded.jobTitle, stored.jobTitle);
+      assert.equal(loaded.company, stored.company);
+      assert.ok(loaded.cv, 'the tailored CV is there');
+      assert.ok(loaded.coverLetter && (loaded.coverLetter.structured || loaded.coverLetter.legacyText), 'the cover letter is there');
+      assert.ok(loaded.emails.length >= 1, 'the application email is there');
+      assert.equal(await loadKitFromSession(other.id, sessionId), null, 'another account gets nothing');
+      assert.equal(await loadKitFromSession(user.id, 'no-such-application'), null);
+      return { emails: loaded.emails.length };
+    });
+
     await scenario('d23. operation housekeeping: attempt cap on claims, pending over an hour fails and releases, late enders stand down, workflow writes do not bump the revision', async () => {
       const user = await seedUser('d23', { monthly: 4, addon: 6 }, 3);
       const [s1, s2, s3] = user.sessionIds;

@@ -74,7 +74,7 @@ export async function dispatchScheduled(cron: string): Promise<void> {
       }
       const purge = results[4];
       if (purge.status === 'fulfilled') console.log('[cron] MCP purge (clients without consent, expired token bindings)', purge.value);
-      const exportSweep = results[3];
+      const exportSweep = results[5];
       if (exportSweep.status === 'fulfilled') console.log('[cron] expired exports', exportSweep.value);
       // Side effects are already committed; throwing only marks the run failed in Workers Logs.
       if (problems.length > 0) {

@@ -3,7 +3,8 @@ import { legacyCoverLetterText } from '@/lib/cover-letter/legacy-text';
 import { buildCvData, type ProfileLinks } from '@/lib/cv-templates/build-cv-data';
 import { getDocumentByType } from '@/db/repos/documents';
 import { getProfile } from '@/db/repos/profiles';
-import { getSession } from '@/db/repos/sessions';
+import { getKit } from '@/lib/services/kit';
+import { NotFoundError } from '@/lib/services/errors';
 import { bytesToBase64 } from '@/lib/cv-templates/fonts';
 import { listPrefix, getObject } from '@/storage/r2';
 import { storedFileKey, userOwnsKey } from '@/storage/paths';
@@ -12,12 +13,13 @@ import type { StructuredCV } from '@/lib/types/cv-schema';
 import type { ExportAnswer, ExportEmail, ExportKit, KitLoader } from './types';
 
 /**
- * Reads one application into the shape the exporter needs, from the session
- * row and the profile, with every query scoped to the signed-in owner.
+ * Reads one application into the shape the exporter needs: the kit from the
+ * shared `getKit` service (canonical columns first, `generated_artifacts` as the
+ * fallback, the same reader the MCP tools use), plus the profile, the parsed
+ * primary CV and the photo. Every query is scoped to the signed-in owner.
  *
- * This is the one seam to the kit: when the shared `getKit` service lands, the
- * orchestrator replaces this function and nothing else in the export service
- * changes.
+ * This is the one seam to the kit; nothing else in the export service reaches
+ * into the session row.
  */
 
 const MAX_PHOTO_BYTES = 1024 * 1024;
@@ -56,14 +58,16 @@ async function loadPhotoDataUri(userId: string, avatarUrl: string | null | undef
 }
 
 export const loadKitFromSession: KitLoader = async (userId, applicationId) => {
-  const row = await getSession(userId, applicationId);
-  if (!row) return null;
+  let stored;
+  try {
+    stored = await getKit(userId, applicationId);
+  } catch (error) {
+    if (error instanceof NotFoundError) return null;
+    throw error;
+  }
 
   const [profile, primary] = await Promise.all([getProfile(userId), getDocumentByType(userId, 'primary_cv')]);
   const structuredCV = (primary?.structured_data ?? null) as StructuredCV | null;
-  const artifacts = asRecord(row.generated_artifacts);
-  const generated = asRecord(row.generated_cv);
-  const optimized = (generated?._optimizedCVData ?? artifacts?.optimizedCVData) as Parameters<typeof buildCvData>[0]['optimizedCVData'];
   const profileLinks: ProfileLinks | null = profile
     ? {
         linkedin_url: profile.linkedin_url,
@@ -75,36 +79,34 @@ export const loadKitFromSession: KitLoader = async (userId, applicationId) => {
       }
     : null;
 
-  const tailored = buildCvData({ structuredCV, optimizedCVData: optimized, showOptimized: true, profile: profileLinks });
+  const tailored = buildCvData({
+    structuredCV,
+    optimizedCVData: stored.optimizedCVData as Parameters<typeof buildCvData>[0]['optimizedCVData'],
+    showOptimized: true,
+    profile: profileLinks,
+  });
   const original = buildCvData({ structuredCV, showOptimized: false, profile: profileLinks });
 
-  const letterRecord = asRecord(row.cover_letter);
-  const structuredLetter = letterRecord && isStructuredCoverLetter(letterRecord.structured) ? letterRecord.structured : null;
-  let legacyText: string | null = null;
-  if (letterRecord && !structuredLetter) {
-    legacyText = legacyCoverLetterText(letterRecord as unknown as GeneratedCoverLetter);
-  } else if (typeof artifacts?.coverLetter === 'string' && artifacts.coverLetter.trim()) {
-    legacyText = artifacts.coverLetter;
-  }
+  const letter = stored.coverLetter;
+  const structuredLetter = letter && isStructuredCoverLetter(letter.structured) ? letter.structured : null;
+  const legacyText = letter && !structuredLetter ? legacyCoverLetterText(letter as GeneratedCoverLetter) : null;
 
   const emails = [
-    readEmail(row.email ?? artifacts?.applicationEmail, 'Application email'),
-    readEmail(row.follow_up_email ?? artifacts?.followUpEmail, 'Follow-up email'),
+    readEmail(stored.email, 'Application email'),
+    readEmail(stored.followUpEmail, 'Follow-up email'),
   ].filter((email): email is ExportEmail => email !== null);
 
-  const answers: ExportAnswer[] = Array.isArray(generated?._screeningAnswers)
-    ? (generated._screeningAnswers as Array<Record<string, unknown>>)
-        .filter((item) => typeof item?.question === 'string' && typeof item?.answer === 'string')
-        .map((item) => ({ question: item.question as string, answer: item.answer as string }))
-    : [];
+  const answers: ExportAnswer[] = (stored.screeningAnswers ?? [])
+    .filter((item) => typeof item?.question === 'string' && typeof item?.answer === 'string')
+    .map((item) => ({ question: item.question, answer: item.answer }));
 
   const photoDataUri = await loadPhotoDataUri(userId, profile?.avatar_url);
 
   const kit: ExportKit = {
-    applicationId: row.id,
-    jobTitle: row.job_title ?? '',
-    company: row.company ?? '',
-    templateId: row.selected_template ?? null,
+    applicationId: stored.applicationId,
+    jobTitle: stored.jobTitle,
+    company: stored.company,
+    templateId: stored.selectedTemplate ?? null,
     applicantName: tailored?.personal.fullName || profile?.full_name || '',
     cv: tailored,
     originalCv: original,

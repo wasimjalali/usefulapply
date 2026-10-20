@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { defineConfig } from '@playwright/test';
 import { BASE_URL, FAKE_ANTHROPIC_PORT, FAKE_ANTHROPIC_URL, OAUTH_PORT, PREVIEW_PORT, REPO_ROOT } from './e2e/lib/env';
@@ -20,7 +21,12 @@ import { BASE_URL, FAKE_ANTHROPIC_PORT, FAKE_ANTHROPIC_URL, OAUTH_PORT, PREVIEW_
  *   An installed Google Chrome, or PW_CHANNEL=chromium after `npx playwright install chromium`,
  *   or E2E_CHROMIUM=/path/to/chrome.
  *
- * Run both: npm run test:e2e. One project: npx playwright test --project=data. Playwright's
+ *   exports evals/ats-export/e2e     The web download E2E of the CV and letter renderer (PR #154). Only with
+ *                                  E2E_EXPORTS=1: it needs the Browser Run binding remote (a local-only
+ *                                  `"remote": true` on `browser` in wrangler.jsonc, never committed), `next dev` on
+ *                                  8793, poppler, and `npm ci --prefix evals/ats-export`. Not part of `npm run test:e2e`.
+ *
+ * Run oauth and data: npm run test:e2e. The exports project too: E2E_EXPORTS=1 npx playwright test --project=exports. One project: npx playwright test --project=data. Playwright's
  * `webServer` list is global, not per project, so a single-project run still starts all three
  * servers (8791, the fake model and 8794) and fails if any of those ports is taken.
  * Servers are always started fresh (`reuseExistingServer: false`), so a stale process on a
@@ -127,6 +133,29 @@ export default defineConfig({
     screenshot: 'on',
   },
   projects: [
+    ...(process.env.E2E_EXPORTS === '1'
+      ? [
+          {
+            name: 'exports-setup',
+            testDir: './evals/ats-export/e2e',
+            testMatch: 'setup.spec.ts',
+            timeout: 120_000,
+          },
+          {
+            name: 'exports',
+            testDir: './evals/ats-export/e2e',
+            testMatch: 'web-downloads.spec.ts',
+            dependencies: ['exports-setup'],
+            timeout: 180_000,
+            use: {
+              baseURL: 'http://localhost:8793',
+              acceptDownloads: true,
+              storageState: join(tmpdir(), 'ua-e2e-storage.json'),
+              viewport: { width: 1440, height: 900 },
+            },
+          },
+        ]
+      : []),
     {
       name: 'oauth',
       testDir: './e2e',

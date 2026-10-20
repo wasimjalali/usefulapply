@@ -52,6 +52,8 @@ function writeConfig(dir: string): string {
       database_id: D1_DATABASE_ID,
       migrations_dir: join(REPO_ROOT, 'migrations', 'd1'),
     }],
+    // A local bucket, for the services that read photos or write exports.
+    r2_buckets: [{ binding: 'FILES', bucket_name: 'usefulapply-files' }],
   }, null, 2));
   return configPath;
 }
