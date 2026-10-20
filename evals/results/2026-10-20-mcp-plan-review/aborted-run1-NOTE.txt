@@ -1,0 +1,1 @@
+Run 1 stopped by orchestrator after ~3 min: plan gained the ATS section (4b) mid-run, so both reviewers restarted on the final text.
