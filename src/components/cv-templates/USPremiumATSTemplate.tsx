@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * US Premium ATS Template
  * 
@@ -18,6 +16,9 @@
  */
 
 import { CVData, CVTemplate } from '@/lib/cv-templates/types';
+import { rootBox, type CvRenderMode } from '@/lib/cv-templates/print-spec';
+import { sectionHeading, formatDateRange, formatSingleDate, uiText } from '@/lib/cv-templates/locale';
+import { SkillGrid } from './shared';
 import { Mail, Phone, MapPin, Linkedin, Globe, Github, Award } from 'lucide-react';
 
 interface Props {
@@ -27,16 +28,11 @@ interface Props {
   matchScore?: number;
   showScores?: boolean;
   photoUrl?: string;
+  /** `print` hides edit affordances and drops the page box so the export owns the margins. */
+  mode?: CvRenderMode;
 }
 
-export function USPremiumATSTemplate({ 
-  data, 
-  template, 
-  qualityScore,
-  matchScore,
-  showScores = false,
-  photoUrl,
-}: Props) {
+export function USPremiumATSTemplate({ data, template, qualityScore, matchScore, showScores = false, photoUrl, mode }: Props) {
   const { colors } = template;
   
   // 2026 Premium "Trust" Palette - Navy, clean, executive
@@ -54,18 +50,17 @@ export function USPremiumATSTemplate({
     <div 
       className="cv-template us-premium-ats bg-white shadow-lg mx-auto print:shadow-none"
       style={{ 
-        width: '8.5in',
-        minHeight: '11in',
-        fontFamily: "'Arial', 'Helvetica', sans-serif",  // 2026: Clean sans-serif body
+        fontFamily: "'Arimo', 'Arial', 'Helvetica', sans-serif",  // 2026: Clean sans-serif body
         color: premiumColors.text,
         lineHeight: 1.2,  // 2026: Tighter line spacing (1.15-1.2)
         pageBreakAfter: 'auto',
         pageBreakInside: 'auto',
-        padding: '0.5in 0.75in',  // Professional standard: 0.5in top/bottom, 0.75in left/right
+        ...rootBox(template.id, mode),
+        fontVariantLigatures: 'none',
       }}
     >
       {/* Quality/Match Score Badge (only shown in preview, not print) */}
-      {showScores && (qualityScore || matchScore) && (
+      {mode !== 'print' && showScores && (qualityScore || matchScore) && (
         <div className="print:hidden absolute top-4 right-4 flex gap-2">
           {matchScore && (
             <div className="px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full">
@@ -88,7 +83,7 @@ export function USPremiumATSTemplate({
       <header style={{ paddingBottom: '16px', borderBottom: `2px solid ${premiumColors.primary}`, marginBottom: '20px' }}>
         <h1 
           style={{ 
-            fontFamily: "'Georgia', 'Times New Roman', serif",  // 2026: Serif headers for authority
+            fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",  // 2026: Serif headers for authority
             fontSize: '28px',
             fontWeight: 'bold',
             letterSpacing: '-0.5px',
@@ -103,7 +98,7 @@ export function USPremiumATSTemplate({
         {data.personal.currentTitle && (
           <p 
             style={{ 
-              fontFamily: "'Georgia', 'Times New Roman', serif",
+              fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
               fontSize: '16px',
               fontWeight: 500,
               marginBottom: '16px',
@@ -122,7 +117,7 @@ export function USPremiumATSTemplate({
             alignItems: 'center',
             columnGap: '16px',
             rowGap: '4px',
-            fontSize: '12px',
+            fontSize: '10pt',
             color: premiumColors.textLight,
           }}
         >
@@ -207,8 +202,8 @@ export function USPremiumATSTemplate({
           <section style={{ marginBottom: '20px' }}>
             <h2 
               style={{ 
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '14px',
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '2px',
@@ -218,11 +213,11 @@ export function USPremiumATSTemplate({
                 color: premiumColors.primary,
               }}
             >
-              {data.sectionHeaders?.summary || 'PROFESSIONAL SUMMARY'}
+              {sectionHeading(data, 'summary')}
             </h2>
             <p 
               style={{ 
-                fontSize: '12px',
+                fontSize: '10pt',
                 lineHeight: 1.5,
                 color: premiumColors.text,
               }}
@@ -237,8 +232,8 @@ export function USPremiumATSTemplate({
           <section style={{ marginBottom: '20px' }}>
             <h2 
               style={{ 
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '14px',
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '2px',
@@ -248,143 +243,22 @@ export function USPremiumATSTemplate({
                 color: premiumColors.primary,
               }}
             >
-              {data.sectionHeaders?.skills || 'CORE COMPETENCIES'}
+              {sectionHeading(data, 'skills')}
             </h2>
-            {/* 2026 Premium: 3-Column Grid Layout - Max 5 categories + Languages */}
-            <div 
-              style={{ 
-                display: 'flex', 
-                flexWrap: 'wrap', 
-                justifyContent: 'flex-start', 
-                gap: '20px',
-              }}
-            >
-              {/* First row: 2 skill categories + Languages */}
-              {data.skills.slice(0, 2).map((group, groupIdx) => (
-                <div key={groupIdx} style={{ flex: '1', minWidth: '30%', maxWidth: '32%' }}>
-                  <h4 
-                    style={{ 
-                      color: premiumColors.primary, 
-                      fontWeight: 700, 
-                      fontSize: '10px', 
-                      marginBottom: '6px', 
-                      textTransform: 'uppercase',
-                      letterSpacing: '1px',
-                    }}
-                  >
-                    {group.category}
-                  </h4>
-                  <div style={{ margin: 0 }}>
-                    {group.items.slice(0, 5).map((skill, idx) => (
-                      <div 
-                        key={idx} 
-                        style={{ 
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: '6px',
-                          fontSize: '12px',
-                          lineHeight: 1.4,
-                          marginBottom: '3px',
-                          color: premiumColors.text,
-                        }}
-                      >
-                        <span style={{ flexShrink: 0 }}>•</span>
-                        <span>{skill}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              
-              {/* Languages Column - Integrated into first row */}
-              {data.languages.length > 0 && (
-                <div style={{ flex: '1', minWidth: '30%', maxWidth: '32%' }}>
-                  <h4 
-                    style={{ 
-                      color: premiumColors.primary, 
-                      fontWeight: 700, 
-                      fontSize: '10px', 
-                      marginBottom: '6px', 
-                      textTransform: 'uppercase',
-                      letterSpacing: '1px',
-                    }}
-                  >
-                    {data.sectionHeaders?.languages || 'LANGUAGES'}
-                  </h4>
-                  <div style={{ margin: 0 }}>
-                    {data.languages.map((lang, idx) => (
-                      <div 
-                        key={idx} 
-                        style={{ 
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: '6px',
-                          fontSize: '12px',
-                          lineHeight: 1.4,
-                          marginBottom: '3px',
-                          color: premiumColors.text,
-                        }}
-                      >
-                        <span style={{ flexShrink: 0 }}>•</span>
-                        <span>
-                          <strong>{lang.language}{lang.proficiency ? ':' : ''}</strong>{lang.proficiency ? ` ${lang.proficiency}` : ''}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            {/* Second row: Additional skill categories (3rd-5th) - 3-column layout */}
-            {data.skills.length > 2 && (
-              <div 
-                style={{ 
-                  display: 'flex', 
-                  flexWrap: 'wrap', 
-                  justifyContent: 'flex-start', 
-                  gap: '20px',
-                  marginTop: '12px',
-                }}
-              >
-                {data.skills.slice(2, 5).map((group, groupIdx) => (
-                  <div key={groupIdx} style={{ flex: '1', minWidth: '30%', maxWidth: '32%' }}>
-                    <h4 
-                      style={{ 
-                        color: premiumColors.primary, 
-                        fontWeight: 700, 
-                        fontSize: '10px', 
-                        marginBottom: '6px', 
-                        textTransform: 'uppercase',
-                        letterSpacing: '1px',
-                      }}
-                    >
-                      {group.category}
-                    </h4>
-                    <div style={{ margin: 0 }}>
-                      {group.items.slice(0, 5).map((skill, idx) => (
-                        <div 
-                          key={idx} 
-                          style={{ 
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: '6px',
-                            fontSize: '12px',
-                            lineHeight: 1.4,
-                            marginBottom: '3px',
-                            color: premiumColors.text,
-                          }}
-                        >
-                          <span style={{ flexShrink: 0 }}>•</span>
-                          <span>{skill}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+          <SkillGrid
+            data={data}
+            primary={premiumColors.primary}
+            text={premiumColors.text}
+            columnGap={20}
+            rowGap={12}
+            labelMarginBottom={6}
+            labelLetterSpacing="1px"
+            itemGap={3}
+            bulletGap={6}
+            lineHeight={1.4}
+            languagesAfter={2}
+          />
+        </section>
         )}
 
         {/* Professional Experience */}
@@ -392,8 +266,8 @@ export function USPremiumATSTemplate({
           <section style={{ marginBottom: '20px' }}>
             <h2 
               style={{ 
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '14px',
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '2px',
@@ -403,17 +277,17 @@ export function USPremiumATSTemplate({
                 color: premiumColors.primary,
               }}
             >
-              {data.sectionHeaders?.experience || 'PROFESSIONAL EXPERIENCE'}
+              {sectionHeading(data, 'experience')}
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {data.experience.map((exp, idx) => (
-                <div key={exp.id || idx} style={{ position: 'relative' }}>
+                <div className="cv-entry" key={exp.id || idx} style={{ position: 'relative' }}>
                   {/* Role Header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
                     <h3 
                       style={{ 
-                        fontFamily: "'Georgia', 'Times New Roman', serif",
-                        fontSize: '13px',
+                        fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                        fontSize: '10.5pt',
                         fontWeight: 'bold',
                         color: premiumColors.text,
                       }}
@@ -422,21 +296,21 @@ export function USPremiumATSTemplate({
                     </h3>
                     <span 
                       style={{ 
-                        fontSize: '12px',
+                        fontSize: '10pt',
                         fontWeight: '500',
                         whiteSpace: 'nowrap',
                         marginLeft: '16px',
                         color: premiumColors.textLight,
                       }}
                     >
-                      {exp.startDate} – {exp.current ? (data.localizedStrings?.present || 'Present') : exp.endDate}
+                      {formatDateRange(data, exp)}
                     </span>
                   </div>
                   
                   {/* Company */}
                   <p 
                     style={{ 
-                      fontSize: '12px',
+                      fontSize: '10pt',
                       fontWeight: '500',
                       marginBottom: '8px',
                       color: premiumColors.accent,
@@ -457,8 +331,9 @@ export function USPremiumATSTemplate({
                           style={{ 
                             display: 'flex',
                             alignItems: 'flex-start',
+                            breakInside: 'avoid',
                             gap: '8px',
-                            fontSize: '12px',
+                            fontSize: '10pt',
                             lineHeight: 1.4,
                             marginBottom: '4px',
                             color: premiumColors.text,
@@ -481,8 +356,8 @@ export function USPremiumATSTemplate({
           <section style={{ marginBottom: '20px' }}>
             <h2 
               style={{ 
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '14px',
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '2px',
@@ -492,43 +367,43 @@ export function USPremiumATSTemplate({
                 color: premiumColors.primary,
               }}
             >
-              {data.sectionHeaders?.education || 'EDUCATION'}
+              {sectionHeading(data, 'education')}
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {data.education.map((edu, idx) => (
-                <div key={edu.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <div className="cv-entry" key={edu.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <div>
                     <h3 
                       style={{ 
-                        fontFamily: "'Georgia', 'Times New Roman', serif",
-                        fontSize: '13px',
+                        fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                        fontSize: '10.5pt',
                         fontWeight: '600',
                         color: premiumColors.text,
                       }}
                     >
                       {edu.degree}
-                      {edu.field && <span style={{ fontWeight: 'normal' }}> {data.localizedStrings?.degreeConnector || 'in'} {edu.field}</span>}
+                      {edu.field && <span style={{ fontWeight: 'normal' }}> {uiText(data, 'degreeConnector')} {edu.field}</span>}
                     </h3>
                     <p 
                       style={{ 
-                        fontSize: '12px',
+                        fontSize: '10pt',
                         color: premiumColors.textLight,
                       }}
                     >
                       {edu.institution}
-                      {edu.grade && <span> • {data.localizedStrings?.gradePrefix || 'GPA:'} {edu.grade}</span>}
+                      {edu.grade && <span> • {uiText(data, 'gradePrefix')} {edu.grade}</span>}
                     </p>
                   </div>
                   {edu.endDate && (
                     <span 
                       style={{ 
-                        fontSize: '12px',
+                        fontSize: '10pt',
                         whiteSpace: 'nowrap',
                         marginLeft: '16px',
                         color: premiumColors.textLight,
                       }}
                     >
-                      {edu.endDate}
+                      {formatSingleDate(data, edu.endDate)}
                     </span>
                   )}
                 </div>
@@ -542,8 +417,8 @@ export function USPremiumATSTemplate({
           <section style={{ marginBottom: '20px' }}>
             <h2 
               style={{ 
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '14px',
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '2px',
@@ -553,7 +428,7 @@ export function USPremiumATSTemplate({
                 color: premiumColors.primary,
               }}
             >
-              {data.sectionHeaders?.certifications || 'CERTIFICATIONS'}
+              {sectionHeading(data, 'certifications')}
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '24px', rowGap: '6px' }}>
               {data.certifications.map((cert, idx) => (
@@ -563,7 +438,7 @@ export function USPremiumATSTemplate({
                     display: 'flex', 
                     alignItems: 'center', 
                     gap: '8px', 
-                    fontSize: '12px' 
+                    fontSize: '10pt' 
                   }}
                 >
                   <Award 
@@ -593,8 +468,8 @@ export function USPremiumATSTemplate({
           <section style={{ marginBottom: '20px' }}>
             <h2
               style={{
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '14px',
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '2px',
@@ -604,7 +479,7 @@ export function USPremiumATSTemplate({
                 color: premiumColors.primary,
               }}
             >
-              {data.sectionHeaders?.projects || 'PROJECTS'}
+              {sectionHeading(data, 'projects')}
             </h2>
             {/* One line per project keeps the section short; a description
                 that just repeats the name is dropped. */}
@@ -612,11 +487,11 @@ export function USPremiumATSTemplate({
               const description = project.description?.trim();
               const showDescription = Boolean(description && description.toLowerCase() !== project.name.trim().toLowerCase());
               return (
-                <div key={project.id} style={{ fontSize: '11px', lineHeight: 1.5, color: premiumColors.textLight, marginBottom: '4px' }}>
-                  <span style={{ fontWeight: 600, fontSize: '12px', color: premiumColors.text }}>{project.name}</span>
+                <div key={project.id} style={{ fontSize: '10pt', lineHeight: 1.5, color: premiumColors.textLight, marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '10pt', color: premiumColors.text }}>{project.name}</span>
                   {showDescription && <span>: {description}</span>}
                   {project.technologies && project.technologies.length > 0 && (
-                    <span style={{ fontSize: '10px', color: premiumColors.accent }}> ({project.technologies.join(', ')})</span>
+                    <span style={{ fontSize: '10pt', color: premiumColors.accent }}> ({project.technologies.join(', ')})</span>
                   )}
                 </div>
               );
@@ -629,8 +504,8 @@ export function USPremiumATSTemplate({
           <section style={{ marginBottom: '20px' }}>
             <h2 
               style={{ 
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '14px',
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '2px',
@@ -640,9 +515,9 @@ export function USPremiumATSTemplate({
                 color: premiumColors.primary,
               }}
             >
-              {data.sectionHeaders?.additionalInfo || 'ADDITIONAL INFORMATION'}
+              {sectionHeading(data, 'additionalInfo')}
             </h2>
-            <div style={{ fontSize: '12px', color: premiumColors.text }}>
+            <div style={{ fontSize: '10pt', color: premiumColors.text }}>
               {data.additionalInfo.map((item, idx) => (
                 <span key={idx}>
                   {item}
@@ -658,8 +533,8 @@ export function USPremiumATSTemplate({
           <section key={section.id} style={{ marginBottom: '20px' }}>
             <h2
               style={{
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '14px',
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '2px',
@@ -673,18 +548,13 @@ export function USPremiumATSTemplate({
             </h2>
             <ul style={{ listStyleType: 'disc', paddingLeft: '18px', margin: 0 }}>
               {section.items.map((item, idx) => (
-                <li key={idx} style={{ fontSize: '12px', color: premiumColors.text, marginBottom: '3px', lineHeight: 1.5 }}>
+                <li key={idx} style={{ fontSize: '10pt', color: premiumColors.text, marginBottom: '3px', lineHeight: 1.5 }}>
                   {item}
                 </li>
               ))}
             </ul>
           </section>
         ))}
-      </div>
-
-      {/* Print footer with page number */}
-      <div className="hidden print:block fixed bottom-4 right-8 text-xs text-gray-400">
-        Page 1 of 1
       </div>
     </div>
   );

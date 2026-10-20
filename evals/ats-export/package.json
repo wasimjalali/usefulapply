@@ -1,0 +1,19 @@
+{
+  "name": "ats-export-eval",
+  "private": true,
+  "version": "1.0.0",
+  "description": "ATS and layout eval for the CV and cover letter export. Its own package so the app's lockfile stays untouched.",
+  "scripts": {
+    "fetch:openresume": "bash fetch-open-resume.sh",
+    "worker": "wrangler dev --config render-worker/wrangler.jsonc --port 8793",
+    "eval": "tsx --tsconfig tsconfig.json run.ts",
+    "baseline": "tsx --tsconfig tsconfig.json baseline.ts",
+    "parity": "tsx --tsconfig tsconfig.json parity.ts"
+  },
+  "dependencies": {
+    "@playwright/test": "1.55.0",
+    "pdf-lib": "1.17.1",
+    "pdfjs-dist": "5.5.207",
+    "tsx": "4.20.5"
+  }
+}

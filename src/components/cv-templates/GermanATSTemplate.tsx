@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * German ATS Template
  *
@@ -10,27 +8,19 @@
  */
 
 import { CVData, CVTemplate } from '@/lib/cv-templates/types';
+import { rootBox, type CvRenderMode } from '@/lib/cv-templates/print-spec';
+import { sectionHeading, formatDateRange, formatSingleDate, uiText } from '@/lib/cv-templates/locale';
 import { Mail, Phone, MapPin, Linkedin, Globe, Github } from 'lucide-react';
 
 interface Props {
   data: CVData;
   template: CVTemplate;
   photoUrl?: string;
+  /** `print` hides edit affordances and drops the page box so the export owns the margins. */
+  mode?: CvRenderMode;
 }
 
-// Default English section headers — AI output overrides these via data.sectionHeaders
-const DEFAULT_HEADERS = {
-  summary: 'PROFESSIONAL SUMMARY',
-  skills: 'CORE COMPETENCIES',
-  experience: 'PROFESSIONAL EXPERIENCE',
-  education: 'EDUCATION',
-  certifications: 'CERTIFICATIONS',
-  languages: 'LANGUAGES',
-  additionalInfo: 'ADDITIONAL INFORMATION',
-  projects: 'PROJECTS',
-};
-
-export function GermanATSTemplate({ data, template, photoUrl }: Props) {
+export function GermanATSTemplate({ data, template, photoUrl, mode }: Props) {
   // 2026 Design Refresh: German Lebenslauf palette
   const germanColors = {
     primary: '#1E3A5F',      // Refined slate blue - elegant & ATS-safe
@@ -45,16 +35,15 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
     <div 
       className="cv-template"
       style={{ 
-        width: '210mm',
-        minHeight: '297mm',
         backgroundColor: 'white',
-        padding: '12mm 19mm',  // DIN 5008 ~2cm margins, consistent mm units with page dimensions
         pageBreakAfter: 'auto',
         pageBreakInside: 'auto',
-        fontFamily: "'Arial', 'Helvetica Neue', 'Helvetica', sans-serif",
-        fontSize: '11px',
+        fontFamily: "'Arimo', 'Arial', 'Helvetica Neue', 'Helvetica', sans-serif",
+        fontSize: '10pt',
         lineHeight: 1.2,
         color: germanColors.text,
+        ...rootBox(template.id, mode),
+        fontVariantLigatures: 'none',
       }}
     >
       {/* FULL-WIDTH HEADER SECTION - ATS Optimized, Photo Top-Right (German Standard) */}
@@ -64,7 +53,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
           <div style={{ flex: 1 }}>
             <h1
               style={{
-                fontFamily: "'Georgia', 'Times New Roman', serif",
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
                 fontSize: '24px',
                 fontWeight: 'bold',
                 color: germanColors.primary,
@@ -76,8 +65,8 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
             {data.personal.currentTitle && (
               <p
                 style={{
-                  fontFamily: "'Georgia', 'Times New Roman', serif",
-                  fontSize: '13px',
+                  fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                  fontSize: '10.5pt',
                   fontWeight: '600',
                   color: germanColors.textLight,
                   marginBottom: '16px',
@@ -94,7 +83,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 flexWrap: 'wrap',
                 alignItems: 'center',
                 gap: '16px',
-                fontSize: '11px',
+                fontSize: '10pt',
                 color: germanColors.textLight,
               }}
             >
@@ -148,7 +137,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
               {data.personal.website && (
                 <a href={data.personal.website} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'inherit', textDecoration: 'none' }}>
                   <Globe style={{ width: '12px', height: '12px', color: germanColors.primary }} />
-                  <span>{data.localizedStrings?.websiteLabel || 'Website'}</span>
+                  <span>{uiText(data, 'websiteLabel')}</span>
                 </a>
               )}
             </div>
@@ -159,16 +148,16 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                   display: 'flex',
                   flexWrap: 'wrap',
                   gap: '16px',
-                  fontSize: '11px',
+                  fontSize: '10pt',
                   color: germanColors.textLight,
                   marginTop: '6px',
                 }}
               >
                 {data.personal.dateOfBirth && (
-                  <span><strong style={{ color: germanColors.primary }}>{data.localizedStrings?.dateOfBirthLabel || 'Date of Birth'}:</strong> {data.personal.dateOfBirth}</span>
+                  <span><strong style={{ color: germanColors.primary }}>{uiText(data, 'dateOfBirthLabel')}:</strong> {data.personal.dateOfBirth}</span>
                 )}
                 {data.personal.nationality && (
-                  <span><strong style={{ color: germanColors.primary }}>{data.localizedStrings?.nationalityLabel || 'Nationality'}:</strong> {data.personal.nationality}</span>
+                  <span><strong style={{ color: germanColors.primary }}>{uiText(data, 'nationalityLabel')}:</strong> {data.personal.nationality}</span>
                 )}
               </div>
             )}
@@ -201,8 +190,8 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
         <section style={{ marginBottom: '20px' }}>
           <h2 
             style={{ 
-              fontFamily: "'Georgia', 'Times New Roman', serif",
-              fontSize: '13px',
+              fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+              fontSize: '10.5pt',
               fontWeight: 'bold',
               textTransform: 'uppercase',
               letterSpacing: '1px',
@@ -212,9 +201,9 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
               borderBottom: `2px solid ${germanColors.primary}`,
             }}
           >
-            {data.sectionHeaders?.summary || DEFAULT_HEADERS.summary}
+            {sectionHeading(data, 'summary')}
           </h2>
-          <p style={{ fontSize: '12px', lineHeight: 1.5, color: germanColors.text }}>
+          <p style={{ fontSize: '10pt', lineHeight: 1.5, color: germanColors.text }}>
             {data.summary}
           </p>
         </section>
@@ -224,13 +213,230 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
       <div
         style={{
           width: '100%',
-          display: 'flex',
+          display: 'grid',
+          gridTemplateColumns: '52mm minmax(0, 1fr)',
         }}
       >
+      {/* DOM order is main column first, so ATS parsers and screen readers read experience before the sidebar. Grid placement puts the sidebar on the left without changing the reading order. */}
+      {/* Main Content */}
+      <main style={{ gridColumn: 2, gridRow: 1, minWidth: 0, padding: '0 0 0 12px' }}>  {/* Zero right padding (outer handles it), small left padding for gap */}
+        {/* Experience */}
+        {data.experience.length > 0 && (
+          <section style={{ marginBottom: '18px' }}>
+            <h2 
+              style={{ 
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                color: germanColors.primary,
+                marginBottom: '10px',
+                paddingBottom: '8px',
+                borderBottom: `2px solid ${germanColors.primary}`,
+              }}
+            >
+              {sectionHeading(data, 'experience')}
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {data.experience.map((exp) => (
+                <div className="cv-entry" key={exp.id}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '2px' }}>
+                    <h3 style={{ fontSize: '10.5pt', fontWeight: 'bold', color: germanColors.text }}>
+                      {exp.position}
+                    </h3>
+                    <span style={{ fontSize: '10pt', whiteSpace: 'nowrap', color: germanColors.textLight }}>
+                      {formatDateRange(data, exp)}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '10pt', fontWeight: '600', marginBottom: '6px', color: germanColors.primary }}>
+                    {exp.company}
+                    {exp.location && <span style={{ color: germanColors.textLight }}> | {exp.location}</span>}
+                  </p>
+                  {/* Explicit bullet characters for PDF compatibility */}
+                  {exp.bullets.length > 0 && (
+                    <div style={{ marginTop: '4px', marginLeft: '4px' }}>
+                      {exp.bullets.map((bullet, idx) => (
+                        <div 
+                          key={idx} 
+                          style={{ 
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            breakInside: 'avoid',
+                            gap: '8px',
+                            fontSize: '10pt',
+                            lineHeight: 1.4,
+                            marginBottom: '3px',
+                            color: germanColors.text,
+                          }}
+                        >
+                          <span style={{ flexShrink: 0, marginTop: '1px' }}>•</span>
+                          <span>{bullet}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Education */}
+        {data.education.length > 0 && (
+          <section style={{ marginBottom: '18px' }}>
+            <h2 
+              style={{ 
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                color: germanColors.primary,
+                marginBottom: '6px',
+                paddingBottom: '8px',
+                borderBottom: `2px solid ${germanColors.primary}`,
+              }}
+            >
+              {sectionHeading(data, 'education')}
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {data.education.map((edu) => (
+                <div className="cv-entry" key={edu.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <div>
+                    <h3 style={{ fontSize: '10pt', fontWeight: '600', color: germanColors.text }}>
+                      {edu.degree}{edu.field && `, ${edu.field}`}
+                    </h3>
+                    <p style={{ fontSize: '10pt', color: germanColors.textLight }}>
+                      {edu.institution}
+                      {edu.grade && <span> | {uiText(data, 'gradePrefix')} {edu.grade}</span>}
+                    </p>
+                  </div>
+                  {edu.endDate && (
+                    <span style={{ fontSize: '10pt', whiteSpace: 'nowrap', color: germanColors.textLight }}>
+                      {formatSingleDate(data, edu.endDate)}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Projects */}
+        {data.projects && data.projects.length > 0 && (
+          <section style={{ marginBottom: '18px' }}>
+            <h2
+              style={{
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                color: germanColors.primary,
+                marginBottom: '6px',
+                paddingBottom: '8px',
+                borderBottom: `2px solid ${germanColors.primary}`,
+              }}
+            >
+              {sectionHeading(data, 'projects')}
+            </h2>
+            {/* One line per project keeps the section short; a description
+                that just repeats the name is dropped. */}
+            {data.projects.map((project) => {
+              const description = project.description?.trim();
+              const showDescription = Boolean(description && description.toLowerCase() !== project.name.trim().toLowerCase());
+              return (
+                <div key={project.id} style={{ fontSize: '10pt', lineHeight: 1.5, color: germanColors.textLight, marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '10pt', color: germanColors.text }}>{project.name}</span>
+                  {showDescription && <span>: {description}</span>}
+                  {project.technologies && project.technologies.length > 0 && (
+                    <span style={{ fontSize: '10pt', color: germanColors.primary }}> ({project.technologies.join(', ')})</span>
+                  )}
+                </div>
+              );
+            })}
+          </section>
+        )}
+
+        {/* Additional Information */}
+        {data.additionalInfo && data.additionalInfo.length > 0 && (
+          <section style={{ marginBottom: '18px' }}>
+            <h2
+              style={{
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                color: germanColors.primary,
+                marginBottom: '6px',
+                paddingBottom: '8px',
+                borderBottom: `2px solid ${germanColors.primary}`,
+              }}
+            >
+              {sectionHeading(data, 'additionalInfo')}
+            </h2>
+            <p style={{ fontSize: '10pt', color: germanColors.text }}>
+              {data.additionalInfo.join(' • ')}
+            </p>
+          </section>
+        )}
+
+        {/* Custom Sections (generic fallback) */}
+        {data.customSections && data.customSections.length > 0 && data.customSections.map((section) => (
+          <section key={section.id} style={{ marginBottom: '18px' }}>
+            <h2
+              style={{
+                fontSize: '10.5pt',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '1.5px',
+                marginBottom: '8px',
+                paddingBottom: '6px',
+                borderBottom: `2px solid ${germanColors.primary}`,
+                color: germanColors.primary,
+              }}
+            >
+              {section.title}
+            </h2>
+            <ul style={{ listStyleType: 'disc', paddingLeft: '18px', margin: 0 }}>
+              {section.items.map((item, idx) => (
+                <li key={idx} style={{ fontSize: '10pt', color: germanColors.text, marginBottom: '3px', lineHeight: 1.5 }}>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+
+        {/* Signature Line - German standard (controlled by data.signature.includeSignature) */}
+        {data.signature?.includeSignature && (
+          <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: `1px solid ${germanColors.border}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+              <div>
+                <p style={{ fontSize: '10pt', color: germanColors.textLight, marginBottom: '4px' }}>
+                  {data.signature?.city || (uiText(data, 'cityLabel'))}, {data.signature?.date || (uiText(data, 'dateLabel'))}
+                </p>
+                <div style={{ width: '120px', borderBottom: `1px solid ${germanColors.text}` }} />
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <p style={{ fontSize: '10pt', color: germanColors.textLight, marginBottom: '4px' }}>
+                  {uiText(data, 'signatureLabel')}
+                </p>
+                <div style={{ width: '150px', borderBottom: `1px solid ${germanColors.text}` }} />
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
       {/* Left Sidebar with Photo (Decorative) */}
       <aside
         style={{
-          width: '52mm',
+          gridColumn: 1,
+          gridRow: 1,
+          minWidth: 0,
           padding: '0 12px 0 0',
           borderRight: `2px solid ${germanColors.primary}`,
           overflow: 'visible',
@@ -243,8 +449,8 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
           <div style={{ marginBottom: '16px' }}>
             <h2 
               style={{ 
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '12px',
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '1px',
@@ -254,7 +460,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 borderBottom: `2px solid ${germanColors.primary}`,
               }}
             >
-              {data.sectionHeaders?.skills || DEFAULT_HEADERS.skills}
+              {sectionHeading(data, 'skills')}
             </h2>
             {/* Grouped skills by category with Languages integrated - max 5 per category */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -262,7 +468,7 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 <div key={groupIdx} style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
                   <div 
                     style={{ 
-                      fontSize: '12px',
+                      fontSize: '10pt',
                       fontWeight: 'bold',
                       color: germanColors.text,
                       marginBottom: '4px',
@@ -271,14 +477,15 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                     {group.category}:
                   </div>
                   <div style={{ marginLeft: '8px' }}>
-                    {group.items.slice(0, 5).map((skill, idx) => (
+                    {group.items.map((skill, idx) => (
                       <div 
                         key={idx} 
                         style={{ 
                           display: 'flex',
                           alignItems: 'flex-start',
+                          breakInside: 'avoid',
                           gap: '6px',
-                          fontSize: '12px',
+                          fontSize: '10pt',
                           lineHeight: 1.3,
                           marginBottom: '2px',
                           color: germanColors.text,
@@ -297,13 +504,13 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 <div style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
                   <div 
                     style={{ 
-                      fontSize: '12px',
+                      fontSize: '10pt',
                       fontWeight: 'bold',
                       color: germanColors.text,
                       marginBottom: '4px',
                     }}
                   >
-                    {data.sectionHeaders?.languages || DEFAULT_HEADERS.languages}:
+                    {sectionHeading(data, 'languages')}:
                   </div>
                   <div style={{ marginLeft: '8px' }}>
                     {data.languages.map((lang, idx) => (
@@ -312,8 +519,9 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                         style={{ 
                           display: 'flex',
                           alignItems: 'flex-start',
+                          breakInside: 'avoid',
                           gap: '6px',
-                          fontSize: '12px',
+                          fontSize: '10pt',
                           lineHeight: 1.3,
                           marginBottom: '2px',
                           color: germanColors.text,
@@ -337,8 +545,8 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
           <div>
             <h2 
               style={{ 
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '12px',
+                fontFamily: "'Gelasio', 'Georgia', 'Times New Roman', serif",
+                fontSize: '10.5pt',
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '1px',
@@ -348,14 +556,14 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
                 borderBottom: `2px solid ${germanColors.primary}`,
               }}
             >
-              {data.sectionHeaders?.certifications || DEFAULT_HEADERS.certifications}
+              {sectionHeading(data, 'certifications')}
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               {data.certifications.map((cert) => (
-                <div key={cert.id} style={{ fontSize: '12px' }}>
+                <div className="cv-entry" key={cert.id} style={{ fontSize: '10pt' }}>
                   <div style={{ fontWeight: 'bold', color: germanColors.text }}>{cert.name}</div>
                   {cert.issuer && (
-                    <div style={{ fontSize: '11px', color: germanColors.textLight }}>{cert.issuer}</div>
+                    <div style={{ fontSize: '10pt', color: germanColors.textLight }}>{cert.issuer}</div>
                   )}
                 </div>
               ))}
@@ -363,218 +571,6 @@ export function GermanATSTemplate({ data, template, photoUrl }: Props) {
           </div>
         )}
       </aside>
-
-      {/* Main Content */}
-      <main style={{ flex: 1, padding: '0 0 0 12px' }}>  {/* Zero right padding (outer handles it), small left padding for gap */}
-        {/* Experience */}
-        {data.experience.length > 0 && (
-          <section style={{ marginBottom: '18px' }}>
-            <h2 
-              style={{ 
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '13px',
-                fontWeight: 'bold',
-                textTransform: 'uppercase',
-                letterSpacing: '1px',
-                color: germanColors.primary,
-                marginBottom: '10px',
-                paddingBottom: '8px',
-                borderBottom: `2px solid ${germanColors.primary}`,
-              }}
-            >
-              {data.sectionHeaders?.experience || DEFAULT_HEADERS.experience}
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {data.experience.map((exp) => (
-                <div key={exp.id}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '2px' }}>
-                    <h3 style={{ fontSize: '13px', fontWeight: 'bold', color: germanColors.text }}>
-                      {exp.position}
-                    </h3>
-                    <span style={{ fontSize: '12px', whiteSpace: 'nowrap', color: germanColors.textLight }}>
-                      {exp.startDate} – {exp.current ? (data.localizedStrings?.present || 'Present') : exp.endDate}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: germanColors.primary }}>
-                    {exp.company}
-                    {exp.location && <span style={{ color: germanColors.textLight }}> | {exp.location}</span>}
-                  </p>
-                  {/* Explicit bullet characters for PDF compatibility */}
-                  {exp.bullets.length > 0 && (
-                    <div style={{ marginTop: '4px', marginLeft: '4px' }}>
-                      {exp.bullets.map((bullet, idx) => (
-                        <div 
-                          key={idx} 
-                          style={{ 
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: '8px',
-                            fontSize: '12px',
-                            lineHeight: 1.4,
-                            marginBottom: '3px',
-                            color: germanColors.text,
-                          }}
-                        >
-                          <span style={{ flexShrink: 0, marginTop: '1px' }}>•</span>
-                          <span>{bullet}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Education */}
-        {data.education.length > 0 && (
-          <section style={{ marginBottom: '18px' }}>
-            <h2 
-              style={{ 
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '13px',
-                fontWeight: 'bold',
-                textTransform: 'uppercase',
-                letterSpacing: '1px',
-                color: germanColors.primary,
-                marginBottom: '6px',
-                paddingBottom: '8px',
-                borderBottom: `2px solid ${germanColors.primary}`,
-              }}
-            >
-              {data.sectionHeaders?.education || DEFAULT_HEADERS.education}
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {data.education.map((edu) => (
-                <div key={edu.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <div>
-                    <h3 style={{ fontSize: '12px', fontWeight: '600', color: germanColors.text }}>
-                      {edu.degree}{edu.field && `, ${edu.field}`}
-                    </h3>
-                    <p style={{ fontSize: '12px', color: germanColors.textLight }}>
-                      {edu.institution}
-                      {edu.grade && <span> | {data.localizedStrings?.gradePrefix || 'GPA:'} {edu.grade}</span>}
-                    </p>
-                  </div>
-                  {edu.endDate && (
-                    <span style={{ fontSize: '12px', whiteSpace: 'nowrap', color: germanColors.textLight }}>
-                      {edu.endDate}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Projects */}
-        {data.projects && data.projects.length > 0 && (
-          <section style={{ marginBottom: '18px' }}>
-            <h2
-              style={{
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '13px',
-                fontWeight: 'bold',
-                textTransform: 'uppercase',
-                letterSpacing: '1px',
-                color: germanColors.primary,
-                marginBottom: '6px',
-                paddingBottom: '8px',
-                borderBottom: `2px solid ${germanColors.primary}`,
-              }}
-            >
-              {data.sectionHeaders?.projects || DEFAULT_HEADERS.projects}
-            </h2>
-            {/* One line per project keeps the section short; a description
-                that just repeats the name is dropped. */}
-            {data.projects.map((project) => {
-              const description = project.description?.trim();
-              const showDescription = Boolean(description && description.toLowerCase() !== project.name.trim().toLowerCase());
-              return (
-                <div key={project.id} style={{ fontSize: '11px', lineHeight: 1.5, color: germanColors.textLight, marginBottom: '4px' }}>
-                  <span style={{ fontWeight: 600, fontSize: '12px', color: germanColors.text }}>{project.name}</span>
-                  {showDescription && <span>: {description}</span>}
-                  {project.technologies && project.technologies.length > 0 && (
-                    <span style={{ fontSize: '10px', color: germanColors.primary }}> ({project.technologies.join(', ')})</span>
-                  )}
-                </div>
-              );
-            })}
-          </section>
-        )}
-
-        {/* Additional Information */}
-        {data.additionalInfo && data.additionalInfo.length > 0 && (
-          <section style={{ marginBottom: '18px' }}>
-            <h2
-              style={{
-                fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '13px',
-                fontWeight: 'bold',
-                textTransform: 'uppercase',
-                letterSpacing: '1px',
-                color: germanColors.primary,
-                marginBottom: '6px',
-                paddingBottom: '8px',
-                borderBottom: `2px solid ${germanColors.primary}`,
-              }}
-            >
-              {data.sectionHeaders?.additionalInfo || DEFAULT_HEADERS.additionalInfo}
-            </h2>
-            <p style={{ fontSize: '12px', color: germanColors.text }}>
-              {data.additionalInfo.join(' • ')}
-            </p>
-          </section>
-        )}
-
-        {/* Custom Sections (generic fallback) */}
-        {data.customSections && data.customSections.length > 0 && data.customSections.map((section) => (
-          <section key={section.id} style={{ marginBottom: '18px' }}>
-            <h2
-              style={{
-                fontSize: '13px',
-                fontWeight: 'bold',
-                textTransform: 'uppercase',
-                letterSpacing: '1.5px',
-                marginBottom: '8px',
-                paddingBottom: '6px',
-                borderBottom: `2px solid ${germanColors.primary}`,
-                color: germanColors.primary,
-              }}
-            >
-              {section.title}
-            </h2>
-            <ul style={{ listStyleType: 'disc', paddingLeft: '18px', margin: 0 }}>
-              {section.items.map((item, idx) => (
-                <li key={idx} style={{ fontSize: '12px', color: germanColors.text, marginBottom: '3px', lineHeight: 1.5 }}>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
-
-        {/* Signature Line - German standard (controlled by data.signature.includeSignature) */}
-        {data.signature?.includeSignature && (
-          <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: `1px solid ${germanColors.border}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-              <div>
-                <p style={{ fontSize: '10px', color: germanColors.textLight, marginBottom: '4px' }}>
-                  {data.signature?.city || (data.localizedStrings?.cityLabel || 'City')}, {data.signature?.date || (data.localizedStrings?.dateLabel || 'Date')}
-                </p>
-                <div style={{ width: '120px', borderBottom: `1px solid ${germanColors.text}` }} />
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <p style={{ fontSize: '10px', color: germanColors.textLight, marginBottom: '4px' }}>
-                  {data.localizedStrings?.signatureLabel || 'Signature'}
-                </p>
-                <div style={{ width: '150px', borderBottom: `1px solid ${germanColors.text}` }} />
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
       </div>
     </div>
   );

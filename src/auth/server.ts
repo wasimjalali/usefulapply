@@ -168,6 +168,9 @@ function createAuth(db: Database) {
           for (const bucket of ALLOWED_FILE_BUCKETS) {
             await deletePrefix(`${bucket}/${deleting.id}/`);
           }
+          // Rendered CV and letter exports are personal data too.
+          const { deleteUserExports } = await import('@/lib/services/export/storage');
+          await deleteUserExports(deleting.id);
           const { deleteAllUserData } = await import('@/db/repos/admin');
           await deleteAllUserData(deleting.id);
         },

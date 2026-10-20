@@ -84,6 +84,8 @@ const RATE_LIMIT_BINDING_NAMES = {
   'search-strategy-generate': 'RATE_LIMIT_SEARCH_STRATEGY_GENERATE',
   'files-upload': 'RATE_LIMIT_FILES_UPLOAD',
   'files-get': 'RATE_LIMIT_FILES_GET',
+  'exports': 'RATE_LIMIT_EXPORTS',
+  'exports-get': 'RATE_LIMIT_EXPORTS_GET',
 } as const;
 
 type BoundRateLimitRoute = keyof typeof RATE_LIMIT_BINDING_NAMES;
@@ -120,6 +122,8 @@ declare global {
     RATE_LIMIT_SEARCH_STRATEGY_GENERATE?: RateLimitBinding;
     RATE_LIMIT_FILES_UPLOAD?: RateLimitBinding;
     RATE_LIMIT_FILES_GET?: RateLimitBinding;
+    RATE_LIMIT_EXPORTS?: RateLimitBinding;
+    RATE_LIMIT_EXPORTS_GET?: RateLimitBinding;
   }
 }
 
@@ -260,6 +264,9 @@ export const RATE_LIMITS = {
   'search-strategy-generate': { name: 'search-strategy-generate', limit: 3,  windowMs: 60_000 },
   'files-upload':            { name: 'files-upload', limit: 10, windowMs: 60_000 },
   'files-get':               { name: 'files-get', limit: 60, windowMs: 60_000 },
+  // Server-side CV and letter exports (Browser Run). Cached repeats are cheap, so 20 a minute is generous.
+  'exports':                 { name: 'exports', limit: 20, windowMs: 60_000 },
+  'exports-get':             { name: 'exports-get', limit: 60, windowMs: 60_000 },
 } as const;
 
 export type RateLimitRoute = keyof typeof RATE_LIMITS;

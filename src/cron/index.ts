@@ -19,13 +19,16 @@ export async function dispatchScheduled(cron: string): Promise<void> {
   switch (cron) {
     case CRON_DAILY_CLEANUP: {
       console.log('[cron] daily cleanup and monthly credit reset sweep');
-      const [{ cleanupHistoricalJobFeedData }, { processOverdueMonthlyResets }] = await Promise.all([
+      const [{ cleanupHistoricalJobFeedData }, { processOverdueMonthlyResets }, { deleteExpiredExports }] = await Promise.all([
         import('@/lib/job-feed/cleanup'),
         import('@/lib/supabase/credits.server'),
+        import('@/lib/services/export/storage'),
       ]);
       const results = await Promise.allSettled([
         cleanupHistoricalJobFeedData({ now: new Date() }),
         processOverdueMonthlyResets({ limit: 200 }),
+        // Exports are kept 30 days, then deleted.
+        deleteExpiredExports(new Date()),
       ]);
       const problems: string[] = [];
       for (const r of results) {
@@ -40,6 +43,8 @@ export async function dispatchScheduled(cron: string): Promise<void> {
           problems.push(`monthly credit reset sweep: ${sweep.value.failed} failed, 0 succeeded`);
         }
       }
+      const exportSweep = results[2];
+      if (exportSweep.status === 'fulfilled') console.log('[cron] expired exports', exportSweep.value);
       // Side effects are already committed; throwing only marks the run failed in Workers Logs.
       if (problems.length > 0) {
         throw new Error(`[cron] ${problems.join('; ')}`);

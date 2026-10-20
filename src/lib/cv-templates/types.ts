@@ -350,6 +350,8 @@ export type CVSection =
 
 // Parsed/structured CV data for rendering
 export interface CVData {
+  /** Language the CV is written in (ISO 639-1). Drives standard headings and date formats; inferred when absent. */
+  language?: string;
   personal: {
     fullName: string;
     email: string;
@@ -387,6 +389,8 @@ export interface CVData {
     endDate?: string;
     current?: boolean;
     bullets: string[];
+    /** Kept in the CV but left off the canvas and the exports. */
+    hidden?: boolean;
   }>;
   
   education: Array<{
@@ -399,11 +403,16 @@ export interface CVData {
     endDate?: string;
     grade?: string;
     highlights?: string[];
+    hidden?: boolean;
   }>;
   
   skills: Array<{
     category: string;
     items: string[];
+    /** The whole group is kept but not shown. */
+    hidden?: boolean;
+    /** Skills in `items` that are kept but not shown. */
+    hiddenItems?: string[];
   }>;
   
   languages: Array<{
@@ -411,6 +420,7 @@ export interface CVData {
     proficiency: string; // CEFR level (A1-C2) or 'Native' - MANDATORY for EU per 2026 standards
     cefrLevel?: CEFRLevel; // Typed CEFR level for validation
     certification?: string; // e.g., "TOEFL 110", "Goethe B2"
+    hidden?: boolean;
   }>;
   
   certifications: Array<{
@@ -419,6 +429,7 @@ export interface CVData {
     issuer: string;
     date?: string;
     credentialId?: string;
+    hidden?: boolean;
   }>;
   
   projects?: Array<{
@@ -427,6 +438,7 @@ export interface CVData {
     description: string;
     technologies?: string[];
     url?: string;
+    hidden?: boolean;
   }>;
   
   // AI-generated section headers in the detected language (i18n support)
@@ -465,7 +477,11 @@ export interface CVData {
     id: string;
     title: string;   // ATS-safe display heading (e.g., "Selected Achievements", "References")
     items: string[];  // Bullet points or paragraph items
+    hidden?: boolean;
   }>;
+
+  /** Whole sections kept in the CV but not shown. See cv-templates/hidden.ts. */
+  hiddenSections?: Array<'summary' | 'experience' | 'education' | 'skills' | 'certifications' | 'languages' | 'projects' | 'additionalInfo'>;
 }
 
 // Template definitions - Consolidated Premium Templates (January 2026)

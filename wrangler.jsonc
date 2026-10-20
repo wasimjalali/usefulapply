@@ -52,6 +52,11 @@
 	"images": {
 		"binding": "IMAGES"
 	},
+	// Browser Run renders the CV and cover letter PDFs (src/lib/services/export).
+	// quickAction does not run in plain local dev: add "remote": true locally, never commit it.
+	"browser": {
+		"binding": "BROWSER"
+	},
 	// Workers AI for job feed ranking. Primary model, then the fallback model on
 	// failure, then deterministic ordering (see openai-ranking.ts).
 	"ai": {
@@ -309,6 +314,22 @@
 		{
 			"name": "RATE_LIMIT_FILES_GET",
 			"namespace_id": "3130",
+			"simple": {
+				"limit": 60,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_EXPORTS",
+			"namespace_id": "3140",
+			"simple": {
+				"limit": 20,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_EXPORTS_GET",
+			"namespace_id": "3141",
 			"simple": {
 				"limit": 60,
 				"period": 60

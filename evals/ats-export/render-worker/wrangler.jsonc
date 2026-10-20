@@ -1,0 +1,10 @@
+{
+	// Eval-only Worker: exposes env.BROWSER.quickAction("pdf") over local HTTP so
+	// the ATS eval renders exactly what production renders. Run
+	// `npx wrangler dev --port 8793` from this folder. The remote binding is what
+	// reaches real Browser Run; quickAction does not run in plain local mode.
+	"name": "ua-render-eval",
+	"main": "index.ts",
+	"compatibility_date": "2026-08-17",
+	"browser": { "binding": "BROWSER", "remote": true }
+}

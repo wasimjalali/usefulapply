@@ -1,12 +1,12 @@
 'use client';
 
 import { CVData, CVTemplate, CV_TEMPLATE_DEFINITIONS, getTemplateById } from '@/lib/cv-templates/types';
+import { openSettings } from '@/store/useSettingsStore';
 import { USPremiumATSTemplate } from './USPremiumATSTemplate';
-import { USModernATSTemplate } from './USModernATSTemplate';
-import { USProfessionalTemplate } from './USProfessionalTemplate';
 import { GermanATSTemplate } from './GermanATSTemplate';
 import { GermanClassicTemplate } from './GermanClassicTemplate';
 import { ClassicGreenTemplate } from './ClassicGreenTemplate';
+import { CvTemplateSwitch } from './render';
 
 export { CV_TEMPLATE_DEFINITIONS, getTemplateById };
 export type { CVData, CVTemplate };
@@ -20,7 +20,8 @@ interface CVTemplateRendererProps {
 }
 
 /**
- * CV Template Renderer - 6 Premium Templates
+ * CV Template Renderer, the canvas side. The template switch itself lives in
+ * ./render so the server can render the same components for the PDF export.
  * 1. premium-ats - Default, best for most applications
  * 2. modern-professional - Tech/startups
  * 3. executive - Senior roles
@@ -29,64 +30,11 @@ interface CVTemplateRendererProps {
  * 6. classic-green - English market, forest green accent
  */
 export function CVTemplateRenderer({ data, templateId }: CVTemplateRendererProps) {
-  const template = getTemplateById(templateId);
-  
-  if (!template) {
-    // Fallback to premium-ats if template not found
-    const defaultTemplate = getTemplateById('premium-ats');
-    if (defaultTemplate) {
-      return <USPremiumATSTemplate data={data} template={defaultTemplate} />;
-    }
-    return (
-      <div className="p-8 text-center text-gray-500">
-        Template not found: {templateId}
-      </div>
-    );
-  }
-  
-  // Extract photo URL from data.personal if available
-  const photoUrl = data.personal?.photoUrl;
-  
-  // Map template IDs to components (6 templates)
-  switch (templateId) {
-    case 'premium-ats':
-      return <USPremiumATSTemplate data={data} template={template} photoUrl={photoUrl} />;
-    
-    case 'modern-professional':
-      return <USModernATSTemplate data={data} template={template} />;
-    
-    case 'executive':
-      return <USProfessionalTemplate data={data} template={template} />;
-    
-    case 'german-ats':
-      return <GermanATSTemplate data={data} template={template} photoUrl={photoUrl} />;
-    
-    case 'german-classic':
-      return <GermanClassicTemplate data={data} template={template} photoUrl={photoUrl} />;
-    
-    case 'classic-green':
-      return <ClassicGreenTemplate data={data} template={template} />;
-    
-    // Legacy template ID fallbacks (for existing users)
-    case 'us-premium-ats':
-    case 'us-ats-maximizer':
-    case 'us-modern-ats':
-    case 'us-technical':
-    case 'us-classic':
-    case 'eu-premium-ats':
-    case 'eu-modern-ats':
-    case 'eu-classic':
-    case 'eu-german-ats':
-    case 'eu-german-professional':
-      return <USPremiumATSTemplate data={data} template={template} />;
-    
-    case 'us-executive':
-    case 'eu-sidebar':
-    case 'us-professional':
-    case 'eu-professional':
-      return <USProfessionalTemplate data={data} template={template} />;
-    
-    default:
-      return <USPremiumATSTemplate data={data} template={template} />;
-  }
+  return (
+    <CvTemplateSwitch
+      data={data}
+      templateId={templateId}
+      onPhotoPlaceholderClick={() => openSettings('general')}
+    />
+  );
 }
