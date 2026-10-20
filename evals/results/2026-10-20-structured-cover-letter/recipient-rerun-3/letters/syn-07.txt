@@ -1,0 +1,21 @@
+Priya Raman
+Toronto, Canada
+priya.raman@example.com
++1 555 0176
+
+October 20, 2026
+
+Cloudflare
+
+Application for Senior Software Engineer - Egress (Go/Rust)
+
+Dear Hiring Team,
+
+Your Egress team owns connectivity that products like WARP depend on, so a failure there gets noticed quickly. I know that pressure from the payments side. I designed and ran a settlement service in Kotlin and Spring Boot that processed about 40 million events a day on Kafka, and I cut p99 latency on our payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis.
+
+Over 11 years of building payment and event-processing services, I've owned production-critical distributed systems, been on call for the payments platform and written the post-incident reviews for 14 incidents. That is how I learned to debug complex systems. I also led a team of 4 engineers through a 9 month migration from a monolith to 6 services, which meant running design discussions and being the person colleagues came to with technical questions. My background is in Kotlin, Java and Python rather than Go or Rust, but API design, event-driven architecture and code review carry over directly, and I like working in unfamiliar territory. Your Run What You Build model and the interest in people who spot problems others have learned to live with both suit how I work.
+
+I'd welcome a conversation about how my backend and on-call experience could support the Egress team. I'm available to start a discussion at your convenience.
+
+Kind regards,
+Priya Raman

@@ -18,6 +18,7 @@ A same-day follow-up (runs 2 and 3) added a second question. A DIN letter with a
 | 1 | 6 | `2026-10-20-structured-cover-letter/` | first structured version: recipient address from the session row only |
 | 2 | 2 (sl-de-contact, new sl-us-address) | `.../recipient-rerun/` | the model also returns the ad's company name and postal address; code keeps them only if verbatim |
 | 3 | the same 2 | `.../recipient-rerun-2/` | run 2 found a guessed title ("Dear Ms. Whitfield" for an ad that only says "Dana Whitfield"); the prompt and the validator now forbid unstated titles |
+| 4 | 4 (the 2 address cases, syn-07, new sl-fr-contact) plus 52 offline checks | `.../recipient-rerun-3/`, `offline-checks.json` | PR review round 1: address as one anchored block, salutation rules in all seven languages, optional fields degrade instead of failing, JD change clears the saved recipient |
 
 ## What ran (run 1)
 
@@ -142,7 +143,7 @@ Every address line is copied verbatim from the ad. No address appears in any par
 
 **The run 2 finding:** the US letter opened "Dear Ms. Whitfield,", but the ad never gives Dana Whitfield a title. The old prompt example ("Dear Ms. Smith,") invited the guess, and the salutation check allowed every title word. The prompt now asks for the full name when the ad gives no title. The validator rejects a title unless a source states it for that surname, so "Frau Brandl" passes because the ad says "Frau Melanie Brandl". Run 3 wrote "Dear Dana Whitfield," on the first try.
 
-**Doctored answers.** These run through the writer's real post-model path (`coverLetterFromModelOutput`), with no model call. The script takes the real raw answer and changes one field:
+**Doctored answers (as run in run 3; superseded by run 4's offline checks).** These ran through the writer's real post-model path (`coverLetterFromModelOutput`), with no model call. The script took the real raw answer and changed one field. In run 4 a guessed title degrades to the neutral form instead of raising a validation error.
 
 | Check | Input | Result |
 |---|---|---|
@@ -165,13 +166,122 @@ Neither letter claims Tableau, NetSuite, Salesforce or French. The German letter
 
 **Cost:** run 2 $0.1246 (letter calls $0.0401); run 3 $0.1389 (letter calls $0.0545). Ten calls each.
 
+## Run 4: PR review round 1
+
+The PR review (Sonnet and Codex at high) probed the run 3 code and found holes. The validator checked address lines one at a time, so it accepted `["Alexanderplatz 1", "80331 München"]` (two offices spliced together), a street with no house number, and a bare phone line. It also accepted the accommodation-notice address in syn-07's Cloudflare ad ("101 Townsend St. San Francisco, CA 94107"). Run 1's claim that the five unaddressed ads "state no address" was wrong for syn-07: it states one, inside equal-opportunity and accommodation boilerplate, which is not where applications go.
+
+**Code changes** (`src/lib/agents/cover-letter-guards.ts`, new):
+- **Address:**
+  - The block needs a street line with a house number, then a postcode-plus-city line: a 4 or 5 digit postcode with the city, or "City, ST 12345". At most one unit line between them and one country line after.
+  - Phone, fax, email, web and digits-only lines are set aside.
+  - The lines must appear in the ad as one contiguous block, in order, separated only by whitespace, commas or line breaks.
+  - The block must sit within 250 characters after the company name, the contact person or application wording ("Bewerbung", "Anschrift", "apply", "send your application", "mail to", "address"...). It must not sit inside accommodation, equal-opportunity, privacy or legal boilerplate.
+  - Matching ignores case, whitespace, ß/ss and dash style. The stored text is always the ad's own spelling and casing, with dashes as hyphens.
+- **Salutation, in all seven languages:**
+  - Every name in it must belong to the one addressee: the saved contact, else the ad's verified contact.
+  - A gendered title (Frau/Herr, Ms./Mr., Madame/Monsieur/Mme/M., Sra./Sr./Señora/Señor, Signora/Signor/Sig.ra/Sig., mevrouw/heer/mevr./dhr.) or a gendered adjective (geehrte/geehrter, Liebe/Lieber, Estimada/Estimado, Querida/Querido, Cara/Caro, Prezada/Prezado, Exma./Exmo., Egregia/Egregio, Chère/Cher; Gentile is neutral) needs a source that writes a title of that gender directly before that same person's name.
+  - Otherwise it falls back to a neutral full-name form ("Dear Jordan Hoffmann,", "Guten Tag Jordan Hoffmann,", "Bonjour ...", "Buenos días ...", "Bom dia ...", "Gentile ...", "Geachte ..."). With no addressee it falls back to the generic greeting.
+  - English and German salutations get their comma.
+- **Degrade, don't fail:** a salutation, subject or closing that breaks a rule is replaced by a fixed form, and an unverified recipient detail is dropped. Only real JSON or shape failures, paragraph problems (stock phrases, placeholders, an address, a repeated greeting or signature) and an empty letter take the one retry.
+- **Subject:** a number of 3 or more digits must appear in the ad as a whole number. A bracketed phrase is allowed when the ad or job title writes it. German subjects must start with "Bewerbung".
+- **Closing:** the signature name is stripped from the closing.
+- **Company name:** the parsed `job.companyName` reaches the letter only when the ad contains it.
+- **Market:** a DACH city counts only with a DACH country or a German-language ad, never with a US state code ("Vienna, VA").
+- **Saved recipient:** passed into the prompt so the salutation and the address block agree.
+- **Persistence and state:**
+  - Changing `job_description` through any write path clears `company_address` and `company_contact_person` in the same SQL statement.
+  - The browser sync no longer writes those two columns.
+  - The fill-only save is one conditional `UPDATE ... WHERE (col IS NULL OR col = '') AND trim(job_description) = <the letter's JD>` per column.
+- **Contract guard:** `isStructuredCoverLetter` now checks every required field (the text the renderer worker shares).
+
+### Offline checks (code-fixed, no model, no API key)
+
+`npx tsx evals/structured-cover-letter-offline.ts` loads run 3's committed answers and analysis context (`recipient-rerun-2/letters/`) and the committed ads. It changes one thing per check and writes `offline-checks.json`. **52 of 52 pass.** They include:
+
+- **Address:**
+  - the splice of two offices;
+  - a street without a house number;
+  - a phone-only address and a phone line in the middle;
+  - an email line;
+  - a digitless address;
+  - ß written as ss (the result keeps "Industriestraße");
+  - all-caps input (the result keeps the ad's casing);
+  - a fake and a partly fake address;
+  - a saved address beating the ad;
+  - an address inside a paragraph (validation error);
+  - the Cloudflare accommodation address (dropped);
+  - the Northwind and Lyon application addresses (kept).
+- **Salutation:**
+  - a cross-person title, where "Herr Müller und Frau Hoffmann" doesn't license "Herr Hoffmann";
+  - a first name from one person with another's surname;
+  - "geehrter" with no stated title;
+  - the saved contact as addressee;
+  - "Dear Ms. Whitfield" becoming "Dear Dana Whitfield,";
+  - a missing comma;
+  - a "[Name]" placeholder;
+  - a title with nobody named;
+  - French ("Madame Dubois," and "Chère Madame Dubois," kept; "Monsieur Dubois," and "Cher Claire Dubois," fall back);
+  - Spanish ("Estimada Sra. García" with no stated title falls back);
+  - Dutch ("Geachte mevrouw De Vries," kept);
+  - Italian ("Gentile Signora Rossi" with no stated title falls back).
+- **Subject and closing:** a fake reference number; the ad's own reference; two-digit numbers ignored; a bracket from the job title; a "[Job Title]" placeholder; a German subject without "Bewerbung"; a closing that carries the name.
+- **Market:** "Vienna, VA", "Berlin, MA", "Geneva, IL 60134" and a bare "Berlin" on an English ad are `us`. "Berlin, Germany", "Wien" on a German ad and "Zürich, Schweiz" are `dach`.
+- **Contract guard:** accepts the real output and rejects a shallow object.
+
+### Live run 4 (model)
+
+Command:
+
+```bash
+npx tsx evals/structured-cover-letter.ts --allow-anthropic-api --cases sl-de-contact,sl-us-address,sl-fr-contact,syn-07 --out-sub recipient-rerun-3
+```
+
+The live script now requires `--out-sub` and refuses a folder that already holds a run, so no run can overwrite another.
+
+**New case:** `sl-fr-contact`, a constructed French ad for a fictional Lumière Logistique SAS in Lyon. It has "Mme Claire Dubois, Responsable du recrutement", a postal address, a reference number and Tableau as bait. The CV is the financial analyst.
+
+| Case | Checks | Letter calls | Recipient block | Salutation | Subject |
+|---|---|---|---|---|---|
+| sl-de-contact | 14/14 | 1 | Brenner Getriebe GmbH / Personalabteilung / Frau Melanie Brandl / Industriestraße 14 / 90431 Nürnberg | Sehr geehrte Frau Brandl, | Bewerbung als Key Account Manager (m/w/d) Antriebstechnik, Kennziffer KAM-2026-17 |
+| sl-us-address | 14/14 | 1 | Dana Whitfield / Talent Acquisition / Northwind Freight Inc. / 220 West Lake Street, Suite 1400 / Chicago, IL 60606 | Dear Dana Whitfield, | Application for Senior FP&A Analyst, Req #NW-4471 |
+| sl-fr-contact | 14/14 | 1 | Mme Claire Dubois / Responsable du recrutement / Lumière Logistique SAS / 12 rue de la République / 69002 Lyon | Madame Dubois, | Candidature au poste d'Analyste FP&A (H/F), réf. FPA-2026-031 |
+| syn-07 | 14/14 | 1 | Cloudflare (no address) | Dear Hiring Team, | Application for Senior Software Engineer - Egress (Go/Rust) |
+
+- **Fallbacks:** no field fell back in any of the four. The model's own salutations, subjects and closings passed every rule.
+- **syn-07:** the model didn't copy the accommodation address. Had it done so, the code would have dropped it (offline check `boilerplate_accommodation_address_dropped`).
+- **French letter:** market `us` (a non-DACH country gets the US block layout), closing "Cordialement,", date "20 octobre 2026".
+- **Facts:** I checked both new letters against the CV.
+  - French letter: 9 to 6 working days, 5 years, 85 million USD, 88 % to 96 %, the Redfern annual budget, Power BI on SAP data for plant managers, native English. It doesn't claim Tableau.
+  - syn-07 now says "My background is in Kotlin, Java and Python rather than Go or Rust". That isn't a claim, but it names the gap, the same soft `<gaps>` pattern noted in run 1.
+- **Cost:** $0.2615 for 20 calls (letter calls $0.0735).
+
+### Which checks the code guarantees and which depend on the model
+
+| Check | Kind | Why |
+|---|---|---|
+| contract_valid, body_faithful, sender_from_cv | code-fixed | built in code from validated fields and CV literals |
+| no_dashes (body) | code-fixed | sanitized in code; the raw count shows what the model did |
+| market_rules: German closing, market | code-fixed | set in code |
+| market_rules: subject prefix, English and French closing | code-backed | the model writes them; a broken value falls back to a fixed form |
+| subject_numbers_from_ad, no_placeholders | code-fixed | a miss falls back (subject) or fails the paragraphs (one retry, then the letter fails) |
+| recipient_address_rule: no invented line | code-fixed | only an anchored verbatim block survives |
+| recipient_address_rule: block filled when the ad has one | model-dependent | the model has to copy it; the code never fills it on its own |
+| contact_rule: no invented contact or title | code-fixed | |
+| contact_rule: contact found | model-dependent | |
+| no_address_in_letter_text | code-fixed for extracted and saved addresses, model-dependent otherwise | |
+| numbers_traced, no_missing_skill_named, three_paragraphs, under_250_words | model-dependent | measured, not enforced; length never fails a letter by design |
+
 ## Limits
 
-- One run per case, six cases in run 1 and two in runs 2 and 3. This shows the contract path works and the rules hold. It doesn't measure rates.
-- The five run 1 cases without an address in the ad (syn-01, syn-07, syn-11, syn-15, syn-16) weren't rerun on the final prompt, to keep spend small. The prompt change only touches the recipient field and the salutation title rule. Those ads state no address or contact, and run 1 already showed empty blocks for them.
-- The session-row write (`saveLetterRecipientFromAd`) needs D1 and wasn't exercised here. It writes only empty columns, through the existing `updateSession`.
+- One run per case: six cases in run 1, two in runs 2 and 3, four in run 4. This shows the contract path works and the rules hold. It doesn't measure rates.
+- syn-01, syn-11, syn-15 and syn-16 weren't rerun on the final prompt, to keep spend small. Their ads name no contact and give no application address. The run 4 changes touch the recipient field, the salutation rules and the fallbacks, all covered by the offline checks.
+- **Correction to runs 1 to 3:** syn-07's ad does contain a postal address, inside its accommodation notice. Run 1's empty block for it was the model's choice. Since run 4 the code also drops it.
+- **D1 writes not run against D1:** the JD-change clear in `updateSession` and the fill-only `saveLetterRecipientFromAd`. Their SQL was generated with drizzle and run in `sqlite3` (D1 is SQLite):
+  - a changed JD clears the columns;
+  - an unchanged JD (whitespace aside) keeps them;
+  - the fill writes only an empty column, on a row that still holds the letter's JD.
 - `numbers_traced` matches substrings. For example, "18" in "18 Ländern" also matches "2018" in the CV. Every number was therefore also checked by hand.
-- Quality (voice, specificity) wasn't judged. The prompt's voice, content and anti-hallucination blocks are unchanged. Only the structure, output format and closing rules changed.
+- Quality (voice, specificity) wasn't judged. The prompt's voice, content and anti-hallucination blocks are unchanged. Only the structure, the output format and the recipient, salutation, subject and closing rules changed.
 - The Bedrock fallback (`AI_PROVIDER=bedrock`, Sonnet 4.6) wasn't run. The JSON path uses the same `jsonMode` system suffix and the same `parseStrictJsonObject` parser that the email writers already run on Bedrock.
 
 ## Conclusion
@@ -184,12 +294,13 @@ The structured contract works on the production model with no retries:
 - correct DACH and US subject and closing conventions;
 - each body an exact rendering of its structure.
 
-A recipient detail reaches the letter only from the session row or verbatim from the ad. This covers the company, contact person, department and postal address. A fake or partly fake address, a fake contact, an address in the letter text, and a guessed title are each dropped or rejected.
+A recipient detail reaches the letter only from the session row or from the ad's own text. This covers the company, contact person, department and postal address. The address must be one anchored, well-formed block, not boilerplate. A fake, partly fake, spliced, numberless or boilerplate address is dropped. So are a fake contact, a guessed or cross-person title, and a name from a second person. An address in the paragraphs fails the letter's validation. Optional fields degrade to fixed forms instead of costing the letter. Run 4: 4 of 4 live letters pass 14 of 14 with no retries and no fallbacks, and 52 of 52 offline checks pass.
 
 ## What changed because of it
 
 - **Run 1:** PR 4 shipped the structured letter.
 - **Run 2 and the orchestrator's follow-up:** the writer now fills the address block from the ad, verbatim only, and saves it to empty session columns so the user can edit it later.
 - **Run 2's guessed title:** led to the no-unstated-title rule in the prompt and the validator.
+- **The review probes and run 4:** led to the block-and-anchor address rule, the seven-language salutation rule, degrade-not-fail, the JD-change clear, the server-only recipient columns and the atomic fill.
 
 One follow-up remains, outside this PR. The soft gap sentences need a prompt tweak to the `<gaps>` and learning-ability guidance: "keen to build proficiency in Tableau", "Umstieg auf Salesforce", "what I do best".

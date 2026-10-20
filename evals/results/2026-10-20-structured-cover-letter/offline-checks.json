@@ -1,0 +1,267 @@
+{
+ "date": "2026-10-20T11:02:51.163Z",
+ "total": 52,
+ "failed": 0,
+ "checks": [
+  {
+   "name": "real_address_kept",
+   "pass": true,
+   "detail": "[\"Industriestraße 14\",\"90431 Nürnberg\"]"
+  },
+  {
+   "name": "contract_guard_accepts_output",
+   "pass": true,
+   "detail": "isStructuredCoverLetter(output)"
+  },
+  {
+   "name": "fake_address_dropped",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "partly_fake_address_dropped_whole",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "splice_of_two_offices_dropped",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "street_without_house_number_dropped",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "phone_line_is_not_an_address",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "phone_line_set_aside",
+   "pass": true,
+   "detail": "[\"Industriestraße 14\",\"90431 Nürnberg\"]"
+  },
+  {
+   "name": "email_line_set_aside",
+   "pass": true,
+   "detail": "[\"Industriestraße 14\",\"90431 Nürnberg\"]"
+  },
+  {
+   "name": "digitless_address_dropped",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "ss_for_eszett_matches_and_keeps_ad_spelling",
+   "pass": true,
+   "detail": "[\"Industriestraße 14\",\"90431 Nürnberg\"]"
+  },
+  {
+   "name": "ad_casing_kept",
+   "pass": true,
+   "detail": "[\"Industriestraße 14\",\"90431 Nürnberg\"]"
+  },
+  {
+   "name": "saved_address_wins",
+   "pass": true,
+   "detail": "[\"Musterweg 3\",\"90402 Nürnberg\"]"
+  },
+  {
+   "name": "address_in_paragraph_rejected",
+   "pass": true,
+   "detail": "Cover letter validation failed: the letter text contained the postal address, which belongs only in the recipient field"
+  },
+  {
+   "name": "boilerplate_accommodation_address_dropped",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "name": "us_application_address_kept",
+   "pass": true,
+   "detail": "[\"220 West Lake Street, Suite 1400\",\"Chicago, IL 60606\"]"
+  },
+  {
+   "name": "fr_application_address_kept",
+   "pass": true,
+   "detail": "[\"12 rue de la République\",\"69002 Lyon\"]"
+  },
+  {
+   "name": "fake_contact_dropped",
+   "pass": true,
+   "detail": "undefined"
+  },
+  {
+   "name": "cross_person_title_falls_back_to_neutral",
+   "pass": true,
+   "detail": "Guten Tag Anna Hoffmann,"
+  },
+  {
+   "name": "stated_title_for_same_person_kept",
+   "pass": true,
+   "detail": "Sehr geehrte Frau Hoffmann,"
+  },
+  {
+   "name": "first_and_last_name_from_two_people_falls_back",
+   "pass": true,
+   "detail": "Guten Tag Anna Hoffmann,"
+  },
+  {
+   "name": "geehrter_without_stated_title_falls_back",
+   "pass": true,
+   "detail": "Guten Tag Jordan Hoffmann,"
+  },
+  {
+   "name": "saved_contact_is_the_addressee",
+   "pass": true,
+   "detail": "Guten Tag Paul Kaiser,"
+  },
+  {
+   "name": "guessed_title_falls_back_to_neutral",
+   "pass": true,
+   "detail": "Dear Dana Whitfield,"
+  },
+  {
+   "name": "en_salutation_gets_its_comma",
+   "pass": true,
+   "detail": "Dear Dana Whitfield,"
+  },
+  {
+   "name": "placeholder_salutation_falls_back",
+   "pass": true,
+   "detail": "Dear Dana Whitfield,"
+  },
+  {
+   "name": "nobody_named_gets_generic_greeting",
+   "pass": true,
+   "detail": "Dear Hiring Team,"
+  },
+  {
+   "name": "title_without_name_gets_generic_greeting",
+   "pass": true,
+   "detail": "Sehr geehrte Damen und Herren,"
+  },
+  {
+   "name": "fr_stated_title_kept",
+   "pass": true,
+   "detail": "Madame Dubois,"
+  },
+  {
+   "name": "fr_chere_madame_kept",
+   "pass": true,
+   "detail": "Chère Madame Dubois,"
+  },
+  {
+   "name": "fr_wrong_title_falls_back",
+   "pass": true,
+   "detail": "Bonjour Claire Dubois,"
+  },
+  {
+   "name": "fr_cher_adjective_falls_back",
+   "pass": true,
+   "detail": "Bonjour Claire Dubois,"
+  },
+  {
+   "name": "fr_generic_kept",
+   "pass": true,
+   "detail": "Madame, Monsieur,"
+  },
+  {
+   "name": "es_estimada_without_title_falls_back",
+   "pass": true,
+   "detail": "Buenos días Laura García,"
+  },
+  {
+   "name": "nl_stated_title_kept",
+   "pass": true,
+   "detail": "Geachte mevrouw De Vries,"
+  },
+  {
+   "name": "it_signora_without_title_falls_back",
+   "pass": true,
+   "detail": "Gentile Giulia Rossi,"
+  },
+  {
+   "name": "subject_number_not_in_ad_falls_back",
+   "pass": true,
+   "detail": "Bewerbung als Key Account Manager"
+  },
+  {
+   "name": "subject_ad_number_kept",
+   "pass": true,
+   "detail": "KAM-2026-17"
+  },
+  {
+   "name": "subject_short_numbers_ignored",
+   "pass": true,
+   "detail": "Level 2"
+  },
+  {
+   "name": "subject_bracket_from_title_kept",
+   "pass": true,
+   "detail": "Engineer [Remote]"
+  },
+  {
+   "name": "subject_placeholder_falls_back",
+   "pass": true,
+   "detail": "Application for Engineer"
+  },
+  {
+   "name": "german_subject_without_bewerbung_falls_back",
+   "pass": true,
+   "detail": "Bewerbung als Key Account Manager"
+  },
+  {
+   "name": "closing_without_signature_name",
+   "pass": true,
+   "detail": "Kind regards,"
+  },
+  {
+   "name": "market_Vienna_VA_en_en",
+   "pass": true,
+   "detail": "us (expected us)"
+  },
+  {
+   "name": "market_Berlin_MA_en_en",
+   "pass": true,
+   "detail": "us (expected us)"
+  },
+  {
+   "name": "market_Geneva_IL_60134_en_en",
+   "pass": true,
+   "detail": "us (expected us)"
+  },
+  {
+   "name": "market_Berlin_en_en",
+   "pass": true,
+   "detail": "us (expected us)"
+  },
+  {
+   "name": "market_Berlin_Germany_en_en",
+   "pass": true,
+   "detail": "dach (expected dach)"
+  },
+  {
+   "name": "market_Wien_en_de",
+   "pass": true,
+   "detail": "dach (expected dach)"
+  },
+  {
+   "name": "market_Z_rich_Schweiz_en_en",
+   "pass": true,
+   "detail": "dach (expected dach)"
+  },
+  {
+   "name": "market_Remote_de_de",
+   "pass": true,
+   "detail": "dach (expected dach)"
+  },
+  {
+   "name": "contract_guard_rejects_shallow_object",
+   "pass": true,
+   "detail": "shallow object"
+  }
+ ]
+}

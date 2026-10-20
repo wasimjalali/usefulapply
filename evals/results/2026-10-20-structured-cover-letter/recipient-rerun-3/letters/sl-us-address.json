@@ -1,0 +1,334 @@
+{
+ "case_id": "sl-us-address",
+ "language": "en",
+ "ok": true,
+ "error": null,
+ "cover_letter_calls": 1,
+ "body": "Tomas Brandt\nChicago, IL, USA\ntomas.brandt@example.com\n+1 555 0123\n\nOctober 20, 2026\n\nDana Whitfield\nTalent Acquisition\nNorthwind Freight Inc.\n220 West Lake Street, Suite 1400\nChicago, IL 60606\n\nApplication for Senior FP&A Analyst, Req #NW-4471\n\nDear Dana Whitfield,\n\nYour FP&A team has to explain the business to Operations and Sales leaders, and that only works when the forecast is trusted. At Calder Industrial Components I rebuilt the forecast model for our larger unit around order backlog and lifted accuracy from 88% to 96%. I now own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD.\n\nAs a Financial Analyst with 5 years of experience in budgeting, forecasting and month-end reporting, I've worked on the same problems your Senior FP&A Analyst role covers. I cut month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA, and I build Power BI dashboards on SAP data for plant managers, who aren't finance people and need clear answers. Earlier, at Redfern Stores, I prepared the annual budget for the regional team and found an unclaimed supplier rebate worth about 120,000 USD a year. I also bring advanced Excel, basic SQL and ACCA progress, and I'm quick to pick up new systems.\n\nOwning the forecast for your Midwest and Southeast regions and building the annual operating budget with regional leaders is work I'd like to take on. I'm based in Chicago, comfortable with the hybrid schedule, and available to talk whenever suits your team.\n\nKind regards,\nTomas Brandt",
+ "structured": {
+  "version": 2,
+  "language": "en",
+  "market": "us",
+  "sender": {
+   "name": "Tomas Brandt",
+   "addressLines": [
+    "Chicago, IL, USA"
+   ],
+   "phone": "+1 555 0123",
+   "email": "tomas.brandt@example.com"
+  },
+  "recipient": {
+   "addressLines": [
+    "220 West Lake Street, Suite 1400",
+    "Chicago, IL 60606"
+   ],
+   "companyName": "Northwind Freight Inc.",
+   "contactPerson": "Dana Whitfield",
+   "department": "Talent Acquisition"
+  },
+  "date": "2026-10-20",
+  "subject": "Application for Senior FP&A Analyst, Req #NW-4471",
+  "salutation": "Dear Dana Whitfield,",
+  "paragraphs": [
+   "Your FP&A team has to explain the business to Operations and Sales leaders, and that only works when the forecast is trusted. At Calder Industrial Components I rebuilt the forecast model for our larger unit around order backlog and lifted accuracy from 88% to 96%. I now own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD.",
+   "As a Financial Analyst with 5 years of experience in budgeting, forecasting and month-end reporting, I've worked on the same problems your Senior FP&A Analyst role covers. I cut month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA, and I build Power BI dashboards on SAP data for plant managers, who aren't finance people and need clear answers. Earlier, at Redfern Stores, I prepared the annual budget for the regional team and found an unclaimed supplier rebate worth about 120,000 USD a year. I also bring advanced Excel, basic SQL and ACCA progress, and I'm quick to pick up new systems.",
+   "Owning the forecast for your Midwest and Southeast regions and building the annual operating budget with regional leaders is work I'd like to take on. I'm based in Chicago, comfortable with the hybrid schedule, and available to talk whenever suits your team."
+  ],
+  "closing": "Kind regards,",
+  "signatureName": "Tomas Brandt",
+  "place": "Chicago"
+ },
+ "raw_letter_outputs": [
+  "{\"subject\": \"Application for Senior FP&A Analyst, Req #NW-4471\", \"salutation\": \"Dear Dana Whitfield,\", \"paragraphs\": [\"Your FP&A team has to explain the business to Operations and Sales leaders, and that only works when the forecast is trusted. At Calder Industrial Components I rebuilt the forecast model for our larger unit around order backlog and lifted accuracy from 88% to 96%. I now own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD.\", \"As a Financial Analyst with 5 years of experience in budgeting, forecasting and month-end reporting, I've worked on the same problems your Senior FP&A Analyst role covers. I cut month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA, and I build Power BI dashboards on SAP data for plant managers, who aren't finance people and need clear answers. Earlier, at Redfern Stores, I prepared the annual budget for the regional team and found an unclaimed supplier rebate worth about 120,000 USD a year. I also bring advanced Excel, basic SQL and ACCA progress, and I'm quick to pick up new systems.\", \"Owning the forecast for your Midwest and Southeast regions and building the annual operating budget with regional leaders is work I'd like to take on. I'm based in Chicago, comfortable with the hybrid schedule, and available to talk whenever suits your team.\"], \"closing\": \"Kind regards,\", \"recipient\": {\"companyName\": \"Northwind Freight Inc.\", \"contactPerson\": \"Dana Whitfield\", \"department\": \"Talent Acquisition\", \"addressLines\": [\"220 West Lake Street, Suite 1400\", \"Chicago, IL 60606\"]}}"
+ ],
+ "context": {
+  "applicant": {
+   "name": "Tomas Brandt",
+   "email": "tomas.brandt@example.com",
+   "phone": "+1 555 0123",
+   "address": "Chicago, IL, USA",
+   "headline": "Financial Analyst",
+   "skills": [
+    "budgeting",
+    "rolling forecasts",
+    "variance analysis",
+    "working capital",
+    "management reporting",
+    "basic SQL"
+   ],
+   "tools": [
+    "Excel",
+    "INDEX/MATCH",
+    "pivot tables",
+    "VBA",
+    "Power BI",
+    "SAP (reporting)"
+   ],
+   "languages": [
+    "English (native)",
+    "German (basic)"
+   ],
+   "experiences": [
+    {
+     "company": "Calder Industrial Components (manufacturing, 900 staff)",
+     "title": "Financial Analyst",
+     "startDate": "Mar 2022",
+     "endDate": "Present",
+     "bullets": [
+      "Own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD",
+      "Improved forecast accuracy for the larger unit from 88% to 96% by rebuilding the model around order backlog",
+      "Shortened month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA",
+      "Build Power BI dashboards on SAP data for plant managers"
+     ]
+    },
+    {
+     "company": "Redfern Stores (retail chain, 60 stores)",
+     "title": "Junior Financial Analyst",
+     "startDate": "Sep 2019",
+     "endDate": "Feb 2022",
+     "bullets": [
+      "Prepared weekly store P&L packs and the annual budget for the regional team",
+      "Found a recurring supplier rebate that was not being claimed, worth about 120,000 USD a year"
+     ]
+    },
+    {
+     "company": "Lakeshore Logistics",
+     "title": "Finance Intern",
+     "startDate": "Jun 2018",
+     "endDate": "Aug 2018",
+     "bullets": [
+      "Reconciled freight invoices and supported the audit file"
+     ]
+    }
+   ],
+   "certifications": [
+    "ACCA: 9 of 13 papers passed (in progress)"
+   ]
+  },
+  "job": {
+   "title": "Senior FP&A Analyst",
+   "companyName": "Northwind Freight Inc.",
+   "location": "Chicago, IL",
+   "workType": "Hybrid",
+   "requiredSkills": [
+    "4+ years in FP&A, corporate finance or a similar analytical role",
+    "Advanced Excel",
+    "Power BI",
+    "SQL",
+    "NetSuite",
+    "Forecasting",
+    "Variance analysis",
+    "Budgeting",
+    "Month-end reporting",
+    "Dashboard building",
+    "Communicating complex data to non-finance stakeholders",
+    "Stakeholder partnership"
+   ],
+   "niceToHaveSkills": [
+    "Tableau",
+    "CPA or CFA progress"
+   ],
+   "responsibilities": [
+    "Own the monthly forecast and variance analysis for Midwest and Southeast regions",
+    "Build and maintain the annual operating budget with regional leaders",
+    "Turn complex data into clear recommendations for non-finance stakeholders",
+    "Improve month-end reporting speed and accuracy",
+    "Build dashboards in Power BI and Tableau"
+   ],
+   "expectedSalary": "$85,000 to $100,000 base plus annual bonus"
+  },
+  "match": {
+   "score": 88,
+   "matchedRequirements": [
+    "4+ years in FP&A, corporate finance or a similar analytical role",
+    "Advanced Excel",
+    "Power BI",
+    "SQL",
+    "Forecasting",
+    "Variance analysis",
+    "Budgeting",
+    "Month-end reporting",
+    "Dashboard building",
+    "Communicating complex data to non-finance stakeholders",
+    "Stakeholder partnership",
+    "CPA or CFA progress"
+   ],
+   "claimableEvidence": [
+    "Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting",
+    "Excel (advanced: INDEX/MATCH, pivot tables, VBA)",
+    "Power BI",
+    "basic SQL",
+    "rolling forecasts",
+    "variance analysis",
+    "budgeting",
+    "month-end close reporting",
+    "Build Power BI dashboards on SAP data for plant managers",
+    "ACCA: 9 of 13 papers passed (in progress)"
+   ],
+   "missingSkills": [
+    "NetSuite",
+    "Tableau"
+   ],
+   "details": [
+    {
+     "requirement": "4+ years in FP&A, corporate finance or a similar analytical role",
+     "evidence": "Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Advanced Excel",
+     "evidence": "Excel (advanced: INDEX/MATCH, pivot tables, VBA)",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Power BI",
+     "evidence": "Power BI",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "SQL",
+     "evidence": "basic SQL",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "NetSuite",
+     "tier": "missing",
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Forecasting",
+     "evidence": "rolling forecasts",
+     "tier": 2,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Variance analysis",
+     "evidence": "variance analysis",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Budgeting",
+     "evidence": "budgeting",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Month-end reporting",
+     "evidence": "month-end close reporting",
+     "tier": 2,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Dashboard building",
+     "evidence": "Build Power BI dashboards on SAP data for plant managers",
+     "tier": 1,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Communicating complex data to non-finance stakeholders",
+     "evidence": "Build Power BI dashboards on SAP data for plant managers",
+     "tier": 2,
+     "claimable": true,
+     "required": true
+    },
+    {
+     "requirement": "Stakeholder partnership",
+     "tier": 3,
+     "claimable": false,
+     "required": true
+    },
+    {
+     "requirement": "Tableau",
+     "tier": "missing",
+     "claimable": false,
+     "required": false
+    },
+    {
+     "requirement": "CPA or CFA progress",
+     "evidence": "ACCA: 9 of 13 papers passed (in progress)",
+     "tier": 2,
+     "claimable": true,
+     "required": false
+    }
+   ]
+  },
+  "verifiedMetrics": [
+   "5 years of experience in budgeting, forecasting and month-end reporting",
+   "combined revenue of about 85 million USD",
+   "ACCA: 9 of 13 papers passed"
+  ]
+ },
+ "checks": {
+  "contract_valid": {
+   "pass": true,
+   "detail": ""
+  },
+  "recipient_address_rule": {
+   "pass": true,
+   "detail": "[\"220 West Lake Street, Suite 1400\",\"Chicago, IL 60606\"]"
+  },
+  "no_address_in_letter_text": {
+   "pass": true,
+   "detail": "ad address lines: 2"
+  },
+  "contact_rule": {
+   "pass": true,
+   "detail": "company=Northwind Freight Inc. contact=Dana Whitfield dept=Talent Acquisition salutation=Dear Dana Whitfield,"
+  },
+  "numbers_traced": {
+   "pass": true,
+   "detail": "cv-or-ad: 7, ad-only (employer facts, review): none, untraced: none"
+  },
+  "no_missing_skill_named": {
+   "pass": true,
+   "detail": "none"
+  },
+  "no_dashes": {
+   "pass": true,
+   "detail": "body 0, raw model output 0"
+  },
+  "under_250_words": {
+   "pass": true,
+   "detail": "216 words in 3 paragraphs"
+  },
+  "three_paragraphs": {
+   "pass": true,
+   "detail": "3"
+  },
+  "market_rules": {
+   "pass": true,
+   "detail": "market=us closing=\"Kind regards,\" subject=\"Application for Senior FP&A Analyst, Req #NW-4471\""
+  },
+  "subject_numbers_from_ad": {
+   "pass": true,
+   "detail": "4471"
+  },
+  "body_faithful": {
+   "pass": true,
+   "detail": "body === renderCoverLetterBody(structured)"
+  },
+  "sender_from_cv": {
+   "pass": true,
+   "detail": "{\"name\":\"Tomas Brandt\",\"addressLines\":[\"Chicago, IL, USA\"],\"phone\":\"+1 555 0123\",\"email\":\"tomas.brandt@example.com\"}"
+  },
+  "no_placeholders": {
+   "pass": true,
+   "detail": ""
+  }
+ }
+}
