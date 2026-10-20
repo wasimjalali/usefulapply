@@ -237,6 +237,8 @@ async function persistGeneratedArtifacts(
   userId: string,
   results: Record<string, unknown>,
   mergeExisting = false,
+  /** The job description the kit was written for; needed to save the letter's recipient. */
+  letterJobDescription?: string,
 ): Promise<void> {
   if (!sessionId || !userId || sessionId.startsWith('session-') || sessionId.startsWith('fit-')) {
     console.warn('[agent-v2] Generated artifacts were not persisted because no stored session was available');
@@ -266,9 +268,9 @@ async function persistGeneratedArtifacts(
   } catch (error) {
     console.error('[agent-v2] Failed to persist generated artifacts:', error);
   }
-  if (isStructuredCoverLetter(results.coverLetterStructured)) {
+  if (letterJobDescription && isStructuredCoverLetter(results.coverLetterStructured)) {
     try {
-      await saveLetterRecipientFromAd(userId, sessionId, results.coverLetterStructured);
+      await saveLetterRecipientFromAd(userId, sessionId, letterJobDescription, results.coverLetterStructured);
     } catch (error) {
       // The letter already carries the recipient; only the editable copy on
       // the session row is missing.
@@ -1035,7 +1037,7 @@ export async function POST(request: NextRequest) {
                 const documentErrors = result.data.documentErrors ?? {};
                 const fallbackResults = buildKitResults(result.data.context, documentErrors);
 
-                await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', fallbackResults);
+                await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', fallbackResults, false, result.data.context.jobDescription);
                 await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
                 const creditsRefunded = await settleKitReservation(documentErrors);
 
@@ -1085,7 +1087,7 @@ export async function POST(request: NextRequest) {
             const documentErrors = result.data.documentErrors ?? {};
             const genResults = buildKitResults(result.data.context, documentErrors);
 
-            await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', genResults);
+            await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', genResults, false, result.data.context.jobDescription);
             await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
             const creditsRefunded = await settleKitReservation(documentErrors);
 
@@ -1189,7 +1191,7 @@ export async function POST(request: NextRequest) {
         const documentErrors = result.data.documentErrors ?? {};
         const results = buildKitResults(result.data.context, documentErrors);
 
-        await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', results);
+        await persistGeneratedArtifacts(clientSessionId, user?.id ?? '', results, false, result.data.context.jobDescription);
         await tryTransitionGeneration(clientSessionId, user?.id ?? '', 'succeeded');
         const creditsRefunded = await settleKitReservation(documentErrors);
 

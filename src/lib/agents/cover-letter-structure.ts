@@ -19,6 +19,7 @@
 
 import type { MasterContext } from './types';
 import type { CoverLetterRecipient, CoverLetterSender, StructuredCoverLetter } from '@/lib/cover-letter/contract';
+import { cleanLetterText } from './cover-letter-guards';
 
 /** Recipient details from the application session row, set by the routes. */
 export interface LetterRecipientSource {
@@ -37,9 +38,9 @@ export interface CoverLetterModelFields {
   contactPerson?: string;
   /** Kept only when the job description states it verbatim. */
   department?: string;
-  /** Kept only when the job description states it verbatim. Used only when no company name is known. */
+  /** The ad's own text for the company: the parsed job company when the ad contains it, else the model's verbatim copy. */
   companyName?: string;
-  /** The employer's postal address, kept only when every line is verbatim in the job description. */
+  /** The employer's postal address as one verbatim, anchored block from the job description (cover-letter-guards.ts). */
   addressLines?: string[];
 }
 
@@ -53,18 +54,29 @@ const LETTER_LOCALES: Record<string, string> = {
   nl: 'nl-NL',
 };
 
-// Countries and the larger cities of Germany, Austria and Switzerland. Matched
-// on letter boundaries, so "Bern" never matches inside "Berner".
-const DACH_LOCATION = /(?:^|[^\p{L}])(deutschland|germany|österreich|oesterreich|austria|schweiz|switzerland|suisse|svizzera|berlin|hamburg|münchen|muenchen|munich|köln|koeln|cologne|frankfurt|stuttgart|düsseldorf|duesseldorf|leipzig|dresden|hannover|nürnberg|nuernberg|nuremberg|bremen|dortmund|bonn|mannheim|karlsruhe|wien|vienna|graz|linz|salzburg|innsbruck|zürich|zurich|basel|bern|genf|geneva|lausanne|luzern|lucerne)(?=$|[^\p{L}])/iu;
+// Matched on letter boundaries, so "Bern" never matches inside "Berner".
+const DACH_COUNTRY = /(?:^|[^\p{L}])(deutschland|germany|österreich|oesterreich|austria|schweiz|switzerland|suisse|svizzera)(?=$|[^\p{L}])/iu;
+const DACH_CITY = /(?:^|[^\p{L}])(berlin|hamburg|münchen|muenchen|munich|köln|koeln|cologne|frankfurt|stuttgart|düsseldorf|duesseldorf|leipzig|dresden|hannover|nürnberg|nuernberg|nuremberg|bremen|dortmund|bonn|mannheim|karlsruhe|wien|vienna|graz|linz|salzburg|innsbruck|zürich|zurich|basel|bern|genf|geneva|lausanne|luzern|lucerne)(?=$|[^\p{L}])/iu;
+// "Vienna, VA", "Berlin, MA", "Geneva, IL 60134": a US state code after a comma.
+const US_STATE_SUFFIX = /,\s*[A-Z]{2}(?:\s+\d{5}(?:-\d{4})?)?(?=$|[\s,;)])/u;
 
 function collapse(value: string | null | undefined): string {
   return (value ?? '').replace(/[\s\p{Cc}]+/gu, ' ').trim();
 }
 
-/** `dach` for a German letter or a job located in Germany, Austria or Switzerland. */
-export function resolveLetterMarket(language: string, jobLocation: string | undefined): 'us' | 'dach' {
+/**
+ * `dach` for a German letter, or a job located in Germany, Austria or
+ * Switzerland. A DACH city counts only beside a DACH country or with a
+ * German-language ad, and never with a US state code ("Vienna, VA"). An
+ * English letter for a DACH job gets the DIN layout but keeps its English
+ * subject and closing.
+ */
+export function resolveLetterMarket(language: string, jobLocation: string | undefined, adLanguage?: string): 'us' | 'dach' {
   if (language === 'de') return 'dach';
-  return DACH_LOCATION.test(jobLocation ?? '') ? 'dach' : 'us';
+  const location = jobLocation ?? '';
+  if (US_STATE_SUFFIX.test(location)) return 'us';
+  if (DACH_COUNTRY.test(location)) return 'dach';
+  return adLanguage === 'de' && DACH_CITY.test(location) ? 'dach' : 'us';
 }
 
 /**
@@ -159,15 +171,16 @@ export function assembleStructuredCoverLetter(
   if (links.length > 0) sender.links = links;
 
   // Precedence for each recipient detail: the session row, then the verbatim
-  // extract from the ad, then empty.
-  const savedAddress = splitAddressLines(session?.address);
+  // extract from the ad (the writer already checked the ad, including the
+  // parsed company name), then empty. Dashes become hyphens.
+  const savedAddress = splitAddressLines(session?.address).map(cleanLetterText).filter(Boolean);
   const recipient: CoverLetterRecipient = {
-    addressLines: savedAddress.length > 0 ? savedAddress : (fields.addressLines ?? []).map(collapse).filter(Boolean),
+    addressLines: savedAddress.length > 0 ? savedAddress : (fields.addressLines ?? []).map(cleanLetterText).filter(Boolean),
   };
-  const companyName = collapse(session?.companyName) || collapse(context.job?.companyName) || collapse(fields.companyName);
+  const companyName = cleanLetterText(session?.companyName) || cleanLetterText(fields.companyName);
   // A contact person saved on the application wins over one read from the ad.
-  const contactPerson = collapse(session?.contactPerson) || collapse(fields.contactPerson);
-  const department = collapse(fields.department);
+  const contactPerson = cleanLetterText(session?.contactPerson) || cleanLetterText(fields.contactPerson);
+  const department = cleanLetterText(fields.department);
   if (companyName) recipient.companyName = companyName;
   if (contactPerson) recipient.contactPerson = contactPerson;
   if (department) recipient.department = department;
@@ -175,7 +188,7 @@ export function assembleStructuredCoverLetter(
   const letter: StructuredCoverLetter = {
     version: 2,
     language,
-    market: resolveLetterMarket(language, context.job?.location),
+    market: resolveLetterMarket(language, context.job?.location, context.detectedLanguage),
     sender,
     recipient,
     date,

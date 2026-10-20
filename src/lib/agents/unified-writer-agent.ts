@@ -58,6 +58,17 @@ import {
 import { buildCoverLetterSystemBlocks, buildCoverLetterUserPrompt } from './prompts/cover-letter-prompt';
 import { assembleStructuredCoverLetter, renderCoverLetterBody, splitAddressLines, type CoverLetterModelFields } from './cover-letter-structure';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
+import {
+  adPhrase,
+  cleanLetterText,
+  extractAdAddress,
+  fallbackLetterSubject,
+  GENERIC_LETTER_GREETINGS,
+  hasUnverifiedBrackets,
+  resolveClosing,
+  resolveSalutation,
+  resolveSubject,
+} from './cover-letter-guards';
 import { buildApplicationEmailUserPrompt, buildApplicationEmailSystemBlocks, buildFollowUpEmailUserPrompt, buildFollowUpEmailSystemBlocks } from './prompts/email-prompts';
 import { buildFitAssessmentPrompt, buildFitAssessmentSystemBlocks, computeFitLevel } from './prompts/fit-assessment-prompt';
 import { normalizeLanguage, type SupportedLanguage } from '@/lib/utils/language-detector';
@@ -864,19 +875,14 @@ function findBoundaryBlacklistedPhrases(value: string): string[] {
   });
 }
 
-const GERMAN_LETTER_CLOSING = 'Mit freundlichen Grüßen';
-const LETTER_FIELD_MAX_CHARS = 200;
 const LETTER_RECIPIENT_MAX_CHARS = 120;
 
-// Words a salutation may use without the ad stating them (English and German).
-// Every other word in an English or German salutation, a name above all, must
-// appear in the ad, the company name or the contact saved on the application.
-const SALUTATION_WORDS = new Set([
-  'dear', 'hello', 'hi', 'hiring', 'manager', 'managers', 'team', 'recruiting', 'recruitment',
-  'talent', 'acquisition', 'people', 'hr', 'and', 'the', 'of', 'mr', 'mrs', 'ms', 'mx', 'dr', 'prof',
-  'sehr', 'geehrte', 'geehrter', 'geehrtes', 'frau', 'herr', 'damen', 'und', 'herren',
-  'liebe', 'lieber', 'liebes', 'hallo', 'guten', 'tag', 'personalabteilung',
-]);
+/** A cover letter answer: a paragraph list with real text, not a schema echo or a fragment. */
+export function isCoverLetterAnswerShape(parsed: Record<string, unknown>): boolean {
+  return typeof parsed.subject === 'string'
+    && Array.isArray(parsed.paragraphs)
+    && parsed.paragraphs.some(isRealString);
+}
 
 /** The text contains the value as a whole phrase, ignoring case and spacing. */
 function textContainsPhrase(text: string, value: string): boolean {
@@ -886,36 +892,13 @@ function textContainsPhrase(text: string, value: string): boolean {
     .test(normalizeComparisonText(text));
 }
 
-const SALUTATION_TITLE = /(?:^|[^\p{L}])(frau|herr|mrs|ms|mr|mx)\.?\s+((?:(?:dr|prof)\.?\s+)*)(\p{L}[\p{L}'-]*)/giu;
-
 /**
- * A gendered title in the salutation that no source gives that person. "Frau
- * Brandl" passes when the ad says "Frau Melanie Brandl"; "Ms. Whitfield" fails
- * when the ad only says "Dana Whitfield", because the title is a guess.
- */
-function salutationHasUnstatedTitle(salutation: string, sources: string[]): boolean {
-  for (const match of salutation.matchAll(SALUTATION_TITLE)) {
-    const title = escapeRegExp(match[1]);
-    const surname = escapeRegExp(match[3]);
-    const stated = new RegExp(`(?:^|[^\\p{L}])${title}\\.?\\s+(?:[\\p{L}.'-]+\\s+){0,3}${surname}(?=$|[^\\p{L}])`, 'iu');
-    if (!sources.some((source) => stated.test(source.replace(/\s+/gu, ' ')))) return true;
-  }
-  return false;
-}
-
-/** A cover letter answer: a paragraph list with real text, not a schema echo or a fragment. */
-export function isCoverLetterAnswerShape(parsed: Record<string, unknown>): boolean {
-  return typeof parsed.subject === 'string'
-    && Array.isArray(parsed.paragraphs)
-    && parsed.paragraphs.some(isRealString);
-}
-
-/**
- * Validate and clean the fields the model writes. Every miss is a
- * CoverLetterValidationError, so the one retry runs. Length is a prompt
- * standard, never a reason to fail: the letter renders at whatever length it
- * came back. Recipient contact and department survive only when the ad states
- * them verbatim; a salutation naming anyone else fails.
+ * Validate the model's letter. Only the paragraphs can fail it, which takes
+ * the one retry: they are the letter. Length is a prompt standard, never a
+ * reason to fail. The optional fields degrade instead of failing
+ * (cover-letter-guards.ts): a salutation, subject or closing that breaks a rule
+ * is replaced by a fixed form, and a recipient detail the ad doesn't state
+ * verbatim is dropped.
  */
 function validateCoverLetterFields(
   parsed: Record<string, unknown>,
@@ -923,21 +906,11 @@ function validateCoverLetterFields(
   language: SupportedLanguage,
 ): CoverLetterModelFields {
   const issues: string[] = [];
-  const singleLine = (value: unknown, label: string): string => {
-    if (typeof value !== 'string') {
-      issues.push(`the ${label} was not text`);
-      return '';
-    }
-    const clean = sanitizeDashes(fixTypos(value)).replace(/[\s\p{Cc}]+/gu, ' ').trim();
-    if (!clean) issues.push(`the ${label} was empty`);
-    else if (clean.length > LETTER_FIELD_MAX_CHARS) issues.push(`the ${label} was longer than one line`);
-    return clean;
-  };
-
-  const subject = singleLine(parsed.subject, 'subject').replace(/^(?:betreff|subject|re)\s*:\s*/iu, '');
-  const salutation = singleLine(parsed.salutation, 'salutation');
-  // German letters always close with "Mit freundlichen Grüßen", without a comma.
-  const closing = language === 'de' ? GERMAN_LETTER_CLOSING : singleLine(parsed.closing, 'closing');
+  const adText = context.jobDescription || '';
+  const jobTitle = cleanLetterText(context.job?.title);
+  const isBlacklisted = (text: string) => findBoundaryBlacklistedPhrases(text).length > 0;
+  const isPlaceholder = (text: string) => isPlaceholderValue(text);
+  const typoFixed = (value: unknown) => (typeof value === 'string' ? fixTypos(value) : value);
 
   if (!Array.isArray(parsed.paragraphs)) issues.push('the paragraphs were not a list');
   const paragraphs = (Array.isArray(parsed.paragraphs) ? parsed.paragraphs : []).flatMap((value) => {
@@ -952,69 +925,94 @@ function validateCoverLetterFields(
   });
   if (paragraphs.length === 0) issues.push('the letter had no paragraphs');
 
+  // Recipient details: the ad's own text, or nothing. Saved session values win.
+  const recipient = isRecord(parsed.recipient) ? parsed.recipient : {};
+  const fromAd = (value: unknown): string | undefined => (
+    typeof value === 'string' && value.length <= LETTER_RECIPIENT_MAX_CHARS && !isPlaceholderValue(value.trim())
+      ? adPhrase(adText, value)
+      : undefined
+  );
+  const contactPerson = fromAd(recipient.contactPerson);
+  const department = fromAd(recipient.department);
+  const companyName = adPhrase(adText, context.job?.companyName) ?? fromAd(recipient.companyName);
+  const savedCompany = cleanLetterText(context.letterRecipient?.companyName);
+  const savedContact = cleanLetterText(context.letterRecipient?.contactPerson);
+  const addressee = savedContact || contactPerson;
+  const addressLines = extractAdAddress(recipient.addressLines, adText, {
+    companyName: savedCompany || companyName,
+    contactPerson: addressee,
+    department,
+  });
+
+  const fallbacks: string[] = [];
+  const subjectResult = resolveSubject({ subject: typoFixed(parsed.subject), language, adText, jobTitle, isPlaceholder });
+  const salutationResult = resolveSalutation({
+    salutation: typoFixed(parsed.salutation),
+    language,
+    adText,
+    jobTitle,
+    contactPerson: addressee,
+    companyNames: [savedCompany, companyName ?? ''].filter(Boolean),
+    isBlacklisted,
+    isPlaceholder,
+  });
+  const closingResult = resolveClosing({
+    closing: typoFixed(parsed.closing),
+    language,
+    applicantName: context.applicant?.name,
+    isBlacklisted,
+    isPlaceholder,
+  });
+  let subject = subjectResult.value;
+  let salutation = salutationResult.value;
+  const closing = closingResult.value;
+  if (subjectResult.fallbackReason) fallbacks.push(`subject: ${subjectResult.fallbackReason}`);
+  if (salutationResult.fallbackReason) fallbacks.push(`salutation: ${salutationResult.fallbackReason}`);
+  if (closingResult.fallbackReason) fallbacks.push(`closing: ${closingResult.fallbackReason}`);
+
+  // The address belongs in the address block, which code builds. A paragraph
+  // that carries it fails; a subject or salutation that carries it is replaced.
+  const knownAddressLines = [...addressLines, ...splitAddressLines(context.letterRecipient?.address)]
+    .filter((line) => /\d/u.test(line));
+  const carriesAddress = (text: string) => knownAddressLines.some((line) => textContainsPhrase(text, line));
+  if (paragraphs.some(carriesAddress)) {
+    issues.push('the letter text contained the postal address, which belongs only in the recipient field');
+  }
+  if (carriesAddress(subject)) {
+    subject = fallbackLetterSubject(language, jobTitle);
+    fallbacks.push('subject: carried the address');
+  }
+  if (carriesAddress(salutation)) {
+    salutation = GENERIC_LETTER_GREETINGS[language];
+    fallbacks.push('salutation: carried the address');
+  }
+
   // The frame (greeting, sign-off, name) is added in code; a paragraph that
   // repeats it would print twice.
   const applicantName = normalizeComparisonText(context.applicant?.name ?? '');
-  const normalizedSalutation = normalizeComparisonText(salutation);
-  const normalizedClosing = normalizeComparisonText(closing).replace(/,$/u, '');
+  const greetings = [salutation, typeof parsed.salutation === 'string' ? parsed.salutation : '']
+    .map(normalizeComparisonText)
+    .filter(Boolean);
+  const signOffs = [closing, typeof parsed.closing === 'string' ? parsed.closing : '']
+    .map((value) => normalizeComparisonText(value).replace(/,$/u, ''))
+    .filter(Boolean);
   for (const paragraph of paragraphs) {
     const text = normalizeComparisonText(paragraph);
-    if (normalizedSalutation && text.startsWith(normalizedSalutation)) {
-      issues.push('a paragraph repeated the greeting');
-    }
+    if (greetings.some((greeting) => text.startsWith(greeting))) issues.push('a paragraph repeated the greeting');
     const stripped = text.replace(/[,.]$/u, '');
-    if ((applicantName && stripped.endsWith(applicantName)) || (normalizedClosing && stripped.endsWith(normalizedClosing))) {
+    if ((applicantName && stripped.endsWith(applicantName)) || signOffs.some((signOff) => stripped.endsWith(signOff))) {
       issues.push('a paragraph repeated the sign-off or the signature');
     }
   }
 
-  if ([subject, salutation, closing, ...paragraphs].some((value) => /\[[^\]]+\]/u.test(value))) {
+  if (paragraphs.some((paragraph) => hasUnverifiedBrackets(paragraph, adText, jobTitle))) {
     issues.push('the letter contained a placeholder');
   }
-  issues.push(...findBoundaryBlacklistedPhrases([salutation, ...paragraphs, closing].join('\n'))
-    .map((phrase) => `blacklisted phrase "${phrase}"`));
-
-  const adText = context.jobDescription || '';
-  if (language === 'de' && subject && !/^bewerbung\b/iu.test(subject)) {
-    issues.push('the German subject must start with "Bewerbung als"');
-  }
-  // A reference number in the subject must be the ad's own.
-  if ((subject.match(/\d+/gu) ?? []).some((digits) => !adText.includes(digits))) {
-    issues.push('the subject contained a number the ad does not state');
-  }
-
-  const recipient = isRecord(parsed.recipient) ? parsed.recipient : {};
-  const fromAd = (value: unknown): string | undefined => {
-    if (typeof value !== 'string') return undefined;
-    const clean = value.replace(/[\s\p{Cc}]+/gu, ' ').trim();
-    if (!clean || isPlaceholderValue(clean) || clean.length > LETTER_RECIPIENT_MAX_CHARS) return undefined;
-    return textContainsPhrase(adText, clean) ? clean : undefined;
-  };
-  const contactPerson = fromAd(recipient.contactPerson);
-  const department = fromAd(recipient.department);
-  const companyName = fromAd(recipient.companyName);
-  const addressLines = verbatimAdAddress(recipient.addressLines, adText, [companyName, contactPerson, department]);
-  // The address belongs in the address block, which code builds. A paragraph,
-  // subject or salutation that carries an address line would print it twice.
-  const knownAddressLines = [...addressLines, ...splitAddressLines(context.letterRecipient?.address)]
-    .map((line) => line.trim())
-    .filter((line) => /\d/u.test(line));
-  if ([subject, salutation, ...paragraphs].some((text) => knownAddressLines.some((line) => textContainsPhrase(text, line)))) {
-    issues.push('the letter text contained the postal address, which belongs only in the recipient field');
-  }
-
-  if (language === 'en' || language === 'de') {
-    const known = [adText, context.job?.companyName ?? '', context.letterRecipient?.companyName ?? '', context.letterRecipient?.contactPerson ?? ''];
-    const unstated = (salutation.match(/\p{L}+/gu) ?? []).some((word) => (
-      !SALUTATION_WORDS.has(word.toLocaleLowerCase()) && !known.some((source) => textContainsPhrase(source, word))
-    ));
-    if (unstated) issues.push('the salutation named someone the ad does not state');
-    if (salutationHasUnstatedTitle(salutation, [adText, context.letterRecipient?.contactPerson ?? ''])) {
-      issues.push('the salutation gave the contact a title (Frau, Herr, Ms., Mr.) the ad does not give them; use the full name instead');
-    }
-  }
+  issues.push(...findBoundaryBlacklistedPhrases(paragraphs.join('\n')).map((phrase) => `blacklisted phrase "${phrase}"`));
 
   if (issues.length > 0) throw new CoverLetterValidationError([...new Set(issues)]);
+  // Reasons are fixed strings from the guards, never model output.
+  if (fallbacks.length > 0) console.warn('[UnifiedAgent] Cover letter field fallbacks:', fallbacks.join('; '));
   return {
     subject,
     salutation,
@@ -1025,33 +1023,6 @@ function validateCoverLetterFields(
     ...(companyName ? { companyName } : {}),
     ...(addressLines.length > 0 ? { addressLines } : {}),
   };
-}
-
-const LETTER_ADDRESS_MAX_LINES = 4;
-
-/**
- * The employer's postal address as the model copied it from the ad, or [].
- * Lines that repeat the company, contact or department, or carry an email,
- * phone or web address, are not address lines and are set aside first. Then
- * all or nothing: every remaining line must appear verbatim in the ad (after
- * whitespace normalisation), at least one must carry a digit (street number or
- * postal code), and there are at most four. A partial address is dropped
- * whole, because a street without its city (or a city with a guessed street)
- * would send the letter to the wrong place.
- */
-function verbatimAdAddress(value: unknown, adText: string, otherFields: Array<string | undefined>): string[] {
-  if (!Array.isArray(value)) return [];
-  const others = otherFields.filter((field): field is string => Boolean(field)).map(normalizeComparisonText);
-  const lines = value
-    .filter((line): line is string => typeof line === 'string')
-    .map((line) => line.replace(/[\s\p{Cc}]+/gu, ' ').trim())
-    .filter((line) => line && !isPlaceholderValue(line))
-    .filter((line) => !others.includes(normalizeComparisonText(line)))
-    .filter((line) => !/@|https?:\/\/|www\.|\+\d|^(?:tel|telefon|phone|fax|mobil|e-?mail)\b/iu.test(line));
-  if (lines.length === 0 || lines.length > LETTER_ADDRESS_MAX_LINES) return [];
-  if (lines.some((line) => line.length > LETTER_RECIPIENT_MAX_CHARS || !textContainsPhrase(adText, line))) return [];
-  if (!lines.some((line) => /\d/u.test(line))) return [];
-  return lines;
 }
 
 /**

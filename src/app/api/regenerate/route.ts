@@ -327,7 +327,7 @@ export async function POST(request: NextRequest) {
       });
       if (persist.error) throw persist.error;
       try {
-        await saveLetterRecipientFromAd(user.id, session.id, letter.structured);
+        await saveLetterRecipientFromAd(user.id, session.id, session.job_description, letter.structured);
       } catch (error) {
         // The letter already carries the recipient; only the editable copy on
         // the session row is missing.

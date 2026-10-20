@@ -122,9 +122,23 @@ export async function updateSession(
 ): Promise<{ error: Error | null }> {
   const db = await getDb();
   // `updates` can arrive from a server action and must never re-parent the row.
+  const values: Record<string, unknown> = stripServerOwnedCounters(stripIdentity(updates as Record<string, unknown>));
+  // The recipient address and contact belong to the job the row describes. A
+  // write that changes the job description clears them in the same statement
+  // (SQLite reads the old row in SET), so the cover letter can refill them for
+  // the new job. Surrounding whitespace is not a change. A caller that sets
+  // them explicitly keeps its value.
+  if (typeof values.job_description === 'string') {
+    const nextJob = values.job_description.trim();
+    const keepIfSameJob = (column: typeof applicationSessions.company_address | typeof applicationSessions.company_contact_person) => (
+      sql`CASE WHEN trim(${applicationSessions.job_description}, ' ' || char(9) || char(10) || char(13)) = ${nextJob} THEN ${column} ELSE NULL END`
+    );
+    if (!('company_address' in values)) values.company_address = keepIfSameJob(applicationSessions.company_address);
+    if (!('company_contact_person' in values)) values.company_contact_person = keepIfSameJob(applicationSessions.company_contact_person);
+  }
   const updated = await db
     .update(applicationSessions)
-    .set({ ...stripServerOwnedCounters(stripIdentity(updates as Record<string, unknown>)), updated_at: nowIso() } as never)
+    .set({ ...values, updated_at: nowIso() } as never)
     .where(and(eq(applicationSessions.id, sessionId), eq(applicationSessions.user_id, userId)))
     .returning({ id: applicationSessions.id });
   // A write that matched nothing is a failure, not a quiet success, same as
