@@ -1,14 +1,36 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
+import { jwt } from 'better-auth/plugins';
+import { cimd } from '@better-auth/cimd';
+import { mcp } from '@better-auth/mcp';
 import { BRAND } from '@/lib/brand';
-import { getSiteUrl } from '@/lib/auth/site-url';
+import { getAuthBaseUrl } from '@/lib/auth/site-url';
+import { fetchClientMetadataResource } from '@/lib/mcp/cimd-fetch';
+import { getMcpResourceUrl, isMcpCimdEnabled, MCP_JWT_ALG } from '@/lib/mcp/config';
+import { mcpOAuthGuards } from '@/lib/mcp/guards';
+import { takeTestIssuePause } from '@/lib/mcp/test-hooks';
+import { isAllowedRedirectUri } from '@/lib/mcp/redirects';
+import { OAUTH_SCOPES } from '@/lib/mcp/scopes';
 import { sendEmail } from '@/lib/email/send';
 import { buildConfirmationEmail } from '@/lib/email/templates/confirmation';
 import { buildPasswordResetEmail } from '@/lib/email/templates/password-reset';
 import { buildDeleteAccountEmail } from '@/lib/email/templates/delete-account';
 import { getDb, getDbBinding, type Database } from '@/db/client';
-import { account, session, user, verification } from '@/db/schema';
+import {
+  account,
+  jwks,
+  oauthAccessToken,
+  oauthClient,
+  oauthClientAssertion,
+  oauthClientResource,
+  oauthConsent,
+  oauthRefreshToken,
+  oauthResource,
+  session,
+  user,
+  verification,
+} from '@/db/schema';
 import { initializeUserCredits } from '@/db/repos/credits';
 import { recordAuthMetricEvent } from '@/db/repos/adminMetrics';
 import { getConfirmationResendMeta, getOrCreateProfile } from '@/db/repos/profiles';
@@ -42,14 +64,7 @@ export type AuthInstance = ReturnType<typeof createAuth>;
 
 const SESSION_COOKIE_NAME = 'usefulapply.session';
 
-function authBaseURL(): string {
-  return (
-    process.env.BETTER_AUTH_URL?.replace(/\/$/, '')
-    || process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')
-    || process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '')
-    || getSiteUrl()
-  );
-}
+const authBaseURL = getAuthBaseUrl;
 
 function googleProvider() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -76,12 +91,26 @@ function createAuth(db: Database) {
       'http://localhost:8787',
       'http://localhost:8788',
       'http://localhost:8790',
+      'http://localhost:8791',
     ],
     database: drizzleAdapter(db, {
       provider: 'sqlite',
       // D1 has no interactive transactions. Sequential writes only.
       transaction: false,
-      schema: { user, session, account, verification },
+      schema: {
+        user,
+        session,
+        account,
+        verification,
+        jwks,
+        oauthClient,
+        oauthResource,
+        oauthClientResource,
+        oauthRefreshToken,
+        oauthAccessToken,
+        oauthConsent,
+        oauthClientAssertion,
+      },
     }),
     emailAndPassword: {
       enabled: true,
@@ -91,6 +120,28 @@ function createAuth(db: Database) {
       // so it is set explicitly rather than left on Better Auth's 1 hour default.
       resetPasswordTokenExpiresIn: 60 * 30,
       revokeSessionsOnPasswordReset: true,
+      // A reset means the account may have been taken over: cut every connected app too.
+      onPasswordReset: async ({ user: resetUser }) => {
+        try {
+          const { revokeAllConnectedApps } = await import('@/db/repos/mcpGrants');
+          await revokeAllConnectedApps(resetUser.id);
+        } catch (error) {
+          console.error('[auth] revoking MCP grants after password reset failed', resetUser.id, error);
+          // A reset that leaves connected apps alive is a security failure: surface it in PostHog
+          // too (error tracking only, no user data in the properties).
+          try {
+            const { getPostHogServer } = await import('@/lib/posthog-server');
+            const posthog = getPostHogServer();
+            posthog.captureException(error as Error, 'server_error', {
+              endpoint: 'auth.onPasswordReset',
+              step: 'revoke_mcp_grants',
+            });
+            await posthog.flush();
+          } catch (captureError) {
+            console.error('[auth] PostHog capture failed', captureError);
+          }
+        }
+      },
       sendResetPassword: async ({ user: resetUser, url }) => {
         const firstName = resetUser.name?.trim().split(/\s+/)[0] || null;
         const built = buildPasswordResetEmail({ resetLink: url, firstName });
@@ -189,6 +240,11 @@ function createAuth(db: Database) {
       },
     },
     advanced: {
+      // Better Auth's own rate limiter keys on client IP. Without this it cannot
+      // find one on Workers and puts every caller in a single shared bucket per
+      // path (its log says so), which throttles strangers together. Cloudflare
+      // sets cf-connecting-ip at the edge and the client cannot spoof it.
+      ipAddress: { ipAddressHeaders: ['cf-connecting-ip'] },
       cookiePrefix: 'usefulapply',
       cookies: {
         session_token: {
@@ -253,7 +309,68 @@ function createAuth(db: Database) {
         },
       },
     },
-    plugins: [nextCookies()],
+    plugins: [
+      // MCP OAuth: signing keys, the authorization server (on
+      // @better-auth/oauth-provider) bound to the /mcp resource, and Client ID
+      // Metadata Documents. `mcp()` is the OAuth provider, so there is no
+      // separate oauthProvider(). Migration 0009 holds the tables.
+      // disableSettingJwtHeader: by default jwt() signs a session JWT on every
+      // /get-session (so on every authenticated request), which costs a jwks
+      // read and a signature per request and makes every session check depend
+      // on migration 0009 and on BETTER_AUTH_SECRET decrypting the key. Only
+      // the OAuth endpoints and /jwks use the keys.
+      jwt({ disableSettingJwtHeader: true, jwks: { keyPairConfig: { alg: MCP_JWT_ALG } } }),
+      // Do not set `prefix`, `formatRefreshToken` or `storeTokens` here: the /oauth2/token
+      // hook in mcpOAuthGuards looks refresh tokens and codes up by their stored form
+      // (SHA-256, base64url, no padding, no prefix). Changing it makes the lookup miss, and
+      // with it the check that stops a revoked app's tokens from being redeemed.
+      mcp({
+        loginPage: '/auth/login',
+        consentPage: '/oauth/consent',
+        resource: getMcpResourceUrl(),
+        scopes: [...OAUTH_SCOPES],
+        accessTokenExpiresIn: 10 * 60,
+        refreshTokenExpiresIn: 30 * 24 * 60 * 60,
+        // Browser-approved grants only: no client_credentials (machine-to-machine) tokens.
+        grantTypes: ['authorization_code', 'refresh_token'],
+        // Runs while the provider mints a token, after it consumed the code. A no-op outside the
+        // E2E (test-hooks.ts only ever holds a pause there).
+        customAccessTokenClaims: async ({ user: issuingFor }) => {
+          await takeTestIssuePause(issuingFor?.id);
+          return {};
+        },
+        // The provider's built-in limits (token 20 a minute, register 5) are per
+        // IP, and Claude and ChatGPT call from shared egress IPs, so they would
+        // throttle every user of a client together. Our Workers rate limit
+        // buckets (mcp-oauth, mcp-register in the auth route) replace them.
+        rateLimit: {
+          token: false,
+          authorize: false,
+          introspect: false,
+          revoke: false,
+          register: false,
+          rotateClientKeys: false,
+          userinfo: false,
+        },
+        // Open dynamic client registration (RFC 7591). Redirect URIs are
+        // checked at registration by mcpRegistrationGuard and again at authorize.
+        allowDynamicClientRegistration: true,
+        allowUnauthenticatedClientRegistration: true,
+        clientRegistrationDefaultApplicationType: 'infer',
+        // Exact-match allowlist plus loopback (see redirects.ts). Applied on top
+        // of the built-in match, so a URI must pass both.
+        validateRedirectUri: (redirectUri, _registered, defaultResult) =>
+          defaultResult && isAllowedRedirectUri(redirectUri),
+      }),
+      // Client ID Metadata Documents stay off until the fetch boundary is proven
+      // on Workers (see cimd-fetch.ts and docs/agent-integration/spikes.md).
+      // Dynamic client registration covers every client meanwhile.
+      ...(isMcpCimdEnabled()
+        ? [cimd({ fetchClientMetadataResource, metadataProfile: 'mcp-2026-07-28' })]
+        : []),
+      mcpOAuthGuards(),
+      nextCookies(),
+    ],
   });
 }
 

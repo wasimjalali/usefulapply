@@ -5,7 +5,7 @@
 
 import { create } from 'zustand';
 
-export type SettingsPane = 'general' | 'cv' | 'usage' | 'notifications';
+export type SettingsPane = 'general' | 'cv' | 'usage' | 'notifications' | 'apps';
 
 interface SettingsState {
   isOpen: boolean;
@@ -27,5 +27,5 @@ export function openSettings(pane: SettingsPane = 'general') {
 }
 
 export function isSettingsPane(value: string | null | undefined): value is SettingsPane {
-  return value === 'general' || value === 'cv' || value === 'usage' || value === 'notifications';
+  return value === 'general' || value === 'cv' || value === 'usage' || value === 'notifications' || value === 'apps';
 }

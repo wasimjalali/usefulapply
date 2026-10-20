@@ -1,19 +1,21 @@
 'use client';
 
 import { useCallback, useEffect, useRef } from 'react';
-import { Bell, BarChart3, FileText, Settings, X } from 'lucide-react';
+import { Bell, BarChart3, FileText, Plug, Settings, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSettingsStore, isSettingsPane, type SettingsPane } from '@/store/useSettingsStore';
 import { GeneralPane } from '@/components/settings/GeneralPane';
 import { CvDocumentsPane } from '@/components/settings/CvDocumentsPane';
 import { UsageBillingPane } from '@/components/settings/UsageBillingPane';
 import { NotificationsPane } from '@/components/settings/NotificationsPane';
+import { ConnectedAppsPane } from '@/components/settings/ConnectedAppsPane';
 
 const NAV: Array<{ pane: SettingsPane; label: string; icon: typeof Settings }> = [
   { pane: 'general', label: 'General', icon: Settings },
   { pane: 'cv', label: 'CV', icon: FileText },
   { pane: 'usage', label: 'Usage & Billing', icon: BarChart3 },
   { pane: 'notifications', label: 'Notifications', icon: Bell },
+  { pane: 'apps', label: 'Connected apps', icon: Plug },
 ];
 
 const FOCUSABLE =
@@ -192,6 +194,7 @@ export function SettingsModal() {
             {pane === 'cv' && <CvDocumentsPane />}
             {pane === 'usage' && <UsageBillingPane />}
             {pane === 'notifications' && <NotificationsPane />}
+            {pane === 'apps' && <ConnectedAppsPane />}
           </div>
         </div>
       </div>

@@ -19,14 +19,26 @@ export async function dispatchScheduled(cron: string): Promise<void> {
   switch (cron) {
     case CRON_DAILY_CLEANUP: {
       console.log('[cron] daily cleanup and monthly credit reset sweep');
-      const [{ cleanupHistoricalJobFeedData }, { processOverdueMonthlyResets }, { deleteExpiredExports }] = await Promise.all([
+      const [
+        { cleanupHistoricalJobFeedData },
+        { processOverdueMonthlyResets },
+        { purgeUnconsentedClients, purgeExpiredTokenBindings },
+        { isMcpEnabled },
+        { deleteExpiredExports },
+      ] = await Promise.all([
         import('@/lib/job-feed/cleanup'),
         import('@/lib/supabase/credits.server'),
+        import('@/db/repos/mcpGrants'),
+        import('@/lib/mcp/config'),
         import('@/lib/services/export/storage'),
       ]);
       const results = await Promise.allSettled([
         cleanupHistoricalJobFeedData({ now: new Date() }),
         processOverdueMonthlyResets({ limit: 200 }),
+        // Nothing registers while MCP is off, and the tables may not be migrated yet.
+        isMcpEnabled()
+          ? Promise.all([purgeUnconsentedClients(), purgeExpiredTokenBindings()])
+          : Promise.resolve([0, 0]),
         // Exports are kept 30 days, then deleted.
         deleteExpiredExports(new Date()),
       ]);
@@ -43,7 +55,9 @@ export async function dispatchScheduled(cron: string): Promise<void> {
           problems.push(`monthly credit reset sweep: ${sweep.value.failed} failed, 0 succeeded`);
         }
       }
-      const exportSweep = results[2];
+      const purge = results[2];
+      if (purge.status === 'fulfilled') console.log('[cron] MCP purge (clients without consent, expired token bindings)', purge.value);
+      const exportSweep = results[3];
       if (exportSweep.status === 'fulfilled') console.log('[cron] expired exports', exportSweep.value);
       // Side effects are already committed; throwing only marks the run failed in Workers Logs.
       if (problems.length > 0) {
