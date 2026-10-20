@@ -54,8 +54,20 @@ const nextConfig: NextConfig = {
   // Staging builds (NEXT_PUBLIC_SITE_STAGE=staging at build time) must not be indexed
   // while karkoai.com is still the live site. Removed at cutover (Task 9.3).
   async headers() {
-    if (process.env.NEXT_PUBLIC_SITE_STAGE !== 'staging') return [];
-    return [{ source: '/:path*', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] }];
+    // The login, consent and authorize pages decide who gets access to an account
+    // for an MCP client, so no other site may frame them (clickjacking).
+    const noFraming = [
+      { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+      { key: 'X-Frame-Options', value: 'DENY' },
+    ];
+    const rules = [
+      '/auth/login',
+      '/oauth/consent',
+      '/oauth/resume',
+      '/api/auth/oauth2/authorize',
+    ].map((source) => ({ source, headers: noFraming }));
+    if (process.env.NEXT_PUBLIC_SITE_STAGE !== 'staging') return rules;
+    return [...rules, { source: '/:path*', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] }];
   },
 };
 

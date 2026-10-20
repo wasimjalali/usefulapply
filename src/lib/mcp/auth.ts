@@ -4,7 +4,7 @@ import { verifyJwsAccessToken } from 'better-auth/oauth2';
 import { errors as joseErrors, type JWTPayload } from 'jose';
 import { getAuth } from '@/auth/server';
 import { getGrantState, isTokenRevoked, touchGrantLastUsed } from '@/db/repos/mcpGrants';
-import { getMcpResourceUrl } from '@/lib/mcp/config';
+import { getMcpResourceUrl, MCP_JWT_ALG } from '@/lib/mcp/config';
 import { parseScopeClaim } from '@/lib/mcp/scopes';
 
 /**
@@ -88,7 +88,9 @@ export async function verifyMcpBearer(request: Request): Promise<VerifiedMcpToke
     claims = await verifyJwsAccessToken(token, {
       jwksFetch: async () => (await auth.api.getJwks()) as never,
       jwksCacheKey,
-      verifyOptions: { issuer: baseURL, audience: getMcpResourceUrl() },
+      // typ: oauth-provider signs access tokens with the at+jwt header (RFC 9068), which keeps other JWTs we sign from passing as one.
+      // algorithms: the one the jwt plugin is configured to sign with (see server.ts); nothing else is accepted.
+      verifyOptions: { issuer: baseURL, audience: getMcpResourceUrl(), typ: 'at+jwt', algorithms: [MCP_JWT_ALG] },
     });
   } catch (error) {
     if (error instanceof joseErrors.JOSEError || (error instanceof Error && error.name === 'TypeError')) {

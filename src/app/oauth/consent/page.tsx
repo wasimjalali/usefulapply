@@ -35,6 +35,23 @@ function Problem({ message }: { message: string }) {
   );
 }
 
+/**
+ * Where approval sends the user back to, from the signed redirect_uri. The
+ * client's name is whatever it called itself, so the destination is the part
+ * that cannot be faked: a loopback address means an app on this computer.
+ */
+function describeDestination(redirectUri: string | null): string {
+  try {
+    const { hostname, protocol } = new URL(redirectUri ?? '');
+    if (protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(hostname)) {
+      return 'a desktop app on this computer';
+    }
+    return hostname;
+  } catch {
+    return 'the app';
+  }
+}
+
 export default async function ConsentPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const raw = await searchParams;
   const query = new URLSearchParams();
@@ -76,7 +93,12 @@ export default async function ConsentPage({ searchParams }: { searchParams: Prom
 
   return (
     <AuthShell linkLabel="Dashboard" linkHref="/dashboard">
-      <ConsentForm clientName={clientName} scopes={scopes} email={session.user.email} />
+      <ConsentForm
+        clientName={clientName}
+        scopes={scopes}
+        email={session.user.email}
+        destination={describeDestination(query.get('redirect_uri'))}
+      />
     </AuthShell>
   );
 }

@@ -10,6 +10,8 @@ const EXACT_REDIRECT_URIS: ReadonlySet<string> = new Set([
   'https://claude.com/api/mcp/auth_callback',
   'https://chatgpt.com/connector_platform_oauth_redirect',
   'https://platform.openai.com/apps-manage/oauth',
+  // Cursor web and Cursor Agents (cursor.com/docs/context/mcp, "Static redirect URL"). The desktop app uses loopback.
+  'https://www.cursor.com/agents/mcp/oauth/callback',
 ]);
 
 const LOOPBACK_HOSTS: ReadonlySet<string> = new Set(['localhost', '127.0.0.1', '[::1]']);

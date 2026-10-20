@@ -16,6 +16,8 @@ interface ConsentFormProps {
   clientName: string;
   scopes: McpScope[];
   email: string;
+  /** Host the user returns to, or a plain phrase for a loopback app. */
+  destination: string;
 }
 
 /**
@@ -24,7 +26,7 @@ interface ConsentFormProps {
  * the consent call, and the server redirects back to the client with a code
  * (approve) or an access_denied error (deny).
  */
-export function ConsentForm({ clientName, scopes, email }: ConsentFormProps) {
+export function ConsentForm({ clientName, scopes, email, destination }: ConsentFormProps) {
   const [pending, setPending] = useState<'approve' | 'deny' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,6 +56,9 @@ export function ConsentForm({ clientName, scopes, email }: ConsentFormProps) {
     <div className={AUTH_CARD}>
       <h1 className="text-2xl font-semibold text-navy-800">Allow {clientName} to use Useful Apply?</h1>
       <p className="mt-2 text-sm text-warm-gray">Signed in as {email}</p>
+      <p className="mt-1 text-sm text-warm-gray">
+        The app chose its own name. Approving sends you to {destination}.
+      </p>
 
       <ul className="mt-6 divide-y divide-cream-200 overflow-hidden rounded-2xl border border-cream-200 bg-cream-50">
         {scopes.map((scope) => {

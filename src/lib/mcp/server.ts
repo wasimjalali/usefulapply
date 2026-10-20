@@ -2,6 +2,7 @@ import { McpServer, requireScopes, type AuthInfo, type CallToolResult } from '@m
 import { z } from 'zod';
 import { getDocuments } from '@/db/repos/documents';
 import { getTotalCredits, getUserCredits } from '@/db/repos/credits';
+import { getDailyAgentCreditLimit } from '@/db/repos/mcpGrants';
 import { getProfile } from '@/db/repos/profiles';
 import { isMcpTestMode } from '@/lib/mcp/config';
 import { TEST_TOOL_SCOPES, TOOL_SCOPES, type McpScope } from '@/lib/mcp/scopes';
@@ -46,13 +47,15 @@ const getAccountOutput = z.object({
   nextResetDate: z.string().nullable(),
   cvOnFile: z.object({ primary: z.boolean(), master: z.boolean() }),
   profile: z.object({ name: z.string().nullable(), email: z.string() }),
+  dailyAgentCreditLimit: z.number(),
 });
 
 async function getAccount(userId: string): Promise<CallToolResult> {
-  const [{ credits, error }, profile, documents] = await Promise.all([
+  const [{ credits, error }, profile, documents, dailyAgentCreditLimit] = await Promise.all([
     getUserCredits(userId),
     getProfile(userId),
     getDocuments(userId),
+    getDailyAgentCreditLimit(userId),
   ]);
   if (error || !credits || !profile) {
     console.error('[mcp] get_account failed', error?.message ?? 'missing credits or profile');
@@ -72,6 +75,7 @@ async function getAccount(userId: string): Promise<CallToolResult> {
       master: documents.some((d) => d.type === 'master_cv'),
     },
     profile: { name: profile.full_name, email: profile.email },
+    dailyAgentCreditLimit,
   });
 }
 
@@ -101,13 +105,14 @@ export function createMcpServer(authInfo: AuthInfo | undefined): McpServer {
     {
       title: 'Get account',
       description:
-        'Returns the signed-in user\'s plan, credit balance (monthly, rollover, add-on and total), next credit reset date, whether a primary and a master CV are on file, and their profile name and email.',
+        'Returns the signed-in user\'s plan, credit balance (monthly, rollover, add-on and total), next credit reset date, whether a primary and a master CV are on file, their profile name and email, and their daily agent credit limit.',
       inputSchema: z.object({}),
       outputSchema: getAccountOutput,
       annotations: {
         title: 'Get account',
         readOnlyHint: true,
         destructiveHint: false,
+        idempotentHint: true,
         openWorldHint: false,
       },
       scopeChallenge: requireScopes(TOOL_SCOPES.get_account),
@@ -127,6 +132,7 @@ export function createMcpServer(authInfo: AuthInfo | undefined): McpServer {
           title: 'Test write stub',
           readOnlyHint: false,
           destructiveHint: false,
+          idempotentHint: true,
           openWorldHint: false,
         },
         scopeChallenge: requireScopes(TEST_TOOL_SCOPES.test_write_stub),
