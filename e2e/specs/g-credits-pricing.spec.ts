@@ -85,12 +85,14 @@ test('(g4) a context-cache miss reruns from the stored CV: 1.5 after a paid fit,
   const user = await createSignedInApiUser(request, 'price4');
   const start = creditsOf(user.id).total;
   const sessionId = await newApplication(user.id);
+  // The seed key is global, so the context id carries this run's user.
+  const expiredContext = `ctx-expired-${user.id}`;
   // A captured fit for a context whose cached copy is gone (never cached in this Worker): what an expired cache looks like.
-  await runTool('e2e/tools/ops.ts', ['seed-fit-capture', JSON.stringify({ userId: user.id, contextId: 'ctx-expired' })]);
+  await runTool('e2e/tools/ops.ts', ['seed-fit-capture', JSON.stringify({ userId: user.id, contextId: expiredContext })]);
   const afterFit = creditsOf(user.id).total;
   expect(afterFit).toBe(start - 0.5);
 
-  const paid = await callAgent(request, { action: 'generate_with_context', contextId: 'ctx-expired', jobDescription: JOB_DESCRIPTION, sessionId }, requestId());
+  const paid = await callAgent(request, { action: 'generate_with_context', contextId: expiredContext, jobDescription: JOB_DESCRIPTION, sessionId }, requestId());
   expect(event(paid, 'credits_deducted')?.creditsUsed).toBe(1.5);
   expect(event(paid, 'workflow_complete')).toBeTruthy();
   expect(creditsOf(user.id).total).toBe(afterFit - 1.5);
