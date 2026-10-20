@@ -1,0 +1,25 @@
+Tomas Brandt
+Chicago, IL, USA
+tomas.brandt@example.com
++1 555 0123
+
+October 20, 2026
+
+Dana Whitfield
+Talent Acquisition
+Northwind Freight Inc.
+220 West Lake Street, Suite 1400
+Chicago, IL 60606
+
+Application for Senior FP&A Analyst, Req #NW-4471
+
+Dear Ms. Whitfield,
+
+Your FP&A team has to forecast and explain the Midwest and Southeast regions every month, and a forecast only helps if people trust it. At Calder Industrial Components I own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD. I rebuilt the model for the larger unit around order backlog and lifted its accuracy from 88% to 96%.
+
+As a Financial Analyst I also shortened month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA, which speaks to your goal of faster and more accurate month-end reporting. I build Power BI dashboards on SAP data for plant managers, so I'm used to turning complex numbers into clear answers for people outside finance. With basic SQL, advanced Excel and budgeting experience from my earlier retail role, I'm ready to build the annual operating budget with your regional leaders. I'm also working towards my ACCA qualification (9 of 13 papers passed), and an internship at Lakeshore Logistics gave me early exposure to freight invoicing.
+
+I'd welcome a conversation about how I can support your Operations and Sales leaders from the Chicago office three days a week. I'm available to talk at your convenience.
+
+Kind regards,
+Tomas Brandt

@@ -33,8 +33,14 @@ import type { MasterContext } from '../src/lib/agents/types';
 import type { StructuredCoverLetter } from '../src/lib/cover-letter/contract';
 
 const ROOT = path.resolve(__dirname, '..');
-const OUT = path.join(ROOT, 'evals', 'results', '2026-10-20-structured-cover-letter');
-const CASE_IDS = ['syn-01', 'syn-07', 'syn-11', 'syn-15', 'syn-16', 'sl-de-contact'];
+function arg(name: string): string | undefined {
+  const i = process.argv.indexOf(`--${name}`);
+  return i >= 0 ? process.argv[i + 1] : undefined;
+}
+// --out-sub writes a later run into its own subfolder, so an earlier run's
+// results are never overwritten. --cases picks a subset.
+const OUT = path.join(ROOT, 'evals', 'results', '2026-10-20-structured-cover-letter', arg('out-sub') ?? '');
+const CASE_IDS = arg('cases')?.split(',') ?? ['syn-01', 'syn-07', 'syn-11', 'syn-15', 'syn-16', 'sl-de-contact'];
 const EM_DASH = String.fromCharCode(0x2014);
 const EN_DASH = String.fromCharCode(0x2013);
 
@@ -122,7 +128,7 @@ async function main() {
 
   const arm = { ...ARMS['sonnet55-low'] };
   installHooks(arm.promptVariant, shim);
-  const { unifiedWriterAgent } = await import('../src/lib/agents/unified-writer-agent');
+  const { unifiedWriterAgent, coverLetterFromModelOutput } = await import('../src/lib/agents/unified-writer-agent');
   const { isStructuredCoverLetter } = await import('../src/lib/cover-letter/contract');
   const { assembleStructuredCoverLetter, renderCoverLetterBody } = await import('../src/lib/agents/cover-letter-structure');
 
@@ -224,19 +230,29 @@ async function main() {
     const contract = contractIssues(l, isStructuredCoverLetter);
     add('contract_valid', contract.length === 0, contract.join('; '));
 
-    // No session row in the eval, so the recipient address must be empty, and
-    // no address line from the ad may reach the body.
-    add('recipient_address_empty', l.recipient.addressLines.length === 0, JSON.stringify(l.recipient.addressLines));
-    const adAddressLines = c.jdText.split('\n').map((x) => x.trim()).filter((x) => /\b\d{5}\s+\p{L}/u.test(x) || /(straße|strasse|street|avenue)\s*\d/iu.test(x));
-    const leaked = adAddressLines.filter((x) => norm(r.body!).includes(norm(x)));
-    add('no_ad_address_in_body', leaked.length === 0, leaked.join(' | ') || `ad address lines: ${adAddressLines.length}`);
+    // No session row in the eval. A case whose ad states a postal address must
+    // get it in the recipient block, every line verbatim; any other case gets
+    // an empty block. No address line from the ad may reach the letter text.
+    const expectsAddress = row.tags.includes('address-in-jd');
+    const verbatim = l.recipient.addressLines.every((line) => norm(c.jdText).includes(norm(line)));
+    add(
+      'recipient_address_rule',
+      expectsAddress ? l.recipient.addressLines.length > 0 && verbatim && l.recipient.addressLines.some((line) => /\d/u.test(line)) : l.recipient.addressLines.length === 0,
+      JSON.stringify(l.recipient.addressLines),
+    );
+    const adAddressLines = c.jdText.split('\n').map((x) => x.trim()).filter((x) => /\b\d{5}(?:\s+\p{L}|$)/u.test(x) || /(straße|strasse|street|avenue)\s*\d/iu.test(x) || /^\d+\s+\p{L}+.*(street|avenue|boulevard|road)/iu.test(x));
+    const letterText = norm([l.subject, l.salutation, ...l.paragraphs].join('\n'));
+    const leaked = adAddressLines.filter((x) => letterText.includes(norm(x)));
+    add('no_address_in_letter_text', leaked.length === 0, leaked.join(' | ') || `ad address lines: ${adAddressLines.length}`);
 
-    // Contact person: only when the ad states one, and then copied verbatim.
+    // Contact person: only when the ad states one, copied verbatim, and the
+    // salutation addresses that person by surname.
     const expectsContact = row.tags.includes('contact-person');
+    const surname = l.recipient.contactPerson?.split(/\s+/u).pop() ?? '';
     const contactOk = expectsContact
-      ? Boolean(l.recipient.contactPerson && c.jdText.includes(l.recipient.contactPerson) && /Brandl/u.test(l.salutation))
+      ? Boolean(l.recipient.contactPerson && c.jdText.includes(l.recipient.contactPerson) && surname && l.salutation.includes(surname))
       : !l.recipient.contactPerson && !l.recipient.department;
-    add('contact_rule', contactOk, `contact=${l.recipient.contactPerson ?? ''} dept=${l.recipient.department ?? ''} salutation=${l.salutation}`);
+    add('contact_rule', contactOk, `company=${l.recipient.companyName ?? ''} contact=${l.recipient.contactPerson ?? ''} dept=${l.recipient.department ?? ''} salutation=${l.salutation}`);
 
     // Numbers in the paragraphs: from the CV, or employer facts quoted from the ad.
     const numbers = paragraphsText.match(/\d+(?:[.,]\d+)?/gu) ?? [];
@@ -306,6 +322,79 @@ async function main() {
     };
   }
 
+  // Doctored answers through the writer's real post-model path (no model
+  // call): take the contact case's raw answer, change only the recipient or a
+  // paragraph, and check what survives.
+  const doctored: Array<{ name: string; pass: boolean; detail: string }> = [];
+  const raw = contactCase?.raw_letter_outputs.at(-1);
+  if (raw && contactCase?.context.applicant && contactCase.context.job) {
+    const row = resolveCase(rows.find((x) => x.id === 'sl-de-contact')!);
+    const baseContext: MasterContext = {
+      sessionId: 'eval-doctored',
+      jobDescription: row.jdText,
+      rawCV: row.cvText,
+      detectedLanguage: 'de',
+      applicant: contactCase.context.applicant,
+      job: contactCase.context.job,
+    };
+    const answer = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)) as {
+      paragraphs: string[];
+      recipient?: Record<string, unknown>;
+    };
+    const run = (recipient: Record<string, unknown>, context: MasterContext = baseContext, paragraphs = answer.paragraphs) => (
+      coverLetterFromModelOutput(JSON.stringify({ ...answer, paragraphs, recipient: { ...answer.recipient, ...recipient } }), context, 'de')
+    );
+    const lines = (letter: { structured: StructuredCoverLetter }) => JSON.stringify(letter.structured.recipient.addressLines);
+
+    const fake = run({ addressLines: ['Hauptstraße 99', '10115 Berlin'] });
+    doctored.push({ name: 'fake_address_dropped', pass: fake.structured.recipient.addressLines.length === 0 && !fake.body.includes('Hauptstraße 99'), detail: lines(fake) });
+
+    const partial = run({ addressLines: ['Industriestraße 14', '80331 München'] });
+    doctored.push({ name: 'partly_fake_address_dropped_whole', pass: partial.structured.recipient.addressLines.length === 0, detail: lines(partial) });
+
+    const withEmail = run({ addressLines: ['Industriestraße 14', '90431 Nürnberg', 'bewerbung@brenner-getriebe.example.de'] });
+    doctored.push({ name: 'contact_line_set_aside', pass: lines(withEmail) === JSON.stringify(['Industriestraße 14', '90431 Nürnberg']), detail: lines(withEmail) });
+
+    const noDigits = run({ addressLines: ['Personalabteilung'] });
+    doctored.push({ name: 'digitless_address_dropped', pass: noDigits.structured.recipient.addressLines.length === 0, detail: lines(noDigits) });
+
+    const fakeContact = run({ contactPerson: 'Herr Thomas Weber', addressLines: [] });
+    doctored.push({ name: 'fake_contact_dropped', pass: fakeContact.structured.recipient.contactPerson === undefined, detail: String(fakeContact.structured.recipient.contactPerson) });
+
+    const saved = run({ addressLines: ['Industriestraße 14', '90431 Nürnberg'] }, { ...baseContext, letterRecipient: { address: 'Musterweg 3\n90402 Nürnberg' } });
+    doctored.push({ name: 'saved_address_wins', pass: lines(saved) === JSON.stringify(['Musterweg 3', '90402 Nürnberg']), detail: lines(saved) });
+
+    let addressInText = 'no error';
+    try {
+      run({ addressLines: ['Industriestraße 14', '90431 Nürnberg'] }, baseContext, [`${answer.paragraphs[0]} Sie finden uns in der Industriestraße 14.`, ...answer.paragraphs.slice(1)]);
+    } catch (error) {
+      addressInText = (error as Error).message;
+    }
+    doctored.push({ name: 'address_in_paragraph_rejected', pass: /postal address/u.test(addressInText), detail: addressInText });
+  }
+
+  // A title the ad doesn't give the contact ("Ms." for "Dana Whitfield") is a guess.
+  const usCase = results.find((r) => r.case_id === 'sl-us-address');
+  const usRaw = usCase?.raw_letter_outputs.at(-1);
+  if (usRaw && usCase?.context.applicant && usCase.context.job) {
+    const row = resolveCase(rows.find((x) => x.id === 'sl-us-address')!);
+    const answer = JSON.parse(usRaw.slice(usRaw.indexOf('{'), usRaw.lastIndexOf('}') + 1)) as Record<string, unknown>;
+    let titleError = 'no error';
+    try {
+      coverLetterFromModelOutput(JSON.stringify({ ...answer, salutation: 'Dear Ms. Whitfield,' }), {
+        sessionId: 'eval-doctored-title',
+        jobDescription: row.jdText,
+        rawCV: row.cvText,
+        detectedLanguage: 'en',
+        applicant: usCase.context.applicant,
+        job: usCase.context.job,
+      }, 'en');
+    } catch (error) {
+      titleError = (error as Error).message;
+    }
+    doctored.push({ name: 'guessed_title_rejected', pass: /title/u.test(titleError), detail: titleError });
+  }
+
   // Cost and tokens from the call records.
   const totals = { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 };
   for (const r of calls) {
@@ -337,6 +426,7 @@ async function main() {
     cover_letter_latency_ms: letterCalls.map((r) => r.latency_ms),
     cases: results.map((r) => ({ case_id: r.case_id, ok: r.ok, error: r.error, cover_letter_calls: r.cover_letter_calls, checks: r.checks })),
     column_variant: columnVariant,
+    doctored_answers: doctored,
   };
 
   for (const r of results) {
@@ -351,6 +441,7 @@ async function main() {
     console.log(`${r.case_id}: ${r.ok ? 'ok' : 'FAILED'} letter calls=${r.cover_letter_calls} ${failed.length ? 'FAILS: ' + failed.join('; ') : 'all checks pass'}`);
   }
   console.log(`column variant: ${columnVariant ? (columnVariant.pass ? 'pass' : 'FAIL') : 'not run'}`);
+  for (const d of doctored) console.log(`doctored ${d.name}: ${d.pass ? 'pass' : 'FAIL'} (${d.detail})`);
   console.log(`calls ${summary.calls}, cost $${summary.cost_usd.toFixed(4)} (cover letter calls $${summary.cover_letter_cost_usd.toFixed(4)})`);
 }
 
