@@ -4,16 +4,18 @@
 Before building the Useful Apply MCP server (Claude connector, ChatGPT plugin and Claude Code plugin), what does an independent adversarial review find wrong with the plan?
 
 ## What ran
-- **Subject:** `docs/agent-integration/PLAN.md` v1, including sections 4a (exports) and 4b (ATS standard). Repo at commit `52ae5f1f` plus the uncommitted plan.
+- **Subject:** `docs/agent-integration/PLAN.md` v1, including its sections 4a (exports) and 4b (ATS standard). These became sections 5 and 6 in v2. Repo at commit `52ae5f1f` plus the uncommitted plan.
 - **Brief:** `2026-10-20-mcp-plan-review/brief.md`. Both models got the same brief.
   - It asks for code-verified findings with severity, plus a list of what's missing and a DISMISSED list.
   - Access was read-only.
   - It puts extra pressure on ATS and DIN 5008.
 - **Fable 5.1** (`claude-fable-5-1`):
   - Command: `claude -p --model claude-fable-5-1 --output-format json --allowedTools "Read,Grep,Glob,Bash(ls:*),Bash(git log:*),Bash(grep:*),Bash(sed:*),Bash(cat:*),Bash(wc:*)" < brief.md`
-  - Run: 288 s, 17 turns, $3.95 (API pricing as reported by the CLI). About 18k output tokens, 8.3k of them thinking.
+  - Settings: Claude Code CLI defaults for effort and thinking. Date: 2026-10-20, 09:50 UTC start.
+  - Run: 284 s model time (288 s wall clock), 17 turns, $3.95 (API pricing as reported by the CLI). About 18k output tokens, 8.3k of them thinking.
 - **GPT-6.1 Sol, medium reasoning:**
   - Command: `codex exec -C <worktree> -s read-only -c model_reasoning_effort="medium" -o gpt-6-1-sol-medium.md - < brief.md`
+  - Settings: model `gpt-6.1-sol` from `~/.codex/config.toml`, reasoning effort medium. Same date and start time.
   - Run: 254 s, 194.7k tokens, on the Codex subscription with no per-run charge.
 - **DeepSeek Flash** via the DeepSeek Harness (`dsh --profile headless`, model `deepseek-flash`): blocked. The harness had no `DEEPSEEK_API_KEY` stored. It runs once Wasim adds the key, and its results get appended here.
 - **Aborted run:** a first run of both models was stopped after about 3 minutes because the ATS section was added to the plan mid-run. Its partial files are kept with the `aborted-run1-` prefix.
@@ -55,8 +57,8 @@ Raw output: `fable-5-1.md` (from `fable-5-1.json`) and `gpt-6-1-sol-medium.md`.
 - Browser Run's documented fonts include Arial and Georgia. The plan's rationale for self-hosting was wrong, but self-hosting stays for determinism.
 - The cost figure mixed in session concurrency pricing.
 
-**Rejected or adjusted:**
-- Fable's "make spending need an explicit client key" was kept. Its "45 s wait is wrong" was adopted as immediate return plus an optional wait of 20 s or less.
+**Adopted in a changed form:**
+- Fable's point that the 45 s in-request wait is the wrong primitive was adopted as immediate return plus an optional wait of 20 s or less. Its required client idempotency key was adopted as is.
 - Codex's "offer a single-column ATS default" was adopted as a recommendation in `list_cv_templates`, not as a removal of visual templates.
 
 **My own catch while applying them:** the plan's US date format used an en dash, which the product's writing rules forbid. It now uses a hyphen.
@@ -85,7 +87,7 @@ Cost: $3.95 plus subscription usage.
 - per-tool scopes and revocation;
 - injection wrapping;
 - a daily MCP spend cap;
-- 13 more tools (41 total);
+- 16 more tools (40 total, up from 24);
 - spikes before PR 1 and the renderer;
 - a negative-path E2E suite;
 - an ATS eval with a baseline and a manual real-ATS check.

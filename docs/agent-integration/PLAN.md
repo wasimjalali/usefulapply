@@ -42,7 +42,7 @@ There is one remote MCP server at `https://usefulapply.com/mcp`. It speaks Strea
    - The CV PDF is an image of the page.
    - All 6 templates silently cut skills to 5 per group (`render-caps.ts`), so what the user downloads can be missing skills.
    - The cover letter PDF is plain Helvetica.
-6. **No job-level idempotency.** MCP clients retry with fresh ids, and Queue messages can be redelivered. Refund paths can lose a refund if the Worker dies mid-way (`credits.ts:1420`, `:1472`).
+6. **No job-level idempotency.** MCP clients retry with fresh ids, and Queue messages can be redelivered. Refund paths can lose a refund if the Worker dies mid-way (`src/db/repos/credits.ts:1420`, `:1472`).
 
 **Directory rules:**
 - Every tool sets `title`, `readOnlyHint`, `destructiveHint` and `openWorldHint` as explicit booleans.
@@ -187,7 +187,7 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
 | `give_job_feedback` | no | Save, unsave, dismiss, rate |
 | `withdraw_feed_consent` | yes, `confirm` | Stop feed data processing |
 
-**Left out:** checkout, plans, credit packs, account deletion, admin and the chat endpoint. The tool count is 41, which is within normal range for catalogs the directories have reviewed. Each description stays one or two sentences.
+**Left out:** checkout, plans, credit packs, account deletion, admin and the chat endpoint. The tool count is 40 (13 read, 6 spend, 21 free writes), which is within normal range for catalogs the directories have reviewed. Each description stays one or two sentences.
 
 **Claude Code skill `apply-to-job`:** check the account and CV, create the application, run the fit check, confirm spend with the user, generate, poll `get_operation`, review, export, set the tracker status.
 
@@ -317,13 +317,13 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
 
 | PR | Contents | Review row | Starts after |
 |---|---|---|---|
-| **0. Spikes** (no merge) | Better Auth MCP/CIMD on D1 + OpenNext. Browser Run `quickAction(pdf, html)` on one template with fonts, photo and tagging | n/a, findings committed to `docs/agent-integration/spikes.md` | now |
+| **0a / 0b. Spikes** (no merge) | 0a: Better Auth MCP/CIMD on D1 + OpenNext. 0b: Browser Run `quickAction(pdf, html)` on one template with fonts, photo and tagging | n/a, findings committed to `docs/agent-integration/spikes.md` | now |
 | **1. OAuth + MCP skeleton** | Auth plugins, OAuth migration, consent page, well-known routes, Connected apps (revoke, daily cap), scopes, `/mcp` behind the env flag with `get_account` | Sensitive | spike 0a |
 | **2. Data integrity** | `revision` + `agent_operations` migration, revisioned services, web client off wholesale sync, `persistKit`, atomic refunds + reconcile, Queue + leased consumer in `worker.ts` | Sensitive | now (parallel with 1) |
 | **3. Renderer + ATS** | Export service, template fixes (caps, order, breaks, fonts, print mode), CV DOCX, cover letter layouts, web downloads switched, R2 cache, signed links, ATS eval | Sensitive (signed URLs) + design judge | spike 0b. Integrates with 2's kit service when 2 merges |
 | **4. Structured cover letter** | Writer prompt and output contract, legacy rendering path | Feature, `agent-expert` | now (parallel) |
 | **5. Tool catalog** | All tools, annotations, scopes, injection wrapping, caps, analytics, MCP E2E | Feature (high) | 1 and 2 |
-| **6. Distribution** | Plugin repo and skill, OpenAI manifest and domain file, `/integrations` docs page, privacy and terms updates, seeded reviewer account, submission pack | Small + copy polish | 3, 4 and 5 |
+| **6. Distribution** | Plugin repo and skill, OpenAI manifest and domain file, `/integrations` docs page, privacy and terms updates, seeded reviewer account, submission pack | Feature (Sonnet + Codex): legal text and reviewer-account seed script | 3, 4 and 5 |
 
 **Shared files:** the orchestrator alone edits `wrangler.jsonc`, `src/worker.ts`, migrations, `package.json` and the lockfile. Workers report back when they need a change there.
 
