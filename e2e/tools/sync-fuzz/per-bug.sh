@@ -23,3 +23,5 @@ for engine in round2 new; do
   run restore-and-copy "$engine" "$BASE,restore,copy"
   run silent-requirements-write "$engine" "$BASE,silentRequirements"
 done
+# Discard must close the open editor: the engine without the discarded flag fails here, the current one does not.
+run discard-then-save new "$BASE,editorOpen,type,editorSave,dismiss"

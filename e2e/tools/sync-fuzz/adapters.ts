@@ -79,8 +79,8 @@ export interface Adapter {
   copyNotice(notice: SyncNotice): string | null;
   /** Dismiss then Discard: the user throws the notice's text away. */
   dismissNotice(notice: SyncNotice): void;
-  /** Called when the user has dealt with a conflict notice of an application (restore, copy, discard). */
-  subscribeAcknowledged(listener: (app: string) => void): () => void;
+  /** Called when the user has dealt with a conflict notice of an application (restore, copy, discard). `discarded` is true for Dismiss then Discard. */
+  subscribeAcknowledged(listener: (app: string, discarded: boolean) => void): () => void;
   rejectedColumns(app: string): string[];
   baseline(app: string): { revision: number; fields: Record<string, string> | null } | undefined;
 }

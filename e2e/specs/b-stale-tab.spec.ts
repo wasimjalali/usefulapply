@@ -77,6 +77,42 @@ test('(b) a stale tab that changes the same field gets the conflict toast and ov
   await context.close();
 });
 
+test('(b3) Discard with the editor still open closes it, and Save cannot write the discarded text over the server', async ({ browser, request }) => {
+  const { user, context, pageA, pageB } = await twoTabs(browser, request, 'discard');
+
+  await editCoverLetter(pageA, 'Dear Northwind team,\n\nThis is the letter tab A saved first.\n\nKind regards,\nTomas Brandt');
+  const afterA = await waitForStored(user.id, (row) => row.cover_letter?.body?.includes('tab A saved first') === true, "A's letter saved");
+
+  // B conflicts and keeps its draft in the open editor.
+  const discardedText = 'Dear Northwind team,\n\nThis draft is discarded on purpose and must never be saved.\n\nKind regards,\nTomas Brandt';
+  await editCoverLetter(pageB, discardedText);
+  const notice = pageB.getByRole('alert').filter({ hasText: CONFLICT_TOAST });
+  await expect(notice).toBeVisible({ timeout: 20_000 });
+  const editor = pageB.getByPlaceholder('Cover letter content...');
+  await expect(editor).toHaveValue(discardedText);
+
+  // Dismiss, then Discard, with the editor still open.
+  await notice.getByRole('button', { name: 'Dismiss' }).click();
+  await notice.getByRole('button', { name: 'Discard' }).click();
+  await expect(notice).toHaveCount(0);
+
+  // The editor is closed and B shows A's version. If a Save were still reachable it must not overwrite.
+  await expect(editor).toHaveCount(0);
+  await expect(pageB.getByText(/tab A saved first/).first()).toBeVisible();
+  await expect(pageB.getByText(/discarded on purpose/)).toHaveCount(0);
+  const save = pageB.getByRole('button', { name: 'Save', exact: true });
+  if (await save.count()) {
+    await save.click();
+    await pageB.waitForTimeout(3_000);
+  }
+
+  const final = storedApplication(user.id);
+  expect(final?.cover_letter?.body).toContain('tab A saved first');
+  expect(final?.cover_letter?.body).not.toContain('discarded on purpose');
+  expect(final?.revision).toBe(afterA.revision);
+  await context.close();
+});
+
 test('(b2) a stale tab that changes a different field is merged: both changes survive', async ({ browser, request }) => {
   const { user, context, pageA, pageB, generated } = await twoTabs(browser, request, 'merge');
 

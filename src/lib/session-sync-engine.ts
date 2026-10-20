@@ -341,12 +341,17 @@ export function createSyncEngine(deps: SyncDeps) {
     conflictBuffers.set(sessionId, buffer);
   }
 
-  const acknowledgedListeners = new Set<(sessionId: string) => void>();
-  /** Tell open editors the user has dealt with a conflict notice (restored, copied or discarded), so they can rebase. */
-  function acknowledgeConflict(sessionId: string): void {
-    acknowledgedListeners.forEach((listener) => listener(sessionId));
+  type AcknowledgedListener = (sessionId: string, discarded: boolean) => void;
+  const acknowledgedListeners = new Set<AcknowledgedListener>();
+  /**
+   * Tell open editors the user has dealt with a conflict notice (restored, copied or discarded), so they can rebase.
+   * On a discard the editors also close and drop their draft: the draft is the text just thrown away, and
+   * rebasing it onto the current revision would let the next Save write it over the server's newer version.
+   */
+  function acknowledgeConflict(sessionId: string, discarded = false): void {
+    acknowledgedListeners.forEach((listener) => listener(sessionId, discarded));
   }
-  function subscribeConflictAcknowledged(listener: (sessionId: string) => void): () => void {
+  function subscribeConflictAcknowledged(listener: AcknowledgedListener): () => void {
     acknowledgedListeners.add(listener);
     return () => { acknowledgedListeners.delete(listener); };
   }
@@ -924,7 +929,7 @@ export function createSyncEngine(deps: SyncDeps) {
     const buffer = conflictBuffers.get(sessionId);
     for (const id of ids) buffer?.delete(id);
     if (buffer && buffer.size === 0) conflictBuffers.delete(sessionId);
-    acknowledgeConflict(sessionId);
+    acknowledgeConflict(sessionId, true);
   }
 
   return {

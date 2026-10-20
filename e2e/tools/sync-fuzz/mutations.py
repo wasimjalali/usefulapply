@@ -19,6 +19,10 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')
 ENGINE = os.path.join(ROOT, 'src', 'lib', 'session-sync-engine.ts')
 
 MUTATIONS = {
+    'M-discard Discard acknowledges like Restore and Copy (the open editor keeps the discarded draft)': (
+        "    acknowledgeConflict(sessionId, true);",
+        "    acknowledgeConflict(sessionId);",
+    ),
     'M1 accept rows that are not newer than the baseline': (
         "if (base && !options.force && (incoming < base.revision || (incoming === base.revision && !explicitLoad))) {",
         "if (false) {",

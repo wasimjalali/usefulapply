@@ -442,8 +442,17 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
   const noticesWithText = (client: Adapter) => client.notices.filter((notice) => notice.conflictFor);
   // The panels rebase an open editor when the user has dealt with a conflict notice.
   for (const client of clients) {
-    client.subscribeAcknowledged((app) => {
-      for (const editor of editors) if (editor.client === client && editor.app === app) editor.start = client.editorStart(app, editor.start);
+    client.subscribeAcknowledged((app, discarded) => {
+      for (const editor of [...editors]) {
+        if (editor.client !== client || editor.app !== app) continue;
+        if (discarded) {
+          // Discard closes the open editor and drops its draft, as Cancel does: the draft is the text just thrown away.
+          editors.splice(editors.indexOf(editor), 1);
+          for (const token of editor.tokens) openEditorTokens.delete(token);
+        } else {
+          editor.start = client.editorStart(app, editor.start);
+        }
+      }
     });
   }
 
@@ -514,6 +523,7 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         stats.editorSaves += 1;
         const { client, app, field } = editor;
         const sent = editor.draft;
+        if (discarded.has(sent)) violate('I1', `${client.id}'s open editor on ${app}.${field} saved ${sent}, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)`);
         deliberate.add(sent);
         const work = client.editorCommit(app, editor.start, () => {
           client.edit(app, fieldMutation(field, sent));

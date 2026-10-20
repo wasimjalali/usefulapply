@@ -135,8 +135,10 @@ export function looksAdShaped(text: string): boolean {
   return new Set((text.match(JOB_AD_MARKERS) || []).map((hit) => hit.toLowerCase())).size >= 2;
 }
 
-/** Below this a message is a question, whatever the model called it. */
-const MIN_JOB_AD_CHARS = 200;
+/** Below this a message is a question, whatever the model called it. Same floor as the hero box and the guided line. */
+const MIN_JOB_AD_CHARS = 80;
+/** From here a posting is long enough that the match is not hedged with a "looks short" hint. */
+const SHORT_JOB_AD_CHARS = 200;
 
 /**
  * A rewrite waiting on its cost chip. It carries the note the user typed and
@@ -250,10 +252,14 @@ export function ChatPanel({
       });
     },
     onProposeApplication: (jd) => {
-      // A short message is a question whatever the model decided, and acting
-      // on it would overwrite the real job description with it.
-      if (jd.trim().length < MIN_JOB_AD_CHARS) return;
+      // A very short message is a question whatever the model decided, and acting
+      // on it would overwrite the real job description with it. The reply is
+      // replaced, because the model's line says to pick a button.
+      if (jd.trim().length < MIN_JOB_AD_CHARS) {
+        return 'That\'s too short for me to work from. Paste the whole posting: the role, requirements and responsibilities.';
+      }
       presentJobAdDecisionRef.current?.(jd);
+      return null;
     },
     onChatAnsweredWithoutProposal: (message) => {
       offerAdFallbackRef.current?.(message);
@@ -728,28 +734,37 @@ export function ChatPanel({
   // Show the credit-aware decision card for a job ad. The ad lands on a
   // session first so the run has it, but no run starts and nothing is spent
   // until the user picks a chip.
+  // A short ad on an unfinished application leaves that application alone until
+  // a chip is picked: it may be a question the model misread, and "Not a job ad"
+  // must not have replaced the real job description.
+  const deferredReplaceJdRef = useRef<string | null>(null);
+  const replaceUnfinishedApplication = (jd: string) => {
+    // A new ad on an unfinished application replaces it. A partial kit (any
+    // document delivered) is finished work and is never overwritten here. Without this the
+    // fit result from the previous ad stays live and its "generate the kit"
+    // chip would spend 2 credits building for the wrong job.
+    setJobDescription(jd);
+    setFitAnalysisContextId(null);
+    setFitAnalysisJD('');
+    setFitAnalysisContextData(null);
+    useAppStore.getState().updateCurrentSession({
+      requirements: null,
+      gaps: null,
+      generatedCV: null,
+      matchScore: undefined,
+      matchingSkills: [],
+      missingSkills: [],
+      suggestions: [],
+      pendingFitAnalysis: null,
+    });
+  };
   const presentJobAdDecision = (jd: string) => {
+    deferredReplaceJdRef.current = null;
     if (!currentSession) {
       useAppStore.getState().createNewSession(jd);
     } else if (!sessionHasKit(currentSession)) {
-      // A new ad on an unfinished application replaces it. A partial kit (any
-      // document delivered) is finished work and is never overwritten here. Without this the
-      // fit result from the previous ad stays live and its "generate the kit"
-      // chip would spend 2 credits building for the wrong job.
-      setJobDescription(jd);
-      setFitAnalysisContextId(null);
-      setFitAnalysisJD('');
-      setFitAnalysisContextData(null);
-      useAppStore.getState().updateCurrentSession({
-        requirements: null,
-        gaps: null,
-        generatedCV: null,
-        matchScore: undefined,
-        matchingSkills: [],
-        missingSkills: [],
-        suggestions: [],
-        pendingFitAnalysis: null,
-      });
+      if (jd.trim().length < SHORT_JOB_AD_CHARS) deferredReplaceJdRef.current = jd;
+      else replaceUnfinishedApplication(jd);
     }
     setAdFallbackJd(null);
     setPendingDecisionJd(jd);
@@ -770,6 +785,10 @@ export function ChatPanel({
   // application stays in the sidebar; the new job opens its own conversation.
   const beginJobRun = (jd: string) => {
     setPendingDecisionJd(null);
+    if (deferredReplaceJdRef.current === jd) {
+      deferredReplaceJdRef.current = null;
+      if (!sessionHasKit(currentSession)) replaceUnfinishedApplication(jd);
+    }
     if (sessionHasKit(currentSession)) {
       useAppStore.getState().createNewSession(jd);
       addChatMessage({ role: 'user', content: jd });
@@ -2154,6 +2173,7 @@ export function ChatPanel({
                         },
                       },
                     ]}
+                    hint={pendingDecisionJd.trim().length < SHORT_JOB_AD_CHARS ? 'This looks short. Add more of the posting for a better match.' : undefined}
                   />
                   <button
                     type="button"

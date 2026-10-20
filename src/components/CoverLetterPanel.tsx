@@ -87,6 +87,9 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   // a reload can still say it; null only for letters written before the stamp.
   const [updatedAtMs, setUpdatedAtMs] = useState<number | null>(() => stampOf(coverLetter));
   const lastLetterRef = useRef<GeneratedCoverLetter | null>(null);
+  // The store's letter as it is now, for the discard path in the conflict listener below.
+  const currentCoverLetterRef = useRef<GeneratedCoverLetter | null>(null);
+  useEffect(() => { currentCoverLetterRef.current = coverLetter ?? null; }, [coverLetter]);
   const lastSessionIdRef = useRef<string | null>(null);
   const editSessionIdRef = useRef<string | null>(null);
   // The revision the editor opened on. The draft lives here, outside the store, so
@@ -94,8 +97,17 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const editStartRef = useRef<EditorStart | undefined>(undefined);
   // When the user deals with a conflict notice (restores, copies or discards their text), what this editor
   // was opened against is stale: base it on the current revision, so its next Save is not refused again.
-  useEffect(() => subscribeConflictAcknowledged((acknowledged) => {
-    if (editSessionIdRef.current === acknowledged) editStartRef.current = getEditorStart(acknowledged, editStartRef.current);
+  useEffect(() => subscribeConflictAcknowledged((acknowledged, discarded) => {
+    if (editSessionIdRef.current !== acknowledged) return;
+    if (discarded) {
+      // Same as Cancel: the draft is the text the user just threw away.
+      setIsEditMode(false);
+      setEditedCoverLetter(currentCoverLetterRef.current);
+      editSessionIdRef.current = null;
+      editStartRef.current = undefined;
+      return;
+    }
+    editStartRef.current = getEditorStart(acknowledged, editStartRef.current);
   }), []);
   const { toast } = useToast();
 

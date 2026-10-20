@@ -65,8 +65,19 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   const editStartRef = useRef<EditorStart | undefined>(undefined);
   // When the user deals with a conflict notice (restores, copies or discards their text), what this editor
   // was opened against is stale: base it on the current revision, so its next Save is not refused again.
-  useEffect(() => subscribeConflictAcknowledged((acknowledged) => {
-    if (editSessionIdRef.current === acknowledged) editStartRef.current = getEditorStart(acknowledged, editStartRef.current);
+  useEffect(() => subscribeConflictAcknowledged((acknowledged, discarded) => {
+    if (editSessionIdRef.current !== acknowledged) return;
+    if (discarded) {
+      // Same as Cancel: the draft is the text the user just threw away.
+      setIsEditMode(false);
+      setEditedEmail(null);
+      setEditedFollowUp(null);
+      setEditBase(null);
+      editSessionIdRef.current = null;
+      editStartRef.current = undefined;
+      return;
+    }
+    editStartRef.current = getEditorStart(acknowledged, editStartRef.current);
   }), []);
   const { toast } = useToast();
   useEffect(() => { draftsRef.current = { email: editedEmail, followUp: editedFollowUp }; }, [editedEmail, editedFollowUp]);

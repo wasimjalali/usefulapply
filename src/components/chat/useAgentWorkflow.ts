@@ -186,7 +186,8 @@ export function useAgentWorkflow(options?: {
    * credit-aware decision card; the user's click is what starts a run, so
    * classification never spends credits.
    */
-  onProposeApplication?: (jobDescription: string) => void;
+  /** Returns a message to show instead of the model's reply when the proposal can't be acted on. */
+  onProposeApplication?: (jobDescription: string) => string | null;
   /**
    * The reply came back and the model did NOT read the message as an ad.
    * The client decides whether to offer a manual way in, so a model that
@@ -394,13 +395,14 @@ export function useAgentWorkflow(options?: {
       .filter((effect) => effect.type === 'cv_structure_updated')
       .at(-1);
     let cvRefusal: string | null = null;
+    let proposalRefusal: string | null = null;
     for (const effect of executed as ExecutedEffect[]) {
       if (effect.type === 'propose_application') {
         if (opts.suppressProposal || !stillHere) continue;
         // Classification only. The decision card the client shows is where
         // the user picks fit analysis or the full kit, so nothing is spent
         // here and nothing starts.
-        options?.onProposeApplication?.(userMessage);
+        proposalRefusal = options?.onProposeApplication?.(userMessage) ?? null;
       } else if (effect.type === 'set_cv_template') {
         if (!stillHere) continue;
         useUIStore.getState().setCvTemplateId(effect.templateId);
@@ -474,7 +476,7 @@ export function useAgentWorkflow(options?: {
         notifyJobFeedBadgeRefresh();
       }
     }
-    return cvRefusal;
+    return cvRefusal ?? proposalRefusal;
   };
 
   // No proposal came back, either because the model read the ad as a question

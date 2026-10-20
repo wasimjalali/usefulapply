@@ -108,8 +108,17 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const editStartRef = useRef<EditorStart | undefined>(undefined);
   // When the user deals with a conflict notice (restores, copies or discards their text), what this editor
   // was opened against is stale: base it on the current revision, so its next Save is not refused again.
-  useEffect(() => subscribeConflictAcknowledged((acknowledged) => {
-    if (editSessionIdRef.current === acknowledged) editStartRef.current = getEditorStart(acknowledged, editStartRef.current);
+  useEffect(() => subscribeConflictAcknowledged((acknowledged, discarded) => {
+    if (editSessionIdRef.current !== acknowledged) return;
+    if (discarded) {
+      // Same as Cancel: the draft is the text the user just threw away.
+      setIsEditMode(false);
+      setEditedCVData(null);
+      editSessionIdRef.current = null;
+      editStartRef.current = undefined;
+      return;
+    }
+    editStartRef.current = getEditorStart(acknowledged, editStartRef.current);
   }), []);
   useEffect(() => {
     if (editSessionIdRef.current === null || editSessionIdRef.current === currentSession?.id) return;
