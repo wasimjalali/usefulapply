@@ -24,6 +24,7 @@ import {
 import { getCurrentUser } from '@/auth/server';
 import { getSession, updateSession } from '@/db/repos/sessions';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
+import { saveLetterRecipientFromAd } from '@/lib/agents/persist-letter-recipient';
 import { getDocumentByType } from '@/db/repos/documents';
 import { getJobPreferences } from '@/db/repos/jobFeed';
 import { claimAnonymousGeneration, releaseAnonymousGeneration } from '@/db/repos/anonymous';
@@ -264,6 +265,15 @@ async function persistGeneratedArtifacts(
     }
   } catch (error) {
     console.error('[agent-v2] Failed to persist generated artifacts:', error);
+  }
+  if (isStructuredCoverLetter(results.coverLetterStructured)) {
+    try {
+      await saveLetterRecipientFromAd(userId, sessionId, results.coverLetterStructured);
+    } catch (error) {
+      // The letter already carries the recipient; only the editable copy on
+      // the session row is missing.
+      console.error('[agent-v2] Failed to save the cover letter recipient:', error);
+    }
   }
 }
 

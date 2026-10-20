@@ -21,6 +21,7 @@ import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateL
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import { MAX_INSTRUCTION_CHARS, flattenInstruction } from '@/lib/agents/chat-tools/untrusted';
 import { clearKitDocumentError, getSession, updateSession } from '@/db/repos/sessions';
+import { saveLetterRecipientFromAd } from '@/lib/agents/persist-letter-recipient';
 import { getDocumentByType, type Document } from '@/db/repos/documents';
 
 /**
@@ -325,6 +326,13 @@ export async function POST(request: NextRequest) {
         cover_letter_language: letter.structured.language,
       });
       if (persist.error) throw persist.error;
+      try {
+        await saveLetterRecipientFromAd(user.id, session.id, letter.structured);
+      } catch (error) {
+        // The letter already carries the recipient; only the editable copy on
+        // the session row is missing.
+        console.error('[Regenerate API] Failed to save the cover letter recipient:', error);
+      }
       await clearDocumentMark(user.id, session.id, 'coverLetter');
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({

@@ -56,7 +56,7 @@ import {
   claimWords as words,
 } from './claim-token-normalization';
 import { buildCoverLetterSystemBlocks, buildCoverLetterUserPrompt } from './prompts/cover-letter-prompt';
-import { assembleStructuredCoverLetter, renderCoverLetterBody, type CoverLetterModelFields } from './cover-letter-structure';
+import { assembleStructuredCoverLetter, renderCoverLetterBody, splitAddressLines, type CoverLetterModelFields } from './cover-letter-structure';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { buildApplicationEmailUserPrompt, buildApplicationEmailSystemBlocks, buildFollowUpEmailUserPrompt, buildFollowUpEmailSystemBlocks } from './prompts/email-prompts';
 import { buildFitAssessmentPrompt, buildFitAssessmentSystemBlocks, computeFitLevel } from './prompts/fit-assessment-prompt';
@@ -886,6 +886,23 @@ function textContainsPhrase(text: string, value: string): boolean {
     .test(normalizeComparisonText(text));
 }
 
+const SALUTATION_TITLE = /(?:^|[^\p{L}])(frau|herr|mrs|ms|mr|mx)\.?\s+((?:(?:dr|prof)\.?\s+)*)(\p{L}[\p{L}'-]*)/giu;
+
+/**
+ * A gendered title in the salutation that no source gives that person. "Frau
+ * Brandl" passes when the ad says "Frau Melanie Brandl"; "Ms. Whitfield" fails
+ * when the ad only says "Dana Whitfield", because the title is a guess.
+ */
+function salutationHasUnstatedTitle(salutation: string, sources: string[]): boolean {
+  for (const match of salutation.matchAll(SALUTATION_TITLE)) {
+    const title = escapeRegExp(match[1]);
+    const surname = escapeRegExp(match[3]);
+    const stated = new RegExp(`(?:^|[^\\p{L}])${title}\\.?\\s+(?:[\\p{L}.'-]+\\s+){0,3}${surname}(?=$|[^\\p{L}])`, 'iu');
+    if (!sources.some((source) => stated.test(source.replace(/\s+/gu, ' ')))) return true;
+  }
+  return false;
+}
+
 /** A cover letter answer: a paragraph list with real text, not a schema echo or a fragment. */
 export function isCoverLetterAnswerShape(parsed: Record<string, unknown>): boolean {
   return typeof parsed.subject === 'string'
@@ -975,6 +992,16 @@ function validateCoverLetterFields(
   };
   const contactPerson = fromAd(recipient.contactPerson);
   const department = fromAd(recipient.department);
+  const companyName = fromAd(recipient.companyName);
+  const addressLines = verbatimAdAddress(recipient.addressLines, adText, [companyName, contactPerson, department]);
+  // The address belongs in the address block, which code builds. A paragraph,
+  // subject or salutation that carries an address line would print it twice.
+  const knownAddressLines = [...addressLines, ...splitAddressLines(context.letterRecipient?.address)]
+    .map((line) => line.trim())
+    .filter((line) => /\d/u.test(line));
+  if ([subject, salutation, ...paragraphs].some((text) => knownAddressLines.some((line) => textContainsPhrase(text, line)))) {
+    issues.push('the letter text contained the postal address, which belongs only in the recipient field');
+  }
 
   if (language === 'en' || language === 'de') {
     const known = [adText, context.job?.companyName ?? '', context.letterRecipient?.companyName ?? '', context.letterRecipient?.contactPerson ?? ''];
@@ -982,6 +1009,9 @@ function validateCoverLetterFields(
       !SALUTATION_WORDS.has(word.toLocaleLowerCase()) && !known.some((source) => textContainsPhrase(source, word))
     ));
     if (unstated) issues.push('the salutation named someone the ad does not state');
+    if (salutationHasUnstatedTitle(salutation, [adText, context.letterRecipient?.contactPerson ?? ''])) {
+      issues.push('the salutation gave the contact a title (Frau, Herr, Ms., Mr.) the ad does not give them; use the full name instead');
+    }
   }
 
   if (issues.length > 0) throw new CoverLetterValidationError([...new Set(issues)]);
@@ -992,7 +1022,50 @@ function validateCoverLetterFields(
     closing,
     ...(contactPerson ? { contactPerson } : {}),
     ...(department ? { department } : {}),
+    ...(companyName ? { companyName } : {}),
+    ...(addressLines.length > 0 ? { addressLines } : {}),
   };
+}
+
+const LETTER_ADDRESS_MAX_LINES = 4;
+
+/**
+ * The employer's postal address as the model copied it from the ad, or [].
+ * Lines that repeat the company, contact or department, or carry an email,
+ * phone or web address, are not address lines and are set aside first. Then
+ * all or nothing: every remaining line must appear verbatim in the ad (after
+ * whitespace normalisation), at least one must carry a digit (street number or
+ * postal code), and there are at most four. A partial address is dropped
+ * whole, because a street without its city (or a city with a guessed street)
+ * would send the letter to the wrong place.
+ */
+function verbatimAdAddress(value: unknown, adText: string, otherFields: Array<string | undefined>): string[] {
+  if (!Array.isArray(value)) return [];
+  const others = otherFields.filter((field): field is string => Boolean(field)).map(normalizeComparisonText);
+  const lines = value
+    .filter((line): line is string => typeof line === 'string')
+    .map((line) => line.replace(/[\s\p{Cc}]+/gu, ' ').trim())
+    .filter((line) => line && !isPlaceholderValue(line))
+    .filter((line) => !others.includes(normalizeComparisonText(line)))
+    .filter((line) => !/@|https?:\/\/|www\.|\+\d|^(?:tel|telefon|phone|fax|mobil|e-?mail)\b/iu.test(line));
+  if (lines.length === 0 || lines.length > LETTER_ADDRESS_MAX_LINES) return [];
+  if (lines.some((line) => line.length > LETTER_RECIPIENT_MAX_CHARS || !textContainsPhrase(adText, line))) return [];
+  if (!lines.some((line) => /\d/u.test(line))) return [];
+  return lines;
+}
+
+/**
+ * The writer's post-model path on its own: validate a raw model answer and
+ * build the letter. Throws CoverLetterValidationError on a miss. Exported for
+ * the structured-letter eval, which feeds it doctored answers (an address that
+ * is not in the ad) to prove they are dropped.
+ */
+export function coverLetterFromModelOutput(
+  content: string,
+  context: MasterContext,
+  language: SupportedLanguage,
+): { body: string; structured: StructuredCoverLetter } {
+  return buildCoverLetter(content, context, language);
 }
 
 /** Parse the model's JSON letter; a malformed or self-corrected answer is a validation miss (one retry). */

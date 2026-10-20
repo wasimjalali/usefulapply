@@ -5,9 +5,10 @@
  * Tuned for Claude Sonnet 5.5 (eval of 2026-10-12): no sampling temperature,
  * so voice and variety are steered by the <voice> block.
  * The system blocks are fully static so Anthropic prompt caching hits.
- * The model returns JSON (subject, salutation, paragraphs, closing, recipient
- * contact and department); the header, date, recipient address and signature
- * are filled in code (agents/cover-letter-structure.ts).
+ * The model returns JSON (subject, salutation, paragraphs, closing, and the
+ * recipient details the ad states); code keeps a recipient detail only when the
+ * ad contains it verbatim and fills the header, date and signature
+ * (agents/cover-letter-structure.ts).
  */
 
 import type { MasterContext } from '@/lib/agents/types';
@@ -201,9 +202,10 @@ The letter frame is built in code from verified data: the applicant's name and c
 <letter_fields>
 Besides the paragraphs, you write four short fields:
 - subject: the letter's subject line. In German, "Bewerbung als " followed by the job title as the ad writes it, with no "Betreff:" label. In English, "Application for " followed by the job title as the ad writes it. In another language, the equivalent short phrase in that language. Add the ad's reference number (Kennziffer, Referenznummer, job ID) after a comma only when the ad states one.
-- salutation: one line ending with a comma. If the ad names a contact person for applications, address that person exactly as the ad names them (German: "Sehr geehrte Frau Dr. Hoffmann," or "Sehr geehrter Herr Wagner,"; English: "Dear Ms. Smith,"). Otherwise use the standard greeting: German "Sehr geehrte Damen und Herren,"; English "Dear Hiring Manager," or "Dear <company name> team,". A name goes into the salutation only when the ad states it.
+- salutation: one line ending with a comma. If the ad names a contact person for applications, address that person as the ad names them. A title (Frau, Herr, Ms., Mr.) goes in only when the ad writes it for that person, because a guessed title can misgender them. With a stated title: German "Sehr geehrte Frau Dr. Hoffmann," or "Sehr geehrter Herr Wagner,"; English "Dear Mr. Smith,". Without one, the full name as the ad writes it: German "Guten Tag Jordan Hoffmann,"; English "Dear Jordan Smith,". Otherwise use the standard greeting: German "Sehr geehrte Damen und Herren,"; English "Dear Hiring Manager," or "Dear <company name> team,". A name goes into the salutation only when the ad states it.
 - closing: German letters always close with "Mit freundlichen Grüßen", with no comma. In English, match the ad's formality: "Sincerely," for a formal ad, "Kind regards," or "Best regards," for a conversational one. In another language, a standard professional closing in that language.
-- recipient: the contact person and the department exactly as the ad states them for applications, copied character for character (for example "Frau Dr. Katrin Hoffmann" or "Personalabteilung"). An empty string for anything the ad doesn't state. Never guess a name, a department or an address.
+- recipient: details of the employer exactly as the ad states them, copied character for character, for the letter's address block. contactPerson and department: the contact for applications and their department (for example "Frau Dr. Katrin Hoffmann" or "Personalabteilung"). companyName: the employer's name as the ad writes it. addressLines: the employer's postal address as the ad writes it, one line per entry, street and postal code with city only (no company name, person, department, email, phone or web address). An empty string or an empty list for anything the ad doesn't state. Never guess, complete or reformat a name, a department or an address.
+The address block is built from the recipient field in code. An address never appears in the paragraphs, the subject or the salutation.
 </letter_fields>
 
 <stock_phrases>
@@ -235,7 +237,7 @@ These show the punctuation pattern only:
 
 <output_format>
 Return one JSON object with exactly these fields:
-{"subject": "...", "salutation": "...", "paragraphs": ["...", "...", "..."], "closing": "...", "recipient": {"contactPerson": "...", "department": "..."}}
+{"subject": "...", "salutation": "...", "paragraphs": ["...", "...", "..."], "closing": "...", "recipient": {"companyName": "...", "contactPerson": "...", "department": "...", "addressLines": ["..."]}}
 Every value is plain text: no markdown, no bullet points and no line breaks inside a paragraph. No preamble ("Here is your cover letter") and no commentary after the JSON.
 </output_format>
 

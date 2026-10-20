@@ -1,14 +1,15 @@
 /**
  * Deterministic half of the structured cover letter (PLAN.md section 5).
  *
- * The model writes only subject, salutation, paragraphs, closing and, when the
- * job description names them, the contact person and department. Everything
- * else on the letter comes from here, never from the model:
+ * The model writes only subject, salutation, paragraphs, closing and the
+ * recipient details the job description states (company, contact person,
+ * department, postal address). The writer keeps those only when the ad
+ * contains them verbatim. Everything else on the letter comes from here:
  * - sender: the applicant's verified name, address, email and phone, plus
  *   profile links read from the Primary CV header;
- * - recipient company and address: the application session row (company,
- *   company_address, company_contact_person), falling back to the company name
- *   parsed from the ad; never an invented address;
+ * - recipient: the application session row (company, company_address,
+ *   company_contact_person) wins, then the verbatim extract from the ad, then
+ *   empty; never an invented address;
  * - date (today, ISO), place (the city in the applicant's own address),
  *   language and market.
  *
@@ -36,6 +37,10 @@ export interface CoverLetterModelFields {
   contactPerson?: string;
   /** Kept only when the job description states it verbatim. */
   department?: string;
+  /** Kept only when the job description states it verbatim. Used only when no company name is known. */
+  companyName?: string;
+  /** The employer's postal address, kept only when every line is verbatim in the job description. */
+  addressLines?: string[];
 }
 
 const LETTER_LOCALES: Record<string, string> = {
@@ -153,10 +158,13 @@ export function assembleStructuredCoverLetter(
   if (email) sender.email = email;
   if (links.length > 0) sender.links = links;
 
+  // Precedence for each recipient detail: the session row, then the verbatim
+  // extract from the ad, then empty.
+  const savedAddress = splitAddressLines(session?.address);
   const recipient: CoverLetterRecipient = {
-    addressLines: splitAddressLines(session?.address),
+    addressLines: savedAddress.length > 0 ? savedAddress : (fields.addressLines ?? []).map(collapse).filter(Boolean),
   };
-  const companyName = collapse(session?.companyName) || collapse(context.job?.companyName);
+  const companyName = collapse(session?.companyName) || collapse(context.job?.companyName) || collapse(fields.companyName);
   // A contact person saved on the application wins over one read from the ad.
   const contactPerson = collapse(session?.contactPerson) || collapse(fields.contactPerson);
   const department = collapse(fields.department);
