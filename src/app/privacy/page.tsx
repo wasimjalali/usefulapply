@@ -470,6 +470,121 @@ export default function PrivacyPage() {
         </LegalP>
       </section>
 
+      <section>
+        <LegalH2>15. AI assistant integrations (MCP)</LegalH2>
+        <LegalP>
+          You can connect an AI assistant, such as Claude, ChatGPT, Claude Code or Cursor, to
+          your Useful Apply account. This section covers that connection. The rest of this policy
+          applies as well.
+        </LegalP>
+
+        <LegalH3>What an assistant can read and write</LegalH3>
+        <LegalP>
+          What your assistant can do depends on the scopes you grant: read, write and spend. It
+          can read, change and delete your account details, profile and photo, CVs,
+          applications, kit documents, job feed and settings. It can see your credit balance and
+          history. With the spend scope, it can use your credits.
+        </LegalP>
+
+        <LegalH3>Consent and access</LegalH3>
+        <LegalP>
+          An assistant gets access only through OAuth, after you sign in and approve the scopes
+          on our consent screen. Access tokens are short-lived. A daily agent credit limit caps the
+          credits assistants can spend. You can change it in Connected apps.
+        </LegalP>
+
+        <LegalH3>Revoking access</LegalH3>
+        <LegalP>
+          Open Settings, then Connected apps, and remove the app. Access stops within a minute.
+          Removing the connection inside your assistant may not revoke it on our side. To be
+          sure, remove it in Connected apps. Deleting your account revokes every connection.
+        </LegalP>
+
+        <LegalH3>AI provider processing</LegalH3>
+        <LegalP>
+          We receive only what your assistant sends to a tool, such as a job description or an
+          edit. We don&apos;t receive the rest of your conversation. The assistant&apos;s provider
+          (for example Anthropic or OpenAI) processes the content
+          your assistant retrieves from Useful Apply and the conversation you have with it. That
+          processing is governed by the provider&apos;s own terms and privacy policy, not ours.
+          Only connect an assistant whose provider you&apos;re comfortable sharing your CV and
+          application data with.
+        </LegalP>
+
+        <LegalH3>Exports and PDF rendering</LegalH3>
+        <LegalP>
+          When an assistant exports a document, we store the file in Cloudflare R2 for up to 30
+          days and give you a signed download link. Anyone with the link can open the file until
+          it expires. We delete the files sooner if you delete your account. Cloudflare Browser
+          Run turns your documents into PDFs.
+        </LegalP>
+
+        <LegalH3>Usage analytics</LegalH3>
+        <LegalP>
+          For integration usage we record which tool ran, which assistant app called it, how long it took and whether
+          it worked. We don&apos;t record document content in these analytics.
+        </LegalP>
+
+        <LegalH3>Summary</LegalH3>
+        <div className="overflow-x-auto mt-4">
+          <table className="w-full text-sm text-left border-collapse text-warm-gray">
+            <thead>
+              <tr className="border-b border-cream-200">
+                <th className="py-2 pr-3 font-semibold text-charcoal">Data</th>
+                <th className="py-2 pr-3 font-semibold text-charcoal">Purpose</th>
+                <th className="py-2 pr-3 font-semibold text-charcoal">Recipients</th>
+                <th className="py-2 pr-3 font-semibold text-charcoal">Retention</th>
+                <th className="py-2 font-semibold text-charcoal">Your controls</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-cream-200 align-top">
+                <td className="py-2 pr-3">Account, credits and settings</td>
+                <td className="py-2 pr-3">Let your assistant act on your account</td>
+                <td className="py-2 pr-3">Your assistant&apos;s provider, Cloudflare</td>
+                <td className="py-2 pr-3">While your account is open</td>
+                <td className="py-2">Scopes, daily credit limit, revoke in Connected apps</td>
+              </tr>
+              <tr className="border-b border-cream-200 align-top">
+                <td className="py-2 pr-3">CVs, applications and kit documents</td>
+                <td className="py-2 pr-3">Read, edit and generate application materials</td>
+                <td className="py-2 pr-3">Your assistant&apos;s provider, AI providers listed above, Cloudflare</td>
+                <td className="py-2 pr-3">While your account is open. Edit history keeps up to 10 earlier versions for 30 days, so replaced text isn&apos;t removed straight away.</td>
+                <td className="py-2">Grant read only, revoke, delete items or your account</td>
+              </tr>
+              <tr className="border-b border-cream-200 align-top">
+                <td className="py-2 pr-3">Job feed and career profile</td>
+                <td className="py-2 pr-3">Show and manage your feed</td>
+                <td className="py-2 pr-3">Your assistant&apos;s provider, Cloudflare</td>
+                <td className="py-2 pr-3">While your account is open</td>
+                <td className="py-2">Feed settings, withdraw feed consent, revoke</td>
+              </tr>
+              <tr className="border-b border-cream-200 align-top">
+                <td className="py-2 pr-3">Export files</td>
+                <td className="py-2 pr-3">Give you PDF, Word and text files</td>
+                <td className="py-2 pr-3">Cloudflare (R2 and Browser Run)</td>
+                <td className="py-2 pr-3">30 days, or until account deletion</td>
+                <td className="py-2">Delete your account</td>
+              </tr>
+              <tr className="align-top">
+                <td className="py-2 pr-3">Tool used, assistant app, duration and outcome</td>
+                <td className="py-2 pr-3">Reliability, abuse prevention and improvement</td>
+                <td className="py-2 pr-3">Cloudflare, PostHog</td>
+                <td className="py-2 pr-3">What is kept: tool, assistant app, duration and outcome, never content. We keep these records for 12 months.</td>
+                <td className="py-2">Email {LEGAL.email}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <LegalP>
+          More on how to connect an assistant is on our{' '}
+          <Link href="/integrations" className="text-navy-600 hover:underline">
+            integrations page
+          </Link>
+          .
+        </LegalP>
+      </section>
+
       <p className="text-sm text-warm-gray">
         Related: {' '}
         <Link href="/terms" className="text-navy-600 hover:underline">

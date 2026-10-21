@@ -253,7 +253,37 @@ export default function TermsPage() {
       </section>
 
       <section>
-        <LegalH2>14. Contact</LegalH2>
+        <LegalH2>14. AI assistant integrations</LegalH2>
+        <LegalP>
+          You can connect an AI assistant to your account through a secure sign-in (OAuth). See the{' '}
+          <Link href="/integrations" className="text-navy-600 hover:underline">
+            integrations page
+          </Link>
+          . These rules apply when you do.
+        </LegalP>
+        <LegalList>
+          <li>
+            An assistant you authorize acts on your behalf. You&apos;re responsible for what it does
+            with your account, including credits it spends within your daily agent credit limit.
+          </li>
+          <li>
+            AI output can contain mistakes, including details that aren&apos;t in your CV. Review what it produces before you send it to an employer. We don&apos;t send
+            applications for you.
+          </li>
+          <li>
+            You can change the daily agent credit limit or revoke access at any time in Settings, under Connected
+            apps.
+          </li>
+          <li>
+            Integrations may be unavailable, limited or changed at any time. They depend on
+            third-party assistants and providers we don&apos;t control, and their terms apply to
+            your use of them.
+          </li>
+        </LegalList>
+      </section>
+
+      <section>
+        <LegalH2>15. Contact</LegalH2>
         <LegalP>
           Email:{' '}
           <a href={mailHref} className="text-navy-600 hover:underline">

@@ -3,6 +3,7 @@ import BrandLogo from '@/components/marketing/BrandLogo';
 import TrustpilotLogo from '@/components/marketing/TrustpilotLogo';
 import { getComparisons } from '@/lib/comparisons';
 import { getAllPosts } from '@/lib/blog';
+import { isMcpEnabled } from '@/lib/mcp/config';
 
 interface FooterLink {
   href: string;
@@ -29,6 +30,11 @@ const legalLinks: FooterLink[] = [
 ];
 
 export default function Footer() {
+  // The integrations page exists only once MCP is on. The flag is read at build time, so the
+  // link appears only after a redeploy (launch flips the var and redeploys).
+  const productLinksShown: FooterLink[] = isMcpEnabled()
+    ? [...productLinks, { href: '/integrations', label: 'AI integrations' }]
+    : productLinks;
   const comparisonLinks: FooterLink[] = getComparisons().map((comparison) => ({
     href: `/compare/${comparison.slug}`,
     label: `Useful Apply vs ${comparison.competitorName}`,
@@ -55,7 +61,7 @@ export default function Footer() {
             <div>
               <h4 className="font-semibold text-gold-400 text-xs uppercase tracking-widest mb-4">Product</h4>
               <ul className="space-y-3">
-                {productLinks.map((link) => (
+                {productLinksShown.map((link) => (
                   <li key={link.href}>
                     <Link href={link.href} className="text-navy-200 hover:text-white text-sm transition-colors">
                       {link.label}
