@@ -402,6 +402,7 @@ const NEUTRAL_WORDS = new Set([
   'ensured', 'ensuring', 'handle', 'handled', 'handling', 'track', 'tracked',
   'tracking', 'test', 'tested', 'testing', 'fix', 'fixed', 'fixing', 'tool',
   'tools', 'system', 'systems', 'feature', 'features',
+  'go', 'goes', 'going', 'gone', 'went',
 ]);
 
 /** Is this word neutral, in its own right or once stemmed? */
@@ -536,13 +537,19 @@ function indexSource(sourceText: string): SourceIndex {
  *   built from true words. The prompt's own rules are the only guard there
  * - a one-character name, which the two-character floor drops
  *
- * The haystack is the Primary CV, the Master CV, the verified metrics and the
- * section as it stands. The job description and the job's own fields are
- * deliberately NOT in it: the employer asking for a skill has never been the
- * applicant having it.
+ * The haystack is the Primary CV, the Master CV and the verified metrics. The
+ * job description and the job's own fields are deliberately NOT in it: the
+ * employer asking for a skill has never been the applicant having it.
+ *
+ * `beforeText` is the section as it stands. It authorizes nothing, but a word
+ * it already contains is not one this rewrite introduced: refusing the rewrite
+ * would leave that word in the CV anyway. Without this, every rewrite of a
+ * kit-written section is refused, because the kit writer paraphrases ("Tested"
+ * in the CV becomes "evaluated" in the summary) and a rewrite keeps the wording.
  */
-function introducedClaims(afterText: string, sourceText: string): string[] {
+export function introducedClaims(afterText: string, sourceText: string, beforeText: string): string[] {
   const source = indexSource(sourceText);
+  const before = indexSource(beforeText);
   const acronymAliases = claimAcronymPluralAliases(afterText);
   const seen = new Set<string>();
   const introduced: string[] = [];
@@ -553,6 +560,7 @@ function introducedClaims(afterText: string, sourceText: string): string[] {
     if (word.length < 2) continue;
     if (/^[\p{Nd}]+$/u.test(word)) continue;   // quantities are the number guard's job
     if (isNeutral(word)) continue;
+    if (before.tokens.has(word) || before.stems.has(stemOf(word))) continue;
     if (source.tokens.has(word)) continue;
     if (source.stems.has(stemOf(word))) continue;
     const acronymBase = acronymAliases.get(word);
@@ -2346,7 +2354,7 @@ export const unifiedWriterAgent = {
     // Unconditional, and driven by what came back rather than by what was
     // asked. A rewrite with no instruction is the loosest brief we send, so it
     // is the last thing that should be running without a claim check.
-    const introduced = introducedClaims(afterText, sourceText);
+    const introduced = introducedClaims(afterText, sourceText, beforeText);
     if (introduced.length > 0) {
       console.warn('[UnifiedAgent] Section rewrite refused, claim not in source CVs:', introduced.length);
       return { ...base, status: 'refused', reason: 'unsupported_claim', terms: introduced };
