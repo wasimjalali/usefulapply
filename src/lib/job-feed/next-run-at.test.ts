@@ -69,3 +69,15 @@ test('a run in another timezone than the settings reports the same in flight and
   const completed = nextRunAfter({ ...utcRun, status: 'completed', completed_at: '2026-10-21T21:40:00.000Z' } as JobFeedRun, BERLIN, new Date('2026-10-21T21:41:00Z'));
   assert.equal(completed, inFlight);
 });
+
+test('missing or broken timestamps fall back the way the gate does', () => {
+  const now = new Date('2026-10-21T15:05:00Z');
+  // A running row with no started_at counts from created_at.
+  assert.equal(nextRunAfter(run({ started_at: null }), BERLIN, now), '2026-10-22T11:03:54.149Z');
+  // A queued row with no updated_at counts from created_at.
+  assert.equal(nextRunAfter(run({ status: 'queued', started_at: null, updated_at: null as unknown as string }), BERLIN, now), '2026-10-22T11:03:54.149Z');
+  // No local date: nothing to say.
+  assert.equal(nextRunAfter(run({ local_date: null as unknown as string }), BERLIN, now), null);
+  // An unreadable start time: the calendar day alone, next local midnight.
+  assert.equal(nextRunAfter(run({ started_at: 'not a date', created_at: 'not a date' }), BERLIN, now), '2026-10-21T22:00:00.000Z');
+});

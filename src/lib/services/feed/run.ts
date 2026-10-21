@@ -24,7 +24,6 @@ import { FeedError } from './errors';
 import { failUnclaimedRun } from './run-queue';
 import { getCalendarDayCooldown, nextRunAfter } from './cooldown';
 
-
 export interface FeedRunResponse {
   success: true;
   mode: 'direct';
