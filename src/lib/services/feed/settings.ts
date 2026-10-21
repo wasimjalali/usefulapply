@@ -41,6 +41,8 @@ export interface FeedSettingsView {
   settings: JobFeedSettings | null;
   /** Whether the plan allows changing the settings (Plus and Max). */
   canEdit: boolean;
+  /** How many role-by-country searches the plan keeps. */
+  searchLimit: number;
 }
 
 /** Reading the settings is part of viewing the feed, which free accounts do: the overview route hands them the same row. */
@@ -51,7 +53,11 @@ export async function loadFeedSettings(userId: string): Promise<FeedSettingsView
     throw new FeedError(403, 'Job Feed is not available for this account.', 'plan_not_allowed');
   }
   const settings = await getSettings(userId);
-  return { settings, canEdit: ['plus', 'max'].includes(profile.subscription_tier) };
+  return {
+    settings,
+    canEdit: ['plus', 'max'].includes(profile.subscription_tier),
+    searchLimit: planCapForTier(profile.subscription_tier),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -334,11 +340,29 @@ function sameSet(left: readonly string[], right: readonly string[]): boolean {
   return left.map((value) => value.trim().toLowerCase()).sort().every((value, index) => value === sorted[index]);
 }
 
+/**
+ * Whether the roles in `patch` differ from the saved ones. A save keeps only the roles that fit the
+ * plan's search cap, so the roles sent are cut down the same way before the comparison: sending 8
+ * roles when the cap keeps 3 settles into "no change" once those 3 are saved.
+ */
+function rolesWouldChange(existing: JobFeedSettings | null, patch: FeedSettingsPatch, searchLimit: number): boolean {
+  if (!patch.roles) return false;
+  const current = toJobFeedInput(existing);
+  const plan = buildConfirmSearchPlan({
+    roles: patch.roles,
+    countries: patch.countries ?? current.target_countries,
+    cities: current.target_cities,
+    cap: searchLimit,
+  });
+  const kept = plan.length > 0 ? rolesFromConfirmedQueries(plan) : patch.roles;
+  return !sameSet(kept, existing?.target_roles ?? []);
+}
+
 /** Names of the patch fields that would change what is saved. Empty means the call changes nothing. */
-export function changedFeedSettingFields(existing: JobFeedSettings | null, patch: FeedSettingsPatch): string[] {
+export function changedFeedSettingFields(existing: JobFeedSettings | null, patch: FeedSettingsPatch, searchLimit: number): string[] {
   const current = toJobFeedInput(existing);
   const changed: string[] = [];
-  if (patch.roles && !sameSet(patch.roles, existing?.target_roles ?? [])) changed.push('roles');
+  if (rolesWouldChange(existing, patch, searchLimit)) changed.push('roles');
   if (patch.countries && !sameSet(patch.countries, current.target_countries)) changed.push('countries');
   if (patch.workModes && !sameSet(patch.workModes, current.remote_preferences)) changed.push('work modes');
   if (patch.salaryFloor !== undefined && patch.salaryFloor !== current.salary_floor) changed.push('salary floor');
@@ -387,7 +411,7 @@ export async function updateFeedSettingsPartial(params: {
 
   const searchLimit = planCapForTier(profile.subscription_tier);
   let searches: ConfirmedSearchQuery[] | null = null;
-  const rolesChanged = Boolean(patch.roles) && !sameSet(patch.roles ?? [], existing?.target_roles ?? []);
+  const rolesChanged = rolesWouldChange(existing, patch, searchLimit);
   const countriesChanged = Boolean(patch.countries) && !sameSet(patch.countries ?? [], base.target_countries);
   if (rolesChanged || countriesChanged) {
     const plan = buildConfirmSearchPlan({

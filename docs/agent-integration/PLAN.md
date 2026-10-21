@@ -207,7 +207,7 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
 | `export_documents` | no | `cv_pdf`, `cv_docx`, `cover_letter_pdf`, `cover_letter_docx`, `emails_txt`, `answers_pdf`, `answers_txt`, with any `templateId`, an optional `paper` override and `letterLocale`; returns signed links |
 | `run_job_feed` | no | Today's feed (one a day, consent required) |
 | `update_feed_settings` | yes (overwrites settings) | Roles, countries, remote, salary floor, automation, timezone |
-| `give_job_feedback` | no | Save, unsave, dismiss, rate |
+| `give_job_feedback` | yes (dismiss and not relevant end the job, with no undo) | Save, unsave, dismiss, rate. Only dismiss and rate_not_relevant ask the user to confirm; the other verbs run without a form |
 | `withdraw_feed_consent` | yes | Stop feed data processing |
 | `update_notification_settings` | yes (overwrites settings) | Email notifications and reminders |
 
