@@ -19,6 +19,7 @@
  * an empty balance, the daily limit) is refused before an application is created.
  */
 
+import type { SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { checkCreditBalance, reservedSpendSince, type ReservationSpendLimit } from '@/db/repos/credits';
 import * as jobFeedRepo from '@/db/repos/jobFeed';
@@ -35,7 +36,7 @@ import {
   isJobFeedbackBlocked,
   recordJobFeedFeedbackAdmin,
 } from '@/lib/job-feed/server';
-import { InsufficientCreditsError, InvalidInputError, NotFoundError, ReservationConflictError, SpendLimitReachedError } from '../errors';
+import { InsufficientCreditsError, InvalidInputError, NotFoundError, ReservationConflictError, RevisionConflict, SpendLimitReachedError } from '../errors';
 import { analyzeApplicationFit, fitContextIdFor } from '../fit-analysis';
 import { enqueueKitGeneration } from '../generation-runner';
 import { runInlineOperation } from '../inline-operations';
@@ -151,36 +152,53 @@ export async function applyToFeedJob(params: {
   }
 
   if (mode === 'fit') {
-    const run = await runInlineOperation({
-      userId,
-      kind: FIT_KIND,
-      idempotencyKey,
-      input: { applicationId: application.applicationId },
-      reserve: {
-        action: 'FIT_ANALYSIS',
-        sessionId: application.applicationId,
-        metadata: { source_tool: 'apply_to_feed_job', job_id: jobId },
-        spendLimit,
-      },
-      execute: async () => {
-        const fit = await analyzeApplicationFit({
-          userId,
+    let run;
+    try {
+      run = await runInlineOperation({
+        userId,
+        kind: FIT_KIND,
+        idempotencyKey,
+        input: { applicationId: application.applicationId },
+        reserve: {
+          action: 'FIT_ANALYSIS',
           sessionId: application.applicationId,
-          contextId: fitContextIdFor(idempotencyKey),
-          requestId: idempotencyKey,
-        });
-        const result: StoredFit = {
-          applicationId: application.applicationId,
-          fitLevel: fit.fit.fitLevel,
-          score: fit.fit.score,
-          assessment: fit.fit.assessment,
-          matchingSkills: fit.fit.matchingSkills,
-          missingSkills: fit.fit.missingSkills,
-          revision: fit.revision,
-        };
-        return { result, settle: 'capture' as const };
-      },
-    });
+          // The context id is what a kit later uses to earn the after-fit price (canUseFitContinuation reads it off this reservation).
+          metadata: { source_tool: 'apply_to_feed_job', job_id: jobId, context_id: fitContextIdFor(idempotencyKey) },
+          spendLimit,
+        },
+        execute: async () => {
+          const fit = await analyzeApplicationFit({
+            userId,
+            sessionId: application.applicationId,
+            contextId: fitContextIdFor(idempotencyKey),
+            requestId: idempotencyKey,
+          });
+          return {
+            settle: 'capture' as const,
+            // What the analysis learned is saved in the same batch that captures the credits.
+            commit: async (guard: SQL, now: string) => {
+              const written = await fit.buildWrite(guard, now);
+              const result: StoredFit = {
+                applicationId: application.applicationId,
+                fitLevel: fit.fit.fitLevel,
+                score: fit.fit.score,
+                assessment: fit.fit.assessment,
+                matchingSkills: fit.fit.matchingSkills,
+                missingSkills: fit.fit.missingSkills,
+                revision: written.revision,
+              };
+              return { kind: 'write' as const, statements: written.statements, result };
+            },
+          };
+        },
+      });
+    } catch (error) {
+      // The credits are back by now (the operation failed in the same batch that would have charged them).
+      if (error instanceof RevisionConflict) {
+        throw new FeedError(409, 'The application was being edited at the same time. Nothing was changed and no credits were used. Try again.', 'write_conflict');
+      }
+      throw error;
+    }
     if (run.kind === 'in_progress') throw new ReservationConflictError('REQUEST_IN_PROGRESS');
     const fit = fitResult.parse(run.result);
     if (run.kind === 'fresh') captureApplied({ userId, jobId, applicationId: application.applicationId, mode, created: application.created });

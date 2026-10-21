@@ -443,22 +443,13 @@ export async function saveKitDocument(
   return { revision: written.revision as number };
 }
 
-/**
- * A fit analysis finished: save what it learned about the ad (requirements, the
- * match score and skills, a title and company where the application has none)
- * in the same columns a kit would, with a revision bump. The browser then loads
- * the row instead of writing these fields from the response.
- */
-export async function persistFitResult(
-  userId: string,
-  sessionId: string,
-  fit: Pick<KitResults, 'job' | 'match' | 'detectedLanguage'> & {
-    /** The written assessment. The web client saves it from the stream; a headless caller saves it here. */
-    fitAnalysis?: MasterContext['fitAnalysis'];
-  },
-): Promise<{ revision: number } | null> {
-  const row = await sessionsRepo.getSession(userId, sessionId);
-  if (!row) return null;
+type FitResultInput = Pick<KitResults, 'job' | 'match' | 'detectedLanguage'> & {
+  /** The written assessment. The web client saves it from the stream; a headless caller saves it here. */
+  fitAnalysis?: MasterContext['fitAnalysis'];
+};
+
+/** The column values a fit analysis becomes, given the row it lands on. Pure, so a caller can write them in a batch of its own. */
+export function fitResultColumns(row: Pick<StoredApplication, 'job_title' | 'company'>, fit: FitResultInput): Json {
   const columns: Json = {};
   if (fit.fitAnalysis) columns.fit_assessment = fit.fitAnalysis;
   if (fit.job) {
@@ -472,6 +463,23 @@ export async function persistFitResult(
     columns.matching_skills = fit.match.matchedRequirements || [];
     columns.missing_skills = fit.match.missingSkills || [];
   }
+  return columns;
+}
+
+/**
+ * A fit analysis finished: save what it learned about the ad (requirements, the
+ * match score and skills, a title and company where the application has none)
+ * in the same columns a kit would, with a revision bump. The browser then loads
+ * the row instead of writing these fields from the response.
+ */
+export async function persistFitResult(
+  userId: string,
+  sessionId: string,
+  fit: FitResultInput,
+): Promise<{ revision: number } | null> {
+  const row = await sessionsRepo.getSession(userId, sessionId);
+  if (!row) return null;
+  const columns = fitResultColumns(row, fit);
   if (Object.keys(columns).length === 0) return null;
   const written = await sessionsRepo.updateSession(userId, sessionId, columns as Parameters<typeof sessionsRepo.updateSession>[2]);
   if (written.error) {

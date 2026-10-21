@@ -1089,11 +1089,18 @@ export function utcDayStart(now: Date = new Date()): string {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
 }
 
+/**
+ * What a reservation still holds against a daily spend cap: its amount less what a partial refund
+ * paid back (`partial_refund_paid`, set when a kit settles short). A reservation that was
+ * released has no hold at all, so the callers also filter on status.
+ */
+const RESERVATION_NET_AMOUNT = sql`(amount - COALESCE(json_extract(metadata, '$.partial_refund_paid'), 0))`;
+
 /** Credits a source has reserved (and not given back) or spent since `since`. */
 export async function reservedSpendSince(userId: string, source: string, since: string): Promise<number> {
   const db = await getDb();
   const rows = await db.all<{ spent: number }>(sql`
-    SELECT COALESCE(SUM(amount), 0) AS spent FROM credit_reservations
+    SELECT COALESCE(SUM(${RESERVATION_NET_AMOUNT}), 0) AS spent FROM credit_reservations
     WHERE user_id = ${userId} AND reserved_at >= ${since}
       AND status IN ('reserved', 'captured')
       AND json_extract(metadata, '$.source') = ${source}
@@ -1297,7 +1304,7 @@ export function buildReserveStatements(params: {
         AND (monthly_credits + rollover_credits + addon_credits) >= ${amount}
         ${params.spendLimit
           ? sql`AND (
-              SELECT COALESCE(SUM(amount), 0) FROM credit_reservations
+              SELECT COALESCE(SUM(${RESERVATION_NET_AMOUNT}), 0) FROM credit_reservations
               WHERE user_id = ${userId} AND reserved_at >= ${params.spendLimit.since}
                 AND status IN ('reserved', 'captured')
                 AND json_extract(metadata, '$.source') = ${params.spendLimit.source}

@@ -17,12 +17,15 @@
  * message limit and the order of its gates.
  */
 
+import type { SQL } from 'drizzle-orm';
 import { getDocumentByType } from '@/db/repos/documents';
 import * as sessionsRepo from '@/db/repos/sessions';
 import { callWorkersAI, type WorkersAiChatMessage } from '@/lib/models/workers-ai';
 import { sanitizeDashes } from '@/lib/config/typo-corrections';
-import { RevisionConflict, InvalidInputError, NotFoundError } from './errors';
-import { kitFromRow } from './kit';
+import { InvalidInputError, NotFoundError } from './errors';
+import { visibleCvData } from '@/lib/cv-templates/hidden';
+import type { CVData } from '@/lib/cv-templates/types';
+import { buildSessionUpdateStatement, kitFromRow, type Kit } from './kit';
 
 /** Plans that include screening answers. */
 export function screeningAllowedForTier(tier: string | null | undefined): boolean {
@@ -175,6 +178,43 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 /**
+ * The CV as the applicant and the exports see it today, as plain text for the prompt. CV edits and
+ * section rewrites change `_optimizedCVData` and leave `generated_cv.content` as first generated, so
+ * the structured copy is the current one. Hidden items stay out, as they do in an export. A CV that
+ * only has the generated text (older rows) falls back to that.
+ */
+function currentCvText(kit: Kit): string | undefined {
+  const data = kit.optimizedCVData;
+  if (!data) return typeof kit.cv?.content === 'string' ? kit.cv.content : undefined;
+  const cv = visibleCvData(data as unknown as CVData);
+  const lines: string[] = [];
+  const { personal } = cv;
+  lines.push([personal.fullName, personal.currentTitle].filter(Boolean).join(', '));
+  if (cv.summary) lines.push(cv.summary);
+  for (const job of cv.experience) {
+    const dates = [job.startDate, job.current ? 'Present' : job.endDate].filter(Boolean).join(' - ');
+    lines.push('', `${job.position}, ${job.company}${job.location ? `, ${job.location}` : ''}${dates ? ` (${dates})` : ''}`);
+    for (const bullet of job.bullets) lines.push(`- ${bullet}`);
+  }
+  for (const entry of cv.education) {
+    const dates = [entry.startDate, entry.endDate].filter(Boolean).join(' - ');
+    lines.push('', `${[entry.degree, entry.field].filter(Boolean).join(' in ')}, ${entry.institution}${dates ? ` (${dates})` : ''}`);
+    for (const highlight of entry.highlights ?? []) lines.push(`- ${highlight}`);
+  }
+  for (const group of cv.skills) lines.push(`${group.category}: ${group.items.join(', ')}`);
+  for (const entry of cv.languages) lines.push(`${entry.language}: ${entry.proficiency}`);
+  for (const entry of cv.certifications) lines.push(`${entry.name}, ${entry.issuer}${entry.date ? ` (${entry.date})` : ''}`);
+  for (const project of cv.projects ?? []) {
+    lines.push('', `${project.name}: ${project.description}${project.technologies?.length ? ` (${project.technologies.join(', ')})` : ''}`);
+  }
+  for (const section of cv.customSections ?? []) {
+    lines.push('', section.title);
+    for (const item of section.items) lines.push(`- ${item}`);
+  }
+  return lines.join('\n').trim() || undefined;
+}
+
+/**
  * What the browser sends with a screening request, read from the stored
  * application and the user's master CV instead: same fields, same caps.
  */
@@ -195,14 +235,14 @@ export async function loadScreeningContext(userId: string, sessionId: string): P
         .join(' | ')
         .substring(0, 500)
     : undefined;
-  const cvContent = asRecord(row.generated_cv)?.content;
+  const cvText = currentCvText(kit);
   return {
     jobTitle: row.job_title ?? undefined,
     company: row.company ?? undefined,
     jobDescription: row.job_description?.substring(0, 8000),
     matchingSkills: row.matching_skills,
     missingSkills: row.missing_skills,
-    generatedCVSummary: typeof cvContent === 'string' ? cvContent.substring(0, 5000) : undefined,
+    generatedCVSummary: cvText?.substring(0, 5000),
     companyResearchSummary: companyResearchSummary || undefined,
     hasMasterCV: Boolean(master?.raw_text),
     masterCVSummary: master?.raw_text?.substring(0, 3000),
@@ -217,39 +257,35 @@ export interface StoredScreeningAnswer {
 }
 
 /**
- * Add answers to the application's Answers document (`generated_cv._screeningAnswers`),
- * the place the web app and the answers export read. A revisioned write that
- * retries against the fresh row when something else saved in between, and that
- * keeps the embedded turn count in step with the server's counter. It is not
- * recorded in edit history: an undo of a CV edit must not be able to take
- * answers the user already copied away.
+ * The write that adds answers to the application's Answers document (`generated_cv._screeningAnswers`),
+ * the place the web app and the answers export read them, as a statement a caller commits in a batch of
+ * its own (inline-operations.ts retries it against a fresh row when a concurrent save moves the
+ * revision). It keeps the embedded turn count in step with the server's counter. It is not recorded in
+ * edit history: an undo of a CV edit must not be able to take answers the user already copied away.
+ * `guard` is ANDed into the statement.
  */
-export async function appendScreeningAnswers(
+export async function buildScreeningAnswersWrite(
   userId: string,
   sessionId: string,
   items: StoredScreeningAnswer[],
   turnsUsed: number,
-): Promise<{ revision: number }> {
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const row = await sessionsRepo.getSession(userId, sessionId);
-    if (!row) throw new NotFoundError();
-    // A row whose CV only lives in generated_artifacts has no generated_cv to extend: start from the CV document the reader already shows.
-    const base = asRecord(row.generated_cv) ?? (kitFromRow(row).cv ? { ...(kitFromRow(row).cv as unknown as Record<string, unknown>) } : null);
-    if (!base) throw new InvalidInputError('Screening answers need this application\'s tailored CV. Generate the application kit first.');
-    const existing = Array.isArray(base._screeningAnswers) ? base._screeningAnswers : [];
-    const embeddedCount = typeof base._screeningUsageCount === 'number' ? base._screeningUsageCount : 0;
-    const next = {
-      ...base,
-      _screeningAnswers: [...existing, ...items],
-      _screeningUsageCount: Math.max(embeddedCount, turnsUsed),
-    };
-    const written = await sessionsRepo.updateSession(userId, sessionId, { generated_cv: next }, { expectedRevision: row.revision });
-    if (!written.error) {
-      if (written.revision === undefined) throw new Error('Write did not report a revision');
-      return { revision: written.revision };
-    }
-    if (written.error instanceof RevisionConflict) continue;
-    throw written.error;
-  }
-  throw new RevisionConflict(null);
+  guard: SQL,
+  now: string,
+): Promise<{ statements: SQL[]; revision: number }> {
+  const row = await sessionsRepo.getSession(userId, sessionId);
+  if (!row) throw new NotFoundError();
+  // A row whose CV only lives in generated_artifacts has no generated_cv to extend: start from the CV document the reader already shows.
+  const base = asRecord(row.generated_cv) ?? (kitFromRow(row).cv ? { ...(kitFromRow(row).cv as unknown as Record<string, unknown>) } : null);
+  if (!base) throw new InvalidInputError('Screening answers need this application\'s tailored CV. Generate the application kit first.');
+  const existing = Array.isArray(base._screeningAnswers) ? base._screeningAnswers : [];
+  const embeddedCount = typeof base._screeningUsageCount === 'number' ? base._screeningUsageCount : 0;
+  const next = {
+    ...base,
+    _screeningAnswers: [...existing, ...items],
+    _screeningUsageCount: Math.max(embeddedCount, turnsUsed),
+  };
+  return {
+    statements: [buildSessionUpdateStatement(userId, sessionId, { generated_cv: next }, row.revision, now, guard)],
+    revision: row.revision + 1,
+  };
 }

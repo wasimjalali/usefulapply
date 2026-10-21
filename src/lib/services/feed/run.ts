@@ -8,6 +8,7 @@
  *                  once; the queue consumer (run-queue.ts) runs the feed.
  */
 
+import * as jobFeedRepo from '@/db/repos/jobFeed';
 import { getProfile } from '@/db/repos/profiles';
 import type { JobFeedRun } from '@/lib/supabase/types';
 import { canViewJobFeed, getLocalDateKey, getStartOfNextLocalDay, isJobFeedConfigured, isValidTimeZone } from '@/lib/job-feed/helpers';
@@ -215,7 +216,29 @@ export async function queueFeedRun(userId: string): Promise<QueuedFeedRunRespons
     };
   }
 
-  const { run, queuedNow, dispatch } = await queueJobFeedRunAdmin({ userId, now: gate.now, triggerSource: 'manual_user' });
+  const queued = await queueJobFeedRunAdmin({ userId, now: gate.now, triggerSource: 'manual_user' });
+  let { run, queuedNow, dispatch } = queued;
+  if (gate.cooldown.forceRerun && run.status === 'completed') {
+    // The gate lets this run through although today's row already completed (28 hours or more have passed
+    // since it ran, as after a timezone change). The synchronous path passes `force` to its workflow; the
+    // queued path puts the completed row back on the queue, which is what a forced rerun of it amounts to.
+    // The guard on status and updated_at lets one caller win; a loser reports the row as it is now.
+    const requeued = await jobFeedRepo.requeueRun(userId, run.id, {
+      // requeueRun's type names the two states it was written for; it is a plain status match.
+      status: run.status as unknown as 'failed',
+      updatedAt: run.updated_at,
+    });
+    if (requeued) {
+      run = requeued;
+      queuedNow = true;
+      dispatch = true;
+    } else {
+      const current = await jobFeedRepo.getRun(userId, run.id);
+      if (!current) throw new Error('Job feed run disappeared while it was being queued.');
+      run = current;
+      dispatch = current.status === 'queued';
+    }
+  }
   if (dispatch) {
     try {
       await sendFeedRunMessage(userId, run.id);
