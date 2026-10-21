@@ -1822,18 +1822,23 @@ export async function reconcileCreditRefunds(options: { limit?: number } = {}): 
   const result: ReconcileRefundsResult = { releasedRepaired: 0, partialRepaired: 0, failed: 0 };
 
   // 1. Released reservations with no refund ledger row.
+  // Description prefixes are matched with instr(), not LIKE: D1 refuses LIKE patterns over 50 bytes, and a
+  // reservation id alone is 36.
   const released = await db
     .select()
     .from(creditReservations)
     .where(and(
       eq(creditReservations.status, 'released'),
       sql`${creditReservations.released_at} >= ${RECONCILE_REFUNDS_SINCE}`,
+      // A reservation with nothing to give back writes no ledger row, so it would match here on every run
+      // and could fill the batch ahead of real repairs.
+      sql`${creditReservations.amount} > 0`,
       sql`NOT EXISTS (
         SELECT 1 FROM credit_transactions t
         WHERE t.user_id = ${creditReservations.user_id}
           AND t.transaction_type = 'reservation_released'
           AND (json_extract(t.metadata, '$.reservation_id') = ${creditReservations.id}
-            OR t.description LIKE 'Released reservation ' || ${creditReservations.id} || '%')
+            OR instr(t.description, 'Released reservation ' || ${creditReservations.id}) = 1)
       )`,
     ))
     .orderBy(creditReservations.updated_at)
@@ -1855,7 +1860,7 @@ export async function reconcileCreditRefunds(options: { limit?: number } = {}): 
           WHERE t.user_id = ${reservation.user_id}
             AND t.transaction_type = 'reservation_released'
             AND (json_extract(t.metadata, '$.reservation_id') = ${reservation.id}
-              OR t.description LIKE ${`Released reservation ${reservation.id}%`})
+              OR instr(t.description, ${`Released reservation ${reservation.id}`}) = 1)
         )`,
         now,
       }));
@@ -1893,7 +1898,7 @@ export async function reconcileCreditRefunds(options: { limit?: number } = {}): 
           eq(creditTransactions.user_id, reservation.user_id),
           eq(creditTransactions.transaction_type, 'reservation_partial_refund'),
           sql`(json_extract(${creditTransactions.metadata}, '$.reservation_id') = ${reservation.id}
-            OR ${creditTransactions.description} LIKE ${`Partial refund on reservation ${reservation.id}%`})`,
+            OR instr(${creditTransactions.description}, ${`Partial refund on reservation ${reservation.id}`}) = 1)`,
         ));
       const ledgerPaid = Number(ledger[0]?.total ?? 0);
       const outstanding = Math.max(0, owed - Math.max(ledgerPaid, recordedPaid ?? 0));
