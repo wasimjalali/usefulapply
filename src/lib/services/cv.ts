@@ -338,7 +338,10 @@ export async function setCvFields(
       changes.push({ path: field.path, before: previous ?? null, after: field.value });
     }
     refuse(validateCvShape(cv) || validateNoNewBlanks(before, cv));
-    return { cv, result: changes.filter((change) => change.before !== change.after) };
+    // Like edit_document_text: an edit that changes nothing must not save, or a retry loop pushes real versions out of the history.
+    const changed = changes.filter((change) => change.before !== change.after);
+    if (changed.length === 0) throw new InvalidInputError('Those are already the current values, so nothing changed');
+    return { cv, result: changed };
   });
   return { revision, changes: result };
 }

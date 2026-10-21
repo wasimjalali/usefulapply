@@ -61,6 +61,28 @@ const getAccount = defineTool({
   },
 });
 
+/**
+ * Ledger rows written before refunds stopped storing the failure message end "Released reservation
+ * <id>: <raw error text>". Only the server-written shapes pass, cut before the first ": ", so no
+ * error text, old or new, reaches the agent. Anything else is returned as null: the type says what it was.
+ */
+const SAFE_LEDGER_DESCRIPTIONS = [
+  /^Released reservation \S+$/,
+  /^Partial refund on reservation \S+$/,
+  /^Credit reservation for \w+$/,
+  /^\w+ credit (deduction|addition)$/,
+  /^Initial free plan credits$/,
+  /^Upgraded to [\w .-]+ plan$/,
+  /^Purchased \d+ add-on pack \(\d+(\.\d+)? credits\)$/,
+  /^Stripe (subscription|add-on) refund$/,
+];
+
+function safeLedgerDescription(description: string | null): string | null {
+  if (!description) return null;
+  const head = description.split(': ')[0];
+  return SAFE_LEDGER_DESCRIPTIONS.some((pattern) => pattern.test(head)) ? head : null;
+}
+
 const getCreditHistory = defineTool({
   name: 'get_credit_history',
   title: 'Get credit history',
@@ -84,7 +106,7 @@ const getCreditHistory = defineTool({
       transactions: transactions.map((t) => ({
         amount: t.amount,
         type: t.transaction_type,
-        description: t.description ? t.description.slice(0, 200) : null,
+        description: safeLedgerDescription(t.description ?? null),
         balanceAfter: t.balance_after,
         createdAt: t.created_at,
       })),

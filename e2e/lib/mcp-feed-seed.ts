@@ -124,3 +124,39 @@ export function feedRuns(userId: string): Array<{ id: string; status: string; tr
 export function feedFeedbackRows(userId: string): Array<Record<string, unknown>> {
   return withDb((db) => db.prepare('SELECT canonical_job_id, application_session_id, generation_status, generation_error, saved_at, dismissed_at FROM job_feed_feedback WHERE user_id = ?').all(userId) as Array<Record<string, unknown>>);
 }
+
+/** A career profile the way the synthesis stores it, with a pivot and skill clusters, so get_career_profile maps every field of a real one. */
+export function seedCareerProfile(userId: string): void {
+  const now = new Date().toISOString();
+  const profile = {
+    version: 2,
+    generatedAt: now,
+    function: 'finance',
+    inferredTitles: [
+      { canonical: 'Senior FP&A Analyst', confidence: 'high', rationale: 'Five years of forecasting.' },
+      { canonical: 'Financial Controller', confidence: 'medium', rationale: 'Month-end close ownership.' },
+    ],
+    seniority: { level: 'senior', confidence: 'high', rationale: 'Leads the forecast cycle.' },
+    targetDirection: {
+      aspirationalTitles: ['Head of Planning'],
+      pivot: { from: 'analyst', to: 'finance manager' },
+      confidence: 'medium',
+      rationale: 'Recent roles add team leadership.',
+    },
+    yearsTotal: 5,
+    yearsInFunction: 5,
+    primarySkillClusters: [{ name: 'planning and forecasting', skills: ['Forecasting', 'Budgeting'], evidenceStrength: 'strong' }],
+    secondarySkillClusters: [{ name: 'reporting tools', skills: ['Excel', 'Anaplan'], evidenceStrength: 'moderate' }],
+    industryDomains: ['consumer goods'],
+    toolsEnvironment: ['Excel', 'Anaplan'],
+    workingLanguages: ['English'],
+    narrative: 'A senior analyst moving toward planning leadership.',
+    negativeSignals: ['sales'],
+  };
+  withDb((db) => {
+    db.prepare(`
+      INSERT OR REPLACE INTO user_career_profiles (user_id, profile, version, source_document_id, source_document_updated_at, model_provider, model_name, created_at, updated_at)
+      VALUES (?, ?, 2, NULL, NULL, 'e2e', 'seed', ?, ?)
+    `).run(userId, JSON.stringify(profile), now, now);
+  });
+}

@@ -334,7 +334,8 @@ test.describe.serial('tool tour: every read and free write tool once', () => {
     const kept = await agent.ok<{ phone: string | null; location: string | null }>('update_profile', { location: null });
     expect(kept.location, 'null clears').toBeNull();
     expect(kept.phone, 'a field left out keeps its value').toBe('+49 30 1234567');
-    expect(await agent.fails('update_profile', { githubUrl: 'javascript:alert(1)' })).toBeTruthy();
+    expect(await agent.fails('update_profile', { githubUrl: 'javascript:alert(1)' })).toMatch(/Not a web address/);
+    expect(profileRow(userId).github_url, 'the refused link was not saved').toBeNull();
 
     const notifications = await agent.ok<{ marketing: boolean; creditsLow: boolean }>('update_notification_settings', { marketing: false, creditsLow: true });
     expect(notifications).toMatchObject({ marketing: false, creditsLow: true });

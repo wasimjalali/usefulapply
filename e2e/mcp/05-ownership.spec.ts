@@ -8,7 +8,7 @@ import type { TestUser } from '../lib/user';
  * PLAN section 7: another user's ids on every id-taking tool. User B holds a valid token and tries user A's
  * application and operation ids on every tool that takes one. Each must read as "not found", in exactly the
  * words an id that never existed gets (no way to tell the two apart), change nothing for A, and cost B nothing.
- * The feed tools take a job id, which is not owned by anyone: they are in 08-feed.spec.ts.
+ * The feed tools take a job id, which is not owned by anyone: they are in 10-feed.spec.ts.
  */
 
 const NOT_FOUND = /not found|may have been deleted|belongs to another account/i;

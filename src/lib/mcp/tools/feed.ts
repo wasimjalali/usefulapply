@@ -96,7 +96,15 @@ function wrapOrNull(value: string | null | undefined, cap?: number): string | nu
   return value ? wrapLong(value, cap) : null;
 }
 
-function toFeedItemView(item: JobFeedFeedItem, detail: 'concise' | 'full'): z.infer<typeof feedItemSchema> {
+/** The most description text one get_job_feed call returns in total, split evenly across its jobs, so a page stays well under about 100 KB. */
+const DESCRIPTION_BUDGET = 40_000;
+const MAX_DESCRIPTION = 12_000;
+
+function descriptionCapFor(jobCount: number): number {
+  return Math.min(MAX_DESCRIPTION, Math.floor(DESCRIPTION_BUDGET / Math.max(jobCount, 1)));
+}
+
+function toFeedItemView(item: JobFeedFeedItem, detail: 'concise' | 'full', descriptionCap: number): z.infer<typeof feedItemSchema> {
   const view: z.infer<typeof feedItemSchema> = {
     jobId: item.id,
     title: wrapShort(item.title),
@@ -117,7 +125,7 @@ function toFeedItemView(item: JobFeedFeedItem, detail: 'concise' | 'full'): z.in
     generationStatus: item.feedback.generationStatus,
   };
   if (detail === 'full') {
-    view.description = wrapOrNull(item.description);
+    view.description = wrapOrNull(item.description, descriptionCap);
     view.highlights = item.highlights.map((highlight) => ({
       title: wrapShort(highlight.title),
       items: highlight.items.map((entry) => wrapShort(entry)),
@@ -137,7 +145,7 @@ const getJobFeed = defineTool({
     view: z.enum(['inbox', 'saved']).describe('inbox is the ranked feed of the last 7 days. saved is the bookmarked jobs, newest first.'),
     offset: z.number().int().min(0).max(10_000).optional().describe('Jobs to skip. Defaults to 0.'),
     limit: z.number().int().min(1).max(50).optional().describe('Jobs to return, 1 to 50. Defaults to 10.'),
-    detail: z.enum(['concise', 'full']).optional().describe('concise (the default) leaves out the job description. full adds the description, highlights and apply links.'),
+    detail: z.enum(['concise', 'full']).optional().describe('concise (the default) leaves out the job description. full adds the description, highlights and apply links; the descriptions of one call share about 40,000 characters, so a long page gets shorter descriptions.'),
   }),
   output: z.object({
     view: z.enum(['inbox', 'saved']),
@@ -154,7 +162,7 @@ const getJobFeed = defineTool({
         const page = await loadInboxPage(userId, offset, limit);
         return ok({
           view,
-          items: page.items.map((item) => toFeedItemView(item, detail)),
+          items: page.items.map((item) => toFeedItemView(item, detail, descriptionCapFor(page.items.length))),
           totalCount: page.totalCount,
           hasMore: page.hasMore,
           offset: page.offset,
@@ -166,7 +174,7 @@ const getJobFeed = defineTool({
       const items = saved.slice(offset, offset + limit);
       return ok({
         view,
-        items: items.map((item) => toFeedItemView(item, detail)),
+        items: items.map((item) => toFeedItemView(item, detail, descriptionCapFor(items.length))),
         totalCount: saved.length,
         hasMore: offset + items.length < saved.length,
         offset,
@@ -271,8 +279,8 @@ const updateFeedSettings = defineTool({
   }),
   async confirm(args, { userId }) {
     return feedCall(async () => {
-      const { settings } = await loadFeedSettings(userId);
-      const changed = changedFeedSettingFields(settings, toPatch(args));
+      const { settings, searchLimit } = await loadFeedSettings(userId);
+      const changed = changedFeedSettingFields(settings, toPatch(args), searchLimit);
       if (changed.length === 0) return null;
       return `Change the job feed settings (${changed.join(', ')})? The new values replace the saved ones.`;
     });
@@ -282,8 +290,8 @@ const updateFeedSettings = defineTool({
     if (Object.keys(patch).length === 0) throw new ToolError('invalid_input', 'Send at least one setting to change.');
     return feedCall(async () => {
       await withinRateLimit(`job-feed-settings:${userId}`, RATE_LIMITS['job-feed-settings']);
-      const { settings: before } = await loadFeedSettings(userId);
-      const changed = changedFeedSettingFields(before, patch);
+      const { settings: before, searchLimit } = await loadFeedSettings(userId);
+      const changed = changedFeedSettingFields(before, patch, searchLimit);
       if (before && changed.length === 0) {
         return ok({ changed, settings: toSettingsView(before), searches: null, searchLimit: null });
       }
@@ -473,7 +481,7 @@ const giveJobFeedback = defineTool({
   title: 'Give job feedback',
   description:
     'Saves, unsaves, dismisses or rates one job from the feed. Dismissing a job or rating it not relevant removes it from the feed and cannot be undone.',
-  hints: { readOnly: false, destructive: false, idempotent: true, openWorld: false },
+  hints: { readOnly: false, destructive: true, idempotent: true, openWorld: false },
   input: z.object({
     jobId: z.string().min(1).max(100).describe('A jobId from get_job_feed.'),
     action: z.enum(['save', 'unsave', 'dismiss', 'rate_helpful', 'rate_not_relevant'])
@@ -487,6 +495,12 @@ const giveJobFeedback = defineTool({
     matchRating: z.enum(['helpful', 'not_relevant']).nullable(),
     applicationId: z.string().nullable(),
   }),
+  // Only the two verbs that end a job ask: a save, an unsave or a helpful rating is easy to take back or harmless.
+  confirm({ action }) {
+    if (action === 'dismiss') return 'Dismiss this job? It leaves your feed and cannot be brought back.';
+    if (action === 'rate_not_relevant') return 'Mark this job as not relevant? It leaves your feed and cannot be brought back.';
+    return null;
+  },
   async run({ jobId, action }, { userId }) {
     return feedCall(async () => {
       await withinRateLimit(`job-feed-feedback:${userId}`, RATE_LIMITS['job-feed-feedback']);
