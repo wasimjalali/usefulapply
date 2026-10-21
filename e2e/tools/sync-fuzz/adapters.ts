@@ -92,7 +92,7 @@ export interface Adapter {
   /** The snapshot an editor start holds (column -> server fingerprint), for the checks; undefined for engines without one. */
   startFields(start: unknown): Record<string, string> | undefined;
   /** A buffer entry this tab has raised a notice about, by id: its group, columns, user tokens and the fingerprint of each changed property. */
-  entryInfo(id: string): { group: string; columns: string[]; tokens: string[]; changed: Record<string, string> } | undefined;
+  entryInfo(id: string): { group: string; columns: string[]; tokens: string[]; baseTokens: string[]; changed: Record<string, string> } | undefined;
   /** What the CV panel does when the answer to a save comes back after it closed its editor on Save. */
   afterClosedEditorSave(outcome: string, epochAtSave: number, epochNow: number, start: unknown): { reopen: false } | { reopen: true; start: unknown };
   rejectedColumns(app: string): string[];
@@ -370,7 +370,10 @@ export function newClient(
       if (!entry) return undefined;
       const changed: Record<string, string> = {};
       for (const prop of entry.changed ?? []) changed[prop] = JSON.stringify((entry.props as Record<string, unknown>)[prop] ?? null);
-      return { group: entry.key, columns: entry.columns, tokens: tokensIn(JSON.stringify(userText(entry))), changed };
+      // What the store showed instead, for the same properties: a token in both is not thrown away by a Discard.
+      const shown: Record<string, unknown> = {};
+      for (const prop of entry.changed ?? []) shown[prop] = (entry.base as Record<string, unknown> | undefined)?.[prop];
+      return { group: entry.key, columns: entry.columns, tokens: tokensIn(JSON.stringify(userText(entry))), baseTokens: tokensIn(JSON.stringify(shown)), changed };
     },
     afterClosedEditorSave: (outcome, epochAtSave, epochNow, start) => (current
       ? engineModule.afterClosedEditorSave(outcome as EditorOutcome, epochAtSave, epochNow, start as never)

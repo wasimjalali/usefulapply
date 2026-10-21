@@ -38,11 +38,16 @@
 #   r3-store-draft           a draft the store already holds (a Restore whose save failed) still counts as stale, so
 #                            its conflict entry holds no text and acknowledging it rebases the editor
 #
-# The review round 3 findings of PR #159 (ONLY_R3X=1; "before" is a mutation of mutations.py):
+# The review round 3 findings of PR #159 (ONLY_R3X=1; "before" is a mutation of mutations.py). These runs keep the
+# deterministic cases on, because random seeds do not reach the bug (it takes seven steps in one order: 0 of 2000
+# seeds, and 0 of 20000 at 90 operations, on the mutated engine). A failing case counts like a failing seed:
 #
 #   r3x-discard-lineage      a partial Discard leaves the discarded document's columns in the editor's lineage, so a
 #                            later save of the other document rebases them and a stale copy saves over a newer server
-#                            version (the round 3 high)
+#                            version (the round 3 high; case r3-x)
+#   r3y-discard-snapshot     a partial Discard leaves the discarded document's snapshot on the version before the
+#                            conflict, so editing the copy the panel shows is a false conflict (the arbiter's extra low;
+#                            case r3-y)
 #
 # Exact commands for one "before" run, from the repo root (this is what the function below runs):
 #
@@ -71,7 +76,8 @@ fresh() {
 }
 
 # $1 label, $2 the run's .txt, $3 its exit code, $4 what the run must show: "fails" (a before run: at least one
-# failing seed) or "passes" (an after run: none). 0 and 1 are the fuzz's own answers; anything else is a crash.
+# failing seed or failing case) or "passes" (an after run: neither). 0 and 1 are the fuzz's own answers; anything
+# else is a crash.
 report() {
   summary=$(grep '^failing seeds' "$2" | cut -c1-120 || true)
   if [ -z "$summary" ] || [ "$3" -gt 1 ]; then
@@ -81,14 +87,16 @@ report() {
     return
   fi
   failing=$(echo "$summary" | awk '{print $3}')
-  if [ "$4" = "fails" ] && [ "$failing" = "0" ]; then
+  cases=$(grep -c '^FAIL ' "$2" || true)
+  line="$summary; failing cases: $cases"
+  if [ "$4" = "fails" ] && [ "$failing" = "0" ] && [ "$cases" = "0" ]; then
     WRONG=1
-    echo "$1: NOT CAUGHT, $summary"
-  elif [ "$4" = "passes" ] && [ "$failing" != "0" ]; then
+    echo "$1: NOT CAUGHT, $line"
+  elif [ "$4" = "passes" ] && { [ "$failing" != "0" ] || [ "$cases" != "0" ]; }; then
     WRONG=1
-    echo "$1: STILL FAILING, $summary"
+    echo "$1: STILL FAILING, $line"
   else
-    echo "$1: $summary"
+    echo "$1: $line"
   fi
 }
 
@@ -107,24 +115,27 @@ run() {
   report "$bug on $engine" "$OUT/$bug-$engine.txt" "$status" "$expect"
 }
 
-# The current engine with one mutation applied (before), then unmodified (after).
+# The current engine with one mutation applied (before), then unmodified (after). A fourth argument "cases" keeps
+# the deterministic cases on.
 run_mutation() {
   bug="$1"; mutation="$2"; only="$3"
+  if [ "$4" = "cases" ]; then cases_flag=""; else cases_flag="--no-cases"; fi
   fresh "$OUT/$bug-before"
   fresh "$OUT/$bug-after"
   status=0
   python3 e2e/tools/sync-fuzz/mutations.py --apply "$mutation" -- \
-    $FUZZ --engine new --no-cases --seeds "$SEEDS" --only "$only" --out "$OUT/$bug-before.json" > "$OUT/$bug-before.txt" 2>&1 || status=$?
+    $FUZZ --engine new $cases_flag --seeds "$SEEDS" --only "$only" --out "$OUT/$bug-before.json" > "$OUT/$bug-before.txt" 2>&1 || status=$?
   report "$bug before ($mutation)" "$OUT/$bug-before.txt" "$status" fails
   status=0
-  $FUZZ --engine new --no-cases --seeds "$SEEDS" --only "$only" --out "$OUT/$bug-after.json" > "$OUT/$bug-after.txt" 2>&1 || status=$?
+  $FUZZ --engine new $cases_flag --seeds "$SEEDS" --only "$only" --out "$OUT/$bug-after.json" > "$OUT/$bug-after.txt" 2>&1 || status=$?
   report "$bug after" "$OUT/$bug-after.txt" "$status" passes
 }
 
 EDITORS="$BASE,editorOpen,type,editorSave"
 
 if [ "$ONLY_R3X" = "1" ]; then
-  run_mutation r3x-discard-lineage M-r3x-discard-lineage "$EDITORS,dismiss"
+  run_mutation r3x-discard-lineage M-r3x-discard-lineage "$EDITORS,dismiss" cases
+  run_mutation r3y-discard-snapshot M-r3y-discard-snapshot "$EDITORS,dismiss" cases
   finish
 fi
 

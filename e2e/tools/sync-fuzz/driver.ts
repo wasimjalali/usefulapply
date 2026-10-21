@@ -136,6 +136,8 @@ interface Editor {
   closesOnSave: boolean;
   /** Counts the discards of this editor's text, as the panels do: a save started before one must not reopen the draft. */
   epoch: number;
+  /** The CV panel: a Discard reset it while its save ran. It is closed, has let go of its draft and acts on nothing more. */
+  released?: boolean;
   /** I6: per column#part, the server values this editor may write over: shown at open, shown by a notice it produced and acknowledged, or its own draft. */
   allowed: Map<string, Set<string>>;
   /** I6: per store property, the fingerprint of every value this editor's Save put into the store (to tell which entries it produced). */
@@ -562,11 +564,16 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
             if (actions[index] !== 'ignore' && !ofField.some(({ info }) => produced(editor, info))) {
               violate('I6', `${client.id}'s ${editor.label} editor on ${app} was ${actions[index] === 'reset' ? 'reset' : 'rebased'} for ${field} by an acknowledgement of an entry it did not produce`);
             }
-            // Discard throws away the text this editor holds now: the editor must let go of it. An older draft of the
-            // same editor that it has since typed over is not its text any more (seeds 15239, 17252, 21527 at 90 operations).
+            // Discard throws away the text this editor holds now, in an entry this editor produced: the editor must let
+            // go of it. Not counted: an older draft it has since typed over (seeds 15239, 21527 at 90 operations), a token
+            // the entry shares with what the store shows instead (seed 2158, restricted operations), an entry another edit
+            // produced that carries a stale copy of the editor's accepted draft embedded in generatedCV (seed 17252 at 90
+            // operations), and a CV editor a Discard already released while its save ran (seed 1417, restricted operations).
             const current = editor.drafts[field];
-            if (ack.discarded && actions[index] !== 'reset' && current !== undefined && ofField.some(({ info }) => info?.tokens.includes(current))) {
-              violate('I6', `${client.id}'s ${editor.label} editor on ${app} kept ${field} text the user discarded`);
+            if (ack.discarded && actions[index] !== 'reset' && current !== undefined && !editor.released
+              && ofField.some(({ info }) => info !== undefined && produced(editor, info)
+                && info.tokens.includes(current) && !info.baseTokens.includes(current))) {
+              violate('I6', `${client.id}'s ${editor.label} editor on ${app} kept ${field} text the user discarded (${current}; entries ${JSON.stringify(ofField.map(({ entry, info }) => [entry.id, info?.tokens, entry.editors.length]))})`);
             }
           });
         }
@@ -620,6 +627,7 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         if (editor.committing && editor.closesOnSave) {
           // The CV panel's save is still running: its editor is closed, its start is cleared, and the answer decides nothing.
           editor.start = undefined;
+          editor.released = true;
         } else {
           dropEditor(editor);
         }
@@ -742,6 +750,7 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         if (editor.hadStart && editor.start === undefined) violate('I1', `${client.id}'s ${editor.label} editor on ${app} saved ${sentTokens.join(' ')} with no EditorStart, so the save is not checked against what the server holds now`);
         const work = client.editorCommit(app, editor.start, () => {
           const before = client.fingerprints(app) ?? {};
+          const sessionBefore = client.session(app);
           const appliedFields: Field[] = [];
           for (const field of editor.fields) {
             const token = sent[field];
@@ -757,8 +766,11 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
           const after = client.fingerprints(app) ?? {};
           for (const field of appliedFields) {
             for (const prop of EDITOR_PROPS[field] ?? []) {
+              // Only what the draft changed, as the engine records it: a property it leaves as the store had it is not its text (seed 17252).
+              const value = JSON.stringify(session?.[prop] ?? null);
+              if (value === JSON.stringify(sessionBefore?.[prop] ?? null)) continue;
               if (!editor.appliedProps.has(prop)) editor.appliedProps.set(prop, new Set());
-              editor.appliedProps.get(prop)!.add(JSON.stringify(session?.[prop] ?? null));
+              editor.appliedProps.get(prop)!.add(value);
             }
           }
           const changedPart = (key: string, value: string) => {
