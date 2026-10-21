@@ -10,7 +10,8 @@
  *   # paid: kits plus at most 60 section rewrites on the production request shape
  *   npx tsx evals/rewrite-claim-guard.ts generate --allow-anthropic-api --out <dir> [--cases syn-01,...] [--max N]
  *   # free: scores both guards on the stored rewrites, plus the injected misses
- *   npx tsx evals/rewrite-claim-guard.ts score --in <dir>
+ *   npx tsx evals/rewrite-claim-guard.ts score --in <dir> [--scores scores-round2.json] [--guard <unified-writer-agent.ts>]
+ *   (--guard scores another build of the guard as "current", e.g. an older commit checked out elsewhere)
  *
  * generate: for six constructed CVs (4 EN, 2 DE, evals/dataset/cvs), the real
  * analysis calls and generateOptimizedCVData() write a tailored CV against a
@@ -24,7 +25,10 @@
  * ordinary, see Label), so a refusal counts as false only when every term it
  * names is ordinary. Then every rewrite gets one fabricated claim of each of nine
  * kinds injected, and a miss is an injection whose claim words the guard
- * does not flag.
+ * does not flag. Round 2 adds the held-out set (rewrite-claim-guard/heldout.ts):
+ * every held-out item in every rewrite of its language and in synthetic list
+ * sections built from the kits' skills and languages, plus a per-brand check
+ * of lowercase product names (the residual).
  *
  * Credentials: loads .env.local / .dev.vars from the cwd or the main checkout (never printed).
  */
@@ -294,8 +298,12 @@ async function generate(): Promise<void> {
 
 interface Injection {
   kind: string;
-  /** Inserted before the first sentence's end ('insert') or replacing its first word ('lead'). */
-  mode: 'insert' | 'lead';
+  /**
+   * insert: before the first sentence's end. lead: replaces its first word.
+   * prefix: a new first sentence or bullet. newline: a new last line or item.
+   * prepend: a word put before the first word.
+   */
+  mode: 'insert' | 'lead' | 'prefix' | 'newline' | 'prepend';
   text: string;
   /** The words that carry the fabricated claim; the guard must flag one. */
   claim: string[];
@@ -346,7 +354,10 @@ const INJECTIONS: Record<'en' | 'de', Record<string, Injection[]>> = {
 
 /** Put the injection into the first sentence (string) or the first bullet (list). */
 function inject(content: string | string[], injection: Injection): string | string[] {
+  if (injection.mode === 'prefix') return Array.isArray(content) ? [injection.text, ...content] : `${injection.text} ${content}`;
+  if (injection.mode === 'newline') return Array.isArray(content) ? [...content, injection.text] : `${content}\n${injection.text}`;
   const apply = (text: string): string => {
+    if (injection.mode === 'prepend') return `${injection.text} ${text.trimStart()}`;
     if (injection.mode === 'lead') return text.replace(/^\s*[\p{L}][\p{L}-]*/u, injection.text);
     const end = text.search(/[.!?](\s|$)/u);
     return end < 0 ? `${text}${injection.text}` : `${text.slice(0, end)}${injection.text}${text.slice(end)}`;
@@ -367,9 +378,12 @@ async function score(): Promise<void> {
   if (!dir) throw new Error('--in <dir> is required');
   const IN = path.resolve(ROOT, dir);
   installHooks('production', shim);
-  const { introducedClaims, unsupportedNumbers } = await import('../src/lib/agents/unified-writer-agent');
+  const guardModule = arg('guard') ? path.resolve(process.cwd(), arg('guard')!) : '../src/lib/agents/unified-writer-agent';
+  const { introducedClaims, unsupportedNumbers } = (await import(guardModule)) as typeof import('../src/lib/agents/unified-writer-agent');
   const { baselineIntroducedClaims } = await import('./rewrite-claim-guard/baseline-guard');
   const { claimWords } = await import('../src/lib/agents/claim-token-normalization');
+  const { HELD_OUT, LOWERCASE_BRANDS } = await import('./rewrite-claim-guard/heldout');
+  const scoresName = arg('scores') ?? 'scores.json';
 
   const kits = new Map((JSON.parse(fs.readFileSync(path.join(IN, 'kits.json'), 'utf8')) as KitRecord[]).map((k) => [k.case_id, k]));
   const rewrites = fs.readFileSync(path.join(IN, 'rewrites.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l) as RewriteRecord);
@@ -398,7 +412,7 @@ async function score(): Promise<void> {
       return 'false_refusal';
     };
     const baseline = unchanged ? [] : baselineIntroducedClaims(after, sourceText, before);
-    const current = unchanged ? [] : introducedClaims(after, sourceText, before, r.language);
+    const current = unchanged ? [] : introducedClaims(after, sourceText, before, r.language, r.section.kind);
     for (const t of [...baseline, ...current]) {
       const key = `${r.language}:${t}`;
       if (!labels[key]) unlabelled.set(key, [...(unlabelled.get(key) ?? []), r.id]);
@@ -436,13 +450,74 @@ async function score(): Promise<void> {
       // (every claim word left is one no CV or section form backs)
       const caught = (terms: string[]) => terms.some((t) => claimWordsInjected.has(t));
       const baseline = baselineIntroducedClaims(after, sourceText, before);
-      const current = introducedClaims(after, sourceText, before, r.language);
+      const current = introducedClaims(after, sourceText, before, r.language, r.section.kind);
       injected.push({
         id: r.id, split: index % 2 === 0 ? 'dev' : 'holdout', language: r.language, kind, injection: chosen.text,
         baseline_caught: caught(baseline), current_caught: caught(current), current_terms: current,
       });
     }
   }
+
+  // Held out: every item into every section of its language, the stored
+  // rewrites plus synthetic list sections (skills and languages) from the kits.
+  const sections: Array<{ id: string; language: 'en' | 'de'; kind: ResolvedCVSection['kind']; before: string | string[]; content: string | string[]; sourceText: string }> = [];
+  for (const r of rewrites) {
+    if (r.content === null) continue;
+    const kit = kits.get(r.case_id)!;
+    const sourceText = `${kit.verifiedMetrics.join('\n')}\n${[kit.rawCV, kit.masterCV].filter(Boolean).join('\n')}`;
+    sections.push({ id: r.id, language: r.language, kind: r.section.kind, before: r.section.before, content: r.content, sourceText });
+  }
+  for (const kit of kits.values()) {
+    const cv = kit.optimizedCVData as unknown as { skills?: Array<{ category: string; items: string[] }>; languages?: Array<{ language: string; proficiency?: string }> } | null;
+    const sourceText = `${kit.verifiedMetrics.join('\n')}\n${[kit.rawCV, kit.masterCV].filter(Boolean).join('\n')}`;
+    const lists = [
+      ...(cv?.skills ?? []).map((group, i) => ({ id: `${kit.case_id}-skills${i}`, items: group.items })),
+      { id: `${kit.case_id}-languages`, items: (cv?.languages ?? []).map((l) => (l.proficiency ? `${l.language} (${l.proficiency})` : l.language)) },
+    ];
+    for (const list of lists) {
+      if (list.items.length === 0) continue;
+      sections.push({ id: list.id, language: kit.language, kind: 'custom_section_items', before: list.items, content: list.items, sourceText });
+    }
+  }
+  const heldOut = [];
+  for (const section of sections) {
+    const known = new Set([...claimWords(section.sourceText), ...claimWords(text(section.before))]);
+    for (const item of HELD_OUT[section.language]) {
+      // Skip an item the CV or the section already backs: that's no fabrication.
+      if (item.claim.some((w) => known.has(w))) continue;
+      const after = text(inject(section.content, item));
+      const caught = (terms: string[]) => terms.some((t) => item.claim.includes(t));
+      const baseline = baselineIntroducedClaims(after, section.sourceText, text(section.before));
+      const current = introducedClaims(after, section.sourceText, text(section.before), section.language, section.kind);
+      heldOut.push({
+        id: section.id, language: section.language, section_kind: section.kind, kind: item.kind, injection: item.text,
+        baseline_caught: caught(baseline), current_caught: caught(current), current_terms: current,
+      });
+    }
+  }
+  const heldOutTable: Record<string, { injected: number; baseline_missed: number; current_missed: number; new_misses: number }> = {};
+  for (const h of heldOut) {
+    for (const key of ['all', h.language, `kind:${h.kind}`, `${h.language}:${h.kind}`, `section:${h.section_kind}`]) {
+      const t = (heldOutTable[key] ??= { injected: 0, baseline_missed: 0, current_missed: 0, new_misses: 0 });
+      t.injected += 1;
+      if (!h.baseline_caught) t.baseline_missed += 1;
+      if (!h.current_caught) t.current_missed += 1;
+      if (h.baseline_caught && !h.current_caught) t.new_misses += 1;
+    }
+  }
+  const newHeldOutMisses = heldOut.filter((h) => h.baseline_caught && !h.current_caught);
+
+  // The residual: each lowercase brand name, mid-sentence, in one English sentence.
+  const brandCheck = (brand: string) => {
+    const before = 'Built agents for clients.';
+    const after = `Built agents for clients using ${brand}.`;
+    return {
+      brand,
+      baseline_caught: baselineIntroducedClaims(after, 'Built agents for clients.', before).includes(brand),
+      current_caught: introducedClaims(after, 'Built agents for clients.', before, 'en', 'summary').includes(brand),
+    };
+  };
+  const brands = [...new Set(LOWERCASE_BRANDS)].map(brandCheck);
 
   // Tables.
   type Row = (typeof perRewrite)[number];
@@ -487,10 +562,24 @@ async function score(): Promise<void> {
     misses: missTable,
     flagged_terms: { baseline: flaggedTerms('baseline'), current: flaggedTerms('current') },
     missed_injections: injected.filter((i) => !i.current_caught),
+    new_missed_injections: injected.filter((i) => i.baseline_caught && !i.current_caught),
+    held_out: heldOutTable,
+    new_held_out_misses: newHeldOutMisses,
+    held_out_misses: heldOut.filter((h) => !h.current_caught),
+    lowercase_brands: {
+      checked: brands.length,
+      baseline_missed: brands.filter((b) => !b.baseline_caught).map((b) => b.brand),
+      current_missed: brands.filter((b) => !b.current_caught).map((b) => b.brand),
+      new_misses: brands.filter((b) => b.baseline_caught && !b.current_caught).map((b) => b.brand),
+    },
     unlabelled: Object.fromEntries(unlabelled),
   };
-  fs.writeFileSync(path.join(IN, 'scores.json'), JSON.stringify({ summary, per_rewrite: perRewrite, injected }, null, 2));
-  console.log(JSON.stringify({ refusals: refusals.all, en: refusals.en, de: refusals.de, misses: missTable.all, unlabelled: unlabelled.size }, null, 2));
+  fs.writeFileSync(path.join(IN, scoresName), JSON.stringify({ summary, per_rewrite: perRewrite, injected, held_out: heldOut }, null, 2));
+  console.log(JSON.stringify({
+    refusals: refusals.all, en: refusals.en, de: refusals.de, misses: missTable.all,
+    new_misses: summary.new_missed_injections.length, held_out: heldOutTable.all,
+    lowercase_brands: { checked: brands.length, new_misses: summary.lowercase_brands.new_misses }, unlabelled: unlabelled.size,
+  }, null, 2));
   if (unlabelled.size > 0) console.log(`unlabelled terms: ${[...unlabelled.keys()].join(' ')}`);
 }
 

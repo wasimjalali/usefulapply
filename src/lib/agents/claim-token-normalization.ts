@@ -35,36 +35,84 @@ function foldUmlauts(lower: string): string {
 }
 
 /**
+ * Dotted abbreviations become one word: "B.S." -> "BS", "Ph.D." -> "PhD",
+ * "M.B.A." -> "MBA". Split at the dots they were one-letter tokens, which the
+ * guard's two-character floor drops, so "Hold a B.S." claimed a degree with
+ * nothing left to check. The final dot stays: it may end the sentence.
+ * Lowercase ones ("e.g.", "i.e.", "z.B.") are left alone.
+ */
+function joinDottedAbbreviations(text: string): string {
+  return text.replace(
+    /(?<![\p{L}\p{N}.])\p{Lu}\p{Ll}{0,2}(?:\.\p{Lu}\p{Ll}{0,2})+(?![\p{L}\p{N}])/gu,
+    (match) => match.replace(/\./g, ''),
+  );
+}
+
+/** Text as the guard reads it, before case folding. */
+function normalized(text: string): string {
+  return joinDottedAbbreviations(text.normalize('NFKC')).replace(/['’]/g, '');
+}
+
+/**
  * Lowercased word tokens. Unicode compatibility normalization makes visually
  * equivalent parenthesized and full-width forms compare the same, while the
  * word matcher naturally ignores the parentheses themselves.
  */
 export function claimWords(text: string): string[] {
-  let lower = foldUmlauts(text.normalize('NFKC').toLowerCase()).replace(/['’]/g, '');
+  let lower = foldUmlauts(normalized(text).toLowerCase());
   for (const [pattern, name] of SYMBOL_NAMES) lower = lower.replace(pattern, name);
   return lower.match(/[\p{L}\p{N}]+/gu) || [];
 }
 
+/** How capitals at the start of a sentence, line or item read. */
+export type CapitalMode = 'prose' | 'items' | 'instruction';
+
+export interface CapitalisedWords {
+  /** Written as a name: capitalised mid-sentence, an acronym, or (items) any capital. */
+  names: Set<string>;
+  /** Acronyms ("AWS", "IT", "BS"): names even where the word is also a function word. */
+  acronyms: Set<string>;
+  /** Capitalised only at the start of a sentence, line or bullet, where a capital says nothing. */
+  initial: Set<string>;
+}
+
 /**
- * Words the text writes as names: capitalised in the middle of a sentence
- * ("built on React", "joined Linear"), or written as an acronym anywhere
- * ("AWS", "PMP"). Keys match claimWords(). A sentence-initial capital says
- * nothing, so the first word of every sentence, line and bullet is skipped
- * unless it is an acronym. In German every noun is capitalised, and nouns are
- * claims already, so this never frees a German word either.
+ * Which words the text writes as names. Keys match claimWords().
+ *
+ * - Mid-sentence capitals ("built on React", "joined Linear") and acronyms
+ *   ("AWS", "PMP") are names.
+ * - A capital at the start of a sentence, line or bullet is ambiguous: the
+ *   word goes to `initial`, and the guard decides (a function word or an
+ *   inflected verb form may open a sentence; "Convex", "Make" or "Google" may
+ *   not). Leading list numbers ("1)") don't count as the first word.
+ * - `items`: list items such as skills, tools and languages are names by
+ *   nature, so every capital counts as a name, at the start of an item too.
+ * - `instruction`: a request typed in chat opens with an imperative ("Make it
+ *   shorter"), so its segment-initial capitals are ignored.
+ *
+ * German capitalises every noun; the guard reads German capitals separately.
  */
-export function claimCapitalisedWords(text: string): Set<string> {
-  let cased = text.normalize('NFKC').replace(/['’]/g, '');
+export function claimCapitalisedWords(text: string, mode: CapitalMode = 'prose'): CapitalisedWords {
+  let cased = normalized(text);
   for (const [pattern, name] of SYMBOL_NAMES) cased = cased.replace(new RegExp(pattern.source, 'gi'), name);
-  const names = new Set<string>();
+  const out: CapitalisedWords = { names: new Set(), acronyms: new Set(), initial: new Set() };
   for (const segment of cased.split(/[\n\r•·|;:.!?]+/u)) {
     const tokens = segment.match(/[\p{L}\p{N}]+/gu) || [];
-    tokens.forEach((token, i) => {
-      const acronym = /^\p{Lu}[\p{Lu}\p{N}]+$/u.test(token);
-      if (acronym || (i > 0 && /^\p{Lu}/u.test(token))) names.add(foldUmlauts(token.toLowerCase()));
+    let first = 0;
+    while (first < tokens.length && /^\p{N}+$/u.test(tokens[first])) first += 1;
+    tokens.slice(first).forEach((token, i) => {
+      const word = foldUmlauts(token.toLowerCase());
+      if (/^\p{Lu}[\p{Lu}\p{N}]+$/u.test(token)) {
+        out.acronyms.add(word);
+        out.names.add(word);
+        return;
+      }
+      if (!/^\p{Lu}/u.test(token)) return;
+      if (i > 0 || mode === 'items') out.names.add(word);
+      else if (mode === 'prose') out.initial.add(word);
     });
   }
-  return names;
+  return out;
 }
 
 const GERMAN_ADJECTIVE_ENDINGS = ['em', 'en', 'er', 'es', 'e'];
@@ -86,7 +134,7 @@ const GERMAN_NOUN_ENDINGS = ['en', 'es', 'e', 'n', 's'];
 export function claimGermanBases(text: string): { lower: Map<string, string>; capital: Map<string, string> } {
   const lower = new Map<string, string>();
   const capital = new Map<string, string>();
-  const cased = text.normalize('NFKC').replace(/['’]/g, '');
+  const cased = normalized(text);
   for (const segment of cased.split(/[\n\r•·|;:.!?]+/u)) {
     const tokens = segment.match(/[\p{L}\p{N}]+/gu) || [];
     tokens.forEach((token, i) => {
@@ -116,7 +164,7 @@ function germanBase(word: string, endings: string[]): string {
  */
 export function claimAcronymPluralAliases(text: string): Map<string, string> {
   const aliases = new Map<string, string>();
-  const rawWords = text.normalize('NFKC').replace(/['’]/g, '').match(/[\p{L}\p{N}]+/gu) || [];
+  const rawWords = normalized(text).match(/[\p{L}\p{N}]+/gu) || [];
   for (const rawWord of rawWords) {
     const match = rawWord.match(/^([A-Z]{2,8})s$/);
     if (match) aliases.set(rawWord.toLowerCase(), match[1].toLowerCase());

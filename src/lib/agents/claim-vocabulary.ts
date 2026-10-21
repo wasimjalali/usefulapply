@@ -4,82 +4,110 @@
  *
  * The guard used to treat every word as a claim unless a hand-written list of
  * about 400 English words said otherwise, so any ordinary word a rewrite added
- * ("including", "additional", "rigorously") was refused. The line is now drawn
- * by part of speech, in three layers:
+ * ("including", "additional", "evaluated") was refused. The line is now drawn
+ * in three layers:
  *
- * 1. CLAIM WORDS, below: verbs and adjectives that DO carry a claim even though
- *    their part of speech usually doesn't. Seniority and standing, ownership
- *    and authority, scope, language proficiency, credentials, domain words and
- *    tools or employers spelled like ordinary words (Go, Excel, React).
- *    These always count as claims. This list is the tunable knob now, and
- *    every word added here is a word the guard checks more strictly.
- * 2. THE CLAIM-FREE LEXICON (claim-free-lexicon.generated.ts): English and
- *    German function words, verbs, qualitative adjectives and adverbs, built
- *    from Open English WordNet and Universal Dependencies treebanks by
- *    scripts/build-claim-free-lexicon.ts. Nouns, proper nouns and relational
- *    adjectives ("clinical", "financial") are never in it.
- * 3. EVERYTHING ELSE is a claim: nouns, names, acronyms, unknown words. Tools,
- *    employers, products, titles, certifications, degrees and domain nouns
- *    live here, and unknown is the safe default for them.
+ * 1. CLAIM WORDS, below: words that always count as claims. Seniority and
+ *    standing, ownership and authority, scope, language proficiency,
+ *    credentials, domain words, and tools or employers spelled like ordinary
+ *    words (Go, Excel, React). They outrank everything else, NEUTRAL_WORDS
+ *    included, and the German inflection fold never backs them.
+ * 2. THE CLAIM-FREE LEXICON (claim-free-lexicon.generated.ts): function words,
+ *    and the inflected verbs and the adverbs that the UD treebanks attest AND
+ *    that passed a hand review (scripts/claim-lexicon-review.ts). A word the
+ *    review rejected, or a rare word nobody reviewed ("orchestrated",
+ *    "preeminent"), is never freed. Nouns, proper nouns and adjectives are
+ *    never freed: standing, proficiency, traits, scope and domains live in
+ *    adjectives, and "manual" turns the neutral "testing" into a skill claim.
+ * 3. EVERYTHING ELSE is a claim: nouns, names, acronyms, adjectives, unknown
+ *    words.
  *
- * The guard also reads capitalisation (claimCapitalisedWords): a word written
- * with a capital in the middle of a sentence is a name, so the lexicon cannot
- * free it.
+ * Capitalisation also counts (claimCapitalisedWords): a word written as a name
+ * is a claim, and a capital at the start of a sentence or bullet frees only a
+ * function word or an inflected verb form ("Built", "Betreue"). Verbs are only
+ * ever freed inflected: a bare verb ("resolve", "grab") may be a product.
  */
 import {
-  CLAIM_FREE_ADJECTIVES,
-  CLAIM_FREE_OTHER,
+  CLAIM_FREE_ADVERBS,
+  CLAIM_FREE_FUNCTION,
   CLAIM_FREE_VERBS,
+  FREE_IN_INSTRUCTIONS,
+  REVIEWED_CLAIM_FORMS,
 } from './claim-free-lexicon.generated';
 
+const EN_IRREGULAR: Record<string, string[]> = {
+  run: ['ran'], drive: ['drove', 'driven'], oversee: ['oversaw', 'overseen'], win: ['won'],
+  hold: ['held'], lead: ['led'], swear: ['swore', 'sworn'], speak: ['spoke', 'spoken'],
+  teach: ['taught'], bar: ['barred', 'barring'], admit: ['admitted', 'admitting'],
+  excel: ['excelled', 'excelling'], control: ['controlled', 'controlling'],
+};
+
+/** Every English form of a verb lemma: -s, -ed, -ing and listed irregulars. Built from the lemma, never by stripping. */
+function enVerbForms(lemma: string): string[] {
+  const stem = lemma.endsWith('e') ? lemma.slice(0, -1) : lemma;
+  const s = /(s|x|z|ch|sh)$/.test(lemma) ? `${lemma}es` : /[^aeiou]y$/.test(lemma) ? `${lemma.slice(0, -1)}ies` : `${lemma}s`;
+  const ed = /[^aeiou]y$/.test(lemma) ? `${lemma.slice(0, -1)}ied` : `${stem}ed`;
+  return [lemma, s, ed, `${stem}ing`, ...(EN_IRREGULAR[lemma] ?? [])];
+}
+
 /**
- * English claim words, every form spelled out, adverbs included. Forms are
- * never derived by stripping suffixes: a stripped "goes" would reach the
- * language Go, and a stripped "directly" would reach "direct".
+ * English claim verbs, as lemmas: every form counts. Most of these are not in
+ * the lexicon anyway (the review rejected them or they are rare); listing them
+ * here also makes them outrank NEUTRAL_WORDS.
  */
+const EN_CLAIM_VERBS = [
+  // Ownership and authority.
+  'manage', 'direct', 'oversee', 'spearhead', 'run', 'drive', 'supervise', 'chair', 'steer', 'mentor',
+  'coach', 'hire', 'recruit', 'champion', 'delegate', 'command', 'orchestrate', 'mastermind', 'preside',
+  'administer', 'govern', 'coordinate', 'control', 'head', 'helm', 'captain', 'appoint',
+  // Credentials, awards and standing events.
+  'certify', 'license', 'licence', 'accredit', 'graduate', 'publish', 'patent', 'promote', 'elect',
+  'nominate', 'award', 'win', 'rank', 'honor', 'honour', 'recognize', 'recognise', 'qualify', 'ordain',
+  'notarize', 'notarise', 'apprentice', 'intern', 'swear', 'hold', 'earn', 'obtain', 'attain', 'possess',
+  'bar', 'admit', 'train', 'pioneer', 'tenure',
+  // Proficiency.
+  'master', 'speak', 'excel',
+];
+
+/** English claim words that are not verbs, every form spelled out. */
 const EN_CLAIM_WORDS = [
   // Seniority and standing.
   'senior', 'seniors', 'junior', 'juniors', 'principal', 'chief', 'expert', 'experts', 'expertise',
   'seasoned', 'veteran', 'veterans', 'accomplished', 'distinguished', 'renowned', 'recognized',
   'recognised', 'acclaimed', 'proven', 'extensive', 'experienced', 'deep', 'strategic', 'strong',
-  'top', 'elite', 'prestigious', 'skilled', 'proficient', 'adept', 'versed', 'pioneer', 'pioneers',
-  'pioneered', 'pioneering', 'expertly', 'extensively', 'deeply', 'strategically',
+  'top', 'elite', 'prestigious', 'skilled', 'proficient', 'adept', 'versed', 'expertly', 'extensively',
+  'deeply', 'strategically', 'knowledgeable', 'masterful', 'masterly', 'excellent', 'eminent',
+  'prominent', 'celebrated', 'competent', 'conversant', 'acquainted', 'consummate', 'gifted', 'talented',
+  'famous', 'foremost', 'preeminent', 'highest', 'exceptional', 'outstanding', 'impeccable', 'formally',
   // Ownership and authority.
-  'manage', 'manages', 'management', 'direct', 'directs', 'oversee', 'oversees', 'oversaw',
-  'overseen', 'overseeing', 'oversight', 'spearhead', 'spearheads', 'spearheaded', 'spearheading',
-  'run', 'runs', 'ran', 'running', 'drive', 'drives', 'drove', 'driven', 'driving', 'supervise',
-  'supervises', 'supervised', 'supervising', 'supervision', 'chair', 'chairs', 'chaired', 'chairing',
-  'steer', 'steers', 'steered', 'steering', 'mentor', 'mentors', 'mentored', 'mentoring', 'coach',
-  'coaches', 'coached', 'coaching', 'hire', 'hires', 'hired', 'hiring', 'recruit', 'recruits',
-  'recruited', 'recruiting', 'recruitment', 'cofounded', 'cofounder', 'cofounders', 'responsible',
+  'management', 'oversight', 'supervision', 'cofounded', 'cofounder', 'cofounders', 'responsible',
   'responsibility', 'responsibilities', 'accountable', 'accountability', 'sole', 'singlehandedly',
-  'independently', 'autonomously', 'championed', 'delegated', 'command', 'commanded',
+  'independently', 'autonomously', 'commanding', 'controlling',
   // Scope.
   'global', 'international', 'worldwide', 'multinational', 'nationwide', 'countrywide', 'regional',
   'enterprise', 'enterprises', 'cross', 'companywide', 'organisationwide', 'organizationwide',
-  'globally', 'internationally', 'regionally', 'solely',
+  'citywide', 'countywide', 'statewide', 'universal', 'globally', 'internationally', 'regionally', 'solely',
   // Language and proficiency.
-  'fluent', 'fluently', 'fluency', 'native', 'natively', 'bilingual', 'trilingual', 'multilingual', 'proficiency',
-  'advanced', 'intermediate', 'basic',
-  // Credentials, awards and standing events.
-  'certified', 'certify', 'certifies', 'certifying', 'certification', 'certifications', 'licensed',
-  'accredited', 'accreditation', 'chartered', 'registered', 'qualified', 'graduated', 'graduate',
-  'graduates', 'postgraduate', 'undergraduate', 'doctoral', 'published', 'patented', 'tenured',
-  'promoted', 'elected', 'appointed', 'nominated', 'awarded', 'won', 'win', 'wins', 'winning',
-  'ranked', 'honored', 'honoured',
+  'fluent', 'fluently', 'fluency', 'native', 'natively', 'bilingual', 'trilingual', 'multilingual',
+  'proficiency', 'advanced', 'intermediate', 'basic', 'conversational', 'professional', 'elementary',
+  // Credentials and standing.
+  'certification', 'certifications', 'accreditation', 'chartered', 'registered', 'postgraduate',
+  'undergraduate', 'doctoral', 'tenured', 'bonded',
   // Domain words the lexicon would otherwise free. Relational adjectives
   // ("clinical", "financial") are already claims via WordNet; these are the
   // domain adjectives whose most frequent WordNet sense is qualitative ("legal"
-  // as lawful), found by sweeping the domain vocabulary through the lexicon.
+  // as lawful).
   'consulting', 'distributed', 'embedded', 'mobile', 'agile', 'lean', 'remote', 'generative',
   'predictive', 'concurrent', 'functional', 'reactive', 'quantitative', 'qualitative',
   'legal', 'legally', 'commercial', 'governmental', 'nuclear', 'mechanical', 'civil', 'forensic',
   'regulatory', 'judicial', 'political', 'psychological', 'genetic', 'renewable', 'residential',
   'custodial',
-  // Tools, products and employers spelled like ordinary words.
+  // Tools, products and employers spelled like ordinary words (bare form only:
+  // "goes" is not the language Go).
   'go', 'excel', 'react', 'express', 'swift', 'flutter', 'elastic', 'ionic', 'linear', 'slack',
   'zoom', 'sketch', 'remix', 'compose', 'hibernate', 'struts', 'render', 'svelte', 'unreal', 'nuke',
-  'spark', 'angular', 'bash', 'braze', 'retool', 'loom', 'rippling', 'intuit', 'meta',
+  'spark', 'angular', 'bash', 'braze', 'retool', 'loom', 'rippling', 'intuit', 'meta', 'affirm',
+  'concur', 'grab', 'rust', 'scratch', 'convex', 'redux', 'perforce', 'sage',
 ];
 
 /**
@@ -89,20 +117,21 @@ const EN_CLAIM_WORDS = [
  */
 const DE_CLAIM_STEMS = [
   // Seniority and standing.
-  'leitend', 'fuehrend', 'federfuehrend', 'senior', 'junior', 'erfahren', 'langjaehrig', 'fundiert',
-  'umfassend', 'tiefgehend', 'tiefgreifend', 'ausgewiesen', 'nachweislich', 'versiert', 'routiniert',
-  'strategisch', 'ausgezeichnet',
+  'leitend', 'fuehrend', 'federfuehrend', 'senior', 'junior', 'erfahren', 'langjaehrig', 'mehrjaehrig',
+  'vieljaehrig', 'jahrzehntelang', 'fundiert', 'umfassend', 'tiefgehend', 'tiefgreifend', 'ausgewiesen',
+  'nachweislich', 'versiert', 'routiniert', 'strategisch', 'ausgezeichnet', 'hochqualifiziert',
+  'hochkaraetig', 'exzellent', 'hervorragend', 'herausragend', 'renommiert', 'professionell', 'hoechst',
   // Ownership and authority.
-  'verantwortlich', 'eigenverantwortlich', 'alleinverantwortlich', 'selbststaendig',
+  'verantwortlich', 'eigenverantwortlich', 'alleinverantwortlich', 'selbststaendig', 'selbstaendig',
   // Scope.
   'international', 'global', 'weltweit', 'konzernweit', 'bundesweit', 'europaweit', 'unternehmensweit',
   // Language and proficiency.
   'fliessend', 'muttersprachlich', 'verhandlungssicher', 'sicher', 'zweisprachig', 'mehrsprachig',
-  'fortgeschritten', 'deutsch', 'englisch', 'franzoesisch', 'spanisch', 'italienisch', 'portugiesisch',
-  'niederlaendisch', 'polnisch', 'russisch', 'tuerkisch', 'arabisch', 'chinesisch', 'japanisch',
-  'koreanisch', 'persisch', 'ukrainisch', 'schwedisch', 'daenisch', 'norwegisch', 'finnisch',
-  'griechisch', 'tschechisch', 'ungarisch', 'rumaenisch', 'kroatisch', 'serbisch', 'bulgarisch',
-  'hebraeisch',
+  'fortgeschritten', 'kompetent', 'geschult', 'deutsch', 'englisch', 'franzoesisch', 'spanisch',
+  'italienisch', 'portugiesisch', 'niederlaendisch', 'polnisch', 'russisch', 'tuerkisch', 'arabisch',
+  'chinesisch', 'japanisch', 'koreanisch', 'persisch', 'ukrainisch', 'schwedisch', 'daenisch',
+  'norwegisch', 'finnisch', 'griechisch', 'tschechisch', 'ungarisch', 'rumaenisch', 'kroatisch',
+  'serbisch', 'bulgarisch', 'hebraeisch', 'walisisch',
   // Credentials.
   'zertifiziert', 'staatlich', 'anerkannt', 'examiniert', 'approbiert', 'diplomiert', 'promoviert',
   'habilitiert', 'vereidigt', 'geprueft', 'akkreditiert', 'lizenziert', 'ausgebildet', 'qualifiziert',
@@ -117,17 +146,18 @@ const DE_CLAIM_STEMS = [
   'landwirtschaftlich', 'elektronisch',
 ];
 
-/** German ownership verbs, every form spelled out (verbs don't fold like adjectives). */
+/** German claim verbs, every form spelled out (verbs don't fold like adjectives). */
 const DE_CLAIM_WORDS = [
-  'leiten', 'leite', 'leitet', 'leitete', 'leiteten', 'geleitet', 'fuehren', 'fuehre', 'fuehrt',
-  'fuehrte', 'fuehrten', 'gefuehrt', 'verantworten', 'verantworte', 'verantwortet', 'verantwortete',
-  'verantworteten', 'manage', 'managte', 'managten', 'gemanagt', 'steuere', 'steuerte', 'steuerten',
-  'gesteuert', 'gruende', 'gruendete', 'gruendeten',
-  'gegruendet', 'mitgegruendet', 'beaufsichtigte', 'beaufsichtigt', 'coachte', 'gecoacht',
-  'rekrutierte', 'rekrutiert', 'gewann',
+  'leiten', 'leite', 'leitest', 'leitet', 'leitete', 'leiteten', 'geleitet', 'fuehren', 'fuehre',
+  'fuehrst', 'fuehrt', 'fuehrte', 'fuehrten', 'gefuehrt', 'verantworten', 'verantworte',
+  'verantwortet', 'verantwortete', 'verantworteten', 'manage', 'managte', 'managten', 'gemanagt',
+  'steuere', 'steuerte', 'steuerten', 'gesteuert', 'gruende', 'gruendete', 'gruendeten', 'gegruendet',
+  'mitgegruendet', 'beaufsichtigte', 'beaufsichtigt', 'coachte', 'gecoacht', 'rekrutierte',
+  'rekrutiert', 'gewann', 'beherrschen', 'beherrsche', 'beherrschst', 'beherrscht', 'beherrschte',
+  'beherrschten',
 ];
 
-const CLAIM_WORDS = new Set([...EN_CLAIM_WORDS, ...DE_CLAIM_WORDS]);
+const CLAIM_WORDS = new Set([...EN_CLAIM_VERBS.flatMap(enVerbForms), ...EN_CLAIM_WORDS, ...DE_CLAIM_WORDS]);
 const DE_STEMS = new Set(DE_CLAIM_STEMS);
 const DE_ENDINGS = ['em', 'en', 'er', 'es', 'e'];
 
@@ -142,15 +172,63 @@ export function isClaimWord(word: string): boolean {
   return /(?:sprachig|technisch|medizinisch|wissenschaftlich|wirtschaftlich|rechtlich)(?:e|en|er|es|em)?$/.test(word);
 }
 
-let claimFree: Set<string> | null = null;
+const FUNCTION = 1;
+const FREE = 2;
+const VERB = 4;
+const REJECTED = 8;
+const INSTRUCTION = 16;
+let lexicon: Map<string, number> | null = null;
 
 /**
- * Is this word form in the claim-free lexicon? Built on first use, not at
- * module load, so a Worker that never rewrites a section never pays for it.
+ * The generated lexicon as one flag map. Built on first use, not at module
+ * load, so a Worker that never rewrites a section never pays for it.
  */
-export function isClaimFreeForm(word: string): boolean {
-  if (!claimFree) {
-    claimFree = new Set(`${CLAIM_FREE_ADJECTIVES} ${CLAIM_FREE_VERBS} ${CLAIM_FREE_OTHER}`.split(' '));
+function flags(word: string): number {
+  if (!lexicon) {
+    const map = new Map<string, number>();
+    const mark = (list: string, flag: number) => {
+      for (const w of list.split(' ')) map.set(w, (map.get(w) ?? 0) | flag);
+    };
+    mark(CLAIM_FREE_FUNCTION, FUNCTION | FREE);
+    mark(CLAIM_FREE_VERBS, FREE | VERB);
+    mark(CLAIM_FREE_ADVERBS, FREE);
+    mark(REVIEWED_CLAIM_FORMS, REJECTED);
+    mark(FREE_IN_INSTRUCTIONS, INSTRUCTION);
+    lexicon = map;
   }
-  return claimFree.has(word);
+  return lexicon.get(word) ?? 0;
+}
+
+/**
+ * Is this word form in the claim-free lexicon? `instruction`: reading a chat
+ * request for the advisory "left out" list, where adjectives ("relevant") and
+ * imperatives ("Tailor") are directions, not content. Never for a rewrite.
+ */
+export function isClaimFreeForm(word: string, instruction = false): boolean {
+  const f = flags(word);
+  return (f & FREE) !== 0 || (instruction && (f & INSTRUCTION) !== 0);
+}
+
+/** A closed-class word (article, pronoun, preposition, conjunction, auxiliary): never a name. */
+export function isFunctionWord(word: string): boolean {
+  return (flags(word) & FUNCTION) !== 0;
+}
+
+/**
+ * May this word stand capitalised at the start of a sentence, line or bullet
+ * without counting as a name? Function words and freed verb forms, which are
+ * always inflected, may ("The", "Built", "Betreue"). An adjective, an adverb, a
+ * noun or anything else may not: "Convex", "Seamless", "Avid" are products.
+ */
+export function isOpenerSafe(word: string): boolean {
+  return (flags(word) & (FUNCTION | VERB)) !== 0;
+}
+
+/**
+ * Must this word be backed word for word? Claim words, and every form of a
+ * lemma the lexicon review rejected ("leite", "kompetente", "beherrsche"):
+ * no inflection fold may back them from a different form.
+ */
+export function needsExactBacking(word: string): boolean {
+  return isClaimWord(word) || (flags(word) & REJECTED) !== 0;
 }

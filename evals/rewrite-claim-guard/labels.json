@@ -28,8 +28,8 @@
     "why": "CV \"Auszubildenden\""
   },
   "de:beherrsche": {
-    "label": "ordinary",
-    "why": "verb; the level (verhandlungssicher) is backed"
+    "label": "strict",
+    "why": "\"beherrsche\" (I master) is a proficiency claim; the level it restates (verhandlungssicher) is in the CV, so refusing it is by design (relabelled in round 2)"
   },
   "de:beratendem": {
     "label": "ordinary",
@@ -200,12 +200,12 @@
     "why": "\"hands-on\", no claim"
   },
   "en:hold": {
-    "label": "ordinary",
-    "why": "\"Hold a B.S.\", CV lists it"
+    "label": "strict",
+    "why": "\"Hold a B.S.\" is a credential claim; the CV lists the degree, so refusing it is by design (relabelled in round 2)"
   },
   "en:holding": {
-    "label": "ordinary",
-    "why": "\"holding the AWS cert\", CV lists it"
+    "label": "strict",
+    "why": "\"holding the AWS cert\" is a credential claim; the CV lists the cert, so refusing it is by design (relabelled in round 2)"
   },
   "en:including": {
     "label": "ordinary",

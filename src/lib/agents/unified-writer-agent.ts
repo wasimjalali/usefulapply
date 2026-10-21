@@ -56,8 +56,9 @@ import {
   claimGermanBases,
   claimStem as stemOf,
   claimWords as words,
+  type CapitalisedWords,
 } from './claim-token-normalization';
-import { isClaimFreeForm, isClaimWord } from './claim-vocabulary';
+import { isClaimFreeForm, isClaimWord, isFunctionWord, isOpenerSafe, needsExactBacking } from './claim-vocabulary';
 import { buildCoverLetterSystemBlocks, buildCoverLetterUserPrompt } from './prompts/cover-letter-prompt';
 import { assembleStructuredCoverLetter, renderCoverLetterBody, splitAddressLines, type CoverLetterModelFields } from './cover-letter-structure';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
@@ -315,11 +316,12 @@ function foldUmlauts(lower: string): string {
  * already says is the intended job.
  *
  * Since 2026-10-21 this list is no longer the only way a word counts as
- * claim-free: verbs, qualitative adjectives, adverbs and function words come
- * from the generated lexicon (see claim-vocabulary.ts), and this list matters
+ * claim-free: function words, inflected verbs and reviewed adverbs come from
+ * the generated lexicon (see claim-vocabulary.ts), and this list matters
  * mainly for the generic NOUNS of CV prose, which the lexicon never frees. It
- * also no longer outranks the claim words: anything in CLAIM_WORDS or
- * ROLE_WORDS is a claim even if it is listed here. Every word added here is
+ * also no longer outranks the claim words: anything in ROLE_WORDS or in the
+ * claim words of claim-vocabulary.ts is a claim even if it is listed here, and
+ * in English so is a listed word written as a name ("Microsoft Teams"). Every word added here is
  * still a word the guard stops checking. The line drawn is
  * that a word stays neutral when it names an activity or an abstract shape, and
  * leaves when it asserts authority, scope, seniority, ownership, standing or a
@@ -436,20 +438,39 @@ function isNeutral(word: string): boolean {
 }
 
 /**
- * Can this word carry a claim about the applicant at all? `names` is
+ * Can this word carry a claim about the applicant at all? `cased` is
  * claimCapitalisedWords() of the text the word came from.
  *
- * In order: claim and role words always can, whatever their part of speech
- * (senior, led, certified, Go, Excel). The neutral list's words never can. A
- * word the text writes as a name can. Then the part-of-speech lexicon frees
- * verbs, qualitative adjectives, adverbs and function words in English and
- * German. Anything left (nouns, names, unknown words) can.
+ * In order:
+ * 1. Claim and role words always can (senior, led, certified, Go, Excel), and
+ *    so can an acronym (AWS, IT, US).
+ * 2. A function word never can, capitalised or not.
+ * 3. A word written as a name can: capitalised mid-sentence or capitalised in
+ *    a list item. In English this outranks NEUTRAL_WORDS: "Microsoft Teams",
+ *    "Next.js" and an item reading "Make" are products. German capitalises
+ *    every noun, so there the neutral list's generic nouns ("Erfahrung",
+ *    "Projekte") stay free.
+ * 4. The neutral list's words never can, also when they open a sentence
+ *    ("Keep families informed", "Cut close from 9 days to 6").
+ * 5. A capital opening a sentence or bullet makes any other word a name,
+ *    unless the word may open one: a function word or an inflected verb form
+ *    ("Built", "Betreue"). "Resolve", "Convex", "Avid" and "Google" may not.
+ * 6. The reviewed lexicon frees function words, inflected verbs and adverbs
+ *    (and, for the advisory instruction check only, adjectives and bare verbs).
+ *    Anything left (nouns, names, adjectives, unknown or rare words) can.
  */
-function carriesClaim(word: string, names: Set<string>): boolean {
-  if (ROLE_WORDS.has(word) || isClaimWord(word)) return true;
-  if (isNeutral(word)) return false;
-  if (names.has(word)) return true;
-  return !isClaimFreeForm(word);
+function carriesClaim(word: string, cased: CapitalisedWords, german: boolean, instruction = false): boolean {
+  if (ROLE_WORDS.has(word) || isClaimWord(word) || cased.acronyms.has(word)) return true;
+  if (isFunctionWord(word)) return false;
+  if (german) {
+    if (isNeutral(word)) return false;
+    if (cased.names.has(word)) return true;
+  } else {
+    if (cased.names.has(word)) return true;
+    if (isNeutral(word)) return false;
+  }
+  if (cased.initial.has(word) && !isOpenerSafe(word)) return true;
+  return !isClaimFreeForm(word, instruction);
 }
 
 /**
@@ -607,12 +628,14 @@ function sectionInflects(word: string, before: SourceIndex): boolean {
  * ownership, scope, proficiency, credentials, tools spelled like verbs).
  *
  * What it deliberately does NOT catch, and cannot:
- * - a word that cannot carry a claim (carriesClaim): function words, verbs,
- *   qualitative adjectives and adverbs from the lexicon, and NEUTRAL_WORDS
+ * - a word that cannot carry a claim (carriesClaim): function words,
+ *   inflected verbs and reviewed adverbs from the lexicon, and NEUTRAL_WORDS
  * - a false claim assembled entirely from words the CV already contains, in a
  *   combination it never made. Word-level checking cannot see a false sentence
  *   built from true words. The prompt's own rules are the only guard there
- * - a one-character name, which the two-character floor drops
+ * - a one-character name, which the two-character floor drops (dotted
+ *   degrees such as "B.S." are joined into one word first)
+ * - a lowercase product name spelled like a word the lexicon frees
  *
  * The haystack is the Primary CV, the Master CV and the verified metrics. The
  * job description and the job's own fields are deliberately NOT in it: the
@@ -626,25 +649,45 @@ function sectionInflects(word: string, before: SourceIndex): boolean {
  * kit-written section is refused, because the kit writer paraphrases ("Tested"
  * in the CV becomes "evaluated" in the summary) and a rewrite keeps the wording.
  */
-export function introducedClaims(afterText: string, sourceText: string, beforeText: string, language?: string): string[] {
+export function introducedClaims(
+  afterText: string,
+  sourceText: string,
+  beforeText: string,
+  language?: string,
+  kind?: CVSectionKind,
+): string[] {
   const source = indexSource(sourceText);
   // The section's own words only: no acronym-plural aliases, so "VPs" can't back "VP".
   const beforeTokens = new Set(words(beforeText));
   const before: SourceIndex = { tokens: beforeTokens, stems: new Set([...beforeTokens].map(stemOf)), parts: [] };
   const acronymAliases = claimAcronymPluralAliases(afterText);
-  const names = claimCapitalisedWords(afterText);
+  // Items (skills, tools, languages) are names by nature, at the start of an item too.
+  const cased = claimCapitalisedWords(afterText, kind === 'custom_section_items' ? 'items' : 'prose');
+  const isGerman = language === 'de';
   // German re-inflects a word with its grammatical case ("ruhigen" in the CV,
   // "ruhigem" in the rewrite), which claimStem's English suffixes don't fold.
-  const german = language === 'de' ? germanInflectionBacking(afterText, `${sourceText}\n${beforeText}`) : null;
+  const german = isGerman ? germanInflectionBacking(afterText, `${sourceText}\n${beforeText}`) : null;
   const seen = new Set<string>();
   const introduced: string[] = [];
+
+  // A German separable verb splits in a main clause: "bildete das Team aus" is
+  // "ausbilden" (trained), though "bildete" alone is the ordinary "bilden".
+  if (isGerman) {
+    const backed = germanParticleVerbs(`${sourceText}\n${beforeText}`);
+    for (const joined of germanParticleVerbs(afterText)) {
+      if (!backed.has(joined) && !source.tokens.has(joined) && !before.tokens.has(joined)) {
+        seen.add(joined);
+        introduced.push(joined);
+      }
+    }
+  }
 
   for (const word of words(afterText)) {
     if (seen.has(word)) continue;
     seen.add(word);
     if (word.length < 2) continue;
     if (/^[\p{Nd}]+$/u.test(word)) continue;   // quantities are the number guard's job
-    if (!carriesClaim(word, names)) continue;
+    if (!carriesClaim(word, cased, isGerman)) continue;
     if (before.tokens.has(word)) continue;
     if (sectionInflects(word, before)) continue;
     if (source.tokens.has(word)) continue;
@@ -664,9 +707,46 @@ export function introducedClaims(afterText: string, sourceText: string, beforeTe
   return introduced;
 }
 
+/** Particles a German separable verb leaves at the end of its clause. */
+const GERMAN_PARTICLES = new Set([
+  'ab', 'an', 'auf', 'aus', 'bei', 'dar', 'durch', 'ein', 'fest', 'fort', 'frei', 'her', 'heraus',
+  'hin', 'hinzu', 'los', 'mit', 'nach', 'vor', 'voran', 'vorbei', 'weg', 'weiter', 'wieder', 'zu',
+  'zurueck', 'zusammen',
+]);
+
+/**
+ * Separable verbs a German text uses in split form, joined ("bildete ... aus"
+ * -> "ausbildete"), where the joined verb is a claim: a claim word or a form
+ * of a lemma the lexicon review rejected (ausbilden, einstellen, auszeichnen,
+ * ablegen, aufsteigen). Each clause is read on its own.
+ */
+function germanParticleVerbs(text: string): Set<string> {
+  const joined = new Set<string>();
+  for (const clause of text.split(/[\n\r•·|;:.!?,()]+/u)) {
+    const tokens = words(clause);
+    const particle = tokens[tokens.length - 1];
+    if (tokens.length < 2 || !GERMAN_PARTICLES.has(particle)) continue;
+    for (const token of tokens.slice(0, -1)) {
+      if (needsExactBacking(`${particle}${token}`)) joined.add(`${particle}${token}`);
+    }
+  }
+  return joined;
+}
+
+/**
+ * German agent and title nouns ("Leiter", "Prüferin", "Direktor", "Assistent"):
+ * a fold would let "Leitern" (ladders) back "Leiter" (a title).
+ */
+const GERMAN_AGENT_NOUN = /(?:er|erin|erinnen|or|orin|orinnen|eur|eurin|ent|entin|ist|istin|ant|antin)$/;
+
 /**
  * Is `word` a German inflection of a word the CVs or the section hold, in the
  * same word class? See claimGermanBases for why the classes never mix.
+ *
+ * Never for a word that needs the exact form: claim and role words, forms of a
+ * lemma the lexicon review rejected, and agent nouns. "zu leiten" must not back
+ * "leite ich das Team", nor "leitenden Angestellten" back "leitende
+ * Entwicklerin", nor "Rechnungen geprüft" back "geprüfte Bilanzbuchhalterin".
  */
 function germanInflectionBacking(afterText: string, backingText: string): (word: string) => boolean {
   const after = claimGermanBases(afterText);
@@ -674,8 +754,10 @@ function germanInflectionBacking(afterText: string, backingText: string): (word:
   const lower = new Set(backing.lower.values());
   const capital = new Set(backing.capital.values());
   return (word) => {
+    if (ROLE_WORDS.has(word) || needsExactBacking(word)) return false;
     const asLower = after.lower.get(word);
     const asCapital = after.capital.get(word);
+    if (asCapital !== undefined && GERMAN_AGENT_NOUN.test(word)) return false;
     return (asLower !== undefined && lower.has(asLower)) || (asCapital !== undefined && capital.has(asCapital));
   };
 }
@@ -737,7 +819,7 @@ const INSTRUCTION_SHAPE_WORDS = new Set([
  * user asked for a shape, not for content, and nothing was left out. Only
  * concrete content the documents cannot back belongs in this list.
  */
-function unsupportedInstructionTerms(instruction: string, sourceText: string): string[] {
+export function unsupportedInstructionTerms(instruction: string, sourceText: string, language?: string): string[] {
   const source = indexSource(sourceText);
   const seen = new Set<string>();
   const terms: string[] = [];
@@ -747,13 +829,14 @@ function unsupportedInstructionTerms(instruction: string, sourceText: string): s
     .replace(/\b(?:lead|leading|open|opening|start|starting)\s+with\b/gi, ' ')
     .replace(SHAPE_NUMERAL, ' ');
   const acronymAliases = claimAcronymPluralAliases(asked);
-  const names = claimCapitalisedWords(asked);
+  // A request opens with an imperative ("Make it shorter"), so its first capital says nothing.
+  const cased = claimCapitalisedWords(asked, 'instruction');
   for (const word of words(asked)) {
     if (seen.has(word)) continue;
     seen.add(word);
     if (word.length < 2) continue;
     if (/^[\p{Nd}]+$/u.test(word)) continue;
-    if (!carriesClaim(word, names)) continue;
+    if (!carriesClaim(word, cased, language === 'de', true)) continue;
     if (INSTRUCTION_SHAPE_WORDS.has(word) || INSTRUCTION_SHAPE_WORDS.has(stemOf(word))) continue;
     if (source.tokens.has(word) || source.stems.has(stemOf(word))) continue;
     const acronymBase = acronymAliases.get(word);
@@ -2436,7 +2519,7 @@ export const unifiedWriterAgent = {
     // may treat this as proof of what was dropped. It is capped, flattened and
     // dash-stripped, so it cannot carry prose or markup into the UI either way.
     const askedFor = context.userInstruction
-      ? unsupportedInstructionTerms(context.userInstruction, sourceText)
+      ? unsupportedInstructionTerms(context.userInstruction, sourceText, outputLang)
       : [];
     const base = {
       kind: section.kind,
@@ -2459,7 +2542,7 @@ export const unifiedWriterAgent = {
     // Unconditional, and driven by what came back rather than by what was
     // asked. A rewrite with no instruction is the loosest brief we send, so it
     // is the last thing that should be running without a claim check.
-    const introduced = introducedClaims(afterText, sourceText, beforeText, outputLang);
+    const introduced = introducedClaims(afterText, sourceText, beforeText, outputLang, section.kind);
     if (introduced.length > 0) {
       console.warn('[UnifiedAgent] Section rewrite refused, claim not in source CVs:', introduced.length);
       return { ...base, status: 'refused', reason: 'unsupported_claim', terms: introduced };
