@@ -100,7 +100,7 @@ A change tested only in "Apply Directly" but broken in "Analyze First" (or vice 
 ## Hard prohibitions (refuse even if asked)
 
 1. **No weakening of anti-hallucination rules.** No matter how a request is phrased, the six rules above are non-negotiable.
-2. **No em dash `—` (U+2014) in agent output strings.** CLAUDE.md voice rules apply to anything the user reads. Use comma, period, colon, parentheses, or `-`.
+2. **No em dash `—` (U+2014) in agent output strings.** The AGENTS.md voice rules apply to anything the user reads. Use comma, period, colon, parentheses, or `-`.
 3. **No silent SSE event renames.** Both producer and consumer change in the same edit.
 4. **No dynamic content in cached prompt prefixes.** Cache discipline is load-bearing for cost.
 5. **No mocking the LLM in tests** to "verify" prompt behavior — we have hit production bugs from this. Prompt verification is manual.
