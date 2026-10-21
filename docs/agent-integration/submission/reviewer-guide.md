@@ -24,8 +24,8 @@ To revoke access at any point, go to Settings, Connected apps in the web app. Th
 | Person | Jordan Whitfield, a fictional senior software engineer in Austin, TX. All names, employers, addresses and phone numbers are made up. |
 | Primary CV | One CV, in English, with 2 roles, education, skills, a certification and languages (English, German B2, Spanish). |
 | Career profile | A career profile and a job search strategy, so the career and feed tools return data. |
-| US application | Senior Software Engineer, Platform at Halcyon Cloud Labs (fictional). Status applied. Fit result 82. Full kit: tailored CV, US cover letter, application email, follow-up email. Template premium-ats. |
-| German application | Senior Backend Engineer (m/w/d) at Fjordwerk GmbH, Berlin (fictional). Status drafted. Fit result 79. Full kit in German: tailored CV, DIN 5008 cover letter, application email, follow-up email. Template german-ats. |
+| US application | Senior Software Engineer, Platform at Halcyon Cloud Labs (fictional). Status applied, with a follow-up due on the day the seed runs. Fit result 82. Full kit: tailored CV, US cover letter, application email, follow-up email. Template premium-ats. |
+| German application | Senior Backend Engineer (m/w/d) at Fjordwerk GmbH, Berlin (fictional). Status interview, with the interview five days after the seed runs. Fit result 79. Full kit in German: tailored CV, DIN 5008 cover letter, application email, follow-up email. Template german-ats. |
 | Plan | Max, so screening answers and the job feed are available. |
 | Credits | 200 at the start (a Max month). |
 | Job feed | A recent completed run with 5 ranked, fictional postings, so the feed tools have something to act on before any live search. |
