@@ -448,7 +448,18 @@ export async function listApplicationSummaries(
         interview_at: applicationSessions.interview_at,
         follow_up_due_at: applicationSessions.follow_up_due_at,
         generation_status: applicationSessions.generation_status,
-        has_kit: sql<number>`(${applicationSessions.generated_cv} is not null or ${applicationSessions.cover_letter} is not null or ${applicationSessions.email} is not null or ${applicationSessions.follow_up_email} is not null)`,
+        // The four canonical columns, then the generated_artifacts fallback getKit reads for rows a
+        // headless run or an older build left only there, so the list and get_application agree.
+        has_kit: sql<number>`(
+          ${applicationSessions.generated_cv} is not null or ${applicationSessions.cover_letter} is not null
+          or ${applicationSessions.email} is not null or ${applicationSessions.follow_up_email} is not null
+          or json_type(${applicationSessions.generated_artifacts}, '$.optimizedCV') = 'object'
+          or json_type(${applicationSessions.generated_artifacts}, '$.optimizedCVData') = 'object'
+          or (json_type(${applicationSessions.generated_artifacts}, '$.coverLetter') = 'text'
+              and trim(json_extract(${applicationSessions.generated_artifacts}, '$.coverLetter')) != '')
+          or json_type(${applicationSessions.generated_artifacts}, '$.applicationEmail') = 'object'
+          or json_type(${applicationSessions.generated_artifacts}, '$.followUpEmail') = 'object'
+        )`,
         revision: applicationSessions.revision,
         created_at: applicationSessions.created_at,
         updated_at: applicationSessions.updated_at,

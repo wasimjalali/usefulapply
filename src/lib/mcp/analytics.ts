@@ -1,3 +1,4 @@
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { getPostHogServer } from '@/lib/posthog-server';
 
 /**
@@ -29,8 +30,13 @@ export async function captureMcpToolCall(call: McpToolCall): Promise<void> {
         ...(call.errorClass ? { error_class: call.errorClass } : {}),
       },
     });
-    await posthog.flush();
-  } catch {
+    // The flush is a network round trip to PostHog. Run it after the response so a slow PostHog never holds a tool call.
+    const { ctx } = await getCloudflareContext({ async: true });
+    ctx.waitUntil(posthog.flush().catch((error: unknown) => {
+      console.error('[mcp] PostHog flush failed:', error);
+    }));
+  } catch (error) {
     // Analytics never fails a tool call.
+    console.error('[mcp] could not record the tool call:', error);
   }
 }
