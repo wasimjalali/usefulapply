@@ -25,8 +25,9 @@ Last updated 2026-10-21, session 4 (in progress). The plan is `PLAN.md` (v3) in 
 
 **Bug found live, fixed on `fix/rewrite-claim-guard`:** `rewrite_cv_section` refused every rewrite as `unsupported_claim` (0 credits). The web app's CV section rewrite (`/api/regenerate`) shares the path and was broken too.
 - **Cause:** `introducedClaims()` checked every word of the rewritten section against the CVs only. The kit writer paraphrases ("Tested" in the CV becomes "evaluated" in the summary), so any rewrite that kept the kit's wording was refused. The number guard had the same blind spot.
-- **Fix:** a word the section already holds isn't counted as introduced. A number from the section passes only with the same unit (the word after it), so "8 years" can't become "8 million users". "went", "goes", "going" and "gone" are neutral; bare "go" isn't, since it's also the Go language.
-- **Tests:** `unified-writer-agent.claim-guard.test.ts` (10, now in `npm test`) and a production-shaped rewrite in `e2e/mcp/02-happy-path.spec.ts` step 5c.
+- **Fix:** a word the section already holds isn't counted as introduced (a stem match backs an inflection, never the bare root, so "architected" can't become the title "architect"). A number from the section passes only with the same unit (%, currency, scale and the words after it) and a shared content word with the sentence it came from, so "8 years" can't become "8 million users" and "Reduced latency by 40%" can't become "Grew revenue by 40%". "went", "goes", "going" and "gone" are neutral; bare "go" isn't, since it's also the Go language.
+- **Tests:** `unified-writer-agent.claim-guard.test.ts` (13, now in `npm test`; nothing in CI runs it, the repo has no workflows) and a production-shaped rewrite in `e2e/mcp/02-happy-path.spec.ts` step 5c.
+- **Accepted:** a reordered unit ("99.9% uptime" to "uptime of 99.9%") is refused. That's the safe direction: a retry, no credits.
 
 ## Session 3 progress (2026-10-21)
 

@@ -78,3 +78,33 @@ test('a client-added word already in the section survives a rewrite', () => {
   const before = 'Applied AI engineer. Runs agents on Kubernetes.';
   assert.deepEqual(introducedClaims('Applied AI engineer running agents on Kubernetes.', SOURCE_CV, before), []);
 });
+
+// Review round 2 (Opus and Sonnet): the unit alone was a function word, a
+// symbol or nothing, so percentages and money moved onto new claims.
+const refuses = (before: string, after: string, token: string) =>
+  assert.ok(unsupportedNumbers(after, '', DOCUMENTS, before).includes(token), `${before} -> ${after}`);
+const keeps = (before: string, after: string) =>
+  assert.deepEqual(unsupportedNumbers(after, '', DOCUMENTS, before), [], `${before} -> ${after}`);
+
+test('a percentage or an amount from the section cannot move onto a new claim', () => {
+  refuses('Raised test coverage by 40%. Built revenue dashboards.', 'Grew revenue by 40%.', '40');
+  refuses('Reduced latency by 40%.', 'Grew revenue by 40%.', '40');
+  refuses('Raised coverage 40% in Q3.', 'Grew revenue 40% in Germany.', '40');
+  refuses('Managed a $2.5M budget.', 'Closed $2.5M in new revenue.', '2');
+  refuses('Handled $2M of fraud.', 'Saved $2M for clients.', '2');
+  refuses('Supported dozens of clients.', 'Cut churn for dozens of companies.', '12');
+  refuses('Managed a $2.5M budget.', 'Managed a $2.5K budget.', '2');
+  refuses('Hired 8 engineers over two years.', 'Hired 8 users over years of engineering.', '8');
+});
+
+test('a percentage or an amount that stays on its claim passes', () => {
+  keeps('Reduced latency by 40%.', 'Cut latency by 40% for payments.');
+  keeps('Reduced API latency 40 percent.', 'Reduced API latency by 40%.');
+  keeps('Managed a $2.5M budget.', 'Owned the $2.5M marketing budget.');
+  keeps('Fixed 5 to 10 bugs a week.', 'Fixed between 5 and 10 bugs every week.');
+});
+
+test('a kit paraphrase does not back a different word by stem', () => {
+  // "architected" is in the section, "architect" (a job title) is not.
+  assert.deepEqual(introducedClaims('Payment architect.', SOURCE_CV, 'Architected payment flows.'), ['architect']);
+});
