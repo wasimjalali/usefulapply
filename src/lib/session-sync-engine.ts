@@ -907,16 +907,22 @@ export function createSyncEngine(deps: SyncDeps) {
       ])];
       for (const column of touched) checked.lineage.columns.add(column);
 
-      const moved = touched.filter((column) => base.fields[column] !== checked.fields[column] && draftFp[column] !== base.fields[column]);
+      // A column whose draft is what the store already held is the store's own unsaved edit (text the user restored
+      // from a notice whose save failed, say): the normal save and merge handle it, so it is no stale draft.
+      const moved = touched.filter((column) => base.fields[column] !== checked.fields[column] && draftFp[column] !== base.fields[column]
+        && draftFp[column] !== beforeFp[column]);
       if (moved.length > 0) {
-        // The draft is based on text that is no longer the server's. Put the store back, keep the draft aside.
+        // The draft is based on text that is no longer the server's. Put the store back, keep the draft aside: all of
+        // it, not only the groups that moved, since none of it is applied (the email panel's other document included).
         writeSession(sessionId, before, 'replace');
         const seen = new Set<string>();
         const entryIds: string[] = [];
-        for (const column of moved) {
+        for (const column of [...moved, ...touched]) {
           const group = GROUP_OF_COLUMN.get(column);
           if (!group || seen.has(group.key)) continue;
           seen.add(group.key);
+          // A group that did not move and that the draft leaves as the store has it holds no text to keep.
+          if (!moved.includes(column) && group.props.every((prop) => sameValue(after[prop], before[prop]))) continue;
           const entry = makeEntry(group, after, before, base.fields, [checked.lineage, ...draftEditorsOf(sessionId, group, after, before)]);
           addEntry(sessionId, entry);
           entryIds.push(entry.id);

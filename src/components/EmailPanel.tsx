@@ -61,6 +61,9 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   const editSessionIdRef = useRef<string | null>(null);
   // The drafts as they are now, for the save that finishes later (the user keeps typing while it runs).
   const draftsRef = useRef<{ email: GeneratedEmail | null; followUp: FollowUp | null }>({ email: null, followUp: null });
+  // Which documents the user typed into. Save writes only those: the other one is a copy taken when the editor
+  // opened, and writing it back would put an old version over whatever the store holds now.
+  const [typed, setTyped] = useState({ email: false, followUp: false });
   // The revision the editor opened on; the drafts live outside the store (see commitEditorSave).
   const editStartRef = useRef<EditorStart | undefined>(undefined);
   // The email and follow-up as the store has them now, for the discard path in the conflict listener below.
@@ -89,8 +92,13 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
         editStartRef.current = undefined;
         return;
       }
-      if (emailAction === 'reset') setEditedEmail(currentDraftsRef.current.email);
-      else setEditedFollowUp(currentDraftsRef.current.followUp);
+      if (emailAction === 'reset') {
+        setTyped((prev) => ({ ...prev, email: false }));
+        setEditedEmail(currentDraftsRef.current.email);
+      } else {
+        setTyped((prev) => ({ ...prev, followUp: false }));
+        setEditedFollowUp(currentDraftsRef.current.followUp);
+      }
       return;
     }
     const rebased = [...(emailAction === 'rebase' ? ['email'] : []), ...(followUpAction === 'rebase' ? ['followUpEmail'] : [])];
@@ -115,11 +123,13 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
 
   const updateEmailField = (field: 'subject' | 'body', value: string) => {
     if (!activeEmail) return;
+    setTyped((prev) => ({ ...prev, email: true }));
     setEditedEmail({ ...activeEmail, [field]: value });
   };
 
   const updateFollowUpField = (field: 'subject' | 'body', value: string) => {
     if (!activeFollowUp) return;
+    setTyped((prev) => ({ ...prev, followUp: true }));
     setEditedFollowUp({ ...activeFollowUp, [field]: value });
   };
 
@@ -137,8 +147,8 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
     // Save now, against the revision this editor opened on. If another write got in
     // first the drafts are not applied: the editor stays open with the text in it.
     void commitEditorSave(editSessionId, editStartRef.current, () => {
-      if (editedEmail) useSessionStore.getState().updateSessionById(editSessionId, { email: editedEmail });
-      if (editedFollowUp) useSessionStore.getState().updateSessionById(editSessionId, { followUpEmail: editedFollowUp });
+      if (editedEmail && typed.email) useSessionStore.getState().updateSessionById(editSessionId, { email: editedEmail });
+      if (editedFollowUp && typed.followUp) useSessionStore.getState().updateSessionById(editSessionId, { followUpEmail: editedFollowUp });
     }).then((outcome) => {
       // A draft was discarded while the save ran: what was sent is gone, and nothing here reopens or closes the editor.
       if (epochAtSave !== discardEpochRef.current) return;
@@ -278,6 +288,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
           type="button"
           onClick={() => {
             setIsEditMode(true);
+            setTyped({ email: false, followUp: false });
             editSessionIdRef.current = currentSession?.id ?? null;
             editStartRef.current = currentSession ? getEditorStart(currentSession.id) : undefined;
             setEditedEmail(email ?? null);
