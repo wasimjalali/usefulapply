@@ -167,14 +167,14 @@ export async function applyToFeedJob(params: {
           action: 'FIT_ANALYSIS',
           sessionId: application.applicationId,
           // The context id is what a kit later uses to earn the after-fit price (canUseFitContinuation reads it off this reservation).
-          metadata: { source_tool: 'apply_to_feed_job', job_id: jobId, context_id: fitContextIdFor(idempotencyKey) },
+          metadata: { source_tool: 'apply_to_feed_job', job_id: jobId, context_id: fitContextIdFor('apply_to_feed_job', idempotencyKey) },
           spendLimit,
         },
         execute: async () => {
           const fit = await analyzeApplicationFit({
             userId,
             sessionId: application.applicationId,
-            contextId: fitContextIdFor(idempotencyKey),
+            contextId: fitContextIdFor('apply_to_feed_job', idempotencyKey),
             requestId: idempotencyKey,
           });
           return {

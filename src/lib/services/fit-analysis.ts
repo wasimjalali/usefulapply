@@ -35,9 +35,13 @@ export interface FitAnalysisRun {
   buildWrite(guard: SQL, now: string): Promise<{ statements: SQL[]; revision: number }>;
 }
 
-/** The deterministic context id for one idempotency key, so a retry names the same context. */
-export function fitContextIdFor(idempotencyKey: string): string {
-  return `ctx-${idempotencyKey}`;
+/**
+ * The deterministic context id for one fit request, so a retry names the same context. Idempotency keys are
+ * unique per user and tool, not across tools, so the tool is part of the id: the same key sent to
+ * analyze_job_fit and apply_to_feed_job must not name, and overwrite, one cached context.
+ */
+export function fitContextIdFor(source: 'analyze_job_fit' | 'apply_to_feed_job', idempotencyKey: string): string {
+  return `ctx-${source}-${idempotencyKey}`;
 }
 
 /** Run the analysis. The only things written are the cached context and, when the caller commits `buildWrite`, the application. */

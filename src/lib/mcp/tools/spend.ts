@@ -185,7 +185,7 @@ const analyzeJobFit = defineTool({
           jobUrl: args.jobUrl ?? null,
         };
     // The context id is what a kit later uses to earn the after-fit price: the fit's reservation carries it.
-    const contextId = fitContextIdFor(args.idempotencyKey);
+    const contextId = fitContextIdFor('analyze_job_fit', args.idempotencyKey);
 
     // A draft this call creates is removed again if the operation does not finish, so a failure leaves nothing behind.
     let createdDraftId: string | null = null;

@@ -360,10 +360,14 @@ async function generateKit(operation: AgentOperation): Promise<GeneratedKit> {
   if (!sources.primaryCV) throw new PermanentOperationError('no_cv');
 
   const contextId = typeof operation.input.contextId === 'string' ? operation.input.contextId : null;
-  const cachedContext = contextId ? await getCachedContext(operation.user_id, contextId) : null;
+  const found = contextId ? await getCachedContext(operation.user_id, contextId) : null;
+  // A fit context is only reused for the job it analysed: one cached for another ad (another application, or
+  // this one before its job description changed) would write the kit for the wrong job.
+  const cachedContext = found && found.jobDescription?.trim() === session.job_description.trim() ? found : null;
   if (cachedContext) normalizeCachedMatch(cachedContext);
   // A cache miss reruns the whole pipeline from the server-held CV, like the web route does.
-  if (contextId && !cachedContext) console.warn('[agent-queue] context cache miss for', operation.id);
+  if (contextId && !found) console.warn('[agent-queue] context cache miss for', operation.id);
+  if (found && !cachedContext) console.warn('[agent-queue] cached fit context is for another job description, not used, for', operation.id);
 
   // One job description for the whole run, like the web route: the cached fit
   // context's when there is one. The stored recipient only counts while the
