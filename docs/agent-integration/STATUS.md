@@ -29,6 +29,10 @@ Last updated 2026-10-21, session 4 (in progress). The plan is `PLAN.md` (v3) in 
 - **Numbers are unchanged:** the section backs none. Three review rounds found ways for every section-based number rule to move a kit number onto a new metric, so a number only the section has makes the rewrite refuse. That costs a retry, not credits.
 - **Tests:** `unified-writer-agent.claim-guard.test.ts` (8, now in `npm test`; nothing in CI runs it, the repo has no workflows) and a production-shaped rewrite in `e2e/mcp/02-happy-path.spec.ts` step 5c.
 
+**Job feed, no scheduler (decided by Wasim, 2026-10-21):** the feed is user-triggered by design. The user in the web app, or `run_job_feed`, starts at most one run a day; nothing runs on a schedule. That's why every production run is `manual_user`. AGENTS.md now says so, and the MCP tool descriptions no longer claim the feed "runs by itself".
+
+**#166 merged and deployed (Worker `69de1834`):** `nextRunAt` was different on every call while a run was in flight (each call's seconds carried over) and ignored the 20-hour floor. Now stable and equal to the gate's time; verified live on Wasim's account (two calls, same `2026-10-22T11:04:03.275Z`).
+
 ## Session 3 progress (2026-10-21)
 
 - **#162 merged** (not deployed yet, ships with #159): the refund reconciler's `LIKE 'Released reservation <id>%'` was 58 bytes, over D1's 50-byte LIKE limit, so the daily cron threw whenever a released reservation existed. Now `instr()`, and zero-amount reservations are skipped. Reviewed by Sonnet + Codex + Opus (high), 0 high, 2 lows fixed.

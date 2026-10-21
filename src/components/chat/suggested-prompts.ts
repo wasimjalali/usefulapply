@@ -40,7 +40,7 @@ export const CANNED_RESPONSES: Record<string, string> = {
     '- **Generate a full application kit**: tailored CV, cover letter, application email and follow-up',
     '- **Rewrite your CV or letters** on request, grounded only in your real experience',
     '- **Answer screening questions** from your CV',
-    '- **Find new roles daily** on your Job Board, matched to your profile',
+    '- **Find new roles** on your Job Board once a day, matched to your profile',
     '- **Track every application** and draft follow-ups when they come due',
     '',
     'Paste a job ad here to start, or ask me anything.',

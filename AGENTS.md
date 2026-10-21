@@ -119,11 +119,16 @@ Useful Apply is a Next.js 16 app generating job application materials (CV, Cover
 ### Agent Flow — Apply Directly Mode
 - Runs `runJobCopilot()` → full Phase 1 + Phase 2 in one pass (no fit assessment)
 
+### Job Feed: user-triggered, never scheduled
+- No cron or scheduler starts feed runs, by design. The user (web app) or `run_job_feed` (MCP) starts at most one completed run per day (a failed run can be retried at once): the next one may start at least 20 hours after the last one started and on a new local day, or after 28 hours whatever the day (`src/lib/services/feed/cooldown.ts`).
+- `enabled` (`automationEnabled` in the MCP tools) is an on/off switch for the feed, not a schedule. Don't add a scheduler (decided 2026-10-21).
+
 ### Credit Costs (source of truth: `src/lib/credit-costs.ts`; deductions in `src/db/repos/credits.ts`)
 | Action | Credits |
 |--------|---------|
 | Fit Analysis | 0.5 |
-| Full Application (after fit or direct) | 2.0 |
+| Full Application (direct) | 2.0 |
+| Full Application (after a fit) | 1.5 |
 | Cover Letter Regen | 0.5 |
 | Email Regen | 0.5 |
 | Follow-Up Regen | 0.5 |

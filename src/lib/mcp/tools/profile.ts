@@ -339,7 +339,6 @@ const switchField = (what: string) => z.boolean().optional().describe(`${what}. 
 
 const notificationOutput = z.object({
   marketing: z.boolean(),
-  feedReady: z.boolean(),
   followUpDue: z.boolean(),
   interviewTomorrow: z.boolean(),
   creditsLow: z.boolean(),
@@ -352,7 +351,6 @@ const updateNotificationSettings = defineTool({
   hints: WRITE_DESTRUCTIVE_IDEMPOTENT,
   input: z.object({
     marketing: switchField('Product news and offers by email'),
-    feedReady: switchField('Email when a new job feed is ready'),
     followUpDue: switchField('Email when a follow-up on an application is due'),
     interviewTomorrow: switchField('Email the day before an interview'),
     creditsLow: switchField('Email when credits are running low'),
@@ -361,7 +359,6 @@ const updateNotificationSettings = defineTool({
   async run(args, { userId }) {
     const updates: Partial<UserEditableProfile> = {};
     if (args.marketing !== undefined) updates.notify_marketing = args.marketing;
-    if (args.feedReady !== undefined) updates.notify_feed_ready = args.feedReady;
     if (args.followUpDue !== undefined) updates.notify_follow_up_due = args.followUpDue;
     if (args.interviewTomorrow !== undefined) updates.notify_interview_tomorrow = args.interviewTomorrow;
     if (args.creditsLow !== undefined) updates.notify_credits_low = args.creditsLow;
@@ -369,7 +366,6 @@ const updateNotificationSettings = defineTool({
     const profile = await updateUserProfile(userId, updates);
     return ok({
       marketing: profile.notify_marketing,
-      feedReady: profile.notify_feed_ready,
       followUpDue: profile.notify_follow_up_due,
       interviewTomorrow: profile.notify_interview_tomorrow,
       creditsLow: profile.notify_credits_low,
