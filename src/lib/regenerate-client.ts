@@ -12,6 +12,9 @@ import { generateRequestId } from '@/lib/utils/requestId';
 import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
 import { refreshFromServer } from '@/lib/session-sync';
 import { MAX_INSTRUCTION_CHARS, flattenInstruction } from '@/lib/agents/chat-tools/untrusted';
+import { applyRewrittenSection, CV_REWRITE_SECTIONS, type CvRewriteSection } from '@/lib/cv-structure/apply-rewrite';
+
+export { CV_REWRITE_SECTIONS, type CvRewriteSection };
 
 export type RegenTarget = 'cover-letter' | 'email' | 'follow-up';
 
@@ -357,78 +360,6 @@ export type CvSectionRewriteResult =
   | { ok: false; code: 'NO_CONTEXT' }
   | { ok: false; code: 'SIGNED_OUT' }
   | { ok: false; code: 'ERROR' };
-
-/**
- * The rewrite targets the route accepts, mirroring CVSectionKind in
- * src/lib/agents/prompts/cv-prompt.ts. Exported as a value so the chip handler
- * can check a section name off the wire before it spends anything.
- */
-export const CV_REWRITE_SECTIONS = [
-  'summary',
-  'experience_bullets',
-  'project_description',
-  'custom_section_items',
-] as const;
-
-export type CvRewriteSection = (typeof CV_REWRITE_SECTIONS)[number];
-
-/**
- * Writes the rewritten section onto the tailored CV. Only the one field the
- * rewrite targeted changes, so `analysis`, `sectionHeaders` and
- * `localizedStrings` survive by construction rather than by reassembly, which
- * is the same guarantee CVPanel.onSave gets by listing them.
- *
- * Returns null when the target is no longer on the CV. That is not an error
- * worth throwing: the section was deleted while the rewrite ran, and the
- * honest outcome is to leave the document alone.
- */
-/**
- * The FIRST entry with this id, matching how `resolveCVSectionTarget` on the
- * server picks the entry it rewrites. Entry ids come from model-generated JSON
- * and nothing enforces that they are unique, which is why the structure tools
- * address items by a hash of their content instead. This path has to use the
- * id, because that is what the rewrite contract takes, so the least it can do
- * is resolve it the same way both ends do. Writing every match would rewrite a
- * role the user never named and destroy its bullets.
- */
-function firstIndexById(list: Array<{ id: string }>, id: string | undefined): number {
-  if (!id) return -1;
-  return list.findIndex((entry) => entry.id === id);
-}
-
-function applyRewrittenSection(
-  cv: NonNullable<ApplicationSession['optimizedCVData']>,
-  kind: CvRewriteSection,
-  id: string | undefined,
-  content: string | string[],
-): NonNullable<ApplicationSession['optimizedCVData']> | null {
-  if (kind === 'summary') {
-    if (typeof content !== 'string') return null;
-    return { ...cv, summary: content };
-  }
-  if (kind === 'experience_bullets') {
-    if (!Array.isArray(content)) return null;
-    const at = firstIndexById(cv.experience, id);
-    if (at < 0) return null;
-    const experience = [...cv.experience];
-    experience[at] = { ...experience[at], bullets: content };
-    return { ...cv, experience };
-  }
-  if (kind === 'project_description') {
-    if (typeof content !== 'string' || !cv.projects) return null;
-    const at = firstIndexById(cv.projects, id);
-    if (at < 0) return null;
-    const projects = [...cv.projects];
-    projects[at] = { ...projects[at], description: content };
-    return { ...cv, projects };
-  }
-  if (!Array.isArray(content) || !cv.customSections) return null;
-  const at = firstIndexById(cv.customSections, id);
-  if (at < 0) return null;
-  const customSections = [...cv.customSections];
-  customSections[at] = { ...customSections[at], items: content };
-  return { ...cv, customSections };
-}
 
 export async function rewriteCvSection(
   section: CvRewriteSection,

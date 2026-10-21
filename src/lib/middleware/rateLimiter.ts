@@ -90,6 +90,9 @@ const RATE_LIMIT_BINDING_NAMES = {
   'mcp': 'RATE_LIMIT_MCP',
   'mcp-oauth': 'RATE_LIMIT_MCP_OAUTH',
   'mcp-register': 'RATE_LIMIT_MCP_REGISTER',
+  'mcp-save-cv': 'RATE_LIMIT_MCP_SAVE_CV',
+  'mcp-screening': 'RATE_LIMIT_MCP_SCREENING',
+  'mcp-export': 'RATE_LIMIT_MCP_EXPORT',
 } as const;
 
 type BoundRateLimitRoute = keyof typeof RATE_LIMIT_BINDING_NAMES;
@@ -132,6 +135,9 @@ declare global {
     RATE_LIMIT_MCP?: RateLimitBinding;
     RATE_LIMIT_MCP_OAUTH?: RateLimitBinding;
     RATE_LIMIT_MCP_REGISTER?: RateLimitBinding;
+    RATE_LIMIT_MCP_SAVE_CV?: RateLimitBinding;
+    RATE_LIMIT_MCP_SCREENING?: RateLimitBinding;
+    RATE_LIMIT_MCP_EXPORT?: RateLimitBinding;
   }
 }
 
@@ -304,6 +310,10 @@ export const RATE_LIMITS = {
   'mcp-oauth':               { name: 'mcp-oauth', limit: 300, windowMs: 60_000 },
   // Dynamic client registration is unauthenticated, so this one is tight and keyed on IP.
   'mcp-register':            { name: 'mcp-register', limit: 10, windowMs: 60_000 },
+  // Tools that cost us something though they cost the user no credits (a CV parse, screening answers, an export), keyed on the token's user.
+  'mcp-save-cv':             { name: 'mcp-save-cv', limit: 5, windowMs: 60_000 },
+  'mcp-screening':           { name: 'mcp-screening', limit: 5, windowMs: 60_000 },
+  'mcp-export':              { name: 'mcp-export', limit: 12, windowMs: 60_000 },
 } as const;
 
 export type RateLimitRoute = keyof typeof RATE_LIMITS;

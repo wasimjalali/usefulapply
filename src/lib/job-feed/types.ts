@@ -88,7 +88,7 @@ export interface JobFeedOverviewResponse {
 }
 
 export interface JobFeedRunDiagnostics {
-  orchestrator: 'direct' | 'inngest';
+  orchestrator: 'direct' | 'inngest' | 'queue';
   rankingStatus: JobFeedRankingExecutionResult['status'] | null;
   rankingSource: JobFeedRankingSource | null;
   rankingInputTokens: number | null;

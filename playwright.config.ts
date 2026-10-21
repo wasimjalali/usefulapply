@@ -3,10 +3,25 @@ import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { defineConfig } from '@playwright/test';
-import { BASE_URL, FAKE_ANTHROPIC_PORT, FAKE_ANTHROPIC_URL, OAUTH_PORT, PREVIEW_PORT, REPO_ROOT } from './e2e/lib/env';
+import {
+  BASE_URL,
+  FAKE_ANTHROPIC_PORT,
+  FAKE_ANTHROPIC_URL,
+  MCP_AI_INSPECTOR_PORT,
+  MCP_AI_PORT,
+  MCP_AI_WORKER_NAME,
+  MCP_BASE_URL,
+  MCP_FAKE_PORT,
+  MCP_FAKE_URL,
+  MCP_INSPECTOR_PORT,
+  MCP_PORT,
+  OAUTH_PORT,
+  PREVIEW_PORT,
+  REPO_ROOT,
+} from './e2e/lib/env';
 
 /**
- * One Playwright config, two projects.
+ * One Playwright config, up to four projects.
  *
  *   oauth  e2e/mcp-oauth.spec.ts   MCP OAuth server, real MCP client. Preview on 8791 with
  *                                  MCP_ENABLED / MCP_TEST_MODE / MCP_CIMD_ENABLED. The spec starts
@@ -14,6 +29,15 @@ import { BASE_URL, FAKE_ANTHROPIC_PORT, FAKE_ANTHROPIC_URL, OAUTH_PORT, PREVIEW_
  *   data   e2e/specs/**            Data integrity: revisioned saves, credits, the queue runner.
  *                                  Preview on 8794 (E2E_PREVIEW_PORT) with the model pointed at
  *                                  e2e/fake-anthropic.ts on 18793.
+ *   mcp    e2e/mcp/**              The MCP tool catalog end to end (PLAN section 7), over OAuth, on the local D1.
+ *                                  Only with E2E_MCP=1 (npm run test:e2e sets it). Preview on 8798 (E2E_MCP_PORT, inspector
+ *                                  E2E_MCP_INSPECTOR_PORT 19398) with MCP_ENABLED and MCP_TEST_MODE, and the model pointed at
+ *                                  its own e2e/fake-anthropic.ts on 18798 (E2E_MCP_FAKE_PORT) and `AI` bound to a stand-in Worker
+ *                                  (e2e/fake-ai/worker.mjs, wrangler dev on 18788, E2E_MCP_AI_PORT) because Workers AI is remote only.
+ *   mcp-exports e2e/mcp-exports/** The seven export formats in two templates through export_documents. Only with
+ *                                  E2E_MCP_EXPORTS=1 (which also turns the mcp servers on): the mcp preview then runs with the
+ *                                  Browser Run binding remote in its generated wrangler config (never committed), so it needs
+ *                                  a wrangler login. Not part of npm run test:e2e.
  *
  * Prerequisites:
  *   npx opennextjs-cloudflare build        (npm run test:e2e does this first)
@@ -26,9 +50,11 @@ import { BASE_URL, FAKE_ANTHROPIC_PORT, FAKE_ANTHROPIC_URL, OAUTH_PORT, PREVIEW_
  *                                  `"remote": true` on `browser` in wrangler.jsonc, never committed), `next dev` on
  *                                  8793, poppler, and `npm ci --prefix evals/ats-export`. Not part of `npm run test:e2e`.
  *
- * Run oauth and data: npm run test:e2e. The exports project too: E2E_EXPORTS=1 npx playwright test --project=exports. One project: npx playwright test --project=data. Playwright's
- * `webServer` list is global, not per project, so a single-project run still starts all three
- * servers (8791, the fake model and 8794) and fails if any of those ports is taken.
+ * Run oauth, data and mcp: npm run test:e2e. The exports project too: E2E_EXPORTS=1 npx playwright test --project=exports.
+ * One project: npx playwright test --project=data. Playwright's `webServer` list is global, not per project, so
+ * this file only lists the servers the selected `--project`s need (none selected means all of them), and a run
+ * fails if one of its ports is taken. E2E_OAUTH_PORT, E2E_PREVIEW_PORT, FAKE_ANTHROPIC_PORT, E2E_INSPECTOR_PORT,
+ * E2E_OAUTH_INSPECTOR_PORT and the E2E_MCP_* ports move a lane so two runs can coexist.
  * Servers are always started fresh (`reuseExistingServer: false`), so a stale process on a
  * port fails the run instead of being tested by accident. Artifacts go to
  * `<main checkout>/verify/<branch>/` (override with E2E_ARTIFACTS). PW_VIDEO=off skips video.
@@ -99,20 +125,142 @@ function parseJsonc(text: string): Record<string, unknown> {
  * detection, which falls back to English when the binding is absent.
  */
 const E2E_WRANGLER = 'wrangler.e2e.generated.json';
-function writeE2eWranglerConfig(): void {
+const E2E_MCP_WRANGLER = 'wrangler.e2e-mcp.generated.json';
+const E2E_FAKE_AI_WRANGLER = 'wrangler.e2e-fake-ai.generated.json';
+function writeE2eWranglerConfig(file: string, edit?: (config: Record<string, unknown>) => void): void {
   const config = parseJsonc(readFileSync(join(REPO_ROOT, 'wrangler.jsonc'), 'utf8'));
   delete config.ai;
   delete config.routes;
-  writeFileSync(join(REPO_ROOT, E2E_WRANGLER), `${JSON.stringify(config, null, 2)}\n`);
+  edit?.(config);
+  writeFileSync(join(REPO_ROOT, file), `${JSON.stringify(config, null, 2)}\n`);
 }
 
+const MCP_EXPORTS = process.env.E2E_MCP_EXPORTS === '1';
+const MCP = process.env.E2E_MCP === '1' || MCP_EXPORTS;
+
 assertBuildIsFresh();
-writeE2eWranglerConfig();
+writeE2eWranglerConfig(E2E_WRANGLER);
+if (MCP) {
+  // The renderer behind export_documents is Browser Run, which does not run locally. Only the exports run points
+  // the binding at the real service, in this generated copy and nowhere else.
+  // Workers AI is remote only too (it would bill the account), so the lane binds `AI` to a Worker of its own that
+  // answers the few prompts the specs reach (e2e/fake-ai/worker.mjs).
+  writeFileSync(
+    join(REPO_ROOT, E2E_FAKE_AI_WRANGLER),
+    `${JSON.stringify({ name: MCP_AI_WORKER_NAME, main: 'e2e/fake-ai/worker.mjs', compatibility_date: '2026-08-17' }, null, 2)}\n`,
+  );
+  writeE2eWranglerConfig(E2E_MCP_WRANGLER, (config) => {
+    if (MCP_EXPORTS) config.browser = { ...(config.browser as Record<string, unknown>), remote: true };
+    config.services = [...((config.services as unknown[] | undefined) ?? []), { binding: 'AI', service: MCP_AI_WORKER_NAME }];
+  });
+}
 const artifacts = artifactRoot();
 
 const browser = process.env.E2E_CHROMIUM
   ? { launchOptions: { executablePath: process.env.E2E_CHROMIUM } }
   : { channel: process.env.PW_CHANNEL ?? 'chrome' };
+
+/** Project names passed on the command line (`--project=x`, `--project x`, `-p x`). Empty means every project. */
+function selectedProjects(): string[] {
+  const names: string[] = [];
+  const args = process.argv.slice(2);
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg.startsWith('--project=')) names.push(arg.slice('--project='.length));
+    else if ((arg === '--project' || arg === '-p') && args[i + 1]) names.push(args[++i]);
+  }
+  return names;
+}
+const selected = selectedProjects();
+const needs = (...projects: string[]) => selected.length === 0 || projects.some((name) => selected.includes(name));
+
+const webServers = [
+  ...(needs('oauth')
+    ? [
+        {
+          command: [
+            'npx opennextjs-cloudflare preview --',
+            `--port ${OAUTH_PORT}`,
+            `--inspector-port ${Number(process.env.E2E_OAUTH_INSPECTOR_PORT ?? 19230)}`,
+            `--local-upstream localhost:${OAUTH_PORT}`,
+            '--test-scheduled',
+            '--var MCP_ENABLED:true',
+            '--var MCP_TEST_MODE:true',
+            '--var MCP_CIMD_ENABLED:true',
+            `--var BETTER_AUTH_URL:http://localhost:${OAUTH_PORT}`,
+          ].join(' '),
+          url: `http://localhost:${OAUTH_PORT}/.well-known/oauth-protected-resource/mcp`,
+          reuseExistingServer: false,
+          timeout: 180_000,
+          stdout: 'pipe' as const,
+          stderr: 'pipe' as const,
+        },
+      ]
+    : []),
+  ...(needs('data')
+    ? [
+        {
+          command: `npx tsx e2e/fake-anthropic.ts ${FAKE_ANTHROPIC_PORT}`,
+          url: `${FAKE_ANTHROPIC_URL}/__health`,
+          reuseExistingServer: false,
+          timeout: 30_000,
+        },
+        {
+          command: [
+            `npx opennextjs-cloudflare preview -c ${E2E_WRANGLER} --`,
+            `--port ${PREVIEW_PORT}`,
+            `--inspector-port ${Number(process.env.E2E_INSPECTOR_PORT ?? 19229)}`,
+            '--test-scheduled',
+            `--var BETTER_AUTH_URL:${BASE_URL}`,
+            '--var AI_PROVIDER:anthropic',
+            '--var ANTHROPIC_API_KEY:e2e-stub-key',
+            `--var ANTHROPIC_BASE_URL:${FAKE_ANTHROPIC_URL}`,
+          ].join(' '),
+          url: BASE_URL,
+          reuseExistingServer: false,
+          timeout: 180_000,
+        },
+      ]
+    : []),
+  ...(MCP && needs('mcp', 'mcp-exports')
+    ? [
+        {
+          command: `npx wrangler dev -c ${E2E_FAKE_AI_WRANGLER} --port ${MCP_AI_PORT} --inspector-port ${MCP_AI_INSPECTOR_PORT}`,
+          url: `http://localhost:${MCP_AI_PORT}/`,
+          reuseExistingServer: false,
+          timeout: 60_000,
+        },
+        {
+          command: `npx tsx e2e/fake-anthropic.ts ${MCP_FAKE_PORT}`,
+          url: `${MCP_FAKE_URL}/__health`,
+          reuseExistingServer: false,
+          timeout: 30_000,
+        },
+        {
+          command: [
+            `npx opennextjs-cloudflare preview -c ${E2E_MCP_WRANGLER} --`,
+            `--port ${MCP_PORT}`,
+            `--inspector-port ${MCP_INSPECTOR_PORT}`,
+            `--local-upstream localhost:${MCP_PORT}`,
+            '--test-scheduled',
+            '--var MCP_ENABLED:true',
+            '--var MCP_TEST_MODE:true',
+            `--var BETTER_AUTH_URL:${MCP_BASE_URL}`,
+            '--var AI_PROVIDER:anthropic',
+            '--var ANTHROPIC_API_KEY:e2e-stub-key',
+            `--var ANTHROPIC_BASE_URL:${MCP_FAKE_URL}`,
+            // Test value that only signs the download links of this run.
+            '--var EXPORT_SIGNING_SECRET:e2e-mcp-export-signing-secret',
+          ].join(' '),
+          url: `${MCP_BASE_URL}/.well-known/oauth-protected-resource/mcp`,
+          reuseExistingServer: false,
+          timeout: 180_000,
+          stdout: 'pipe' as const,
+          stderr: 'pipe' as const,
+        },
+      ]
+    : []),
+];
 
 export default defineConfig({
   workers: 1,
@@ -156,6 +304,28 @@ export default defineConfig({
           },
         ]
       : []),
+    ...(MCP
+      ? [
+          {
+            name: 'mcp',
+            testDir: './e2e/mcp',
+            timeout: 240_000,
+            expect: { timeout: 20_000 },
+            use: { baseURL: MCP_BASE_URL, viewport: { width: 1440, height: 900 } },
+          },
+        ]
+      : []),
+    ...(MCP_EXPORTS
+      ? [
+          {
+            name: 'mcp-exports',
+            testDir: './e2e/mcp-exports',
+            timeout: 300_000,
+            expect: { timeout: 30_000 },
+            use: { baseURL: MCP_BASE_URL, viewport: { width: 1440, height: 900 } },
+          },
+        ]
+      : []),
     {
       name: 'oauth',
       testDir: './e2e',
@@ -171,45 +341,5 @@ export default defineConfig({
       use: { baseURL: BASE_URL, viewport: { width: 1440, height: 900 } },
     },
   ],
-  webServer: [
-    {
-      command: [
-        'npx opennextjs-cloudflare preview --',
-        `--port ${OAUTH_PORT}`,
-        `--inspector-port ${Number(process.env.E2E_OAUTH_INSPECTOR_PORT ?? 19230)}`,
-        `--local-upstream localhost:${OAUTH_PORT}`,
-        '--test-scheduled',
-        '--var MCP_ENABLED:true',
-        '--var MCP_TEST_MODE:true',
-        '--var MCP_CIMD_ENABLED:true',
-        `--var BETTER_AUTH_URL:http://localhost:${OAUTH_PORT}`,
-      ].join(' '),
-      url: `http://localhost:${OAUTH_PORT}/.well-known/oauth-protected-resource/mcp`,
-      reuseExistingServer: false,
-      timeout: 180_000,
-      stdout: 'pipe',
-      stderr: 'pipe',
-    },
-    {
-      command: `npx tsx e2e/fake-anthropic.ts ${FAKE_ANTHROPIC_PORT}`,
-      url: `${FAKE_ANTHROPIC_URL}/__health`,
-      reuseExistingServer: false,
-      timeout: 30_000,
-    },
-    {
-      command: [
-        `npx opennextjs-cloudflare preview -c ${E2E_WRANGLER} --`,
-        `--port ${PREVIEW_PORT}`,
-        `--inspector-port ${Number(process.env.E2E_INSPECTOR_PORT ?? 19229)}`,
-        '--test-scheduled',
-        `--var BETTER_AUTH_URL:${BASE_URL}`,
-        '--var AI_PROVIDER:anthropic',
-        '--var ANTHROPIC_API_KEY:e2e-stub-key',
-        `--var ANTHROPIC_BASE_URL:${FAKE_ANTHROPIC_URL}`,
-      ].join(' '),
-      url: BASE_URL,
-      reuseExistingServer: false,
-      timeout: 180_000,
-    },
-  ],
+  webServer: webServers,
 });

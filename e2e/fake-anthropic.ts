@@ -77,7 +77,7 @@ createServer(async (request, response) => {
       if (failWriters.has(writer as Writer)) {
         return json(response, 500, { type: 'error', error: { type: 'api_error', message: `scripted failure for ${writer}` } });
       }
-      const text = answerFor(writer);
+      const text = answerFor(writer, user);
       return body.stream ? sse(response, text) : json(response, 200, messageFor(text));
     }
     json(response, 404, { error: 'not found' });

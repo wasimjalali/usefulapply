@@ -43,11 +43,14 @@ import {
   planPartialRefund,
 } from '@/db/repos/credits';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
+import type { ReservationSpendLimit } from '@/db/repos/credits';
 import { releaseFitContinuationClaim, releaseReservation } from '@/lib/supabase/credit-reservations';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { isSameStoredText } from '@/db/trim-text';
 import { fillLetterRecipient } from './applications';
 import { getCachedContext, normalizeCachedMatch, removeCachedContext } from './context-cache';
+import { finalizeFeedRowForKit } from './feed/kit-finalize';
+import { failUnclaimedRun, runQueuedFeedRun } from './feed/run-queue';
 import {
   InsufficientCreditsError,
   InvalidInputError,
@@ -56,6 +59,7 @@ import {
   OperationLimitReached,
   PermanentOperationError,
   ReservationConflictError,
+  SpendLimitReachedError,
 } from './errors';
 import { buildSessionUpdateStatement, kitColumnsFromResults, kitFromRow, type KitResults } from './kit';
 import {
@@ -104,9 +108,19 @@ const HEARTBEAT_FAILURES_BEFORE_STOP = 3;
 export interface AgentQueueBinding {
   send(message: AgentQueueMessage, options?: { delaySeconds?: number }): Promise<void>;
 }
-export interface AgentQueueMessage {
+export const FEED_RUN_MESSAGE_KIND = 'job_feed_run';
+
+/** A kit operation to run. The original message shape: no `kind`. */
+export interface KitQueueMessage {
   operationId: string;
 }
+/** A queued job feed run (run_job_feed). The consumer claims the `queued` run row and runs the feed. */
+export interface FeedRunQueueMessage {
+  kind: typeof FEED_RUN_MESSAGE_KIND;
+  userId: string;
+  runId: string;
+}
+export type AgentQueueMessage = KitQueueMessage | FeedRunQueueMessage;
 
 declare global {
   interface CloudflareEnv {
@@ -136,6 +150,12 @@ async function getQueue(): Promise<AgentQueueBinding> {
   return queue;
 }
 
+/** Put a queued job feed run on the queue. Throws when the queue is missing or the send fails; the caller owns the run row. */
+export async function sendFeedRunMessage(userId: string, runId: string): Promise<void> {
+  const queue = await getQueue();
+  await queue.send({ kind: FEED_RUN_MESSAGE_KIND, userId, runId });
+}
+
 // ---------------------------------------------------------------------------
 // Enqueue
 // ---------------------------------------------------------------------------
@@ -145,6 +165,11 @@ export interface KitGenerationInput {
   contextId?: string | null;
   /** Replace a kit that already exists. Without it an existing kit is an error. */
   regenerate?: boolean;
+  /**
+   * A cap on what the caller's channel may reserve per window (the MCP daily agent limit). Part of
+   * neither the operation's identity nor its hash: it only decides whether the reservation is made.
+   */
+  spendLimit?: ReservationSpendLimit;
 }
 
 export interface EnqueueKitResult {
@@ -183,7 +208,11 @@ export async function enqueueKitGeneration(
     regenerate: Boolean(input.regenerate),
   };
   const kind = OPERATION_KINDS.generateKit;
-  const inputHash = await hashOperationInput(normalized);
+  // The fit context only decides the price and where the run starts, and the MCP tool derives it
+  // from the application's stored fit (a kit that lands removes that stash). So it is stored with
+  // the operation but is not part of the request's identity: a retry after the kit finished, or an
+  // identical request under a fresh key, must still match the first one.
+  const inputHash = await hashOperationInput({ sessionId: normalized.sessionId, regenerate: normalized.regenerate });
 
   const describe = (operation: AgentOperation, deduped: boolean, matchedBy?: 'key' | 'input' | 'session'): EnqueueKitResult => ({
     operationId: operation.id,
@@ -213,9 +242,13 @@ export async function enqueueKitGeneration(
     requestId: idempotencyKey,
     keyFor: (action) => `generate_kit:${userId}:${sessionId}:${action}:${idempotencyKey}`,
     onReservation: (key) => { heldKey = key; },
+    spendLimit: input.spendLimit,
   });
   const reservation = reserved.result.reservation;
   if (!reserved.result.success) {
+    if (reserved.result.code === 'SPEND_LIMIT_REACHED' && reserved.result.spendLimit) {
+      throw new SpendLimitReachedError(reserved.result.spendLimit.spent, reserved.result.spendLimit.limit, reserved.cost);
+    }
     // A reservation under this very key with no operation is a first attempt
     // that died between reserving and inserting. It is ours: adopt it.
     if (reserved.result.code === 'RESERVATION_IN_FLIGHT' && reservation?.status === 'reserved') {
@@ -327,10 +360,14 @@ async function generateKit(operation: AgentOperation): Promise<GeneratedKit> {
   if (!sources.primaryCV) throw new PermanentOperationError('no_cv');
 
   const contextId = typeof operation.input.contextId === 'string' ? operation.input.contextId : null;
-  const cachedContext = contextId ? await getCachedContext(operation.user_id, contextId) : null;
+  const found = contextId ? await getCachedContext(operation.user_id, contextId) : null;
+  // A fit context is only reused for the job it analysed: one cached for another ad (another application, or
+  // this one before its job description changed) would write the kit for the wrong job.
+  const cachedContext = found && found.jobDescription?.trim() === session.job_description.trim() ? found : null;
   if (cachedContext) normalizeCachedMatch(cachedContext);
   // A cache miss reruns the whole pipeline from the server-held CV, like the web route does.
-  if (contextId && !cachedContext) console.warn('[agent-queue] context cache miss for', operation.id);
+  if (contextId && !found) console.warn('[agent-queue] context cache miss for', operation.id);
+  if (found && !cachedContext) console.warn('[agent-queue] cached fit context is for another job description, not used, for', operation.id);
 
   // One job description for the whole run, like the web route: the cached fit
   // context's when there is one. The stored recipient only counts while the
@@ -501,6 +538,9 @@ export async function runKitOperation(operationId: string): Promise<RunOutcome> 
     if (leaseLost) return { outcome: 'dropped', reason: 'lease_lost' };
     const settled = await settleSuccess(claimedRow, claimed, generated.results);
     if (settled === 'lost') return { outcome: 'dropped', reason: 'lost_to_cancel_or_takeover' };
+    // Outside the settle batch: the kit and its charge are already stored, and a feed row that
+    // cannot be updated is logged, not rolled back.
+    await finalizeFeedRowForKit(claimedRow, 'succeeded');
     // The letter's recipient from the ad goes onto the row (fill-only, bumps the revision).
     if (isStructuredCoverLetter(generated.results.coverLetterStructured)) {
       await fillLetterRecipient(claimedRow.user_id, claimedRow.session_id as string, generated.jobDescription, generated.results.coverLetterStructured).catch((error) => {
@@ -543,10 +583,26 @@ async function finishFailed(
 // Consumer
 // ---------------------------------------------------------------------------
 
-function operationIdFrom(body: unknown): string | null {
-  if (!body || typeof body !== 'object') return null;
-  const id = (body as { operationId?: unknown }).operationId;
-  return typeof id === 'string' && id.length > 0 && id.length <= 100 ? id : null;
+/** What a queue message asks for. Anything that is not exactly one of the two known shapes is `null`. */
+type ParsedMessage =
+  | { type: 'kit'; operationId: string }
+  | { type: 'feed_run'; userId: string; runId: string };
+
+const ID_MAX_LENGTH = 100;
+const isId = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length <= ID_MAX_LENGTH;
+
+function parseMessage(body: unknown): ParsedMessage | null {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return null;
+  const record = body as Record<string, unknown>;
+  if ('kind' in record) {
+    // A feed run message carries exactly these three fields and nothing else.
+    const keys = Object.keys(record);
+    if (record.kind === FEED_RUN_MESSAGE_KIND && keys.length === 3 && isId(record.userId) && isId(record.runId)) {
+      return { type: 'feed_run', userId: record.userId, runId: record.runId };
+    }
+    return null;
+  }
+  return isId(record.operationId) ? { type: 'kit', operationId: record.operationId } : null;
 }
 
 /** A message that landed in the dead-letter queue: the operation will never be retried by the queue. */
@@ -568,18 +624,35 @@ async function handleDeadLetter(operationId: string): Promise<void> {
 export async function handleAgentQueueBatch(batch: MessageBatchLike): Promise<void> {
   for (const message of batch.messages) {
     try {
-      const operationId = operationIdFrom(message.body);
-      if (!operationId) {
-        console.error('[agent-queue] dropping a message without an operation id');
+      const parsed = parseMessage(message.body);
+      if (!parsed) {
+        console.error('[agent-queue] dropping a message of an unknown shape');
         message.ack();
+        continue;
+      }
+      if (parsed.type === 'feed_run') {
+        if (batch.queue === AGENT_DLQ_NAME) {
+          console.error('[agent-queue] dead-letter message for job feed run', parsed.runId);
+          await failUnclaimedRun(parsed.userId, parsed.runId);
+          message.ack();
+          continue;
+        }
+        const outcome = await runQueuedFeedRun({
+          userId: parsed.userId,
+          runId: parsed.runId,
+          attempt: message.attempts,
+          maxAttempts: QUEUE_MAX_RETRIES + 1,
+        });
+        if (outcome.outcome === 'retry') message.retry({ delaySeconds: retryDelaySeconds(message.attempts) });
+        else message.ack();
         continue;
       }
       if (batch.queue === AGENT_DLQ_NAME) {
-        await handleDeadLetter(operationId);
+        await handleDeadLetter(parsed.operationId);
         message.ack();
         continue;
       }
-      const outcome = await runKitOperation(operationId);
+      const outcome = await runKitOperation(parsed.operationId);
       if (outcome.outcome === 'retry') message.retry({ delaySeconds: outcome.delaySeconds });
       else message.ack();
     } catch (error) {
@@ -619,7 +692,12 @@ export async function recoverStuckOperations(options: { limit?: number } = {}): 
       const observed: FinishExpectation = operation.status === 'pending'
         ? { pending: true }
         : { attempt: operation.attempt, leaseOwner: operation.lease_owner };
-      if (operation.status === 'pending' && Date.parse(operation.created_at) < Date.now() - PENDING_OPERATION_MAX_AGE_MS) {
+      if (operation.kind !== OPERATION_KINDS.generateKit) {
+        // An operation that runs inside its tool call has no queue message to re-send. One that is
+        // still unfinished past its lease lost its worker: end it and give the credits back.
+        await finishFailed(operation, 'abandoned', 'the worker running the operation went away', observed);
+        result.failed += 1;
+      } else if (operation.status === 'pending' && Date.parse(operation.created_at) < Date.now() - PENDING_OPERATION_MAX_AGE_MS) {
         // Its message never produced a run for over an hour: give the credits back.
         await finishFailed(operation, 'stuck', 'the operation sat pending for over an hour', observed);
         result.failed += 1;

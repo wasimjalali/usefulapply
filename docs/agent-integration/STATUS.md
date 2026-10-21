@@ -1,6 +1,31 @@
 # MCP integration: status tracker
 
-Last updated 2026-10-20, end of session 1. The plan is `PLAN.md` (v3) in this folder; this file says what's done, what's in flight and what's left. A new session starts here.
+Last updated 2026-10-21, session 3 (in progress). The plan is `PLAN.md` (v3) in this folder; this file says what's done, what's in flight and what's left. A new session starts here.
+
+## Resume here (session 4)
+
+1. **Shipped in session 3:** #162 (refund reconciler, D1 LIKE limit), #159 (Discard data-safety fix, live since version `79541d8e`), #163 (PR 5, the 43-tool MCP catalog, with migration 0011 applied remote). MCP is still off (`MCP_ENABLED=false`).
+2. **#161** (`feature/mcp-distribution-pack`): review round 2 done, all lows fixed; merges next.
+3. **#156** (`feature/mcp-distribution-docs`): review round 3 done, all lows fixed; merges in the launch deploy, so its /integrations links work from the start. Fill the PostHog retention placeholder at `src/app/privacy/page.tsx:573` before launch (Wasim's number).
+4. **Launch:** `MCP_ENABLED=true` in `wrangler.jsonc`; footer "AI integrations" link unconditional; `/plugin marketplace add wasimjalali/usefulapply-plugin` line on /integrations; deploy; live-test every tool in MCP Inspector, Claude Code (plugin), the Claude.ai custom connector and ChatGPT developer mode.
+5. **Follow-ups** as in "Left to do", plus: `rewrite_cv_section` returns its before/after text unwrapped while the other CV edit tools wrap it; no spec asserts the top-level `language` code in `get_cv` stays unwrapped.
+
+## Session 3 progress (2026-10-21)
+
+- **#162 merged** (not deployed yet, ships with #159): the refund reconciler's `LIKE 'Released reservation <id>%'` was 58 bytes, over D1's 50-byte LIKE limit, so the daily cron threw whenever a released reservation existed. Now `instr()`, and zero-amount reservations are skipped. Reviewed by Sonnet + Codex + Opus (high), 0 high, 2 lows fixed.
+- **#159:** round 3 fix pushed (3f5a250e; fuzz before/after H1 405→0, H2 122→0, H3 328→0; `data` 27/27). Round 3 review: Codex 1 high (partial Discard leaves the discarded document in the editor's lineage), confirmed real by an Opus arbiter; Sonnet 6 lows. Fix in progress by the Opus debugger in `.claude/worktrees/fix-159`.
+- **PR 5:** `mcp-tools/e2e` merged in; PLAN says 43 tools. Full `data` + `oauth` + `mcp` with the expiry test: 130/130. `mcp-exports`: 3/3 after a fix (a seven-format export hit the 6-per-minute render limit on its 7th file; only PDFs, which use Browser Run, now count). `d14` passes inside the `d` scenarios spec.
+- **Plugin PR #1 merged** after two Sonnet rounds.
+- **#161:** listing, reviewer guide, checklist and OpenAI sheet updated to the 43 tools (95b71396). Open item for its review: the seed doesn't reset notification switches or the photo, and the seeded tailored CVs have no projects. (`give_job_feedback` is now destructive and confirms dismissals, fixed in PR 5 round 1.)
+- **Learned:** a new worktree needs `.dev.vars` copied (plain `cp`) or every preview returns 500 on the OAuth metadata route; Playwright needs `npx playwright install ffmpeg` for the video-recording specs.
+
+## Session 2 progress (2026-10-20)
+
+- **#160 merged:** the lockfile was out of sync with `package.json` (not a better-sqlite3 peer conflict). A plain `npm ci` works again; `--legacy-peer-deps` is no longer needed.
+- **#159 (`fix/discard-and-short-jd`):** opened. Round 1: Codex 2 highs, Sonnet 6 lows; fixed in 849012b7 (fuzz: 563 of 2,000 seeds failing before, 0 after; `data` 27/27). Round 2: 3 new highs and 6 lows (see Resume here).
+- **PR 5 (`feature/mcp-tool-catalog`):** all 44 tools built by five workers in parallel and merged into the branch (`account`, `applications`, `cv`, `spend`, `feed`, `profile` modules under `src/lib/mcp/tools/`, registered through `catalog.ts`). `run_job_feed` now queues the run on `agent-generation` (message `{ kind: 'job_feed_run', userId, runId }`) and returns at once; kits queued by `apply_to_feed_job` finalize the feed row. tsc 0, eslint 0 errors. Not yet run end to end.
+  - Decisions: `update_notification_settings` drops the default CV template (it's browser-local only); `notify_tips`, `notify_updates` and `notify_weekly` aren't exposed (nothing reads them). CV undo keeps the current screening answers. A regenerated kit has no undo (the runner's atomic batch writes no history; the confirm question says so).
+- **PR 6b:** plugin repo [wasimjalali/usefulapply-plugin](https://github.com/wasimjalali/usefulapply-plugin) created (public), PR #1 open there. OpenAI submission sheet, reviewer seed script and submission pack on `feature/mcp-distribution-pack` (not pushed yet); the seed runs locally only until launch.
 
 ## Done: merged and live in production
 
@@ -17,10 +42,11 @@ Last updated 2026-10-20, end of session 1. The plan is `PLAN.md` (v3) in this fo
 **Production version:** `0d6ac237` (recorded at deploy time).
 
 **Production state:**
-- **Migrations applied:** 0009 and 0010.
+- **Migrations applied:** 0009, 0010 and 0011.
 - **Restore bookmarks:**
   - before 0009: `00002253-00000000-0000510a-3d0903b46b16d2719196570752add4b2`
   - before 0010: `00002277-00000000-0000510a-8009d4a7e5b3e2de94c26df59b2e0315`
+  - before 0011 (2026-10-21, session 3): `000022fb-00000000-0000510b-b2fb610efe00565f2843d3e573f3a49b`
 - **Secrets set:** `EXPORT_SIGNING_SECRET`.
 - **Queues created:** `agent-generation`, `agent-generation-dlq`.
 

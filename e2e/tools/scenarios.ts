@@ -18,7 +18,7 @@ import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
 import { FAKE_ANTHROPIC_URL } from '../lib/env';
 import { fakeCalls, fakeReset } from '../lib/fake-control';
-import { JOB_DESCRIPTION, PRIMARY_CV } from '../lib/model-script';
+import { JOB_DESCRIPTION, PRIMARY_CV, PRIMARY_CV_DE } from '../lib/model-script';
 import { freshStateDir, openPlatform, pointModelAtFake, type Platform } from '../lib/platform';
 
 pointModelAtFake();
@@ -597,7 +597,7 @@ async function main(): Promise<void> {
       return { outcome: inserted.outcome };
     });
 
-    await scenario('d21. a cached fit context for another job: the recipient never crosses jobs', async () => {
+    await scenario('d21. a cached fit context for another job is not reused: the kit is written for the ad the application holds now, and the recipient never crosses jobs', async () => {
       const user = await seedUser('d21', { monthly: 4, addon: 6 });
       const [sessionId] = user.sessionIds;
       const oldAd = String((await one('SELECT job_description FROM application_sessions WHERE id = ?', sessionId)).job_description);
@@ -615,12 +615,15 @@ async function main(): Promise<void> {
       const queued = await runners.enqueueKitGeneration(user.id, sessionId, 'key-d21', { contextId: 'ctx-d21' });
       await deliverUntilSettled(queued.operationId);
       assert.equal((await one('SELECT status FROM agent_operations WHERE id = ?', queued.operationId)).status, 'succeeded');
-      assert.ok((await fakeCalls()).find((call) => call.writer === 'coverLetter'), 'the letter was written');
+      const letterCall = (await fakeCalls()).find((call) => call.writer === 'coverLetter');
+      assert.ok(letterCall, 'the letter was written');
+      // The fit analysed the old ad, so its cached context is not reused: the letter is about the ad the row holds now.
+      assert.ok(letterCall.user.includes('Other Corp'), 'the letter is written for the current ad');
+      assert.ok(!letterCall.user.includes(oldAd.slice(0, 60)), 'the old ad is not in the letter prompt');
       const stored = JSON.parse(String((await one('SELECT cover_letter FROM application_sessions WHERE id = ?', sessionId)).cover_letter));
       assert.ok(stored.structured, 'a structured letter was stored');
-      assert.ok(!JSON.stringify(stored.structured.recipient).includes('NEW-JOB-ADDRESS'), 'the new job\'s saved recipient is not on a letter about the old job');
       const after = await one('SELECT company_address FROM application_sessions WHERE id = ?', sessionId);
-      assert.equal(after.company_address, 'NEW-JOB-ADDRESS 99', 'and nothing from the old job was written over it');
+      assert.equal(after.company_address, 'NEW-JOB-ADDRESS 99', 'and nothing from the old job was written over the saved recipient');
       return { letterPromptChecked: true };
     });
 
@@ -1084,6 +1087,178 @@ async function main(): Promise<void> {
       const metadata = JSON.parse(String((await reservationsOf(user.id))[0].metadata));
       assert.deepEqual(metadata.deducted_from, { monthly: 1, rollover: 0.5, addon: 0.5 });
       return { racers: racers.map((result) => result.code ?? 'created'), inFlight: inFlight.code, spent: spent.code };
+    });
+  }
+
+  if (mode === 'e') {
+    const { spendTools } = await import('../../src/lib/mcp/tools/spend');
+    const inline = await import('../../src/lib/services/inline-operations');
+    const spendTool = (name: string) => {
+      const found = spendTools.find((tool) => tool.name === name);
+      assert.ok(found, `${name} is registered`);
+      return found;
+    };
+    const toolContext = (userId: string) => ({ userId, clientId: 'e2e', scopes: [] as string[] });
+    /** Make the capture of any reservation fail while `body` runs, the way a D1 error or a Worker that dies at the batch would. */
+    async function whileCaptureFails<T>(name: string, message: string, body: () => Promise<T>): Promise<T> {
+      await run(`CREATE TRIGGER ${name} BEFORE UPDATE OF status ON credit_reservations WHEN NEW.status = 'captured' BEGIN SELECT RAISE(ABORT, '${message}'); END`);
+      try {
+        return await body();
+      } finally {
+        await run(`DROP TRIGGER ${name}`);
+      }
+    }
+    const sessionOf = (sessionId: string) => one('SELECT revision, cover_letter, generated_cv FROM application_sessions WHERE id = ?', sessionId);
+    const historyCount = async (sessionId: string) => Number((await one('SELECT COUNT(*) AS n FROM application_edit_history WHERE session_id = ?', sessionId)).n);
+
+    /** A user whose application already has a finished kit, made by the real queue runner. */
+    async function seedUserWithKit(label: string, cvText?: string) {
+      const user = await seedUser(label, { monthly: 4, addon: 6 });
+      if (cvText) await run("UPDATE documents SET raw_text = ? WHERE user_id = ? AND type = 'primary_cv'", cvText, user.id);
+      const [sessionId] = user.sessionIds;
+      await fakeReset();
+      const queued = await runners.enqueueKitGeneration(user.id, sessionId, `key-${label}-kit`, {});
+      const settled = await deliverUntilSettled(queued.operationId);
+      assert.equal(settled.deadLettered, false);
+      assert.equal((await one('SELECT status FROM agent_operations WHERE id = ?', queued.operationId)).status, 'succeeded');
+      return { ...user, sessionId };
+    }
+
+    await scenario('e10. an inline regenerate saves its output, marks the operation done and captures the credits in ONE batch: a failing capture leaves no document behind', async () => {
+      const user = await seedUserWithKit('e10');
+      const regenerate = spendTool('regenerate_document');
+      const before = await sessionOf(user.sessionId);
+      const historyBefore = await historyCount(user.sessionId);
+      const balanceBefore = await balanceOf(user.id);
+
+      // The capture fails (a trigger stands in for a D1 error or a Worker that dies at the batch). Everything the batch holds must go with it.
+      await whileCaptureFails('e10_poison', 'secret-provider-detail e10', () => assert.rejects(
+        regenerate.run({ idempotencyKey: 'key-e10-a', applicationId: user.sessionId, document: 'cover_letter', instruction: 'Make it warmer.' }, toolContext(user.id)),
+      ));
+
+      const afterFailure = await sessionOf(user.sessionId);
+      assert.equal(afterFailure.cover_letter, before.cover_letter, 'the letter was not saved: its credits were returned, so it must not exist');
+      assert.equal(afterFailure.revision, before.revision, 'no revision bump');
+      assert.equal(await historyCount(user.sessionId), historyBefore, 'no history row for a write that never happened');
+      const failedOperation = (await operationsOf(user.id)).find((row) => row.reservation_key === `mcp_regenerate_document:${user.id}:key-e10-a`);
+      assert.equal(failedOperation?.status, 'failed');
+      const reservation = (await reservationsOf(user.id)).find((row) => row.idempotency_key === `mcp_regenerate_document:${user.id}:key-e10-a`);
+      assert.equal(reservation?.status, 'released');
+      assert.equal((await balanceOf(user.id)).total, balanceBefore.total, 'every credit is back');
+      const releaseRow = (await ledgerOf(user.id)).find((row) => row.transaction_type === 'reservation_released');
+      assert.ok(releaseRow, 'the release is in the ledger');
+      assert.doesNotMatch(String(releaseRow.description), /secret-provider-detail|poison/i, 'the ledger description (what get_credit_history shows) carries the error code, never the error text');
+
+      // The same call without the failure: output, operation and capture land together.
+      const result = await regenerate.run({ idempotencyKey: 'key-e10-b', applicationId: user.sessionId, document: 'cover_letter', instruction: 'Make it warmer.' }, toolContext(user.id));
+      assert.equal((result.structured as { revision: number }).revision, Number(before.revision) + 1);
+      const afterSuccess = await sessionOf(user.sessionId);
+      assert.notEqual(afterSuccess.cover_letter, before.cover_letter, 'the letter was replaced');
+      // The recipient fill after the save may bump the revision once more.
+      assert.ok(Number(afterSuccess.revision) >= Number(before.revision) + 1);
+      assert.equal(await historyCount(user.sessionId), historyBefore + 1, 'the replaced letter is kept for undo');
+      const done = (await operationsOf(user.id)).find((row) => row.reservation_key === `mcp_regenerate_document:${user.id}:key-e10-b`);
+      assert.equal(done?.status, 'succeeded');
+      assert.equal((await reservationsOf(user.id)).find((row) => row.idempotency_key === `mcp_regenerate_document:${user.id}:key-e10-b`)?.status, 'captured');
+      assert.equal(balanceBefore.total - (await balanceOf(user.id)).total, 0.5, 'one 0.5 charge');
+      return { revisionBefore: before.revision, revisionAfter: afterSuccess.revision, releaseDescription: releaseRow.description };
+    });
+
+    await scenario('e11. an inline CV section rewrite: a failing capture leaves the CV as it was; the clean run edits it, keeps the old one for undo and charges once', async () => {
+      // The German CV is the one the scripted writer's summary rewrite is accepted for (as in the MCP lane).
+      const user = await seedUserWithKit('e11', PRIMARY_CV_DE);
+      const rewrite = spendTool('rewrite_cv_section');
+      const before = await sessionOf(user.sessionId);
+      const historyBefore = await historyCount(user.sessionId);
+      const balanceBefore = await balanceOf(user.id);
+      const input = { applicationId: user.sessionId, section: { kind: 'summary' }, instruction: 'Put forecasting first.' };
+
+      await whileCaptureFails('e11_poison', 'e11', async () => {
+        const outcome = await rewrite.run({ idempotencyKey: 'key-e11-a', ...input }, toolContext(user.id)).then(
+          (result) => ({ result }),
+          (error: unknown) => ({ error }),
+        );
+        assert.ok('error' in outcome, `the capture failure must surface, got ${JSON.stringify((outcome as { result: { structured: unknown } }).result?.structured)}`);
+      });
+      const afterFailure = await sessionOf(user.sessionId);
+      assert.equal(afterFailure.generated_cv, before.generated_cv, 'the CV was not edited');
+      assert.equal(afterFailure.revision, before.revision);
+      assert.equal(await historyCount(user.sessionId), historyBefore);
+      assert.equal((await balanceOf(user.id)).total, balanceBefore.total);
+
+      const result = await rewrite.run({ idempotencyKey: 'key-e11-b', ...input }, toolContext(user.id));
+      const structured = result.structured as { outcome: string; revision: number | null };
+      assert.equal(structured.outcome, 'applied');
+      assert.equal(structured.revision, Number(before.revision) + 1);
+      const afterSuccess = await sessionOf(user.sessionId);
+      assert.notEqual(afterSuccess.generated_cv, before.generated_cv);
+      assert.equal(await historyCount(user.sessionId), historyBefore + 1);
+      assert.equal(balanceBefore.total - (await balanceOf(user.id)).total, 0.5);
+      return { outcome: structured.outcome, revision: structured.revision };
+    });
+
+    await scenario('e12. the settle batch rebuilds a lost revision race against a fresh read; after five misses the operation fails, nothing is saved and the credits return', async () => {
+      const user = await seedUser('e12', { monthly: 4, addon: 6 });
+      const [sessionId] = user.sessionIds;
+      const { buildSessionUpdateStatement } = await import('../../src/lib/services/kit');
+      const base = await balanceOf(user.id);
+      const revisionOf = async () => Number((await one('SELECT revision FROM application_sessions WHERE id = ?', sessionId)).revision);
+
+      async function runWith(key: string, concurrentEdits: number) {
+        let calls = 0;
+        const outcome = inline.runInlineOperation({
+          userId: user.id,
+          kind: 'e12_probe',
+          idempotencyKey: key,
+          input: { key },
+          reserve: { action: 'COVER_LETTER_REGEN', sessionId },
+          async execute() {
+            return {
+              settle: 'capture' as const,
+              commit: async (guard: import('drizzle-orm').SQL, now: string) => {
+                const row = await sessionsRepo.getSession(user.id, sessionId);
+                assert.ok(row);
+                calls += 1;
+                // Another writer saves between this read and the batch, for the first `concurrentEdits` builds.
+                if (calls <= concurrentEdits) await run('UPDATE application_sessions SET revision = revision + 1 WHERE id = ?', sessionId);
+                return {
+                  kind: 'write' as const,
+                  statements: [buildSessionUpdateStatement(user.id, sessionId, { job_title: `Title ${key}` }, row.revision, now, guard)],
+                  result: { revision: row.revision + 1 },
+                };
+              },
+            };
+          },
+        });
+        return { outcome, calls: () => calls };
+      }
+
+      // Two lost races, then it lands.
+      const startRevision = await revisionOf();
+      const retried = await runWith('key-e12-a', 2);
+      const landed = await retried.outcome;
+      assert.equal(landed.kind, 'fresh');
+      assert.equal(retried.calls(), 3, 'built three times');
+      assert.equal(await revisionOf(), startRevision + 3, 'two concurrent edits and ours');
+      assert.equal((await one('SELECT job_title FROM application_sessions WHERE id = ?', sessionId)).job_title, 'Title key-e12-a');
+      assert.equal((await operationsOf(user.id)).filter((row) => row.status === 'succeeded').length, 1);
+      assert.equal((await reservationsOf(user.id)).filter((row) => row.status === 'captured').length, 1);
+      assert.equal(base.total - (await balanceOf(user.id)).total, 0.5);
+
+      // Five lost races: nothing is saved, the operation fails, the credits return.
+      const revisionBefore = await revisionOf();
+      const titleBefore = (await one('SELECT job_title FROM application_sessions WHERE id = ?', sessionId)).job_title;
+      const exhausted = await runWith('key-e12-b', 99);
+      await assert.rejects(exhausted.outcome, (error: unknown) => error instanceof errors.RevisionConflict);
+      assert.equal(exhausted.calls(), 5);
+      assert.equal((await one('SELECT job_title FROM application_sessions WHERE id = ?', sessionId)).job_title, titleBefore, 'the output never landed');
+      assert.equal(await revisionOf(), revisionBefore + 5, 'only the concurrent edits');
+      const failed = (await operationsOf(user.id)).find((row) => row.reservation_key === `mcp_e12_probe:${user.id}:key-e12-b`);
+      assert.equal(failed?.status, 'failed');
+      assert.equal(failed?.error_code, 'revision_conflict');
+      assert.equal((await reservationsOf(user.id)).find((row) => row.idempotency_key === `mcp_e12_probe:${user.id}:key-e12-b`)?.status, 'released');
+      assert.equal(base.total - (await balanceOf(user.id)).total, 0.5, 'only the first run is charged');
+      return { buildsWhenRetried: retried.calls(), buildsWhenExhausted: exhausted.calls() };
     });
   }
 
