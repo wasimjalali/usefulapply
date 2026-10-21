@@ -103,7 +103,7 @@ export function letterContactLinks(links: readonly string[] | undefined): Contac
   return contactLinks(pickLetterLinks(links));
 }
 
-const isLinkedIn =(link: string) => /(^|\/\/|\.)linkedin\.com\//i.test(link.trim());
+const isLinkedIn = (link: string) => /(^|\/\/|\.)linkedin\.com\//i.test(link.trim());
 const isGitHub = (link: string) => /(^|\/\/|\.)github\.com\//i.test(link.trim());
 
 /**
