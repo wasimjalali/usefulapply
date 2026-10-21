@@ -117,8 +117,9 @@ Read more: https://usefulapply.com/ai-job-application/zero-fabrication.
 
 ## 6. Smart Job Feed
 
-The Smart Job Feed (Plus and Max only) returns hand-picked roles based on the user's Master CV. It never runs by itself: the user runs it, at most once a day.
+The Smart Job Feed returns hand-picked roles based on the user's CV, on every plan. It never runs by itself: the user runs it, at most once a day.
 
+- Free: the top 5 roles per day, searched from the CV with no settings to configure
 - Plus: up to 25 roles per day, searched across 2 job titles and 2 countries
 - Max: up to 25 roles per day, searched across 4 job titles and 4 countries
 
