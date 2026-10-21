@@ -242,3 +242,18 @@ test('the text CV uses the output language for the licence line', () => {
   const text = unifiedWriterAgent.cvDataToText(optimized({ additionalInfo: ['Disponible en remoto'] }), false, 'es');
   assert.match(text, /Carnet de conducir: Class B/);
 });
+
+// Review of #172, round 3 (Opus): "de" is never a class, other permits never count, plurals and permits do.
+test('round 3: French and Spanish "de", other permits and the value match', () => {
+  for (const item of ['Driver’s License: B', 'Licences: B, BE', 'Licence (B, BE)', 'Driving permit B', 'International driving permit', 'Licença de condução B', 'Permis B', 'Carnet B']) {
+    assert.equal(mentionsDrivingLicence(item), true, item);
+  }
+  for (const item of ['Permis de travail', 'Permis de travail valide', 'Permis de séjour (B)', 'Carnet de identidad', 'Patente de corso', 'Firearms licence (Category B)', 'Security licence (SIA), Class A', 'Real estate licence: C', 'Fishing licence: A', 'Class A shares license', 'Work permit: B']) {
+    assert.equal(mentionsDrivingLicence(item, 'B'), false, item);
+    // The real licence is still printed next to such an item.
+    assert.deepEqual(withDrivingLicenceLine([item], 'B', 'fr'), [item, 'Permis de conduire: B'], item);
+  }
+  // The CV's own value counts only as a whole word.
+  assert.equal(mentionsDrivingLicence('UK licence, Klasse B held since 2015', 'Klasse B'), true);
+  assert.equal(mentionsDrivingLicence('Licence for a bakery', 'B'), false);
+});

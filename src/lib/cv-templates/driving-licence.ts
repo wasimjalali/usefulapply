@@ -15,7 +15,9 @@ import type { SupportedLanguage } from '@/lib/utils/language-detector';
 const DRIVING_LICENCE = new RegExp(
   [
     // Straight or curly apostrophe: CV text parsed from Word or PDF has "Driver’s".
-    String.raw`\b(?:driving|driver['’]?s|drivers?)\s+licen[cs]e`,
+    String.raw`\b(?:driving|driver['’]?s|drivers?)\s+(?:licen[cs]es?|permits?)\b`,
+    String.raw`\b(?:international|valid)\s+driving\s+permit\b`,
+    String.raw`\blicen[çc]a\s+de\s+condu(?:ção|cao|zir)\b`,
     String.raw`\bfull\s+(?:clean\s+)?(?:uk\s+)?licen[cs]e\b`,
     String.raw`\blicen[cs]e\s+to\s+drive\b`,
     'f(?:ü|ue|u)hrerschein',
@@ -31,29 +33,37 @@ const DRIVING_LICENCE = new RegExp(
 
 // A bare licence word ("Licence: B", "Class B licence", "CDL Class A", "Permis B") counts only
 // with a licence class next to it, so "Pilot licence (PPL)" or "Software license" never does.
-const LICENCE_WORD = /\b(?:licen[cs]e|permis|patente|carnet|cdl)\b/i;
-const LICENCE_CLASS = new RegExp(
+const LICENCE_WORD = /\b(?:licen[cs]es?|permis|patente|carnet|cdl)\b/i;
+// The class words are any case; a class LETTER must be a capital (B, BE, C1, "B, BE"), so the
+// French and Spanish word "de" ("Permis de travail", "Carnet de identidad") is never a class.
+const CLASS_WORD = /\b(?:class|category|cat|klasse|kategorie|catégorie|categoría|categoria)\b/i;
+const CLASS_LETTERS = String.raw`[A-E][1-9]?E?(?:\s*,\s*[A-E][1-9]?E?)*`;
+const CLASS_LETTER = new RegExp(
   [
-    String.raw`\b(?:class|category|cat|klasse|kategorie|catégorie|categoría|categoria)\b`,
-    String.raw`\(\s*[a-e][1-9]?e?\s*\)`,
-    String.raw`:\s*[a-e][1-9]?e?\b`,
-    String.raw`\b(?:licen[cs]e|permis|patente|carnet|cdl)\s+[a-e][1-9]?e?\b`,
+    String.raw`\(\s*${CLASS_LETTERS}\s*\)`,
+    String.raw`:\s*${CLASS_LETTERS}(?![\p{L}\p{N}])`,
+    String.raw`\b(?:[Ll]icen[cs]es?|[Pp]ermis|[Pp]atente|[Cc]arnet|CDL|cdl)\s+${CLASS_LETTERS}(?![\p{L}\p{N}])`,
   ].join('|'),
-  'i',
+  'u',
 );
+// Other permits and licences that also come with a class or category: never a driving licence.
+const OTHER_PERMIT = /\b(?:work|working|residence|resident|travail|séjour|sejour|aufenthalt\p{L}*|arbeit\p{L}*|identidad|identity|firearms?|gun|security|sia|real\s+estate|fishing|hunting|shares?|liquor|pilot|corso|software|trading)\b/iu;
 
 const normalised = (text: string) => text.toLowerCase().replace(/\s+/g, ' ').trim();
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * True when the text states a driving licence. `driverLicense` (the CV's own
- * value, "Class B") also counts next to a licence word: "UK licence, Class B".
+ * value, "Class B") also counts, as a whole word, next to a licence word:
+ * "UK licence, Class B".
  */
 export function mentionsDrivingLicence(text: string, driverLicense?: string): boolean {
   if (DRIVING_LICENCE.test(text)) return true;
-  if (!LICENCE_WORD.test(text)) return false;
-  if (LICENCE_CLASS.test(text)) return true;
+  if (!LICENCE_WORD.test(text) || OTHER_PERMIT.test(text)) return false;
+  if (CLASS_WORD.test(text) || CLASS_LETTER.test(text)) return true;
   const value = driverLicense ? normalised(driverLicense) : '';
-  return value.length > 0 && normalised(text).includes(value);
+  if (!value) return false;
+  return new RegExp(`(?<![\\p{L}\\p{N}])${escapeRegExp(value)}(?![\\p{L}\\p{N}])`, 'u').test(normalised(text));
 }
 
 /** True when any item of the list states a driving licence. */
