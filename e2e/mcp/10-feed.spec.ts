@@ -315,10 +315,17 @@ test.describe.serial('run_job_feed: the states no queue message can claim', () =
       const runId = seedFeedRun(created.user.id, { status: 'running' });
       const before = feedRuns(created.user.id);
       const started = Date.now();
-      const result = await created.session.ok<{ runId: string; status: string; started: boolean; alreadyRanToday: boolean; rankedJobsCount: number | null; failed: boolean }>('run_job_feed');
+      const result = await created.session.ok<{ runId: string; status: string; started: boolean; alreadyRanToday: boolean; rankedJobsCount: number | null; failed: boolean; nextRunAt: string | null }>('run_job_feed');
       expect(Date.now() - started, 'returns at once, it does not wait for the run').toBeLessThan(5_000);
       expect(result).toMatchObject({ runId, status: 'running', started: false, alreadyRanToday: false, rankedJobsCount: null, failed: false });
       expect(feedRuns(created.user.id)).toEqual(before);
+      // The live bug of 2026-10-21: a run in flight reported next local midnight with each call's
+      // seconds and milliseconds. It now reports the gate's time (20 hours after it started), every call.
+      expect(result.nextRunAt).not.toBeNull();
+      expect(new Date(result.nextRunAt as string).getTime()).toBeGreaterThanOrEqual(Date.now() + 19 * 60 * 60 * 1000);
+      await new Promise((resolve) => setTimeout(resolve, 1_100));
+      const again = await created.session.ok<{ nextRunAt: string | null }>('run_job_feed');
+      expect(again.nextRunAt).toBe(result.nextRunAt);
     } finally {
       await created.session.close();
       await created.context.close();
