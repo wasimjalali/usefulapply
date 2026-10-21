@@ -1,6 +1,6 @@
 # Screenshot and recording shot list
 
-The seeded applications (Halcyon and Fjordwerk) already have full kits, so shot 3 and the demo use a pasted ad instead. Reset the account with the seed script after the captures.
+The seeded applications (Halcyon and Fjordwerk) already have full kits, so shot 3 and the demo use a pasted ad instead. Re-run the seed script after the captures (see `checklist.md`).
 
 Capture these after launch (`MCP_ENABLED=true`, deployed), on the reviewer account, so nothing real shows. Wasim does the captures. They need the live connector in real clients.
 
@@ -19,7 +19,7 @@ Specs:
 | 2 | Fit check result with score, matches and gaps | Claude.ai | "Check my fit for the Halcyon Cloud Labs role." | `02-fit-claude.png` |
 | 3 | Full kit generation finished, tool calls visible | Claude.ai | "Here's a job ad: [paste a short fictional ad]. Check my fit, then generate the full kit." | `03-kit-claude.png` |
 | 4 | Application list and status update | ChatGPT desktop | "List my applications and mark Fjordwerk as applied." | `04-tracker-chatgpt.png` |
-| 5 | CV edit with the returned diff | Claude.ai | "Change my professional title to Staff Software Engineer." | `05-edit-diff-claude.png` |
+| 5 | CV edit with the returned diff | Claude.ai | "On the Halcyon CV, change my professional title to Staff Software Engineer." | `05-edit-diff-claude.png` |
 | 6 | Export with the signed link in the reply | ChatGPT desktop | "Export the Halcyon CV as a PDF." | `06-export-chatgpt.png` |
 | 7 | The exported PDF open, text selectable | PDF viewer | n/a | `07-pdf.png` |
 | 8 | The German DIN 5008 letter PDF | PDF viewer | n/a | `08-din-letter.png` |

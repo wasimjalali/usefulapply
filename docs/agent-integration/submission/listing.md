@@ -25,22 +25,22 @@ Sources for the field list: Anthropic's "Submit a connector to the directory" (h
 
 Useful Apply helps you apply for a job from your AI assistant. Check how well you fit a role, then generate a CV, cover letter, application email and follow-up that follow US or German (DIN 5008) conventions. You review everything, edit it, export it and track the application.
 
-### Long description (1,895 characters, under Anthropic's 2,000 limit)
+### Long description (1,851 characters, under Anthropic's 2,000 limit)
 
 Useful Apply turns a job ad and your CV into a complete application, without leaving your AI assistant.
 
-Paste a job ad and ask for a fit check. You get a score, the skills you match, the gaps, and a plain explanation. If the role is worth it, ask for the full kit: a CV tailored to the ad, a cover letter, an application email and a follow-up email. The kit is written in the ad's language and laid out the way recruiters in that market expect. US letters use block format. German letters follow DIN 5008 with the recipient taken from the ad.
+Paste a job ad and ask for a fit check. You get a score, the skills you match, the gaps and a plain explanation. If the role is worth it, ask for the full kit: a CV tailored to the ad, a cover letter, an application email and a follow-up email. The kit is written in the ad's language and laid out the way recruiters in that market expect. US letters use block format. German letters follow DIN 5008 with the recipient taken from the ad.
 
-Every claim in a CV or letter comes from the CV you provide. That's a design commitment in how the writer is built, and you still review everything before it goes anywhere.
+The writer is built to draw every claim in a CV or letter from the CV you provide, and you review everything before it goes anywhere.
 
 Beyond generating, the connector lets your assistant:
-- track applications: create, edit, delete, set status and interview or follow-up dates, and give a morning briefing
+- track applications: create, edit, delete, set status and interview or follow-up dates and give a morning briefing
 - edit a tailored CV: change text, add or delete entries, hide or show items, reorder lists, rename headings, pick a template and undo the last edit
 - rewrite one CV section, redo a letter or email with your instruction, or save your own wording
 - draft answers to an employer's screening questions
 - export PDF, Word and text files with signed download links
-- run your daily job feed, read your career profile, change feed settings, save, dismiss or rate jobs, start an application from one, and withdraw consent
-- save or delete your CV, set your profile photo and contact details, and manage email notifications
+- run your daily job feed, read your career profile, change feed settings, save, dismiss or rate jobs, start an application from one and withdraw consent
+- save or delete your CV, set your profile photo and contact details and manage email notifications
 - cancel a generation that's running
 - show your account, credit balance and recent use
 
@@ -50,7 +50,7 @@ You need a Useful Apply account to connect. Sign in with OAuth when your assista
 
 ## Example prompts
 
-Each one uses different tools. They all work on the reviewer account (Halcyon Cloud Labs and Fjordwerk applications, a German CV layout, 5 seeded feed jobs). Prompts 3 and 5 spend 0.5 credits each, prompt 1 spends 2 (0.5 for the fit check, 1.5 for the kit).
+Each one uses different tools. They all work on the reviewer account (Halcyon Cloud Labs and Fjordwerk applications, a German CV layout, 5 seeded feed jobs). Prompts 3 and 5 spend 0.5 credits each, prompt 1 spends 2 (0.5 for the fit check, 1.5 for the kit). Prompt 4 only shows new matches, a due follow-up and a coming interview for a day or so after the seed runs, so re-run it the day before each review.
 
 1. **US, fit and kit.** "Here's a job ad for a Senior Software Engineer at a company in Austin: [paste]. Check my fit, tell me the biggest gap, then write the full application kit." (`analyze_job_fit`, `explain_fit`, `generate_application_kit`, `get_operation`)
 2. **German, edit and export.** "Öffne meine Bewerbung bei Fjordwerk, stelle in meinem Lebenslauf die Kenntnisgruppe „Daten“ an die erste Stelle und exportiere Lebenslauf und Anschreiben als PDF." (`list_applications`, `get_application`, `get_cv_outline`, `edit_cv_structure`, `export_documents`)
