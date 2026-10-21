@@ -6,6 +6,8 @@ import { PROBES } from '../../../evals/rewrite-claim-guard/probes';
 import { EXCLUDED_GRAMMAR_WORDS, freedGrammarWords, grammarWords } from './claim-grammar-words';
 import { claimWords } from './claim-token-normalization';
 import { introducedClaims, unsupportedNumbers } from './unified-writer-agent';
+// Registers the logistics prompt tests with `npm test` (no-invented-availability fix, 2026-10-21).
+import './prompts/logistics-prompt.test';
 
 // The production case of 2026-10-21. The applicant's CVs say "Tested", and the
 // kit writer paraphrased it as "evaluated". It also wrote "additional language"

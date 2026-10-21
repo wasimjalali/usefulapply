@@ -14,6 +14,7 @@
 import type { MasterContext } from '@/lib/agents/types';
 import { sanitizeAdText } from '@/lib/agents/chat-tools/untrusted';
 import { normalizeLanguage } from '@/lib/utils/language-detector';
+import { buildLogisticsBlock } from './logistics-prompt';
 
 // Dash characters the output must not contain, built from code points so this
 // source file contains none of them.
@@ -133,6 +134,9 @@ A B2 certificate is B2 and is never called verhandlungssicher. Use verhandlungss
 
 RULE 5: VERIFICATION CHECK
 A fact goes into the letter only if you can point to where the Primary CV or Master CV states it. If you are unsure, leave it out.
+
+RULE 6: LOGISTICS
+Availability, notice period, start date, salary, work permit, relocation, travel and remote or on-site willingness are facts about the applicant too. They come only from the applicant, as the APPLICANT LOGISTICS block in the user prompt lays out, and never from the job ad. Never invent them. When the applicant hasn't stated their availability, the letter leaves it out or uses the non-committal wording that block gives, with no date; it never says the applicant can start immediately or has no notice period. Salary never appears unless the applicant stated it.
 </anti_hallucination_rules>
 
 <user_instructions_rule>
@@ -164,7 +168,7 @@ If the job description calls a language an "advantage", "preferred", "plus" or "
 <markets>
 English-language JDs (US, UK, Canada): confident, direct and concise, since recruiters in these markets value brevity. Lead with the strongest achievement, with its number only when that number is in the source CVs. Problem-solution thinking works well: the challenge, what the applicant did, the result. Plain professional vocabulary rather than corporate template language or deferential formality.
 
-German JDs: more formal than US/UK, with the Sie form throughout. If the JD names a contact person, address them directly, following the salutation rule in <letter_fields>; otherwise use the standard formal greeting. Still achievement-led, in professional German business vocabulary without colloquialisms, and specific to details from the Stellenanzeige. Flow: an opening achievement, the skills match, the connection to the company, and a close with availability.
+German JDs: more formal than US/UK, with the Sie form throughout. If the JD names a contact person, address them directly, following the salutation rule in <letter_fields>; otherwise use the standard formal greeting. Still achievement-led, in professional German business vocabulary without colloquialisms, and specific to details from the Stellenanzeige. Flow: an opening achievement, the skills match, the connection to the company, and a close with a next step (availability only as RULE 6 allows).
 
 Language: a JD in English gets an English letter in US/UK tone, a JD in German gets a German letter in formal business tone, and a JD in another supported language gets a letter in that language.
 
@@ -195,7 +199,7 @@ Read the applicant's current location (from the CVs), the job location (from the
 The three paragraphs together stay under 250 words, because most recruiters prefer half a page or less. There are exactly three paragraphs, each original prose:
 1. Opening hook (1-2 sentences): a real, verified achievement from the CVs, with a metric if one exists, connected to a challenge inferred from the JD.
 2. Value match (2-3 sentences): the applicant's actual job title and real accomplishments from either CV, the tools and skills they genuinely have that match the JD's requirements, a verified metric when one exists or a specific numberless achievement when not.
-3. Confident close (1-2 sentences): a clear, specific next step and the applicant's availability.
+3. Confident close (1-2 sentences): a clear, specific next step. Availability goes in only as RULE 6 allows.
 The letter frame is built in code from verified data: the applicant's name and contact details, the date, the company's name and address, and the signature name. So the paragraphs never contain a header line, an address, a date, a greeting, a sign-off or a signature.
 </length_and_structure>
 
@@ -344,6 +348,7 @@ Job location: ${sanitizeAdText(job?.location) || 'Not specified'}
 ${masterCV && /relocat/i.test(masterCV) ? `Master CV relocation statement found. The applicant's relocation preferences are only what is written in the Master CV above. If the job location (${sanitizeAdText(job?.location) || 'unknown'}) is not explicitly covered by the Master CV's relocation statement, the letter doesn't mention relocation willingness at all.` : `No relocation statement found in the Master CV, so the letter doesn't mention relocation willingness.`}
 Relocation willingness is never stated for a city or country the Master CV doesn't explicitly list.
 
+${buildLogisticsBlock(context, 'letter')}
 ${context.jobPreferences && (context.jobPreferences.salaryFloor || context.jobPreferences.remotePreference) ? `=== APPLICANT JOB PREFERENCES ===
 These are the applicant's stated work preferences. Use them to align the letter's tone and any relevant content:
 ${context.jobPreferences.salaryFloor ? `- Minimum salary expectation: $${context.jobPreferences.salaryFloor.toLocaleString()}` : ''}
@@ -395,7 +400,7 @@ ${isGerman ? `
 - Names exactly as given` : `Use natural professional ${languageName} appropriate to the market and the JD's tone. Keep names exactly as given.${outputLang === 'pt' ? ' Use European Portuguese (pt-PT) consistently.' : ''}`}
 
 CLOSING:
-The third paragraph ends with a sentence about availability or next steps. The closing field holds only the sign-off; the applicant's name is added in code.
+The third paragraph ends with a next step. Availability goes in only as the APPLICANT LOGISTICS block allows. The closing field holds only the sign-off; the applicant's name is added in code.
 ${isGerman ? 'The closing is "Mit freundlichen Grüßen", with no comma.' : 'Choose a sign-off that fits the tone and language of the ad. In English: "Sincerely," for a formal ad, "Kind regards," or "Best regards," for a conversational one.'}
 
 Write the cover letter now as the JSON object:`;
