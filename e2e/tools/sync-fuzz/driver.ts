@@ -755,6 +755,8 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         const sentTokens = Object.values(sent).filter((token): token is string => Boolean(token));
         const epochAtSave = editor.epoch;
         const discardsAtSave = { ...editor.discards };
+        // The fields apply wrote: a field discarded before it ran is skipped, so the answer says nothing about its text.
+        let wroteFields: Field[] = [];
         for (const token of sentTokens) {
           if (discarded.has(token)) violate('I1', `${client.id}'s open ${editor.label} editor on ${app} saved ${token}, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)`);
           deliberate.add(token);
@@ -797,18 +799,19 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
             }
           }
           applying.set(editor, appliedFields);
+          wroteFields = appliedFields;
         }).then((outcome) => {
           applying.delete(editor);
           editor.committing = false;
           say(`${client.id} ${editor.label} editor ${app} sent ${sentKey()} -> ${outcome}`);
           if (client.editorSucceeded(outcome)) {
             for (const token of sentTokens) {
-              if (!server.acceptedHas(app, token)) {
+              if (wroteFields.some((field) => sent[field] === token) && !server.acceptedHas(app, token)) {
                 violate('I1', `${client.id}'s ${editor.label} editor on ${app} was told "${outcome}" but the server never accepted the draft`);
               }
               openEditorTokens.delete(token);
             }
-            for (const field of editor.fields) if (sent[field]) lastEdit.delete(keyOf(client.id, app, field));
+            for (const field of wroteFields) lastEdit.delete(keyOf(client.id, app, field));
           }
           if (editor.closesOnSave) {
             // The CV panel: the editor closed on Save. A save that landed leaves it closed; one that did not reopens it
