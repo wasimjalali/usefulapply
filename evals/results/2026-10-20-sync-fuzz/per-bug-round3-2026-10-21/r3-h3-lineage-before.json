@@ -1,0 +1,2286 @@
+{
+  "engine": "new",
+  "mutation": "M-r3-H3 Restore and Copy reach every editor of the entry's group, whatever its lineage (round 2 finding H3)",
+  "from": 1,
+  "count": 2000,
+  "ops": 60,
+  "totals": {
+    "ops": 120000,
+    "edits": 39077,
+    "editorSaves": 6876,
+    "typedDuringSave": 1108,
+    "regens": 0,
+    "workflows": 0,
+    "trackerWrites": 0,
+    "silentWrites": 0,
+    "restores": 2498,
+    "copies": 1221,
+    "cancels": 0,
+    "panelOpens": 956,
+    "agentWrites": 11836,
+    "handoffs": 0,
+    "polls": 16390,
+    "saves": 16220,
+    "requests": 90224,
+    "dropped": 5337,
+    "lostAnswers": 4069,
+    "hung": 5204,
+    "conflictNotices": 11201,
+    "failureNotices": 3640,
+    "settleRounds": 5067
+  },
+  "byInvariant": {
+    "I6": 323,
+    "I1": 1
+  },
+  "byKind": {
+    "I6: TAB coverLetter editor on APP was rebased for coverLetter by an acknowledgement of an entry it did not produce": 54,
+    "I6: TAB cv editor on APP was rebased for cv by an acknowledgement of an entry it did not produce": 133,
+    "I6: TAB followUpEmail editor on APP was rebased for followUpEmail by an acknowledgement of an entry it did not produce": 60,
+    "I6: TAB COLUMN panel editor on APP was rebased for followUpEmail by an acknowledgement of an entry it did not produce": 24,
+    "I6: TAB COLUMN panel editor saved COLUMN of APP over a server value of followUpEmail that changed since that editor's snapshot of it, with no conflict ": 1,
+    "I6: TAB COLUMN panel editor on APP was rebased for COLUMN by an acknowledgement of an entry it did not produce": 24,
+    "I6: TAB COLUMN editor on APP was rebased for COLUMN by an acknowledgement of an entry it did not produce": 52,
+    "I6: TAB followUpEmail editor saved COLUMN of APP over a server value of followUpEmail that changed since that editor's snapshot of it, with no conflict ": 4,
+    "I6: TAB coverLetter editor saved COLUMN of APP over a server value of coverLetter that changed since that editor's snapshot of it, with no conflict ": 4,
+    "I6: TAB cv editor saved generated_cv of APP over a server value of cv that changed since that editor's snapshot of it, with no conflict ": 3,
+    "I1: TAB last edit of APP.FIELD ": 1,
+    "I6: TAB COLUMN editor saved COLUMN of APP over a server value of COLUMN that changed since that editor's snapshot of it, with no conflict ": 1
+  },
+  "failingSeeds": [
+    12,
+    15,
+    16,
+    30,
+    33,
+    41,
+    58,
+    59,
+    70,
+    83,
+    85,
+    89,
+    90,
+    98,
+    104,
+    107,
+    111,
+    121,
+    125,
+    128,
+    131,
+    133,
+    135,
+    140,
+    154,
+    157,
+    160,
+    178,
+    182,
+    188,
+    192,
+    197,
+    201,
+    203,
+    205,
+    212,
+    215,
+    217,
+    218,
+    221,
+    224,
+    226,
+    227,
+    229,
+    233,
+    235,
+    244,
+    246,
+    248,
+    251,
+    261,
+    265,
+    294,
+    300,
+    307,
+    314,
+    317,
+    327,
+    328,
+    337,
+    345,
+    355,
+    358,
+    360,
+    365,
+    382,
+    383,
+    410,
+    437,
+    438,
+    439,
+    449,
+    451,
+    454,
+    459,
+    460,
+    465,
+    470,
+    473,
+    477,
+    486,
+    489,
+    496,
+    500,
+    504,
+    505,
+    513,
+    525,
+    527,
+    534,
+    535,
+    536,
+    537,
+    542,
+    551,
+    553,
+    563,
+    566,
+    567,
+    586,
+    593,
+    601,
+    603,
+    604,
+    605,
+    606,
+    614,
+    626,
+    634,
+    649,
+    665,
+    668,
+    672,
+    678,
+    679,
+    682,
+    686,
+    699,
+    705,
+    710,
+    727,
+    729,
+    730,
+    736,
+    758,
+    763,
+    771,
+    776,
+    777,
+    780,
+    782,
+    784,
+    786,
+    812,
+    813,
+    815,
+    826,
+    828,
+    833,
+    840,
+    841,
+    844,
+    848,
+    858,
+    863,
+    867,
+    869,
+    871,
+    893,
+    902,
+    905,
+    911,
+    913,
+    924,
+    937,
+    954,
+    955,
+    958,
+    959,
+    973,
+    980,
+    983,
+    984,
+    990,
+    1008,
+    1013,
+    1023,
+    1027,
+    1031,
+    1057,
+    1063,
+    1079,
+    1082,
+    1086,
+    1090,
+    1095,
+    1134,
+    1143,
+    1150,
+    1161,
+    1164,
+    1179,
+    1180,
+    1184,
+    1185,
+    1188,
+    1192,
+    1193,
+    1198,
+    1203,
+    1206,
+    1228,
+    1230,
+    1243,
+    1247,
+    1251,
+    1253,
+    1260,
+    1263,
+    1269,
+    1274,
+    1275,
+    1286,
+    1288,
+    1290,
+    1293,
+    1294,
+    1311,
+    1313,
+    1314,
+    1315,
+    1327,
+    1329,
+    1331,
+    1333,
+    1337,
+    1338,
+    1347,
+    1358,
+    1359,
+    1363,
+    1368,
+    1370,
+    1376,
+    1381,
+    1388,
+    1398,
+    1404,
+    1407,
+    1411,
+    1418,
+    1421,
+    1434,
+    1456,
+    1458,
+    1460,
+    1464,
+    1470,
+    1471,
+    1472,
+    1479,
+    1481,
+    1491,
+    1500,
+    1503,
+    1508,
+    1512,
+    1521,
+    1522,
+    1530,
+    1540,
+    1543,
+    1552,
+    1561,
+    1574,
+    1583,
+    1589,
+    1597,
+    1605,
+    1626,
+    1628,
+    1642,
+    1656,
+    1669,
+    1671,
+    1674,
+    1676,
+    1678,
+    1680,
+    1688,
+    1689,
+    1695,
+    1696,
+    1698,
+    1699,
+    1720,
+    1731,
+    1736,
+    1737,
+    1739,
+    1743,
+    1767,
+    1768,
+    1771,
+    1773,
+    1774,
+    1778,
+    1779,
+    1780,
+    1785,
+    1793,
+    1813,
+    1830,
+    1831,
+    1838,
+    1843,
+    1848,
+    1849,
+    1858,
+    1859,
+    1861,
+    1864,
+    1867,
+    1869,
+    1878,
+    1881,
+    1883,
+    1899,
+    1902,
+    1904,
+    1906,
+    1914,
+    1927,
+    1935,
+    1936,
+    1951,
+    1966,
+    1975,
+    1982,
+    1986,
+    1992,
+    1997,
+    1999
+  ],
+  "failures": [
+    {
+      "seed": 12,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 15,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 16,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 30,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 33,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "A's email panel editor saved follow_up_email of app-1 over a server value of followUpEmail that changed since that editor's snapshot of it, with no conflict (server {\"subject\":\"f-t:B2;\",\"body\":\"t:B2;\",\"recommendedDelay\":5})"
+        }
+      ]
+    },
+    {
+      "seed": 41,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 58,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 59,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 70,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 83,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 85,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 89,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 90,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 98,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 104,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 107,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 111,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 121,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 125,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 128,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 131,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 133,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 135,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 140,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 154,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 157,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 160,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 178,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 182,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 188,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 192,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 197,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 201,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 203,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor saved follow_up_email of app-1 over a server value of followUpEmail that changed since that editor's snapshot of it, with no conflict (server {\"subject\":\"f-t:O12;\",\"body\":\"t:O12;\",\"recommendedDelay\":5})"
+        }
+      ]
+    },
+    {
+      "seed": 205,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 212,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 215,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 217,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 218,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 221,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 224,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 226,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 227,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 229,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 233,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 235,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 244,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 246,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 248,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 251,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 261,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 265,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 294,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 300,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 307,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 314,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 317,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 327,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 328,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 337,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 345,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 355,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 358,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 360,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 365,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 382,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 383,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 410,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 437,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 438,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 439,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 449,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 451,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 454,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 459,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 460,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 465,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 470,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 473,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor saved cover_letter of app-1 over a server value of coverLetter that changed since that editor's snapshot of it, with no conflict (server {\"applicantAddress\":{\"name\":\"\",\"street\":\"\",\"city\":\"\",\"countr)"
+        }
+      ]
+    },
+    {
+      "seed": 477,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 486,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 489,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 496,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 500,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 504,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 505,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 513,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 525,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 527,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 534,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 535,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 536,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 537,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "A's cv editor saved generated_cv of app-1 over a server value of cv that changed since that editor's snapshot of it, with no conflict (server {\"personal\":{\"fullName\":\"N\",\"email\":\"n@example.test\",\"curren)"
+        }
+      ]
+    },
+    {
+      "seed": 542,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 551,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 553,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 563,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 566,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 567,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 586,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 593,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 601,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 603,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 604,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 605,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 606,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 614,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 626,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 634,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 649,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 665,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 668,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 672,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 678,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 679,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 682,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 686,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor saved follow_up_email of app-1 over a server value of followUpEmail that changed since that editor's snapshot of it, with no conflict (server {\"subject\":\"f-t:O5;\",\"body\":\"t:O5;\",\"recommendedDelay\":5})"
+        }
+      ]
+    },
+    {
+      "seed": 699,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 705,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 710,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 727,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 729,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 730,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 736,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 758,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 763,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 771,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 776,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 777,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 780,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 782,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 784,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 786,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 812,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 813,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 815,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 826,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 828,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 833,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 840,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 841,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 844,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 848,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 858,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 863,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 867,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 869,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 871,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 893,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 902,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 905,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 911,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "B's cv editor saved generated_cv of app-1 over a server value of cv that changed since that editor's snapshot of it, with no conflict (server {\"personal\":{\"fullName\":\"N\",\"email\":\"n@example.test\",\"curren)"
+        }
+      ]
+    },
+    {
+      "seed": 913,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 924,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 937,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 954,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 955,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 958,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 959,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 973,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 980,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 983,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 984,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I1",
+          "message": "B's last edit of app-1.email (t:B7;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{\"company\":\"t:B23;\"},{\"requirements\":{\"title\":\"t:B24;\",\"company\":\"c\",\"hardSkills\":[],\"softSkills\":[]}}])"
+        }
+      ]
+    },
+    {
+      "seed": 990,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1008,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1013,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1023,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1027,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1031,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1057,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor saved cover_letter of app-1 over a server value of coverLetter that changed since that editor's snapshot of it, with no conflict (server {\"applicantAddress\":{\"name\":\"\",\"street\":\"\",\"city\":\"\",\"countr)"
+        }
+      ]
+    },
+    {
+      "seed": 1063,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1079,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor saved follow_up_email of app-1 over a server value of followUpEmail that changed since that editor's snapshot of it, with no conflict (server {\"subject\":\"f-t:B14;\",\"body\":\"t:B14;\",\"recommendedDelay\":5})"
+        }
+      ]
+    },
+    {
+      "seed": 1082,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1086,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1090,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1095,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1134,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1143,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1150,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1161,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1164,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1179,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1180,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1184,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1185,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor saved cover_letter of app-1 over a server value of coverLetter that changed since that editor's snapshot of it, with no conflict (server {\"applicantAddress\":{\"name\":\"\",\"street\":\"\",\"city\":\"\",\"countr)"
+        }
+      ]
+    },
+    {
+      "seed": 1188,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1192,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1193,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1198,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1203,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1206,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1228,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1230,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1243,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1247,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1251,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1253,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1260,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1263,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1269,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    }
+  ],
+  "cases": []
+}

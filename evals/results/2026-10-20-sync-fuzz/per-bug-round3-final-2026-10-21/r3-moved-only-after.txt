@@ -1,0 +1,8 @@
+  500/2000 seeds, 0 failing
+  1000/2000 seeds, 0 failing
+  1500/2000 seeds, 0 failing
+  2000/2000 seeds, 0 failing
+
+2000 seeds (1..2000), 60 operations each, new engine, 13.1s
+totals {"ops":120000,"edits":41332,"editorSaves":6634,"typedDuringSave":1233,"regens":0,"workflows":0,"trackerWrites":0,"silentWrites":0,"restores":0,"copies":0,"cancels":1614,"panelOpens":1031,"agentWrites":12488,"handoffs":0,"polls":17099,"saves":17222,"requests":90762,"dropped":5391,"lostAnswers":4091,"hung":5282,"conflictNotices":10346,"failureNotices":3660,"settleRounds":5083}
+failing seeds: 0
