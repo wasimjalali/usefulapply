@@ -14,7 +14,9 @@ import type { SupportedLanguage } from '@/lib/utils/language-detector';
  */
 const DRIVING_LICENCE = new RegExp(
   [
-    String.raw`\b(?:driving|driver'?s|drivers?)\s+licen[cs]e`,
+    // Straight or curly apostrophe: CV text parsed from Word or PDF has "Driver’s".
+    String.raw`\b(?:driving|driver['’]?s|drivers?)\s+licen[cs]e`,
+    String.raw`\bfull\s+(?:clean\s+)?(?:uk\s+)?licen[cs]e\b`,
     String.raw`\blicen[cs]e\s+to\s+drive\b`,
     'f(?:ü|ue|u)hrerschein',
     'fahrerlaubnis',
@@ -27,14 +29,36 @@ const DRIVING_LICENCE = new RegExp(
   'i',
 );
 
-/** True when the text states a driving licence. */
-export function mentionsDrivingLicence(text: string): boolean {
-  return DRIVING_LICENCE.test(text);
+// A bare licence word ("Licence: B", "Class B licence", "CDL Class A", "Permis B") counts only
+// with a licence class next to it, so "Pilot licence (PPL)" or "Software license" never does.
+const LICENCE_WORD = /\b(?:licen[cs]e|permis|patente|carnet|cdl)\b/i;
+const LICENCE_CLASS = new RegExp(
+  [
+    String.raw`\b(?:class|category|cat|klasse|kategorie|catégorie|categoría|categoria)\b`,
+    String.raw`\(\s*[a-e][1-9]?e?\s*\)`,
+    String.raw`:\s*[a-e][1-9]?e?\b`,
+    String.raw`\b(?:licen[cs]e|permis|patente|carnet|cdl)\s+[a-e][1-9]?e?\b`,
+  ].join('|'),
+  'i',
+);
+
+const normalised = (text: string) => text.toLowerCase().replace(/\s+/g, ' ').trim();
+
+/**
+ * True when the text states a driving licence. `driverLicense` (the CV's own
+ * value, "Class B") also counts next to a licence word: "UK licence, Class B".
+ */
+export function mentionsDrivingLicence(text: string, driverLicense?: string): boolean {
+  if (DRIVING_LICENCE.test(text)) return true;
+  if (!LICENCE_WORD.test(text)) return false;
+  if (LICENCE_CLASS.test(text)) return true;
+  const value = driverLicense ? normalised(driverLicense) : '';
+  return value.length > 0 && normalised(text).includes(value);
 }
 
 /** True when any item of the list states a driving licence. */
-export function listMentionsDrivingLicence(items: readonly string[] | undefined): boolean {
-  return (items ?? []).some(mentionsDrivingLicence);
+export function listMentionsDrivingLicence(items: readonly string[] | undefined, driverLicense?: string): boolean {
+  return (items ?? []).some((item) => mentionsDrivingLicence(item, driverLicense));
 }
 
 const LICENCE_LABEL: Record<SupportedLanguage, string> = {
@@ -63,6 +87,6 @@ export function withDrivingLicenceLine(
   language: string | undefined,
 ): string[] | undefined {
   const licence = driverLicense?.trim();
-  if (!licence || listMentionsDrivingLicence(items)) return items ? [...items] : undefined;
+  if (!licence || listMentionsDrivingLicence(items, licence)) return items ? [...items] : undefined;
   return [...(items ?? []), drivingLicenceLine(licence, language)];
 }

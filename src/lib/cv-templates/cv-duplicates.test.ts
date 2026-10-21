@@ -223,3 +223,22 @@ function fixtureCvData(additionalInfo: string[] | undefined = ['Driving licence:
   assert.ok(data);
   return data;
 }
+
+// Review of #172, round 2 (Opus): curly apostrophes and a bare licence word with a class.
+test('curly apostrophes and bare licence words with a class are driving licences', () => {
+  for (const item of ['Driver’s License: Class B', 'Driver’s licence (B)', 'Full clean UK licence (B)', 'Full clean UK licence', 'Class B licence', 'License: Class B', 'Licence: B', 'CDL Class A', 'Permis B', 'Permis B (véhiculé)', 'Patente: B', 'Carnet B']) {
+    assert.equal(mentionsDrivingLicence(item), true, item);
+    assert.deepEqual(withDrivingLicenceLine([item], 'Class B', 'en'), [item], item);
+  }
+  // The CV's own value next to a licence word counts too.
+  assert.equal(mentionsDrivingLicence('UK licence, Klasse B held since 2015', 'Klasse B'), true);
+  // Still not a driving licence.
+  for (const item of ['Pilot licence (PPL)', 'Licensed pharmacist', 'Software license compliance', '3 patented inventions']) {
+    assert.equal(mentionsDrivingLicence(item, 'Class B'), false, item);
+  }
+});
+
+test('the text CV uses the output language for the licence line', () => {
+  const text = unifiedWriterAgent.cvDataToText(optimized({ additionalInfo: ['Disponible en remoto'] }), false, 'es');
+  assert.match(text, /Carnet de conducir: Class B/);
+});

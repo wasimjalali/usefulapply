@@ -2364,7 +2364,7 @@ export const unifiedWriterAgent = {
       };
       
       // Generate legacy text format for backward compatibility
-      const legacyContent = this.cvDataToText(cvData, isGerman);
+      const legacyContent = this.cvDataToText(cvData, isGerman, outputLang);
       
       return {
         cvData,
@@ -2478,7 +2478,7 @@ export const unifiedWriterAgent = {
   /**
    * Convert CVData to plain text format (for backward compatibility)
    */
-  cvDataToText(cvData: NonNullable<MasterContext['optimizedCVData']>, isGerman: boolean): string {
+  cvDataToText(cvData: NonNullable<MasterContext['optimizedCVData']>, isGerman: boolean, language?: string): string {
     const lines: string[] = [];
     
     // Personal info
@@ -2571,7 +2571,7 @@ export const unifiedWriterAgent = {
     }
 
     // Additional Info (driver's license, etc.)
-    const additionalItems = withDrivingLicenceLine(cvData.additionalInfo, cvData.personal.driverLicense, isGerman ? 'de' : 'en') ?? [];
+    const additionalItems = withDrivingLicenceLine(cvData.additionalInfo, cvData.personal.driverLicense, language ?? (isGerman ? 'de' : 'en')) ?? [];
     if (additionalItems.length > 0) {
       lines.push('');
       lines.push(isGerman ? 'WEITERE INFORMATIONEN' : 'ADDITIONAL INFORMATION');
