@@ -1,0 +1,134 @@
+mutation applied: M-r3-H1 an acknowledgement moves the whole snapshot of the producing editor, not only the entry's group (the email panel's follow-up moves with the email; round 2 finding H1)
+mutation: M-r3-H1 an acknowledgement moves the whole snapshot of the producing editor, not only the entry's group (the email panel's follow-up moves with the email; round 2 finding H1)
+  500/2000 seeds, 111 failing
+  1000/2000 seeds, 222 failing
+  1500/2000 seeds, 311 failing
+  2000/2000 seeds, 405 failing
+
+2000 seeds (1..2000), 60 operations each, new engine, 13.1s
+totals {"ops":120000,"edits":39131,"editorSaves":6837,"typedDuringSave":1145,"regens":0,"workflows":0,"trackerWrites":0,"silentWrites":0,"restores":2470,"copies":1211,"cancels":0,"panelOpens":959,"agentWrites":11831,"handoffs":0,"polls":16368,"saves":16195,"requests":90314,"dropped":5377,"lostAnswers":4076,"hung":5227,"conflictNotices":10980,"failureNotices":3657,"settleRounds":5070}
+failing seeds: 405  by invariant {"I6":405}
+seeds per kind of violation:
+    127  I6: TAB cv editor on APP had its snapshot of COLUMN moved by an acknowledgement about cv
+     92  I6: TAB coverLetter editor on APP had its snapshot of COLUMN moved by an acknowledgement about coverLetter
+     87  I6: TAB followUpEmail editor on APP had its snapshot of COLUMN moved by an acknowledgement about followUpEmail
+     84  I6: TAB COLUMN editor on APP had its snapshot of COLUMN moved by an acknowledgement about COLUMN
+     66  I6: TAB cv editor on APP had its snapshot of requirements moved by an acknowledgement about cv
+     64  I6: TAB coverLetter editor on APP had its snapshot of generated_cv moved by an acknowledgement about coverLetter
+     62  I6: TAB followUpEmail editor on APP had its snapshot of generated_cv moved by an acknowledgement about followUpEmail
+     60  I6: TAB cv editor on APP had its snapshot of fit_assessment moved by an acknowledgement about cv
+     58  I6: TAB COLUMN editor on APP had its snapshot of generated_cv moved by an acknowledgement about COLUMN
+     46  I6: TAB followUpEmail editor on APP had its snapshot of requirements moved by an acknowledgement about followUpEmail
+     43  I6: TAB coverLetter editor on APP had its snapshot of fit_assessment moved by an acknowledgement about coverLetter
+     43  I6: TAB followUpEmail editor on APP had its snapshot of fit_assessment moved by an acknowledgement about followUpEmail
+     41  I6: TAB COLUMN editor on APP had its snapshot of requirements moved by an acknowledgement about COLUMN
+     41  I6: TAB COLUMN editor on APP had its snapshot of fit_assessment moved by an acknowledgement about COLUMN
+     38  I6: TAB coverLetter editor on APP had its snapshot of requirements moved by an acknowledgement about coverLetter
+     15  I6: TAB COLUMN panel editor on APP had its snapshot of COLUMN moved by an acknowledgement about COLUMN
+      8  I6: TAB COLUMN panel editor on APP had its snapshot of COLUMN moved by an acknowledgement about followUpEmail
+      7  I6: TAB COLUMN panel editor on APP had its snapshot of generated_cv moved by an acknowledgement about followUpEmail
+      7  I6: TAB COLUMN panel editor on APP had its snapshot of generated_cv moved by an acknowledgement about COLUMN
+      6  I6: TAB COLUMN panel editor on APP had its snapshot of requirements moved by an acknowledgement about COLUMN
+      5  I6: TAB COLUMN panel editor on APP had its snapshot of requirements moved by an acknowledgement about followUpEmail
+      5  I6: TAB COLUMN panel editor on APP had its snapshot of fit_assessment moved by an acknowledgement about followUpEmail
+      5  I6: TAB COLUMN panel editor on APP had its snapshot of COLUMN moved by an acknowledgement about COLUMN, followUpEmail
+      5  I6: TAB COLUMN panel editor on APP had its snapshot of fit_assessment moved by an acknowledgement about COLUMN
+      4  I6: TAB COLUMN panel editor on APP had its snapshot of generated_cv moved by an acknowledgement about COLUMN, followUpEmail
+      3  I6: TAB COLUMN panel editor on APP had its snapshot of requirements moved by an acknowledgement about COLUMN, followUpEmail
+      3  I6: TAB COLUMN panel editor on APP had its snapshot of fit_assessment moved by an acknowledgement about COLUMN, followUpEmail
+  seed 2
+      I6: A's email editor on app-1 had its snapshot of company moved by an acknowledgement about email
+      I6: A's email editor on app-1 had its snapshot of job_description moved by an acknowledgement about email
+      I6: A's email editor on app-1 had its snapshot of requirements moved by an acknowledgement about email
+  seed 6
+      I6: B's followUpEmail editor on app-1 had its snapshot of job_title moved by an acknowledgement about followUpEmail
+      I6: B's followUpEmail editor on app-1 had its snapshot of company moved by an acknowledgement about followUpEmail
+      I6: B's followUpEmail editor on app-1 had its snapshot of job_description moved by an acknowledgement about followUpEmail
+  seed 7
+      I6: B's email panel editor on app-1 had its snapshot of job_title moved by an acknowledgement about followUpEmail
+      I6: B's email panel editor on app-1 had its snapshot of company moved by an acknowledgement about followUpEmail
+      I6: B's email panel editor on app-1 had its snapshot of job_description moved by an acknowledgement about followUpEmail
+  seed 10
+      I6: B's coverLetter editor on app-1 had its snapshot of generated_cv moved by an acknowledgement about coverLetter
+      I6: B's coverLetter editor on app-1 had its snapshot of email moved by an acknowledgement about coverLetter
+      I6: B's coverLetter editor on app-1 had its snapshot of follow_up_email moved by an acknowledgement about coverLetter
+  seed 23
+      I6: B's email editor on app-1 had its snapshot of job_title moved by an acknowledgement about email
+      I6: B's email editor on app-1 had its snapshot of company moved by an acknowledgement about email
+      I6: B's email editor on app-1 had its snapshot of job_description moved by an acknowledgement about email
+  seed 24
+      I6: B's followUpEmail editor on app-1 had its snapshot of job_title moved by an acknowledgement about followUpEmail
+      I6: B's followUpEmail editor on app-1 had its snapshot of requirements moved by an acknowledgement about followUpEmail
+      I6: B's followUpEmail editor on app-1 had its snapshot of generated_cv moved by an acknowledgement about followUpEmail
+  seed 25
+      I6: A's cv editor on app-1 had its snapshot of job_title moved by an acknowledgement about cv
+      I6: A's cv editor on app-1 had its snapshot of job_description moved by an acknowledgement about cv
+      I6: A's cv editor on app-1 had its snapshot of selected_template moved by an acknowledgement about cv
+  seed 33
+      I6: A's email panel editor on app-1 had its snapshot of job_description moved by an acknowledgement about followUpEmail
+      I6: A's email panel editor on app-1 had its snapshot of requirements moved by an acknowledgement about followUpEmail
+      I6: A's email panel editor on app-1 had its snapshot of generated_cv moved by an acknowledgement about followUpEmail
+  seed 38
+      I6: B's cv editor on app-1 had its snapshot of cover_letter moved by an acknowledgement about cv
+      I6: B's cv editor on app-1 had its snapshot of selected_template moved by an acknowledgement about cv
+      I6: B's cv editor on app-1 had its snapshot of job_title moved by an acknowledgement about cv
+  seed 40
+      I6: B's coverLetter editor on app-1 had its snapshot of job_title moved by an acknowledgement about coverLetter
+      I6: B's coverLetter editor on app-1 had its snapshot of company moved by an acknowledgement about coverLetter
+      I6: B's coverLetter editor on app-1 had its snapshot of generated_cv moved by an acknowledgement about coverLetter
+  seed 54
+      I6: A's email panel editor on app-1 had its snapshot of company moved by an acknowledgement about email
+      I6: A's email panel editor on app-1 had its snapshot of job_description moved by an acknowledgement about email
+      I6: A's email panel editor on app-1 had its snapshot of generated_cv moved by an acknowledgement about email
+  seed 57
+      I6: B's cv editor on app-1 had its snapshot of company moved by an acknowledgement about cv
+      I6: B's cv editor on app-1 had its snapshot of follow_up_email moved by an acknowledgement about cv
+      I6: B's cv editor on app-1 had its snapshot of selected_template moved by an acknowledgement about cv
+  seed 58
+      I6: A's coverLetter editor on app-1 had its snapshot of job_title moved by an acknowledgement about coverLetter
+      I6: A's coverLetter editor on app-1 had its snapshot of job_description moved by an acknowledgement about coverLetter
+      I6: A's coverLetter editor on app-1 had its snapshot of generated_cv moved by an acknowledgement about coverLetter
+  seed 59
+      I6: A's coverLetter editor on app-1 had its snapshot of requirements moved by an acknowledgement about coverLetter
+      I6: A's coverLetter editor on app-1 had its snapshot of selected_template moved by an acknowledgement about coverLetter
+  seed 63
+      I6: B's email editor on app-1 had its snapshot of job_title moved by an acknowledgement about email
+      I6: B's email editor on app-1 had its snapshot of requirements moved by an acknowledgement about email
+      I6: B's email editor on app-1 had its snapshot of generated_cv moved by an acknowledgement about email
+  seed 64
+      I6: A's followUpEmail editor on app-1 had its snapshot of generated_cv moved by an acknowledgement about followUpEmail
+  seed 67
+      I6: B's coverLetter editor on app-1 had its snapshot of job_description moved by an acknowledgement about coverLetter
+      I6: B's coverLetter editor on app-1 had its snapshot of generated_cv moved by an acknowledgement about coverLetter
+      I6: B's coverLetter editor on app-1 had its snapshot of fit_assessment moved by an acknowledgement about coverLetter
+  seed 69
+      I6: A's coverLetter editor on app-1 had its snapshot of job_title moved by an acknowledgement about coverLetter
+      I6: A's coverLetter editor on app-1 had its snapshot of company moved by an acknowledgement about coverLetter
+      I6: A's coverLetter editor on app-1 had its snapshot of generated_cv moved by an acknowledgement about coverLetter
+  seed 71
+      I6: A's cv editor on app-1 had its snapshot of email moved by an acknowledgement about cv
+      I6: A's cv editor on app-1 had its snapshot of email_subject moved by an acknowledgement about cv
+      I6: A's cv editor on app-1 had its snapshot of email_body moved by an acknowledgement about cv
+  seed 72
+      I6: A's email editor on app-1 had its snapshot of company moved by an acknowledgement about email
+      I6: A's email editor on app-1 had its snapshot of job_description moved by an acknowledgement about email
+      I6: A's email editor on app-1 had its snapshot of generated_cv moved by an acknowledgement about email
+  seed 78
+      I6: A's cv editor on app-1 had its snapshot of requirements moved by an acknowledgement about cv
+      I6: A's cv editor on app-1 had its snapshot of selected_template moved by an acknowledgement about cv
+  seed 86
+      I6: A's cv editor on app-1 had its snapshot of cover_letter moved by an acknowledgement about cv
+      I6: A's cv editor on app-1 had its snapshot of selected_template moved by an acknowledgement about cv
+  seed 89
+      I6: A's cv editor on app-1 had its snapshot of job_title moved by an acknowledgement about cv
+      I6: A's cv editor on app-1 had its snapshot of company moved by an acknowledgement about cv
+      I6: A's cv editor on app-1 had its snapshot of requirements moved by an acknowledgement about cv
+  seed 90
+      I6: A's cv editor on app-1 had its snapshot of requirements moved by an acknowledgement about cv
+      I6: A's cv editor on app-1 had its snapshot of follow_up_email moved by an acknowledgement about cv
+  seed 94
+      I6: A's followUpEmail editor on app-1 had its snapshot of job_title moved by an acknowledgement about followUpEmail
+      I6: A's followUpEmail editor on app-1 had its snapshot of company moved by an acknowledgement about followUpEmail
+      I6: A's followUpEmail editor on app-1 had its snapshot of job_description moved by an acknowledgement about followUpEmail
+  ... and 380 more
+seed list: 2,6,7,10,23,24,25,33,38,40,54,57,58,59,63,64,67,69,71,72,78,86,89,90,94,97,98,110,111,115,121,133,134,135,137,140,141,142,144,150,151,153,166,168,171,175,180,186,187,197,200,204,205,216,223,224,226,227,238,242,256,261,263,283,294,296,300,302,314,318,320,322,325,326,327,328,332,337,342,346,362,366,369,374,376,377,391,395,401,406,410,416,419,421,433,434,438,442,444,447, ... (405 in all, see --out)

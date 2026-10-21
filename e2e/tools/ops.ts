@@ -10,6 +10,7 @@
  *   persist-letter    {userId, sessionId, body}       persistKit with the stored kit and a new cover letter
  *   create-application {userId, jobDescription}       a stored application (the service the MCP tools will call)
  *   edit-email        {userId, sessionId, body}       replace the application email through the kit service
+ *   edit-follow-up    {userId, sessionId, body}       replace the follow-up email through the kit service
  *   seed-fit-capture  {userId, contextId}             a paid, captured fit analysis for a context (what a real fit leaves behind)
  *   enqueue           {userId, sessionId, key}        enqueueKitGeneration with a recording producer: the message is
  *                                                     captured and NOT delivered, so the sweeper path can be exercised
@@ -48,6 +49,13 @@ async function main(): Promise<void> {
         subject: 'Application: edited elsewhere',
         body: args.body,
         attachmentNote: 'Please find my CV and cover letter attached.',
+      });
+    } else if (op === 'edit-follow-up') {
+      const { saveKitDocument } = await import('../../src/lib/services/kit');
+      result = await saveKitDocument(args.userId, args.sessionId, 'followUpEmail', {
+        subject: 'Following up: edited elsewhere',
+        body: args.body,
+        recommendedDelay: 5,
       });
     } else if (op === 'seed-fit-capture') {
       const credits = await import('../../src/db/repos/credits');

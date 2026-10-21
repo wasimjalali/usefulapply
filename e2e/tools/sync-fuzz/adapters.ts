@@ -18,8 +18,10 @@
 import type { StoredSessionRow } from '@/lib/session-row-mapping';
 import { mapSessionRowToStore } from '@/lib/session-row-mapping';
 import type {
+  ConflictAcknowledgement,
   ConflictEntry,
   EditorOutcome,
+  EditorStart,
   SessionStoreLike,
   SyncNotice,
 } from '@/lib/session-sync-engine';
@@ -70,8 +72,8 @@ export interface Adapter {
   conflictJson(app: string): string;
   /** The buffer entries a notice is about, as text containing their tokens. */
   noticeText(notice: SyncNotice): string;
-  /** The buffer entries a notice named, with the user text each holds. */
-  noticeEntries(notice: SyncNotice): { id: string; tokens: string[] }[];
+  /** The buffer entries a notice named, with the user text each holds and the field group they are about. */
+  noticeEntries(notice: SyncNotice): { id: string; tokens: string[]; group: string }[];
   /** The ids of the entries the engine still holds for an application. */
   bufferIds(app: string): string[];
   restoreNotice(notice: SyncNotice): Promise<string>;
@@ -79,8 +81,22 @@ export interface Adapter {
   copyNotice(notice: SyncNotice): string | null;
   /** Dismiss then Discard: the user throws the notice's text away. */
   dismissNotice(notice: SyncNotice): void;
-  /** Called when the user has dealt with a conflict notice of an application (restore, copy, discard). */
-  subscribeAcknowledged(listener: (app: string) => void): () => void;
+  /** Called when the user has dealt with a conflict notice of an application (restore, copy, discard). `ack.discarded` is true for Dismiss then Discard. */
+  subscribeAcknowledged(listener: (app: string, ack: ConflictAcknowledgement) => void): () => void;
+  /** What a panel whose editor holds these field groups does with an acknowledgement (the engine's own rule, which the panels call). */
+  acknowledgementFor(ack: ConflictAcknowledgement, groups: string[], start: unknown): 'ignore' | 'rebase' | 'reset';
+  /** The start a panel moves its editor to after a Restore or Copy, for the groups `acknowledgementFor` said 'rebase' for. */
+  acknowledgedStart(ack: ConflictAcknowledgement, groups: string[], start: unknown): unknown;
+  /** The start the email panel moves its editor to after a Discard reset these groups and it stays open (`discardedEditorStart`). */
+  discardedStart(app: string, start: unknown, groups: string[]): unknown;
+  /** The snapshot an editor start holds (column -> server fingerprint), for the checks; undefined for engines without one. */
+  startFields(start: unknown): Record<string, string> | undefined;
+  /** A buffer entry this tab has raised a notice about, by id: its group, columns, user tokens and the fingerprint of each changed property. */
+  entryInfo(id: string): { group: string; columns: string[]; tokens: string[]; propTokens: Record<string, string[]>; changed: Record<string, string> } | undefined;
+  /** What the CV panel does when the answer to a save comes back after it closed its editor on Save. */
+  afterClosedEditorSave(outcome: string, epochAtSave: number, epochNow: number, start: unknown): { reopen: false } | { reopen: true; start: unknown };
+  /** Inside an editor save's apply (run once the lock is free): was that document's draft discarded since Save was clicked? Then the panels do not write it. */
+  discardedSinceSave(discardsAtSave: number, discardsNow: number): boolean;
   rejectedColumns(app: string): string[];
   baseline(app: string): { revision: number; fields: Record<string, string> | null } | undefined;
 }
@@ -243,11 +259,16 @@ export function newClient(
   world: World,
   engineModule: EngineModule,
   variant: EngineVariantName,
-  hooks: { onSaveCall?: (app: string, expected: number) => void } = {},
+  hooks: {
+    onSaveCall?: (app: string, expected: number) => void;
+    /** A conflict notice was raised; its entries are already in the buffer. */
+    onNotice?: (notice: SyncNotice) => void;
+  } = {},
 ): Adapter {
   const store = makeStore();
   const notices: SyncNotice[] = [];
   const noticeEntries = new WeakMap<SyncNotice, ConflictEntry[]>();
+  const entriesById = new Map<string, ConflictEntry>();
   const engine: ReturnType<EngineModule['createSyncEngine']> = engineModule.createSyncEngine({
     actions: {
       getRow: (app) => world.net.request(id, 'getRow', () => world.server.rowOf(app)),
@@ -267,7 +288,10 @@ export function newClient(
         // The entries this notice is about: named by id when the engine says so, otherwise the ones made just now.
         const all = engine.getConflictBuffer(notice.conflictFor);
         const named = notice.conflictEntries;
-        noticeEntries.set(notice, named ? all.filter((entry) => named.includes(entry.id)) : all.filter((entry) => entry.at === world.clock.now()));
+        const entries = named ? all.filter((entry) => named.includes(entry.id)) : all.filter((entry) => entry.at === world.clock.now());
+        noticeEntries.set(notice, entries);
+        for (const entry of entries) if (entry.id && !entriesById.has(entry.id)) entriesById.set(entry.id, entry);
+        hooks.onNotice?.(notice);
       }
     },
     clock: {
@@ -307,7 +331,7 @@ export function newClient(
     },
     save: (app) => engine.persistSessionEdits(app),
     poll: (app) => engine.checkForRemoteChange(app),
-    editorStart: (app, previous) => engine.getEditorStart(app, previous as never),
+    editorStart: (app) => engine.getEditorStart(app),
     editorCommit: (app, start, apply) => engine.commitEditorSave(app, start as never, apply),
     editorSucceeded: (outcome) => engineModule.editorSaveSucceeded(outcome as EditorOutcome),
     editorAfter: (app, outcome, sent, now, previousStart) => {
@@ -315,7 +339,9 @@ export function newClient(
       // Round 2 closed the editor on any success, even if the user had typed more while it saved.
       if (!current) return { close: true };
       if (engineModule.editorShouldClose(outcome as EditorOutcome, sent, now)) return { close: true };
-      return { close: false, start: engine.getEditorStart(app, previousStart as never) };
+      // The save confirmed the columns the draft sets: only those move (the panels do the same).
+      const start = previousStart as EditorStart | undefined;
+      return { close: false, start: start ? engine.rebaseEditorStart(app, start, start.lineage.columns) : start };
     },
     mutationResponse: async (app) => { await engine.refreshFromServer(app); },
     workflowComplete: async (app, response) => {
@@ -330,12 +356,32 @@ export function newClient(
     noticeEntries: (notice) => (noticeEntries.get(notice) ?? []).map((entry) => ({
       id: entry.id ?? `${entry.key}@${entry.at}`,
       tokens: tokensIn(JSON.stringify(userText(entry))),
+      group: entry.key,
     })),
     bufferIds: (app) => engine.getConflictBuffer(app).map((entry) => entry.id ?? `${entry.key}@${entry.at}`),
     dismissNotice: (notice) => {
       if (current && notice.conflictFor) anyEngine.discardConflict(notice.conflictFor, notice.conflictEntries ?? []);
     },
     subscribeAcknowledged: (listener) => (current ? (anyEngine.subscribeConflictAcknowledged(listener) as () => void) : () => undefined),
+    acknowledgementFor: (ack, groups, start) => (current ? engineModule.acknowledgementFor(ack, groups, start as never) : 'ignore'),
+    acknowledgedStart: (ack, groups, start) => (current ? engineModule.acknowledgedStart(ack, groups, start as never) : start),
+    discardedStart: (app, start, groups) => (current ? engine.discardedEditorStart(app, start as never, groups) : start),
+    startFields: (start) => (current && start ? { ...(start as EditorStart).fields } : undefined),
+    entryInfo: (id) => {
+      const entry = entriesById.get(id);
+      if (!entry) return undefined;
+      const changed: Record<string, string> = {};
+      for (const prop of entry.changed ?? []) changed[prop] = JSON.stringify((entry.props as Record<string, unknown>)[prop] ?? null);
+      // The user tokens per changed property (the CV's typed text is in optimizedCVData; generatedCV can carry a stale embedded copy).
+      const propTokens: Record<string, string[]> = {};
+      for (const prop of entry.changed ?? []) propTokens[prop] = tokensIn(JSON.stringify((entry.props as Record<string, unknown>)[prop] ?? null));
+      return { group: entry.key, columns: entry.columns, tokens: tokensIn(JSON.stringify(userText(entry))), propTokens, changed };
+    },
+    afterClosedEditorSave: (outcome, epochAtSave, epochNow, start) => (current
+      ? engineModule.afterClosedEditorSave(outcome as EditorOutcome, epochAtSave, epochNow, start as never)
+      : { reopen: false }),
+    // Round 2's panels had no such check: a queued save wrote whatever its closure held.
+    discardedSinceSave: (discardsAtSave, discardsNow) => (current ? engineModule.discardedSinceSave(discardsAtSave, discardsNow) : false),
     restoreNotice: async (notice) => {
       if (!notice.conflictFor) return 'skipped';
       // Round 2 restored every buffered entry of the application, whichever notice was clicked.
@@ -434,6 +480,13 @@ export async function legacyClient(id: string, world: World): Promise<Adapter> {
     copyNotice: () => null,
     dismissNotice: () => undefined,
     subscribeAcknowledged: () => () => undefined,
+    acknowledgementFor: () => 'ignore',
+    acknowledgedStart: (_ack, _groups, start) => start,
+    discardedStart: (_app, start) => start,
+    startFields: () => undefined,
+    entryInfo: () => undefined,
+    afterClosedEditorSave: () => ({ reopen: false }),
+    discardedSinceSave: () => false,
     rejectedColumns: () => [],
     baseline: (app) => {
       const revision = legacy.getBaselineRevision(app);

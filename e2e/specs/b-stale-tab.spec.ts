@@ -8,6 +8,7 @@ import {
   storedApplication,
   waitForStored,
 } from '../lib/app';
+import { runTool } from '../lib/run-tool';
 
 const CONFLICT_TOAST = 'This application was updated elsewhere. We loaded the latest version.';
 
@@ -74,6 +75,108 @@ test('(b) a stale tab that changes the same field gets the conflict toast and ov
   await notice.getByRole('button', { name: 'Dismiss' }).click();
   await notice.getByRole('button', { name: 'Discard' }).click();
   await expect(notice).toHaveCount(0);
+  await context.close();
+});
+
+test('(b3) a stale Save is refused again, and after Discard the editor no longer holds the discarded text', async ({ browser, request }) => {
+  const { user, context, pageA, pageB } = await twoTabs(browser, request, 'discard');
+
+  const letterA = 'Dear Northwind team,\n\nThis is the letter tab A saved first.\n\nKind regards,\nTomas Brandt';
+  await editCoverLetter(pageA, letterA);
+  const afterA = await waitForStored(user.id, (row) => row.cover_letter?.body?.includes('tab A saved first') === true, "A's letter saved");
+
+  // B conflicts and keeps its draft in the open editor.
+  const discardedText = 'Dear Northwind team,\n\nThis draft is discarded on purpose and must never be saved.\n\nKind regards,\nTomas Brandt';
+  await editCoverLetter(pageB, discardedText);
+  const notice = pageB.getByRole('alert').filter({ hasText: CONFLICT_TOAST });
+  await expect(notice).toBeVisible({ timeout: 20_000 });
+  const editor = pageB.getByPlaceholder('Cover letter content...');
+  await expect(editor).toHaveValue(discardedText);
+
+  // The stale draft is saved again, as a user who did not read the notice would: it is refused, the editor
+  // keeps the draft (a save that landed would have closed it) and D1 still holds A's letter at A's revision.
+  // The refusal sets the draft aside a second time, so the notice now covers the text of two changes.
+  await pageB.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(notice.getByText(/Your text from 2 changes/)).toBeVisible({ timeout: 20_000 });
+  await expect(editor).toHaveValue(discardedText);
+  expect(storedApplication(user.id)?.cover_letter?.body).not.toContain('discarded on purpose');
+  expect(storedApplication(user.id)?.revision).toBe(afterA.revision);
+
+  // Dismiss, then Discard, with the editor still open.
+  await notice.getByRole('button', { name: 'Dismiss' }).click();
+  await notice.getByRole('button', { name: 'Discard' }).click();
+  await expect(notice).toHaveCount(0);
+
+  // The editor is closed and B shows A's version.
+  await expect(editor).toHaveCount(0);
+  await expect(pageB.getByText(/tab A saved first/).first()).toBeVisible();
+  await expect(pageB.getByText(/discarded on purpose/)).toHaveCount(0);
+
+  // Discarding wrote nothing. Opening the editor again starts from A's letter, not from the discarded text: the
+  // store does not hold the discarded text, so no save (the 2 second autosave included) can write it.
+  await pageB.getByRole('button', { name: 'Edit', exact: true }).click();
+  await expect(editor).toHaveValue(letterA);
+  await pageB.getByRole('button', { name: 'Cancel', exact: true }).click();
+  expect(storedApplication(user.id)?.revision).toBe(afterA.revision);
+
+  const final = storedApplication(user.id);
+  expect(final?.cover_letter?.body).toContain('tab A saved first');
+  expect(final?.cover_letter?.body).not.toContain('discarded on purpose');
+  expect(final?.revision).toBe(afterA.revision);
+  await context.close();
+});
+
+/**
+ * Discard only reaches the editor whose text it throws away. An email conflict notice is open, the user
+ * goes to the CV and starts a legitimate edit, then discards the email text: the CV edit is still open
+ * and its Save writes it.
+ */
+test('(b4) discarding an email conflict leaves an open CV edit alone', async ({ browser, request }) => {
+  const { user, context, page } = await signedInPage(browser, request, 'bystander');
+  await page.addInitScript(() => {
+    const original = window.setInterval.bind(window);
+    window.setInterval = ((handler: TimerHandler, ms?: number, ...args: unknown[]) =>
+      ms === 15_000 ? 0 : original(handler, ms, ...args)) as typeof window.setInterval;
+  });
+  await generateKitThroughUi(page);
+  const generated = await waitForStored(user.id, (row) => row.generation_status === 'succeeded', 'kit persisted');
+
+  // The email editor opens, another writer changes the email, and the Save conflicts: the notice is about the email.
+  await page.getByRole('tab', { name: 'Emails' }).click();
+  await page.getByRole('button', { name: 'Edit', exact: true }).click();
+  await page.locator('textarea[rows="11"]').first().fill('This email draft was written on an older revision.');
+  await runTool('e2e/tools/ops.ts', [
+    'edit-email',
+    JSON.stringify({ userId: user.id, sessionId: generated.id, body: 'The email as edited by another writer.' }),
+  ]);
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  const notice = page.getByRole('alert').filter({ hasText: CONFLICT_TOAST });
+  await expect(notice).toBeVisible({ timeout: 20_000 });
+
+  // A legitimate CV edit is open, its field confirmed and the editor not yet saved.
+  await page.getByRole('tab', { name: 'CV' }).click();
+  // The notice sits over the toolbar, so the click goes to the button directly.
+  await page.getByRole('button', { name: 'Edit', exact: true }).dispatchEvent('click');
+  await page.getByText('Professional Title', { exact: true }).locator('xpath=..').click();
+  await page.locator('input[type="text"]').first().fill('Principal Forecasting Analyst');
+  await page.locator('button[title="Save"]').first().click();
+
+  // Discard the email text.
+  await notice.getByRole('button', { name: 'Dismiss' }).click();
+  await notice.getByRole('button', { name: 'Discard' }).click();
+  await expect(notice).toHaveCount(0);
+
+  // The CV edit is still there, and it saves.
+  const saveChanges = page.getByRole('button', { name: /Save changes/ });
+  await expect(saveChanges).toBeVisible();
+  await saveChanges.click();
+  const stored = await waitForStored(
+    user.id,
+    (row) => JSON.stringify(row.generated_cv).includes('Principal Forecasting Analyst'),
+    'the CV edit saved after the email conflict was discarded',
+  );
+  expect(stored.email?.body).toContain('edited by another writer');
+  expect(stored.email?.body).not.toContain('older revision');
   await context.close();
 });
 

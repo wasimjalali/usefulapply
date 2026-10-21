@@ -1,0 +1,208 @@
+{
+  "engine": "new",
+  "from": 1,
+  "count": 2000,
+  "ops": 60,
+  "totals": {
+    "ops": 120000,
+    "edits": 28754,
+    "editorSaves": 3993,
+    "typedDuringSave": 560,
+    "regens": 6498,
+    "workflows": 5385,
+    "trackerWrites": 3241,
+    "silentWrites": 0,
+    "restores": 1639,
+    "copies": 799,
+    "cancels": 1049,
+    "panelOpens": 885,
+    "agentWrites": 8689,
+    "handoffs": 3299,
+    "polls": 11821,
+    "saves": 11907,
+    "requests": 114039,
+    "dropped": 6080,
+    "lostAnswers": 4582,
+    "hung": 5994,
+    "conflictNotices": 9651,
+    "failureNotices": 5422,
+    "settleRounds": 5160
+  },
+  "byInvariant": {
+    "I1": 7
+  },
+  "byKind": {
+    "I1: TAB COLUMN editor on APP was told \"OUTCOME\" but the server never accepted the draft": 2,
+    "I1: TAB cv editor on APP was told \"OUTCOME\" but the server never accepted the draft": 2,
+    "I1: TAB coverLetter editor on APP was told \"OUTCOME\" but the server never accepted the draft": 2,
+    "I1: TAB followUpEmail editor on APP was told \"OUTCOME\" but the server never accepted the draft": 1
+  },
+  "failingSeeds": [
+    332,
+    1019,
+    1164,
+    1589,
+    1692,
+    1948,
+    1975
+  ],
+  "failures": [
+    {
+      "seed": 332,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's email editor on app-1 was told \"saved\" but the server never accepted the draft"
+        }
+      ]
+    },
+    {
+      "seed": 1019,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's email editor on app-1 was told \"clean\" but the server never accepted the draft"
+        }
+      ]
+    },
+    {
+      "seed": 1164,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's cv editor on app-1 was told \"saved\" but the server never accepted the draft"
+        }
+      ]
+    },
+    {
+      "seed": 1589,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's coverLetter editor on app-1 was told \"saved\" but the server never accepted the draft"
+        }
+      ]
+    },
+    {
+      "seed": 1692,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's followUpEmail editor on app-1 was told \"clean\" but the server never accepted the draft"
+        }
+      ]
+    },
+    {
+      "seed": 1948,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's cv editor on app-1 was told \"clean\" but the server never accepted the draft"
+        }
+      ]
+    },
+    {
+      "seed": 1975,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's coverLetter editor on app-1 was told \"clean\" but the server never accepted the draft"
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "name": "codex-1 handoff registers a baseline",
+      "violations": []
+    },
+    {
+      "name": "codex-2 editor survives a failed conflict reload",
+      "violations": []
+    },
+    {
+      "name": "codex-3 edit made while an adoption reload is in flight",
+      "violations": []
+    },
+    {
+      "name": "codex-4 late regenerate response after a newer revision",
+      "violations": []
+    },
+    {
+      "name": "low refused value does not block polling",
+      "violations": []
+    },
+    {
+      "name": "round-1 h2 edit made while a poll reload is in flight",
+      "violations": []
+    },
+    {
+      "name": "round-3 workflow_complete must not install older generated content",
+      "violations": []
+    },
+    {
+      "name": "round-3 typing during a save is not lost",
+      "violations": []
+    },
+    {
+      "name": "round-3 Restore and Copy act on their own notice only",
+      "violations": []
+    },
+    {
+      "name": "round-3b Restore applies a whole entry or none of it",
+      "violations": []
+    },
+    {
+      "name": "round-3b Copy with nothing left says so instead of copying an empty string",
+      "violations": []
+    },
+    {
+      "name": "pr159 Discard reaches only the editor whose text it throws away",
+      "violations": []
+    },
+    {
+      "name": "r2-1 Copy of an email conflict leaves the follow-up snapshot alone",
+      "violations": []
+    },
+    {
+      "name": "r2-2 Discard of a save-reconciliation conflict spares a newer editor",
+      "violations": []
+    },
+    {
+      "name": "r2-3 Copy of another editor's notice leaves a stale draft checked",
+      "violations": []
+    },
+    {
+      "name": "r2-4 Copy moves the producing editor only to the version its notice showed",
+      "violations": []
+    },
+    {
+      "name": "r2-5 a confirmed save rebases only the columns it wrote",
+      "violations": []
+    },
+    {
+      "name": "r3-x a partial Discard leaves the discarded document out of the next save's rebase",
+      "violations": []
+    },
+    {
+      "name": "r3-y a partial Discard moves only the discarded document's snapshot, to the version the panel shows",
+      "violations": []
+    },
+    {
+      "name": "r4-1 a save waiting for the lock does not write an email draft discarded after Save was clicked",
+      "violations": []
+    },
+    {
+      "name": "r4-2 a partial Discard keeps the editor's lineage, so a notice about its other draft still reaches it",
+      "violations": []
+    },
+    {
+      "name": "pr159 a draft that reopens with no start is checked as stale",
+      "violations": []
+    },
+    {
+      "name": "low feed handoff mapper matches the standard mapper",
+      "violations": []
+    }
+  ]
+}

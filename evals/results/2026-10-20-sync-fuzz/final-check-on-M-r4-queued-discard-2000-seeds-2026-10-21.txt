@@ -1,0 +1,58 @@
+mutation applied: M-r4-queued-discard a save that waited for the lock writes a draft the user discarded after clicking Save (it comes back as a new notice; final check after review round 3, low 1)
+mutation: M-r4-queued-discard a save that waited for the lock writes a draft the user discarded after clicking Save (it comes back as a new notice; final check after review round 3, low 1)
+
+Deterministic cases (new engine)
+PASS  codex-1 handoff registers a baseline
+PASS  codex-2 editor survives a failed conflict reload
+PASS  codex-3 edit made while an adoption reload is in flight
+PASS  codex-4 late regenerate response after a newer revision
+PASS  low refused value does not block polling
+PASS  round-1 h2 edit made while a poll reload is in flight
+PASS  round-3 workflow_complete must not install older generated content
+PASS  round-3 typing during a save is not lost
+PASS  round-3 Restore and Copy act on their own notice only
+PASS  round-3b Restore applies a whole entry or none of it
+PASS  round-3b Copy with nothing left says so instead of copying an empty string
+PASS  pr159 Discard reaches only the editor whose text it throws away
+PASS  r2-1 Copy of an email conflict leaves the follow-up snapshot alone
+PASS  r2-2 Discard of a save-reconciliation conflict spares a newer editor
+PASS  r2-3 Copy of another editor's notice leaves a stale draft checked
+PASS  r2-4 Copy moves the producing editor only to the version its notice showed
+PASS  r2-5 a confirmed save rebases only the columns it wrote
+PASS  r3-x a partial Discard leaves the discarded document out of the next save's rebase
+PASS  r3-y a partial Discard moves only the discarded document's snapshot, to the version the panel shows
+FAIL  r4-1 a save waiting for the lock does not write an email draft discarded after Save was clicked
+      I1: the queued save brought the discarded email back in a new notice (conflict)
+PASS  r4-2 a partial Discard keeps the editor's lineage, so a notice about its other draft still reaches it
+PASS  pr159 a draft that reopens with no start is checked as stale
+PASS  low feed handoff mapper matches the standard mapper
+  500/2000 seeds, 1 failing
+  1000/2000 seeds, 1 failing
+  1500/2000 seeds, 4 failing
+  2000/2000 seeds, 8 failing
+
+2000 seeds (1..2000), 60 operations each, new engine, 16.5s
+totals {"ops":120000,"edits":28755,"editorSaves":3993,"typedDuringSave":560,"regens":6498,"workflows":5385,"trackerWrites":3241,"silentWrites":0,"restores":1639,"copies":799,"cancels":1049,"panelOpens":885,"agentWrites":8688,"handoffs":3299,"polls":11821,"saves":11907,"requests":114035,"dropped":6080,"lostAnswers":4582,"hung":5994,"conflictNotices":9659,"failureNotices":5422,"settleRounds":5160}
+failing seeds: 8  by invariant {"I1":8}
+seeds per kind of violation:
+      3  I1: TAB cv editor on APP wrote T into the store from a save that waited for the lock, after the user discarded it
+      2  I1: TAB COLUMN editor on APP wrote T into the store from a save that waited for the lock, after the user discarded it
+      2  I1: TAB coverLetter editor on APP wrote T into the store from a save that waited for the lock, after the user discarded it
+      1  I1: TAB followUpEmail editor on APP wrote T into the store from a save that waited for the lock, after the user discarded it
+  seed 332
+      I1: A's email editor on app-1 wrote t:A29; into the store from a save that waited for the lock, after the user discarded it
+  seed 1019
+      I1: A's email editor on app-1 wrote t:A12; into the store from a save that waited for the lock, after the user discarded it
+  seed 1164
+      I1: B's cv editor on app-1 wrote t:B8; into the store from a save that waited for the lock, after the user discarded it
+  seed 1420
+      I1: A's cv editor on app-1 wrote t:A14; into the store from a save that waited for the lock, after the user discarded it
+  seed 1589
+      I1: A's coverLetter editor on app-1 wrote t:A9; into the store from a save that waited for the lock, after the user discarded it
+  seed 1692
+      I1: A's followUpEmail editor on app-1 wrote t:A6; into the store from a save that waited for the lock, after the user discarded it
+  seed 1948
+      I1: B's cv editor on app-1 wrote t:B18; into the store from a save that waited for the lock, after the user discarded it
+  seed 1975
+      I1: B's coverLetter editor on app-1 wrote t:B19; into the store from a save that waited for the lock, after the user discarded it
+seed list: 332,1019,1164,1420,1589,1692,1948,1975

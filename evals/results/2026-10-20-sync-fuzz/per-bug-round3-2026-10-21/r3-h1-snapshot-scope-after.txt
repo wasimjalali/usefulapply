@@ -1,0 +1,19 @@
+  500/2000 seeds, 1 failing
+  1000/2000 seeds, 2 failing
+  1500/2000 seeds, 3 failing
+  2000/2000 seeds, 3 failing
+
+2000 seeds (1..2000), 60 operations each, new engine, 19.4s
+totals {"ops":120000,"edits":39088,"editorSaves":6873,"typedDuringSave":1105,"regens":0,"workflows":0,"trackerWrites":0,"silentWrites":0,"restores":2494,"copies":1221,"cancels":0,"panelOpens":955,"agentWrites":11830,"handoffs":0,"polls":16388,"saves":16218,"requests":90184,"dropped":5333,"lostAnswers":4066,"hung":5196,"conflictNotices":11228,"failureNotices":3635,"settleRounds":5072}
+failing seeds: 3  by invariant {"I6":2,"I1":1}
+seeds per kind of violation:
+      1  I6: TAB followUpEmail editor on APP was rebased for followUpEmail by an acknowledgement of an entry it did not produce
+      1  I1: TAB last edit of APP.FIELD 
+      1  I6: TAB cv editor on APP was rebased for cv by an acknowledgement of an entry it did not produce
+  seed 197
+      I6: B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce
+  seed 984
+      I1: B's last edit of app-1.email (t:B7;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"company":"t:B23;"},{"requirements":{"title":"t:B24;","company":"c","hardSkills":[],"softSkills":[]}}])
+  seed 1463
+      I6: B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce
+seed list: 197,984,1463

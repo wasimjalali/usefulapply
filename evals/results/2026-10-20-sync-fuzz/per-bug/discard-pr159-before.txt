@@ -1,0 +1,202 @@
+mutation applied: M-pr159 findings 1 and 2 together: what f7c359a6 did with the discard (all editors notified, no epoch, no stale start)
+mutation: M-pr159 findings 1 and 2 together: what f7c359a6 did with the discard (all editors notified, no epoch, no stale start)
+  500/2000 seeds, 135 failing
+  1000/2000 seeds, 278 failing
+  1500/2000 seeds, 414 failing
+  2000/2000 seeds, 563 failing
+
+2000 seeds (1..2000), 60 operations each, new engine, 14.6s
+totals {"ops":120000,"edits":41913,"editorSaves":7237,"typedDuringSave":1218,"regens":0,"workflows":0,"trackerWrites":0,"silentWrites":0,"restores":0,"copies":0,"agentWrites":12552,"handoffs":0,"polls":17140,"saves":17131,"requests":91404,"dropped":5411,"lostAnswers":4159,"hung":5299,"conflictNotices":10921,"failureNotices":3729,"settleRounds":5058}
+failing seeds: 563  by invariant {"I1":563,"I2":1}
+seeds per kind of violation:
+     88  I1: TAB discarded a notice about cv and the open draft of APP.FIELD (T) was reset with it
+     63  I1: TAB discarded a notice about COLUMN and the open draft of APP.FIELD (T) was reset with it
+     56  I1: TAB editor on APP.cv reopened with T, which the user discarded while the save ran
+     43  I1: TAB discarded a notice about  and the open draft of APP.FIELD (T) was reset with it
+     30  I1: TAB discarded a notice about jobTitle and the open draft of APP.FIELD (T) was reset with it
+     27  I1: TAB discarded a notice about followUpEmail and the open draft of APP.FIELD (T) was reset with it
+     27  I1: TAB discarded a notice about fitAssessment and the open draft of APP.FIELD (T) was reset with it
+     26  I1: TAB discarded a notice about selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+     26  I1: TAB discarded a notice about coverLetter and the open draft of APP.FIELD (T) was reset with it
+     22  I1: TAB discarded a notice about followUpEmail and the open draft of APP.cv (T) was reset with it
+     20  I1: TAB discarded a notice about requirements and the open draft of APP.FIELD (T) was reset with it
+     19  I1: TAB discarded a notice about COLUMN and the open draft of APP.cv (T) was reset with it
+     18  I1: TAB discarded a notice about jobDescription and the open draft of APP.FIELD (T) was reset with it
+     16  I1: TAB editor on APP.cv saved T with no EditorStart, so the save is not checked against what the server holds now
+     15  I1: TAB discarded a notice about coverLetter and the open draft of APP.cv (T) was reset with it
+     14  I1: TAB open editor on APP.cv saved T, which the user had discarded 
+     14  I1: TAB discarded a notice about  and the open draft of APP.cv (T) was reset with it
+     11  I1: TAB discarded a notice about jobTitle and the open draft of APP.cv (T) was reset with it
+     10  I1: TAB discarded a notice about requirements and the open draft of APP.cv (T) was reset with it
+      9  I1: TAB discarded a notice about jobDescription, cv and the open draft of APP.FIELD (T) was reset with it
+      8  I1: TAB discarded a notice about cv, fitAssessment and the open draft of APP.FIELD (T) was reset with it
+      8  I1: TAB discarded a notice about fitAssessment and the open draft of APP.cv (T) was reset with it
+      7  I1: TAB discarded a notice about cv, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      7  I1: TAB discarded a notice about requirements, cv and the open draft of APP.FIELD (T) was reset with it
+      7  I1: TAB discarded a notice about COLUMN, cv and the open draft of APP.FIELD (T) was reset with it
+      6  I1: TAB discarded a notice about jobDescription and the open draft of APP.cv (T) was reset with it
+      5  I1: TAB discarded a notice about cv, COLUMN and the open draft of APP.FIELD (T) was reset with it
+      5  I1: TAB discarded a notice about selectedTemplate and the open draft of APP.cv (T) was reset with it
+      4  I1: TAB discarded a notice about jobTitle, cv and the open draft of APP.FIELD (T) was reset with it
+      4  I1: TAB discarded a notice about jobDescription, followUpEmail and the open draft of APP.FIELD (T) was reset with it
+      4  I1: TAB discarded a notice about COLUMN, requirements and the open draft of APP.FIELD (T) was reset with it
+      3  I1: TAB discarded a notice about coverLetter, COLUMN and the open draft of APP.cv (T) was reset with it
+      3  I1: TAB discarded a notice about COLUMN, selectedTemplate and the open draft of APP.cv (T) was reset with it
+      3  I1: TAB discarded a notice about jobTitle, COLUMN and the open draft of APP.FIELD (T) was reset with it
+      3  I1: TAB discarded a notice about jobDescription, COLUMN and the open draft of APP.FIELD (T) was reset with it
+      3  I1: TAB discarded a notice about requirements, followUpEmail and the open draft of APP.cv (T) was reset with it
+      3  I1: TAB discarded a notice about jobTitle, jobDescription and the open draft of APP.FIELD (T) was reset with it
+      3  I1: TAB discarded a notice about jobTitle, fitAssessment and the open draft of APP.FIELD (T) was reset with it
+      3  I1: TAB discarded a notice about jobDescription, fitAssessment and the open draft of APP.FIELD (T) was reset with it
+      3  I1: TAB discarded a notice about jobTitle, requirements and the open draft of APP.FIELD (T) was reset with it
+      3  I1: TAB discarded a notice about coverLetter, COLUMN and the open draft of APP.FIELD (T) was reset with it
+      3  I1: TAB discarded a notice about COLUMN, fitAssessment and the open draft of APP.FIELD (T) was reset with it
+      2  I1: TAB discarded a notice about jobTitle, coverLetter and the open draft of APP.cv (T) was reset with it
+      2  I1: TAB discarded a notice about COLUMN, followUpEmail, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      2  I1: TAB discarded a notice about fitAssessment, selectedTemplate and the open draft of APP.cv (T) was reset with it
+      2  I1: TAB discarded a notice about cv, followUpEmail and the open draft of APP.FIELD (T) was reset with it
+      2  I1: TAB discarded a notice about COLUMN, requirements and the open draft of APP.cv (T) was reset with it
+      2  I1: TAB discarded a notice about jobDescription, fitAssessment and the open draft of APP.cv (T) was reset with it
+      2  I1: TAB discarded a notice about COLUMN, followUpEmail, fitAssessment and the open draft of APP.cv (T) was reset with it
+      2  I1: TAB discarded a notice about jobTitle, cv, COLUMN and the open draft of APP.FIELD (T) was reset with it
+      2  I1: TAB discarded a notice about cv, coverLetter, COLUMN and the open draft of APP.FIELD (T) was reset with it
+      2  I1: TAB discarded a notice about followUpEmail, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      2  I1: TAB discarded a notice about cv, coverLetter and the open draft of APP.FIELD (T) was reset with it
+      2  I1: TAB discarded a notice about COLUMN, cv, fitAssessment and the open draft of APP.FIELD (T) was reset with it
+      2  I1: TAB discarded a notice about requirements, cv, coverLetter and the open draft of APP.FIELD (T) was reset with it
+      2  I1: TAB discarded a notice about COLUMN, cv, COLUMN and the open draft of APP.FIELD (T) was reset with it
+      2  I1: TAB discarded a notice about COLUMN, requirements, cv and the open draft of APP.FIELD (T) was reset with it
+      2  I1: TAB discarded a notice about COLUMN, COLUMN and the open draft of APP.FIELD (T) was reset with it
+      2  I1: TAB discarded a notice about coverLetter, fitAssessment and the open draft of APP.FIELD (T) was reset with it
+      2  I1: TAB discarded a notice about COLUMN, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, COLUMN, fitAssessment, selectedTemplate and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, requirements, fitAssessment and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, cv, followUpEmail and the open draft of APP.FIELD (T) was reset with it
+      1  I2: TAB save overwrote generated_cv of APP with a server value its store had never shown 
+      1  I1: TAB saved generated_cv of APP was replaced by TAB, whose store had never shown it
+      1  I1: TAB discarded a notice about jobDescription, requirements, coverLetter and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about jobDescription, requirements, coverLetter and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about cv, followUpEmail, fitAssessment and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, requirements, cv and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about COLUMN, cv, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about requirements, cv, followUpEmail and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about fitAssessment, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about cv, coverLetter, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about COLUMN, coverLetter and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobDescription, cv, COLUMN and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about coverLetter, followUpEmail and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about jobDescription, followUpEmail, fitAssessment and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about COLUMN, followUpEmail and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobDescription, cv, followUpEmail and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, jobDescription, coverLetter, followUpEmail, selectedTemplate and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, coverLetter, COLUMN and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about COLUMN, jobDescription and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about COLUMN, jobDescription and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobDescription, fitAssessment, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, COLUMN, selectedTemplate and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about requirements, followUpEmail, selectedTemplate and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about coverLetter, followUpEmail, fitAssessment and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about requirements, cv, fitAssessment and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about requirements, cv, COLUMN, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about COLUMN, requirements, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about COLUMN, requirements, selectedTemplate and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about COLUMN, cv, coverLetter, fitAssessment, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobDescription, coverLetter, fitAssessment and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, COLUMN, cv and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobDescription, requirements, cv, followUpEmail and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about COLUMN, jobDescription, requirements and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about COLUMN, jobDescription, requirements and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, COLUMN, COLUMN, selectedTemplate and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, followUpEmail and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about jobDescription, cv, fitAssessment and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, COLUMN, jobDescription and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about jobDescription, cv, coverLetter, followUpEmail and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobDescription, followUpEmail, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, COLUMN, jobDescription and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about coverLetter, selectedTemplate and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, COLUMN and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about coverLetter, followUpEmail and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about COLUMN, jobDescription, COLUMN and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about COLUMN, jobDescription, COLUMN and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about jobDescription, coverLetter, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about cv, coverLetter, followUpEmail, fitAssessment and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about coverLetter, fitAssessment and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about jobDescription, COLUMN and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about requirements, cv, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about requirements, selectedTemplate and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, jobDescription, fitAssessment, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about cv, fitAssessment, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, COLUMN, followUpEmail, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, COLUMN, COLUMN, fitAssessment and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about COLUMN, coverLetter, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about coverLetter, COLUMN, followUpEmail and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about COLUMN, jobDescription, cv, followUpEmail and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobDescription, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, COLUMN, jobDescription, cv and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about requirements, cv, coverLetter, COLUMN and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, jobDescription and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about COLUMN, jobDescription, coverLetter, COLUMN, fitAssessment and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about COLUMN, jobDescription, coverLetter, followUpEmail and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about COLUMN, coverLetter, fitAssessment, selectedTemplate and the open draft of APP.cv (T) was reset with it
+      1  I1: TAB discarded a notice about requirements, fitAssessment and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about jobTitle, followUpEmail, selectedTemplate and the open draft of APP.FIELD (T) was reset with it
+      1  I1: TAB discarded a notice about requirements, followUpEmail and the open draft of APP.FIELD (T) was reset with it
+  seed 9
+      I1: A discarded a notice about jobTitle, company, fitAssessment, selectedTemplate and the open draft of app-1.cv (t:A22;) was reset with it
+  seed 10
+      I1: B discarded a notice about coverLetter, email and the open draft of app-1.cv (t:B21;) was reset with it
+      I1: B's editor on app-1.cv reopened with t:B21;, which the user discarded while the save ran
+  seed 11
+      I1: B discarded a notice about cv and the open draft of app-1.coverLetter (t:B24;) was reset with it
+  seed 13
+      I1: A discarded a notice about selectedTemplate and the open draft of app-1.followUpEmail (t:A18;) was reset with it
+  seed 20
+      I1: A discarded a notice about cv and the open draft of app-1.followUpEmail (t:A18;) was reset with it
+  seed 22
+      I1: A discarded a notice about email and the open draft of app-1.followUpEmail (t:A13;) was reset with it
+  seed 28
+      I1: B discarded a notice about cv and the open draft of app-1.followUpEmail (t:B14;) was reset with it
+  seed 29
+      I1: A discarded a notice about coverLetter and the open draft of app-1.followUpEmail (t:A14;) was reset with it
+  seed 32
+      I1: B discarded a notice about email and the open draft of app-1.coverLetter (t:B15;) was reset with it
+  seed 42
+      I1: A discarded a notice about jobDescription, cv and the open draft of app-1.email (t:A13;) was reset with it
+  seed 46
+      I1: B discarded a notice about selectedTemplate and the open draft of app-1.coverLetter (t:B17;) was reset with it
+  seed 50
+      I1: B discarded a notice about email and the open draft of app-1.coverLetter (t:B28;) was reset with it
+  seed 51
+      I1: B discarded a notice about coverLetter and the open draft of app-1.email (t:B33;) was reset with it
+  seed 52
+      I1: A discarded a notice about jobTitle, requirements, fitAssessment and the open draft of app-1.followUpEmail (t:A17;) was reset with it
+  seed 54
+      I1: B discarded a notice about followUpEmail and the open draft of app-1.email (t:B26;) was reset with it
+  seed 61
+      I1: B discarded a notice about email and the open draft of app-1.followUpEmail (t:B18;) was reset with it
+      I1: B discarded a notice about email and the open draft of app-1.followUpEmail (t:B17;) was reset with it
+  seed 67
+      I1: B discarded a notice about cv, fitAssessment and the open draft of app-1.coverLetter (t:B12;) was reset with it
+  seed 69
+      I1: B discarded a notice about company and the open draft of app-1.coverLetter (t:B7;) was reset with it
+  seed 70
+      I1: B discarded a notice about  and the open draft of app-1.email (t:B24;) was reset with it
+      I1: A discarded a notice about jobTitle, coverLetter and the open draft of app-1.cv (t:A31;) was reset with it
+  seed 71
+      I1: B discarded a notice about fitAssessment and the open draft of app-1.coverLetter (t:B28;) was reset with it
+      I1: B discarded a notice about fitAssessment and the open draft of app-1.cv (t:B10;) was reset with it
+      I1: B's editor on app-1.cv reopened with t:B10;, which the user discarded while the save ran
+  seed 72
+      I1: B discarded a notice about company, selectedTemplate and the open draft of app-1.cv (t:B25;) was reset with it
+  seed 74
+      I1: B discarded a notice about cv and the open draft of app-1.email (t:B22;) was reset with it
+  seed 75
+      I1: B discarded a notice about followUpEmail and the open draft of app-1.cv (t:B8;) was reset with it
+  seed 77
+      I1: A discarded a notice about jobTitle, cv, followUpEmail and the open draft of app-1.email (t:A34;) was reset with it
+      I1: A discarded a notice about jobTitle, cv, followUpEmail and the open draft of app-1.email (t:A33;) was reset with it
+  seed 84
+      I1: B discarded a notice about cv and the open draft of app-1.followUpEmail (t:B11;) was reset with it
+  ... and 538 more
+seed list: 9,10,11,13,20,22,28,29,32,42,46,50,51,52,54,61,67,69,70,71,72,74,75,77,84,87,98,100,101,103,109,111,121,122,124,125,129,131,132,136,138,139,142,144,150,158,162,163,168,183,186,190,196,197,199,200,201,203,209,216,229,230,235,238,239,242,252,254,255,260,265,266,267,274,282,285,287,292,296,299,300,303,304,308,313,314,318,322,323,327,328,336,337,349,351,352,357,360,364,368, ... (563 in all, see --out)

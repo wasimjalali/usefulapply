@@ -1,0 +1,67 @@
+mutation applied: M-discard-inflight a save that was running when its draft was discarded reopens the draft, and a draft that lost its EditorStart is saved unchecked (finding 2: no discard epoch, no stale start)
+mutation: M-discard-inflight a save that was running when its draft was discarded reopens the draft, and a draft that lost its EditorStart is saved unchecked (finding 2: no discard epoch, no stale start)
+  500/2000 seeds, 4 failing
+  1000/2000 seeds, 11 failing
+  1500/2000 seeds, 17 failing
+  2000/2000 seeds, 21 failing
+
+2000 seeds (1..2000), 60 operations each, new engine, 19.3s
+totals {"ops":120000,"edits":41910,"editorSaves":7457,"typedDuringSave":1231,"regens":0,"workflows":0,"trackerWrites":0,"silentWrites":0,"restores":0,"copies":0,"agentWrites":12557,"handoffs":0,"polls":17101,"saves":17161,"requests":91328,"dropped":5430,"lostAnswers":4170,"hung":5302,"conflictNotices":11084,"failureNotices":3718,"settleRounds":5053}
+failing seeds: 21  by invariant {"I1":21}
+seeds per kind of violation:
+     21  I1: TAB editor on APP.cv reopened with T, which the user discarded while the save ran
+      5  I1: TAB editor on APP.cv saved T with no EditorStart, so the save is not checked against what the server holds now
+      4  I1: TAB open editor on APP.cv saved T, which the user had discarded 
+  seed 200
+      I1: B's editor on app-1.cv reopened with t:B21;, which the user discarded while the save ran
+  seed 229
+      I1: B's editor on app-1.cv reopened with t:B3;, which the user discarded while the save ran
+      I1: B's open editor on app-1.cv saved t:B3;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)
+      I1: B's editor on app-1.cv saved t:B3; with no EditorStart, so the save is not checked against what the server holds now
+  seed 238
+      I1: B's editor on app-1.cv reopened with t:B14;, which the user discarded while the save ran
+      I1: B's open editor on app-1.cv saved t:B14;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)
+      I1: B's editor on app-1.cv saved t:B14; with no EditorStart, so the save is not checked against what the server holds now
+  seed 254
+      I1: A's editor on app-1.cv reopened with t:A8;, which the user discarded while the save ran
+  seed 563
+      I1: B's editor on app-1.cv reopened with t:B10;, which the user discarded while the save ran
+  seed 565
+      I1: B's editor on app-1.cv reopened with t:B8;, which the user discarded while the save ran
+      I1: B's editor on app-1.cv saved t:B21; with no EditorStart, so the save is not checked against what the server holds now
+  seed 600
+      I1: B's editor on app-1.cv reopened with t:B15;, which the user discarded while the save ran
+      I1: B's editor on app-1.cv reopened with t:B6;, which the user discarded while the save ran
+  seed 711
+      I1: B's editor on app-1.cv reopened with t:B10;, which the user discarded while the save ran
+  seed 805
+      I1: B's editor on app-1.cv reopened with t:B31;, which the user discarded while the save ran
+  seed 860
+      I1: A's editor on app-1.cv reopened with t:A32;, which the user discarded while the save ran
+  seed 986
+      I1: B's editor on app-1.cv reopened with t:B14;, which the user discarded while the save ran
+      I1: B's editor on app-1.cv reopened with t:B12;, which the user discarded while the save ran
+      I1: B's open editor on app-1.cv saved t:B12;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)
+  seed 1217
+      I1: A's editor on app-1.cv reopened with t:A8;, which the user discarded while the save ran
+  seed 1255
+      I1: B's editor on app-1.cv reopened with t:B6;, which the user discarded while the save ran
+  seed 1271
+      I1: B's editor on app-1.cv reopened with t:B15;, which the user discarded while the save ran
+  seed 1284
+      I1: B's editor on app-1.cv reopened with t:B18;, which the user discarded while the save ran
+  seed 1342
+      I1: A's editor on app-1.cv reopened with t:A11;, which the user discarded while the save ran
+  seed 1368
+      I1: A's editor on app-1.cv reopened with t:A20;, which the user discarded while the save ran
+  seed 1821
+      I1: B's editor on app-1.cv reopened with t:B4;, which the user discarded while the save ran
+  seed 1869
+      I1: A's editor on app-1.cv reopened with t:A2;, which the user discarded while the save ran
+  seed 1918
+      I1: B's editor on app-1.cv reopened with t:B9;, which the user discarded while the save ran
+      I1: B's open editor on app-1.cv saved t:B9;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)
+      I1: B's editor on app-1.cv saved t:B9; with no EditorStart, so the save is not checked against what the server holds now
+  seed 1964
+      I1: B's editor on app-1.cv reopened with t:B21;, which the user discarded while the save ran
+seed list: 200,229,238,254,563,565,600,711,805,860,986,1217,1255,1271,1284,1342,1368,1821,1869,1918,1964
