@@ -259,3 +259,13 @@ test('authorship, duty and third-person possession stay claims', () => {
   assert.deepEqual(introducedClaims('Ingenieur mit seinem Team.', de, de, 'de', 'summary'), ['seinem']);
   assert.deepEqual(introducedClaims('Linux-Administration mit man und grep', 'Linux-Administration und grep', 'Linux-Administration', 'de', 'experience_bullets'), ['man']);
 });
+
+// Arbiter on #171: uninflected possessives, domain and skill words by stem, an authority modal.
+test('arbiter findings stay claims', () => {
+  const de = 'Betreuung von 40 Kunden im Maschinenbau.';
+  assert.deepEqual(introducedClaims('Betreuung von 40 Kunden im Maschinenbau durch ihr Team.', de, de, 'de', 'summary'), ['ihr']);
+  assert.deepEqual(introducedClaims('Betreuung von 40 Kunden im Maschinenbau durch sein Team.', de, de, 'de', 'summary'), ['sein']);
+  assert.deepEqual(introducedClaims('Product engineer at Acme, a dating platform.', 'Product engineer at Acme.', 'Product engineer at Acme.', 'en', 'summary'), ['dating', 'platform']);
+  assert.deepEqual(introducedClaims('Improved timing analysis.', 'Improved analysis.', 'Improved analysis.', 'en', 'summary'), ['timing']);
+  assert.deepEqual(introducedClaims('Ich darf für die Firma unterschreiben.', 'Ich unterschreiben für die Firma.', 'Ich unterschreiben.', 'de', 'summary'), ['darf']);
+});

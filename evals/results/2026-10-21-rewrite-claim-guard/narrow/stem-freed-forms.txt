@@ -1,13 +1,13 @@
 entries: 523, stems: 439, stems that are not entries: 34
 stems that are not entries: acros alway continu creat cutt dat dies dur ensur featur focu handl hav head improv includ increas lin mak mov plann proces provid reduc remov rol scal sentenc servic sett shar shipp tim writ
-stem-matched but kept out by NOT_NEUTRAL_BY_STEM: featured featuring sentenced sentencing serviced servicing shares shars writs
-newly freed forms (73), by stem:
+stem-matched but kept out by NOT_NEUTRAL_BY_STEM: dating featured featuring lining sentenced sentencing serviced servicing shares shars timing writs
+newly freed forms (70), by stem:
 acros: acrosed acroses acrosing
 alway: alwaies alwayed alwayes alwaying
 continu: continues continuing continus
 creat: creates creats
 cutt: cutted cuttes cutts
-dat: dated dating
+dat: dated
 dies: diesed diesing diess
 dur: dured dures
 ensur: ensures ensurs
@@ -19,7 +19,7 @@ head: heades
 improv: improves improvs
 includ: includes including includs
 increas: increases increasing increass
-lin: lined lining
+lin: lined
 mak: maked making
 mov: moves
 plann: plannes planns
@@ -33,5 +33,5 @@ sentenc: sentencs
 servic: servics
 sett: setted settes setts
 shipp: shippes shipps
-tim: timed timing
+tim: timed
 writ: writed

@@ -317,6 +317,12 @@ Review round 3 (Opus, the last round), fixed before merge:
 - "serviced" and "servicing" (a noun-to-verb jump from the listed "services") are kept out of the stem match. German "man" (also a tool) and the third-person possessives (seine, ihre and forms) are excluded.
 - The stem audit now covers claimStem's "-ies" path. `narrow/stem-freed-forms.txt` and `narrow/freed-forms.txt` are regenerated for the shipped lists; the first-run listings are kept as `*-first-run.txt`.
 - Shipped lists: 135 English (36 refused on main) and 183 German (133 refused on main). 73 stem-freed forms.
+- Re-score after round 3 (`run/score-round3-review3.*`; listings `narrow/*-review3.txt`): unchanged.
+
+Arbiter (Opus, after round 3): do not merge until these were fixed, then merge without a fourth round:
+- **Highs:** the uninflected German possessives "sein" and "ihr" ("durch ihr Team", the same supervision claim as seine and ihre) are excluded. The stem match no longer frees "dating" ("a dating platform") or "timing" ("timing analysis").
+- **Lows:** "lining" is kept out of the stem match, and the German authority modal "darf" (dürfen, durfte and forms) is excluded.
+- Shipped lists: 135 English (36 refused on main) and 174 German (124 refused on main). 70 stem-freed forms (`narrow/stem-freed-forms.txt`).
 - Final re-score (`run/score-round3-final.*`): false refusals 19 of 52 (unchanged), original injections 10 missed (0 new), held-out 773 missed (en 759, de 14; 0 new), probes 179 of 179 refused. Newly freed in the eval contexts: including, habe, sie, er, sodass, ich, bin.
 
 ### What was not changed, and was found on main

@@ -10,8 +10,8 @@
  * Dependencies 2.18 treebanks below and writes every form the treebank tags
  * ADP, CCONJ, SCONJ, DET, PRON, AUX or PART at least half the time and sees at
  * least three times (209 English and 313 German candidates). A person then read
- * every candidate. The lists below are what survived (135 English and 183 German
- * forms, 36 and 133 of them refused on main, after the review of #171), and the exclusions, each
+ * every candidate. The lists below are what survived (135 English and 174 German
+ * forms, 36 and 124 of them refused on main, after the review of #171), and the exclusions, each
  * with its reason, are in EXCLUDED_GRAMMAR_WORDS, so nothing was dropped
  * silently. A word the build did not list is not on a list.
  *
@@ -96,15 +96,15 @@ const GRAMMAR_WORDS_SOURCE = {
     'anderes', 'solch', 'solche', 'solchen', 'solcher', 'solches', 'selben', 'derselben',
     'desselben', 'dieselbe', 'dieselben', 'demjenigen', 'diejenigen', 'welche', 'welchem', 'welchen', 'welcher', 'welches',
     // Pronouns.
-    'ich', 'er', 'ihm', 'ihn', 'es', 'sie', 'ihnen', 'ihr', 'wir', 'euch',
+    'ich', 'er', 'ihm', 'ihn', 'es', 'sie', 'ihnen', 'wir', 'euch',
     'sich', 'wer', 'was', 'dessen', 'deren', 'derer', 'denen',
     // Auxiliaries, including their subjunctive forms.
-    'sein', 'ist', 'sind', 'bin', 'bist', 'sei', 'seien', 'war', 'waren', 'wäre', 'wären',
+    'ist', 'sind', 'bin', 'bist', 'sei', 'seien', 'war', 'waren', 'wäre', 'wären',
     'gewesen', 'werden', 'wird', 'werde', 'wurde', 'wurden', 'worden', 'würde', 'würden', 'haben',
     'habe', 'hat', 'hatte', 'hatten', 'hätte', 'hätten', 'können', 'kann', 'könne', 'könnte',
     'könnten', 'konnte', 'konnten', 'müssen', 'müsste', 'müssten', 'musste', 'mussten', 'müsse',
-    'sollen', 'sollte', 'sollten', 'solle', 'wollen', 'wollte', 'wollten', 'dürfen', 'darf',
-    'dürfe', 'dürfte', 'dürften', 'durfte', 'durften', 'möchte',
+    'sollen', 'sollte', 'sollten', 'solle', 'wollen', 'wollte', 'wollten',
+    'möchte',
     // Particles.
     'nicht',
   ],
@@ -149,7 +149,12 @@ export const EXCLUDED_GRAMMAR_WORDS: ReadonlyArray<{ language: 'en' | 'de'; reas
   {
     language: 'de',
     reason: 'third-person possessive: in a third-person summary "mit seinem Team" implies supervision, like the excluded mein (review of #171)',
-    words: ['seine', 'seinem', 'seinen', 'seiner', 'seines', 'ihre', 'ihrem', 'ihren', 'ihrer', 'ihres'],
+    words: ['sein', 'seine', 'seinem', 'seinen', 'seiner', 'seines', 'ihr', 'ihre', 'ihrem', 'ihren', 'ihrer', 'ihres'],
+  },
+  {
+    language: 'de',
+    reason: 'an authority modal: "darf für die Firma unterschreiben" (arbiter, review of #171)',
+    words: ['darf', 'dürfen', 'dürfe', 'dürfte', 'dürften', 'durfte', 'durften'],
   },
   {
     language: 'de',

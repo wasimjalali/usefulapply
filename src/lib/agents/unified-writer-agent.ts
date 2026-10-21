@@ -426,7 +426,9 @@ const NEUTRAL_STEMS = new Set([...NEUTRAL_WORDS].filter((entry) => !entry.endsWi
  */
 // "shares" states equity ownership ("with shares in the company"), review of #171.
 // "serviced" and "servicing" turn the listed noun "services" into a verb of duty ("Serviced Boeing 737 aircraft"), review of #171.
-const NOT_NEUTRAL_BY_STEM = new Set(['featured', 'featuring', 'sentenced', 'sentencing', 'writs', 'shares', 'shars', 'serviced', 'servicing']);
+// "dating", "timing" and "lining" name a domain or skill on their own ("a dating platform",
+// "timing analysis", "brake lining"), arbiter on #171.
+const NOT_NEUTRAL_BY_STEM = new Set(['featured', 'featuring', 'sentenced', 'sentencing', 'writs', 'shares', 'shars', 'serviced', 'servicing', 'dating', 'timing', 'lining']);
 
 /**
  * Is this word neutral as listed, or once stemmed to a listed word? As on main,
