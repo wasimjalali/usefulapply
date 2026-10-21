@@ -248,3 +248,14 @@ test('equity, universal scope and possession stay claims', () => {
   // No grammar word is free in a list section, in any case.
   assert.deepEqual(introducedClaims('Maschinenbau\nman\ngit', 'Maschinenbau', 'Maschinenbau', 'de', 'custom_section_items'), ['man', 'git']);
 });
+
+// Review of #171, round 3 (Opus).
+test('authorship, duty and third-person possession stay claims', () => {
+  const cv = 'Engineer on the Kubernetes migration.';
+  assert.deepEqual(introducedClaims('Engineer behind the Kubernetes migration.', cv, cv, 'en', 'summary'), ['behind']);
+  assert.deepEqual(introducedClaims('Serviced enterprise accounts.', 'Enterprise accounts.', 'Enterprise accounts.', 'en', 'experience_bullets'), ['serviced']);
+  const de = 'Ingenieur bei der Kubernetes-Migration im Team.';
+  assert.deepEqual(introducedClaims('Der Kopf hinter der Kubernetes-Migration.', de, de, 'de', 'summary'), ['kopf', 'hinter']);
+  assert.deepEqual(introducedClaims('Ingenieur mit seinem Team.', de, de, 'de', 'summary'), ['seinem']);
+  assert.deepEqual(introducedClaims('Linux-Administration mit man und grep', 'Linux-Administration und grep', 'Linux-Administration', 'de', 'experience_bullets'), ['man']);
+});

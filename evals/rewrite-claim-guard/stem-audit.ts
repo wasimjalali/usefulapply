@@ -32,7 +32,11 @@ for (const file of fs.readdirSync(process.argv[2]).filter((f) => f.startsWith('e
   }
 }
 const newStems = [...stems].filter((s) => !NEUTRAL.has(s)).sort();
-for (const stem of newStems) for (const suffix of ['ing', 'ed', 'es', 's']) pool.add(stem + suffix);
+for (const stem of newStems) {
+  for (const suffix of ['ing', 'ed', 'es', 's']) pool.add(stem + suffix);
+  // claimStem() also reads "-ies" as "-y" ("alwaies" is stem "alway"), review of #171.
+  if (stem.endsWith('y')) pool.add(stem.slice(0, -1) + 'ies');
+}
 for (const entry of entries) pool.add(entry);
 
 const freed = [...pool].filter(newlyNeutral).sort();

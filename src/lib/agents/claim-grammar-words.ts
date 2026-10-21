@@ -10,8 +10,8 @@
  * Dependencies 2.18 treebanks below and writes every form the treebank tags
  * ADP, CCONJ, SCONJ, DET, PRON, AUX or PART at least half the time and sees at
  * least three times (209 English and 313 German candidates). A person then read
- * every candidate. The lists below are what survived (136 English and 195 German
- * forms, 37 and 145 of them refused on main, after the review of #171), and the exclusions, each
+ * every candidate. The lists below are what survived (135 English and 183 German
+ * forms, 36 and 133 of them refused on main, after the review of #171), and the exclusions, each
  * with its reason, are in EXCLUDED_GRAMMAR_WORDS, so nothing was dropped
  * silently. A word the build did not list is not on a list.
  *
@@ -57,7 +57,7 @@ import { claimWords } from './claim-token-normalization';
 const GRAMMAR_WORDS_SOURCE = {
   en: [
     // Prepositions.
-    'about', 'across', 'after', 'against', 'along', 'among', 'around', 'at', 'before', 'behind',
+    'about', 'across', 'after', 'against', 'along', 'among', 'around', 'at', 'before',
     'between', 'by', 'down', 'during', 'for', 'from', 'in', 'into', 'of', 'off', 'on', 'onto',
     'out', 'over', 'since', 'through', 'toward', 'towards', 'under', 'up', 'upon', 'with', 'within',
     // Conjunctions.
@@ -82,7 +82,7 @@ const GRAMMAR_WORDS_SOURCE = {
   de: [
     // Prepositions, and their contractions with the article (im, zum, zur, vom).
     'am', 'an', 'ans', 'anhand', 'auf', 'aufgrund', 'aufs', 'aus', 'bei', 'beim', 'bis',
-    'durch', 'entlang', 'für', 'gegen', 'hinter', 'im', 'in', 'ins', 'mit', 'mittels', 'nach',
+    'durch', 'entlang', 'für', 'gegen', 'im', 'in', 'ins', 'mit', 'mittels', 'nach',
     'neben', 'seit', 'über', 'um', 'ums', 'unter', 'vom', 'von', 'vor', 'während', 'wegen', 'zu',
     'zum', 'zur', 'zwischen',
     // Conjunctions.
@@ -95,11 +95,9 @@ const GRAMMAR_WORDS_SOURCE = {
     'dieses', 'jene', 'jenem', 'jenen', 'jener', 'jenes', 'andere', 'anderem', 'anderen', 'anderer',
     'anderes', 'solch', 'solche', 'solchen', 'solcher', 'solches', 'selben', 'derselben',
     'desselben', 'dieselbe', 'dieselben', 'demjenigen', 'diejenigen', 'welche', 'welchem', 'welchen', 'welcher', 'welches',
-    'seine', 'seinem', 'seinen', 'seiner', 'seines', 'ihre',
-    'ihrem', 'ihren', 'ihrer', 'ihres',
     // Pronouns.
     'ich', 'er', 'ihm', 'ihn', 'es', 'sie', 'ihnen', 'ihr', 'wir', 'euch',
-    'sich', 'man', 'wer', 'was', 'dessen', 'deren', 'derer', 'denen',
+    'sich', 'wer', 'was', 'dessen', 'deren', 'derer', 'denen',
     // Auxiliaries, including their subjunctive forms.
     'sein', 'ist', 'sind', 'bin', 'bist', 'sei', 'seien', 'war', 'waren', 'wäre', 'wären',
     'gewesen', 'werden', 'wird', 'werde', 'wurde', 'wurden', 'worden', 'würde', 'würden', 'haben',
@@ -137,6 +135,26 @@ export const EXCLUDED_GRAMMAR_WORDS: ReadonlyArray<{ language: 'en' | 'de'; reas
     language: 'en',
     reason: 'possessive pronoun: "the product is ours" claims ownership, like the excluded German possessives (review of #171)',
     words: ['ours'],
+  },
+  {
+    language: 'en',
+    reason: 'claims authorship with no verb to catch it: "the engineer behind the migration" (review of #171)',
+    words: ['behind'],
+  },
+  {
+    language: 'de',
+    reason: 'claims authorship with no verb to catch it: "der Kopf hinter der Migration" (review of #171)',
+    words: ['hinter'],
+  },
+  {
+    language: 'de',
+    reason: 'third-person possessive: in a third-person summary "mit seinem Team" implies supervision, like the excluded mein (review of #171)',
+    words: ['seine', 'seinem', 'seinen', 'seiner', 'seines', 'ihre', 'ihrem', 'ihren', 'ihrer', 'ihres'],
+  },
+  {
+    language: 'de',
+    reason: 'also the name of a lowercase CLI tool (man), freed in bullets otherwise (review of #171)',
+    words: ['man'],
   },
   {
     language: 'en',

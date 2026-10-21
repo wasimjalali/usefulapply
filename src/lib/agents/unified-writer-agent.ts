@@ -425,7 +425,8 @@ const NEUTRAL_STEMS = new Set([...NEUTRAL_WORDS].filter((entry) => !entry.endsWi
  * (evals/results/2026-10-21-rewrite-claim-guard.md, Round 3).
  */
 // "shares" states equity ownership ("with shares in the company"), review of #171.
-const NOT_NEUTRAL_BY_STEM = new Set(['featured', 'featuring', 'sentenced', 'sentencing', 'writs', 'shares', 'shars']);
+// "serviced" and "servicing" turn the listed noun "services" into a verb of duty ("Serviced Boeing 737 aircraft"), review of #171.
+const NOT_NEUTRAL_BY_STEM = new Set(['featured', 'featuring', 'sentenced', 'sentencing', 'writs', 'shares', 'shars', 'serviced', 'servicing']);
 
 /**
  * Is this word neutral as listed, or once stemmed to a listed word? As on main,
