@@ -1155,13 +1155,24 @@ async function main(): Promise<void> {
   console.log('Plan:');
   console.log('  1. Look the account up by that exact email. Sign in with the credentials file if it exists.');
   console.log('  2. If the sign-in fails, delete that one reviewer user (checked by id and email) and sign it up again with a new password.');
-  console.log(`  3. Set it to Max, ${args.credits} credits, then replace its applications, CV, chat history, career profile, search strategy, feed run and feed settings.`);
+  console.log(`  3. Set it to Max, ${args.credits} credits, then clear its finished agent operations and replace its applications, CV, chat history, career profile, search strategy, feed run and feed settings.`);
   console.log('  4. Upsert this reviewer\'s own feed postings (keys "reviewer-seed:<its user id>:..."). Every other row is keyed to its user id, and no other user\'s rows are touched.');
   if (args.remote) console.log('--remote and --yes-production were both passed. Proceeding against the live database.');
 
   const existing = d1Rows<{ id: string; email: string }>(`SELECT id, email FROM user WHERE email = ${sqlText(args.email)}`, args.remote)[0];
   if (existing && (existing.email.toLowerCase() !== args.email || !REVIEWER_EMAIL.test(existing.email.toLowerCase()))) {
     fail(`The row found for ${args.email} has email ${existing.email}. Refusing to touch it.`);
+  }
+
+  // A live operation holds credits and an application's generation state. Settling it is the app's job, not this script's.
+  if (existing) {
+    const live = d1Rows<{ n: number }>(
+      `SELECT COUNT(*) AS n FROM agent_operations WHERE user_id = ${sqlText(existing.id)} AND status IN ('pending', 'running')`,
+      args.remote,
+    )[0]?.n ?? 0;
+    if (live > 0) {
+      fail(`${args.email} has ${live} pending or running agent operation(s). Wait for them to finish (or be swept) and run the seed again. Refusing to reseed under a live operation.`);
+    }
   }
 
   // Reuse the account when the stored password still signs in. Otherwise start clean.
@@ -1213,6 +1224,8 @@ VALUES (${sqlText(randomUUID())}, ${u}, ${delta}, 'reviewer_grant', 'grant', 'Re
     );
   }
   statements.push(
+    // Finished operations cache their results for ten minutes (replayed on the same input). The ids below are recreated, so drop them.
+    `DELETE FROM agent_operations WHERE user_id = ${u} AND status IN ('succeeded', 'failed', 'cancelled');`,
     `DELETE FROM application_sessions WHERE user_id = ${u};`,
     `DELETE FROM documents WHERE user_id = ${u};`,
     primaryCvSql(userId, now),
