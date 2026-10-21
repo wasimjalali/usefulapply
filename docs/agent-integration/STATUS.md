@@ -13,6 +13,15 @@ Last updated 2026-10-20 21:55, end of session 2 (paused by Wasim, resume next mo
 4. **Plugin repo PR #1** (wasimjalali/usefulapply-plugin): Sonnet review against the final tool schemas, merge. Local clone at `~/Desktop/usefulapply-plugin` has a stale local `main` (95c551c); reset it to `origin/main` with `git branch -f main origin/main` after switching away.
 5. Then #156 round 2, launch, follow-ups, as in "Left to do" below.
 
+## Session 3 progress (2026-10-21)
+
+- **#162 merged** (not deployed yet, ships with #159): the refund reconciler's `LIKE 'Released reservation <id>%'` was 58 bytes, over D1's 50-byte LIKE limit, so the daily cron threw whenever a released reservation existed. Now `instr()`, and zero-amount reservations are skipped. Reviewed by Sonnet + Codex + Opus (high), 0 high, 2 lows fixed.
+- **#159:** round 3 fix pushed (3f5a250e; fuzz before/after H1 405→0, H2 122→0, H3 328→0; `data` 27/27). Round 3 review: Codex 1 high (partial Discard leaves the discarded document in the editor's lineage), confirmed real by an Opus arbiter; Sonnet 6 lows. Fix in progress by the Opus debugger in `.claude/worktrees/fix-159`.
+- **PR 5:** `mcp-tools/e2e` merged in; PLAN says 43 tools. Full `data` + `oauth` + `mcp` with the expiry test: 130/130. `mcp-exports`: 3/3 after a fix (a seven-format export hit the 6-per-minute render limit on its 7th file; only PDFs, which use Browser Run, now count). `d14` passes inside the `d` scenarios spec.
+- **Plugin PR #1 merged** after two Sonnet rounds.
+- **#161:** listing, reviewer guide, checklist and OpenAI sheet updated to the 43 tools (95b71396). Open items for its review: `give_job_feedback` is annotated non-destructive although a dismiss can't be undone (code, PR 5); the seed doesn't reset notification switches or the photo.
+- **Learned:** a new worktree needs `.dev.vars` copied (plain `cp`) or every preview returns 500 on the OAuth metadata route; Playwright needs `npx playwright install ffmpeg` for the video-recording specs.
+
 ## Session 2 progress (2026-10-20)
 
 - **#160 merged:** the lockfile was out of sync with `package.json` (not a better-sqlite3 peer conflict). A plain `npm ci` works again; `--legacy-peer-deps` is no longer needed.
