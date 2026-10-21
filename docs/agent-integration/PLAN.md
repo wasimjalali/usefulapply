@@ -180,7 +180,7 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
 | `generate_application_kit` | 1.5 after fit, else 2.0 | yes (can replace a kit with `regenerate`) | Queues the CV, cover letter, email and follow-up |
 | `regenerate_document` | 0.5 | yes (overwrites) | Cover letter, email or follow-up, with an instruction |
 | `rewrite_cv_section` | 0.5, free if refused | yes (overwrites) | One section, with an instruction |
-| `apply_to_feed_job` | 0.5 or 2.0 | no | Feed job to application, then fit or kit |
+| `apply_to_feed_job` | 0.5 fit, or kit 1.5 after fit, else 2.0 | no | Feed job to application, then fit or kit |
 | `draft_screening_answers` | per current rules | no | Plus/Max screening answers, same turn cap as the web app |
 
 **Write, free** (scope `write`)
@@ -207,11 +207,11 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
 | `export_documents` | no | `cv_pdf`, `cv_docx`, `cover_letter_pdf`, `cover_letter_docx`, `emails_txt`, `answers_pdf`, `answers_txt`, with any `templateId`, an optional `paper` override and `letterLocale`; returns signed links |
 | `run_job_feed` | no | Today's feed (one a day, consent required) |
 | `update_feed_settings` | yes (overwrites settings) | Roles, countries, remote, salary floor, automation, timezone |
-| `give_job_feedback` | no | Save, unsave, dismiss, rate |
+| `give_job_feedback` | yes (dismiss and not relevant end the job, with no undo) | Save, unsave, dismiss, rate. Only dismiss and rate_not_relevant ask the user to confirm; the other verbs run without a form |
 | `withdraw_feed_consent` | yes | Stop feed data processing |
-| `update_notification_settings` | yes (overwrites settings) | Email notifications, reminders and the default CV template |
+| `update_notification_settings` | yes (overwrites settings) | Email notifications and reminders |
 
-**Left out:** checkout, plans, credit packs, account deletion, admin and the chat endpoint. The tool count is 44 (13 read, 6 spend, 25 free writes), which is within normal range for catalogs the directories have reviewed. Each description stays one or two sentences.
+**Left out:** checkout, plans, credit packs, account deletion, admin and the chat endpoint. The tool count is 43 (13 read, 6 spend, 24 free writes), which is within normal range for catalogs the directories have reviewed. Each description stays one or two sentences.
 
 **Claude Code skill `apply-to-job`:** check the account and CV, create the application, run the fit check, confirm spend with the user, generate, poll `get_operation`, review, export, set the tracker status.
 

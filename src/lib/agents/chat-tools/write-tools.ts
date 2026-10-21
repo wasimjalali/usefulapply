@@ -58,7 +58,7 @@ export async function findOwnedNamedRow(
  * follow_up_due_at, and the columns are always written together so a row
  * never keeps a stale date from the status it just left.
  */
-function datesFor(
+export function datesFor(
   status: TrackerStatus,
   newDateIso: string | null,
   row: { status: string; interview_at: string | null; follow_up_due_at: string | null },

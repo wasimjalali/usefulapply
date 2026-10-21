@@ -24,23 +24,55 @@ export const SCOPE_LABELS: Record<McpScope, { title: string; detail: string }> =
 
 /** Every MCP tool and the one scope it needs. A tool missing here cannot be called. */
 export const TOOL_SCOPES = {
+  // Read
   get_account: 'read',
+  get_credit_history: 'read',
+  list_applications: 'read',
+  get_application: 'read',
+  get_operation: 'read',
+  get_cv: 'read',
+  get_cv_outline: 'read',
+  list_cv_templates: 'read',
+  get_job_feed: 'read',
+  get_feed_settings: 'read',
+  get_career_profile: 'read',
+  explain_fit: 'read',
+  morning_briefing: 'read',
+  // Write, spends credits
+  analyze_job_fit: 'spend',
+  generate_application_kit: 'spend',
+  regenerate_document: 'spend',
+  rewrite_cv_section: 'spend',
+  apply_to_feed_job: 'spend',
+  draft_screening_answers: 'spend',
+  // Write, free
+  create_application: 'write',
+  update_application: 'write',
+  update_application_status: 'write',
+  delete_application: 'write',
+  cancel_generation: 'write',
+  save_cv: 'write',
+  delete_cv: 'write',
+  set_profile_photo: 'write',
+  remove_profile_photo: 'write',
+  update_profile: 'write',
+  update_cv_content: 'write',
+  add_cv_item: 'write',
+  set_cv_item_visibility: 'write',
+  undo_last_edit: 'write',
+  edit_cv_structure: 'write',
+  delete_cv_item: 'write',
+  edit_document_text: 'write',
+  set_cv_template: 'write',
+  export_documents: 'write',
+  run_job_feed: 'write',
+  update_feed_settings: 'write',
+  give_job_feedback: 'write',
+  withdraw_feed_consent: 'write',
+  update_notification_settings: 'write',
 } as const satisfies Record<string, McpScope>;
 
-/** Test-only tools (MCP_TEST_MODE on localhost). Same rule: scope declared next to the name. */
-export const TEST_TOOL_SCOPES = {
-  test_write_stub: 'write',
-} as const satisfies Record<string, McpScope>;
-
-export type ToolName = keyof typeof TOOL_SCOPES | keyof typeof TEST_TOOL_SCOPES;
-
-export function requiredScopeFor(tool: string, testMode: boolean): McpScope | null {
-  if (Object.hasOwn(TOOL_SCOPES, tool)) return TOOL_SCOPES[tool as keyof typeof TOOL_SCOPES];
-  if (testMode && Object.hasOwn(TEST_TOOL_SCOPES, tool)) {
-    return TEST_TOOL_SCOPES[tool as keyof typeof TEST_TOOL_SCOPES];
-  }
-  return null;
-}
+export type ToolName = keyof typeof TOOL_SCOPES;
 
 /** Space-separated `scope` claim (or an array) to a set. */
 export function parseScopeClaim(claim: unknown): Set<string> {

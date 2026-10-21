@@ -28,9 +28,16 @@ import { getDb, isUniqueViolation, nowIso, runBatch } from '@/db/client';
 import { agentOperations } from '@/db/schema';
 import { buildReleaseReservationStatements, getReservationByKey, releaseFitContinuationClaim } from '@/db/repos/credits';
 import { IdempotencyKeyMismatch, NotFoundError } from './errors';
+import { finalizeFeedRowForKit } from './feed/kit-finalize';
 
 export const OPERATION_KINDS = {
+  /** Queued: runs in the Queue consumer, finished by the runner's atomic batch. */
   generateKit: 'generate_kit',
+  /** The kinds below run inside the tool call itself (inline-operations.ts); the queue never sees them. */
+  analyzeFit: 'analyze_fit',
+  regenerateDocument: 'regenerate_document',
+  rewriteCvSection: 'rewrite_cv_section',
+  draftScreeningAnswers: 'draft_screening_answers',
 } as const;
 export type OperationKind = (typeof OPERATION_KINDS)[keyof typeof OPERATION_KINDS];
 
@@ -46,6 +53,8 @@ export interface AgentOperation {
   input: Record<string, unknown>;
   status: OperationStatus;
   result_ref: string | null;
+  /** The JSON result of an operation that ran inline in its tool call. Null for queued kits (see result_ref). */
+  result: Record<string, unknown> | null;
   reservation_key: string | null;
   lease_owner: string | null;
   lease_expires_at: string | null;
@@ -401,7 +410,10 @@ export interface FinishFailure {
   /** 'failed' for a runner or sweeper giving up, 'cancelled' for the user. */
   status: 'failed' | 'cancelled';
   errorCode: string;
-  /** Free text for the ledger description and the session's generation_error. Not shown raw to users. */
+  /**
+   * What went wrong, for the server log only. It can carry provider or model error text, so it never
+   * reaches the ledger description (which get_credit_history shows) or the session.
+   */
   reason: string;
 }
 
@@ -443,7 +455,8 @@ export async function finishOperationWithoutKit(
   ];
   if (reservation && reservation.status === 'reserved') {
     statements.push(...buildReleaseReservationStatements(reservation, {
-      reason: `${failure.errorCode}: ${failure.reason}`.slice(0, 300),
+      // The code is a stable, user-safe label. The free-text reason stays in the log.
+      reason: failure.errorCode,
       chained: true,
       now,
     }));
@@ -465,6 +478,7 @@ export async function finishOperationWithoutKit(
   const results = await runBatch(statements);
   const ended = results[0].meta.changes > 0;
   if (ended) {
+    if (failure.status === 'failed') console.error(`[operations] operation ${operation.id} (${operation.kind}) failed: ${failure.errorCode}: ${failure.reason}`);
     // A kit that used the fit-continuation discount gives the claim back, so
     // the user can still spend it on a retry.
     const contextId = typeof operation.input.contextId === 'string' ? operation.input.contextId : null;
@@ -472,6 +486,11 @@ export async function finishOperationWithoutKit(
       await releaseFitContinuationClaim(operation.user_id, contextId, operation.idempotency_key).catch((error) => {
         console.error('[operations] could not release the fit continuation claim:', error);
       });
+    }
+    // A kit queued for a job from the feed leaves the pending state on the feed row too. After the
+    // batch above, and never failing it.
+    if (operation.kind === OPERATION_KINDS.generateKit) {
+      await finalizeFeedRowForKit(operation, failure.status, failure.errorCode);
     }
   }
   return ended;

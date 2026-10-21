@@ -232,8 +232,10 @@ export async function getJobFeedApplicationSessionAdmin(params: {
 export async function createJobFeedApplicationSessionAdmin(params: {
   userId: string;
   job: JobFeedCanonicalJob;
+  /** Mark the new application's generation as pending. The web handoff does; the MCP fit check does not, because nothing generates a kit. Defaults to true. */
+  generationPending?: boolean;
 }): Promise<SupabaseApplicationSession> {
-  const { userId, job } = params;
+  const { userId, job, generationPending = true } = params;
   const { session, error } = await sessionsRepo.createSession(userId, job.description ?? buildFallbackJobDescription(job), {
     job_title: job.title,
     company: job.company,
@@ -242,6 +244,7 @@ export async function createJobFeedApplicationSessionAdmin(params: {
   if (error || !session) {
     throw new Error(`Failed to create application session from feed item: ${error?.message ?? 'unknown error'}`);
   }
+  if (!generationPending) return session as SupabaseApplicationSession;
   // Workflow state, not content: it must not bump the revision (see updateSession).
   await sessionsRepo.updateSession(userId, session.id, {
     generation_status: 'pending',
@@ -620,21 +623,12 @@ async function syncJobFeedGenerationReadModels(params: {
     updated_at: now,
   };
 
-  if (status === 'pending') {
-    feedbackPatch.apply_started_at = typedFeedback.apply_started_at ?? now;
-    feedbackPatch.applied_at = null;
-  } else if (status === 'running') {
-    feedbackPatch.generation_started_at = typedFeedback.generation_started_at ?? generation.started_at ?? now;
-  } else if (status === 'succeeded') {
-    feedbackPatch.applied_at = typedFeedback.applied_at ?? generation.completed_at ?? now;
-    feedbackPatch.generation_completed_at = typedFeedback.generation_completed_at ?? generation.completed_at ?? now;
-  } else if (status === 'failed') {
-    feedbackPatch.applied_at = null;
-    feedbackPatch.generation_failed_at = generation.failed_at ?? generation.expired_at ?? now;
-  } else if (status === 'cancelled') {
-    feedbackPatch.applied_at = null;
-    feedbackPatch.generation_cancelled_at = generation.cancelled_at ?? now;
-  }
+  applyGenerationStatusToFeedbackPatch(feedbackPatch, typedFeedback, status, {
+    startedAt: generation.started_at,
+    completedAt: generation.completed_at,
+    failedAt: generation.failed_at ?? generation.expired_at,
+    cancelledAt: generation.cancelled_at,
+  }, now);
 
   await jobFeedRepo.upsertFeedback(userId, {
     canonical_job_id: typedFeedback.canonical_job_id,
@@ -649,6 +643,66 @@ async function syncJobFeedGenerationReadModels(params: {
     } as JobFeedFeedback,
     generation,
   };
+}
+
+/** The feed row's timestamps for a generation status: shared by the web sync and the queued kit's finalize. */
+function applyGenerationStatusToFeedbackPatch(
+  patch: Record<string, Json | string | null>,
+  feedback: JobFeedFeedback,
+  status: JobFeedGenerationStatus,
+  times: { startedAt: string | null; completedAt: string | null; failedAt: string | null; cancelledAt: string | null },
+  now: string,
+): void {
+  if (status === 'pending') {
+    patch.apply_started_at = feedback.apply_started_at ?? now;
+    patch.applied_at = null;
+  } else if (status === 'running') {
+    patch.generation_started_at = feedback.generation_started_at ?? times.startedAt ?? now;
+  } else if (status === 'succeeded') {
+    patch.applied_at = feedback.applied_at ?? times.completedAt ?? now;
+    patch.generation_completed_at = feedback.generation_completed_at ?? times.completedAt ?? now;
+  } else if (status === 'failed') {
+    patch.applied_at = null;
+    patch.generation_failed_at = times.failedAt ?? now;
+  } else if (status === 'cancelled') {
+    patch.applied_at = null;
+    patch.generation_cancelled_at = times.cancelledAt ?? now;
+  }
+}
+
+/**
+ * A kit queued through MCP has no job_feed_application_generations row (the web handoff creates
+ * one and the browser reports its progress to /api/job-feed/apply/status). When such a kit ends,
+ * this writes to the feed row linked to the application what that status endpoint would have:
+ * the generation status and, on success, applied_at, which takes the job out of the inbox.
+ * Returns false when no feed row is linked to the application. A kit that failed or was
+ * cancelled does not overwrite a feed row already marked succeeded (an earlier kit stands).
+ */
+export async function settleJobFeedFeedbackForSession(params: {
+  userId: string;
+  sessionId: string;
+  status: 'succeeded' | 'failed' | 'cancelled';
+  errorMessage?: string | null;
+}): Promise<boolean> {
+  const { userId, sessionId, status, errorMessage = null } = params;
+  const feedback = await jobFeedRepo.getFeedbackBySession(userId, sessionId);
+  if (!feedback) return false;
+  if (status !== 'succeeded' && feedback.generation_status === 'succeeded') return true;
+
+  const now = new Date().toISOString();
+  const patch: Record<string, Json | string | null> = {
+    generation_status: status,
+    generation_error: status === 'succeeded' ? null : errorMessage,
+    metadata: mergeMetadata(feedback.metadata ?? null, {
+      generation_status: status,
+      generation_status_at: now,
+      generation_error: status === 'succeeded' ? null : errorMessage,
+    }),
+    updated_at: now,
+  };
+  applyGenerationStatusToFeedbackPatch(patch, feedback, status, { startedAt: null, completedAt: now, failedAt: now, cancelledAt: now }, now);
+  await jobFeedRepo.upsertFeedback(userId, { canonical_job_id: feedback.canonical_job_id, ...patch });
+  return true;
 }
 
 async function insertJobFeedApplicationGenerationEvent(params: {
@@ -1208,6 +1262,12 @@ export async function runJobFeedFoundationWorkflow(params: {
   force?: boolean;
   orchestrator?: JobFeedRunDiagnostics['orchestrator'];
   consentAccepted?: boolean;
+  /**
+   * Work on this specific run row (the queue consumer's) instead of the one for today's date. It
+   * must still be queued when it is read; anything else is skipped, so a run that was claimed,
+   * finished or failed is never run again by a redelivered message.
+   */
+  runId?: string;
 }): Promise<JobFeedRunWorkflowResult> {
   const {
     userId,
@@ -1218,6 +1278,7 @@ export async function runJobFeedFoundationWorkflow(params: {
     force = false,
     orchestrator = 'direct',
     consentAccepted = false,
+    runId = null,
   } = params;
   const workflowGenerationContext: LlmGenerationContext = {
     requestExecutionId,
@@ -1277,8 +1338,15 @@ export async function runJobFeedFoundationWorkflow(params: {
   const localTimeZone = settings.user_timezone && isValidTimeZone(settings.user_timezone)
     ? settings.user_timezone
     : 'UTC';
-  const localDate = getLocalDateKey(now, localTimeZone);
-  const existingRun = await getJobFeedRunByDate(userId, localDate);
+  const targetRun = runId ? await jobFeedRepo.getRun(userId, runId) : null;
+  if (runId && !targetRun) {
+    throw new Error('Job feed run was not found for this user.');
+  }
+  if (targetRun && targetRun.status !== 'queued') {
+    return { run: targetRun, created: false, skipped: true };
+  }
+  const localDate = targetRun?.local_date ?? getLocalDateKey(now, localTimeZone);
+  const existingRun = targetRun ?? await getJobFeedRunByDate(userId, localDate);
 
   if (existingRun?.status === 'completed' && !force) {
     captureJobFeedRunIdempotencyConflict({
@@ -1595,6 +1663,71 @@ export async function runJobFeedFoundationWorkflow(params: {
 
     throw error;
   }
+}
+
+/**
+ * The producer half of a queued run: find or create today's run row (one per user and local day,
+ * enforced by the unique index the web path also relies on) and leave it `queued` for the queue
+ * consumer, which claims it through runJobFeedFoundationWorkflow({ runId }). Does no feed work.
+ *
+ * `dispatch` says whether a queue message should be sent for the row: it is queued, whether just
+ * now or by an earlier call whose message may have been lost. A claim is conditional, so a
+ * message sent twice runs the feed once. `queuedNow` is true when this call is what put the run
+ * on the queue. A completed run, or one still running, is left alone.
+ */
+export async function queueJobFeedRunAdmin(params: {
+  userId: string;
+  now?: Date;
+  triggerSource?: string;
+}): Promise<{ run: JobFeedRun; queuedNow: boolean; dispatch: boolean }> {
+  const { userId, now = new Date(), triggerSource = 'manual_user' } = params;
+  const settings = await getJobFeedSettingsAdmin(userId);
+  if (!settings) {
+    throw new Error('Job feed settings were not found for this user.');
+  }
+  const localTimeZone = settings.user_timezone && isValidTimeZone(settings.user_timezone)
+    ? settings.user_timezone
+    : 'UTC';
+  const localDate = getLocalDateKey(now, localTimeZone);
+
+  let run = await getJobFeedRunByDate(userId, localDate);
+  if (!run) {
+    const creation = await createJobFeedRunForToday({ userId, localDate, settings, triggerSource, orchestrator: 'queue' });
+    // The row this call inserted is queued. One that lost the insert race is the winner's, judged below.
+    if (!creation.raced) return { run: creation.run, queuedNow: true, dispatch: true };
+    run = creation.run;
+  }
+
+  if (run.status === 'queued') {
+    return { run, queuedNow: false, dispatch: true };
+  }
+  const stalledRunning = run.status === 'running' && isStaleJobFeedRun(run, now);
+  if (run.status !== 'failed' && !stalledRunning) {
+    // Completed, or running and still making progress.
+    return { run, queuedNow: false, dispatch: false };
+  }
+
+  // A failed run is retried and a stalled one is taken over, as the synchronous path does.
+  captureJobFeedRunIdempotencyConflict({
+    userId,
+    run,
+    localDate,
+    triggerSource,
+    force: false,
+    reason: stalledRunning ? 'stale_running_run_reset' : 'failed_run_retry',
+  });
+  const requeued = await jobFeedRepo.requeueRun(userId, run.id, {
+    status: run.status as 'failed' | 'running',
+    updatedAt: run.updated_at,
+  });
+  if (!requeued) {
+    // Another caller moved the row first. Report what it is now.
+    const current = await getJobFeedRunByDate(userId, localDate);
+    if (!current) throw new Error('Job feed run disappeared while it was being queued.');
+    return { run: current, queuedNow: false, dispatch: current.status === 'queued' };
+  }
+  if (stalledRunning) await resetJobFeedRunArtifactsForRerun(run.id);
+  return { run: requeued, queuedNow: true, dispatch: true };
 }
 
 async function getJobFeedRunByDate(userId: string, localDate: string): Promise<JobFeedRun | null> {

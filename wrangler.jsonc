@@ -393,6 +393,31 @@
 				"limit": 6,
 				"period": 60
 			}
+		},
+		// MCP tools that cost us something though they cost the user no credits (PR 5).
+		{
+			"name": "RATE_LIMIT_MCP_SAVE_CV",
+			"namespace_id": "3150",
+			"simple": {
+				"limit": 5,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_MCP_SCREENING",
+			"namespace_id": "3151",
+			"simple": {
+				"limit": 5,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_MCP_EXPORT",
+			"namespace_id": "3152",
+			"simple": {
+				"limit": 12,
+				"period": 60
+			}
 		}
 	],
 	// Paid plan default is 30s CPU. Fit analysis + generation is LLM-bound

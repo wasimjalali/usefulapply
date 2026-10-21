@@ -27,6 +27,7 @@ export async function dispatchScheduled(cron: string): Promise<void> {
         { purgeUnconsentedClients, purgeExpiredTokenBindings },
         { isMcpEnabled },
         { deleteExpiredExports },
+        { deleteEditHistoryOlderThan },
       ] = await Promise.all([
         import('@/lib/job-feed/cleanup'),
         import('@/lib/supabase/credits.server'),
@@ -35,6 +36,7 @@ export async function dispatchScheduled(cron: string): Promise<void> {
         import('@/db/repos/mcpGrants'),
         import('@/lib/mcp/config'),
         import('@/lib/services/export/storage'),
+        import('@/lib/services/edit-history'),
       ]);
       const results = await Promise.allSettled([
         cleanupHistoricalJobFeedData({ now: new Date() }),
@@ -49,6 +51,8 @@ export async function dispatchScheduled(cron: string): Promise<void> {
           : Promise.resolve([0, 0]),
         // Exports are kept 30 days, then deleted.
         deleteExpiredExports(new Date()),
+        // Undo history is kept 30 days, then dropped.
+        deleteEditHistoryOlderThan(30),
       ]);
       const problems: string[] = [];
       for (const r of results) {
@@ -76,6 +80,8 @@ export async function dispatchScheduled(cron: string): Promise<void> {
       if (purge.status === 'fulfilled') console.log('[cron] MCP purge (clients without consent, expired token bindings)', purge.value);
       const exportSweep = results[5];
       if (exportSweep.status === 'fulfilled') console.log('[cron] expired exports', exportSweep.value);
+      const historySweep = results[6];
+      if (historySweep.status === 'fulfilled') console.log('[cron] edit history deleted after 30 days', historySweep.value);
       // Side effects are already committed; throwing only marks the run failed in Workers Logs.
       if (problems.length > 0) {
         throw new Error(`[cron] ${problems.join('; ')}`);

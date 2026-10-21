@@ -359,3 +359,24 @@ export async function purgeUnconsentedClients(now = Date.now()): Promise<number>
   ]);
   return result?.meta.changes ?? 0;
 }
+
+const clientNameCache = new Map<string, { at: number; name: string | null }>();
+const CLIENT_NAME_TTL_MS = 5 * 60 * 1000;
+
+/**
+ * The display name an OAuth client registered with ("Claude", "Cursor"), for tool analytics.
+ * Cached for five minutes; a client with no name reads as null.
+ */
+export async function getOAuthClientName(clientId: string): Promise<string | null> {
+  const hit = clientNameCache.get(clientId);
+  if (hit && Date.now() - hit.at < CLIENT_NAME_TTL_MS) return hit.name;
+  const db = await getDb();
+  const rows = await db
+    .select({ name: oauthClient.name })
+    .from(oauthClient)
+    .where(eq(oauthClient.clientId, clientId))
+    .limit(1);
+  const name = rows[0]?.name?.trim().slice(0, 80) || null;
+  clientNameCache.set(clientId, { at: Date.now(), name });
+  return name;
+}

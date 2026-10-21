@@ -39,6 +39,15 @@ export class IdempotencyKeyMismatch extends Error {
   }
 }
 
+/** A request under this idempotency key already ran and failed; its credits were given back. A new key starts a new attempt. */
+export class OperationFailedEarlierError extends Error {
+  readonly code = 'OPERATION_FAILED_EARLIER' as const;
+  constructor(readonly operationId: string) {
+    super('This request failed earlier. Send it again with a new idempotency key');
+    this.name = 'OperationFailedEarlierError';
+  }
+}
+
 /** The user already has the maximum number of pending or running operations. */
 export class OperationLimitReached extends Error {
   readonly code = 'OPERATION_LIMIT_REACHED' as const;
@@ -54,6 +63,15 @@ export class InsufficientCreditsError extends Error {
   constructor(readonly required: number, readonly available: number) {
     super('Insufficient credits');
     this.name = 'InsufficientCreditsError';
+  }
+}
+
+/** The caller's daily spending limit (the MCP daily agent credit limit) would be exceeded. */
+export class SpendLimitReachedError extends Error {
+  readonly code = 'SPEND_LIMIT_REACHED' as const;
+  constructor(readonly spent: number, readonly limit: number, readonly required: number) {
+    super('The daily spending limit is reached');
+    this.name = 'SpendLimitReachedError';
   }
 }
 

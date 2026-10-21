@@ -5,26 +5,21 @@ import { requireJobFeedAccess, requireJobFeedView } from '@/lib/job-feed/auth';
 import {
   CAREER_PROFILE_SCHEMA_VERSION,
   isCurrentCareerProfile,
-  type CareerProfile,
 } from '@/lib/job-feed/career-profile';
 import { generateCareerProfile } from '@/lib/job-feed/career-profile-synthesis';
 import type { StructuredCV } from '@/lib/types/cv-schema';
 import type { Json } from '@/lib/supabase/types';
-import { getDocumentByType } from '@/db/repos/documents';
-import { getCareerProfileRow, upsertCareerProfile } from '@/db/repos/jobFeed';
+import { upsertCareerProfile } from '@/db/repos/jobFeed';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
+import {
+  isCVNewerThanProfile,
+  loadProfileAndPrimaryCV,
+  readCareerProfile,
+  type CareerProfileResponseBody,
+} from '@/lib/services/feed/career-profile';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-
-interface CareerProfileResponseBody {
-  profile: CareerProfile | null;
-  /** True when the cached profile is older than the latest primary_cv. */
-  cvNewerThanProfile: boolean;
-  /** "ok" when a profile is returned (cached or freshly generated). */
-  status: 'ok' | 'no_cv' | 'no_profile';
-  generatedAt: string | null;
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -42,30 +37,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const { profileRow, primaryDoc } = await loadProfileAndPrimaryCV(userId);
-
-    if (!profileRow?.profile || !isCurrentCareerProfile(profileRow.profile)) {
-      const body: CareerProfileResponseBody = {
-        profile: null,
-        cvNewerThanProfile: false,
-        status: primaryDoc ? 'no_profile' : 'no_cv',
-        generatedAt: null,
-      };
-      return NextResponse.json(body);
-    }
-
-    const cvNewerThanProfile = isCVNewerThanProfile({
-      profileSourceUpdatedAt: profileRow.source_document_updated_at,
-      primaryDocUpdatedAt: primaryDoc?.updated_at ?? null,
-    });
-
-    const body: CareerProfileResponseBody = {
-      profile: profileRow.profile,
-      cvNewerThanProfile,
-      status: 'ok',
-      generatedAt: profileRow.profile.generatedAt,
-    };
-    return NextResponse.json(body);
+    return NextResponse.json(await readCareerProfile(userId));
   } catch (error) {
     console.error('[job-feed/career-profile] GET unexpected error:', error);
     return NextResponse.json({ error: 'Failed to load career profile.' }, { status: 500 });
@@ -239,58 +211,4 @@ async function authenticatePaidUser(request: NextRequest): Promise<AuthSuccess |
   }
 
   return { ok: true, userId: user.id };
-}
-
-interface ProfileRow {
-  profile: CareerProfile | null;
-  version: number;
-  source_document_updated_at: string | null;
-}
-
-interface PrimaryDocRow {
-  id: string;
-  structured_data: StructuredCV | null;
-  updated_at: string;
-}
-
-async function loadProfileAndPrimaryCV(
-  userId: string,
-): Promise<{ profileRow: ProfileRow | null; primaryDoc: PrimaryDocRow | null }> {
-  // Read failures throw out to the route handler's catch rather than being
-  // logged and downgraded to "no profile / no CV".
-  const [careerProfileRow, primaryDocRow] = await Promise.all([
-    getCareerProfileRow(userId),
-    getDocumentByType(userId, 'primary_cv'),
-  ]);
-
-  const profileRow = careerProfileRow
-    ? {
-        profile: (careerProfileRow.profile as CareerProfile | null) ?? null,
-        version: careerProfileRow.version ?? 0,
-        source_document_updated_at: careerProfileRow.source_document_updated_at ?? null,
-      }
-    : null;
-
-  const primaryDoc = primaryDocRow
-    ? {
-        id: primaryDocRow.id,
-        structured_data: (primaryDocRow.structured_data as StructuredCV | null) ?? null,
-        updated_at: primaryDocRow.updated_at,
-      }
-    : null;
-
-  return { profileRow, primaryDoc };
-}
-
-function isCVNewerThanProfile(params: {
-  profileSourceUpdatedAt: string | null;
-  primaryDocUpdatedAt: string | null;
-}): boolean {
-  if (!params.profileSourceUpdatedAt || !params.primaryDocUpdatedAt) return false;
-  const profileTime = Date.parse(params.profileSourceUpdatedAt);
-  const cvTime = Date.parse(params.primaryDocUpdatedAt);
-  if (Number.isNaN(profileTime) || Number.isNaN(cvTime)) return false;
-  // Require a meaningful gap (>1s) so harmless writes that touch the
-  // documents row don't reopen the auto-regen loop on the client.
-  return cvTime - profileTime > 1000;
 }
