@@ -283,7 +283,10 @@ export async function undoLastEdit(
     const latest = entries[0];
     if (!latest) throw new InvalidInputError('There is no earlier version to restore for this part of the application.');
     const { [AFTER_KEY]: wrote, ...stored } = latest.prior_value as Json;
-    if (typeof wrote !== 'string') throw new Error('Edit history row has no fingerprint');
+    // A row saved before fingerprints existed cannot be checked against the current text, so restoring it could overwrite a newer edit.
+    if (typeof wrote !== 'string') {
+      throw new InvalidInputError('The last recorded edit for this part of the application cannot be checked, so there is nothing safe to undo.');
+    }
     if (await fingerprint(group, (row as unknown as Json)[GROUP_COLUMN[group]]) !== wrote) {
       throw new InvalidInputError('This part of the application changed since the last recorded edit, so nothing was undone.');
     }

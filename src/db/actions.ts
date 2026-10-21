@@ -11,7 +11,7 @@ import * as creditsRepo from './repos/credits';
 import * as subscriptionsRepo from './repos/subscriptions';
 import * as feedbackRepo from './repos/feedback';
 import * as mcpGrantsRepo from './repos/mcpGrants';
-import { updateUserProfile, type UserEditableProfile } from '@/lib/services/profile';
+import { linkProfilePhoto, updateUserProfile, type UserEditableProfile } from '@/lib/services/profile';
 
 async function requireCurrentUser(): Promise<{ id: string; email?: string }> {
   const auth = await getAuth();
@@ -49,6 +49,12 @@ export async function getOrCreateProfileAction(userId: string) {
 export async function updateProfileAction(userId: string, updates: Partial<UserEditableProfile>) {
   await requireUserId(userId);
   return updateUserProfile(userId, updates);
+}
+
+/** Make an uploaded avatar the account photo and delete only the avatar it replaced. */
+export async function setAvatarAction(userId: string, key: string) {
+  await requireUserId(userId);
+  await linkProfilePhoto(userId, key);
 }
 
 export async function getDocumentsAction(userId: string) {
