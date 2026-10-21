@@ -6,6 +6,7 @@ import {
   UNTRUSTED_NOTE,
   applicationIdField,
   creditsSnapshot,
+  refuseDataMarks,
   requireApplication,
   revisionField,
   wrapLong,
@@ -391,6 +392,7 @@ const createApplicationTool = defineTool({
   }),
   output: z.object({ applicationId: z.string(), revision: z.number() }),
   async run({ jobDescription, title, company, url }, { userId }) {
+    refuseDataMarks([title, company]);
     const session = await createApplication(userId, { jobDescription, jobTitle: title, company, jobUrl: url });
     return ok({ applicationId: session.id, revision: session.revision });
   },
@@ -417,6 +419,7 @@ const updateApplication = defineTool({
   }),
   output: z.object({ applicationId: z.string(), revision: z.number() }),
   async run({ applicationId, revision, title, company, url, companyAddress, contactPerson, letterLanguage }, { userId }) {
+    refuseDataMarks([title, company, companyAddress, contactPerson]);
     const patch: Record<string, unknown> = {};
     if (title !== undefined) patch.job_title = title;
     if (company !== undefined) patch.company = company;

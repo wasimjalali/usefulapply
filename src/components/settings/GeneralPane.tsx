@@ -201,19 +201,17 @@ export function GeneralPane() {
     if (!user) return;
     setPhotoError(null);
     setPhotoBusy(true);
-    const { error: saveError } = await updateProfile({ avatar_url: null });
-    if (saveError) {
+    const { error: removeError, incomplete } = await deleteAvatar(user.id);
+    if (removeError) {
       setPhotoBusy(false);
       setPhotoError('We could not remove the photo. Try again.');
       return;
     }
-    const { error: avatarError } = await deleteAvatar(user.id);
-    const { error: legacyError } = await deleteProfilePhoto(user.id);
     useCVStore.getState().setProfilePhoto(null);
     setPhotoBusy(false);
-    if (avatarError || legacyError) {
+    if (incomplete) {
       // A leftover object would bring the photo back on the next load.
-      console.error('[settings] photo delete incomplete:', avatarError || legacyError);
+      console.error('[settings] photo delete incomplete');
       setPhotoError('The photo may not be fully removed. Try Remove again.');
     }
     await refreshProfile();

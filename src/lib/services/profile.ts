@@ -10,7 +10,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { getDb, nowIso } from '@/db/client';
 import * as profilesRepo from '@/db/repos/profiles';
 import { profiles } from '@/db/schema';
-import { deleteObject, deletePrefix, listPrefix, putObject, USER_STORAGE_QUOTA_BYTES, userStorageBytes } from '@/storage/r2';
+import { deleteObject, deletePrefix, getFilesBucket, listPrefix, putObject, USER_STORAGE_QUOTA_BYTES, userStorageBytes } from '@/storage/r2';
 import { ImagesBindingUnavailableError, normalizePhotoToJpeg } from '@/storage/images';
 import {
   ALLOWED_FILE_BUCKETS,
@@ -202,12 +202,15 @@ export async function hasProfilePhoto(userId: string): Promise<boolean> {
 
 const AVATAR_SWAP_ATTEMPTS = 5;
 
+/** An avatar younger than this may be an upload that is stored but not linked yet, so the sweep leaves it. */
+const AVATAR_ORPHAN_GRACE_MS = 10 * 60 * 1000;
+
 /**
- * Point avatar_url at `key` and return the value it replaced. Compare-and-swap, so two
- * concurrent replacements each delete exactly the object they displaced and never one
- * the other has stored but not yet linked.
+ * Point avatar_url at `next` (a key, or null to unlink) and return the value it replaced. Compare-and-swap,
+ * so concurrent changes each act on exactly the value they displaced and never delete one the other has
+ * stored but not yet linked.
  */
-async function swapAvatar(userId: string, key: string): Promise<string | null> {
+async function swapAvatar(userId: string, next: string | null): Promise<string | null> {
   const db = await getDb();
   for (let attempt = 0; attempt < AVATAR_SWAP_ATTEMPTS; attempt++) {
     const profile = await profilesRepo.getProfile(userId);
@@ -215,7 +218,7 @@ async function swapAvatar(userId: string, key: string): Promise<string | null> {
     const previous = profile.avatar_url ?? null;
     const swapped = await db
       .update(profiles)
-      .set({ avatar_url: key, updated_at: nowIso() })
+      .set({ avatar_url: next, updated_at: nowIso() })
       .where(and(eq(profiles.id, userId), previous === null ? isNull(profiles.avatar_url) : eq(profiles.avatar_url, previous)))
       .returning({ id: profiles.id });
     if (swapped.length > 0) return previous;
@@ -223,8 +226,37 @@ async function swapAvatar(userId: string, key: string): Promise<string | null> {
   throw new Error('The profile photo changed too often to save');
 }
 
+/** The R2 key a stored avatar value points at (leftover Supabase URL included), when it is this user's. */
+function ownedStoredKey(userId: string, stored: string | null): string | null {
+  const key = stored ? storedFileKey(stored) : null;
+  return key && userOwnsKey(key, userId) ? key : null;
+}
+
 /**
- * Make an already uploaded avatar the account photo, then drop the avatar it replaced and any legacy CV photo.
+ * Delete avatar objects that are not the current photo and are old enough not to be an upload in flight:
+ * leftovers from an upload whose link failed or an earlier failed delete.
+ */
+async function sweepAvatarOrphans(userId: string): Promise<void> {
+  const profile = await profilesRepo.getProfile(userId);
+  const current = ownedStoredKey(userId, profile?.avatar_url ?? null);
+  const bucket = await getFilesBucket();
+  const cutoff = Date.now() - AVATAR_ORPHAN_GRACE_MS;
+  const prefix = userPrefix('avatars', userId);
+  const stale: string[] = [];
+  let cursor: string | undefined;
+  for (;;) {
+    const page = await bucket.list({ prefix, cursor });
+    for (const object of page.objects) {
+      if (object.key !== current && object.uploaded && object.uploaded.getTime() < cutoff) stale.push(object.key);
+    }
+    if (!page.truncated || !page.cursor) break;
+    cursor = page.cursor;
+  }
+  if (stale.length > 0) await bucket.delete(stale);
+}
+
+/**
+ * Make an already uploaded avatar the account photo, then drop the avatar it replaced, old orphans and any legacy CV photo.
  * The web Settings page and set_profile_photo both end here, so neither deletes an object the other just linked.
  */
 export async function linkProfilePhoto(userId: string, avatarKey: string): Promise<void> {
@@ -232,8 +264,11 @@ export async function linkProfilePhoto(userId: string, avatarKey: string): Promi
   const previous = await swapAvatar(userId, key);
   // The row is saved. Leftover old objects waste quota but do not change what is shown.
   try {
-    if (previous && previous !== key && userOwnsKey(previous, userId)) await deleteObject(previous);
+    // A leftover Supabase URL maps to its R2 key, so resolve before deciding what to delete.
+    const previousKey = ownedStoredKey(userId, previous);
+    if (previousKey && previousKey !== key) await deleteObject(previousKey);
     await deletePrefix(userPrefix('profile-photos', userId));
+    await sweepAvatarOrphans(userId);
   } catch (error) {
     console.error('[profile] failed to remove old profile photos:', error);
   }
@@ -245,12 +280,18 @@ export async function replaceProfilePhoto(userId: string, file: File, ext: strin
   await linkProfilePhoto(userId, key);
 }
 
-/** Unlink the photo, then delete its objects. False when objects may remain (retrying is safe). */
+/**
+ * Unlink the photo, then delete the object it pointed at. The unlink is a compare-and-swap, so a photo
+ * set from another surface at the same moment is never deleted. False when objects may remain
+ * (retrying is safe: old orphans go with the next sweep).
+ */
 export async function removeProfilePhoto(userId: string): Promise<boolean> {
-  await profilesRepo.updateProfile(userId, { avatar_url: null });
+  const previous = await swapAvatar(userId, null);
   try {
-    await deletePrefix(userPrefix('avatars', userId));
+    const previousKey = ownedStoredKey(userId, previous);
+    if (previousKey) await deleteObject(previousKey);
     await deletePrefix(userPrefix('profile-photos', userId));
+    await sweepAvatarOrphans(userId);
     return true;
   } catch (error) {
     console.error('[profile] photo delete incomplete:', error);

@@ -3,7 +3,7 @@ import { getUserCredits, getTotalCredits, utcDayStart, reservedSpendSince, type 
 import { getDailyAgentCreditLimit } from '@/db/repos/mcpGrants';
 import { flattenUntrusted, sanitizeAdText } from '@/lib/agents/chat-tools/untrusted';
 import { getOperation } from '@/lib/services/operations';
-import { NotFoundError } from '@/lib/services/errors';
+import { InvalidInputError, NotFoundError } from '@/lib/services/errors';
 import * as sessionsRepo from '@/db/repos/sessions';
 import type { ApplicationSession } from '@/db/repos/sessions';
 
@@ -33,6 +33,13 @@ export function wrapCvText(value: string): string {
 export function carriesDataMarks(value: string): boolean {
   const text = value.trim();
   return text.length >= 4 && text.startsWith('<<') && text.endsWith('>>');
+}
+
+/** Write tools take the words themselves: a value still wrapped in << >> came from echoing a read tool, and would be stored with the marks. */
+export function refuseDataMarks(values: Array<string | undefined>): void {
+  if (values.some((value) => value !== undefined && carriesDataMarks(value))) {
+    throw new InvalidInputError('A value starts with << and ends with >>, the marks tool results put around text from a job ad or a CV. Send the text without them.');
+  }
 }
 
 export const applicationIdField = z

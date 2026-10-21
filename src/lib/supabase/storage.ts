@@ -1,4 +1,4 @@
-import { deleteFileAction, deleteUserFilesAction, getProfileAction, listUserFilesAction, setAvatarAction } from '@/db/actions';
+import { deleteFileAction, deleteUserFilesAction, getProfileAction, listUserFilesAction, removeAvatarAction, setAvatarAction } from '@/db/actions';
 import { fileDisplayUrl, toR2Key } from '@/storage/paths';
 
 type FileBucket = 'cv-files' | 'generated-pdfs' | 'avatars' | 'profile-photos';
@@ -59,10 +59,17 @@ export async function setAvatar(userId: string, key: string): Promise<{ error: E
   }
 }
 
-/** Delete avatar objects. Only for removing the photo: replacing it goes through setAvatar. */
-export async function deleteAvatar(userId: string, keepKey?: string): Promise<{ error: Error | null }> {
-  void userId;
-  return deleteOwnedPrefix('avatars', keepKey);
+/**
+ * Remove the account photo (and the legacy CV photo). The server unlinks it against the value it read and deletes
+ * only that object, so a photo set from elsewhere at the same time survives. `incomplete`: unlinked, objects may remain.
+ */
+export async function deleteAvatar(userId: string): Promise<{ error: Error | null; incomplete: boolean }> {
+  try {
+    const complete = await removeAvatarAction(userId);
+    return { error: null, incomplete: !complete };
+  } catch (err) {
+    return { error: asError(err, 'Failed to remove the photo'), incomplete: false };
+  }
 }
 
 /**
