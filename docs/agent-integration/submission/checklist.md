@@ -1,20 +1,20 @@
 # Submission checklist
 
-Status as of 2026-10-20, end of PR 6b's in-repo work. "Wasim" means it needs his account, identity, money or a decision. Sources: Anthropic https://claude.com/docs/connectors/building/submission, OpenAI https://developers.openai.com/plugins/deploy/submission and https://developers.openai.com/apps-sdk/app-submission-guidelines.
+Status as of 2026-10-21, after the pack was matched to the 43-tool catalog. "Wasim" means it needs his account, identity, money or a decision. Sources: Anthropic https://claude.com/docs/connectors/building/submission, OpenAI https://developers.openai.com/plugins/deploy/submission and https://developers.openai.com/apps-sdk/app-submission-guidelines.
 
 ## Product readiness (blocks every submission)
 
 | Requirement | Status | Owner |
 |---|---|---|
-| Full tool catalog (PLAN.md section 4) merged | open, PR 5 in flight, branch `feature/mcp-tool-catalog` | agent |
+| Full tool catalog merged: 43 tools (13 read, 24 free writes, 6 spend) | built in PR 5, branch `feature/mcp-tool-catalog`. Merge before submitting | agent |
 | `/integrations`, privacy and terms pages live (PR #156) | open, merge after PR 5 | agent |
 | `MCP_ENABLED=true` deployed | open, launch step | agent |
 | `/mcp` reachable over public HTTPS | built, off behind the flag | agent |
 | Unauthenticated `/mcp` request returns 401 with `WWW-Authenticate` | built (PR #153) | done |
 | Protected resource metadata at `/.well-known/oauth-protected-resource/mcp` | built (PR #153), 404 until flag is on | done |
 | PKCE S256, exact redirect URIs, loopback allowed | built (PR #153) | done |
-| Every tool has `title` and explicit `readOnlyHint`, `destructiveHint`, `openWorldHint` | open, part of PR 5 | agent |
-| Tool names 64 characters or fewer, read and write tools separate | open, part of PR 5 | agent |
+| Every tool has `title` and explicit `readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint` | in the code for all 43 tools (`ToolDefinition.hints`). Recheck in the portal's Tools step | agent |
+| Tool names 64 characters or fewer, read and write tools separate | in the code. The longest name is 28 characters | agent |
 | No prices or upgrade text in any tool output | open, part of PR 5, check before submit | agent |
 | `run_job_feed` `openWorldHint: true` (searches public listings) | in the code. Docs match | done |
 | Each tool run once as a custom connector in Claude | open, launch live check | Wasim or agent |
@@ -36,7 +36,7 @@ Status as of 2026-10-20, end of PR 6b's in-repo work. "Wasim" means it needs his
 | Requirement | Status | Owner |
 |---|---|---|
 | Name, one-liner, short and long description | drafted in `listing.md` | done |
-| 3+ example prompts that exercise different tools | 4 drafted | done |
+| 3+ example prompts that exercise different tools | 5 drafted, each checked against the seeded reviewer account | done |
 | Documentation URL | `/integrations` (PR #156) | done once merged |
 | Privacy policy URL, with retention | page in PR #156. Needs the PostHog analytics retention number | Wasim |
 | Terms URL | page in PR #156 | done once merged |
@@ -54,10 +54,10 @@ Status as of 2026-10-20, end of PR 6b's in-repo work. "Wasim" means it needs his
 |---|---|---|
 | Any paid Claude plan to submit | confirm | Wasim |
 | Connection step passes (URL reachable, OAuth) | open, needs launch | Wasim |
-| Tools step shows no missing-title or annotation flags | open, needs PR 5 | agent |
+| Tools step shows no missing-title or annotation flags | open, needs PR 5 deployed | agent |
 | Listing, use cases, company, authentication, data handling | field values in `listing.md` | Wasim pastes |
 | Test and launch: instructions and credentials | `reviewer-guide.md` plus the credentials file | Wasim |
-| Confirm every tool was run (MCP Inspector or custom connector) | open | Wasim |
+| Confirm every tool was run (MCP Inspector or custom connector). `reviewer-guide.md` steps 1 to 39 cover all 43 | open | Wasim |
 | Seven compliance acknowledgments | positions in `listing.md` | Wasim ticks |
 | Read the Anthropic Software Directory Terms and Policy | open | Wasim |
 

@@ -111,7 +111,7 @@ OpenAI's guidelines forbid advertising pricing, subscriptions, trials, discounts
 
 ## Review test cases
 
-The submission page requires exactly 5 positive and 3 negative cases for an MCP review. Run all five positive cases on the reviewer account before submitting. Tool names follow the catalog in `PLAN.md` section 4 and must match PR 5 as merged.
+The submission page requires exactly 5 positive and 3 negative cases for an MCP review. Run all five positive cases on the reviewer account before submitting. Tool names match the 43-tool catalog in PR 5 (`src/lib/mcp/scopes.ts`: 13 read, 24 free writes, 6 spend). The prompts below run as written on the seeded reviewer account.
 
 ### Positive (5)
 
@@ -119,8 +119,8 @@ The submission page requires exactly 5 positive and 3 negative cases for an MCP 
 |---|---|---|---|---|
 | 1 | Account check | `What's in my Useful Apply account?` | `get_account` | Plan, credit balance, CV on file and the daily agent limit. |
 | 2 | List and read an application | `Show my applications and open the Halcyon Cloud Labs one.` | `list_applications`, `get_application` | Two seeded applications. The US one shows the fit result and its kit. |
-| 3 | Fit check on a pasted ad | `Check my fit for this job: <short ad pasted>` | `analyze_job_fit`, `explain_fit` | A score and a plain-language explanation. A draft application is created. Costs 0.5 credits. |
-| 4 | Edit and export | `In my Fjordwerk application, rename the skills heading and export the CV as PDF.` | `edit_cv_structure`, `export_documents` | The change appears in the web app. A signed PDF link is returned. |
+| 3 | Fit check on a pasted ad | `Check my fit for this job: <short ad pasted>` | `analyze_job_fit`, `explain_fit` | A score and a plain-language explanation. A draft application is created. Costs 0.5 credits, and `explain_fit` is free. |
+| 4 | Edit and export | `In my Fjordwerk application, put the skill group Daten first and export the CV as PDF.` | `get_cv_outline`, `edit_cv_structure`, `export_documents` | The change appears in the web app. A signed PDF link is returned. |
 | 5 | Update the tracker | `Mark the Halcyon application as interview on 5 November.` | `update_application_status` | Status and interview date saved, visible in the web tracker. |
 
 ### Negative (3)
@@ -133,12 +133,13 @@ The submission page requires exactly 5 positive and 3 negative cases for an MCP 
 
 ## Tool annotation notes
 
-Rules from the guidelines: explicit booleans on every tool, justification no longer required.
+Rules from the guidelines: explicit booleans on every tool, justification no longer required. All 43 tools set `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint` (`ToolDefinition.hints` in `src/lib/mcp/tools/framework.ts`). What the code sets:
 
-- `readOnlyHint`: true for the 13 read tools. False for anything that saves, queues or spends, including `analyze_job_fit` (it creates a draft) and every generation tool (they queue work).
-- `destructiveHint`: true for anything that deletes, overwrites, cancels or revokes. Being undoable doesn't justify false, so `undo_last_edit`, `set_cv_template` and the edit tools stay true as PLAN.md has them.
-- `openWorldHint`: false for a bounded private account. Every tool acts on the user's own account, so false everywhere except `run_job_feed`, which searches public job listings and is `true` (as it already is in the code).
-- Annotations aren't permission. The server still enforces scopes, ownership and the daily spend cap.
+- `readOnlyHint`: true for the 13 read tools. False for the other 30, including `analyze_job_fit` (a pasted ad creates a draft) and every generation tool (they queue work).
+- `destructiveHint`: true for 18 tools, the ones that replace or remove saved data. They are `delete_application`, `delete_cv`, `delete_cv_item`, `save_cv`, `set_profile_photo`, `remove_profile_photo`, `update_profile`, `update_notification_settings`, `update_feed_settings`, `withdraw_feed_consent`, `update_cv_content`, `edit_cv_structure`, `edit_document_text`, `set_cv_template`, `undo_last_edit`, `generate_application_kit`, `regenerate_document` and `rewrite_cv_section`. Being undoable doesn't justify false, so the edit tools stay true. False for everything else, including `cancel_generation`, `add_cv_item`, `set_cv_item_visibility` (hidden content stays in the CV), `export_documents`, `draft_screening_answers`, the tracker tools and the feed read and feedback tools.
+- `idempotentHint`: true for the 13 read tools and the 15 others that repeat safely (every spending tool is idempotent by key). False for 15 tools such as `create_application`, `add_cv_item` and `undo_last_edit`.
+- `openWorldHint`: false for a bounded private account. Every tool acts on the user's own account, so false everywhere except `run_job_feed`, which searches public job listings and is `true`.
+- Annotations aren't permission. The server still enforces scopes, ownership and the daily spend cap. Destructive tools also ask the user to confirm through MCP elicitation when the client supports it.
 
 Other guideline points we have to keep meeting:
 

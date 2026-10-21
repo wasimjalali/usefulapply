@@ -25,7 +25,7 @@ Sources for the field list: Anthropic's "Submit a connector to the directory" (h
 
 Useful Apply helps you apply for a job from your AI assistant. Check how well you fit a role, then generate a CV, cover letter, application email and follow-up that follow US or German (DIN 5008) conventions. You review everything, edit it, export it and track the application.
 
-### Long description (about 1,500 characters, under Anthropic's 2,000 limit)
+### Long description (1,895 characters, under Anthropic's 2,000 limit)
 
 Useful Apply turns a job ad and your CV into a complete application, without leaving your AI assistant.
 
@@ -34,12 +34,15 @@ Paste a job ad and ask for a fit check. You get a score, the skills you match, t
 Every claim in a CV or letter comes from the CV you provide. That's a design commitment in how the writer is built, and you still review everything before it goes anywhere.
 
 Beyond generating, the connector lets your assistant:
-- list and open your applications and track their status and dates
-- edit CV text and structure, hide or reorder sections, and undo the last edit
-- rewrite one CV section or one document with your instruction
-- export ATS-readable PDF and Word files, with signed download links
-- read your daily job feed and save or dismiss jobs
-- show your credit balance and recent use
+- track applications: create, edit, delete, set status and interview or follow-up dates, and give a morning briefing
+- edit a tailored CV: change text, add or delete entries, hide or show items, reorder lists, rename headings, pick a template and undo the last edit
+- rewrite one CV section, redo a letter or email with your instruction, or save your own wording
+- draft answers to an employer's screening questions
+- export PDF, Word and text files with signed download links
+- run your daily job feed, read your career profile, change feed settings, save, dismiss or rate jobs, start an application from one, and withdraw consent
+- save or delete your CV, set your profile photo and contact details, and manage email notifications
+- cancel a generation that's running
+- show your account, credit balance and recent use
 
 Generation uses the credits already on your Useful Apply account, with a daily limit you control in Settings, Connected apps. You can revoke access there at any time. The connector never buys anything for you.
 
@@ -47,12 +50,13 @@ You need a Useful Apply account to connect. Sign in with OAuth when your assista
 
 ## Example prompts
 
-Each one uses different tools. They all work on the reviewer account.
+Each one uses different tools. They all work on the reviewer account (Halcyon Cloud Labs and Fjordwerk applications, a German CV layout, 5 seeded feed jobs). Prompts 3 and 5 spend 0.5 credits each, prompt 1 spends 2 (0.5 for the fit check, 1.5 for the kit).
 
-1. **US, fit and kit.** "Here's a job ad for a Senior Software Engineer at a company in Austin: [paste]. Check my fit, tell me the biggest gap, then write the full application kit." (`create_application`, `analyze_job_fit`, `explain_fit`, `generate_application_kit`, `get_operation`)
-2. **German, edit and export.** "Öffne meine Bewerbung bei Fjordwerk, ändere in meinem Lebenslauf die Reihenfolge so, dass Berufserfahrung vor Kenntnisse steht, und exportiere Lebenslauf und Anschreiben als PDF." (`list_applications`, `get_application`, `edit_cv_structure`, `export_documents`)
-3. **Tracker and follow-up.** "I applied to Halcyon Cloud Labs today. Mark it as applied, set a follow-up for next Tuesday, and rewrite the follow-up email to be shorter." (`update_application_status`, `regenerate_document`)
+1. **US, fit and kit.** "Here's a job ad for a Senior Software Engineer at a company in Austin: [paste]. Check my fit, tell me the biggest gap, then write the full application kit." (`analyze_job_fit`, `explain_fit`, `generate_application_kit`, `get_operation`)
+2. **German, edit and export.** "Öffne meine Bewerbung bei Fjordwerk, stelle in meinem Lebenslauf die Kenntnisgruppe „Daten“ an die erste Stelle und exportiere Lebenslauf und Anschreiben als PDF." (`list_applications`, `get_application`, `get_cv_outline`, `edit_cv_structure`, `export_documents`)
+3. **Tracker and follow-up.** "I sent my Fjordwerk application today. Mark it as applied, set a follow-up for next Tuesday and make the follow-up email shorter." (`update_application_status`, `regenerate_document`)
 4. **Morning review.** "What needs my attention today? Check my account, my applications and any new strong matches in my job feed." (`get_account`, `morning_briefing`, `get_job_feed`)
+5. **Job feed.** "Save the best match in my job feed, then check my fit for it." (`get_job_feed`, `give_job_feedback`, `apply_to_feed_job`)
 
 OpenAI `defaultPrompt` (3, 128 characters each) are in `../openai/app-submission.md`.
 
@@ -65,7 +69,7 @@ Steps and fields as the portal lists them:
 | Portal step | What to enter |
 |---|---|
 | 1. Connection | `https://usefulapply.com/mcp`. Users connect to the same URL, so leave "Users connect to different URLs" off. |
-| 2. Tools | Synced from the server. Every tool needs a `title` and `readOnlyHint` or `destructiveHint`. Fix anything the portal flags on the server before submitting. |
+| 2. Tools | Synced from the server. All 43 tools set a `title` and explicit `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`. Fix anything the portal flags on the server before submitting. |
 | 3. Listing | Name `Useful Apply`. One-liner (200). Description (2,000, use the long description). 1 to 5 categories. Documentation URL, privacy policy URL, support contact, icon, slug `useful-apply`. |
 | 4. Use cases | Primary: check fit for a job, generate and edit an application kit, track applications. Users need a Useful Apply account first and a CV on file. The connector reads and writes data. |
 | 5. Company | Company name, website `https://usefulapply.com`, a primary contact for review updates. Wasim supplies. |

@@ -35,7 +35,7 @@ To revoke access at any point, go to Settings, Connected apps in the web app. Th
 
 ## Test script
 
-Run each step in a normal conversation. Tool names are the ones in the catalog. A client that shows tool calls lets you see which tool ran.
+Run each step in a normal conversation. The server has 43 tools: 13 read, 24 free writes and 6 that spend credits. This script runs every one. A client that shows tool calls lets you see which tool ran.
 
 ### 1. Read tools (no credits, scope Read)
 
@@ -54,9 +54,9 @@ Run each step in a normal conversation. Tool names are the ones in the catalog. 
 10. "Create an application from this job ad: [paste any short ad]." Expect `create_application`.
 11. "Change the company on it to Example Corp." Expect `update_application`.
 12. "Mark the Halcyon application as interview on 5 November." Expect `update_application_status`. Check the tracker in the web app.
-13. "Hide the Languages section on the Halcyon CV, then show it again." Expect `set_cv_item_visibility` twice.
+13. "Hide the Certifications section on the Halcyon CV, then show it again." Expect `set_cv_item_visibility` twice.
 14. "Add a project called Billing API Rewrite to the Halcyon CV." Expect `add_cv_item`.
-15. "Move Skills above Experience on the Fjordwerk CV." Expect `edit_cv_structure`.
+15. "On the Fjordwerk CV, put the skill group Daten first." Expect `get_cv_outline`, then `edit_cv_structure` (reorder). It reorders entries inside a list and renames section headings. It doesn't move whole sections, and it never changes wording.
 16. "Change the professional title on the Halcyon CV to Staff Software Engineer." Expect `update_cv_content` and a returned diff.
 17. "Undo that." Expect `undo_last_edit` and the title restored.
 18. "Delete the project you added." Expect `delete_cv_item`.
@@ -64,29 +64,37 @@ Run each step in a normal conversation. Tool names are the ones in the catalog. 
 20. "Switch the Halcyon CV to the modern-professional template." Expect `set_cv_template`.
 21. "Export the Halcyon CV as a PDF and the cover letter as a Word file." Expect `export_documents` with signed links. Open them. The PDF has selectable text. Links expire after 15 minutes.
 22. "Export the Fjordwerk cover letter as a PDF." Expect a DIN 5008 letter on A4.
-23. "Update my feed settings: add Remote to my preferred locations." Expect `update_feed_settings`. "Give feedback: dismiss the first job." Expect `give_job_feedback`.
-24. "Run my job feed for today." Expect `run_job_feed`. Allowed once a day, and it needs the consent that's already on the account.
+23. "Set my job feed salary floor to 160,000." Expect `update_feed_settings`. "Save the first job in my feed." Expect `give_job_feedback`. Dismissing a job, or rating it not relevant, removes it for good, so skip that or re-run the seed afterwards.
+24. "Run my job feed for today." Expect `run_job_feed`. Allowed once a day, and it needs the consent that's already on the account. It queues a live search of public listings and returns a run id. The jobs show up in the feed within a couple of minutes.
 25. "Turn off the follow-up reminder emails." Expect `update_notification_settings`. Turn it back on.
 26. "Update my phone number to +1 512 555 0143." Expect `update_profile`.
 27. "Set my profile photo to [attach a small image]." Expect `set_profile_photo`. "Remove it." Expect `remove_profile_photo`.
-28. "Upload this CV as my primary CV: [paste a few lines of CV text]." Expect `save_cv`. **This replaces the seeded CV.** Skip it, or re-run the seed afterwards (see Reset).
+28. "Delete the Example Corp application." Expect `delete_application` and a confirmation from your client.
 
-### 3. Spending tools (use credits, scope Spend)
+### 3. Spending tools (scope Spend)
 
 Each call needs an idempotency key the client generates. Repeat a call with the same key and you're not charged twice.
 
 29. "Check my fit for this job: [paste a real-looking ad]." Expect `analyze_job_fit`, 0.5 credits, and `creditsUsed` plus the new balance in the result.
 30. "Now generate the full kit for it." Expect `generate_application_kit`, 1.5 credits after a fit check (2.0 without one). It returns an operation id at once. Say "check on it" and the client calls `get_operation` until it succeeds. This takes about a minute.
-31. "Make the cover letter shorter." Expect `regenerate_document`, 0.5 credits. This overwrites the letter. Undo with `undo_last_edit`.
-32. "Rewrite my summary to focus on leadership." Expect `rewrite_cv_section`, 0.5 credits.
-33. "Apply to the first job in my feed." Expect `apply_to_feed_job`.
-34. "Draft answers to: Why do you want this role?" Expect `draft_screening_answers`. It's gated by the same plan rules as the web app and may refuse on this account. A neutral refusal is correct behavior, not a bug.
-35. Ask for a second kit on an application that has one. Expect a refusal unless the request says to regenerate.
-36. "Cancel the generation." While one runs, expect `cancel_generation` and the unspent credits released.
+31. "Make the Halcyon cover letter shorter." Expect `regenerate_document`, 0.5 credits. This overwrites the letter. Undo with `undo_last_edit`.
+32. "Rewrite the summary on the Halcyon CV to focus on leadership." Expect `rewrite_cv_section`, 0.5 credits.
+33. "Run a fit check on the first job in my feed." Expect `apply_to_feed_job` in fit mode, 0.5 credits. It creates an application from the feed job. Nothing is sent to an employer. A kit from a feed job costs 2.0 credits.
+34. "On the Halcyon application, draft answers to: Why do you want this role? What's your notice period?" Expect `draft_screening_answers`. It costs no credits. Each call uses one of the 5 screening turns an application has, and the Max plan includes screening answers. The answers are saved on the application.
+35. Ask for a second kit on an application that has one. Expect a refusal unless the request says to replace the existing kit.
+36. Start a kit, then say "cancel the generation" while it runs. Expect `cancel_generation` (scope Write, no credits) and the unspent credits released.
 
-Steps 29 to 36 use roughly 6 to 8 credits. The daily limit of 20 leaves room for a second pass, and the balance of 200 for many more.
+Steps 29 to 36 use about 4 credits. The daily limit of 20 leaves room for a second pass, and the balance of 200 for many more.
 
-### 4. Things that should fail
+### 4. Account changes (run these last)
+
+These replace or remove account data. Re-run the seed afterwards (see Reset).
+
+37. "Upload this CV as my primary CV: [paste a few lines of CV text]." Expect `save_cv`. It replaces the seeded CV, costs no credits and has a daily limit. The applications keep their own copies.
+38. "Delete my primary CV." Expect `delete_cv` and a confirmation from your client.
+39. "Withdraw my job feed consent." Expect `withdraw_feed_consent`. Settings and saved jobs stay and the daily feed turns off. Only the user can give consent again, in the web app.
+
+### 5. Things that should fail
 
 - Ask for another user's application by id. Expect not found.
 - Connect with only the Read permission and try an edit. Expect an insufficient-scope error.
@@ -101,14 +109,17 @@ Steps 29 to 36 use roughly 6 to 8 credits. The daily limit of 20 leaves room for
 | Full kit after a fit check | 1.5 |
 | Full kit without a fit check | 2.0 |
 | Regenerate cover letter, email or follow-up | 0.5 |
-| Rewrite one CV section | 0.5 (free if refused) |
+| Rewrite one CV section | 0.5 (free if refused or unchanged) |
+| Fit check on a feed job | 0.5 |
+| Kit from a feed job | 2.0 |
+| Draft screening answers | 0 (uses one of 5 turns per application) |
 | Everything else | 0 |
 
-A full walk-through of this guide costs about 8 credits. The account starts with 200.
+A full walk-through of this guide costs about 4 credits, or about 6 if you ask for a kit in step 33. The account starts with 200.
 
 ## Reset the account
 
-Re-run the seed script. It restores the plan, the credits, the applications, the CV, the chat history, the feed items and the feed settings to the state above and keeps the same login. Only the reviewer's own rows (and the shared feed postings keyed `reviewer-seed:`) are touched.
+Re-run the seed script. It restores the plan, the credits, the applications, the CV, the chat history, the feed items and the feed settings to the state above and keeps the same login. It doesn't reset the notification switches or the profile photo, so undo steps 25 and 27 yourself. Only the reviewer's own rows (and the shared feed postings keyed `reviewer-seed:`) are touched.
 
 ```
 npx tsx scripts/seed-reviewer-account.ts \

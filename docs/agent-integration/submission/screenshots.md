@@ -1,5 +1,7 @@
 # Screenshot and recording shot list
 
+The seeded applications (Halcyon and Fjordwerk) already have full kits, so shot 3 and the demo use a pasted ad instead. Reset the account with the seed script after the captures.
+
 Capture these after launch (`MCP_ENABLED=true`, deployed), on the reviewer account, so nothing real shows. Wasim does the captures. They need the live connector in real clients.
 
 Specs:
@@ -15,10 +17,10 @@ Specs:
 |---|---|---|---|---|
 | 1 | Consent page listing Read, Edit and Spend credits | Browser, at the OAuth step | n/a | `01-consent.png` |
 | 2 | Fit check result with score, matches and gaps | Claude.ai | "Check my fit for the Halcyon Cloud Labs role." | `02-fit-claude.png` |
-| 3 | Full kit generation finished, tool calls visible | Claude.ai | "Generate the full kit for the Fjordwerk application." | `03-kit-claude.png` |
-| 4 | Application list and status update | ChatGPT desktop | "List my applications and mark Halcyon as applied." | `04-tracker-chatgpt.png` |
+| 3 | Full kit generation finished, tool calls visible | Claude.ai | "Here's a job ad: [paste a short fictional ad]. Check my fit, then generate the full kit." | `03-kit-claude.png` |
+| 4 | Application list and status update | ChatGPT desktop | "List my applications and mark Fjordwerk as applied." | `04-tracker-chatgpt.png` |
 | 5 | CV edit with the returned diff | Claude.ai | "Change my professional title to Staff Software Engineer." | `05-edit-diff-claude.png` |
-| 6 | Export with the signed link in the reply | ChatGPT desktop | "Export my CV as a PDF." | `06-export-chatgpt.png` |
+| 6 | Export with the signed link in the reply | ChatGPT desktop | "Export the Halcyon CV as a PDF." | `06-export-chatgpt.png` |
 | 7 | The exported PDF open, text selectable | PDF viewer | n/a | `07-pdf.png` |
 | 8 | The German DIN 5008 letter PDF | PDF viewer | n/a | `08-din-letter.png` |
 | 9 | The same application in the web dashboard after an assistant edit | Browser, `/dashboard` | n/a | `09-dashboard.png` |
@@ -34,7 +36,7 @@ One video, 2 to 3 minutes, a URL the reviewer can open (unlisted video link). Sh
 
 1. Connect: add the app in ChatGPT developer mode, OAuth sign-in, consent.
 2. A fit check on a pasted ad, with the tool call visible.
-3. Generate a kit and poll it to done.
+3. Generate a kit for a pasted fictional ad and poll it to done. The seeded applications already have kits, so a second kit on them is refused.
 4. Edit the CV, show the diff, then undo.
 5. Export a PDF and open it.
 6. Open `/dashboard` and show the same application.
