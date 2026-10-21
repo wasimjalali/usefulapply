@@ -13,6 +13,12 @@
  * path: it is conditional on the revision it read, bumps the revision, and
  * conflicts instead of overwriting when something else wrote in between.
  *
+ * Not every writer of these columns records history (a kit regenerate, the web
+ * canvas and editor saves don't), and undo records none of its own, so an undo
+ * must never replace a version it didn't write. Each history row therefore keeps
+ * a fingerprint of the value its edit WROTE (`AFTER_KEY` inside `prior_value`),
+ * and undo refuses unless the stored value still matches it.
+ *
  * Rows older than 30 days are removed by the daily cron (`deleteEditHistoryOlderThan`).
  */
 
@@ -21,7 +27,7 @@ import { getDb, nowIso, runBatch } from '@/db/client';
 import { applicationEditHistory } from '@/db/schema';
 import * as sessionsRepo from '@/db/repos/sessions';
 import { InvalidInputError, NotFoundError, RevisionConflict } from './errors';
-import { buildSessionUpdateStatement, kitDocumentColumns, type KitDocumentKey } from './kit';
+import { buildSessionUpdateStatement, kitDocumentColumns, kitFromRow, type KitDocumentKey } from './kit';
 
 export const EDIT_GROUPS = ['cv', 'cover_letter', 'email', 'follow_up_email'] as const;
 export type EditGroup = (typeof EDIT_GROUPS)[number];
@@ -33,6 +39,46 @@ export const EDIT_HISTORY_RETENTION_DAYS = 30;
 const WRITE_ATTEMPTS = 5;
 
 type Json = Record<string, unknown>;
+
+/** Reserved key inside `prior_value`: the fingerprint of what the edit wrote. Never a column name. */
+const AFTER_KEY = '__afterFingerprint';
+
+/** The column each group's fingerprint covers. */
+const GROUP_COLUMN: Record<EditGroup, string> = {
+  cv: 'generated_cv',
+  cover_letter: 'cover_letter',
+  email: 'email',
+  follow_up_email: 'follow_up_email',
+};
+
+/** Same value, same text: keys sorted, `undefined` dropped, as JSON storage would have it. */
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map((item) => canonicalJson(item === undefined ? null : item)).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Json)
+      .filter(([, item]) => item !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`).join(',')}}`;
+  }
+  return JSON.stringify(value ?? null);
+}
+
+/**
+ * Fingerprint of a group's current value. Screening answers ride inside `generated_cv`
+ * but aren't part of a CV edit (undo keeps them), so they don't count as a change.
+ */
+async function fingerprint(group: EditGroup, value: unknown): Promise<string> {
+  let covered = value ?? null;
+  if (group === 'cv' && covered && typeof covered === 'object' && !Array.isArray(covered)) {
+    const rest = { ...(covered as Json) };
+    delete rest._screeningAnswers;
+    delete rest._screeningUsageCount;
+    covered = rest;
+  }
+  const bytes = new TextEncoder().encode(canonicalJson(covered));
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
 
 export interface RecordedEditResult {
   revision: number;
@@ -64,6 +110,10 @@ export async function applyRecordedEdit(
     for (const name of Object.keys(columns)) {
       prior[name] = (row as unknown as Json)[name] ?? null;
     }
+    // What this write leaves in the group's column, as storage will hold it.
+    const written = columns[GROUP_COLUMN[group]];
+    if (written === undefined) throw new Error(`A recorded ${group} edit must write ${GROUP_COLUMN[group]}`);
+    prior[AFTER_KEY] = await fingerprint(group, JSON.parse(JSON.stringify(written)));
     const now = nowIso();
     const historyId = crypto.randomUUID();
     const results = await runBatch([
@@ -162,11 +212,22 @@ export interface UndoResult {
  * Screening answers and their turn count live inside `generated_cv` but aren't part of a CV edit,
  * and saving them records no history. Restoring an older `generated_cv` keeps the current ones.
  */
-function keepScreeningAnswers(prior: Json, current: Json): Json {
-  const restored = prior.generated_cv;
-  const now = current.generated_cv;
-  if (!restored || typeof restored !== 'object' || !now || typeof now !== 'object') return prior;
+function keepScreeningAnswers(prior: Json, row: Json): Json {
+  const now = row.generated_cv;
+  if (!now || typeof now !== 'object') return prior;
   const live = now as Json;
+  let restored = prior.generated_cv;
+  if (!restored) {
+    // A legacy or headless row's first CV edit was built from generated_artifacts and recorded a
+    // null generated_cv. Undoing it must not delete screening answers drafted since, so restore the
+    // CV document the reader shows for that row (the same base the screening writer extends).
+    const hasScreening = (Array.isArray(live._screeningAnswers) && live._screeningAnswers.length > 0)
+      || (typeof live._screeningUsageCount === 'number' && live._screeningUsageCount > 0);
+    if (!hasScreening) return prior;
+    const fallback = kitFromRow({ ...(row as unknown as Parameters<typeof kitFromRow>[0]), generated_cv: null }).cv;
+    restored = fallback ? { ...(fallback as unknown as Json) } : {};
+  }
+  if (typeof restored !== 'object') return prior;
   return {
     ...prior,
     generated_cv: {
@@ -178,9 +239,14 @@ function keepScreeningAnswers(prior: Json, current: Json): Json {
 }
 
 /**
- * Restore the newest prior version of one group. Conditional on the revision it
- * read (and on `expectedRevision` when the caller passes the one it last saw), so
- * it bumps the revision and conflicts instead of overwriting a newer write.
+ * Restore the newest prior version of one group. Refuses unless the stored value
+ * is still the one the recorded edit wrote (see the header): a newer write by an
+ * unrecorded writer is never replaced. Conditional on the revision it read, so
+ * it bumps the revision and conflicts instead of overwriting a concurrent write.
+ *
+ * `expectedRevision` stays optional: the fingerprint is what protects other
+ * writers' work, and the revision only adds "nothing at all changed since I last
+ * looked", which a caller that just wants the last agent edit gone doesn't need.
  */
 export async function undoLastEdit(
   userId: string,
@@ -204,10 +270,15 @@ export async function undoLastEdit(
         eq(applicationEditHistory.edit_group, group),
       ))
       .orderBy(desc(applicationEditHistory.created_at), sql`rowid desc`)
-      .limit(2);
+      .limit(EDIT_HISTORY_KEEP);
     const latest = entries[0];
     if (!latest) throw new InvalidInputError('There is no earlier version to restore for this part of the application.');
-    const prior = keepScreeningAnswers(latest.prior_value as Json, row as unknown as Json);
+    const { [AFTER_KEY]: wrote, ...stored } = latest.prior_value as Json;
+    if (typeof wrote !== 'string') throw new Error('Edit history row has no fingerprint');
+    if (await fingerprint(group, (row as unknown as Json)[GROUP_COLUMN[group]]) !== wrote) {
+      throw new InvalidInputError('This part of the application changed since the last recorded edit, so nothing was undone.');
+    }
+    const prior = keepScreeningAnswers(stored, row as unknown as Json);
     const now = nowIso();
     const results = await runBatch([
       buildSessionUpdateStatement(userId, sessionId, prior, row.revision, now),
