@@ -27,7 +27,7 @@ Last updated 2026-10-21, session 4 (in progress). The plan is `PLAN.md` (v3) in 
 - **Cause:** `introducedClaims()` checked every word of the rewritten section against the CVs only. The kit writer paraphrases ("Tested" in the CV becomes "evaluated" in the summary), so any rewrite that kept the kit's wording was refused. The number guard had the same blind spot.
 - **Fix:** a word the section already holds isn't counted as introduced, and neither is an inflection of one ("evaluating" from "evaluated"). A bare root needs the exact word ("Goes beyond" can't back the language "Go"), and role and title words ("lead", "manager", "architects", "VP" and so on) always do. "went", "goes", "going" and "gone" are neutral; bare "go" isn't.
 - **Numbers are unchanged:** the section backs none. Three review rounds found ways for every section-based number rule to move a kit number onto a new metric, so a number only the section has makes the rewrite refuse. That costs a retry, not credits.
-- **Tests:** `unified-writer-agent.claim-guard.test.ts` (9, now in `npm test`; nothing in CI runs it, the repo has no workflows) and a production-shaped rewrite in `e2e/mcp/02-happy-path.spec.ts` step 5c.
+- **Tests:** `unified-writer-agent.claim-guard.test.ts` (8, now in `npm test`; nothing in CI runs it, the repo has no workflows) and a production-shaped rewrite in `e2e/mcp/02-happy-path.spec.ts` step 5c.
 
 ## Session 3 progress (2026-10-21)
 
