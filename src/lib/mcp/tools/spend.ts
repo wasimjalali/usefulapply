@@ -33,14 +33,14 @@ import {
 } from '@/lib/services/export';
 import { analyzeApplicationFit, fitContextIdFor } from '@/lib/services/fit-analysis';
 import { enqueueKitGeneration } from '@/lib/services/generation-runner';
-import { runInlineOperation, type InlineRun } from '@/lib/services/inline-operations';
+import { runInlineOperation, type InlineOperationParams, type InlineRun } from '@/lib/services/inline-operations';
 import { loadOwnedCvSources } from '@/lib/services/kit-generation';
 import { kitFromRow } from '@/lib/services/kit';
 import { OPERATION_KINDS, hashOperationInput } from '@/lib/services/operations';
 import { prepareRegeneration, type RegenerateType } from '@/lib/services/regenerate';
 import {
   MAX_SCREENING_MESSAGE_LENGTH,
-  appendScreeningAnswers,
+  buildScreeningAnswersWrite,
   generateScreeningReply,
   loadScreeningContext,
   screeningAllowedForTier,
@@ -78,6 +78,20 @@ function settled<T extends Record<string, unknown>>(
   }
   if (run.kind === 'fresh') return { operationId: run.operationId, stored: run.result, replayed: false };
   return { operationId: run.operationId, stored: schema.parse(run.result), replayed: true };
+}
+
+/**
+ * Run an inline operation. The output is saved inside the operation's settle batch, so a write that
+ * lost to concurrent edits five times in a row surfaces here (after the operation failed and the
+ * credits went back) as a retryable write conflict, not as the raw revision error.
+ */
+async function runInline<T extends Record<string, unknown>>(params: InlineOperationParams<T>): Promise<InlineRun<T>> {
+  try {
+    return await runInlineOperation(params);
+  } catch (error) {
+    if (error instanceof RevisionConflict) throw writeConflict();
+    throw error;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -173,52 +187,61 @@ const analyzeJobFit = defineTool({
     // The context id is what a kit later uses to earn the after-fit price: the fit's reservation carries it.
     const contextId = fitContextIdFor(args.idempotencyKey);
 
-    const run = await runInlineOperation<z.infer<typeof storedFitSchema>>({
-      userId,
-      kind: OPERATION_KINDS.analyzeFit,
-      idempotencyKey: args.idempotencyKey,
-      input,
-      reserve: {
-        action: 'FIT_ANALYSIS',
-        sessionId: args.applicationId ?? null,
-        metadata: { context_id: contextId },
-        spendLimit: await mcpSpendLimit(userId),
-      },
-      async execute() {
-        let applicationId = args.applicationId;
-        let createdApplication = false;
-        if (!applicationId) {
-          const draft = await createApplication(userId, {
-            jobDescription: jobDescription as string,
-            jobTitle: args.jobTitle?.trim() || null,
-            company: args.company?.trim() || null,
-            jobUrl: args.jobUrl ?? null,
-          });
-          applicationId = draft.id;
-          createdApplication = true;
-        }
-        try {
-          const analysis = await analyzeApplicationFit({ userId, sessionId: applicationId, contextId, requestId: args.idempotencyKey });
+    // A draft this call creates is removed again if the operation does not finish, so a failure leaves nothing behind.
+    let createdDraftId: string | null = null;
+    let run;
+    try {
+      run = await runInline<z.infer<typeof storedFitSchema>>({
+        userId,
+        kind: OPERATION_KINDS.analyzeFit,
+        idempotencyKey: args.idempotencyKey,
+        input,
+        reserve: {
+          action: 'FIT_ANALYSIS',
+          sessionId: args.applicationId ?? null,
+          metadata: { context_id: contextId },
+          spendLimit: await mcpSpendLimit(userId),
+        },
+        async execute() {
+          let applicationId = args.applicationId;
+          if (!applicationId) {
+            const draft = await createApplication(userId, {
+              jobDescription: jobDescription as string,
+              jobTitle: args.jobTitle?.trim() || null,
+              company: args.company?.trim() || null,
+              jobUrl: args.jobUrl ?? null,
+            });
+            applicationId = draft.id;
+            createdDraftId = draft.id;
+          }
+          const sessionId = applicationId;
+          const analysis = await analyzeApplicationFit({ userId, sessionId, contextId, requestId: args.idempotencyKey });
           return {
             settle: 'capture',
-            result: {
-              applicationId,
-              createdApplication,
-              fit: analysis.fit,
-              job: analysis.job,
-              detectedLanguage: analysis.detectedLanguage,
-              revision: analysis.revision,
+            commit: async (guard, now) => {
+              const written = await analysis.buildWrite(guard, now);
+              return {
+                kind: 'write',
+                statements: written.statements,
+                result: {
+                  applicationId: sessionId,
+                  createdApplication: createdDraftId !== null,
+                  fit: analysis.fit,
+                  job: analysis.job,
+                  detectedLanguage: analysis.detectedLanguage,
+                  revision: written.revision,
+                },
+              };
             },
           };
-        } catch (error) {
-          // A failed analysis refunds its credits; the draft it was creating goes too, so a failure leaves nothing behind.
-          if (createdApplication) {
-            await deleteApplication(userId, applicationId).catch((cleanupError) => console.error('[mcp] could not remove the draft of a failed fit analysis:', cleanupError));
-          }
-          throw error;
-        }
-      },
-    });
+        },
+      });
+    } catch (error) {
+      if (createdDraftId) {
+        await deleteApplication(userId, createdDraftId).catch((cleanupError) => console.error('[mcp] could not remove the draft of a failed fit analysis:', cleanupError));
+      }
+      throw error;
+    }
     const { operationId, stored, replayed } = settled(run, storedFitSchema);
     return ok({
       applicationId: stored.applicationId,
@@ -412,7 +435,7 @@ const regenerateDocument = defineTool({
       type: DOCUMENT_TYPES[args.document],
       instruction,
     });
-    const run = await runInlineOperation<z.infer<typeof storedDocumentSchema>>({
+    const run = await runInline<z.infer<typeof storedDocumentSchema>>({
       userId,
       kind: OPERATION_KINDS.regenerateDocument,
       idempotencyKey: args.idempotencyKey,
@@ -423,9 +446,9 @@ const regenerateDocument = defineTool({
         spendLimit: await mcpSpendLimit(userId),
       },
       async execute() {
-        let result;
+        let generated;
         try {
-          result = await prepared.execute(generationContextFor(userId, prepared.sessionId, args.idempotencyKey, 'regenerate_document', `regen_${prepared.type}`));
+          generated = await prepared.generate(generationContextFor(userId, prepared.sessionId, args.idempotencyKey, 'regenerate_document', `regen_${prepared.type}`));
         } catch (error) {
           if (error instanceof RevisionConflict) throw writeConflict();
           if (error instanceof EmailValidationError) {
@@ -434,22 +457,26 @@ const regenerateDocument = defineTool({
           throw error;
         }
         const base = { applicationId: args.applicationId, document: args.document };
-        if (result.type === 'cover-letter') {
-          return {
-            settle: 'capture',
-            result: { ...base, revision: result.revision, subject: null, body: result.coverLetter, recommendedDelayDays: null, language: result.coverLetterStructured.language },
-          };
-        }
-        if (result.type === 'email') {
-          return { settle: 'capture', result: { ...base, revision: result.revision, subject: result.email.subject, body: result.email.body, recommendedDelayDays: null, language: null } };
-        }
-        if (result.type === 'follow_up_email') {
-          return {
-            settle: 'capture',
-            result: { ...base, revision: result.revision, subject: result.followUpEmail.subject, body: result.followUpEmail.body, recommendedDelayDays: result.followUpEmail.recommendedDelay, language: null },
-          };
-        }
-        throw new Error('Unexpected regeneration result');
+        return {
+          settle: 'capture',
+          // The document is saved in the same batch that captures the credits.
+          commit: async (guard, now) => {
+            const built = await prepared.buildWrite(generated, guard, now);
+            if (!built) throw new Error('A document write has no landing spot');
+            const { result } = built;
+            let stored: z.infer<typeof storedDocumentSchema>;
+            if (result.type === 'cover-letter') {
+              stored = { ...base, revision: result.revision, subject: null, body: result.coverLetter, recommendedDelayDays: null, language: result.coverLetterStructured.language };
+            } else if (result.type === 'email') {
+              stored = { ...base, revision: result.revision, subject: result.email.subject, body: result.email.body, recommendedDelayDays: null, language: null };
+            } else if (result.type === 'follow_up_email') {
+              stored = { ...base, revision: result.revision, subject: result.followUpEmail.subject, body: result.followUpEmail.body, recommendedDelayDays: result.followUpEmail.recommendedDelay, language: null };
+            } else {
+              throw new Error('Unexpected regeneration result');
+            }
+            return { kind: 'write', statements: built.statements, result: stored, afterLanded: built.afterLanded };
+          },
+        };
       },
     });
     const { operationId, stored, replayed } = settled(run, storedDocumentSchema);
@@ -532,7 +559,7 @@ const rewriteCvSection = defineTool({
     if (!prepared.section) throw new Error('A section rewrite was prepared without a resolved section');
     const before = asLines(prepared.section.before);
 
-    const run = await runInlineOperation<z.infer<typeof storedRewriteSchema>>({
+    const run = await runInline<z.infer<typeof storedRewriteSchema>>({
       userId,
       kind: OPERATION_KINDS.rewriteCvSection,
       idempotencyKey: args.idempotencyKey,
@@ -543,38 +570,49 @@ const rewriteCvSection = defineTool({
         spendLimit: await mcpSpendLimit(userId),
       },
       async execute() {
-        let result;
+        let generated;
         try {
-          result = await prepared.execute(
+          generated = await prepared.generate(
             generationContextFor(userId, prepared.sessionId, args.idempotencyKey, 'rewrite_cv_section', 'regen_cv_section'),
-            { persistSection: true },
           );
         } catch (error) {
           if (error instanceof RevisionConflict) throw writeConflict();
           throw error;
         }
-        if (result.type !== 'cv_section') throw new Error('Unexpected regeneration result');
-        const { outcome } = result;
+        if (generated.kind !== 'cv_section') throw new Error('Unexpected regeneration result');
+        const { outcome } = generated;
         const common = {
           applicationId: args.applicationId,
           section: { kind: outcome.kind, id: outcome.id ?? null, label: outcome.label },
           omitted: outcome.omitted,
           before,
         };
-        if (outcome.status === 'applied' && result.landed && result.revision !== undefined) {
-          return {
-            settle: 'capture',
-            result: { ...common, outcome: 'applied', reason: null, terms: [], after: asLines(outcome.content), revision: result.revision },
-          };
-        }
-        // Nothing reached the CV, so nothing is charged: the writer refused, changed nothing, or the section was deleted while it ran.
+        const targetMissing = {
+          ...common,
+          outcome: 'target_missing' as const,
+          reason: null,
+          terms: [],
+          after: [],
+          revision: null,
+        };
         if (outcome.status === 'applied') {
           return {
-            settle: 'release',
-            releaseReason: 'cv_section_target_missing',
-            result: { ...common, outcome: 'target_missing', reason: null, terms: [], after: [], revision: null },
+            settle: 'capture',
+            // The rewrite lands on the CV in the same batch that captures the credits. Nothing reaches the
+            // CV, and nothing is charged, when the section was deleted while the writer ran.
+            commit: async (guard, now) => {
+              const built = await prepared.buildWrite(generated, guard, now);
+              if (!built) return { kind: 'release', releaseReason: 'cv_section_target_missing', result: targetMissing };
+              if (built.result.type !== 'cv_section' || built.result.revision === undefined) throw new Error('Unexpected regeneration result');
+              return {
+                kind: 'write',
+                statements: built.statements,
+                result: { ...common, outcome: 'applied', reason: null, terms: [], after: asLines(outcome.content), revision: built.result.revision },
+              };
+            },
           };
         }
+        // Nothing reached the CV, so nothing is charged: the writer refused or changed nothing.
         return {
           settle: 'release',
           releaseReason: `cv_section_${outcome.status}`,
@@ -657,23 +695,28 @@ const draftScreeningAnswers = defineTool({
     // Ownership, and the tailored CV the answers are kept with.
     const context = await loadScreeningContext(userId, args.applicationId);
 
-    const run = await runInlineOperation<z.infer<typeof storedScreeningSchema>>({
-      userId,
-      kind: OPERATION_KINDS.draftScreeningAnswers,
-      idempotencyKey: args.idempotencyKey,
-      input: { applicationId: args.applicationId, questions },
-      async execute() {
-        await consumeDailyQuota('draft_screening_answers', userId);
-        let turn: number | null = null;
-        let modelStarted = false;
-        try {
+    // What this call has spent so far, so a failure anywhere (the model call, or the save in the settle batch) gives it back.
+    let quotaConsumed = false;
+    let modelStarted = false;
+    let turn: number | null = null;
+    let run;
+    try {
+      run = await runInline<z.infer<typeof storedScreeningSchema>>({
+        userId,
+        kind: OPERATION_KINDS.draftScreeningAnswers,
+        idempotencyKey: args.idempotencyKey,
+        input: { applicationId: args.applicationId, questions },
+        async execute() {
+          await consumeDailyQuota('draft_screening_answers', userId);
+          quotaConsumed = true;
           // The turn is spent by an atomic claim on a column only the server writes. It is the cap.
           const claim = await claimScreeningTurn(userId, args.applicationId, SCREENING_TURN_CAP);
           if (!claim.ok) {
             if (claim.reason === 'not_found') throw new NotFoundError();
             throw new ToolError('screening_cap_reached', `This application has used all ${SCREENING_TURN_CAP} screening answer turns.`);
           }
-          turn = claim.turnsUsed;
+          const claimedTurn = claim.turnsUsed;
+          turn = claimedTurn;
           modelStarted = true;
           const reply = await generateScreeningReply({
             userId,
@@ -688,32 +731,38 @@ const draftScreeningAnswers = defineTool({
           if (!parsed) {
             throw new ToolError('screening_unformatted', 'The answers could not be put together. The turn was not used. Try again.');
           }
-          const now = new Date().toISOString();
+          const createdAt = new Date().toISOString();
           const items = parsed.map((answer, index) => ({
             id: `ans-${Date.now()}-${index}`,
             question: answer.question || message,
             answer: answer.answer,
-            createdAt: now,
+            createdAt,
           }));
-          const saved = await appendScreeningAnswers(userId, args.applicationId, items, turn);
           return {
             settle: 'capture',
-            result: {
-              applicationId: args.applicationId,
-              answers: items.map(({ id, question, answer }) => ({ id, question, answer })),
-              turnsUsed: turn,
-              revision: saved.revision,
+            commit: async (guard, now) => {
+              const written = await buildScreeningAnswersWrite(userId, args.applicationId, items, claimedTurn, guard, now);
+              return {
+                kind: 'write',
+                statements: written.statements,
+                result: {
+                  applicationId: args.applicationId,
+                  answers: items.map(({ id, question, answer }) => ({ id, question, answer })),
+                  turnsUsed: claimedTurn,
+                  revision: written.revision,
+                },
+              };
             },
           };
-        } catch (error) {
-          // The quota only counts work that ran: a refusal before the model starts gives it back.
-          if (!modelStarted) await refundDailyQuota('draft_screening_answers', userId).catch((refundError) => console.error('[mcp] could not refund a screening quota unit:', refundError));
-          // The turn goes back when nothing usable came of it, like the web route does for a failed model call.
-          if (turn !== null) await releaseScreeningTurn(userId, args.applicationId, turn).catch((releaseError) => console.error('[mcp] could not release a screening turn:', releaseError));
-          throw error;
-        }
-      },
-    });
+        },
+      });
+    } catch (error) {
+      // The quota only counts work that ran: a refusal before the model starts gives it back.
+      if (quotaConsumed && !modelStarted) await refundDailyQuota('draft_screening_answers', userId).catch((refundError) => console.error('[mcp] could not refund a screening quota unit:', refundError));
+      // The turn goes back when nothing usable came of it, like the web route does for a failed model call.
+      if (turn !== null) await releaseScreeningTurn(userId, args.applicationId, turn).catch((releaseError) => console.error('[mcp] could not release a screening turn:', releaseError));
+      throw error;
+    }
     const { operationId, stored, replayed } = settled(run, storedScreeningSchema);
     return ok({
       applicationId: stored.applicationId,

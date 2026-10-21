@@ -15,9 +15,13 @@
  * - at most two of one kind run at once per user.
  *
  * The reservation is captured, or released when the work asks for it ("free if
- * refused"), in the same batch that marks the operation succeeded. A worker
- * that dies mid-call leaves the operation running past its lease; the cron
- * sweeper (recoverStuckOperations) then fails it and gives the credits back.
+ * refused"), in the same batch that marks the operation succeeded. When the work
+ * produces something to save (a document, a CV edit, the answers), that write
+ * joins the batch too: the output, the operation's `succeeded` row and the credit
+ * capture commit together or not at all, so no output can exist without its
+ * charge, and a refund never leaves the output behind. A worker that dies
+ * mid-call leaves the operation running past its lease and nothing written; the
+ * cron sweeper (recoverStuckOperations) then fails it and gives the credits back.
  *
  * The operation row carries no application id (`session_id` stays null):
  * these kinds never touch the application's generation_status, and the
@@ -38,15 +42,18 @@ import type { CreditAction } from '@/lib/credit-costs';
 import {
   InsufficientCreditsError,
   InvalidInputError,
+  NotFoundError,
   OperationFailedEarlierError,
   OperationLimitReached,
   ReservationConflictError,
+  RevisionConflict,
   SpendLimitReachedError,
 } from './errors';
 import {
   MAX_ACTIVE_OPERATIONS_PER_USER,
   claimOperation,
   finishOperationWithoutKit,
+  getOperation,
   hashOperationInput,
   insertOperation,
   resolveExistingOperation,
@@ -57,13 +64,37 @@ import {
 /** Longer than any single model call, so the sweeper never ends an operation that is still working. */
 const INLINE_LEASE_MS = 10 * 60 * 1000;
 
-export interface InlineOutcome<T> {
-  result: T;
-  /** `capture` charges the reservation (the work produced something); `release` gives the credits back. */
-  settle: 'capture' | 'release';
-  /** Why a reservation was released, for the ledger. */
-  releaseReason?: string;
-}
+/** What `commit` decides once it has read the application as it stands at write time. */
+export type InlineCommit<T> =
+  /**
+   * The output is ready to be saved. `statements` are built and not run; the LAST one is the write that
+   * lands the output (a revision-guarded UPDATE), and the batch checks that it changed a row before it
+   * marks the operation succeeded and captures the credits. Every statement carries `guard`.
+   */
+  | { kind: 'write'; result: T; statements: SQL[]; afterLanded?: () => Promise<void> }
+  /** The write found nothing to land on (a deleted section): give the credits back and store `result`. */
+  | { kind: 'release'; result: T; releaseReason: string };
+
+export type InlineOutcome<T> =
+  /** Nothing is saved by this outcome, or the work saved it itself: settle the credits and store `result`. */
+  | {
+      result: T;
+      /** `capture` charges the reservation (the work produced something); `release` gives the credits back. */
+      settle: 'capture' | 'release';
+      /** Why a reservation was released, for the ledger. A stable label, never error text. */
+      releaseReason?: string;
+      commit?: undefined;
+    }
+  /**
+   * The work produced output to save. `commit` is called by the settle step, after the model call, with
+   * the guard that ties each write to this operation still being ours (running, this attempt, this lease)
+   * and the timestamp the whole batch shares. It reads what it needs fresh and returns the statements,
+   * and it is called again against a fresh read when the revision-guarded write lost to a concurrent edit.
+   */
+  | { settle: 'capture'; commit: (guard: SQL, now: string) => Promise<InlineCommit<T>>; result?: undefined; releaseReason?: undefined };
+
+/** A write that lost to concurrent edits this many times in a row ends the operation and returns the credits. */
+const COMMIT_ATTEMPTS = 5;
 
 export type InlineRun<T> =
   /** This call did the work. */
@@ -179,11 +210,14 @@ export async function runInlineOperation<T extends Record<string, unknown>>(
   if (!claimed) return { kind: 'in_progress', operationId: inserted.operation.id, matchedBy: 'key' };
   const expect = { attempt: claimed.attempt, leaseOwner: owner };
 
-  let outcome: InlineOutcome<T>;
+  let result: T;
   try {
-    outcome = await params.execute({ operationId: claimed.id, reservationKey });
+    const outcome = await params.execute({ operationId: claimed.id, reservationKey });
+    result = await settleInline(claimed, expect, outcome);
   } catch (error) {
-    // The credits go back in the same batch that fails the operation.
+    // The credits go back in the same batch that fails the operation. Nothing the work wrote is
+    // still pending: the output only ever lands inside the settle batch, which did not commit.
+    // The ledger gets the error code only; the message is for the log.
     await finishOperationWithoutKit(
       claimed,
       { status: 'failed', errorCode: errorCodeOf(error), reason: error instanceof Error ? error.message : 'operation failed' },
@@ -191,36 +225,108 @@ export async function runInlineOperation<T extends Record<string, unknown>>(
     ).catch((finishError) => console.error('[inline-operation] could not end a failed operation:', finishError));
     throw error;
   }
-
-  await settleInline(claimed, expect, outcome);
-  return { kind: 'fresh', operationId: claimed.id, result: outcome.result };
+  return { kind: 'fresh', operationId: claimed.id, result };
 }
 
+function buildCompleteStatement(
+  operation: AgentOperation,
+  expect: { attempt: number; leaseOwner: string },
+  result: unknown,
+  now: string,
+  chained: boolean,
+): SQL {
+  return sql`
+    UPDATE agent_operations
+    SET status = 'succeeded', result = ${JSON.stringify(result)}, error_code = NULL,
+        lease_owner = NULL, lease_expires_at = NULL, updated_at = ${now}
+    WHERE id = ${operation.id} AND status = 'running' AND attempt = ${expect.attempt} AND lease_owner = ${expect.leaseOwner}
+      ${chained ? sql`AND (SELECT changes()) > 0` : sql``}
+  `;
+}
+
+/**
+ * End the operation as succeeded and settle its credits. Returns the result that was stored.
+ *
+ * With output to save, ONE batch holds: the output writes (each gated on the operation still being
+ * ours, the last one also on the application still being at the revision it was built against), the
+ * operation's `succeeded` row (gated on that last write having changed a row), the capture (gated on
+ * the operation row) and a probe that aborts the whole batch if the operation ended up succeeded
+ * without a capture. A lost revision race changes no row, so nothing is marked succeeded or captured
+ * and the loop builds the write again from a fresh read; after five misses the operation fails and
+ * the credits go back.
+ */
 async function settleInline<T extends Record<string, unknown>>(
   operation: AgentOperation,
   expect: { attempt: number; leaseOwner: string },
   outcome: InlineOutcome<T>,
-): Promise<void> {
-  const now = nowIso();
+): Promise<T> {
   const reservation = operation.reservation_key
     ? await getReservationByKey(operation.user_id, operation.reservation_key)
     : null;
-  const statements: SQL[] = [sql`
-    UPDATE agent_operations
-    SET status = 'succeeded', result = ${JSON.stringify(outcome.result)}, error_code = NULL,
-        lease_owner = NULL, lease_expires_at = NULL, updated_at = ${now}
-    WHERE id = ${operation.id} AND status = 'running' AND attempt = ${expect.attempt} AND lease_owner = ${expect.leaseOwner}
-  `];
-  if (reservation && reservation.status === 'reserved') {
-    if (outcome.settle === 'capture') {
-      statements.push(buildCaptureReservationStatement(reservation, { chained: true, now }));
-    } else {
-      statements.push(...buildReleaseReservationStatements(reservation, {
-        reason: outcome.releaseReason ?? 'nothing_changed',
-        chained: true,
-        now,
-      }));
+  const held = reservation && reservation.status === 'reserved' ? reservation : null;
+
+  const releaseStatements = (reason: string, now: string): SQL[] => (held
+    ? buildReleaseReservationStatements(held, { reason, chained: true, now })
+    : []);
+
+  if (!outcome.commit) {
+    const now = nowIso();
+    const statements: SQL[] = [buildCompleteStatement(operation, expect, outcome.result, now, false)];
+    if (held) {
+      statements.push(...(outcome.settle === 'capture'
+        ? [buildCaptureReservationStatement(held, { chained: true, now })]
+        : releaseStatements(outcome.releaseReason ?? 'nothing_changed', now)));
+    }
+    await runBatch(statements);
+    return outcome.result;
+  }
+
+  for (let attempt = 0; attempt < COMMIT_ATTEMPTS; attempt++) {
+    const now = nowIso();
+    const guard = sql`EXISTS (
+      SELECT 1 FROM agent_operations
+      WHERE id = ${operation.id} AND status = 'running' AND attempt = ${expect.attempt} AND lease_owner = ${expect.leaseOwner}
+    )`;
+    const commit = await outcome.commit(guard, now);
+
+    if (commit.kind === 'release') {
+      await runBatch([
+        buildCompleteStatement(operation, expect, commit.result, now, false),
+        ...releaseStatements(commit.releaseReason, now),
+      ]);
+      return commit.result;
+    }
+
+    if (commit.statements.length === 0) throw new Error('An inline commit must return at least one statement');
+    const landedAt = commit.statements.length - 1;
+    const statements: SQL[] = [
+      ...commit.statements,
+      buildCompleteStatement(operation, expect, commit.result, now, true),
+    ];
+    if (held) {
+      statements.push(buildCaptureReservationStatement(held, { chained: true, now }));
+      statements.push(sql`
+        SELECT json(CASE
+          WHEN EXISTS (SELECT 1 FROM agent_operations WHERE id = ${operation.id} AND status = 'succeeded' AND updated_at = ${now})
+           AND NOT EXISTS (SELECT 1 FROM credit_reservations WHERE id = ${held.id} AND status = 'captured' AND captured_at = ${now})
+          THEN 'completed without a capture' ELSE '{}' END)
+      `);
+    }
+    const results = await runBatch(statements);
+    if (results[landedAt].meta.changes > 0) {
+      if (commit.afterLanded) {
+        // Bookkeeping that follows a saved output. It never turns a saved, charged output into a failure.
+        await commit.afterLanded().catch((error) => console.error('[inline-operation] follow-up after a saved output failed:', error));
+      }
+      return commit.result;
+    }
+
+    // The write changed nothing: the application moved on, or this operation was ended under us.
+    const current = await getOperation(operation.user_id, operation.id);
+    if (!current) throw new NotFoundError('Operation');
+    if (current.status !== 'running' || current.lease_owner !== expect.leaseOwner) {
+      throw new Error('The operation ended while its output was being saved');
     }
   }
-  await runBatch(statements);
+  throw new RevisionConflict(null);
 }

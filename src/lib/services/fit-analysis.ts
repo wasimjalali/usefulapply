@@ -11,22 +11,28 @@
  * primary CV, never text from the caller.
  */
 
+import type { SQL } from 'drizzle-orm';
 import { runFitAnalysis, type MasterContext } from '@/lib/agents';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import * as sessionsRepo from '@/db/repos/sessions';
 import { cacheContext } from './context-cache';
 import { InvalidInputError, NotFoundError } from './errors';
 import { loadJobPreferences, loadOwnedCvSources } from './kit-generation';
-import { persistFitResult } from './kit';
+import { buildSessionUpdateStatement, fitResultColumns } from './kit';
 
-export interface FitAnalysisOutput {
+export interface FitAnalysisRun {
   contextId: string;
   fit: NonNullable<MasterContext['fitAnalysis']>;
   job: { title: string; companyName: string } | null;
   detectedLanguage: string | null;
   matchScore: number | null;
-  /** The application revision after the analysis was saved. */
-  revision: number | null;
+  /**
+   * The statements that save what the analysis learned, built against the application as it stands now
+   * and not run, so the caller can commit them with its own settlement (inline-operations.ts). The
+   * last statement is the revision-guarded write; `guard` is ANDed into every one. `revision` is the
+   * application revision once they commit.
+   */
+  buildWrite(guard: SQL, now: string): Promise<{ statements: SQL[]; revision: number }>;
 }
 
 /** The deterministic context id for one idempotency key, so a retry names the same context. */
@@ -34,12 +40,13 @@ export function fitContextIdFor(idempotencyKey: string): string {
   return `ctx-${idempotencyKey}`;
 }
 
+/** Run the analysis. The only things written are the cached context and, when the caller commits `buildWrite`, the application. */
 export async function analyzeApplicationFit(params: {
   userId: string;
   sessionId: string;
   contextId: string;
   requestId: string;
-}): Promise<FitAnalysisOutput> {
+}): Promise<FitAnalysisRun> {
   const { userId, sessionId, contextId } = params;
   const session = await sessionsRepo.getSession(userId, sessionId);
   if (!session) throw new NotFoundError();
@@ -70,36 +77,20 @@ export async function analyzeApplicationFit(params: {
 
   await cacheContext(userId, contextId, context);
 
-  // The pending-fit stash the web client restores from. Workflow state: no revision bump.
-  const existingArtifacts = session.generated_artifacts && typeof session.generated_artifacts === 'object' && !Array.isArray(session.generated_artifacts)
-    ? session.generated_artifacts as Record<string, unknown>
-    : {};
-  const stashed = await sessionsRepo.updateSession(userId, sessionId, {
-    generated_artifacts: {
-      ...existingArtifacts,
-      pendingFitAnalysis: {
-        contextId,
-        jobDescription: session.job_description,
-        contextData: {
-          applicant: context.applicant,
-          job: context.job,
-          match: context.match,
-          verifiedMetrics: context.verifiedMetrics,
-          detectedLanguage: context.detectedLanguage,
-          fitAnalysis: context.fitAnalysis,
-        },
-        createdAt: new Date().toISOString(),
-      },
+  const pendingFitAnalysis = {
+    contextId,
+    jobDescription: session.job_description,
+    contextData: {
+      applicant: context.applicant,
+      job: context.job,
+      match: context.match,
+      verifiedMetrics: context.verifiedMetrics,
+      detectedLanguage: context.detectedLanguage,
+      fitAnalysis: context.fitAnalysis,
     },
-  }, { bumpRevision: false });
-  if (stashed.error) console.error('[fit-analysis] could not stash the pending fit analysis:', stashed.error.message);
-
-  const saved = await persistFitResult(userId, sessionId, {
-    job: context.job,
-    match: context.match,
-    detectedLanguage: context.detectedLanguage,
-    fitAnalysis: context.fitAnalysis,
-  });
+    createdAt: new Date().toISOString(),
+  };
+  const fitAnalysis = context.fitAnalysis;
 
   return {
     contextId,
@@ -107,6 +98,27 @@ export async function analyzeApplicationFit(params: {
     job: context.job ? { title: context.job.title, companyName: context.job.companyName } : null,
     detectedLanguage: context.detectedLanguage ?? null,
     matchScore: typeof context.match?.score === 'number' ? Math.round(context.match.score) : null,
-    revision: saved?.revision ?? null,
+    async buildWrite(guard, now) {
+      const row = await sessionsRepo.getSession(userId, sessionId);
+      if (!row) throw new NotFoundError();
+      // The pending-fit stash the web client restores from rides in the same write as what the
+      // analysis learned about the ad: one revision bump, one commit.
+      const existingArtifacts = row.generated_artifacts && typeof row.generated_artifacts === 'object' && !Array.isArray(row.generated_artifacts)
+        ? row.generated_artifacts as Record<string, unknown>
+        : {};
+      const columns = {
+        ...fitResultColumns(row, {
+          job: context.job,
+          match: context.match,
+          detectedLanguage: context.detectedLanguage,
+          fitAnalysis,
+        }),
+        generated_artifacts: { ...existingArtifacts, pendingFitAnalysis },
+      };
+      return {
+        statements: [buildSessionUpdateStatement(userId, sessionId, columns, row.revision, now, guard)],
+        revision: row.revision + 1,
+      };
+    },
   };
 }

@@ -14,6 +14,7 @@
  * description are read from the user's stored rows, never from the caller.
  */
 
+import { sql, type SQL } from 'drizzle-orm';
 import {
   unifiedWriterAgent,
   resolveCVSectionTarget,
@@ -32,9 +33,9 @@ import type { TailoredCV } from '@/lib/cv-structure/types';
 import type { CreditAction } from '@/lib/credit-costs';
 import { detectLanguage, isSupportedLanguage, normalizeLanguage } from '@/lib/utils/language-detector';
 import { editTailoredCv, getTailoredCv } from './cv';
-import { saveRecordedKitDocument } from './edit-history';
-import { NotFoundError, RevisionConflict } from './errors';
-import { coverLetterShell } from './kit';
+import { EDIT_HISTORY_KEEP, saveRecordedKitDocument, type EditGroup } from './edit-history';
+import { InvalidInputError, NotFoundError, RevisionConflict } from './errors';
+import { buildSessionUpdateStatement, coverLetterShell, kitDocumentColumns, kitFromRow, type KitDocumentKey } from './kit';
 
 export type RegenerateType = 'cover-letter' | 'email' | 'follow_up_email' | 'cv_section';
 
@@ -98,13 +99,45 @@ interface TokenUsage {
   output: number;
 }
 
+/** What a writer produced, before any of it is saved. */
+export type GeneratedRegeneration =
+  | {
+      kind: 'document';
+      document: KitDocumentKey;
+      value: unknown;
+      /** Columns that ride with the document (the letter's language). */
+      extra?: Record<string, unknown>;
+      /** Bookkeeping once the document is saved (the recipient, the failure mark). It never fails the save. Returns the revision afterwards. */
+      afterSave(revision: number): Promise<number>;
+      toResult(revision: number): RegenerationResult;
+    }
+  | { kind: 'cv_section'; outcome: CVSectionRewriteResult };
+
+/** The statements that save a generated output, built and not run. The last one is the revision-guarded write that lands it. */
+export interface BuiltRegenerationWrite {
+  statements: SQL[];
+  result: RegenerationResult;
+  /** Bookkeeping to run once the statements have committed. */
+  afterLanded(): Promise<void>;
+}
+
 export interface PreparedRegeneration {
   sessionId: string;
   type: RegenerateType;
   creditAction: Extract<CreditAction, 'COVER_LETTER_REGEN' | 'EMAIL_REGEN' | 'FOLLOW_UP_REGEN' | 'CV_SECTION_REWRITE'>;
   /** For `cv_section`: the section as it stands now (its `before` text), resolved while the request was checked. Null for documents. */
   section: ResolvedCVSection | null;
+  /** Run the writer. Saves nothing, except the detected language of the ad when the application has none. */
+  generate(generationContext: LlmGenerationContext): Promise<GeneratedRegeneration>;
+  /** `generate`, then save the output now (the route's path: it settles credits around this call). */
   execute(generationContext: LlmGenerationContext, options?: ExecuteOptions): Promise<RegenerationResult>;
+  /**
+   * The statements that save a generated output, for a caller that commits them together with its
+   * own settlement (inline-operations.ts). Reads the application as it stands now, so it can be called
+   * again after a lost revision race. Null when an applied section rewrite has nowhere to land (the
+   * section was deleted while the writer ran). `guard` is ANDed into every statement.
+   */
+  buildWrite(generated: GeneratedRegeneration, guard: SQL, now: string): Promise<BuiltRegenerationWrite | null>;
 }
 
 const CREDIT_ACTION = {
@@ -190,12 +223,12 @@ export async function prepareRegeneration(userId: string, request: RegenerateReq
   const creditAction = CREDIT_ACTION[request.type as keyof typeof CREDIT_ACTION];
   if (!creditAction) throw new RegenerateRequestError(400, undefined, 'Invalid type. Must be "cover-letter", "email", "follow_up_email", or "cv_section"');
 
-  return {
+  const prepared: PreparedRegeneration = {
     sessionId: session.id,
     type: request.type,
     creditAction,
     section: resolvedSection,
-    async execute(generationContext, options = {}) {
+    async generate(generationContext) {
       const storedArtifacts = readRecord(session.generated_artifacts);
       const storedRequirements = readRecord(session.requirements);
       const storedLanguage = isSupportedLanguage(storedRequirements?.detectedLanguage)
@@ -267,20 +300,27 @@ export async function prepareRegeneration(userId: string, request: RegenerateReq
           structured: letter.structured,
           updatedAt: new Date().toISOString(),
         };
-        let { revision } = await saveRecordedKitDocument(userId, session.id, 'coverLetter', persistedCoverLetter, {
+        return {
+          kind: 'document',
+          document: 'coverLetter',
+          value: persistedCoverLetter,
           extra: { cover_letter_language: letter.structured.language },
-        });
-        try {
-          const filled = await saveLetterRecipientFromAd(userId, session.id, session.job_description, letter.structured);
-          // Filling the recipient bumps the revision once more; report the final one.
-          if (filled.revision !== undefined) revision = filled.revision;
-        } catch (error) {
-          // The letter already carries the recipient; only the editable copy on
-          // the session row is missing.
-          console.error('[regenerate] Failed to save the cover letter recipient:', error);
-        }
-        await clearDocumentMark(userId, session.id, 'coverLetter');
-        return { type: 'cover-letter', coverLetter, coverLetterStructured: letter.structured, revision, tokens };
+          async afterSave(saved) {
+            let revision = saved;
+            try {
+              const filled = await saveLetterRecipientFromAd(userId, session.id, session.job_description, letter.structured);
+              // Filling the recipient bumps the revision once more; report the final one.
+              if (filled.revision !== undefined) revision = filled.revision;
+            } catch (error) {
+              // The letter already carries the recipient; only the editable copy on
+              // the session row is missing.
+              console.error('[regenerate] Failed to save the cover letter recipient:', error);
+            }
+            await clearDocumentMark(userId, session.id, 'coverLetter');
+            return revision;
+          },
+          toResult: (revision) => ({ type: 'cover-letter', coverLetter, coverLetterStructured: letter.structured, revision, tokens }),
+        };
       }
 
       if (request.type === 'email') {
@@ -288,13 +328,20 @@ export async function prepareRegeneration(userId: string, request: RegenerateReq
         if (!email?.subject?.trim() || !email?.body?.trim()) {
           throw new Error('Empty application email generation');
         }
-        const { revision } = await saveRecordedKitDocument(userId, session.id, 'email', {
-          subject: email.subject,
-          body: email.body,
-          attachmentNote: 'Please find my CV and cover letter attached.',
-        });
-        await clearDocumentMark(userId, session.id, 'applicationEmail');
-        return { type: 'email', email: { subject: email.subject, body: email.body }, revision, tokens };
+        return {
+          kind: 'document',
+          document: 'email',
+          value: {
+            subject: email.subject,
+            body: email.body,
+            attachmentNote: 'Please find my CV and cover letter attached.',
+          },
+          async afterSave(saved) {
+            await clearDocumentMark(userId, session.id, 'applicationEmail');
+            return saved;
+          },
+          toResult: (revision) => ({ type: 'email', email: { subject: email.subject, body: email.body }, revision, tokens }),
+        };
       }
 
       if (request.type === 'follow_up_email') {
@@ -308,33 +355,147 @@ export async function prepareRegeneration(userId: string, request: RegenerateReq
         if (!followUpEmail?.subject?.trim() || !followUpEmail?.body?.trim()) {
           throw new Error('Empty follow-up email generation');
         }
-        const { revision } = await saveRecordedKitDocument(userId, session.id, 'followUpEmail', {
-          subject: followUpEmail.subject,
-          body: followUpEmail.body,
-          recommendedDelay: followUpEmail.recommendedDelay || 5,
-        });
-        await clearDocumentMark(userId, session.id, 'followUpEmail');
         return {
-          type: 'follow_up_email',
-          followUpEmail: {
+          kind: 'document',
+          document: 'followUpEmail',
+          value: {
             subject: followUpEmail.subject,
             body: followUpEmail.body,
             recommendedDelay: followUpEmail.recommendedDelay || 5,
           },
-          revision,
-          tokens,
+          async afterSave(saved) {
+            await clearDocumentMark(userId, session.id, 'followUpEmail');
+            return saved;
+          },
+          toResult: (revision) => ({
+            type: 'follow_up_email',
+            followUpEmail: {
+              subject: followUpEmail.subject,
+              body: followUpEmail.body,
+              recommendedDelay: followUpEmail.recommendedDelay || 5,
+            },
+            revision,
+            tokens,
+          }),
         };
       }
 
       // cv_section: resolvedSection is set (checked above).
       const outcome = await unifiedWriterAgent.rewriteCVSection(masterContext, resolvedSection as ResolvedCVSection, generationContext);
+      return { kind: 'cv_section', outcome };
+    },
+
+    async execute(generationContext, options = {}) {
+      const generated = await prepared.generate(generationContext);
+      if (generated.kind === 'document') {
+        const saved = await saveRecordedKitDocument(userId, session.id, generated.document, generated.value, { extra: generated.extra });
+        return generated.toResult(await generated.afterSave(saved.revision));
+      }
+      const { outcome } = generated;
       if (outcome.status === 'applied' && options.persistSection) {
         const written = await persistRewrittenSection(userId, session.id, outcome);
         return { type: 'cv_section', outcome, landed: written !== null, revision: written?.revision };
       }
       return { type: 'cv_section', outcome };
     },
+
+    async buildWrite(generated, guard, now) {
+      const row = await getSession(userId, session.id);
+      if (!row) throw new NotFoundError();
+      const revision = row.revision + 1;
+      if (generated.kind === 'document') {
+        const columns = kitDocumentColumns(generated.document, generated.value, generated.extra);
+        return {
+          statements: recordedEditStatements({
+            userId,
+            sessionId: session.id,
+            group: DOCUMENT_GROUP[generated.document],
+            columns,
+            row,
+            now,
+            guard,
+          }),
+          result: generated.toResult(revision),
+          afterLanded: async () => {
+            await generated.afterSave(revision);
+          },
+        };
+      }
+      const { outcome } = generated;
+      if (outcome.status !== 'applied') throw new Error('Only an applied section rewrite has something to save');
+      // The same value saveTailoredCvData writes: the structured CV replaced inside the stored generated_cv.
+      const kit = kitFromRow(row);
+      if (!kit.optimizedCVData) return null;
+      const next = applyRewrittenSection(kit.optimizedCVData as TailoredCV, outcome.kind as CvRewriteSection, outcome.id, outcome.content);
+      if (!next) return null;
+      const base = readRecord(row.generated_cv) ?? (kit.cv ? { ...(kit.cv as unknown as Record<string, unknown>) } : {});
+      const generatedCv = { ...base, _optimizedCVData: next };
+      if (JSON.stringify(generatedCv).length > MAX_TAILORED_CV_CHARS) throw new InvalidInputError('That change makes the CV too large');
+      return {
+        statements: recordedEditStatements({
+          userId,
+          sessionId: session.id,
+          group: 'cv',
+          columns: { generated_cv: generatedCv },
+          row,
+          now,
+          guard,
+        }),
+        result: { type: 'cv_section', outcome, landed: true, revision },
+        afterLanded: async () => {},
+      };
+    },
   };
+  return prepared;
+}
+
+const DOCUMENT_GROUP: Record<KitDocumentKey, EditGroup> = {
+  coverLetter: 'cover_letter',
+  email: 'email',
+  followUpEmail: 'follow_up_email',
+};
+
+/** Same ceiling saveTailoredCvData applies to one CV write. */
+const MAX_TAILORED_CV_CHARS = 3_000_000;
+
+/**
+ * `applyRecordedEdit` as statements, so a caller can run them in a batch of its own: the history row
+ * of the value being replaced (only while the application is still at `row.revision`), the trim of
+ * old history, and the revision-guarded write last. Every statement also needs `guard`.
+ */
+function recordedEditStatements(params: {
+  userId: string;
+  sessionId: string;
+  group: EditGroup;
+  columns: Record<string, unknown>;
+  row: Awaited<ReturnType<typeof getSession>> & object;
+  now: string;
+  guard: SQL;
+}): SQL[] {
+  const { userId, sessionId, group, columns, row, now, guard } = params;
+  const prior: Record<string, unknown> = {};
+  for (const name of Object.keys(columns)) prior[name] = (row as unknown as Record<string, unknown>)[name] ?? null;
+  return [
+    sql`
+      INSERT INTO application_edit_history (id, user_id, session_id, edit_group, revision, prior_value, created_at)
+      SELECT ${crypto.randomUUID()}, ${userId}, ${sessionId}, ${group}, ${row.revision}, ${JSON.stringify(prior)}, ${now}
+      WHERE EXISTS (
+        SELECT 1 FROM application_sessions
+        WHERE id = ${sessionId} AND user_id = ${userId} AND revision = ${row.revision}
+      ) AND ${guard}
+    `,
+    sql`
+      DELETE FROM application_edit_history
+      WHERE user_id = ${userId} AND session_id = ${sessionId} AND edit_group = ${group} AND ${guard}
+        AND id NOT IN (
+          SELECT id FROM application_edit_history
+          WHERE user_id = ${userId} AND session_id = ${sessionId} AND edit_group = ${group}
+          ORDER BY created_at DESC, rowid DESC
+          LIMIT ${EDIT_HISTORY_KEEP}
+        )
+    `,
+    buildSessionUpdateStatement(userId, sessionId, columns, row.revision, now, guard),
+  ];
 }
 
 /**

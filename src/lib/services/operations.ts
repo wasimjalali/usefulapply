@@ -410,7 +410,10 @@ export interface FinishFailure {
   /** 'failed' for a runner or sweeper giving up, 'cancelled' for the user. */
   status: 'failed' | 'cancelled';
   errorCode: string;
-  /** Free text for the ledger description and the session's generation_error. Not shown raw to users. */
+  /**
+   * What went wrong, for the server log only. It can carry provider or model error text, so it never
+   * reaches the ledger description (which get_credit_history shows) or the session.
+   */
   reason: string;
 }
 
@@ -452,7 +455,8 @@ export async function finishOperationWithoutKit(
   ];
   if (reservation && reservation.status === 'reserved') {
     statements.push(...buildReleaseReservationStatements(reservation, {
-      reason: `${failure.errorCode}: ${failure.reason}`.slice(0, 300),
+      // The code is a stable, user-safe label. The free-text reason stays in the log.
+      reason: failure.errorCode,
       chained: true,
       now,
     }));
@@ -474,6 +478,7 @@ export async function finishOperationWithoutKit(
   const results = await runBatch(statements);
   const ended = results[0].meta.changes > 0;
   if (ended) {
+    if (failure.status === 'failed') console.error(`[operations] operation ${operation.id} (${operation.kind}) failed: ${failure.errorCode}: ${failure.reason}`);
     // A kit that used the fit-continuation discount gives the claim back, so
     // the user can still spend it on a retry.
     const contextId = typeof operation.input.contextId === 'string' ? operation.input.contextId : null;
