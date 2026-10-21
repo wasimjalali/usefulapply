@@ -8,7 +8,8 @@ export type EvalTask =
   | 'optimize_cv'
   | 'write_cover_letter'
   | 'write_email'
-  | 'write_follow_up_email';
+  | 'write_follow_up_email'
+  | 'verify_rewrite_claims';
 
 export const KIT_TASKS: EvalTask[] = [
   'parse_cv',

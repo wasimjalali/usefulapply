@@ -1,0 +1,51 @@
+{
+  "stored_rewrites": {
+    "cases": 59,
+    "changed": 52,
+    "model_calls": 21
+  },
+  "injections": {
+    "cases": 531,
+    "main_missed": 10,
+    "deterministic": 318,
+    "model_calls": 203
+  },
+  "probes": {
+    "cases": 190,
+    "main_missed": 11,
+    "deterministic": 30,
+    "model_calls": 149
+  },
+  "heldout": {
+    "cases": 639,
+    "main_missed": 0,
+    "deterministic": 226,
+    "model_calls": 413
+  },
+  "adversarial": {
+    "cases": 40,
+    "main_missed": 2,
+    "deterministic": 0,
+    "model_calls": 38
+  },
+  "heldout_population": {
+    "all": 14911,
+    "main_catches": 14138,
+    "strata": {
+      "de:initial_adjective": "22/513",
+      "de:initial_name": "20/175",
+      "de:initial_sentence": "28/661",
+      "de:list_item": "20/216",
+      "de:scope": "20/297",
+      "de:standing_adjective": "86/2024",
+      "en:authority_verb": "149/3522",
+      "en:initial_name": "20/440",
+      "en:initial_sentence": "20/325",
+      "en:list_item": "30/702",
+      "en:lowercase_brand": "22/508",
+      "en:scope": "35/825",
+      "en:standing_adjective": "167/3930"
+    }
+  },
+  "seed": 20261021
+}

@@ -15,6 +15,9 @@
  *   # free: scores both guards on the stored rewrites, plus the injected misses
  *   npx tsx evals/rewrite-claim-guard.ts score --in <dir> [--scores scores-round2.json] [--guard <unified-writer-agent.ts>]
  *   (--guard scores another build of the guard as "current", e.g. an older commit checked out elsewhere)
+ *   # paid: the model claim check on the stored rewrites, injections, probes, a held-out sample and adversarial cases
+ *   npx tsx evals/rewrite-claim-guard.ts model-check --out <dir> [--plan | --allow-anthropic-api] [--budget 12] [--seed N]
+ *   (see modelCheck() below; write-up evals/results/2026-10-21-rewrite-claim-model-check.md)
  *
  * generate: for six constructed CVs (4 EN, 2 DE, evals/dataset/cvs), the real
  * analysis calls and generateOptimizedCVData() write a tailored CV against a
@@ -630,8 +633,384 @@ async function score(): Promise<void> {
   if (unlabelled.size > 0) console.log(`unlabelled terms: ${[...unlabelled.keys()].join(' ')}`);
 }
 
+// -----------------------------------------------------
+// model-check (paid): the model claim check (2026-10-21)
+// -----------------------------------------------------
+
+/** Seeded PRNG (mulberry32), so the held-out sample is reproducible. */
+function prng(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+interface CheckCase {
+  set: 'injections' | 'probes' | 'heldout' | 'adversarial';
+  id: string;
+  language: 'en' | 'de';
+  kind: ResolvedCVSection['kind'];
+  group: string;
+  text: string;
+  primaryCV: string;
+  masterCV: string;
+  sourceText: string;
+  before: string;
+  after: string;
+  claim: string[];
+}
+
+/**
+ * Scores the model claim check (checkRewriteClaims in unified-writer-agent.ts)
+ * with real calls on the eval shim (Sonnet 5.5, adaptive thinking, effort low).
+ *
+ *   npx tsx evals/rewrite-claim-guard.ts model-check --in <run dir> --out <dir> [--plan] [--allow-anthropic-api]
+ *     [--budget 12] [--seed 20261021] [--heldout-sample 600] [--limit N]
+ *
+ * --plan counts the model calls each set needs, free. Without it, calls are
+ * made and the run stops before the budget would be passed.
+ *
+ * Stored rewrites: the production path exactly (a word refused without the
+ * model refuses with no call). Misses: claim level, stricter than production.
+ * For every case main (the word guard) catches, the claim is caught when a
+ * claim word is refused without the model, or the model is asked about every
+ * judged word of the text (even where production would not ask, because
+ * another word already refuses) and refuses a claim word main flagged.
+ */
+async function modelCheck(): Promise<void> {
+  const IN = path.resolve(ROOT, arg('in') ?? 'evals/results/2026-10-21-rewrite-claim-guard/run');
+  const out = arg('out');
+  if (!out) throw new Error('--out <dir> is required');
+  const OUT = path.resolve(ROOT, out);
+  const planOnly = process.argv.includes('--plan');
+  if (!planOnly && !process.argv.includes('--allow-anthropic-api')) throw new Error('model-check calls the paid API: pass --allow-anthropic-api (or --plan)');
+  const budget = Number(arg('budget') ?? 12);
+  const seed = Number(arg('seed') ?? 20261021);
+  const sampleSize = Number(arg('heldout-sample') ?? 600);
+  const limit = arg('limit') ? Number(arg('limit')) : Infinity;
+  fs.mkdirSync(OUT, { recursive: true });
+
+  loadEnv();
+  if (!planOnly && !process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not set');
+  const arm = { ...ARMS['sonnet55-low'] };
+  installHooks(arm.promptVariant, shim);
+  const agent = (await import('../src/lib/agents/unified-writer-agent')) as typeof import('../src/lib/agents/unified-writer-agent');
+  const { introducedClaims, unsupportedNumbers, splitIntroducedClaims, verifyJudgedClaims } = agent;
+  const { claimWords } = await import('../src/lib/agents/claim-token-normalization');
+  const { HELD_OUT } = await import('./rewrite-claim-guard/heldout');
+  const { PROBES } = await import('./rewrite-claim-guard/probes');
+  const { ADVERSARIAL } = await import('./rewrite-claim-guard/adversarial');
+
+  const kits = new Map((JSON.parse(fs.readFileSync(path.join(IN, 'kits.json'), 'utf8')) as KitRecord[]).map((k) => [k.case_id, k]));
+  const rewrites = fs.readFileSync(path.join(IN, 'rewrites.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l) as RewriteRecord);
+  const labels: Record<string, { label: Label; why: string }> = JSON.parse(fs.readFileSync(path.join(ROOT, 'evals', 'rewrite-claim-guard', 'labels.json'), 'utf8'));
+  const text = (v: string | string[]) => (Array.isArray(v) ? v.join('\n') : v);
+  const kitSource = (kit: KitRecord) => ({
+    primaryCV: kit.rawCV,
+    masterCV: kit.masterCV ?? '',
+    sourceText: `${kit.verifiedMetrics.join('\n')}\n${[kit.rawCV, kit.masterCV].filter(Boolean).join('\n')}`,
+  });
+
+  // ---- The cases -----------------------------------------------------------
+  const cases: CheckCase[] = [];
+  // Original injections: the same rotation and filter as score().
+  for (const [index, r] of rewrites.entries()) {
+    if (r.content === null) continue;
+    const kit = kits.get(r.case_id)!;
+    const src = kitSource(kit);
+    const before = text(r.section.before);
+    const known = new Set([...claimWords(src.sourceText), ...claimWords(before)]);
+    for (const [kind, options] of Object.entries(INJECTIONS[r.language])) {
+      let chosen: Injection | null = null;
+      for (let k = 0; k < options.length && !chosen; k++) {
+        const option = options[(index + k) % options.length];
+        const backed = (w: string) => known.has(w) || [...known].some((t) => t.length >= 4 && w.startsWith(t) && w.length - t.length <= 3);
+        if (option.claim.every((w) => !backed(w))) chosen = option;
+      }
+      if (!chosen) continue;
+      cases.push({
+        set: 'injections', id: `${r.id}:${kind}`, language: r.language, kind: r.section.kind, group: kind, text: chosen.text,
+        ...src, before, after: text(inject(r.content, chosen)), claim: chosen.claim.filter((w) => !known.has(w)),
+      });
+    }
+  }
+  for (const p of PROBES) {
+    cases.push({
+      set: 'probes', id: p.id, language: p.language, kind: p.kind, group: p.from, text: p.after,
+      primaryCV: p.source, masterCV: '', sourceText: p.source, before: p.before, after: p.after, claim: p.claim,
+    });
+  }
+  // Held out: the score() population, then a stratified sample (language x kind) of the ones main catches.
+  const heldPopulation: CheckCase[] = [];
+  const sections: Array<{ id: string; language: 'en' | 'de'; kind: ResolvedCVSection['kind']; before: string | string[]; content: string | string[]; kit: KitRecord }> = [];
+  for (const r of rewrites) {
+    if (r.content === null) continue;
+    sections.push({ id: r.id, language: r.language, kind: r.section.kind, before: r.section.before, content: r.content, kit: kits.get(r.case_id)! });
+  }
+  for (const kit of kits.values()) {
+    const cv = kit.optimizedCVData as unknown as { skills?: Array<{ category: string; items: string[] }>; languages?: Array<{ language: string; proficiency?: string }> } | null;
+    const lists = [
+      ...(cv?.skills ?? []).map((group, i) => ({ id: `${kit.case_id}-skills${i}`, items: group.items })),
+      { id: `${kit.case_id}-languages`, items: (cv?.languages ?? []).map((l) => (l.proficiency ? `${l.language} (${l.proficiency})` : l.language)) },
+    ];
+    for (const list of lists) {
+      if (list.items.length === 0) continue;
+      sections.push({ id: list.id, language: kit.language, kind: 'custom_section_items', before: list.items, content: list.items, kit });
+    }
+  }
+  for (const section of sections) {
+    const src = kitSource(section.kit);
+    const before = text(section.before);
+    const known = new Set([...claimWords(src.sourceText), ...claimWords(before)]);
+    for (const [i, item] of HELD_OUT[section.language].entries()) {
+      if (item.claim.some((w) => known.has(w))) continue;
+      heldPopulation.push({
+        set: 'heldout', id: `${section.id}:${i}`, language: section.language, kind: section.kind, group: item.kind, text: item.text,
+        ...src, before, after: text(inject(section.content, item)), claim: item.claim,
+      });
+    }
+  }
+  const mainCatches = (c: CheckCase) => introducedClaims(c.after, c.sourceText, c.before, c.language, c.kind).some((t) => c.claim.includes(t));
+  const heldCaught = heldPopulation.filter(mainCatches);
+  const strata = new Map<string, CheckCase[]>();
+  for (const c of heldCaught) {
+    const key = `${c.language}:${c.group}`;
+    strata.set(key, [...(strata.get(key) ?? []), c]);
+  }
+  const random = prng(seed);
+  const shuffle = <T>(list: T[]): T[] => {
+    const copy = [...list];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  };
+  // Proportional allocation with a floor of 20 per stratum (or the whole stratum).
+  const strataKeys = [...strata.keys()].sort();
+  const quota = new Map(strataKeys.map((k) => [k, Math.min(strata.get(k)!.length, Math.max(20, Math.round((sampleSize * strata.get(k)!.length) / heldCaught.length)))]));
+  const heldSample = strataKeys.flatMap((k) => shuffle(strata.get(k)!).slice(0, quota.get(k)));
+  cases.push(...heldSample);
+  for (const a of ADVERSARIAL) {
+    cases.push({
+      set: 'adversarial', id: a.id, language: a.language, kind: a.kind, group: a.category, text: a.after,
+      primaryCV: a.source, masterCV: '', sourceText: a.source, before: a.before, after: a.after, claim: a.claim,
+    });
+  }
+
+  // ---- What each case needs -------------------------------------------------
+  type Route = 'main_missed' | 'deterministic' | 'model';
+  const routed = cases.map((c) => {
+    const flagged = introducedClaims(c.after, c.sourceText, c.before, c.language, c.kind);
+    const mainCaughtWords = c.claim.filter((w) => flagged.includes(w));
+    const split = splitIntroducedClaims(c.after, flagged, c.language, c.kind);
+    const route: Route = mainCaughtWords.length === 0
+      ? 'main_missed'
+      : mainCaughtWords.some((w) => split.deterministic.includes(w)) ? 'deterministic' : 'model';
+    return { c, flagged, mainCaughtWords, split, route };
+  });
+  const stored = rewrites.filter((r) => r.content !== null).map((r) => {
+    const kit = kits.get(r.case_id)!;
+    const src = kitSource(kit);
+    const before = text(r.section.before);
+    const after = text(r.content!);
+    const unchanged = after === before;
+    const numbers = unchanged ? [] : unsupportedNumbers(after, kit.verifiedMetrics.join('\n'), [kit.rawCV, kit.masterCV].filter(Boolean).join('\n'));
+    const flagged = unchanged || numbers.length > 0 ? [] : introducedClaims(after, src.sourceText, before, r.language, r.section.kind);
+    const split = splitIntroducedClaims(after, flagged, r.language, r.section.kind);
+    const calls = flagged.length > 0 && split.deterministic.length === 0 && split.judged.length > 0;
+    return { r, src, before, after, unchanged, numbers, flagged, split, calls };
+  });
+
+  const planCount = {
+    stored_rewrites: { cases: stored.length, changed: stored.filter((s) => !s.unchanged).length, model_calls: stored.filter((s) => s.calls).length },
+    ...Object.fromEntries((['injections', 'probes', 'heldout', 'adversarial'] as const).map((set) => {
+      const rows = routed.filter((x) => x.c.set === set);
+      return [set, {
+        cases: rows.length,
+        main_missed: rows.filter((x) => x.route === 'main_missed').length,
+        deterministic: rows.filter((x) => x.route === 'deterministic').length,
+        model_calls: rows.filter((x) => x.route === 'model').length,
+      }];
+    })),
+    heldout_population: { all: heldPopulation.length, main_catches: heldCaught.length, strata: Object.fromEntries(strataKeys.map((k) => [k, `${quota.get(k)}/${strata.get(k)!.length}`])) },
+    seed,
+  };
+  console.log(JSON.stringify(planCount, null, 2));
+  fs.writeFileSync(path.join(OUT, 'plan.json'), JSON.stringify(planCount, null, 2));
+  if (planOnly) return;
+
+  // ---- Paid: the verifier --------------------------------------------------
+  const runId = crypto.randomUUID();
+  const callsFile = path.join(OUT, 'calls.jsonl');
+  if (fs.existsSync(callsFile)) throw new Error(`${out} already holds a run; pick a new folder`);
+  const calls: CallRecord[] = [];
+  let spent = 0;
+  let made = 0;
+  const memo = new Map<string, Promise<Awaited<ReturnType<typeof verifyJudgedClaims>>>>();
+  const verify = (caseId: string, v: { after: string; before: string; primaryCV: string; masterCV: string; language: string; judged: string[] }) => {
+    const key = crypto.createHash('sha256').update(JSON.stringify([v.after, v.before, v.primaryCV, v.masterCV, v.language, v.judged])).digest('hex');
+    const hit = memo.get(key);
+    if (hit) return hit;
+    if (made >= limit) throw new Error('call limit reached');
+    // Stop before a call could pass the budget (a verifier call costs well under $0.05).
+    if (spent > budget - 0.05) throw new Error(`budget stop: $${spent.toFixed(2)} spent of $${budget}`);
+    made += 1;
+    const ctx: shim.CallContext = {
+      runId, caseId, rep: 1, arm, concurrency: 6, seq: { n: 0 }, lastRaw: new Map(),
+      record: (r: CallRecord) => {
+        calls.push(r);
+        if (r.usage) spent += costUsd(arm.modelId, r.usage);
+        fs.appendFileSync(callsFile, JSON.stringify({ ...r, request: { ...r.request, body: undefined } }) + '\n');
+      },
+    };
+    const run = shim.callContext.run(ctx, () => verifyJudgedClaims({
+      afterText: v.after, beforeText: v.before, primaryCV: v.primaryCV, masterCV: v.masterCV, language: v.language, judged: v.judged,
+    }));
+    memo.set(key, run);
+    return run;
+  };
+
+  async function pool<T, R>(items: T[], worker: (item: T) => Promise<R>, n = 6): Promise<R[]> {
+    const results: R[] = new Array(items.length);
+    let next = 0;
+    await Promise.all(Array.from({ length: n }, async () => {
+      while (next < items.length) {
+        const i = next++;
+        results[i] = await worker(items[i]);
+      }
+    }));
+    return results;
+  }
+
+  const verdictLabel = (language: string, terms: string[]) => {
+    if (terms.length === 0) return 'applied';
+    const ls = terms.map((t) => labels[`${language}:${t}`]?.label);
+    if (ls.some((l) => l === undefined)) return 'unlabelled';
+    if (ls.some((l) => l === 'claim')) return 'true_refusal';
+    if (ls.some((l) => l === 'strict')) return 'strict_refusal';
+    return 'false_refusal';
+  };
+
+  // Stored rewrites, the production path.
+  const storedResults = await pool(stored, async (s) => {
+    const verifier = s.calls
+      ? await verify(s.r.id, { after: s.after, before: s.before, primaryCV: s.src.primaryCV, masterCV: s.src.masterCV, language: s.r.language, judged: s.split.judged })
+      : null;
+    const refused = s.unchanged ? [] : s.numbers.length > 0 ? s.numbers : verifier ? verifier.refused : s.split.deterministic;
+    const freed = verifier ? s.split.judged.filter((t) => !verifier.refused.includes(t)) : [];
+    return {
+      id: s.r.id, language: s.r.language, slot: s.r.slot, instruction: s.r.instruction, unchanged: s.unchanged,
+      main: { terms: s.flagged, verdict: s.unchanged ? 'applied' : verdictLabel(s.r.language, s.flagged) },
+      new: { terms: refused, verdict: s.unchanged ? 'applied' : verdictLabel(s.r.language, refused) },
+      deterministic: s.split.deterministic, judged: s.split.judged,
+      freed: freed.map((t) => ({ term: t, label: labels[`${s.r.language}:${t}`]?.label ?? null })),
+      verifier,
+    };
+  });
+  fs.writeFileSync(path.join(OUT, 'results-stored.jsonl'), storedResults.map((x) => JSON.stringify(x)).join('\n') + '\n');
+  console.log(`stored rewrites done: ${made} calls, $${spent.toFixed(2)}`);
+
+  // Misses, claim level.
+  const caseResults = await pool(routed, async (x) => {
+    let verifier = null;
+    let newCaught: boolean;
+    if (x.route === 'main_missed') newCaught = false;
+    else if (x.route === 'deterministic') newCaught = true;
+    else {
+      verifier = await verify(x.c.id, { after: x.c.after, before: x.c.before, primaryCV: x.c.primaryCV, masterCV: x.c.masterCV, language: x.c.language, judged: x.split.judged });
+      newCaught = x.mainCaughtWords.some((w) => verifier!.refused.includes(w));
+    }
+    // What production does with this text: refused without a call if a word is deterministic, else the model.
+    const productionApplied = x.flagged.length === 0 || (x.split.deterministic.length === 0 && verifier !== null && verifier.refused.length === 0);
+    return {
+      set: x.c.set, id: x.c.id, language: x.c.language, kind: x.c.kind, group: x.c.group, text: x.c.text, claim: x.c.claim,
+      route: x.route, main_caught: x.route !== 'main_missed', new_caught: newCaught,
+      new_miss: x.route !== 'main_missed' && !newCaught, production_applied: productionApplied,
+      main_caught_words: x.mainCaughtWords, deterministic: x.split.deterministic, judged: x.split.judged,
+      verifier: verifier && { refused: verifier.refused, verdicts: verifier.verdicts, error: verifier.error, latencyMs: verifier.latencyMs, tokens: verifier.tokens },
+    };
+  });
+  for (const set of ['injections', 'probes', 'heldout', 'adversarial'] as const) {
+    fs.writeFileSync(path.join(OUT, `results-${set}.jsonl`), caseResults.filter((x) => x.set === set).map((x) => JSON.stringify(x)).join('\n') + '\n');
+  }
+
+  // ---- Summary --------------------------------------------------------------
+  const verifierCalls = calls.filter((r) => r.task === 'verify_rewrite_claims');
+  const latencies = verifierCalls.filter((r) => r.ok).map((r) => r.latency_ms).sort((a, b) => a - b);
+  const pct = (p: number) => latencies.length ? latencies[Math.min(latencies.length - 1, Math.floor(p * latencies.length))] : null;
+  const callCost = (r: CallRecord) => (r.usage ? costUsd(arm.modelId, r.usage) : 0);
+  const storedCallIds = new Set(storedResults.filter((s) => s.verifier).map((s) => s.id));
+  const storedCost = verifierCalls.filter((r) => storedCallIds.has(r.case_id)).reduce((n, r) => n + callCost(r), 0);
+  const changedStored = storedResults.filter((s) => !s.unchanged);
+  const tally = (rows: typeof changedStored, guard: 'main' | 'new') => {
+    const c = (v: string) => rows.filter((s) => s[guard].verdict === v).length;
+    return { changed: rows.length, applied: c('applied'), false_refusal: c('false_refusal'), strict_refusal: c('strict_refusal'), true_refusal: c('true_refusal'), unlabelled: c('unlabelled') };
+  };
+  const bySet = Object.fromEntries((['injections', 'probes', 'heldout', 'adversarial'] as const).map((set) => {
+    const rows = caseResults.filter((x) => x.set === set);
+    const groups = [...new Set(rows.map((x) => `${x.language}:${x.group}`))].sort();
+    const t = (rs: typeof rows) => ({
+      cases: rs.length,
+      main_caught: rs.filter((x) => x.main_caught).length,
+      main_missed: rs.filter((x) => !x.main_caught).length,
+      new_caught: rs.filter((x) => x.new_caught).length,
+      new_misses: rs.filter((x) => x.new_miss).length,
+      judged_by_model: rs.filter((x) => x.route === 'model').length,
+      verifier_errors: rs.filter((x) => x.verifier?.error).length,
+      production_applied: rs.filter((x) => x.production_applied).length,
+    });
+    return [set, { ...t(rows), by_group: Object.fromEntries(groups.map((g) => [g, t(rows.filter((x) => `${x.language}:${x.group}` === g))])) }];
+  }));
+  const summary = {
+    run_id: runId,
+    date: new Date().toISOString(),
+    model: arm.modelId,
+    arm: arm.name,
+    seed,
+    stored_rewrites: {
+      all: { main: tally(changedStored, 'main'), new: tally(changedStored, 'new') },
+      en: { main: tally(changedStored.filter((s) => s.language === 'en'), 'main'), new: tally(changedStored.filter((s) => s.language === 'en'), 'new') },
+      de: { main: tally(changedStored.filter((s) => s.language === 'de'), 'main'), new: tally(changedStored.filter((s) => s.language === 'de'), 'new') },
+      verifier_called: storedResults.filter((s) => s.verifier).length,
+      verifier_cost_usd: Number(storedCost.toFixed(4)),
+      verifier_cost_per_changed_rewrite_usd: Number((storedCost / Math.max(1, changedStored.length)).toFixed(5)),
+      freed_claim_or_strict: storedResults.flatMap((s) => s.freed.filter((f) => f.label !== 'ordinary').map((f) => ({ id: s.id, ...f }))),
+      still_false_refusal: changedStored.filter((s) => s.new.verdict === 'false_refusal').map((s) => ({ id: s.id, terms: s.new.terms })),
+    },
+    misses: bySet,
+    new_misses: caseResults.filter((x) => x.new_miss).map((x) => ({ set: x.set, id: x.id, text: x.text, claim: x.claim, verdicts: x.verifier?.verdicts.filter((v) => x.main_caught_words.includes(v.term)) })),
+    adversarial_misses: caseResults.filter((x) => x.set === 'adversarial' && !x.new_caught).map((x) => ({ id: x.id, group: x.group, text: x.text, route: x.route, verdicts: x.verifier?.verdicts })),
+    verifier: {
+      calls: verifierCalls.length,
+      failed: verifierCalls.filter((r) => !r.ok).length,
+      cost_usd: Number(verifierCalls.reduce((n, r) => n + callCost(r), 0).toFixed(4)),
+      cost_per_call_usd: Number((verifierCalls.reduce((n, r) => n + callCost(r), 0) / Math.max(1, verifierCalls.length)).toFixed(5)),
+      latency_ms: { p50: pct(0.5), p95: pct(0.95), max: latencies[latencies.length - 1] ?? null },
+      tokens: {
+        input: verifierCalls.reduce((n, r) => n + (r.usage?.input ?? 0), 0),
+        output: verifierCalls.reduce((n, r) => n + (r.usage?.output ?? 0), 0),
+        cache_read: verifierCalls.reduce((n, r) => n + (r.usage?.cacheRead ?? 0), 0),
+        cache_write: verifierCalls.reduce((n, r) => n + (r.usage?.cacheWrite ?? 0), 0),
+      },
+      parse_or_validation_errors: caseResults.filter((x) => x.verifier?.error === 'invalid_response').length + storedResults.filter((s) => s.verifier?.error === 'invalid_response').length,
+    },
+    total_cost_usd: Number(spent.toFixed(4)),
+  };
+  fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify(summary, null, 2));
+  console.log(JSON.stringify({
+    stored: summary.stored_rewrites.all, verifier_called_on_stored: summary.stored_rewrites.verifier_called,
+    misses: Object.fromEntries(Object.entries(bySet).map(([k, v]) => [k, { cases: v.cases, main_caught: v.main_caught, new_misses: v.new_misses, judged_by_model: v.judged_by_model }])),
+    adversarial_caught: bySet.adversarial.new_caught, verifier: summary.verifier, total_cost_usd: summary.total_cost_usd,
+  }, null, 2));
+}
+
 const mode = process.argv[2];
-(mode === 'generate' ? generate() : mode === 'score' ? score() : Promise.reject(new Error('mode: generate | score'))).catch((error) => {
+(mode === 'generate' ? generate() : mode === 'score' ? score() : mode === 'model-check' ? modelCheck() : Promise.reject(new Error('mode: generate | score | model-check'))).catch((error) => {
   console.error(error);
   process.exit(1);
 });

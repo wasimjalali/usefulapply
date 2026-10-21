@@ -1,0 +1,119 @@
+{
+  "stored_rewrites": {
+    "cases": 59,
+    "changed": 52,
+    "model_calls": 21
+  },
+  "injections": {
+    "cases": 531,
+    "main_missed": 10,
+    "deterministic": 318,
+    "model_calls": 203
+  },
+  "probes": {
+    "cases": 190,
+    "main_missed": 11,
+    "deterministic": 30,
+    "model_calls": 149
+  },
+  "heldout": {
+    "cases": 639,
+    "main_missed": 0,
+    "deterministic": 226,
+    "model_calls": 413
+  },
+  "adversarial": {
+    "cases": 40,
+    "main_missed": 2,
+    "deterministic": 0,
+    "model_calls": 38
+  },
+  "heldout_population": {
+    "all": 14911,
+    "main_catches": 14138,
+    "strata": {
+      "de:initial_adjective": "22/513",
+      "de:initial_name": "20/175",
+      "de:initial_sentence": "28/661",
+      "de:list_item": "20/216",
+      "de:scope": "20/297",
+      "de:standing_adjective": "86/2024",
+      "en:authority_verb": "149/3522",
+      "en:initial_name": "20/440",
+      "en:initial_sentence": "20/325",
+      "en:list_item": "30/702",
+      "en:lowercase_brand": "22/508",
+      "en:scope": "35/825",
+      "en:standing_adjective": "167/3930"
+    }
+  },
+  "seed": 20261021
+}
+stored rewrites done: 21 calls, $0.09
+{
+  "stored": {
+    "main": {
+      "changed": 52,
+      "applied": 23,
+      "false_refusal": 19,
+      "strict_refusal": 8,
+      "true_refusal": 2,
+      "unlabelled": 0
+    },
+    "new": {
+      "changed": 52,
+      "applied": 39,
+      "false_refusal": 9,
+      "strict_refusal": 3,
+      "true_refusal": 1,
+      "unlabelled": 0
+    }
+  },
+  "verifier_called_on_stored": 21,
+  "misses": {
+    "injections": {
+      "cases": 531,
+      "main_caught": 521,
+      "new_misses": 2,
+      "judged_by_model": 203
+    },
+    "probes": {
+      "cases": 190,
+      "main_caught": 179,
+      "new_misses": 1,
+      "judged_by_model": 149
+    },
+    "heldout": {
+      "cases": 639,
+      "main_caught": 639,
+      "new_misses": 8,
+      "judged_by_model": 413
+    },
+    "adversarial": {
+      "cases": 40,
+      "main_caught": 38,
+      "new_misses": 0,
+      "judged_by_model": 38
+    }
+  },
+  "adversarial_caught": 38,
+  "verifier": {
+    "calls": 821,
+    "failed": 0,
+    "cost_usd": 3.2785,
+    "cost_per_call_usd": 0.00399,
+    "latency_ms": {
+      "p50": 1898,
+      "p95": 3598,
+      "max": 8723
+    },
+    "tokens": {
+      "input": 922032,
+      "output": 132033,
+      "cache_read": 1141190,
+      "cache_write": 0
+    },
+    "parse_or_validation_errors": 0
+  },
+  "total_cost_usd": 3.2785
+}

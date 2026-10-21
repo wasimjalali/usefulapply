@@ -21,6 +21,8 @@ export type TaskType =
   | 'write_cover_letter'
   | 'write_email'
   | 'write_follow_up_email'
+  // Verification
+  | 'verify_rewrite_claims' // Judge the words a CV section rewrite added against the CVs
   // Chat
   | 'general_chat';
 
@@ -132,6 +134,14 @@ export const MODEL_CONFIGS: Record<TaskType, ModelConfig> = {
     provider: 'anthropic',
     temperature: 0.5,  // Slightly lower than primary email — follow-up needs precision
     maxTokens: 512,
+  },
+
+  // Verification
+  verify_rewrite_claims: {
+    model: 'claude-sonnet-5-5',
+    provider: 'anthropic',
+    temperature: 0,  // A judge, not a writer (4.x shape only; Sonnet 5.5 takes no temperature)
+    maxTokens: 2048, // About 60 tokens per verdict; 8000 on Sonnet 5.5 with thinking
   },
   general_chat: {
     model: 'claude-sonnet-5-5',

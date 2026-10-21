@@ -371,3 +371,15 @@ export function freedGrammarWords(text: string, language: string | undefined, ki
 export function freedByStemCase(text: string, candidates: ReadonlySet<string>, kind: CVSectionKind | undefined): Set<string> {
   return caseSafeWords(text, candidates, kind, true);
 }
+
+/**
+ * The flagged words of a rewrite that are written as ordinary words, by the same
+ * case rule: every occurrence lowercase, or opening a sentence of prose, or
+ * opening a bullet of an experience section. Only these may go to the model
+ * claim check (unified-writer-agent.ts, splitIntroducedClaims). A word written
+ * as a name anywhere (capitalised mid-sentence, in capitals, mixed case, a
+ * capitalised list item) is not returned and stays refused.
+ */
+export function writtenAsWords(text: string, candidates: ReadonlySet<string>, kind: CVSectionKind | undefined): Set<string> {
+  return caseSafeWords(text, candidates, kind, true);
+}

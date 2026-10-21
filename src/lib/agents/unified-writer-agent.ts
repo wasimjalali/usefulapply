@@ -55,7 +55,8 @@ import {
   claimStem as stemOf,
   claimWords as words,
 } from './claim-token-normalization';
-import { freedByStemCase, freedGrammarWords } from './claim-grammar-words';
+import { freedByStemCase, freedGrammarWords, writtenAsWords } from './claim-grammar-words';
+import { buildClaimCheckSystemBlocks, buildClaimCheckUserPrompt, claimCheckData } from './prompts/claim-check-prompt';
 import { buildCoverLetterSystemBlocks, buildCoverLetterUserPrompt } from './prompts/cover-letter-prompt';
 import { assembleStructuredCoverLetter, renderCoverLetterBody, splitAddressLines, type CoverLetterModelFields } from './cover-letter-structure';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
@@ -108,6 +109,12 @@ interface CVSectionRewriteBase {
   /** Things the instruction asked for that the source CVs do not support. */
   omitted: string[];
   tokens: TokenUsage;
+  /**
+   * The model claim check's tokens, when it ran (verify_rewrite_claims). Ours,
+   * not the user's: the credit cost of a rewrite is fixed. Tracked apart from
+   * `tokens` so the rewrite's own usage reads as before.
+   */
+  claimCheckTokens?: TokenUsage;
 }
 
 /**
@@ -685,6 +692,273 @@ export function introducedClaims(
     introduced.push(word);
   }
   return introduced;
+}
+
+// -----------------------------------------------------
+// SECTION REWRITE: MODEL CLAIM CHECK
+// -----------------------------------------------------
+
+/**
+ * Languages the model claim check was measured in
+ * (evals/results/2026-10-21-rewrite-claim-model-check.md). A rewrite in any
+ * other language keeps the word guard alone, exactly as before.
+ */
+const CLAIM_CHECK_LANGUAGES = new Set(['en', 'de']);
+
+/**
+ * The verifier's whole budget, the SDK's own transport retries included. Past
+ * it the rewrite is refused. The rewrite call itself takes about 10 seconds.
+ */
+const CLAIM_CHECK_TIMEOUT_MS = 60_000;
+
+/** Shortest evidence quote, without spaces, the server accepts. */
+const CLAIM_EVIDENCE_MIN_CHARS = 4;
+
+export interface ClaimVerdict {
+  term: string;
+  verdict: 'ordinary' | 'supported' | 'unsupported';
+  evidence: string | null;
+  reason: string;
+}
+
+/**
+ * Which flagged words the model may judge, and which stay refused without it.
+ *
+ * Refused without the model, always: a word written as a name anywhere in the
+ * rewrite (capitalised mid-sentence, in capitals or mixed case, or a capital at
+ * a line start of prose), a role or title word (ROLE_WORDS), any word in a list
+ * section (custom_section_items), any word with a digit, and every word of a
+ * rewrite in a language the check was not measured in. Names, tools, employers,
+ * products and credentials are exactly what the word guard is reliable on, and
+ * a model has no business freeing them.
+ *
+ * Judged by the model: the rest, which is lowercase words, or words opening a
+ * sentence of prose or a bullet of an experience section (writtenAsWords).
+ */
+export function splitIntroducedClaims(
+  afterText: string,
+  terms: string[],
+  language: string | undefined,
+  kind: CVSectionKind | undefined,
+): { deterministic: string[]; judged: string[] } {
+  if (!kind || kind === 'custom_section_items' || !language || !CLAIM_CHECK_LANGUAGES.has(language)) {
+    return { deterministic: [...terms], judged: [] };
+  }
+  const candidates = new Set(terms.filter((term) => !ROLE_WORDS.has(term) && !/\p{Nd}/u.test(term)));
+  const asWords = writtenAsWords(afterText, candidates, kind);
+  const deterministic: string[] = [];
+  const judged: string[] = [];
+  for (const term of terms) (asWords.has(term) ? judged : deterministic).push(term);
+  return { deterministic, judged };
+}
+
+/** The first spelling of `term` in `text`, for showing the model what it is judging. */
+function asWrittenIn(text: string, term: string): string {
+  const raw = text.normalize('NFKC').replace(/['’]/g, '');
+  for (const match of raw.matchAll(/[\p{L}\p{N}]+/gu)) {
+    const keys = words(match[0]);
+    if (keys.length === 1 && keys[0] === term) return match[0];
+  }
+  return term;
+}
+
+/** Whitespace, case and quote marks folded, for checking a quote is in a CV. */
+function normaliseQuote(value: string): string {
+  return value
+    .normalize('NFKC')
+    .replace(/[‘’`´]/g, "'")
+    .replace(/[“”„]/g, '"')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Is `evidence` a real passage of one of the applicant's CVs (as sent to the model)? */
+function quotedFromCV(evidence: string | null, documents: string[]): boolean {
+  if (!evidence) return false;
+  const quote = normaliseQuote(evidence);
+  if (quote.replace(/\s/g, '').length < CLAIM_EVIDENCE_MIN_CHARS) return false;
+  return documents.some((document) => document && normaliseQuote(document).includes(quote));
+}
+
+/**
+ * The model's verdicts, validated strictly. Throws on anything malformed: an
+ * entry that isn't an object, a verdict outside the three, a word it wasn't
+ * asked about, a word judged twice. A word it skipped just gets no verdict, and
+ * the caller refuses it.
+ */
+export function parseClaimVerdicts(raw: string, judged: readonly string[]): ClaimVerdict[] {
+  const wanted = new Set(judged);
+  return parseStrictJsonObject(raw, 'Claim check response', {
+    shape: (parsed) => Array.isArray(parsed.verdicts),
+    validate: (parsed) => {
+      const seen = new Set<string>();
+      const verdicts: ClaimVerdict[] = [];
+      for (const entry of parsed.verdicts as unknown[]) {
+        if (!isRecord(entry)) throw new Error('Claim check verdict is not an object');
+        const { term, verdict, evidence, reason } = entry;
+        if (typeof term !== 'string') throw new Error('Claim check verdict has no term');
+        const keys = words(term);
+        if (keys.length !== 1 || !wanted.has(keys[0])) throw new Error('Claim check judged a word it was not asked about');
+        if (seen.has(keys[0])) throw new Error('Claim check judged a word twice');
+        if (verdict !== 'ordinary' && verdict !== 'supported' && verdict !== 'unsupported') {
+          throw new Error('Claim check verdict is not ordinary, supported or unsupported');
+        }
+        if (evidence !== null && evidence !== undefined && typeof evidence !== 'string') {
+          throw new Error('Claim check evidence is not a string or null');
+        }
+        if (typeof reason !== 'string') throw new Error('Claim check verdict has no reason');
+        seen.add(keys[0]);
+        verdicts.push({ term: keys[0], verdict, evidence: typeof evidence === 'string' ? evidence : null, reason });
+      }
+      return verdicts;
+    },
+  });
+}
+
+export type ClaimCheckModelCall = (options: ModelCallOptions) => Promise<ModelResponse>;
+
+export interface ClaimCheckRun {
+  /** Judged words the check refuses: unsupported, a quote not found, no verdict, or every one on a failure. */
+  refused: string[];
+  /** The verdicts as the model gave them (empty on a failure). */
+  verdicts: ClaimVerdict[];
+  tokens: TokenUsage | null;
+  latencyMs: number;
+  error: 'timeout' | 'model_error' | 'invalid_response' | null;
+}
+
+class ClaimCheckTimeout extends Error {
+  constructor() {
+    super(`Claim check took longer than ${CLAIM_CHECK_TIMEOUT_MS} ms`);
+    this.name = 'ClaimCheckTimeout';
+  }
+}
+
+/**
+ * Ask the model to judge `judged` against the Primary and Master CV. Fails
+ * closed: an error, a timeout or an answer that doesn't validate refuses every
+ * judged word. No retry here: the SDK client already retries a transport error
+ * with backoff, and a second judge's opinion is not something to shop for.
+ */
+export async function verifyJudgedClaims(
+  input: {
+    afterText: string;
+    beforeText: string;
+    primaryCV: string;
+    masterCV: string;
+    language: string;
+    judged: string[];
+    generationContext?: LlmGenerationContext;
+  },
+  modelCall: ClaimCheckModelCall = callModel,
+): Promise<ClaimCheckRun> {
+  const started = Date.now();
+  const refuseAll = (error: ClaimCheckRun['error'], tokens: TokenUsage | null): ClaimCheckRun => ({
+    refused: [...input.judged],
+    verdicts: [],
+    tokens,
+    latencyMs: Date.now() - started,
+    error,
+  });
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let response: ModelResponse;
+  try {
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new ClaimCheckTimeout()), CLAIM_CHECK_TIMEOUT_MS);
+    });
+    response = await Promise.race([
+      modelCall({
+        task: 'verify_rewrite_claims',
+        prompt: buildClaimCheckUserPrompt({
+          language: input.language,
+          primaryCV: input.primaryCV,
+          masterCV: input.masterCV,
+          before: input.beforeText,
+          after: input.afterText,
+          terms: input.judged.map((term) => ({ term, asWritten: asWrittenIn(input.afterText, term) })),
+        }),
+        systemBlocks: buildClaimCheckSystemBlocks(),
+        jsonMode: true,
+        generationContext: input.generationContext,
+      }),
+      timeout,
+    ]);
+  } catch (error) {
+    const kind = error instanceof ClaimCheckTimeout ? 'timeout' : 'model_error';
+    console.error('[UnifiedAgent] Claim check failed, rewrite refused:', kind, error instanceof Error ? error.message : 'unknown');
+    return refuseAll(kind, null);
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const tokens: TokenUsage = { input: response.usage.inputTokens, output: response.usage.outputTokens };
+  let verdicts: ClaimVerdict[];
+  try {
+    verdicts = parseClaimVerdicts(response.content, input.judged);
+  } catch (error) {
+    console.error('[UnifiedAgent] Claim check answer invalid, rewrite refused:', error instanceof Error ? error.message : 'unknown');
+    return refuseAll('invalid_response', tokens);
+  }
+
+  // Evidence is checked against the CVs exactly as the model saw them, never the section.
+  const documents = [claimCheckData(input.primaryCV), claimCheckData(input.masterCV)];
+  const accepted = new Set(
+    verdicts
+      .filter((v) => v.verdict === 'ordinary' || (v.verdict === 'supported' && quotedFromCV(v.evidence, documents)))
+      .map((v) => v.term),
+  );
+  return {
+    refused: input.judged.filter((term) => !accepted.has(term)),
+    verdicts,
+    tokens,
+    latencyMs: Date.now() - started,
+    error: null,
+  };
+}
+
+export interface RewriteClaimCheck {
+  /** The words the rewrite may not use. Empty means it may be applied. */
+  refused: string[];
+  /** Flagged words refused without asking the model. */
+  deterministic: string[];
+  /** Flagged words that go to the model. */
+  judged: string[];
+  /** The model check, when it ran. */
+  verifier: ClaimCheckRun | null;
+}
+
+/**
+ * The claim check of a section rewrite: the word guard (introducedClaims), then
+ * the model for the flagged words it may judge (splitIntroducedClaims). The
+ * rewrite may be applied only when no word is refused.
+ *
+ * A word refused without the model already refuses the rewrite, so the model
+ * isn't asked then: the outcome is decided, and the refusal names the words
+ * the guard is sure of.
+ */
+export async function checkRewriteClaims(
+  input: {
+    afterText: string;
+    beforeText: string;
+    sourceText: string;
+    primaryCV: string;
+    masterCV: string;
+    language: string;
+    kind: CVSectionKind;
+    generationContext?: LlmGenerationContext;
+  },
+  modelCall: ClaimCheckModelCall = callModel,
+): Promise<RewriteClaimCheck> {
+  const flagged = introducedClaims(input.afterText, input.sourceText, input.beforeText, input.language, input.kind);
+  if (flagged.length === 0) return { refused: [], deterministic: [], judged: [], verifier: null };
+  const { deterministic, judged } = splitIntroducedClaims(input.afterText, flagged, input.language, input.kind);
+  if (deterministic.length > 0 || judged.length === 0) {
+    return { refused: deterministic, deterministic, judged, verifier: null };
+  }
+  const verifier = await verifyJudgedClaims({ ...input, judged }, modelCall);
+  return { refused: verifier.refused, deterministic, judged, verifier };
 }
 
 /** Numerals that describe the shape of the output, not a claim in it. */
@@ -2464,14 +2738,29 @@ export const unifiedWriterAgent = {
 
     // Unconditional, and driven by what came back rather than by what was
     // asked. A rewrite with no instruction is the loosest brief we send, so it
-    // is the last thing that should be running without a claim check.
-    const introduced = introducedClaims(afterText, sourceText, beforeText, outputLang, section.kind);
-    if (introduced.length > 0) {
-      console.warn('[UnifiedAgent] Section rewrite refused, claim not in source CVs:', introduced.length);
-      return { ...base, status: 'refused', reason: 'unsupported_claim', terms: introduced };
+    // is the last thing that should be running without a claim check. The word
+    // guard flags; the model judges only the lowercase words it may judge, and
+    // anything it can't clear (or any failure) refuses.
+    const claimCheck = await checkRewriteClaims({
+      afterText,
+      beforeText,
+      sourceText,
+      primaryCV: context.rawCV || '',
+      masterCV: context.masterCV || '',
+      language: outputLang,
+      kind: section.kind,
+      generationContext: generationContext
+        ? { ...generationContext, parentGenerationId: response.generationId }
+        : undefined,
+    });
+    const claimCheckTokens = claimCheck.verifier?.tokens ?? undefined;
+    if (claimCheck.refused.length > 0) {
+      console.warn('[UnifiedAgent] Section rewrite refused, claim not in source CVs:', claimCheck.refused.length,
+        claimCheck.verifier ? `(model check: ${claimCheck.verifier.error ?? 'judged'})` : '(word guard)');
+      return { ...base, status: 'refused', reason: 'unsupported_claim', terms: claimCheck.refused, claimCheckTokens };
     }
 
-    return { ...base, status: 'applied', content };
+    return { ...base, status: 'applied', content, claimCheckTokens };
   },
 
   /**

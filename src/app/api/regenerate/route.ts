@@ -207,6 +207,8 @@ export async function POST(request: NextRequest) {
 
     const outcome = result.outcome;
     trackRegenLLM('regen_cv_section', outcome.tokens);
+    // The model claim check on the rewrite, when it ran. Our cost, not charged to the user.
+    if (outcome.claimCheckTokens) trackRegenLLM('section_rewrite_claim_check', outcome.claimCheckTokens);
 
     if (outcome.status === 'applied') {
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });

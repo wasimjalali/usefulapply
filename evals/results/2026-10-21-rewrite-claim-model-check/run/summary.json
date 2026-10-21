@@ -1,0 +1,1366 @@
+{
+  "run_id": "f003e3a3-f7aa-416b-8c17-4d0da14a62f0",
+  "date": "2026-10-21T19:33:52.844Z",
+  "model": "claude-sonnet-5-5",
+  "arm": "sonnet55-low",
+  "seed": 20261021,
+  "stored_rewrites": {
+    "all": {
+      "main": {
+        "changed": 52,
+        "applied": 23,
+        "false_refusal": 19,
+        "strict_refusal": 8,
+        "true_refusal": 2,
+        "unlabelled": 0
+      },
+      "new": {
+        "changed": 52,
+        "applied": 39,
+        "false_refusal": 9,
+        "strict_refusal": 3,
+        "true_refusal": 1,
+        "unlabelled": 0
+      }
+    },
+    "en": {
+      "main": {
+        "changed": 36,
+        "applied": 18,
+        "false_refusal": 12,
+        "strict_refusal": 6,
+        "true_refusal": 0,
+        "unlabelled": 0
+      },
+      "new": {
+        "changed": 36,
+        "applied": 31,
+        "false_refusal": 3,
+        "strict_refusal": 2,
+        "true_refusal": 0,
+        "unlabelled": 0
+      }
+    },
+    "de": {
+      "main": {
+        "changed": 16,
+        "applied": 5,
+        "false_refusal": 7,
+        "strict_refusal": 2,
+        "true_refusal": 2,
+        "unlabelled": 0
+      },
+      "new": {
+        "changed": 16,
+        "applied": 8,
+        "false_refusal": 6,
+        "strict_refusal": 1,
+        "true_refusal": 1,
+        "unlabelled": 0
+      }
+    },
+    "verifier_called": 21,
+    "verifier_cost_usd": 0.0915,
+    "verifier_cost_per_changed_rewrite_usd": 0.00176,
+    "freed_claim_or_strict": [
+      {
+        "id": "syn-08-20",
+        "term": "holding",
+        "label": "strict"
+      },
+      {
+        "id": "syn-08-24",
+        "term": "responsibility",
+        "label": "strict"
+      },
+      {
+        "id": "syn-11-32",
+        "term": "hold",
+        "label": "strict"
+      },
+      {
+        "id": "syn-11-33",
+        "term": "hold",
+        "label": "strict"
+      },
+      {
+        "id": "syn-15-42",
+        "term": "beherrsche",
+        "label": "strict"
+      }
+    ],
+    "still_false_refusal": [
+      {
+        "id": "syn-04-17",
+        "terms": [
+          "foundation",
+          "explanation"
+        ]
+      },
+      {
+        "id": "syn-11-33",
+        "terms": [
+          "prepare"
+        ]
+      },
+      {
+        "id": "syn-11-34",
+        "terms": [
+          "turning",
+          "operational",
+          "decisions"
+        ]
+      },
+      {
+        "id": "syn-15-42",
+        "terms": [
+          "konsequent"
+        ]
+      },
+      {
+        "id": "syn-15-44",
+        "terms": [
+          "beratung"
+        ]
+      },
+      {
+        "id": "syn-15-46",
+        "terms": [
+          "kontakt",
+          "kollegen"
+        ]
+      },
+      {
+        "id": "syn-15-47",
+        "terms": [
+          "auftragsabwicklung"
+        ]
+      },
+      {
+        "id": "syn-16-53",
+        "terms": [
+          "bereich",
+          "auszubildende"
+        ]
+      },
+      {
+        "id": "syn-16-58",
+        "terms": [
+          "zahnaerztin",
+          "zahnarzt"
+        ]
+      }
+    ]
+  },
+  "misses": {
+    "injections": {
+      "cases": 531,
+      "main_caught": 521,
+      "main_missed": 10,
+      "new_caught": 519,
+      "new_misses": 2,
+      "judged_by_model": 203,
+      "verifier_errors": 0,
+      "production_applied": 6,
+      "by_group": {
+        "de:certification": {
+          "cases": 19,
+          "main_caught": 19,
+          "main_missed": 0,
+          "new_caught": 19,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:degree": {
+          "cases": 19,
+          "main_caught": 19,
+          "main_missed": 0,
+          "new_caught": 19,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:domain": {
+          "cases": 19,
+          "main_caught": 19,
+          "main_missed": 0,
+          "new_caught": 19,
+          "new_misses": 0,
+          "judged_by_model": 19,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:employer": {
+          "cases": 19,
+          "main_caught": 19,
+          "main_missed": 0,
+          "new_caught": 19,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:ownership": {
+          "cases": 19,
+          "main_caught": 19,
+          "main_missed": 0,
+          "new_caught": 18,
+          "new_misses": 1,
+          "judged_by_model": 19,
+          "verifier_errors": 0,
+          "production_applied": 1
+        },
+        "de:proficiency": {
+          "cases": 19,
+          "main_caught": 19,
+          "main_missed": 0,
+          "new_caught": 19,
+          "new_misses": 0,
+          "judged_by_model": 19,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:scope": {
+          "cases": 19,
+          "main_caught": 19,
+          "main_missed": 0,
+          "new_caught": 19,
+          "new_misses": 0,
+          "judged_by_model": 19,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:title": {
+          "cases": 19,
+          "main_caught": 17,
+          "main_missed": 2,
+          "new_caught": 17,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:tool": {
+          "cases": 19,
+          "main_caught": 19,
+          "main_missed": 0,
+          "new_caught": 19,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:certification": {
+          "cases": 40,
+          "main_caught": 40,
+          "main_missed": 0,
+          "new_caught": 40,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:degree": {
+          "cases": 40,
+          "main_caught": 40,
+          "main_missed": 0,
+          "new_caught": 40,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:domain": {
+          "cases": 40,
+          "main_caught": 40,
+          "main_missed": 0,
+          "new_caught": 40,
+          "new_misses": 0,
+          "judged_by_model": 40,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:employer": {
+          "cases": 40,
+          "main_caught": 40,
+          "main_missed": 0,
+          "new_caught": 40,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:ownership": {
+          "cases": 40,
+          "main_caught": 37,
+          "main_missed": 3,
+          "new_caught": 37,
+          "new_misses": 0,
+          "judged_by_model": 12,
+          "verifier_errors": 0,
+          "production_applied": 1
+        },
+        "en:proficiency": {
+          "cases": 40,
+          "main_caught": 40,
+          "main_missed": 0,
+          "new_caught": 39,
+          "new_misses": 1,
+          "judged_by_model": 40,
+          "verifier_errors": 0,
+          "production_applied": 1
+        },
+        "en:scope": {
+          "cases": 40,
+          "main_caught": 35,
+          "main_missed": 5,
+          "new_caught": 35,
+          "new_misses": 0,
+          "judged_by_model": 35,
+          "verifier_errors": 0,
+          "production_applied": 3
+        },
+        "en:title": {
+          "cases": 40,
+          "main_caught": 40,
+          "main_missed": 0,
+          "new_caught": 40,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:tool": {
+          "cases": 40,
+          "main_caught": 40,
+          "main_missed": 0,
+          "new_caught": 40,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        }
+      }
+    },
+    "probes": {
+      "cases": 190,
+      "main_caught": 179,
+      "main_missed": 11,
+      "new_caught": 178,
+      "new_misses": 1,
+      "judged_by_model": 149,
+      "verifier_errors": 0,
+      "production_applied": 11,
+      "by_group": {
+        "de:Brief: Nix, Pro, Plus in German text": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:PR170 round 1 Opus: Leitern backs Leiter": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:PR170 round 1 Opus: geprüft backs geprüfte": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:PR170 round 1 Opus: leiten backs leite": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:PR170 round 1 Opus: leitenden backs leitende": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:PR170 round 2 Opus and brief: ownership verbs": {
+          "cases": 7,
+          "main_caught": 7,
+          "main_missed": 0,
+          "new_caught": 7,
+          "new_misses": 0,
+          "judged_by_model": 7,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:PR170 round 2 Opus: Nix mid-sentence (German)": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:PR170 round 2 Opus: gelernte Kauffrau": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:PR170 round 2 Opus: gelernter Elektriker": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:PR170 round 2 Opus: separable verbs": {
+          "cases": 5,
+          "main_caught": 5,
+          "main_missed": 0,
+          "new_caught": 5,
+          "new_misses": 0,
+          "judged_by_model": 5,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:PR170 round 2 reader: German verbs and participles": {
+          "cases": 7,
+          "main_caught": 7,
+          "main_missed": 0,
+          "new_caught": 7,
+          "new_misses": 0,
+          "judged_by_model": 7,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:PR170 test: German standing words": {
+          "cases": 12,
+          "main_caught": 12,
+          "main_missed": 0,
+          "new_caught": 12,
+          "new_misses": 0,
+          "judged_by_model": 12,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:PR170 test: German titles, ownership, credentials": {
+          "cases": 7,
+          "main_caught": 7,
+          "main_missed": 0,
+          "new_caught": 7,
+          "new_misses": 0,
+          "judged_by_model": 5,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:PR170 test: ruhigen backs ruhigem": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 0,
+          "new_misses": 1,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 1
+        },
+        "en:Brief: die, man in English text": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:Brief: knowledgeable": {
+          "cases": 1,
+          "main_caught": 0,
+          "main_missed": 1,
+          "new_caught": 0,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 1
+        },
+        "en:Brief: masterminded": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:Brief: took over": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 1 Opus: after a colon": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 1 Opus: items": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 1 Opus: languages": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 1 Opus: new line": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 1 Sonnet: Google at the start": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 1 Sonnet: lowercase employer": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 2 Opus: Nix as item": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 2 Opus: Nix mid-sentence": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 2 Opus: Plus as item": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 2 Opus: Pro as item": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 2 Opus: Pro mid-sentence": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 2 Opus: Slack, Rust, Express at the start": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 2 Opus: took on": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 2 Opus: took over": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 2 reader and brief: adverbs and standing verbs": {
+          "cases": 21,
+          "main_caught": 18,
+          "main_missed": 3,
+          "new_caught": 18,
+          "new_misses": 0,
+          "judged_by_model": 18,
+          "verifier_errors": 0,
+          "production_applied": 3
+        },
+        "en:PR170 round 2 reader: German verbs spelling English nouns": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 2 reader: Via, Plus, Pro": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 2 reader: legend, plant, war in bullets": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 2 reader: plant": {
+          "cases": 1,
+          "main_caught": 1,
+          "main_missed": 0,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 round 2 reader: war": {
+          "cases": 1,
+          "main_caught": 0,
+          "main_missed": 1,
+          "new_caught": 0,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 1
+        },
+        "en:PR170 round 2: name as item": {
+          "cases": 12,
+          "main_caught": 8,
+          "main_missed": 4,
+          "new_caught": 8,
+          "new_misses": 0,
+          "judged_by_model": 0,
+          "verifier_errors": 0,
+          "production_applied": 4
+        },
+        "en:PR170 round 2: name opening a sentence": {
+          "cases": 7,
+          "main_caught": 7,
+          "main_missed": 0,
+          "new_caught": 7,
+          "new_misses": 0,
+          "judged_by_model": 7,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 test: claim verbs": {
+          "cases": 18,
+          "main_caught": 18,
+          "main_missed": 0,
+          "new_caught": 18,
+          "new_misses": 0,
+          "judged_by_model": 18,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 test: dotted degree": {
+          "cases": 2,
+          "main_caught": 1,
+          "main_missed": 1,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:PR170 test: standing and authority words": {
+          "cases": 47,
+          "main_caught": 46,
+          "main_missed": 1,
+          "new_caught": 46,
+          "new_misses": 0,
+          "judged_by_model": 46,
+          "verifier_errors": 0,
+          "production_applied": 1
+        },
+        "en:PR170 test: tools, employers, titles": {
+          "cases": 13,
+          "main_caught": 13,
+          "main_missed": 0,
+          "new_caught": 13,
+          "new_misses": 0,
+          "judged_by_model": 6,
+          "verifier_errors": 0,
+          "production_applied": 0
+        }
+      }
+    },
+    "heldout": {
+      "cases": 639,
+      "main_caught": 639,
+      "main_missed": 0,
+      "new_caught": 631,
+      "new_misses": 8,
+      "judged_by_model": 413,
+      "verifier_errors": 0,
+      "production_applied": 5,
+      "by_group": {
+        "de:initial_adjective": {
+          "cases": 22,
+          "main_caught": 22,
+          "main_missed": 0,
+          "new_caught": 20,
+          "new_misses": 2,
+          "judged_by_model": 13,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:initial_name": {
+          "cases": 20,
+          "main_caught": 20,
+          "main_missed": 0,
+          "new_caught": 20,
+          "new_misses": 0,
+          "judged_by_model": 11,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:initial_sentence": {
+          "cases": 28,
+          "main_caught": 28,
+          "main_missed": 0,
+          "new_caught": 28,
+          "new_misses": 0,
+          "judged_by_model": 16,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:list_item": {
+          "cases": 20,
+          "main_caught": 20,
+          "main_missed": 0,
+          "new_caught": 20,
+          "new_misses": 0,
+          "judged_by_model": 6,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:scope": {
+          "cases": 20,
+          "main_caught": 20,
+          "main_missed": 0,
+          "new_caught": 20,
+          "new_misses": 0,
+          "judged_by_model": 15,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:standing_adjective": {
+          "cases": 86,
+          "main_caught": 86,
+          "main_missed": 0,
+          "new_caught": 86,
+          "new_misses": 0,
+          "judged_by_model": 57,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:authority_verb": {
+          "cases": 149,
+          "main_caught": 149,
+          "main_missed": 0,
+          "new_caught": 145,
+          "new_misses": 4,
+          "judged_by_model": 105,
+          "verifier_errors": 0,
+          "production_applied": 4
+        },
+        "en:initial_name": {
+          "cases": 20,
+          "main_caught": 20,
+          "main_missed": 0,
+          "new_caught": 20,
+          "new_misses": 0,
+          "judged_by_model": 11,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:initial_sentence": {
+          "cases": 20,
+          "main_caught": 20,
+          "main_missed": 0,
+          "new_caught": 18,
+          "new_misses": 2,
+          "judged_by_model": 10,
+          "verifier_errors": 0,
+          "production_applied": 1
+        },
+        "en:list_item": {
+          "cases": 30,
+          "main_caught": 30,
+          "main_missed": 0,
+          "new_caught": 30,
+          "new_misses": 0,
+          "judged_by_model": 9,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:lowercase_brand": {
+          "cases": 22,
+          "main_caught": 22,
+          "main_missed": 0,
+          "new_caught": 22,
+          "new_misses": 0,
+          "judged_by_model": 16,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:scope": {
+          "cases": 35,
+          "main_caught": 35,
+          "main_missed": 0,
+          "new_caught": 35,
+          "new_misses": 0,
+          "judged_by_model": 23,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:standing_adjective": {
+          "cases": 167,
+          "main_caught": 167,
+          "main_missed": 0,
+          "new_caught": 167,
+          "new_misses": 0,
+          "judged_by_model": 121,
+          "verifier_errors": 0,
+          "production_applied": 0
+        }
+      }
+    },
+    "adversarial": {
+      "cases": 40,
+      "main_caught": 38,
+      "main_missed": 2,
+      "new_caught": 38,
+      "new_misses": 0,
+      "judged_by_model": 38,
+      "verifier_errors": 0,
+      "production_applied": 2,
+      "by_group": {
+        "de:authorship": {
+          "cases": 2,
+          "main_caught": 2,
+          "main_missed": 0,
+          "new_caught": 2,
+          "new_misses": 0,
+          "judged_by_model": 2,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:award": {
+          "cases": 2,
+          "main_caught": 2,
+          "main_missed": 0,
+          "new_caught": 2,
+          "new_misses": 0,
+          "judged_by_model": 2,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:certification": {
+          "cases": 2,
+          "main_caught": 1,
+          "main_missed": 1,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 1
+        },
+        "de:equity": {
+          "cases": 2,
+          "main_caught": 2,
+          "main_missed": 0,
+          "new_caught": 2,
+          "new_misses": 0,
+          "judged_by_model": 2,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:fluency": {
+          "cases": 2,
+          "main_caught": 2,
+          "main_missed": 0,
+          "new_caught": 2,
+          "new_misses": 0,
+          "judged_by_model": 2,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:ownership": {
+          "cases": 2,
+          "main_caught": 2,
+          "main_missed": 0,
+          "new_caught": 2,
+          "new_misses": 0,
+          "judged_by_model": 2,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:publication": {
+          "cases": 2,
+          "main_caught": 2,
+          "main_missed": 0,
+          "new_caught": 2,
+          "new_misses": 0,
+          "judged_by_model": 2,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:scope": {
+          "cases": 2,
+          "main_caught": 2,
+          "main_missed": 0,
+          "new_caught": 2,
+          "new_misses": 0,
+          "judged_by_model": 2,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:supervision": {
+          "cases": 2,
+          "main_caught": 2,
+          "main_missed": 0,
+          "new_caught": 2,
+          "new_misses": 0,
+          "judged_by_model": 2,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "de:tenure": {
+          "cases": 2,
+          "main_caught": 2,
+          "main_missed": 0,
+          "new_caught": 2,
+          "new_misses": 0,
+          "judged_by_model": 2,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:authorship": {
+          "cases": 2,
+          "main_caught": 2,
+          "main_missed": 0,
+          "new_caught": 2,
+          "new_misses": 0,
+          "judged_by_model": 2,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:award": {
+          "cases": 2,
+          "main_caught": 2,
+          "main_missed": 0,
+          "new_caught": 2,
+          "new_misses": 0,
+          "judged_by_model": 2,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:certification": {
+          "cases": 2,
+          "main_caught": 2,
+          "main_missed": 0,
+          "new_caught": 2,
+          "new_misses": 0,
+          "judged_by_model": 2,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:equity": {
+          "cases": 2,
+          "main_caught": 2,
+          "main_missed": 0,
+          "new_caught": 2,
+          "new_misses": 0,
+          "judged_by_model": 2,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:fluency": {
+          "cases": 2,
+          "main_caught": 2,
+          "main_missed": 0,
+          "new_caught": 2,
+          "new_misses": 0,
+          "judged_by_model": 2,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:ownership": {
+          "cases": 2,
+          "main_caught": 2,
+          "main_missed": 0,
+          "new_caught": 2,
+          "new_misses": 0,
+          "judged_by_model": 2,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:publication": {
+          "cases": 2,
+          "main_caught": 2,
+          "main_missed": 0,
+          "new_caught": 2,
+          "new_misses": 0,
+          "judged_by_model": 2,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:scope": {
+          "cases": 2,
+          "main_caught": 2,
+          "main_missed": 0,
+          "new_caught": 2,
+          "new_misses": 0,
+          "judged_by_model": 2,
+          "verifier_errors": 0,
+          "production_applied": 0
+        },
+        "en:supervision": {
+          "cases": 2,
+          "main_caught": 1,
+          "main_missed": 1,
+          "new_caught": 1,
+          "new_misses": 0,
+          "judged_by_model": 1,
+          "verifier_errors": 0,
+          "production_applied": 1
+        },
+        "en:tenure": {
+          "cases": 2,
+          "main_caught": 2,
+          "main_missed": 0,
+          "new_caught": 2,
+          "new_misses": 0,
+          "judged_by_model": 2,
+          "verifier_errors": 0,
+          "production_applied": 0
+        }
+      }
+    }
+  },
+  "new_misses": [
+    {
+      "set": "injections",
+      "id": "syn-04-19:proficiency",
+      "text": ", working in fluent English",
+      "claim": [
+        "fluent"
+      ],
+      "verdicts": [
+        {
+          "term": "fluent",
+          "verdict": "supported",
+          "evidence": "Languages: English (native), French (school level)",
+          "reason": "The CV lists English as native, which supports a claim of fluent English."
+        }
+      ]
+    },
+    {
+      "set": "injections",
+      "id": "syn-16-56:ownership",
+      "text": "Führte",
+      "claim": [
+        "fuehrte"
+      ],
+      "verdicts": [
+        {
+          "term": "fuehrte",
+          "verdict": "ordinary",
+          "evidence": null,
+          "reason": "\"Führte ... ab\" is the past tense of \"abführen\" in the sense of billing, a plain rephrasing of \"Rechne ... ab\" with no added scope, ownership or leadership."
+        }
+      ]
+    },
+    {
+      "set": "probes",
+      "id": "probe-130",
+      "text": "Mit ruhigem Verkaufsstil.",
+      "claim": [
+        "ruhigem"
+      ],
+      "verdicts": [
+        {
+          "term": "ruhigem",
+          "verdict": "supported",
+          "evidence": "Ein ruhiger, beratender Verkaufsstil.",
+          "reason": "The Primary CV states a calm sales style; 'ruhigem' is the dative inflection of 'ruhiger'."
+        }
+      ]
+    },
+    {
+      "set": "heldout",
+      "id": "syn-16-53:12",
+      "text": "Erfahrene",
+      "claim": [
+        "erfahrene"
+      ],
+      "verdicts": [
+        {
+          "term": "erfahrene",
+          "verdict": "supported",
+          "evidence": "Zahnmedizinische Fachangestellte mit sechs Jahren Praxiserfahrung in Abrechnung und Patientenkommunikation.",
+          "reason": "Der Lebenslauf belegt sechs Jahre Praxiserfahrung, daher ist \"erfahren\" ohne Steigerung der Seniorität gedeckt."
+        }
+      ]
+    },
+    {
+      "set": "heldout",
+      "id": "syn-15-42:7",
+      "text": "Erfolgreiche",
+      "claim": [
+        "erfolgreiche"
+      ],
+      "verdicts": [
+        {
+          "term": "erfolgreiche",
+          "verdict": "supported",
+          "evidence": "Steigerte den Jahresumsatz meines Gebiets von 3,1 auf 4,2 Mio. EUR",
+          "reason": "Die Bezeichnung 'erfolgreich' beschreibt die belegte Umsatzsteigerung von 3,1 auf 4,2 Mio. EUR."
+        }
+      ]
+    },
+    {
+      "set": "heldout",
+      "id": "syn-11-38:161",
+      "text": "Authored",
+      "claim": [
+        "authored"
+      ],
+      "verdicts": [
+        {
+          "term": "authored",
+          "verdict": "ordinary",
+          "evidence": null,
+          "reason": "Here 'Authored' is a plain synonym for 'Prepared' the weekly store P&L packs, which the Primary CV states, and it adds no ownership, scope or seniority."
+        }
+      ]
+    },
+    {
+      "set": "heldout",
+      "id": "syn-11-32:188",
+      "text": "Graduated",
+      "claim": [
+        "graduated"
+      ],
+      "verdicts": [
+        {
+          "term": "graduated",
+          "verdict": "supported",
+          "evidence": "B.S. Finance | University of Illinois Chicago | 2015 - 2019",
+          "reason": "The CV lists a completed B.S. Finance degree with 2015-2019 dates, so describing the applicant as graduated is backed."
+        }
+      ]
+    },
+    {
+      "set": "heldout",
+      "id": "syn-11-36:186",
+      "text": "Held",
+      "claim": [
+        "held"
+      ],
+      "verdicts": [
+        {
+          "term": "held",
+          "verdict": "supported",
+          "evidence": "Own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD",
+          "reason": "\"Held\" is the past tense of the stated ownership of the forecast and variance reporting, with no added scope."
+        }
+      ]
+    },
+    {
+      "set": "heldout",
+      "id": "syn-04-18:182",
+      "text": "Served",
+      "claim": [
+        "served"
+      ],
+      "verdicts": [
+        {
+          "term": "served",
+          "verdict": "ordinary",
+          "evidence": null,
+          "reason": "Here 'Served' is a generic verb replacing 'Taught' and adds no skill, scope, seniority or ownership beyond teaching KS3 and KS4 science, which the CV states."
+        }
+      ]
+    },
+    {
+      "set": "heldout",
+      "id": "syn-08-21:18",
+      "text": "Sr. engineer.",
+      "claim": [
+        "sr"
+      ],
+      "verdicts": [
+        {
+          "term": "sr",
+          "verdict": "supported",
+          "evidence": "Senior Backend Engineer",
+          "reason": "\"Sr.\" abbreviates \"Senior\", and the Primary CV's headline title is Senior Backend Engineer, so the seniority is stated."
+        }
+      ]
+    },
+    {
+      "set": "heldout",
+      "id": "syn-08-20:18",
+      "text": "Sr. engineer.",
+      "claim": [
+        "sr"
+      ],
+      "verdicts": [
+        {
+          "term": "sr",
+          "verdict": "supported",
+          "evidence": "Senior Backend Engineer",
+          "reason": "\"Sr.\" abbreviates \"Senior\", and the CV gives the title Senior Backend Engineer."
+        }
+      ]
+    }
+  ],
+  "adversarial_misses": [
+    {
+      "id": "adv-en-03",
+      "group": "supervision",
+      "text": "Operations coordinator who scheduled inbound deliveries for a warehouse team of 12 who reported to me.",
+      "route": "main_missed"
+    },
+    {
+      "id": "adv-de-18",
+      "group": "certification",
+      "text": "Sachbearbeiter im Einkauf, der Bestellungen für Ersatzteile anlegt und ausbildungsberechtigt ist.",
+      "route": "main_missed"
+    }
+  ],
+  "verifier": {
+    "calls": 821,
+    "failed": 0,
+    "cost_usd": 3.2785,
+    "cost_per_call_usd": 0.00399,
+    "latency_ms": {
+      "p50": 1898,
+      "p95": 3598,
+      "max": 8723
+    },
+    "tokens": {
+      "input": 922032,
+      "output": 132033,
+      "cache_read": 1141190,
+      "cache_write": 0
+    },
+    "parse_or_validation_errors": 0
+  },
+  "total_cost_usd": 3.2785
+}
