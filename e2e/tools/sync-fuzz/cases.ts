@@ -492,8 +492,7 @@ export const CASES: CaseDef[] = [
       const after = client.editorAfter(app, save, 'sent', 'typed more', start);
       ctx.check(!after.close, 'the panel closed although the user typed during the save');
       const stale = await client.editorCommit(app, after.start, () => client.edit(app, fieldMutation('email', 't:E3;')));
-      const row = server.rowOf(app);
-      const emailNow = JSON.stringify(row?.email_body ?? row?.email ?? null);
+      const emailNow = JSON.stringify(server.rowOf(app)?.email ?? null);
       ctx.check(stale === 'conflict' && emailNow.includes('t:G2;'), `the stale email copy was saved over G2 (${stale}, email ${emailNow.slice(0, 80)})`);
     },
   },
