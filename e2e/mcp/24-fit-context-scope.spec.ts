@@ -1,6 +1,8 @@
 import { expect, test } from '../lib/worker-logs';
 import { McpSession, newAgent, uuid } from '../lib/mcp-client';
 import { netCharged, reservations, setPlan } from '../lib/mcp-db';
+import { fakeCalls } from '../lib/fake-control';
+import { MCP_FAKE_URL } from '../lib/env';
 import { seedFeedInbox, seedFeedSettings, type SeededFeedJob } from '../lib/mcp-feed-seed';
 import { JOB_DESCRIPTION, PRIMARY_CV } from '../lib/model-script';
 import { openLocalD1 } from '../lib/sqlite';
@@ -12,8 +14,13 @@ import type { BrowserContext } from '@playwright/test';
  * apply_to_feed_job. Each fit caches its context under an id the kit later names to earn the after-fit price
  * and reuse the analysis. With one id for both, the second fit overwrote the first one's context, and the first
  * application's kit would be written from the other job's ad. Each fit must keep its own context, and each kit
- * its own after-fit price.
+ * its own after-fit price, and each kit must be written from its own job ad (read off the scripted model's calls).
  */
+
+// Two ads that share nothing, so the model's calls say which one a kit was written from.
+const PASTED_AD = `${JOB_DESCRIPTION} Team motto: ZEBRA-PASTE-AD-71.`;
+const FEED_AD = 'Senior FP&A Analyst at Northwind Foods. You own the rolling forecast. Team motto: QUOKKA-FEED-AD-42.';
+
 test.describe.serial('fit contexts: one key on two tools', () => {
   let agent: McpSession;
   let user: TestUser;
@@ -28,7 +35,7 @@ test.describe.serial('fit contexts: one key on two tools', () => {
     await agent.ok('save_cv', { target: 'primary', text: PRIMARY_CV });
     setPlan(user.id, 'plus');
     seedFeedSettings(user.id);
-    jobs = seedFeedInbox(user.id, [{ title: 'Senior FP&A Analyst', company: 'Northwind Foods', fitLabel: 'strong' }]);
+    jobs = seedFeedInbox(user.id, [{ title: 'Senior FP&A Analyst', company: 'Northwind Foods', fitLabel: 'strong', description: FEED_AD }]);
   });
 
   test.afterAll(async () => {
@@ -40,7 +47,7 @@ test.describe.serial('fit contexts: one key on two tools', () => {
     const key = uuid();
     const pasted = await agent.ok<{ applicationId: string }>('analyze_job_fit', {
       idempotencyKey: key,
-      jobDescription: JOB_DESCRIPTION,
+      jobDescription: PASTED_AD,
       jobTitle: 'Financial Analyst',
       company: 'Calder Industrial Components',
     });
@@ -67,6 +74,16 @@ test.describe.serial('fit contexts: one key on two tools', () => {
       await expect
         .poll(async () => (await agent.ok<{ status: string }>('get_operation', { operationId: kit.operationId })).status, { timeout: 90_000, intervals: [1_000, 2_000] })
         .toBe('succeeded');
+    }
+
+    // Each kit's letter was written from its own ad and never the other's, and no kit repeated the ad's
+    // analysis: it ran once per ad, so the kit reused the context its own fit cached.
+    const calls = await fakeCalls(MCP_FAKE_URL);
+    const writtenFrom = (writer: string, marker: string) => calls.filter((call) => call.writer === writer && call.user.includes(marker));
+    for (const [own, other] of [['ZEBRA-PASTE-AD-71', 'QUOKKA-FEED-AD-42'], ['QUOKKA-FEED-AD-42', 'ZEBRA-PASTE-AD-71']]) {
+      expect(writtenFrom('coverLetter', own), `a cover letter was written from ${own}`).toHaveLength(1);
+      expect(calls.filter((call) => call.writer === 'coverLetter' && call.user.includes(own) && call.user.includes(other)), `no letter mixes ${own} with ${other}`).toHaveLength(0);
+      expect(writtenFrom('job', own), `the ad ${own} was read once, by its fit, so the kit reused that context`).toHaveLength(1);
     }
 
     expect(reservations(user.id).filter((row) => row.action === 'generation_after_fit')).toHaveLength(2);

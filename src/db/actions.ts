@@ -11,7 +11,7 @@ import * as creditsRepo from './repos/credits';
 import * as subscriptionsRepo from './repos/subscriptions';
 import * as feedbackRepo from './repos/feedback';
 import * as mcpGrantsRepo from './repos/mcpGrants';
-import { linkProfilePhoto, updateUserProfile, type UserEditableProfile } from '@/lib/services/profile';
+import { linkProfilePhoto, removeProfilePhoto, updateUserProfile, type UserEditableProfile } from '@/lib/services/profile';
 
 async function requireCurrentUser(): Promise<{ id: string; email?: string }> {
   const auth = await getAuth();
@@ -55,6 +55,12 @@ export async function updateProfileAction(userId: string, updates: Partial<UserE
 export async function setAvatarAction(userId: string, key: string) {
   await requireUserId(userId);
   await linkProfilePhoto(userId, key);
+}
+
+/** Unlink the account photo and delete only the object it pointed at. False when objects may remain. */
+export async function removeAvatarAction(userId: string): Promise<boolean> {
+  await requireUserId(userId);
+  return removeProfilePhoto(userId);
 }
 
 export async function getDocumentsAction(userId: string) {
