@@ -90,9 +90,7 @@ export async function startFeedRun(params: {
   }
 
   const diagnostics = getJobFeedRunDiagnostics(result.run);
-  const nextRunAt = result.run.local_date
-    ? getStartOfNextLocalDay(now, result.run.local_timezone || timeZone).toISOString()
-    : null;
+  const nextRunAt = nextRunAfter(result.run, timeZone, now);
 
   return {
     success: true,
@@ -151,6 +149,24 @@ async function readRunGate(userId: string): Promise<RunGate> {
     now,
   });
   return { timeZone, now, latestManualRun, cooldown };
+}
+
+/**
+ * When the run after this one may start: the gate readRunGate will apply once this run is the
+ * latest, so a run in flight reports the same time its completed row will. Next local midnight
+ * alone ignored the 20-hour floor and promised a run the gate would then refuse.
+ */
+export function nextRunAfter(run: JobFeedRun, timeZone: string, now: Date): string | null {
+  if (!run.local_date) return null;
+  return getCalendarDayCooldown({
+    latestManualLocalDate: run.local_date,
+    latestManualTimeZone: run.local_timezone ?? null,
+    latestManualCompletedAt: run.completed_at ?? run.created_at ?? null,
+    latestManualRunAt: run.started_at ?? run.created_at ?? null,
+    todayKey: getLocalDateKey(now, timeZone),
+    timeZone,
+    now,
+  }).nextRunAt;
 }
 
 /** What a blocked run reports: the latest completed manual run, and when the next one may start. */
@@ -255,7 +271,7 @@ export async function queueFeedRun(userId: string): Promise<QueuedFeedRunRespons
     localDate: run.local_date,
     started: queuedNow,
     alreadyRanToday: run.status === 'completed',
-    nextRunAt: run.local_date ? getStartOfNextLocalDay(gate.now, run.local_timezone || gate.timeZone).toISOString() : null,
+    nextRunAt: nextRunAfter(run, gate.timeZone, gate.now),
     rawJobsFetched: finished ? run.raw_jobs_fetched : null,
     jobsAfterPrefilter: finished ? run.jobs_after_prefilter : null,
     rankedJobsCount: finished ? run.ranked_jobs_count : null,

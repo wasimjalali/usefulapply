@@ -294,8 +294,10 @@ test.describe.serial('run_job_feed: the states no queue message can claim', () =
       expect(result).toMatchObject({ runId, status: 'completed', started: false, alreadyRanToday: true, rankedJobsCount: 7, failed: false });
       expect(new Date(result.nextRunAt as string).getTime()).toBeGreaterThan(Date.now());
       // A second call the same day says the same, and starts nothing.
-      const again = await created.session.ok<{ runId: string; alreadyRanToday: boolean }>('run_job_feed');
+      const again = await created.session.ok<{ runId: string; alreadyRanToday: boolean; nextRunAt: string | null }>('run_job_feed');
       expect(again).toMatchObject({ runId, alreadyRanToday: true });
+      // The same instant on every call: it used to carry each call's seconds and milliseconds.
+      expect(again.nextRunAt).toBe(result.nextRunAt);
       expect(feedRuns(created.user.id)).toEqual(before);
       // The feed's own limit is 2 a minute, shared with the web app, and it counts every call.
       expect(await created.session.fails('run_job_feed')).toMatch(/Too many requests\. Try again in a minute\./);
