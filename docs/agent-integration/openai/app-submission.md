@@ -27,7 +27,7 @@ Re-read the submission page when Wasim submits. The docs moved recently.
 | Verify the individual or organization in the OpenAI Platform dashboard | Wasim | open |
 | `MCP_ENABLED=true` in production and `/mcp` live | launch step in `STATUS.md` | open |
 | Domain challenge route live (`/.well-known/openai-apps-challenge`, PR #156) and `OPENAI_APPS_CHALLENGE` secret set | Wasim (the token comes from the dashboard) | open |
-| Reviewer account `reviewer+openai@usefulapply.com` seeded on production (the Anthropic portal gets its own account), credentials entered in the dashboard | Wasim runs `scripts/seed-reviewer-account.ts --email reviewer+openai@usefulapply.com` | open |
+| Reviewer account `reviewer+openai@usefulapply.com` seeded on production (the Anthropic portal gets its own account), credentials entered in the dashboard | Wasim runs the seed with the full production command in `../submission/checklist.md` (Reset and plan survival), with `--email reviewer+openai@usefulapply.com` | open |
 | Demo recording URL | Wasim records, see `../submission/screenshots.md` | open |
 | Tested on desktop and mobile in ChatGPT developer mode | Wasim | open |
 
@@ -180,4 +180,4 @@ A reviewer may argue that metered credits are a digital good. Our answer is the 
 - Test account: `reviewer+openai@usefulapply.com`, the OpenAI account only. Email and password come from the file the seed script writes. Paste them into Review details.
 - No MFA, no email or SMS codes, no magic links, no sign-up needed.
 - Instructions: paste the contents of `../submission/reviewer-guide.md`.
-- Keep the account and its data in place for later reviews. Wasim resets it by re-running the seed (reviewers can't). Re-run it the day before a review, so the feed matches and dates are fresh. See `../submission/checklist.md`.
+- Keep the account and its data in place for later reviews. Wasim resets it by re-running the seed (reviewers can't). Re-run it right before the review window opens, and again if the review is delayed, so the feed matches and dates are fresh. See `../submission/checklist.md`.

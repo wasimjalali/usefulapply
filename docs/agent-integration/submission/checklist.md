@@ -29,7 +29,7 @@ Status as of 2026-10-21, after the pack was matched to the 43-tool catalog. "Was
 | Reviewer is on Max with no Stripe ids, so screening and the job feed work | done in the seed. The monthly sweep never selects it (see Reset and plan survival below) | done |
 | One reviewer account per portal: `reviewer+anthropic@usefulapply.com` for Anthropic and `reviewer+openai@usefulapply.com` for OpenAI, each seeded with `--email` and its own credentials file | open | Wasim |
 | Seeded on production | open | Wasim runs it with `--remote --yes-production` (Cloudflare login needed) |
-| Re-run the seed the day before each review, so the feed matches and the follow-up and interview dates are fresh | open | Wasim |
+| Re-run the seed right before each review window opens, and again if the review is delayed. The briefing counts feed matches from the last 24 hours and interviews in the next 7 days, and the seed puts the interview 5 days out, so the dates go stale fast | open | Wasim |
 | Credentials entered in the matching portal only, files kept outside git | open | Wasim |
 | Accounts and data kept available for later reviews | ongoing | Wasim |
 

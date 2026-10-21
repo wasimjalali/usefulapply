@@ -50,7 +50,7 @@ You need a Useful Apply account to connect. Sign in with OAuth when your assista
 
 ## Example prompts
 
-Each one uses different tools. They all work on the reviewer account (Halcyon Cloud Labs and Fjordwerk applications, a German CV layout, 5 seeded feed jobs). Prompts 3 and 5 spend 0.5 credits each, prompt 1 spends 2 (0.5 for the fit check, 1.5 for the kit). Prompt 4 only shows new matches, a due follow-up and a coming interview for a day or so after the seed runs, so re-run it the day before each review.
+Each one uses different tools. They all work on the reviewer account (Halcyon Cloud Labs and Fjordwerk applications, a German CV layout, 5 seeded feed jobs). Prompts 3 and 5 spend 0.5 credits each, prompt 1 spends 2 (0.5 for the fit check, 1.5 for the kit). Prompt 4 only shows new matches, a due follow-up and a coming interview for a day after the seed runs (the interview, 5 days), so re-run the seed right before each review window opens and again if the review is delayed.
 
 1. **US, fit and kit.** "Here's a job ad for a Senior Software Engineer at a company in Austin: [paste]. Check my fit, tell me the biggest gap, then write the full application kit." (`analyze_job_fit`, `explain_fit`, `generate_application_kit`, `get_operation`)
 2. **German, edit and export.** "Öffne meine Bewerbung bei Fjordwerk, stelle in meinem Lebenslauf die Kenntnisgruppe „Daten“ an die erste Stelle und exportiere Lebenslauf und Anschreiben als PDF." (`list_applications`, `get_application`, `get_cv_outline`, `edit_cv_structure`, `export_documents`)
