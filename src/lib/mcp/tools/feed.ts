@@ -255,7 +255,7 @@ const updateFeedSettings = defineTool({
   name: 'update_feed_settings',
   title: 'Update feed settings',
   description:
-    'Changes the given job feed settings and leaves the others as saved. Returns the settings after the change and, when the roles or countries changed, the role and country searches the daily feed will run.',
+    'Changes the given job feed settings and leaves the others as saved. Returns the settings after the change and, when the roles or countries changed, the role and country searches the next feed run will make.',
   hints: { readOnly: false, destructive: true, idempotent: true, openWorld: false },
   input: z.object({
     roles: z.array(z.string().trim().min(1).max(80)).min(1).max(8).optional()
