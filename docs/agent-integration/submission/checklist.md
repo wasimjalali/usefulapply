@@ -26,10 +26,12 @@ Status as of 2026-10-21, after the pack was matched to the 43-tool catalog. "Was
 | Requirement | Status | Owner |
 |---|---|---|
 | Seed script written, idempotent, no MFA, verified email | done, `scripts/seed-reviewer-account.ts`, verified locally twice | done |
-| Reviewer is on Max with no Stripe ids, so screening and the job feed work | done in the seed. The monthly sweep never selects it (see `reviewer-guide.md`) | done |
+| Reviewer is on Max with no Stripe ids, so screening and the job feed work | done in the seed. The monthly sweep never selects it (see Reset and plan survival below) | done |
+| One reviewer account per portal: `reviewer+anthropic@usefulapply.com` for Anthropic and `reviewer+openai@usefulapply.com` for OpenAI, each seeded with `--email` and its own credentials file | open | Wasim |
 | Seeded on production | open | Wasim runs it with `--remote --yes-production` (Cloudflare login needed) |
-| Credentials file kept outside git and entered in both portals | open | Wasim |
-| Account and data kept available for later reviews | ongoing | Wasim |
+| Re-run the seed the day before each review, so the feed matches and the follow-up and interview dates are fresh | open | Wasim |
+| Credentials entered in the matching portal only, files kept outside git | open | Wasim |
+| Accounts and data kept available for later reviews | ongoing | Wasim |
 
 ## Listing materials
 
@@ -95,3 +97,25 @@ Status as of 2026-10-21, after the pack was matched to the 43-tool catalog. "Was
 - Running the seed on production, and entering the credentials in the portals.
 - The demo recording and the post-launch screenshots.
 - A decision on the commerce risk: ship `spend` to ChatGPT, or drop it if OpenAI rejects credits.
+
+## Reset and plan survival (internal, never pasted into a portal)
+
+Reviewers can't reset an account. They email support, and Wasim re-runs the seed. Steps 37 to 39 of `reviewer-guide.md` replace the CV, delete it and withdraw feed consent, so a finished review leaves that account without a CV and without consent until it's reseeded.
+
+The seed restores the plan, the credits, the applications, the CV, the career profile, the chat history, the feed items, the dates and the feed settings, and keeps the same login. It doesn't reset the notification switches or the profile photo, so undo steps 25 and 27 by hand. It touches only the reviewer's own rows and the shared feed postings keyed `reviewer-seed:`.
+
+```
+npx tsx scripts/seed-reviewer-account.ts \
+  --base-url https://usefulapply.com \
+  --email reviewer+<anthropic|openai>@usefulapply.com \
+  --credentials-out <path outside the repo> \
+  --remote --yes-production
+```
+
+The script only accepts `reviewer@usefulapply.com` or `reviewer+<label>@usefulapply.com`, and `--remote` needs `--yes-production`. It prints what it will do first. Run it from the repo root with a Cloudflare login that can write to the production database. Reuse each account's own `--credentials-out` file. If that file is missing or stale, the script deletes the account and creates it again with a new password, so update that portal afterwards.
+
+Does the plan survive? Yes. The account is Max in the profile, the credits row and the subscriptions row, with no Stripe ids and `user_credits.subscription_status` empty.
+
+- The daily cron sweep (`processOverdueMonthlyResets`) resets a paid row only when its `subscription_status` is `active` and its reset date is more than 3 days past. This row's status is empty, so the sweep never selects it.
+- Stripe webhooks look users up by customer or subscription id. The reviewer has none, so no event can match it.
+- Nothing refills credits automatically. When the balance runs low, re-run the seed. Credits are the only thing that drifts, so re-run it after each review round and before a resubmission.

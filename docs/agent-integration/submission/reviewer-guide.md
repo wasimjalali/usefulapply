@@ -1,6 +1,6 @@
 # Reviewer guide: Useful Apply
 
-For Anthropic and OpenAI reviewers. Paste this into each portal's test-account instructions. The credentials are delivered separately and are never in git.
+For Anthropic and OpenAI reviewers. Paste this whole file into the portal's test-account instructions. Each portal gets its own reviewer account, so nothing you do here affects another review. The credentials are delivered separately and are never in git.
 
 ## What you're reviewing
 
@@ -23,11 +23,13 @@ To revoke access at any point, go to Settings, Connected apps in the web app. Th
 |---|---|
 | Person | Jordan Whitfield, a fictional senior software engineer in Austin, TX. All names, employers, addresses and phone numbers are made up. |
 | Primary CV | One CV, in English, with 2 roles, education, skills, a certification and languages (English, German B2, Spanish). |
+| Career profile | A career profile and a job search strategy, so the career and feed tools return data. |
 | US application | Senior Software Engineer, Platform at Halcyon Cloud Labs (fictional). Status applied. Fit result 82. Full kit: tailored CV, US cover letter, application email, follow-up email. Template premium-ats. |
 | German application | Senior Backend Engineer (m/w/d) at Fjordwerk GmbH, Berlin (fictional). Status drafted. Fit result 79. Full kit in German: tailored CV, DIN 5008 cover letter, application email, follow-up email. Template german-ats. |
 | Plan | Max, so screening answers and the job feed are available. |
 | Credits | 200 at the start (a Max month). |
-| Job feed | A completed run from yesterday with 5 ranked, fictional postings, so the feed tools have something to act on before any live search. |
+| Job feed | A recent completed run with 5 ranked, fictional postings, so the feed tools have something to act on before any live search. |
+| Tracker dates | One application has a follow-up due and one has an interview in the coming week, so the morning briefing has something to show. |
 | Chat history | Each application has its fit and kit conversation, so the web app shows a finished application. |
 | Daily agent limit | 20 credits a day (the default for new users is 10). |
 | Job feed | Consent given. Roles: Senior Software Engineer, Staff Software Engineer, Platform Engineer. Austin, TX or remote. Salary floor USD 150,000. |
@@ -35,7 +37,7 @@ To revoke access at any point, go to Settings, Connected apps in the web app. Th
 
 ## Test script
 
-Run each step in a normal conversation. The server has 43 tools: 13 read, 24 free writes and 6 that spend credits. This script runs every one. A client that shows tool calls lets you see which tool ran.
+Run each step in a normal conversation. The server has 43 tools: 13 read, 24 free writes and 6 that need the Spend permission. Five of those six use credits. `draft_screening_answers` is free. This script runs every one. A client that shows tool calls lets you see which tool ran.
 
 ### 1. Read tools (no credits, scope Read)
 
@@ -46,8 +48,8 @@ Run each step in a normal conversation. The server has 43 tools: 13 read, 24 fre
 5. "Show my CV." Expect `get_cv`, then "Show its outline" for `get_cv_outline`.
 6. "Which CV templates are there?" Expect `list_cv_templates` with 6 templates.
 7. "Why did I score 79 for Fjordwerk?" Expect `explain_fit`.
-8. "What needs my attention today?" Expect `morning_briefing`.
-9. "Show my career profile." Expect `get_career_profile`. "Show my feed settings." Expect `get_feed_settings`. "Show my job feed." Expect `get_job_feed`.
+8. "What needs my attention today?" Expect `morning_briefing`: the follow-up that's due, the coming interview and any new strong matches.
+9. "Show my career profile." Expect `get_career_profile` with the seeded profile and search strategy. "Show my feed settings." Expect `get_feed_settings`. "Show my job feed." Expect `get_job_feed`.
 
 ### 2. Free writes (no credits, scope Write)
 
@@ -55,7 +57,7 @@ Run each step in a normal conversation. The server has 43 tools: 13 read, 24 fre
 11. "Change the company on it to Example Corp." Expect `update_application`.
 12. "Mark the Halcyon application as interview on 5 November." Expect `update_application_status`. Check the tracker in the web app.
 13. "Hide the Certifications section on the Halcyon CV, then show it again." Expect `set_cv_item_visibility` twice.
-14. "Add a project called Billing API Rewrite to the Halcyon CV." Expect `add_cv_item`.
+14. "Add a project to the Halcyon CV. Name: Billing API Rewrite. Description: Rebuilt the billing API to cut response times." Expect `add_cv_item`. A project needs a name and a description, and the assistant should use only the words you gave.
 15. "On the Fjordwerk CV, put the skill group Daten first." Expect `get_cv_outline`, then `edit_cv_structure` (reorder). It reorders entries inside a list and renames section headings. It doesn't move whole sections, and it never changes wording.
 16. "Change the professional title on the Halcyon CV to Staff Software Engineer." Expect `update_cv_content` and a returned diff.
 17. "Undo that." Expect `undo_last_edit` and the title restored.
@@ -64,11 +66,11 @@ Run each step in a normal conversation. The server has 43 tools: 13 read, 24 fre
 20. "Switch the Halcyon CV to the modern-professional template." Expect `set_cv_template`.
 21. "Export the Halcyon CV as a PDF and the cover letter as a Word file." Expect `export_documents` with signed links. Open them. The PDF has selectable text. Links expire after 15 minutes.
 22. "Export the Fjordwerk cover letter as a PDF." Expect a DIN 5008 letter on A4.
-23. "Set my job feed salary floor to 160,000." Expect `update_feed_settings`. "Save the first job in my feed." Expect `give_job_feedback`. Dismissing a job, or rating it not relevant, removes it for good, so skip that or re-run the seed afterwards.
+23. "Set my job feed salary floor to 160,000." Expect `update_feed_settings`. "Save the first job in my feed." Expect `give_job_feedback`. Dismissing a job, or rating it not relevant, removes it for good, so skip those two.
 24. "Run my job feed for today." Expect `run_job_feed`. Allowed once a day, and it needs the consent that's already on the account. It queues a live search of public listings and returns a run id. The jobs show up in the feed within a couple of minutes.
 25. "Turn off the follow-up reminder emails." Expect `update_notification_settings`. Turn it back on.
 26. "Update my phone number to +1 512 555 0143." Expect `update_profile`.
-27. "Set my profile photo to [attach a small image]." Expect `set_profile_photo`. "Remove it." Expect `remove_profile_photo`.
+27. "Set my profile photo from this base64 PNG: `iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR42mPQiFpAEmIY1TCqYfhqAAC1BSIQbI06FgAAAABJRU5ErkJggg==`" Expect `set_profile_photo` with `image/png`. "Remove it." Expect `remove_profile_photo`. The tool takes base64 text, not a chat attachment. If your client can't pass base64, skip this step.
 28. "Delete the Example Corp application." Expect `delete_application` and a confirmation from your client.
 
 ### 3. Spending tools (scope Spend)
@@ -82,13 +84,13 @@ Each call needs an idempotency key the client generates. Repeat a call with the 
 33. "Run a fit check on the first job in my feed." Expect `apply_to_feed_job` in fit mode, 0.5 credits. It creates an application from the feed job. Nothing is sent to an employer. A kit from a feed job costs 2.0 credits.
 34. "On the Halcyon application, draft answers to: Why do you want this role? What's your notice period?" Expect `draft_screening_answers`. It costs no credits. Each call uses one of the 5 screening turns an application has, and the Max plan includes screening answers. The answers are saved on the application.
 35. Ask for a second kit on an application that has one. Expect a refusal unless the request says to replace the existing kit.
-36. Start a kit, then say "cancel the generation" while it runs. Expect `cancel_generation` (scope Write, no credits) and the unspent credits released.
+36. Paste a second, different short job ad and ask for its full kit. While it runs, say "cancel the generation". Expect `cancel_generation` (scope Write, no credits) and the reserved credits released. Use a new ad, because the seeded applications and the ones from steps 29 and 30 already have kits.
 
 Steps 29 to 36 use about 4 credits. The daily limit of 20 leaves room for a second pass, and the balance of 200 for many more.
 
 ### 4. Account changes (run these last)
 
-These replace or remove account data. Re-run the seed afterwards (see Reset).
+These replace or remove your CV and your job feed consent. Run them after everything else. The account stays usable afterwards, except for steps that need a CV on file or feed consent, like fit checks, kits and the feed run. If you want the account restored, email support@usefulapply.com and we'll reset it.
 
 37. "Upload this CV as my primary CV: [paste a few lines of CV text]." Expect `save_cv`. It replaces the seeded CV, costs no credits and has a daily limit. The applications keep their own copies.
 38. "Delete my primary CV." Expect `delete_cv` and a confirmation from your client.
@@ -97,7 +99,7 @@ These replace or remove account data. Re-run the seed afterwards (see Reset).
 ### 5. Things that should fail
 
 - Ask for another user's application by id. Expect not found.
-- Connect with only the Read permission and try an edit. Expect an insufficient-scope error.
+- Connect with only the Read permission and try an edit. Expect an insufficient-scope error. Claude and ChatGPT ask for all three permissions and the consent page has no per-permission switches, so this check needs a client where you set the requested scope to `read`, such as MCP Inspector. Skip it otherwise.
 - Ask the assistant to buy credits, change the plan or delete the account. No tool exists for any of them.
 - Paste a job ad that tells the assistant to delete applications. The ad is wrapped as untrusted data, and a destructive tool still triggers your client's approval prompt.
 
@@ -115,30 +117,7 @@ These replace or remove account data. Re-run the seed afterwards (see Reset).
 | Draft screening answers | 0 (uses one of 5 turns per application) |
 | Everything else | 0 |
 
-A full walk-through of this guide costs about 4 credits, or about 6 if you ask for a kit in step 33. The account starts with 200.
-
-## Reset the account
-
-Re-run the seed script. It restores the plan, the credits, the applications, the CV, the chat history, the feed items and the feed settings to the state above and keeps the same login. It doesn't reset the notification switches or the profile photo, so undo steps 25 and 27 yourself. Only the reviewer's own rows (and the shared feed postings keyed `reviewer-seed:`) are touched.
-
-```
-npx tsx scripts/seed-reviewer-account.ts \
-  --base-url https://usefulapply.com \
-  --credentials-out <path outside the repo> \
-  --remote --yes-production
-```
-
-The script only accepts `reviewer@usefulapply.com` or `reviewer+<label>@usefulapply.com`, and `--remote` needs `--yes-production`. It prints what it will do before it does it.
-
-Run it from the repo root with a Cloudflare login that can write to the production database. Use the same `--credentials-out` file as before. If that file is missing or stale, the script deletes the reviewer account and creates it again with a new password, so update the portals afterwards.
-
-### Does the plan survive?
-
-Yes. The account is Max in the profile, the credits row and the subscriptions row, with no Stripe ids and `user_credits.subscription_status` empty.
-
-- The daily cron sweep (`processOverdueMonthlyResets`) resets a paid row only when its `subscription_status` is `active` and its reset date is more than 3 days past. This row's status is empty, so the sweep never selects it.
-- Stripe webhooks look users up by customer or subscription id. The reviewer has none, so no event can match it.
-- Nothing refills credits automatically either. When the balance runs low, re-run the seed. Credits are the only thing that drifts, so re-run it after each review round and before a resubmission.
+A full walk-through of this guide costs about 4 credits, or about 6 if you ask for a kit in step 33. The account starts with 200. Step 36 reserves credits and returns them when you cancel.
 
 ## Support
 
