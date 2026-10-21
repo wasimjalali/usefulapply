@@ -459,7 +459,7 @@ const undoLastEditTool = defineTool({
     const [newest] = await listEditHistory(userId, applicationId, group);
     // Nothing saved: the call itself says so.
     if (!newest) return null;
-    return `Restore the previous ${GROUP_LABEL[group]}, as it was before the edit saved at ${newest.createdAt}? Anything changed since then in that part is replaced.`;
+    return `Restore the previous ${GROUP_LABEL[group]}, as it was before the edit saved at ${newest.createdAt}? If that part changed since, nothing is undone.`;
   },
   async run({ applicationId, group, revision }, { userId }) {
     const undone = await undoLastEdit(userId, applicationId, group, { expectedRevision: revision });

@@ -558,11 +558,11 @@ const withdrawFeedConsentTool = defineTool({
 const applyToFeedJobTool = defineTool({
   name: 'apply_to_feed_job',
   title: 'Apply to feed job',
-  description: `Creates an application from a job in the user's feed, then runs a fit check (${CREDIT_COSTS.FIT_ANALYSIS} credits) or queues the full application kit (${CREDIT_COSTS.FULL_APPLICATION} credits). A fit check returns its result directly; a kit returns an operationId to read with get_operation. ${UNTRUSTED_NOTE}`,
+  description: `Creates an application from a job in the user's feed, then runs a fit check (${CREDIT_COSTS.FIT_ANALYSIS} credits) or queues the full application kit (${CREDIT_COSTS.FULL_APPLICATION} credits, or ${CREDIT_COSTS.GENERATION_AFTER_FIT} after a fit check on the same job). A fit check returns its result directly; a kit returns an operationId to read with get_operation. ${UNTRUSTED_NOTE}`,
   hints: { readOnly: false, destructive: false, idempotent: true, openWorld: false },
   input: z.object({
     jobId: z.string().min(1).max(100).describe('A jobId from get_job_feed. The user needs a primary CV on file.'),
-    mode: z.enum(['fit', 'kit']).describe(`fit checks how well the CV matches the job (${CREDIT_COSTS.FIT_ANALYSIS} credits). kit writes the CV, cover letter, application email and follow-up email (${CREDIT_COSTS.FULL_APPLICATION} credits).`),
+    mode: z.enum(['fit', 'kit']).describe(`fit checks how well the CV matches the job (${CREDIT_COSTS.FIT_ANALYSIS} credits). kit writes the CV, cover letter, application email and follow-up email (${CREDIT_COSTS.FULL_APPLICATION} credits, or ${CREDIT_COSTS.GENERATION_AFTER_FIT} after a fit check on the same job).`),
     idempotencyKey: idempotencyKeyField,
     waitSeconds: waitSecondsField.describe('Kit only: seconds to wait for the kit before returning (0 to 20). Without it the call returns at once.'),
   }),

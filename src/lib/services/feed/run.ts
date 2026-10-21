@@ -224,8 +224,7 @@ export async function queueFeedRun(userId: string): Promise<QueuedFeedRunRespons
     // queued path puts the completed row back on the queue, which is what a forced rerun of it amounts to.
     // The guard on status and updated_at lets one caller win; a loser reports the row as it is now.
     const requeued = await jobFeedRepo.requeueRun(userId, run.id, {
-      // requeueRun's type names the two states it was written for; it is a plain status match.
-      status: run.status as unknown as 'failed',
+      status: run.status,
       updatedAt: run.updated_at,
     });
     if (requeued) {

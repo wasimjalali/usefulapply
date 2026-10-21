@@ -215,7 +215,7 @@ export async function claimQueuedRun(
 export async function requeueRun(
   userId: string,
   runId: string,
-  expected: { status: 'failed' | 'running'; updatedAt: string },
+  expected: { status: 'failed' | 'running' | 'completed'; updatedAt: string },
 ): Promise<JobFeedRun | null> {
   const db = await getDb();
   const rows = await db

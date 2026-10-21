@@ -221,13 +221,14 @@ test.describe.serial('feed: reading, rating, settings, applying', () => {
     expect(['pending', 'running']).toContain(kit.status);
     expect(kit.pollAfterSeconds).toBe(10);
     // The feed kit is always the full price (apply.ts queues it without a fit context), so the 0.5 fit check above does not discount it.
-    expect(kit.creditsUsed).toBe(2);
+    // The fit above was paid on this application, so the kit takes the after-fit price.
+    expect(kit.creditsUsed).toBe(1.5);
     await expect
       .poll(async () => (await agent.ok<{ status: string }>('get_operation', { operationId: kit.operationId as string })).status, { timeout: 90_000, intervals: [1_000, 2_000] })
       .toBe('succeeded');
     expect(operations(user.id).filter((row) => row.kind === 'generate_kit')).toHaveLength(1);
-    // Fit 0.5 plus kit 2.0.
-    expect(netCharged(user.id)).toBe(2.5);
+    // Fit 0.5 plus kit 1.5.
+    expect(netCharged(user.id)).toBe(2);
 
     // The feed row follows the kit: the job points at its application and says the kit is done. An applied job
     // leaves the inbox (that is what applying means), so the row is read where it lives.

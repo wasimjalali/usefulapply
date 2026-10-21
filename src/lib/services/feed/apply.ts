@@ -12,7 +12,7 @@
  *   2. The charged part, which already guarantees one charge per key and per identical input:
  *      - fit: an inline operation (`feed_apply_fit`) reserving 0.5 credits and running
  *        `analyzeApplicationFit`;
- *      - kit: `enqueueKitGeneration`, reserving 2.0 credits and queuing the run.
+ *      - kit: `enqueueKitGeneration`, reserving 2.0 credits (1.5 after a paid fit check on the application) and queuing the run.
  *      Both reserve with the daily agent limit, and both answer a repeat before reserving anything.
  *
  * Credits are never charged by step 1, so a request that cannot succeed (no CV, a dismissed role,
@@ -44,6 +44,10 @@ import { kitFromRow } from '../kit';
 import { loadOwnedCvSources } from '../kit-generation';
 import { OPERATION_KINDS, findOperationByKey, type AgentOperation } from '../operations';
 import { FeedError } from './errors';
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+}
 
 export type FeedApplyMode = 'fit' | 'kit';
 
@@ -212,7 +216,11 @@ export async function applyToFeedJob(params: {
     };
   }
 
-  const queued = await enqueueKitGeneration(userId, application.applicationId, idempotencyKey, { spendLimit });
+  // Same after-fit price as generate_application_kit: the context is the fit stored on this application, and the
+  // credits layer only honours it for a fit this user paid for and hasn't spent on a kit yet.
+  const pendingFit = asRecord(asRecord(row.generated_artifacts)?.pendingFitAnalysis);
+  const contextId = typeof pendingFit?.contextId === 'string' ? pendingFit.contextId : null;
+  const queued = await enqueueKitGeneration(userId, application.applicationId, idempotencyKey, { contextId, spendLimit });
   if (!queued.deduped) captureApplied({ userId, jobId, applicationId: application.applicationId, mode, created: application.created });
   return {
     kind: 'kit',
