@@ -23,17 +23,19 @@ const DRIVING_LICENCE = new RegExp(
     'f(?:ü|ue|u)hrerschein',
     'fahrerlaubnis',
     String.raw`\bpermis\s+de\s+conduire\b`,
-    String.raw`\b(?:carnet|permiso)\s+de\s+conduc(?:ir|ción|cion)\b`,
+    String.raw`\b(?:carn[eé]t?|permiso|licencia)\s+de\s+conduc(?:ir|ción|cion)\b`,
+    String.raw`\bcarteira\s+de\s+habilita(?:ção|cao)\b`,
+    String.raw`\b(?:cnh|habilita(?:ção|cao))\s+categoria\b`,
     String.raw`\bpatente\s+(?:di\s+guida|[a-e]\d?)\b`,
     String.raw`\bcarta\s+de\s+condu(?:ção|cao)\b`,
-    String.raw`\brijbewijs\b`,
+    String.raw`\brijbewij(?:s|zen)\b`,
   ].join('|'),
   'i',
 );
 
 // A bare licence word ("Licence: B", "Class B licence", "CDL Class A", "Permis B") counts only
 // with a licence class next to it, so "Pilot licence (PPL)" or "Software license" never does.
-const LICENCE_WORD = /\b(?:licen[cs]es?|permis|patente|carnet|cdl)\b/i;
+const LICENCE_WORD = /\b(?:licen[cs]es?|permis|patente|carn[eé]t?|cdl)(?![\p{L}\p{N}])/iu;
 // The class words are any case; a class LETTER must be a capital (B, BE, C1, "B, BE"), so the
 // French and Spanish word "de" ("Permis de travail", "Carnet de identidad") is never a class.
 const CLASS_WORD = /\b(?:class|category|cat|klasse|kategorie|catégorie|categoría|categoria)\b/i;
@@ -42,7 +44,7 @@ const CLASS_LETTER = new RegExp(
   [
     String.raw`\(\s*${CLASS_LETTERS}\s*\)`,
     String.raw`:\s*${CLASS_LETTERS}(?![\p{L}\p{N}])`,
-    String.raw`\b(?:[Ll]icen[cs]es?|[Pp]ermis|[Pp]atente|[Cc]arnet|CDL|cdl)\s+${CLASS_LETTERS}(?![\p{L}\p{N}])`,
+    String.raw`\b(?:[Ll]icen[cs]es?|[Pp]ermis|[Pp]atente|[Cc]arn[eé]t?|CDL|cdl)\s+${CLASS_LETTERS}(?![\p{L}\p{N}])`,
   ].join('|'),
   'u',
 );
@@ -59,6 +61,15 @@ const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&
  */
 export function mentionsDrivingLicence(text: string, driverLicense?: string): boolean {
   if (DRIVING_LICENCE.test(text)) return true;
+  if (mentionsBareLicence(text, driverLicense)) return true;
+  // One item can list several facts ("EU work permit; Licence B"). When another permit in the item
+  // made the whole of it not count, judge each part on its own, so it can't hide the licence beside it.
+  if (!OTHER_PERMIT.test(text)) return false;
+  const parts = text.split(/\s*[,;•|·]\s*/).filter(Boolean);
+  return parts.length > 1 && parts.some((part) => mentionsBareLicence(part, driverLicense));
+}
+
+function mentionsBareLicence(text: string, driverLicense?: string): boolean {
   if (!LICENCE_WORD.test(text) || OTHER_PERMIT.test(text)) return false;
   if (CLASS_WORD.test(text) || CLASS_LETTER.test(text)) return true;
   const value = driverLicense ? normalised(driverLicense) : '';

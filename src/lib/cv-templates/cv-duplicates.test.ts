@@ -257,3 +257,14 @@ test('round 3: French and Spanish "de", other permits and the value match', () =
   assert.equal(mentionsDrivingLicence('UK licence, Klasse B held since 2015', 'Klasse B'), true);
   assert.equal(mentionsDrivingLicence('Licence for a bakery', 'B'), false);
 });
+
+// Arbiter on #172: Spanish "carné", Latin American "licencia", Brazilian forms, Dutch plural, mixed items.
+test('arbiter: carné, licencia, Brazilian and Dutch plural forms; permits beside a licence in one item', () => {
+  for (const item of ['Carné de conducir B', 'Licencia de conducir B', 'Licencia de conducción B', 'Carteira de habilitação B', 'CNH categoria B', 'Habilitação categoria B', 'Rijbewijzen B en C', 'Carné B', 'Nationalité française, permis de travail UE, permis B', 'EU work permit; Licence B']) {
+    assert.equal(mentionsDrivingLicence(item), true, item);
+  }
+  assert.deepEqual(withDrivingLicenceLine(['Carné de conducir B'], 'B', 'es'), ['Carné de conducir B']);
+  for (const item of ['Permis de travail', 'Carnet de identidad', 'Licencia en Derecho', 'Pilot licence (PPL)', 'Work permit: C']) {
+    assert.equal(mentionsDrivingLicence(item, 'B'), false, item);
+  }
+});
