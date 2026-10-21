@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "npx --yes tsx --test src/lib/job-feed/setup-flow.test.ts src/lib/job-feed/next-run-at.test.ts src/lib/agents/unified-writer-agent.claim-guard.test.ts",
+    "test": "npx --yes tsx --test src/lib/job-feed/setup-flow.test.ts src/lib/job-feed/next-run-at.test.ts src/lib/agents/unified-writer-agent.claim-guard.test.ts src/lib/agents/prompts/logistics-prompt.test.ts",
     "test:sync": "tsx --tsconfig e2e/tools/tsconfig.sync-fuzz.json e2e/tools/sync-fuzz.ts",
     "test:e2e": "opennextjs-cloudflare build && npm run test:sync && E2E_MCP=1 playwright test",
     "e2e": "npm run test:e2e",
