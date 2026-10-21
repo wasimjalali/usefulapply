@@ -549,7 +549,7 @@ export default function PrivacyPage() {
                 <td className="py-2 pr-3">CVs, applications and kit documents</td>
                 <td className="py-2 pr-3">Read, edit and generate application materials</td>
                 <td className="py-2 pr-3">Your assistant&apos;s provider, AI providers listed above, Cloudflare</td>
-                <td className="py-2 pr-3">While your account is open</td>
+                <td className="py-2 pr-3">While your account is open. Edit history keeps up to 10 earlier versions for 30 days, so replaced text isn&apos;t removed straight away.</td>
                 <td className="py-2">Grant read only, revoke, delete items or your account</td>
               </tr>
               <tr className="border-b border-cream-200 align-top">
@@ -570,7 +570,7 @@ export default function PrivacyPage() {
                 <td className="py-2 pr-3">Tool used, assistant app, duration and outcome</td>
                 <td className="py-2 pr-3">Reliability, abuse prevention and improvement</td>
                 <td className="py-2 pr-3">Cloudflare, PostHog</td>
-                <td className="py-2 pr-3">Kept like other product analytics (see section 2).</td>
+                <td className="py-2 pr-3">What is kept: tool, assistant app, duration and outcome, never content. We keep these records for [RETENTION PERIOD, to confirm].</td>
                 <td className="py-2">Email {LEGAL.email}</td>
               </tr>
             </tbody>

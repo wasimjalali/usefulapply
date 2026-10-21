@@ -66,7 +66,7 @@ const toolGroups: { title: string; body: string; tools: string }[] = [
   },
   {
     title: 'Edit documents and export',
-    body: 'Edit a cover letter, email or follow-up directly. Export PDF, Word or text files with a download link.',
+    body: 'Edit a cover letter, email or follow-up directly. Export PDF, Word or text files. Each one comes with a download link.',
     tools: 'edit_document_text, export_documents',
   },
   {
@@ -76,7 +76,7 @@ const toolGroups: { title: string; body: string; tools: string }[] = [
   },
   {
     title: 'Update your settings',
-    body: 'Change email notifications, reminders and your default template.',
+    body: 'Choose which emails you get: product news, feed ready, follow-up due, interview tomorrow and low credits.',
     tools: 'update_notification_settings',
   },
 ];
@@ -87,13 +87,13 @@ const spendTools: { name: string; what: string; cost: string }[] = [
   { name: 'regenerate_document', what: 'Rewrite a cover letter, email or follow-up', cost: '0.5' },
   { name: 'rewrite_cv_section', what: 'Rewrite one CV section', cost: '0.5, or free if it declines' },
   { name: 'apply_to_feed_job', what: 'Check your fit for a feed job or write the application', cost: '0.5 for a fit check, 2 for the application' },
-  { name: 'draft_screening_answers', what: 'Answer screening questions (Plus and Max)', cost: 'Free on Plus and Max, up to 5 per application' },
+  { name: 'draft_screening_answers', what: 'Answer screening questions (Plus and Max)', cost: 'Free on Plus and Max, up to 5 per application. Needs Spend access.' },
 ];
 
 const scopes: { name: string; body: string }[] = [
   { name: 'Read', body: 'See your account, CVs, applications, kit documents, job feed and credits.' },
   { name: 'Write', body: 'Create and change applications, CVs and settings, and export files. None of this spends credits.' },
-  { name: 'Spend', body: 'Use your credits to check your fit and write applications. Any tool that costs credits needs this.' },
+  { name: 'Spend', body: 'Use your credits to check your fit and write applications. Any tool that costs credits needs this, and so do screening answers, which use a limited number of turns.' },
 ];
 
 const h2 = 'text-[28px] md:text-[34px] font-semibold text-navy-600 leading-[1.1] mb-4';
@@ -193,7 +193,7 @@ export default function IntegrationsPage() {
 
             <h3 className="text-2xl font-semibold text-navy-600 mt-12 mb-2">What costs credits</h3>
             <p className={`${p} mb-4`}>
-              These tools cost the same as in the web app. Everything else is free.
+              These tools cost the same as in the web app. Screening answers are free but need Spend access. Everything else is free.
             </p>
             <div
               className="overflow-x-auto bg-cream-50 rounded-2xl border border-cream-200 shadow-sm"
@@ -258,10 +258,27 @@ export default function IntegrationsPage() {
               CV or cover letter has to come from your own CV. It&apos;s designed not to invent facts
               about you, and you review everything before it goes anywhere.
             </p>
-            <p className={p}>
+            <p className={`${p} mb-4`}>
               Useful Apply doesn&apos;t send anything to employers. You do, after you&apos;ve read it.
-              Tools that overwrite or delete are flagged so your assistant can ask you first, and
-              you can undo CV edits.
+            </p>
+            <p className={`${p} mb-4`}>
+              Your assistant&apos;s provider receives the CV and job data it reads, under its own
+              privacy terms. We treat job-ad text as untrusted data, not as instructions.
+            </p>
+            <p className={`${p} mb-4`}>
+              Tools that overwrite or delete ask you to confirm, if your assistant supports
+              confirmation prompts. Dismissing a job, marking it not relevant, deleting and
+              withdrawing feed consent can&apos;t be undone. Undo covers only the last 10 saved
+              versions of your tailored CV, cover letters and emails, kept for 30 days. It doesn&apos;t
+              cover uploading or deleting a CV.
+            </p>
+            <p className={`${p} mb-4`}>
+              Export links are signed and expire after 15 minutes. Daily limits apply: 20 CV
+              uploads, 30 screening answer requests and 60 exported files.
+            </p>
+            <p className={p}>
+              We log which tool ran, which app called it, how long it took and whether it worked.
+              We never log your content.
             </p>
           </div>
         </section>
