@@ -721,7 +721,7 @@ If you want, you can turn on adjacent roles. The feed will also surface related 
 
 Say you spend 45 minutes a day browsing job boards. That is 5 hours a week, and a little over 20 hours a month. Over a five-month search, that is 100 hours of scrolling.
 
-Most of those hours are not producing applications. They are producing a shortlist that you still have to evaluate. The Smart Job Feed compresses that into the 30 seconds it takes to read a curated list with your morning coffee.
+Most of those hours are not producing applications. They are producing a shortlist that you still have to evaluate. The Smart Job Feed compresses that into the 30 seconds it takes to read a curated list you asked for.
 
 The browsing step is done. You move straight to the part that actually matters: deciding which roles deserve a tailored application.
 

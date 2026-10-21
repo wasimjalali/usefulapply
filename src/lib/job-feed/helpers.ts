@@ -174,7 +174,7 @@ export function getJobFeedOverviewState(params: {
   if (!canAccess) return 'upgrade_required';
 
   if (isFreeUser) {
-    // Free users never go through settings setup. Their feed is automatic.
+    // Free users never go through settings setup: their feed needs no configuration (it still only runs when they start it).
     // Without a primary CV the career profile can't be synthesized, so the run
     // would silently degrade - surface a clear "upload your CV" state. With a
     // CV, fall through to the run checks; the first run synthesizes the profile

@@ -259,7 +259,7 @@ const updateFeedSettings = defineTool({
   hints: { readOnly: false, destructive: true, idempotent: true, openWorld: false },
   input: z.object({
     roles: z.array(z.string().trim().min(1).max(80)).min(1).max(8).optional()
-      .describe('Job titles to search for. The daily feed runs a limited number of role and country searches, so fewer roles may be kept than sent; the result lists the searches kept.'),
+      .describe('Job titles to search for. Each feed run makes a limited number of role and country searches, so fewer roles may be kept than sent; the result lists the searches kept.'),
     countries: z.array(z.enum(COUNTRY_CODES)).min(1).max(12).optional()
       .describe(`Countries to search, as two-letter codes: ${COUNTRY_CODES.join(', ')}.`),
     workModes: z.array(z.enum(WORK_MODES)).min(1).max(5).optional()
@@ -533,14 +533,14 @@ const withdrawFeedConsentTool = defineTool({
   name: 'withdraw_feed_consent',
   title: 'Withdraw feed consent',
   description:
-    "Withdraws the user's consent for job feed processing and turns the daily feed off. Saved jobs and settings stay, and only the user can give consent again, in the web app.",
+    "Withdraws the user's consent for job feed processing and switches the feed off. Saved jobs and settings stay, and only the user can give consent again, in the web app.",
   hints: { readOnly: false, destructive: true, idempotent: true, openWorld: false },
   input: z.object({}),
   output: z.object({ withdrawn: z.literal(true) }),
   async confirm(_args, { userId }) {
     const settings = await getSettings(userId);
     if (!settings || (!settings.consent_accepted_at && !settings.enabled)) return null;
-    return 'Stop job feed processing? This withdraws consent and turns the daily feed off, and consent can only be given again in the web app.';
+    return 'Stop job feed processing? This withdraws consent and switches the feed off, and consent can only be given again in the web app.';
   },
   async run(_args, { userId }) {
     return feedCall(async () => {

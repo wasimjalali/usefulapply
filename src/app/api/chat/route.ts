@@ -565,7 +565,7 @@ ${context.certificationsList.slice(0, 500)}`;
 # The app
 - Application kit: the panels on the right of this chat. CV, Cover Letter, Email and Follow-Up, one tab each. The CV tab carries the template strip and the download button.
 - Sidebar: New Application, Job Board, the list of applications and the Application Tracker.
-- Job feed: daily ranked roles from their search settings, with a refresh button and a settings panel. It runs once a day and you can steer it from here.
+- Job feed: ranked roles from their search settings, with a refresh button and a settings panel. It never runs by itself: the user starts it, at most once a day, and you can steer it from here.
 - Tracker: every generated application with its status, interview date and follow-up date.
 - Documents: CV uploads (primary CV, master CV, certifications), in settings.
 - Billing: plan, credit balance and usage, in settings.

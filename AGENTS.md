@@ -127,7 +127,8 @@ Useful Apply is a Next.js 16 app generating job application materials (CV, Cover
 | Action | Credits |
 |--------|---------|
 | Fit Analysis | 0.5 |
-| Full Application (after fit or direct) | 2.0 |
+| Full Application (direct) | 2.0 |
+| Full Application (after a fit) | 1.5 |
 | Cover Letter Regen | 0.5 |
 | Email Regen | 0.5 |
 | Follow-Up Regen | 0.5 |
