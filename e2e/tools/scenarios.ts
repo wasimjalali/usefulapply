@@ -597,7 +597,7 @@ async function main(): Promise<void> {
       return { outcome: inserted.outcome };
     });
 
-    await scenario('d21. a cached fit context for another job: the recipient never crosses jobs', async () => {
+    await scenario('d21. a cached fit context for another job is not reused: the kit is written for the ad the application holds now, and the recipient never crosses jobs', async () => {
       const user = await seedUser('d21', { monthly: 4, addon: 6 });
       const [sessionId] = user.sessionIds;
       const oldAd = String((await one('SELECT job_description FROM application_sessions WHERE id = ?', sessionId)).job_description);
@@ -615,12 +615,15 @@ async function main(): Promise<void> {
       const queued = await runners.enqueueKitGeneration(user.id, sessionId, 'key-d21', { contextId: 'ctx-d21' });
       await deliverUntilSettled(queued.operationId);
       assert.equal((await one('SELECT status FROM agent_operations WHERE id = ?', queued.operationId)).status, 'succeeded');
-      assert.ok((await fakeCalls()).find((call) => call.writer === 'coverLetter'), 'the letter was written');
+      const letterCall = (await fakeCalls()).find((call) => call.writer === 'coverLetter');
+      assert.ok(letterCall, 'the letter was written');
+      // The fit analysed the old ad, so its cached context is not reused: the letter is about the ad the row holds now.
+      assert.ok(letterCall.user.includes('Other Corp'), 'the letter is written for the current ad');
+      assert.ok(!letterCall.user.includes(oldAd.slice(0, 60)), 'the old ad is not in the letter prompt');
       const stored = JSON.parse(String((await one('SELECT cover_letter FROM application_sessions WHERE id = ?', sessionId)).cover_letter));
       assert.ok(stored.structured, 'a structured letter was stored');
-      assert.ok(!JSON.stringify(stored.structured.recipient).includes('NEW-JOB-ADDRESS'), 'the new job\'s saved recipient is not on a letter about the old job');
       const after = await one('SELECT company_address FROM application_sessions WHERE id = ?', sessionId);
-      assert.equal(after.company_address, 'NEW-JOB-ADDRESS 99', 'and nothing from the old job was written over it');
+      assert.equal(after.company_address, 'NEW-JOB-ADDRESS 99', 'and nothing from the old job was written over the saved recipient');
       return { letterPromptChecked: true };
     });
 
