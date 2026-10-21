@@ -22,6 +22,7 @@ import {
   type ResolvedCVSection,
 } from '@/lib/agents/unified-writer-agent';
 import type { MasterContext } from '@/lib/agents/types';
+import { loadApplicantLogistics } from '@/lib/profile/logistics.server';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { MAX_INSTRUCTION_CHARS, flattenInstruction } from '@/lib/agents/chat-tools/untrusted';
 import { saveLetterRecipientFromAd } from '@/lib/agents/persist-letter-recipient';
@@ -250,6 +251,11 @@ export async function prepareRegeneration(userId: string, request: RegenerateReq
         if (persistedLanguage.error) throw persistedLanguage.error;
       }
 
+      // The applicant's saved start date and salary expectation, read fresh from D1 (an answer saved
+      // after the kit was written still counts). Not swallowed: a failed read fails the generation,
+      // which both callers release as for any other failure. A CV section has no use for them.
+      const logistics = request.type === 'cv_section' ? undefined : await loadApplicantLogistics(userId);
+
       // CRITICAL: masterCV, verifiedMetrics, and match must be passed through so that
       // anti-hallucination rules have the same source data as first generation.
       const masterContext: MasterContext = {
@@ -281,6 +287,7 @@ export async function prepareRegeneration(userId: string, request: RegenerateReq
           address: session.company_address,
           contactPerson: session.company_contact_person,
         },
+        logistics,
       };
 
       if (request.type === 'cover-letter') {
