@@ -1,0 +1,1292 @@
+{
+  "engine": "new",
+  "mutation": "M-r3-H2 an entry a merge makes names no editor, and an entry that names no editor reaches every editor of its group (round 2 finding H2)",
+  "from": 1,
+  "count": 2000,
+  "ops": 60,
+  "totals": {
+    "ops": 120000,
+    "edits": 41047,
+    "editorSaves": 7424,
+    "typedDuringSave": 1308,
+    "regens": 0,
+    "workflows": 0,
+    "trackerWrites": 0,
+    "silentWrites": 0,
+    "restores": 0,
+    "copies": 0,
+    "cancels": 0,
+    "panelOpens": 999,
+    "agentWrites": 12490,
+    "handoffs": 0,
+    "polls": 16995,
+    "saves": 17210,
+    "requests": 90838,
+    "dropped": 5459,
+    "lostAnswers": 4095,
+    "hung": 5402,
+    "conflictNotices": 10671,
+    "failureNotices": 3717,
+    "settleRounds": 5028
+  },
+  "byInvariant": {
+    "I6": 122
+  },
+  "byKind": {
+    "I6: TAB cv editor on APP was reset for cv by an acknowledgement of an entry it did not produce": 37,
+    "I6: TAB COLUMN editor on APP was reset for COLUMN by an acknowledgement of an entry it did not produce": 22,
+    "I6: TAB COLUMN panel editor on APP was reset for followUpEmail by an acknowledgement of an entry it did not produce": 12,
+    "I6: TAB COLUMN panel editor on APP was reset for COLUMN by an acknowledgement of an entry it did not produce": 14,
+    "I6: TAB coverLetter editor on APP was reset for coverLetter by an acknowledgement of an entry it did not produce": 23,
+    "I6: TAB followUpEmail editor on APP was reset for followUpEmail by an acknowledgement of an entry it did not produce": 19
+  },
+  "failingSeeds": [
+    7,
+    29,
+    32,
+    33,
+    56,
+    83,
+    84,
+    97,
+    98,
+    120,
+    123,
+    138,
+    144,
+    162,
+    193,
+    197,
+    238,
+    266,
+    284,
+    285,
+    287,
+    322,
+    330,
+    352,
+    378,
+    384,
+    385,
+    441,
+    459,
+    476,
+    503,
+    504,
+    532,
+    534,
+    551,
+    585,
+    587,
+    589,
+    606,
+    634,
+    672,
+    673,
+    685,
+    695,
+    699,
+    715,
+    776,
+    778,
+    780,
+    800,
+    803,
+    814,
+    840,
+    908,
+    927,
+    950,
+    951,
+    959,
+    971,
+    990,
+    991,
+    1006,
+    1023,
+    1040,
+    1048,
+    1051,
+    1082,
+    1092,
+    1143,
+    1145,
+    1151,
+    1155,
+    1222,
+    1227,
+    1242,
+    1258,
+    1294,
+    1295,
+    1340,
+    1378,
+    1397,
+    1421,
+    1448,
+    1458,
+    1485,
+    1489,
+    1536,
+    1539,
+    1543,
+    1549,
+    1550,
+    1554,
+    1558,
+    1616,
+    1626,
+    1630,
+    1676,
+    1682,
+    1695,
+    1721,
+    1728,
+    1759,
+    1767,
+    1774,
+    1777,
+    1788,
+    1795,
+    1797,
+    1804,
+    1806,
+    1810,
+    1817,
+    1819,
+    1833,
+    1839,
+    1861,
+    1870,
+    1887,
+    1902,
+    1928,
+    1962,
+    1989
+  ],
+  "failures": [
+    {
+      "seed": 7,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 29,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 32,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 33,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 56,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 83,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 84,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 97,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 98,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 120,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 123,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 138,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 144,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 162,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 193,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 197,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 238,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 266,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 284,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 285,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 287,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 322,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 330,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 352,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 378,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 384,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 385,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 441,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 459,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 476,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 503,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 504,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 532,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 534,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 551,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 585,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 587,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 589,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 606,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 634,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 672,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 673,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 685,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 695,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 699,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 715,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 776,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 778,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 780,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 800,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 803,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 814,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 840,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 908,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 927,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 950,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 951,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 959,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 971,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 990,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 991,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1006,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1023,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1040,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1048,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1051,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1082,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1092,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1143,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1145,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1151,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1155,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1222,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1227,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1242,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1258,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1294,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1295,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1340,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1378,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1397,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1421,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1448,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1458,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1485,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1489,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1536,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1539,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1543,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1549,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1550,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1554,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1558,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1616,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1626,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1630,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1676,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1682,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1695,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1721,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1728,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1759,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1767,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1774,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1777,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1788,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1795,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1797,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1804,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1806,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1810,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email panel editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1817,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's followUpEmail editor on app-1 was reset for followUpEmail by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1819,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1833,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1839,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1861,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1870,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1887,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1902,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1928,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "A's email panel editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1962,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's cv editor on app-1 was reset for cv by an acknowledgement of an entry it did not produce"
+        },
+        {
+          "code": "I6",
+          "message": "B's coverLetter editor on app-1 was reset for coverLetter by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    },
+    {
+      "seed": 1989,
+      "violations": [
+        {
+          "code": "I6",
+          "message": "B's email editor on app-1 was reset for email by an acknowledgement of an entry it did not produce"
+        }
+      ]
+    }
+  ],
+  "cases": []
+}

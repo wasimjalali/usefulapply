@@ -7,7 +7,18 @@ the original is put back after every run, also on error.
     python3 e2e/tools/sync-fuzz/mutations.py [name-prefix ...]      # MUTATION_SEEDS=4000 to run more seeds per mutation
 
 Prints one line per mutation: how many of the seeds (400 by default) fail (and the deterministic cases that fail).
-A mutation that no seed catches is reported as SURVIVED. Writes nothing else.
+A mutation that no seed catches is reported as SURVIVED; a run that crashes is reported as CRASHED and counts as
+not caught. Writes nothing else.
+
+    python3 e2e/tools/sync-fuzz/mutations.py --apply <name-prefix> -- <command ...>
+
+Applies that one mutation, runs the command from the repo root with SYNC_FUZZ_MUTATION set to the mutation's
+name (sync-fuzz.ts prints it and writes it into its --out file), then puts the engine back. per-bug.sh uses this
+for its "before" runs, so a before file says which mutation made it.
+
+Both modes refuse to start unless src/lib/session-sync-engine.ts matches git HEAD (a run that was killed, or one still
+running next to this one, leaves it mutated, and copying that as the "original" would make the damage stick), so
+commit engine changes first. After putting the engine back they check it matches HEAD again and fail loudly if not.
 """
 import os
 import shutil
@@ -17,19 +28,85 @@ import tempfile
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 ENGINE = os.path.join(ROOT, 'src', 'lib', 'session-sync-engine.ts')
+ENGINE_REL = os.path.join('src', 'lib', 'session-sync-engine.ts')
+
+
+def engine_matches_head() -> bool:
+    """Does the engine on disk match git HEAD? A git error is raised, never read as an answer."""
+    out = subprocess.run(['git', 'diff', '--quiet', 'HEAD', '--', ENGINE_REL], cwd=ROOT, capture_output=True, text=True)
+    if out.returncode not in (0, 1):
+        raise RuntimeError(f'git diff failed (exit {out.returncode}): {out.stderr.strip()}')
+    return out.returncode == 0
+
+
+def refuse_unless_clean() -> bool:
+    if engine_matches_head():
+        return True
+    print(f'{ENGINE_REL} differs from git HEAD: an earlier run may have left a mutation in it, or another run is going.'
+          f' Check `git diff HEAD -- {ENGINE_REL}`, commit or restore it, then run again.', file=sys.stderr)
+    return False
+
+
+def restored_or_fail() -> int:
+    if engine_matches_head():
+        return 0
+    print(f'{ENGINE_REL} was NOT restored to git HEAD after the run. Inspect `git diff HEAD -- {ENGINE_REL}`.', file=sys.stderr)
+    return 3
 
 MUTATIONS = {
+    'M-discard-rebase Discard acknowledges like Restore and Copy (the open editor keeps the discarded draft)': (
+        "    acknowledgeConflict(sessionId, entries, true);",
+        "    acknowledgeConflict(sessionId, entries);",
+    ),
+    'M-discard-scope Discard and every other acknowledgement name every field group and reach every editor of it, whatever its lineage (PR #159 at f7c359a6, finding 1)': [
+        (
+            "entries: entries.map((entry) => ({ id: entry.id, group: entry.key, editors: [...entry.editors], fields: { ...seen(entry) } })),",
+            "entries: FIELD_GROUPS.map((group) => ({ id: '', group: group.key, editors: [], fields: {} })),",
+        ),
+        (
+            "  const named = ack.entries.filter((entry) => groups.includes(entry.group));\n  const mine = named.filter((entry) => entry.editors.includes(start.lineage));",
+            "  const named = ack.entries.filter((entry) => groups.includes(entry.group));\n  const mine = named;",
+        ),
+    ],
+    'M-discard-inflight a save that was running when its draft was discarded reopens the draft, and a draft that lost its EditorStart is saved unchecked (finding 2: no discard epoch, no stale start)': [
+        (
+            "  if (editorSaveSucceeded(outcome) || epochAtSave !== epochNow) return { reopen: false };",
+            "  if (editorSaveSucceeded(outcome)) return { reopen: false };",
+        ),
+        (
+            "  return { reopen: true, start: start ?? staleEditorStart() };",
+            "  return { reopen: true, start: start as EditorStart };",
+        ),
+    ],
+    'M-pr159 findings 1 and 2 together: what f7c359a6 did with the discard (all editors notified, no epoch, no stale start)': [
+        (
+            "entries: entries.map((entry) => ({ id: entry.id, group: entry.key, editors: [...entry.editors], fields: { ...seen(entry) } })),",
+            "entries: FIELD_GROUPS.map((group) => ({ id: '', group: group.key, editors: [], fields: {} })),",
+        ),
+        (
+            "  const named = ack.entries.filter((entry) => groups.includes(entry.group));\n  const mine = named.filter((entry) => entry.editors.includes(start.lineage));",
+            "  const named = ack.entries.filter((entry) => groups.includes(entry.group));\n  const mine = named;",
+        ),
+        (
+            "  if (editorSaveSucceeded(outcome) || epochAtSave !== epochNow) return { reopen: false };",
+            "  if (editorSaveSucceeded(outcome)) return { reopen: false };",
+        ),
+        (
+            "  return { reopen: true, start: start ?? staleEditorStart() };",
+            "  return { reopen: true, start: start as EditorStart };",
+        ),
+    ],
     'M1 accept rows that are not newer than the baseline': (
         "if (base && !options.force && (incoming < base.revision || (incoming === base.revision && !explicitLoad))) {",
         "if (false) {",
     ),
     'M2 a conflict drops the user text (no buffer entry)': (
-        "      conflicts.push(makeEntry(group, local, merged));",
+        "      conflicts.push(makeEntry(group, local, merged, serverFp, draftEditorsOf(sessionId, group, local, merged)));",
         "      void makeEntry;",
     ),
     'M3 a conflict keeps the local value (the server change is lost)': (
-        "      conflicts.push(makeEntry(group, local, merged));",
-        "      for (const prop of group.props) (merged as unknown as Record<string, unknown>)[prop] = local[prop];\n      conflicts.push(makeEntry(group, local, merged));",
+        "      conflicts.push(makeEntry(group, local, merged, serverFp, draftEditorsOf(sessionId, group, local, merged)));",
+        "      for (const prop of group.props) (merged as unknown as Record<string, unknown>)[prop] = local[prop];\n      conflicts.push(makeEntry(group, local, merged, serverFp, draftEditorsOf(sessionId, group, local, merged)));",
     ),
     'M4 polling skips while there is an unsaved change': (
         "    if (!remote || remote.revision <= base.revision) return 'unchanged';",
@@ -77,8 +154,8 @@ MUTATIONS = {
             "        const blocked = false;",
         ),
         (
-            "        for (const prop of entry.changed) (next as unknown as Record<string, unknown>)[prop] = entry.props[prop];\n        buffer?.delete(entry.id);",
-            "        for (const prop of entry.changed) if (!userEdited(sessionId, session, prop)) (next as unknown as Record<string, unknown>)[prop] = entry.props[prop];\n        buffer?.delete(entry.id);",
+            "        for (const prop of entry.changed) {\n          (next as unknown as Record<string, unknown>)[prop] = entry.props[prop];",
+            "        for (const prop of entry.changed) {\n          if (userEdited(sessionId, session, prop)) continue;\n          (next as unknown as Record<string, unknown>)[prop] = entry.props[prop];",
         ),
     ],
     'M15 a full buffer forgets its oldest entry even if unsettled': [
@@ -92,9 +169,53 @@ MUTATIONS = {
         "        const blocked = entry.changed.some((prop) => userEdited(sessionId, session, prop)\n          || (server !== undefined && !sameValue(server[prop], entry.base[prop])));",
         "        const blocked = entry.changed.some((prop) => userEdited(sessionId, session, prop));",
     ),
-    'M18 a rebased editor forgets which columns its draft sets': (
-        "lineage: previous?.lineage ?? { columns: new Set<string>() } };",
-        "lineage: { columns: new Set<string>() } };",
+    'M18 an editor rebased after a confirmed save gets a new, empty lineage (it forgets which columns its draft sets, and the entries and acknowledgements of its earlier tries no longer name it)': (
+        "    return { revision: base?.revision ?? start.revision, fields, lineage: start.lineage };",
+        "    return { revision: base?.revision ?? start.revision, fields, lineage: { columns: new Set<string>() } };",
+    ),
+    'M-r3-H1 an acknowledgement moves the whole snapshot of the producing editor, not only the entry\'s group (the email panel\'s follow-up moves with the email; round 2 finding H1)': (
+        "    for (const column of group.columns) if (column in serverFields) fields[column] = serverFields[column];",
+        "    Object.assign(fields, serverFields);",
+    ),
+    'M-r3-H2 an entry a merge makes names no editor, and an entry that names no editor reaches every editor of its group (round 2 finding H2)': [
+        (
+            "      conflicts.push(makeEntry(group, local, merged, serverFp, draftEditorsOf(sessionId, group, local, merged)));",
+            "      conflicts.push(makeEntry(group, local, merged, serverFp, []));",
+        ),
+        (
+            "  const mine = named.filter((entry) => entry.editors.includes(start.lineage));",
+            "  const mine = named.filter((entry) => entry.editors.length === 0 || entry.editors.includes(start.lineage));",
+        ),
+    ],
+    'M-r3-H3 Restore and Copy reach every editor of the entry\'s group, whatever its lineage (round 2 finding H3)': [
+        (
+            "  if (mine.length === 0) return 'ignore';\n  return ack.discarded ? 'reset' : 'rebase';",
+            "  if (!ack.discarded && named.length > 0) return 'rebase';\n  if (mine.length === 0) return 'ignore';\n  return ack.discarded ? 'reset' : 'rebase';",
+        ),
+        (
+            "    if (groups.includes(entry.group) && entry.editors.includes(start.lineage)) Object.assign(fields, entry.fields);",
+            "    if (groups.includes(entry.group)) Object.assign(fields, entry.fields);",
+        ),
+    ],
+    'M-r3-moved-only an editor conflict sets aside only the groups that moved (the email panel\'s other document is kept nowhere; round 3 I1 seeds 181, 865, 1568)': (
+        "        for (const column of [...moved, ...touched]) {",
+        "        for (const column of moved) {",
+    ),
+    'M-r3-store-draft a draft the store already holds (a Restore whose save failed) still counts as a stale draft, so its conflict entry holds no text (round 3 I6 seeds 5876, 7790, 7876)': (
+        "      const moved = touched.filter((column) => base.fields[column] !== checked.fields[column] && draftFp[column] !== base.fields[column]\n        && draftFp[column] !== beforeFp[column]);",
+        "      const moved = touched.filter((column) => base.fields[column] !== checked.fields[column] && draftFp[column] !== base.fields[column]);",
+    ),
+    'M-r3x-discard-lineage a partial Discard leaves the discarded document\'s columns in the editor\'s lineage (a later save of the other document rebases them, and the stale copy then saves over a newer server version; review round 3 high)': (
+        "  for (const group of FIELD_GROUPS) if (groups.includes(group.key)) for (const column of group.columns) start.lineage.columns.delete(column);",
+        "  void groups;",
+    ),
+    'M-r3y-discard-snapshot a partial Discard leaves the discarded document\'s snapshot on the version before the conflict (an edit of the copy the panel shows is a false conflict; review round 3 extra low)': (
+        "    return rebaseEditorStart(sessionId, start, columns);\n  }",
+        "    void columns;\n    return start;\n  }",
+    ),
+    'M-r4-queued-discard a save that waited for the lock writes a draft the user discarded after clicking Save (it comes back as a new notice; final check after review round 3, low 1)': (
+        "  return discardsAtSave !== discardsNow;",
+        "  void discardsAtSave;\n  void discardsNow;\n  return false;",
     ),
     'M16 Copy with nothing left copies an empty string': (
         "    if (text.trim() === '') return null;",
@@ -110,12 +231,53 @@ def run_fuzz() -> str:
     )
     lines = [line for line in out.stdout.splitlines() if line.startswith('failing seeds') or line.startswith('FAIL')]
     failing_cases = [line[6:60] for line in lines if line.startswith('FAIL')]
-    summary = next((line for line in lines if line.startswith('failing seeds')), 'no summary: ' + out.stderr[-200:])
+    summary = next((line for line in lines if line.startswith('failing seeds')), None)
+    # 0 = no failing seed, 1 = failing seeds; anything else (or no summary) is a crash, never a catch.
+    if summary is None or out.returncode not in (0, 1):
+        return f'CRASHED (exit {out.returncode}): ' + (out.stderr or out.stdout)[-200:]
     return summary + ('  cases: ' + '; '.join(failing_cases) if failing_cases else '')
 
 
+def apply_and_run(prefix: str, command: list) -> int:
+    matches = [name for name in MUTATIONS if name.startswith(prefix)]
+    if len(matches) != 1:
+        print(f'--apply {prefix!r} matches {len(matches)} mutations; give a name prefix that matches exactly one', file=sys.stderr)
+        return 2
+    name = matches[0]
+    if not refuse_unless_clean():
+        return 2
+    change = MUTATIONS[name]
+    pairs = change if isinstance(change, list) else [change]
+    backup = os.path.join(tempfile.mkdtemp(), 'engine.orig.ts')
+    shutil.copy(ENGINE, backup)
+    original = open(backup).read()
+    missing = [old for old, _ in pairs if old not in original]
+    if missing:
+        print(f'{name}: PATTERN NOT FOUND (the engine changed; update this script)', file=sys.stderr)
+        return 2
+    mutated = original
+    for old, new in pairs:
+        mutated = mutated.replace(old, new, 1)
+    try:
+        with open(ENGINE, 'w') as handle:
+            handle.write(mutated)
+        print(f'mutation applied: {name}', file=sys.stderr)
+        status = subprocess.run(command, cwd=ROOT, env={**os.environ, 'SYNC_FUZZ_MUTATION': name}).returncode
+    finally:
+        shutil.copy(backup, ENGINE)
+    return restored_or_fail() or status
+
+
 def main() -> int:
-    wanted = sys.argv[1:]
+    args = sys.argv[1:]
+    if args and args[0] == '--apply':
+        if len(args) < 4 or args[2] != '--':
+            print('usage: mutations.py --apply <name-prefix> -- <command ...>', file=sys.stderr)
+            return 2
+        return apply_and_run(args[1], args[3:])
+    wanted = args
+    if not refuse_unless_clean():
+        return 2
     backup = os.path.join(tempfile.mkdtemp(), 'engine.orig.ts')
     shutil.copy(ENGINE, backup)
     original = open(backup).read()
@@ -136,13 +298,13 @@ def main() -> int:
             with open(ENGINE, 'w') as handle:
                 handle.write(mutated)
             result = run_fuzz()
-            caught = not result.startswith('failing seeds: 0') or 'cases:' in result
+            caught = not result.startswith('CRASHED') and (not result.startswith('failing seeds: 0') or 'cases:' in result)
             if not caught:
                 survived += 1
             print(f"{name} -> {result if caught else 'SURVIVED  ' + result}")
     finally:
         shutil.copy(backup, ENGINE)
-    return 1 if survived else 0
+    return restored_or_fail() or (1 if survived else 0)
 
 
 if __name__ == '__main__':

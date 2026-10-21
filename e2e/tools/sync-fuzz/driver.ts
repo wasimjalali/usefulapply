@@ -42,10 +42,19 @@
  *       over a converged world raises no notice and makes no write.
  *   I5  refused fields do not block others: covered by I3, plus a refused
  *       value must be listed as rejected, not silently dropped.
+ *   I6  an acknowledgement (Restore, Copy, Discard) reaches only the editor that
+ *       produced the conflict entry, and only the entry's field group: any other
+ *       editor, and any other group of the same editor (the email panel holds
+ *       the application email and the follow-up), keeps its stale-check snapshot.
+ *       Discard resets the editor whose typed text it throws away. And no editor
+ *       Save writes a group over a server value that editor was not shown (at
+ *       open, or by a notice it produced and acknowledged) and did not write
+ *       itself, without a conflict.
  */
 
 import { columnFingerprints } from '@/lib/session-sync-engine';
 import type { SyncNotice } from '@/lib/session-sync-engine';
+import type { ApplicationSession } from '@/store/useSessionStore';
 import type { Adapter, EngineVariantName, MutationResponse } from './adapters';
 import { fieldMutation, kitProps, legacyClient, loadEngine, newClient, responseProps, tokensIn } from './adapters';
 import {
@@ -53,7 +62,7 @@ import {
   type Field, type Rng,
 } from './world';
 
-export type InvariantCode = 'I1' | 'I2' | 'I3' | 'I4' | 'I5' | 'ERR';
+export type InvariantCode = 'I1' | 'I2' | 'I3' | 'I4' | 'I5' | 'I6' | 'ERR';
 
 export interface Violation {
   code: InvariantCode;
@@ -71,6 +80,8 @@ export interface RunStats {
   silentWrites: number;
   restores: number;
   copies: number;
+  cancels: number;
+  panelOpens: number;
   agentWrites: number;
   handoffs: number;
   polls: number;
@@ -86,7 +97,7 @@ export interface RunStats {
 
 export const emptyStats = (): RunStats => ({
   ops: 0, edits: 0, editorSaves: 0, typedDuringSave: 0, regens: 0, workflows: 0, trackerWrites: 0, silentWrites: 0,
-  restores: 0, copies: 0, agentWrites: 0, handoffs: 0, polls: 0, saves: 0, requests: 0, dropped: 0, lostAnswers: 0,
+  restores: 0, copies: 0, cancels: 0, panelOpens: 0, agentWrites: 0, handoffs: 0, polls: 0, saves: 0, requests: 0, dropped: 0, lostAnswers: 0,
   hung: 0, conflictNotices: 0, failureNotices: 0, settleRounds: 0,
 });
 
@@ -108,14 +119,51 @@ interface EditRecord {
 interface Editor {
   client: Adapter;
   app: string;
-  field: Field;
-  /** What the user has typed so far. */
-  draft: string;
-  /** Every draft this editor held or sent, for the I1 accounting. */
+  /** The field groups it edits: one, or the email panel's two documents (the application email and the follow-up). */
+  fields: Field[];
+  /** The text typed into each field, latest first. A field of the email panel nobody typed into has none. */
+  drafts: Partial<Record<Field, string>>;
+  /** The email panel's copy of a document it opened with and nobody typed into: shown in the panel, never written by Save. */
+  copies: Partial<Record<Field, Partial<ApplicationSession>>>;
+  /** Every draft this editor held or sent, for the I1 accounting, and per field. */
   tokens: Set<string>;
+  tokensByField: Partial<Record<Field, Set<string>>>;
   start: unknown;
   committing: boolean;
+  /** Whether the editor had a start when it opened. One that has lost it must never save as if it had none. */
+  hadStart: boolean;
+  /** The CV panel closes its editor when Save is clicked and reopens it only if the save did not land. */
+  closesOnSave: boolean;
+  /** Counts the discards of this editor's text, as the panels do: a save started before one must not reopen the draft. */
+  epoch: number;
+  /** The same discards, per field: a save waiting for the lock does not write a field discarded since its Save was clicked. */
+  discards: Partial<Record<Field, number>>;
+  /** The CV panel: a Discard reset it while its save ran. It is closed, has let go of its draft and acts on nothing more. */
+  released?: boolean;
+  /** I6: per column#part, the server values this editor may write over: shown at open, shown by a notice it produced and acknowledged, or its own draft. */
+  allowed: Map<string, Set<string>>;
+  /** I6: per store property, the fingerprint of every value this editor's Save put into the store (to tell which entries it produced). */
+  appliedProps: Map<string, Set<string>>;
+  /** I6: per column#part, the values this editor's Save put into the store (a write is the editor's where it carries one). */
+  ownParts: Map<string, Set<string>>;
+  label: string;
 }
+
+/** The store property that holds the text typed into an editor's field. */
+const TEXT_PROP: Partial<Record<Field, keyof ApplicationSession>> = {
+  coverLetter: 'coverLetter',
+  email: 'email',
+  followUpEmail: 'followUpEmail',
+  cv: 'optimizedCVData',
+};
+
+/** The store properties an editor's field sets. */
+const EDITOR_PROPS: Partial<Record<Field, (keyof ApplicationSession)[]>> = {
+  coverLetter: ['coverLetter'],
+  email: ['email'],
+  followUpEmail: ['followUpEmail'],
+  cv: ['generatedCV', 'optimizedCVData', 'screeningAnswers', 'screeningUsageCount'],
+};
 
 export const GROUP_COLUMNS: Record<Field, string[]> = {
   jobTitle: ['job_title'],
@@ -244,7 +292,7 @@ export async function settleAndVerify(ctx: VerifyContext): Promise<void> {
   }
 }
 
-export const OP_NAMES = ['edit', 'save', 'poll', 'editorOpen', 'type', 'editorSave', 'regen', 'workflow', 'tracker', 'agent', 'workflowWrite', 'silentRequirements', 'tabWrite', 'handoff', 'openOther', 'reopen', 'restore', 'copy', 'dismiss'] as const;
+export const OP_NAMES = ['edit', 'save', 'poll', 'editorOpen', 'type', 'editorSave', 'regen', 'workflow', 'tracker', 'agent', 'workflowWrite', 'silentRequirements', 'tabWrite', 'handoff', 'openOther', 'reopen', 'restore', 'copy', 'dismiss', 'cancel'] as const;
 
 export interface RunOptions {
   /** `new`: the current engine and glue. `round2`: the review-round-2 engine, glue and server. `legacy`: the round-1 module. */
@@ -339,11 +387,66 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
       }
     }
   };
+  // -- I6: each editor's own snapshot, modelled here independently of the engine's EditorStart --------------
+  /** Per client|entry id: the server's value (column#part) of the entry's group when its notice was raised, i.e. what the notice showed. */
+  const shownByEntry = new Map<string, Map<string, string>>();
+  /** Editors whose commit holds the lock with their draft applied, with the fields that commit put into the store. */
+  const applying = new Map<Editor, Field[]>();
+  const columnsOf = (fields: Field[]) => [...new Set(fields.flatMap((field) => GROUP_COLUMNS[field]))];
+  const allow = (editor: Editor, values: Map<string, string> | Record<string, string>, columns: string[], only?: (key: string, value: string) => boolean) => {
+    const entries = values instanceof Map
+      ? [...values.entries()]
+      : columns.filter((column) => column in values).flatMap((column) => Object.entries(parts(column, values[column])).map(([part, value]) => [`${column}#${part}`, value] as [string, string]));
+    for (const [key, value] of entries) {
+      if (!columns.includes(key.split('#')[0]) || (only && !only(key, value))) continue;
+      if (!editor.allowed.has(key)) editor.allowed.set(key, new Set());
+      editor.allowed.get(key)!.add(value);
+    }
+  };
+  /** Did this editor's Save put the user text of this entry into the store? Then the entry is its own. */
+  const produced = (editor: Editor, info: { group: string; changed: Record<string, string> } | undefined) =>
+    info !== undefined && editor.fields.includes(info.group as Field)
+    && Object.entries(info.changed).some(([prop, fp]) => editor.appliedProps.get(prop)?.has(fp));
+  const recordShown = (client: Adapter, notice: SyncNotice) => {
+    const base = notice.conflictFor ? client.baseline(notice.conflictFor) : undefined;
+    const truth = base && notice.conflictFor ? server.truth(notice.conflictFor, base.revision) : null;
+    if (!truth) return;
+    for (const entry of client.noticeEntries(notice)) {
+      const key = `${client.id}|${entry.id}`;
+      const info = client.entryInfo(entry.id);
+      if (shownByEntry.has(key) || !info) continue;
+      const shown = new Map<string, string>();
+      for (const column of info.columns) {
+        if (column in truth) for (const [part, value] of Object.entries(parts(column, truth[column]))) shown.set(`${column}#${part}`, value);
+      }
+      shownByEntry.set(key, shown);
+    }
+  };
+
   server.onAccept = (by, app, overwritten, patchJson) => {
     if (!clients.some((client) => client.id === by)) return;
     say(`   server accepts ${by}'s write to ${app}: ${tokensIn(patchJson).join(' ')}`);
     // A save may only overwrite a server value its writer has displayed (or written itself).
     const patch = JSON.parse(patchJson) as Record<string, unknown>;
+    // I6: an editor's Save writes a group only over a server value that editor was shown, acknowledged, or wrote itself.
+    for (const [editor, fields] of applying) {
+      if (editor.client.id !== by || editor.app !== app) continue;
+      for (const field of fields) {
+        for (const column of GROUP_COLUMNS[field]) {
+          if (!(column in patch) || !(column in overwritten)) continue;
+          const before = parts(column, overwritten[column]);
+          const after = parts(column, JSON.stringify(patch[column] ?? null));
+          for (const part of Object.keys({ ...before, ...after })) {
+            if (before[part] === undefined || before[part] === after[part]) continue;
+            // Only what this editor's draft wrote: a store edit that landed in the same column during the save is not the editor's.
+            if (!editor.ownParts.get(`${column}#${part}`)?.has(after[part])) continue;
+            if (!editor.allowed.get(`${column}#${part}`)?.has(before[part])) {
+              violate('I6', `${by}'s ${editor.label} editor saved ${column} of ${app} over a server value of ${field} that changed since that editor's snapshot of it, with no conflict (server ${before[part].slice(0, 60)})`);
+            }
+          }
+        }
+      }
+    }
     const unseenColumns = new Set<string>();
     for (const [column, fp] of Object.entries(overwritten)) {
       const before = parts(column, fp);
@@ -378,12 +481,18 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
     const variant: EngineVariantName = options.engine === 'round2' ? 'round2' : 'current';
     const engineModule = await loadEngine(variant);
     for (const id of ['A', 'B']) {
-      clients.push(newClient(id, world, engineModule, variant, { onSaveCall: (app, expected) => {
-        const adapter = clients.find((client) => client.id === id)!;
-        const base = adapter.baseline(app);
-        if (base && base.revision !== expected) violate('I2', `${id} saved ${app} against revision ${expected} but its baseline is ${base.revision}`);
-        checkBaseline(adapter, app, 'at save');
-      } }));
+      clients.push(newClient(id, world, engineModule, variant, {
+        onSaveCall: (app, expected) => {
+          const adapter = clients.find((client) => client.id === id)!;
+          const base = adapter.baseline(app);
+          if (base && base.revision !== expected) violate('I2', `${id} saved ${app} against revision ${expected} but its baseline is ${base.revision}`);
+          checkBaseline(adapter, app, 'at save');
+        },
+        onNotice: (notice) => {
+          const adapter = clients.find((client) => client.id === id);
+          if (adapter) recordShown(adapter, notice);
+        },
+      }));
     }
   }
 
@@ -430,8 +539,12 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
     lastEdit.set(keyOf(client.id, app, field), { client: client.id, app, field, token, viaEditor });
 
   // -- operations ---------------------------------------------------------
+  /** Only the email panel writes the application email and the follow-up into a tab's store; while it is open nothing else does. */
+  const panelHolds = (client: Adapter, app: string, field: Field) =>
+    (field === 'email' || field === 'followUpEmail') && editors.some((editor) => editor.client === client && editor.app === app && editor.fields.length > 1);
   const doEdit = (client: Adapter, app: string, bad = false) => {
     const field = pick(rng, FIELDS);
+    if (panelHolds(client, app, field)) return;
     const token = nextToken(client.id);
     client.edit(app, fieldMutation(field, token, bad && field === 'jobDescription'));
     record(client, app, field, token, false);
@@ -440,10 +553,96 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
   };
 
   const noticesWithText = (client: Adapter) => client.notices.filter((notice) => notice.conflictFor);
-  // The panels rebase an open editor when the user has dealt with a conflict notice.
+  const dropEditor = (editor: Editor) => {
+    const index = editors.indexOf(editor);
+    if (index >= 0) editors.splice(index, 1);
+    for (const token of editor.tokens) openEditorTokens.delete(token);
+  };
+  // The panels act on an acknowledgement through the engine's own rules (acknowledgementFor, acknowledgedStart), per
+  // field group: the producing editor rebases that group on Restore and Copy and, on Discard, drops that group's draft
+  // as Cancel does (the email panel keeps the other document); everything else is left alone. I6 checks the scope.
   for (const client of clients) {
-    client.subscribeAcknowledged((app) => {
-      for (const editor of editors) if (editor.client === client && editor.app === app) editor.start = client.editorStart(app, editor.start);
+    client.subscribeAcknowledged((app, ack) => {
+      const infos = ack.entries.map((entry) => ({ entry, info: client.entryInfo(entry.id) }));
+      for (const editor of [...editors]) {
+        if (editor.client !== client || editor.app !== app) continue;
+        const actions = editor.fields.map((field) => client.acknowledgementFor(ack, [field], editor.start));
+        say(`   ${client.id}'s ${editor.label} editor on ${app} (drafts ${JSON.stringify(editor.drafts)}) hears ${ack.discarded ? 'a discard' : 'an acknowledgement'} of ${ack.entries.map((entry) => entry.group).join(', ')}: ${actions.join(', ')}`);
+        if (options.engine === 'new') {
+          editor.fields.forEach((field, index) => {
+            const ofField = infos.filter(({ info }) => info?.group === field);
+            if (actions[index] !== 'ignore' && !ofField.some(({ info }) => produced(editor, info))) {
+              violate('I6', `${client.id}'s ${editor.label} editor on ${app} was ${actions[index] === 'reset' ? 'reset' : 'rebased'} for ${field} by an acknowledgement of an entry it did not produce`);
+            }
+            // Discard throws away the text this editor holds now: the editor must let go of it. Not counted: an older
+            // draft it has since typed over (seeds 15239, 21527 at 90 operations), a token found only in a stale copy
+            // embedded in generatedCV rather than in the property that holds the typed text (seed 17252 at 90 operations,
+            // seed 2158 with restricted operations), and a CV editor a Discard already released while its save ran (seed
+            // 1417 with restricted operations).
+            const current = editor.drafts[field];
+            const textProp = TEXT_PROP[field];
+            if (ack.discarded && actions[index] !== 'reset' && current !== undefined && !editor.released && textProp
+              && ofField.some(({ info }) => info?.propTokens[textProp]?.includes(current))) {
+              violate('I6', `${client.id}'s ${editor.label} editor on ${app} kept ${field} text the user discarded (${current}; entries ${JSON.stringify(ofField.map(({ entry, info }) => [entry.id, info?.tokens, entry.editors.length]))})`);
+            }
+          });
+        }
+        const rebased = editor.fields.filter((_, index) => actions[index] === 'rebase');
+        if (rebased.length > 0) {
+          const before = client.startFields(editor.start);
+          const next = client.acknowledgedStart(ack, rebased, editor.start);
+          const after = client.startFields(next);
+          // Only the acknowledged groups move; the editor's other group keeps its snapshot.
+          const movable = new Set(columnsOf(rebased));
+          if (before && after) {
+            for (const column of new Set([...Object.keys(before), ...Object.keys(after)])) {
+              if (!movable.has(column) && before[column] !== after[column]) {
+                violate('I6', `${client.id}'s ${editor.label} editor on ${app} had its snapshot of ${column} moved by an acknowledgement about ${rebased.join(', ')}`);
+              }
+            }
+          }
+          // The model: the producing editor has now seen what each acknowledged entry it produced showed.
+          for (const { entry, info } of infos) {
+            if (!rebased.includes(entry.group as Field) || !produced(editor, info)) continue;
+            const shown = shownByEntry.get(`${client.id}|${entry.id}`);
+            if (shown) allow(editor, shown, columnsOf([entry.group as Field]));
+          }
+          editor.start = next;
+        }
+        const reset = editor.fields.filter((_, index) => actions[index] === 'reset');
+        if (reset.length === 0) continue;
+        // The user threw away the text this editor holds (for the email panel: of one document, or both).
+        editor.epoch += 1;
+        for (const field of reset) editor.discards[field] = (editor.discards[field] ?? 0) + 1;
+        if (reset.length < editor.fields.length) {
+          // The email panel drops that document's draft and shows the store's version again; the other draft stays.
+          // Its draft no longer sets that document, and its snapshot of it is the version the store shows now.
+          const session = client.session(app);
+          editor.start = client.discardedStart(app, editor.start, reset);
+          // I6: the editor now shows the server's version at the tab's baseline for that document.
+          const base = client.baseline(app);
+          const truth = base ? server.truth(app, base.revision) : null;
+          if (truth) allow(editor, truth, columnsOf(reset));
+          for (const field of reset) {
+            for (const token of editor.tokensByField[field] ?? []) discarded.add(token);
+            delete editor.drafts[field];
+            delete editor.copies[field];
+            const props = EDITOR_PROPS[field] ?? [];
+            if (session && props.every((prop) => session[prop] != null)) {
+              editor.copies[field] = Object.fromEntries(props.map((prop) => [prop, session[prop]])) as Partial<ApplicationSession>;
+            }
+          }
+          continue;
+        }
+        for (const token of editor.tokens) discarded.add(token);
+        if (editor.committing && editor.closesOnSave) {
+          // The CV panel's save is still running: its editor is closed, its start is cleared, and the answer decides nothing.
+          editor.start = undefined;
+          editor.released = true;
+        } else {
+          dropEditor(editor);
+        }
+      }
     });
   }
 
@@ -483,25 +682,61 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         const apps = appsOf(client);
         if (!apps.length || editors.filter((editor) => editor.client === client).length >= 2) return;
         const app = pick(rng, apps);
-        const field = pick(rng, EDITOR_FIELDS);
-        const draft = nextToken(client.id);
-        const editor: Editor = { client, app, field, draft, tokens: new Set([draft]), start: client.editorStart(app), committing: false };
+        // The email panel is one editor over two documents: it copies both when it opens and saves the ones typed into.
+        const choice = pick(rng, options.engine === 'new' ? [...EDITOR_FIELDS, 'cv', 'emailPanel'] as const : EDITOR_FIELDS);
+        const panel = choice === 'emailPanel';
+        const fields: Field[] = panel ? ['email', 'followUpEmail'] : [choice as Field];
+        // One email panel per tab: it does not open next to another editor of those documents, and they do not open next to it.
+        const mailEditors = editors.filter((editor) => editor.client === client && editor.app === app
+          && editor.fields.some((field) => field === 'email' || field === 'followUpEmail'));
+        if (panel ? mailEditors.length > 0 : fields.some((field) => panelHolds(client, app, field))) return;
+        const start = client.editorStart(app);
+        const editor: Editor = {
+          client, app, fields, drafts: {}, copies: {}, tokens: new Set(), tokensByField: {}, start, committing: false,
+          hadStart: start !== undefined, closesOnSave: choice === 'cv', epoch: 0, discards: {},
+          allowed: new Map(), appliedProps: new Map(), ownParts: new Map(), label: panel ? 'email panel' : String(choice),
+        };
+        if (panel) {
+          const session = client.session(app);
+          for (const field of fields) {
+            const props = EDITOR_PROPS[field]!;
+            if (session && props.every((prop) => session[prop] != null)) {
+              editor.copies[field] = Object.fromEntries(props.map((prop) => [prop, session[prop]])) as Partial<ApplicationSession>;
+            }
+          }
+          stats.panelOpens += 1;
+        } else {
+          const draft = nextToken(client.id);
+          editor.drafts[fields[0]] = draft;
+          editor.tokens.add(draft);
+          editor.tokensByField[fields[0]] = new Set([draft]);
+          openEditorTokens.add(draft);
+        }
+        // I6: the editor opened on the server's version at the tab's baseline.
+        const base = client.baseline(app);
+        const truth = base ? server.truth(app, base.revision) : null;
+        if (truth) allow(editor, truth, columnsOf(fields));
         editors.push(editor);
-        openEditorTokens.add(draft);
-        say(`${client.id} opens an editor on ${app}.${field} (draft ${draft})`);
+        say(`${client.id} opens the ${editor.label} editor on ${app} (drafts ${JSON.stringify(editor.drafts)})`);
       },
     },
     {
       // The user keeps typing, also while a save is in flight.
       weight: 5,
       run: () => {
-        if (!editors.length) return;
-        const editor = pick(rng, editors);
-        editor.draft = nextToken(editor.client.id);
-        editor.tokens.add(editor.draft);
-        openEditorTokens.add(editor.draft);
+        // An editor that closed on Save (the CV's) cannot be typed into until it reopens.
+        const typable = editors.filter((editor) => !(editor.committing && editor.closesOnSave));
+        if (!typable.length) return;
+        const editor = pick(rng, typable);
+        const field = pick(rng, editor.fields);
+        const token = nextToken(editor.client.id);
+        editor.drafts[field] = token;
+        delete editor.copies[field];
+        editor.tokens.add(token);
+        (editor.tokensByField[field] ??= new Set()).add(token);
+        openEditorTokens.add(token);
         if (editor.committing) stats.typedDuringSave += 1;
-        say(`${editor.client.id} types ${editor.draft} in the editor on ${editor.app}.${editor.field}${editor.committing ? ' (during a save)' : ''}`);
+        say(`${editor.client.id} types ${token} in the ${editor.label} editor on ${editor.app}.${field}${editor.committing ? ' (during a save)' : ''}`);
       },
     },
     {
@@ -512,35 +747,99 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         const editor = pick(rng, open);
         editor.committing = true;
         stats.editorSaves += 1;
-        const { client, app, field } = editor;
-        const sent = editor.draft;
-        deliberate.add(sent);
+        const { client, app } = editor;
+        const sent = { ...editor.drafts };
+        const sentCopies = { ...editor.copies };
+        const sentKey = () => JSON.stringify([sent, Object.keys(sentCopies)]);
+        const nowKey = () => JSON.stringify([editor.drafts, Object.keys(editor.copies)]);
+        const sentTokens = Object.values(sent).filter((token): token is string => Boolean(token));
+        const epochAtSave = editor.epoch;
+        const discardsAtSave = { ...editor.discards };
+        // The fields apply wrote: a field discarded before it ran is skipped, so the answer says nothing about its text.
+        let wroteFields: Field[] = [];
+        for (const token of sentTokens) {
+          if (discarded.has(token)) violate('I1', `${client.id}'s open ${editor.label} editor on ${app} saved ${token}, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)`);
+          deliberate.add(token);
+        }
+        if (editor.hadStart && editor.start === undefined) violate('I1', `${client.id}'s ${editor.label} editor on ${app} saved ${sentTokens.join(' ')} with no EditorStart, so the save is not checked against what the server holds now`);
         const work = client.editorCommit(app, editor.start, () => {
-          client.edit(app, fieldMutation(field, sent));
-          // The draft replaces whatever the store held for that field.
-          lastEdit.set(keyOf(client.id, app, field), { client: client.id, app, field, token: sent, viaEditor: true });
-        }).then((outcome) => {
-          editor.committing = false;
-          say(`${client.id} editor ${app}.${field} sent ${sent} -> ${outcome}`);
-          if (client.editorSucceeded(outcome)) {
-            if (!server.acceptedHas(app, sent)) {
-              violate('I1', `${client.id}'s editor on ${app}.${field} was told "${outcome}" but the server never accepted the draft`);
-            }
-            lastEdit.delete(keyOf(client.id, app, field));
-            openEditorTokens.delete(sent);
+          const before = client.fingerprints(app) ?? {};
+          const appliedFields: Field[] = [];
+          for (const field of editor.fields) {
+            const token = sent[field];
+            // The email panel writes only a document the user typed into; its copy of the other one stays out of the store.
+            if (!token) continue;
+            // apply runs once the lock is free: a field the user discarded since clicking Save is not written (the panels' rule).
+            if (client.discardedSinceSave(discardsAtSave[field] ?? 0, editor.discards[field] ?? 0)) continue;
+            if (discarded.has(token)) violate('I1', `${client.id}'s ${editor.label} editor on ${app} wrote ${token} into the store from a save that waited for the lock, after the user discarded it`);
+            client.edit(app, fieldMutation(field, token));
+            appliedFields.push(field);
+            // The draft replaces whatever the store held for that field.
+            lastEdit.set(keyOf(client.id, app, field), { client: client.id, app, field, token, viaEditor: true });
           }
-          const after = client.editorAfter(app, outcome, sent, editor.draft, editor.start);
-          if (after.close) {
-            if (editor.draft !== sent && !server.acceptedHas(app, editor.draft)) {
-              violate('I1', `${client.id}'s editor on ${app}.${field} closed over text the user typed while the save ran`);
+          // I6: what this editor put into the store is its own text: it may write over it later, and entries holding it are its.
+          const session = client.session(app);
+          const after = client.fingerprints(app) ?? {};
+          for (const field of appliedFields) {
+            for (const prop of EDITOR_PROPS[field] ?? []) {
+              if (!editor.appliedProps.has(prop)) editor.appliedProps.set(prop, new Set());
+              editor.appliedProps.get(prop)!.add(JSON.stringify(session?.[prop] ?? null));
             }
-            const index = editors.indexOf(editor);
-            if (index >= 0) editors.splice(index, 1);
-            for (const token of editor.tokens) openEditorTokens.delete(token);
+          }
+          const changedPart = (key: string, value: string) => {
+            const [column, part] = key.split('#');
+            return parts(column, before[column] ?? 'null')[part] !== value;
+          };
+          allow(editor, after, columnsOf(appliedFields), changedPart);
+          for (const column of columnsOf(appliedFields)) {
+            for (const [part, value] of Object.entries(parts(column, after[column] ?? 'null'))) {
+              if (!changedPart(`${column}#${part}`, value)) continue;
+              if (!editor.ownParts.has(`${column}#${part}`)) editor.ownParts.set(`${column}#${part}`, new Set());
+              editor.ownParts.get(`${column}#${part}`)!.add(value);
+            }
+          }
+          applying.set(editor, appliedFields);
+          wroteFields = appliedFields;
+        }).then((outcome) => {
+          applying.delete(editor);
+          editor.committing = false;
+          say(`${client.id} ${editor.label} editor ${app} sent ${sentKey()} -> ${outcome}`);
+          if (client.editorSucceeded(outcome)) {
+            for (const token of sentTokens) {
+              if (wroteFields.some((field) => sent[field] === token) && !server.acceptedHas(app, token)) {
+                violate('I1', `${client.id}'s ${editor.label} editor on ${app} was told "${outcome}" but the server never accepted the draft`);
+              }
+              openEditorTokens.delete(token);
+            }
+            for (const field of wroteFields) lastEdit.delete(keyOf(client.id, app, field));
+          }
+          if (editor.closesOnSave) {
+            // The CV panel: the editor closed on Save. A save that landed leaves it closed; one that did not reopens it
+            // with the text in it, unless the draft was discarded while the save ran.
+            if (client.editorSucceeded(outcome)) { dropEditor(editor); return; }
+            const again = client.afterClosedEditorSave(outcome, epochAtSave, editor.epoch, editor.start);
+            if (!again.reopen) { dropEditor(editor); return; }
+            if (editor.epoch !== epochAtSave) violate('I1', `${client.id}'s editor on ${app}.cv reopened with ${sentTokens.join(' ')}, which the user discarded while the save ran`);
+            editor.start = again.start;
+            if (!editors.includes(editor)) editors.push(editor);
+            return;
+          }
+          // A draft was discarded while the save ran (or the editor was cancelled): its answer decides nothing.
+          if (editor.epoch !== epochAtSave || !editors.includes(editor)) return;
+          const after = client.editorAfter(app, outcome, sentKey(), nowKey(), editor.start);
+          if (after.close) {
+            for (const field of editor.fields) {
+              const now = editor.drafts[field];
+              if (now && now !== sent[field] && !server.acceptedHas(app, now)) {
+                violate('I1', `${client.id}'s ${editor.label} editor on ${app} closed over text the user typed while the save ran`);
+              }
+            }
+            dropEditor(editor);
           } else if (after.start !== undefined) {
             editor.start = after.start;
           }
         }, (error) => {
+          applying.delete(editor);
           editor.committing = false;
           throw error;
         });
@@ -645,6 +944,7 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         const apps = appsOf(client);
         if (!apps.length) return;
         const app = pick(rng, apps);
+        if (panelHolds(client, app, field)) return;
         client.edit(app, fieldMutation(field, token));
         record(client, app, field, token, false);
         stats.edits += 1;
@@ -739,9 +1039,35 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         const notices = noticesWithText(client);
         if (!notices.length) return;
         const notice = pick(rng, notices);
-        for (const token of tokensIn(client.noticeText(notice))) discarded.add(token);
         handled.add(notice);
+        say(`${client.id} clicks Dismiss, then Discard on a notice for ${notice.conflictFor}`);
+        // Only an entry still in the buffer is thrown away; the notice may name entries a Restore or a save already took out.
+        const held = new Set(client.bufferIds(notice.conflictFor!));
+        const thrown = client.noticeEntries(notice).filter((entry) => held.has(entry.id));
+        for (const entry of thrown) for (const token of entry.tokens) discarded.add(token);
+        // An open draft of a field this notice is not about is not the user's to lose.
+        const groups = new Set(thrown.map((entry) => entry.group));
+        const bystanders = editors
+          .filter((editor) => editor.client === client && editor.app === notice.conflictFor && !editor.fields.some((field) => groups.has(field)))
+          .map((editor) => ({ editor, epoch: editor.epoch, start: editor.start }));
         client.dismissNotice(notice);
+        for (const { editor, epoch, start } of bystanders) {
+          if (!editors.includes(editor) || editor.epoch !== epoch || editor.start !== start) {
+            violate('I1', `${client.id} discarded a notice about ${[...groups].join(', ')} and the open ${editor.label} draft on ${editor.app} (${JSON.stringify(editor.drafts)}) was reset with it`);
+          }
+        }
+      },
+    },
+    {
+      // Cancel: the user closes an open editor without saving (not while its save runs). A conflict notice it raised stays.
+      weight: options.engine === 'new' ? 2 : 0,
+      run: () => {
+        const open = editors.filter((editor) => !editor.committing);
+        if (!open.length) return;
+        const editor = pick(rng, open);
+        stats.cancels += 1;
+        dropEditor(editor);
+        say(`${editor.client.id} cancels the ${editor.label} editor on ${editor.app} (drafts ${JSON.stringify(editor.drafts)})`);
       },
     },
   ].map((op, index) => ({ ...op, name: OP_NAMES[index] })).filter((op) => op.weight > 0 && (!options.only || options.only.includes(op.name)));

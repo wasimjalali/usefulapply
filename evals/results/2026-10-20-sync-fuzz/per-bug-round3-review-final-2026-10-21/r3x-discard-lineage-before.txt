@@ -1,0 +1,34 @@
+mutation applied: M-r3x-discard-lineage a partial Discard leaves the discarded document's columns in the editor's lineage (a later save of the other document rebases them, and the stale copy then saves over a newer server version; review round 3 high)
+mutation: M-r3x-discard-lineage a partial Discard leaves the discarded document's columns in the editor's lineage (a later save of the other document rebases them, and the stale copy then saves over a newer server version; review round 3 high)
+
+Deterministic cases (new engine)
+PASS  codex-1 handoff registers a baseline
+PASS  codex-2 editor survives a failed conflict reload
+PASS  codex-3 edit made while an adoption reload is in flight
+PASS  codex-4 late regenerate response after a newer revision
+PASS  low refused value does not block polling
+PASS  round-1 h2 edit made while a poll reload is in flight
+PASS  round-3 workflow_complete must not install older generated content
+PASS  round-3 typing during a save is not lost
+PASS  round-3 Restore and Copy act on their own notice only
+PASS  round-3b Restore applies a whole entry or none of it
+PASS  round-3b Copy with nothing left says so instead of copying an empty string
+PASS  pr159 Discard reaches only the editor whose text it throws away
+PASS  r2-1 Copy of an email conflict leaves the follow-up snapshot alone
+PASS  r2-2 Discard of a save-reconciliation conflict spares a newer editor
+PASS  r2-3 Copy of another editor's notice leaves a stale draft checked
+PASS  r2-4 Copy moves the producing editor only to the version its notice showed
+PASS  r2-5 a confirmed save rebases only the columns it wrote
+FAIL  r3-x a partial Discard leaves the discarded document out of the next save's rebase
+      I1: the stale email copy was saved over G2 (saved, email {"subject":"s-t:E3;","body":"t:E3;","attachmentNote":""})
+PASS  r3-y a partial Discard moves only the discarded document's snapshot, to the version the panel shows
+PASS  pr159 a draft that reopens with no start is checked as stale
+PASS  low feed handoff mapper matches the standard mapper
+  500/2000 seeds, 0 failing
+  1000/2000 seeds, 0 failing
+  1500/2000 seeds, 0 failing
+  2000/2000 seeds, 0 failing
+
+2000 seeds (1..2000), 60 operations each, new engine, 17.2s
+totals {"ops":120000,"edits":41050,"editorSaves":7452,"typedDuringSave":1311,"regens":0,"workflows":0,"trackerWrites":0,"silentWrites":0,"restores":0,"copies":0,"cancels":0,"panelOpens":994,"agentWrites":12503,"handoffs":0,"polls":17003,"saves":17197,"requests":90843,"dropped":5461,"lostAnswers":4087,"hung":5399,"conflictNotices":10696,"failureNotices":3722,"settleRounds":5028}
+failing seeds: 0

@@ -280,6 +280,103 @@ export interface ConflictEntry {
   /** The properties where the user's version differs from `base`: the text the entry exists to keep. */
   changed: (keyof ApplicationSession)[];
   at: number;
+  /**
+   * The editors whose draft this entry holds (their `EditorStart.lineage`), however the entry was made: an editor's
+   * own save, the reconciliation inside that save, or a later merge of the draft that save left in the store. More
+   * than one only when editors put the very same value there (the email panel copies a document it opens with).
+   * Empty when the text is no editor's draft (a plain store edit): such an entry matches no editor.
+   */
+  editors: EditorStart['lineage'][];
+  /** The server's fingerprint of each column of the group when the entry was made: the version the notice showed the user. */
+  fields: Record<string, string>;
+}
+
+/** What the user did with a conflict notice, told to open editors so they can rebase or, on a discard, drop their draft. */
+export interface ConflictAcknowledgement {
+  /** True for Discard: the text of `entries` was thrown away. Restore and Copy are not discards. */
+  discarded: boolean;
+  /**
+   * The entries the notice named that were still in the buffer: their field group, the editor their text came from,
+   * and the server version of the group's columns the user has now seen (what a rebase moves that editor's snapshot to).
+   */
+  entries: { id: string; group: string; editors: EditorStart['lineage'][]; fields: Record<string, string> }[];
+}
+
+/**
+ * What a panel does with an acknowledgement, for one field group its editor holds. An acknowledgement reaches only
+ * the editor that produced the entry (same lineage) and only the entry's own group: 'ignore' for every other
+ * editor, every other group, an entry with no editor and an editor with no start. For the producing editor:
+ * 'rebase' on Restore or Copy (see `acknowledgedStart`), 'reset' on Discard (the draft goes, as with Cancel).
+ */
+export function acknowledgementFor(
+  ack: ConflictAcknowledgement,
+  groups: readonly string[],
+  start: EditorStart | undefined,
+): 'ignore' | 'rebase' | 'reset' {
+  if (!start) return 'ignore';
+  const named = ack.entries.filter((entry) => groups.includes(entry.group));
+  const mine = named.filter((entry) => entry.editors.includes(start.lineage));
+  if (mine.length === 0) return 'ignore';
+  return ack.discarded ? 'reset' : 'rebase';
+}
+
+/**
+ * The start of an editor after a Restore or Copy it produced: its snapshot of the acknowledged groups moves to the
+ * version the user was shown for them, and nothing else moves (another group of the same editor keeps its own
+ * snapshot, so a Save still catches a newer server value there). Call it with the groups `acknowledgementFor` said
+ * 'rebase' for. A start that is not the entries' editor comes back unchanged.
+ */
+export function acknowledgedStart(
+  ack: ConflictAcknowledgement,
+  groups: readonly string[],
+  start: EditorStart | undefined,
+): EditorStart | undefined {
+  if (!start) return start;
+  const fields = { ...start.fields };
+  for (const entry of ack.entries) {
+    if (groups.includes(entry.group) && entry.editors.includes(start.lineage)) Object.assign(fields, entry.fields);
+  }
+  return { revision: start.revision, fields, lineage: start.lineage };
+}
+
+/** After a Discard reset these groups of an editor that stays open: its draft no longer sets their columns. */
+export function forgetDiscardedGroups(start: EditorStart | undefined, groups: readonly string[]): void {
+  if (!start) return;
+  for (const group of FIELD_GROUPS) if (groups.includes(group.key)) for (const column of group.columns) start.lineage.columns.delete(column);
+}
+
+/**
+ * What an editor is based on when nothing is known about it: a revision that never existed, so a save from it
+ * is checked as a stale draft (it is refused unless the server already holds exactly that text).
+ */
+export function staleEditorStart(): EditorStart {
+  return { revision: -1, fields: {}, lineage: { columns: new Set<string>() } };
+}
+
+/**
+ * The CV panel closes its editor when Save is clicked and reopens it if the save did not land. This says
+ * what the answer does. A discard of the editor's group while the save ran (the epoch moved) means the
+ * draft was thrown away: nothing reopens, whatever the outcome. A reopened draft always has a start;
+ * one that lost its start is treated as stale, never as "checked against nothing".
+ */
+export function afterClosedEditorSave(
+  outcome: EditorOutcome,
+  epochAtSave: number,
+  epochNow: number,
+  start: EditorStart | undefined,
+): { reopen: false } | { reopen: true; start: EditorStart } {
+  if (editorSaveSucceeded(outcome) || epochAtSave !== epochNow) return { reopen: false };
+  return { reopen: true, start: start ?? staleEditorStart() };
+}
+
+/**
+ * Inside an editor save's `apply`, which runs only once the application's lock is free (another save can hold it for
+ * a whole network round trip): was this document's draft discarded after Save was clicked? Then `apply` must not write
+ * it. Its closure still holds the text, and writing it would bring the discarded text back as a new conflict entry, or
+ * save it. The counts are the panel's discards of that one document, taken at the click and now.
+ */
+export function discardedSinceSave(discardsAtSave: number, discardsNow: number): boolean {
+  return discardsAtSave !== discardsNow;
 }
 
 interface Baseline {
@@ -305,6 +402,12 @@ export function createSyncEngine(deps: SyncDeps) {
   /** Per application: column -> fingerprint of the value the server refused. */
   const rejected = new Map<string, Record<string, string>>();
   const conflictBuffers = new Map<string, Map<string, ConflictEntry>>();
+  /**
+   * Per application: store property -> the last value an editor's draft (or a Restore of an editor's text) put
+   * there, by fingerprint, and the editors whose draft it is. A merge that sets that value aside names those
+   * editors on the entry; a value that changed since (the fingerprint no longer matches) is no editor's draft.
+   */
+  const draftOwners = new Map<string, Map<string, { fp: string; editors: Set<EditorStart['lineage']> }>>();
   const reloadFailureAnnounced = new Set<string>();
   const chains = new Map<string, Promise<unknown>>();
 
@@ -341,18 +444,43 @@ export function createSyncEngine(deps: SyncDeps) {
     conflictBuffers.set(sessionId, buffer);
   }
 
-  const acknowledgedListeners = new Set<(sessionId: string) => void>();
-  /** Tell open editors the user has dealt with a conflict notice (restored, copied or discarded), so they can rebase. */
-  function acknowledgeConflict(sessionId: string): void {
-    acknowledgedListeners.forEach((listener) => listener(sessionId));
+  type AcknowledgedListener = (sessionId: string, ack: ConflictAcknowledgement) => void;
+  const acknowledgedListeners = new Set<AcknowledgedListener>();
+  /**
+   * Tell open editors the user has dealt with a conflict notice (restored, copied or discarded), so they can rebase.
+   * On a discard the editor whose draft the entries hold also drops it: that draft is the text just thrown away,
+   * and rebasing it onto the current revision would let the next Save write it over the server's newer version.
+   * The acknowledgement names each entry's field group, editor and the server version the user was shown, so only
+   * that editor acts on it, only for that group, and a rebase never moves past what the user saw.
+   */
+  function acknowledgeConflict(
+    sessionId: string,
+    entries: ConflictEntry[],
+    discarded = false,
+    seen: (entry: ConflictEntry) => Record<string, string> = (entry) => entry.fields,
+  ): void {
+    const ack: ConflictAcknowledgement = {
+      discarded,
+      entries: entries.map((entry) => ({ id: entry.id, group: entry.key, editors: [...entry.editors], fields: { ...seen(entry) } })),
+    };
+    acknowledgedListeners.forEach((listener) => listener(sessionId, ack));
   }
-  function subscribeConflictAcknowledged(listener: (sessionId: string) => void): () => void {
+  function subscribeConflictAcknowledged(listener: AcknowledgedListener): () => void {
     acknowledgedListeners.add(listener);
     return () => { acknowledgedListeners.delete(listener); };
   }
 
-  /** A buffer entry: the user's version of a group, set against what the store shows now. */
-  function makeEntry(group: FieldGroup, theirs: ApplicationSession, shown: ApplicationSession): ConflictEntry {
+  /**
+   * A buffer entry: the user's version of a group, set against what the store shows now. `serverFields` is the
+   * server's fingerprint of every column as the notice shows it.
+   */
+  function makeEntry(
+    group: FieldGroup,
+    theirs: ApplicationSession,
+    shown: ApplicationSession,
+    serverFields: Record<string, string>,
+    editors: EditorStart['lineage'][],
+  ): ConflictEntry {
     const props: Partial<ApplicationSession> = {};
     const base: Partial<ApplicationSession> = {};
     const changed: (keyof ApplicationSession)[] = [];
@@ -361,7 +489,43 @@ export function createSyncEngine(deps: SyncDeps) {
       (base as Record<string, unknown>)[prop] = shown[prop];
       if (!sameValue(theirs[prop], shown[prop])) changed.push(prop);
     }
-    return { id: `c${++conflictSeq}`, key: group.key, label: group.label, columns: group.columns, props, base, changed, at: clock.now() };
+    const fields: Record<string, string> = {};
+    for (const column of group.columns) if (column in serverFields) fields[column] = serverFields[column];
+    return { id: `c${++conflictSeq}`, key: group.key, label: group.label, columns: group.columns, props, base, changed, at: clock.now(), fields, editors };
+  }
+
+  /** These editors' text just went into the store for `prop`: a later merge that sets it aside names them. */
+  function ownValue(sessionId: string, prop: string, value: unknown, editors: Iterable<EditorStart['lineage']>): void {
+    const owners = draftOwners.get(sessionId) ?? new Map<string, { fp: string; editors: Set<EditorStart['lineage']> }>();
+    const fp = fingerprint(value);
+    const record = owners.get(prop);
+    const next = record && record.fp === fp ? record : { fp, editors: new Set<EditorStart['lineage']>() };
+    for (const editor of editors) next.editors.add(editor);
+    if (next.editors.size === 0) return;
+    owners.set(prop, next);
+    draftOwners.set(sessionId, owners);
+  }
+
+  /** An editor's draft just went into the store: remember it as the owner of every property the draft changed. */
+  function recordDraft(sessionId: string, before: ApplicationSession, after: ApplicationSession, lineage: EditorStart['lineage']): void {
+    for (const group of FIELD_GROUPS) {
+      for (const prop of group.props) {
+        if (!sameValue(before[prop], after[prop])) ownValue(sessionId, prop, after[prop], [lineage]);
+      }
+    }
+  }
+
+  /** The editors whose draft the store holds for this group, on a property a conflict is about to set aside. */
+  function draftEditorsOf(sessionId: string, group: FieldGroup, local: ApplicationSession, shown: ApplicationSession): EditorStart['lineage'][] {
+    const owners = draftOwners.get(sessionId);
+    const out = new Set<EditorStart['lineage']>();
+    if (!owners) return [];
+    for (const prop of group.props) {
+      if (sameValue(local[prop], shown[prop])) continue;
+      const record = owners.get(prop);
+      if (record && record.fp === fingerprint(local[prop])) for (const editor of record.editors) out.add(editor);
+    }
+    return [...out];
   }
 
   function setUser(next: string | null): void {
@@ -370,6 +534,7 @@ export function createSyncEngine(deps: SyncDeps) {
       serverSessions.clear();
       rejected.clear();
       conflictBuffers.clear();
+      draftOwners.clear();
       reloadFailureAnnounced.clear();
     }
     userId = next;
@@ -380,6 +545,7 @@ export function createSyncEngine(deps: SyncDeps) {
     serverSessions.delete(sessionId);
     rejected.delete(sessionId);
     conflictBuffers.delete(sessionId);
+    draftOwners.delete(sessionId);
     reloadFailureAnnounced.delete(sessionId);
   }
 
@@ -519,7 +685,8 @@ export function createSyncEngine(deps: SyncDeps) {
         for (const prop of group.props) (merged as unknown as Record<string, unknown>)[prop] = local[prop];
         continue;
       }
-      conflicts.push(makeEntry(group, local, merged));
+      // The entry names the editors whose draft this is (also when the merge runs inside that editor's save).
+      conflicts.push(makeEntry(group, local, merged, serverFp, draftEditorsOf(sessionId, group, local, merged)));
     }
     merged.revision = incoming;
     const finalSession = options.decorate ? options.decorate(merged, local) : merged;
@@ -695,13 +862,38 @@ export function createSyncEngine(deps: SyncDeps) {
   // -- editors --------------------------------------------------------------
 
   /**
-   * What an editor is based on. Pass the editor's previous start when rebasing an editor that is
-   * already open, so the engine still knows which columns its draft sets.
+   * What a newly opened editor is based on: the current baseline, under a lineage of its own. With no baseline
+   * (the application was never read here) it is a stale start, so a later Save is checked rather than trusted.
    */
-  function getEditorStart(sessionId: string, previous?: EditorStart): EditorStart | undefined {
+  function getEditorStart(sessionId: string): EditorStart {
     const base = baselines.get(sessionId);
-    if (!base) return undefined;
-    return { revision: base.revision, fields: { ...base.fields }, lineage: previous?.lineage ?? { columns: new Set<string>() } };
+    if (!base) return staleEditorStart();
+    return { revision: base.revision, fields: { ...base.fields }, lineage: { columns: new Set<string>() } };
+  }
+
+  /**
+   * An editor that stays open after a save the server confirmed ('saved' or 'clean'): its snapshot of `columns`
+   * (the ones that save confirmed it wrote, normally `start.lineage.columns`) moves to the current baseline. Every
+   * other column keeps the snapshot it had, so a group the save did not write still catches a newer server value.
+   */
+  function rebaseEditorStart(sessionId: string, start: EditorStart, columns: Iterable<string>): EditorStart {
+    const base = baselines.get(sessionId);
+    const fields = { ...start.fields };
+    if (base) for (const column of columns) if (column in base.fields) fields[column] = base.fields[column];
+    return { revision: base?.revision ?? start.revision, fields, lineage: start.lineage };
+  }
+
+  /**
+   * An editor that stays open after a Discard reset these groups (the email panel drops one document's draft and shows
+   * the store's version of it again). Its draft no longer sets their columns (`forgetDiscardedGroups`), and its snapshot
+   * of them moves to the current baseline: the version the store shows now and the editor copies. Call it in the same
+   * tick as reading that copy from the store. Every other group keeps its snapshot.
+   */
+  function discardedEditorStart(sessionId: string, start: EditorStart | undefined, groups: readonly string[]): EditorStart | undefined {
+    if (!start) return start;
+    forgetDiscardedGroups(start, groups);
+    const columns = FIELD_GROUPS.filter((group) => groups.includes(group.key)).flatMap((group) => group.columns);
+    return rebaseEditorStart(sessionId, start, columns);
   }
 
   /**
@@ -729,6 +921,8 @@ export function createSyncEngine(deps: SyncDeps) {
         apply();
         return 'local';
       }
+      // An editor that knows nothing of what it opened on is checked as stale, never as "checked against nothing".
+      const checked = start ?? staleEditorStart();
       const beforeFp = fingerprints(before);
       apply();
       const after = findSession(sessionId);
@@ -736,32 +930,37 @@ export function createSyncEngine(deps: SyncDeps) {
       const draftFp = fingerprints(after);
       // The columns this draft sets: what apply() just changed, plus what an earlier try of the
       // same editor changed (a retry finds its own draft already in the store and changes nothing).
-      const remembered = start?.lineage.columns;
       const touched = [...new Set([
         ...Object.keys(draftFp).filter((column) => draftFp[column] !== beforeFp[column]),
-        ...(remembered ?? []),
+        ...checked.lineage.columns,
       ])];
-      if (start) for (const column of touched) start.lineage.columns.add(column);
+      for (const column of touched) checked.lineage.columns.add(column);
 
-      if (start) {
-        const moved = touched.filter((column) => base.fields[column] !== start.fields[column] && draftFp[column] !== base.fields[column]);
-        if (moved.length > 0) {
-          // The draft is based on text that is no longer the server's. Put the store back, keep the draft aside.
-          writeSession(sessionId, before, 'replace');
-          const seen = new Set<string>();
-          const entryIds: string[] = [];
-          for (const column of moved) {
-            const group = GROUP_OF_COLUMN.get(column);
-            if (!group || seen.has(group.key)) continue;
-            seen.add(group.key);
-            const entry = makeEntry(group, after, before);
-            addEntry(sessionId, entry);
-            entryIds.push(entry.id);
-          }
-          notify(EDITOR_CONFLICT_NOTICE, 'info', sessionId, entryIds);
-          return 'conflict';
+      // A column whose draft is what the store already held is the store's own unsaved edit (text the user restored
+      // from a notice whose save failed, say): the normal save and merge handle it, so it is no stale draft.
+      const moved = touched.filter((column) => base.fields[column] !== checked.fields[column] && draftFp[column] !== base.fields[column]
+        && draftFp[column] !== beforeFp[column]);
+      if (moved.length > 0) {
+        // The draft is based on text that is no longer the server's. Put the store back, keep the draft aside: all of
+        // it, not only the groups that moved, since none of it is applied (the email panel's other document included).
+        writeSession(sessionId, before, 'replace');
+        const seen = new Set<string>();
+        const entryIds: string[] = [];
+        for (const column of [...moved, ...touched]) {
+          const group = GROUP_OF_COLUMN.get(column);
+          if (!group || seen.has(group.key)) continue;
+          seen.add(group.key);
+          // A group that did not move and that the draft leaves as the store has it holds no text to keep.
+          if (!moved.includes(column) && group.props.every((prop) => sameValue(after[prop], before[prop]))) continue;
+          const entry = makeEntry(group, after, before, base.fields, [checked.lineage, ...draftEditorsOf(sessionId, group, after, before)]);
+          addEntry(sessionId, entry);
+          entryIds.push(entry.id);
         }
+        notify(EDITOR_CONFLICT_NOTICE, 'info', sessionId, entryIds);
+        return 'conflict';
       }
+      // The draft is in the store now: a merge that sets it aside (in this save or later) names this editor.
+      recordDraft(sessionId, before, after, checked.lineage);
 
       const outcome = await saveUnlocked(sessionId, EDITOR_CONFLICT_NOTICE);
       if (outcome === 'skipped') return 'local';
@@ -879,7 +1078,7 @@ export function createSyncEngine(deps: SyncDeps) {
   function copyConflict(sessionId: string, ids: string[]): string | null {
     const text = conflictText(sessionId, ids);
     if (text.trim() === '') return null;
-    acknowledgeConflict(sessionId);
+    acknowledgeConflict(sessionId, entriesFor(sessionId, ids));
     return text;
   }
 
@@ -907,24 +1106,42 @@ export function createSyncEngine(deps: SyncDeps) {
           kept.push(entry.id);
           continue;
         }
-        for (const prop of entry.changed) (next as unknown as Record<string, unknown>)[prop] = entry.props[prop];
+        for (const prop of entry.changed) {
+          (next as unknown as Record<string, unknown>)[prop] = entry.props[prop];
+          // The restored text is still those editors' draft: a later conflict on it names them again.
+          ownValue(sessionId, prop, entry.props[prop], entry.editors);
+        }
         buffer?.delete(entry.id);
       }
       if (kept.length < entries.length) writeSession(sessionId, next, 'replace');
       if (buffer && buffer.size === 0) conflictBuffers.delete(sessionId);
       if (kept.length > 0) notify(CONFLICT_NOTICE, 'info', sessionId, kept);
       const outcome = await saveUnlocked(sessionId);
-      acknowledgeConflict(sessionId);
+      // What the producing editor has now seen of each group: its own restored text where the server holds exactly
+      // that, otherwise the version its notice showed. Never a newer server version it was not shown.
+      const settled = baselines.get(sessionId);
+      const now = findSession(sessionId);
+      const nowFp = now ? fingerprints(now) : undefined;
+      acknowledgeConflict(sessionId, entries, false, (entry) => {
+        const restored = !kept.includes(entry.id) && settled !== undefined && now !== null && nowFp !== undefined
+          && entry.changed.every((prop) => sameValue(now[prop], entry.props[prop]))
+          && entry.columns.every((column) => nowFp[column] === settled.fields[column]);
+        if (!restored) return entry.fields;
+        const fields: Record<string, string> = {};
+        for (const column of entry.columns) if (column in settled.fields) fields[column] = settled.fields[column];
+        return fields;
+      });
       return outcome;
     });
   }
 
   /** The user chose to throw the text away. */
   function discardConflict(sessionId: string, ids: string[]): void {
+    const entries = entriesFor(sessionId, ids);
     const buffer = conflictBuffers.get(sessionId);
     for (const id of ids) buffer?.delete(id);
     if (buffer && buffer.size === 0) conflictBuffers.delete(sessionId);
-    acknowledgeConflict(sessionId);
+    acknowledgeConflict(sessionId, entries, true);
   }
 
   return {
@@ -934,6 +1151,8 @@ export function createSyncEngine(deps: SyncDeps) {
     refreshFromServer,
     persistSessionEdits,
     getEditorStart,
+    rebaseEditorStart,
+    discardedEditorStart,
     commitEditorSave,
     checkForRemoteChange,
     getConflictBuffer,

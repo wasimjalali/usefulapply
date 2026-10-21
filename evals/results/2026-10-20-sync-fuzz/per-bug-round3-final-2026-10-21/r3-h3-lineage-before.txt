@@ -1,0 +1,76 @@
+mutation applied: M-r3-H3 Restore and Copy reach every editor of the entry's group, whatever its lineage (round 2 finding H3)
+mutation: M-r3-H3 Restore and Copy reach every editor of the entry's group, whatever its lineage (round 2 finding H3)
+  500/2000 seeds, 82 failing
+  1000/2000 seeds, 162 failing
+  1500/2000 seeds, 241 failing
+  2000/2000 seeds, 328 failing
+
+2000 seeds (1..2000), 60 operations each, new engine, 13.1s
+totals {"ops":120000,"edits":39121,"editorSaves":6841,"typedDuringSave":1146,"regens":0,"workflows":0,"trackerWrites":0,"silentWrites":0,"restores":2475,"copies":1211,"cancels":0,"panelOpens":960,"agentWrites":11839,"handoffs":0,"polls":16367,"saves":16196,"requests":90356,"dropped":5380,"lostAnswers":4080,"hung":5237,"conflictNotices":10954,"failureNotices":3660,"settleRounds":5065}
+failing seeds: 328  by invariant {"I6":328}
+seeds per kind of violation:
+    132  I6: TAB cv editor on APP was rebased for cv by an acknowledgement of an entry it did not produce
+     59  I6: TAB followUpEmail editor on APP was rebased for followUpEmail by an acknowledgement of an entry it did not produce
+     58  I6: TAB coverLetter editor on APP was rebased for coverLetter by an acknowledgement of an entry it did not produce
+     50  I6: TAB COLUMN editor on APP was rebased for COLUMN by an acknowledgement of an entry it did not produce
+     28  I6: TAB COLUMN panel editor on APP was rebased for COLUMN by an acknowledgement of an entry it did not produce
+     26  I6: TAB COLUMN panel editor on APP was rebased for followUpEmail by an acknowledgement of an entry it did not produce
+      4  I6: TAB followUpEmail editor saved COLUMN of APP over a server value of followUpEmail that changed since that editor's snapshot of it, with no conflict 
+      4  I6: TAB coverLetter editor saved COLUMN of APP over a server value of coverLetter that changed since that editor's snapshot of it, with no conflict 
+      4  I6: TAB cv editor saved generated_cv of APP over a server value of cv that changed since that editor's snapshot of it, with no conflict 
+      1  I6: TAB COLUMN panel editor saved COLUMN of APP over a server value of followUpEmail that changed since that editor's snapshot of it, with no conflict 
+      1  I6: TAB COLUMN editor saved COLUMN of APP over a server value of COLUMN that changed since that editor's snapshot of it, with no conflict 
+  seed 12
+      I6: B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce
+  seed 15
+      I6: B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce
+  seed 16
+      I6: A's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce
+  seed 30
+      I6: B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce
+  seed 33
+      I6: A's email panel editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce
+      I6: A's email panel editor saved follow_up_email of app-1 over a server value of followUpEmail that changed since that editor's snapshot of it, with no conflict (server {"subject":"f-t:B2;","body":"t:B2;","recommendedDelay":5})
+  seed 41
+      I6: B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce
+  seed 59
+      I6: A's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce
+  seed 70
+      I6: B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce
+  seed 83
+      I6: B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce
+  seed 85
+      I6: B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce
+  seed 89
+      I6: A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce
+  seed 90
+      I6: A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce
+  seed 98
+      I6: A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce
+      I6: A's email panel editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce
+  seed 104
+      I6: A's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce
+  seed 107
+      I6: A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce
+  seed 111
+      I6: A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce
+  seed 121
+      I6: B's coverLetter editor on app-1 was rebased for coverLetter by an acknowledgement of an entry it did not produce
+  seed 125
+      I6: B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce
+  seed 128
+      I6: B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce
+  seed 131
+      I6: B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce
+  seed 133
+      I6: B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce
+  seed 135
+      I6: A's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce
+  seed 140
+      I6: B's email editor on app-1 was rebased for email by an acknowledgement of an entry it did not produce
+  seed 154
+      I6: B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce
+  seed 157
+      I6: A's email panel editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce
+  ... and 303 more
+seed list: 12,15,16,30,33,41,59,70,83,85,89,90,98,104,107,111,121,125,128,131,133,135,140,154,157,160,178,182,188,192,201,203,205,212,215,217,218,221,224,226,227,229,233,235,244,246,248,251,261,265,294,300,307,314,317,327,328,337,345,355,358,360,365,382,383,410,437,438,439,449,451,454,459,460,465,470,473,477,486,489,496,500,504,505,507,513,525,527,534,535,536,537,542,551,553,563,566,567,586,593, ... (328 in all, see --out)

@@ -1,0 +1,18 @@
+mutation applied: M-r3-store-draft a draft the store already holds (a Restore whose save failed) still counts as a stale draft, so its conflict entry holds no text (round 3 I6 seeds 5876, 7790, 7876)
+mutation: M-r3-store-draft a draft the store already holds (a Restore whose save failed) still counts as a stale draft, so its conflict entry holds no text (round 3 I6 seeds 5876, 7790, 7876)
+  500/2000 seeds, 1 failing
+  1000/2000 seeds, 1 failing
+  1500/2000 seeds, 2 failing
+  2000/2000 seeds, 2 failing
+
+2000 seeds (1..2000), 60 operations each, new engine, 13.1s
+totals {"ops":120000,"edits":39130,"editorSaves":6833,"typedDuringSave":1145,"regens":0,"workflows":0,"trackerWrites":0,"silentWrites":0,"restores":2470,"copies":1211,"cancels":0,"panelOpens":959,"agentWrites":11831,"handoffs":0,"polls":16369,"saves":16196,"requests":90305,"dropped":5374,"lostAnswers":4076,"hung":5226,"conflictNotices":10990,"failureNotices":3655,"settleRounds":5071}
+failing seeds: 2  by invariant {"I6":2}
+seeds per kind of violation:
+      1  I6: TAB followUpEmail editor on APP was rebased for followUpEmail by an acknowledgement of an entry it did not produce
+      1  I6: TAB cv editor on APP was rebased for cv by an acknowledgement of an entry it did not produce
+  seed 197
+      I6: B's followUpEmail editor on app-1 was rebased for followUpEmail by an acknowledgement of an entry it did not produce
+  seed 1463
+      I6: B's cv editor on app-1 was rebased for cv by an acknowledgement of an entry it did not produce
+seed list: 197,1463

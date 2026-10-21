@@ -25,7 +25,7 @@ import { kitFilename } from '@/lib/utils/kit-export';
 import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback } from '@/lib/utils/server-export';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { useSessionStore } from '@/store/useSessionStore';
-import { commitEditorSave, editorShouldClose, getEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
+import { acknowledgedStart, acknowledgementFor, commitEditorSave, discardedSinceSave, editorShouldClose, getEditorStart, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface CoverLetterPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -87,15 +87,33 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   // a reload can still say it; null only for letters written before the stamp.
   const [updatedAtMs, setUpdatedAtMs] = useState<number | null>(() => stampOf(coverLetter));
   const lastLetterRef = useRef<GeneratedCoverLetter | null>(null);
+  // The store's letter as it is now, for the discard path in the conflict listener below.
+  const currentCoverLetterRef = useRef<GeneratedCoverLetter | null>(null);
+  useEffect(() => { currentCoverLetterRef.current = coverLetter ?? null; }, [coverLetter]);
   const lastSessionIdRef = useRef<string | null>(null);
   const editSessionIdRef = useRef<string | null>(null);
   // The revision the editor opened on. The draft lives here, outside the store, so
   // it is bound to that revision and checked again at save time (commitEditorSave).
   const editStartRef = useRef<EditorStart | undefined>(undefined);
-  // When the user deals with a conflict notice (restores, copies or discards their text), what this editor
-  // was opened against is stale: base it on the current revision, so its next Save is not refused again.
-  useEffect(() => subscribeConflictAcknowledged((acknowledged) => {
-    if (editSessionIdRef.current === acknowledged) editStartRef.current = getEditorStart(acknowledged, editStartRef.current);
+  // Counts the discards of cover letter conflict text that reached this editor. A save still running when the
+  // draft is discarded sees the count has moved and leaves the editor alone when its answer comes back.
+  const discardEpochRef = useRef(0);
+  // When the user deals with a conflict notice this editor's letter draft produced (restores or copies the text), the
+  // editor is based on the letter version that notice showed, so its next Save is not refused again for the same change.
+  // Discarding that text drops the draft, as Cancel does. Other editors' notices and other fields' leave it alone.
+  useEffect(() => subscribeConflictAcknowledged((acknowledged, ack) => {
+    if (editSessionIdRef.current !== acknowledged) return;
+    const action = acknowledgementFor(ack, ['coverLetter'], editStartRef.current);
+    if (action === 'ignore') return;
+    if (action === 'reset') {
+      discardEpochRef.current += 1;
+      setIsEditMode(false);
+      setEditedCoverLetter(currentCoverLetterRef.current);
+      editSessionIdRef.current = null;
+      editStartRef.current = undefined;
+      return;
+    }
+    editStartRef.current = acknowledgedStart(ack, ['coverLetter'], editStartRef.current);
   }), []);
   const { toast } = useToast();
 
@@ -394,17 +412,25 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
       const keepStructured = structured && editedCoverLetter.body === coverLetter?.body;
       const sessionId = editSessionIdRef.current;
       const sentDraft = JSON.stringify(editedCoverLetter);
+      const epochAtSave = discardEpochRef.current;
       // Save now, against the revision this editor opened on. If another write got
       // in first the draft is not applied: the editor stays open with the text in it.
       void commitEditorSave(sessionId, editStartRef.current, () => {
+        // This runs once the sync lock is free. A draft discarded since the click is not written.
+        if (discardedSinceSave(epochAtSave, discardEpochRef.current)) return;
         useSessionStore.getState().updateSessionById(sessionId, {
           coverLetter: { ...rest, ...(keepStructured ? { structured } : {}), updatedAt: new Date().toISOString() },
         });
       }).then((outcome) => {
+        // The draft was discarded while the save ran: the editor is already closed and nothing here reopens it.
+        if (epochAtSave !== discardEpochRef.current) return;
         // Anything but a save the server confirmed leaves the editor open with the text in it.
         // So does typing during the save: the newer draft stays, now based on what was just saved.
         if (!editorShouldClose(outcome, sentDraft, JSON.stringify(editedCoverLetterRef.current))) {
-          if (outcome === 'saved' || outcome === 'clean') editStartRef.current = getEditorStart(sessionId, editStartRef.current);
+          // The save confirmed the columns this editor's draft sets: only those move to the new revision.
+          if ((outcome === 'saved' || outcome === 'clean') && editStartRef.current) {
+            editStartRef.current = rebaseEditorStart(sessionId, editStartRef.current, editStartRef.current.lineage.columns);
+          }
           return;
         }
         setIsEditMode(false);

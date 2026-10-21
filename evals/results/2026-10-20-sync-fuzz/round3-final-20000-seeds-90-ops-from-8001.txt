@@ -1,0 +1,54 @@
+  500/20000 seeds, 0 failing
+  1000/20000 seeds, 0 failing
+  1500/20000 seeds, 0 failing
+  2000/20000 seeds, 0 failing
+  2500/20000 seeds, 0 failing
+  3000/20000 seeds, 0 failing
+  3500/20000 seeds, 0 failing
+  4000/20000 seeds, 0 failing
+  4500/20000 seeds, 0 failing
+  5000/20000 seeds, 0 failing
+  5500/20000 seeds, 0 failing
+  6000/20000 seeds, 0 failing
+  6500/20000 seeds, 0 failing
+  7000/20000 seeds, 0 failing
+  7500/20000 seeds, 1 failing
+  8000/20000 seeds, 1 failing
+  8500/20000 seeds, 1 failing
+  9000/20000 seeds, 1 failing
+  9500/20000 seeds, 2 failing
+  10000/20000 seeds, 2 failing
+  10500/20000 seeds, 2 failing
+  11000/20000 seeds, 2 failing
+  11500/20000 seeds, 2 failing
+  12000/20000 seeds, 2 failing
+  12500/20000 seeds, 2 failing
+  13000/20000 seeds, 2 failing
+  13500/20000 seeds, 2 failing
+  14000/20000 seeds, 3 failing
+  14500/20000 seeds, 3 failing
+  15000/20000 seeds, 3 failing
+  15500/20000 seeds, 3 failing
+  16000/20000 seeds, 3 failing
+  16500/20000 seeds, 3 failing
+  17000/20000 seeds, 3 failing
+  17500/20000 seeds, 3 failing
+  18000/20000 seeds, 3 failing
+  18500/20000 seeds, 3 failing
+  19000/20000 seeds, 3 failing
+  19500/20000 seeds, 3 failing
+  20000/20000 seeds, 3 failing
+
+20000 seeds (8001..28000), 90 operations each, new engine, 299.7s
+totals {"ops":1800000,"edits":431784,"editorSaves":70295,"typedDuringSave":10934,"regens":97215,"workflows":81432,"trackerWrites":48624,"silentWrites":0,"restores":35822,"copies":17968,"cancels":17691,"panelOpens":11446,"agentWrites":129472,"handoffs":48754,"polls":179363,"saves":178753,"requests":1633842,"dropped":92890,"lostAnswers":69573,"hung":92865,"conflictNotices":155862,"failureNotices":79459,"settleRounds":52217}
+failing seeds: 3  by invariant {"I6":3}
+seeds per kind of violation:
+      3  I6: TAB cv editor on APP kept cv text the user discarded
+  seed 15239
+      I6: A's cv editor on app-1 kept cv text the user discarded
+  seed 17252
+      I6: B's cv editor on app-1 kept cv text the user discarded
+  seed 21527
+      I6: A's cv editor on app-1 kept cv text the user discarded
+seed list: 15239,17252,21527
+exit 1
