@@ -31,7 +31,7 @@ import {
 } from '@/lib/cv-templates/locale';
 import { PAPER_MM, getPrintSpec, type PaperSize } from '@/lib/cv-templates/print-spec';
 import { CV_TEMPLATE_DEFINITIONS } from '@/lib/cv-templates/types';
-import { displayUrl, fullUrl } from '@/lib/cv-templates/url';
+import { contactLinks, fullUrl } from '@/lib/cv-templates/url';
 import { formatBirthDate } from '@/lib/cv-templates/birthdate';
 import { exportText } from './export-text';
 import { PDF_PRODUCER } from './pdf';
@@ -72,10 +72,10 @@ function contactItems(data: CVData): Array<{ text: string; link?: string }> {
   const place = [p.address, p.city, p.country]
     .filter((part, index, all): part is string => Boolean(part) && all.indexOf(part) === index)
     .join(', ');
-  const links = [p.linkedIn, p.github, p.portfolio, p.website].filter((part): part is string => Boolean(part));
+  const links = contactLinks([p.linkedIn, p.github, p.portfolio, p.website].filter((part): part is string => Boolean(part)));
   return [
     ...[p.email, p.phone, place].filter((part): part is string => Boolean(part)).map((text) => ({ text })),
-    ...links.map((link) => ({ text: displayUrl(link), link: fullUrl(link) })),
+    ...links.map(({ raw, text }) => ({ text, link: fullUrl(raw) })),
   ];
 }
 

@@ -6,6 +6,7 @@
 
 import { structuredCVToCVData } from '@/lib/cv-templates/parser';
 import { inferCvLanguageFromHeaders } from '@/lib/cv-parser/section-splitter';
+import { withDrivingLicenceLine } from '@/lib/cv-templates/driving-licence';
 import type { CVData } from '@/lib/cv-templates/types';
 import type { StructuredCV } from '@/lib/types/cv-schema';
 import type { ApplicationSession } from '@/store/useSessionStore';
@@ -179,9 +180,11 @@ export function buildCvData(input: BuildCvDataInput): CVData | null {
       certifications: optimizedCVData.certifications,
       projects: optimizedCVData.projects || undefined,
       customSections: optimizedCVData.customSections || undefined,
-      additionalInfo: optimizedCVData.additionalInfo || (optimizedCVData.personal.driverLicense
-        ? [`Driver's License: ${optimizedCVData.personal.driverLicense}`]
-        : undefined),
+      additionalInfo: withDrivingLicenceLine(
+        optimizedCVData.additionalInfo,
+        optimizedCVData.personal.driverLicense,
+        `Driver's License: ${optimizedCVData.personal.driverLicense}`,
+      ),
       sectionHeaders: optimizedCVData.sectionHeaders,
       localizedStrings: optimizedCVData.localizedStrings,
       hiddenSections: optimizedCVData.hiddenSections,

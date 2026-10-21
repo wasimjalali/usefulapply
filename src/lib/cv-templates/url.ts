@@ -46,7 +46,64 @@ export function displayUrl(raw: string): string {
   return `${host}${path}`;
 }
 
-const isLinkedIn = (link: string) => /(^|\/\/|\.)linkedin\.com\//i.test(link.trim());
+/** displayUrl plus the query and fragment: the form that tells two links on one host apart. */
+function detailedDisplayUrl(raw: string): string {
+  const text = raw.trim();
+  if (/^(?:mailto|tel):/i.test(text)) return displayUrl(text);
+  try {
+    const url = new URL(fullUrl(text));
+    let path = url.pathname;
+    try {
+      path = decodeURIComponent(path);
+    } catch {
+      // keep the encoded path
+    }
+    const tail = `${url.search}${url.hash}`;
+    // "wasimjalali.com/#work" keeps its slash; a bare path loses a trailing one, as in displayUrl.
+    return `${url.hostname.toLowerCase().replace(/^www\./, '')}${tail ? path : path.replace(/\/+$/, '')}${tail}`;
+  } catch {
+    return displayUrl(text);
+  }
+}
+
+export interface ContactLink {
+  /** The link as stored: pass it to fullUrl() for the href. */
+  raw: string;
+  /** The visible address. */
+  text: string;
+}
+
+/**
+ * The links of a contact line with their visible text. Each shows its clean
+ * address (displayUrl). Links that would show the same text (a website and its
+ * #work portfolio) show host, path, query and fragment instead, so they read
+ * differently whichever comes first; links whose full address is identical
+ * are shown once. Links with distinct text come out exactly as displayUrl
+ * gives them.
+ */
+export function contactLinks(raws: readonly string[]): ContactLink[] {
+  const links = raws.filter((raw) => raw && raw.trim());
+  const plain = links.map(displayUrl);
+  const out: ContactLink[] = [];
+  const shown = new Set<string>();
+  links.forEach((raw, index) => {
+    const clash = plain.some((text, other) => other !== index && text === plain[index]);
+    const text = clash ? detailedDisplayUrl(raw) : plain[index];
+    // Case-insensitive: a host is case-insensitive and the plain form already lowercases it.
+    const key = text.toLowerCase();
+    if (shown.has(key)) return;
+    shown.add(key);
+    out.push({ raw, text });
+  });
+  return out;
+}
+
+/** The letterhead's links (see pickLetterLinks) with their visible text (see contactLinks). */
+export function letterContactLinks(links: readonly string[] | undefined): ContactLink[] {
+  return contactLinks(pickLetterLinks(links));
+}
+
+const isLinkedIn =(link: string) => /(^|\/\/|\.)linkedin\.com\//i.test(link.trim());
 const isGitHub = (link: string) => /(^|\/\/|\.)github\.com\//i.test(link.trim());
 
 /**

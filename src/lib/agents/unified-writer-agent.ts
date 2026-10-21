@@ -74,6 +74,7 @@ import {
 import { buildApplicationEmailUserPrompt, buildApplicationEmailSystemBlocks, buildFollowUpEmailUserPrompt, buildFollowUpEmailSystemBlocks } from './prompts/email-prompts';
 import { buildFitAssessmentPrompt, buildFitAssessmentSystemBlocks, computeFitLevel } from './prompts/fit-assessment-prompt';
 import { normalizeLanguage, type SupportedLanguage } from '@/lib/utils/language-detector';
+import { dropRestatedDrivingLicence, withDrivingLicenceLine } from '@/lib/cv-templates/driving-licence';
 
 // Re-export for backward compatibility
 export { COVER_LETTER_BLACKLIST };
@@ -2343,7 +2344,11 @@ export const unifiedWriterAgent = {
           technologies: (proj.technologies as string[]) || [],
           url: proj.url as string | undefined,
         })),
-        additionalInfo: (parsed.additionalInfo as string[])?.filter(Boolean) || undefined,
+        // The licence lives in personal.driverLicense; a restated line in additionalInfo would print it twice.
+        additionalInfo: dropRestatedDrivingLicence(
+          (parsed.additionalInfo as string[])?.filter(Boolean) || undefined,
+          (personal.driverLicense ?? personal.driver_license) as string | undefined,
+        ),
         customSections: (() => {
           const mapped = (parsed.customSections || []).map((s: Record<string, unknown>, idx: number) => ({
             id: s.id as string || `custom-${idx + 1}`,
@@ -2570,13 +2575,11 @@ export const unifiedWriterAgent = {
     }
 
     // Additional Info (driver's license, etc.)
-    const additionalItems: string[] = [];
-    if (cvData.additionalInfo && cvData.additionalInfo.length > 0) {
-      additionalItems.push(...cvData.additionalInfo);
-    }
-    if (cvData.personal.driverLicense && !additionalItems.some(item => item.toLowerCase().includes('license') || item.toLowerCase().includes('führerschein'))) {
-      additionalItems.push(isGerman ? `Führerschein: ${cvData.personal.driverLicense}` : `Driver's License: ${cvData.personal.driverLicense}`);
-    }
+    const additionalItems = withDrivingLicenceLine(
+      cvData.additionalInfo,
+      cvData.personal.driverLicense,
+      isGerman ? `Führerschein: ${cvData.personal.driverLicense}` : `Driver's License: ${cvData.personal.driverLicense}`,
+    ) ?? [];
     if (additionalItems.length > 0) {
       lines.push('');
       lines.push(isGerman ? 'WEITERE INFORMATIONEN' : 'ADDITIONAL INFORMATION');
