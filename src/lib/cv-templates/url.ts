@@ -77,8 +77,8 @@ export interface ContactLink {
  * The links of a contact line with their visible text. Each shows its clean
  * address (displayUrl). Links that would show the same text (a website and its
  * #work portfolio) show host, path, query and fragment instead, so they read
- * differently whichever comes first; links whose full address is identical
- * are shown once. Links with distinct text come out exactly as displayUrl
+ * differently whichever comes first; links that would show identical text are
+ * shown once. Links with distinct text come out exactly as displayUrl
  * gives them.
  */
 export function contactLinks(raws: readonly string[]): ContactLink[] {
@@ -89,8 +89,8 @@ export function contactLinks(raws: readonly string[]): ContactLink[] {
   links.forEach((raw, index) => {
     const clash = plain.some((text, other) => other !== index && text === plain[index]);
     const text = clash ? detailedDisplayUrl(raw) : plain[index];
-    // Case-insensitive: a host is case-insensitive and the plain form already lowercases it.
-    const key = text.toLowerCase();
+    // The visible text already has a lowercased host; paths and fragments keep their case, which matters.
+    const key = text;
     if (shown.has(key)) return;
     shown.add(key);
     out.push({ raw, text });

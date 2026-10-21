@@ -1,15 +1,33 @@
 /**
- * A driving licence has one place in the CV data, `personal.driverLicense`, and
- * one printed line. The writer sometimes also keeps the source line ("Driving
- * licence: Class B") in additionalInfo, and every renderer that adds a licence
- * line of its own has to see that and stay quiet. Everything that adds, checks
- * or removes a licence line goes through this one word list.
+ * A CV keeps its driving licence in `personal.driverLicense`, and the writer
+ * often also keeps the source line ("Driving licence: Class B") in
+ * additionalInfo. Every renderer that prints a licence line of its own checks
+ * here first and stays quiet when an item already states one. Nothing here
+ * removes or rewrites the user's own lines.
  */
+import type { SupportedLanguage } from '@/lib/utils/language-detector';
 
-// English (licence, license, driving, driver's), German, French, Spanish, Italian, Dutch.
-const DRIVING_LICENCE = /licen[cs]e|driving|driver|führerschein|fuhrerschein|fuehrerschein|fahrerlaubnis|permis de conduire|carnet de conducir|patente|rijbewijs/i;
+/**
+ * A driving licence specifically. A licence word alone ("Licensed pharmacist",
+ * "Pilot licence (PPL)") or a driving word alone ("Driving force", "Driver for
+ * change") is not one, and "patented" is not Italian "patente B".
+ */
+const DRIVING_LICENCE = new RegExp(
+  [
+    String.raw`\b(?:driving|driver'?s|drivers?)\s+licen[cs]e`,
+    String.raw`\blicen[cs]e\s+to\s+drive\b`,
+    'f(?:ü|ue|u)hrerschein',
+    'fahrerlaubnis',
+    String.raw`\bpermis\s+de\s+conduire\b`,
+    String.raw`\b(?:carnet|permiso)\s+de\s+conduc(?:ir|ción|cion)\b`,
+    String.raw`\bpatente\s+(?:di\s+guida|[a-e]\d?)\b`,
+    String.raw`\bcarta\s+de\s+condu(?:ção|cao)\b`,
+    String.raw`\brijbewijs\b`,
+  ].join('|'),
+  'i',
+);
 
-/** True when the text states a driving licence, in any of the spellings above. */
+/** True when the text states a driving licence. */
 export function mentionsDrivingLicence(text: string): boolean {
   return DRIVING_LICENCE.test(text);
 }
@@ -19,39 +37,32 @@ export function listMentionsDrivingLicence(items: readonly string[] | undefined)
   return (items ?? []).some(mentionsDrivingLicence);
 }
 
-/**
- * additionalInfo with the licence printed once. The licence line is added only
- * when no item states one already; `line` is the wording to add.
- */
-export function withDrivingLicenceLine(items: readonly string[] | undefined, driverLicense: string | undefined, line: string): string[] | undefined {
-  if (!driverLicense?.trim() || listMentionsDrivingLicence(items)) return items ? [...items] : undefined;
-  return [...(items ?? []), line];
+const LICENCE_LABEL: Record<SupportedLanguage, string> = {
+  en: "Driver's License",
+  de: 'Führerschein',
+  fr: 'Permis de conduire',
+  es: 'Carnet de conducir',
+  pt: 'Carta de condução',
+  it: 'Patente di guida',
+  nl: 'Rijbewijs',
+};
+
+/** "Führerschein: Klasse B" for a German CV, "Driver's License: Class B" for an English one. */
+export function drivingLicenceLine(driverLicense: string, language: string | undefined): string {
+  const label = LICENCE_LABEL[(language ?? 'en') as SupportedLanguage] ?? LICENCE_LABEL.en;
+  return `${label}: ${driverLicense}`;
 }
 
-// Facts joined in one item ("Valid permit • Driving licence: B") split on these.
-const ITEM_SEPARATOR = /\s*[•|;·]\s*/;
-// "Full clean UK driving licence (Class B)" is 7 words; anything longer is a sentence with other facts.
-const MAX_LICENCE_STATEMENT_WORDS = 8;
-
 /**
- * Removes the driving-licence statements from additionalInfo once the licence
- * has its own field. An item that holds other facts too keeps them, when they
- * are separated by a bullet, bar or semicolon; otherwise the whole item stays
- * and the renderers add no second line. Without `driverLicense` nothing changes.
+ * additionalInfo with the licence printed once: the user's items unchanged, plus
+ * a licence line in the CV's language only when no item states one already.
  */
-export function dropRestatedDrivingLicence(items: string[] | undefined, driverLicense: string | undefined): string[] | undefined {
-  if (!items || !driverLicense?.trim()) return items;
-  const kept: string[] = [];
-  for (const item of items) {
-    if (!mentionsDrivingLicence(item)) {
-      kept.push(item);
-      continue;
-    }
-    const parts = item.split(ITEM_SEPARATOR).filter((part) => part.trim());
-    const rest = parts.filter((part) => !mentionsDrivingLicence(part));
-    if (rest.length > 0) kept.push(rest.length < parts.length ? rest.join(' • ') : item);
-    // A long single sentence with the licence mixed into other facts isn't separable: keep it whole.
-    else if (parts.length === 1 && item.trim().split(/\s+/).length > MAX_LICENCE_STATEMENT_WORDS) kept.push(item);
-  }
-  return kept.length > 0 ? kept : undefined;
+export function withDrivingLicenceLine(
+  items: readonly string[] | undefined,
+  driverLicense: string | undefined,
+  language: string | undefined,
+): string[] | undefined {
+  const licence = driverLicense?.trim();
+  if (!licence || listMentionsDrivingLicence(items)) return items ? [...items] : undefined;
+  return [...(items ?? []), drivingLicenceLine(licence, language)];
 }

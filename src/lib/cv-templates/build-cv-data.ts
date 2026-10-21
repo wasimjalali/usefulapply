@@ -151,11 +151,12 @@ export function buildCvData(input: BuildCvDataInput): CVData | null {
   // Tailored CV: structured JSON from the agent, used directly. Personal links
   // fall back to the original CV so the user never re-enters them per job.
   if (showOptimized && optimizedCVData) {
+    // The tailored CV's own headings say what language it was written in; the parsed CV's setting is the fallback.
+    const tailoredLanguage = optimizedCVData.sectionHeaders && Object.keys(optimizedCVData.sectionHeaders).length > 0
+      ? inferCvLanguageFromHeaders(optimizedCVData.sectionHeaders)
+      : parsed.language;
     const tailored: CVData = {
-      // The tailored CV's own headings say what language it was written in; the parsed CV's setting is the fallback.
-      language: optimizedCVData.sectionHeaders && Object.keys(optimizedCVData.sectionHeaders).length > 0
-        ? inferCvLanguageFromHeaders(optimizedCVData.sectionHeaders)
-        : parsed.language,
+      language: tailoredLanguage,
       personal: {
         fullName: optimizedCVData.personal.fullName,
         email: optimizedCVData.personal.email,
@@ -180,11 +181,7 @@ export function buildCvData(input: BuildCvDataInput): CVData | null {
       certifications: optimizedCVData.certifications,
       projects: optimizedCVData.projects || undefined,
       customSections: optimizedCVData.customSections || undefined,
-      additionalInfo: withDrivingLicenceLine(
-        optimizedCVData.additionalInfo,
-        optimizedCVData.personal.driverLicense,
-        `Driver's License: ${optimizedCVData.personal.driverLicense}`,
-      ),
+      additionalInfo: withDrivingLicenceLine(optimizedCVData.additionalInfo, optimizedCVData.personal.driverLicense, tailoredLanguage),
       sectionHeaders: optimizedCVData.sectionHeaders,
       localizedStrings: optimizedCVData.localizedStrings,
       hiddenSections: optimizedCVData.hiddenSections,

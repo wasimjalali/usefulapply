@@ -74,7 +74,7 @@ import {
 import { buildApplicationEmailUserPrompt, buildApplicationEmailSystemBlocks, buildFollowUpEmailUserPrompt, buildFollowUpEmailSystemBlocks } from './prompts/email-prompts';
 import { buildFitAssessmentPrompt, buildFitAssessmentSystemBlocks, computeFitLevel } from './prompts/fit-assessment-prompt';
 import { normalizeLanguage, type SupportedLanguage } from '@/lib/utils/language-detector';
-import { dropRestatedDrivingLicence, withDrivingLicenceLine } from '@/lib/cv-templates/driving-licence';
+import { withDrivingLicenceLine } from '@/lib/cv-templates/driving-licence';
 
 // Re-export for backward compatibility
 export { COVER_LETTER_BLACKLIST };
@@ -2344,11 +2344,7 @@ export const unifiedWriterAgent = {
           technologies: (proj.technologies as string[]) || [],
           url: proj.url as string | undefined,
         })),
-        // The licence lives in personal.driverLicense; a restated line in additionalInfo would print it twice.
-        additionalInfo: dropRestatedDrivingLicence(
-          (parsed.additionalInfo as string[])?.filter(Boolean) || undefined,
-          (personal.driverLicense ?? personal.driver_license) as string | undefined,
-        ),
+        additionalInfo: (parsed.additionalInfo as string[])?.filter(Boolean) || undefined,
         customSections: (() => {
           const mapped = (parsed.customSections || []).map((s: Record<string, unknown>, idx: number) => ({
             id: s.id as string || `custom-${idx + 1}`,
@@ -2575,11 +2571,7 @@ export const unifiedWriterAgent = {
     }
 
     // Additional Info (driver's license, etc.)
-    const additionalItems = withDrivingLicenceLine(
-      cvData.additionalInfo,
-      cvData.personal.driverLicense,
-      isGerman ? `Führerschein: ${cvData.personal.driverLicense}` : `Driver's License: ${cvData.personal.driverLicense}`,
-    ) ?? [];
+    const additionalItems = withDrivingLicenceLine(cvData.additionalInfo, cvData.personal.driverLicense, isGerman ? 'de' : 'en') ?? [];
     if (additionalItems.length > 0) {
       lines.push('');
       lines.push(isGerman ? 'WEITERE INFORMATIONEN' : 'ADDITIONAL INFORMATION');

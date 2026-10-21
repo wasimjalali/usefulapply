@@ -216,7 +216,7 @@ function currentCvText(kit: Kit): string | undefined {
   const licence = data.personal.driverLicense;
   const additionalInfo = isSectionHidden(data as unknown as CVData, 'additionalInfo')
     ? undefined
-    : withDrivingLicenceLine(data.additionalInfo, licence, `Driver's License: ${licence}`);
+    : withDrivingLicenceLine(data.additionalInfo, licence, (data as { language?: string }).language);
   if (additionalInfo?.length) {
     lines.push('');
     for (const item of additionalInfo) lines.push(`- ${item}`);

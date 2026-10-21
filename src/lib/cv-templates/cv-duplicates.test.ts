@@ -21,7 +21,7 @@ import { CvTemplateSwitch } from '@/components/cv-templates/render';
 import { unifiedWriterAgent } from '@/lib/agents/unified-writer-agent';
 import { buildCvDocx } from '@/lib/services/export/cv-docx';
 import { buildCvData } from './build-cv-data';
-import { dropRestatedDrivingLicence, mentionsDrivingLicence, withDrivingLicenceLine } from './driving-licence';
+import { drivingLicenceLine, mentionsDrivingLicence, withDrivingLicenceLine } from './driving-licence';
 import { CV_TEMPLATE_DEFINITIONS, type CVData } from './types';
 import { contactLinks, displayUrl } from './url';
 
@@ -35,6 +35,7 @@ test('every spelling of a driving licence is recognised', () => {
     'Driving License: Class B',
     "Driver's License: B",
     'Full clean UK driving licence',
+    'Licence to drive: B',
     'Führerschein Klasse B',
     'Fuehrerschein: B',
     'Fahrerlaubnis Klasse B',
@@ -45,7 +46,7 @@ test('every spelling of a driving licence is recognised', () => {
   ]) {
     assert.equal(mentionsDrivingLicence(text), true, text);
   }
-  for (const text of ['Valid German residence permit', 'Open to relocation', 'Work authorisation: EU']) {
+  for (const text of ['Valid German residence permit', 'Open to relocation', 'Work authorisation: EU', 'Licensed pharmacist', 'Driving force behind team']) {
     assert.equal(mentionsDrivingLicence(text), false, text);
   }
 });
@@ -78,17 +79,29 @@ test('template data has one licence line however the source worded it', () => {
   assert.deepEqual(none?.additionalInfo, ["Driver's License: Class B"]);
 });
 
-test('normalising drops the restated licence and keeps one canonical place', () => {
-  assert.deepEqual(dropRestatedDrivingLicence(['Driving licence: Class B', 'Valid German residence permit'], 'Class B'), ['Valid German residence permit']);
-  assert.deepEqual(dropRestatedDrivingLicence(['Driving licence: Class B'], 'Class B'), undefined);
-  assert.deepEqual(dropRestatedDrivingLicence(['Valid permit • Driving licence: B'], 'B'), ['Valid permit']);
-  assert.deepEqual(dropRestatedDrivingLicence(['Führerschein: Klasse B | Open to relocation'], 'Klasse B'), ['Open to relocation']);
-  // Not separable: one sentence mixing facts stays whole, and the renderers then add no second line.
-  const mixed = 'Open to relocation across Germany and Austria, with my own driving licence and car';
-  assert.deepEqual(dropRestatedDrivingLicence([mixed], 'Class B'), [mixed]);
-  // No licence field: an additionalInfo statement is the only place it lives, so it stays.
-  assert.deepEqual(dropRestatedDrivingLicence(['Driving licence: Class B'], undefined), ['Driving licence: Class B']);
-  assert.deepEqual(withDrivingLicenceLine(['Driving licence: Class B'], 'Class B', "Driver's License: Class B"), ['Driving licence: Class B']);
+test('the user\'s own lines are never removed; a licence line is added only when none states one', () => {
+  assert.deepEqual(withDrivingLicenceLine(['Driving licence: Class B'], 'Class B', 'en'), ['Driving licence: Class B']);
+  assert.deepEqual(withDrivingLicenceLine(['EU citizen, driving licence B'], 'B', 'en'), ['EU citizen, driving licence B']);
+  assert.deepEqual(withDrivingLicenceLine(['Valid German residence permit'], 'Class B', 'en'), ['Valid German residence permit', "Driver's License: Class B"]);
+  assert.deepEqual(withDrivingLicenceLine(undefined, undefined, 'en'), undefined);
+});
+
+// Review of #172 (Opus): a licence word or a driving word alone is not a driving licence.
+test('other licences and phrases are not driving licences, so they are kept and the licence still prints', () => {
+  for (const item of ['Licensed pharmacist', 'Licence to practise medicine (GMC)', 'Pilot licence (PPL)', '3 patented inventions', 'Driving force behind team', 'Screwdriver certification', 'Driver for change', 'Open-source licensing']) {
+    assert.equal(mentionsDrivingLicence(item), false, item);
+    assert.deepEqual(withDrivingLicenceLine([item], 'B', 'en'), [item, "Driver's License: B"], item);
+  }
+});
+
+test('the added licence line follows the CV language', () => {
+  assert.equal(drivingLicenceLine('Klasse B', 'de'), 'Führerschein: Klasse B');
+  assert.equal(drivingLicenceLine('B', 'fr'), 'Permis de conduire: B');
+  assert.equal(drivingLicenceLine('Class B', 'en'), "Driver's License: Class B");
+  assert.equal(drivingLicenceLine('Class B', undefined), "Driver's License: Class B");
+  assert.deepEqual(withDrivingLicenceLine(['Aufenthaltstitel: unbefristet'], 'Klasse B', 'de'), ['Aufenthaltstitel: unbefristet', 'Führerschein: Klasse B']);
+  // A German CV whose own line states it keeps that line as written.
+  assert.deepEqual(withDrivingLicenceLine(['Führerschein Klasse B', 'Aufenthaltstitel: unbefristet'], 'Klasse B', 'de'), ['Führerschein Klasse B', 'Aufenthaltstitel: unbefristet']);
 });
 
 // 2. Two links on one site ---------------------------------------------------------------------------------------
