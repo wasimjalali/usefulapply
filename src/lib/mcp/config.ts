@@ -5,7 +5,7 @@ export const MCP_PATH = '/mcp';
 /** Signing algorithm of the jwt() keys: pinned in server.ts, and the only one /mcp accepts. */
 export const MCP_JWT_ALG = 'EdDSA';
 
-/** `MCP_ENABLED` comes from wrangler `vars` ("false" in production until launch). Anything but "true" is off. */
+/** `MCP_ENABLED` comes from wrangler `vars` ("true" in production since launch; "false" is the kill switch). Anything but "true" is off. */
 export function isMcpEnabled(): boolean {
   return process.env.MCP_ENABLED === 'true';
 }

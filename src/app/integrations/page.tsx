@@ -8,7 +8,7 @@ import { SEO_SITE_URL } from '@/lib/seo/site-url';
 import { BRAND } from '@/lib/brand';
 import { isMcpEnabled } from '@/lib/mcp/config';
 
-// Hidden until MCP launches. Read the flag per request, not at build.
+// 404 when MCP is switched off. Read the flag per request, not at build.
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = buildPageMetadata({
@@ -102,6 +102,8 @@ const card = 'bg-cream-50 rounded-2xl p-6 border border-cream-200 shadow-sm';
 const code = 'font-mono text-sm bg-cream-100 border border-cream-200 rounded-lg px-1.5 py-0.5 text-charcoal whitespace-nowrap';
 const pre =
   'font-mono text-sm bg-navy-800 text-cream-100 rounded-xl p-4 whitespace-pre overflow-x-auto leading-relaxed';
+// Shell commands wrap instead of scrolling, so the whole command is visible in a half-width card.
+const commandPre = pre.replace('whitespace-pre overflow-x-auto', 'whitespace-pre-wrap wrap-anywhere');
 
 export default function IntegrationsPage() {
   if (!isMcpEnabled()) notFound();
@@ -155,9 +157,12 @@ export default function IntegrationsPage() {
               </div>
               <div className={card}>
                 <h3 className="text-xl font-semibold text-charcoal mb-3">Claude Code</h3>
-                {/* The plugin line (/plugin marketplace add wasimjalali/usefulapply-plugin) is added at launch, when that repo ships. */}
-                <p className={`${p} mb-3`}>Run this in your terminal:</p>
-                <pre className={pre} tabIndex={0} role="region" aria-label="Claude Code command">
+                <p className={`${p} mb-3`}>Install the plugin. It adds the connector and an apply-to-job skill:</p>
+                <pre className={commandPre} tabIndex={0} role="region" aria-label="Claude Code plugin commands">
+                  <code>{`/plugin marketplace add wasimjalali/usefulapply-plugin\n/plugin install usefulapply@usefulapply`}</code>
+                </pre>
+                <p className={`${p} mt-3 mb-3`}>Or add just the connector from your terminal:</p>
+                <pre className={commandPre} tabIndex={0} role="region" aria-label="Claude Code command">
                   <code>{`claude mcp add --transport http usefulapply ${MCP_URL}`}</code>
                 </pre>
                 <p className={`${p} mt-3`}>
