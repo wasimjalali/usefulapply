@@ -267,7 +267,7 @@ const updateFeedSettings = defineTool({
     salaryFloor: z.number().int().min(0).max(10_000_000).nullable().optional()
       .describe('Minimum salary as a whole number in the local currency. null removes the floor.'),
     automationEnabled: z.boolean().optional()
-      .describe('Whether the feed is switched on. It never runs by itself: when on, the user in the web app or run_job_feed starts at most one run a day. Turning it on needs consent already on file.'),
+      .describe('Whether the feed is switched on. It never runs by itself: when on, the user in the web app or run_job_feed starts at most one completed run a day. Turning it on needs consent already on file.'),
     timezone: z.string().trim().min(1).max(80).optional()
       .describe('IANA timezone name, for example Europe/Berlin. The one run a day follows this timezone.'),
   }),
@@ -423,7 +423,7 @@ const runJobFeed = defineTool({
   name: 'run_job_feed',
   title: 'Run job feed',
   description:
-    "Queues today's job search for the user and returns at once with a runId and its status: queued or running while it is in progress, completed or failed once it ended. The search runs in the background, usually within a couple of minutes, and the jobs it finds appear in get_job_feed when the run completes. Nothing runs on a schedule: this call, or the user in the web app, starts the day's run. At most one run a day, and it needs consent on file.",
+    "Queues today's job search for the user and returns at once with a runId and its status: queued or running while it is in progress, completed or failed once it ended. The search runs in the background, usually within a couple of minutes, and the jobs it finds appear in get_job_feed when the run completes. Nothing runs on a schedule: this call, or the user in the web app, starts the day's run. At most one completed run a day (a failed run can be started again), and it needs consent on file.",
   hints: { readOnly: false, destructive: false, idempotent: true, openWorld: true },
   input: z.object({}),
   output: z.object({

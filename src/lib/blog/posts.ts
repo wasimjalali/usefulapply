@@ -683,11 +683,11 @@ So the human has to do the sorting. Every morning. For five months.
 
 ## What a smart job feed should actually do
 
-Imagine the opposite setup. You configure your search once. Every morning, a small list of roles shows up. Each one has been filtered for your location, seniority, salary floor, work authorization, and remote preference. Each one has been read against your CV by something that understands what your CV actually says.
+Imagine the opposite setup. You set up your search once. When you're ready, one click runs it and a short list of roles comes back. Each one has been filtered for your location, seniority, salary floor, work authorization, and remote preference. Each one has been read against your CV by something that understands what your CV actually says.
 
 No duplicates. No "entry-level, 7+ years required" nonsense. No postings in the wrong country. No roles you are clearly overqualified for.
 
-Just a short list. Curated while you slept. Ready when you open your laptop.
+Just a short list. Searched when you ask. Ready in a couple of minutes.
 
 That is what the Useful Apply Smart Job Feed does.
 
@@ -741,7 +741,7 @@ Every application you create is saved in your tracker with its match score and s
 
 Job hunting is already hard. It gets harder the longer it goes. The parts worth protecting are your energy, your focus, and the quality of your applications. The parts worth deleting are the 45 minutes of morning scrolling and the growing suspicion that you are missing the good roles because they are buried under the bad ones.
 
-The Smart Job Feed is the setup-once, arrives-daily version of that. You can configure it today and see your first feed tomorrow morning.
+The Smart Job Feed swaps that for one click. Set it up once, start it when you're ready, and you'll have a short list of roles in a couple of minutes.
 
 If five months of searching sounds like a long time, that is because it is. Getting the browsing step out of the way is a small change that compounds fast.`,
     author: {
@@ -766,7 +766,7 @@ If five months of searching sounds like a long time, that is because it is. Gett
     cta: {
       heading: 'Stop scrolling, start applying',
       description:
-        'Set up your Smart Job Feed in three minutes. Tomorrow morning, a short list of roles that actually fit your CV shows up, curated while you slept.',
+        'Set up your Smart Job Feed in three minutes. One click a day brings back a short list of roles that actually fit your CV, within a couple of minutes.',
       text: 'Try the Smart Job Feed',
       href: '/dashboard',
     },
