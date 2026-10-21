@@ -3,7 +3,7 @@ import { expect, test } from '../lib/worker-logs';
 import { creditsOf } from '../lib/user';
 import { McpSession, jwtClaims, newAgent, uuid } from '../lib/mcp-client';
 import { applicationRows, documentRows, ledger, netCharged, readQuota } from '../lib/mcp-db';
-import { PRIMARY_CV_DE, REFUSED_REWRITE_INSTRUCTION, REGENERATE_LETTER_INSTRUCTION, SENIOR_JOB_DESCRIPTION } from '../lib/model-script';
+import { KEEP_WORDING_REWRITE_INSTRUCTION, PRIMARY_CV_DE, REFUSED_REWRITE_INSTRUCTION, REGENERATE_LETTER_INSTRUCTION, SENIOR_JOB_DESCRIPTION } from '../lib/model-script';
 
 /**
  * PLAN section 7, "Happy path", steps 1 to 8, through a real MCP client over OAuth, on the local D1 with the
@@ -13,7 +13,7 @@ import { PRIMARY_CV_DE, REFUSED_REWRITE_INSTRUCTION, REGENERATE_LETTER_INSTRUCTI
  *   2 save_cv a German CV
  *   3 analyze_job_fit on a senior job ad (0.5)
  *   4 generate_application_kit, polled with get_operation (1.5; the ledger shows exactly 2.0 for fit + kit)
- *   5 update_cv_content, delete_cv_item, rewrite_cv_section (applied, then refused)
+ *   5 update_cv_content, delete_cv_item, rewrite_cv_section (applied keeping section-only wording, applied, then refused)
  *   6 regenerate_document for the cover letter, then undo_last_edit restores it
  *   7 export_documents: the renderer behind PDF is Browser Run, which does not run locally, so the PDF case
  *     must fail with the clean message and give its quota back (the seven formats in two templates run in
@@ -177,6 +177,18 @@ test.describe.serial('MCP happy path: a German CV to a tracked application', () 
 
   test('5c. rewrite_cv_section: an applied rewrite costs 0.5; a refused one costs nothing and changes nothing', async () => {
     const before = creditsOf(userId).total;
+    // The production bug of 2026-10-21: the section holds a word no CV has ("Schwerpunkt", from the edit in
+    // 5a, as a kit writer's paraphrase would), and a rewrite that keeps it was refused as unsupported_claim.
+    const kept = await agent.ok<{ outcome: string; reason: string | null; terms: string[]; creditsUsed: number; after: string[] }>('rewrite_cv_section', {
+      idempotencyKey: uuid(),
+      applicationId,
+      section: { kind: 'summary' },
+      instruction: `Please ${KEEP_WORDING_REWRITE_INSTRUCTION}.`,
+    });
+    expect(kept, `refused with ${JSON.stringify(kept.terms)}`).toMatchObject({ outcome: 'applied', creditsUsed: 0.5 });
+    expect(kept.after).toEqual(['Finanzanalyst mit Schwerpunkt auf Monatsabschluss und Prognose.']);
+    expect(creditsOf(userId).total).toBe(before - 0.5);
+
     const applied = await agent.ok<{ outcome: string; creditsUsed: number; after: string[]; before: string[]; revision: number | null; replayed: boolean }>('rewrite_cv_section', {
       idempotencyKey: uuid(),
       applicationId,
@@ -184,9 +196,9 @@ test.describe.serial('MCP happy path: a German CV to a tracked application', () 
       instruction: 'Put forecasting first.',
     });
     expect(applied).toMatchObject({ outcome: 'applied', creditsUsed: 0.5, replayed: false });
-    expect(applied.before).toEqual(['Finanzanalyst mit Schwerpunkt auf Prognose und Monatsabschluss.']);
+    expect(applied.before).toEqual(['Finanzanalyst mit Schwerpunkt auf Monatsabschluss und Prognose.']);
     expect(applied.after).toEqual(['Finanzanalyst mit Erfahrung in Prognose, Budgetierung und Monatsabschluss.']);
-    expect(creditsOf(userId).total).toBe(before - 0.5);
+    expect(creditsOf(userId).total).toBe(before - 1);
     revision = applied.revision as number;
 
     // The same rewrite again with a new instruction that makes the writer invent a number: refused, free, unchanged.
@@ -199,7 +211,7 @@ test.describe.serial('MCP happy path: a German CV to a tracked application', () 
     });
     expect(refused).toMatchObject({ outcome: 'refused', reason: 'unsupported_number', creditsUsed: 0 });
     expect(refused.terms.join(' ')).toMatch(/40|99/);
-    expect(creditsOf(userId).total).toBe(before - 0.5);
+    expect(creditsOf(userId).total).toBe(before - 1);
     expect(applicationRows(userId)).toEqual(rows);
     expect(
       (await agent.ok<{ revision: number }>('get_application', { applicationId })).revision,
@@ -289,8 +301,8 @@ test.describe.serial('MCP happy path: a German CV to a tracked application', () 
     await page.screenshot({ path: testInfo.outputPath('dashboard-after-agent.png'), fullPage: true });
     await page.close();
 
-    // The ledger tells the same story as the calls: fit 0.5, kit 1.5, one applied rewrite 0.5, one letter 0.5.
-    expect(netCharged(userId)).toBe(3);
+    // The ledger tells the same story as the calls: fit 0.5, kit 1.5, two applied rewrites 0.5 each, one letter 0.5.
+    expect(netCharged(userId)).toBe(3.5);
     // The one refused rewrite reserved 0.5 and gave it straight back: the only refund row there is.
     const refunds = ledger(userId).filter((row) => row.transaction_kind === 'refund');
     expect(refunds).toHaveLength(1);
