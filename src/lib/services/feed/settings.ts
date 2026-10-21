@@ -129,7 +129,7 @@ async function persistFeedSettings(params: {
   if (normalized.data.enabled && !consentAcceptedAt) {
     throw new FeedError(
       400,
-      'Please accept feed automation consent before turning the daily feed on.',
+      'Please accept the feed consent before turning the feed on.',
       'consent_required',
     );
   }
