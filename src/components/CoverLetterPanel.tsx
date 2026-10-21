@@ -25,7 +25,7 @@ import { kitFilename } from '@/lib/utils/kit-export';
 import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback } from '@/lib/utils/server-export';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { useSessionStore } from '@/store/useSessionStore';
-import { acknowledgedStart, acknowledgementFor, commitEditorSave, editorShouldClose, getEditorStart, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
+import { acknowledgedStart, acknowledgementFor, commitEditorSave, discardedSinceSave, editorShouldClose, getEditorStart, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface CoverLetterPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -416,6 +416,8 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
       // Save now, against the revision this editor opened on. If another write got
       // in first the draft is not applied: the editor stays open with the text in it.
       void commitEditorSave(sessionId, editStartRef.current, () => {
+        // This runs once the sync lock is free. A draft discarded since the click is not written.
+        if (discardedSinceSave(epochAtSave, discardEpochRef.current)) return;
         useSessionStore.getState().updateSessionById(sessionId, {
           coverLetter: { ...rest, ...(keepStructured ? { structured } : {}), updatedAt: new Date().toISOString() },
         });

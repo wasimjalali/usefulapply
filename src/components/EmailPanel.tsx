@@ -12,7 +12,7 @@ import { useToast } from './ui/Toast';
 import { usePostHog } from 'posthog-js/react';
 import { formatEmailAsText } from '@/lib/utils/kit-export';
 import { useSessionStore } from '@/store/useSessionStore';
-import { acknowledgedStart, acknowledgementFor, commitEditorSave, discardedEditorStart, editorShouldClose, getEditorStart, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
+import { acknowledgedStart, acknowledgementFor, commitEditorSave, discardedEditorStart, discardedSinceSave, editorShouldClose, getEditorStart, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface EmailPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -69,6 +69,8 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   // Counts the discards of email conflict text that reached this editor. A save still running when a draft
   // is discarded sees the count has moved and leaves the editor alone when its answer comes back.
   const discardEpochRef = useRef(0);
+  // The same discards, per document: a save waiting for the sync lock skips a document discarded after Save was clicked.
+  const discardsRef = useRef({ email: 0, followUp: 0 });
   // When the user deals with a conflict notice this editor produced (restores or copies the text), the editor is based
   // on the version that notice showed, for that document only: the email and the follow-up each keep their own
   // snapshot, so a Save still catches a newer server version of the other one. Discarding the text a draft holds
@@ -80,6 +82,8 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
     if (emailAction === 'ignore' && followUpAction === 'ignore') return;
     if (emailAction === 'reset' || followUpAction === 'reset') {
       discardEpochRef.current += 1;
+      if (emailAction === 'reset') discardsRef.current.email += 1;
+      if (followUpAction === 'reset') discardsRef.current.followUp += 1;
       if (emailAction === 'reset' && followUpAction === 'reset') {
         setIsEditMode(false);
         setEditedEmail(null);
@@ -148,11 +152,17 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
     }
     const sentDrafts = JSON.stringify([editedEmail, editedFollowUp]);
     const epochAtSave = discardEpochRef.current;
+    const discardsAtSave = { ...discardsRef.current };
     // Save now, against the revision this editor opened on. If another write got in
     // first the drafts are not applied: the editor stays open with the text in it.
     void commitEditorSave(editSessionId, editStartRef.current, () => {
-      if (editedEmail && typed.email) useSessionStore.getState().updateSessionById(editSessionId, { email: editedEmail });
-      if (editedFollowUp && typed.followUp) useSessionStore.getState().updateSessionById(editSessionId, { followUpEmail: editedFollowUp });
+      // This runs once the sync lock is free. A document discarded since the click is not written: the editor shows the store's copy.
+      if (editedEmail && typed.email && !discardedSinceSave(discardsAtSave.email, discardsRef.current.email)) {
+        useSessionStore.getState().updateSessionById(editSessionId, { email: editedEmail });
+      }
+      if (editedFollowUp && typed.followUp && !discardedSinceSave(discardsAtSave.followUp, discardsRef.current.followUp)) {
+        useSessionStore.getState().updateSessionById(editSessionId, { followUpEmail: editedFollowUp });
+      }
     }).then((outcome) => {
       // A draft was discarded while the save ran: what was sent is gone, and nothing here reopens or closes the editor.
       if (epochAtSave !== discardEpochRef.current) return;

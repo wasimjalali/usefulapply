@@ -34,6 +34,7 @@ export {
   acknowledgedStart,
   forgetDiscardedGroups,
   afterClosedEditorSave,
+  discardedSinceSave,
   staleEditorStart,
 } from '@/lib/session-sync-engine';
 export type {

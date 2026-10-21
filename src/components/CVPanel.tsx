@@ -44,7 +44,7 @@ import { downloadBlob } from '@/lib/utils/download-pdf';
 import { PdfPreviewModal } from './ui/PdfPreviewModal';
 import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback } from '@/lib/utils/server-export';
 import type { Profile } from '@/lib/supabase/types';
-import { acknowledgedStart, acknowledgementFor, afterClosedEditorSave, commitEditorSave, editorSaveSucceeded, getEditorStart, persistSessionEdits, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
+import { acknowledgedStart, acknowledgementFor, afterClosedEditorSave, commitEditorSave, discardedSinceSave, editorSaveSucceeded, getEditorStart, persistSessionEdits, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface CVPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -641,6 +641,8 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                         // write got in first the draft is not applied: the editor reopens
                         // with the text in it so it can be copied.
                         void commitEditorSave(editSessionId, startAtSave, () => {
+                          // This runs once the sync lock is free. A draft discarded since the click is not written.
+                          if (discardedSinceSave(epochAtSave, discardEpochRef.current)) return;
                           useSessionStore.getState().updateSessionById(editSessionId, {
                             optimizedCVData: {
                               ...updatedData,

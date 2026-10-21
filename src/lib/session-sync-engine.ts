@@ -369,6 +369,16 @@ export function afterClosedEditorSave(
   return { reopen: true, start: start ?? staleEditorStart() };
 }
 
+/**
+ * Inside an editor save's `apply`, which runs only once the application's lock is free (another save can hold it for
+ * a whole network round trip): was this document's draft discarded after Save was clicked? Then `apply` must not write
+ * it. Its closure still holds the text, and writing it would bring the discarded text back as a new conflict entry, or
+ * save it. The counts are the panel's discards of that one document, taken at the click and now.
+ */
+export function discardedSinceSave(discardsAtSave: number, discardsNow: number): boolean {
+  return discardsAtSave !== discardsNow;
+}
+
 interface Baseline {
   revision: number;
   fields: Record<string, string>;
