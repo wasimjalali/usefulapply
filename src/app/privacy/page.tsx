@@ -570,7 +570,7 @@ export default function PrivacyPage() {
                 <td className="py-2 pr-3">Tool used, assistant app, duration and outcome</td>
                 <td className="py-2 pr-3">Reliability, abuse prevention and improvement</td>
                 <td className="py-2 pr-3">Cloudflare, PostHog</td>
-                <td className="py-2 pr-3">What is kept: tool, assistant app, duration and outcome, never content. We keep these records for [RETENTION PERIOD, to confirm].</td>
+                <td className="py-2 pr-3">What is kept: tool, assistant app, duration and outcome, never content. We keep these records for 12 months.</td>
                 <td className="py-2">Email {LEGAL.email}</td>
               </tr>
             </tbody>
