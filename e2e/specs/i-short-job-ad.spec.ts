@@ -145,17 +145,16 @@ test('(i4) a short ad on an application without a kit leaves it alone until a bu
     if (call.method() === 'POST' && (call.postData() ?? '').includes(ad) && !call.url().includes('/api/chat')) runsWithAd.push(call.url());
   });
 
-  // The ad is short: the card shows the buttons and the short hint, and nothing has started.
+  // The ad is short: the card shows the buttons and the short hint.
   await send(page, ad);
   await expect(page.getByRole('button', { name: SKIP_BUTTON })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText(SHORT_JOB_AD_HINT)).toBeVisible();
-  await page.waitForTimeout(3_000);
-  expect(runsWithAd).toEqual([]);
 
   // "Not a job ad" closes the card. The application still holds the first job and its fit result: replacing
-  // the job description would have cleared the fit result, and with it the chip.
+  // the job description would have cleared the fit result, and with it the chip. Nothing started: a run would
+  // have been requested when the card opened, before this click, so its request is recorded by the time the card is gone.
   await page.getByRole('button', { name: /Not a job ad, just a question/ }).click();
-  await page.waitForTimeout(3_000);
+  await expect(page.getByRole('button', { name: SKIP_BUTTON })).toHaveCount(0);
   await expect(kitChip).toBeVisible();
   expect(runsWithAd).toEqual([]);
 

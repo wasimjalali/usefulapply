@@ -123,7 +123,7 @@ interface Editor {
   fields: Field[];
   /** The text typed into each field, latest first. A field of the email panel nobody typed into has none. */
   drafts: Partial<Record<Field, string>>;
-  /** The email panel's copy of a document it opened with and nobody typed into: Save puts it back as it is. */
+  /** The email panel's copy of a document it opened with and nobody typed into: shown in the panel, never written by Save. */
   copies: Partial<Record<Field, Partial<ApplicationSession>>>;
   /** Every draft this editor held or sent, for the I1 accounting, and per field. */
   tokens: Set<string>;
@@ -656,7 +656,7 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         const apps = appsOf(client);
         if (!apps.length || editors.filter((editor) => editor.client === client).length >= 2) return;
         const app = pick(rng, apps);
-        // The email panel is one editor over two documents: it copies both when it opens and saves both.
+        // The email panel is one editor over two documents: it copies both when it opens and saves the ones typed into.
         const choice = pick(rng, options.engine === 'new' ? [...EDITOR_FIELDS, 'cv', 'emailPanel'] as const : EDITOR_FIELDS);
         const panel = choice === 'emailPanel';
         const fields: Field[] = panel ? ['email', 'followUpEmail'] : [choice as Field];
@@ -738,13 +738,12 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
           const appliedFields: Field[] = [];
           for (const field of editor.fields) {
             const token = sent[field];
-            const copy = sentCopies[field];
-            if (token) client.edit(app, fieldMutation(field, token));
-            else if (copy) client.edit(app, (session) => ({ ...session, ...copy }));
-            else continue;
+            // The email panel writes only a document the user typed into; its copy of the other one stays out of the store.
+            if (!token) continue;
+            client.edit(app, fieldMutation(field, token));
             appliedFields.push(field);
             // The draft replaces whatever the store held for that field.
-            if (token) lastEdit.set(keyOf(client.id, app, field), { client: client.id, app, field, token, viaEditor: true });
+            lastEdit.set(keyOf(client.id, app, field), { client: client.id, app, field, token, viaEditor: true });
           }
           // I6: what this editor put into the store is its own text: it may write over it later, and entries holding it are its.
           const session = client.session(app);

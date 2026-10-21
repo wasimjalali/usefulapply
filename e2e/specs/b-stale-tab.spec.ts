@@ -95,8 +95,9 @@ test('(b3) a stale Save is refused again, and after Discard the editor no longer
 
   // The stale draft is saved again, as a user who did not read the notice would: it is refused, the editor
   // keeps the draft (a save that landed would have closed it) and D1 still holds A's letter at A's revision.
+  // The refusal sets the draft aside a second time, so the notice now covers the text of two changes.
   await pageB.getByRole('button', { name: 'Save', exact: true }).click();
-  await pageB.waitForTimeout(3_000);
+  await expect(notice.getByText(/Your text from 2 changes/)).toBeVisible({ timeout: 20_000 });
   await expect(editor).toHaveValue(discardedText);
   expect(storedApplication(user.id)?.cover_letter?.body).not.toContain('discarded on purpose');
   expect(storedApplication(user.id)?.revision).toBe(afterA.revision);
@@ -111,12 +112,12 @@ test('(b3) a stale Save is refused again, and after Discard the editor no longer
   await expect(pageB.getByText(/tab A saved first/).first()).toBeVisible();
   await expect(pageB.getByText(/discarded on purpose/)).toHaveCount(0);
 
-  // Discarding wrote nothing. Opening the editor again starts from A's letter, not from the discarded text.
-  await pageB.waitForTimeout(3_000);
-  expect(storedApplication(user.id)?.revision).toBe(afterA.revision);
+  // Discarding wrote nothing. Opening the editor again starts from A's letter, not from the discarded text: the
+  // store does not hold the discarded text, so no save (the 2 second autosave included) can write it.
   await pageB.getByRole('button', { name: 'Edit', exact: true }).click();
   await expect(editor).toHaveValue(letterA);
   await pageB.getByRole('button', { name: 'Cancel', exact: true }).click();
+  expect(storedApplication(user.id)?.revision).toBe(afterA.revision);
 
   const final = storedApplication(user.id);
   expect(final?.cover_letter?.body).toContain('tab A saved first');
