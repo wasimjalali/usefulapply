@@ -23,7 +23,7 @@ import * as sessionsRepo from '@/db/repos/sessions';
 import { callWorkersAI, type WorkersAiChatMessage } from '@/lib/models/workers-ai';
 import { sanitizeDashes } from '@/lib/config/typo-corrections';
 import { InvalidInputError, NotFoundError } from './errors';
-import { visibleCvData } from '@/lib/cv-templates/hidden';
+import { isSectionHidden, visibleCvData } from '@/lib/cv-templates/hidden';
 import type { CVData } from '@/lib/cv-templates/types';
 import { buildSessionUpdateStatement, kitFromRow, type Kit } from './kit';
 
@@ -210,6 +210,15 @@ function currentCvText(kit: Kit): string | undefined {
   for (const section of cv.customSections ?? []) {
     lines.push('', section.title);
     for (const item of section.items) lines.push(`- ${item}`);
+  }
+  // The renderer prints a driver's licence as additional information when the CV has none of its own.
+  const licence = data.personal.driverLicense;
+  const additionalInfo = isSectionHidden(data as unknown as CVData, 'additionalInfo')
+    ? undefined
+    : data.additionalInfo || (licence ? [`Driver's License: ${licence}`] : undefined);
+  if (additionalInfo?.length) {
+    lines.push('');
+    for (const item of additionalInfo) lines.push(`- ${item}`);
   }
   return lines.join('\n').trim() || undefined;
 }

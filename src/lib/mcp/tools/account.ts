@@ -75,6 +75,8 @@ const SAFE_LEDGER_DESCRIPTIONS = [
   /^Upgraded to [\w .-]+ plan$/,
   /^Purchased \d+ add-on pack \(\d+(\.\d+)? credits\)$/,
   /^Stripe (subscription|add-on) refund$/,
+  /^Monthly credit reset for [\w .-]+ plan$/,
+  /^Stripe subscription renewal$/,
 ];
 
 function safeLedgerDescription(description: string | null): string | null {

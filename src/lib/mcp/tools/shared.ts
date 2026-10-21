@@ -20,6 +20,21 @@ export function wrapLong(value: string | null | undefined, cap = 12_000): string
   return `<<${sanitizeAdText(value ?? '').slice(0, cap)}>>`;
 }
 
+/**
+ * A text of the tailored CV, which a model wrote after reading a job ad: marked as data, nothing else changed.
+ * Only << and >> are neutralized, since they could close the wrapper early. Every other character comes back
+ * as stored, so an agent can read a field and write it back unchanged ("error rate <2%" stays that).
+ */
+export function wrapCvText(value: string): string {
+  return `<<${value.replace(/<</g, '‹‹').replace(/>>/g, '››')}>>`;
+}
+
+/** A value that still carries the << >> marks get_cv puts around a text: an agent echoed the wrapper instead of the words. */
+export function carriesDataMarks(value: string): boolean {
+  const text = value.trim();
+  return text.length >= 4 && text.startsWith('<<') && text.endsWith('>>');
+}
+
 export const applicationIdField = z
   .string()
   .uuid()

@@ -1,4 +1,4 @@
-import { deleteFileAction, deleteUserFilesAction, getProfileAction, listUserFilesAction } from '@/db/actions';
+import { deleteFileAction, deleteUserFilesAction, getProfileAction, listUserFilesAction, setAvatarAction } from '@/db/actions';
 import { fileDisplayUrl, toR2Key } from '@/storage/paths';
 
 type FileBucket = 'cv-files' | 'generated-pdfs' | 'avatars' | 'profile-photos';
@@ -49,7 +49,17 @@ export async function uploadAvatar(
   return { url: fileDisplayUrl(result.key), key: result.key, error: null };
 }
 
-/** Delete avatar objects. Pass `keepKey` after saving a new avatar to remove only the old ones. */
+/** Make an uploaded avatar the account photo. The server deletes only the avatar it replaces, so a photo set from elsewhere at the same time survives. */
+export async function setAvatar(userId: string, key: string): Promise<{ error: Error | null }> {
+  try {
+    await setAvatarAction(userId, key);
+    return { error: null };
+  } catch (err) {
+    return { error: asError(err, 'Failed to save the photo') };
+  }
+}
+
+/** Delete avatar objects. Only for removing the photo: replacing it goes through setAvatar. */
 export async function deleteAvatar(userId: string, keepKey?: string): Promise<{ error: Error | null }> {
   void userId;
   return deleteOwnedPrefix('avatars', keepKey);

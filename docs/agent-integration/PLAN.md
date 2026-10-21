@@ -180,7 +180,7 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
 | `generate_application_kit` | 1.5 after fit, else 2.0 | yes (can replace a kit with `regenerate`) | Queues the CV, cover letter, email and follow-up |
 | `regenerate_document` | 0.5 | yes (overwrites) | Cover letter, email or follow-up, with an instruction |
 | `rewrite_cv_section` | 0.5, free if refused | yes (overwrites) | One section, with an instruction |
-| `apply_to_feed_job` | 0.5 or 2.0 | no | Feed job to application, then fit or kit |
+| `apply_to_feed_job` | 0.5 fit, or kit 1.5 after fit, else 2.0 | no | Feed job to application, then fit or kit |
 | `draft_screening_answers` | per current rules | no | Plus/Max screening answers, same turn cap as the web app |
 
 **Write, free** (scope `write`)

@@ -62,6 +62,15 @@ function isKnownTimezone(value: string): boolean {
   }
 }
 
+/** Only a key in this user's avatars prefix (or its leftover Supabase URL) may be stored. */
+function ownedAvatarKey(userId: string, value: string): string {
+  const key = storedFileKey(value);
+  if (!key || !key.startsWith('avatars/') || !userOwnsKey(key, userId)) {
+    throw new InvalidInputError('Invalid avatar');
+  }
+  return key;
+}
+
 export async function updateUserProfile(userId: string, updates: Partial<UserEditableProfile>): Promise<Profile> {
   if (typeof updates.timezone === 'string' && !isKnownTimezone(updates.timezone)) {
     throw new InvalidInputError('Unknown timezone');
@@ -79,14 +88,7 @@ export async function updateUserProfile(userId: string, updates: Partial<UserEdi
   if (rejected.length > 0) {
     throw new InvalidInputError(`Forbidden profile fields: ${rejected.join(', ')}`);
   }
-  if (typeof safe.avatar_url === 'string') {
-    // Only a key in this user's avatars prefix (or its leftover Supabase URL) may be stored.
-    const key = storedFileKey(safe.avatar_url);
-    if (!key || !key.startsWith('avatars/') || !userOwnsKey(key, userId)) {
-      throw new InvalidInputError('Invalid avatar');
-    }
-    safe.avatar_url = key;
-  }
+  if (typeof safe.avatar_url === 'string') safe.avatar_url = ownedAvatarKey(userId, safe.avatar_url);
   return profilesRepo.updateProfile(userId, safe);
 }
 
@@ -221,9 +223,12 @@ async function swapAvatar(userId: string, key: string): Promise<string | null> {
   throw new Error('The profile photo changed too often to save');
 }
 
-/** Store a new photo as the account avatar, then drop the avatar it replaced and any legacy CV photo. */
-export async function replaceProfilePhoto(userId: string, file: File, ext: string): Promise<void> {
-  const key = await storeUserUpload(userId, { bucket: 'avatars', subpath: '', file, ext });
+/**
+ * Make an already uploaded avatar the account photo, then drop the avatar it replaced and any legacy CV photo.
+ * The web Settings page and set_profile_photo both end here, so neither deletes an object the other just linked.
+ */
+export async function linkProfilePhoto(userId: string, avatarKey: string): Promise<void> {
+  const key = ownedAvatarKey(userId, avatarKey);
   const previous = await swapAvatar(userId, key);
   // The row is saved. Leftover old objects waste quota but do not change what is shown.
   try {
@@ -232,6 +237,12 @@ export async function replaceProfilePhoto(userId: string, file: File, ext: strin
   } catch (error) {
     console.error('[profile] failed to remove old profile photos:', error);
   }
+}
+
+/** Store a new photo as the account avatar. */
+export async function replaceProfilePhoto(userId: string, file: File, ext: string): Promise<void> {
+  const key = await storeUserUpload(userId, { bucket: 'avatars', subpath: '', file, ext });
+  await linkProfilePhoto(userId, key);
 }
 
 /** Unlink the photo, then delete its objects. False when objects may remain (retrying is safe). */
