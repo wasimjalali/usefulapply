@@ -730,8 +730,9 @@ export function ChatPanel({
   // until the user picks a chip.
   // A short ad on an unfinished application leaves that application alone until
   // a chip is picked: it may be a question the model misread, and "Not a job ad"
-  // must not have replaced the real job description.
-  const deferredReplaceJdRef = useRef<string | null>(null);
+  // must not have replaced the real job description. It is bound to that application: after a switch it
+  // never replaces another one's job description.
+  const deferredReplaceJdRef = useRef<{ jd: string; sessionId: string } | null>(null);
   const replaceUnfinishedApplication = (jd: string) => {
     // A new ad on an unfinished application replaces it. A partial kit (any
     // document delivered) is finished work and is never overwritten here. Without this the
@@ -757,7 +758,7 @@ export function ChatPanel({
     if (!currentSession) {
       useAppStore.getState().createNewSession(jd);
     } else if (!sessionHasKit(currentSession)) {
-      if (isShortJobAd(jd)) deferredReplaceJdRef.current = jd;
+      if (isShortJobAd(jd)) deferredReplaceJdRef.current = { jd, sessionId: currentSession.id };
       else replaceUnfinishedApplication(jd);
     }
     setAdFallbackJd(null);
@@ -779,9 +780,10 @@ export function ChatPanel({
   // application stays in the sidebar; the new job opens its own conversation.
   const beginJobRun = (jd: string) => {
     setPendingDecisionJd(null);
-    if (deferredReplaceJdRef.current === jd) {
+    const deferred = deferredReplaceJdRef.current;
+    if (deferred?.jd === jd) {
       deferredReplaceJdRef.current = null;
-      if (!sessionHasKit(currentSession)) replaceUnfinishedApplication(jd);
+      if (deferred.sessionId === currentSession?.id && !sessionHasKit(currentSession)) replaceUnfinishedApplication(jd);
     }
     if (sessionHasKit(currentSession)) {
       useAppStore.getState().createNewSession(jd);
