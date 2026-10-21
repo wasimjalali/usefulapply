@@ -27,7 +27,7 @@ Re-read the submission page when Wasim submits. The docs moved recently.
 | Verify the individual or organization in the OpenAI Platform dashboard | Wasim | open |
 | `MCP_ENABLED=true` in production and `/mcp` live | launch step in `STATUS.md` | open |
 | Domain challenge route live (`/.well-known/openai-apps-challenge`, PR #156) and `OPENAI_APPS_CHALLENGE` secret set | Wasim (the token comes from the dashboard) | open |
-| Reviewer account seeded on production, credentials entered in the dashboard | Wasim runs `scripts/seed-reviewer-account.ts` | open |
+| Reviewer account `reviewer+openai@usefulapply.com` seeded on production (the Anthropic portal gets its own account), credentials entered in the dashboard | Wasim runs `scripts/seed-reviewer-account.ts --email reviewer+openai@usefulapply.com` | open |
 | Demo recording URL | Wasim records, see `../submission/screenshots.md` | open |
 | Tested on desktop and mobile in ChatGPT developer mode | Wasim | open |
 
@@ -102,8 +102,8 @@ Limits are from the submission page. Count characters before pasting.
 ### defaultPrompt
 
 1. `Check my fit for this job ad and tell me what to fix first.` (59)
-2. `Write my application kit for the Senior Software Engineer role I saved.` (71)
-3. `Bewirb dich für mich auf diese Stelle: erstelle Lebenslauf und Anschreiben.` (75)
+2. `What needs my attention today on my applications?` (49)
+3. `Zeig mir meine Bewerbungen und was heute ansteht.` (49)
 
 ### Description rules
 
@@ -136,10 +136,10 @@ The submission page requires exactly 5 positive and 3 negative cases for an MCP 
 Rules from the guidelines: explicit booleans on every tool, justification no longer required. All 43 tools set `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint` (`ToolDefinition.hints` in `src/lib/mcp/tools/framework.ts`). What the code sets:
 
 - `readOnlyHint`: true for the 13 read tools. False for the other 30, including `analyze_job_fit` (a pasted ad creates a draft) and every generation tool (they queue work).
-- `destructiveHint`: true for 18 tools, the ones that replace or remove saved data. They are `delete_application`, `delete_cv`, `delete_cv_item`, `save_cv`, `set_profile_photo`, `remove_profile_photo`, `update_profile`, `update_notification_settings`, `update_feed_settings`, `withdraw_feed_consent`, `update_cv_content`, `edit_cv_structure`, `edit_document_text`, `set_cv_template`, `undo_last_edit`, `generate_application_kit`, `regenerate_document` and `rewrite_cv_section`. Being undoable doesn't justify false, so the edit tools stay true. False for everything else, including `cancel_generation`, `add_cv_item`, `set_cv_item_visibility` (hidden content stays in the CV), `export_documents`, `draft_screening_answers`, the tracker tools and the feed read and feedback tools.
+- `destructiveHint`: true for 19 tools, the ones that replace or remove saved data. Counted tool by tool from the code: `delete_application`, `delete_cv`, `delete_cv_item`, `save_cv`, `set_profile_photo`, `remove_profile_photo`, `update_profile`, `update_notification_settings`, `update_feed_settings`, `give_job_feedback`, `withdraw_feed_consent`, `update_cv_content`, `edit_cv_structure`, `edit_document_text`, `set_cv_template`, `undo_last_edit`, `generate_application_kit`, `regenerate_document` and `rewrite_cv_section`. `give_job_feedback` is true because dismiss and rate-not-relevant remove a job for good. Being undoable doesn't justify false, so the edit tools stay true. False for the other 24: the 13 read tools, plus `create_application`, `update_application`, `update_application_status`, `cancel_generation`, `add_cv_item`, `set_cv_item_visibility` (hidden content stays in the CV), `export_documents`, `draft_screening_answers`, `analyze_job_fit`, `run_job_feed` and `apply_to_feed_job`.
 - `idempotentHint`: true for the 13 read tools and the 15 others that repeat safely (every spending tool is idempotent by key). False for 15 tools such as `create_application`, `add_cv_item` and `undo_last_edit`.
 - `openWorldHint`: false for a bounded private account. Every tool acts on the user's own account, so false everywhere except `run_job_feed`, which searches public job listings and is `true`.
-- Annotations aren't permission. The server still enforces scopes, ownership and the daily spend cap. Destructive tools also ask the user to confirm through MCP elicitation when the client supports it.
+- Annotations aren't permission. The server still enforces scopes, ownership and the daily spend cap. When the client supports MCP elicitation, most destructive tools also ask the user to confirm, but only when something is actually replaced or removed: `give_job_feedback` for dismiss and rate-not-relevant, `update_profile` when it overwrites a saved value, `generate_application_kit` when it replaces an existing kit, and so on. `update_notification_settings` is destructive and has no confirmation.
 
 Other guideline points we have to keep meeting:
 
@@ -169,7 +169,7 @@ A reviewer may argue that metered credits are a digital good. Our answer is the 
 ## Privacy and data notes
 
 - The privacy policy covers data categories, purposes, recipients, retention (exports are deleted after 30 days) and user controls. The PostHog analytics retention period is still a number Wasim has to supply (see `STATUS.md`).
-- The app collects only what its tools need: CV and application data the user already keeps in Useful Apply. No government ids, no payment data, no credentials, no precise location.
+- The app collects only what its tools need. That's CV and application data the user already keeps in Useful Apply, plus job feed preferences (roles, locations, salary floor), a profile photo (`set_profile_photo`), and contact details including date of birth and nationality (`update_profile`). Name the photo, date of birth and nationality in the privacy policy and in the dashboard's data-collection answers, because OpenAI compares the tools to the policy. No government ids, no payment data, no credentials, no precise location.
 - `mcp_tool_called` analytics records tool, client, duration and outcome, never content.
 - The server never reads chat history. It only sees tool arguments.
 - Account deletion revokes every token.
@@ -177,7 +177,7 @@ A reviewer may argue that metered credits are a digital good. Our answer is the 
 ## Review details (dashboard only, never in git or the ZIP)
 
 - Login URL: `https://usefulapply.com/auth/login`
-- Test account: the reviewer account. Email and password come from the file the seed script writes. Paste them into Review details.
+- Test account: `reviewer+openai@usefulapply.com`, the OpenAI account only. Email and password come from the file the seed script writes. Paste them into Review details.
 - No MFA, no email or SMS codes, no magic links, no sign-up needed.
 - Instructions: paste the contents of `../submission/reviewer-guide.md`.
-- Keep the account and its data in place for later reviews. Re-run the seed to reset it.
+- Keep the account and its data in place for later reviews. Wasim resets it by re-running the seed (reviewers can't). Re-run it the day before a review, so the feed matches and dates are fresh. See `../submission/checklist.md`.
