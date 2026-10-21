@@ -204,7 +204,7 @@ Compression: 7 to 8 tools into 1 loop, with the candidate's real CV as the share
 
 App surfaces: dashboard, documents, master CV, profile, settings, subscription, tracker, auth flows. Marketing surfaces: landing, about, features, pricing, comparison pages, blog, SEO landing pages, contact, legal pages.
 
-Key capabilities: SSE-streamed unified writer agent (analyze-first or apply-directly modes), fit analysis, PDF and DOCX export, 6 ATS-safe CV templates including two German market templates, output in 7 languages (English, German, French, Spanish, Portuguese, Italian, Dutch), on-click daily job feed with feedback and saved roles, application tracker, career profile and search strategy.
+Key capabilities: SSE-streamed unified writer agent (analyze-first or apply-directly modes), fit analysis, PDF and DOCX export, 6 ATS-safe CV templates including two German market templates, output in 7 languages (English, German, French, Spanish, Portuguese, Italian, Dutch), on-click daily job feed with feedback and saved roles, application tracker, career profile and search strategy. The applicant's own start date and optional salary expectation (asked once before the first kit, editable in Settings) feed the writers so they never invent them; salary appears only in the cover letter and only when the ad asks for it.
 
 ### What it is NOT
 
