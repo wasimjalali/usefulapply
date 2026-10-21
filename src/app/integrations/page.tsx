@@ -155,8 +155,11 @@ export default function IntegrationsPage() {
               </div>
               <div className={card}>
                 <h3 className="text-xl font-semibold text-charcoal mb-3">Claude Code</h3>
-                {/* The plugin line (/plugin marketplace add wasimjalali/usefulapply-plugin) is added at launch, when that repo ships. */}
-                <p className={`${p} mb-3`}>Run this in your terminal:</p>
+                <p className={`${p} mb-3`}>Install the plugin. It adds the connector and an apply-to-job skill:</p>
+                <pre className={pre} tabIndex={0} role="region" aria-label="Claude Code plugin commands">
+                  <code>{`/plugin marketplace add wasimjalali/usefulapply-plugin\n/plugin install usefulapply@usefulapply`}</code>
+                </pre>
+                <p className={`${p} mt-3 mb-3`}>Or add just the connector from your terminal:</p>
                 <pre className={pre} tabIndex={0} role="region" aria-label="Claude Code command">
                   <code>{`claude mcp add --transport http usefulapply ${MCP_URL}`}</code>
                 </pre>
