@@ -58,13 +58,13 @@ test('the text CV prints the licence once for British, American and German wordi
     ['Führerschein: Klasse B', true],
   ] as const) {
     const text = unifiedWriterAgent.cvDataToText(optimized({ additionalInfo: [line, 'Valid German residence permit'] }), german);
-    assert.equal(text.split('\n').filter(mentionsDrivingLicence).length, 1, text);
+    assert.equal(text.split('\n').filter((line) => mentionsDrivingLicence(line)).length, 1, text);
   }
 });
 
 test('the text CV adds the licence line when additionalInfo holds none', () => {
   const text = unifiedWriterAgent.cvDataToText(optimized({ additionalInfo: ['Valid German residence permit'] }), false);
-  assert.equal(text.split('\n').filter(mentionsDrivingLicence).length, 1);
+  assert.equal(text.split('\n').filter((line) => mentionsDrivingLicence(line)).length, 1);
   assert.match(text, /Driver's License: Class B/);
   const german = unifiedWriterAgent.cvDataToText(optimized({ additionalInfo: undefined }), true);
   assert.match(german, /Führerschein: Class B/);
@@ -153,7 +153,7 @@ test('the DOCX export holds the licence, the website and the portfolio once each
   writeFileSync(file, bytes);
   const xml = execFileSync('unzip', ['-p', file, 'word/document.xml'], { encoding: 'utf8' });
   const text = xml.replace(/<\/w:p>/g, '\n').replace(/<[^>]+>/g, '');
-  assert.equal(text.split('\n').filter(mentionsDrivingLicence).length, 1, text);
+  assert.equal(text.split('\n').filter((line) => mentionsDrivingLicence(line)).length, 1, text);
   assert.equal(count(text, 'Class B'), 1, text);
   assert.equal(count(text, 'wasimjalali.com/#work'), 1, text);
   // "wasimjalali.com" alone: the website. The portfolio's text has a suffix.
