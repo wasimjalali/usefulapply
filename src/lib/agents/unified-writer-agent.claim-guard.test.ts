@@ -29,44 +29,6 @@ test('a rewrite that adds a tool no source mentions is still refused', () => {
   assert.deepEqual(introducedClaims(added, SOURCE_CV, BEFORE), ['kubernetes']);
 });
 
-// The number guard has the same blind spot. Here the kit writer rounded "28 AI
-// models" to "nearly 30 models", which no CV says. A rewrite that keeps that
-// line must not be refused for it, but the number can't jump to a new claim.
-const BEFORE_ROUNDED = 'Shipped Safwa, a live Q&A filter, after comparing nearly 30 models on hand-labelled cases.';
-const DOCUMENTS = SOURCE_CV;
-
-test('a number already in the section, beside the same words, is not introduced', () => {
-  const after = 'Compared nearly 30 models on hand-labelled cases to ship Safwa, a live Q&A filter.';
-  assert.deepEqual(unsupportedNumbers(after, '', DOCUMENTS, BEFORE_ROUNDED), []);
-});
-
-test('a number from the section moved onto a new claim is still refused', () => {
-  const after = 'Built and launched Useful Apply for 30 paying customers.';
-  assert.deepEqual(unsupportedNumbers(after, '', DOCUMENTS, BEFORE_ROUNDED), ['30']);
-});
-
-test('without the section, the kit-written number is refused (the old behaviour)', () => {
-  const after = 'Compared nearly 30 models on hand-labelled cases to ship Safwa, a live Q&A filter.';
-  assert.deepEqual(unsupportedNumbers(after, '', DOCUMENTS, ''), ['30']);
-});
-
-// Review round 1 (Opus): a section number must keep its unit, or shared words
-// like "years" and "Python" let it slide onto a new claim.
-const BEFORE_EIGHT = 'Backend engineer with 8 years in Python. Evaluated payment APIs serving 2 million users.';
-
-test('a section number moved onto a new unit is refused', () => {
-  assert.ok(unsupportedNumbers('Python engineer whose payment APIs serve 8 million users.', '', DOCUMENTS, BEFORE_EIGHT).includes('8'));
-  assert.ok(unsupportedNumbers('Led 8 engineers over two years in Python.', '', DOCUMENTS, BEFORE_EIGHT).includes('8'));
-});
-
-test('a section number that keeps its unit passes', () => {
-  assert.deepEqual(unsupportedNumbers('Python backend engineer with 8+ years of experience.', '', DOCUMENTS, BEFORE_EIGHT), []);
-});
-
-test('vague wording in the section does not become a precise number', () => {
-  assert.deepEqual(unsupportedNumbers('Supported 12 clients.', '', DOCUMENTS, 'Supported dozens of clients.'), ['12']);
-});
-
 test('Go the language is a claim, not a neutral verb; went stays neutral', () => {
   // "backend" and "engineer" are in the section; "went" is neutral. Python and Go are in no CV.
   assert.deepEqual(introducedClaims('Backend engineer who went from Python to Go.', SOURCE_CV, 'Backend engineer.'), ['python', 'go']);
@@ -79,32 +41,30 @@ test('a client-added word already in the section survives a rewrite', () => {
   assert.deepEqual(introducedClaims('Applied AI engineer running agents on Kubernetes.', SOURCE_CV, before), []);
 });
 
-// Review round 2 (Opus and Sonnet): the unit alone was a function word, a
-// symbol or nothing, so percentages and money moved onto new claims.
-const refuses = (before: string, after: string, token: string) =>
-  assert.ok(unsupportedNumbers(after, '', DOCUMENTS, before).includes(token), `${before} -> ${after}`);
-const keeps = (before: string, after: string) =>
-  assert.deepEqual(unsupportedNumbers(after, '', DOCUMENTS, before), [], `${before} -> ${after}`);
-
-test('a percentage or an amount from the section cannot move onto a new claim', () => {
-  refuses('Raised test coverage by 40%. Built revenue dashboards.', 'Grew revenue by 40%.', '40');
-  refuses('Reduced latency by 40%.', 'Grew revenue by 40%.', '40');
-  refuses('Raised coverage 40% in Q3.', 'Grew revenue 40% in Germany.', '40');
-  refuses('Managed a $2.5M budget.', 'Closed $2.5M in new revenue.', '2');
-  refuses('Handled $2M of fraud.', 'Saved $2M for clients.', '2');
-  refuses('Supported dozens of clients.', 'Cut churn for dozens of companies.', '12');
-  refuses('Managed a $2.5M budget.', 'Managed a $2.5K budget.', '2');
-  refuses('Hired 8 engineers over two years.', 'Hired 8 users over years of engineering.', '8');
+test('other forms of a section word pass: inflections, singulars, "-d" pasts', () => {
+  assert.deepEqual(introducedClaims('Evaluating agents.', SOURCE_CV, 'Evaluated agents.'), []);
+  assert.deepEqual(introducedClaims('Evaluate agents.', SOURCE_CV, 'Evaluated agents.'), []);
+  assert.deepEqual(introducedClaims('Built a dashboard.', SOURCE_CV, 'Built dashboards.'), []);
 });
 
-test('a percentage or an amount that stays on its claim passes', () => {
-  keeps('Reduced latency by 40%.', 'Cut latency by 40% for payments.');
-  keeps('Reduced API latency 40 percent.', 'Reduced API latency by 40%.');
-  keeps('Managed a $2.5M budget.', 'Owned the $2.5M marketing budget.');
-  keeps('Fixed 5 to 10 bugs a week.', 'Fixed between 5 and 10 bugs every week.');
-});
-
-test('a kit paraphrase does not back a different word by stem', () => {
+test('the section does not back a title or role word by stem', () => {
   // "architected" is in the section, "architect" (a job title) is not.
   assert.deepEqual(introducedClaims('Payment architect.', SOURCE_CV, 'Architected payment flows.'), ['architect']);
+  assert.deepEqual(introducedClaims('Leading growth.', SOURCE_CV, 'Generated leads for growth.'), ['leading']);
+  assert.deepEqual(introducedClaims('Sales manager.', SOURCE_CV, 'Managed sales.'), ['manager']);
+});
+
+// Numbers: the section backs none, only the verified metrics and the CVs do.
+// Three review rounds found ways for a kit number to move onto a new claim
+// through any section-based rule, so a kit-rounded number refuses instead.
+test('a number only the section has is refused, wherever it goes', () => {
+  const kept = 'Compared nearly 30 models on hand-labelled cases to ship Safwa, a live Q&A filter.';
+  assert.deepEqual(unsupportedNumbers(kept, '', SOURCE_CV), ['30']);
+  assert.deepEqual(unsupportedNumbers('Grew revenue by 40%.', '', SOURCE_CV), ['40']);
+  assert.deepEqual(unsupportedNumbers('Grew revenue 40 percent.', '', SOURCE_CV), ['40']);
+});
+
+test('a CV number stays on its claim; moved to a new claim it is refused', () => {
+  assert.deepEqual(unsupportedNumbers('Shipped Safwa after testing 28 AI models on 1,002 hand-labelled cases.', '', SOURCE_CV), []);
+  assert.deepEqual(unsupportedNumbers('Useful Apply has 1,002 paying customers.', '', SOURCE_CV), ['1002']);
 });

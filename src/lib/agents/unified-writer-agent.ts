@@ -451,19 +451,10 @@ function anchorWords(text: string): Set<string> {
  * pass unconditionally, which is what keeps a straight reword of an existing
  * bullet cheap.
  *
- * `kept` is the section as it stands. The client can edit it, so it is never
- * in `free`, and it backs a number only on two conditions, both needed:
- * - the same unit: "%", a currency, a scale (k, M, Mio) and the words right
- *   after the number, function words skipped ("8 years" stays "8 years",
- *   "$2.5M budget" can become "$2.5M marketing budget" but not "$2.5M in
- *   revenue"). A vague plural keeps its form, so "dozens of clients" can't
- *   become "12 clients";
- * - a shared content word, neutral verbs aside, with the section sentence the
- *   number came from ("Reduced latency by 40%" can't become "Grew revenue by
- *   40%"). A unit alone isn't enough: a bare "40%" has none.
- * Refusing a number that passes both would leave it in the CV anyway. A
- * reordered unit ("99.9% uptime" to "uptime of 99.9%") is still refused: the
- * safe direction.
+ * The section as it stands backs no number. Unlike its words, a number the
+ * kit writer put there can't be safely tied to its claim by a heuristic (three
+ * review rounds found ways to move one onto a new metric), so a kit number the
+ * CVs don't back makes the rewrite refuse. That costs a retry, not credits.
  *
  * `documents` is the Primary CV and the Master CV, and a number found there
  * supports the rewrite only when the two share at least one content word. A
@@ -480,7 +471,7 @@ function anchorWords(text: string): Set<string> {
  * refusal costs a retry and no credits, a miss costs the applicant an
  * interview.
  */
-export function unsupportedNumbers(afterText: string, free: string, documents: string, kept: string): string[] {
+export function unsupportedNumbers(afterText: string, free: string, documents: string): string[] {
   const freeTokens = new Set(quantityTokens(free));
 
   const nearby = new Map<string, Set<string>>();
@@ -494,108 +485,17 @@ export function unsupportedNumbers(afterText: string, free: string, documents: s
     }
   }
 
-  const keptQuantities = new Map<string, Array<{ nouns: string[]; anchors: Set<string> }>>();
-  for (const segment of segments(kept)) {
-    const anchors = contentAnchors(segment);
-    if (anchors.size === 0) continue;
-    for (const quantity of quantityUnits(segment)) {
-      const bucket = keptQuantities.get(quantity.key) ?? [];
-      bucket.push({ nouns: quantity.nouns, anchors });
-      keptQuantities.set(quantity.key, bucket);
-    }
-  }
-
   const unsupported = new Set<string>();
   for (const segment of segments(afterText)) {
     const anchors = anchorWords(segment);
-    const content = contentAnchors(segment);
-    for (const quantity of quantityUnits(segment)) {
-      const { token } = quantity;
+    for (const token of quantityTokens(segment)) {
       if (freeTokens.has(token)) continue;
       const context = nearby.get(token);
       if (context && [...anchors].some((anchor) => context.has(anchor))) continue;
-      const keptHere = (keptQuantities.get(quantity.key) ?? []).some(
-        (entry) =>
-          sameUnit(entry.nouns, quantity.nouns)
-          && [...content].some((word) => entry.anchors.has(word)),
-      );
-      if (keptHere) continue;
       unsupported.add(token);
     }
   }
   return [...unsupported];
-}
-
-/**
- * Two numbers count the same thing when either has no unit word, or one's first
- * unit word is in the other's: "$2.5M budget" and "$2.5M marketing budget".
- */
-function sameUnit(a: string[], b: string[]): boolean {
-  if (a.length === 0 || b.length === 0) return true;
-  return b.includes(a[0]) || a.includes(b[0]);
-}
-
-/** Anchor words minus the neutral verbs ("built", "improved"), which say nothing about what a number counts. */
-function contentAnchors(segment: string): Set<string> {
-  return new Set([...anchorWords(segment)].filter((word) => !isNeutral(word)));
-}
-
-// Skipped when looking for a number's unit: they sit between a number and what it counts.
-const UNIT_FILLERS = new Set(['bis', 'pro', 'und', 'oder', 'than', 'nearly', 'over', 'about', 'around', 'almost', 'approximately', 'rund', 'etwa', 'fast', 'ueber']);
-const PERCENT_WORDS = new Set(['%', 'percent', 'prozent', 'pct']);
-const CURRENCY_WORDS = new Set(['$', '\u20ac', '\u00a3', 'eur', 'euro', 'euros', 'usd', 'dollar', 'dollars', 'gbp']);
-const SCALE_WORDS = new Map([['k', 'k'], ['tsd', 'k'], ['m', 'm'], ['mn', 'm'], ['mm', 'm'], ['mio', 'm'], ['b', 'b'], ['bn', 'b'], ['mrd', 'b']]);
-// Plural vague counts: "dozens" maps to 12 for the CV check, but "12" isn't what it said.
-const VAGUE_COUNTS = new Set(['dozens', 'hundreds', 'thousands', 'millions', 'dutzende', 'hunderte', 'tausende']);
-
-/**
- * Each quantity in a segment with its unit, for the `kept` arm of unsupportedNumbers.
- * `key` is the number plus its marks (a vague plural, currency, scale, percent).
- * `nouns` are the stems of the words right after it, leading function words and
- * numbers skipped, up to three and stopping at the next function word or number:
- * "$2.5M marketing budget" gives 2 and 5 with marks "$m" and nouns marketing and
- * budget; "8 users over years" stops at "over", so "years" isn't one of its units.
- * "dozens of clients" gives 12~ with noun "client".
- * Tokenised as quantityTokens, so `token` covers the same quantities.
- */
-function quantityUnits(segment: string): Array<{ token: string; key: string; nouns: string[] }> {
-  const normalised = toAsciiDigits(foldUmlauts(segment.toLowerCase()))
-    .replace(/(\d)[.,   ](?=\d{3}\b)/g, '$1');
-  const items = normalised.match(/[\p{Nd}]+|\p{L}+|[%$\u20ac\u00a3]/gu) || [];
-  const quantity = (item: string) => (/^[\p{Nd}]+$/u.test(item) ? item : NUMERAL_WORDS.get(item));
-  const filler = (item: string) => item.length < 3 || ANCHOR_STOPWORDS.has(item) || UNIT_FILLERS.has(item);
-  const found: Array<{ token: string; key: string; nouns: string[] }> = [];
-  items.forEach((item, index) => {
-    const token = quantity(item);
-    if (!token) return;
-    let currency = false;
-    for (let back = index - 1; back >= 0; back--) {
-      if (CURRENCY_WORDS.has(items[back])) currency = true;
-      if (!quantity(items[back])) break;
-    }
-    let percent = false;
-    let scale = '';
-    const nouns: string[] = [];
-    for (const later of items.slice(index + 1)) {
-      if (quantity(later)) {
-        if (nouns.length > 0) break;
-        continue;
-      }
-      if (PERCENT_WORDS.has(later)) { percent = true; continue; }
-      if (CURRENCY_WORDS.has(later)) { currency = true; continue; }
-      const scaled = SCALE_WORDS.get(later);
-      if (scaled) { scale ||= scaled; continue; }
-      if (filler(later)) {
-        if (nouns.length > 0) break;
-        continue;
-      }
-      nouns.push(stemOf(later));
-      if (nouns.length === 3) break;
-    }
-    const vague = VAGUE_COUNTS.has(item) ? '~' : '';
-    found.push({ token, key: `${token}${vague}|${currency ? '$' : ''}${scale}${percent ? '%' : ''}`, nouns });
-  });
-  return found;
 }
 
 /** Every word, stem and compound-sized part the applicant's documents contain. */
@@ -615,6 +515,30 @@ function indexSource(sourceText: string): SourceIndex {
     if (token.length >= 6) parts.add(token);
   }
   return { tokens, stems, parts: [...parts] };
+}
+
+// Role and ownership words: the section backs them only word for word. By stem,
+// "Generated 200 leads" would back "Leading", and "managed" would back "manager".
+const OWNERSHIP_WORDS = new Set([
+  'lead', 'leads', 'leading', 'led', 'leader', 'leaders', 'head', 'heads', 'headed', 'heading',
+  'own', 'owns', 'owned', 'owner', 'owners', 'owning', 'founder', 'founders', 'founded', 'founding',
+  'manager', 'managers', 'managed', 'managing', 'director', 'directors', 'directed', 'directing',
+  'senior', 'principal', 'chief',
+]);
+
+/**
+ * Is `word` another form of a word the section already holds? An inflected word
+ * ("running", "evaluates") passes on a shared stem. A bare root passes only
+ * when the section has its plural, third person or "-d" past ("dashboards" backs
+ * "dashboard", "evaluated" backs "evaluate"), never on "-ed" or "-ing": the
+ * stemmer folds "architected" into "architect", and the section's paraphrases
+ * aren't verified text the way the CVs are.
+ */
+function sectionInflects(word: string, before: SourceIndex): boolean {
+  if (OWNERSHIP_WORDS.has(word)) return false;
+  const stem = stemOf(word);
+  if (stem !== word) return before.stems.has(stem);
+  return before.tokens.has(`${word}s`) || before.tokens.has(`${word}es`) || before.tokens.has(`${word}d`);
 }
 
 /**
@@ -668,11 +592,8 @@ export function introducedClaims(afterText: string, sourceText: string, beforeTe
     if (word.length < 2) continue;
     if (/^[\p{Nd}]+$/u.test(word)) continue;   // quantities are the number guard's job
     if (isNeutral(word)) continue;
-    // A stem match backs an inflection ("runs" to "running") but never the bare
-    // root: the stemmer folds "architected" into "architect", and the section's
-    // paraphrases aren't verified text the way the CVs are.
     if (before.tokens.has(word)) continue;
-    if (stemOf(word) !== word && before.stems.has(stemOf(word))) continue;
+    if (sectionInflects(word, before)) continue;
     if (source.tokens.has(word)) continue;
     if (source.stems.has(stemOf(word))) continue;
     const acronymBase = acronymAliases.get(word);
@@ -2431,8 +2352,8 @@ export const unifiedWriterAgent = {
     const documents = [context.rawCV, context.masterCV].filter(Boolean).join('\n');
 
     // The current tailored section can be client-edited, so it never
-    // authorizes anything NEW: a word it holds may stay, a number may stay with
-    // its unit, and nothing it lacks is backed by it. Verified metrics are server-extracted
+    // authorizes anything NEW: a word it holds may stay, it backs no number,
+    // and nothing it lacks is backed by it. Verified metrics are server-extracted
     // literal substrings of the same source CVs.
     const verified = (context.verifiedMetrics || []).join('\n');
     const sourceText = `${verified}\n${documents}`;
@@ -2458,11 +2379,7 @@ export const unifiedWriterAgent = {
       return { ...base, status: 'unchanged' };
     }
 
-    // The section as it stands is its own arm, never `free`: a number the kit
-    // writer already put there can stay with the same unit, but can't be moved
-    // onto a new claim. Without it, a kit number the CVs only back through a
-    // paraphrase blocks every rewrite that keeps it.
-    const fabricatedNumbers = unsupportedNumbers(afterText, verified, documents, beforeText);
+    const fabricatedNumbers = unsupportedNumbers(afterText, verified, documents);
     if (fabricatedNumbers.length > 0) {
       console.warn('[UnifiedAgent] Section rewrite refused, unverified numbers:', fabricatedNumbers.length);
       return { ...base, status: 'refused', reason: 'unsupported_number', terms: fabricatedNumbers };
