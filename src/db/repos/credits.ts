@@ -1887,6 +1887,9 @@ export async function reconcileCreditRefunds(options: { limit?: number } = {}): 
     .where(and(
       eq(creditReservations.status, 'released'),
       sql`${creditReservations.released_at} >= ${RECONCILE_REFUNDS_SINCE}`,
+      // A reservation with nothing to give back writes no ledger row, so it would match here on every run
+      // and could fill the batch ahead of real repairs.
+      sql`${creditReservations.amount} > 0`,
       sql`NOT EXISTS (
         SELECT 1 FROM credit_transactions t
         WHERE t.user_id = ${creditReservations.user_id}
