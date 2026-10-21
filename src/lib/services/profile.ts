@@ -6,7 +6,10 @@
  * Ownership comes from `userId`, never from the input.
  */
 
+import { and, eq, isNull } from 'drizzle-orm';
+import { getDb, nowIso } from '@/db/client';
 import * as profilesRepo from '@/db/repos/profiles';
+import { profiles } from '@/db/schema';
 import { deleteObject, deletePrefix, listPrefix, putObject, USER_STORAGE_QUOTA_BYTES, userStorageBytes } from '@/storage/r2';
 import { ImagesBindingUnavailableError, normalizePhotoToJpeg } from '@/storage/images';
 import {
@@ -195,13 +198,36 @@ export async function hasProfilePhoto(userId: string): Promise<boolean> {
   return (await listPrefix(userPrefix('profile-photos', userId))).length > 0;
 }
 
-/** Store a new photo as the account avatar, then drop the old avatar and any legacy CV photo. */
+const AVATAR_SWAP_ATTEMPTS = 5;
+
+/**
+ * Point avatar_url at `key` and return the value it replaced. Compare-and-swap, so two
+ * concurrent replacements each delete exactly the object they displaced and never one
+ * the other has stored but not yet linked.
+ */
+async function swapAvatar(userId: string, key: string): Promise<string | null> {
+  const db = await getDb();
+  for (let attempt = 0; attempt < AVATAR_SWAP_ATTEMPTS; attempt++) {
+    const profile = await profilesRepo.getProfile(userId);
+    if (!profile) throw new Error('Profile not found');
+    const previous = profile.avatar_url ?? null;
+    const swapped = await db
+      .update(profiles)
+      .set({ avatar_url: key, updated_at: nowIso() })
+      .where(and(eq(profiles.id, userId), previous === null ? isNull(profiles.avatar_url) : eq(profiles.avatar_url, previous)))
+      .returning({ id: profiles.id });
+    if (swapped.length > 0) return previous;
+  }
+  throw new Error('The profile photo changed too often to save');
+}
+
+/** Store a new photo as the account avatar, then drop the avatar it replaced and any legacy CV photo. */
 export async function replaceProfilePhoto(userId: string, file: File, ext: string): Promise<void> {
   const key = await storeUserUpload(userId, { bucket: 'avatars', subpath: '', file, ext });
-  await profilesRepo.updateProfile(userId, { avatar_url: key });
+  const previous = await swapAvatar(userId, key);
   // The row is saved. Leftover old objects waste quota but do not change what is shown.
   try {
-    await deletePrefix(userPrefix('avatars', userId), key);
+    if (previous && previous !== key && userOwnsKey(previous, userId)) await deleteObject(previous);
     await deletePrefix(userPrefix('profile-photos', userId));
   } catch (error) {
     console.error('[profile] failed to remove old profile photos:', error);
