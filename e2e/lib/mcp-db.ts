@@ -114,6 +114,15 @@ export function profileRow(userId: string): Record<string, unknown> {
   return withDb((db) => db.prepare('SELECT * FROM profiles WHERE id = ?').get(userId) as Record<string, unknown>);
 }
 
+/** Every feed row a tool could write for a user: ratings and saves, settings and runs. */
+export function feedRows(userId: string): Record<string, Array<Record<string, unknown>>> {
+  return withDb((db) => ({
+    feedback: db.prepare('SELECT * FROM job_feed_feedback WHERE user_id = ? ORDER BY rowid').all(userId) as Array<Record<string, unknown>>,
+    settings: db.prepare('SELECT * FROM job_feed_settings WHERE user_id = ?').all(userId) as Array<Record<string, unknown>>,
+    runs: db.prepare('SELECT * FROM job_feed_runs WHERE user_id = ? ORDER BY rowid').all(userId) as Array<Record<string, unknown>>,
+  }));
+}
+
 /** Put the account on a paid plan, the way the screening gate reads it. */
 export function setPlan(userId: string, tier: 'free' | 'plus' | 'max'): void {
   withDb((db) => {
@@ -157,13 +166,23 @@ export function seedQuota(tool: 'save_cv' | 'draft_screening_answers' | 'export_
 }
 
 export function readQuota(tool: 'save_cv' | 'draft_screening_answers' | 'export_documents', userId: string): number {
-  try {
-    // A missing key is not an error to wrangler: it prints "Value not found".
-    const value = wrangler(['get', quotaKey(tool, userId)]).trim();
-    return /^\d+$/.test(value) ? Number(value) : 0;
-  } catch {
-    return 0;
-  }
+  // A missing key is not an error to wrangler: it prints "Value not found" and exits 0. Any other
+  // failure throws, so a broken KV read can never look like a counter at 0.
+  const value = wrangler(['get', quotaKey(tool, userId)]).trim();
+  if (value === 'Value not found') return 0;
+  if (!/^\d+$/.test(value)) throw new Error(`Unexpected quota counter for ${tool}: ${JSON.stringify(value)}`);
+  return Number(value);
+}
+
+/** A ledger row as an older build wrote it, for the specs that read the history back. */
+export function seedLedgerRow(userId: string, row: { type: string; amount: number; description: string }): void {
+  withDb((db) => {
+    db.prepare(`
+      INSERT INTO credit_transactions
+        (id, user_id, amount, transaction_type, transaction_kind, session_id, description, metadata, balance_before, balance_after, created_at)
+      VALUES (?, ?, ?, ?, 'refund', NULL, ?, '{}', 0, 0, ?)
+    `).run(crypto.randomUUID(), userId, row.amount, row.type, row.description, new Date().toISOString());
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -181,6 +200,7 @@ export function accountSnapshot(userId: string): Record<string, unknown> {
     ledger: ledger(userId),
     reservations: reservations(userId),
     operations: operations(userId),
+    feed: feedRows(userId),
     profile,
   };
 }

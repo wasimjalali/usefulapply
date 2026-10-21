@@ -21,6 +21,10 @@ const run = promisify(execFile);
  * rendering. Nothing here touches a remote database. The rest of the MCP lane asserts the local behaviour of
  * export_documents (the clean "renderer is unavailable" failure and its quota refund) in 02-happy-path.spec.ts.
  *
+ * This lane is deliberately outside `npm run test:e2e`: it needs that remote Browser Run binding, so it runs by hand
+ * before a release and when the export code changes. A green `npm run test:e2e` says nothing about export
+ * correctness. It also needs pdftotext (poppler) and fails without it, rather than skipping the PDF text checks.
+ *
  * Run: E2E_MCP_EXPORTS=1 npx playwright test --project=mcp-exports
  */
 
@@ -30,18 +34,15 @@ const TEMPLATES = [
   { templateId: 'german-ats', paper: 'a4', letterLocale: 'de' },
 ] as const;
 
-let pdftotext: string | null = null;
-async function hasPdftotext(): Promise<boolean> {
-  if (pdftotext !== null) return pdftotext !== '';
+/** The text checks are what proves the PDFs are right, so a machine without pdftotext fails the lane instead of skipping them. */
+async function requirePdftotext(): Promise<void> {
   try {
     await run('pdftotext', ['-v']).catch((error: { stderr?: string }) => {
       if (!/pdftotext/i.test(error.stderr ?? '')) throw error;
     });
-    pdftotext = 'pdftotext';
   } catch {
-    pdftotext = '';
+    throw new Error('pdftotext is required for the PDF text checks. Install poppler (brew install poppler, or apt install poppler-utils).');
   }
-  return pdftotext !== '';
 }
 
 test.describe.serial('export_documents: seven formats, two templates', () => {
@@ -51,6 +52,7 @@ test.describe.serial('export_documents: seven formats, two templates', () => {
   let applicationId: string;
 
   test.beforeAll(async ({ browser, request }) => {
+    await requirePdftotext();
     const created = await newAgent(browser, request, 'exports');
     agent = created.session;
     user = created.user;
@@ -110,16 +112,14 @@ test.describe.serial('export_documents: seven formats, two templates', () => {
 
         if (file.format.endsWith('_pdf')) {
           expect(bytes.subarray(0, 5).toString(), `${file.format} is a PDF`).toBe('%PDF-');
-          if (await hasPdftotext()) {
-            const { stdout } = await run('pdftotext', ['-layout', path, '-']);
-            if (file.format === 'cv_pdf') {
-              expect(stdout).toContain('Tomas Brandt');
-              expect(stdout).toContain('Calder Industrial Components');
-              expect(stdout).toContain('96%');
-            }
-            if (file.format === 'cover_letter_pdf') expect(stdout).toMatch(/forecast/i);
-            if (file.format === 'answers_pdf') expect(stdout).toContain('Four weeks.');
+          const { stdout } = await run('pdftotext', ['-layout', path, '-']);
+          if (file.format === 'cv_pdf') {
+            expect(stdout).toContain('Tomas Brandt');
+            expect(stdout).toContain('Calder Industrial Components');
+            expect(stdout).toContain('96%');
           }
+          if (file.format === 'cover_letter_pdf') expect(stdout).toMatch(/forecast/i);
+          if (file.format === 'answers_pdf') expect(stdout).toContain('Four weeks.');
         } else if (file.format.endsWith('_docx')) {
           expect(bytes.subarray(0, 2).toString(), `${file.format} is a zip`).toBe('PK');
         } else {

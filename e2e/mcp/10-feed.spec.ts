@@ -1,7 +1,7 @@
 import { expect, test } from '../lib/worker-logs';
 import { McpSession, newAgent, uuid } from '../lib/mcp-client';
 import { accountSnapshot, netCharged, operations, setPlan } from '../lib/mcp-db';
-import { feedFeedbackRows, feedRuns, seedFeedInbox, seedFeedRun, seedFeedSettings, type SeededFeedJob } from '../lib/mcp-feed-seed';
+import { feedFeedbackRows, feedRuns, seedCareerProfile, seedFeedInbox, seedFeedRun, seedFeedSettings, type SeededFeedJob } from '../lib/mcp-feed-seed';
 import { HOSTILE_JOB_DESCRIPTION, PRIMARY_CV } from '../lib/model-script';
 import { creditsOf, type TestUser } from '../lib/user';
 import type { BrowserContext } from '@playwright/test';
@@ -149,6 +149,10 @@ test.describe.serial('feed: reading, rating, settings, applying', () => {
     const same = await agent.ok<{ changed: string[]; searches: unknown }>('update_feed_settings', { salaryFloor: 90000 });
     expect(same.changed).toEqual([]);
     expect(same.searches).toBeNull();
+    // The same roles again also change nothing, although the plan's search cap kept fewer of them than were sent.
+    const sameRoles = await agent.ok<{ changed: string[]; searches: unknown }>('update_feed_settings', { roles: ['Financial Controller', 'FP&A Manager'] });
+    expect(sameRoles.changed).toEqual([]);
+    expect(sameRoles.searches).toBeNull();
     expect(await agent.fails('update_feed_settings', {})).toMatch(/at least one setting/i);
 
     const declining = await agent.elicitingClient('decline');
@@ -161,6 +165,39 @@ test.describe.serial('feed: reading, rating, settings, applying', () => {
     }
     const kept = await agent.ok<{ settings: { roles: string[]; salaryFloor: number | null } }>('get_feed_settings');
     expect(kept.settings).toMatchObject({ roles: keptRoles, salaryFloor: 90000 });
+  });
+
+  test('get_career_profile maps a stored career profile and the confirmed searches, field by field', async () => {
+    seedCareerProfile(user.id);
+    const career = await agent.ok<{
+      status: string;
+      cvNewerThanProfile: boolean;
+      profile: { function: string; seniority: { level: string; confidence: string }; yearsTotal: number; inferredTitles: Array<{ title: string; confidence: string }>; aspirationalTitles: string[]; pivot: { from: string; to: string } | null; primarySkills: Array<{ name: string; skills: string[] }>; secondarySkills: Array<{ name: string; skills: string[] }>; industries: string[]; tools: string[]; workingLanguages: string[]; narrative: string } | null;
+      searchStrategy: { status: string; userConfirmed: boolean; queries: Array<{ query: string; targetCountry: string; type: string; expectedRecall: string }>; negativeTerms: string[] };
+    }>('get_career_profile');
+    expect(career).toMatchObject({ status: 'ok', cvNewerThanProfile: false });
+    expect(career.profile).toMatchObject({
+      function: 'finance',
+      seniority: { level: 'senior', confidence: 'high' },
+      yearsTotal: 5,
+      inferredTitles: [{ title: 'Senior FP&A Analyst', confidence: 'high' }, { title: 'Financial Controller', confidence: 'medium' }],
+      aspirationalTitles: ['Head of Planning'],
+      pivot: { from: 'analyst', to: 'finance manager' },
+      primarySkills: [{ name: 'planning and forecasting', skills: ['Forecasting', 'Budgeting'] }],
+      secondarySkills: [{ name: 'reporting tools', skills: ['Excel', 'Anaplan'] }],
+      industries: ['consumer goods'],
+      tools: ['Excel', 'Anaplan'],
+      workingLanguages: ['English'],
+    });
+    // The searches are the ones update_feed_settings confirmed in the test before this one.
+    expect(career.searchStrategy).toMatchObject({ status: 'ok', userConfirmed: true });
+    expect(career.searchStrategy.queries.length).toBeGreaterThan(0);
+    for (const query of career.searchStrategy.queries) {
+      expect(query.query).toBeTruthy();
+      expect(query.targetCountry).toBeTruthy();
+      expect(query.expectedRecall).toBeTruthy();
+    }
+    expect(Array.isArray(career.searchStrategy.negativeTerms)).toBe(true);
   });
 
   test('apply_to_feed_job: a fit check costs 0.5, a repeat costs nothing, a kit is queued and finishes the feed row', async () => {
@@ -183,11 +220,14 @@ test.describe.serial('feed: reading, rating, settings, applying', () => {
     expect(kit.applicationId).toBe(fit.applicationId);
     expect(['pending', 'running']).toContain(kit.status);
     expect(kit.pollAfterSeconds).toBe(10);
+    // The feed kit is always the full price (apply.ts queues it without a fit context), so the 0.5 fit check above does not discount it.
+    expect(kit.creditsUsed).toBe(2);
     await expect
       .poll(async () => (await agent.ok<{ status: string }>('get_operation', { operationId: kit.operationId as string })).status, { timeout: 90_000, intervals: [1_000, 2_000] })
       .toBe('succeeded');
     expect(operations(user.id).filter((row) => row.kind === 'generate_kit')).toHaveLength(1);
-    expect(netCharged(user.id)).toBeGreaterThanOrEqual(2);
+    // Fit 0.5 plus kit 2.0.
+    expect(netCharged(user.id)).toBe(2.5);
 
     // The feed row follows the kit: the job points at its application and says the kit is done. An applied job
     // leaves the inbox (that is what applying means), so the row is read where it lives.
@@ -203,8 +243,10 @@ test.describe.serial('feed: reading, rating, settings, applying', () => {
     expect(netCharged(user.id)).toBe(charged);
 
     // A dismissed job cannot be applied to.
+    const beforeDismissed = netCharged(user.id);
     const dismissed = await agent.fails('apply_to_feed_job', { jobId: jobs[2].id, mode: 'fit', idempotencyKey: uuid() });
-    expect(dismissed).toBeTruthy();
+    expect(dismissed).toMatch(/already dismissed, rated not relevant or applied to/);
+    expect(netCharged(user.id), 'a refused apply costs nothing').toBe(beforeDismissed);
   });
 
   test('withdraw_feed_consent: a declined form changes nothing; accepted, it turns the feed off and run_job_feed says why', async () => {
