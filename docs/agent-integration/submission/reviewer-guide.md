@@ -86,7 +86,7 @@ Each call needs an idempotency key the client generates. Repeat a call with the 
 35. Ask for a second kit on an application that has one. Expect a refusal unless the request says to replace the existing kit.
 36. Paste a second, different short job ad and ask for its full kit. While it runs, say "cancel the generation". Expect `cancel_generation` (scope Write, no credits) and the reserved credits released. Use a new ad, because the seeded applications and the ones from steps 29 and 30 already have kits.
 
-Steps 29 to 36 use about 4 credits (3.5 exactly). The daily limit of 20 leaves room for a second pass, and the balance of 200 for many more.
+Steps 29 to 36 use about 4 credits. The daily limit of 20 leaves room for a second pass, and the balance of 200 for many more.
 
 ### 4. Things that should fail
 
