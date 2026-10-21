@@ -1,0 +1,30 @@
+{
+  "raw": "{\n  \"name\": \"Lucia Fernandez Ortega\",\n  \"email\": \"lucia.fernandez@example.es\",\n  \"phone\": \"+34 612 345 678\",\n  \"jobs\": [\n    {\n      \"title\": \"Ingeniera de software sénior\",\n      \"company\": \"Transportes Levante | Valencia\",\n      \"dates\": \"03/2021 — Present\",\n      \"bullets\": [\n        \"Dirigid un equipo de cinco ingenieros en la migracién de cuarenta servicios a Kubernetes.\",\n        \"Redujo la latencia p99 un 38 % redisefiando la caché de seguimiento de envios.\"\n      ]\n    },\n    {\n      \"title\": \"Ingeniera de software\",\n      \"company\": \"Banco Mediterraneo | Madrid\",\n      \"dates\": \"09/2016 — 02/2021\",\n      \"bullets\": [\n        \"Disefié el servicio de libro mayor que procesa dos millones de transacciones al dia.\",\n        \"Redujo el tiempo de resolucién de disputas de tres dias a cuatro horas.\"\n      ]\n    }\n  ],\n  \"skills\": [\n    \"Go\",\n    \"Python\",\n    \"SQL\",\n    \"TypeScript\",\n    \"Kubernetes\",\n    \"Terraform\",\n    \"AWS\"\n  ],\n  \"education\": [\n    {\n      \"school\": \"Universidad Politécnica de Valencia\",\n      \"degree\": \"Grado en Ingenieria, Informatica\",\n      \"date\": \"2016\"\n    }\n  ]\n}",
+  "error": null,
+  "score": {
+    "name": false,
+    "email": true,
+    "phone": true,
+    "jobs": {
+      "matched": 0,
+      "total": 2
+    },
+    "bullets": {
+      "matched": 0,
+      "total": 4
+    },
+    "skills": {
+      "matched": 7,
+      "total": 7
+    },
+    "education": {
+      "matched": 1,
+      "total": 1
+    },
+    "missedJobs": [
+      "Ingeniera de software sénior | Transportes Levante | 03/2021 - Actualidad",
+      "Ingeniera de software | Banco Mediterráneo | 09/2016 - 02/2021"
+    ],
+    "missedSkills": []
+  }
+}

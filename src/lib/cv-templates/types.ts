@@ -306,6 +306,14 @@ export const TEMPLATE_SPECIFICATIONS = {
 
 export type CVTemplateStyle = 'classic' | 'modern-ats' | 'professional';
 
+/** Shown when a CV with a photo, a date of birth or a nationality is on a US template, which leaves them out. */
+export const US_TEMPLATE_PERSONAL_DATA_NOTE = 'US templates leave out your photo and personal details.';
+
+/** True when the CV holds details only a DACH template prints: a photo, a date of birth or a nationality. */
+export function hasDachPersonalData(personal: { photoUrl?: string; dateOfBirth?: string; nationality?: string }): boolean {
+  return Boolean(personal.photoUrl || personal.dateOfBirth?.trim() || personal.nationality?.trim());
+}
+
 export interface CVTemplate {
   id: string;
   name: string;
@@ -314,6 +322,11 @@ export interface CVTemplate {
   style: CVTemplateStyle;
   includesPhoto: boolean;
   pageSize: 'letter' | 'a4';
+  /**
+   * How a parser reads the page. Every template is a single column, read top to bottom; the field is here
+   * for the template list the MCP `list_cv_templates` tool exposes.
+   */
+  atsReadingOrder: 'single-column';
   
   // Styling configuration
   colors: {
@@ -350,6 +363,8 @@ export type CVSection =
 
 // Parsed/structured CV data for rendering
 export interface CVData {
+  /** Language the CV is written in (ISO 639-1). Drives standard headings and date formats; inferred when absent. */
+  language?: string;
   personal: {
     fullName: string;
     email: string;
@@ -387,6 +402,8 @@ export interface CVData {
     endDate?: string;
     current?: boolean;
     bullets: string[];
+    /** Kept in the CV but left off the canvas and the exports. */
+    hidden?: boolean;
   }>;
   
   education: Array<{
@@ -399,11 +416,16 @@ export interface CVData {
     endDate?: string;
     grade?: string;
     highlights?: string[];
+    hidden?: boolean;
   }>;
   
   skills: Array<{
     category: string;
     items: string[];
+    /** The whole group is kept but not shown. */
+    hidden?: boolean;
+    /** Skills in `items` that are kept but not shown. */
+    hiddenItems?: string[];
   }>;
   
   languages: Array<{
@@ -411,6 +433,7 @@ export interface CVData {
     proficiency: string; // CEFR level (A1-C2) or 'Native' - MANDATORY for EU per 2026 standards
     cefrLevel?: CEFRLevel; // Typed CEFR level for validation
     certification?: string; // e.g., "TOEFL 110", "Goethe B2"
+    hidden?: boolean;
   }>;
   
   certifications: Array<{
@@ -419,6 +442,7 @@ export interface CVData {
     issuer: string;
     date?: string;
     credentialId?: string;
+    hidden?: boolean;
   }>;
   
   projects?: Array<{
@@ -427,6 +451,7 @@ export interface CVData {
     description: string;
     technologies?: string[];
     url?: string;
+    hidden?: boolean;
   }>;
   
   // AI-generated section headers in the detected language (i18n support)
@@ -465,7 +490,14 @@ export interface CVData {
     id: string;
     title: string;   // ATS-safe display heading (e.g., "Selected Achievements", "References")
     items: string[];  // Bullet points or paragraph items
+    hidden?: boolean;
   }>;
+
+  /** Sections whose heading the user or the chat chose. Shown exactly as written, never normalized. */
+  renamedHeadings?: Array<'summary' | 'experience' | 'education' | 'skills' | 'certifications' | 'languages' | 'projects' | 'additionalInfo'>;
+
+  /** Whole sections kept in the CV but not shown. See cv-templates/hidden.ts. */
+  hiddenSections?: Array<'summary' | 'experience' | 'education' | 'skills' | 'certifications' | 'languages' | 'projects' | 'additionalInfo'>;
 }
 
 // Template definitions - Consolidated Premium Templates (January 2026)
@@ -484,6 +516,7 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
     style: 'modern-ats',
     includesPhoto: false,
     pageSize: 'letter',
+    atsReadingOrder: 'single-column',
     colors: {
       primary: '#1a365d',      // Navy - trust, reliability
       secondary: '#2d3748',    // Dark gray
@@ -509,6 +542,7 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
     style: 'modern-ats',
     includesPhoto: false,
     pageSize: 'letter',
+    atsReadingOrder: 'single-column',
     colors: {
       primary: '#0f172a',      // Slate
       secondary: '#334155',    // Gray
@@ -534,6 +568,7 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
     style: 'professional',
     includesPhoto: false,
     pageSize: 'letter',
+    atsReadingOrder: 'single-column',
     colors: {
       primary: '#1a365d',      // Navy executive
       secondary: '#2d3748',    // Dark gray
@@ -547,18 +582,19 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
       heading: 'Georgia, Cambria, serif',      // 9/10 ATS, executive feel
       body: 'Calibri, Arial, sans-serif',
     },
-    sectionOrder: ['header', 'summary', 'experience', 'projects', 'skills', 'education', 'certifications', 'languages'],
+    sectionOrder: ['header', 'summary', 'experience', 'education', 'skills', 'certifications', 'languages', 'projects'],
   },
 
-  // 4. Portrait ATS - Two-column with photo (EU/A4 format)
+  // 4. Portrait ATS - Single column with photo (EU/A4 format)
   {
     id: 'german-ats',
     name: 'Portrait ATS',
-    description: 'Two-column A4 layout with photo. CEFR language levels, ideal for EU job markets.',
+    description: 'Single-column A4 layout with photo. CEFR language levels, ideal for EU job markets.',
     region: 'EU',
     style: 'classic',
     includesPhoto: true,
     pageSize: 'a4',
+    atsReadingOrder: 'single-column',
     colors: {
       primary: '#1a365d',      // Navy - professional
       secondary: '#2d3748',    // Dark gray
@@ -572,7 +608,7 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
       heading: 'Arial, Helvetica, sans-serif',  // German standard
       body: 'Arial, Helvetica, sans-serif',
     },
-    sectionOrder: ['header', 'photo', 'summary', 'experience', 'projects', 'education', 'skills', 'languages', 'certifications'],
+    sectionOrder: ['header', 'photo', 'summary', 'experience', 'education', 'skills', 'languages', 'certifications', 'projects'],
   },
 
   // 5. Portrait Classic - Single-column with photo (better ATS than two-column)
@@ -584,6 +620,7 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
     style: 'classic',
     includesPhoto: true,
     pageSize: 'a4',
+    atsReadingOrder: 'single-column',
     colors: {
       primary: '#374151',      // Charcoal/Anthracite - neutral, professional
       secondary: '#4B5563',    // Medium grey
@@ -609,6 +646,7 @@ export const CV_TEMPLATE_DEFINITIONS: CVTemplate[] = [
     style: 'modern-ats',
     includesPhoto: false,
     pageSize: 'letter',
+    atsReadingOrder: 'single-column',
     colors: {
       primary: '#2D6A4F',      // Forest Green - calm, professional
       secondary: '#4B5563',    // Medium grey

@@ -242,10 +242,11 @@ export async function createJobFeedApplicationSessionAdmin(params: {
   if (error || !session) {
     throw new Error(`Failed to create application session from feed item: ${error?.message ?? 'unknown error'}`);
   }
+  // Workflow state, not content: it must not bump the revision (see updateSession).
   await sessionsRepo.updateSession(userId, session.id, {
     generation_status: 'pending',
     generation_completed: false,
-  });
+  }, { bumpRevision: false });
   const updated = await sessionsRepo.getSession(userId, session.id);
   return (updated ?? session) as SupabaseApplicationSession;
 }
@@ -585,7 +586,10 @@ async function syncJobFeedGenerationReadModels(params: {
     sessionPatch.generation_cancelled_at = generation.cancelled_at ?? now;
   }
 
-  await sessionsRepo.updateSession(userId, sessionId, sessionPatch as Parameters<typeof sessionsRepo.updateSession>[2]);
+  // The generation_* columns are workflow state that no editor writes back, so
+  // reporting progress must not bump the revision: the browser that started
+  // this generation would otherwise conflict with its own status updates.
+  await sessionsRepo.updateSession(userId, sessionId, sessionPatch as Parameters<typeof sessionsRepo.updateSession>[2], { bumpRevision: false });
   const updatedSession = await sessionsRepo.getSession(userId, sessionId);
   if (!updatedSession) {
     throw new Error('Application session was not found for this account.');

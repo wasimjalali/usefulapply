@@ -1,0 +1,29 @@
+{
+  "fixture": "fit-no-gain",
+  "template": "modern-professional",
+  "raw": "{\n  \"name\": \"Jordan Ellis\",\n  \"email\": \"jordan.ellis@example.com\",\n  \"phone\": \"+1 (415) 555-0142\",\n  \"jobs\": [\n    {\n      \"title\": \"Senior Backend Engineer\",\n      \"company\": \"Northwind Freight\",\n      \"dates\": \"Mar 2022 - Present\",\n      \"bullets\": [\n        \"Shipped platform change 1: owned scoping, rollout and on-call handover for the billing stack across 10 regions.\",\n        \"Shipped platform change 2: owned scoping, rollout and on-call handover for the billing stack across 11 regions.\",\n        \"Shipped platform change 3: owned scoping, rollout and on-call handover for the billing stack across 12 regions.\",\n        \"Shipped platform change 4: owned scoping, rollout and on-call handover for the billing stack across 13 regions.\",\n        \"Shipped platform change 5: owned scoping, rollout and on-call handover for the billing stack across 14 regions.\",\n        \"Shipped platform change 6: owned scoping, rollout and on-call handover for the billing stack across 15 regions.\",\n        \"Shipped platform change 7: owned scoping, rollout and on-call handover for the billing stack across 16 regions.\",\n        \"Shipped platform change 8: owned scoping, rollout and on-call handover for the billing stack across 17 regions.\",\n        \"Shipped platform change 9: owned scoping, rollout and on-call handover for the billing stack across 18 regions.\"\n      ]\n    },\n    {\n      \"title\": \"Backend Engineer\",\n      \"company\": \"Lumen Payments\",\n      \"dates\": \"Jun 2018 - Feb 2022\",\n      \"bullets\": [\n        \"Built the ledger service that processes 2.4 million transactions a day with exactly-once semantics.\",\n        \"Cut chargeback review from 3 days to 4 hours with an efficient office workflow tool.\"\n      ]\n    },\n    {\n      \"title\": \"Software Engineer\",\n      \"company\": \"Brightpath Analytics\",\n      \"dates\": \"Aug 2015 - May 2018\",\n      \"bullets\": [\n        \"Developed ETL pipelines in Python that ingested 800 GB of sensor data per day.\",\n        \"Wrote the on-call runbooks that cut mean time to recovery from 55 to 21 minutes.\"\n      ]\n    }\n  ],\n  \"skills\": [\n    \"Go\",\n    \"Python\",\n    \"SQL\",\n    \"TypeScript\",\n    \"PostgreSQL\",\n    \"Kafka\",\n    \"Kubernetes\",\n    \"Terraform\",\n    \"AWS\",\n    \"Docker\"\n  ],\n  \"education\": [\n    {\n      \"school\": \"University of Texas at Austin\",\n      \"degree\": \"B.S. in Computer Science\",\n      \"date\": \"May 2015\"\n    }\n  ]\n}",
+  "error": null,
+  "score": {
+    "name": true,
+    "email": true,
+    "phone": true,
+    "jobs": {
+      "matched": 3,
+      "total": 3
+    },
+    "bullets": {
+      "matched": 13,
+      "total": 13
+    },
+    "skills": {
+      "matched": 10,
+      "total": 10
+    },
+    "education": {
+      "matched": 1,
+      "total": 1
+    },
+    "missedJobs": [],
+    "missedSkills": []
+  }
+}

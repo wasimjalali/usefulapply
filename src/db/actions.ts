@@ -5,6 +5,8 @@ import { getAuth } from '@/auth/server';
 import * as profilesRepo from './repos/profiles';
 import * as documentsRepo from './repos/documents';
 import * as sessionsRepo from './repos/sessions';
+import * as applications from '@/lib/services/applications';
+import { InvalidInputError, NotFoundError, RevisionConflict } from '@/lib/services/errors';
 import * as creditsRepo from './repos/credits';
 import * as subscriptionsRepo from './repos/subscriptions';
 import * as feedbackRepo from './repos/feedback';
@@ -144,71 +146,97 @@ export async function deleteDocumentAction(userId: string, documentId: string) {
 
 export async function getSessionsAction(userId: string) {
   await requireUserId(userId);
-  return sessionsRepo.getSessions(userId);
+  return applications.listApplications(userId);
 }
 
 export async function getSessionAction(userId: string, sessionId: string) {
   await requireUserId(userId);
-  return sessionsRepo.getSession(userId, sessionId);
+  return applications.getApplication(userId, sessionId);
 }
 
 export async function createSessionAction(userId: string, jobDescription: string) {
   await requireUserId(userId);
-  return sessionsRepo.createSession(userId, jobDescription);
+  try {
+    const session = await applications.createApplication(userId, { jobDescription });
+    return { session, error: null };
+  } catch (error) {
+    return { session: null, error: error instanceof Error ? error : new Error('Failed to create application') };
+  }
 }
 
-export async function updateSessionAction(
+/** What a revisioned write tells the browser. Plain data: a thrown error loses its message crossing the action boundary. */
+export type RevisionedWriteResult =
+  | { ok: true; revision: number }
+  | { ok: false; reason: 'conflict'; currentRevision: number | null }
+  | { ok: false; reason: 'not_found' }
+  | { ok: false; reason: 'invalid'; message: string; field?: string };
+
+function toWriteFailure(error: unknown): Exclude<RevisionedWriteResult, { ok: true }> {
+  if (error instanceof RevisionConflict) return { ok: false, reason: 'conflict', currentRevision: error.currentRevision };
+  if (error instanceof NotFoundError) return { ok: false, reason: 'not_found' };
+  if (error instanceof InvalidInputError) return { ok: false, reason: 'invalid', message: error.message, field: error.field };
+  throw error;
+}
+
+/**
+ * The only way the browser writes an application's content. `patch` holds just
+ * the columns that changed since the browser last loaded or saved, and the
+ * write lands only if the application is still at `expectedRevision`.
+ */
+export async function saveApplicationEditsAction(
   userId: string,
   sessionId: string,
-  updates: Parameters<typeof sessionsRepo.updateSession>[2],
-) {
+  expectedRevision: number,
+  patch: Record<string, unknown>,
+): Promise<RevisionedWriteResult> {
   await requireUserId(userId);
   // The cover letter recipient columns are server-managed (filled from the ad,
   // cleared on a job change). A browser bundle, old or new, never writes them.
-  const { company_address: _address, company_contact_person: _contact, ...browserUpdates } = updates;
+  const { company_address: _address, company_contact_person: _contact, ...browserPatch } = patch;
   void _address;
   void _contact;
-  return sessionsRepo.updateSession(userId, sessionId, browserUpdates);
+  try {
+    const { revision } = await applications.updateApplicationFields(userId, sessionId, expectedRevision, browserPatch);
+    return { ok: true, revision };
+  } catch (error) {
+    return toWriteFailure(error);
+  }
+}
+
+/** Cheap poll: where is this application now? */
+export async function getApplicationRevisionAction(userId: string, sessionId: string) {
+  await requireUserId(userId);
+  return applications.getApplicationRevision(userId, sessionId);
 }
 
 export async function deleteSessionAction(userId: string, sessionId: string) {
   await requireUserId(userId);
-  return sessionsRepo.deleteSession(userId, sessionId);
+  try {
+    await applications.deleteApplication(userId, sessionId);
+    return { error: null };
+  } catch (error) {
+    return { error: error instanceof Error ? error : new Error('Failed to delete application') };
+  }
 }
 
 export async function listTrackerOverviewAction(userId: string) {
   await requireUserId(userId);
-  return sessionsRepo.listTrackerOverview(userId);
-}
-
-const TRACKER_STATUSES = ['drafted', 'applied', 'follow_up', 'interview', 'accepted', 'rejected'] as const;
-type TrackerStatusValue = (typeof TRACKER_STATUSES)[number];
-
-function cleanDate(value: unknown): string | null {
-  if (typeof value !== 'string' || !value) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) throw new Error('Invalid date');
-  return parsed.toISOString();
+  return applications.listTrackerOverview(userId);
 }
 
 export async function setTrackerStatusAction(
   userId: string,
   sessionId: string,
   next: { status: string; interviewAt?: string | null; followUpDueAt?: string | null },
-) {
+  expectedRevision?: number,
+): Promise<RevisionedWriteResult> {
   await requireUserId(userId);
-  if (!TRACKER_STATUSES.includes(next.status as TrackerStatusValue)) {
-    throw new Error('Unknown status');
+  try {
+    const { revision } = await applications.setTrackerStatus(userId, sessionId, next, expectedRevision);
+    return { ok: true, revision };
+  } catch (error) {
+    return toWriteFailure(error);
   }
-  const { error } = await sessionsRepo.setTrackerStatus(userId, sessionId, {
-    status: next.status,
-    interview_at: cleanDate(next.interviewAt),
-    follow_up_due_at: cleanDate(next.followUpDueAt),
-  });
-  // The caller rolls its optimistic row back on a throw, so a write that hit
-  // nothing must not come back as success.
-  if (error) throw new Error('Application not found');
-  return { error: null };
 }
 
 export async function getChatMessagesAction(userId: string, sessionId: string) {

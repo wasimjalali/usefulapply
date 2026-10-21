@@ -1,0 +1,5 @@
+M6 polling ignores revisions more than two ahead while dirty -> failing seeds: 12  by invariant {"I3":12}
+M8 refused values are never forgotten after a merge -> SURVIVED  failing seeds: 0
+M18 an editor rebased after a confirmed save gets a new, empty lineage (it forgets which columns its draft sets, and the entries and acknowledgements of its earlier tries no longer name it) -> SURVIVED  failing seeds: 0
+M-r3-moved-only an editor conflict sets aside only the groups that moved (the email panel's other document is kept nowhere; round 3 I1 seeds 181, 865, 1568) -> failing seeds: 2  by invariant {"I1":2}
+M-r3-store-draft a draft the store already holds (a Restore whose save failed) still counts as a stale draft, so its conflict entry holds no text (round 3 I6 seeds 5876, 7790, 7876) -> failing seeds: 1  by invariant {"I6":1}

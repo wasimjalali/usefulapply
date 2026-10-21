@@ -1,0 +1,18 @@
+discard-then-save-before.{txt,json}: taken 2026-10-20 on the first version of the discard fix, with the first version of the driver.
+
+Engine under test: the engine in src/lib/session-sync-engine.ts with ONE mutation applied:
+  M-discard   Discard acknowledges like Restore and Copy (the open editor keeps the discarded draft)
+              source: "    acknowledgeConflict(sessionId, true);"  replaced by  "    acknowledgeConflict(sessionId);"
+The mutation is now named M-discard-rebase in e2e/tools/sync-fuzz/mutations.py (the engine call has a different
+signature since the review round, see evals/results/2026-10-20-sync-fuzz.md).
+
+Command (the mutation was applied by hand to the engine and the file put back afterwards):
+  npx tsx --tsconfig e2e/tools/tsconfig.sync-fuzz.json e2e/tools/sync-fuzz.ts --engine new --no-cases --seeds 2000 \
+    --only edit,save,poll,agent,tabWrite,editorOpen,type,editorSave,dismiss \
+    --out evals/results/2026-10-20-sync-fuzz/per-bug/discard-then-save-before.json
+
+Result: 59 of 2000 seeds failing, all I1.
+discard-then-save-after.{txt,json}: the same command on the unmutated engine, 0 failing.
+
+The same bug on the extended harness, with the mutation recorded in the output files:
+discard-keeps-draft-{before,after}.{txt,json} (79 before, 0 after).

@@ -1,0 +1,48 @@
+
+Running 3 tests using 1 worker
+
+  ✓  1 [data] › e2e/specs/j-email-panel.spec.ts:56:5 › (j1) Copy of an email conflict leaves the follow-up snapshot alone (6.5s)
+  ✓  2 [data] › e2e/specs/j-email-panel.spec.ts:91:5 › (j2) Save writes only the document the user typed into (2.8s)
+  ✘  3 [data] › e2e/specs/j-email-panel.spec.ts:114:5 › (j3) after a Discard of the email, a stale email copy is never saved over a newer server email (24.1s)
+
+
+  1) [data] › e2e/specs/j-email-panel.spec.ts:114:5 › (j3) after a Discard of the email, a stale email copy is never saved over a newer server email 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('alert').filter({ hasText: 'This application was updated elsewhere. We loaded the latest version.' })
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('alert').filter({ hasText: 'This application was updated elsewhere. We loaded the latest version.' }) with timeout 20000ms
+      - waiting for getByRole('alert').filter({ hasText: 'This application was updated elsewhere. We loaded the latest version.' })
+
+
+      165 |   await emailBody.fill('Jdiscard E3 typed over the stale G1 copy.');
+      166 |   await save.click();
+    > 167 |   await expect(notice).toBeVisible({ timeout: 20_000 });
+          |                        ^
+      168 |   const final = storedApplication(user.id);
+      169 |   expect(final?.email?.body).toContain('Jdiscard G2 email from another writer.');
+      170 |   expect(final?.email?.body).not.toContain('E3 typed over');
+        at /Users/wasimjalali/Desktop/Useful_Apply/.claude/worktrees/fix-159/e2e/specs/j-email-panel.spec.ts:167:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../../tmp/pw-mutated-r3x/test-results/j-email-panel--j3-after-a--931b8-d-over-a-newer-server-email-data/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../../../tmp/pw-mutated-r3x/test-results/j-email-panel--j3-after-a--931b8-d-over-a-newer-server-email-data/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../../tmp/pw-mutated-r3x/test-results/j-email-panel--j3-after-a--931b8-d-over-a-newer-server-email-data/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../../tmp/pw-mutated-r3x/test-results/j-email-panel--j3-after-a--931b8-d-over-a-newer-server-email-data/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [data] › e2e/specs/j-email-panel.spec.ts:114:5 › (j3) after a Discard of the email, a stale email copy is never saved over a newer server email 
+  2 passed (58.9s)

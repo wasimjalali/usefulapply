@@ -5,7 +5,7 @@
  * data, no React) so the ids can never drift from what the strip renders.
  */
 
-import { CV_TEMPLATE_DEFINITIONS } from './types';
+import { CV_TEMPLATE_DEFINITIONS, US_TEMPLATE_PERSONAL_DATA_NOTE } from './types';
 import { FALLBACK_TEMPLATE_ID } from './default-template';
 
 export interface CvTemplateCatalogEntry {
@@ -18,6 +18,12 @@ export interface CvTemplateCatalogEntry {
   bestFor: string;
   /** What the layout actually is, so the model never invents one. */
   description: string;
+  /** How a parser reads the page. Every template is a single column. */
+  atsReadingOrder: 'single-column';
+  /** Whether a photo, date of birth and nationality are printed: DACH templates print them, US templates leave them out. */
+  printsPersonalDetails: boolean;
+  /** The sentence to show a person whose CV has such details when they pick a template that leaves them out, or null. */
+  personalDetailsNote: string | null;
 }
 
 /** Matches TemplateStrip: the definitions star the default, the strip tags it instead. */
@@ -34,7 +40,7 @@ const BEST_FOR: Record<string, string> = {
   'premium-ats': 'Recommended, corporate portals and online applications',
   'modern-professional': 'Tech and startups',
   'executive': 'Senior and leadership roles',
-  'german-ats': 'DACH and NL, two columns with photo',
+  'german-ats': 'DACH and NL, one column with photo, slate blue',
   'german-classic': 'DACH and NL, one column with photo',
   'classic-green': 'Any industry, forest green accent',
 };
@@ -45,6 +51,9 @@ export const CV_TEMPLATE_CATALOG: CvTemplateCatalogEntry[] = CV_TEMPLATE_DEFINIT
   market: MARKETS[template.region] ?? template.region,
   bestFor: BEST_FOR[template.id] ?? '',
   description: template.description,
+  atsReadingOrder: template.atsReadingOrder,
+  printsPersonalDetails: template.includesPhoto,
+  personalDetailsNote: template.includesPhoto ? null : US_TEMPLATE_PERSONAL_DATA_NOTE,
 }));
 
 /**
@@ -54,7 +63,7 @@ export const CV_TEMPLATE_CATALOG: CvTemplateCatalogEntry[] = CV_TEMPLATE_DEFINIT
  */
 export function cvTemplateCatalogForPrompt(): string {
   return CV_TEMPLATE_CATALOG
-    .map((template) => `"${template.name}" (pass template_id=${template.id}): ${template.description} ${template.market}.${template.bestFor ? ` Best for: ${template.bestFor}.` : ''}`)
+    .map((template) => `"${template.name}" (pass template_id=${template.id}): ${template.description} ${template.market}.${template.bestFor ? ` Best for: ${template.bestFor}.` : ''}${template.personalDetailsNote ? ` ${template.personalDetailsNote}` : ''}`)
     .join('\n');
 }
 

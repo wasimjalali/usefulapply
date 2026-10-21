@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { Edit3, Check, X, Sparkles, Plus, Trash2, GripVertical } from 'lucide-react';
+import { Edit3, Check, X, Sparkles, Plus, Trash2, GripVertical, Eye, EyeOff } from 'lucide-react';
 import { CVData } from '@/lib/cv-templates/types';
 
 interface EditableCVCanvasProps {
@@ -12,6 +12,31 @@ interface EditableCVCanvasProps {
 
 export interface EditableCVCanvasRef {
   save: () => void;
+}
+
+type HideableList = 'experience' | 'education' | 'certifications' | 'languages' | 'projects' | 'customSections';
+type HideableSection = NonNullable<CVData['hiddenSections']>[number];
+
+/**
+ * Hides one thing from the canvas and every export without deleting it. The
+ * flag lives in the CV itself (`hidden`), so a hidden item keeps its text and
+ * comes back with one click.
+ */
+function HideToggle({ hidden, onToggle, label }: { hidden: boolean; onToggle: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={hidden}
+      title={hidden ? `Show ${label} on the CV` : `Hide ${label} from the CV`}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-colors duration-200 cursor-pointer ${
+        hidden ? 'bg-cream-100 text-navy-700 hover:bg-cream-200' : 'text-warm-gray hover:text-navy-700'
+      }`}
+    >
+      {hidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+      {hidden ? 'Hidden' : null}
+    </button>
+  );
 }
 
 interface EditableFieldProps {
@@ -138,6 +163,47 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
     }
   };
 
+  const toggleEntryHidden = (list: HideableList, index: number) => {
+    setData(prev => {
+      const items = [...((prev[list] as Array<{ hidden?: boolean }> | undefined) ?? [])];
+      items[index] = { ...items[index], hidden: items[index].hidden ? undefined : true };
+      return { ...prev, [list]: items } as CVData;
+    });
+    setHasChanges(true);
+  };
+
+  const toggleEntryHiddenSkillGroup = (index: number) => {
+    setData(prev => {
+      const skills = [...prev.skills];
+      skills[index] = { ...skills[index], hidden: skills[index].hidden ? undefined : true };
+      return { ...prev, skills };
+    });
+    setHasChanges(true);
+  };
+
+  const toggleSkillItemHidden = (categoryIndex: number, skill: string) => {
+    setData(prev => {
+      const skills = [...prev.skills];
+      const hiddenItems = skills[categoryIndex].hiddenItems ?? [];
+      const next = hiddenItems.includes(skill) ? hiddenItems.filter(item => item !== skill) : [...hiddenItems, skill];
+      skills[categoryIndex] = { ...skills[categoryIndex], hiddenItems: next.length > 0 ? next : undefined };
+      return { ...prev, skills };
+    });
+    setHasChanges(true);
+  };
+
+  const toggleSectionHidden = (section: HideableSection) => {
+    setData(prev => {
+      const current = prev.hiddenSections ?? [];
+      const next = current.includes(section) ? current.filter(item => item !== section) : [...current, section];
+      return { ...prev, hiddenSections: next.length > 0 ? next : undefined };
+    });
+    setHasChanges(true);
+  };
+
+  const sectionHidden = (section: HideableSection) => data.hiddenSections?.includes(section) ?? false;
+  const dim = (hidden: boolean | undefined) => (hidden ? 'opacity-50' : '');
+
   const addExperienceBullet = (expIndex: number) => {
     const newBullets = [...data.experience[expIndex].bullets, ''];
     const newExperience = [...data.experience];
@@ -172,18 +238,31 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
   };
 
   const updateSkill = (categoryIndex: number, skillIndex: number, value: string) => {
-    const newItems = [...data.skills[categoryIndex].items];
+    const group = data.skills[categoryIndex];
+    const newItems = [...group.items];
+    const previous = newItems[skillIndex];
     newItems[skillIndex] = value;
+    // A skill is hidden by its text, so renaming carries the hide state to the new text
+    // instead of silently showing it again.
+    let hiddenItems = group.hiddenItems;
+    if (hiddenItems && previous !== value && hiddenItems.includes(previous)) {
+      const stillThere = newItems.some((item, index) => index !== skillIndex && item === previous);
+      hiddenItems = [...hiddenItems.filter((item) => stillThere || item !== previous), value];
+    }
     const newSkills = [...data.skills];
-    newSkills[categoryIndex] = { ...newSkills[categoryIndex], items: newItems };
+    newSkills[categoryIndex] = { ...group, items: newItems, hiddenItems };
     setData(prev => ({ ...prev, skills: newSkills }));
     setHasChanges(true);
   };
 
   const removeSkill = (categoryIndex: number, skillIndex: number) => {
-    const newItems = data.skills[categoryIndex].items.filter((_, i) => i !== skillIndex);
+    const group = data.skills[categoryIndex];
+    const removed = group.items[skillIndex];
+    const newItems = group.items.filter((_, i) => i !== skillIndex);
+    // A deleted skill takes its hide state with it (unless an identical skill remains).
+    const hiddenItems = group.hiddenItems?.filter((item) => item !== removed || newItems.includes(removed));
     const newSkills = [...data.skills];
-    newSkills[categoryIndex] = { ...newSkills[categoryIndex], items: newItems };
+    newSkills[categoryIndex] = { ...group, items: newItems, hiddenItems: hiddenItems && hiddenItems.length > 0 ? hiddenItems : undefined };
     setData(prev => ({ ...prev, skills: newSkills }));
     setHasChanges(true);
   };
@@ -354,11 +433,12 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
       </section>
 
       {/* Professional Summary */}
-      <section className="mb-6">
+      <section className={`mb-6 ${dim(sectionHidden('summary'))}`}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600">
             Professional Summary
           </h3>
+          <HideToggle hidden={sectionHidden('summary')} onToggle={() => toggleSectionHidden('summary')} label="the summary" />
           {onAIImprove && data.summary && (
             <button
               onClick={() => handleAIImprove('summary', data.summary || '')}
@@ -384,12 +464,18 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
       </section>
 
       {/* Experience */}
-      <section className="mb-6">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600 mb-3">
-          Professional Experience
-        </h3>
+      <section className={`mb-6 ${dim(sectionHidden('experience'))}`}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600">
+            Professional Experience
+          </h3>
+          <HideToggle hidden={sectionHidden('experience')} onToggle={() => toggleSectionHidden('experience')} label="this section" />
+        </div>
         {data.experience.map((exp, expIndex) => (
-          <div key={exp.id} className="mb-4 p-4 bg-cream-50 rounded-lg border border-cream-200">
+          <div key={exp.id} className={`mb-4 p-4 bg-cream-50 rounded-lg border border-cream-200 ${dim(exp.hidden)}`}>
+            <div className="flex justify-end mb-1">
+              <HideToggle hidden={Boolean(exp.hidden)} onToggle={() => toggleEntryHidden('experience', expIndex)} label="this role" />
+            </div>
             <div className="flex items-start gap-2">
               <GripVertical className="w-4 h-4 text-warm-gray mt-1 cursor-grab" />
               <div className="flex-1">
@@ -523,12 +609,15 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
       </section>
 
       {/* Skills */}
-      <section className="mb-6">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600 mb-3">
-          Skills
-        </h3>
+      <section className={`mb-6 ${dim(sectionHidden('skills'))}`}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600">
+            Skills
+          </h3>
+          <HideToggle hidden={sectionHidden('skills')} onToggle={() => toggleSectionHidden('skills')} label="this section" />
+        </div>
         {data.skills.map((skillGroup, catIndex) => (
-          <div key={`skill-cat-${catIndex}`} className="mb-3">
+          <div key={`skill-cat-${catIndex}`} className={`mb-3 ${dim(skillGroup.hidden)}`}>
             <div className="flex items-center gap-2 mb-2">
               <EditableField
                 label="Category"
@@ -541,6 +630,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                 }}
                 className="font-medium text-sm flex-1"
               />
+              <HideToggle hidden={Boolean(skillGroup.hidden)} onToggle={() => toggleEntryHiddenSkillGroup(catIndex)} label="this skill group" />
               <button
                 onClick={() => {
                   const newSkills = data.skills.filter((_, i) => i !== catIndex);
@@ -555,13 +645,14 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
             </div>
             <div className="flex flex-wrap gap-2">
               {skillGroup.items.map((skill, skillIndex) => (
-                <div key={skillIndex} className="flex items-center gap-1 bg-cream-100 rounded px-2 py-1 group">
+                <div key={skillIndex} className={`flex items-center gap-1 bg-cream-100 rounded px-2 py-1 group ${dim(skillGroup.hiddenItems?.includes(skill))}`}>
                   <EditableField
                     value={skill}
                     onChange={(v) => updateSkill(catIndex, skillIndex, v)}
                     placeholder="Skill"
                     className="text-sm"
                   />
+                  <HideToggle hidden={Boolean(skillGroup.hiddenItems?.includes(skill))} onToggle={() => toggleSkillItemHidden(catIndex, skill)} label="this skill" />
                   <button
                     onClick={() => removeSkill(catIndex, skillIndex)}
                     className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
@@ -598,12 +689,18 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
       </section>
 
       {/* Projects */}
-      <section className="mb-6">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600 mb-3">
-          Projects
-        </h3>
+      <section className={`mb-6 ${dim(sectionHidden('projects'))}`}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600">
+            Projects
+          </h3>
+          <HideToggle hidden={sectionHidden('projects')} onToggle={() => toggleSectionHidden('projects')} label="this section" />
+        </div>
         {(data.projects || []).map((proj, projIndex) => (
-          <div key={proj.id || `proj-${projIndex}`} className="mb-4 p-4 bg-cream-50 rounded-lg border border-cream-200">
+          <div key={proj.id || `proj-${projIndex}`} className={`mb-4 p-4 bg-cream-50 rounded-lg border border-cream-200 ${dim(proj.hidden)}`}>
+            <div className="flex justify-end mb-1">
+              <HideToggle hidden={Boolean(proj.hidden)} onToggle={() => toggleEntryHidden('projects', projIndex)} label="this project" />
+            </div>
             <div className="flex items-start gap-2 mb-2">
               <div className="flex-1">
                 <div className="grid grid-cols-2 gap-2 mb-2">
@@ -725,12 +822,18 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
       </section>
 
       {/* Education */}
-      <section className="mb-6">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600 mb-3">
-          Education
-        </h3>
+      <section className={`mb-6 ${dim(sectionHidden('education'))}`}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600">
+            Education
+          </h3>
+          <HideToggle hidden={sectionHidden('education')} onToggle={() => toggleSectionHidden('education')} label="this section" />
+        </div>
         {data.education.map((edu, eduIndex) => (
-          <div key={edu.id} className="mb-3 p-3 bg-cream-50 rounded-lg border border-cream-200">
+          <div key={edu.id} className={`mb-3 p-3 bg-cream-50 rounded-lg border border-cream-200 ${dim(edu.hidden)}`}>
+            <div className="flex justify-end mb-1">
+              <HideToggle hidden={Boolean(edu.hidden)} onToggle={() => toggleEntryHidden('education', eduIndex)} label="this entry" />
+            </div>
             <div className="flex items-start gap-2">
               <div className="flex-1">
                 <div className="grid grid-cols-2 gap-2">
@@ -815,13 +918,17 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
       </section>
 
       {/* Certifications */}
-      <section className="mb-6">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600 mb-3">
-          Certifications
-        </h3>
+      <section className={`mb-6 ${dim(sectionHidden('certifications'))}`}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600">
+            Certifications
+          </h3>
+          <HideToggle hidden={sectionHidden('certifications')} onToggle={() => toggleSectionHidden('certifications')} label="this section" />
+        </div>
         <div className="space-y-2">
           {data.certifications.map((cert, certIndex) => (
-            <div key={cert.id || `cert-${certIndex}`} className="flex items-center gap-2 p-2 bg-cream-50 rounded border border-cream-200 group">
+            <div key={cert.id || `cert-${certIndex}`} className={`flex items-center gap-2 p-2 bg-cream-50 rounded border border-cream-200 group ${dim(cert.hidden)}`}>
+              <HideToggle hidden={Boolean(cert.hidden)} onToggle={() => toggleEntryHidden('certifications', certIndex)} label="this certification" />
               <EditableField
                 value={cert.name}
                 onChange={(v) => {
@@ -888,10 +995,13 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
       </section>
 
       {/* Additional Information */}
-      <section className="mb-6">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600 mb-3">
-          Additional Information
-        </h3>
+      <section className={`mb-6 ${dim(sectionHidden('additionalInfo'))}`}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600">
+            Additional Information
+          </h3>
+          <HideToggle hidden={sectionHidden('additionalInfo')} onToggle={() => toggleSectionHidden('additionalInfo')} label="this section" />
+        </div>
         <div className="space-y-2">
           {(data.additionalInfo || []).map((item, itemIndex) => (
             <div key={`addl-${itemIndex}`} className="flex items-start gap-2 group">
@@ -935,7 +1045,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
 
       {/* Custom Sections (achievements, references, volunteer, publications, etc.) */}
       {(data.customSections || []).map((section, secIndex) => (
-        <section key={section.id || `custom-${secIndex}`} className="mb-6">
+        <section key={section.id || `custom-${secIndex}`} className={`mb-6 ${dim(section.hidden)}`}>
           <div className="flex items-center justify-between mb-3">
             <EditableField
               value={section.title}
@@ -948,6 +1058,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
               placeholder="Section title"
               className="text-sm font-bold uppercase tracking-wider text-navy-600"
             />
+            <HideToggle hidden={Boolean(section.hidden)} onToggle={() => toggleEntryHidden('customSections', secIndex)} label="this section" />
             <button
               onClick={() => {
                 const newSections = (data.customSections || []).filter((_, i) => i !== secIndex);
@@ -1029,13 +1140,17 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
       </button>
 
       {/* Languages */}
-      <section>
-        <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600 mb-3">
-          Languages
-        </h3>
+      <section className={` ${dim(sectionHidden('languages'))}`}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600">
+            Languages
+          </h3>
+          <HideToggle hidden={sectionHidden('languages')} onToggle={() => toggleSectionHidden('languages')} label="this section" />
+        </div>
         <div className="flex flex-wrap gap-2">
           {data.languages.map((lang, langIndex) => (
-            <div key={`lang-${langIndex}`} className="flex items-center gap-2 bg-cream-100 rounded px-3 py-1 group">
+            <div key={`lang-${langIndex}`} className={`flex items-center gap-2 bg-cream-100 rounded px-3 py-1 group ${dim(lang.hidden)}`}>
+              <HideToggle hidden={Boolean(lang.hidden)} onToggle={() => toggleEntryHidden('languages', langIndex)} label="this language" />
               <EditableField
                 value={lang.language}
                 onChange={(v) => {

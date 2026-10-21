@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
 import { isUniqueViolation, runBatch, getDb, nowIso } from '../client';
 import { addonCreditPacks, creditReservations, creditTransactions, subscriptionPlans, userCredits } from '../schema';
 import type { SubscriptionTier } from '@/lib/supabase/types';
@@ -1216,6 +1216,97 @@ export async function releaseFitContinuationClaim(
     ));
 }
 
+/**
+ * The statements that reserve credits, built to run in ONE `runBatch`:
+ *
+ *   A  conditional deduct: `WHERE version = <read> AND total >= amount`, which
+ *      also bumps `user_credits.version`, so any other deduct that read the
+ *      old version fails its WHERE and retries;
+ *   G  (re-reserve only) an abort guard: if A deducted but the released
+ *      reservation is no longer there to be reused, the batch errors and rolls
+ *      back, deduct included;
+ *   B  the reservation row, gated on `changes() > 0` (A deducted). A fresh
+ *      reservation is an INSERT, so a racing creator of the same idempotency
+ *      key makes the batch fail on the unique index and roll back, deduct
+ *      included; a released one is flipped back to `reserved`;
+ *   C  the ledger row, gated on B having written.
+ *
+ * The deduct, the reservation and the ledger row commit together or not at
+ * all. A crash can no longer leave credits taken with no reservation to
+ * release. Statement A matching no row (a concurrent deduct, a balance that
+ * dropped) leaves the rest as no-ops and the caller re-reads and retries.
+ */
+export function buildReserveStatements(params: {
+  userId: string;
+  action: CreditAction;
+  amount: number;
+  credits: Pick<UserCredits, 'version'>;
+  totalBefore: number;
+  next: DeductionAllocation;
+  reservationId: string;
+  /** Set when a released reservation with this id is being reused instead of inserting a new row. */
+  reuseReleasedId?: string;
+  idempotencyKey: string;
+  generationId: string | null;
+  sessionId: string | null;
+  ledgerSessionId: string | null;
+  metadataJson: string;
+  now: string;
+}): SQL[] {
+  const { userId, action, amount, next, now } = params;
+  const totalAfter = next.monthly + next.rollover + next.addon;
+  const statements: SQL[] = [
+    sql`
+      UPDATE user_credits
+      SET monthly_credits = ${next.monthly},
+          rollover_credits = ${next.rollover},
+          addon_credits = ${next.addon},
+          version = version + 1,
+          updated_at = ${now}
+      WHERE user_id = ${userId}
+        AND version = ${params.credits.version}
+        AND (monthly_credits + rollover_credits + addon_credits) >= ${amount}
+    `,
+  ];
+  if (params.reuseReleasedId) {
+    statements.push(sql`
+      SELECT json(CASE
+        WHEN (SELECT changes()) > 0 AND NOT EXISTS (
+          SELECT 1 FROM credit_reservations
+          WHERE id = ${params.reuseReleasedId} AND user_id = ${userId} AND status = 'released'
+        ) THEN 'reservation no longer reusable' ELSE '{}' END)
+    `);
+    statements.push(sql`
+      UPDATE credit_reservations
+      SET generation_id = ${params.generationId}, session_id = ${params.sessionId},
+          action = ${action.toLowerCase()}, amount = ${amount}, status = 'reserved',
+          reserved_at = ${now}, captured_at = NULL, released_at = NULL, refunded_at = NULL,
+          metadata = ${params.metadataJson}, updated_at = ${now}
+      WHERE id = ${params.reuseReleasedId} AND user_id = ${userId} AND status = 'released'
+        AND (SELECT changes()) > 0
+    `);
+  } else {
+    statements.push(sql`
+      INSERT INTO credit_reservations (
+        id, user_id, generation_id, session_id, action, amount, status, reserved_at, idempotency_key, metadata, created_at, updated_at
+      )
+      SELECT ${params.reservationId}, ${userId}, ${params.generationId}, ${params.sessionId}, ${action.toLowerCase()}, ${amount},
+             'reserved', ${now}, ${params.idempotencyKey}, ${params.metadataJson}, ${now}, ${now}
+      WHERE (SELECT changes()) > 0
+    `);
+  }
+  statements.push(sql`
+    INSERT INTO credit_transactions (
+      id, user_id, amount, transaction_type, transaction_kind, session_id, description, metadata, balance_before, balance_after, created_at
+    )
+    SELECT ${crypto.randomUUID()}, ${userId}, ${-amount}, ${action.toLowerCase()}, ${CREDIT_ACTION_KIND[action]}, ${params.ledgerSessionId},
+           ${`Credit reservation for ${action}`}, ${JSON.stringify({ reservation_id: params.reuseReleasedId ?? params.reservationId })},
+           ${params.totalBefore}, ${totalAfter}, ${now}
+    WHERE (SELECT changes()) > 0
+  `);
+  return statements;
+}
+
 export async function reserveCredits(params: {
   userId: string;
   action: CreditAction;
@@ -1236,7 +1327,7 @@ export async function reserveCredits(params: {
     code: reservation.status === 'reserved' ? 'RESERVATION_IN_FLIGHT' : 'RESERVATION_SPENT',
     required: amount,
   });
-  const existing = await getReservationByKey(userId, idempotencyKey);
+  let existing = await getReservationByKey(userId, idempotencyKey);
   if (existing && existing.status !== 'released') {
     // Only a reservation still in flight dedupes. That is what the idempotency
     // key is for: a retried fetch, or a double-fired click, reuses the credits
@@ -1253,119 +1344,92 @@ export async function reserveCredits(params: {
     return replayResult(existing);
   }
 
-  const deductResult = await deductCredits(userId, action, {
-    sessionId: params.sessionId ?? undefined,
-    description: `Credit reservation for ${action}`,
-  });
-  if (!deductResult.success) {
-    return {
-      success: false,
-      created: false,
-      reservation: null,
-      error: deductResult.error?.message ?? 'Deduction failed',
-      available: deductResult.remainingCredits,
-      required: amount,
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < MAX_OCC_RETRIES; attempt++) {
+    if (attempt > 0) {
+      existing = await getReservationByKey(userId, idempotencyKey);
+      if (existing && existing.status !== 'released') return replayResult(existing);
+    }
+    const { credits, error } = await getUserCredits(userId);
+    if (error || !credits) {
+      return { success: false, created: false, reservation: null, error: error?.message ?? 'Credits not found', available: 0, required: amount };
+    }
+    const totalBefore = getTotalCredits(credits);
+    if (totalBefore < amount) {
+      return {
+        success: false,
+        created: false,
+        reservation: null,
+        error: `Insufficient credits. Required: ${amount}, Available: ${totalBefore}`,
+        available: totalBefore,
+        required: amount,
+      };
+    }
+    const { next, remaining } = allocateDeduction(credits, amount);
+    const id = crypto.randomUUID();
+    const now = nowIso();
+    const reservationMetadata = {
+      ...metadata,
+      reservation_attempt_id: id,
+      remaining_after_reserve: next.monthly + next.rollover + next.addon,
+      deducted_from: remaining,
     };
-  }
-
-  const refundDeduction = async (reason: string, description: string) => {
-    const { deductedFrom } = deductResult;
-    if (deductedFrom.monthly > 0) await addCredits(userId, deductedFrom.monthly, 'monthly', reason, 'refund', description);
-    if (deductedFrom.rollover > 0) await addCredits(userId, deductedFrom.rollover, 'rollover', reason, 'refund', description);
-    if (deductedFrom.addon > 0) await addCredits(userId, deductedFrom.addon, 'addon', reason, 'refund', description);
-  };
-
-  const db = await getDb();
-  const now = nowIso();
-  const id = crypto.randomUUID();
-  const reservationMetadata = {
-    ...metadata,
-    reservation_attempt_id: id,
-    remaining_after_reserve: deductResult.remainingCredits,
-    deducted_from: deductResult.deductedFrom,
-  } as unknown as Record<string, never>;
-
-  if (existing?.status === 'released') {
-    try {
-      const rows = await db
-        .update(creditReservations)
-        .set({
-          generation_id: coerceUuidOrNull(params.generationId),
-          session_id: coerceUuidOrNull(params.sessionId),
-          action: action.toLowerCase(),
-          amount,
-          status: 'reserved',
-          reserved_at: now,
-          captured_at: null,
-          released_at: null,
-          refunded_at: null,
-          metadata: reservationMetadata,
-          updated_at: now,
-        })
-        .where(and(
-          eq(creditReservations.id, existing.id),
-          eq(creditReservations.user_id, userId),
-          eq(creditReservations.status, 'released'),
-        ))
-        .returning();
-      if (rows[0]) {
-        return { success: true, created: true, reservation: rows[0] as CreditReservation, error: null };
-      }
-    } catch {
-      const verified = await getReservationByKey(userId, idempotencyKey);
-      if (
-        verified?.status === 'reserved'
-        && (verified.metadata as Record<string, unknown>).reservation_attempt_id === id
-      ) {
-        return { success: true, created: true, reservation: verified, error: null };
-      }
-    }
-
-    const winner = await getReservationByKey(userId, idempotencyKey);
-    await refundDeduction('reservation_retry_race_refund', `Reservation retry race refund for ${idempotencyKey}`);
-    return winner
-      ? replayResult(winner)
-      : { success: false, created: false, reservation: null, error: 'Failed to recreate reservation' };
-  }
-
-  try {
-    await db.insert(creditReservations).values({
-      id,
-      user_id: userId,
-      generation_id: coerceUuidOrNull(params.generationId),
-      session_id: coerceUuidOrNull(params.sessionId),
-      action: action.toLowerCase(),
+    const statements = buildReserveStatements({
+      userId,
+      action,
       amount,
-      status: 'reserved',
-      reserved_at: now,
-      idempotency_key: idempotencyKey,
-      metadata: reservationMetadata,
-      created_at: now,
-      updated_at: now,
+      credits,
+      totalBefore,
+      next,
+      reservationId: id,
+      reuseReleasedId: existing?.status === 'released' ? existing.id : undefined,
+      idempotencyKey,
+      generationId: coerceUuidOrNull(params.generationId),
+      sessionId: coerceUuidOrNull(params.sessionId),
+      ledgerSessionId: params.sessionId ?? null,
+      metadataJson: JSON.stringify(reservationMetadata),
+      now,
     });
-  } catch (insertError) {
-    // Verify before refunding. If this exact row committed and D1 dropped the
-    // response, this call owns the held credits and can proceed.
-    const persisted = await getReservationByKey(userId, idempotencyKey);
-    if (persisted?.id === id) {
-      return { success: true, created: true, reservation: persisted, error: null };
-    }
-    if (persisted) {
-      await refundDeduction('reservation_duplicate_refund', `Duplicate reservation refund for ${idempotencyKey}`);
-      return replayResult(persisted);
-    }
-    console.error('[credits] reservation insert failed:', insertError);
-    await refundDeduction('reservation_failed_refund', `Failed reservation refund for ${idempotencyKey}`);
-    return { success: false, created: false, reservation: null, error: 'Failed to create reservation' };
-  }
 
-  const reservation = await getReservationByKey(userId, idempotencyKey);
-  return {
-    success: Boolean(reservation),
-    created: Boolean(reservation),
-    reservation,
-    error: reservation ? null : 'Failed to create reservation',
-  };
+    let results;
+    try {
+      results = await runBatch(statements);
+    } catch (batchError) {
+      // The batch is atomic, so a failure means nothing was deducted. Look at
+      // what is there before deciding what it was.
+      const persisted = await getReservationByKey(userId, idempotencyKey);
+      if (persisted && (persisted.metadata as Record<string, unknown>).reservation_attempt_id === id) {
+        // The batch committed and only the response was lost: this call owns the held credits.
+        return { success: true, created: true, reservation: persisted, error: null };
+      }
+      if (persisted && persisted.status !== 'released') {
+        // Lost a race for this key (unique index, or the released row was reused first).
+        return replayResult(persisted);
+      }
+      if (isUniqueViolation(batchError) || (persisted && existing?.status === 'released')) {
+        lastError = batchError instanceof Error ? batchError : new Error(String(batchError));
+        continue;
+      }
+      console.error('[credits] reservation batch failed, nothing was deducted:', batchError);
+      return { success: false, created: false, reservation: null, error: 'Failed to create reservation', required: amount };
+    }
+
+    if (results[0].meta.changes > 0) {
+      const reservation = await getReservationByKey(userId, idempotencyKey);
+      return {
+        success: Boolean(reservation),
+        created: Boolean(reservation),
+        reservation,
+        error: reservation ? null : 'Failed to create reservation',
+      };
+    }
+    // The deduct matched nothing: another deduct moved the version, or the
+    // balance dropped under the amount. Re-read and try again.
+    lastError = new Error('Credit reservation failed due to concurrent access. Please try again.');
+    const raced = await getReservationByKey(userId, idempotencyKey);
+    if (raced && raced.status !== 'released') return replayResult(raced);
+  }
+  throw lastError ?? new Error('Credit reservation failed due to concurrent access. Please try again.');
 }
 
 async function transitionReservation(params: {
@@ -1417,32 +1481,170 @@ export async function captureReservation(params: {
   });
 }
 
+/** Where a reservation's credits came from. Without a recorded split they went to addon, like before. */
+function reservationSplit(reservation: CreditReservation): DeductionAllocation {
+  return extractDeductedFrom(reservation.metadata, reservation.amount)
+    ?? { monthly: 0, rollover: 0, addon: reservation.amount };
+}
+
+const REFUND_BUCKETS = ['monthly', 'rollover', 'addon'] as const;
+type RefundBucket = (typeof REFUND_BUCKETS)[number];
+
+/**
+ * The statements that put `split` back on the balance and write the ledger.
+ *
+ * They are built to run in ONE `runBatch` (a D1 transaction) straight after a
+ * statement that claimed the right to refund. Each statement is gated on
+ * `(SELECT changes()) > 0`, so when that claim matched no row (a lost race, a
+ * replay) every following statement writes nothing. If any statement errors the
+ * whole batch rolls back, claim included. That is the point: the reservation
+ * state, the credit restore and the ledger rows commit together or not at all,
+ * so a Worker dying between steps can no longer lose, or double, a refund.
+ *
+ * The ledger rows go in BEFORE the balance moves, each with a running
+ * balance_before/balance_after read from user_credits inside the transaction,
+ * so the trail always agrees with the balance it describes.
+ *
+ * The restore is one relative UPDATE (`col = col + n`) that also bumps
+ * `user_credits.version`. That keeps the optimistic concurrency every deduct
+ * relies on (a deduct holding the old version fails its WHERE and retries) and
+ * means the restore itself never needs a retry loop.
+ *
+ * `claimGate` is the SQL fragment the FIRST ledger row waits on. The statement
+ * that claimed the refund sits right before this one in the batch, so the
+ * default is the chain gate; the reconciler passes a `NOT EXISTS (ledger row)`
+ * gate instead because it has no claim statement.
+ */
+function buildRefundStatements(params: {
+  userId: string;
+  sessionId: string | null;
+  split: DeductionAllocation;
+  transactionType: string;
+  describe: (bucket: RefundBucket) => string;
+  metadata: (bucket: RefundBucket) => Record<string, unknown>;
+  claimGate?: SQL;
+  now: string;
+}): SQL[] {
+  const { userId, split, now } = params;
+  const buckets = REFUND_BUCKETS.filter((bucket) => split[bucket] > 0);
+  const statements: SQL[] = [];
+  let priorTotal = 0;
+  buckets.forEach((bucket, index) => {
+    const amount = split[bucket];
+    const gate = index === 0 && params.claimGate ? params.claimGate : sql`(SELECT changes()) > 0`;
+    statements.push(sql`
+      INSERT INTO credit_transactions (
+        id, user_id, amount, transaction_type, transaction_kind, session_id, description, metadata, balance_before, balance_after, created_at
+      )
+      SELECT ${crypto.randomUUID()}, ${userId}, ${amount}, ${params.transactionType}, 'refund', ${params.sessionId},
+             ${params.describe(bucket)}, ${JSON.stringify(params.metadata(bucket))},
+             total_before + ${priorTotal}, total_before + ${priorTotal + amount}, ${now}
+      FROM (
+        SELECT monthly_credits + rollover_credits + addon_credits AS total_before
+        FROM user_credits WHERE user_id = ${userId}
+      )
+      WHERE ${gate}
+    `);
+    priorTotal += amount;
+  });
+  if (buckets.length > 0) {
+    statements.push(sql`
+      UPDATE user_credits
+      SET monthly_credits = monthly_credits + ${split.monthly},
+          rollover_credits = rollover_credits + ${split.rollover},
+          addon_credits = addon_credits + ${split.addon},
+          version = version + 1,
+          updated_at = ${now}
+      WHERE user_id = ${userId} AND (SELECT changes()) > 0
+    `);
+  }
+  return statements;
+}
+
+/** Same ledger row the old two-step release wrote, so reports and the reconciler agree on the shape. */
+function releaseLedgerText(reservation: CreditReservation, reason?: string): string {
+  return `Released reservation ${reservation.id}${reason ? `: ${reason}` : ''}`;
+}
+
+/**
+ * The statements that release a reserved reservation: the status
+ * compare-and-set, then the ledger rows and the balance restore. `chained`
+ * says a statement earlier in the same batch gates this one (the claim then
+ * also waits on `changes() > 0`); on its own it is gated only by the CAS.
+ */
+export function buildReleaseReservationStatements(
+  reservation: CreditReservation,
+  options: { reason?: string; chained?: boolean; now?: string } = {},
+): SQL[] {
+  const now = options.now ?? nowIso();
+  const description = releaseLedgerText(reservation, options.reason);
+  return [
+    sql`
+      UPDATE credit_reservations
+      SET status = 'released', released_at = ${now}, updated_at = ${now}
+      WHERE id = ${reservation.id} AND user_id = ${reservation.user_id} AND status = 'reserved'
+        -- A reservation a live queued operation holds is that operation's to settle. Anyone else
+        -- (a duplicate enqueue that adopted it, the stale sweeper) must not refund it from under it.
+        AND NOT EXISTS (
+          SELECT 1 FROM agent_operations o
+          WHERE o.reservation_key = ${reservation.idempotency_key} AND o.status IN ('pending', 'running')
+        )
+        ${options.chained ? sql`AND (SELECT changes()) > 0` : sql``}
+    `,
+    ...buildRefundStatements({
+      userId: reservation.user_id,
+      sessionId: reservation.session_id,
+      split: reservationSplit(reservation),
+      transactionType: 'reservation_released',
+      describe: () => description,
+      metadata: (bucket) => ({ reservation_id: reservation.id, bucket }),
+      now,
+    }),
+  ];
+}
+
+/** `reserved` to `captured`, the user got what they paid for. */
+export function buildCaptureReservationStatement(
+  reservation: Pick<CreditReservation, 'id' | 'user_id'>,
+  options: { chained?: boolean; now?: string } = {},
+): SQL {
+  const now = options.now ?? nowIso();
+  return sql`
+    UPDATE credit_reservations
+    SET status = 'captured', captured_at = ${now}, updated_at = ${now}
+    WHERE id = ${reservation.id} AND user_id = ${reservation.user_id} AND status = 'reserved'
+      ${options.chained ? sql`AND (SELECT changes()) > 0` : sql``}
+  `;
+}
+
 export async function releaseReservation(params: {
   userId: string;
   idempotencyKey: string;
   reason?: string;
 }): Promise<CaptureOrReleaseResult> {
-  const result = await transitionReservation({
-    userId: params.userId,
-    idempotencyKey: params.idempotencyKey,
-    fromStatus: 'reserved',
-    toStatus: 'released',
-    timestampField: 'released_at',
-  });
-  if (result.transitioned && result.reservation) {
-    const reservation = result.reservation;
-    const reason = 'reservation_released';
-    const description = `Released reservation ${reservation.id}${params.reason ? `: ${params.reason}` : ''}`;
-    const split = extractDeductedFrom(reservation.metadata, reservation.amount);
-    if (split) {
-      if (split.monthly > 0) await addCredits(reservation.user_id, split.monthly, 'monthly', reason, 'refund', description);
-      if (split.rollover > 0) await addCredits(reservation.user_id, split.rollover, 'rollover', reason, 'refund', description);
-      if (split.addon > 0) await addCredits(reservation.user_id, split.addon, 'addon', reason, 'refund', description);
-    } else {
-      await addCredits(reservation.user_id, reservation.amount, 'addon', reason, 'refund', description);
-    }
+  const { userId, idempotencyKey } = params;
+  const existing = await getReservationByKey(userId, idempotencyKey);
+  if (!existing) {
+    return { success: false, reservation: null, error: 'Reservation not found' };
   }
-  return result;
+  if (existing.status === 'released') {
+    return { success: true, reservation: existing, error: null };
+  }
+  if (existing.status !== 'reserved') {
+    return { success: false, reservation: existing, error: `Cannot transition from ${existing.status} to released` };
+  }
+
+  // One batch: the state transition (a compare-and-set on status, so only one
+  // caller ever wins), the ledger rows and the balance restore.
+  const results = await runBatch(buildReleaseReservationStatements(existing, { reason: params.reason }));
+  const won = results[0].meta.changes > 0;
+  const updated = await getReservationByKey(userId, idempotencyKey);
+  if (!won) {
+    // Lost the race. The winner issued the refund in its own batch.
+    if (updated?.status === 'released') return { success: true, reservation: updated, error: null };
+    return { success: false, reservation: updated, error: `Cannot transition from ${updated?.status ?? 'unknown'} to released` };
+  }
+  return { success: true, reservation: updated, error: null };
 }
 
 export interface PartialRefundResult {
@@ -1458,9 +1660,8 @@ export interface PartialRefundResult {
  *
  * Used when a kit was delivered with some documents missing: the reservation
  * stays captured (the user got a kit) and the missing documents are refunded.
- * No schema change: the once-only marker lives in the reservation's metadata,
- * claimed with a compare-and-set on `$.partial_refund_at IS NULL`, the same
- * pattern transitionReservation uses on status. A second call, a retried
+ * The once-only marker lives in the reservation's metadata, claimed with a
+ * compare-and-set on `$.partial_refund_at IS NULL`. A second call, a retried
  * request or a race loses the CAS and refunds nothing.
  *
  * The amount is capped at what the reservation charged. Credits go back to
@@ -1469,12 +1670,73 @@ export interface PartialRefundResult {
  * delivered part had been charged. A reservation without a recorded split is
  * refunded to addon, like releaseReservation.
  *
- * Like releaseReservation, the marker is claimed before the credits move, so
- * a crash between the two loses the refund rather than doubling it. An
- * addCredits failure, returned or thrown, comes back as success: false with
- * `refunded` set to what had already landed, so the caller never reports more
- * or less than was paid. It is logged with the reservation, bucket and portion.
+ * The marker claim, the ledger rows and the balance restore are one D1 batch
+ * (see buildRefundStatements), so a crash can no longer land between the claim
+ * and the credits. `reconcileCreditRefunds` still repairs rows an older
+ * two-step run left half done.
  */
+export interface PartialRefundPlan {
+  /** What the caller asked for, capped at what the reservation charged. */
+  amount: number;
+  /** What the reservation's own buckets can actually give back. */
+  paid: number;
+  split: DeductionAllocation;
+}
+
+/** Last-drawn first: addon, then rollover, then monthly. */
+export function planPartialRefund(reservation: CreditReservation, requested: number): PartialRefundPlan {
+  const amount = Math.min(requested, reservation.amount);
+  const drawn = reservationSplit(reservation);
+  const split: DeductionAllocation = { monthly: 0, rollover: 0, addon: 0 };
+  let remaining = amount;
+  for (const bucket of ['addon', 'rollover', 'monthly'] as const) {
+    const portion = Math.min(remaining, drawn[bucket]);
+    split[bucket] = portion;
+    remaining -= portion;
+  }
+  return { amount, paid: amount - remaining, split };
+}
+
+/**
+ * The marker claim, the ledger rows and the balance restore of a partial
+ * refund. `chained` gates the claim on the statement before it in the batch
+ * (the capture, when a kit settles in one batch).
+ */
+export function buildPartialRefundStatements(
+  reservation: CreditReservation,
+  plan: PartialRefundPlan,
+  reason: string,
+  options: { chained?: boolean; now?: string } = {},
+): SQL[] {
+  const now = options.now ?? nowIso();
+  const description = `Partial refund on reservation ${reservation.id}: ${reason}`;
+  return [
+    sql`
+      UPDATE credit_reservations
+      SET metadata = json_set(
+            metadata,
+            '$.partial_refund_at', ${now},
+            '$.partial_refund_amount', ${plan.amount},
+            '$.partial_refund_reason', ${reason},
+            '$.partial_refund_paid', ${plan.paid}
+          ),
+          updated_at = ${now}
+      WHERE id = ${reservation.id} AND user_id = ${reservation.user_id} AND status = 'captured'
+        AND json_extract(metadata, '$.partial_refund_at') IS NULL
+        ${options.chained ? sql`AND (SELECT changes()) > 0` : sql``}
+    `,
+    ...buildRefundStatements({
+      userId: reservation.user_id,
+      sessionId: reservation.session_id,
+      split: plan.split,
+      transactionType: 'reservation_partial_refund',
+      describe: () => description,
+      metadata: (bucket) => ({ reservation_id: reservation.id, bucket }),
+      now,
+    }),
+  ];
+}
+
 export async function refundReservationPartially(params: {
   userId: string;
   idempotencyKey: string;
@@ -1492,29 +1754,25 @@ export async function refundReservationPartially(params: {
   if (reservation.status !== 'captured') {
     return { success: false, refunded: 0, alreadyRefunded: false, error: `Cannot partially refund a ${reservation.status} reservation` };
   }
-  const amount = Math.min(params.amount, reservation.amount);
-  const db = await getDb();
-  const now = nowIso();
-  const claimed = await db
-    .update(creditReservations)
-    .set({
-      metadata: sql`json_set(
-        ${creditReservations.metadata},
-        '$.partial_refund_at', ${now},
-        '$.partial_refund_amount', ${amount},
-        '$.partial_refund_reason', ${reason}
-      )` as never,
-      updated_at: now,
-    })
-    .where(and(
-      eq(creditReservations.id, reservation.id),
-      eq(creditReservations.user_id, userId),
-      eq(creditReservations.status, 'captured'),
-      sql`json_extract(${creditReservations.metadata}, '$.partial_refund_at') IS NULL`,
-    ))
-    .returning({ id: creditReservations.id });
+  const plan = planPartialRefund(reservation, params.amount);
 
-  if (claimed.length === 0) {
+  let results;
+  try {
+    results = await runBatch(buildPartialRefundStatements(reservation, plan, reason));
+  } catch (error) {
+    // The batch is atomic: nothing landed, the marker is not set, a retry can
+    // still pay the whole refund. Report it instead of throwing into a request
+    // that has already delivered the kit.
+    console.error('[credits] partial refund batch failed, nothing was refunded:', reservation.id, error);
+    return {
+      success: false,
+      refunded: 0,
+      alreadyRefunded: false,
+      error: error instanceof Error ? error.message : 'Partial refund failed',
+    };
+  }
+
+  if (results[0].meta.changes === 0) {
     const current = await getReservationByKey(userId, idempotencyKey);
     const marker = current?.metadata && typeof current.metadata === 'object' && !Array.isArray(current.metadata)
       ? (current.metadata as Record<string, unknown>).partial_refund_at
@@ -1522,53 +1780,166 @@ export async function refundReservationPartially(params: {
     if (marker) return { success: true, refunded: 0, alreadyRefunded: true, error: null };
     return { success: false, refunded: 0, alreadyRefunded: false, error: 'Partial refund claim lost' };
   }
-
-  const description = `Partial refund on reservation ${reservation.id}: ${reason}`;
-  const split = extractDeductedFrom(reservation.metadata, reservation.amount)
-    ?? { monthly: 0, rollover: 0, addon: reservation.amount };
-  let remaining = amount;
-  for (const bucket of ['addon', 'rollover', 'monthly'] as const) {
-    const portion = Math.min(remaining, split[bucket]);
-    if (portion <= 0) continue;
-    let failure: string | null = null;
-    try {
-      const added = await addCredits(reservation.user_id, portion, bucket, 'reservation_partial_refund', 'refund', description);
-      if (!added.success) failure = added.error?.message ?? 'Partial refund failed';
-    } catch (error) {
-      failure = error instanceof Error ? error.message : 'Partial refund failed';
-    }
-    if (failure) {
-      console.error('[credits] partial refund credit failed after the claim:', reservation.id, bucket, portion, failure);
-      // partial_refund_amount is what was owed; this is what reached the user.
-      await recordPartialRefundPaid(reservation.id, userId, amount - remaining);
-      return { success: false, refunded: amount - remaining, alreadyRefunded: false, error: failure };
-    }
-    remaining -= portion;
-  }
-  await recordPartialRefundPaid(reservation.id, userId, amount);
-  return { success: true, refunded: amount, alreadyRefunded: false, error: null };
+  // `paid` is less than `amount` only when the reservation drew less than the
+  // caller asked to refund. The claim and the credits still landed together.
+  return { success: true, refunded: plan.paid, alreadyRefunded: false, error: null };
 }
 
 /**
- * Stamp the credits a partial refund actually paid, beside the amount it
- * intended. Best effort: this write can fail after the credits moved, so a
- * missing partial_refund_paid means unknown, not zero. The credit_transactions
- * ledger (reservation_partial_refund rows naming the reservation) is the
- * source of truth for reconciliation.
+ * The reconciler only repairs refunds from this date on. Rows older than the
+ * atomic release path were written by earlier code whose ledger wording this
+ * module cannot vouch for, and "no ledger row found" on one of those must never
+ * turn into a second refund. Anything older is an audit, not a sweep.
  */
-async function recordPartialRefundPaid(reservationId: string, userId: string, paid: number): Promise<void> {
-  try {
-    const db = await getDb();
-    await db
-      .update(creditReservations)
-      .set({
-        metadata: sql`json_set(${creditReservations.metadata}, '$.partial_refund_paid', ${paid})` as never,
-        updated_at: nowIso(),
-      })
-      .where(and(eq(creditReservations.id, reservationId), eq(creditReservations.user_id, userId)));
-  } catch (error) {
-    console.error('[credits] could not record the partial refund paid:', reservationId, paid, error);
+const RECONCILE_REFUNDS_SINCE = '2026-10-20T00:00:00.000Z';
+
+export interface ReconcileRefundsResult {
+  /** Released reservations whose refund had never been written, now repaired. */
+  releasedRepaired: number;
+  /** Partial refunds that had claimed their marker but not paid in full, now completed. */
+  partialRepaired: number;
+  /** Rows that threw. They are retried by the next run. */
+  failed: number;
+}
+
+/**
+ * Repair refunds an interrupted run left half done.
+ *
+ * Since the release and partial-refund paths became single batches new rows
+ * cannot end up half done, but rows from the old two-step code can: a
+ * reservation marked `released` whose credits never came back, or a partial
+ * refund whose marker was claimed before the credits moved. This finds them
+ * and finishes the job.
+ *
+ * It is safe to run at any time and from several places at once. The repair
+ * batch is gated on "no ledger row for this reservation yet" / on the paid
+ * marker it is about to move, inside the same transaction as the credit
+ * restore, so two runs, or a run racing a live release, refund at most once.
+ */
+export async function reconcileCreditRefunds(options: { limit?: number } = {}): Promise<ReconcileRefundsResult> {
+  const limit = options.limit ?? 100;
+  const db = await getDb();
+  const result: ReconcileRefundsResult = { releasedRepaired: 0, partialRepaired: 0, failed: 0 };
+
+  // 1. Released reservations with no refund ledger row.
+  // Description prefixes are matched with instr(), not LIKE: D1 refuses LIKE patterns over 50 bytes, and a
+  // reservation id alone is 36.
+  const released = await db
+    .select()
+    .from(creditReservations)
+    .where(and(
+      eq(creditReservations.status, 'released'),
+      sql`${creditReservations.released_at} >= ${RECONCILE_REFUNDS_SINCE}`,
+      // A reservation with nothing to give back writes no ledger row, so it would match here on every run
+      // and could fill the batch ahead of real repairs.
+      sql`${creditReservations.amount} > 0`,
+      sql`NOT EXISTS (
+        SELECT 1 FROM credit_transactions t
+        WHERE t.user_id = ${creditReservations.user_id}
+          AND t.transaction_type = 'reservation_released'
+          AND (json_extract(t.metadata, '$.reservation_id') = ${creditReservations.id}
+            OR instr(t.description, 'Released reservation ' || ${creditReservations.id}) = 1)
+      )`,
+    ))
+    .orderBy(creditReservations.updated_at)
+    .limit(limit) as CreditReservation[];
+
+  for (const reservation of released) {
+    try {
+      const now = nowIso();
+      const description = releaseLedgerText(reservation, 'refund repaired by reconciler');
+      const batch = await runBatch(buildRefundStatements({
+        userId: reservation.user_id,
+        sessionId: reservation.session_id,
+        split: reservationSplit(reservation),
+        transactionType: 'reservation_released',
+        describe: () => description,
+        metadata: (bucket) => ({ reservation_id: reservation.id, bucket, repaired: true }),
+        claimGate: sql`NOT EXISTS (
+          SELECT 1 FROM credit_transactions t
+          WHERE t.user_id = ${reservation.user_id}
+            AND t.transaction_type = 'reservation_released'
+            AND (json_extract(t.metadata, '$.reservation_id') = ${reservation.id}
+              OR instr(t.description, ${`Released reservation ${reservation.id}`}) = 1)
+        )`,
+        now,
+      }));
+      if (batch[0] && batch[0].meta.changes > 0) result.releasedRepaired += 1;
+    } catch (error) {
+      result.failed += 1;
+      console.error('[credits] could not repair released reservation refund:', reservation.id, error);
+    }
   }
+
+  // 2. Captured reservations whose partial refund claimed the marker but did
+  //    not pay the whole amount.
+  const partial = await db
+    .select()
+    .from(creditReservations)
+    .where(and(
+      eq(creditReservations.status, 'captured'),
+      sql`json_extract(${creditReservations.metadata}, '$.partial_refund_at') >= ${RECONCILE_REFUNDS_SINCE}`,
+      sql`COALESCE(json_extract(${creditReservations.metadata}, '$.partial_refund_paid'), -1)
+          < json_extract(${creditReservations.metadata}, '$.partial_refund_amount')`,
+    ))
+    .orderBy(creditReservations.updated_at)
+    .limit(limit) as CreditReservation[];
+
+  for (const reservation of partial) {
+    try {
+      const meta = reservation.metadata as Record<string, unknown>;
+      const owed = typeof meta.partial_refund_amount === 'number' ? meta.partial_refund_amount : 0;
+      const recordedPaid = typeof meta.partial_refund_paid === 'number' ? meta.partial_refund_paid : null;
+      // The ledger is the source of truth for what already reached the user.
+      const ledger = await db
+        .select({ total: sql<number>`COALESCE(SUM(${creditTransactions.amount}), 0)` })
+        .from(creditTransactions)
+        .where(and(
+          eq(creditTransactions.user_id, reservation.user_id),
+          eq(creditTransactions.transaction_type, 'reservation_partial_refund'),
+          sql`(json_extract(${creditTransactions.metadata}, '$.reservation_id') = ${reservation.id}
+            OR instr(${creditTransactions.description}, ${`Partial refund on reservation ${reservation.id}`}) = 1)`,
+        ));
+      const ledgerPaid = Number(ledger[0]?.total ?? 0);
+      const outstanding = Math.max(0, owed - Math.max(ledgerPaid, recordedPaid ?? 0));
+      const drawn = reservationSplit(reservation);
+      const split: DeductionAllocation = { monthly: 0, rollover: 0, addon: 0 };
+      let remaining = outstanding;
+      // Same last-drawn-first order as the live path.
+      for (const bucket of ['addon', 'rollover', 'monthly'] as const) {
+        const portion = Math.min(remaining, drawn[bucket]);
+        split[bucket] = portion;
+        remaining -= portion;
+      }
+      const now = nowIso();
+      const description = `Partial refund on reservation ${reservation.id}: ${String(meta.partial_refund_reason ?? 'repaired by reconciler')}`;
+      const batch = await runBatch([
+        // Compare-and-set on the paid marker we read, so two repairs cannot both pay.
+        sql`
+          UPDATE credit_reservations
+          SET metadata = json_set(metadata, '$.partial_refund_paid', ${owed}),
+              updated_at = ${now}
+          WHERE id = ${reservation.id} AND user_id = ${reservation.user_id} AND status = 'captured'
+            AND COALESCE(json_extract(metadata, '$.partial_refund_paid'), -1) = ${recordedPaid ?? -1}
+        `,
+        ...buildRefundStatements({
+          userId: reservation.user_id,
+          sessionId: reservation.session_id,
+          split,
+          transactionType: 'reservation_partial_refund',
+          describe: () => description,
+          metadata: (bucket) => ({ reservation_id: reservation.id, bucket, repaired: true }),
+          now,
+        }),
+      ]);
+      if (batch[0] && batch[0].meta.changes > 0) result.partialRepaired += 1;
+    } catch (error) {
+      result.failed += 1;
+      console.error('[credits] could not repair partial refund:', reservation.id, error);
+    }
+  }
+
+  return result;
 }
 
 export async function findActiveReservation(params: {

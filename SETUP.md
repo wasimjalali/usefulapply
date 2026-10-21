@@ -20,11 +20,12 @@ Local development runs Next.js 16 with OpenNext wrangler bindings. Production is
 | `EMAIL` | Email Service | `send_email` name `EMAIL` |
 | `CONTEXT_CACHE` | KV | agent context cache |
 | `IMAGES` | Images | image binding |
+| `BROWSER` | Browser Run | CV and cover letter PDFs (`src/lib/services/export`). `quickAction` does not run in plain local dev: set `"remote": true` on the binding locally, never commit it |
 | `RATE_LIMIT_*` | Rate Limiting | one binding per API bucket |
 | `ASSETS` | Assets | OpenNext static assets |
 | `WORKER_SELF_REFERENCE` | Service | self-call for ISR |
 
-Compatibility flags: `nodejs_compat`, `global_fetch_strictly_public`. Auth secrets (`BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) are Worker secrets, not wrangler vars.
+Compatibility flags: `nodejs_compat`, `global_fetch_strictly_public`. Auth secrets (`BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) are Worker secrets, not wrangler vars. So is `EXPORT_SIGNING_SECRET` (HMAC key for the 15-minute signed download links of exported CVs and letters; `npx wrangler secret put EXPORT_SIGNING_SECRET`).
 
 ## First-time local D1
 

@@ -1,0 +1,297 @@
+{
+  "engine": "new",
+  "mutation": "M-discard-inflight a save that was running when its draft was discarded reopens the draft, and a draft that lost its EditorStart is saved unchecked (finding 2: no discard epoch, no stale start)",
+  "from": 1,
+  "count": 2000,
+  "ops": 60,
+  "totals": {
+    "ops": 120000,
+    "edits": 41910,
+    "editorSaves": 7457,
+    "typedDuringSave": 1231,
+    "regens": 0,
+    "workflows": 0,
+    "trackerWrites": 0,
+    "silentWrites": 0,
+    "restores": 0,
+    "copies": 0,
+    "agentWrites": 12557,
+    "handoffs": 0,
+    "polls": 17101,
+    "saves": 17161,
+    "requests": 91328,
+    "dropped": 5430,
+    "lostAnswers": 4170,
+    "hung": 5302,
+    "conflictNotices": 11084,
+    "failureNotices": 3718,
+    "settleRounds": 5053
+  },
+  "byInvariant": {
+    "I1": 21
+  },
+  "byKind": {
+    "I1: TAB editor on APP.cv reopened with T, which the user discarded while the save ran": 21,
+    "I1: TAB open editor on APP.cv saved T, which the user had discarded ": 4,
+    "I1: TAB editor on APP.cv saved T with no EditorStart, so the save is not checked against what the server holds now": 5
+  },
+  "failingSeeds": [
+    200,
+    229,
+    238,
+    254,
+    563,
+    565,
+    600,
+    711,
+    805,
+    860,
+    986,
+    1217,
+    1255,
+    1271,
+    1284,
+    1342,
+    1368,
+    1821,
+    1869,
+    1918,
+    1964
+  ],
+  "failures": [
+    {
+      "seed": 200,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B21;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 229,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B3;, which the user discarded while the save ran"
+        },
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B3;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv saved t:B3; with no EditorStart, so the save is not checked against what the server holds now"
+        }
+      ]
+    },
+    {
+      "seed": 238,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B14;, which the user discarded while the save ran"
+        },
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B14;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv saved t:B14; with no EditorStart, so the save is not checked against what the server holds now"
+        }
+      ]
+    },
+    {
+      "seed": 254,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's editor on app-1.cv reopened with t:A8;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 563,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B10;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 565,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B8;, which the user discarded while the save ran"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv saved t:B21; with no EditorStart, so the save is not checked against what the server holds now"
+        }
+      ]
+    },
+    {
+      "seed": 600,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B15;, which the user discarded while the save ran"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B6;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 711,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B10;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 805,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B31;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 860,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's editor on app-1.cv reopened with t:A32;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 986,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B14;, which the user discarded while the save ran"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B12;, which the user discarded while the save ran"
+        },
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B12;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv saved t:B12; with no EditorStart, so the save is not checked against what the server holds now"
+        }
+      ]
+    },
+    {
+      "seed": 1217,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's editor on app-1.cv reopened with t:A8;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 1255,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B6;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 1271,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B15;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 1284,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B18;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 1342,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's editor on app-1.cv reopened with t:A11;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 1368,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's editor on app-1.cv reopened with t:A20;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 1821,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B4;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 1869,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's editor on app-1.cv reopened with t:A2;, which the user discarded while the save ran"
+        }
+      ]
+    },
+    {
+      "seed": 1918,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B9;, which the user discarded while the save ran"
+        },
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B9;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        },
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv saved t:B9; with no EditorStart, so the save is not checked against what the server holds now"
+        }
+      ]
+    },
+    {
+      "seed": 1964,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's editor on app-1.cv reopened with t:B21;, which the user discarded while the save ran"
+        }
+      ]
+    }
+  ],
+  "cases": []
+}

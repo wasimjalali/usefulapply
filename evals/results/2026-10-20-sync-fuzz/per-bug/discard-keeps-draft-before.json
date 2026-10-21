@@ -1,0 +1,836 @@
+{
+  "engine": "new",
+  "mutation": "M-discard-rebase Discard acknowledges like Restore and Copy (the open editor keeps the discarded draft)",
+  "from": 1,
+  "count": 2000,
+  "ops": 60,
+  "totals": {
+    "ops": 120000,
+    "edits": 41909,
+    "editorSaves": 7537,
+    "typedDuringSave": 1247,
+    "regens": 0,
+    "workflows": 0,
+    "trackerWrites": 0,
+    "silentWrites": 0,
+    "restores": 0,
+    "copies": 0,
+    "agentWrites": 12555,
+    "handoffs": 0,
+    "polls": 17098,
+    "saves": 17196,
+    "requests": 91504,
+    "dropped": 5445,
+    "lostAnswers": 4186,
+    "hung": 5299,
+    "conflictNotices": 11069,
+    "failureNotices": 3739,
+    "settleRounds": 5058
+  },
+  "byInvariant": {
+    "I1": 79
+  },
+  "byKind": {
+    "I1: TAB open editor on APP.FIELD saved T, which the user had discarded ": 52,
+    "I1: TAB open editor on APP.cv saved T, which the user had discarded ": 27
+  },
+  "failingSeeds": [
+    7,
+    18,
+    20,
+    69,
+    75,
+    109,
+    129,
+    152,
+    178,
+    182,
+    188,
+    199,
+    210,
+    229,
+    253,
+    276,
+    295,
+    299,
+    368,
+    379,
+    382,
+    422,
+    487,
+    512,
+    524,
+    534,
+    574,
+    621,
+    628,
+    721,
+    737,
+    753,
+    795,
+    817,
+    829,
+    836,
+    858,
+    873,
+    926,
+    933,
+    951,
+    957,
+    986,
+    990,
+    991,
+    1110,
+    1129,
+    1193,
+    1194,
+    1198,
+    1224,
+    1225,
+    1248,
+    1271,
+    1279,
+    1323,
+    1331,
+    1372,
+    1407,
+    1427,
+    1443,
+    1446,
+    1516,
+    1549,
+    1555,
+    1557,
+    1567,
+    1582,
+    1592,
+    1629,
+    1643,
+    1733,
+    1804,
+    1875,
+    1891,
+    1958,
+    1965,
+    1982,
+    1983
+  ],
+  "failures": [
+    {
+      "seed": 7,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.followUpEmail saved t:A19;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 18,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B6;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 20,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.cv saved t:A9;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 69,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.cv saved t:A2;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 75,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.followUpEmail saved t:A14;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 109,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.cv saved t:A7;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 129,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.followUpEmail saved t:B17;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 152,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.cv saved t:A12;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 178,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.coverLetter saved t:A20;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 182,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.cv saved t:A5;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 188,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.email saved t:B2;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 199,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.cv saved t:A16;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 210,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.coverLetter saved t:B22;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 229,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B3;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 253,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.email saved t:B10;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 276,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.email saved t:B14;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 295,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.coverLetter saved t:A8;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 299,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.coverLetter saved t:A17;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 368,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.followUpEmail saved t:A27;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 379,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.followUpEmail saved t:A2;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 382,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.followUpEmail saved t:B9;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 422,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.email saved t:B6;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 487,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.cv saved t:A4;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 512,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.email saved t:B23;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 524,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.followUpEmail saved t:B17;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 534,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.followUpEmail saved t:B1;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 574,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.cv saved t:A3;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 621,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B6;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 628,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.coverLetter saved t:B13;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 721,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B1;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 737,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.cv saved t:A4;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 753,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.followUpEmail saved t:A21;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 795,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.email saved t:A18;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 817,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.email saved t:A6;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 829,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.coverLetter saved t:A14;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 836,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.email saved t:B11;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 858,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.email saved t:B19;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 873,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.followUpEmail saved t:B13;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 926,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.email saved t:B12;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 933,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.coverLetter saved t:B9;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 951,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.email saved t:A4;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 957,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.followUpEmail saved t:B3;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 986,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B12;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 990,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.followUpEmail saved t:A1;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 991,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.followUpEmail saved t:A9;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1110,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.cv saved t:A12;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1129,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.email saved t:A2;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1193,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B7;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1194,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B12;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1198,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.email saved t:B8;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1224,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.coverLetter saved t:B12;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1225,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.followUpEmail saved t:A9;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        },
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.followUpEmail saved t:B12;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1248,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.coverLetter saved t:A15;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1271,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B2;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1279,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.followUpEmail saved t:B24;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1323,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B10;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1331,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.email saved t:B9;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1372,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.coverLetter saved t:A5;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1407,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.followUpEmail saved t:B25;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1427,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.coverLetter saved t:B10;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1443,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.email saved t:B3;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1446,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B16;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1516,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.coverLetter saved t:B18;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1549,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.cv saved t:A13;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1555,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B1;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1557,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.coverLetter saved t:B5;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1567,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.followUpEmail saved t:B12;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1582,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.coverLetter saved t:A1;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1592,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.coverLetter saved t:A16;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1629,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.cv saved t:A3;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1643,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.followUpEmail saved t:B4;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1733,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.coverLetter saved t:A15;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1804,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.email saved t:B8;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1875,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.cv saved t:A4;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1891,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.coverLetter saved t:B4;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1958,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.cv saved t:A19;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1965,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "B's open editor on app-1.cv saved t:B2;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1982,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.cv saved t:A13;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    },
+    {
+      "seed": 1983,
+      "violations": [
+        {
+          "code": "I1",
+          "message": "A's open editor on app-1.email saved t:A7;, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)"
+        }
+      ]
+    }
+  ],
+  "cases": []
+}

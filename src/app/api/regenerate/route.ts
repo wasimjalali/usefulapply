@@ -21,6 +21,7 @@ import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateL
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import { MAX_INSTRUCTION_CHARS, flattenInstruction } from '@/lib/agents/chat-tools/untrusted';
 import { clearKitDocumentError, getSession, updateSession } from '@/db/repos/sessions';
+import { coverLetterShell, saveKitDocument } from '@/lib/services/kit';
 import { saveLetterRecipientFromAd } from '@/lib/agents/persist-letter-recipient';
 import { getDocumentByType, type Document } from '@/db/repos/documents';
 
@@ -220,6 +221,10 @@ export async function POST(request: NextRequest) {
     const detectedLanguage = storedLanguage
       ?? await detectLanguage(session.job_description || '', generationContext);
     if (!storedLanguage) {
+      // `requirements` is a column the browser also writes, so this write bumps the
+      // revision: a write the revision does not announce could be overwritten by a
+      // browser save, or never seen by an open tab. An open tab merges it field by
+      // field, so it does not conflict with an unrelated edit.
       const persistedLanguage = await updateSession(user.id, session.id, {
         generated_artifacts: { ...(storedArtifacts ?? {}), detectedLanguage },
         requirements: { ...(storedRequirements ?? {}), detectedLanguage },
@@ -316,18 +321,19 @@ export async function POST(request: NextRequest) {
         : {};
       // A new letter replaces any structured copy of the old one.
       const persistedCoverLetter = {
+        ...coverLetterShell(),
         ...existingCoverLetter,
         body: coverLetter,
         structured: letter.structured,
         updatedAt: new Date().toISOString(),
       };
-      const persist = await updateSession(user.id, session.id, {
-        cover_letter: persistedCoverLetter,
-        cover_letter_language: letter.structured.language,
+      let { revision } = await saveKitDocument(user.id, session.id, 'coverLetter', persistedCoverLetter, {
+        extra: { cover_letter_language: letter.structured.language },
       });
-      if (persist.error) throw persist.error;
       try {
-        await saveLetterRecipientFromAd(user.id, session.id, session.job_description, letter.structured);
+        const filled = await saveLetterRecipientFromAd(user.id, session.id, session.job_description, letter.structured);
+        // Filling the recipient bumps the revision once more; report the final one.
+        if (filled.revision !== undefined) revision = filled.revision;
       } catch (error) {
         // The letter already carries the recipient; only the editable copy on
         // the session row is missing.
@@ -340,6 +346,7 @@ export async function POST(request: NextRequest) {
         coverLetterStructured: letter.structured,
         creditsDeducted: CREDIT_COSTS.COVER_LETTER_REGEN,
         tokens,
+        revision,
       });
     } else if (type === 'email') {
       const { result: email, tokens } = await unifiedWriterAgent.generateApplicationEmail(masterContext, generationContext);
@@ -347,20 +354,18 @@ export async function POST(request: NextRequest) {
         throw new Error('Empty application email generation');
       }
       trackRegenLLM('regen_email', tokens);
-      const persist = await updateSession(user.id, session.id, {
-        email: {
-          subject: email.subject,
-          body: email.body,
-          attachmentNote: 'Please find my CV and cover letter attached.',
-        },
+      const { revision } = await saveKitDocument(user.id, session.id, 'email', {
+        subject: email.subject,
+        body: email.body,
+        attachmentNote: 'Please find my CV and cover letter attached.',
       });
-      if (persist.error) throw persist.error;
       await clearDocumentMark(user.id, session.id, 'applicationEmail');
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({
         email,
         creditsDeducted: CREDIT_COSTS.EMAIL_REGEN,
         tokens,
+        revision,
       });
     } else if (type === 'follow_up_email') {
       if (session.email && typeof session.email === 'object') {
@@ -374,20 +379,18 @@ export async function POST(request: NextRequest) {
         throw new Error('Empty follow-up email generation');
       }
       trackRegenLLM('regen_follow_up_email', tokens);
-      const persist = await updateSession(user.id, session.id, {
-        follow_up_email: {
-          subject: followUpEmail.subject,
-          body: followUpEmail.body,
-          recommendedDelay: followUpEmail.recommendedDelay || 5,
-        },
+      const { revision } = await saveKitDocument(user.id, session.id, 'followUpEmail', {
+        subject: followUpEmail.subject,
+        body: followUpEmail.body,
+        recommendedDelay: followUpEmail.recommendedDelay || 5,
       });
-      if (persist.error) throw persist.error;
       await clearDocumentMark(user.id, session.id, 'followUpEmail');
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({
         followUpEmail,
         creditsDeducted: CREDIT_COSTS.FOLLOW_UP_REGEN,
         tokens,
+        revision,
       });
     } else if (type === 'cv_section' && resolvedSection) {
       const outcome = await unifiedWriterAgent.rewriteCVSection(masterContext, resolvedSection, generationContext);

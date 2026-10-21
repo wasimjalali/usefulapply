@@ -7,10 +7,11 @@ import { useAppStore } from '@/store/useAppStore';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
 import { formatDate, formatDayMonth, type DatePrefs } from '@/lib/utils/format-date';
 import { useUIStore } from '@/store/useUIStore';
-import { Mail, Download, Copy, Check, FileText, Edit3, Maximize2, X, Zap, ChevronDown } from 'lucide-react';
+import { Mail, Download, Copy, Check, FileText, Edit3, Eye, Loader2, Maximize2, X, Zap, ChevronDown } from 'lucide-react';
 import type { GeneratedCoverLetter } from '@/lib/types';
 import { StepIndicator } from './StepIndicator';
 import { KitDocumentError } from './KitDocumentError';
+import { PdfPreviewModal } from './ui/PdfPreviewModal';
 import { useToast } from './ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import {
@@ -21,7 +22,10 @@ import {
   hasAddressPlaceholder as letterHasAddressPlaceholder,
 } from '@/lib/utils/cover-letter-export';
 import { kitFilename } from '@/lib/utils/kit-export';
+import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback } from '@/lib/utils/server-export';
+import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { useSessionStore } from '@/store/useSessionStore';
+import { acknowledgedStart, acknowledgementFor, commitEditorSave, discardedSinceSave, editorShouldClose, getEditorStart, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface CoverLetterPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -71,13 +75,46 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const downloadMenuRef = useRef<HTMLDivElement>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedCoverLetter, setEditedCoverLetter] = useState<GeneratedCoverLetter | null>(null);
+  // The draft as it is now, for the save that finishes later (the user keeps typing while it runs).
+  const editedCoverLetterRef = useRef<GeneratedCoverLetter | null>(null);
+  useEffect(() => { editedCoverLetterRef.current = editedCoverLetter; }, [editedCoverLetter]);
   const [showFullPreview, setShowFullPreview] = useState(false);
+  // The rendered PDF the server would export, shown so people see the layout (US letter or DIN 5008) before they download.
+  const [layoutPreview, setLayoutPreview] = useState<{ url: string } | null>(null);
+  const [layoutPreviewLoading, setLayoutPreviewLoading] = useState(false);
+  const layoutOpenerRef = useRef<HTMLElement | null>(null);
   // When the letter last changed. Seeded from the stamp the letter carries, so
   // a reload can still say it; null only for letters written before the stamp.
   const [updatedAtMs, setUpdatedAtMs] = useState<number | null>(() => stampOf(coverLetter));
   const lastLetterRef = useRef<GeneratedCoverLetter | null>(null);
+  // The store's letter as it is now, for the discard path in the conflict listener below.
+  const currentCoverLetterRef = useRef<GeneratedCoverLetter | null>(null);
+  useEffect(() => { currentCoverLetterRef.current = coverLetter ?? null; }, [coverLetter]);
   const lastSessionIdRef = useRef<string | null>(null);
   const editSessionIdRef = useRef<string | null>(null);
+  // The revision the editor opened on. The draft lives here, outside the store, so
+  // it is bound to that revision and checked again at save time (commitEditorSave).
+  const editStartRef = useRef<EditorStart | undefined>(undefined);
+  // Counts the discards of cover letter conflict text that reached this editor. A save still running when the
+  // draft is discarded sees the count has moved and leaves the editor alone when its answer comes back.
+  const discardEpochRef = useRef(0);
+  // When the user deals with a conflict notice this editor's letter draft produced (restores or copies the text), the
+  // editor is based on the letter version that notice showed, so its next Save is not refused again for the same change.
+  // Discarding that text drops the draft, as Cancel does. Other editors' notices and other fields' leave it alone.
+  useEffect(() => subscribeConflictAcknowledged((acknowledged, ack) => {
+    if (editSessionIdRef.current !== acknowledged) return;
+    const action = acknowledgementFor(ack, ['coverLetter'], editStartRef.current);
+    if (action === 'ignore') return;
+    if (action === 'reset') {
+      discardEpochRef.current += 1;
+      setIsEditMode(false);
+      setEditedCoverLetter(currentCoverLetterRef.current);
+      editSessionIdRef.current = null;
+      editStartRef.current = undefined;
+      return;
+    }
+    editStartRef.current = acknowledgedStart(ack, ['coverLetter'], editStartRef.current);
+  }), []);
   const { toast } = useToast();
 
   // Check if cover letter still contains any address placeholder (old or new format)
@@ -178,6 +215,40 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     }
   };
 
+  /**
+   * What the server should lay out. The rule, shared with saving: an edit to the
+   * body drops `structured` (see updateField and handleSaveEdits), so a letter
+   * that still carries a valid `structured` has its writer's own text, and a
+   * letter without one is laid out from its body, which is then the truth.
+   */
+  const letterForServer = (letter: GeneratedCoverLetter) => {
+    const structured = (letter as { structured?: unknown }).structured;
+    if (isStructuredCoverLetter(structured)) return { structuredLetter: structured };
+    return { legacyLetterText: formatCoverLetterAsText(letter) };
+  };
+
+  const openLayoutPreview = async () => {
+    const letter = editedCoverLetter || coverLetter;
+    const applicationId = currentSession?.id;
+    if (!letter || !applicationId) return;
+    layoutOpenerRef.current = document.activeElement as HTMLElement | null;
+    setLayoutPreviewLoading(true);
+    try {
+      const { blob } = await serverExport({ applicationId, format: 'cover_letter_pdf', ...letterForServer(letter) });
+      setLayoutPreview({ url: URL.createObjectURL(blob) });
+    } catch (error) {
+      console.error('Layout preview failed:', error);
+      toast.error("The preview didn't build. Try again in a moment.");
+    } finally {
+      setLayoutPreviewLoading(false);
+    }
+  };
+
+  const closeLayoutPreview = () => {
+    if (layoutPreview) URL.revokeObjectURL(layoutPreview.url);
+    setLayoutPreview(null);
+  };
+
   const exportLetter = async (format: 'pdf' | 'docx') => {
     const letterToDownload = editedCoverLetter || coverLetter;
     if (!letterToDownload) return;
@@ -185,17 +256,40 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     setShowDownloadMenu(false);
     setDownloadFormat(format);
     try {
-      const applicantName =
-        letterToDownload.applicantAddress.name ||
-        letterToDownload.signatureName ||
-        structuredCV?.personal.fullName ||
-        'Applicant';
-      const companyName = letterToDownload.companyAddress.companyName || currentSession?.company || 'Company';
-      const blob = format === 'pdf'
-        ? buildCoverLetterPdfBlob(letterToDownload)
-        : await buildCoverLetterDocxBlob(letterToDownload);
-      await downloadBlob(blob, kitFilename(applicantName, companyName, 'Cover_Letter', format));
-      toast.success(`${format.toUpperCase()} downloaded.`);
+      let usedFallback = false;
+      let blob: Blob | null = null;
+      let fileName = '';
+      const applicationId = currentSession?.id;
+      if (applicationId) {
+        try {
+          const served = await serverExport({
+            applicationId,
+            format: format === 'pdf' ? 'cover_letter_pdf' : 'cover_letter_docx',
+            ...letterForServer(letterToDownload),
+          });
+          blob = served.blob;
+          fileName = served.fileName;
+        } catch (error) {
+          if (!shouldFallBack(error)) throw error;
+          trackExportFallback(format === 'pdf' ? 'cover_letter_pdf' : 'cover_letter_docx', error);
+        }
+      }
+      if (!blob) {
+        usedFallback = true;
+        const applicantName =
+          letterToDownload.applicantAddress.name ||
+          letterToDownload.signatureName ||
+          structuredCV?.personal.fullName ||
+          'Applicant';
+        const companyName = letterToDownload.companyAddress.companyName || currentSession?.company || 'Company';
+        blob = format === 'pdf'
+          ? buildCoverLetterPdfBlob(letterToDownload)
+          : await buildCoverLetterDocxBlob(letterToDownload);
+        fileName = kitFilename(applicantName, companyName, 'Cover_Letter', format);
+      }
+      await downloadBlob(blob, fileName);
+      if (usedFallback && format === 'pdf') toast.warning(FALLBACK_NOTICE, 7000);
+      else toast.success(`${format.toUpperCase()} downloaded.`);
       if (showAddressReminder) {
         setTimeout(() => toast.warning('Add the company address before you send it.', 6000), 500);
       }
@@ -304,6 +398,8 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
       obj = obj[keys[i]] as Record<string, unknown>;
     }
     obj[keys[keys.length - 1]] = value;
+    // The structure no longer matches an edited body: from here the body is the truth.
+    if (path === 'body') delete (newLetter as { structured?: unknown }).structured;
     setEditedCoverLetter(newLetter);
   };
 
@@ -314,11 +410,32 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
       // dropped and the export falls back to the body the user wrote.
       const { structured, ...rest } = editedCoverLetter;
       const keepStructured = structured && editedCoverLetter.body === coverLetter?.body;
-      useSessionStore.getState().updateSessionById(editSessionIdRef.current, {
-        coverLetter: { ...rest, ...(keepStructured ? { structured } : {}), updatedAt: new Date().toISOString() },
+      const sessionId = editSessionIdRef.current;
+      const sentDraft = JSON.stringify(editedCoverLetter);
+      const epochAtSave = discardEpochRef.current;
+      // Save now, against the revision this editor opened on. If another write got
+      // in first the draft is not applied: the editor stays open with the text in it.
+      void commitEditorSave(sessionId, editStartRef.current, () => {
+        // This runs once the sync lock is free. A draft discarded since the click is not written.
+        if (discardedSinceSave(epochAtSave, discardEpochRef.current)) return;
+        useSessionStore.getState().updateSessionById(sessionId, {
+          coverLetter: { ...rest, ...(keepStructured ? { structured } : {}), updatedAt: new Date().toISOString() },
+        });
+      }).then((outcome) => {
+        // The draft was discarded while the save ran: the editor is already closed and nothing here reopens it.
+        if (epochAtSave !== discardEpochRef.current) return;
+        // Anything but a save the server confirmed leaves the editor open with the text in it.
+        // So does typing during the save: the newer draft stays, now based on what was just saved.
+        if (!editorShouldClose(outcome, sentDraft, JSON.stringify(editedCoverLetterRef.current))) {
+          // The save confirmed the columns this editor's draft sets: only those move to the new revision.
+          if ((outcome === 'saved' || outcome === 'clean') && editStartRef.current) {
+            editStartRef.current = rebaseEditorStart(sessionId, editStartRef.current, editStartRef.current.lineage.columns);
+          }
+          return;
+        }
+        setIsEditMode(false);
+        editSessionIdRef.current = null;
       });
-      setIsEditMode(false);
-      editSessionIdRef.current = null;
     }
   };
 
@@ -391,6 +508,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
         <>
           <button type="button" onClick={() => {
             editSessionIdRef.current = currentSession?.id ?? null;
+            editStartRef.current = currentSession ? getEditorStart(currentSession.id) : undefined;
             setIsEditMode(true);
           }} className={TOOL_CLASS}>
             <Edit3 className="w-4 h-4 text-navy-500" />
@@ -399,6 +517,15 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
           <button type="button" onClick={handleCopy} className={TOOL_CLASS}>
             {copied ? <Check className="w-4 h-4 text-gold-600" /> : <Copy className="w-4 h-4" />}
             {copied ? 'Copied' : 'Copy'}
+          </button>
+          <button
+            type="button"
+            onClick={openLayoutPreview}
+            disabled={layoutPreviewLoading || !currentSession?.id}
+            className={`${TOOL_CLASS} disabled:opacity-60 disabled:cursor-wait`}
+          >
+            {layoutPreviewLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+            Preview layout
           </button>
           <div className="relative flex-shrink-0">
             <button
@@ -495,6 +622,8 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
       </div>
 
 
+
+      {layoutPreview && <PdfPreviewModal url={layoutPreview.url} title="Cover letter layout" onClose={closeLayoutPreview} returnFocusTo={layoutOpenerRef.current} />}
 
       {showFullPreview && activeCoverLetter && createPortal(
         <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">

@@ -1,0 +1,33 @@
+mutation applied: M-r3-moved-only an editor conflict sets aside only the groups that moved (the email panel's other document is kept nowhere; round 3 I1 seeds 181, 865, 1568)
+mutation: M-r3-moved-only an editor conflict sets aside only the groups that moved (the email panel's other document is kept nowhere; round 3 I1 seeds 181, 865, 1568)
+  500/2000 seeds, 1 failing
+  1000/2000 seeds, 4 failing
+  1500/2000 seeds, 6 failing
+  2000/2000 seeds, 10 failing
+
+2000 seeds (1..2000), 60 operations each, new engine, 17.0s
+totals {"ops":120000,"edits":41331,"editorSaves":6658,"typedDuringSave":1219,"regens":0,"workflows":0,"trackerWrites":0,"silentWrites":0,"restores":0,"copies":0,"cancels":1631,"panelOpens":1028,"agentWrites":12514,"handoffs":0,"polls":17084,"saves":17208,"requests":90532,"dropped":5385,"lostAnswers":4072,"hung":5267,"conflictNotices":10534,"failureNotices":3643,"settleRounds":5087}
+failing seeds: 10  by invariant {"I1":10}
+seeds per kind of violation:
+     10  I1: TAB last edit of APP.FIELD 
+  seed 340
+      I1: B's last edit of app-1.email (t:B14;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"followUpEmail":{"subject":"seed follow-up app-1","body":"seed follow-up body app-1","recommendedDelay":5}},{"followUpEmail":{"subject":"f-t:B13;","body":"t:B)
+  seed 585
+      I1: B's last edit of app-1.email (t:B11;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"coverLetter":{"applicantAddress":{"name":"","street":"","city":"","country":"","phone":"","email":""},"date":"","companyAddress":{"companyName":"","street":")
+  seed 645
+      I1: A's last edit of app-1.email (t:A21;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"followUpEmail":{"subject":"f-t:A17;","body":"t:A17;","recommendedDelay":5}},{"followUpEmail":{"subject":"f-t:A19;","body":"t:A19;","recommendedDelay":5}},{"c)
+  seed 763
+      I1: A's last edit of app-1.followUpEmail (t:A23;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"coverLetter":{"applicantAddress":{"name":"","street":"","city":"","country":"","phone":"","email":""},"date":"","companyAddress":{"companyName":"","street":")
+  seed 1189
+      I1: A's last edit of app-1.followUpEmail (t:A25;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"company":"t:A17;"},{"requirements":{"title":"t:O15;","company":"c","hardSkills":[],"softSkills":[]}},{"generatedCV":{"content":"cv content","changes":[],"opt)
+  seed 1345
+      I1: A's last edit of app-1.followUpEmail (t:A15;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"selectedTemplate":"tpl-t:A4;"},{"email":{"subject":"s-t:A12;","body":"t:A12;","attachmentNote":""}},{"email":{"subject":"s-t:A12;","body":"t:A12;","attachmen)
+  seed 1549
+      I1: A's last edit of app-1.email (t:A6;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"followUpEmail":{"subject":"seed follow-up app-1","body":"seed follow-up body app-1","recommendedDelay":5}},{"company":"t:A32;"},{"generatedCV":{"content":"cv)
+  seed 1630
+      I1: A's last edit of app-1.email (t:A22;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"jobDescription":"t:A8;"},{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullName":"N","email")
+  seed 1764
+      I1: A's last edit of app-1.email (t:A10;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"followUpEmail":{"subject":"f-t:A12;","body":"t:A12;","recommendedDelay":5}},{"followUpEmail":{"subject":"f-t:A17;","body":"t:A17;","recommendedDelay":5}},{"f)
+  seed 1934
+      I1: A's last edit of app-1.email (t:A24;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"company":"t:A7;"},{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullName":"N","email":"n@exa)
+seed list: 340,585,645,763,1189,1345,1549,1630,1764,1934

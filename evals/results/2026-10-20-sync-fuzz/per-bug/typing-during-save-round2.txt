@@ -1,0 +1,69 @@
+  500/2000 seeds, 96 failing
+  1000/2000 seeds, 193 failing
+  1500/2000 seeds, 282 failing
+  2000/2000 seeds, 380 failing
+
+2000 seeds (1..2000), 60 operations each, round2 engine, 13.6s
+totals {"ops":120000,"edits":43075,"editorSaves":7825,"typedDuringSave":1669,"regens":0,"workflows":0,"trackerWrites":0,"silentWrites":0,"restores":0,"copies":0,"agentWrites":12802,"handoffs":0,"polls":17524,"saves":17706,"requests":93197,"dropped":5558,"lostAnswers":4253,"hung":5378,"conflictNotices":11544,"failureNotices":3716,"settleRounds":5091}
+failing seeds: 380  by invariant {"I1":380}
+seeds per kind of violation:
+    203  I1: TAB editor on APP.FIELD closed over text the user typed while the save ran
+    108  I1: TAB last edit of APP.cv 
+     93  I1: TAB last edit of APP.screening 
+  seed 2
+      I1: A's editor on app-1.followUpEmail closed over text the user typed while the save ran
+  seed 5
+      I1: B's last edit of app-1.screening (t:B14;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"requirements":{"title":"t:B24;","company":"c","hardSkills":[],"softSkills":[]}},{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position")
+  seed 8
+      I1: A's editor on app-1.email closed over text the user typed while the save ran
+  seed 12
+      I1: B's editor on app-1.followUpEmail closed over text the user typed while the save ran
+      I1: A's editor on app-1.email closed over text the user typed while the save ran
+      I1: B's last edit of app-1.screening (t:B9;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullName":"N","email":"n@example.test","currentT)
+  seed 15
+      I1: B's editor on app-1.followUpEmail closed over text the user typed while the save ran
+      I1: A's editor on app-1.coverLetter closed over text the user typed while the save ran
+      I1: A's last edit of app-1.cv (t:A4;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullName":"N","email":"n@example.test","currentT)
+  seed 17
+      I1: A's last edit of app-1.cv (t:A18;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullName":"N","email":"n@example.test","currentT)
+  seed 21
+      I1: B's editor on app-1.coverLetter closed over text the user typed while the save ran
+      I1: A's last edit of app-1.screening (t:A6;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullName":"N","email":"n@example.test","currentT)
+  seed 24
+      I1: A's editor on app-1.email closed over text the user typed while the save ran
+  seed 35
+      I1: B's last edit of app-1.screening (t:O13;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"jobDescription":"BAD-t:B10;"},{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullName":"N","e)
+  seed 41
+      I1: B's last edit of app-1.screening (t:B3;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"email":{"subject":"s-t:O10;","body":"t:O10;","attachmentNote":""}},{"selectedTemplate":"tpl-t:O6;"},{"generatedCV":{"content":"cv content","changes":[],"opti)
+  seed 43
+      I1: B's last edit of app-1.cv (t:O22;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"jobDescription":"t:O5;"},{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullName":"N","email")
+  seed 49
+      I1: B's last edit of app-1.screening (t:B17;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"email":{"subject":"s-t:B2;","body":"t:B2;","attachmentNote":""}},{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVD)
+  seed 59
+      I1: B's last edit of app-1.screening (t:B15;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"jobDescription":"t:B33;"},{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullName":"N","email)
+  seed 64
+      I1: B's editor on app-1.email closed over text the user typed while the save ran
+  seed 70
+      I1: A's editor on app-1.followUpEmail closed over text the user typed while the save ran
+  seed 72
+      I1: A's last edit of app-1.cv (t:A6;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"selectedTemplate":"tpl-t:A1;"},{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullName":"N",")
+  seed 81
+      I1: B's editor on app-1.email closed over text the user typed while the save ran
+  seed 84
+      I1: A's last edit of app-1.cv (t:O18;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"selectedTemplate":"tpl-t:O9;"},{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullName":"N",")
+  seed 92
+      I1: A's editor on app-1.email closed over text the user typed while the save ran
+  seed 93
+      I1: B's last edit of app-1.screening (t:O19;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"requirements":{"title":"t:B1;","company":"c","hardSkills":[],"softSkills":[]}},{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position",)
+  seed 109
+      I1: A's last edit of app-1.screening (t:O20;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"email":{"subject":"s-t:A2;","body":"t:A2;","attachmentNote":""}},{"followUpEmail":{"subject":"f-t:A22;","body":"t:A22;","recommendedDelay":5}},{"generatedCV")
+  seed 110
+      I1: B's editor on app-1.coverLetter closed over text the user typed while the save ran
+  seed 113
+      I1: B's last edit of app-1.cv (t:B11;) was lost: not on the server, not in a conflict buffer, not a refused value (store still holds it: false, buffer: [{"generatedCV":{"content":"cv content","changes":[],"optimizedFor":"Position","_optimizedCVData":{"personal":{"fullName":"N","email":"n@example.test","currentT)
+  seed 115
+      I1: A's editor on app-1.email closed over text the user typed while the save ran
+  seed 121
+      I1: B's editor on app-1.followUpEmail closed over text the user typed while the save ran
+  ... and 355 more
+seed list: 2,5,8,12,15,17,21,24,35,41,43,49,59,64,70,72,81,84,92,93,109,110,113,115,121,130,139,154,162,168,171,174,177,179,182,196,198,201,202,210,212,214,229,236,240,242,245,248,261,270,272,275,280,286,292,294,302,305,318,323,324,331,337,348,350,352,360,362,365,370,371,384,391,393,394,396,404,419,421,422,423,430,443,446,447,449,453,456,459,463,470,471,474,479,491,498,502,506,508,509, ... (380 in all, see --out)

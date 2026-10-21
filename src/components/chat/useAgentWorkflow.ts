@@ -29,7 +29,8 @@ import { useFeedStore } from '@/store/useFeedStore';
 import { cvStructureDigest } from '@/lib/cv-structure/validate';
 import { rememberUndo } from '@/lib/cv-structure/undo';
 import type { JobFeedApplicationGeneration } from '@/lib/supabase/types';
-import { readKitDocumentErrors } from '@/lib/open-session';
+import { readKitDocumentErrors, type StoredSessionRow } from '@/lib/open-session';
+import { applyServerRow, forgetSession, refreshFromServer } from '@/lib/session-sync';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import type { KitDocument, KitDocumentErrors } from '@/lib/agents/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
@@ -185,7 +186,8 @@ export function useAgentWorkflow(options?: {
    * credit-aware decision card; the user's click is what starts a run, so
    * classification never spends credits.
    */
-  onProposeApplication?: (jobDescription: string) => void;
+  /** Returns a line to add after the model's reply when the proposal can't be acted on. */
+  onProposeApplication?: (jobDescription: string) => string | null;
   /**
    * The reply came back and the model did NOT read the message as an ad.
    * The client decides whether to offer a manual way in, so a model that
@@ -378,8 +380,8 @@ export function useAgentWorkflow(options?: {
     executed: unknown,
     userMessage: string,
     opts: { startedIn: string | null; suppressProposal: boolean },
-  ): string | null => {
-    if (!Array.isArray(executed)) return null;
+  ): { refusal: string | null; note: string | null } => {
+    if (!Array.isArray(executed)) return { refusal: null, note: null };
     // Effects that write to the open application only make sense if the user
     // is still looking at the one that asked. Switching applications mid
     // request would otherwise overwrite the wrong row.
@@ -393,13 +395,14 @@ export function useAgentWorkflow(options?: {
       .filter((effect) => effect.type === 'cv_structure_updated')
       .at(-1);
     let cvRefusal: string | null = null;
+    let proposalNote: string | null = null;
     for (const effect of executed as ExecutedEffect[]) {
       if (effect.type === 'propose_application') {
         if (opts.suppressProposal || !stillHere) continue;
         // Classification only. The decision card the client shows is where
         // the user picks fit analysis or the full kit, so nothing is spent
         // here and nothing starts.
-        options?.onProposeApplication?.(userMessage);
+        proposalNote = options?.onProposeApplication?.(userMessage) ?? null;
       } else if (effect.type === 'set_cv_template') {
         if (!stillHere) continue;
         useUIStore.getState().setCvTemplateId(effect.templateId);
@@ -473,7 +476,7 @@ export function useAgentWorkflow(options?: {
         notifyJobFeedBadgeRefresh();
       }
     }
-    return cvRefusal;
+    return { refusal: cvRefusal, note: proposalNote };
   };
 
   // No proposal came back, either because the model read the ad as a question
@@ -556,13 +559,13 @@ export function useAgentWorkflow(options?: {
         // case the transcript must contain the refusal instead of the model's
         // stale success claim. The rejected edit cannot be undone because it
         // never landed, so its Undo action is removed too.
-        const effectRefusal = applyExecutedEffects(executed, message, {
+        const { refusal: effectRefusal, note: effectNote } = applyExecutedEffects(executed, message, {
           startedIn,
           suppressProposal: Boolean(opts?.suppressProposal),
         });
         addChatMessage({
           role: 'assistant',
-          content: effectRefusal || reply,
+          content: effectRefusal || (effectNote ? `${reply}\n\n${effectNote}` : reply),
           actions: effectRefusal
             ? (actions || []).filter((action: { action?: string }) => !action.action?.startsWith('undo-cv-edit:'))
             : actions || [],
@@ -794,38 +797,44 @@ export function useAgentWorkflow(options?: {
                   detectedLanguage,
                   fitAnalysis,
                 });
-                // Persist job title, company, and match data to the session
-                // so tracker shows correct info if user proceeds to apply.
-                // Keep a feed-provided title (e.g. "Product Manager - B2B SaaS")
-                // instead of the parser's shortened title.
-                if (job?.title || job?.companyName) {
-                  const existing = useSessionStore.getState().sessions.find((session) => session.id === fitWorkflowSessionId);
-                  if (fitWorkflowSessionId) useAppStore.getState().updateSessionById(fitWorkflowSessionId, {
-                    jobTitle: existing?.jobTitle?.trim() || job.title || '',
-                    company: existing?.company?.trim() || job.companyName || '',
-                    requirements: {
-                      title: job.title || '',
-                      company: job.companyName || '',
-                      hardSkills: job.requiredSkills || [],
-                      softSkills: [],
-                      experienceLevel: '',
-                      keywords: [],
-                      responsibilities: job.responsibilities || [],
-                      niceToHave: job.niceToHaveSkills || [],
-                      expectedSalary: job.expectedSalary,
-                      startDate: job.startDate,
-                      location: job.location,
-                      workType: job.workType,
-                      detectedLanguage,
-                    },
-                  });
-                }
-                if (match) {
-                  if (fitWorkflowSessionId) useAppStore.getState().updateSessionById(fitWorkflowSessionId, {
-                    matchScore: match.score,
-                    matchingSkills: match.matchedRequirements || [],
-                    missingSkills: match.missingSkills || [],
-                  });
+                // For a stored application the server saved what the analysis found (agent-v2
+                // writes the fit columns with a revision bump), so it is loaded below instead of
+                // written from this response. An unsaved session has no row and takes it directly.
+                const storedFit = Boolean(user) && typeof fitWorkflowSessionId === 'string' && !fitWorkflowSessionId.startsWith('session-');
+                if (!storedFit) {
+                  // Persist job title, company, and match data to the session
+                  // so tracker shows correct info if user proceeds to apply.
+                  // Keep a feed-provided title (e.g. "Product Manager - B2B SaaS")
+                  // instead of the parser's shortened title.
+                  if (job?.title || job?.companyName) {
+                    const existing = useSessionStore.getState().sessions.find((session) => session.id === fitWorkflowSessionId);
+                    if (fitWorkflowSessionId) useAppStore.getState().updateSessionById(fitWorkflowSessionId, {
+                      jobTitle: existing?.jobTitle?.trim() || job.title || '',
+                      company: existing?.company?.trim() || job.companyName || '',
+                      requirements: {
+                        title: job.title || '',
+                        company: job.companyName || '',
+                        hardSkills: job.requiredSkills || [],
+                        softSkills: [],
+                        experienceLevel: '',
+                        keywords: [],
+                        responsibilities: job.responsibilities || [],
+                        niceToHave: job.niceToHaveSkills || [],
+                        expectedSalary: job.expectedSalary,
+                        startDate: job.startDate,
+                        location: job.location,
+                        workType: job.workType,
+                        detectedLanguage,
+                      },
+                    });
+                  }
+                  if (match) {
+                    if (fitWorkflowSessionId) useAppStore.getState().updateSessionById(fitWorkflowSessionId, {
+                      matchScore: match.score,
+                      matchingSkills: match.matchedRequirements || [],
+                      missingSkills: match.missingSkills || [],
+                    });
+                  }
                 }
                 // Persist fit analysis state to session so it survives session switches
                 if (fitWorkflowSessionId) useAppStore.getState().updateSessionById(fitWorkflowSessionId, {
@@ -841,6 +850,7 @@ export function useAgentWorkflow(options?: {
                   content: formatFitAnalysisMessage(fitAnalysis, job),
                 });
                 triggerCreditUpdate();
+                if (storedFit) void refreshFromServer(fitWorkflowSessionId);
                 break;
               }
               case 'error':
@@ -928,6 +938,9 @@ export function useAgentWorkflow(options?: {
           throw created.error ?? new Error('Failed to save application before generation');
         }
         eagerStoredSessionId = created.session.id;
+        // The bare stored row is what the server holds. The local content goes
+        // out afterwards as an ordinary revisioned save over it.
+        await applyServerRow(created.session.id, created.session as unknown as StoredSessionRow, 'handoff');
         if (!localSession) {
           throw new Error('Local application disappeared before generation');
         }
@@ -936,7 +949,7 @@ export function useAgentWorkflow(options?: {
         const persistedId = workflowSessionId;
         useSessionStore.setState((state) => {
           const replace = (session: typeof localSession) => session.id === localSessionId
-            ? { ...session, id: persistedId }
+            ? { ...session, id: persistedId, revision: created.session?.revision ?? 0 }
             : session;
           return {
             sessions: state.sessions.map(replace),
@@ -1069,130 +1082,139 @@ export function useAgentWorkflow(options?: {
                   failed_documents: Object.keys(kitErrors),
                 });
 
-                if (ctx?.job) {
-                  const existing = useSessionStore.getState().sessions.find((session) => session.id === workflowSessionId);
-                  if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
-                    requirements: {
-                      title: ctx.job.title || '',
-                      company: ctx.job.companyName || '',
-                      hardSkills: ctx.job.requiredSkills || [],
-                      softSkills: [],
-                      experienceLevel: '',
-                      keywords: [],
-                      responsibilities: ctx.job.responsibilities || [],
-                      niceToHave: ctx.job.niceToHaveSkills || [],
-                      expectedSalary: ctx.job.expectedSalary,
-                      startDate: ctx.job.startDate,
-                      location: ctx.job.location,
-                      workType: ctx.job.workType,
-                      detectedLanguage: ctx.detectedLanguage,
-                    },
-                    jobTitle: existing?.jobTitle?.trim() || ctx.job.title,
-                    company: existing?.company?.trim() || ctx.job.companyName,
-                  });
-                }
+                // A stored application is not written from this response. The server saved the kit
+                // (agent-v2 persists it before it announces completion), and this response can arrive
+                // after a newer revision was loaded; installing its fields would put older content on
+                // screen. The refresh below loads the saved row instead. Only an anonymous or unsaved
+                // session, which has no row to load, takes the result directly.
+                const storedApplication = Boolean(user) && typeof workflowSessionId === 'string' && !workflowSessionId.startsWith('session-');
+                if (!storedApplication) {
+                  if (ctx?.job) {
+                    const existing = useSessionStore.getState().sessions.find((session) => session.id === workflowSessionId);
+                    if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
+                      requirements: {
+                        title: ctx.job.title || '',
+                        company: ctx.job.companyName || '',
+                        hardSkills: ctx.job.requiredSkills || [],
+                        softSkills: [],
+                        experienceLevel: '',
+                        keywords: [],
+                        responsibilities: ctx.job.responsibilities || [],
+                        niceToHave: ctx.job.niceToHaveSkills || [],
+                        expectedSalary: ctx.job.expectedSalary,
+                        startDate: ctx.job.startDate,
+                        location: ctx.job.location,
+                        workType: ctx.job.workType,
+                        detectedLanguage: ctx.detectedLanguage,
+                      },
+                      jobTitle: existing?.jobTitle?.trim() || ctx.job.title,
+                      company: existing?.company?.trim() || ctx.job.companyName,
+                    });
+                  }
                 
-                if (ctx?.match) {
-                  if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
-                    gaps: {
-                      matchScore: ctx.match.score || 0,
+                  if (ctx?.match) {
+                    if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
+                      gaps: {
+                        matchScore: ctx.match.score || 0,
+                        matchingSkills: ctx.match.matchedRequirements || [],
+                        missingSkills: ctx.match.missingSkills || [],
+                        matchingExperience: [],
+                        missingExperience: [],
+                        suggestions: [],
+                      },
+                      matchScore: ctx.match.score,
                       matchingSkills: ctx.match.matchedRequirements || [],
                       missingSkills: ctx.match.missingSkills || [],
-                      matchingExperience: [],
-                      missingExperience: [],
-                      suggestions: [],
-                    },
-                    matchScore: ctx.match.score,
-                    matchingSkills: ctx.match.matchedRequirements || [],
-                    missingSkills: ctx.match.missingSkills || [],
-                  });
-                }
+                    });
+                  }
                 
-                if (ctx?.optimizedCV) {
-                  if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
-                    generatedCV: {
-                      content: ctx.optimizedCV.content,
-                      changes: ctx.optimizedCV.changes?.map((c: { section: string; before: string; after: string; reason: string }) => ({
-                        section: c.section,
-                        original: c.before,
-                        updated: c.after,
-                        reason: c.reason,
-                      })) || [],
-                      optimizedFor: ctx.job?.title || 'Position',
-                    },
-                  });
-                }
-                
-                if (ctx?.optimizedCVData) {
-                  if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
-                    optimizedCVData: ctx.optimizedCVData,
-                  });
-                }
-                
-                if (ctx?.coverLetter) {
-                  if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
-                    coverLetter: {
-                      applicantAddress: {
-                        name: '',
-                        street: '',
-                        city: '',
-                        country: '',
-                        phone: '',
-                        email: '',
+                  if (ctx?.optimizedCV) {
+                    if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
+                      generatedCV: {
+                        content: ctx.optimizedCV.content,
+                        changes: ctx.optimizedCV.changes?.map((c: { section: string; before: string; after: string; reason: string }) => ({
+                          section: c.section,
+                          original: c.before,
+                          updated: c.after,
+                          reason: c.reason,
+                        })) || [],
+                        optimizedFor: ctx.job?.title || 'Position',
                       },
-                      date: '',
-                      companyAddress: {
-                        companyName: '',
-                        street: '',
-                      },
-                      salutation: '',
-                      body: ctx.coverLetter,
-                      closing: '',
-                      signatureName: '',
-                      updatedAt: new Date().toISOString(),
-                      ...(isStructuredCoverLetter(ctx.coverLetterStructured) ? { structured: ctx.coverLetterStructured } : {}),
-                    },
-                  });
-                }
+                    });
+                  }
                 
-                if (ctx?.applicationEmail) {
-                  if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
-                    email: {
-                      subject: ctx.applicationEmail.subject || `Application for ${ctx.job?.title || 'Position'} at ${ctx.job?.companyName || 'Company'}`,
-                      body: ctx.applicationEmail.body || '',
-                      attachmentNote: 'Please find my CV and cover letter attached.',
-                    },
-                  });
+                  if (ctx?.optimizedCVData) {
+                    if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
+                      optimizedCVData: ctx.optimizedCVData,
+                    });
+                  }
+                
+                  if (ctx?.coverLetter) {
+                    if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
+                      coverLetter: {
+                        applicantAddress: {
+                          name: '',
+                          street: '',
+                          city: '',
+                          country: '',
+                          phone: '',
+                          email: '',
+                        },
+                        date: '',
+                        companyAddress: {
+                          companyName: '',
+                          street: '',
+                        },
+                        salutation: '',
+                        body: ctx.coverLetter,
+                        closing: '',
+                        signatureName: '',
+                        updatedAt: new Date().toISOString(),
+                        ...(isStructuredCoverLetter(ctx.coverLetterStructured) ? { structured: ctx.coverLetterStructured } : {}),
+                      },
+                    });
+                  }
+                
+                  if (ctx?.applicationEmail) {
+                    if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
+                      email: {
+                        subject: ctx.applicationEmail.subject || `Application for ${ctx.job?.title || 'Position'} at ${ctx.job?.companyName || 'Company'}`,
+                        body: ctx.applicationEmail.body || '',
+                        attachmentNote: 'Please find my CV and cover letter attached.',
+                      },
+                    });
+                  }
+
+                  if (workflowSessionId) {
+                    useAppStore.getState().updateSessionById(workflowSessionId, {
+                      followUpEmail: ctx?.followUpEmail ? {
+                        subject: ctx.followUpEmail.subject,
+                        body: ctx.followUpEmail.body,
+                        recommendedDelay: ctx.followUpEmail.recommendedDelay || 5,
+                      } : null,
+                    });
+                  }
+
+                  // A document that failed in this run must not leave an older
+                  // run's copy on screen as if it belonged to this job. Clear it
+                  // so its tab shows the error and the retry instead.
+                  if (workflowSessionId) {
+                    useAppStore.getState().updateSessionById(workflowSessionId, {
+                      kitDocumentErrors: Object.keys(kitErrors).length > 0 ? kitErrors : null,
+                      ...(kitErrors.cv ? { generatedCV: null, optimizedCVData: undefined } : {}),
+                      ...(kitErrors.coverLetter ? { coverLetter: null } : {}),
+                      ...(kitErrors.applicationEmail ? { email: null } : {}),
+                    });
+                  }
+                
+                  if (ctx?.companyResearch) {
+                    if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
+                      companyResearch: ctx.companyResearch,
+                    });
+                  }
+                
                 }
 
-                if (workflowSessionId) {
-                  useAppStore.getState().updateSessionById(workflowSessionId, {
-                    followUpEmail: ctx?.followUpEmail ? {
-                      subject: ctx.followUpEmail.subject,
-                      body: ctx.followUpEmail.body,
-                      recommendedDelay: ctx.followUpEmail.recommendedDelay || 5,
-                    } : null,
-                  });
-                }
-
-                // A document that failed in this run must not leave an older
-                // run's copy on screen as if it belonged to this job. Clear it
-                // so its tab shows the error and the retry instead.
-                if (workflowSessionId) {
-                  useAppStore.getState().updateSessionById(workflowSessionId, {
-                    kitDocumentErrors: Object.keys(kitErrors).length > 0 ? kitErrors : null,
-                    ...(kitErrors.cv ? { generatedCV: null, optimizedCVData: undefined } : {}),
-                    ...(kitErrors.coverLetter ? { coverLetter: null } : {}),
-                    ...(kitErrors.applicationEmail ? { email: null } : {}),
-                  });
-                }
-                
-                if (ctx?.companyResearch) {
-                  if (workflowSessionId) useAppStore.getState().updateSessionById(workflowSessionId, {
-                    companyResearch: ctx.companyResearch,
-                  });
-                }
-                
                 // Clear fit analysis pending state — application is done
                 setFitAnalysisContextId(null);
                 setFitAnalysisJD('');
@@ -1246,6 +1268,13 @@ export function useAgentWorkflow(options?: {
                   );
                 }
                 triggerCreditUpdate();
+                // The server saved this kit (agent-v2 persists it before it
+                // announces completion). Load what it saved instead of writing
+                // our copy back, so the screen and the database agree and the
+                // next edit starts from the right revision.
+                if (workflowSessionId && !workflowSessionId.startsWith('session-')) {
+                  void refreshFromServer(workflowSessionId);
+                }
                 break;
                 
               case 'error':
@@ -1310,6 +1339,7 @@ export function useAgentWorkflow(options?: {
         try {
           const deleted = await deleteStoredSession(eagerStoredSessionId, user.id);
           if (deleted.error) throw deleted.error;
+          forgetSession(eagerStoredSessionId);
           if (eagerLocalSessionId) {
             const persistedId = eagerStoredSessionId;
             const localId = eagerLocalSessionId;

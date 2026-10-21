@@ -9,6 +9,7 @@
  */
 
 import type { ChatTool, ChatToolResult } from './types';
+import { MIN_JOB_AD_CHARS } from '@/lib/job-ad-length';
 
 const proposeApplication: ChatTool = {
   name: 'propose_application',
@@ -18,7 +19,7 @@ const proposeApplication: ChatTool = {
   handler: async (): Promise<ChatToolResult> => ({
     data: {
       ok: true,
-      note: 'The user now sees buttons to check their fit or generate the kit. Do not summarize or answer the ad. Say one short line telling them to pick.',
+      note: `The app shows buttons to check their fit or generate the kit only when the message is at least ${MIN_JOB_AD_CHARS} characters long. Below that it shows no buttons and adds its own line asking for the whole posting. Do not summarize or answer the ad. If the message is at least ${MIN_JOB_AD_CHARS} characters, say one short line telling them to pick from the buttons. If it is shorter, do not mention buttons and do not ask for the posting: answer it as the question it most likely is.`,
     },
     executed: [{ type: 'propose_application' }],
   }),

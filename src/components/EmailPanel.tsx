@@ -12,6 +12,7 @@ import { useToast } from './ui/Toast';
 import { usePostHog } from 'posthog-js/react';
 import { formatEmailAsText } from '@/lib/utils/kit-export';
 import { useSessionStore } from '@/store/useSessionStore';
+import { acknowledgedStart, acknowledgementFor, commitEditorSave, discardedEditorStart, discardedSinceSave, editorShouldClose, getEditorStart, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface EmailPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -58,7 +59,61 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   // is mid-edit, where their typing wins).
   const [editBase, setEditBase] = useState<{ email: GeneratedEmail | null; followUp: FollowUp | null } | null>(null);
   const editSessionIdRef = useRef<string | null>(null);
+  // The drafts as they are now, for the save that finishes later (the user keeps typing while it runs).
+  const draftsRef = useRef<{ email: GeneratedEmail | null; followUp: FollowUp | null }>({ email: null, followUp: null });
+  // Which documents the user typed into. Save writes only those: the other one is a copy taken when the editor
+  // opened, and writing it back would put an old version over whatever the store holds now.
+  const [typed, setTyped] = useState({ email: false, followUp: false });
+  // The revision the editor opened on; the drafts live outside the store (see commitEditorSave).
+  const editStartRef = useRef<EditorStart | undefined>(undefined);
+  // Counts the discards of email conflict text that reached this editor. A save still running when a draft
+  // is discarded sees the count has moved and leaves the editor alone when its answer comes back.
+  const discardEpochRef = useRef(0);
+  // The same discards, per document: a save waiting for the sync lock skips a document discarded after Save was clicked.
+  const discardsRef = useRef({ email: 0, followUp: 0 });
+  // When the user deals with a conflict notice this editor produced (restores or copies the text), the editor is based
+  // on the version that notice showed, for that document only: the email and the follow-up each keep their own
+  // snapshot, so a Save still catches a newer server version of the other one. Discarding the text a draft holds
+  // drops that draft, as Cancel does: the editor keeps the other one. Other editors' notices and other fields' leave it alone.
+  useEffect(() => subscribeConflictAcknowledged((acknowledged, ack) => {
+    if (editSessionIdRef.current !== acknowledged) return;
+    const emailAction = acknowledgementFor(ack, ['email'], editStartRef.current);
+    const followUpAction = acknowledgementFor(ack, ['followUpEmail'], editStartRef.current);
+    if (emailAction === 'ignore' && followUpAction === 'ignore') return;
+    if (emailAction === 'reset' || followUpAction === 'reset') {
+      discardEpochRef.current += 1;
+      if (emailAction === 'reset') discardsRef.current.email += 1;
+      if (followUpAction === 'reset') discardsRef.current.followUp += 1;
+      if (emailAction === 'reset' && followUpAction === 'reset') {
+        setIsEditMode(false);
+        setEditedEmail(null);
+        setEditedFollowUp(null);
+        setEditBase(null);
+        editSessionIdRef.current = null;
+        editStartRef.current = undefined;
+        return;
+      }
+      // The discarded document shows the store's version again, read in the same tick as the snapshot moves to it:
+      // the draft no longer sets that document, so a later Save checks it against the version the editor shows.
+      const state = useSessionStore.getState();
+      const shown = state.sessions.find((session) => session.id === acknowledged)
+        ?? (state.currentSession?.id === acknowledged ? state.currentSession : null);
+      if (emailAction === 'reset') {
+        setTyped((prev) => ({ ...prev, email: false }));
+        setEditedEmail(shown?.email ?? null);
+        editStartRef.current = discardedEditorStart(acknowledged, editStartRef.current, ['email']);
+      } else {
+        setTyped((prev) => ({ ...prev, followUp: false }));
+        setEditedFollowUp(shown?.followUpEmail ?? null);
+        editStartRef.current = discardedEditorStart(acknowledged, editStartRef.current, ['followUpEmail']);
+      }
+      return;
+    }
+    const rebased = [...(emailAction === 'rebase' ? ['email'] : []), ...(followUpAction === 'rebase' ? ['followUpEmail'] : [])];
+    editStartRef.current = acknowledgedStart(ack, rebased, editStartRef.current);
+  }), []);
   const { toast } = useToast();
+  useEffect(() => { draftsRef.current = { email: editedEmail, followUp: editedFollowUp }; }, [editedEmail, editedFollowUp]);
 
   const editsCurrent = isEditMode || (editBase !== null && editBase.email === (email ?? null) && editBase.followUp === (followUpEmail ?? null));
   const activeEmail = editsCurrent && editedEmail ? editedEmail : email;
@@ -76,27 +131,57 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
 
   const updateEmailField = (field: 'subject' | 'body', value: string) => {
     if (!activeEmail) return;
+    setTyped((prev) => ({ ...prev, email: true }));
     setEditedEmail({ ...activeEmail, [field]: value });
   };
 
   const updateFollowUpField = (field: 'subject' | 'body', value: string) => {
     if (!activeFollowUp) return;
+    setTyped((prev) => ({ ...prev, followUp: true }));
     setEditedFollowUp({ ...activeFollowUp, [field]: value });
   };
 
   const handleSaveEdits = () => {
     const editSessionId = editSessionIdRef.current;
-    if (editedEmail && editSessionId) {
-      useSessionStore.getState().updateSessionById(editSessionId, { email: editedEmail });
+    if (!editSessionId) {
+      setEditedEmail(null);
+      setEditedFollowUp(null);
+      setEditBase(null);
+      setIsEditMode(false);
+      return;
     }
-    if (editedFollowUp && editSessionId) {
-      useSessionStore.getState().updateSessionById(editSessionId, { followUpEmail: editedFollowUp });
-    }
-    setEditedEmail(null);
-    setEditedFollowUp(null);
-    setEditBase(null);
-    setIsEditMode(false);
-    editSessionIdRef.current = null;
+    const sentDrafts = JSON.stringify([editedEmail, editedFollowUp]);
+    const epochAtSave = discardEpochRef.current;
+    const discardsAtSave = { ...discardsRef.current };
+    // Save now, against the revision this editor opened on. If another write got in
+    // first the drafts are not applied: the editor stays open with the text in it.
+    void commitEditorSave(editSessionId, editStartRef.current, () => {
+      // This runs once the sync lock is free. A document discarded since the click is not written: the editor shows the store's copy.
+      if (editedEmail && typed.email && !discardedSinceSave(discardsAtSave.email, discardsRef.current.email)) {
+        useSessionStore.getState().updateSessionById(editSessionId, { email: editedEmail });
+      }
+      if (editedFollowUp && typed.followUp && !discardedSinceSave(discardsAtSave.followUp, discardsRef.current.followUp)) {
+        useSessionStore.getState().updateSessionById(editSessionId, { followUpEmail: editedFollowUp });
+      }
+    }).then((outcome) => {
+      // A draft was discarded while the save ran: what was sent is gone, and nothing here reopens or closes the editor.
+      if (epochAtSave !== discardEpochRef.current) return;
+      // Anything but a save the server confirmed leaves the editor open with the text in it.
+      // So does typing during the save: the newer drafts stay, now based on what was just saved.
+      const nowDrafts = JSON.stringify([draftsRef.current.email, draftsRef.current.followUp]);
+      if (!editorShouldClose(outcome, sentDrafts, nowDrafts)) {
+        // The save confirmed the columns this editor's drafts set: only those move to the new revision.
+        if ((outcome === 'saved' || outcome === 'clean') && editStartRef.current) {
+          editStartRef.current = rebaseEditorStart(editSessionId, editStartRef.current, editStartRef.current.lineage.columns);
+        }
+        return;
+      }
+      setEditedEmail(null);
+      setEditedFollowUp(null);
+      setEditBase(null);
+      setIsEditMode(false);
+      editSessionIdRef.current = null;
+    });
   };
 
   const copy = async (text: string, key: string, eventType?: string) => {
@@ -217,7 +302,9 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
           type="button"
           onClick={() => {
             setIsEditMode(true);
+            setTyped({ email: false, followUp: false });
             editSessionIdRef.current = currentSession?.id ?? null;
+            editStartRef.current = currentSession ? getEditorStart(currentSession.id) : undefined;
             setEditedEmail(email ?? null);
             setEditedFollowUp(followUpEmail ?? null);
             setEditBase({ email: email ?? null, followUp: followUpEmail ?? null });

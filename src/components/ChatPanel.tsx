@@ -54,6 +54,7 @@ import { applyDelete } from '@/lib/cv-structure/ops';
 import { cvStructureDigest, validateEdit } from '@/lib/cv-structure/validate';
 import { parseUndoChip, takeUndo } from '@/lib/cv-structure/undo';
 import { looksLikeScreeningQuestion, parseScreeningAnswers, SCREENING_TURN_CAP } from '@/lib/screening-answers';
+import { isShortJobAd, isTooShortJobAd, SHORT_JOB_AD_HINT, TOO_SHORT_JOB_AD_NOTE } from '@/lib/job-ad-length';
 
 /**
  * The feed item behind a job_id the chat proposed an application for. Reads
@@ -134,9 +135,6 @@ export function looksAdShaped(text: string): boolean {
   if (text.length < 350) return false;
   return new Set((text.match(JOB_AD_MARKERS) || []).map((hit) => hit.toLowerCase())).size >= 2;
 }
-
-/** Below this a message is a question, whatever the model called it. */
-const MIN_JOB_AD_CHARS = 200;
 
 /**
  * A rewrite waiting on its cost chip. It carries the note the user typed and
@@ -250,10 +248,12 @@ export function ChatPanel({
       });
     },
     onProposeApplication: (jd) => {
-      // A short message is a question whatever the model decided, and acting
-      // on it would overwrite the real job description with it.
-      if (jd.trim().length < MIN_JOB_AD_CHARS) return;
+      // A very short message is a question whatever the model decided, and acting
+      // on it would overwrite the real job description with it. The model's own
+      // reply stays; one line is added in case it really was an ad.
+      if (isTooShortJobAd(jd)) return TOO_SHORT_JOB_AD_NOTE;
       presentJobAdDecisionRef.current?.(jd);
+      return null;
     },
     onChatAnsweredWithoutProposal: (message) => {
       offerAdFallbackRef.current?.(message);
@@ -728,28 +728,43 @@ export function ChatPanel({
   // Show the credit-aware decision card for a job ad. The ad lands on a
   // session first so the run has it, but no run starts and nothing is spent
   // until the user picks a chip.
+  // A short ad on an unfinished application leaves that application alone until
+  // a chip is picked: it may be a question the model misread, and "Not a job ad"
+  // must not have replaced the real job description. With no application open, the
+  // new conversation starts without it for the same reason. It is bound to that application: after a switch it
+  // never replaces another one's job description.
+  const deferredReplaceJdRef = useRef<{ jd: string; sessionId: string } | null>(null);
+  const replaceUnfinishedApplication = (jd: string) => {
+    // A new ad on an unfinished application replaces it. A partial kit (any
+    // document delivered) is finished work and is never overwritten here. Without this the
+    // fit result from the previous ad stays live and its "generate the kit"
+    // chip would spend 2 credits building for the wrong job.
+    setJobDescription(jd);
+    setFitAnalysisContextId(null);
+    setFitAnalysisJD('');
+    setFitAnalysisContextData(null);
+    useAppStore.getState().updateCurrentSession({
+      requirements: null,
+      gaps: null,
+      generatedCV: null,
+      matchScore: undefined,
+      matchingSkills: [],
+      missingSkills: [],
+      suggestions: [],
+      pendingFitAnalysis: null,
+    });
+  };
   const presentJobAdDecision = (jd: string) => {
+    deferredReplaceJdRef.current = null;
     if (!currentSession) {
-      useAppStore.getState().createNewSession(jd);
+      // A short ad opens the conversation without it: the job description is set only when a chip is picked.
+      const short = isShortJobAd(jd);
+      useAppStore.getState().createNewSession(short ? '' : jd);
+      const created = useSessionStore.getState().currentSession?.id;
+      if (short && created) deferredReplaceJdRef.current = { jd, sessionId: created };
     } else if (!sessionHasKit(currentSession)) {
-      // A new ad on an unfinished application replaces it. A partial kit (any
-      // document delivered) is finished work and is never overwritten here. Without this the
-      // fit result from the previous ad stays live and its "generate the kit"
-      // chip would spend 2 credits building for the wrong job.
-      setJobDescription(jd);
-      setFitAnalysisContextId(null);
-      setFitAnalysisJD('');
-      setFitAnalysisContextData(null);
-      useAppStore.getState().updateCurrentSession({
-        requirements: null,
-        gaps: null,
-        generatedCV: null,
-        matchScore: undefined,
-        matchingSkills: [],
-        missingSkills: [],
-        suggestions: [],
-        pendingFitAnalysis: null,
-      });
+      if (isShortJobAd(jd)) deferredReplaceJdRef.current = { jd, sessionId: currentSession.id };
+      else replaceUnfinishedApplication(jd);
     }
     setAdFallbackJd(null);
     setPendingDecisionJd(jd);
@@ -770,6 +785,11 @@ export function ChatPanel({
   // application stays in the sidebar; the new job opens its own conversation.
   const beginJobRun = (jd: string) => {
     setPendingDecisionJd(null);
+    const deferred = deferredReplaceJdRef.current;
+    if (deferred?.jd === jd) {
+      deferredReplaceJdRef.current = null;
+      if (deferred.sessionId === currentSession?.id && !sessionHasKit(currentSession)) replaceUnfinishedApplication(jd);
+    }
     if (sessionHasKit(currentSession)) {
       useAppStore.getState().createNewSession(jd);
       addChatMessage({ role: 'user', content: jd });
@@ -2120,7 +2140,10 @@ export function ChatPanel({
                       onSelect: () => openSettings('usage'),
                     },
                   ]}
-                  hint={`The full kit needs ${CREDIT_COSTS.GENERATION_AFTER_FIT}. Your ${credits?.planTier === 'free' ? 'free ' : ''}credits reset${formatResetDate(credits?.nextResetDate) ? ` on ${formatResetDate(credits?.nextResetDate)}` : ' next month'}.`}
+                  hint={[
+                    isShortJobAd(pendingDecisionJd) ? SHORT_JOB_AD_HINT : null,
+                    `The full kit needs ${CREDIT_COSTS.GENERATION_AFTER_FIT}. Your ${credits?.planTier === 'free' ? 'free ' : ''}credits reset${formatResetDate(credits?.nextResetDate) ? ` on ${formatResetDate(credits?.nextResetDate)}` : ' next month'}.`,
+                  ].filter(Boolean).join(' ')}
                 />
               ) : (
                 <div className="flex flex-col gap-3">
@@ -2154,6 +2177,7 @@ export function ChatPanel({
                         },
                       },
                     ]}
+                    hint={isShortJobAd(pendingDecisionJd) ? SHORT_JOB_AD_HINT : undefined}
                   />
                   <button
                     type="button"

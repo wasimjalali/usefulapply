@@ -1,0 +1,29 @@
+{
+  "fixture": "es-two-page",
+  "template": "german-ats",
+  "raw": "{\n  \"name\": \"Lucía Fernández Ortega\",\n  \"email\": \"lucia.fernandez@example.es\",\n  \"phone\": \"+34 612 345 678\",\n  \"jobs\": [\n    {\n      \"title\": \"Ingeniera de software sénior\",\n      \"company\": \"Transportes Levante\",\n      \"dates\": \"03/2021 - Actualidad\",\n      \"bullets\": [\n        \"Entrega 1: dirigió el alcance, las pruebas y el traspaso de guardia de la plataforma de identidad, con mejoras medidas en 11 regiones.\",\n        \"Entrega 2: dirigió el alcance, las pruebas y el traspaso de guardia de la plataforma de búsqueda, con mejoras medidas en 12 regiones.\",\n        \"Entrega 3: dirigió el alcance, las pruebas y el traspaso de guardia de la plataforma de facturación, con mejoras medidas en 13 regiones.\",\n        \"Entrega 4: dirigió el alcance, las pruebas y el traspaso de guardia de la plataforma de identidad, con mejoras medidas en 14 regiones.\",\n        \"Entrega 5: dirigió el alcance, las pruebas y el traspaso de guardia de la plataforma de búsqueda, con mejoras medidas en 15 regiones.\",\n        \"Entrega 6: dirigió el alcance, las pruebas y el traspaso de guardia de la plataforma de facturación, con mejoras medidas en 16 regiones.\",\n        \"Entrega 7: dirigió el alcance, las pruebas y el traspaso de guardia de la plataforma de identidad, con mejoras medidas en 17 regiones.\",\n        \"Entrega 8: dirigió el alcance, las pruebas y el traspaso de guardia de la plataforma de búsqueda, con mejoras medidas en 18 regiones.\",\n        \"Entrega 9: dirigió el alcance, las pruebas y el traspaso de guardia de la plataforma de facturación, con mejoras medidas en 19 regiones.\",\n        \"Entrega 10: dirigió el alcance, las pruebas y el traspaso de guardia de la plataforma de identidad, con mejoras medidas en 20 regiones.\",\n        \"Entrega 11: dirigió el alcance, las pruebas y el traspaso de guardia de la plataforma de búsqueda, con mejoras medidas en 21 regiones.\",\n        \"Entrega 12: dirigió el alcance, las pruebas y el traspaso de guardia de la plataforma de facturación, con mejoras medidas en 22 regiones.\",\n        \"Entrega 13: dirigió el alcance, las pruebas y el traspaso de guardia de la plataforma de identidad, con mejoras medidas en 23 regiones.\",\n        \"Entrega 14: dirigió el alcance, las pruebas y el traspaso de guardia de la plataforma de búsqueda, con mejoras medidas en 24 regiones.\"\n      ]\n    },\n    {\n      \"title\": \"Ingeniera de software\",\n      \"company\": \"Banco Mediterráneo\",\n      \"dates\": \"09/2016 - 02/2021\",\n      \"bullets\": [\n        \"Diseñó el servicio de libro mayor que procesa dos millones de transacciones al día.\",\n        \"Redujo el tiempo de resolución de disputas de tres días a cuatro horas.\"\n      ]\n    }\n  ],\n  \"skills\": [\n    \"Go\",\n    \"Python\",\n    \"SQL\",\n    \"TypeScript\",\n    \"Kubernetes\",\n    \"Terraform\",\n    \"AWS\"\n  ],\n  \"education\": [\n    {\n      \"school\": \"Universidad Politécnica de Valencia\",\n      \"degree\": \"Grado en Ingeniería, Informática\",\n      \"date\": \"2016\"\n    }\n  ]\n}",
+  "error": null,
+  "score": {
+    "name": true,
+    "email": true,
+    "phone": true,
+    "jobs": {
+      "matched": 2,
+      "total": 2
+    },
+    "bullets": {
+      "matched": 16,
+      "total": 16
+    },
+    "skills": {
+      "matched": 7,
+      "total": 7
+    },
+    "education": {
+      "matched": 1,
+      "total": 1
+    },
+    "missedJobs": [],
+    "missedSkills": []
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "fixture": "pt-two-page",
+  "template": "german-ats",
+  "raw": "{\n  \"name\": \"Inês Carvalho\",\n  \"email\": \"ines.carvalho@example.pt\",\n  \"phone\": \"+351 912 345 678\",\n  \"jobs\": [\n    {\n      \"title\": \"Engenheira de software sénior\",\n      \"company\": \"Transportes do Norte\",\n      \"dates\": \"03/2021 - Atualmente\",\n      \"bullets\": [\n        \"Entrega 1: liderou o âmbito, os testes e a passagem de turno da plataforma de identidade, com ganhos medidos em 11 regiões.\",\n        \"Entrega 2: liderou o âmbito, os testes e a passagem de turno da plataforma de pesquisa, com ganhos medidos em 12 regiões.\",\n        \"Entrega 3: liderou o âmbito, os testes e a passagem de turno da plataforma de faturação, com ganhos medidos em 13 regiões.\",\n        \"Entrega 4: liderou o âmbito, os testes e a passagem de turno da plataforma de identidade, com ganhos medidos em 14 regiões.\",\n        \"Entrega 5: liderou o âmbito, os testes e a passagem de turno da plataforma de pesquisa, com ganhos medidos em 15 regiões.\",\n        \"Entrega 6: liderou o âmbito, os testes e a passagem de turno da plataforma de faturação, com ganhos medidos em 16 regiões.\",\n        \"Entrega 7: liderou o âmbito, os testes e a passagem de turno da plataforma de identidade, com ganhos medidos em 17 regiões.\",\n        \"Entrega 8: liderou o âmbito, os testes e a passagem de turno da plataforma de pesquisa, com ganhos medidos em 18 regiões.\",\n        \"Entrega 9: liderou o âmbito, os testes e a passagem de turno da plataforma de faturação, com ganhos medidos em 19 regiões.\",\n        \"Entrega 10: liderou o âmbito, os testes e a passagem de turno da plataforma de identidade, com ganhos medidos em 20 regiões.\",\n        \"Entrega 11: liderou o âmbito, os testes e a passagem de turno da plataforma de pesquisa, com ganhos medidos em 21 regiões.\",\n        \"Entrega 12: liderou o âmbito, os testes e a passagem de turno da plataforma de faturação, com ganhos medidos em 22 regiões.\",\n        \"Entrega 13: liderou o âmbito, os testes e a passagem de turno da plataforma de identidade, com ganhos medidos em 23 regiões.\",\n        \"Entrega 14: liderou o âmbito, os testes e a passagem de turno da plataforma de pesquisa, com ganhos medidos em 24 regiões.\"\n      ]\n    },\n    {\n      \"title\": \"Engenheira de software\",\n      \"company\": \"Banco Atlântico\",\n      \"dates\": \"09/2016 - 02/2021\",\n      \"bullets\": [\n        \"Desenhou o serviço de contabilidade que processa dois milhões de transações por dia.\",\n        \"Reduziu o tempo de resolução de disputas de três dias para quatro horas.\"\n      ]\n    }\n  ],\n  \"skills\": [\n    \"Linguagens: Go\",\n    \"Python\",\n    \"SQL\",\n    \"TypeScript\",\n    \"Infraestrutura: Kubernetes\",\n    \"Terraform\",\n    \"AWS\"\n  ],\n  \"education\": [\n    {\n      \"school\": \"Universidade do Porto\",\n      \"degree\": \"Mestrado em Engenharia Informática\",\n      \"date\": \"2016\"\n    }\n  ]\n}",
+  "error": null,
+  "score": {
+    "name": true,
+    "email": true,
+    "phone": true,
+    "jobs": {
+      "matched": 2,
+      "total": 2
+    },
+    "bullets": {
+      "matched": 16,
+      "total": 16
+    },
+    "skills": {
+      "matched": 5,
+      "total": 7
+    },
+    "education": {
+      "matched": 1,
+      "total": 1
+    },
+    "missedJobs": [],
+    "missedSkills": [
+      "Go",
+      "Kubernetes"
+    ]
+  }
+}

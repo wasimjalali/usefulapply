@@ -52,6 +52,11 @@
 	"images": {
 		"binding": "IMAGES"
 	},
+	// Browser Run renders the CV and cover letter PDFs (src/lib/services/export).
+	// quickAction does not run in plain local dev: add "remote": true locally, never commit it.
+	"browser": {
+		"binding": "BROWSER"
+	},
 	// Workers AI for job feed ranking. Primary model, then the fallback model on
 	// failure, then deterministic ordering (see openai-ranking.ts).
 	"ai": {
@@ -69,6 +74,31 @@
 			"id": "2de5d12fd4934bbcad48fb1b95fc4cf6"
 		}
 	],
+	// Queued kit generation (src/lib/services/generation-runner.ts). Messages carry
+	// only an agent_operations id. One message per invocation, 3 retries, then the
+	// dead-letter queue, which this Worker also consumes to fail the operation and
+	// release its credits. Wasim: `npx wrangler queues create agent-generation` and
+	// `npx wrangler queues create agent-generation-dlq` before the first deploy.
+	"queues": {
+		"producers": [
+			{
+				"binding": "AGENT_GENERATION_QUEUE",
+				"queue": "agent-generation"
+			}
+		],
+		"consumers": [
+			{
+				"queue": "agent-generation",
+				"max_batch_size": 1,
+				"max_retries": 3,
+				"dead_letter_queue": "agent-generation-dlq"
+			},
+			{
+				"queue": "agent-generation-dlq",
+				"max_batch_size": 1
+			}
+		]
+	},
 	// One Rate Limiting binding per RATE_LIMITS bucket (60s windows).
 	// namespace_id is an account-unique integer we pick; confirm unused in Task 3.5.
 	// anon-parse hourly cap (5 / 3600s) stays in-memory; RATE_LIMIT_ANON_PARSE adds a 2 / 60s cap the binding can enforce.
@@ -337,6 +367,30 @@
 			"namespace_id": "3134",
 			"simple": {
 				"limit": 10,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_EXPORTS",
+			"namespace_id": "3140",
+			"simple": {
+				"limit": 20,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_EXPORTS_GET",
+			"namespace_id": "3141",
+			"simple": {
+				"limit": 60,
+				"period": 60
+			}
+		},
+		{
+			"name": "RATE_LIMIT_EXPORT_RENDER",
+			"namespace_id": "3142",
+			"simple": {
+				"limit": 6,
 				"period": 60
 			}
 		}

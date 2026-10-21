@@ -96,10 +96,9 @@ export interface ChatToolContext {
    * The template the canvas is rendering, validated against the catalog by the
    * route, null when the client sent none or an id we do not know.
    *
-   * Needed because the templates truncate skills while rendering, so what an
-   * edit does to the OBJECT and what it does to the PAGE are different
-   * questions and only the template can answer the second. See
-   * cv-structure/render-caps.ts.
+   * The templates render every skill group and every skill, so an edit to the
+   * object is an edit to the page. The id still tells the chat which template
+   * the user is looking at.
    */
   cvTemplateId: string | null;
 }

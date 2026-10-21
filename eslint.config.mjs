@@ -14,9 +14,15 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // OpenNext build output for Cloudflare Workers.
     ".open-next/**",
+    // Wrangler local state and bundles from `npm run preview`.
+    ".wrangler/**",
     // Gitignored verification artifacts and agent worktree copies.
     "verify/**",
     ".claude/worktrees/**",
+    // Third-party parser fetched at a pinned commit, and generated bundles, for the export eval.
+    "evals/ats-export/vendor/**",
+    "evals/ats-export/baseline-work/**",
+    "evals/ats-export/parity-work/**",
   ]),
 ]);
 
