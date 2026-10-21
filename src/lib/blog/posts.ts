@@ -733,7 +733,7 @@ You click a job in the feed. From there, two honest options open up.
 
 If you are unsure about the role, you run a Fit Analysis. It costs 0.5 credits. In about 20 seconds, you get a match score, a short list of your strongest matching skills, and the gaps the job calls for that you are missing. If the gaps are too wide, you skip it. No application written, no time spent.
 
-If the Fit looks good, or if you already know the role is right, you generate a full application. Tailored CV, cover letter, application email, and follow-up email. It costs 2 credits, and it takes under 90 seconds.
+If the Fit looks good, or if you already know the role is right, you generate a full application. Tailored CV, cover letter, application email, and follow-up email. It costs 1.5 credits after a Fit check, or 2 on its own, and it takes under 90 seconds.
 
 Every application you create is saved in your tracker with its match score and status. You can see at a glance where you stand: applied, interview, follow-up, rejected, or accepted. The whole search, in one app.
 
