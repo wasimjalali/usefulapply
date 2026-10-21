@@ -1,0 +1,274 @@
+{
+  "de:abrechnet": {
+    "label": "ordinary",
+    "why": "verb, CV \"Abrechnung\""
+  },
+  "de:aktuell": {
+    "label": "ordinary",
+    "why": "adverb"
+  },
+  "de:arbeite": {
+    "label": "ordinary",
+    "why": "verb"
+  },
+  "de:arbeitet": {
+    "label": "ordinary",
+    "why": "verb"
+  },
+  "de:assistierte": {
+    "label": "ordinary",
+    "why": "CV \"Assistenz\""
+  },
+  "de:auftragsabwicklung": {
+    "label": "ordinary",
+    "why": "\"order processing\", paraphrase of CV Auftragsbestaetigungen"
+  },
+  "de:auszubildende": {
+    "label": "ordinary",
+    "why": "CV \"Auszubildenden\""
+  },
+  "de:beherrsche": {
+    "label": "strict",
+    "why": "\"beherrsche\" (I master) is a proficiency claim; the level it restates (verhandlungssicher) is in the CV, so refusing it is by design (relabelled in round 2)"
+  },
+  "de:beratendem": {
+    "label": "ordinary",
+    "why": "CV \"beratenden\""
+  },
+  "de:beratung": {
+    "label": "ordinary",
+    "why": "CV \"beratenden Verkaufsstil\"; generic noun"
+  },
+  "de:bereich": {
+    "label": "ordinary",
+    "why": "generic noun"
+  },
+  "de:bzw": {
+    "label": "ordinary",
+    "why": "abbreviation \"or\""
+  },
+  "de:dafuer": {
+    "label": "ordinary",
+    "why": "adverb"
+  },
+  "de:dazu": {
+    "label": "ordinary",
+    "why": "adverb"
+  },
+  "de:er": {
+    "label": "ordinary",
+    "why": "pronoun"
+  },
+  "de:erklaerungsbeduerftigen": {
+    "label": "ordinary",
+    "why": "section \"erklaerungsbeduerftiger\""
+  },
+  "de:fundierte": {
+    "label": "strict",
+    "why": "\"fundierte Beratung\": standing adjective the CV never uses about the applicant"
+  },
+  "de:gab": {
+    "label": "ordinary",
+    "why": "verb"
+  },
+  "de:gehe": {
+    "label": "ordinary",
+    "why": "verb"
+  },
+  "de:habe": {
+    "label": "ordinary",
+    "why": "auxiliary"
+  },
+  "de:halte": {
+    "label": "ordinary",
+    "why": "verb"
+  },
+  "de:jederzeit": {
+    "label": "ordinary",
+    "why": "adverb"
+  },
+  "de:kollegen": {
+    "label": "ordinary",
+    "why": "\"colleagues\", generic noun"
+  },
+  "de:kommuniziert": {
+    "label": "ordinary",
+    "why": "verb"
+  },
+  "de:konsequent": {
+    "label": "ordinary",
+    "why": "adverb"
+  },
+  "de:kontakt": {
+    "label": "ordinary",
+    "why": "CV \"Kontakte\""
+  },
+  "de:liefere": {
+    "label": "ordinary",
+    "why": "verb"
+  },
+  "de:mein": {
+    "label": "ordinary",
+    "why": "possessive"
+  },
+  "de:mitarbeiter": {
+    "label": "strict",
+    "why": "\"als Mitarbeiter im Vertriebsinnendienst\": role noun restating the CV role"
+  },
+  "de:nachvollziehbar": {
+    "label": "ordinary",
+    "why": "adjective"
+  },
+  "de:nutzte": {
+    "label": "ordinary",
+    "why": "verb"
+  },
+  "de:offene": {
+    "label": "ordinary",
+    "why": "adjective"
+  },
+  "de:ruhigem": {
+    "label": "ordinary",
+    "why": "CV \"ruhigen\""
+  },
+  "de:senkte": {
+    "label": "ordinary",
+    "why": "verb, CV \"reduzierte\""
+  },
+  "de:setze": {
+    "label": "ordinary",
+    "why": "verb"
+  },
+  "de:sicher": {
+    "label": "claim",
+    "why": "\"arbeite sicher mit SAP CRM, SAP SD (Anwender), MS Office und MS Teams\": a proficiency claim extended from CRM to every tool; the CV only says SAP SD (Anwender)"
+  },
+  "de:sie": {
+    "label": "ordinary",
+    "why": "pronoun"
+  },
+  "de:sodass": {
+    "label": "ordinary",
+    "why": "connector"
+  },
+  "de:strukturiert": {
+    "label": "ordinary",
+    "why": "adverb, section has \"strukturierter\""
+  },
+  "de:verkuerzte": {
+    "label": "ordinary",
+    "why": "verb, CV \"reduzierte\""
+  },
+  "de:weiter": {
+    "label": "ordinary",
+    "why": "particle"
+  },
+  "de:zahnaerztin": {
+    "label": "ordinary",
+    "why": "CV \"Zahnarztpraxis\""
+  },
+  "de:zahnarzt": {
+    "label": "ordinary",
+    "why": "CV \"Zahnarztpraxis\""
+  },
+  "en:active": {
+    "label": "ordinary",
+    "why": "\"keeping practice active\""
+  },
+  "en:completed": {
+    "label": "ordinary",
+    "why": "CV lists the course"
+  },
+  "en:core": {
+    "label": "ordinary",
+    "why": "\"the core of the job\", generic"
+  },
+  "en:decisions": {
+    "label": "ordinary",
+    "why": "\"operational decisions\", generic"
+  },
+  "en:explanation": {
+    "label": "ordinary",
+    "why": "\"clear explanation\", CV says \"explaining\""
+  },
+  "en:foundation": {
+    "label": "ordinary",
+    "why": "\"built a foundation in\", generic"
+  },
+  "en:hands": {
+    "label": "ordinary",
+    "why": "\"hands-on\", no claim"
+  },
+  "en:hold": {
+    "label": "strict",
+    "why": "\"Hold a B.S.\" is a credential claim; the CV lists the degree, so refusing it is by design (relabelled in round 2)"
+  },
+  "en:holding": {
+    "label": "strict",
+    "why": "\"holding the AWS cert\" is a credential claim; the CV lists the cert, so refusing it is by design (relabelled in round 2)"
+  },
+  "en:including": {
+    "label": "ordinary",
+    "why": "connector"
+  },
+  "en:informed": {
+    "label": "ordinary",
+    "why": "\"keep families informed\""
+  },
+  "en:managed": {
+    "label": "strict",
+    "why": "\"managed Instagram and TikTok\"; the section says \"running the social channels\": ownership word restating a backed claim"
+  },
+  "en:operational": {
+    "label": "ordinary",
+    "why": "\"operational decisions\", not a domain claim"
+  },
+  "en:owner": {
+    "label": "strict",
+    "why": "\"on-call owner\"; the section says \"owned production support\": role word, exact backing by design"
+  },
+  "en:practice": {
+    "label": "ordinary",
+    "why": "\"engineering practice\", generic"
+  },
+  "en:prepare": {
+    "label": "ordinary",
+    "why": "CV says \"prepared\""
+  },
+  "en:raised": {
+    "label": "ordinary",
+    "why": "verb, CV metric"
+  },
+  "en:raising": {
+    "label": "ordinary",
+    "why": "\"raising accuracy\", verb"
+  },
+  "en:rebuilt": {
+    "label": "ordinary",
+    "why": "CV says \"rebuilding\""
+  },
+  "en:relationships": {
+    "label": "ordinary",
+    "why": "\"builds relationships with families\", generic noun"
+  },
+  "en:responsibility": {
+    "label": "strict",
+    "why": "\"on-call responsibility\"; CV says \"carried on-call duty\": ownership word restating a backed claim"
+  },
+  "en:stayed": {
+    "label": "ordinary",
+    "why": "\"stayed on call\", CV says on-call duty"
+  },
+  "en:topics": {
+    "label": "ordinary",
+    "why": "\"complex topics\", generic noun"
+  },
+  "en:turning": {
+    "label": "ordinary",
+    "why": "\"turning data into a view\""
+  },
+  "en:uncovered": {
+    "label": "ordinary",
+    "why": "\"uncovered a rebate\", CV says found"
+  }
+}

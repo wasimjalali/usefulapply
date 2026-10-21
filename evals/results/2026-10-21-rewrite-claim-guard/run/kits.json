@@ -1,0 +1,2450 @@
+[
+  {
+    "case_id": "syn-01",
+    "language": "en",
+    "cv_ref": "cv:cv-en-junior-marketing",
+    "rawCV": "Maya Linden\nMarketing graduate\nmaya.linden@example.com | +1 555 0142 | Portland, OR, USA\nlinkedin.com/in/maya-linden-example\n\nPROFILE\nRecent communications graduate with one marketing internship and two years running the social channels of a student society. I like turning a rough idea into a post people actually share, and I am looking for my first full-time marketing role.\n\nEDUCATION\nB.A. Communications, minor in Psychology | Westbrook University | Sep 2021 - Jun 2025\n- Final grade: 3.6 GPA\n- Thesis: how short-form video changes brand recall among 18 to 24 year olds (survey of 212 students)\n\nEXPERIENCE\nMarketing Intern | Harbor Street Pet Supply (local retailer, 14 staff) | Jun 2025 - Sep 2025\n- Wrote and scheduled 3 Instagram posts and 1 newsletter per week\n- Grew the newsletter list from 640 to 1,150 subscribers over the summer by adding a sign-up QR code at the till\n- Helped plan a weekend adoption event that brought in about 300 visitors\n\nSocial Media Lead | Westbrook Film Society (student society) | Sep 2022 - Jun 2025\n- Ran the society's Instagram and TikTok accounts and trained two new volunteers\n- Raised average ticket sales for screenings from 35 to 60 per event through a weekly \"pick of the week\" reel\n\nBarista | Corner Bean Cafe | Jun 2021 - Aug 2024 (part-time and summers)\n- Served up to 150 customers per shift and trained 4 new colleagues\n\nSKILLS\nContent: copywriting, Canva, CapCut, basic Adobe Photoshop\nChannels: Instagram, TikTok, Mailchimp, Hootsuite\nAnalytics: Google Analytics (basic), Instagram Insights, Excel\nLanguages: English (native), Spanish (conversational)\n\nCERTIFICATIONS\nGoogle Analytics for Beginners (2024)\nHubSpot Content Marketing course (2024)\n",
+    "masterCV": null,
+    "verifiedMetrics": [
+      "two years running the social channels of a student society",
+      "one marketing internship",
+      "1 newsletter per week",
+      "trained two new volunteers",
+      "served up to 150 customers per shift",
+      "trained 4 new colleagues",
+      "Google Analytics for Beginners (2024)",
+      "HubSpot Content Marketing course (2024)"
+    ],
+    "job": {
+      "title": "Experiential Marketing Associate",
+      "companyName": "Coinbase",
+      "location": "USA",
+      "workType": "Remote",
+      "requiredSkills": [
+        "2+ years of experience in event management or experiential marketing",
+        "End-to-end event logistics and execution",
+        "Managing multiple events simultaneously",
+        "Maintaining quality and meeting deadlines across overlapping timelines",
+        "Vendor management",
+        "Venue management",
+        "Contract negotiation",
+        "Budget tracking",
+        "Event management platforms (e.g., Splash, Eventbrite, Cvent)",
+        "Project management tools (e.g., Asana, Monday.com)",
+        "Post-event reporting with measurable outcomes (attendance targets, engagement rates, attribution to leads and revenue)",
+        "Responsible use of generative AI with human oversight to deliver business-ready outputs and improve workflow efficiency, cost, and quality"
+      ],
+      "niceToHaveSkills": [],
+      "responsibilities": [
+        "Own end-to-end event execution across Coinbase's experiential marketing calendar, managing logistics including venue sourcing, vendor coordination, contract negotiation, budgets, and attendee management",
+        "Coordinate with internal stakeholders across Marketing, Sales, Product, and Communications to align event programming with business priorities and ensure seamless delivery",
+        "Build and maintain event project plans, timelines, and run-of-show documents, tracking milestones from pre-event planning through post-event wrap-up",
+        "Support creative development for event experiences, collaborating with design and brand teams on invitations, signage, branded materials, and on-site activations",
+        "Track event budgets, manage vendor invoices, and reconcile expenses to ensure programs are delivered within approved spend",
+        "Measure event performance by compiling post-event reports with attendance data, engagement metrics, and attribution to pipeline or revenue goals"
+      ],
+      "expectedSalary": "$100,725–$118,500 USD annual base salary (excluding equity and bonus)"
+    },
+    "match": {
+      "score": 22,
+      "matchedRequirements": [
+        "2+ years of experience in event management or experiential marketing",
+        "End-to-end event logistics and execution",
+        "Maintaining quality and meeting deadlines across overlapping timelines",
+        "Post-event reporting with measurable outcomes (attendance targets, engagement rates, attribution to leads and revenue)"
+      ],
+      "claimableEvidence": [],
+      "missingSkills": [
+        "Managing multiple events simultaneously",
+        "Vendor management",
+        "Venue management",
+        "Contract negotiation",
+        "Budget tracking",
+        "Event management platforms (e.g., Splash, Eventbrite, Cvent)",
+        "Project management tools (e.g., Asana, Monday.com)",
+        "Responsible use of generative AI with human oversight to deliver business-ready outputs and improve workflow efficiency, cost, and quality"
+      ],
+      "details": [
+        {
+          "requirement": "2+ years of experience in event management or experiential marketing",
+          "tier": 3,
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "End-to-end event logistics and execution",
+          "evidence": "Helped plan a weekend adoption event that brought in about 300 visitors",
+          "tier": 3,
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Managing multiple events simultaneously",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Maintaining quality and meeting deadlines across overlapping timelines",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Vendor management",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Venue management",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Contract negotiation",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Budget tracking",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Event management platforms (e.g., Splash, Eventbrite, Cvent)",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Project management tools (e.g., Asana, Monday.com)",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Post-event reporting with measurable outcomes (attendance targets, engagement rates, attribution to leads and revenue)",
+          "tier": 3,
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Responsible use of generative AI with human oversight to deliver business-ready outputs and improve workflow efficiency, cost, and quality",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        }
+      ]
+    },
+    "applicant": {
+      "name": "Maya Linden",
+      "email": "maya.linden@example.com",
+      "phone": "+1 555 0142",
+      "address": "Portland, OR, USA",
+      "headline": "Marketing graduate",
+      "skills": [
+        "copywriting",
+        "Google Analytics (basic)",
+        "basic Adobe Photoshop"
+      ],
+      "tools": [
+        "Canva",
+        "CapCut",
+        "basic Adobe Photoshop",
+        "Instagram",
+        "TikTok",
+        "Mailchimp",
+        "Hootsuite",
+        "Google Analytics (basic)",
+        "Instagram Insights",
+        "Excel"
+      ],
+      "languages": [
+        "English (native)",
+        "Spanish (conversational)"
+      ],
+      "experiences": [
+        {
+          "company": "Harbor Street Pet Supply (local retailer, 14 staff)",
+          "title": "Marketing Intern",
+          "startDate": "Jun 2025",
+          "endDate": "Sep 2025",
+          "bullets": [
+            "Wrote and scheduled 3 Instagram posts and 1 newsletter per week",
+            "Grew the newsletter list from 640 to 1,150 subscribers over the summer by adding a sign-up QR code at the till",
+            "Helped plan a weekend adoption event that brought in about 300 visitors"
+          ]
+        },
+        {
+          "company": "Westbrook Film Society (student society)",
+          "title": "Social Media Lead",
+          "startDate": "Sep 2022",
+          "endDate": "Jun 2025",
+          "bullets": [
+            "Ran the society's Instagram and TikTok accounts and trained two new volunteers",
+            "Raised average ticket sales for screenings from 35 to 60 per event through a weekly \"pick of the week\" reel"
+          ]
+        },
+        {
+          "company": "Corner Bean Cafe",
+          "title": "Barista",
+          "startDate": "Jun 2021",
+          "endDate": "Aug 2024",
+          "bullets": [
+            "Served up to 150 customers per shift and trained 4 new colleagues"
+          ]
+        }
+      ],
+      "certifications": [
+        "Google Analytics for Beginners (2024)",
+        "HubSpot Content Marketing course (2024)"
+      ]
+    },
+    "optimizedCVData": {
+      "personal": {
+        "fullName": "Maya Linden",
+        "email": "maya.linden@example.com",
+        "phone": "+1 555 0142",
+        "currentTitle": "Marketing Graduate | Social Media | Content Marketing | Event Support",
+        "city": "Portland, OR",
+        "country": "USA",
+        "linkedIn": "linkedin.com/in/maya-linden-example"
+      },
+      "summary": "Communications graduate with a marketing internship and two years running the social channels of a student society. Helped plan a weekend adoption event that brought in about 300 visitors and grew a newsletter list from 640 to 1,150 subscribers. Skilled in copywriting, short-form video and audience analytics, and looking for a first full-time marketing role where event experience and creative content can come together.",
+      "experience": [
+        {
+          "id": "exp-1",
+          "company": "Harbor Street Pet Supply",
+          "position": "Marketing Intern",
+          "location": "Portland, OR",
+          "startDate": "Jun 2025",
+          "endDate": "Sep 2025",
+          "current": false,
+          "bullets": [
+            "Helped plan a weekend adoption event that brought in about 300 visitors to the local retailer.",
+            "Grew the newsletter list from 640 to 1,150 subscribers over the summer by adding a sign-up QR code at the till.",
+            "Wrote and scheduled 3 Instagram posts and 1 newsletter per week, keeping a steady publishing rhythm.",
+            "Supported the retailer's marketing across social and email channels as part of a small team of 14 staff."
+          ],
+          "technologies": [
+            "Instagram",
+            "Mailchimp",
+            "Canva"
+          ]
+        },
+        {
+          "id": "exp-2",
+          "company": "Westbrook Film Society",
+          "position": "Social Media Lead",
+          "location": "Westbrook University",
+          "startDate": "Sep 2022",
+          "endDate": "Jun 2025",
+          "current": false,
+          "bullets": [
+            "Raised average ticket sales for screenings from 35 to 60 per event through a weekly \"pick of the week\" reel.",
+            "Ran the society's Instagram and TikTok accounts, planning content around its screening schedule.",
+            "Trained two new volunteers to take over posting and content creation."
+          ],
+          "technologies": [
+            "Instagram",
+            "TikTok",
+            "CapCut",
+            "Canva"
+          ]
+        },
+        {
+          "id": "exp-3",
+          "company": "Corner Bean Cafe",
+          "position": "Barista",
+          "startDate": "Jun 2021",
+          "endDate": "Aug 2024",
+          "current": false,
+          "bullets": [
+            "Served up to 150 customers per shift in a fast-paced, customer-facing setting.",
+            "Trained 4 new colleagues on service routines and day-to-day tasks."
+          ],
+          "technologies": []
+        }
+      ],
+      "education": [
+        {
+          "id": "edu-1",
+          "institution": "Westbrook University",
+          "degree": "B.A. Communications, minor in Psychology",
+          "startDate": "Sep 2021",
+          "endDate": "Jun 2025",
+          "grade": "3.6 GPA",
+          "highlights": [
+            "Thesis: how short-form video changes brand recall among 18 to 24 year olds (survey of 212 students)"
+          ]
+        }
+      ],
+      "skills": [
+        {
+          "category": "Content",
+          "items": [
+            "Copywriting",
+            "Canva",
+            "CapCut",
+            "Basic Adobe Photoshop"
+          ]
+        },
+        {
+          "category": "Channels",
+          "items": [
+            "Instagram",
+            "TikTok",
+            "Mailchimp",
+            "Hootsuite"
+          ]
+        },
+        {
+          "category": "Analytics",
+          "items": [
+            "Google Analytics (basic)",
+            "Instagram Insights",
+            "Excel"
+          ]
+        }
+      ],
+      "languages": [
+        {
+          "language": "English",
+          "proficiency": "Native"
+        },
+        {
+          "language": "Spanish",
+          "proficiency": "Conversational"
+        }
+      ],
+      "certifications": [
+        {
+          "id": "cert-1",
+          "name": "Google Analytics for Beginners",
+          "issuer": "Google",
+          "date": "2024"
+        },
+        {
+          "id": "cert-2",
+          "name": "HubSpot Content Marketing course",
+          "issuer": "HubSpot",
+          "date": "2024"
+        }
+      ],
+      "projects": [],
+      "additionalInfo": [],
+      "analysis": {
+        "summary": "The CV positions Maya as an early-career marketer whose strongest relevant evidence is hands-on event support, audience growth and content work. It stays strictly within documented experience and does not claim event management platforms, vendor work or other required skills she has not documented.",
+        "key_changes": [
+          "Reworked the headline to highlight social media, content marketing and event support, all drawn from her documented work",
+          "Led the internship with the adoption event contribution, the closest documented match to experiential marketing",
+          "Kept every metric from the source CVs (640 to 1,150 subscribers, about 300 visitors, 35 to 60 tickets per event)",
+          "Ordered skills so content and channel tools come first, with the basic Google Analytics level preserved",
+          "Kept the Barista role short, to show customer-facing work and training of colleagues"
+        ],
+        "ats_compatibility": 45,
+        "missing_keywords_added": []
+      },
+      "sectionHeaders": {
+        "summary": "Professional Summary",
+        "skills": "Skills",
+        "experience": "Professional Experience",
+        "education": "Education",
+        "certifications": "Certifications",
+        "languages": "Languages",
+        "contact": "Contact",
+        "additionalInfo": "Additional Information",
+        "projects": "Projects"
+      },
+      "localizedStrings": {
+        "present": "Present",
+        "gradePrefix": "GPA:",
+        "degreeConnector": "in",
+        "dateOfBirthLabel": "Date of Birth",
+        "nationalityLabel": "Nationality",
+        "photoPlaceholder": "Photo",
+        "websiteLabel": "Website",
+        "signatureLabel": "Signature",
+        "cityLabel": "City",
+        "dateLabel": "Date"
+      }
+    },
+    "error": null
+  },
+  {
+    "case_id": "syn-04",
+    "language": "en",
+    "cv_ref": "cv:cv-en-career-changer-teacher",
+    "rawCV": "Daniel Okafor\nPhysics teacher moving into customer education and success\ndaniel.okafor@example.org | +44 20 5550 0188 | Leeds, UK\n\nPROFILE\nSecondary school physics teacher with 8 years in the classroom, looking to move into a customer-facing role where explaining complex things clearly is the job. I have built and delivered training for adults, I am comfortable with data and I have started learning Python on my own.\n\nEXPERIENCE\nTeacher of Physics and Head of Year 9 | Ashgrove Academy, Leeds | Sep 2018 - Present\n- Teach physics to about 140 students a year across Years 9 to 13\n- Raised the share of Year 11 students reaching grade 5 or above from 71% to 86% over three years\n- Wrote the department's Year 9 practical curriculum and trained 12 colleagues to use it\n- Run weekly parent calls and two parents' evenings a term for a year group of 210 students\n- Track student progress in spreadsheets and present results to senior leadership each term\n\nScience Teacher | Millbank Secondary School, Bradford | Sep 2016 - Aug 2018\n- Taught KS3 and KS4 science, and coached the school robotics club (6 students)\n\nVolunteer coding mentor | Code Club (evenings) | Jan 2023 - Present\n- Mentor 8 children aged 9 to 12 on Scratch and introductory Python\n\nEDUCATION\nPGCE Secondary Science | University of Sheffield | 2015 - 2016\nMSci Physics | University of Manchester | 2011 - 2015\n\nSKILLS\nTeaching and training: curriculum design, workshop facilitation, one-to-one coaching\nData: Excel (pivot tables, lookups), Google Sheets, basic Python (pandas for simple analysis)\nTools: Google Workspace, Microsoft Teams, Notion\nLanguages: English (native), French (school level)\n\nCERTIFICATIONS\nPython for Everybody (Coursera, 2024)\nGoogle Data Analytics Certificate (in progress)\n",
+    "masterCV": null,
+    "verifiedMetrics": [
+      "Two parents' evenings a term",
+      "Year group of 210 students",
+      "Weekly parent calls",
+      "Python for Everybody (Coursera, 2024)"
+    ],
+    "job": {
+      "title": "Customer Success Manager",
+      "companyName": "Datadog",
+      "location": "Boston, Massachusetts, USA",
+      "workType": "Hybrid",
+      "requiredSkills": [
+        "Strong communication skills",
+        "Excellent attention to detail",
+        "Relationship building and management",
+        "5-7 years of experience in a customer account facing role",
+        "Customer-minded approach",
+        "Ability to work in an ever-evolving and fluid solution focused environment",
+        "Contract term negotiation",
+        "Overcoming pricing objections without direct guidance",
+        "Up-selling and cross-selling",
+        "Full sales cycle execution for growth opportunities",
+        "Customer onboarding",
+        "Cross-functional collaboration",
+        "Usage trend monitoring and renewal risk identification",
+        "Advising customers on solution adoption",
+        "Passion for technology",
+        "Drive to make a visible impact"
+      ],
+      "niceToHaveSkills": [
+        "MEDDIC",
+        "Command of the Message"
+      ],
+      "responsibilities": [
+        "Partner with the sales team to ensure smooth transition and onboarding experience",
+        "Proactively build relationships with customers to create mutual trust",
+        "Carry out the full sales cycle for growth opportunities in existing customer accounts",
+        "Act as advisor to customers to ensure they leverage the Datadog solution effectively",
+        "Monitor and identify usage trends to uncover renewal risks and promote greater adoption rates",
+        "Collaborate cross-functionally across internal Datadog teams (Support, Product, Finance, and Legal)",
+        "Drive new product attachment and strong relationships across the existing customer base through onboarding, up-selling and cross-selling",
+        "Advocate for the customer internally and focus on a positive customer experience"
+      ],
+      "expectedSalary": "$89,000-$118,000 USD"
+    },
+    "match": {
+      "score": 33,
+      "matchedRequirements": [
+        "Strong communication skills",
+        "Excellent attention to detail",
+        "Relationship building and management",
+        "Customer-minded approach",
+        "Ability to work in an ever-evolving and fluid solution focused environment",
+        "Cross-functional collaboration",
+        "Usage trend monitoring and renewal risk identification",
+        "Advising customers on solution adoption",
+        "Passion for technology",
+        "Drive to make a visible impact"
+      ],
+      "claimableEvidence": [],
+      "missingSkills": [
+        "5-7 years of experience in a customer account facing role",
+        "Contract term negotiation",
+        "Overcoming pricing objections without direct guidance",
+        "Up-selling and cross-selling",
+        "Full sales cycle execution for growth opportunities",
+        "Customer onboarding",
+        "MEDDIC",
+        "Command of the Message"
+      ],
+      "details": [
+        {
+          "requirement": "Strong communication skills",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Excellent attention to detail",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Relationship building and management",
+          "evidence": "Run weekly parent calls and two parents' evenings a term for a year group of 210 students",
+          "tier": 3,
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "5-7 years of experience in a customer account facing role",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Customer-minded approach",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Ability to work in an ever-evolving and fluid solution focused environment",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Contract term negotiation",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Overcoming pricing objections without direct guidance",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Up-selling and cross-selling",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Full sales cycle execution for growth opportunities",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Customer onboarding",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Cross-functional collaboration",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Usage trend monitoring and renewal risk identification",
+          "tier": 3,
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Advising customers on solution adoption",
+          "tier": 3,
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Passion for technology",
+          "tier": 3,
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Drive to make a visible impact",
+          "tier": 3,
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "MEDDIC",
+          "tier": "missing",
+          "claimable": false,
+          "required": false
+        },
+        {
+          "requirement": "Command of the Message",
+          "tier": "missing",
+          "claimable": false,
+          "required": false
+        }
+      ]
+    },
+    "applicant": {
+      "name": "Daniel Okafor",
+      "email": "daniel.okafor@example.org",
+      "phone": "+44 20 5550 0188",
+      "address": "Leeds, UK",
+      "headline": "Physics teacher moving into customer education and success",
+      "skills": [
+        "curriculum design",
+        "workshop facilitation",
+        "one-to-one coaching",
+        "Excel (pivot tables, lookups)",
+        "Google Sheets",
+        "basic Python (pandas for simple analysis)"
+      ],
+      "tools": [
+        "Google Workspace",
+        "Microsoft Teams",
+        "Notion"
+      ],
+      "languages": [
+        "English (native)",
+        "French (school level)"
+      ],
+      "experiences": [
+        {
+          "company": "Ashgrove Academy, Leeds",
+          "title": "Teacher of Physics and Head of Year 9",
+          "startDate": "Sep 2018",
+          "endDate": "Present",
+          "bullets": [
+            "Teach physics to about 140 students a year across Years 9 to 13",
+            "Raised the share of Year 11 students reaching grade 5 or above from 71% to 86% over three years",
+            "Wrote the department's Year 9 practical curriculum and trained 12 colleagues to use it",
+            "Run weekly parent calls and two parents' evenings a term for a year group of 210 students",
+            "Track student progress in spreadsheets and present results to senior leadership each term"
+          ]
+        },
+        {
+          "company": "Millbank Secondary School, Bradford",
+          "title": "Science Teacher",
+          "startDate": "Sep 2016",
+          "endDate": "Aug 2018",
+          "bullets": [
+            "Taught KS3 and KS4 science, and coached the school robotics club (6 students)"
+          ]
+        },
+        {
+          "company": "Code Club (evenings)",
+          "title": "Volunteer coding mentor",
+          "startDate": "Jan 2023",
+          "endDate": "Present",
+          "bullets": [
+            "Mentor 8 children aged 9 to 12 on Scratch and introductory Python"
+          ]
+        }
+      ],
+      "certifications": [
+        "Python for Everybody (Coursera, 2024)",
+        "Google Data Analytics Certificate (in progress)"
+      ]
+    },
+    "optimizedCVData": {
+      "personal": {
+        "fullName": "Daniel Okafor",
+        "email": "daniel.okafor@example.org",
+        "phone": "+44 20 5550 0188",
+        "currentTitle": "Customer Education | Stakeholder Communication | Data Analysis",
+        "city": "Leeds",
+        "country": "UK"
+      },
+      "summary": "Physics teacher with 8 years in the classroom, moving into customer success. Builds and delivers training for adults and children, and keeps regular contact with families through weekly parent calls and two parents' evenings a term. Tracks progress in Excel and Google Sheets and reports results to senior leadership each term. Learning Python (Python for Everybody, Coursera, 2024) and drawn to technology.",
+      "experience": [
+        {
+          "id": "exp-1",
+          "company": "Ashgrove Academy",
+          "position": "Teacher of Physics and Head of Year 9",
+          "location": "Leeds",
+          "startDate": "Sep 2018",
+          "current": true,
+          "bullets": [
+            "Maintain relationships with families of a year group of 210 students through weekly parent calls and two parents' evenings a term",
+            "Present student progress results to senior leadership each term, using data tracked in spreadsheets",
+            "Raised the share of Year 11 students reaching grade 5 or above from 71% to 86% over three years",
+            "Wrote the department's Year 9 practical curriculum and trained 12 colleagues to use it, working across the science team"
+          ],
+          "technologies": [
+            "Excel",
+            "Google Sheets"
+          ]
+        },
+        {
+          "id": "exp-2",
+          "company": "Millbank Secondary School",
+          "position": "Science Teacher",
+          "location": "Bradford",
+          "startDate": "Sep 2016",
+          "endDate": "Aug 2018",
+          "current": false,
+          "bullets": [
+            "Taught KS3 and KS4 science, explaining complex concepts to students of varied ability",
+            "Coached the school robotics club (6 students)"
+          ],
+          "technologies": []
+        },
+        {
+          "id": "exp-3",
+          "company": "Code Club",
+          "position": "Volunteer coding mentor",
+          "startDate": "Jan 2023",
+          "current": true,
+          "bullets": [
+            "Mentor 8 children aged 9 to 12 on Scratch and introductory Python in evening sessions"
+          ],
+          "technologies": [
+            "Scratch",
+            "Python"
+          ]
+        }
+      ],
+      "education": [
+        {
+          "id": "edu-1",
+          "institution": "University of Sheffield",
+          "degree": "PGCE Secondary Science",
+          "startDate": "2015",
+          "endDate": "2016",
+          "highlights": []
+        },
+        {
+          "id": "edu-2",
+          "institution": "University of Manchester",
+          "degree": "MSci Physics",
+          "startDate": "2011",
+          "endDate": "2015",
+          "highlights": []
+        }
+      ],
+      "skills": [
+        {
+          "category": "Teaching and Training",
+          "items": [
+            "Workshop facilitation",
+            "One-to-one coaching",
+            "Curriculum design"
+          ]
+        },
+        {
+          "category": "Data",
+          "items": [
+            "Excel (pivot tables, lookups)",
+            "Google Sheets",
+            "Python (basic, pandas for simple analysis)"
+          ]
+        },
+        {
+          "category": "Tools",
+          "items": [
+            "Google Workspace",
+            "Microsoft Teams",
+            "Notion"
+          ]
+        }
+      ],
+      "languages": [
+        {
+          "language": "English",
+          "proficiency": "Native"
+        },
+        {
+          "language": "French",
+          "proficiency": "School level"
+        }
+      ],
+      "certifications": [
+        {
+          "id": "cert-1",
+          "name": "Python for Everybody",
+          "issuer": "Coursera",
+          "date": "2024"
+        },
+        {
+          "id": "cert-2",
+          "name": "Google Data Analytics Certificate (in progress)",
+          "issuer": "Google"
+        }
+      ],
+      "projects": [],
+      "additionalInfo": [],
+      "analysis": {
+        "summary": "The CV presents an experienced educator moving into customer success, emphasising clear communication, relationship management with parents and stakeholders, data tracking and training delivery. Only documented activities and verified metrics are used, and required skills with no source evidence are left out.",
+        "key_changes": [
+          "Reframed the headline and summary around customer education, communication and data-informed progress tracking",
+          "Recast parent communication and senior leadership reporting as relationship management and stakeholder reporting",
+          "Presented the training of colleagues as adult enablement and cross-team collaboration",
+          "Ordered skills so data and training tools come first, with documented wording and levels kept",
+          "Kept only verified metrics and left out sales-specific terms the source CV does not support"
+        ],
+        "ats_compatibility": 45,
+        "missing_keywords_added": [
+          "Relationship management",
+          "Cross-functional collaboration",
+          "Strong communication"
+        ]
+      },
+      "sectionHeaders": {
+        "summary": "Professional Summary",
+        "skills": "Skills",
+        "experience": "Professional Experience",
+        "education": "Education",
+        "certifications": "Certifications",
+        "languages": "Languages",
+        "contact": "Contact",
+        "additionalInfo": "Additional Information",
+        "projects": "Projects"
+      },
+      "localizedStrings": {
+        "present": "Present",
+        "gradePrefix": "Grade:",
+        "degreeConnector": "in",
+        "dateOfBirthLabel": "Date of Birth",
+        "nationalityLabel": "Nationality",
+        "photoPlaceholder": "Photo",
+        "websiteLabel": "Website",
+        "signatureLabel": "Signature",
+        "cityLabel": "City",
+        "dateLabel": "Date"
+      }
+    },
+    "error": null
+  },
+  {
+    "case_id": "syn-08",
+    "language": "en",
+    "cv_ref": "cv:cv-en-senior-backend-gap",
+    "rawCV": "Priya Raman\nSenior Backend Engineer\npriya.raman@example.com | +1 555 0176 | Toronto, Canada\n\nPROFILE\nBackend engineer with 11 years of experience building payment and event-processing services in Java, Kotlin and Python. I took a planned career break to care for a family member and I am returning to full-time engineering.\n\nEXPERIENCE\nCareer break | Mar 2023 - Apr 2025\n- Full-time family caregiving\n- Kept my skills current by completing two online courses (AWS Solutions Architect Associate prep, Designing Data-Intensive Applications reading group) and contributing small bug fixes to an open-source Kotlin library\n\nSenior Software Engineer | Lumen Payments (fintech, 300 staff) | Feb 2019 - Feb 2023\n- Designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka\n- Cut p99 latency of the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis\n- Led a team of 4 engineers through a 9 month migration from a monolith to 6 services\n- On call for the payments platform and wrote the post-incident reviews for 14 incidents\n\nSoftware Engineer | Northgate Retail Systems | Aug 2015 - Jan 2019\n- Built order and inventory services in Java and Spring, backed by PostgreSQL and RabbitMQ\n- Introduced contract tests that reduced integration bugs found in staging by about a third\n\nJunior Developer | Brightpath Consulting | Jul 2013 - Jul 2015\n- Delivered internal web tools for two clients in Java and JavaScript\n\nEDUCATION\nB.Sc. Computer Science | University of Waterloo | 2009 - 2013\n\nSKILLS\nLanguages: Kotlin, Java, Python, SQL\nFrameworks and data: Spring Boot, PostgreSQL, Redis, Kafka, RabbitMQ\nCloud and tooling: AWS (EC2, RDS, SQS, S3), Docker, Terraform, GitHub Actions, Datadog\nPractices: API design, event-driven architecture, code review, mentoring\n\nCERTIFICATIONS\nAWS Certified Solutions Architect - Associate (2024)\n",
+    "masterCV": null,
+    "verifiedMetrics": [
+      "11 years of experience building payment and event-processing services",
+      "two online courses (AWS Solutions Architect Associate prep, Designing Data-Intensive Applications reading group)",
+      "Lumen Payments (fintech, 300 staff)",
+      "Led a team of 4 engineers",
+      "9 month migration from a monolith to 6 services",
+      "post-incident reviews for 14 incidents",
+      "AWS Certified Solutions Architect - Associate (2024)"
+    ],
+    "job": {
+      "title": "Senior Software Engineer, Backend - Payments Platform",
+      "companyName": "Coinbase",
+      "location": "USA",
+      "workType": "Remote",
+      "requiredSkills": [
+        "5+ years of experience in backend software engineering",
+        "Building and maintaining production services in a service-oriented or microservices architecture",
+        "Proficiency in Go or similar backend languages",
+        "Designing scalable, low-latency APIs",
+        "Distributed systems",
+        "Owning features end-to-end, from design through deployment and production support",
+        "Working in a fast-moving environment",
+        "Experience with financial systems, payments infrastructure, or high-volume transactional systems requiring precision and auditability",
+        "Responsible use of generative AI with human oversight to deliver business-ready outputs and improve workflow efficiency, cost, and quality"
+      ],
+      "niceToHaveSkills": [],
+      "responsibilities": [
+        "Design and build scalable, fault-tolerant backend services for payment processing using Go, ensuring high reliability and correctness for financial transactions at scale",
+        "Own end-to-end delivery of payment features, from technical design through production deployment, monitoring, and iteration",
+        "Build platform primitives, extension points, and self-serve APIs that let other Coinbase teams add new payment methods and rails without deep changes to core services",
+        "Partner with engineers, product managers, and senior leadership to translate product vision and business requirements into technical plans each quarter",
+        "Drive improvements to system reliability, observability, and performance across payment services, proactively identifying and resolving bottlenecks",
+        "Contribute to engineering quality through thoughtful code reviews, design discussions, and advocacy for best practices in service-oriented architecture"
+      ],
+      "expectedSalary": "$186,065–$218,900 USD annual base salary (excluding equity and bonus)"
+    },
+    "match": {
+      "score": 83,
+      "matchedRequirements": [
+        "5+ years of experience in backend software engineering",
+        "Building and maintaining production services in a service-oriented or microservices architecture",
+        "Proficiency in Go or similar backend languages",
+        "Designing scalable, low-latency APIs",
+        "Distributed systems",
+        "Owning features end-to-end, from design through deployment and production support",
+        "Working in a fast-moving environment",
+        "Experience with financial systems, payments infrastructure, or high-volume transactional systems requiring precision and auditability"
+      ],
+      "claimableEvidence": [
+        "Backend engineer with 11 years of experience building payment and event-processing services in Java, Kotlin and Python",
+        "Led a team of 4 engineers through a 9 month migration from a monolith to 6 services",
+        "Kotlin, Java, Python, SQL",
+        "Cut p99 latency of the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis",
+        "processing about 40 million events a day on Kafka",
+        "Designed and ran the settlement service in Kotlin and Spring Boot",
+        "On call for the payments platform and wrote the post-incident reviews for 14 incidents"
+      ],
+      "missingSkills": [
+        "Responsible use of generative AI with human oversight to deliver business-ready outputs and improve workflow efficiency, cost, and quality"
+      ],
+      "details": [
+        {
+          "requirement": "5+ years of experience in backend software engineering",
+          "evidence": "Backend engineer with 11 years of experience building payment and event-processing services in Java, Kotlin and Python",
+          "tier": 1,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Building and maintaining production services in a service-oriented or microservices architecture",
+          "evidence": "Led a team of 4 engineers through a 9 month migration from a monolith to 6 services",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Proficiency in Go or similar backend languages",
+          "evidence": "Kotlin, Java, Python, SQL",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Designing scalable, low-latency APIs",
+          "evidence": "Cut p99 latency of the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Distributed systems",
+          "evidence": "processing about 40 million events a day on Kafka",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Owning features end-to-end, from design through deployment and production support",
+          "evidence": "Designed and ran the settlement service in Kotlin and Spring Boot",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Working in a fast-moving environment",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Experience with financial systems, payments infrastructure, or high-volume transactional systems requiring precision and auditability",
+          "evidence": "On call for the payments platform and wrote the post-incident reviews for 14 incidents",
+          "tier": 1,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Responsible use of generative AI with human oversight to deliver business-ready outputs and improve workflow efficiency, cost, and quality",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        }
+      ]
+    },
+    "applicant": {
+      "name": "Priya Raman",
+      "email": "priya.raman@example.com",
+      "phone": "+1 555 0176",
+      "address": "Toronto, Canada",
+      "headline": "Senior Backend Engineer",
+      "skills": [
+        "API design",
+        "event-driven architecture",
+        "code review",
+        "mentoring"
+      ],
+      "tools": [
+        "Kotlin",
+        "Java",
+        "Python",
+        "SQL",
+        "Spring Boot",
+        "PostgreSQL",
+        "Redis",
+        "Kafka",
+        "RabbitMQ",
+        "AWS (EC2, RDS, SQS, S3)",
+        "Docker",
+        "Terraform",
+        "GitHub Actions",
+        "Datadog"
+      ],
+      "languages": [],
+      "experiences": [
+        {
+          "company": "Lumen Payments (fintech, 300 staff)",
+          "title": "Senior Software Engineer",
+          "startDate": "Feb 2019",
+          "endDate": "Feb 2023",
+          "bullets": [
+            "Designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka",
+            "Cut p99 latency of the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis",
+            "Led a team of 4 engineers through a 9 month migration from a monolith to 6 services",
+            "On call for the payments platform and wrote the post-incident reviews for 14 incidents"
+          ]
+        },
+        {
+          "company": "Northgate Retail Systems",
+          "title": "Software Engineer",
+          "startDate": "Aug 2015",
+          "endDate": "Jan 2019",
+          "bullets": [
+            "Built order and inventory services in Java and Spring, backed by PostgreSQL and RabbitMQ",
+            "Introduced contract tests that reduced integration bugs found in staging by about a third"
+          ]
+        },
+        {
+          "company": "Brightpath Consulting",
+          "title": "Junior Developer",
+          "startDate": "Jul 2013",
+          "endDate": "Jul 2015",
+          "bullets": [
+            "Delivered internal web tools for two clients in Java and JavaScript"
+          ]
+        }
+      ],
+      "certifications": [
+        "AWS Certified Solutions Architect - Associate (2024)"
+      ]
+    },
+    "optimizedCVData": {
+      "personal": {
+        "fullName": "Priya Raman",
+        "email": "priya.raman@example.com",
+        "phone": "+1 555 0176",
+        "currentTitle": "Senior Backend Engineer | Payments Platform | Distributed Systems | Kotlin, Java",
+        "city": "Toronto",
+        "country": "Canada"
+      },
+      "summary": "Backend engineer with 11 years of experience building payment and event-processing services in Java, Kotlin and Python. Designed and ran a settlement service on Kafka and cut payment status API latency by moving hot reads from PostgreSQL to Redis. Led a team of 4 engineers through a 9 month migration from a monolith to 6 services and owned production support for the payments platform. Returning to full-time engineering after a planned career break spent caregiving, with AWS Solutions Architect certification earned in 2024.",
+      "experience": [
+        {
+          "id": "exp-1",
+          "company": "Lumen Payments (fintech, 300 staff)",
+          "position": "Senior Software Engineer",
+          "startDate": "February 2019",
+          "endDate": "February 2023",
+          "current": false,
+          "bullets": [
+            "Designed and ran the settlement service in Kotlin and Spring Boot, processing about 40 million events a day on Kafka",
+            "Cut p99 latency of the payment status API from 480 ms to 120 ms by moving hot reads from PostgreSQL to Redis",
+            "Led a team of 4 engineers through a 9 month migration from a monolith to 6 services",
+            "Carried on-call duty for the payments platform and wrote the post-incident reviews for 14 incidents"
+          ],
+          "technologies": [
+            "Kotlin",
+            "Spring Boot",
+            "Kafka",
+            "PostgreSQL",
+            "Redis"
+          ]
+        },
+        {
+          "id": "exp-2",
+          "company": "Career break",
+          "position": "Planned career break (family caregiving)",
+          "startDate": "March 2023",
+          "endDate": "April 2025",
+          "current": false,
+          "bullets": [
+            "Provided full-time family caregiving during a planned break from engineering",
+            "Completed two online courses (AWS Solutions Architect Associate prep, Designing Data-Intensive Applications reading group) to keep skills current",
+            "Contributed small bug fixes to an open-source Kotlin library"
+          ],
+          "technologies": [
+            "Kotlin",
+            "AWS"
+          ]
+        },
+        {
+          "id": "exp-3",
+          "company": "Northgate Retail Systems",
+          "position": "Software Engineer",
+          "startDate": "August 2015",
+          "endDate": "January 2019",
+          "current": false,
+          "bullets": [
+            "Built order and inventory services in Java and Spring, backed by PostgreSQL and RabbitMQ",
+            "Introduced contract tests that reduced integration bugs found in staging by about a third"
+          ],
+          "technologies": [
+            "Java",
+            "Spring",
+            "PostgreSQL",
+            "RabbitMQ"
+          ]
+        }
+      ],
+      "education": [
+        {
+          "id": "edu-1",
+          "institution": "University of Waterloo",
+          "degree": "B.Sc. Computer Science",
+          "startDate": "2009",
+          "endDate": "2013",
+          "highlights": []
+        }
+      ],
+      "skills": [
+        {
+          "category": "Languages",
+          "items": [
+            "Kotlin",
+            "Java",
+            "Python",
+            "SQL"
+          ]
+        },
+        {
+          "category": "Frameworks and Data",
+          "items": [
+            "Spring Boot",
+            "Kafka",
+            "PostgreSQL",
+            "Redis",
+            "RabbitMQ"
+          ]
+        },
+        {
+          "category": "Cloud and Tooling",
+          "items": [
+            "AWS (EC2, RDS, SQS, S3)",
+            "Docker",
+            "Terraform",
+            "GitHub Actions",
+            "Datadog"
+          ]
+        },
+        {
+          "category": "Practices",
+          "items": [
+            "API design",
+            "Event-driven architecture",
+            "Code review",
+            "Mentoring"
+          ]
+        }
+      ],
+      "languages": [],
+      "certifications": [
+        {
+          "id": "cert-1",
+          "name": "AWS Certified Solutions Architect - Associate",
+          "issuer": "Amazon Web Services",
+          "date": "2024"
+        }
+      ],
+      "projects": [],
+      "additionalInfo": [],
+      "analysis": {
+        "summary": "The CV leads with Priya's payments and event-processing background and puts the Lumen Payments settlement and latency work first, using only verified metrics. The career break is shown openly, with the upskilling she documented.",
+        "key_changes": [
+          "Rewrote the headline and summary around payments platform, backend and distributed systems experience",
+          "Put the Lumen Payments role first, with the settlement service, latency and migration bullets in the most prominent positions",
+          "Kept the career break as a dated entry with the two courses and the open-source Kotlin library contribution",
+          "Ordered skills so Kotlin, Java, Python, Kafka, PostgreSQL and Redis come first",
+          "Kept only verified metrics; generative AI is left out because it is not documented in the source CVs"
+        ],
+        "ats_compatibility": 72,
+        "missing_keywords_added": [
+          "Kotlin",
+          "Java",
+          "Python",
+          "API design",
+          "event-driven architecture",
+          "Kafka",
+          "PostgreSQL",
+          "Redis"
+        ]
+      },
+      "sectionHeaders": {
+        "summary": "Professional Summary",
+        "skills": "Skills",
+        "experience": "Professional Experience",
+        "education": "Education",
+        "certifications": "Certifications",
+        "languages": "Languages",
+        "contact": "Contact",
+        "additionalInfo": "Additional Information",
+        "projects": "Projects"
+      },
+      "localizedStrings": {
+        "present": "Present",
+        "gradePrefix": "GPA:",
+        "degreeConnector": "in",
+        "dateOfBirthLabel": "Date of Birth",
+        "nationalityLabel": "Nationality",
+        "photoPlaceholder": "Photo",
+        "websiteLabel": "Website",
+        "signatureLabel": "Signature",
+        "cityLabel": "City",
+        "dateLabel": "Date"
+      }
+    },
+    "error": null
+  },
+  {
+    "case_id": "syn-11",
+    "language": "en",
+    "cv_ref": "cv:cv-en-finance-analyst",
+    "rawCV": "Tomas Brandt\nFinancial Analyst\ntomas.brandt@example.com | +1 555 0123 | Chicago, IL, USA\n\nPROFILE\nFinancial analyst with 5 years of experience in budgeting, forecasting and month-end reporting for manufacturing and retail businesses. Strong in Excel and Power BI, working towards my ACCA qualification.\n\nEXPERIENCE\nFinancial Analyst | Calder Industrial Components (manufacturing, 900 staff) | Mar 2022 - Present\n- Own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD\n- Improved forecast accuracy for the larger unit from 88% to 96% by rebuilding the model around order backlog\n- Shortened month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA\n- Build Power BI dashboards on SAP data for plant managers\n\nJunior Financial Analyst | Redfern Stores (retail chain, 60 stores) | Sep 2019 - Feb 2022\n- Prepared weekly store P&L packs and the annual budget for the regional team\n- Found a recurring supplier rebate that was not being claimed, worth about 120,000 USD a year\n\nFinance Intern | Lakeshore Logistics | Jun 2018 - Aug 2018\n- Reconciled freight invoices and supported the audit file\n\nEDUCATION\nB.S. Finance | University of Illinois Chicago | 2015 - 2019\nACCA: 9 of 13 papers passed (in progress)\n\nSKILLS\nExcel (advanced: INDEX/MATCH, pivot tables, VBA), Power BI, SAP (reporting), basic SQL\nFinancial skills: budgeting, rolling forecasts, variance analysis, working capital, management reporting\nLanguages: English (native), German (basic)\n",
+    "masterCV": null,
+    "verifiedMetrics": [
+      "5 years of experience in budgeting, forecasting and month-end reporting",
+      "ACCA: 9 of 13 papers passed (in progress)"
+    ],
+    "job": {
+      "title": "FP&A Analyst",
+      "companyName": "Datadog",
+      "location": "New York, New York, USA",
+      "workType": "Hybrid",
+      "requiredSkills": [
+        "2+ years of professional experience in FP&A / Strategic Finance, Corporate Finance, Investment Banking, and/or other related field",
+        "Bachelor's degree in finance, accounting, business, or economics",
+        "Mastery of Excel",
+        "Mastery of PowerPoint",
+        "Building financial models",
+        "Managing complex data",
+        "Clear, concise communicator",
+        "Team player",
+        "Humble mindset",
+        "'Can-do' attitude",
+        "Budgeting and financial forecasting",
+        "Financial analytics",
+        "Trend, ROI, and profitability analysis",
+        "Business intelligence (BI) tools (Pigment, Tableau, Metabase)"
+      ],
+      "niceToHaveSkills": [
+        "Solid understanding of Pigment",
+        "Experience in or understanding of a consumption-based software business model",
+        "Proficiency in use of AI tools (e.g. ChatGPT, Claude)"
+      ],
+      "responsibilities": [
+        "Partner with senior business leaders to manage their departmental budgets on a regular basis, including the company's co-founder and CTO",
+        "Manage financial forecasts and analytics across revenue, customers, product, company expenses, and headcount / workforce",
+        "Help manage significant portions of the company's spend, including AI and GPU spend across the company",
+        "Work on trend, ROI, and profitability analyses on both product and customer levels to support data-driven decision making",
+        "Work with finance management on quarterly Board materials, including coordination and consolidation across stakeholders",
+        "Assist in planning and budgeting cycles, ensuring consistency in tools, templates, and processes across the organization",
+        "Work on ad hoc projects and strategic initiatives for senior management, including assessing potential acquisition opportunities and/or negotiations with strategic partners like cloud vendors",
+        "Become proficient with financial planning and business intelligence (BI) tools, including Pigment, Tableau, and Metabase",
+        "Help create the annual budget and financial targets and work with operational leaders to support execution against goals",
+        "Support the product and engineering leadership team as part of the R&D Finance team"
+      ],
+      "expectedSalary": "$99,000—$132,000 USD"
+    },
+    "match": {
+      "score": 80,
+      "matchedRequirements": [
+        "2+ years of professional experience in FP&A / Strategic Finance, Corporate Finance, Investment Banking, and/or other related field",
+        "Bachelor's degree in finance, accounting, business, or economics",
+        "Mastery of Excel",
+        "Building financial models",
+        "Managing complex data",
+        "Clear, concise communicator",
+        "Team player",
+        "Humble mindset",
+        "'Can-do' attitude",
+        "Budgeting and financial forecasting",
+        "Financial analytics",
+        "Trend, ROI, and profitability analysis",
+        "Business intelligence (BI) tools (Pigment, Tableau, Metabase)"
+      ],
+      "claimableEvidence": [
+        "Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting",
+        "B.S. Finance | University of Illinois Chicago | 2015 - 2019",
+        "Excel (advanced: INDEX/MATCH, pivot tables, VBA)",
+        "by rebuilding the model around order backlog",
+        "Build Power BI dashboards on SAP data for plant managers",
+        "budgeting, rolling forecasts, variance analysis, working capital, management reporting",
+        "variance analysis",
+        "Prepared weekly store P&L packs and the annual budget for the regional team",
+        "Power BI"
+      ],
+      "missingSkills": [
+        "Mastery of PowerPoint",
+        "Solid understanding of Pigment",
+        "Experience in or understanding of a consumption-based software business model",
+        "Proficiency in use of AI tools (e.g. ChatGPT, Claude)"
+      ],
+      "details": [
+        {
+          "requirement": "2+ years of professional experience in FP&A / Strategic Finance, Corporate Finance, Investment Banking, and/or other related field",
+          "evidence": "Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Bachelor's degree in finance, accounting, business, or economics",
+          "evidence": "B.S. Finance | University of Illinois Chicago | 2015 - 2019",
+          "tier": 1,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Mastery of Excel",
+          "evidence": "Excel (advanced: INDEX/MATCH, pivot tables, VBA)",
+          "tier": 1,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Mastery of PowerPoint",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Building financial models",
+          "evidence": "by rebuilding the model around order backlog",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Managing complex data",
+          "evidence": "Build Power BI dashboards on SAP data for plant managers",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Clear, concise communicator",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Team player",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Humble mindset",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "'Can-do' attitude",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Budgeting and financial forecasting",
+          "evidence": "budgeting, rolling forecasts, variance analysis, working capital, management reporting",
+          "tier": 1,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Financial analytics",
+          "evidence": "variance analysis",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Trend, ROI, and profitability analysis",
+          "evidence": "Prepared weekly store P&L packs and the annual budget for the regional team",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Business intelligence (BI) tools (Pigment, Tableau, Metabase)",
+          "evidence": "Power BI",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Solid understanding of Pigment",
+          "tier": "missing",
+          "claimable": false,
+          "required": false
+        },
+        {
+          "requirement": "Experience in or understanding of a consumption-based software business model",
+          "tier": "missing",
+          "claimable": false,
+          "required": false
+        },
+        {
+          "requirement": "Proficiency in use of AI tools (e.g. ChatGPT, Claude)",
+          "tier": "missing",
+          "claimable": false,
+          "required": false
+        }
+      ]
+    },
+    "applicant": {
+      "name": "Tomas Brandt",
+      "email": "tomas.brandt@example.com",
+      "phone": "+1 555 0123",
+      "address": "Chicago, IL, USA",
+      "headline": "Financial Analyst",
+      "skills": [
+        "budgeting",
+        "rolling forecasts",
+        "variance analysis",
+        "working capital",
+        "management reporting",
+        "forecasting",
+        "month-end reporting",
+        "basic SQL"
+      ],
+      "tools": [
+        "Excel",
+        "Power BI",
+        "SAP (reporting)",
+        "Excel VBA",
+        "INDEX/MATCH",
+        "pivot tables",
+        "VBA",
+        "basic SQL"
+      ],
+      "languages": [
+        "English (native)",
+        "German (basic)"
+      ],
+      "experiences": [
+        {
+          "company": "Calder Industrial Components (manufacturing, 900 staff)",
+          "title": "Financial Analyst",
+          "startDate": "Mar 2022",
+          "endDate": "Present",
+          "bullets": [
+            "Own the monthly forecast and variance reporting for two business units with combined revenue of about 85 million USD",
+            "Improved forecast accuracy for the larger unit from 88% to 96% by rebuilding the model around order backlog",
+            "Shortened month-end close reporting from 9 working days to 6 by automating journal checks in Excel VBA",
+            "Build Power BI dashboards on SAP data for plant managers"
+          ]
+        },
+        {
+          "company": "Redfern Stores (retail chain, 60 stores)",
+          "title": "Junior Financial Analyst",
+          "startDate": "Sep 2019",
+          "endDate": "Feb 2022",
+          "bullets": [
+            "Prepared weekly store P&L packs and the annual budget for the regional team",
+            "Found a recurring supplier rebate that was not being claimed, worth about 120,000 USD a year"
+          ]
+        },
+        {
+          "company": "Lakeshore Logistics",
+          "title": "Finance Intern",
+          "startDate": "Jun 2018",
+          "endDate": "Aug 2018",
+          "bullets": [
+            "Reconciled freight invoices and supported the audit file"
+          ]
+        }
+      ],
+      "certifications": [
+        "ACCA: 9 of 13 papers passed (in progress)"
+      ]
+    },
+    "optimizedCVData": {
+      "personal": {
+        "fullName": "Tomas Brandt",
+        "email": "tomas.brandt@example.com",
+        "phone": "+1 555 0123",
+        "currentTitle": "Financial Analyst | Budgeting & Forecasting | Variance Analysis | Power BI",
+        "city": "Chicago, IL",
+        "country": "USA"
+      },
+      "summary": "Financial analyst with 5 years of experience in budgeting, forecasting and month-end reporting for manufacturing and retail businesses. Owns monthly forecast and variance reporting for two business units and builds financial models in Excel. Builds Power BI dashboards on SAP data and works towards the ACCA qualification. Holds a B.S. in Finance.",
+      "experience": [
+        {
+          "id": "exp-1",
+          "company": "Calder Industrial Components",
+          "position": "Financial Analyst",
+          "location": "Chicago, IL",
+          "startDate": "March 2022",
+          "current": true,
+          "bullets": [
+            "Own the monthly forecast and variance reporting for two business units, giving management a regular view of performance against plan",
+            "Improved forecast accuracy for the larger unit by rebuilding the model around order backlog",
+            "Shortened month-end close reporting by automating journal checks in Excel VBA",
+            "Build Power BI dashboards on SAP data for plant managers"
+          ],
+          "technologies": [
+            "Excel",
+            "VBA",
+            "Power BI",
+            "SAP"
+          ]
+        },
+        {
+          "id": "exp-2",
+          "company": "Redfern Stores",
+          "position": "Junior Financial Analyst",
+          "location": "Chicago, IL",
+          "startDate": "September 2019",
+          "endDate": "February 2022",
+          "current": false,
+          "bullets": [
+            "Prepared weekly store P&L packs for the regional team",
+            "Built the annual budget for the regional team",
+            "Found a recurring supplier rebate that was not being claimed, recovering a meaningful annual saving"
+          ],
+          "technologies": [
+            "Excel"
+          ]
+        },
+        {
+          "id": "exp-3",
+          "company": "Lakeshore Logistics",
+          "position": "Finance Intern",
+          "startDate": "June 2018",
+          "endDate": "August 2018",
+          "current": false,
+          "bullets": [
+            "Reconciled freight invoices to keep payables records accurate",
+            "Supported the audit file"
+          ],
+          "technologies": []
+        }
+      ],
+      "education": [
+        {
+          "id": "edu-1",
+          "institution": "University of Illinois Chicago",
+          "degree": "B.S. Finance",
+          "startDate": "2015",
+          "endDate": "2019",
+          "highlights": []
+        },
+        {
+          "id": "edu-2",
+          "institution": "ACCA",
+          "degree": "ACCA: 9 of 13 papers passed (in progress)",
+          "endDate": "ongoing",
+          "highlights": []
+        }
+      ],
+      "skills": [
+        {
+          "category": "Analytics & BI",
+          "items": [
+            "Excel (advanced: INDEX/MATCH, pivot tables, VBA)",
+            "Power BI",
+            "SAP (reporting)",
+            "SQL (basic)"
+          ]
+        },
+        {
+          "category": "Financial Planning",
+          "items": [
+            "Budgeting",
+            "Rolling forecasts",
+            "Variance analysis",
+            "Working capital",
+            "Management reporting"
+          ]
+        }
+      ],
+      "languages": [
+        {
+          "language": "English",
+          "proficiency": "Native"
+        },
+        {
+          "language": "German",
+          "proficiency": "Basic"
+        }
+      ],
+      "certifications": [],
+      "projects": [],
+      "additionalInfo": [],
+      "analysis": {
+        "summary": "Positioned Tomas as a finance professional with 5 years of experience in budgeting, forecasting and reporting, leading with his documented Excel, Power BI and variance analysis strengths. Skills the source CV does not document, including PowerPoint, Pigment, consumption-based models and AI tools, were left out.",
+        "key_changes": [
+          "Rewrote the headline around budgeting, forecasting, variance analysis and Power BI, which match the FP&A Analyst role",
+          "Moved forecast ownership and model rebuild to the top of the current role to show financial modelling and forecasting",
+          "Kept Excel and Power BI first in the skills section as the documented BI and analysis tools",
+          "Reframed the retail role around budgeting and P&L reporting to show the full planning cycle",
+          "Kept the ACCA progress in education exactly as documented, with its stated paper count"
+        ],
+        "ats_compatibility": 68,
+        "missing_keywords_added": [
+          "Excel",
+          "Power BI",
+          "budgeting",
+          "rolling forecasts",
+          "variance analysis",
+          "management reporting"
+        ]
+      },
+      "sectionHeaders": {
+        "summary": "Professional Summary",
+        "skills": "Skills",
+        "experience": "Professional Experience",
+        "education": "Education",
+        "certifications": "Certifications",
+        "languages": "Languages",
+        "contact": "Contact",
+        "additionalInfo": "Additional Information",
+        "projects": "Projects"
+      },
+      "localizedStrings": {
+        "present": "Present",
+        "gradePrefix": "GPA:",
+        "degreeConnector": "in",
+        "dateOfBirthLabel": "Date of Birth",
+        "nationalityLabel": "Nationality",
+        "photoPlaceholder": "Photo",
+        "websiteLabel": "Website",
+        "signatureLabel": "Signature",
+        "cityLabel": "City",
+        "dateLabel": "Date"
+      }
+    },
+    "error": null
+  },
+  {
+    "case_id": "syn-15",
+    "language": "de",
+    "cv_ref": "cv:cv-de-technischer-vertrieb",
+    "rawCV": "Jonas Hartmann\nTechnischer Vertriebsmitarbeiter, Maschinenbau\njonas.hartmann@example.de | +49 911 0000 0142 | Nürnberg, Deutschland\n\nPROFIL\nTechnischer Vertriebsmitarbeiter mit sieben Jahren Erfahrung im Verkauf erklärungsbedürftiger Industrieprodukte an Mittelständler. Ich verbinde technisches Verständnis mit einem ruhigen, beratenden Verkaufsstil und betreue meine Kunden langfristig.\n\nBERUFSERFAHRUNG\nTechnischer Vertriebsmitarbeiter im Außendienst | Frankenmetall Antriebstechnik GmbH, Nürnberg | 04/2021 - heute\n- Betreue rund 60 Bestandskunden im Raum Bayern und Baden-Württemberg\n- Steigerte den Jahresumsatz meines Gebiets von 3,1 auf 4,2 Mio. EUR\n- Erstelle Angebote und technische Auslegungen gemeinsam mit der Konstruktion\n- Führe pro Jahr etwa 15 Messegespräche und Kundenschulungen durch\n- Pflege alle Kontakte und Angebote im CRM (SAP CRM)\n\nVertriebsinnendienst | Kessler Pumpen und Armaturen GmbH, Fürth | 09/2018 - 03/2021\n- Bearbeitete täglich 20 bis 30 Kundenanfragen und erstellte Angebote und Auftragsbestätigungen\n- Reduzierte die durchschnittliche Angebotszeit von drei auf einen Arbeitstag durch Textbausteine und Vorlagen\n\nTrainee Vertrieb | Kessler Pumpen und Armaturen GmbH, Fürth | 09/2017 - 08/2018\n- Durchlief Konstruktion, Einkauf und Vertrieb\n\nAUSBILDUNG\nB.Eng. Maschinenbau | Technische Hochschule Nürnberg | 2013 - 2017\nAllgemeine Hochschulreife | Gymnasium Fürth | 2013\n\nKENNTNISSE\nVertrieb: Kundenbetreuung, Angebotserstellung, Verhandlung, Messeauftritte\nTechnik: Antriebstechnik, Pumpen, technische Auslegung\nSoftware: SAP CRM, SAP SD (Anwender), MS Office, MS Teams\nSprachen: Deutsch (Muttersprache), Englisch (verhandlungssicher, C1), Türkisch (Grundkenntnisse)\nSonstiges: Führerschein Klasse B, Reisebereitschaft\n",
+    "masterCV": null,
+    "verifiedMetrics": [
+      "sieben Jahren Erfahrung im Verkauf erklärungsbedürftiger Industrieprodukte",
+      "rund 60 Bestandskunden im Raum Bayern und Baden-Württemberg",
+      "Führerschein Klasse B"
+    ],
+    "job": {
+      "title": "Key Account Manager/in, Maklerbetreuer/in Firmengeschäft für die Krankenversicherung (m/w/d)",
+      "companyName": "ottonova",
+      "location": "München",
+      "workType": "Hybrid",
+      "requiredSkills": [
+        "Abgeschlossene Ausbildung als Kaufmann/-frau für Versicherungen und Finanzen oder vergleichbare kaufmännische Qualifikation",
+        "3–8 Jahre Erfahrung im Vertrieb von Versicherungsprodukten bei Arbeitgebern (z. B. bAV oder bKV)",
+        "Großes Netzwerk an vorhandenen Arbeitgeberkontakten",
+        "Digital Mindset",
+        "Digitale Tools (CRM-Systeme, Video-Calls)",
+        "Strukturierte und zuverlässige Arbeitsweise",
+        "Überblick behalten bei vielen parallelen Anfragen",
+        "Kommunikationsstärke",
+        "Sicheres Gespür für Wording im B2B-Umfeld",
+        "Eigeninitiative",
+        "Prozessoptimierung",
+        "Sichere Deutschkenntnisse in Wort und Schrift",
+        "Gute bis sehr gute Englischkenntnisse",
+        "Vertriebstalent",
+        "Beratungskompetenz"
+      ],
+      "niceToHaveSkills": [],
+      "responsibilities": [
+        "Neukundengewinnung: Identifizieren und Gewinnen von Unternehmen als neue Kunden für die bKV von ottonova mit Fokus auf Entscheidungsträger in HR und Geschäftsführung",
+        "Beratung von Unternehmen zu den Vorteilen der betrieblichen Krankenversicherung und Entwicklung passgenauer Angebote",
+        "Pflege des bestehenden Netzwerks an Arbeitgeberkontakten und gezielte Nutzung zur Gewinnung neuer bKV-Kunden vom ersten Gespräch bis zur Vertragsunterzeichnung",
+        "Repräsentation von ottonova bei relevanten HR- und Unternehmensveranstaltungen und Stärkung der Sichtbarkeit im betrieblichen Krankenversicherungsmarkt"
+      ]
+    },
+    "match": {
+      "score": 50,
+      "matchedRequirements": [
+        "Digitale Tools (CRM-Systeme, Video-Calls)",
+        "Strukturierte und zuverlässige Arbeitsweise",
+        "Kommunikationsstärke",
+        "Eigeninitiative",
+        "Prozessoptimierung",
+        "Sichere Deutschkenntnisse in Wort und Schrift",
+        "Gute bis sehr gute Englischkenntnisse",
+        "Vertriebstalent",
+        "Beratungskompetenz"
+      ],
+      "claimableEvidence": [
+        "SAP CRM, SAP SD (Anwender), MS Office, MS Teams",
+        "Reduzierte die durchschnittliche Angebotszeit von drei auf einen Arbeitstag durch Textbausteine und Vorlagen",
+        "Deutsch (Muttersprache)",
+        "Englisch (verhandlungssicher, C1)",
+        "Steigerte den Jahresumsatz meines Gebiets von 3,1 auf 4,2 Mio. EUR",
+        "ruhigen, beratenden Verkaufsstil"
+      ],
+      "missingSkills": [
+        "Abgeschlossene Ausbildung als Kaufmann/-frau für Versicherungen und Finanzen oder vergleichbare kaufmännische Qualifikation",
+        "3–8 Jahre Erfahrung im Vertrieb von Versicherungsprodukten bei Arbeitgebern (z. B. bAV oder bKV)",
+        "Großes Netzwerk an vorhandenen Arbeitgeberkontakten",
+        "Digital Mindset",
+        "Überblick behalten bei vielen parallelen Anfragen",
+        "Sicheres Gespür für Wording im B2B-Umfeld"
+      ],
+      "details": [
+        {
+          "requirement": "Abgeschlossene Ausbildung als Kaufmann/-frau für Versicherungen und Finanzen oder vergleichbare kaufmännische Qualifikation",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "3–8 Jahre Erfahrung im Vertrieb von Versicherungsprodukten bei Arbeitgebern (z. B. bAV oder bKV)",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Großes Netzwerk an vorhandenen Arbeitgeberkontakten",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Digitale Tools (CRM-Systeme, Video-Calls)",
+          "evidence": "SAP CRM, SAP SD (Anwender), MS Office, MS Teams",
+          "tier": 1,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Strukturierte und zuverlässige Arbeitsweise",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Kommunikationsstärke",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Eigeninitiative",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Prozessoptimierung",
+          "evidence": "Reduzierte die durchschnittliche Angebotszeit von drei auf einen Arbeitstag durch Textbausteine und Vorlagen",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Sichere Deutschkenntnisse in Wort und Schrift",
+          "evidence": "Deutsch (Muttersprache)",
+          "tier": 1,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Gute bis sehr gute Englischkenntnisse",
+          "evidence": "Englisch (verhandlungssicher, C1)",
+          "tier": 1,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Vertriebstalent",
+          "evidence": "Steigerte den Jahresumsatz meines Gebiets von 3,1 auf 4,2 Mio. EUR",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Beratungskompetenz",
+          "evidence": "ruhigen, beratenden Verkaufsstil",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Digital Mindset",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Überblick behalten bei vielen parallelen Anfragen",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Sicheres Gespür für Wording im B2B-Umfeld",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        }
+      ]
+    },
+    "applicant": {
+      "name": "Jonas Hartmann",
+      "email": "jonas.hartmann@example.de",
+      "phone": "+49 911 0000 0142",
+      "address": "Nürnberg, Deutschland",
+      "headline": "Technischer Vertriebsmitarbeiter, Maschinenbau",
+      "skills": [
+        "Kundenbetreuung",
+        "Angebotserstellung",
+        "Verhandlung",
+        "Messeauftritte",
+        "Antriebstechnik",
+        "Pumpen",
+        "technische Auslegung"
+      ],
+      "tools": [
+        "SAP CRM",
+        "SAP SD (Anwender)",
+        "MS Office",
+        "MS Teams"
+      ],
+      "languages": [
+        "Deutsch (Muttersprache)",
+        "Englisch (verhandlungssicher, C1)",
+        "Türkisch (Grundkenntnisse)"
+      ],
+      "experiences": [
+        {
+          "company": "Frankenmetall Antriebstechnik GmbH, Nürnberg",
+          "title": "Technischer Vertriebsmitarbeiter im Außendienst",
+          "startDate": "04/2021",
+          "bullets": [
+            "Betreue rund 60 Bestandskunden im Raum Bayern und Baden-Württemberg",
+            "Steigerte den Jahresumsatz meines Gebiets von 3,1 auf 4,2 Mio. EUR",
+            "Erstelle Angebote und technische Auslegungen gemeinsam mit der Konstruktion",
+            "Führe pro Jahr etwa 15 Messegespräche und Kundenschulungen durch",
+            "Pflege alle Kontakte und Angebote im CRM (SAP CRM)"
+          ]
+        },
+        {
+          "company": "Kessler Pumpen und Armaturen GmbH, Fürth",
+          "title": "Vertriebsinnendienst",
+          "startDate": "09/2018",
+          "endDate": "03/2021",
+          "bullets": [
+            "Bearbeitete täglich 20 bis 30 Kundenanfragen und erstellte Angebote und Auftragsbestätigungen",
+            "Reduzierte die durchschnittliche Angebotszeit von drei auf einen Arbeitstag durch Textbausteine und Vorlagen"
+          ]
+        },
+        {
+          "company": "Kessler Pumpen und Armaturen GmbH, Fürth",
+          "title": "Trainee Vertrieb",
+          "startDate": "09/2017",
+          "endDate": "08/2018",
+          "bullets": [
+            "Durchlief Konstruktion, Einkauf und Vertrieb"
+          ]
+        }
+      ],
+      "certifications": []
+    },
+    "optimizedCVData": {
+      "personal": {
+        "fullName": "Jonas Hartmann",
+        "email": "jonas.hartmann@example.de",
+        "phone": "+49 911 0000 0142",
+        "currentTitle": "Technischer Vertrieb | Kundenbetreuung | Beratender Verkauf",
+        "city": "Nürnberg",
+        "country": "Deutschland",
+        "driverLicense": "Klasse B"
+      },
+      "summary": "Technischer Vertriebsmitarbeiter mit sieben Jahren Erfahrung im Verkauf erklärungsbedürftiger Industrieprodukte an Mittelständler. Betreut rund 60 Bestandskunden im Raum Bayern und Baden-Württemberg langfristig und steigerte den Jahresumsatz seines Gebiets von 3,1 auf 4,2 Mio. EUR. Verbindet einen ruhigen, beratenden Verkaufsstil mit strukturierter Angebotsarbeit und sicherer CRM-Pflege in SAP CRM.",
+      "experience": [
+        {
+          "id": "exp-1",
+          "company": "Frankenmetall Antriebstechnik GmbH",
+          "position": "Technischer Vertriebsmitarbeiter im Außendienst",
+          "location": "Nürnberg",
+          "startDate": "04/2021",
+          "current": true,
+          "bullets": [
+            "Betreue rund 60 Bestandskunden im Raum Bayern und Baden-Württemberg und begleite sie langfristig",
+            "Steigerte den Jahresumsatz meines Gebiets von 3,1 auf 4,2 Mio. EUR",
+            "Pflege alle Kontakte und Angebote im CRM (SAP CRM)",
+            "Erstelle Angebote und technische Auslegungen gemeinsam mit der Konstruktion",
+            "Führe pro Jahr etwa 15 Messegespräche und Kundenschulungen durch"
+          ],
+          "technologies": [
+            "SAP CRM"
+          ]
+        },
+        {
+          "id": "exp-2",
+          "company": "Kessler Pumpen und Armaturen GmbH",
+          "position": "Vertriebsinnendienst",
+          "location": "Fürth",
+          "startDate": "09/2018",
+          "endDate": "03/2021",
+          "current": false,
+          "bullets": [
+            "Reduzierte die durchschnittliche Angebotszeit von drei auf einen Arbeitstag durch Textbausteine und Vorlagen",
+            "Bearbeitete täglich 20 bis 30 Kundenanfragen und erstellte Angebote und Auftragsbestätigungen"
+          ],
+          "technologies": []
+        },
+        {
+          "id": "exp-3",
+          "company": "Kessler Pumpen und Armaturen GmbH",
+          "position": "Trainee Vertrieb",
+          "location": "Fürth",
+          "startDate": "09/2017",
+          "endDate": "08/2018",
+          "current": false,
+          "bullets": [
+            "Durchlief die Bereiche Konstruktion, Einkauf und Vertrieb"
+          ],
+          "technologies": []
+        }
+      ],
+      "education": [
+        {
+          "id": "edu-1",
+          "institution": "Technische Hochschule Nürnberg",
+          "degree": "B.Eng. Maschinenbau",
+          "startDate": "2013",
+          "endDate": "2017",
+          "highlights": []
+        },
+        {
+          "id": "edu-2",
+          "institution": "Gymnasium Fürth",
+          "degree": "Allgemeine Hochschulreife",
+          "endDate": "2013",
+          "highlights": []
+        }
+      ],
+      "skills": [
+        {
+          "category": "Vertrieb",
+          "items": [
+            "Kundenbetreuung",
+            "Angebotserstellung",
+            "Verhandlung",
+            "Messeauftritte"
+          ]
+        },
+        {
+          "category": "Software",
+          "items": [
+            "SAP CRM",
+            "SAP SD (Anwender)",
+            "MS Office",
+            "MS Teams"
+          ]
+        },
+        {
+          "category": "Technik",
+          "items": [
+            "Antriebstechnik",
+            "Pumpen",
+            "technische Auslegung"
+          ]
+        }
+      ],
+      "languages": [
+        {
+          "language": "Deutsch",
+          "proficiency": "Muttersprache"
+        },
+        {
+          "language": "Englisch",
+          "proficiency": "verhandlungssicher, C1"
+        },
+        {
+          "language": "Türkisch",
+          "proficiency": "Grundkenntnisse"
+        }
+      ],
+      "certifications": [],
+      "projects": [],
+      "additionalInfo": [
+        "Führerschein Klasse B",
+        "Reisebereitschaft"
+      ],
+      "analysis": {
+        "summary": "Der Lebenslauf positioniert Jonas Hartmann als beratenden Vertriebsprofi mit langjähriger Kundenbetreuung und nachweisbarem Umsatzwachstum. Der Fokus liegt auf Kundenbetreuung, CRM-Pflege, Angebotsprozessen und Kommunikation, ohne fehlende Anforderungen wie Versicherungserfahrung zu behaupten.",
+        "key_changes": [
+          "Headline auf Kundenbetreuung und beratenden Verkauf ausgerichtet",
+          "Umsatzwachstum von 3,1 auf 4,2 Mio. EUR als zentrale Leistung hervorgehoben",
+          "SAP CRM und Angebotsprozesse als Bezug zu digitalen Tools und Prozessoptimierung betont",
+          "Bullets abwechslungsreich formuliert, nur belegte Zahlen verwendet",
+          "Sprachen, Führerschein und Standort vollständig übernommen"
+        ],
+        "ats_compatibility": 58,
+        "missing_keywords_added": [
+          "SAP CRM",
+          "MS Teams",
+          "Kundenbetreuung",
+          "Angebotserstellung",
+          "Verhandlung"
+        ]
+      },
+      "sectionHeaders": {
+        "summary": "Profil",
+        "skills": "Kenntnisse",
+        "experience": "Berufserfahrung",
+        "education": "Ausbildung",
+        "certifications": "Zertifikate",
+        "languages": "Sprachen",
+        "contact": "Kontakt",
+        "additionalInfo": "Weitere Angaben",
+        "projects": "Projekte"
+      },
+      "localizedStrings": {
+        "present": "Heute",
+        "gradePrefix": "Note:",
+        "degreeConnector": "in",
+        "dateOfBirthLabel": "Geburtsdatum",
+        "nationalityLabel": "Nationalität",
+        "photoPlaceholder": "Foto",
+        "websiteLabel": "Webseite",
+        "signatureLabel": "Unterschrift",
+        "cityLabel": "Ort",
+        "dateLabel": "Datum"
+      }
+    },
+    "error": null
+  },
+  {
+    "case_id": "syn-16",
+    "language": "de",
+    "cv_ref": "cv:cv-de-mfa-quereinstieg",
+    "rawCV": "Sabine Köhler\nZahnmedizinische Fachangestellte\nsabine.koehler@example.de | +49 89 0000 0187 | München, Deutschland\n\nPROFIL\nZahnmedizinische Fachangestellte mit sechs Jahren Praxiserfahrung in Abrechnung und Patientenkommunikation. Ich suche den Wechsel von der Praxis in die Leistungsbearbeitung einer Krankenversicherung und arbeite gern genau und freundlich mit Menschen.\n\nBERUFSERFAHRUNG\nZahnmedizinische Fachangestellte, Schwerpunkt Abrechnung | Zahnarztpraxis Dr. Albrecht und Kollegen, München | 05/2021 - heute\n- Rechne Leistungen nach BEMA und GOZ für Kassen- und Privatpatienten ab (etwa 400 Fälle pro Quartal)\n- Erstelle Heil- und Kostenpläne und kläre Rückfragen von Krankenkassen und privaten Versicherern\n- Senkte die Zahl abgelehnter Abrechnungen von etwa 8 auf unter 3 Prozent pro Quartal durch eine Prüfliste vor dem Versand\n- Betreue den Empfang und beantworte täglich 30 bis 40 Patientenanfragen am Telefon und vor Ort\n\nZahnmedizinische Fachangestellte | Zahnarztpraxis Dr. Pohl, Augsburg | 08/2018 - 04/2021\n- Assistenz am Behandlungsstuhl, Terminplanung und Karteiführung\n- Einarbeitung von zwei Auszubildenden\n\nAusbildung zur Zahnmedizinischen Fachangestellten | Zahnarztpraxis Dr. Pohl, Augsburg | 09/2015 - 07/2018\n\nAUSBILDUNG\nBerufsschule für Zahnmedizinische Fachangestellte | Augsburg | 2015 - 2018, Abschlussnote 2,1\nRealschulabschluss | Realschule Gersthofen | 2015\n\nKENNTNISSE\nAbrechnung: BEMA, GOZ, Heil- und Kostenpläne, Kassen- und Privatabrechnung\nSoftware: Dentalsoftware Charly, MS Office (Word, Excel), E-Mail\nSprachen: Deutsch (Muttersprache), Englisch (gute Grundkenntnisse, B1), Spanisch (Grundkenntnisse)\nWeiterbildung: Kurs \"Abrechnung in der Zahnarztpraxis\" (2022), Erste-Hilfe-Kurs (2024)\n",
+    "masterCV": null,
+    "verifiedMetrics": [
+      "sechs Jahren Praxiserfahrung in Abrechnung und Patientenkommunikation",
+      "täglich 30 bis 40 Patientenanfragen am Telefon und vor Ort",
+      "Einarbeitung von zwei Auszubildenden",
+      "Erste-Hilfe-Kurs (2024)"
+    ],
+    "job": {
+      "title": "Quereinstieg Leistungssachbearbeitung (Zahn) als Medizinische/r Fachangestellte/r (m/w/d)",
+      "companyName": "ottonova",
+      "location": "München",
+      "workType": "Hybrid",
+      "requiredSkills": [
+        "Ausbildung im zahnmedizinischen Bereich",
+        "Berufserfahrung im zahnmedizinischen Bereich",
+        "Tiefes fachliches Wissen in Zahnmedizin und/oder KFO",
+        "Kundenorientierung",
+        "Verbindung von fachlichen und rechtlichen Vorgaben",
+        "Empathische Kommunikationsstärke",
+        "Selbstvertrauen",
+        "Neugier auf Themen rund um Gesundheit und Medizin",
+        "Interesse an der digitalen Entwicklung des Versicherungsmarktes",
+        "Teamplayer",
+        "Wissensaustausch mit Kollegen",
+        "Flexibilität",
+        "Präzise Arbeitsweise",
+        "Strukturierte Arbeitsweise",
+        "Priorisierungsfähigkeit",
+        "IT-Affinität",
+        "Offenheit gegenüber neuen Technologien",
+        "Kommunikationsstärke",
+        "Qualifizierter und individueller Schriftwechsel auf Deutsch",
+        "Qualifizierter und individueller Schriftwechsel auf Englisch"
+      ],
+      "niceToHaveSkills": [
+        "Kenntnisse in gängigen MS Office Anwendungen"
+      ],
+      "responsibilities": [
+        "Bewertung und Bearbeitung eingereichter Rechnungen und Leistungsanträge",
+        "Erteilung von Leistungszusagen im Rahmen der Vollmachten und Veranlassung von Auszahlungen",
+        "Kompetente Ansprechperson für Kunden bei Rückfragen, schriftlich und telefonisch",
+        "Kontakt mit Leistungserbringern und Abstimmung mit Experten bei Unklarheiten",
+        "Mitwirkung bei der Erstellung von Richtlinien",
+        "Erarbeitung und Weiterentwicklung von Prozessen und Strukturen für die täglichen Abrechnungsvorgänge",
+        "Zusammenarbeit mit Kollegen aus anderen Bereichen bei Projekten"
+      ]
+    },
+    "match": {
+      "score": 82,
+      "matchedRequirements": [
+        "Ausbildung im zahnmedizinischen Bereich",
+        "Berufserfahrung im zahnmedizinischen Bereich",
+        "Tiefes fachliches Wissen in Zahnmedizin und/oder KFO",
+        "Kundenorientierung",
+        "Verbindung von fachlichen und rechtlichen Vorgaben",
+        "Empathische Kommunikationsstärke",
+        "Selbstvertrauen",
+        "Neugier auf Themen rund um Gesundheit und Medizin",
+        "Teamplayer",
+        "Wissensaustausch mit Kollegen",
+        "Flexibilität",
+        "Präzise Arbeitsweise",
+        "Strukturierte Arbeitsweise",
+        "Priorisierungsfähigkeit",
+        "IT-Affinität",
+        "Offenheit gegenüber neuen Technologien",
+        "Kommunikationsstärke",
+        "Qualifizierter und individueller Schriftwechsel auf Deutsch",
+        "Kenntnisse in gängigen MS Office Anwendungen"
+      ],
+      "claimableEvidence": [
+        "Ausbildung zur Zahnmedizinischen Fachangestellten",
+        "Zahnmedizinische Fachangestellte, Schwerpunkt Abrechnung",
+        "Rechne Leistungen nach BEMA und GOZ für Kassen- und Privatpatienten ab",
+        "beantworte täglich 30 bis 40 Patientenanfragen am Telefon und vor Ort",
+        "Einarbeitung von zwei Auszubildenden",
+        "Dentalsoftware Charly",
+        "Deutsch (Muttersprache)",
+        "MS Office (Word, Excel)"
+      ],
+      "missingSkills": [
+        "Interesse an der digitalen Entwicklung des Versicherungsmarktes",
+        "Qualifizierter und individueller Schriftwechsel auf Englisch"
+      ],
+      "details": [
+        {
+          "requirement": "Ausbildung im zahnmedizinischen Bereich",
+          "evidence": "Ausbildung zur Zahnmedizinischen Fachangestellten",
+          "tier": 1,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Berufserfahrung im zahnmedizinischen Bereich",
+          "evidence": "Zahnmedizinische Fachangestellte, Schwerpunkt Abrechnung",
+          "tier": 1,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Tiefes fachliches Wissen in Zahnmedizin und/oder KFO",
+          "evidence": "Rechne Leistungen nach BEMA und GOZ für Kassen- und Privatpatienten ab",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Kundenorientierung",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Verbindung von fachlichen und rechtlichen Vorgaben",
+          "evidence": "Rechne Leistungen nach BEMA und GOZ für Kassen- und Privatpatienten ab",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Empathische Kommunikationsstärke",
+          "evidence": "beantworte täglich 30 bis 40 Patientenanfragen am Telefon und vor Ort",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Selbstvertrauen",
+          "tier": 3,
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Neugier auf Themen rund um Gesundheit und Medizin",
+          "tier": 3,
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Interesse an der digitalen Entwicklung des Versicherungsmarktes",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Teamplayer",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Wissensaustausch mit Kollegen",
+          "evidence": "Einarbeitung von zwei Auszubildenden",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Flexibilität",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Präzise Arbeitsweise",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Strukturierte Arbeitsweise",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Priorisierungsfähigkeit",
+          "tier": 3,
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "IT-Affinität",
+          "evidence": "Dentalsoftware Charly",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Offenheit gegenüber neuen Technologien",
+          "tier": 3,
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Kommunikationsstärke",
+          "tier": "implicit",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Qualifizierter und individueller Schriftwechsel auf Deutsch",
+          "evidence": "Deutsch (Muttersprache)",
+          "tier": 2,
+          "claimable": true,
+          "required": true
+        },
+        {
+          "requirement": "Qualifizierter und individueller Schriftwechsel auf Englisch",
+          "tier": "missing",
+          "claimable": false,
+          "required": true
+        },
+        {
+          "requirement": "Kenntnisse in gängigen MS Office Anwendungen",
+          "evidence": "MS Office (Word, Excel)",
+          "tier": 1,
+          "claimable": true,
+          "required": false
+        }
+      ]
+    },
+    "applicant": {
+      "name": "Sabine Köhler",
+      "email": "sabine.koehler@example.de",
+      "phone": "+49 89 0000 0187",
+      "address": "München, Deutschland",
+      "headline": "Zahnmedizinische Fachangestellte",
+      "skills": [
+        "BEMA",
+        "GOZ",
+        "Heil- und Kostenpläne",
+        "Kassen- und Privatabrechnung"
+      ],
+      "tools": [
+        "Dentalsoftware Charly",
+        "MS Office (Word, Excel)",
+        "E-Mail"
+      ],
+      "languages": [
+        "Deutsch (Muttersprache)",
+        "Englisch (gute Grundkenntnisse, B1)",
+        "Spanisch (Grundkenntnisse)"
+      ],
+      "experiences": [
+        {
+          "company": "Zahnarztpraxis Dr. Albrecht und Kollegen, München",
+          "title": "Zahnmedizinische Fachangestellte, Schwerpunkt Abrechnung",
+          "startDate": "05/2021",
+          "bullets": [
+            "Rechne Leistungen nach BEMA und GOZ für Kassen- und Privatpatienten ab (etwa 400 Fälle pro Quartal)",
+            "Erstelle Heil- und Kostenpläne und kläre Rückfragen von Krankenkassen und privaten Versicherern",
+            "Senkte die Zahl abgelehnter Abrechnungen von etwa 8 auf unter 3 Prozent pro Quartal durch eine Prüfliste vor dem Versand",
+            "Betreue den Empfang und beantworte täglich 30 bis 40 Patientenanfragen am Telefon und vor Ort"
+          ]
+        },
+        {
+          "company": "Zahnarztpraxis Dr. Pohl, Augsburg",
+          "title": "Zahnmedizinische Fachangestellte",
+          "startDate": "08/2018",
+          "endDate": "04/2021",
+          "bullets": [
+            "Assistenz am Behandlungsstuhl, Terminplanung und Karteiführung",
+            "Einarbeitung von zwei Auszubildenden"
+          ]
+        },
+        {
+          "company": "Zahnarztpraxis Dr. Pohl, Augsburg",
+          "title": "Ausbildung zur Zahnmedizinischen Fachangestellten",
+          "startDate": "09/2015",
+          "endDate": "07/2018",
+          "bullets": []
+        }
+      ],
+      "certifications": [
+        "Kurs \"Abrechnung in der Zahnarztpraxis\" (2022)",
+        "Erste-Hilfe-Kurs (2024)"
+      ]
+    },
+    "optimizedCVData": {
+      "personal": {
+        "fullName": "Sabine Köhler",
+        "email": "sabine.koehler@example.de",
+        "phone": "+49 89 0000 0187",
+        "currentTitle": "Zahnmedizinische Fachangestellte | Abrechnung BEMA und GOZ | Patientenkommunikation",
+        "city": "München",
+        "country": "Deutschland"
+      },
+      "summary": "Zahnmedizinische Fachangestellte mit sechs Jahren Praxiserfahrung in Abrechnung und Patientenkommunikation. Rechnet Leistungen nach BEMA und GOZ für Kassen- und Privatpatienten ab und klärt Rückfragen von Krankenkassen und privaten Versicherern. Arbeitet genau, strukturiert und freundlich im Umgang mit Menschen. Sucht den Wechsel von der Praxis in die Leistungsbearbeitung einer Krankenversicherung.",
+      "experience": [
+        {
+          "id": "exp-1",
+          "company": "Zahnarztpraxis Dr. Albrecht und Kollegen",
+          "position": "Zahnmedizinische Fachangestellte, Schwerpunkt Abrechnung",
+          "location": "München",
+          "startDate": "05/2021",
+          "current": true,
+          "bullets": [
+            "Rechne Leistungen nach BEMA und GOZ für Kassen- und Privatpatienten ab",
+            "Senkte die Zahl abgelehnter Abrechnungen von etwa 8 auf unter 3 Prozent pro Quartal durch eine Prüfliste vor dem Versand",
+            "Erstelle Heil- und Kostenpläne und kläre Rückfragen von Krankenkassen und privaten Versicherern",
+            "Betreue den Empfang und beantworte täglich 30 bis 40 Patientenanfragen am Telefon und vor Ort"
+          ],
+          "technologies": [
+            "Dentalsoftware Charly",
+            "MS Office (Word, Excel)"
+          ]
+        },
+        {
+          "id": "exp-2",
+          "company": "Zahnarztpraxis Dr. Pohl",
+          "position": "Zahnmedizinische Fachangestellte",
+          "location": "Augsburg",
+          "startDate": "08/2018",
+          "endDate": "04/2021",
+          "current": false,
+          "bullets": [
+            "Unterstützte die Behandlung durch Assistenz am Behandlungsstuhl",
+            "Übernahm Terminplanung und Karteiführung",
+            "Führte zwei Auszubildende in die täglichen Abläufe ein"
+          ],
+          "technologies": []
+        },
+        {
+          "id": "exp-3",
+          "company": "Zahnarztpraxis Dr. Pohl",
+          "position": "Ausbildung zur Zahnmedizinischen Fachangestellten",
+          "location": "Augsburg",
+          "startDate": "09/2015",
+          "endDate": "07/2018",
+          "current": false,
+          "bullets": [
+            "Abschluss der Ausbildung zur Zahnmedizinischen Fachangestellten in der Praxis und an der Berufsschule"
+          ],
+          "technologies": []
+        }
+      ],
+      "education": [
+        {
+          "id": "edu-1",
+          "institution": "Berufsschule für Zahnmedizinische Fachangestellte",
+          "degree": "Ausbildung zur Zahnmedizinischen Fachangestellten",
+          "location": "Augsburg",
+          "startDate": "2015",
+          "endDate": "2018",
+          "grade": "2,1",
+          "highlights": []
+        },
+        {
+          "id": "edu-2",
+          "institution": "Realschule Gersthofen",
+          "degree": "Realschulabschluss",
+          "endDate": "2015",
+          "highlights": []
+        }
+      ],
+      "skills": [
+        {
+          "category": "Abrechnung",
+          "items": [
+            "BEMA",
+            "GOZ",
+            "Heil- und Kostenpläne",
+            "Kassen- und Privatabrechnung"
+          ]
+        },
+        {
+          "category": "Software",
+          "items": [
+            "Dentalsoftware Charly",
+            "MS Office (Word, Excel)",
+            "E-Mail"
+          ]
+        },
+        {
+          "category": "Kommunikation",
+          "items": [
+            "Patientenkommunikation am Telefon und vor Ort",
+            "Klärung von Rückfragen mit Krankenkassen und Versicherern"
+          ]
+        }
+      ],
+      "languages": [
+        {
+          "language": "Deutsch",
+          "proficiency": "Muttersprache"
+        },
+        {
+          "language": "Englisch",
+          "proficiency": "gute Grundkenntnisse (B1)"
+        },
+        {
+          "language": "Spanisch",
+          "proficiency": "Grundkenntnisse"
+        }
+      ],
+      "certifications": [
+        {
+          "id": "cert-1",
+          "name": "Kurs \"Abrechnung in der Zahnarztpraxis\"",
+          "issuer": "",
+          "date": "2022"
+        },
+        {
+          "id": "cert-2",
+          "name": "Erste-Hilfe-Kurs",
+          "issuer": "",
+          "date": "2024"
+        }
+      ],
+      "projects": [],
+      "additionalInfo": [],
+      "analysis": {
+        "summary": "Der Lebenslauf stellt die sechs Jahre Praxiserfahrung in Abrechnung und Patientenkommunikation in den Mittelpunkt und zeigt den Wechsel in die Leistungsbearbeitung einer Krankenversicherung als logischen nächsten Schritt. Alle Angaben stammen aus dem Primär-CV; nicht belegte Anforderungen wurden bewusst weggelassen.",
+        "key_changes": [
+          "Headline auf Abrechnung nach BEMA und GOZ und Patientenkommunikation ausgerichtet",
+          "Profil auf den Quereinstieg in die Leistungsbearbeitung zugeschnitten",
+          "Bullets nach Relevanz für Leistungsbearbeitung sortiert (Abrechnung, Heil- und Kostenplänen, Rückfragen von Kassen und Versicherern)",
+          "Fähigkeiten nach Abrechnung, Software und Kommunikation gruppiert, Zertifikate und Sprachen getrennt geführt",
+          "Sprachniveau Englisch exakt als B1 übernommen"
+        ],
+        "ats_compatibility": 72,
+        "missing_keywords_added": [
+          "Ausbildung zur Zahnmedizinischen Fachangestellten",
+          "BEMA",
+          "GOZ",
+          "Dentalsoftware Charly",
+          "MS Office (Word, Excel)",
+          "Heil- und Kostenpläne"
+        ]
+      },
+      "sectionHeaders": {
+        "summary": "Profil",
+        "skills": "Kenntnisse",
+        "experience": "Berufserfahrung",
+        "education": "Ausbildung",
+        "certifications": "Weiterbildung",
+        "languages": "Sprachen",
+        "contact": "Kontakt",
+        "additionalInfo": "Weitere Angaben",
+        "projects": "Projekte"
+      },
+      "localizedStrings": {
+        "present": "Heute",
+        "gradePrefix": "Note:",
+        "degreeConnector": "in",
+        "dateOfBirthLabel": "Geburtsdatum",
+        "nationalityLabel": "Nationalität",
+        "photoPlaceholder": "Foto",
+        "websiteLabel": "Webseite",
+        "signatureLabel": "Unterschrift",
+        "cityLabel": "Ort",
+        "dateLabel": "Datum"
+      }
+    },
+    "error": null
+  }
+]

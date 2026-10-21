@@ -55,6 +55,7 @@ import {
   claimStem as stemOf,
   claimWords as words,
 } from './claim-token-normalization';
+import { freedByStemCase, freedGrammarWords } from './claim-grammar-words';
 import { buildCoverLetterSystemBlocks, buildCoverLetterUserPrompt } from './prompts/cover-letter-prompt';
 import { assembleStructuredCoverLetter, renderCoverLetterBody, splitAddressLines, type CoverLetterModelFields } from './cover-letter-structure';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
@@ -406,9 +407,45 @@ const NEUTRAL_WORDS = new Set([
   'goes', 'going', 'gone', 'went',
 ]);
 
-/** Is this word neutral, in its own right or once stemmed? */
-function isNeutral(word: string): boolean {
+/**
+ * Stems of the listed words. claimStem() cuts "-ing", "-ed", "-es" and "-s" but
+ * leaves an "-e" verb as it is, so "included" (listed) stems to "includ" while
+ * "include" (listed) and "including" (not listed) do not meet at the same stem.
+ * Matching the stems of the entries closes that gap. Entries ending "-ly" are
+ * left out: claimStem() cuts that too, and "directly" would otherwise free
+ * "direct" and "directs".
+ */
+const NEUTRAL_STEMS = new Set([...NEUTRAL_WORDS].filter((entry) => !entry.endsWith('ly')).map(stemOf));
+
+/**
+ * Forms that share a stem with a listed word but assert something on their own,
+ * so the stem match must not free them: "featured" (recognition, from the listed
+ * "features"), "sentenced" and "sentencing" (a court's act, from "sentence") and
+ * "writs" (from "writes"). Every other form this match frees is in the write-up
+ * (evals/results/2026-10-21-rewrite-claim-guard.md, Round 3).
+ */
+const NOT_NEUTRAL_BY_STEM = new Set(['featured', 'featuring', 'sentenced', 'sentencing', 'writs']);
+
+/** Is this word neutral as listed, or once stemmed to a listed word? As on main. */
+function isListedNeutral(word: string): boolean {
   return NEUTRAL_WORDS.has(word) || NEUTRAL_WORDS.has(stemOf(word));
+}
+
+/**
+ * Is this word an inflection ("including", "includes", "creates") of a word the
+ * list holds under another stem? Never a role or title word (ROLE_WORDS) or a
+ * form in NOT_NEUTRAL_BY_STEM, and never an "-ly" word, which claimStem() reads
+ * as the adverb of a root and which is not an inflection.
+ */
+function isNeutralByStem(word: string): boolean {
+  if (ROLE_WORDS.has(word) || NOT_NEUTRAL_BY_STEM.has(word) || word.endsWith('ly')) return false;
+  const stem = stemOf(word);
+  return stem !== word && NEUTRAL_STEMS.has(stem);
+}
+
+/** Is this word neutral, in its own right or once stemmed? Case and position ignored. */
+function isNeutral(word: string): boolean {
+  return isListedNeutral(word) || isNeutralByStem(word);
 }
 
 /**
@@ -564,7 +601,13 @@ function sectionInflects(word: string, before: SourceIndex): boolean {
  * characters and not four), and any domain noun the CV never used.
  *
  * What it deliberately does NOT catch, and cannot:
- * - anything in NEUTRAL_WORDS, the tunable knob above
+ * - anything in NEUTRAL_WORDS, the tunable knob above, or an inflection of it
+ *   that shares its stem (see isNeutral)
+ * - a closed class word of the OUTPUT language (claim-grammar-words.ts: a
+ *   preposition, conjunction, article, pronoun, auxiliary or particle), written
+ *   in lowercase or opening a sentence of prose. `language` and `kind` say which
+ *   list and whether the text is prose or a list of items; without them no
+ *   grammar word is freed
  * - a false claim assembled entirely from words the CV already contains, in a
  *   combination it never made. Word-level checking cannot see a false sentence
  *   built from true words. The prompt's own rules are the only guard there
@@ -582,12 +625,26 @@ function sectionInflects(word: string, before: SourceIndex): boolean {
  * kit-written section is refused, because the kit writer paraphrases ("Tested"
  * in the CV becomes "evaluated" in the summary) and a rewrite keeps the wording.
  */
-export function introducedClaims(afterText: string, sourceText: string, beforeText: string): string[] {
+export function introducedClaims(
+  afterText: string,
+  sourceText: string,
+  beforeText: string,
+  language?: string,
+  kind?: CVSectionKind,
+): string[] {
   const source = indexSource(sourceText);
   // The section's own words only: no acronym-plural aliases, so "VPs" can't back "VP".
   const beforeTokens = new Set(words(beforeText));
   const before: SourceIndex = { tokens: beforeTokens, stems: new Set([...beforeTokens].map(stemOf)), parts: [] };
   const acronymAliases = claimAcronymPluralAliases(afterText);
+  // The closed class words of the output language (see claim-grammar-words.ts),
+  // and the stem-matched forms, each only where it is not written as a name.
+  const grammar = freedGrammarWords(afterText, language, kind);
+  const byStem = freedByStemCase(
+    afterText,
+    new Set(words(afterText).filter((word) => !isListedNeutral(word) && isNeutralByStem(word))),
+    kind,
+  );
   const seen = new Set<string>();
   const introduced: string[] = [];
 
@@ -596,7 +653,7 @@ export function introducedClaims(afterText: string, sourceText: string, beforeTe
     seen.add(word);
     if (word.length < 2) continue;
     if (/^[\p{Nd}]+$/u.test(word)) continue;   // quantities are the number guard's job
-    if (isNeutral(word)) continue;
+    if (isListedNeutral(word) || byStem.has(word) || grammar.has(word)) continue;
     if (before.tokens.has(word)) continue;
     if (sectionInflects(word, before)) continue;
     if (source.tokens.has(word)) continue;
@@ -2393,7 +2450,7 @@ export const unifiedWriterAgent = {
     // Unconditional, and driven by what came back rather than by what was
     // asked. A rewrite with no instruction is the loosest brief we send, so it
     // is the last thing that should be running without a claim check.
-    const introduced = introducedClaims(afterText, sourceText, beforeText);
+    const introduced = introducedClaims(afterText, sourceText, beforeText, outputLang, section.kind);
     if (introduced.length > 0) {
       console.warn('[UnifiedAgent] Section rewrite refused, claim not in source CVs:', introduced.length);
       return { ...base, status: 'refused', reason: 'unsupported_claim', terms: introduced };
