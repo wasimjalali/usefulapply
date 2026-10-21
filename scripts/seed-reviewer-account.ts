@@ -18,7 +18,9 @@
  *      `wrangler d1 execute usefulapply-db` (--local unless --remote is passed):
  *      profile and a Max plan (no Stripe ids), credits plus a ledger row, a primary CV,
  *      one US and one German application with a stored kit, fit result and chat
- *      history, job feed consent and a few ranked feed items.
+ *      history, job feed consent, a career profile, a confirmed search strategy and a
+ *      few ranked feed items. Dates are stamped from the run date: ranked matches are
+ *      new, one follow-up is due, one interview is 5 days out, so morning_briefing has content.
  *
  * Plan survival: the account is Max in profiles, user_credits and subscriptions, with
  * `user_credits.subscription_status` NULL and no Stripe ids. The daily sweep
@@ -32,11 +34,14 @@
  * The generated password is never printed. It is written only to
  * --credentials-out (mode 0600), which must be outside the repo or gitignored.
  * Re-running refreshes the data to the same state. Only this one user's rows are
- * touched. If the credentials file is missing or stale, the reviewer user is
- * deleted (cascading its own rows) and created again with a new password.
+ * touched: every fixture primary key (documents, applications, chat, feed run, ranked items,
+ * canonical jobs) is derived from the reviewer's user id, so several reviewer accounts coexist.
+ * Shared feed postings are namespaced `reviewer-seed:<userId>:<key>`, upserted and never deleted
+ * while another account references them. If the credentials file is missing or stale, the
+ * reviewer user is deleted (cascading its own rows) and created again with a new password.
  */
 import { execFileSync } from 'node:child_process';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
@@ -124,6 +129,15 @@ function sqlJson(value: unknown): string {
 
 function sqlNum(value: number | null | undefined): string {
   return value === null || value === undefined ? 'NULL' : String(value);
+}
+
+/**
+ * A UUID-shaped id derived from the reviewer's user id, so two reviewer accounts never share a
+ * primary key and a re-seed of one account reproduces its own ids.
+ */
+function seedId(userId: string, label: string): string {
+  const hex = createHash('sha256').update(`reviewer-seed:${userId}:${label}`).digest('hex');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-8${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
 function runWrangler(args: string[], remote: boolean): string {
@@ -427,14 +441,15 @@ function letterText(l: Letter['structured']): string {
 }
 
 interface Fixture {
-  id: string;
+  /** Stable label the application id is derived from (see seedId). */
+  key: string;
   title: string;
   company: string;
   jobUrl: string;
   jobDescription: string;
   lang: Lang;
   template: string;
-  status: 'applied' | 'drafted';
+  status: 'applied' | 'interview';
   score: number;
   fitLevel: 'strong' | 'good';
   assessment: string;
@@ -450,7 +465,7 @@ interface Fixture {
 }
 
 const US_APP: Fixture = {
-  id: 'a0000000-0000-4000-8000-00000000a001',
+  key: 'us-application',
   title: 'Senior Software Engineer, Platform',
   company: 'Halcyon Cloud Labs',
   jobUrl: 'https://example.com/careers/halcyon-cloud-labs/senior-software-engineer-platform',
@@ -567,7 +582,7 @@ const US_APP: Fixture = {
 };
 
 const DE_APP: Fixture = {
-  id: 'a0000000-0000-4000-8000-00000000a002',
+  key: 'de-application',
   title: 'Senior Backend Engineer (m/w/d)',
   company: 'Fjordwerk GmbH',
   jobUrl: 'https://example.com/karriere/fjordwerk/senior-backend-engineer',
@@ -597,7 +612,7 @@ const DE_APP: Fixture = {
   ].join('\n'),
   lang: 'de',
   template: 'german-ats',
-  status: 'drafted',
+  status: 'interview',
   score: 79,
   fitLevel: 'good',
   assessment:
@@ -739,6 +754,14 @@ function optimizedCvData(cv: FixtureCv, app: Fixture) {
   };
 }
 
+function applicationId(userId: string, app: Fixture): string {
+  return seedId(userId, `application:${app.key}`);
+}
+
+function primaryCvDocumentId(userId: string): string {
+  return seedId(userId, 'document:primary-cv');
+}
+
 function applicationSql(userId: string, app: Fixture, now: string, nowDate: Date): string {
   const cv = buildCv(app.lang, now);
   const letter = app.letter(nowDate);
@@ -796,20 +819,29 @@ function applicationSql(userId: string, app: Fixture, now: string, nowDate: Date
     followUpEmail: followUp,
     detectedLanguage: app.lang,
   };
+  // One date per status, as the tracker writes them (see datesFor in chat-tools/write-tools.ts):
+  // applied keeps a follow-up date, interview keeps an interview date. The follow-up is already due
+  // (morning_briefing lists follow-ups due or overdue, so "tomorrow" would not show up). The interview
+  // is 5 days out, inside the briefing's 7-day window for the whole review. Reminder emails are marked
+  // sent so the daily cron never mails the reviewer inbox about fixture dates.
+  const followUpDueAt = app.status === 'applied' ? new Date(nowDate.getTime() - 60 * 60 * 1000).toISOString() : null;
+  const interviewAt = app.status === 'interview' ? new Date(nowDate.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString() : null;
   return `INSERT INTO application_sessions (
   id, user_id, job_title, company, job_description, job_url, match_score, matching_skills, missing_skills, suggestions,
   requirements, gaps, generated_cv, cover_letter, email, company_address, company_contact_person, cv_edits,
   optimized_cv_text, email_subject, email_body, selected_template, status, cover_letter_language, fit_assessment,
   generation_completed, generation_status, generation_completed_at, follow_up_email, generated_artifacts,
-  screening_turns_used, prep_turns_used, revision, created_at, updated_at
+  screening_turns_used, prep_turns_used, revision, interview_at, follow_up_due_at, interview_reminder_sent_at,
+  follow_up_reminder_sent_at, created_at, updated_at
 ) VALUES (
-  ${sqlText(app.id)}, ${sqlText(userId)}, ${sqlText(app.title)}, ${sqlText(app.company)}, ${sqlText(app.jobDescription)}, ${sqlText(app.jobUrl)},
+  ${sqlText(applicationId(userId, app))}, ${sqlText(userId)}, ${sqlText(app.title)}, ${sqlText(app.company)}, ${sqlText(app.jobDescription)}, ${sqlText(app.jobUrl)},
   ${sqlNum(app.score)}, ${sqlJson(app.matching)}, ${sqlJson(app.missing)}, '[]',
   ${sqlJson(requirements)}, ${sqlJson(gaps)}, ${sqlJson(generatedCv)}, ${sqlJson(coverLetter)}, ${sqlJson(email)},
   ${sqlText(app.companyAddress)}, ${sqlText(app.contactPerson)}, '[]',
   ${sqlText(content)}, ${sqlText(email.subject)}, ${sqlText(email.body)}, ${sqlText(app.template)}, ${sqlText(app.status)}, ${sqlText(app.lang)}, ${sqlJson(fit)},
   1, 'succeeded', ${sqlText(now)}, ${sqlJson(followUp)}, ${sqlJson(artifacts)},
-  0, 0, 1, ${sqlText(now)}, ${sqlText(now)}
+  0, 0, 1, ${sqlText(interviewAt)}, ${sqlText(followUpDueAt)}, ${sqlText(interviewAt ? now : null)},
+  ${sqlText(followUpDueAt ? now : null)}, ${sqlText(now)}, ${sqlText(now)}
 );`;
 }
 
@@ -820,20 +852,122 @@ function primaryCvSql(userId: string, now: string): string {
   const experiences = cv.experience.map((job) => `${job.position}, ${job.company}`);
   const education = cv.education.map((edu) => `${edu.degree}, ${edu.institution}`);
   return `INSERT INTO documents (id, user_id, type, file_name, file_type, file_size, raw_text, sections, all_skills, all_experiences, all_education, structured_data, created_at, updated_at)
-VALUES (${sqlText('d0000000-0000-4000-8000-00000000d001')}, ${sqlText(userId)}, 'primary_cv', 'jordan-whitfield-sample-cv.txt', 'txt', ${raw.length}, ${sqlText(raw)}, '{}', ${sqlJson(skills)}, ${sqlJson(experiences)}, ${sqlJson(education)}, ${sqlJson(cv)}, ${sqlText(now)}, ${sqlText(now)});`;
+VALUES (${sqlText(primaryCvDocumentId(userId))}, ${sqlText(userId)}, 'primary_cv', 'jordan-whitfield-sample-cv.txt', 'txt', ${raw.length}, ${sqlText(raw)}, '{}', ${sqlJson(skills)}, ${sqlJson(experiences)}, ${sqlJson(education)}, ${sqlJson(cv)}, ${sqlText(now)}, ${sqlText(now)});`;
+}
+
+/** The reviewer's feed settings. One object feeds both the settings row and the strategy hash. */
+const FEED_SETTINGS = {
+  target_market: 'us',
+  target_countries: ['us'],
+  target_cities: ['Austin'],
+  target_roles: ['Senior Software Engineer', 'Staff Software Engineer', 'Platform Engineer'],
+  preferred_locations: ['Austin, TX', 'Remote'],
+  remote_preference: 'flexible',
+  remote_preferences: ['hybrid', 'remote_first'],
+  salary_floor: 150000,
+  languages: ['English'],
+  seniority_target: 'senior',
+  seniority_targets: ['senior', 'staff'],
+  employment_types: ['full_time'],
+  user_skills: ['TypeScript', 'PostgreSQL', 'AWS', 'Kubernetes', 'Terraform'],
+};
+
+/** Mirrors computeSettingsHash in src/lib/job-feed/search-strategy.ts (the strategy row key). */
+function feedSettingsHash(): string {
+  const f = FEED_SETTINGS;
+  const material = {
+    target_countries: [...f.target_countries].sort(),
+    target_cities: [...f.target_cities].sort(),
+    target_roles: [...f.target_roles].sort(),
+    preferred_locations: [...f.preferred_locations].sort(),
+    seniority_targets: [...f.seniority_targets].sort(),
+    seniority_target: f.seniority_target,
+    employment_types: [...f.employment_types].sort(),
+    languages: [...f.languages].sort(),
+    target_market: f.target_market,
+    remote_preferences: [...f.remote_preferences].sort(),
+    remote_preference: f.remote_preference,
+  };
+  return createHash('sha256').update(JSON.stringify(material)).digest('hex').slice(0, 16);
 }
 
 function jobFeedSql(userId: string, now: string): string {
+  const f = FEED_SETTINGS;
   return `INSERT OR REPLACE INTO job_feed_settings (
   user_id, enabled, consent_accepted_at, user_timezone, target_market, target_countries, target_cities, target_roles,
   preferred_locations, remote_preference, remote_preferences, salary_floor, languages, seniority_target, seniority_targets,
   employment_types, work_authorization_status, user_skills, excluded_terms, created_at, updated_at
 ) VALUES (
-  ${sqlText(userId)}, 1, ${sqlText(now)}, 'America/Chicago', 'us', ${sqlJson(['us'])}, ${sqlJson(['Austin'])},
-  ${sqlJson(['Senior Software Engineer', 'Staff Software Engineer', 'Platform Engineer'])},
-  ${sqlJson(['Austin, TX', 'Remote'])}, 'flexible', ${sqlJson(['hybrid', 'remote_first'])}, 150000, ${sqlJson(['English'])}, 'senior', ${sqlJson(['senior', 'staff'])},
-  ${sqlJson(['full_time'])}, 'authorized', ${sqlJson(['TypeScript', 'PostgreSQL', 'AWS', 'Kubernetes', 'Terraform'])}, '[]', ${sqlText(now)}, ${sqlText(now)}
+  ${sqlText(userId)}, 1, ${sqlText(now)}, 'America/Chicago', ${sqlText(f.target_market)}, ${sqlJson(f.target_countries)}, ${sqlJson(f.target_cities)},
+  ${sqlJson(f.target_roles)},
+  ${sqlJson(f.preferred_locations)}, ${sqlText(f.remote_preference)}, ${sqlJson(f.remote_preferences)}, ${f.salary_floor}, ${sqlJson(f.languages)}, ${sqlText(f.seniority_target)}, ${sqlJson(f.seniority_targets)},
+  ${sqlJson(f.employment_types)}, 'authorized', ${sqlJson(f.user_skills)}, '[]', ${sqlText(now)}, ${sqlText(now)}
 );`;
+}
+
+/**
+ * The stored career profile (schema version 2, src/lib/job-feed/career-profile.ts) and a user-confirmed
+ * search strategy (version 1, src/lib/job-feed/search-strategy.ts), so get_career_profile returns data
+ * instead of no_profile. It is stored data, written from the fictional CV above. The strategy is marked
+ * userConfirmed, so daily feed runs reuse it and never ask a model to regenerate it. The profile's
+ * source document is the seeded primary CV, stamped with the same time, so the CV never reads as newer.
+ */
+function careerSql(userId: string, now: string): string {
+  const profile = {
+    version: 2,
+    generatedAt: now,
+    function: 'engineering',
+    inferredTitles: [
+      { canonical: 'Senior Software Engineer', confidence: 'high', rationale: 'Current title at Brightwave Systems, with 8 years of backend experience.' },
+      { canonical: 'Platform Engineer', confidence: 'high', rationale: 'Moved 14 services to Kubernetes on AWS EKS and introduced shared Terraform modules.' },
+      { canonical: 'Backend Engineer', confidence: 'medium', rationale: 'Built and tuned PostgreSQL-backed APIs and a Node.js ingestion service.' },
+    ],
+    seniority: { level: 'senior', confidence: 'high', rationale: 'Leads a team of 4 and owns the billing platform API.' },
+    targetDirection: {
+      aspirationalTitles: ['Staff Platform Engineer'],
+      pivot: null,
+      confidence: 'medium',
+      rationale: 'The most recent role moved from building services to leading a team and shared infrastructure.',
+    },
+    yearsTotal: 8,
+    yearsInFunction: 8,
+    primarySkillClusters: [
+      { name: 'backend services', skills: ['TypeScript', 'Node.js', 'PostgreSQL', 'Redis'], evidenceStrength: 'strong' },
+      { name: 'cloud platform and infrastructure', skills: ['AWS', 'Kubernetes', 'Terraform', 'Docker', 'GitHub Actions'], evidenceStrength: 'strong' },
+    ],
+    secondarySkillClusters: [
+      { name: 'data processing', skills: ['Python', 'SQL'], evidenceStrength: 'moderate' },
+      { name: 'web frontend', skills: ['React', 'JavaScript'], evidenceStrength: 'mentioned' },
+    ],
+    industryDomains: ['billing and payments', 'data analytics'],
+    toolsEnvironment: ['AWS', 'Kubernetes', 'Terraform', 'PostgreSQL', 'Redis', 'GitHub Actions'],
+    workingLanguages: ['TypeScript', 'JavaScript', 'Python', 'SQL'],
+    narrative:
+      'Senior backend and platform engineer with 8 years of experience. Leads a team of 4 on a billing platform API that serves 1.2M requests per day. Cut p95 latency from 480 ms to 190 ms and moved 14 services to Kubernetes on AWS EKS. Works mostly in TypeScript, Node.js and PostgreSQL, with Terraform for infrastructure. Looks like a fit for platform and infrastructure roles at senior and staff level.',
+    negativeSignals: ['Frontend-only roles', 'Mobile engineering', 'Machine learning research', 'Junior or intern roles'],
+  };
+  const query = (type: string, text: string, rationale: string, expectedRecall: string, fallbackTo: number | null) => ({
+    type, query: text, targetCountry: 'us', rationale, expectedRecall, fallbackTo,
+  });
+  const strategy = {
+    version: 1,
+    generatedAt: now,
+    sourceProfileGeneratedAt: now,
+    userConfirmed: true,
+    queries: [
+      query('short_tail', 'Platform Engineer', 'Canonical title for the Kubernetes and Terraform work.', 'high', null),
+      query('short_tail', 'Senior Software Engineer', 'Current title, broad recall.', 'high', null),
+      query('long_tail', 'Senior Backend Engineer TypeScript PostgreSQL', 'Primary backend cluster for precision.', 'medium', 1),
+      query('long_tail', 'Staff Platform Engineer Kubernetes AWS', 'Where the career is heading, on the cloud platform cluster.', 'medium', 0),
+    ],
+    negativeTerms: profile.negativeSignals,
+  };
+  return `DELETE FROM user_career_profiles WHERE user_id = ${sqlText(userId)};
+DELETE FROM user_search_strategies WHERE user_id = ${sqlText(userId)};
+INSERT INTO user_career_profiles (user_id, profile, version, source_document_id, source_document_updated_at, model_provider, model_name, created_at, updated_at)
+VALUES (${sqlText(userId)}, ${sqlJson(profile)}, 2, ${sqlText(primaryCvDocumentId(userId))}, ${sqlText(now)}, 'seed', 'reviewer-fixture', ${sqlText(now)}, ${sqlText(now)});
+INSERT INTO user_search_strategies (user_id, settings_hash, strategy, version, source_profile_generated_at, model_provider, model_name, created_at, updated_at)
+VALUES (${sqlText(userId)}, ${sqlText(feedSettingsHash())}, ${sqlJson(strategy)}, 1, ${sqlText(now)}, 'seed', 'reviewer-fixture', ${sqlText(now)}, ${sqlText(now)});`;
 }
 
 /**
@@ -863,7 +997,7 @@ function chatSql(userId: string, app: Fixture, nowDate: Date): string {
     .map((message, index) => {
       const at = new Date(nowDate.getTime() - (messages.length - index) * 60_000).toISOString();
       return `INSERT INTO chat_messages (id, session_id, user_id, role, content, actions, created_at)
-VALUES (${sqlText(`c0000000-0000-4000-8000-${app.id.slice(-8)}${String(index).padStart(4, '0')}`)}, ${sqlText(app.id)}, ${sqlText(userId)}, ${sqlText(message.role)}, ${sqlText(message.content)}, '[]', ${sqlText(at)});`;
+VALUES (${sqlText(seedId(userId, `chat:${app.key}:${index}`))}, ${sqlText(applicationId(userId, app))}, ${sqlText(userId)}, ${sqlText(message.role)}, ${sqlText(message.content)}, '[]', ${sqlText(at)});`;
     })
     .join('\n');
 }
@@ -881,9 +1015,14 @@ interface FeedJob {
   description: string;
 }
 
+/** Canonical keys are `reviewer-seed:<userId>:<job key>`, so each reviewer owns its own postings. */
 const FEED_KEY_PREFIX = 'reviewer-seed:';
 
-/** Fictional postings, owned by the reviewer seed through their `reviewer-seed:` key. */
+function feedKeyNamespace(userId: string): string {
+  return `${FEED_KEY_PREFIX}${userId}:`;
+}
+
+/** Fictional postings, owned by one reviewer through the namespaced canonical key. */
 const FEED_JOBS: FeedJob[] = [
   {
     key: 'meridian-freight-staff-platform',
@@ -958,26 +1097,42 @@ function chicagoDate(nowDate: Date, daysAgo: number): string {
  * "run my feed" is still allowed for a reviewer, and these items sit in the inbox backlog.
  */
 function feedItemsSql(userId: string, now: string, nowDate: Date): string {
-  const runId = 'f0000000-0000-4000-8000-00000000f001';
+  const runId = seedId(userId, 'feed-run');
+  const namespace = feedKeyNamespace(userId);
   const lines: string[] = [
-    // The runs delete cascades the ranked items. Feedback goes with the jobs below.
+    // Only this user's runs and feedback go. Ranked items cascade from the run. Canonical postings are
+    // upserted below and never deleted here, so another account's ranked items and feedback survive.
     `DELETE FROM job_feed_runs WHERE user_id = ${sqlText(userId)};`,
     `DELETE FROM job_feed_feedback WHERE user_id = ${sqlText(userId)};`,
-    `DELETE FROM job_feed_canonical_jobs WHERE canonical_key LIKE ${sqlText(`${FEED_KEY_PREFIX}%`)};`,
     `INSERT INTO job_feed_runs (id, user_id, local_date, local_timezone, trigger_source, status, idempotency_key, started_at, completed_at, result_summary, raw_jobs_fetched, jobs_after_prefilter, ranked_jobs_count, metadata, created_at, updated_at)
 VALUES (${sqlText(runId)}, ${sqlText(userId)}, ${sqlText(chicagoDate(nowDate, 1))}, 'America/Chicago', 'manual', 'completed', ${sqlText(`reviewer-seed-run:${userId}`)}, ${sqlText(now)}, ${sqlText(now)}, 'Sample run for the reviewer account', ${FEED_JOBS.length}, ${FEED_JOBS.length}, ${FEED_JOBS.length}, '{}', ${sqlText(now)}, ${sqlText(now)});`,
   ];
   FEED_JOBS.forEach((job, index) => {
-    const jobId = `f0000000-0000-4000-8000-0000000000${String(index + 10)}`;
+    const jobId = seedId(userId, `feed-job:${job.key}`);
     const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
     lines.push(
+      // The key is namespaced by user id, so the upsert can only ever hit this reviewer's own posting.
       `INSERT INTO job_feed_canonical_jobs (id, canonical_key, source_provider, source_job_id, title, title_normalized, company, company_normalized, location_text, location_normalized, work_mode, employment_type, salary_text, salary_min, salary_max, salary_currency, description, apply_url, source_url, posted_at_text, freshness_days, source_identifiers, first_seen_at, last_seen_at, created_at, updated_at)
-VALUES (${sqlText(jobId)}, ${sqlText(`${FEED_KEY_PREFIX}${job.key}`)}, 'reviewer-seed', ${sqlText(job.key)}, ${sqlText(job.title)}, ${sqlText(normalize(job.title))}, ${sqlText(job.company)}, ${sqlText(normalize(job.company))}, ${sqlText(job.location)}, ${sqlText(normalize(job.location))}, ${sqlText(job.workMode)}, 'full_time', ${sqlText(`USD ${job.salaryMin.toLocaleString('en-US')} to ${job.salaryMax.toLocaleString('en-US')}`)}, ${job.salaryMin}, ${job.salaryMax}, 'USD', ${sqlText(job.description)}, ${sqlText(`https://example.com/jobs/${job.key}`)}, ${sqlText(`https://example.com/jobs/${job.key}`)}, '1 day ago', 1, '{}', ${sqlText(now)}, ${sqlText(now)}, ${sqlText(now)}, ${sqlText(now)});`,
+VALUES (${sqlText(jobId)}, ${sqlText(`${namespace}${job.key}`)}, 'reviewer-seed', ${sqlText(job.key)}, ${sqlText(job.title)}, ${sqlText(normalize(job.title))}, ${sqlText(job.company)}, ${sqlText(normalize(job.company))}, ${sqlText(job.location)}, ${sqlText(normalize(job.location))}, ${sqlText(job.workMode)}, 'full_time', ${sqlText(`USD ${job.salaryMin.toLocaleString('en-US')} to ${job.salaryMax.toLocaleString('en-US')}`)}, ${job.salaryMin}, ${job.salaryMax}, 'USD', ${sqlText(job.description)}, ${sqlText(`https://example.com/jobs/${job.key}`)}, ${sqlText(`https://example.com/jobs/${job.key}`)}, '1 day ago', 1, '{}', ${sqlText(now)}, ${sqlText(now)}, ${sqlText(now)}, ${sqlText(now)})
+ON CONFLICT(canonical_key) DO UPDATE SET title = excluded.title, title_normalized = excluded.title_normalized, company = excluded.company, company_normalized = excluded.company_normalized, location_text = excluded.location_text, location_normalized = excluded.location_normalized, work_mode = excluded.work_mode, salary_text = excluded.salary_text, salary_min = excluded.salary_min, salary_max = excluded.salary_max, description = excluded.description, last_seen_at = excluded.last_seen_at, updated_at = excluded.updated_at;`,
       `INSERT INTO job_feed_ranked_items (id, run_id, user_id, canonical_job_id, rank_position, fit_label, ranking_source, reason, deterministic_score, metadata, created_at)
-VALUES (${sqlText(`f0000000-0000-4000-8000-0000000001${String(index + 10)}`)}, ${sqlText(runId)}, ${sqlText(userId)}, ${sqlText(jobId)}, ${index + 1}, ${sqlText(job.fit)}, 'llm', ${sqlText(job.reason)}, ${job.fit === 'strong' ? 90 - index : 75 - index}, ${sqlJson({ company_display: job.company })}, ${sqlText(now)});`,
+VALUES (${sqlText(seedId(userId, `feed-ranked:${job.key}`))}, ${sqlText(runId)}, ${sqlText(userId)}, ${sqlText(jobId)}, ${index + 1}, ${sqlText(job.fit)}, 'llm', ${sqlText(job.reason)}, ${job.fit === 'strong' ? 90 - index : 75 - index}, ${sqlJson({ company_display: job.company })}, ${sqlText(now)});`,
     );
   });
   return lines.join('\n');
+}
+
+/**
+ * Removes a reviewer's namespaced postings, for the delete-and-recreate path only. A posting another
+ * account has ranked or given feedback on is kept. (The cascade from a canonical job reaches
+ * job_feed_ranked_items and job_feed_feedback of every user, so this guard is what scopes the delete.)
+ */
+function deleteNamespacedJobsSql(userId: string): string {
+  const namespace = feedKeyNamespace(userId);
+  return `DELETE FROM job_feed_canonical_jobs
+WHERE substr(canonical_key, 1, ${namespace.length}) = ${sqlText(namespace)}
+  AND NOT EXISTS (SELECT 1 FROM job_feed_ranked_items r WHERE r.canonical_job_id = job_feed_canonical_jobs.id AND r.user_id <> ${sqlText(userId)})
+  AND NOT EXISTS (SELECT 1 FROM job_feed_feedback f WHERE f.canonical_job_id = job_feed_canonical_jobs.id AND f.user_id <> ${sqlText(userId)});`;
 }
 
 // ---------------------------------------------------------------------------
@@ -1000,8 +1155,8 @@ async function main(): Promise<void> {
   console.log('Plan:');
   console.log('  1. Look the account up by that exact email. Sign in with the credentials file if it exists.');
   console.log('  2. If the sign-in fails, delete that one reviewer user (checked by id and email) and sign it up again with a new password.');
-  console.log(`  3. Set it to Max, ${args.credits} credits, then replace its applications, CV, chat history, feed run and feed settings.`);
-  console.log('  4. Replace the shared feed postings whose key starts with "reviewer-seed:". No other user\'s rows are touched.');
+  console.log(`  3. Set it to Max, ${args.credits} credits, then replace its applications, CV, chat history, career profile, search strategy, feed run and feed settings.`);
+  console.log('  4. Upsert this reviewer\'s own feed postings (keys "reviewer-seed:<its user id>:..."). Every other row is keyed to its user id, and no other user\'s rows are touched.');
   if (args.remote) console.log('--remote and --yes-production were both passed. Proceeding against the live database.');
 
   const existing = d1Rows<{ id: string; email: string }>(`SELECT id, email FROM user WHERE email = ${sqlText(args.email)}`, args.remote)[0];
@@ -1020,7 +1175,7 @@ async function main(): Promise<void> {
       console.log('Existing reviewer account found, but the credentials file does not sign in. Recreating the account.');
       // Each delete is keyed on the id AND the reviewer email, so a wrong id can never match another user.
       d1Exec(
-        `DELETE FROM profiles WHERE id = ${sqlText(existing.id)} AND email = ${sqlText(args.email)};\nDELETE FROM user WHERE id = ${sqlText(existing.id)} AND email = ${sqlText(args.email)};`,
+        `${deleteNamespacedJobsSql(existing.id)}\nDELETE FROM profiles WHERE id = ${sqlText(existing.id)} AND email = ${sqlText(args.email)};\nDELETE FROM user WHERE id = ${sqlText(existing.id)} AND email = ${sqlText(args.email)};`,
         args.remote,
       );
     }
@@ -1066,12 +1221,13 @@ VALUES (${sqlText(randomUUID())}, ${u}, ${delta}, 'reviewer_grant', 'grant', 'Re
     chatSql(userId, US_APP, nowDate),
     chatSql(userId, DE_APP, nowDate),
     jobFeedSql(userId, now),
+    careerSql(userId, now),
     feedItemsSql(userId, now, nowDate),
   );
   d1Exec(`${statements.join('\n')}\n`, args.remote);
 
   // Read back, so a silent partial write fails loudly.
-  const check = d1Rows<{ apps: number; docs: number; credits: number; verified: number; consent: number; chat: number; feed: number; maxPlan: number }>(
+  const check = d1Rows<{ apps: number; docs: number; credits: number; verified: number; consent: number; chat: number; feed: number; maxPlan: number; career: number; strategy: number; dated: number }>(
     `SELECT
        (SELECT COUNT(*) FROM chat_messages WHERE user_id = ${u}) AS chat,
        (SELECT COUNT(*) FROM job_feed_ranked_items WHERE user_id = ${u}) AS feed,
@@ -1080,16 +1236,19 @@ VALUES (${sqlText(randomUUID())}, ${u}, ${delta}, 'reviewer_grant', 'grant', 'Re
        (SELECT COUNT(*) FROM documents WHERE user_id = ${u} AND type = 'primary_cv') AS docs,
        (SELECT monthly_credits + rollover_credits + addon_credits FROM user_credits WHERE user_id = ${u}) AS credits,
        (SELECT email_verified FROM user WHERE id = ${u}) AS verified,
-       (SELECT COUNT(*) FROM job_feed_settings WHERE user_id = ${u} AND consent_accepted_at IS NOT NULL) AS consent`,
+       (SELECT COUNT(*) FROM job_feed_settings WHERE user_id = ${u} AND consent_accepted_at IS NOT NULL) AS consent,
+       (SELECT COUNT(*) FROM user_career_profiles WHERE user_id = ${u} AND json_extract(profile, '$.version') = 2 AND source_document_id IS NOT NULL) AS career,
+       (SELECT COUNT(*) FROM user_search_strategies WHERE user_id = ${u} AND settings_hash = ${sqlText(feedSettingsHash())} AND json_array_length(json_extract(strategy, '$.queries')) > 0) AS strategy,
+       (SELECT COUNT(*) FROM application_sessions WHERE user_id = ${u} AND ((status = 'applied' AND follow_up_due_at IS NOT NULL AND follow_up_due_at <= ${sqlText(now)}) OR (status = 'interview' AND interview_at > ${sqlText(now)}))) AS dated`,
     args.remote,
   )[0];
   if (!check || check.apps !== 2 || check.docs !== 1 || check.credits !== args.credits || check.verified !== 1 || check.consent !== 1
-    || check.chat !== 8 || check.feed !== FEED_JOBS.length || check.maxPlan !== 1) {
+    || check.chat !== 8 || check.feed !== FEED_JOBS.length || check.maxPlan !== 1 || check.career !== 1 || check.strategy !== 1 || check.dated !== 2) {
     fail(`Read-back check failed: ${JSON.stringify(check)}`);
   }
   if (!(await signIn(args.baseUrl, args.email, password))) fail('Read-back sign-in failed');
 
-  console.log(`Seeded ${args.email}: 2 applications with full kits, 1 primary CV, Max plan, ${check.credits} credits, ${check.feed} feed items, feed consent on, email verified, sign-in works.`);
+  console.log(`Seeded ${args.email}: 2 applications with full kits, 1 primary CV, Max plan, ${check.credits} credits, ${check.feed} feed items, a career profile and search strategy, a due follow-up and an interview in 5 days, feed consent on, email verified, sign-in works.`);
   console.log(`Credentials file: ${args.credentialsOut} (mode 0600). The password is not printed.`);
 }
 
