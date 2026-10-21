@@ -402,7 +402,8 @@ const NEUTRAL_WORDS = new Set([
   'ensured', 'ensuring', 'handle', 'handled', 'handling', 'track', 'tracked',
   'tracking', 'test', 'tested', 'testing', 'fix', 'fixed', 'fixing', 'tool',
   'tools', 'system', 'systems', 'feature', 'features',
-  'go', 'goes', 'going', 'gone', 'went',
+  // Not bare 'go': lowercased, it is also the Go language.
+  'goes', 'going', 'gone', 'went',
 ]);
 
 /** Is this word neutral, in its own right or once stemmed? */
@@ -450,12 +451,15 @@ function anchorWords(text: string): Set<string> {
  * pass unconditionally, which is what keeps a straight reword of an existing
  * bullet cheap.
  *
- * `documents` is the Primary CV and the Master CV, plus the section as it
- * stands (the caller appends it). A number found there supports the rewrite
- * only when the two share at least one content word. The current section is in
- * this arm, not in `free`, because the client can edit it: a number it already
- * holds can stay next to the same words, since refusing would leave it in the
- * CV anyway, but it can't be moved onto a new claim. A
+ * `kept` is the section as it stands. The client can edit it, so it is never
+ * in `free`, and a shared content word isn't enough either: sentences in one
+ * section share words like "years" or "Python", and that would let "8 years"
+ * become "8 million users". A number from the section passes only with the
+ * same unit, the word right after it ("8 years" stays "8 years"). Refusing
+ * that would leave the number in the CV anyway.
+ *
+ * `documents` is the Primary CV and the Master CV, and a number found there
+ * supports the rewrite only when the two share at least one content word. A
  * real CV carries dozens of unrelated integers: a postcode, a street number, a
  * graduation year. A bare "does this digit exist anywhere in the document" test
  * hands every one of them to the model as cover for "reduced processing time by
@@ -469,7 +473,7 @@ function anchorWords(text: string): Set<string> {
  * refusal costs a retry and no credits, a miss costs the applicant an
  * interview.
  */
-export function unsupportedNumbers(afterText: string, free: string, documents: string): string[] {
+export function unsupportedNumbers(afterText: string, free: string, documents: string, kept: string): string[] {
   const freeTokens = new Set(quantityTokens(free));
 
   const nearby = new Map<string, Set<string>>();
@@ -483,17 +487,44 @@ export function unsupportedNumbers(afterText: string, free: string, documents: s
     }
   }
 
+  const keptUnits = new Set<string>();
+  for (const segment of segments(kept)) {
+    for (const [token, unit] of quantityUnits(segment)) keptUnits.add(`${token}|${unit}`);
+  }
+
   const unsupported = new Set<string>();
   for (const segment of segments(afterText)) {
     const anchors = anchorWords(segment);
-    for (const token of quantityTokens(segment)) {
+    for (const [token, unit] of quantityUnits(segment)) {
       if (freeTokens.has(token)) continue;
       const context = nearby.get(token);
       if (context && [...anchors].some((anchor) => context.has(anchor))) continue;
+      if (keptUnits.has(`${token}|${unit}`)) continue;
       unsupported.add(token);
     }
   }
   return [...unsupported];
+}
+
+/**
+ * Each quantity in a segment with its unit: the stem of the next word that
+ * isn't itself a number, or '' at the end. "8+ years" is ['8', 'year'] and
+ * "dozens of clients" is ['12', 'of']. Tokenised exactly as quantityTokens, so
+ * the two see the same quantities.
+ */
+function quantityUnits(segment: string): Array<[string, string]> {
+  const normalised = toAsciiDigits(foldUmlauts(segment.toLowerCase()))
+    .replace(/(\d)[.,   ](?=\d{3}\b)/g, '$1');
+  const items = normalised.match(/[\p{Nd}]+|\p{L}+/gu) || [];
+  const quantity = (item: string) => (/^[\p{Nd}]+$/u.test(item) ? item : NUMERAL_WORDS.get(item));
+  const pairs: Array<[string, string]> = [];
+  items.forEach((item, index) => {
+    const token = quantity(item);
+    if (!token) return;
+    const next = items.slice(index + 1).find((later) => !quantity(later));
+    pairs.push([token, next ? stemOf(next) : '']);
+  });
+  return pairs;
 }
 
 /** Every word, stem and compound-sized part the applicant's documents contain. */
@@ -545,9 +576,11 @@ function indexSource(sourceText: string): SourceIndex {
  * job description and the job's own fields are deliberately NOT in it: the
  * employer asking for a skill has never been the applicant having it.
  *
- * `beforeText` is the section as it stands. It authorizes nothing, but a word
- * it already contains is not one this rewrite introduced: refusing the rewrite
- * would leave that word in the CV anyway. Without this, every rewrite of a
+ * `beforeText` is the section as it stands, trusted as the user's own text: a
+ * word it already contains is not one this rewrite introduced, and the rewrite
+ * may reuse and recombine it. That's no escalation, since the same client can
+ * write the section directly for free, and refusing would leave the word in
+ * the CV anyway. It backs nothing it doesn't contain. Without this, every rewrite of a
  * kit-written section is refused, because the kit writer paraphrases ("Tested"
  * in the CV becomes "evaluated" in the summary) and a rewrite keeps the wording.
  */
@@ -2323,8 +2356,8 @@ export const unifiedWriterAgent = {
     const documents = [context.rawCV, context.masterCV].filter(Boolean).join('\n');
 
     // The current tailored section can be client-edited, so it never
-    // authorizes anything NEW: a word or number it already holds may stay, but
-    // nothing it lacks is backed by it. Verified metrics are server-extracted
+    // authorizes anything NEW: a word it holds may stay, a number may stay with
+    // its unit, and nothing it lacks is backed by it. Verified metrics are server-extracted
     // literal substrings of the same source CVs.
     const verified = (context.verifiedMetrics || []).join('\n');
     const sourceText = `${verified}\n${documents}`;
@@ -2350,11 +2383,11 @@ export const unifiedWriterAgent = {
       return { ...base, status: 'unchanged' };
     }
 
-    // The section as it stands joins the anchored arm, never `free`: a number
-    // the kit writer already put there can stay beside the same words, but
-    // can't be moved onto a new claim. Without it, a kit number the CVs only
-    // back through a paraphrase blocks every rewrite that keeps it.
-    const fabricatedNumbers = unsupportedNumbers(afterText, verified, `${documents}\n${beforeText}`);
+    // The section as it stands is its own arm, never `free`: a number the kit
+    // writer already put there can stay with the same unit, but can't be moved
+    // onto a new claim. Without it, a kit number the CVs only back through a
+    // paraphrase blocks every rewrite that keeps it.
+    const fabricatedNumbers = unsupportedNumbers(afterText, verified, documents, beforeText);
     if (fabricatedNumbers.length > 0) {
       console.warn('[UnifiedAgent] Section rewrite refused, unverified numbers:', fabricatedNumbers.length);
       return { ...base, status: 'refused', reason: 'unsupported_number', terms: fabricatedNumbers };

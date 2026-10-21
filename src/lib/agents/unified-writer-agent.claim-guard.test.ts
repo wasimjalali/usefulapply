@@ -37,15 +37,44 @@ const DOCUMENTS = SOURCE_CV;
 
 test('a number already in the section, beside the same words, is not introduced', () => {
   const after = 'Compared nearly 30 models on hand-labelled cases to ship Safwa, a live Q&A filter.';
-  assert.deepEqual(unsupportedNumbers(after, '', `${DOCUMENTS}\n${BEFORE_ROUNDED}`), []);
+  assert.deepEqual(unsupportedNumbers(after, '', DOCUMENTS, BEFORE_ROUNDED), []);
 });
 
 test('a number from the section moved onto a new claim is still refused', () => {
   const after = 'Built and launched Useful Apply for 30 paying customers.';
-  assert.deepEqual(unsupportedNumbers(after, '', `${DOCUMENTS}\n${BEFORE_ROUNDED}`), ['30']);
+  assert.deepEqual(unsupportedNumbers(after, '', DOCUMENTS, BEFORE_ROUNDED), ['30']);
 });
 
 test('without the section, the kit-written number is refused (the old behaviour)', () => {
   const after = 'Compared nearly 30 models on hand-labelled cases to ship Safwa, a live Q&A filter.';
-  assert.deepEqual(unsupportedNumbers(after, '', DOCUMENTS), ['30']);
+  assert.deepEqual(unsupportedNumbers(after, '', DOCUMENTS, ''), ['30']);
+});
+
+// Review round 1 (Opus): a section number must keep its unit, or shared words
+// like "years" and "Python" let it slide onto a new claim.
+const BEFORE_EIGHT = 'Backend engineer with 8 years in Python. Evaluated payment APIs serving 2 million users.';
+
+test('a section number moved onto a new unit is refused', () => {
+  assert.ok(unsupportedNumbers('Python engineer whose payment APIs serve 8 million users.', '', DOCUMENTS, BEFORE_EIGHT).includes('8'));
+  assert.ok(unsupportedNumbers('Led 8 engineers over two years in Python.', '', DOCUMENTS, BEFORE_EIGHT).includes('8'));
+});
+
+test('a section number that keeps its unit passes', () => {
+  assert.deepEqual(unsupportedNumbers('Python backend engineer with 8+ years of experience.', '', DOCUMENTS, BEFORE_EIGHT), []);
+});
+
+test('vague wording in the section does not become a precise number', () => {
+  assert.deepEqual(unsupportedNumbers('Supported 12 clients.', '', DOCUMENTS, 'Supported dozens of clients.'), ['12']);
+});
+
+test('Go the language is a claim, not a neutral verb; went stays neutral', () => {
+  // "backend" and "engineer" are in the section; "went" is neutral. Python and Go are in no CV.
+  assert.deepEqual(introducedClaims('Backend engineer who went from Python to Go.', SOURCE_CV, 'Backend engineer.'), ['python', 'go']);
+});
+
+// The accepted trade-off, pinned: a word the user put in the section by hand
+// may stay through a rewrite. It is already in the CV; refusing removes nothing.
+test('a client-added word already in the section survives a rewrite', () => {
+  const before = 'Applied AI engineer. Runs agents on Kubernetes.';
+  assert.deepEqual(introducedClaims('Applied AI engineer running agents on Kubernetes.', SOURCE_CV, before), []);
 });
