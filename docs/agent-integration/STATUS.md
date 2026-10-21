@@ -4,10 +4,11 @@ Last updated 2026-10-21, session 3 (in progress). The plan is `PLAN.md` (v3) in 
 
 ## Resume here (session 4)
 
-1. **#159** (`fix/discard-and-short-jd`, pushed at 3f5a250e): review round 3 is done (Codex 1 high, confirmed real by an Opus arbiter: a partial Discard leaves the discarded document's columns in the editor's lineage, so a stale copy can overwrite newer server text; Sonnet 6 lows). The fix for all of them runs in `.claude/worktrees/fix-159` (Opus debugger). Check its diff, give the fix one Opus pass (round 3 was the last regular round), merge, then deploy together with #162 and smoke-check. The Discard bug is live in production until then.
-2. **PR 5 = #163** (`feature/mcp-tool-catalog`): three review rounds done on the sensitive row (Sonnet + Codex + Opus, high). Round 1: 5 highs, 25 lows; round 2: 1 high (fit context ids collided across tools), 9 lows; round 3: 0 highs, 9 lows. Every high is fixed with a spec that fails on the old code. Round 3 lows (avatar remove/set race and orphan sweep, get_cv wrapping only free text, wrapped `before` text, update_application refusing << >>, spec gaps) are being fixed on `fix/pr5-r3` in `.claude/worktrees/pr5-c`; lows need no further pass. Then merge it in, rerun all lanes (`data` + `oauth` + `mcp` with expiry, `mcp-exports`), merge #163. **Deploy order:** D1 time-travel bookmark, apply 0011 remote, THEN `npm run deploy:cf`; web regenerate and web CV edits write `application_edit_history` even with MCP off.
-3. **#161** (`feature/mcp-distribution-pack`, pushed 95b71396): listing updated to 43 tools. Review (Sonnet + Codex) after PR 5 merges; check the seed script gaps (notification switches, photo, empty projects).
-4. Then #156 round 2, launch, follow-ups, as in "Left to do" below.
+1. **Shipped in session 3:** #162 (refund reconciler, D1 LIKE limit), #159 (Discard data-safety fix, live since version `79541d8e`), #163 (PR 5, the 43-tool MCP catalog, with migration 0011 applied remote). MCP is still off (`MCP_ENABLED=false`).
+2. **#161** (`feature/mcp-distribution-pack`): review round 2 done, all lows fixed; merges next.
+3. **#156** (`feature/mcp-distribution-docs`): review round 3 done, all lows fixed; merges in the launch deploy, so its /integrations links work from the start. Fill the PostHog retention placeholder at `src/app/privacy/page.tsx:573` before launch (Wasim's number).
+4. **Launch:** `MCP_ENABLED=true` in `wrangler.jsonc`; footer "AI integrations" link unconditional; `/plugin marketplace add wasimjalali/usefulapply-plugin` line on /integrations; deploy; live-test every tool in MCP Inspector, Claude Code (plugin), the Claude.ai custom connector and ChatGPT developer mode.
+5. **Follow-ups** as in "Left to do", plus: `rewrite_cv_section` returns its before/after text unwrapped while the other CV edit tools wrap it; no spec asserts the top-level `language` code in `get_cv` stays unwrapped.
 
 ## Session 3 progress (2026-10-21)
 
@@ -41,10 +42,11 @@ Last updated 2026-10-21, session 3 (in progress). The plan is `PLAN.md` (v3) in 
 **Production version:** `0d6ac237` (recorded at deploy time).
 
 **Production state:**
-- **Migrations applied:** 0009 and 0010.
+- **Migrations applied:** 0009, 0010 and 0011.
 - **Restore bookmarks:**
   - before 0009: `00002253-00000000-0000510a-3d0903b46b16d2719196570752add4b2`
   - before 0010: `00002277-00000000-0000510a-8009d4a7e5b3e2de94c26df59b2e0315`
+  - before 0011 (2026-10-21, session 3): `000022fb-00000000-0000510b-b2fb610efe00565f2843d3e573f3a49b`
 - **Secrets set:** `EXPORT_SIGNING_SECRET`.
 - **Queues created:** `agent-generation`, `agent-generation-dlq`.
 
