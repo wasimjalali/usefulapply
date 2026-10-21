@@ -8,7 +8,7 @@ import { SEO_SITE_URL } from '@/lib/seo/site-url';
 import { BRAND } from '@/lib/brand';
 import { isMcpEnabled } from '@/lib/mcp/config';
 
-// Hidden until MCP launches. Read the flag per request, not at build.
+// 404 when MCP is switched off. Read the flag per request, not at build.
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = buildPageMetadata({

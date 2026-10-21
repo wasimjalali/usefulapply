@@ -4,11 +4,12 @@ Last updated 2026-10-21, session 3 (in progress). The plan is `PLAN.md` (v3) in 
 
 ## Resume here (session 4)
 
-1. **Shipped in session 3:** #162 (refund reconciler, D1 LIKE limit), #159 (Discard data-safety fix, live since version `79541d8e`), #163 (PR 5, the 43-tool MCP catalog, with migration 0011 applied remote). MCP is still off (`MCP_ENABLED=false`).
-2. **#161** (`feature/mcp-distribution-pack`): review round 2 done, all lows fixed; merges next.
-3. **#156** (`feature/mcp-distribution-docs`): review round 3 done, all lows fixed; merges in the launch deploy, so its /integrations links work from the start. Fill the PostHog retention placeholder at `src/app/privacy/page.tsx:573` before launch (Wasim's number).
-4. **Launch:** `MCP_ENABLED=true` in `wrangler.jsonc`; footer "AI integrations" link unconditional; `/plugin marketplace add wasimjalali/usefulapply-plugin` line on /integrations; deploy; live-test every tool in MCP Inspector, Claude Code (plugin), the Claude.ai custom connector and ChatGPT developer mode.
-5. **Follow-ups** as in "Left to do", plus: `rewrite_cv_section` returns its before/after text unwrapped while the other CV edit tools wrap it; no spec asserts the top-level `language` code in `get_cv` stays unwrapped.
+1. **Shipped in session 3:** #162 (refund reconciler, D1 LIKE limit), #159 (Discard data-safety fix), #163 (PR 5, the 43-tool MCP catalog; migration 0011 applied remote), #161 (submission pack, reviewer seed), #156 (/integrations, privacy and terms; MCP analytics kept 12 months) and the launch PR (`MCP_ENABLED=true`, footer link always shown, plugin install commands on /integrations). MCP is live at https://usefulapply.com/mcp.
+2. **Live tests** after launch: every tool in MCP Inspector, Claude Code (plugin), the Claude.ai custom connector and ChatGPT developer mode, through Aside on Wasim's accounts. Artifacts in `verify/feature-mcp-launch/`.
+3. **Wasim, when ready to submit:** run the reviewer seed against production (`scripts/seed-reviewer-account.ts`, full command in `submission/checklist.md`), then submit at claude.ai/directory/manage (connector and plugin) and in the OpenAI app directory (identity verification and `OPENAI_APPS_CHALLENGE` first).
+4. **Follow-ups** as in "Left to do", plus: `rewrite_cv_section` returns its before/after text unwrapped while the other CV edit tools wrap it; no spec asserts the top-level `language` code in `get_cv` stays unwrapped; AGENTS.md still lists `/applications`, removed long ago.
+
+**Kill switch:** set `MCP_ENABLED` to `"false"` in `wrangler.jsonc` and deploy. /mcp, the OAuth server and /integrations return 404. The footer "AI integrations" link stays (it can't read the var), so it would 404 too: drop it from `Footer.tsx` in the same change.
 
 ## Session 3 progress (2026-10-21)
 
