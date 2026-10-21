@@ -131,6 +131,8 @@ export interface UnifiedAgentInput {
   jobPreferences?: MasterContext['jobPreferences'];
   /** Recipient details from the stored application session row (see MasterContext). */
   letterRecipient?: MasterContext['letterRecipient'];
+  /** The applicant's saved start date and salary expectation, loaded from D1 by the server (see MasterContext). */
+  logistics?: MasterContext['logistics'];
   generationContext?: LlmGenerationContext;
 }
 
@@ -1814,6 +1816,7 @@ export const unifiedWriterAgent = {
       masterCV: input.masterCV,
       jobPreferences: input.jobPreferences,
       letterRecipient: input.letterRecipient,
+      logistics: input.logistics,
     };
 
     try {
