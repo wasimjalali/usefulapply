@@ -448,9 +448,13 @@ function isNeutralByStem(word: string): boolean {
   return stem !== word && NEUTRAL_STEMS.has(stem);
 }
 
-/** Is this word neutral, in its own right or once stemmed? Case and position ignored. */
-function isNeutral(word: string): boolean {
-  return isListedNeutral(word) || isNeutralByStem(word);
+/**
+ * The neutral check exactly as main had it, for the advisory "your CV doesn't
+ * mention X" list (unsupportedInstructionTerms), which this guard's changes are
+ * not meant to touch: "Change the heading" must not report "heading".
+ */
+function isNeutralAsBefore(word: string): boolean {
+  return NEUTRAL_WORDS.has(word) || NEUTRAL_WORDS.has(stemOf(word));
 }
 
 /**
@@ -607,7 +611,9 @@ function sectionInflects(word: string, before: SourceIndex): boolean {
  *
  * What it deliberately does NOT catch, and cannot:
  * - anything in NEUTRAL_WORDS, the tunable knob above, or an inflection of it
- *   that shares its stem (see isNeutral)
+ *   that shares its stem (see isListedNeutral and isNeutralByStem), except role words: "heading" is listed
+ *   (a section heading) but also a role word ("heading the team"), so it is
+ *   checked here like every role word
  * - a closed class word of the OUTPUT language (claim-grammar-words.ts: a
  *   preposition, conjunction, article, pronoun, auxiliary or particle), written
  *   in lowercase or opening a sentence of prose. `language` and `kind` say which
@@ -749,7 +755,7 @@ function unsupportedInstructionTerms(instruction: string, sourceText: string): s
     seen.add(word);
     if (word.length < 2) continue;
     if (/^[\p{Nd}]+$/u.test(word)) continue;
-    if (isNeutral(word)) continue;
+    if (isNeutralAsBefore(word)) continue;
     if (INSTRUCTION_SHAPE_WORDS.has(word) || INSTRUCTION_SHAPE_WORDS.has(stemOf(word))) continue;
     if (source.tokens.has(word) || source.stems.has(stemOf(word))) continue;
     const acronymBase = acronymAliases.get(word);

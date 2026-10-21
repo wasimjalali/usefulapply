@@ -14,11 +14,15 @@
  * (other than auxiliaries), adjectives or adverbs are ever candidates.
  *
  * Sources, pinned by URL and sha256 (the script refuses other bytes):
- *   UD_English-EWT r2.18, UD_German-GSD r2.18, CC BY-SA 4.0.
+ *   UD_English-EWT r2.18 (Silveira et al.) and UD_German-GSD r2.18 (McDonald et
+ *   al., Google), CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).
+ *   The candidate files this writes, and the reviewed lists built from them, are
+ *   adaptations (word forms with counts and tags) under the same licence.
  * UD_German-HDT (text for academic use only) and GUM and LinES (NonCommercial)
  * are deliberately not used.
  *
- * Usage: download the six files below into one folder, then
+ * Usage: download the six files below into one folder (the curl loop in the
+ * write-up evals/results/2026-10-21-rewrite-claim-guard.md, Round 3), then
  *   npx tsx scripts/build-grammar-words.ts --corpora <folder> --out <folder>
  * Output: candidates-en.tsv, candidates-de.tsv (form, count, closed share, tags).
  * Deterministic: same inputs, same output.

@@ -81,7 +81,7 @@ const GRAMMAR_WORDS_SOURCE = {
   ],
   de: [
     // Prepositions, and their contractions with the article (im, zum, zur, vom).
-    'ab', 'am', 'an', 'ans', 'anhand', 'auf', 'aufgrund', 'aufs', 'aus', 'bei', 'beim', 'bis',
+    'am', 'an', 'ans', 'anhand', 'auf', 'aufgrund', 'aufs', 'aus', 'bei', 'beim', 'bis',
     'durch', 'entlang', 'für', 'gegen', 'hinter', 'im', 'in', 'ins', 'mit', 'mittels', 'nach',
     'neben', 'seit', 'über', 'um', 'ums', 'unter', 'vom', 'von', 'vor', 'während', 'wegen', 'zu',
     'zum', 'zur', 'zwischen',
@@ -96,11 +96,10 @@ const GRAMMAR_WORDS_SOURCE = {
     'jedes', 'alle', 'allem', 'allen', 'aller', 'andere', 'anderem', 'anderen', 'anderer',
     'anderes', 'solch', 'solche', 'solchen', 'solcher', 'solches', 'selben', 'derselben',
     'desselben', 'dieselbe', 'dieselben', 'demjenigen', 'diejenigen', 'welche', 'welchem', 'welchen', 'welcher', 'welches',
-    'mein', 'meine', 'meinem', 'meinen', 'meiner', 'meines', 'unser', 'unsere', 'unserem',
-    'unseren', 'unserer', 'unseres', 'seine', 'seinem', 'seinen', 'seiner', 'seines', 'ihre',
+    'seine', 'seinem', 'seinen', 'seiner', 'seines', 'ihre',
     'ihrem', 'ihren', 'ihrer', 'ihres',
     // Pronouns.
-    'ich', 'mich', 'mir', 'er', 'ihm', 'ihn', 'es', 'sie', 'ihnen', 'ihr', 'wir', 'uns', 'euch',
+    'ich', 'er', 'ihm', 'ihn', 'es', 'sie', 'ihnen', 'ihr', 'wir', 'euch',
     'sich', 'man', 'wer', 'was', 'dessen', 'deren', 'derer', 'denen',
     // Auxiliaries, including their subjunctive forms.
     'sein', 'ist', 'sind', 'bin', 'bist', 'sei', 'seien', 'war', 'waren', 'wäre', 'wären',
@@ -120,6 +119,16 @@ const GRAMMAR_WORDS_SOURCE = {
  * both on a list and excluded. Words are listed as the treebank writes them.
  */
 export const EXCLUDED_GRAMMAR_WORDS: ReadonlyArray<{ language: 'en' | 'de'; reason: string; words: readonly string[] }> = [
+  {
+    language: 'de',
+    reason: 'first-person object or possessive: "mit dem Team unter mir", "mein Team" carry a supervision or ownership claim with no verb to catch it (review of #171)',
+    words: ['mich', 'mir', 'uns', 'mein', 'meine', 'meinem', 'meinen', 'meiner', 'meines', 'unser', 'unsere', 'unserem', 'unseren', 'unserer', 'unseres'],
+  },
+  {
+    language: 'de',
+    reason: 'also the name of a lowercase CLI tool (ab, Apache Bench), which the case rule cannot tell apart (review of #171)',
+    words: ['ab'],
+  },
   {
     language: 'en',
     reason: 'a product, tier, brand or other name in either language (Nix, Pro, Plus, Via, Art, Per)',
@@ -230,6 +239,8 @@ function isProse(kind: CVSectionKind | undefined): boolean {
 /** Words before a full stop that do not end a sentence. */
 const ABBREVIATIONS = new Set([
   'etc', 'vs', 'inc', 'ltd', 'corp', 'approx', 'dept', 'govt', 'est', 'prof', 'bzw', 'ca', 'ggf', 'usw',
+  // A capitalised grammar word after these is mid-sentence, not a sentence start (review of #171).
+  'inkl', 'evtl', 'mio', 'mrd', 'abt', 'univ', 'mrs', 'eng', 'sog', 'vgl', 'max', 'min', 'nr', 'tel',
 ]);
 
 /**

@@ -240,11 +240,19 @@ How the lists were made: `scripts/build-grammar-words.ts` reads UD_English-EWT a
 Everything is free: no model calls, $0. The 59 stored rewrites and kits from round 1 (`run/`, Sonnet 5.5, 2026-10-21, $1.21) were re-scored.
 
 ```
-npx tsx scripts/build-grammar-words.ts --corpora <folder> --out evals/results/2026-10-21-rewrite-claim-guard/narrow
-npx tsx evals/rewrite-claim-guard.ts score --in evals/results/2026-10-21-rewrite-claim-guard/run --scores scores-round3.json
-npx tsx evals/rewrite-claim-guard/stem-audit.ts <folder> evals/results/2026-10-21-rewrite-claim-guard/narrow/stem-freed-forms.txt
-npx tsx evals/rewrite-claim-guard/freed-forms.ts <folder> evals/results/2026-10-21-rewrite-claim-guard/narrow/freed-forms.txt
+# The six UD 2.18 files (the build script checks their sha256 and refuses other bytes):
+mkdir -p corpora && for f in UD_English-EWT/en_ewt UD_German-GSD/de_gsd; do for p in train dev test; do
+  curl -fsSL -o "corpora/$(basename $f)-ud-$p.conllu" "https://raw.githubusercontent.com/UniversalDependencies/${f%/*}/r2.18/$(basename $f)-ud-$p.conllu"; done; done
+npx tsx scripts/build-grammar-words.ts --corpora corpora --out evals/results/2026-10-21-rewrite-claim-guard/narrow
+npx tsx evals/rewrite-claim-guard.ts score --in evals/results/2026-10-21-rewrite-claim-guard/run --scores scores-round3-final.json
+# <corpora folder> below is the same folder of six .conllu files.
+npx tsx evals/rewrite-claim-guard/stem-audit.ts corpora evals/results/2026-10-21-rewrite-claim-guard/narrow/stem-freed-forms.txt
+npx tsx evals/rewrite-claim-guard/freed-forms.ts corpora evals/results/2026-10-21-rewrite-claim-guard/narrow/freed-forms.txt
 ```
+
+Raw score files: `run/score-round3-final.stdout.txt` and `run/scores-round3-final.json.gz` are the shipped guard (after the review fixes below). `run/score-round3.stdout.txt` and `run/scores-round3.json.gz` are the worker's first run, before the role-word and review fixes, kept as the record.
+
+Sources and licence: UD_English-EWT r2.18 (Silveira et al.) and UD_German-GSD r2.18 (McDonald et al., Google), both CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). The grammar-word lists in `claim-grammar-words.ts` and the candidate files `narrow/candidates-*.tsv` are adaptations of them (word forms with counts and tags) and are shared under the same licence.
 
 Changes to the harness: the baseline is now origin/main byte for byte (`baseline-guard.ts` carries its own copy of main's `claim-token-normalization.ts`; rounds 1 and 2 imported the working tree's version, which joined dotted degrees, so "B.S." was a claim for the baseline and not on main). `probes.ts` holds the reviewer probes. Raw files over 1 MB are gzipped (`scores-round2.json.gz`, `option-*.json.gz`, `scores-round3.json.gz`). Because the harness's normalisation is now main's, the held-out set has 14,911 injections here and had 14,902 in round 2, and the baseline misses 801 of them here and missed 746 there. Compare each guard with the baseline of its own row.
 
@@ -268,13 +276,13 @@ Misses (an injected fabrication none of whose claim words is flagged):
 | Set | Injected | Baseline missed | Narrow missed | New misses vs baseline | #170 round 2 missed (baseline) |
 |---|---|---|---|---|---|
 | Original injections (9 kinds) | 531 | 10 | 10 | **0** | 10 (10) |
-| Held-out (names at line start, list items, lowercase brands, standing, authority, scope; EN and DE) | 14,911 | 801 | 801 | **0** | 604 (746) |
-| of which English | 11,011 | 787 | 787 | 0 | 590 (732) |
+| Held-out (names at line start, list items, lowercase brands, standing, authority, scope; EN and DE) | 14,911 | 801 | 773 | **0** | 604 (746) |
+| of which English | 11,011 | 787 | 759 | 0 | 590 (732) |
 | of which German | 3,900 | 14 | 14 | 0 | 14 (14) |
 | Lowercase brands | 103 | | | 0 | |
 | Reviewer probes (`probes.ts`) | 190 | 179 refused on main | 179 refused | **0** | |
 
-Held-out misses are the same 801 as on main, because this fix frees only words that none of those injections used as a claim. #170 caught 142 more of them, and also let through the claims listed above that main refused. The 11 probes main does not refuse (all still pass, unchanged): "knowledgeable" (the compound rule, "knowledge" is in the CV), "M.S." (two one-letter words are dropped), the items Make, Next, Close, Later (listed in `NEUTRAL_WORDS`), "greatly", "mainly", "largely" (stems of listed words) and "during the war" ("war" is a listed German word).
+Held-out misses fall from main's 801 to 773: the grammar words free nothing any injection used as a claim, and the role-word fix catches 28 "founded"/"founding" injections main missed. #170 caught 142 more than main, and also let through the claims listed above that main refused. 179 counts the probes where main refuses a claim word of the probe; main refuses 180 probes in all, because it refuses "M.S." on "completed", not on "ms". The 10 probes main passes outright (all still pass, unchanged): "knowledgeable" (the compound rule, "knowledge" is in the CV), the items Make, Next, Close, Later (listed in `NEUTRAL_WORDS`), "greatly", "mainly", "largely" (stems of listed words) and "during the war" ("war" is a listed German word).
 
 The probes: the PR's "106/106 reviewer probes" was a working list that was not committed, so the list is rebuilt in `probes.ts` from the PR's test file, the round 1 and round 2 review outputs and the round 3 brief. It has 190 probes, 179 of which main refuses. Every one of those 179 is refused by the narrow fix, including each case named in the brief: took over the team, Ich übernahm das Team, Das Team berichtete an mich, Ich baute das Team auf, verschrieb Medikamente, verteidigte Mandanten, significantly improved, personally, Thrived, gelernte Kauffrau, Nix as an item and mid-sentence, Pro, Plus, Team legend., at a plant, Google, Convex, Welsh and Photoshop at line start and as list items, lowercase "at google", knowledgeable (main passes it too), masterminded. They run in `npm test`.
 
@@ -289,12 +297,20 @@ Method: every word of a 66,323-word vocabulary (all forms of both treebanks, bot
 
 None of these asserts a title, credential, standing, scope, ownership or quantity of the applicant. The words a reviewer could argue about were dropped (see the table above). The brand and homograph cases of #170 stay refused: Nix, Pro, Plus and Art are on no list, an English text never frees a German word (so "Team legend." and "at a plant" are refused), and "via", "per" and "war" are free exactly as on main, where `NEUTRAL_WORDS` lists them.
 
+### Review fixes (Opus and Sonnet on #171, 2026-10-21)
+
+- **High:** German "mir" was the only gate on "mit dem Team unter mir" (a supervision claim with no verb), and main refused it. The first-person object and possessive forms (mich, mir, uns, mein*, unser*) are now excluded from the German list. English "me", "my", "our" and "us" were already neutral on main and stay as they were.
+- "ab" is excluded too (also the lowercase CLI tool Apache Bench).
+- More abbreviations (inkl., evtl., Mio., Mrd., Abt., Univ., Mrs. and similar) no longer count as a sentence end, so a capitalised grammar word after them isn't freed.
+- The advisory "your CV doesn't mention X" list (`unsupportedInstructionTerms`) keeps main's neutral check exactly, so it doesn't change. "Heading" is now refused in rewrites ("Heading the agents team"), because it's a role word as well as a listed word. That's a deliberate tightening.
+- Re-scored after these fixes (the final raw files above): the stored rewrites, the original injections and the probes are unchanged; held-out misses 773; 0 new misses everywhere. Newly freed in the eval contexts: including, habe, sie, er, sodass, ich, bin.
+
 ### What was not changed, and was found on main
 
 Out of scope by decision, listed so the model-based check can take them:
 
 - `isNeutral` already frees any inflection of a listed surface form, so **"founded" and "founding" pass on main** (stem "found", and "found" is listed), although both are in `ROLE_WORDS`. This fix keeps role words out of its own new match and does not touch the old one. Proposal: apply the `ROLE_WORDS` check to the whole of `isNeutral`. It only adds refusals. **Done in the same PR (orchestrator, 2026-10-21):** `isListedNeutral` now returns false for any `ROLE_WORDS` word. Re-scored with no other change: held-out misses fall from 801 to 773 (28 more caught), and the stored rewrites, the original injections and the probes are unchanged (0 new misses everywhere). Pinned by the test "founding claims are never neutral".
-- Main passes the 11 probes listed above, and misses 801 of 14,911 held-out injections, mostly names at the start of a line or as a list item whose lowercase form is a listed word (Make, Next, Close, Later, Word) and a handful of authority verbs. None is new.
+- Main passes the 10 probes listed above, and misses 801 of 14,911 held-out injections, mostly names at the start of a line or as a list item whose lowercase form is a listed word (Make, Next, Close, Later, Word) and a handful of authority verbs. None is new.
 - Capitalised function words that are names (Via, Per) stay free exactly as on main, where `NEUTRAL_WORDS` has them.
 
 ### Conclusion

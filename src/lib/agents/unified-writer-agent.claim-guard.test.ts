@@ -133,7 +133,8 @@ test('grammar words are free in the output language only', () => {
   assert.deepEqual(introducedClaims('Applied AI engineer, obwohl wegen sodass.', SOURCE_CV, before, 'en', 'summary'), ['obwohl', 'wegen', 'sodass']);
   const source = 'Vertriebsingenieurin. Betreuung von 40 Kunden im Maschinenbau.';
   const beforeDe = 'Vertriebsingenieurin im Maschinenbau.';
-  assert.deepEqual(introducedClaims('Vertriebsingenieurin im Maschinenbau, obwohl wegen sodass er mich sieht.', source, beforeDe, 'de', 'summary'), ['sieht']);
+  // "mich" stays a claim word (first-person object, see EXCLUDED_GRAMMAR_WORDS).
+  assert.deepEqual(introducedClaims('Vertriebsingenieurin im Maschinenbau, obwohl wegen sodass er mich sieht.', source, beforeDe, 'de', 'summary'), ['mich', 'sieht']);
   assert.deepEqual(introducedClaims('Vertriebsingenieurin im Maschinenbau, although against.', source, beforeDe, 'de', 'summary'), ['although', 'against']);
 });
 
@@ -214,4 +215,26 @@ test('every reviewer probe origin/main refuses is still refused', () => {
 test('founding claims are never neutral', () => {
   assert.deepEqual(introducedClaims('Founded the agents team.', SOURCE_CV, 'Built the agents team.'), ['founded']);
   assert.deepEqual(introducedClaims('Founding engineer for agents.', SOURCE_CV, 'Engineer for agents.'), ['founding']);
+});
+
+// Review of #171 (Opus): a German first-person pronoun was the only gate on a supervision claim.
+test('German first-person objects and possessives are not freed', () => {
+  const cv = 'Vertriebsingenieurin im Maschinenbau. Arbeit im Team.';
+  const before = 'Vertriebsingenieurin im Maschinenbau.';
+  assert.deepEqual(introducedClaims('Vertriebsingenieurin im Maschinenbau, mit dem Team unter mir.', cv, before, 'de', 'summary'), ['mir']);
+  assert.deepEqual(introducedClaims('Vertriebsingenieurin im Maschinenbau, mein Team.', cv, before, 'de', 'summary'), ['mein']);
+  // A lowercase CLI tool spelled like a preposition.
+  assert.deepEqual(introducedClaims('Tests\nab', 'Tests im Team.', 'Tests', 'de', 'custom_section_items'), ['ab']);
+});
+
+// Review of #171 (Sonnet): role words stay claims on the new stem path too, not only founded/founding.
+test('role words are never freed through the stem match', () => {
+  for (const [after, word] of [['Heads the agents team.', 'heads'], ['Headed the agents team.', 'headed'], ['Heading the agents team.', 'heading'], ['Managing the agents team.', 'managing']] as const) {
+    assert.deepEqual(introducedClaims(after, SOURCE_CV, 'Built the agents team.', 'en', 'summary'), [word], after);
+  }
+});
+
+// Review of #171 (Opus): a capital after a longer abbreviation is mid-sentence, not a sentence start.
+test('a capitalised grammar word after inkl. or Mio. is not treated as a sentence start', () => {
+  assert.deepEqual(introducedClaims('Umsatz inkl. Weil im Team.', 'Umsatz im Team.', 'Umsatz im Team.', 'de', 'summary'), ['inkl', 'weil']);
 });
