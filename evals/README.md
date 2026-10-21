@@ -78,7 +78,7 @@ Every way an output can fail. `score-deterministic.ts` checks each one. IDs appe
 | F5 | Fabricated contact details or name in extract_applicant and the CV header | email, phone, name must appear in the CV text |
 | F6 | Unknown named entity in prose (possible invented employer or product) | capitalized mid-sentence terms in neither the CV nor the ad. Candidates only |
 | F7 | Em dash U+2014 (and en dash used as a dash) | counted on the raw model output, before production's `sanitizeDashes` |
-| F8 | Voice rules from CLAUDE.md "Copy & Voice" | Oxford comma in English, filler openers (Great, Sure, Absolutely), exclamation marks, cover-letter blacklist phrases |
+| F8 | Voice rules from AGENTS.md "Copy & Voice" | Oxford comma in English, filler openers (Great, Sure, Absolutely), exclamation marks, cover-letter blacklist phrases |
 | F9 | Wrong language | stopword ratio of each document against the case language |
 | F10 | German formality | German letters and emails must use Sie and a formal greeting, no du/dein addressed to the company |
 | F11 | Length | fit assessment over 200 words or missing the three headings, cover letter over 420 words, email subject over 60 characters, application email over 4 sentences, follow-up over 80 words, wrong `recommendedDelay` |

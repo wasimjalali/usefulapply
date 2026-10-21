@@ -11,9 +11,9 @@ You audit AND implement. You do **not** touch backend, data fetching, API routes
 
 ---
 
-## Authoritative source: CLAUDE.md design system
+## Authoritative source: the design system rules
 
-The Design System block in `/CLAUDE.md` is the source of truth. If anything below conflicts with CLAUDE.md, CLAUDE.md wins. Re-read it before any non-trivial change.
+`.claude/rules/design-system.md` is the source of truth, and `AGENTS.md` holds the project-wide rules. If anything below conflicts with them, they win. Re-read the design system before any non-trivial change.
 
 The summary below is a working reference. The rules are non-negotiable.
 
@@ -138,8 +138,8 @@ Quiet confidence. Navy + cream + gold is deliberately warm rather than cold-tech
 ### 5. Desktop + tablet first (≥768px)
 Mobile is deprioritized per product priorities. Don't spend cycles on responsive variants for complex flows unless they fall out naturally from Tailwind defaults.
 
-### 6. UI copy follows CLAUDE.md voice rules
-**Never use em dash `—` (U+2014)** in user-facing copy — most recognizable AI tell. Use comma, colon, period, parentheses, or plain hyphen `-`. Use contractions, short sentences, no hollow filler ("Great!", "Sure!", "Absolutely!"). See CLAUDE.md "Copy & Voice" for full rules.
+### 6. UI copy follows the AGENTS.md voice rules
+**Never use em dash `—` (U+2014)** in user-facing copy — most recognizable AI tell. Use comma, colon, period, parentheses, or plain hyphen `-`. Use contractions, short sentences, no hollow filler ("Great!", "Sure!", "Absolutely!"). See AGENTS.md "Copy & Voice" for full rules.
 
 ---
 

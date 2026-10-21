@@ -1,6 +1,6 @@
 # Useful Apply: Product Positioning and Framing
 
-**The canonical positioning document.** Single source of truth for the README, CLAUDE.md product thesis, homepage copy, pricing page, investor decks, sales emails, and every marketing surface.
+**The canonical positioning document.** Single source of truth for the README, the AGENTS.md product priorities, homepage copy, pricing page, investor decks, sales emails, and every marketing surface.
 
 If any part of the website or any pitch drifts from this document, fix the surface, not this document. If the product changes materially, update this first, then update every surface downstream.
 
@@ -485,7 +485,7 @@ Use these wherever credibility matters. They're ranked by strength.
 | **Any tagline usage (anywhere)** | **§1.5 Locked Taglines.** Tagline A for job seekers, Tagline B for investors. |
 | **Any video or content creation** | **§9.5 Content Framing by Format.** Short vs long, platform-specific, end-card rules. |
 | **README.md** top | §1 one-liner + §1.5 taglines + §3 seven-tool table + §6 section headlines |
-| **CLAUDE.md** product thesis | §2 thesis + §4 four pillars + §9 voice rules |
+| **AGENTS.md** product priorities and voice | §2 thesis + §4 four pillars + §9 voice rules |
 | **Homepage hero** | §1.5 Tagline A (H1) + §6 hero headlines + §7 shortened user pitch |
 | **Homepage "How It Works"** | §3 seven-tool table + §6 section headlines |
 | **Platform scroll stack** | §4 Pillar 3 (compression) + §6 "Find. Apply. Track." section headline |

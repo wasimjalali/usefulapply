@@ -683,11 +683,11 @@ So the human has to do the sorting. Every morning. For five months.
 
 ## What a smart job feed should actually do
 
-Imagine the opposite setup. You configure your search once. Every morning, a small list of roles shows up. Each one has been filtered for your location, seniority, salary floor, work authorization, and remote preference. Each one has been read against your CV by something that understands what your CV actually says.
+Imagine the opposite setup. You set up your search once. When you're ready, one click runs it and a short list of roles comes back. Each one has been filtered for your location, seniority, salary floor, work authorization, and remote preference. Each one has been read against your CV by something that understands what your CV actually says.
 
 No duplicates. No "entry-level, 7+ years required" nonsense. No postings in the wrong country. No roles you are clearly overqualified for.
 
-Just a short list. Curated while you slept. Ready when you open your laptop.
+Just a short list. Searched when you ask. Ready in a couple of minutes.
 
 That is what the Useful Apply Smart Job Feed does.
 
@@ -721,7 +721,7 @@ If you want, you can turn on adjacent roles. The feed will also surface related 
 
 Say you spend 45 minutes a day browsing job boards. That is 5 hours a week, and a little over 20 hours a month. Over a five-month search, that is 100 hours of scrolling.
 
-Most of those hours are not producing applications. They are producing a shortlist that you still have to evaluate. The Smart Job Feed compresses that into the 30 seconds it takes to read a curated list with your morning coffee.
+Most of those hours are not producing applications. They are producing a shortlist that you still have to evaluate. The Smart Job Feed compresses that into the 30 seconds it takes to read a curated list you asked for.
 
 The browsing step is done. You move straight to the part that actually matters: deciding which roles deserve a tailored application.
 
@@ -733,7 +733,7 @@ You click a job in the feed. From there, two honest options open up.
 
 If you are unsure about the role, you run a Fit Analysis. It costs 0.5 credits. In about 20 seconds, you get a match score, a short list of your strongest matching skills, and the gaps the job calls for that you are missing. If the gaps are too wide, you skip it. No application written, no time spent.
 
-If the Fit looks good, or if you already know the role is right, you generate a full application. Tailored CV, cover letter, application email, and follow-up email. It costs 2 credits, and it takes under 90 seconds.
+If the Fit looks good, or if you already know the role is right, you generate a full application. Tailored CV, cover letter, application email, and follow-up email. It costs 1.5 credits after a Fit check, or 2 on its own, and it takes under 90 seconds.
 
 Every application you create is saved in your tracker with its match score and status. You can see at a glance where you stand: applied, interview, follow-up, rejected, or accepted. The whole search, in one app.
 
@@ -741,7 +741,7 @@ Every application you create is saved in your tracker with its match score and s
 
 Job hunting is already hard. It gets harder the longer it goes. The parts worth protecting are your energy, your focus, and the quality of your applications. The parts worth deleting are the 45 minutes of morning scrolling and the growing suspicion that you are missing the good roles because they are buried under the bad ones.
 
-The Smart Job Feed is the setup-once, arrives-daily version of that. You can configure it today and see your first feed tomorrow morning.
+The Smart Job Feed swaps that for one click. Set it up once, start it when you're ready, and you'll have a short list of roles in a couple of minutes.
 
 If five months of searching sounds like a long time, that is because it is. Getting the browsing step out of the way is a small change that compounds fast.`,
     author: {
@@ -766,7 +766,7 @@ If five months of searching sounds like a long time, that is because it is. Gett
     cta: {
       heading: 'Stop scrolling, start applying',
       description:
-        'Set up your Smart Job Feed in three minutes. Tomorrow morning, a short list of roles that actually fit your CV shows up, curated while you slept.',
+        'Set up your Smart Job Feed in three minutes. One click a day brings back a short list of roles that actually fit your CV, within a couple of minutes.',
       text: 'Try the Smart Job Feed',
       href: '/dashboard',
     },

@@ -225,7 +225,7 @@ const getFeedSettings = defineTool({
   name: 'get_feed_settings',
   title: 'Get feed settings',
   description:
-    "Returns the user's job feed settings: roles, countries, cities, work modes, salary floor, seniority, languages, excluded terms, whether the daily feed is on, the timezone, and whether consent for the feed is on file.",
+    "Returns the user's job feed settings: roles, countries, cities, work modes, salary floor, seniority, languages, excluded terms, whether the feed is switched on (it never runs by itself), the timezone, and whether consent for the feed is on file.",
   hints: READ_HINTS,
   input: z.object({}),
   output: z.object({
@@ -255,11 +255,11 @@ const updateFeedSettings = defineTool({
   name: 'update_feed_settings',
   title: 'Update feed settings',
   description:
-    'Changes the given job feed settings and leaves the others as saved. Returns the settings after the change and, when the roles or countries changed, the role and country searches the daily feed will run.',
+    'Changes the given job feed settings and leaves the others as saved. Returns the settings after the change and, when the roles or countries changed, the role and country searches the next feed run will make.',
   hints: { readOnly: false, destructive: true, idempotent: true, openWorld: false },
   input: z.object({
     roles: z.array(z.string().trim().min(1).max(80)).min(1).max(8).optional()
-      .describe('Job titles to search for. The daily feed runs a limited number of role and country searches, so fewer roles may be kept than sent; the result lists the searches kept.'),
+      .describe('Job titles to search for. Each feed run makes a limited number of role and country searches, so fewer roles may be kept than sent; the result lists the searches kept.'),
     countries: z.array(z.enum(COUNTRY_CODES)).min(1).max(12).optional()
       .describe(`Countries to search, as two-letter codes: ${COUNTRY_CODES.join(', ')}.`),
     workModes: z.array(z.enum(WORK_MODES)).min(1).max(5).optional()
@@ -267,7 +267,7 @@ const updateFeedSettings = defineTool({
     salaryFloor: z.number().int().min(0).max(10_000_000).nullable().optional()
       .describe('Minimum salary as a whole number in the local currency. null removes the floor.'),
     automationEnabled: z.boolean().optional()
-      .describe('Whether the daily feed runs by itself. Turning it on needs consent already on file.'),
+      .describe('Whether the feed is switched on. It never runs by itself: when on, the user in the web app or run_job_feed starts at most one completed run a day. Turning it on needs consent already on file.'),
     timezone: z.string().trim().min(1).max(80).optional()
       .describe('IANA timezone name, for example Europe/Berlin. The one run a day follows this timezone.'),
   }),
@@ -423,7 +423,7 @@ const runJobFeed = defineTool({
   name: 'run_job_feed',
   title: 'Run job feed',
   description:
-    "Queues today's job search for the user and returns at once with a runId and its status: queued or running while it is in progress, completed or failed once it ended. The search runs in the background, usually within a couple of minutes, and the jobs it finds appear in get_job_feed when the run completes. It runs once a day and needs consent on file.",
+    "Queues today's job search for the user and returns at once with a runId and its status: queued or running while it is in progress, completed or failed once it ended. The search runs in the background, usually within a couple of minutes, and the jobs it finds appear in get_job_feed when the run completes. Nothing runs on a schedule: this call, or the user in the web app, starts the day's run. At most one completed run a day (a failed run can be started again), and it needs consent on file.",
   hints: { readOnly: false, destructive: false, idempotent: true, openWorld: true },
   input: z.object({}),
   output: z.object({
@@ -533,14 +533,14 @@ const withdrawFeedConsentTool = defineTool({
   name: 'withdraw_feed_consent',
   title: 'Withdraw feed consent',
   description:
-    "Withdraws the user's consent for job feed processing and turns the daily feed off. Saved jobs and settings stay, and only the user can give consent again, in the web app.",
+    "Withdraws the user's consent for job feed processing and switches the feed off. Saved jobs and settings stay, and only the user can give consent again, in the web app.",
   hints: { readOnly: false, destructive: true, idempotent: true, openWorld: false },
   input: z.object({}),
   output: z.object({ withdrawn: z.literal(true) }),
   async confirm(_args, { userId }) {
     const settings = await getSettings(userId);
     if (!settings || (!settings.consent_accepted_at && !settings.enabled)) return null;
-    return 'Stop job feed processing? This withdraws consent and turns the daily feed off, and consent can only be given again in the web app.';
+    return 'Stop job feed processing? This withdraws consent and switches the feed off, and consent can only be given again in the web app.';
   },
   async run(_args, { userId }) {
     return feedCall(async () => {

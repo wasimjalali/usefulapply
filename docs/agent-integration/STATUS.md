@@ -30,6 +30,10 @@ Last updated 2026-10-21, session 4 (in progress). The plan is `PLAN.md` (v3) in 
 - **Tests:** `unified-writer-agent.claim-guard.test.ts` (8, now in `npm test`; nothing in CI runs it, the repo has no workflows) and a production-shaped rewrite in `e2e/mcp/02-happy-path.spec.ts` step 5c.
 - **Second fix, `fix/rewrite-claim-guard-2`:** after #165 rewrites were still refused for ordinary words ("including"), because any word outside the 400-word `NEUTRAL_WORDS` list counted as a claim. The guard now decides by part of speech whether a word can carry a claim at all: claim words (`claim-vocabulary.ts`), then a generated EN/DE lexicon of verbs, qualitative adjectives, adverbs and function words (`claim-free-lexicon.generated.ts`, from Open English WordNet and Universal Dependencies via `scripts/build-claim-free-lexicon.ts`). Nouns, names and unknown words stay claims. Eval: `evals/results/2026-10-21-rewrite-claim-guard.md` (false refusals 23 to 10 of 52, misses 10 to 10 of 531). Claim-guard tests: 13.
 
+**Job feed, no scheduler (decided by Wasim, 2026-10-21):** the feed is user-triggered by design. The user in the web app, or `run_job_feed`, starts at most one run a day; nothing runs on a schedule. That's why every production run is `manual_user`. AGENTS.md now says so, and the MCP tool descriptions no longer claim the feed "runs by itself".
+
+**#166 merged and deployed (Worker `69de1834`):** `nextRunAt` was different on every call while a run was in flight (each call's seconds carried over) and ignored the 20-hour floor. Now stable and equal to the gate's time; verified live on Wasim's account (two calls, same `2026-10-22T11:04:03.275Z`).
+
 ## Session 3 progress (2026-10-21)
 
 - **#162 merged** (not deployed yet, ships with #159): the refund reconciler's `LIKE 'Released reservation <id>%'` was 58 bytes, over D1's 50-byte LIKE limit, so the daily cron threw whenever a released reservation existed. Now `instr()`, and zero-amount reservations are skipped. Reviewed by Sonnet + Codex + Opus (high), 0 high, 2 lows fixed.

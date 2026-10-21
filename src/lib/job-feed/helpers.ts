@@ -113,8 +113,13 @@ export function getLocalDateKey(date: Date, timeZone: string): string {
 export function getStartOfNextLocalDay(from: Date, timeZone: string): Date {
   const startKey = getLocalDateKey(from, timeZone);
 
+  // Every zone offset is a whole number of minutes, so walking from a whole
+  // minute lands exactly on midnight. Walking from `from` itself carried its
+  // seconds and milliseconds into the answer, which then changed on every call.
+  const minute = new Date(Math.floor(from.getTime() / 60_000) * 60_000);
+
   // Coarse pass: hourly steps forward until the day key changes.
-  let probe = new Date(from.getTime() + 60 * 60 * 1000);
+  let probe = new Date(minute.getTime() + 60 * 60 * 1000);
   for (let i = 0; i < 48; i += 1) {
     if (getLocalDateKey(probe, timeZone) !== startKey) break;
     probe = new Date(probe.getTime() + 60 * 60 * 1000);
@@ -169,7 +174,7 @@ export function getJobFeedOverviewState(params: {
   if (!canAccess) return 'upgrade_required';
 
   if (isFreeUser) {
-    // Free users never go through settings setup. Their feed is automatic.
+    // Free users never go through settings setup: their feed needs no configuration (it still only runs when they start it).
     // Without a primary CV the career profile can't be synthesized, so the run
     // would silently degrade - surface a clear "upload your CV" state. With a
     // CV, fall through to the run checks; the first run synthesizes the profile
