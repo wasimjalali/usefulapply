@@ -57,6 +57,10 @@
 	"browser": {
 		"binding": "BROWSER"
 	},
+	// The deployed version id: keys the MCP discovery cache to the deploy (src/lib/mcp/well-known.ts).
+	"version_metadata": {
+		"binding": "CF_VERSION_METADATA"
+	},
 	// Workers AI for job feed ranking. Primary model, then the fallback model on
 	// failure, then deterministic ordering (see openai-ranking.ts).
 	"ai": {

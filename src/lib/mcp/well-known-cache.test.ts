@@ -138,3 +138,15 @@ test('a broken store still serves the document', async () => {
     console.error = log;
   }
 });
+
+test('a new deploy never reads the previous deploy\'s stored documents', async () => {
+  const auth = fakeAuth();
+  const { store } = fakeStore();
+  await createDiscoveryHandler({ isEnabled: () => true, fill: auth.fill, store, deployVersion: () => 'deploy-1' })(new Request(URL_PRM));
+  // Same deploy, new isolate: served from the store.
+  await createDiscoveryHandler({ isEnabled: () => true, fill: auth.fill, store, deployVersion: () => 'deploy-1' })(new Request(URL_PRM));
+  assert.deepEqual(auth.calls, ['GET']);
+  // Next deploy: a miss, so Better Auth answers again.
+  await createDiscoveryHandler({ isEnabled: () => true, fill: auth.fill, store, deployVersion: async () => 'deploy-2' })(new Request(URL_PRM));
+  assert.deepEqual(auth.calls, ['GET', 'GET']);
+});

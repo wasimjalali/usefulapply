@@ -1,3 +1,4 @@
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { getAuth } from '@/auth/server';
 import { isMcpEnabled } from '@/lib/mcp/config';
 import { createDiscoveryHandler, type DiscoveryStore } from '@/lib/mcp/well-known-cache';
@@ -22,5 +23,14 @@ export const serveWellKnown = createDiscoveryHandler({
   fill: async (request) => (await getAuth()).handler(request),
   get store() {
     return workersCache();
+  },
+  // CF_VERSION_METADATA (wrangler.jsonc): a new id per deploy, so a deploy never serves the last one's documents.
+  deployVersion: async () => {
+    try {
+      const { env } = await getCloudflareContext({ async: true });
+      return (env as { CF_VERSION_METADATA?: { id?: string } }).CF_VERSION_METADATA?.id ?? 'local';
+    } catch {
+      return 'local';
+    }
   },
 });

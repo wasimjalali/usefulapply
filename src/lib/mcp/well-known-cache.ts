@@ -27,13 +27,17 @@ export const DISCOVERY_TTL_MS = 60 * 60 * 1000;
 /** What clients and CDNs in front of us are told. */
 export const DISCOVERY_CLIENT_CACHE_CONTROL = 'public, max-age=300';
 
-/** Bump to drop every stored document at once (for example when the scopes or metadata config change). */
+/**
+ * Part of every stored key. The deployed version id (see well-known.ts) goes in
+ * here, so a deploy never serves the previous deploy's documents; bump this to
+ * drop every stored document of the same deploy.
+ */
 const STORE_VERSION = 'v1';
 const FILLED_AT_HEADER = 'x-ua-discovery-at';
 const MEMO_MAX_ENTRIES = 16;
 
-function storeKey(url: string): Request {
-  return new Request(`https://discovery-cache.invalid/${STORE_VERSION}/${encodeURIComponent(url)}`);
+function storeKey(url: string, deployVersion: string): Request {
+  return new Request(`https://discovery-cache.invalid/${STORE_VERSION}/${encodeURIComponent(deployVersion)}/${encodeURIComponent(url)}`);
 }
 
 export function createDiscoveryHandler(deps: {
@@ -41,6 +45,8 @@ export function createDiscoveryHandler(deps: {
   /** Better Auth's handler. Always called with a GET for a miss. */
   fill: (request: Request) => Promise<Response>;
   store?: DiscoveryStore;
+  /** The deployed Worker version, so stored documents never outlive the deploy that made them. */
+  deployVersion?: () => string | Promise<string>;
   now?: () => number;
 }): (request: Request) => Promise<Response> {
   const memo = new Map<string, Entry>();
@@ -62,6 +68,7 @@ export function createDiscoveryHandler(deps: {
   }
 
   const fresh = (entry: Entry) => now() - entry.at < DISCOVERY_TTL_MS;
+  const version = async () => (deps.deployVersion ? await deps.deployVersion() : 'unversioned');
 
   return async function serve(request: Request): Promise<Response> {
     if (!deps.isEnabled()) return new Response('Not Found', { status: 404 });
@@ -74,7 +81,7 @@ export function createDiscoveryHandler(deps: {
 
     if (deps.store) {
       try {
-        const stored = await deps.store.match(storeKey(url));
+        const stored = await deps.store.match(storeKey(url, await version()));
         if (stored) {
           const at = Number(stored.headers.get(FILLED_AT_HEADER));
           const headers: [string, string][] = [];
@@ -111,7 +118,7 @@ export function createDiscoveryHandler(deps: {
         const toStore = new Headers(entry.headers);
         toStore.set('Cache-Control', `public, max-age=${DISCOVERY_TTL_MS / 1000}`);
         toStore.set(FILLED_AT_HEADER, String(entry.at));
-        await deps.store.put(storeKey(url), new Response(entry.body, { status: entry.status, headers: toStore }));
+        await deps.store.put(storeKey(url, await version()), new Response(entry.body, { status: entry.status, headers: toStore }));
       } catch (error) {
         console.error('[mcp] discovery cache write failed', error instanceof Error ? error.message : error);
       }
