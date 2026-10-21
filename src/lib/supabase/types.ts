@@ -40,6 +40,10 @@ export interface Database {
           hide_rejected: boolean
           timezone: string | null
           date_format: string | null
+          availability: string | null
+          availability_note: string | null
+          salary_expectation: string | null
+          availability_asked_at: string | null
           job_searches_used: number
           job_searches_reset_at: string
           job_feed_last_seen_run_date: string | null
@@ -74,6 +78,10 @@ export interface Database {
           hide_rejected?: boolean
           timezone?: string | null
           date_format?: string | null
+          availability?: string | null
+          availability_note?: string | null
+          salary_expectation?: string | null
+          availability_asked_at?: string | null
           job_searches_used?: number
           job_searches_reset_at?: string
           job_feed_last_seen_run_date?: string | null
@@ -108,6 +116,10 @@ export interface Database {
           hide_rejected?: boolean
           timezone?: string | null
           date_format?: string | null
+          availability?: string | null
+          availability_note?: string | null
+          salary_expectation?: string | null
+          availability_asked_at?: string | null
           job_searches_used?: number
           job_searches_reset_at?: string
           job_feed_last_seen_run_date?: string | null
