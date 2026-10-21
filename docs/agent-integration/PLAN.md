@@ -209,9 +209,9 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
 | `update_feed_settings` | yes (overwrites settings) | Roles, countries, remote, salary floor, automation, timezone |
 | `give_job_feedback` | no | Save, unsave, dismiss, rate |
 | `withdraw_feed_consent` | yes | Stop feed data processing |
-| `update_notification_settings` | yes (overwrites settings) | Email notifications, reminders and the default CV template |
+| `update_notification_settings` | yes (overwrites settings) | Email notifications and reminders |
 
-**Left out:** checkout, plans, credit packs, account deletion, admin and the chat endpoint. The tool count is 44 (13 read, 6 spend, 25 free writes), which is within normal range for catalogs the directories have reviewed. Each description stays one or two sentences.
+**Left out:** checkout, plans, credit packs, account deletion, admin and the chat endpoint. The tool count is 43 (13 read, 6 spend, 24 free writes), which is within normal range for catalogs the directories have reviewed. Each description stays one or two sentences.
 
 **Claude Code skill `apply-to-job`:** check the account and CV, create the application, run the fit check, confirm spend with the user, generate, poll `get_operation`, review, export, set the tracker status.
 
