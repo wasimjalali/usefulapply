@@ -424,7 +424,8 @@ const NEUTRAL_STEMS = new Set([...NEUTRAL_WORDS].filter((entry) => !entry.endsWi
  * "writs" (from "writes"). Every other form this match frees is in the write-up
  * (evals/results/2026-10-21-rewrite-claim-guard.md, Round 3).
  */
-const NOT_NEUTRAL_BY_STEM = new Set(['featured', 'featuring', 'sentenced', 'sentencing', 'writs']);
+// "shares" states equity ownership ("with shares in the company"), review of #171.
+const NOT_NEUTRAL_BY_STEM = new Set(['featured', 'featuring', 'sentenced', 'sentencing', 'writs', 'shares', 'shars']);
 
 /**
  * Is this word neutral as listed, or once stemmed to a listed word? As on main,

@@ -10,8 +10,8 @@
  * Dependencies 2.18 treebanks below and writes every form the treebank tags
  * ADP, CCONJ, SCONJ, DET, PRON, AUX or PART at least half the time and sees at
  * least three times (209 English and 313 German candidates). A person then read
- * every candidate. The lists below are what survived (137 English and 220 German
- * forms, 38 and 170 of them refused on main), and the exclusions, each
+ * every candidate. The lists below are what survived (136 English and 195 German
+ * forms, 37 and 145 of them refused on main, after the review of #171), and the exclusions, each
  * with its reason, are in EXCLUDED_GRAMMAR_WORDS, so nothing was dropped
  * silently. A word the build did not list is not on a list.
  *
@@ -27,7 +27,7 @@
  * Words already in NEUTRAL_WORDS (unified-writer-agent.ts) stay free in every
  * case and position, exactly as before. These lists only add.
  *
- * freedByStemCase applies the same case rule to the words isNeutral frees by
+ * freedByStemCase applies the same case rule to the words isNeutralByStem frees by
  * their stem ("including", "creates"), with one difference: a capital opening a
  * bullet of an experience section is allowed, because every bullet opens with a
  * verb.
@@ -68,7 +68,7 @@ const GRAMMAR_WORDS_SOURCE = {
     'some', 'any', 'no', 'all', 'both', 'another', 'what', 'whatever', 'which', 'whose',
     // Pronouns.
     'me', 'my', 'mine', 'you', 'your', 'yours', 'he', 'him', 'his', 'she', 'her', 'it', 'its',
-    'we', 'our', 'ours', 'they', 'them', 'their', 'who', 'whom', 'there',
+    'we', 'our', 'they', 'them', 'their', 'who', 'whom', 'there',
     // Auxiliaries.
     'am', 'are', 'be', 'been', 'being', 'is', 'was', 'were', 'do', 'does', 'did', 'has', 'could',
     'should', 'would', 'shall',
@@ -92,8 +92,7 @@ const GRAMMAR_WORDS_SOURCE = {
     // Articles and determiners.
     'der', 'die', 'das', 'den', 'dem', 'des', 'ein', 'eine', 'einen', 'einem', 'einer', 'eines',
     'kein', 'keine', 'keinem', 'keinen', 'keiner', 'dies', 'diese', 'diesem', 'diesen', 'dieser',
-    'dieses', 'jene', 'jenem', 'jenen', 'jener', 'jenes', 'jede', 'jedem', 'jeden', 'jeder',
-    'jedes', 'alle', 'allem', 'allen', 'aller', 'andere', 'anderem', 'anderen', 'anderer',
+    'dieses', 'jene', 'jenem', 'jenen', 'jener', 'jenes', 'andere', 'anderem', 'anderen', 'anderer',
     'anderes', 'solch', 'solche', 'solchen', 'solcher', 'solches', 'selben', 'derselben',
     'desselben', 'dieselbe', 'dieselben', 'demjenigen', 'diejenigen', 'welche', 'welchem', 'welchen', 'welcher', 'welches',
     'seine', 'seinem', 'seinen', 'seiner', 'seines', 'ihre',
@@ -128,6 +127,16 @@ export const EXCLUDED_GRAMMAR_WORDS: ReadonlyArray<{ language: 'en' | 'de'; reas
     language: 'de',
     reason: 'also the name of a lowercase CLI tool (ab, Apache Bench), which the case rule cannot tell apart (review of #171)',
     words: ['ab'],
+  },
+  {
+    language: 'de',
+    reason: 'a universal quantifier: "Betreuung aller Kunden" scopes a claim to everything, like the excluded viele and saemtliche (review of #171)',
+    words: ['alle', 'allem', 'allen', 'aller', 'jede', 'jedem', 'jeden', 'jeder', 'jedes'],
+  },
+  {
+    language: 'en',
+    reason: 'possessive pronoun: "the product is ours" claims ownership, like the excluded German possessives (review of #171)',
+    words: ['ours'],
   },
   {
     language: 'en',
@@ -324,12 +333,15 @@ function caseSafeWords(
  */
 export function freedGrammarWords(text: string, language: string | undefined, kind: CVSectionKind | undefined): Set<string> {
   if (language !== 'en' && language !== 'de') return new Set();
+  // A list item is not prose: no grammar word there, in any case ("man" is also a
+  // tool name, review of #171).
+  if (kind === 'custom_section_items') return new Set();
   return caseSafeWords(text, loaded(language), kind, false);
 }
 
 /**
  * The same case rule for words freed by their stem (an inflection of a listed
- * word, see isNeutral): lowercase, or opening a sentence of prose, or opening a
+ * word, see isNeutralByStem in unified-writer-agent.ts): lowercase, or opening a sentence of prose, or opening a
  * bullet of an experience section. Not capitalised mid-sentence or as a list item
  * ("Scales", "Handles" read as names there).
  */

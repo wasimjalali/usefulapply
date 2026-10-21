@@ -1,3 +1,6 @@
+# The worker's first list (before the #171 review). The shipped lists are in
+# src/lib/agents/claim-grammar-words.ts: 136 English (37 newly freed) and 195 German (145 newly freed).
+
 ## en: 137 words on the list, 38 of them refused on main (newly freed)
 against along although among arent behind cannot cant couldnt didnt doesnt hasnt havent isnt itll its ours shouldnt thatll theyd theyll theyre theyve though toward towards unless wasnt werent weve whatever whereas whilst wouldnt youd youll youre youve
 already free on main (NEUTRAL_WORDS or a stem of it): about across after all am an and another any are around as at be because been before being between both but by could did do does dont down during each either every for from has he her him his if in into is it me mine my neither no nor not of off on onto or our out over shall she should since some than that thats the their them there these they this those through to under until up upon was we were what whats whether which while who whom whose with within wont would you your yours

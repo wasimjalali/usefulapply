@@ -238,3 +238,13 @@ test('role words are never freed through the stem match', () => {
 test('a capitalised grammar word after inkl. or Mio. is not treated as a sentence start', () => {
   assert.deepEqual(introducedClaims('Umsatz inkl. Weil im Team.', 'Umsatz im Team.', 'Umsatz im Team.', 'de', 'summary'), ['inkl', 'weil']);
 });
+
+// Review of #171, round 2 (Opus).
+test('equity, universal scope and possession stay claims', () => {
+  assert.deepEqual(introducedClaims('Applied AI engineer with shares in the company.', SOURCE_CV, 'Applied AI engineer.', 'en', 'summary'), ['shares']);
+  assert.deepEqual(introducedClaims('The product is ours.', SOURCE_CV, 'The product.', 'en', 'summary'), ['ours']);
+  const cv = 'Betreuung von 40 Kunden im Maschinenbau.';
+  assert.deepEqual(introducedClaims('Betreuung aller Kunden im Maschinenbau.', cv, 'Betreuung von Kunden im Maschinenbau.', 'de', 'summary'), ['aller']);
+  // No grammar word is free in a list section, in any case.
+  assert.deepEqual(introducedClaims('Maschinenbau\nman\ngit', 'Maschinenbau', 'Maschinenbau', 'de', 'custom_section_items'), ['man', 'git']);
+});
