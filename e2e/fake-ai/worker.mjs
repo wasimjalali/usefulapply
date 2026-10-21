@@ -8,7 +8,9 @@
  * fails exactly as it did before this Worker existed (the binding unavailable) instead of getting an invented
  * answer:
  *   - the language classifier (always "en", the language of every ad the specs use);
- *   - screening answers (src/lib/services/screening.ts), one scripted answer per question.
+ *   - screening answers (src/lib/services/screening.ts), one scripted answer per question. A question containing
+ *     FAKE-AI-ECHO-PROMPT gets the CV part of the system prompt back as the answer, so a spec can see what the
+ *     model was shown.
  *
  * Run by playwright.config.ts as `wrangler dev` on its own port, only with E2E_MCP=1.
  */
@@ -43,6 +45,13 @@ export default class FakeWorkersAi extends WorkerEntrypoint {
     if (system.includes('You write job application screening answers inside Useful Apply')) {
       // The model "fails" on request so a spec can see a screening turn handed back: a question that asks for it.
       if (user.includes('FAKE-AI-FAIL')) throw new Error('scripted Workers AI failure');
+      if (user.includes('FAKE-AI-ECHO-PROMPT')) {
+        const start = system.indexOf('Optimized CV content:');
+        const end = system.indexOf('# Length');
+        // The answer markers of the prompt's own format instructions would split the reply, so only the CV part goes back.
+        const shown = start === -1 ? '(no CV content in the prompt)' : system.slice(start, end === -1 ? undefined : end).replaceAll('---ANSWER_', 'ANSWER_');
+        return reply(`---ANSWER_START---\n**Q: Echo**\n\n${shown}\n---ANSWER_END---`);
+      }
       const blocks = questionsFrom(user).map(
         (question) =>
           `---ANSWER_START---\n**Q: ${question.replace(/\n/g, ' ')}**\n\nI own the monthly forecast and variance reporting for two business units at Calder Industrial Components.\n---ANSWER_END---`,

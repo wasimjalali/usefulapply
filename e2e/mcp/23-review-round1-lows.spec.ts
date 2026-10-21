@@ -1,9 +1,9 @@
-import { deflateSync } from 'node:zlib';
 import { expect, test } from '../lib/worker-logs';
 import { McpSession, newAgent, uuid } from '../lib/mcp-client';
 import { applicationRows, profileRow, seedLedgerRow } from '../lib/mcp-db';
 import { JOB_DESCRIPTION, PRIMARY_CV } from '../lib/model-script';
 import { openLocalD1 } from '../lib/sqlite';
+import { tinyPng } from '../lib/tiny-png';
 import type { BrowserContext } from '@playwright/test';
 import type { TestUser } from '../lib/user';
 
@@ -16,46 +16,6 @@ import type { TestUser } from '../lib/user';
  * - get_credit_history keeps the monthly reset and the renewal descriptions.
  * - The Settings photo change links the avatar the way set_profile_photo does, and deletes only the avatar it replaced.
  */
-
-/** A real 8x8 PNG, built here so the spec carries no binary fixture. */
-function tinyPng(): string {
-  const width = 8;
-  const height = 8;
-  const raw = Buffer.alloc((width * 3 + 1) * height);
-  for (let y = 0; y < height; y++) {
-    raw[y * (width * 3 + 1)] = 0;
-    for (let x = 0; x < width * 3; x++) raw[y * (width * 3 + 1) + 1 + x] = (x * 7 + y * 13) & 0xff;
-  }
-  const crcTable = Array.from({ length: 256 }, (_, n) => {
-    let c = n;
-    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-    return c >>> 0;
-  });
-  const crc = (buffer: Buffer) => {
-    let c = 0xffffffff;
-    for (const byte of buffer) c = crcTable[(c ^ byte) & 0xff] ^ (c >>> 8);
-    return (c ^ 0xffffffff) >>> 0;
-  };
-  const chunk = (type: string, data: Buffer) => {
-    const body = Buffer.concat([Buffer.from(type), data]);
-    const length = Buffer.alloc(4);
-    length.writeUInt32BE(data.length);
-    const check = Buffer.alloc(4);
-    check.writeUInt32BE(crc(body));
-    return Buffer.concat([length, body, check]);
-  };
-  const header = Buffer.alloc(13);
-  header.writeUInt32BE(width, 0);
-  header.writeUInt32BE(height, 4);
-  header[8] = 8;
-  header[9] = 2;
-  return Buffer.concat([
-    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    chunk('IHDR', header),
-    chunk('IDAT', deflateSync(raw)),
-    chunk('IEND', Buffer.alloc(0)),
-  ]).toString('base64');
-}
 
 test.describe.serial('round 1 lows', () => {
   let agent: McpSession;
@@ -120,6 +80,27 @@ test.describe.serial('round 1 lows', () => {
     expect(await agent.fails('edit_document_text', { applicationId, revision: before.revision, document: 'email', body: 'Hello', closing: '  <<Regards>> ' })).toMatch(/without them/);
     expect(applicationRows(user.id)).toEqual(rows);
     expect((await tailored()).revision).toBe(before.revision);
+  });
+
+  test('add_cv_item refuses a value that still carries the << >> marks, in any field of any kind, and nothing changes', async () => {
+    const before = await tailored();
+    const rows = applicationRows(user.id);
+    const refused = [
+      { kind: 'experience', company: 'Acme', position: '<<Senior Analyst>>', startDate: '2020', bullets: ['Ran the forecast'] },
+      { kind: 'experience', company: 'Acme', position: 'Analyst', startDate: '2020', bullets: ['Ran the forecast', '<<Cut close time>>'] },
+      { kind: 'skill_group', category: 'Tools', items: ['Excel', '<<Power BI>>'] },
+      { kind: 'language', language: 'French', proficiency: '<<B2>>' },
+      { kind: 'custom_section', title: 'Awards', items: ['<<Best analyst 2023>>'] },
+    ];
+    for (const item of refused) {
+      expect(await agent.fails('add_cv_item', { applicationId, revision: before.revision, item }), JSON.stringify(item)).toMatch(/starts with << and ends with >>.*without them/);
+    }
+    expect(applicationRows(user.id)).toEqual(rows);
+    expect((await tailored()).revision).toBe(before.revision);
+
+    // The same entry without the marks is stored.
+    const added = await agent.ok<{ revision: number }>('add_cv_item', { applicationId, revision: before.revision, item: { kind: 'language', language: 'French', proficiency: 'B2' } });
+    expect(added.revision).toBeGreaterThan(before.revision);
   });
 
   test('undo_last_edit on a history row without a fingerprint says there is nothing safe to undo', async () => {
