@@ -95,7 +95,8 @@ test.describe.serial('export_documents: seven formats, two templates', () => {
       expect(result.files.map((file) => file.format)).toEqual([...FORMATS]);
       const dir = mkdtempSync(join(tmpdir(), `ua-mcp-exports-${template.templateId}-`));
       for (const file of result.files) {
-        expect(file.bytes, file.format).toBeGreaterThan(500);
+        // Binary formats carry fonts and structure; a text file is only as long as its content (checked below).
+        expect(file.bytes, file.format).toBeGreaterThan(file.format.endsWith('_txt') ? 50 : 500);
         // The link is the only credential: no session, no token.
         const download = await agent.request.get(file.url);
         expect(download.status(), file.format).toBe(200);
