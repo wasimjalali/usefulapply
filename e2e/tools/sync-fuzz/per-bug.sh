@@ -7,7 +7,9 @@
 #
 # Results are never overwritten: a run whose .txt or .json already exists stops the script before it starts,
 # so give a new outdir for a new run. A run that crashes (no summary line, or an exit code other than 0 = no
-# failing seed and 1 = failing seeds) prints CRASHED, and the script exits 1 at the end.
+# failing seed and 1 = failing seeds) prints CRASHED, and the script exits 1 at the end. So does a run with the
+# wrong answer: a "before" (or round2) run with 0 failing seeds prints NOT CAUGHT (the bug no longer bites), and an
+# "after" (or new) run with any failing seed prints STILL FAILING.
 #
 # Each run uses only the operations that can reach that bug, so a failing seed there is that bug.
 # Prints one line per run and writes, per bug, <outdir>/<bug>-<before>.txt and .json, where <before> is:
@@ -36,6 +38,12 @@
 #   r3-store-draft           a draft the store already holds (a Restore whose save failed) still counts as stale, so
 #                            its conflict entry holds no text and acknowledging it rebases the editor
 #
+# The review round 3 findings of PR #159 (ONLY_R3X=1; "before" is a mutation of mutations.py):
+#
+#   r3x-discard-lineage      a partial Discard leaves the discarded document's columns in the editor's lineage, so a
+#                            later save of the other document rebases them and a stale copy saves over a newer server
+#                            version (the round 3 high)
+#
 # Exact commands for one "before" run, from the repo root (this is what the function below runs):
 #
 #   python3 e2e/tools/sync-fuzz/mutations.py --apply M-discard-scope -- \
@@ -50,6 +58,7 @@ BASE="edit,save,poll,agent,tabWrite"
 FUZZ="npx tsx --tsconfig e2e/tools/tsconfig.sync-fuzz.json e2e/tools/sync-fuzz.ts"
 
 CRASHED=0
+WRONG=0
 
 # Never write over an earlier result.
 fresh() {
@@ -61,16 +70,31 @@ fresh() {
   done
 }
 
-# $1 label, $2 the run's .txt, $3 its exit code. 0 and 1 are the fuzz's own answers; anything else is a crash.
+# $1 label, $2 the run's .txt, $3 its exit code, $4 what the run must show: "fails" (a before run: at least one
+# failing seed) or "passes" (an after run: none). 0 and 1 are the fuzz's own answers; anything else is a crash.
 report() {
   summary=$(grep '^failing seeds' "$2" | cut -c1-120 || true)
   if [ -z "$summary" ] || [ "$3" -gt 1 ]; then
     CRASHED=1
     echo "$1: CRASHED (exit $3), see $2:"
     tail -n 5 "$2" | sed 's/^/    /'
+    return
+  fi
+  failing=$(echo "$summary" | awk '{print $3}')
+  if [ "$4" = "fails" ] && [ "$failing" = "0" ]; then
+    WRONG=1
+    echo "$1: NOT CAUGHT, $summary"
+  elif [ "$4" = "passes" ] && [ "$failing" != "0" ]; then
+    WRONG=1
+    echo "$1: STILL FAILING, $summary"
   else
     echo "$1: $summary"
   fi
+}
+
+finish() {
+  if [ "$CRASHED" = "1" ] || [ "$WRONG" = "1" ]; then exit 1; fi
+  exit 0
 }
 
 # A run on an engine of its own (round2) or on the current one.
@@ -79,7 +103,8 @@ run() {
   fresh "$OUT/$bug-$engine"
   status=0
   $FUZZ --engine "$engine" --no-cases --seeds "$SEEDS" --only "$only" --out "$OUT/$bug-$engine.json" > "$OUT/$bug-$engine.txt" 2>&1 || status=$?
-  report "$bug on $engine" "$OUT/$bug-$engine.txt" "$status"
+  if [ "$engine" = "round2" ]; then expect=fails; else expect=passes; fi
+  report "$bug on $engine" "$OUT/$bug-$engine.txt" "$status" "$expect"
 }
 
 # The current engine with one mutation applied (before), then unmodified (after).
@@ -90,13 +115,18 @@ run_mutation() {
   status=0
   python3 e2e/tools/sync-fuzz/mutations.py --apply "$mutation" -- \
     $FUZZ --engine new --no-cases --seeds "$SEEDS" --only "$only" --out "$OUT/$bug-before.json" > "$OUT/$bug-before.txt" 2>&1 || status=$?
-  report "$bug before ($mutation)" "$OUT/$bug-before.txt" "$status"
+  report "$bug before ($mutation)" "$OUT/$bug-before.txt" "$status" fails
   status=0
   $FUZZ --engine new --no-cases --seeds "$SEEDS" --only "$only" --out "$OUT/$bug-after.json" > "$OUT/$bug-after.txt" 2>&1 || status=$?
-  report "$bug after" "$OUT/$bug-after.txt" "$status"
+  report "$bug after" "$OUT/$bug-after.txt" "$status" passes
 }
 
 EDITORS="$BASE,editorOpen,type,editorSave"
+
+if [ "$ONLY_R3X" = "1" ]; then
+  run_mutation r3x-discard-lineage M-r3x-discard-lineage "$EDITORS,dismiss"
+  finish
+fi
 
 if [ "$ONLY_R3" = "1" ]; then
   run_mutation r3-h1-snapshot-scope M-r3-H1 "$EDITORS,restore,copy"
@@ -104,7 +134,7 @@ if [ "$ONLY_R3" = "1" ]; then
   run_mutation r3-h3-lineage M-r3-H3 "$EDITORS,restore,copy"
   run_mutation r3-moved-only M-r3-moved-only "$EDITORS,cancel"
   run_mutation r3-store-draft M-r3-store-draft "$EDITORS,restore,copy"
-  exit "$CRASHED"
+  finish
 fi
 
 if [ "$ONLY_DISCARD" != "1" ]; then
@@ -120,4 +150,4 @@ run_mutation discard-keeps-draft M-discard-rebase "$EDITORS,dismiss"
 run_mutation discard-unrelated-draft M-discard-scope "$EDITORS,dismiss"
 run_mutation discard-inflight-save M-discard-inflight "$EDITORS,dismiss"
 run_mutation discard-pr159 M-pr159 "$EDITORS,dismiss"
-exit "$CRASHED"
+finish

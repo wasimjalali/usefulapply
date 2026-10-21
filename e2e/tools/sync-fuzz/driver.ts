@@ -562,9 +562,10 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
             if (actions[index] !== 'ignore' && !ofField.some(({ info }) => produced(editor, info))) {
               violate('I6', `${client.id}'s ${editor.label} editor on ${app} was ${actions[index] === 'reset' ? 'reset' : 'rebased'} for ${field} by an acknowledgement of an entry it did not produce`);
             }
-            // Discard throws away text typed in this editor: the editor must let go of it.
-            const typedHere = editor.tokensByField[field] ?? new Set<string>();
-            if (ack.discarded && actions[index] !== 'reset' && ofField.some(({ info }) => info?.tokens.some((token) => typedHere.has(token)))) {
+            // Discard throws away the text this editor holds now: the editor must let go of it. An older draft of the
+            // same editor that it has since typed over is not its text any more (seeds 15239, 17252, 21527 at 90 operations).
+            const current = editor.drafts[field];
+            if (ack.discarded && actions[index] !== 'reset' && current !== undefined && ofField.some(({ info }) => info?.tokens.includes(current))) {
               violate('I6', `${client.id}'s ${editor.label} editor on ${app} kept ${field} text the user discarded`);
             }
           });
@@ -597,7 +598,13 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         editor.epoch += 1;
         if (reset.length < editor.fields.length) {
           // The email panel drops that document's draft and shows the store's version again; the other draft stays.
+          // Its draft no longer sets that document, and its snapshot of it is the version the store shows now.
           const session = client.session(app);
+          editor.start = client.discardedStart(app, editor.start, reset);
+          // I6: the editor now shows the server's version at the tab's baseline for that document.
+          const base = client.baseline(app);
+          const truth = base ? server.truth(app, base.revision) : null;
+          if (truth) allow(editor, truth, columnsOf(reset));
           for (const field of reset) {
             for (const token of editor.tokensByField[field] ?? []) discarded.add(token);
             delete editor.drafts[field];

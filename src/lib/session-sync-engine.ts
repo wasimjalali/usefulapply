@@ -339,6 +339,12 @@ export function acknowledgedStart(
   return { revision: start.revision, fields, lineage: start.lineage };
 }
 
+/** After a Discard reset these groups of an editor that stays open: its draft no longer sets their columns. */
+export function forgetDiscardedGroups(start: EditorStart | undefined, groups: readonly string[]): void {
+  if (!start) return;
+  for (const group of FIELD_GROUPS) if (groups.includes(group.key)) for (const column of group.columns) start.lineage.columns.delete(column);
+}
+
 /**
  * What an editor is based on when nothing is known about it: a revision that never existed, so a save from it
  * is checked as a stale draft (it is refused unless the server already holds exactly that text).
@@ -868,6 +874,19 @@ export function createSyncEngine(deps: SyncDeps) {
   }
 
   /**
+   * An editor that stays open after a Discard reset these groups (the email panel drops one document's draft and shows
+   * the store's version of it again). Its draft no longer sets their columns (`forgetDiscardedGroups`), and its snapshot
+   * of them moves to the current baseline: the version the store shows now and the editor copies. Call it in the same
+   * tick as reading that copy from the store. Every other group keeps its snapshot.
+   */
+  function discardedEditorStart(sessionId: string, start: EditorStart | undefined, groups: readonly string[]): EditorStart | undefined {
+    if (!start) return start;
+    forgetDiscardedGroups(start, groups);
+    const columns = FIELD_GROUPS.filter((group) => groups.includes(group.key)).flatMap((group) => group.columns);
+    return rebaseEditorStart(sessionId, start, columns);
+  }
+
+  /**
    * Save from an editor that kept its draft outside the store. The draft was
    * typed against what the editor opened on (`start`). `apply` puts it into the
    * store. If the server changed a field the draft touches since then, the
@@ -1123,6 +1142,7 @@ export function createSyncEngine(deps: SyncDeps) {
     persistSessionEdits,
     getEditorStart,
     rebaseEditorStart,
+    discardedEditorStart,
     commitEditorSave,
     checkForRemoteChange,
     getConflictBuffer,

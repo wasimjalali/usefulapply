@@ -32,6 +32,7 @@ export {
   editorShouldClose,
   acknowledgementFor,
   acknowledgedStart,
+  forgetDiscardedGroups,
   afterClosedEditorSave,
   staleEditorStart,
 } from '@/lib/session-sync-engine';
@@ -89,6 +90,7 @@ export const refreshFromServer = engine.refreshFromServer;
 export const persistSessionEdits = engine.persistSessionEdits;
 export const getEditorStart = engine.getEditorStart;
 export const rebaseEditorStart = engine.rebaseEditorStart;
+export const discardedEditorStart = engine.discardedEditorStart;
 export const commitEditorSave = engine.commitEditorSave;
 export const checkForRemoteChange = engine.checkForRemoteChange;
 export const getConflictBuffer = engine.getConflictBuffer;

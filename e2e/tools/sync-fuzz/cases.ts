@@ -463,6 +463,74 @@ export const CASES: CaseDef[] = [
     },
   },
   {
+    name: 'r3-x a partial Discard leaves the discarded document out of the next save\'s rebase',
+    about: 'The email panel saves an email draft that conflicts, the user discards it and the panel stays open with the store\'s email (G1). A newer email (G2) arrives, then a follow-up-only save lands while the user types. That save confirms only the follow-up, so the email snapshot stays behind G2 and a later Save of the stale email copy is a conflict, never a write over G2.',
+    run: async (ctx) => {
+      const { server, net, client, app } = ctx;
+      net.reliable = true;
+      let start = client.editorStart(app);
+      server.writeField(app, 'email', 't:G1;', 'agent');
+      await client.poll(app);
+      const first = await client.editorCommit(app, start, () => client.edit(app, fieldMutation('email', 't:E1;')));
+      ctx.check(first === 'conflict', `the email draft on an older revision was not a conflict (${first})`);
+      const notice = [...client.notices].reverse().find((candidate) => candidate.conflictFor);
+      if (!notice) { ctx.check(false, 'the email conflict raised no notice'); return; }
+      // The panel: a Discard of one document drops that draft and shows the store's version; the other draft stays.
+      const actions: string[] = [];
+      client.subscribeAcknowledged((_app, ack) => {
+        const email = client.acknowledgementFor(ack, ['email'], start);
+        const followUp = client.acknowledgementFor(ack, ['followUpEmail'], start);
+        actions.push(`${email}/${followUp}`);
+        if (email === 'reset' && followUp !== 'reset') start = client.discardedStart(app, start, ['email']);
+      });
+      client.dismissNotice(notice);
+      ctx.check(actions[0] === 'reset/ignore', `Discard of the email conflict acted on the panel as ${actions[0]}, expected reset/ignore`);
+      server.writeField(app, 'email', 't:G2;', 'agent');
+      await client.poll(app);
+      const save = await client.editorCommit(app, start, () => client.edit(app, fieldMutation('followUpEmail', 't:F1;')));
+      ctx.check(save === 'saved', `the follow-up-only save was not saved (${save})`);
+      const after = client.editorAfter(app, save, 'sent', 'typed more', start);
+      ctx.check(!after.close, 'the panel closed although the user typed during the save');
+      const stale = await client.editorCommit(app, after.start, () => client.edit(app, fieldMutation('email', 't:E3;')));
+      const row = server.rowOf(app);
+      const emailNow = JSON.stringify(row?.email_body ?? row?.email ?? null);
+      ctx.check(stale === 'conflict' && emailNow.includes('t:G2;'), `the stale email copy was saved over G2 (${stale}, email ${emailNow.slice(0, 80)})`);
+    },
+  },
+  {
+    name: 'r3-y a partial Discard moves only the discarded document\'s snapshot, to the version the panel shows',
+    about: 'After a Discard of the email draft the panel shows the store\'s email (G1). Editing that copy and saving while the server is still on G1 is a save, not a false conflict. The follow-up keeps its own snapshot: a newer server follow-up (G3) that arrived before the Discard still makes a Save of the old follow-up copy a conflict.',
+    run: async (ctx) => {
+      const { server, net, client, app } = ctx;
+      net.reliable = true;
+      let start = client.editorStart(app);
+      server.writeField(app, 'email', 't:G1;', 'agent');
+      await client.poll(app);
+      const first = await client.editorCommit(app, start, () => client.edit(app, fieldMutation('email', 't:E1;')));
+      ctx.check(first === 'conflict', `the email draft on an older revision was not a conflict (${first})`);
+      const notice = [...client.notices].reverse().find((candidate) => candidate.conflictFor);
+      if (!notice) { ctx.check(false, 'the email conflict raised no notice'); return; }
+      server.writeField(app, 'followUpEmail', 't:G3;', 'agent');
+      await client.poll(app);
+      const actions: string[] = [];
+      client.subscribeAcknowledged((_app, ack) => {
+        const email = client.acknowledgementFor(ack, ['email'], start);
+        const followUp = client.acknowledgementFor(ack, ['followUpEmail'], start);
+        actions.push(`${email}/${followUp}`);
+        if (email === 'reset' && followUp !== 'reset') start = client.discardedStart(app, start, ['email']);
+      });
+      client.dismissNotice(notice);
+      ctx.check(actions[0] === 'reset/ignore', `Discard of the email conflict acted on the panel as ${actions[0]}, expected reset/ignore`);
+      const edited = await client.editorCommit(app, start, () => client.edit(app, fieldMutation('email', 't:E2;')));
+      ctx.check(edited === 'saved' && server.acceptedHas(app, 't:E2;'), `an edit of the email the panel shows raised a false conflict (${edited})`);
+      const after = client.editorAfter(app, edited, 'sent', 'typed more', start);
+      ctx.check(!after.close, 'the panel closed although the user typed during the save');
+      const stale = await client.editorCommit(app, after.start, () => client.edit(app, fieldMutation('followUpEmail', 't:F1;')));
+      const followUpNow = JSON.stringify(server.rowOf(app)?.follow_up_email ?? null);
+      ctx.check(stale === 'conflict' && followUpNow.includes('t:G3;'), `the old follow-up copy was saved over G3 (${stale}, follow-up ${followUpNow.slice(0, 80)})`);
+    },
+  },
+  {
     name: 'pr159 a draft that reopens with no start is checked as stale',
     about: 'A save that was running when its draft was discarded reopens nothing; a draft that does reopen without an EditorStart is saved against a start that never matches, so it cannot overwrite a newer CV.',
     run: async (ctx) => {

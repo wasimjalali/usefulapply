@@ -12,7 +12,7 @@ import { useToast } from './ui/Toast';
 import { usePostHog } from 'posthog-js/react';
 import { formatEmailAsText } from '@/lib/utils/kit-export';
 import { useSessionStore } from '@/store/useSessionStore';
-import { acknowledgedStart, acknowledgementFor, commitEditorSave, editorShouldClose, getEditorStart, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
+import { acknowledgedStart, acknowledgementFor, commitEditorSave, discardedEditorStart, editorShouldClose, getEditorStart, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface EmailPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -66,9 +66,6 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   const [typed, setTyped] = useState({ email: false, followUp: false });
   // The revision the editor opened on; the drafts live outside the store (see commitEditorSave).
   const editStartRef = useRef<EditorStart | undefined>(undefined);
-  // The email and follow-up as the store has them now, for the discard path in the conflict listener below.
-  const currentDraftsRef = useRef<{ email: GeneratedEmail | null; followUp: FollowUp | null }>({ email: null, followUp: null });
-  useEffect(() => { currentDraftsRef.current = { email: email ?? null, followUp: followUpEmail ?? null }; }, [email, followUpEmail]);
   // Counts the discards of email conflict text that reached this editor. A save still running when a draft
   // is discarded sees the count has moved and leaves the editor alone when its answer comes back.
   const discardEpochRef = useRef(0);
@@ -92,12 +89,19 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
         editStartRef.current = undefined;
         return;
       }
+      // The discarded document shows the store's version again, read in the same tick as the snapshot moves to it:
+      // the draft no longer sets that document, so a later Save checks it against the version the editor shows.
+      const state = useSessionStore.getState();
+      const shown = state.sessions.find((session) => session.id === acknowledged)
+        ?? (state.currentSession?.id === acknowledged ? state.currentSession : null);
       if (emailAction === 'reset') {
         setTyped((prev) => ({ ...prev, email: false }));
-        setEditedEmail(currentDraftsRef.current.email);
+        setEditedEmail(shown?.email ?? null);
+        editStartRef.current = discardedEditorStart(acknowledged, editStartRef.current, ['email']);
       } else {
         setTyped((prev) => ({ ...prev, followUp: false }));
-        setEditedFollowUp(currentDraftsRef.current.followUp);
+        setEditedFollowUp(shown?.followUpEmail ?? null);
+        editStartRef.current = discardedEditorStart(acknowledged, editStartRef.current, ['followUpEmail']);
       }
       return;
     }

@@ -15,6 +15,10 @@ not caught. Writes nothing else.
 Applies that one mutation, runs the command from the repo root with SYNC_FUZZ_MUTATION set to the mutation's
 name (sync-fuzz.ts prints it and writes it into its --out file), then puts the engine back. per-bug.sh uses this
 for its "before" runs, so a before file says which mutation made it.
+
+Both modes refuse to start unless src/lib/session-sync-engine.ts matches git HEAD (a run that was killed, or one still
+running next to this one, leaves it mutated, and copying that as the "original" would make the damage stick), so
+commit engine changes first. After putting the engine back they check it matches HEAD again and fail loudly if not.
 """
 import os
 import shutil
@@ -24,6 +28,30 @@ import tempfile
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 ENGINE = os.path.join(ROOT, 'src', 'lib', 'session-sync-engine.ts')
+ENGINE_REL = os.path.join('src', 'lib', 'session-sync-engine.ts')
+
+
+def engine_matches_head() -> bool:
+    """Does the engine on disk match git HEAD? A git error is raised, never read as an answer."""
+    out = subprocess.run(['git', 'diff', '--quiet', 'HEAD', '--', ENGINE_REL], cwd=ROOT, capture_output=True, text=True)
+    if out.returncode not in (0, 1):
+        raise RuntimeError(f'git diff failed (exit {out.returncode}): {out.stderr.strip()}')
+    return out.returncode == 0
+
+
+def refuse_unless_clean() -> bool:
+    if engine_matches_head():
+        return True
+    print(f'{ENGINE_REL} differs from git HEAD: an earlier run may have left a mutation in it, or another run is going.'
+          f' Check `git diff HEAD -- {ENGINE_REL}`, commit or restore it, then run again.', file=sys.stderr)
+    return False
+
+
+def restored_or_fail() -> int:
+    if engine_matches_head():
+        return 0
+    print(f'{ENGINE_REL} was NOT restored to git HEAD after the run. Inspect `git diff HEAD -- {ENGINE_REL}`.', file=sys.stderr)
+    return 3
 
 MUTATIONS = {
     'M-discard-rebase Discard acknowledges like Restore and Copy (the open editor keeps the discarded draft)': (
@@ -177,6 +205,14 @@ MUTATIONS = {
         "      const moved = touched.filter((column) => base.fields[column] !== checked.fields[column] && draftFp[column] !== base.fields[column]\n        && draftFp[column] !== beforeFp[column]);",
         "      const moved = touched.filter((column) => base.fields[column] !== checked.fields[column] && draftFp[column] !== base.fields[column]);",
     ),
+    'M-r3x-discard-lineage a partial Discard leaves the discarded document\'s columns in the editor\'s lineage (a later save of the other document rebases them, and the stale copy then saves over a newer server version; review round 3 high)': (
+        "  for (const group of FIELD_GROUPS) if (groups.includes(group.key)) for (const column of group.columns) start.lineage.columns.delete(column);",
+        "  void groups;",
+    ),
+    'M-r3y-discard-snapshot a partial Discard leaves the discarded document\'s snapshot on the version before the conflict (an edit of the copy the panel shows is a false conflict; review round 3 extra low)': (
+        "    return rebaseEditorStart(sessionId, start, columns);\n  }",
+        "    void columns;\n    return start;\n  }",
+    ),
     'M16 Copy with nothing left copies an empty string': (
         "    if (text.trim() === '') return null;",
         "    if (false) return null;",
@@ -204,6 +240,8 @@ def apply_and_run(prefix: str, command: list) -> int:
         print(f'--apply {prefix!r} matches {len(matches)} mutations; give a name prefix that matches exactly one', file=sys.stderr)
         return 2
     name = matches[0]
+    if not refuse_unless_clean():
+        return 2
     change = MUTATIONS[name]
     pairs = change if isinstance(change, list) else [change]
     backup = os.path.join(tempfile.mkdtemp(), 'engine.orig.ts')
@@ -220,9 +258,10 @@ def apply_and_run(prefix: str, command: list) -> int:
         with open(ENGINE, 'w') as handle:
             handle.write(mutated)
         print(f'mutation applied: {name}', file=sys.stderr)
-        return subprocess.run(command, cwd=ROOT, env={**os.environ, 'SYNC_FUZZ_MUTATION': name}).returncode
+        status = subprocess.run(command, cwd=ROOT, env={**os.environ, 'SYNC_FUZZ_MUTATION': name}).returncode
     finally:
         shutil.copy(backup, ENGINE)
+    return restored_or_fail() or status
 
 
 def main() -> int:
@@ -233,6 +272,8 @@ def main() -> int:
             return 2
         return apply_and_run(args[1], args[3:])
     wanted = args
+    if not refuse_unless_clean():
+        return 2
     backup = os.path.join(tempfile.mkdtemp(), 'engine.orig.ts')
     shutil.copy(ENGINE, backup)
     original = open(backup).read()
@@ -259,7 +300,7 @@ def main() -> int:
             print(f"{name} -> {result if caught else 'SURVIVED  ' + result}")
     finally:
         shutil.copy(backup, ENGINE)
-    return 1 if survived else 0
+    return restored_or_fail() or (1 if survived else 0)
 
 
 if __name__ == '__main__':

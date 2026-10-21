@@ -87,6 +87,8 @@ export interface Adapter {
   acknowledgementFor(ack: ConflictAcknowledgement, groups: string[], start: unknown): 'ignore' | 'rebase' | 'reset';
   /** The start a panel moves its editor to after a Restore or Copy, for the groups `acknowledgementFor` said 'rebase' for. */
   acknowledgedStart(ack: ConflictAcknowledgement, groups: string[], start: unknown): unknown;
+  /** The start the email panel moves its editor to after a Discard reset these groups and it stays open (`discardedEditorStart`). */
+  discardedStart(app: string, start: unknown, groups: string[]): unknown;
   /** The snapshot an editor start holds (column -> server fingerprint), for the checks; undefined for engines without one. */
   startFields(start: unknown): Record<string, string> | undefined;
   /** A buffer entry this tab has raised a notice about, by id: its group, columns, user tokens and the fingerprint of each changed property. */
@@ -361,6 +363,7 @@ export function newClient(
     subscribeAcknowledged: (listener) => (current ? (anyEngine.subscribeConflictAcknowledged(listener) as () => void) : () => undefined),
     acknowledgementFor: (ack, groups, start) => (current ? engineModule.acknowledgementFor(ack, groups, start as never) : 'ignore'),
     acknowledgedStart: (ack, groups, start) => (current ? engineModule.acknowledgedStart(ack, groups, start as never) : start),
+    discardedStart: (app, start, groups) => (current ? engine.discardedEditorStart(app, start as never, groups) : start),
     startFields: (start) => (current && start ? { ...(start as EditorStart).fields } : undefined),
     entryInfo: (id) => {
       const entry = entriesById.get(id);
@@ -472,6 +475,7 @@ export async function legacyClient(id: string, world: World): Promise<Adapter> {
     subscribeAcknowledged: () => () => undefined,
     acknowledgementFor: () => 'ignore',
     acknowledgedStart: (_ack, _groups, start) => start,
+    discardedStart: (_app, start) => start,
     startFields: () => undefined,
     entryInfo: () => undefined,
     afterClosedEditorSave: () => ({ reopen: false }),

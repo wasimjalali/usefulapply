@@ -730,7 +730,8 @@ export function ChatPanel({
   // until the user picks a chip.
   // A short ad on an unfinished application leaves that application alone until
   // a chip is picked: it may be a question the model misread, and "Not a job ad"
-  // must not have replaced the real job description. It is bound to that application: after a switch it
+  // must not have replaced the real job description. With no application open, the
+  // new conversation starts without it for the same reason. It is bound to that application: after a switch it
   // never replaces another one's job description.
   const deferredReplaceJdRef = useRef<{ jd: string; sessionId: string } | null>(null);
   const replaceUnfinishedApplication = (jd: string) => {
@@ -756,7 +757,11 @@ export function ChatPanel({
   const presentJobAdDecision = (jd: string) => {
     deferredReplaceJdRef.current = null;
     if (!currentSession) {
-      useAppStore.getState().createNewSession(jd);
+      // A short ad opens the conversation without it: the job description is set only when a chip is picked.
+      const short = isShortJobAd(jd);
+      useAppStore.getState().createNewSession(short ? '' : jd);
+      const created = useSessionStore.getState().currentSession?.id;
+      if (short && created) deferredReplaceJdRef.current = { jd, sessionId: created };
     } else if (!sessionHasKit(currentSession)) {
       if (isShortJobAd(jd)) deferredReplaceJdRef.current = { jd, sessionId: currentSession.id };
       else replaceUnfinishedApplication(jd);
