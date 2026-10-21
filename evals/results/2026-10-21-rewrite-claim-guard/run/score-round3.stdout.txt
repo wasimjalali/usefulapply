@@ -1,0 +1,80 @@
+{
+  "refusals": {
+    "baseline": {
+      "changed": 52,
+      "applied": 23,
+      "false_refusal": 19,
+      "strict_refusal": 8,
+      "true_refusal": 2,
+      "unlabelled": 0
+    },
+    "current": {
+      "changed": 52,
+      "applied": 23,
+      "false_refusal": 19,
+      "strict_refusal": 8,
+      "true_refusal": 2,
+      "unlabelled": 0
+    }
+  },
+  "en": {
+    "baseline": {
+      "changed": 36,
+      "applied": 18,
+      "false_refusal": 12,
+      "strict_refusal": 6,
+      "true_refusal": 0,
+      "unlabelled": 0
+    },
+    "current": {
+      "changed": 36,
+      "applied": 18,
+      "false_refusal": 12,
+      "strict_refusal": 6,
+      "true_refusal": 0,
+      "unlabelled": 0
+    }
+  },
+  "de": {
+    "baseline": {
+      "changed": 16,
+      "applied": 5,
+      "false_refusal": 7,
+      "strict_refusal": 2,
+      "true_refusal": 2,
+      "unlabelled": 0
+    },
+    "current": {
+      "changed": 16,
+      "applied": 5,
+      "false_refusal": 7,
+      "strict_refusal": 2,
+      "true_refusal": 2,
+      "unlabelled": 0
+    }
+  },
+  "misses": {
+    "injected": 531,
+    "baseline_missed": 10,
+    "current_missed": 10
+  },
+  "new_misses": 0,
+  "held_out": {
+    "injected": 14911,
+    "baseline_missed": 801,
+    "current_missed": 801,
+    "new_misses": 0
+  },
+  "lowercase_brands": {
+    "checked": 103,
+    "new_misses": []
+  },
+  "probes": {
+    "total": 190,
+    "refused_by_baseline": 179,
+    "refused_by_current": 179,
+    "new_misses": 0
+  },
+  "newly_freed": "en:including(213,stem match) de:habe(164,grammar word) de:mein(156,grammar word) de:sie(156,grammar word) de:er(153,grammar word) de:sodass(153,grammar word) de:ich(20,grammar word) de:bin(3,grammar word) de:mich(1,grammar word)",
+  "unlabelled": 0
+}

@@ -1,0 +1,9 @@
+{
+  "run_id": "ca6491fb-d153-4da6-9d10-87e6f4331a4f",
+  "date": "2026-10-21T16:27:01.067Z",
+  "arm": "sonnet55-low",
+  "model": "claude-sonnet-5-5",
+  "calls": 89,
+  "rewrites": 59,
+  "cost_usd": 1.1087
+}
