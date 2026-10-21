@@ -213,6 +213,10 @@ MUTATIONS = {
         "    return rebaseEditorStart(sessionId, start, columns);\n  }",
         "    void columns;\n    return start;\n  }",
     ),
+    'M-r4-queued-discard a save that waited for the lock writes a draft the user discarded after clicking Save (it comes back as a new notice; final check after review round 3, low 1)': (
+        "  return discardsAtSave !== discardsNow;",
+        "  void discardsAtSave;\n  void discardsNow;\n  return false;",
+    ),
     'M16 Copy with nothing left copies an empty string': (
         "    if (text.trim() === '') return null;",
         "    if (false) return null;",

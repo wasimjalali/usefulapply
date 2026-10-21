@@ -530,6 +530,101 @@ export const CASES: CaseDef[] = [
     },
   },
   {
+    name: 'r4-1 a save waiting for the lock does not write an email draft discarded after Save was clicked',
+    about: 'The email panel\'s email draft E1 conflicts (G1). The user clicks Save again while another save holds the lock, then discards the E1 notice before that save answers. The queued save runs with its old closure: it must skip the discarded email, so E1 comes back in no new notice, never reaches the store or the server, and the editor keeps showing the store\'s email.',
+    run: async (ctx) => {
+      const { server, net, client, app } = ctx;
+      net.reliable = true;
+      let start = client.editorStart(app);
+      server.writeField(app, 'email', 't:G1;', 'agent');
+      await client.poll(app);
+      const first = await client.editorCommit(app, start, () => client.edit(app, fieldMutation('email', 't:E1;')));
+      ctx.check(first === 'conflict', `the email draft on an older revision was not a conflict (${first})`);
+      const notice = [...client.notices].reverse().find((candidate) => candidate.conflictFor);
+      if (!notice) { ctx.check(false, 'the email conflict raised no notice'); return; }
+      // The panel: per-document discard counts, and a partial Discard keeps the editor open on the other document.
+      const discards = { email: 0, followUpEmail: 0 };
+      const actions: string[] = [];
+      client.subscribeAcknowledged((_app, ack) => {
+        const email = client.acknowledgementFor(ack, ['email'], start);
+        const followUp = client.acknowledgementFor(ack, ['followUpEmail'], start);
+        actions.push(`${email}/${followUp}`);
+        if (email === 'reset') discards.email += 1;
+        if (email === 'reset' && followUp !== 'reset') start = client.discardedStart(app, start, ['email']);
+      });
+      // Another save holds the application's lock, waiting on the network.
+      net.reliable = false;
+      ctx.edit('jobTitle', 't:J1;');
+      const holding = client.save(app);
+      await flush();
+      // Save clicked: the panel's closure holds E1 and the start of the click.
+      const atSave = { ...discards };
+      const queued = client.editorCommit(app, start, () => {
+        if (!client.discardedSinceSave(atSave.email, discards.email)) client.edit(app, fieldMutation('email', 't:E1;'));
+      });
+      await flush();
+      const noticesBefore = client.notices.length;
+      client.dismissNotice(notice);
+      ctx.check(actions[0] === 'reset/ignore', `Discard of the email conflict acted on the panel as ${actions[0]}, expected reset/ignore`);
+      await ctx.serve('save');
+      await ctx.drain();
+      await holding;
+      const outcome = await queued;
+      const emailNow = JSON.stringify(client.session(app)?.email ?? null);
+      const revived = client.notices.slice(noticesBefore).filter((candidate) => client.noticeText(candidate).includes('t:E1;'));
+      ctx.check(revived.length === 0, `the queued save brought the discarded email back in a new notice (${outcome})`);
+      ctx.check(!emailNow.includes('t:E1;') && emailNow.includes('t:G1;'), `the queued save put the discarded email into the store (${emailNow.slice(0, 80)})`);
+      ctx.check(!server.acceptedHas(app, 't:E1;'), 'the queued save sent the discarded email to the server');
+    },
+  },
+  {
+    name: 'r4-2 a partial Discard keeps the editor\'s lineage, so a notice about its other draft still reaches it',
+    about: 'The email panel\'s follow-up draft F1 goes into the store but its save is lost. A retry with the email draft conflicts on a newer email (G1) and the user discards that email notice (a partial Discard, which rebases the snapshot). A newer server follow-up (G2) then sets F1 aside in an entry naming the editor\'s lineage. Copy of that notice must rebase the panel\'s follow-up and Discard must reset it: the rebase kept the lineage (mutation M18 gives it a new, empty one).',
+    run: async (ctx) => {
+      const { server, net, client, app } = ctx;
+      let start = client.editorStart(app);
+      // Try 1: F1 reaches the store; the save request never reaches the server and an error comes back.
+      const tryOne = client.editorCommit(app, start, () => client.edit(app, fieldMutation('followUpEmail', 't:F1;')));
+      await flush();
+      const lost = net.find(client.id, 'save');
+      if (!lost) { ctx.check(false, 'the follow-up save sent no request'); return; }
+      lost.arrive = 'drop';
+      lost.deliver = 'fail';
+      net.complete(lost);
+      await flush();
+      const first = await tryOne;
+      ctx.check(first === 'error' && !server.acceptedHas(app, 't:F1;'), `the lost follow-up save was not an error (${first})`);
+      net.reliable = true;
+      // Try 2: the email draft against a newer server email. F1 is already in the store, so only the email is set aside.
+      server.writeField(app, 'email', 't:G1;', 'agent');
+      await client.poll(app);
+      const second = await client.editorCommit(app, start, () => client.edit(app, fieldMutation('email', 't:E1;')));
+      ctx.check(second === 'conflict', `the email draft on an older revision was not a conflict (${second})`);
+      const emailNotice = [...client.notices].reverse().find((candidate) => candidate.conflictFor);
+      if (!emailNotice) { ctx.check(false, 'the email conflict raised no notice'); return; }
+      const actions: string[] = [];
+      client.subscribeAcknowledged((_app, ack) => {
+        const email = client.acknowledgementFor(ack, ['email'], start);
+        const followUp = client.acknowledgementFor(ack, ['followUpEmail'], start);
+        actions.push(`${email}/${followUp}`);
+        if (email === 'reset' && followUp !== 'reset') start = client.discardedStart(app, start, ['email']);
+        else if (followUp === 'rebase') start = client.acknowledgedStart(ack, ['followUpEmail'], start);
+      });
+      client.dismissNotice(emailNotice);
+      ctx.check(actions[0] === 'reset/ignore', `Discard of the email conflict acted on the panel as ${actions[0]}, expected reset/ignore`);
+      // A newer server follow-up: the merge sets the store's F1 aside, in an entry naming the editor whose draft it is.
+      server.writeField(app, 'followUpEmail', 't:G2;', 'agent');
+      await client.poll(app);
+      const followUpNotice = [...client.notices].reverse().find((candidate) => candidate.conflictFor && candidate !== emailNotice);
+      if (!followUpNotice) { ctx.check(false, 'the follow-up merge raised no notice'); return; }
+      ctx.check(client.noticeText(followUpNotice).includes('t:F1;'), 'the follow-up notice does not hold F1');
+      client.copyNotice(followUpNotice);
+      ctx.check(actions[1] === 'ignore/rebase', `Copy of the follow-up notice acted on the panel as ${actions[1]}, expected ignore/rebase (the partial Discard gave the editor a new lineage)`);
+      client.dismissNotice(followUpNotice);
+      ctx.check(actions[2] === 'ignore/reset', `Discard of the follow-up notice acted on the panel as ${actions[2]}, expected ignore/reset (the partial Discard gave the editor a new lineage)`);
+    },
+  },
+  {
     name: 'pr159 a draft that reopens with no start is checked as stale',
     about: 'A save that was running when its draft was discarded reopens nothing; a draft that does reopen without an EditorStart is saved against a start that never matches, so it cannot overwrite a newer CV.',
     run: async (ctx) => {

@@ -95,6 +95,8 @@ export interface Adapter {
   entryInfo(id: string): { group: string; columns: string[]; tokens: string[]; propTokens: Record<string, string[]>; changed: Record<string, string> } | undefined;
   /** What the CV panel does when the answer to a save comes back after it closed its editor on Save. */
   afterClosedEditorSave(outcome: string, epochAtSave: number, epochNow: number, start: unknown): { reopen: false } | { reopen: true; start: unknown };
+  /** Inside an editor save's apply (run once the lock is free): was that document's draft discarded since Save was clicked? Then the panels do not write it. */
+  discardedSinceSave(discardsAtSave: number, discardsNow: number): boolean;
   rejectedColumns(app: string): string[];
   baseline(app: string): { revision: number; fields: Record<string, string> | null } | undefined;
 }
@@ -378,6 +380,8 @@ export function newClient(
     afterClosedEditorSave: (outcome, epochAtSave, epochNow, start) => (current
       ? engineModule.afterClosedEditorSave(outcome as EditorOutcome, epochAtSave, epochNow, start as never)
       : { reopen: false }),
+    // Round 2's panels had no such check: a queued save wrote whatever its closure held.
+    discardedSinceSave: (discardsAtSave, discardsNow) => (current ? engineModule.discardedSinceSave(discardsAtSave, discardsNow) : false),
     restoreNotice: async (notice) => {
       if (!notice.conflictFor) return 'skipped';
       // Round 2 restored every buffered entry of the application, whichever notice was clicked.
@@ -482,6 +486,7 @@ export async function legacyClient(id: string, world: World): Promise<Adapter> {
     startFields: () => undefined,
     entryInfo: () => undefined,
     afterClosedEditorSave: () => ({ reopen: false }),
+    discardedSinceSave: () => false,
     rejectedColumns: () => [],
     baseline: (app) => {
       const revision = legacy.getBaselineRevision(app);

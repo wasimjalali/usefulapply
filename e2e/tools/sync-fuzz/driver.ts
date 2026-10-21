@@ -136,6 +136,8 @@ interface Editor {
   closesOnSave: boolean;
   /** Counts the discards of this editor's text, as the panels do: a save started before one must not reopen the draft. */
   epoch: number;
+  /** The same discards, per field: a save waiting for the lock does not write a field discarded since its Save was clicked. */
+  discards: Partial<Record<Field, number>>;
   /** The CV panel: a Discard reset it while its save ran. It is closed, has let go of its draft and acts on nothing more. */
   released?: boolean;
   /** I6: per column#part, the server values this editor may write over: shown at open, shown by a notice it produced and acknowledged, or its own draft. */
@@ -611,6 +613,7 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         if (reset.length === 0) continue;
         // The user threw away the text this editor holds (for the email panel: of one document, or both).
         editor.epoch += 1;
+        for (const field of reset) editor.discards[field] = (editor.discards[field] ?? 0) + 1;
         if (reset.length < editor.fields.length) {
           // The email panel drops that document's draft and shows the store's version again; the other draft stays.
           // Its draft no longer sets that document, and its snapshot of it is the version the store shows now.
@@ -690,7 +693,7 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         const start = client.editorStart(app);
         const editor: Editor = {
           client, app, fields, drafts: {}, copies: {}, tokens: new Set(), tokensByField: {}, start, committing: false,
-          hadStart: start !== undefined, closesOnSave: choice === 'cv', epoch: 0,
+          hadStart: start !== undefined, closesOnSave: choice === 'cv', epoch: 0, discards: {},
           allowed: new Map(), appliedProps: new Map(), ownParts: new Map(), label: panel ? 'email panel' : String(choice),
         };
         if (panel) {
@@ -751,6 +754,7 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         const nowKey = () => JSON.stringify([editor.drafts, Object.keys(editor.copies)]);
         const sentTokens = Object.values(sent).filter((token): token is string => Boolean(token));
         const epochAtSave = editor.epoch;
+        const discardsAtSave = { ...editor.discards };
         for (const token of sentTokens) {
           if (discarded.has(token)) violate('I1', `${client.id}'s open ${editor.label} editor on ${app} saved ${token}, which the user had discarded (Dismiss, then Discard leaves the draft in the editor)`);
           deliberate.add(token);
@@ -763,6 +767,9 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
             const token = sent[field];
             // The email panel writes only a document the user typed into; its copy of the other one stays out of the store.
             if (!token) continue;
+            // apply runs once the lock is free: a field the user discarded since clicking Save is not written (the panels' rule).
+            if (client.discardedSinceSave(discardsAtSave[field] ?? 0, editor.discards[field] ?? 0)) continue;
+            if (discarded.has(token)) violate('I1', `${client.id}'s ${editor.label} editor on ${app} wrote ${token} into the store from a save that waited for the lock, after the user discarded it`);
             client.edit(app, fieldMutation(field, token));
             appliedFields.push(field);
             // The draft replaces whatever the store held for that field.
