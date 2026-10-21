@@ -51,6 +51,14 @@ function refuseDataMarks(values: Array<string | undefined>): void {
   }
 }
 
+/** Every string inside a nested tool input, for checks that apply to all of its text. */
+function stringLeaves(value: unknown): string[] {
+  if (typeof value === 'string') return [value];
+  if (Array.isArray(value)) return value.flatMap(stringLeaves);
+  if (value && typeof value === 'object') return Object.values(value).flatMap(stringLeaves);
+  return [];
+}
+
 async function tailoredCvOrThrow(userId: string, applicationId: string) {
   const tailored = await getTailoredCv(userId, applicationId);
   if (!tailored.data) throw new ToolError('no_cv', 'This application has no tailored CV yet.');
@@ -305,6 +313,7 @@ const addCvItemTool = defineTool({
   input: z.object({ applicationId: applicationIdField, revision: revisionField, item: newItem }),
   output: z.object({ applicationId: z.string(), revision: z.number(), list: z.string(), handle: z.string().nullable() }),
   async run({ applicationId, revision, item }, { userId }) {
+    refuseDataMarks(stringLeaves(item));
     const saved = await addCvItem(userId, applicationId, revision, item);
     return ok({ applicationId, revision: saved.revision, list: saved.list, handle: saved.handle });
   },
