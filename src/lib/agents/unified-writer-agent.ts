@@ -52,9 +52,12 @@ import {
 import { flattenUntrusted, sanitizeAdText } from './chat-tools/untrusted';
 import {
   claimAcronymPluralAliases,
+  claimCapitalisedWords,
+  claimGermanBases,
   claimStem as stemOf,
   claimWords as words,
 } from './claim-token-normalization';
+import { isClaimFreeForm, isClaimWord } from './claim-vocabulary';
 import { buildCoverLetterSystemBlocks, buildCoverLetterUserPrompt } from './prompts/cover-letter-prompt';
 import { assembleStructuredCoverLetter, renderCoverLetterBody, splitAddressLines, type CoverLetterModelFields } from './cover-letter-structure';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
@@ -311,9 +314,13 @@ function foldUmlauts(lower: string): string {
  * A rewrite may introduce these freely, because rephrasing what the source
  * already says is the intended job.
  *
- * THIS LIST IS THE TUNABLE KNOB, and it is all that stands between a useful
- * rewrite feature and one that refuses every reworded sentence. Say it plainly:
- * every word added here is a word the guard stops checking. The line drawn is
+ * Since 2026-10-21 this list is no longer the only way a word counts as
+ * claim-free: verbs, qualitative adjectives, adverbs and function words come
+ * from the generated lexicon (see claim-vocabulary.ts), and this list matters
+ * mainly for the generic NOUNS of CV prose, which the lexicon never frees. It
+ * also no longer outranks the claim words: anything in CLAIM_WORDS or
+ * ROLE_WORDS is a claim even if it is listed here. Every word added here is
+ * still a word the guard stops checking. The line drawn is
  * that a word stays neutral when it names an activity or an abstract shape, and
  * leaves when it asserts authority, scope, seniority, ownership, standing or a
  * quantity.
@@ -364,6 +371,23 @@ const NEUTRAL_WORDS = new Set([
   'bei', 'beim', 'im', 'ist', 'sind', 'war', 'waren', 'sich', 'als', 'auch',
   'durch', 'ueber', 'zur', 'zum', 'zu', 'wurde', 'wurden', 'sowie', 'dass',
   'wie', 'nach', 'vor', 'unter', 'dabei', 'diese', 'dieser', 'dieses',
+  // German forms of the generic nouns below, so a German rewrite is held to the
+  // same line as an English one: the nouns of CV prose, never a domain.
+  'abschnitt', 'zusammenfassung', 'profil', 'punkt', 'punkte', 'satz', 'saetze',
+  'wort', 'woerter', 'text', 'inhalt', 'liste', 'titel', 'rolle', 'rollen',
+  'stelle', 'aufgabe', 'aufgaben', 'erfahrung', 'erfahrungen', 'projekt',
+  'projekte', 'projekten', 'projekts', 'arbeit', 'zusammenarbeit', 'team',
+  'teams', 'menschen', 'personen', 'unternehmen', 'unternehmens', 'firma',
+  'firmen', 'kunde', 'kunden', 'nutzer', 'nutzern', 'anwender', 'anwendern',
+  'produkt', 'produkte', 'produkten', 'produkts', 'prozess', 'prozesse',
+  'prozessen', 'zahl', 'zahlen', 'qualitaet', 'leistung', 'leistungen',
+  'dienstleistung', 'dienstleistungen', 'bericht', 'berichte', 'rueckmeldung',
+  'rueckmeldungen', 'werkzeug', 'werkzeuge', 'system', 'systeme', 'systemen',
+  'funktion', 'funktionen', 'ergebnis', 'ergebnisse', 'ergebnissen', 'wirkung',
+  'wachstum', 'jahr', 'jahre', 'jahren', 'jahres', 'monat', 'monate', 'monaten',
+  'woche', 'wochen', 'tag', 'tage', 'tagen', 'zeit', 'datum', 'weg', 'wege',
+  'teil', 'teile', 'seite', 'seiten', 'fokus', 'schwerpunkt', 'schwerpunkte',
+  'bereich', 'bereiche', 'bereichen',
   // Asking for an edit.
   'rewrite', 'rewritten', 'reword', 'rephrase', 'rework', 'revise', 'edit',
   'change', 'update', 'improve', 'tighten', 'tighter', 'shorten', 'shorter',
@@ -409,6 +433,23 @@ const NEUTRAL_WORDS = new Set([
 /** Is this word neutral, in its own right or once stemmed? */
 function isNeutral(word: string): boolean {
   return NEUTRAL_WORDS.has(word) || NEUTRAL_WORDS.has(stemOf(word));
+}
+
+/**
+ * Can this word carry a claim about the applicant at all? `names` is
+ * claimCapitalisedWords() of the text the word came from.
+ *
+ * In order: claim and role words always can, whatever their part of speech
+ * (senior, led, certified, Go, Excel). The neutral list's words never can. A
+ * word the text writes as a name can. Then the part-of-speech lexicon frees
+ * verbs, qualitative adjectives, adverbs and function words in English and
+ * German. Anything left (nouns, names, unknown words) can.
+ */
+function carriesClaim(word: string, names: Set<string>): boolean {
+  if (ROLE_WORDS.has(word) || isClaimWord(word)) return true;
+  if (isNeutral(word)) return false;
+  if (names.has(word)) return true;
+  return !isClaimFreeForm(word);
 }
 
 /**
@@ -561,10 +602,13 @@ function sectionInflects(word: string, before: SourceIndex): boolean {
  *
  * What it catches: proper nouns, tools, platforms, frameworks, employers,
  * places, credentials (MBA, AWS, PMP, all of them, because the floor is two
- * characters and not four), and any domain noun the CV never used.
+ * characters and not four), any domain noun or relational adjective the CV
+ * never used, and the claim words of claim-vocabulary.ts (seniority,
+ * ownership, scope, proficiency, credentials, tools spelled like verbs).
  *
  * What it deliberately does NOT catch, and cannot:
- * - anything in NEUTRAL_WORDS, the tunable knob above
+ * - a word that cannot carry a claim (carriesClaim): function words, verbs,
+ *   qualitative adjectives and adverbs from the lexicon, and NEUTRAL_WORDS
  * - a false claim assembled entirely from words the CV already contains, in a
  *   combination it never made. Word-level checking cannot see a false sentence
  *   built from true words. The prompt's own rules are the only guard there
@@ -582,12 +626,16 @@ function sectionInflects(word: string, before: SourceIndex): boolean {
  * kit-written section is refused, because the kit writer paraphrases ("Tested"
  * in the CV becomes "evaluated" in the summary) and a rewrite keeps the wording.
  */
-export function introducedClaims(afterText: string, sourceText: string, beforeText: string): string[] {
+export function introducedClaims(afterText: string, sourceText: string, beforeText: string, language?: string): string[] {
   const source = indexSource(sourceText);
   // The section's own words only: no acronym-plural aliases, so "VPs" can't back "VP".
   const beforeTokens = new Set(words(beforeText));
   const before: SourceIndex = { tokens: beforeTokens, stems: new Set([...beforeTokens].map(stemOf)), parts: [] };
   const acronymAliases = claimAcronymPluralAliases(afterText);
+  const names = claimCapitalisedWords(afterText);
+  // German re-inflects a word with its grammatical case ("ruhigen" in the CV,
+  // "ruhigem" in the rewrite), which claimStem's English suffixes don't fold.
+  const german = language === 'de' ? germanInflectionBacking(afterText, `${sourceText}\n${beforeText}`) : null;
   const seen = new Set<string>();
   const introduced: string[] = [];
 
@@ -596,11 +644,12 @@ export function introducedClaims(afterText: string, sourceText: string, beforeTe
     seen.add(word);
     if (word.length < 2) continue;
     if (/^[\p{Nd}]+$/u.test(word)) continue;   // quantities are the number guard's job
-    if (isNeutral(word)) continue;
+    if (!carriesClaim(word, names)) continue;
     if (before.tokens.has(word)) continue;
     if (sectionInflects(word, before)) continue;
     if (source.tokens.has(word)) continue;
     if (source.stems.has(stemOf(word))) continue;
+    if (german?.(word)) continue;
     const acronymBase = acronymAliases.get(word);
     if (acronymBase && (source.tokens.has(acronymBase) || source.stems.has(acronymBase))) continue;
     // A long word built around a word the CV does contain reads as a compound,
@@ -613,6 +662,22 @@ export function introducedClaims(afterText: string, sourceText: string, beforeTe
     introduced.push(word);
   }
   return introduced;
+}
+
+/**
+ * Is `word` a German inflection of a word the CVs or the section hold, in the
+ * same word class? See claimGermanBases for why the classes never mix.
+ */
+function germanInflectionBacking(afterText: string, backingText: string): (word: string) => boolean {
+  const after = claimGermanBases(afterText);
+  const backing = claimGermanBases(backingText);
+  const lower = new Set(backing.lower.values());
+  const capital = new Set(backing.capital.values());
+  return (word) => {
+    const asLower = after.lower.get(word);
+    const asCapital = after.capital.get(word);
+    return (asLower !== undefined && lower.has(asLower)) || (asCapital !== undefined && capital.has(asCapital));
+  };
 }
 
 /** Numerals that describe the shape of the output, not a claim in it. */
@@ -682,12 +747,13 @@ function unsupportedInstructionTerms(instruction: string, sourceText: string): s
     .replace(/\b(?:lead|leading|open|opening|start|starting)\s+with\b/gi, ' ')
     .replace(SHAPE_NUMERAL, ' ');
   const acronymAliases = claimAcronymPluralAliases(asked);
+  const names = claimCapitalisedWords(asked);
   for (const word of words(asked)) {
     if (seen.has(word)) continue;
     seen.add(word);
     if (word.length < 2) continue;
     if (/^[\p{Nd}]+$/u.test(word)) continue;
-    if (isNeutral(word)) continue;
+    if (!carriesClaim(word, names)) continue;
     if (INSTRUCTION_SHAPE_WORDS.has(word) || INSTRUCTION_SHAPE_WORDS.has(stemOf(word))) continue;
     if (source.tokens.has(word) || source.stems.has(stemOf(word))) continue;
     const acronymBase = acronymAliases.get(word);
@@ -2393,7 +2459,7 @@ export const unifiedWriterAgent = {
     // Unconditional, and driven by what came back rather than by what was
     // asked. A rewrite with no instruction is the loosest brief we send, so it
     // is the last thing that should be running without a claim check.
-    const introduced = introducedClaims(afterText, sourceText, beforeText);
+    const introduced = introducedClaims(afterText, sourceText, beforeText, outputLang);
     if (introduced.length > 0) {
       console.warn('[UnifiedAgent] Section rewrite refused, claim not in source CVs:', introduced.length);
       return { ...base, status: 'refused', reason: 'unsupported_claim', terms: introduced };

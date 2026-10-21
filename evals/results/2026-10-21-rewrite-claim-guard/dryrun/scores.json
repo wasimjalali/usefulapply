@@ -1,0 +1,335 @@
+{
+  "summary": {
+    "rewrites": 1,
+    "unchanged": 0,
+    "number_guard_refusals": 0,
+    "refusals": {
+      "all": {
+        "baseline": {
+          "changed": 1,
+          "applied": 1,
+          "false_refusal": 0,
+          "strict_refusal": 0,
+          "true_refusal": 0,
+          "unlabelled": 0
+        },
+        "current": {
+          "changed": 1,
+          "applied": 1,
+          "false_refusal": 0,
+          "strict_refusal": 0,
+          "true_refusal": 0,
+          "unlabelled": 0
+        }
+      },
+      "en": {
+        "baseline": {
+          "changed": 1,
+          "applied": 1,
+          "false_refusal": 0,
+          "strict_refusal": 0,
+          "true_refusal": 0,
+          "unlabelled": 0
+        },
+        "current": {
+          "changed": 1,
+          "applied": 1,
+          "false_refusal": 0,
+          "strict_refusal": 0,
+          "true_refusal": 0,
+          "unlabelled": 0
+        }
+      },
+      "de": {
+        "baseline": {
+          "changed": 0,
+          "applied": 0,
+          "false_refusal": 0,
+          "strict_refusal": 0,
+          "true_refusal": 0,
+          "unlabelled": 0
+        },
+        "current": {
+          "changed": 0,
+          "applied": 0,
+          "false_refusal": 0,
+          "strict_refusal": 0,
+          "true_refusal": 0,
+          "unlabelled": 0
+        }
+      },
+      "summary": {
+        "baseline": {
+          "changed": 1,
+          "applied": 1,
+          "false_refusal": 0,
+          "strict_refusal": 0,
+          "true_refusal": 0,
+          "unlabelled": 0
+        },
+        "current": {
+          "changed": 1,
+          "applied": 1,
+          "false_refusal": 0,
+          "strict_refusal": 0,
+          "true_refusal": 0,
+          "unlabelled": 0
+        }
+      },
+      "bullets": {
+        "baseline": {
+          "changed": 0,
+          "applied": 0,
+          "false_refusal": 0,
+          "strict_refusal": 0,
+          "true_refusal": 0,
+          "unlabelled": 0
+        },
+        "current": {
+          "changed": 0,
+          "applied": 0,
+          "false_refusal": 0,
+          "strict_refusal": 0,
+          "true_refusal": 0,
+          "unlabelled": 0
+        }
+      },
+      "dev": {
+        "baseline": {
+          "changed": 1,
+          "applied": 1,
+          "false_refusal": 0,
+          "strict_refusal": 0,
+          "true_refusal": 0,
+          "unlabelled": 0
+        },
+        "current": {
+          "changed": 1,
+          "applied": 1,
+          "false_refusal": 0,
+          "strict_refusal": 0,
+          "true_refusal": 0,
+          "unlabelled": 0
+        }
+      },
+      "holdout": {
+        "baseline": {
+          "changed": 0,
+          "applied": 0,
+          "false_refusal": 0,
+          "strict_refusal": 0,
+          "true_refusal": 0,
+          "unlabelled": 0
+        },
+        "current": {
+          "changed": 0,
+          "applied": 0,
+          "false_refusal": 0,
+          "strict_refusal": 0,
+          "true_refusal": 0,
+          "unlabelled": 0
+        }
+      }
+    },
+    "misses": {
+      "all": {
+        "injected": 9,
+        "baseline_missed": 0,
+        "current_missed": 0
+      },
+      "en": {
+        "injected": 9,
+        "baseline_missed": 0,
+        "current_missed": 0
+      },
+      "kind:tool": {
+        "injected": 1,
+        "baseline_missed": 0,
+        "current_missed": 0
+      },
+      "split:dev": {
+        "injected": 9,
+        "baseline_missed": 0,
+        "current_missed": 0
+      },
+      "kind:employer": {
+        "injected": 1,
+        "baseline_missed": 0,
+        "current_missed": 0
+      },
+      "kind:title": {
+        "injected": 1,
+        "baseline_missed": 0,
+        "current_missed": 0
+      },
+      "kind:certification": {
+        "injected": 1,
+        "baseline_missed": 0,
+        "current_missed": 0
+      },
+      "kind:degree": {
+        "injected": 1,
+        "baseline_missed": 0,
+        "current_missed": 0
+      },
+      "kind:ownership": {
+        "injected": 1,
+        "baseline_missed": 0,
+        "current_missed": 0
+      },
+      "kind:scope": {
+        "injected": 1,
+        "baseline_missed": 0,
+        "current_missed": 0
+      },
+      "kind:proficiency": {
+        "injected": 1,
+        "baseline_missed": 0,
+        "current_missed": 0
+      },
+      "kind:domain": {
+        "injected": 1,
+        "baseline_missed": 0,
+        "current_missed": 0
+      }
+    },
+    "flagged_terms": {
+      "baseline": [],
+      "current": []
+    },
+    "missed_injections": [],
+    "unlabelled": {}
+  },
+  "per_rewrite": [
+    {
+      "id": "syn-01-00",
+      "split": "dev",
+      "language": "en",
+      "slot": "summary",
+      "instruction": null,
+      "unchanged": false,
+      "numbers": [],
+      "baseline": {
+        "terms": [],
+        "verdict": "applied"
+      },
+      "current": {
+        "terms": [],
+        "verdict": "applied"
+      }
+    }
+  ],
+  "injected": [
+    {
+      "id": "syn-01-00",
+      "split": "dev",
+      "language": "en",
+      "kind": "tool",
+      "injection": " using Kubernetes",
+      "baseline_caught": true,
+      "current_caught": true,
+      "current_terms": [
+        "kubernetes"
+      ]
+    },
+    {
+      "id": "syn-01-00",
+      "split": "dev",
+      "language": "en",
+      "kind": "employer",
+      "injection": " at Siemens",
+      "baseline_caught": true,
+      "current_caught": true,
+      "current_terms": [
+        "siemens"
+      ]
+    },
+    {
+      "id": "syn-01-00",
+      "split": "dev",
+      "language": "en",
+      "kind": "title",
+      "injection": " as Head of Engineering",
+      "baseline_caught": true,
+      "current_caught": true,
+      "current_terms": [
+        "head",
+        "engineering"
+      ]
+    },
+    {
+      "id": "syn-01-00",
+      "split": "dev",
+      "language": "en",
+      "kind": "certification",
+      "injection": " as a PMP-certified project manager",
+      "baseline_caught": true,
+      "current_caught": true,
+      "current_terms": [
+        "pmp",
+        "certified",
+        "manager"
+      ]
+    },
+    {
+      "id": "syn-01-00",
+      "split": "dev",
+      "language": "en",
+      "kind": "degree",
+      "injection": ", backed by an MBA",
+      "baseline_caught": true,
+      "current_caught": true,
+      "current_terms": [
+        "mba"
+      ]
+    },
+    {
+      "id": "syn-01-00",
+      "split": "dev",
+      "language": "en",
+      "kind": "ownership",
+      "injection": "Spearheaded",
+      "baseline_caught": true,
+      "current_caught": true,
+      "current_terms": [
+        "spearheaded"
+      ]
+    },
+    {
+      "id": "syn-01-00",
+      "split": "dev",
+      "language": "en",
+      "kind": "scope",
+      "injection": " for global teams",
+      "baseline_caught": true,
+      "current_caught": true,
+      "current_terms": [
+        "global"
+      ]
+    },
+    {
+      "id": "syn-01-00",
+      "split": "dev",
+      "language": "en",
+      "kind": "proficiency",
+      "injection": ", working in fluent English",
+      "baseline_caught": true,
+      "current_caught": true,
+      "current_terms": [
+        "fluent"
+      ]
+    },
+    {
+      "id": "syn-01-00",
+      "split": "dev",
+      "language": "en",
+      "kind": "domain",
+      "injection": " for clinical teams",
+      "baseline_caught": true,
+      "current_caught": true,
+      "current_terms": [
+        "clinical"
+      ]
+    }
+  ]
+}
