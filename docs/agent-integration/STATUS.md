@@ -1,6 +1,6 @@
 # MCP integration: status tracker
 
-Last updated 2026-10-21, session 3 (in progress). The plan is `PLAN.md` (v3) in this folder; this file says what's done, what's in flight and what's left. A new session starts here.
+Last updated 2026-10-21, session 4 (in progress). The plan is `PLAN.md` (v3) in this folder; this file says what's done, what's in flight and what's left. A new session starts here.
 
 ## Resume here (session 4)
 
@@ -10,6 +10,23 @@ Last updated 2026-10-21, session 3 (in progress). The plan is `PLAN.md` (v3) in 
 4. **Follow-ups** as in "Left to do", plus: `rewrite_cv_section` returns its before/after text unwrapped while the other CV edit tools wrap it; no spec asserts the top-level `language` code in `get_cv` stays unwrapped; AGENTS.md still lists `/applications`, removed long ago.
 
 **Kill switch:** set `MCP_ENABLED` to `"false"` in `wrangler.jsonc` and deploy. /mcp, the OAuth server and /integrations return 404. The footer "AI integrations" link stays (it can't read the var), so it would 404 too: drop it from `Footer.tsx` in the same change.
+
+## Session 4 progress (2026-10-21)
+
+**Live tests after launch (production, Worker `3fe2c059`):**
+- **MCP Inspector CLI:** 43 tools listed, schema 0 errors, 109 portability warnings across 28 tools.
+- **Raw MCP client over real OAuth** (Wasim's account, through Aside): 38 of 43 tools pass. The other 5 (`save_cv`, `delete_cv`, `set_profile_photo`, `remove_profile_photo`, `withdraw_feed_consent`) would destroy real data, so they run on a throwaway account.
+  - Every edit was undone, both test applications deleted, and the feed, profile and notification settings were written back unchanged.
+  - Credits 293.5 to 290.5: fit 0.5, kit 1.5, follow-up regen 0.5, feed fit 0.5. A cancelled kit released its 2 reserved credits.
+  - Side effects: that day's feed run was used (30 fetched, 20 ranked) and one job was rated helpful.
+- **Exports:** all 7 formats returned 200 and were checked by eye (`verify/feature-mcp-launch/live-export-*`, renders in `render/`). Fonts embedded, no overlap or clipping. Two findings:
+  - the CV contact line shows `wasimjalali.com` twice (PDF and Word);
+  - the screening answers state an unsupported claim ("a 100 % improvement in recall") and an invented notice period.
+
+**Bug found live, fixed on `fix/rewrite-claim-guard`:** `rewrite_cv_section` refused every rewrite as `unsupported_claim` (0 credits). The web app's CV section rewrite (`/api/regenerate`) shares the path and was broken too.
+- **Cause:** `introducedClaims()` checked every word of the rewritten section against the CVs only. The kit writer paraphrases ("Tested" in the CV becomes "evaluated" in the summary), so any rewrite that kept the kit's wording was refused. The number guard had the same blind spot.
+- **Fix:** a word or number the section already holds isn't counted as introduced. Numbers still need a shared content word, so one can't move onto a new claim. "went" and the go family are now neutral.
+- **Tests:** `unified-writer-agent.claim-guard.test.ts` (5) and a production-shaped rewrite in `e2e/mcp/02-happy-path.spec.ts` step 5c.
 
 ## Session 3 progress (2026-10-21)
 

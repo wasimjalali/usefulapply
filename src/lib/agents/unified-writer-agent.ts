@@ -445,13 +445,17 @@ function anchorWords(text: string): Set<string> {
 /**
  * Numbers the rewrite asserts that the applicant's documents do not support.
  *
- * `free` is what is already verified for THIS section: the section as it
- * stands, the CV entry it belongs to, and any metric the extraction pass pulled
- * out with its own context attached. Those numbers pass unconditionally, which
- * is what keeps a straight reword of an existing bullet cheap.
+ * `free` is the verified metrics: literal substrings the extraction pass
+ * pulled out of the source CVs with their own context attached. Those numbers
+ * pass unconditionally, which is what keeps a straight reword of an existing
+ * bullet cheap.
  *
- * `documents` is the Primary CV and the Master CV, and a number found there
- * supports the rewrite only when the two share at least one content word. A
+ * `documents` is the Primary CV and the Master CV, plus the section as it
+ * stands (the caller appends it). A number found there supports the rewrite
+ * only when the two share at least one content word. The current section is in
+ * this arm, not in `free`, because the client can edit it: a number it already
+ * holds can stay next to the same words, since refusing would leave it in the
+ * CV anyway, but it can't be moved onto a new claim. A
  * real CV carries dozens of unrelated integers: a postcode, a street number, a
  * graduation year. A bare "does this digit exist anywhere in the document" test
  * hands every one of them to the model as cover for "reduced processing time by
@@ -465,7 +469,7 @@ function anchorWords(text: string): Set<string> {
  * refusal costs a retry and no credits, a miss costs the applicant an
  * interview.
  */
-function unsupportedNumbers(afterText: string, free: string, documents: string): string[] {
+export function unsupportedNumbers(afterText: string, free: string, documents: string): string[] {
   const freeTokens = new Set(quantityTokens(free));
 
   const nearby = new Map<string, Set<string>>();
@@ -2318,9 +2322,10 @@ export const unifiedWriterAgent = {
     // description and the parsed job fields are absent on purpose.
     const documents = [context.rawCV, context.masterCV].filter(Boolean).join('\n');
 
-    // The current tailored section can be client-edited, so it is wording
-    // context only. It never authorizes a number, skill or claim. Verified
-    // metrics are server-extracted literal substrings of the same source CVs.
+    // The current tailored section can be client-edited, so it never
+    // authorizes anything NEW: a word or number it already holds may stay, but
+    // nothing it lacks is backed by it. Verified metrics are server-extracted
+    // literal substrings of the same source CVs.
     const verified = (context.verifiedMetrics || []).join('\n');
     const sourceText = `${verified}\n${documents}`;
 
@@ -2345,7 +2350,11 @@ export const unifiedWriterAgent = {
       return { ...base, status: 'unchanged' };
     }
 
-    const fabricatedNumbers = unsupportedNumbers(afterText, verified, documents);
+    // The section as it stands joins the anchored arm, never `free`: a number
+    // the kit writer already put there can stay beside the same words, but
+    // can't be moved onto a new claim. Without it, a kit number the CVs only
+    // back through a paraphrase blocks every rewrite that keeps it.
+    const fabricatedNumbers = unsupportedNumbers(afterText, verified, `${documents}\n${beforeText}`);
     if (fabricatedNumbers.length > 0) {
       console.warn('[UnifiedAgent] Section rewrite refused, unverified numbers:', fabricatedNumbers.length);
       return { ...base, status: 'refused', reason: 'unsupported_number', terms: fabricatedNumbers };

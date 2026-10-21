@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { introducedClaims } from './unified-writer-agent';
+import { introducedClaims, unsupportedNumbers } from './unified-writer-agent';
 
 // The production case of 2026-10-21. The applicant's CVs say "Tested", and the
 // kit writer paraphrased it as "evaluated". It also wrote "additional language"
@@ -27,4 +27,25 @@ test('a rewrite that only rephrases the current summary introduces no claim', ()
 test('a rewrite that adds a tool no source mentions is still refused', () => {
   const added = REPHRASED.replace('on Cloudflare Workers', 'on Cloudflare Workers and Kubernetes');
   assert.deepEqual(introducedClaims(added, SOURCE_CV, BEFORE), ['kubernetes']);
+});
+
+// The number guard has the same blind spot. Here the kit writer rounded "28 AI
+// models" to "nearly 30 models", which no CV says. A rewrite that keeps that
+// line must not be refused for it, but the number can't jump to a new claim.
+const BEFORE_ROUNDED = 'Shipped Safwa, a live Q&A filter, after comparing nearly 30 models on hand-labelled cases.';
+const DOCUMENTS = SOURCE_CV;
+
+test('a number already in the section, beside the same words, is not introduced', () => {
+  const after = 'Compared nearly 30 models on hand-labelled cases to ship Safwa, a live Q&A filter.';
+  assert.deepEqual(unsupportedNumbers(after, '', `${DOCUMENTS}\n${BEFORE_ROUNDED}`), []);
+});
+
+test('a number from the section moved onto a new claim is still refused', () => {
+  const after = 'Built and launched Useful Apply for 30 paying customers.';
+  assert.deepEqual(unsupportedNumbers(after, '', `${DOCUMENTS}\n${BEFORE_ROUNDED}`), ['30']);
+});
+
+test('without the section, the kit-written number is refused (the old behaviour)', () => {
+  const after = 'Compared nearly 30 models on hand-labelled cases to ship Safwa, a live Q&A filter.';
+  assert.deepEqual(unsupportedNumbers(after, '', DOCUMENTS), ['30']);
 });
