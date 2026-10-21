@@ -41,17 +41,21 @@ test('a client-added word already in the section survives a rewrite', () => {
   assert.deepEqual(introducedClaims('Applied AI engineer running agents on Kubernetes.', SOURCE_CV, before), []);
 });
 
-test('other forms of a section word pass: inflections, singulars, "-d" pasts', () => {
+test('inflections of a section word pass; a bare root needs the exact word', () => {
   assert.deepEqual(introducedClaims('Evaluating agents.', SOURCE_CV, 'Evaluated agents.'), []);
-  assert.deepEqual(introducedClaims('Evaluate agents.', SOURCE_CV, 'Evaluated agents.'), []);
-  assert.deepEqual(introducedClaims('Built a dashboard.', SOURCE_CV, 'Built dashboards.'), []);
+  assert.deepEqual(introducedClaims('Evaluates agents.', SOURCE_CV, 'Evaluated agents.'), []);
+  // Refused, the safe direction: a bare root from another form could be a homograph.
+  assert.deepEqual(introducedClaims('Evaluate agents.', SOURCE_CV, 'Evaluated agents.'), ['evaluate']);
 });
 
-test('the section does not back a title or role word by stem', () => {
-  // "architected" is in the section, "architect" (a job title) is not.
+test('the section does not back a title, role, tool or language from another word', () => {
   assert.deepEqual(introducedClaims('Payment architect.', SOURCE_CV, 'Architected payment flows.'), ['architect']);
+  assert.deepEqual(introducedClaims('Payment architects.', SOURCE_CV, 'Architected payment flows.'), ['architects']);
   assert.deepEqual(introducedClaims('Leading growth.', SOURCE_CV, 'Generated leads for growth.'), ['leading']);
   assert.deepEqual(introducedClaims('Sales manager.', SOURCE_CV, 'Managed sales.'), ['manager']);
+  assert.deepEqual(introducedClaims('Writes Go.', SOURCE_CV, 'Goes beyond.'), ['go']);
+  assert.deepEqual(introducedClaims('Excel.', SOURCE_CV, 'Excels at it.'), ['excel']);
+  assert.deepEqual(introducedClaims('A VP.', SOURCE_CV, 'Briefed VPs.'), ['vp']);
 });
 
 // Numbers: the section backs none, only the verified metrics and the CVs do.

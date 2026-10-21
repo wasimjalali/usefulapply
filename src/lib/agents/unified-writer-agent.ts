@@ -517,28 +517,31 @@ function indexSource(sourceText: string): SourceIndex {
   return { tokens, stems, parts: [...parts] };
 }
 
-// Role and ownership words: the section backs them only word for word. By stem,
-// "Generated 200 leads" would back "Leading", and "managed" would back "manager".
-const OWNERSHIP_WORDS = new Set([
+// Role, ownership and title words: the section backs them only word for word.
+// By stem, "Generated 200 leads" would back "Leading", "managed" would back
+// "manager" and "Architected" would back "architects".
+const ROLE_WORDS = new Set([
   'lead', 'leads', 'leading', 'led', 'leader', 'leaders', 'head', 'heads', 'headed', 'heading',
   'own', 'owns', 'owned', 'owner', 'owners', 'owning', 'founder', 'founders', 'founded', 'founding',
   'manager', 'managers', 'managed', 'managing', 'director', 'directors', 'directed', 'directing',
-  'senior', 'principal', 'chief',
+  'senior', 'principal', 'chief', 'chiefs', 'architect', 'architects', 'executive', 'executives',
+  'president', 'presidents', 'partner', 'partners', 'associate', 'associates', 'supervisor',
+  'supervisors', 'engineer', 'engineers', 'developer', 'developers', 'designer', 'designers',
+  'consultant', 'consultants', 'analyst', 'analysts', 'scientist', 'scientists', 'intern', 'interns',
+  'vp', 'vps', 'svp', 'evp', 'ceo', 'cto', 'cfo', 'coo', 'cio', 'cpo',
 ]);
 
 /**
- * Is `word` another form of a word the section already holds? An inflected word
- * ("running", "evaluates") passes on a shared stem. A bare root passes only
- * when the section has its plural, third person or "-d" past ("dashboards" backs
- * "dashboard", "evaluated" backs "evaluate"), never on "-ed" or "-ing": the
- * stemmer folds "architected" into "architect", and the section's paraphrases
- * aren't verified text the way the CVs are.
+ * Is `word` an inflection ("running", "evaluates") of a word the section
+ * already holds? Only an inflected word passes on a shared stem. A bare root
+ * needs the exact word: "Goes beyond" must not back the language "Go", nor
+ * "Excels at" the tool "Excel", and the section's paraphrases aren't verified
+ * text the way the CVs are. Role and title words always need the exact word.
  */
 function sectionInflects(word: string, before: SourceIndex): boolean {
-  if (OWNERSHIP_WORDS.has(word)) return false;
+  if (ROLE_WORDS.has(word)) return false;
   const stem = stemOf(word);
-  if (stem !== word) return before.stems.has(stem);
-  return before.tokens.has(`${word}s`) || before.tokens.has(`${word}es`) || before.tokens.has(`${word}d`);
+  return stem !== word && before.stems.has(stem);
 }
 
 /**
@@ -581,7 +584,9 @@ function sectionInflects(word: string, before: SourceIndex): boolean {
  */
 export function introducedClaims(afterText: string, sourceText: string, beforeText: string): string[] {
   const source = indexSource(sourceText);
-  const before = indexSource(beforeText);
+  // The section's own words only: no acronym-plural aliases, so "VPs" can't back "VP".
+  const beforeTokens = new Set(words(beforeText));
+  const before: SourceIndex = { tokens: beforeTokens, stems: new Set([...beforeTokens].map(stemOf)), parts: [] };
   const acronymAliases = claimAcronymPluralAliases(afterText);
   const seen = new Set<string>();
   const introduced: string[] = [];
