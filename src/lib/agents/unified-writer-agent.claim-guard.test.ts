@@ -209,3 +209,9 @@ test('every reviewer probe origin/main refuses is still refused', () => {
   }
   assert.ok(mainRefused >= 106, `main refuses only ${mainRefused} probes`);
 });
+
+// main freed these: "found" is a neutral word and the listed match is by stem.
+test('founding claims are never neutral', () => {
+  assert.deepEqual(introducedClaims('Founded the agents team.', SOURCE_CV, 'Built the agents team.'), ['founded']);
+  assert.deepEqual(introducedClaims('Founding engineer for agents.', SOURCE_CV, 'Engineer for agents.'), ['founding']);
+});

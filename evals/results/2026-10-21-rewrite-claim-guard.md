@@ -293,7 +293,7 @@ None of these asserts a title, credential, standing, scope, ownership or quantit
 
 Out of scope by decision, listed so the model-based check can take them:
 
-- `isNeutral` already frees any inflection of a listed surface form, so **"founded" and "founding" pass on main** (stem "found", and "found" is listed), although both are in `ROLE_WORDS`. This fix keeps role words out of its own new match and does not touch the old one. Proposal: apply the `ROLE_WORDS` check to the whole of `isNeutral`. It only adds refusals.
+- `isNeutral` already frees any inflection of a listed surface form, so **"founded" and "founding" pass on main** (stem "found", and "found" is listed), although both are in `ROLE_WORDS`. This fix keeps role words out of its own new match and does not touch the old one. Proposal: apply the `ROLE_WORDS` check to the whole of `isNeutral`. It only adds refusals. **Done in the same PR (orchestrator, 2026-10-21):** `isListedNeutral` now returns false for any `ROLE_WORDS` word. Re-scored with no other change: held-out misses fall from 801 to 773 (28 more caught), and the stored rewrites, the original injections and the probes are unchanged (0 new misses everywhere). Pinned by the test "founding claims are never neutral".
 - Main passes the 11 probes listed above, and misses 801 of 14,911 held-out injections, mostly names at the start of a line or as a list item whose lowercase form is a listed word (Make, Next, Close, Later, Word) and a handful of authority verbs. None is new.
 - Capitalised function words that are names (Via, Per) stay free exactly as on main, where `NEUTRAL_WORDS` has them.
 

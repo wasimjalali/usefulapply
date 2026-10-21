@@ -426,8 +426,13 @@ const NEUTRAL_STEMS = new Set([...NEUTRAL_WORDS].filter((entry) => !entry.endsWi
  */
 const NOT_NEUTRAL_BY_STEM = new Set(['featured', 'featuring', 'sentenced', 'sentencing', 'writs']);
 
-/** Is this word neutral as listed, or once stemmed to a listed word? As on main. */
+/**
+ * Is this word neutral as listed, or once stemmed to a listed word? As on main,
+ * except that a role word never is: by stem, the listed "found" used to free
+ * "founded" and "founding".
+ */
 function isListedNeutral(word: string): boolean {
+  if (ROLE_WORDS.has(word)) return false;
   return NEUTRAL_WORDS.has(word) || NEUTRAL_WORDS.has(stemOf(word));
 }
 
