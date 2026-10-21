@@ -7,6 +7,7 @@ import { getProfile } from '@/db/repos/profiles';
 import { listBriefingApplications } from '@/db/repos/sessions';
 import { getBlockedCanonicalJobIdsAdmin } from '@/lib/job-feed/server';
 import { defineTool, ok, type AnyToolDefinition } from '@/lib/mcp/tools/framework';
+import { AVAILABILITY_CHOICES, isAvailabilityChoice } from '@/lib/profile/logistics';
 import { UNTRUSTED_NOTE, creditsSnapshot, dailySpend, wrapLong, wrapShort } from '@/lib/mcp/tools/shared';
 
 const READ_HINTS = { readOnly: true, destructive: false, idempotent: true, openWorld: false } as const;
@@ -15,7 +16,7 @@ const getAccount = defineTool({
   name: 'get_account',
   title: 'Get account',
   description:
-    "Returns the signed-in user's plan, credit balance, next credit reset date, today's agent credit limit and usage, whether a primary and a master CV are on file, and their profile name and email.",
+    "Returns the signed-in user's plan, credit balance, next credit reset date, today's agent credit limit and usage, whether a primary and a master CV are on file, and their profile name, email, start date (availability, availabilityNote), salary expectation and whether they were asked about their start date.",
   hints: READ_HINTS,
   input: z.object({}),
   output: z.object({
@@ -35,7 +36,15 @@ const getAccount = defineTool({
       resetsAt: z.string(),
     }),
     cvOnFile: z.object({ primary: z.boolean(), master: z.boolean() }),
-    profile: z.object({ name: z.string().nullable(), email: z.string() }),
+    profile: z.object({
+      name: z.string().nullable(),
+      email: z.string(),
+      availability: z.enum(AVAILABILITY_CHOICES).nullable(),
+      availabilityNote: z.string().nullable(),
+      salaryExpectation: z.string().nullable(),
+      /** The user was asked when they can start, so an agent doesn't ask again. */
+      availabilityAsked: z.boolean(),
+    }),
   }),
   async run(_args, { userId }) {
     const [{ credits, error }, snapshot, profile, documents, spend] = await Promise.all([
@@ -56,7 +65,14 @@ const getAccount = defineTool({
         primary: documents.some((d) => d.type === 'primary_cv'),
         master: documents.some((d) => d.type === 'master_cv'),
       },
-      profile: { name: profile.full_name, email: profile.email },
+      profile: {
+        name: profile.full_name,
+        email: profile.email,
+        availability: isAvailabilityChoice(profile.availability) ? profile.availability : null,
+        availabilityNote: profile.availability_note,
+        salaryExpectation: profile.salary_expectation,
+        availabilityAsked: profile.availability_asked_at !== null,
+      },
     });
   },
 });

@@ -4,6 +4,14 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { checkToolRateLimit, consumeDailyQuota, refundDailyQuota } from '@/lib/mcp/quotas';
 import { defineTool, ok, type AnyToolDefinition } from '@/lib/mcp/tools/framework';
 import { ToolError } from '@/lib/mcp/tools/errors';
+import {
+  AVAILABILITY_CHOICES,
+  AVAILABILITY_NOTE_MAX,
+  SALARY_EXPECTATION_MAX,
+  isAvailabilityChoice,
+  normalizeLogisticsUpdate,
+  type LogisticsPatch,
+} from '@/lib/profile/logistics';
 import { deleteCvDocument, getCvDocument, parseAndSaveCv, type CvDocumentType } from '@/lib/services/documents';
 import { InvalidInputError } from '@/lib/services/errors';
 import {
@@ -263,13 +271,16 @@ const profileOutput = z.object({
   websiteUrl: z.string().nullable(),
   dateOfBirth: z.string().nullable(),
   nationality: z.string().nullable(),
+  availability: z.enum(AVAILABILITY_CHOICES).nullable(),
+  availabilityNote: z.string().nullable(),
+  salaryExpectation: z.string().nullable(),
 });
 
 const updateProfile = defineTool({
   name: 'update_profile',
   title: 'Update profile',
   description:
-    "Updates contact details the user's CV header and cover letter letterhead use. Only the fields given change. Returns the saved values.",
+    "Updates contact details the user's CV header and cover letter letterhead use. Also saves when the user can start and their salary expectation. Saving availability, even as null, records that the user was asked. Only the fields given change. Returns the saved values.",
   hints: WRITE_DESTRUCTIVE_IDEMPOTENT,
   input: z.object({
     fullName: textField('Full name', 200),
@@ -281,6 +292,13 @@ const updateProfile = defineTool({
     websiteUrl: linkField('Personal website address'),
     dateOfBirth: textField('Date of birth, for CVs in markets that include it', 32),
     nationality: textField('Nationality, for CVs in markets that include it', 100),
+    availability: z
+      .enum(AVAILABILITY_CHOICES)
+      .nullable()
+      .optional()
+      .describe(`When the user can start: ${AVAILABILITY_CHOICES.join(', ')}. Null clears it and records that the user was asked; leave it out to keep the current value.`),
+    availabilityNote: textField('Details on the start date in the user\'s own words, for example "3 months to the end of the quarter"', AVAILABILITY_NOTE_MAX),
+    salaryExpectation: textField('Salary expectation as the user states it, for example "65,000 EUR gross a year"', SALARY_EXPECTATION_MAX),
   }),
   output: profileOutput,
   async confirm(args, { userId }) {
@@ -302,7 +320,7 @@ const updateProfile = defineTool({
     return overwritten.length > 0 ? `Overwrite ${overwritten.length} saved contact detail${overwritten.length === 1 ? '' : 's'} on the profile?` : null;
   },
   async run(args, { userId }) {
-    const updates: Partial<UserEditableProfile> = {};
+    const updates: Partial<UserEditableProfile> & LogisticsPatch = {};
     const assign = (key: (typeof PROFILE_FIELDS)[number], value: string | null | undefined) => {
       if (value !== undefined) updates[key] = value === '' ? null : value;
     };
@@ -315,6 +333,12 @@ const updateProfile = defineTool({
     assign('website_url', args.websiteUrl);
     assign('date_of_birth', args.dateOfBirth);
     assign('nationality', args.nationality);
+    // Only the keys the caller gave reach the patch, so a partial update leaves the others alone.
+    const given: Record<string, unknown> = {};
+    if (args.availability !== undefined) given.availability = args.availability;
+    if (args.availabilityNote !== undefined) given.availabilityNote = args.availabilityNote;
+    if (args.salaryExpectation !== undefined) given.salaryExpectation = args.salaryExpectation;
+    Object.assign(updates, normalizeLogisticsUpdate(given));
     if (Object.keys(updates).length === 0) throw new InvalidInputError('Give at least one field to update');
     const profile = await updateUserProfile(userId, updates);
     return ok({
@@ -327,6 +351,9 @@ const updateProfile = defineTool({
       websiteUrl: profile.website_url,
       dateOfBirth: profile.date_of_birth,
       nationality: profile.nationality,
+      availability: isAvailabilityChoice(profile.availability) ? profile.availability : null,
+      availabilityNote: profile.availability_note,
+      salaryExpectation: profile.salary_expectation,
     });
   },
 });
