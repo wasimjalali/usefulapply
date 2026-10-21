@@ -147,6 +147,14 @@ interface Editor {
   label: string;
 }
 
+/** The store property that holds the text typed into an editor's field. */
+const TEXT_PROP: Partial<Record<Field, keyof ApplicationSession>> = {
+  coverLetter: 'coverLetter',
+  email: 'email',
+  followUpEmail: 'followUpEmail',
+  cv: 'optimizedCVData',
+};
+
 /** The store properties an editor's field sets. */
 const EDITOR_PROPS: Partial<Record<Field, (keyof ApplicationSession)[]>> = {
   coverLetter: ['coverLetter'],
@@ -564,15 +572,15 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
             if (actions[index] !== 'ignore' && !ofField.some(({ info }) => produced(editor, info))) {
               violate('I6', `${client.id}'s ${editor.label} editor on ${app} was ${actions[index] === 'reset' ? 'reset' : 'rebased'} for ${field} by an acknowledgement of an entry it did not produce`);
             }
-            // Discard throws away the text this editor holds now, in an entry this editor produced: the editor must let
-            // go of it. Not counted: an older draft it has since typed over (seeds 15239, 21527 at 90 operations), a token
-            // the entry shares with what the store shows instead (seed 2158, restricted operations), an entry another edit
-            // produced that carries a stale copy of the editor's accepted draft embedded in generatedCV (seed 17252 at 90
-            // operations), and a CV editor a Discard already released while its save ran (seed 1417, restricted operations).
+            // Discard throws away the text this editor holds now: the editor must let go of it. Not counted: an older
+            // draft it has since typed over (seeds 15239, 21527 at 90 operations), a token found only in a stale copy
+            // embedded in generatedCV rather than in the property that holds the typed text (seed 17252 at 90 operations,
+            // seed 2158 with restricted operations), and a CV editor a Discard already released while its save ran (seed
+            // 1417 with restricted operations).
             const current = editor.drafts[field];
-            if (ack.discarded && actions[index] !== 'reset' && current !== undefined && !editor.released
-              && ofField.some(({ info }) => info !== undefined && produced(editor, info)
-                && info.tokens.includes(current) && !info.baseTokens.includes(current))) {
+            const textProp = TEXT_PROP[field];
+            if (ack.discarded && actions[index] !== 'reset' && current !== undefined && !editor.released && textProp
+              && ofField.some(({ info }) => info?.propTokens[textProp]?.includes(current))) {
               violate('I6', `${client.id}'s ${editor.label} editor on ${app} kept ${field} text the user discarded (${current}; entries ${JSON.stringify(ofField.map(({ entry, info }) => [entry.id, info?.tokens, entry.editors.length]))})`);
             }
           });
@@ -750,7 +758,6 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
         if (editor.hadStart && editor.start === undefined) violate('I1', `${client.id}'s ${editor.label} editor on ${app} saved ${sentTokens.join(' ')} with no EditorStart, so the save is not checked against what the server holds now`);
         const work = client.editorCommit(app, editor.start, () => {
           const before = client.fingerprints(app) ?? {};
-          const sessionBefore = client.session(app);
           const appliedFields: Field[] = [];
           for (const field of editor.fields) {
             const token = sent[field];
@@ -766,11 +773,8 @@ export async function runSeed(seed: number, options: RunOptions): Promise<RunRes
           const after = client.fingerprints(app) ?? {};
           for (const field of appliedFields) {
             for (const prop of EDITOR_PROPS[field] ?? []) {
-              // Only what the draft changed, as the engine records it: a property it leaves as the store had it is not its text (seed 17252).
-              const value = JSON.stringify(session?.[prop] ?? null);
-              if (value === JSON.stringify(sessionBefore?.[prop] ?? null)) continue;
               if (!editor.appliedProps.has(prop)) editor.appliedProps.set(prop, new Set());
-              editor.appliedProps.get(prop)!.add(value);
+              editor.appliedProps.get(prop)!.add(JSON.stringify(session?.[prop] ?? null));
             }
           }
           const changedPart = (key: string, value: string) => {
