@@ -711,7 +711,7 @@ This is the part that changes the experience. A keyword filter sees "Senior Prod
 
 The AI ranker reads every job description, end to end, against your actual CV. Your years of experience. Your industries. Your skill stack. Your track record. It scores each role for genuine fit and labels the top ones as "strong" or "good." Anything below that never hits your feed.
 
-On Plus and Max, you get up to 25 curated roles per day. The number is capped on purpose. The feed is not trying to show you every job that exists. It is trying to show you jobs worth your time. What Max adds is reach: it searches 4 job titles across 4 countries each run, where Plus searches 2 and 2.
+On Free, you get the top 5 roles a day, searched from your CV. On Plus and Max, you get up to 25 curated roles per day. The number is capped on purpose. The feed is not trying to show you every job that exists. It is trying to show you jobs worth your time. What Max adds is reach: it searches 4 job titles across 4 countries each run, where Plus searches 2 and 2.
 
 ![A magnifying glass reading a CV next to a job posting, representing AI-powered fit matching](/blog/ai-reads-cv.jpg)
 
