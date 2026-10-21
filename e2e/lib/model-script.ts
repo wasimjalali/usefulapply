@@ -301,6 +301,15 @@ const SECTION_BULLETS_APPLIED = JSON.stringify({
   ],
   omitted: [],
 });
+/**
+ * A rewrite that keeps wording the section already has but no CV does ("Schwerpunkt"), the way a kit
+ * writer's paraphrase sits in a summary. The claim guard must let it through. Triggered by this instruction.
+ */
+export const KEEP_WORDING_REWRITE_INSTRUCTION = 'keep the current wording';
+const SECTION_SUMMARY_KEPT = JSON.stringify({
+  content: 'Finanzanalyst mit Schwerpunkt auf Monatsabschluss und Prognose.',
+  omitted: [],
+});
 /** A rewrite the number guard refuses (40 and 99% are in no CV). Triggered by this instruction. */
 export const REFUSED_REWRITE_INSTRUCTION = 'invent a headline number';
 const SECTION_REFUSED = JSON.stringify({
@@ -372,6 +381,7 @@ export function answerFor(writer: Writer, user = ''): string {
     case 'cv': {
       if (user.includes('This is NOT a full CV generation')) {
         if (user.includes(REFUSED_REWRITE_INSTRUCTION)) return SECTION_REFUSED;
+        if (user.includes(KEEP_WORDING_REWRITE_INSTRUCTION)) return SECTION_SUMMARY_KEPT;
         return user.includes('Section being rewritten: experience_bullets') ? SECTION_BULLETS_APPLIED : SECTION_SUMMARY_APPLIED;
       }
       // The whole CV: German when the CV it was written from is German.

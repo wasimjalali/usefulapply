@@ -402,6 +402,8 @@ const NEUTRAL_WORDS = new Set([
   'ensured', 'ensuring', 'handle', 'handled', 'handling', 'track', 'tracked',
   'tracking', 'test', 'tested', 'testing', 'fix', 'fixed', 'fixing', 'tool',
   'tools', 'system', 'systems', 'feature', 'features',
+  // Not bare 'go': lowercased, it is also the Go language.
+  'goes', 'going', 'gone', 'went',
 ]);
 
 /** Is this word neutral, in its own right or once stemmed? */
@@ -444,10 +446,15 @@ function anchorWords(text: string): Set<string> {
 /**
  * Numbers the rewrite asserts that the applicant's documents do not support.
  *
- * `free` is what is already verified for THIS section: the section as it
- * stands, the CV entry it belongs to, and any metric the extraction pass pulled
- * out with its own context attached. Those numbers pass unconditionally, which
- * is what keeps a straight reword of an existing bullet cheap.
+ * `free` is the verified metrics: literal substrings the extraction pass
+ * pulled out of the source CVs with their own context attached. Those numbers
+ * pass unconditionally, which is what keeps a straight reword of an existing
+ * bullet cheap.
+ *
+ * The section as it stands backs no number. Unlike its words, a number the
+ * kit writer put there can't be safely tied to its claim by a heuristic (three
+ * review rounds found ways to move one onto a new metric), so a kit number the
+ * CVs don't back makes the rewrite refuse. That costs a retry, not credits.
  *
  * `documents` is the Primary CV and the Master CV, and a number found there
  * supports the rewrite only when the two share at least one content word. A
@@ -464,7 +471,7 @@ function anchorWords(text: string): Set<string> {
  * refusal costs a retry and no credits, a miss costs the applicant an
  * interview.
  */
-function unsupportedNumbers(afterText: string, free: string, documents: string): string[] {
+export function unsupportedNumbers(afterText: string, free: string, documents: string): string[] {
   const freeTokens = new Set(quantityTokens(free));
 
   const nearby = new Map<string, Set<string>>();
@@ -510,6 +517,33 @@ function indexSource(sourceText: string): SourceIndex {
   return { tokens, stems, parts: [...parts] };
 }
 
+// Role, ownership and title words: the section backs them only word for word.
+// By stem, "Generated 200 leads" would back "Leading", "managed" would back
+// "manager" and "Architected" would back "architects".
+const ROLE_WORDS = new Set([
+  'lead', 'leads', 'leading', 'led', 'leader', 'leaders', 'head', 'heads', 'headed', 'heading',
+  'own', 'owns', 'owned', 'owner', 'owners', 'owning', 'founder', 'founders', 'founded', 'founding',
+  'manager', 'managers', 'managed', 'managing', 'director', 'directors', 'directed', 'directing',
+  'senior', 'principal', 'chief', 'chiefs', 'architect', 'architects', 'executive', 'executives',
+  'president', 'presidents', 'partner', 'partners', 'associate', 'associates', 'supervisor',
+  'supervisors', 'engineer', 'engineers', 'developer', 'developers', 'designer', 'designers',
+  'consultant', 'consultants', 'analyst', 'analysts', 'scientist', 'scientists', 'intern', 'interns',
+  'vp', 'vps', 'svp', 'evp', 'ceo', 'cto', 'cfo', 'coo', 'cio', 'cpo',
+]);
+
+/**
+ * Is `word` an inflection ("running", "evaluates") of a word the section
+ * already holds? Only an inflected word passes on a shared stem. A bare root
+ * needs the exact word: "Goes beyond" must not back the language "Go", nor
+ * "Excels at" the tool "Excel", and the section's paraphrases aren't verified
+ * text the way the CVs are. Role and title words always need the exact word.
+ */
+function sectionInflects(word: string, before: SourceIndex): boolean {
+  if (ROLE_WORDS.has(word)) return false;
+  const stem = stemOf(word);
+  return stem !== word && before.stems.has(stem);
+}
+
 /**
  * Claims the rewrite introduced: distinctive words that appear in the rewritten
  * section and nowhere in the applicant's own documents.
@@ -536,13 +570,23 @@ function indexSource(sourceText: string): SourceIndex {
  *   built from true words. The prompt's own rules are the only guard there
  * - a one-character name, which the two-character floor drops
  *
- * The haystack is the Primary CV, the Master CV, the verified metrics and the
- * section as it stands. The job description and the job's own fields are
- * deliberately NOT in it: the employer asking for a skill has never been the
- * applicant having it.
+ * The haystack is the Primary CV, the Master CV and the verified metrics. The
+ * job description and the job's own fields are deliberately NOT in it: the
+ * employer asking for a skill has never been the applicant having it.
+ *
+ * `beforeText` is the section as it stands, trusted as the user's own text: a
+ * word it already contains is not one this rewrite introduced, and the rewrite
+ * may reuse and recombine it. That's no escalation, since the same client can
+ * write the section directly for free, and refusing would leave the word in
+ * the CV anyway. It backs nothing it doesn't contain. Without this, every rewrite of a
+ * kit-written section is refused, because the kit writer paraphrases ("Tested"
+ * in the CV becomes "evaluated" in the summary) and a rewrite keeps the wording.
  */
-function introducedClaims(afterText: string, sourceText: string): string[] {
+export function introducedClaims(afterText: string, sourceText: string, beforeText: string): string[] {
   const source = indexSource(sourceText);
+  // The section's own words only: no acronym-plural aliases, so "VPs" can't back "VP".
+  const beforeTokens = new Set(words(beforeText));
+  const before: SourceIndex = { tokens: beforeTokens, stems: new Set([...beforeTokens].map(stemOf)), parts: [] };
   const acronymAliases = claimAcronymPluralAliases(afterText);
   const seen = new Set<string>();
   const introduced: string[] = [];
@@ -553,6 +597,8 @@ function introducedClaims(afterText: string, sourceText: string): string[] {
     if (word.length < 2) continue;
     if (/^[\p{Nd}]+$/u.test(word)) continue;   // quantities are the number guard's job
     if (isNeutral(word)) continue;
+    if (before.tokens.has(word)) continue;
+    if (sectionInflects(word, before)) continue;
     if (source.tokens.has(word)) continue;
     if (source.stems.has(stemOf(word))) continue;
     const acronymBase = acronymAliases.get(word);
@@ -2310,9 +2356,10 @@ export const unifiedWriterAgent = {
     // description and the parsed job fields are absent on purpose.
     const documents = [context.rawCV, context.masterCV].filter(Boolean).join('\n');
 
-    // The current tailored section can be client-edited, so it is wording
-    // context only. It never authorizes a number, skill or claim. Verified
-    // metrics are server-extracted literal substrings of the same source CVs.
+    // The current tailored section can be client-edited, so it never
+    // authorizes anything NEW: a word it holds may stay, it backs no number,
+    // and nothing it lacks is backed by it. Verified metrics are server-extracted
+    // literal substrings of the same source CVs.
     const verified = (context.verifiedMetrics || []).join('\n');
     const sourceText = `${verified}\n${documents}`;
 
@@ -2346,7 +2393,7 @@ export const unifiedWriterAgent = {
     // Unconditional, and driven by what came back rather than by what was
     // asked. A rewrite with no instruction is the loosest brief we send, so it
     // is the last thing that should be running without a claim check.
-    const introduced = introducedClaims(afterText, sourceText);
+    const introduced = introducedClaims(afterText, sourceText, beforeText);
     if (introduced.length > 0) {
       console.warn('[UnifiedAgent] Section rewrite refused, claim not in source CVs:', introduced.length);
       return { ...base, status: 'refused', reason: 'unsupported_claim', terms: introduced };
