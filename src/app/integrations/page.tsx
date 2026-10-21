@@ -87,13 +87,13 @@ const spendTools: { name: string; what: string; cost: string }[] = [
   { name: 'regenerate_document', what: 'Rewrite a cover letter, email or follow-up', cost: '0.5' },
   { name: 'rewrite_cv_section', what: 'Rewrite one CV section', cost: '0.5, or free if it declines' },
   { name: 'apply_to_feed_job', what: 'Check your fit for a feed job or write the application', cost: '0.5 for a fit check, 2 for the application' },
-  { name: 'draft_screening_answers', what: 'Answer screening questions (Plus and Max)', cost: 'Free on Plus and Max, up to 5 per application. Needs Spend access.' },
+  { name: 'draft_screening_answers', what: 'Answer screening questions (Plus and Max)', cost: 'Free on Plus and Max. 5 requests per application, up to 7 questions each. Needs Spend access.' },
 ];
 
 const scopes: { name: string; body: string }[] = [
   { name: 'Read', body: 'See your account, CVs, applications, kit documents, job feed and credits.' },
   { name: 'Write', body: 'Create and change applications, CVs and settings, and export files. None of this spends credits.' },
-  { name: 'Spend', body: 'Use your credits to check your fit and write applications. Any tool that costs credits needs this, and so do screening answers, which use a limited number of turns.' },
+  { name: 'Spend', body: 'Use your credits to check your fit and write applications. Any tool that costs credits needs this, and so do screening answers, which allow 5 requests per application.' },
 ];
 
 const h2 = 'text-[28px] md:text-[34px] font-semibold text-navy-600 leading-[1.1] mb-4';
