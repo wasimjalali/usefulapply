@@ -47,6 +47,13 @@ export function nextTestIp(): string {
   return `10.${Math.floor(stamp / 250) % 250}.${Math.floor(ipCounter / 250) % 250}.${(ipCounter % 250) + 1}`;
 }
 
+export interface TestUserOptions {
+  /** The preview to sign up on. The data lane's by default. */
+  baseUrl?: string;
+  /** Store the English primary CV the data specs start from. Default true; the MCP happy path starts with none. */
+  primaryCv?: boolean;
+}
+
 /**
  * A verified user with a stored primary CV, created through the product's own
  * sign-up endpoint. The verification email would go to a mailbox nobody reads,
@@ -55,10 +62,11 @@ export function nextTestIp(): string {
  * The requests carry no Origin header, which Better Auth's origin check only
  * enforces for browser-style requests.
  */
-export async function createTestUser(request: APIRequestContext, label: string): Promise<TestUser> {
+export async function createTestUser(request: APIRequestContext, label: string, options: TestUserOptions = {}): Promise<TestUser> {
+  const baseUrl = options.baseUrl ?? BASE_URL;
   const email = `di-${label}-${Date.now().toString(36)}@test.local`;
   const ip = nextTestIp();
-  const signUp = await request.post(`${BASE_URL}/api/auth/sign-up/email`, {
+  const signUp = await request.post(`${baseUrl}/api/auth/sign-up/email`, {
     data: { email, password: TEST_PASSWORD, name: `DI ${label}` },
     headers: { 'cf-connecting-ip': ip, 'x-forwarded-for': ip },
   });
@@ -69,7 +77,7 @@ export async function createTestUser(request: APIRequestContext, label: string):
   try {
     db.prepare('UPDATE user SET email_verified = 1 WHERE id = ?').run(user.id);
     const now = new Date().toISOString();
-    db.prepare(`
+    if (options.primaryCv !== false) db.prepare(`
       INSERT INTO documents (id, user_id, type, file_name, file_type, raw_text, sections, all_skills, all_experiences, all_education, structured_data, created_at, updated_at)
       VALUES (?, ?, 'primary_cv', 'tomas-brandt.txt', 'txt', ?, '{}', '[]', '[]', '[]', ?, ?, ?)
     `).run(crypto.randomUUID(), user.id, PRIMARY_CV, JSON.stringify(primaryCvStructured()), now, now);
@@ -80,8 +88,8 @@ export async function createTestUser(request: APIRequestContext, label: string):
 }
 
 /** Sign in over the API and hand the session cookie to a browser context. */
-export async function signInContext(context: BrowserContext, request: APIRequestContext, user: TestUser): Promise<void> {
-  const response = await request.post(`${BASE_URL}/api/auth/sign-in/email`, {
+export async function signInContext(context: BrowserContext, request: APIRequestContext, user: TestUser, baseUrl: string = BASE_URL): Promise<void> {
+  const response = await request.post(`${baseUrl}/api/auth/sign-in/email`, {
     data: { email: user.email, password: TEST_PASSWORD },
     headers: { 'cf-connecting-ip': user.ip, 'x-forwarded-for': user.ip },
   });

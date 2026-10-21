@@ -159,7 +159,10 @@ export async function exportDocument(req: ExportRequest, deps: ExportDeps = {}):
 
   if (!fileName) {
     cached = false;
-    await (deps.beforeRender ?? ((userId: string) => defaultRenderLimits(userId, env)))(req.userId);
+    // The render limits guard Browser Run time. Only PDFs use the browser; Word and text files are built in the
+    // Worker, so a seven-format export doesn't spend the per-minute render budget on them.
+    const usesBrowser = ext === 'pdf';
+    if (usesBrowser) await (deps.beforeRender ?? ((userId: string) => defaultRenderLimits(userId, env)))(req.userId);
     // Browser calls are counted as they happen, so an export that fails halfway still counts against the daily budget.
     let browserCalls = 0;
     let rendered: RenderedExport;
@@ -172,7 +175,7 @@ export async function exportDocument(req: ExportRequest, deps: ExportDeps = {}):
         },
       });
     } finally {
-      await (deps.afterRender ?? ((userId: string, extra: number) => defaultCountExtraRenders(userId, extra, env)))(req.userId, browserCalls - 1).catch(() => undefined);
+      await (deps.afterRender ?? ((userId: string, extra: number) => defaultCountExtraRenders(userId, extra, env)))(req.userId, browserCalls - (usesBrowser ? 1 : 0)).catch(() => undefined);
     }
     if (!(await (deps.userExists ?? defaultUserExists)(req.userId))) throw new ExportInputError('NOT_FOUND', 'Application not found.');
     await storeExport(pathKey, rendered.bytes, rendered.contentType, { userId: req.userId, fileName: rendered.fileName, displayName: rendered.displayName });

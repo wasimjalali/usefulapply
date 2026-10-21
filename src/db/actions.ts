@@ -11,7 +11,7 @@ import * as creditsRepo from './repos/credits';
 import * as subscriptionsRepo from './repos/subscriptions';
 import * as feedbackRepo from './repos/feedback';
 import * as mcpGrantsRepo from './repos/mcpGrants';
-import type { Profile } from '@/lib/supabase/types';
+import { linkProfilePhoto, removeProfilePhoto, updateUserProfile, type UserEditableProfile } from '@/lib/services/profile';
 
 async function requireCurrentUser(): Promise<{ id: string; email?: string }> {
   const auth = await getAuth();
@@ -46,73 +46,21 @@ export async function getOrCreateProfileAction(userId: string) {
   return profilesRepo.getOrCreateProfile(user.id, user.email);
 }
 
-// Columns a signed-in user may edit about themselves. Entitlement and
-// bookkeeping columns (subscription_tier, subscription_status, job_searches_*,
-// welcome_sent_at, check_in_sent_at, confirmation resend fields, email) are written only by
-// trusted server paths (Stripe webhook, cron, auth routes), never from here.
-const USER_EDITABLE_PROFILE_FIELDS = [
-  'full_name',
-  'phone',
-  'location',
-  'avatar_url',
-  'linkedin_url',
-  'github_url',
-  'portfolio_url',
-  'website_url',
-  'date_of_birth',
-  'nationality',
-  'notify_marketing',
-  'notify_feed_ready',
-  'notify_follow_up_due',
-  'notify_interview_tomorrow',
-  'notify_credits_low',
-  'hide_rejected',
-  'timezone',
-  'date_format',
-  'job_feed_last_seen_run_date',
-] as const;
-type UserEditableProfile = Pick<Profile, (typeof USER_EDITABLE_PROFILE_FIELDS)[number]>;
-
-const DATE_FORMATS = ['dmy', 'mdy', 'iso'];
-
-/** A bad timezone would throw inside Intl later, so it never gets stored. */
-function isKnownTimezone(value: string): boolean {
-  try {
-    new Intl.DateTimeFormat('en-GB', { timeZone: value });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export async function updateProfileAction(userId: string, updates: Partial<UserEditableProfile>) {
   await requireUserId(userId);
-  if (typeof updates.timezone === 'string' && !isKnownTimezone(updates.timezone)) {
-    throw new Error('Unknown timezone');
-  }
-  if (typeof updates.date_format === 'string' && !DATE_FORMATS.includes(updates.date_format)) {
-    throw new Error('Unknown date format');
-  }
-  const safe: Partial<UserEditableProfile> = {};
-  for (const key of USER_EDITABLE_PROFILE_FIELDS) {
-    if (key in updates) {
-      (safe as Record<string, unknown>)[key] = (updates as Record<string, unknown>)[key];
-    }
-  }
-  const rejected = Object.keys(updates).filter((k) => !(USER_EDITABLE_PROFILE_FIELDS as readonly string[]).includes(k));
-  if (rejected.length > 0) {
-    throw new Error(`Forbidden profile fields: ${rejected.join(', ')}`);
-  }
-  if (typeof safe.avatar_url === 'string') {
-    // Only a key in this user's avatars prefix (or its leftover Supabase URL) may be stored.
-    const { storedFileKey, userOwnsKey } = await import('@/storage/paths');
-    const key = storedFileKey(safe.avatar_url);
-    if (!key || !key.startsWith('avatars/') || !userOwnsKey(key, userId)) {
-      throw new Error('Invalid avatar');
-    }
-    safe.avatar_url = key;
-  }
-  return profilesRepo.updateProfile(userId, safe);
+  return updateUserProfile(userId, updates);
+}
+
+/** Make an uploaded avatar the account photo and delete only the avatar it replaced. */
+export async function setAvatarAction(userId: string, key: string) {
+  await requireUserId(userId);
+  await linkProfilePhoto(userId, key);
+}
+
+/** Unlink the account photo and delete only the object it pointed at. False when objects may remain. */
+export async function removeAvatarAction(userId: string): Promise<boolean> {
+  await requireUserId(userId);
+  return removeProfilePhoto(userId);
 }
 
 export async function getDocumentsAction(userId: string) {

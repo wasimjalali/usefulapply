@@ -10,6 +10,8 @@ import {
   type StoredOAuthClientInformation,
   type StoredOAuthTokens,
 } from '@modelcontextprotocol/client';
+import { OAUTH_PORT } from './lib/env';
+import { TOOL_SCOPES } from '../src/lib/mcp/scopes';
 
 /**
  * MCP OAuth end to end, through a real MCP client (@modelcontextprotocol/client v2)
@@ -18,8 +20,11 @@ import {
  * Test credentials are generated here per run and never printed.
  */
 
-const BASE = 'http://localhost:8791';
-const OFF_BASE = 'http://localhost:8792';
+const BASE = `http://localhost:${OAUTH_PORT}`;
+// The flag-off and test-mode-guard previews sit at fixed offsets from the main one, so two copies of the suite can coexist.
+const OFF_PORT = OAUTH_PORT + 1;
+const GUARD_PORT = OAUTH_PORT + 5;
+const OFF_BASE = `http://localhost:${OFF_PORT}`;
 const MCP_URL = `${BASE}/mcp`;
 const API = `${BASE}/api/auth`;
 const RESOURCE = MCP_URL;
@@ -378,7 +383,7 @@ test.describe.serial('MCP OAuth', () => {
 
     const tools = await client.listTools();
     const names = tools.tools.map((t) => t.name).sort();
-    expect(names).toEqual(['get_account', 'test_write_stub']);
+    expect(names, 'tools/list is the whole catalog: every name in TOOL_SCOPES and nothing else').toEqual(Object.keys(TOOL_SCOPES).sort());
     for (const tool of tools.tools) {
       // Every annotation is an explicit boolean, as the directories require.
       expect(typeof tool.annotations?.title, tool.name).toBe('string');
@@ -525,10 +530,10 @@ test.describe.serial('MCP OAuth', () => {
     await client.connect(transport);
     const result = await client.callTool({ name: 'get_account', arguments: {} });
     expect(result.isError).toBeFalsy();
-    // Positive control for the read-only test below: with the write scope the stub is callable.
-    const write = await client.callTool({ name: 'test_write_stub', arguments: {} });
+    // Positive control for the read-only test below: with the write scope a real, harmless write tool is callable.
+    const write = await client.callTool({ name: 'update_notification_settings', arguments: { marketing: false } });
     expect(write.isError).toBeFalsy();
-    expect(write.structuredContent).toEqual({ ok: true });
+    expect(write.structuredContent).toMatchObject({ marketing: false });
     await client.close();
 
     // Keep the rotated pair for the revocation test.
@@ -572,7 +577,7 @@ test.describe.serial('MCP OAuth', () => {
     await client.connect(transport);
     const read = await client.callTool({ name: 'get_account', arguments: {} });
     expect(read.isError).toBeFalsy();
-    await expect(client.callTool({ name: 'test_write_stub', arguments: {} })).rejects.toThrow(/403|insufficient/i);
+    await expect(client.callTool({ name: 'update_notification_settings', arguments: { marketing: false } })).rejects.toThrow(/403|insufficient/i);
     await client.close();
 
     // The raw wire shape: 403 with an insufficient_scope challenge naming the scope.
@@ -582,7 +587,7 @@ test.describe.serial('MCP OAuth', () => {
         accept: 'application/json, text/event-stream',
         authorization: `Bearer ${token}`,
       },
-      data: { jsonrpc: '2.0', id: 7, method: 'tools/call', params: { name: 'test_write_stub', arguments: {} } },
+      data: { jsonrpc: '2.0', id: 7, method: 'tools/call', params: { name: 'update_notification_settings', arguments: { marketing: false } } },
     });
     expect(raw.status()).toBe(403);
     expect(raw.headers()['www-authenticate']).toMatch(/insufficient_scope/);
@@ -646,7 +651,7 @@ test.describe.serial('MCP OAuth', () => {
     ]) {
       const res = await authorize(authorizeUrl({ clientId, redirectUri: bad, scope: 'read', challenge }));
       expect(res.status, bad).toBe(302);
-      expect(res.location, bad).toMatch(/^http:\/\/localhost:8791\/api\/auth\/error\?error=invalid_(redirect|request)/);
+      expect(res.location, bad).toMatch(new RegExp(`^http://localhost:${OAUTH_PORT}/api/auth/error\\?error=invalid_(redirect|request)`));
     }
 
     // No PKCE, a challenge without a method, and the plain method: the error goes back to the client, with no code.
@@ -1205,7 +1210,7 @@ test.describe('Route rate limits', () => {
 
 test.describe('Test mode is never honoured off localhost', () => {
   let server: ChildProcess | null = null;
-  const guardBase = 'http://localhost:8796';
+  const guardBase = `http://localhost:${GUARD_PORT}`;
 
   test.beforeAll(async () => {
     // Its own local D1, migrated like the main one, so the provider can read its tables.
@@ -1222,9 +1227,9 @@ test.describe('Test mode is never honoured off localhost', () => {
         'preview',
         '--',
         '--port',
-        '8796',
+        String(GUARD_PORT),
         '--local-upstream',
-        'localhost:8796',
+        `localhost:${GUARD_PORT}`,
         '--var',
         'MCP_ENABLED:true',
         '--var',
@@ -1306,13 +1311,13 @@ test.describe('MCP flag off', () => {
         'preview',
         '--',
         '--port',
-        '8792',
+        String(OFF_PORT),
         '--local-upstream',
-        'localhost:8792',
+        `localhost:${OFF_PORT}`,
         '--var',
         'MCP_ENABLED:false',
         '--var',
-        'BETTER_AUTH_URL:http://localhost:8792',
+        `BETTER_AUTH_URL:http://localhost:${OFF_PORT}`,
         '--persist-to',
         '.wrangler/e2e-flag-off',
       ],

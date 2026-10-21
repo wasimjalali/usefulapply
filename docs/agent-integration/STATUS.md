@@ -1,6 +1,30 @@
 # MCP integration: status tracker
 
-Last updated 2026-10-20, end of session 1. The plan is `PLAN.md` (v3) in this folder; this file says what's done, what's in flight and what's left. A new session starts here.
+Last updated 2026-10-21, session 3 (in progress). The plan is `PLAN.md` (v3) in this folder; this file says what's done, what's in flight and what's left. A new session starts here.
+
+## Resume here (session 4)
+
+1. **#159** (`fix/discard-and-short-jd`, pushed at 3f5a250e): review round 3 is done (Codex 1 high, confirmed real by an Opus arbiter: a partial Discard leaves the discarded document's columns in the editor's lineage, so a stale copy can overwrite newer server text; Sonnet 6 lows). The fix for all of them runs in `.claude/worktrees/fix-159` (Opus debugger). Check its diff, give the fix one Opus pass (round 3 was the last regular round), merge, then deploy together with #162 and smoke-check. The Discard bug is live in production until then.
+2. **PR 5 = #163** (`feature/mcp-tool-catalog`): three review rounds done on the sensitive row (Sonnet + Codex + Opus, high). Round 1: 5 highs, 25 lows; round 2: 1 high (fit context ids collided across tools), 9 lows; round 3: 0 highs, 9 lows. Every high is fixed with a spec that fails on the old code. Round 3 lows (avatar remove/set race and orphan sweep, get_cv wrapping only free text, wrapped `before` text, update_application refusing << >>, spec gaps) are being fixed on `fix/pr5-r3` in `.claude/worktrees/pr5-c`; lows need no further pass. Then merge it in, rerun all lanes (`data` + `oauth` + `mcp` with expiry, `mcp-exports`), merge #163. **Deploy order:** D1 time-travel bookmark, apply 0011 remote, THEN `npm run deploy:cf`; web regenerate and web CV edits write `application_edit_history` even with MCP off.
+3. **#161** (`feature/mcp-distribution-pack`, pushed 95b71396): listing updated to 43 tools. Review (Sonnet + Codex) after PR 5 merges; check the seed script gaps (notification switches, photo, empty projects).
+4. Then #156 round 2, launch, follow-ups, as in "Left to do" below.
+
+## Session 3 progress (2026-10-21)
+
+- **#162 merged** (not deployed yet, ships with #159): the refund reconciler's `LIKE 'Released reservation <id>%'` was 58 bytes, over D1's 50-byte LIKE limit, so the daily cron threw whenever a released reservation existed. Now `instr()`, and zero-amount reservations are skipped. Reviewed by Sonnet + Codex + Opus (high), 0 high, 2 lows fixed.
+- **#159:** round 3 fix pushed (3f5a250e; fuzz before/after H1 405→0, H2 122→0, H3 328→0; `data` 27/27). Round 3 review: Codex 1 high (partial Discard leaves the discarded document in the editor's lineage), confirmed real by an Opus arbiter; Sonnet 6 lows. Fix in progress by the Opus debugger in `.claude/worktrees/fix-159`.
+- **PR 5:** `mcp-tools/e2e` merged in; PLAN says 43 tools. Full `data` + `oauth` + `mcp` with the expiry test: 130/130. `mcp-exports`: 3/3 after a fix (a seven-format export hit the 6-per-minute render limit on its 7th file; only PDFs, which use Browser Run, now count). `d14` passes inside the `d` scenarios spec.
+- **Plugin PR #1 merged** after two Sonnet rounds.
+- **#161:** listing, reviewer guide, checklist and OpenAI sheet updated to the 43 tools (95b71396). Open item for its review: the seed doesn't reset notification switches or the photo, and the seeded tailored CVs have no projects. (`give_job_feedback` is now destructive and confirms dismissals, fixed in PR 5 round 1.)
+- **Learned:** a new worktree needs `.dev.vars` copied (plain `cp`) or every preview returns 500 on the OAuth metadata route; Playwright needs `npx playwright install ffmpeg` for the video-recording specs.
+
+## Session 2 progress (2026-10-20)
+
+- **#160 merged:** the lockfile was out of sync with `package.json` (not a better-sqlite3 peer conflict). A plain `npm ci` works again; `--legacy-peer-deps` is no longer needed.
+- **#159 (`fix/discard-and-short-jd`):** opened. Round 1: Codex 2 highs, Sonnet 6 lows; fixed in 849012b7 (fuzz: 563 of 2,000 seeds failing before, 0 after; `data` 27/27). Round 2: 3 new highs and 6 lows (see Resume here).
+- **PR 5 (`feature/mcp-tool-catalog`):** all 44 tools built by five workers in parallel and merged into the branch (`account`, `applications`, `cv`, `spend`, `feed`, `profile` modules under `src/lib/mcp/tools/`, registered through `catalog.ts`). `run_job_feed` now queues the run on `agent-generation` (message `{ kind: 'job_feed_run', userId, runId }`) and returns at once; kits queued by `apply_to_feed_job` finalize the feed row. tsc 0, eslint 0 errors. Not yet run end to end.
+  - Decisions: `update_notification_settings` drops the default CV template (it's browser-local only); `notify_tips`, `notify_updates` and `notify_weekly` aren't exposed (nothing reads them). CV undo keeps the current screening answers. A regenerated kit has no undo (the runner's atomic batch writes no history; the confirm question says so).
+- **PR 6b:** plugin repo [wasimjalali/usefulapply-plugin](https://github.com/wasimjalali/usefulapply-plugin) created (public), PR #1 open there. OpenAI submission sheet, reviewer seed script and submission pack on `feature/mcp-distribution-pack` (not pushed yet); the seed runs locally only until launch.
 
 ## Done: merged and live in production
 

@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/auth/server';
 import { getProfile } from '@/db/repos/profiles';
 import { claimScreeningTurn, countUserChatMessages, getSession, releaseScreeningTurn } from '@/db/repos/sessions';
 import { SCREENING_TURN_CAP } from '@/lib/screening-answers';
+import { generateScreeningReply, screeningAllowedForTier } from '@/lib/services/screening';
 import {
   chatToolDefinitions,
   executeChatTool,
@@ -130,8 +131,7 @@ export async function POST(req: NextRequest) {
     let screeningTurnsUsed = 0;
     if (isScreeningMode) {
       const profile = await getProfile(user.id);
-      const tier = profile?.subscription_tier;
-      if (tier !== 'plus' && tier !== 'max') {
+      if (!screeningAllowedForTier(profile?.subscription_tier)) {
         return NextResponse.json(
           { error: 'Screening question answers are available on Plus and Max.' },
           { status: 403 }
@@ -219,21 +219,14 @@ export async function POST(req: NextRequest) {
       // Screening keeps its single-shot flow: one question in, answer blocks
       // out. Budget is well above the expected reply because gpt-oss spends
       // part of max_tokens reasoning before the answer.
-      let response;
+      let reply: string;
       try {
-        response = await callWorkersAI({
-          prompt: message,
-          systemPrompt: buildScreeningPrompt(context),
-          rawMessages: history,
-          maxTokens: 8000,
-          temperature: 0.4,
-          generationContext: {
-            requestExecutionId: crypto.randomUUID(),
-            userId: user.id,
-            route: '/api/chat',
-            feature: 'chat',
-            operation: 'screening_chat',
-          },
+        reply = await generateScreeningReply({
+          userId: user.id,
+          message,
+          history,
+          context,
+          route: '/api/chat',
         });
       } catch (modelError) {
         // The turn was claimed before the call, so a failure here has to hand
@@ -244,7 +237,7 @@ export async function POST(req: NextRequest) {
       }
       return NextResponse.json({
         success: true,
-        reply: sanitizeDashes(response.content),
+        reply,
         actions: [],
         screeningTurnsUsed,
         screeningTurnCap: SCREENING_TURN_CAP,
@@ -630,85 +623,6 @@ Call a tool when the user asks about their applications, interviews, follow-ups,
 - Reply in the user's language.
 - Only discuss job applications, CVs, cover letters, emails, the tracker, the job feed, credits and career advice. Redirect anything else in one line.
 - Only reference skills and experience that exist in the user's uploaded documents.`;
-
-  return prompt;
-}
-
-/**
- * Screening answers, written for gpt-oss. Default reasoning (medium) stays:
- * this surface writes graded answers, not conversational turns, and the
- * output contract below is parsed by the client.
- */
-function buildScreeningPrompt(context: ChatContext): string {
-  let prompt = `You write job application screening answers inside Useful Apply. You draft personalized answers from the applicant's CV and the target job description.
-
-# Application
-Job title: ${context.jobTitle || 'unknown'}
-Company: ${context.company || 'unknown'}`;
-
-  if (context.jobDescription) {
-    prompt += `
-Job description:
-${context.jobDescription.substring(0, 8000)}`;
-  }
-  if (context.matchingSkills && context.matchingSkills.length > 0) {
-    prompt += `
-Matching skills: ${context.matchingSkills.join(', ')}`;
-  }
-  if (context.missingSkills && context.missingSkills.length > 0) {
-    prompt += `
-Skills to address carefully: ${context.missingSkills.join(', ')}`;
-  }
-  if (context.generatedCVSummary) {
-    prompt += `
-Optimized CV content:
-${context.generatedCVSummary}`;
-  }
-  if (context.companyResearchSummary) {
-    prompt += `
-Company research:
-${context.companyResearchSummary}`;
-  }
-  if (context.hasMasterCV && context.masterCVSummary) {
-    prompt += `
-Master CV (full career history):
-${context.masterCVSummary}`;
-  }
-
-  prompt += `
-
-# Length
-ATS platforms (Workday, Greenhouse, Lever, iCIMS) cap answers at 500-1000 characters and recruiters scan each one in 6-10 seconds. Absolute maximum per answer: 150 words (~750 characters). Most answers should be far shorter.
-
-# Answer rules
-Classify each question and match the length to its type:
-1. Yes/no or eligibility (work authorization, relocation, clearance): 1-5 words. Never elaborate unless asked.
-2. Numeric or factual (years of experience, salary, start date): 1 sentence under 20 words.
-3. Short qualitative ("Why are you interested?", "Describe your experience with X"): 50-80 words, 2-3 sentences, lead with the strongest qualifier.
-4. Behavioral ("Tell me about a time..."): 100-150 words in compressed STAR: situation and task in 1 sentence, action in 2, result in 1 with a quantified outcome. The result matters most.
-5. Situational ("How would you handle..."): 75-120 words, 2-3 brief steps, one similar past success from the CV.
-
-Hard rules:
-- Only use skills, experience, metrics and qualifications that exist in the CV. Never fabricate.
-- Mirror job-description keywords naturally. Never force-fit.
-- Dates, titles and metrics must match the optimized CV exactly.
-- For missing skills: point to transferable experience or learning, never claim expertise the CV lacks.
-- More than 7 questions: answer the first 7 and add "Please send the remaining questions in a follow-up message."
-- Never use em dashes, en dashes or horizontal bars. Use commas, periods, colons, semicolons or parentheses.
-- Never use: furthermore, moreover, leverage, pivotal, robust, delve.
-
-# Output format
-For each question, output exactly:
-
----ANSWER_START---
-**Q: [repeat the original question exactly]**
-
-[your answer]
----ANSWER_END---
-
-No text before the first ---ANSWER_START--- or after the last ---ANSWER_END---. No preambles, sign-offs or commentary outside the blocks.
-
-Answer in the language the screening questions are written in.`;
 
   return prompt;
 }

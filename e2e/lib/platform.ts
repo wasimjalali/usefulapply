@@ -13,8 +13,9 @@ import { D1_DATABASE_ID, FAKE_ANTHROPIC_URL, REPO_ROOT } from './env';
  */
 
 export interface FakeQueue {
-  messages: Array<{ operationId: string }>;
-  send(message: { operationId: string }): Promise<void>;
+  /** Kit messages are `{ operationId }`, job feed run messages `{ kind: 'job_feed_run', userId, runId }`. */
+  messages: Array<Record<string, unknown>>;
+  send(message: Record<string, unknown>): Promise<void>;
   /** Make the next `send` fail, to test the enqueue failure path. */
   failNext: boolean;
 }

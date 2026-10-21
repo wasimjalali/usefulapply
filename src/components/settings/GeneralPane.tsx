@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { detectTimezone } from '@/lib/utils/format-date';
 import { authClient } from '@/auth/client';
 import { changePassword } from '@/lib/supabase';
-import { uploadAvatar, deleteAvatar, deleteProfilePhoto } from '@/lib/supabase/storage';
+import { uploadAvatar, setAvatar, deleteAvatar, deleteProfilePhoto } from '@/lib/supabase/storage';
 import { fileDisplayUrl } from '@/storage/paths';
 import { useCVStore } from '@/store/useCVStore';
 import { getBillingSubscriptionAction } from '@/db/actions';
@@ -168,14 +168,12 @@ export function GeneralPane() {
         : 'The upload failed. Try again.');
       return;
     }
-    const { error: saveError } = await updateProfile({ avatar_url: key });
+    const { error: saveError } = await setAvatar(user.id, key);
     if (saveError) {
       setPhotoBusy(false);
       setPhotoError('We could not save the photo. Try again.');
       return;
     }
-    const { error: cleanupError } = await deleteAvatar(user.id, key);
-    if (cleanupError) console.error('[settings] failed to remove old avatar:', cleanupError);
     // A photo still served from the legacy bucket is superseded now; leaving
     // it would waste quota and resurrect on a later remove failure.
     const previousCvPhoto = useCVStore.getState().profilePhoto;
@@ -203,19 +201,17 @@ export function GeneralPane() {
     if (!user) return;
     setPhotoError(null);
     setPhotoBusy(true);
-    const { error: saveError } = await updateProfile({ avatar_url: null });
-    if (saveError) {
+    const { error: removeError, incomplete } = await deleteAvatar(user.id);
+    if (removeError) {
       setPhotoBusy(false);
       setPhotoError('We could not remove the photo. Try again.');
       return;
     }
-    const { error: avatarError } = await deleteAvatar(user.id);
-    const { error: legacyError } = await deleteProfilePhoto(user.id);
     useCVStore.getState().setProfilePhoto(null);
     setPhotoBusy(false);
-    if (avatarError || legacyError) {
+    if (incomplete) {
       // A leftover object would bring the photo back on the next load.
-      console.error('[settings] photo delete incomplete:', avatarError || legacyError);
+      console.error('[settings] photo delete incomplete');
       setPhotoError('The photo may not be fully removed. Try Remove again.');
     }
     await refreshProfile();
