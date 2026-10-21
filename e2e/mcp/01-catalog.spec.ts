@@ -13,6 +13,8 @@ const DESTRUCTIVE = new Set([
   'regenerate_document',
   'rewrite_cv_section',
   'delete_application',
+  // Dismiss and rate_not_relevant end the job with no undo, so the tool is destructive and those verbs confirm.
+  'give_job_feedback',
   'save_cv',
   'delete_cv',
   'set_profile_photo',

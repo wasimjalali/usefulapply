@@ -33,7 +33,7 @@ import type { TailoredCV } from '@/lib/cv-structure/types';
 import type { CreditAction } from '@/lib/credit-costs';
 import { detectLanguage, isSupportedLanguage, normalizeLanguage } from '@/lib/utils/language-detector';
 import { editTailoredCv, getTailoredCv } from './cv';
-import { EDIT_HISTORY_KEEP, saveRecordedKitDocument, type EditGroup } from './edit-history';
+import { EDIT_HISTORY_KEEP, historyPriorValue, saveRecordedKitDocument, type EditGroup } from './edit-history';
 import { InvalidInputError, NotFoundError, RevisionConflict } from './errors';
 import { buildSessionUpdateStatement, coverLetterShell, kitDocumentColumns, kitFromRow, type KitDocumentKey } from './kit';
 
@@ -406,7 +406,7 @@ export async function prepareRegeneration(userId: string, request: RegenerateReq
       if (generated.kind === 'document') {
         const columns = kitDocumentColumns(generated.document, generated.value, generated.extra);
         return {
-          statements: recordedEditStatements({
+          statements: await recordedEditStatements({
             userId,
             sessionId: session.id,
             group: DOCUMENT_GROUP[generated.document],
@@ -432,7 +432,7 @@ export async function prepareRegeneration(userId: string, request: RegenerateReq
       const generatedCv = { ...base, _optimizedCVData: next };
       if (JSON.stringify(generatedCv).length > MAX_TAILORED_CV_CHARS) throw new InvalidInputError('That change makes the CV too large');
       return {
-        statements: recordedEditStatements({
+        statements: await recordedEditStatements({
           userId,
           sessionId: session.id,
           group: 'cv',
@@ -463,7 +463,7 @@ const MAX_TAILORED_CV_CHARS = 3_000_000;
  * of the value being replaced (only while the application is still at `row.revision`), the trim of
  * old history, and the revision-guarded write last. Every statement also needs `guard`.
  */
-function recordedEditStatements(params: {
+async function recordedEditStatements(params: {
   userId: string;
   sessionId: string;
   group: EditGroup;
@@ -471,10 +471,9 @@ function recordedEditStatements(params: {
   row: Awaited<ReturnType<typeof getSession>> & object;
   now: string;
   guard: SQL;
-}): SQL[] {
+}): Promise<SQL[]> {
   const { userId, sessionId, group, columns, row, now, guard } = params;
-  const prior: Record<string, unknown> = {};
-  for (const name of Object.keys(columns)) prior[name] = (row as unknown as Record<string, unknown>)[name] ?? null;
+  const prior = await historyPriorValue(group, row, columns);
   return [
     sql`
       INSERT INTO application_edit_history (id, user_id, session_id, edit_group, revision, prior_value, created_at)

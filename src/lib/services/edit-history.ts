@@ -80,6 +80,22 @@ async function fingerprint(group: EditGroup, value: unknown): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+/**
+ * The `prior_value` of a history row: the values `columns` replace on `row`, plus the fingerprint of what the
+ * edit writes, which undo checks before it restores anything. Every writer of history rows builds it here.
+ */
+export async function historyPriorValue(group: EditGroup, row: object, columns: Json): Promise<Json> {
+  const prior: Json = {};
+  for (const name of Object.keys(columns)) {
+    prior[name] = (row as Json)[name] ?? null;
+  }
+  // What this write leaves in the group's column, as storage will hold it.
+  const written = columns[GROUP_COLUMN[group]];
+  if (written === undefined) throw new Error(`A recorded ${group} edit must write ${GROUP_COLUMN[group]}`);
+  prior[AFTER_KEY] = await fingerprint(group, JSON.parse(JSON.stringify(written)));
+  return prior;
+}
+
 export interface RecordedEditResult {
   revision: number;
 }
@@ -106,14 +122,7 @@ export async function applyRecordedEdit(
     if (options.expectedRevision !== undefined && row.revision !== options.expectedRevision) {
       throw new RevisionConflict(row.revision);
     }
-    const prior: Json = {};
-    for (const name of Object.keys(columns)) {
-      prior[name] = (row as unknown as Json)[name] ?? null;
-    }
-    // What this write leaves in the group's column, as storage will hold it.
-    const written = columns[GROUP_COLUMN[group]];
-    if (written === undefined) throw new Error(`A recorded ${group} edit must write ${GROUP_COLUMN[group]}`);
-    prior[AFTER_KEY] = await fingerprint(group, JSON.parse(JSON.stringify(written)));
+    const prior = await historyPriorValue(group, row, columns);
     const now = nowIso();
     const historyId = crypto.randomUUID();
     const results = await runBatch([
