@@ -149,7 +149,8 @@ test.describe.serial('MCP happy path: a German CV to a tracked application', () 
     expect(edit.changes).toHaveLength(1);
     expect(edit.changes[0]).toMatchObject({
       path: 'summary',
-      before: 'Finanzanalyst mit Erfahrung in Budgetierung, Prognose und Monatsabschluss.',
+      // The old text is the tailored CV a model wrote from the ad, so it comes back wrapped like get_cv shows it.
+      before: '<<Finanzanalyst mit Erfahrung in Budgetierung, Prognose und Monatsabschluss.>>',
       after: 'Finanzanalyst mit Schwerpunkt auf Prognose und Monatsabschluss.',
     });
     revision = edit.revision;
