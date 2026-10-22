@@ -1,0 +1,1574 @@
+{
+  "runId": "2026-10-22T12-09-11-821Z",
+  "sdkVersion": "0.71.2",
+  "models": [
+    "claude-haiku-5-5",
+    "claude-sonnet-5-5"
+  ],
+  "startedAt": "2026-10-22T12:09:11.824Z",
+  "finishedAt": "2026-10-22T12:09:32.592Z",
+  "spendUsd": 0.0319,
+  "spendByModelUsd": {
+    "haiku": 0.00282,
+    "sonnet": 0.02909
+  },
+  "priceUsdPerMillion": {
+    "haiku": {
+      "input": 0.1,
+      "output": 0.5,
+      "write5m": 0.125,
+      "write1h": 0.2,
+      "read": 0.01
+    },
+    "sonnet": {
+      "input": 2,
+      "output": 10,
+      "write5m": 2.5,
+      "write1h": 4,
+      "read": 0.1
+    }
+  },
+  "failure": null,
+  "results": [
+    {
+      "id": 3,
+      "name": "Thinking and effort field changes",
+      "model": "haiku",
+      "rows": [
+        {
+          "step": "3.0 write tools+system only (marker on system)",
+          "ok": true,
+          "status": 200,
+          "input": 1837,
+          "write": 2551,
+          "read": 0,
+          "write5m": 2551,
+          "write1h": 0,
+          "output": 258,
+          "diagnostics": null,
+          "note": "S (tools+system) = 2551"
+        },
+        {
+          "step": "3.1 same, adding a marker on the last message",
+          "ok": true,
+          "status": 200,
+          "input": 4,
+          "write": 1833,
+          "read": 2551,
+          "write5m": 1833,
+          "write1h": 0,
+          "output": 411,
+          "diagnostics": null,
+          "note": "read 2551 (S), wrote M = 1833"
+        },
+        {
+          "step": "3 thinking disabled (effort low)",
+          "ok": true,
+          "status": 200,
+          "input": 4,
+          "write": 4385,
+          "read": 0,
+          "write5m": 4385,
+          "write1h": 0,
+          "output": 77,
+          "diagnostics": null,
+          "note": "everything invalidated"
+        },
+        {
+          "step": "3 thinking field omitted (effort low)",
+          "ok": true,
+          "status": 200,
+          "input": 4,
+          "write": 0,
+          "read": 4384,
+          "write5m": 0,
+          "write1h": 0,
+          "output": 242,
+          "diagnostics": null,
+          "note": "nothing invalidated"
+        },
+        {
+          "step": "3 effort field omitted (adaptive)",
+          "ok": true,
+          "status": 200,
+          "input": 4,
+          "write": 0,
+          "read": 4384,
+          "write5m": 0,
+          "write1h": 0,
+          "output": 488,
+          "diagnostics": null,
+          "note": "nothing invalidated"
+        },
+        {
+          "step": "3 effort high",
+          "ok": true,
+          "status": 200,
+          "input": 4,
+          "write": 0,
+          "read": 4384,
+          "write5m": 0,
+          "write1h": 0,
+          "output": 679,
+          "diagnostics": null,
+          "note": "nothing invalidated"
+        },
+        {
+          "step": "3 back to adaptive, effort low",
+          "ok": true,
+          "status": 200,
+          "input": 4,
+          "write": 0,
+          "read": 4384,
+          "write5m": 0,
+          "write1h": 0,
+          "output": 517,
+          "diagnostics": null,
+          "note": "nothing invalidated"
+        }
+      ],
+      "findings": [
+        "thinking disabled (effort low): everything invalidated",
+        "thinking field omitted (effort low): nothing invalidated",
+        "effort field omitted (adaptive): nothing invalidated",
+        "effort high: nothing invalidated",
+        "back to adaptive, effort low: nothing invalidated"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Thinking and effort field changes",
+      "model": "sonnet",
+      "rows": [
+        {
+          "step": "3.0 write tools+system only (marker on system)",
+          "ok": true,
+          "status": 200,
+          "input": 1837,
+          "write": 2552,
+          "read": 0,
+          "write5m": 2552,
+          "write1h": 0,
+          "output": 164,
+          "diagnostics": null,
+          "note": "S (tools+system) = 2552"
+        },
+        {
+          "step": "3.1 same, adding a marker on the last message",
+          "ok": true,
+          "status": 200,
+          "input": 4,
+          "write": 1833,
+          "read": 2552,
+          "write5m": 1833,
+          "write1h": 0,
+          "output": 150,
+          "diagnostics": null,
+          "note": "read 2552 (S), wrote M = 1833"
+        },
+        {
+          "step": "3 thinking disabled (effort low)",
+          "ok": false,
+          "status": 400,
+          "error": "To turn thinking off on this model, send \"thinking\": {\"type\": \"between_tools\"} instead of {\"type\": \"disabled\"}. The model does not think before responding. The short updates it writes between tool calls come back as thinking blocks.",
+          "note": "request failed"
+        },
+        {
+          "step": "3 thinking field omitted (effort low)",
+          "ok": true,
+          "status": 200,
+          "input": 4,
+          "write": 0,
+          "read": 4385,
+          "write5m": 0,
+          "write1h": 0,
+          "output": 148,
+          "diagnostics": null,
+          "note": "nothing invalidated"
+        },
+        {
+          "step": "3 effort field omitted (adaptive)",
+          "ok": true,
+          "status": 200,
+          "input": 4,
+          "write": 0,
+          "read": 4385,
+          "write5m": 0,
+          "write1h": 0,
+          "output": 294,
+          "diagnostics": null,
+          "note": "nothing invalidated"
+        },
+        {
+          "step": "3 effort high",
+          "ok": true,
+          "status": 200,
+          "input": 4,
+          "write": 0,
+          "read": 4385,
+          "write5m": 0,
+          "write1h": 0,
+          "output": 308,
+          "diagnostics": null,
+          "note": "nothing invalidated"
+        },
+        {
+          "step": "3 back to adaptive, effort low",
+          "ok": true,
+          "status": 200,
+          "input": 4,
+          "write": 0,
+          "read": 4385,
+          "write5m": 0,
+          "write1h": 0,
+          "output": 176,
+          "diagnostics": null,
+          "note": "nothing invalidated"
+        }
+      ],
+      "findings": [
+        "thinking disabled (effort low): request failed",
+        "thinking field omitted (effort low): nothing invalidated",
+        "effort field omitted (adaptive): nothing invalidated",
+        "effort high: nothing invalidated",
+        "back to adaptive, effort low: nothing invalidated"
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "model": "haiku",
+      "probe": 3,
+      "step": "3.0 write tools+system only (marker on system)",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 2246,
+      "costUsd": 0.000631575,
+      "request": {
+        "model": "claude-haiku-5-5",
+        "max_tokens": 3000,
+        "thinking": {
+          "type": "adaptive"
+        },
+        "output_config": {
+          "effort": "low"
+        },
+        "tools": [
+          "get_application"
+        ],
+        "system": [
+          {
+            "type": "text",
+            "chars": 6381,
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 5437
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "chars": 6
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 61
+              }
+            ]
+          }
+        ]
+      },
+      "body": {
+        "model": "claude-haiku-5-5",
+        "id": "msg_011CgHFUXijnvmf32vEHXfLX",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "",
+            "signature": "<signature 1472 chars>"
+          },
+          {
+            "type": "text",
+            "text": "The Marketing Operations Associate role in Singapore fits Maya better, since it asks for 1+ year of marketing experience and a related bachelor's degree, whereas the Experiential Marketing role requires 2+ years of event management experience she doesn't have."
+          }
+        ],
+        "container": null,
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 1837,
+          "cache_creation_input_tokens": 2551,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 2551,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 258,
+          "output_tokens_details": {
+            "thinking_tokens": 173
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null
+      }
+    },
+    {
+      "model": "sonnet",
+      "probe": 3,
+      "step": "3.0 write tools+system only (marker on system)",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 2814,
+      "costUsd": 0.011694,
+      "request": {
+        "model": "claude-sonnet-5-5",
+        "max_tokens": 3000,
+        "thinking": {
+          "type": "adaptive"
+        },
+        "output_config": {
+          "effort": "low"
+        },
+        "tools": [
+          "get_application"
+        ],
+        "system": [
+          {
+            "type": "text",
+            "chars": 6382,
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 5437
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "chars": 6
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 61
+              }
+            ]
+          }
+        ]
+      },
+      "body": {
+        "model": "claude-sonnet-5-5",
+        "id": "msg_011CgHFUXmTxXGbgmUhfwGeq",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "The Datadog Marketing Operations Associate role fits Maya better. It asks for only 1+ year of marketing experience and a marketing-related bachelor's degree, and it welcomes people who are still learning the tools. She also has relevant Mailchimp, Excel and analytics experience. The Coinbase role wants 2+ years of end-to-end event management plus contract negotiation, which she doesn't have. The Datadog role is in Singapore, though, so relocation or work authorization could be an issue."
+          }
+        ],
+        "container": null,
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 1837,
+          "cache_creation_input_tokens": 2552,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 2552,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 164,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null
+      }
+    },
+    {
+      "model": "haiku",
+      "probe": 3,
+      "step": "3.1 same, adding a marker on the last message",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 2646,
+      "costUsd": 0.000460535,
+      "request": {
+        "model": "claude-haiku-5-5",
+        "max_tokens": 3000,
+        "thinking": {
+          "type": "adaptive"
+        },
+        "output_config": {
+          "effort": "low"
+        },
+        "tools": [
+          "get_application"
+        ],
+        "system": [
+          {
+            "type": "text",
+            "chars": 6381,
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 5437
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "chars": 6
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 61,
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "body": {
+        "model": "claude-haiku-5-5",
+        "id": "msg_011CgHFUgGvnPdKS6A9ZKdYp",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "",
+            "signature": "<signature 2112 chars>"
+          },
+          {
+            "type": "text",
+            "text": "The Datadog Marketing Operations Associate role fits Maya better, since her newsletter and Mailchimp work and her internship match its email and campaign focus, while the Coinbase role requires 2+ years of event management she doesn't yet have."
+          }
+        ],
+        "container": null,
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 1833,
+          "cache_read_input_tokens": 2551,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 1833,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 411,
+          "output_tokens_details": {
+            "thinking_tokens": 331
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null
+      }
+    },
+    {
+      "model": "haiku",
+      "probe": 3,
+      "step": "3 thinking disabled (effort low)",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 1238,
+      "costUsd": 0.000587025,
+      "request": {
+        "model": "claude-haiku-5-5",
+        "max_tokens": 3000,
+        "thinking": {
+          "type": "disabled"
+        },
+        "output_config": {
+          "effort": "low"
+        },
+        "tools": [
+          "get_application"
+        ],
+        "system": [
+          {
+            "type": "text",
+            "chars": 6381,
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 5437
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "chars": 6
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 61,
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "body": {
+        "model": "claude-haiku-5-5",
+        "id": "msg_011CgHFUs7YbRKA25v3CPyaY",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "The Datadog Marketing Operations Associate role fits Maya better, since it requires only 1+ year of experience and values an interest in marketing automation, whereas the Coinbase role requires 2+ years of event management experience she lacks."
+          }
+        ],
+        "container": null,
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 4385,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 4385,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 77,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null
+      }
+    },
+    {
+      "model": "sonnet",
+      "probe": 3,
+      "step": "3.1 same, adding a marker on the last message",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 3377,
+      "costUsd": 0.0063457,
+      "request": {
+        "model": "claude-sonnet-5-5",
+        "max_tokens": 3000,
+        "thinking": {
+          "type": "adaptive"
+        },
+        "output_config": {
+          "effort": "low"
+        },
+        "tools": [
+          "get_application"
+        ],
+        "system": [
+          {
+            "type": "text",
+            "chars": 6382,
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 5437
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "chars": 6
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 61,
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "body": {
+        "model": "claude-sonnet-5-5",
+        "id": "msg_011CgHFUiNwGBQ3Zpc2LtXAe",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "The Datadog Marketing Operations Associate role fits Maya better: it asks for only 1+ year of marketing experience and a marketing-related bachelor's degree, and it values Excel, analytics and email skills (Mailchimp, newsletter growth). The Coinbase role requires 2+ years of end-to-end event management plus contract negotiation and tools like Cvent, which she lacks. She would need to relocate to Singapore for Datadog, though."
+          }
+        ],
+        "container": null,
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 1833,
+          "cache_read_input_tokens": 2552,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 1833,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 150,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null
+      }
+    },
+    {
+      "model": "sonnet",
+      "probe": 3,
+      "step": "3 thinking disabled (effort low)",
+      "ok": false,
+      "status": 400,
+      "latencyMs": 324,
+      "costUsd": 0,
+      "request": {
+        "model": "claude-sonnet-5-5",
+        "max_tokens": 3000,
+        "thinking": {
+          "type": "disabled"
+        },
+        "output_config": {
+          "effort": "low"
+        },
+        "tools": [
+          "get_application"
+        ],
+        "system": [
+          {
+            "type": "text",
+            "chars": 6382,
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 5437
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "chars": 6
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 61,
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "error": "To turn thinking off on this model, send \"thinking\": {\"type\": \"between_tools\"} instead of {\"type\": \"disabled\"}. The model does not think before responding. The short updates it writes between tool calls come back as thinking blocks."
+    },
+    {
+      "model": "sonnet",
+      "probe": 3,
+      "step": "3 thinking field omitted (effort low)",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 2350,
+      "costUsd": 0.0019265,
+      "request": {
+        "model": "claude-sonnet-5-5",
+        "max_tokens": 3000,
+        "output_config": {
+          "effort": "low"
+        },
+        "tools": [
+          "get_application"
+        ],
+        "system": [
+          {
+            "type": "text",
+            "chars": 6382,
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 5437
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "chars": 6
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 61,
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "body": {
+        "model": "claude-sonnet-5-5",
+        "id": "msg_011CgHFUz9E75pkhLRsTUK6H",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "The Datadog Marketing Operations Associate role fits Maya better. It asks for only 1+ year of marketing experience and a marketing-related bachelor's degree, and she has both, plus Mailchimp and Excel skills and a list-growth result. The Coinbase role wants 2+ years of end-to-end event management and vendor contract experience, which she lacks. One caveat is that the Datadog job is in Singapore, while she is based in Portland."
+          }
+        ],
+        "container": null,
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 4385,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 148,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null
+      }
+    },
+    {
+      "model": "haiku",
+      "probe": 3,
+      "step": "3 thinking field omitted (effort low)",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 3008,
+      "costUsd": 0.00016524,
+      "request": {
+        "model": "claude-haiku-5-5",
+        "max_tokens": 3000,
+        "output_config": {
+          "effort": "low"
+        },
+        "tools": [
+          "get_application"
+        ],
+        "system": [
+          {
+            "type": "text",
+            "chars": 6381,
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 5437
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "chars": 6
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 61,
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "body": {
+        "model": "claude-haiku-5-5",
+        "id": "msg_011CgHFUxgRFiRBfhiiteWXM",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "",
+            "signature": "<signature 1444 chars>"
+          },
+          {
+            "type": "text",
+            "text": "The Datadog Marketing Operations Associate role fits Maya better, since it asks for 1+ years of marketing experience and a related degree, while the Coinbase role requires 2+ years of event management she doesn't have."
+          }
+        ],
+        "container": null,
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 4384,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 242,
+          "output_tokens_details": {
+            "thinking_tokens": 170
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null
+      }
+    },
+    {
+      "model": "haiku",
+      "probe": 3,
+      "step": "3 effort field omitted (adaptive)",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 2983,
+      "costUsd": 0.00028824,
+      "request": {
+        "model": "claude-haiku-5-5",
+        "max_tokens": 3000,
+        "thinking": {
+          "type": "adaptive"
+        },
+        "tools": [
+          "get_application"
+        ],
+        "system": [
+          {
+            "type": "text",
+            "chars": 6381,
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 5437
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "chars": 6
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 61,
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "body": {
+        "model": "claude-haiku-5-5",
+        "id": "msg_011CgHFVBJwJURAcbt8Y6f8y",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "",
+            "signature": "<signature 2336 chars>"
+          },
+          {
+            "type": "text",
+            "text": "The Datadog Marketing Operations Associate role fits her experience better, since it asks for 1+ year of marketing experience and a related degree, while the Coinbase role requires 2+ years of event management, but it is based in Singapore and she lives in Portland."
+          }
+        ],
+        "container": null,
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 4384,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 488,
+          "output_tokens_details": {
+            "thinking_tokens": 404
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null
+      }
+    },
+    {
+      "model": "sonnet",
+      "probe": 3,
+      "step": "3 effort field omitted (adaptive)",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 3794,
+      "costUsd": 0.0033865,
+      "request": {
+        "model": "claude-sonnet-5-5",
+        "max_tokens": 3000,
+        "thinking": {
+          "type": "adaptive"
+        },
+        "tools": [
+          "get_application"
+        ],
+        "system": [
+          {
+            "type": "text",
+            "chars": 6382,
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 5437
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "chars": 6
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 61,
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "body": {
+        "model": "claude-sonnet-5-5",
+        "id": "msg_011CgHFVAS6v4jEac2TxgEiY",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "",
+            "signature": "<signature 1512 chars>"
+          },
+          {
+            "type": "text",
+            "text": "The Datadog ad fits better, because its 1+ year requirement and related-degree criteria match her communications degree, internship and Mailchimp and Excel skills, whereas Coinbase wants 2+ years of end-to-end event ownership that she lacks. The catch is that the role is in Singapore, so relocation and work authorization would need checking."
+          }
+        ],
+        "container": null,
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 4385,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 294,
+          "output_tokens_details": {
+            "thinking_tokens": 181
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null
+      }
+    },
+    {
+      "model": "sonnet",
+      "probe": 3,
+      "step": "3 effort high",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 3755,
+      "costUsd": 0.0035265,
+      "request": {
+        "model": "claude-sonnet-5-5",
+        "max_tokens": 3000,
+        "thinking": {
+          "type": "adaptive"
+        },
+        "output_config": {
+          "effort": "high"
+        },
+        "tools": [
+          "get_application"
+        ],
+        "system": [
+          {
+            "type": "text",
+            "chars": 6382,
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 5437
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "chars": 6
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 61,
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "body": {
+        "model": "claude-sonnet-5-5",
+        "id": "msg_011CgHFVSN45FapgbhpEt5Yu",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "",
+            "signature": "<signature 1512 chars>"
+          },
+          {
+            "type": "text",
+            "text": "The Datadog ad fits better, because it asks for only 1+ year of marketing experience and a related bachelor's degree (which Maya has) and treats Marketo and Excel as bonuses, while Coinbase requires 2+ years of end-to-end event management and vendor contract experience she lacks, though the Singapore location would mean relocating from Portland."
+          }
+        ],
+        "container": null,
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 4385,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 308,
+          "output_tokens_details": {
+            "thinking_tokens": 192
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null
+      }
+    },
+    {
+      "model": "haiku",
+      "probe": 3,
+      "step": "3 effort high",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 4857,
+      "costUsd": 0.00038374000000000004,
+      "request": {
+        "model": "claude-haiku-5-5",
+        "max_tokens": 3000,
+        "thinking": {
+          "type": "adaptive"
+        },
+        "output_config": {
+          "effort": "high"
+        },
+        "tools": [
+          "get_application"
+        ],
+        "system": [
+          {
+            "type": "text",
+            "chars": 6381,
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 5437
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "chars": 6
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 61,
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "body": {
+        "model": "claude-haiku-5-5",
+        "id": "msg_011CgHFVQSDbv2taLEsWAZpM",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "",
+            "signature": "<signature 3100 chars>"
+          },
+          {
+            "type": "text",
+            "text": "The Datadog Marketing Operations Associate role fits her better, since her communications degree and internship and social media experience roughly match its requirements, while the Experiential Marketing role asks for 2+ years of event ownership she doesn't have, though the Singapore location is a major mismatch for someone based in Portland."
+          }
+        ],
+        "container": null,
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 4384,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 679,
+          "output_tokens_details": {
+            "thinking_tokens": 579
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null
+      }
+    },
+    {
+      "model": "sonnet",
+      "probe": 3,
+      "step": "3 back to adaptive, effort low",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 2484,
+      "costUsd": 0.0022065,
+      "request": {
+        "model": "claude-sonnet-5-5",
+        "max_tokens": 3000,
+        "thinking": {
+          "type": "adaptive"
+        },
+        "output_config": {
+          "effort": "low"
+        },
+        "tools": [
+          "get_application"
+        ],
+        "system": [
+          {
+            "type": "text",
+            "chars": 6382,
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 5437
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "chars": 6
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 61,
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "body": {
+        "model": "claude-sonnet-5-5",
+        "id": "msg_011CgHFViRTGrnFT9VgZQQqh",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "The Datadog Marketing Operations Associate role fits Maya better. It asks for only 1+ year of marketing experience and a marketing-related bachelor's degree, and it welcomes candidates who are still learning the tools. She has a communications degree, an internship, Mailchimp and newsletter experience, and basic analytics skills. The Coinbase role wants 2+ years of event management and contract negotiation experience, which she doesn't have. The Datadog role is in Singapore, though, so relocation or work authorization could be an issue for her."
+          }
+        ],
+        "container": null,
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 4385,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 176,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null
+      }
+    },
+    {
+      "model": "haiku",
+      "probe": 3,
+      "step": "3 back to adaptive, effort low",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 3789,
+      "costUsd": 0.00030274,
+      "request": {
+        "model": "claude-haiku-5-5",
+        "max_tokens": 3000,
+        "thinking": {
+          "type": "adaptive"
+        },
+        "output_config": {
+          "effort": "low"
+        },
+        "tools": [
+          "get_application"
+        ],
+        "system": [
+          {
+            "type": "text",
+            "chars": 6381,
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 5437
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "chars": 6
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "chars": 61,
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "body": {
+        "model": "claude-haiku-5-5",
+        "id": "msg_011CgHFVktHZSV7ZcvuCSQpG",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "",
+            "signature": "<signature 2504 chars>"
+          },
+          {
+            "type": "text",
+            "text": "The Datadog Marketing Operations Associate is the closer fit, since it asks for 1+ year of marketing experience and a related degree, while the Coinbase role requires 2+ years of event management she lacks, but the Singapore location would need to be addressed."
+          }
+        ],
+        "container": null,
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 4384,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 517,
+          "output_tokens_details": {
+            "thinking_tokens": 433
+          },
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "diagnostics": null
+      }
+    }
+  ]
+}
