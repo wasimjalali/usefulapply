@@ -8,7 +8,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useAppStore } from '@/store/useAppStore';
-import { useSessionStore, type ChatAction } from '@/store/useSessionStore';
+import { useSessionStore, type ApplicationSession, type ChatAction, type ChatMessage } from '@/store/useSessionStore';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
 import { formatDate } from '@/lib/utils/format-date';
 import { findSentApplicationForJob } from '@/lib/utils/same-job';
@@ -290,24 +290,25 @@ export function useAgentWorkflow(options?: {
 
   /**
    * The assistant's reply under the id the route stored it with, so the sync writes the same row (with any note added
-   * here) instead of a second one. Into the open application, as addChatMessage does.
+   * here) instead of a second one. Into the application the turn started in: the route stored it there, and a reply
+   * shown in another application would be a row the sync can never write.
    */
-  const addReplyMessage = (message: { role: 'assistant'; content: string; actions: ChatAction[] }, id: string | undefined) => {
-    if (!id) {
+  const addReplyMessage = (
+    message: { role: 'assistant'; content: string; actions: ChatAction[] },
+    id: string | undefined,
+    sessionId: string | null,
+  ) => {
+    if (!id || !sessionId) {
       addChatMessage(message);
       return;
     }
-    const newMessage = { ...message, id, timestamp: new Date().toISOString() };
+    const newMessage: ChatMessage = { ...message, id, timestamp: new Date().toISOString() };
     useSessionStore.setState((state) => {
-      if (!state.currentSession) return state;
-      const updated = {
-        ...state.currentSession,
-        chatMessages: [...state.currentSession.chatMessages, newMessage],
-        updatedAt: newMessage.timestamp,
-      };
+      const append = (session: ApplicationSession): ApplicationSession =>
+        (session.id === sessionId ? { ...session, chatMessages: [...session.chatMessages, newMessage], updatedAt: newMessage.timestamp } : session);
       return {
-        currentSession: updated,
-        sessions: state.sessions.map((session) => (session.id === updated.id ? updated : session)),
+        currentSession: state.currentSession ? append(state.currentSession) : state.currentSession,
+        sessions: state.sessions.map(append),
       };
     });
   };
@@ -634,7 +635,7 @@ export function useAgentWorkflow(options?: {
           actions: effectRefusal
             ? (actions || []).filter((action: { action?: string }) => !action.action?.startsWith('undo-cv-edit:'))
             : actions || [],
-        }, typeof replyMessageId === 'string' ? replyMessageId : undefined);
+        }, typeof replyMessageId === 'string' ? replyMessageId : undefined, startedIn);
         // A real ad the model read as a question would otherwise be a dead
         // end: no card, no run, no way back. The client offers a manual way
         // in when the text looked like an ad and no proposal came back.
