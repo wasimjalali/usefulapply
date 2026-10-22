@@ -76,7 +76,7 @@ Read from the code on 2026-10-23. Change a site and this table in the same PR. "
 | Site | Cached blocks (marker TTL) | Shared or per user |
 |---|---|---|
 | Haiku `chat` | tools + static system (1h), stableContext: document flags, CV and master CV summaries (1h), the compaction block when there is one (1h), new user turn (5m), last tool result (5m) | system shared; stableContext, block and turns per user |
-| Haiku `chat` compaction | same tools and system (1h each), the earlier block (1h), the last compacted turn (5m) | per user |
+| Haiku `chat_compaction` | same tools, system, effort and thinking as `chat` (1h each), the earlier block (1h), the last compacted turn (5m) | per user |
 | Haiku `screening` | static prompt (1h), applicant block as stableContext: saved start date and salary rules, then the CVs (1h); the fenced `<application_context>` block and the question are in the last user turn, uncached | static shared; applicant block per user |
 | Haiku `tracker` | static system (5m, about 545 tokens, close to the 512 minimum), APPLICATIONS block opening the user turn (5m, `buildTrackerMessages`); TODAY and the message follow it, uncached | system shared; applications per user |
 | Haiku `language` | static system (5m), far under 512 tokens so no entry is written | shared (uncached in practice) |

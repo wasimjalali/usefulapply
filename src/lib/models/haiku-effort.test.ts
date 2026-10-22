@@ -4,7 +4,7 @@ import test from 'node:test';
 import { HAIKU_SITE_EFFORT, haikuEffortEnvName, resolveHaikuEffort } from './haiku-effort';
 import type { HaikuSite } from './haiku';
 
-const SITES: HaikuSite[] = ['chat', 'screening', 'tracker', 'language', 'ranking', 'search_strategy', 'career_profile'];
+const SITES: HaikuSite[] = ['chat', 'chat_compaction', 'screening', 'tracker', 'language', 'ranking', 'search_strategy', 'career_profile'];
 
 // --- failure cases first ---
 
@@ -32,6 +32,8 @@ test('a site missing from the map throws', () => {
 test('every site runs the effort the 2026-10-22 eval picked, never with thinking disabled', () => {
   const picked = {
     chat: 'low',
+    // Not from the eval: the chat's own effort, so the compaction request shares the chat's cache (compaction.ts).
+    chat_compaction: 'low',
     screening: 'medium',
     tracker: 'medium',
     language: 'low',

@@ -17,6 +17,8 @@ export const HAIKU_EFFORTS: readonly HaikuEffort[] = ['low-nothink', 'low', 'med
 // fewer invented claims or rule violations (tracker, screening, ranking, career profile).
 export const HAIKU_SITE_EFFORT: Readonly<Record<HaikuSite, HaikuEffort>> = {
   chat: 'low',
+  // The chat's own effort and thinking, so the compaction request shares the chat's cached tools and system.
+  chat_compaction: 'low',
   screening: 'medium',
   tracker: 'medium',
   language: 'low',

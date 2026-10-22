@@ -81,6 +81,7 @@ export type HaikuEffort = 'low-nothink' | 'low' | 'medium' | 'high';
 
 export type HaikuSite =
   | 'chat'
+  | 'chat_compaction'
   | 'screening'
   | 'tracker'
   | 'language'
@@ -99,6 +100,9 @@ export type HaikuSite =
  */
 export const HAIKU_SITE_TIMEOUT_MS: Readonly<Record<HaikuSite, number>> = {
   chat: 45_000,
+  // On-demand compaction of a long chat (compaction.ts): about 45k tokens in and up to 12k out, most of it thinking.
+  // The live check measured 25 s for 5.8k tokens out, so 90 s, like screening.
+  chat_compaction: 90_000,
   screening: 90_000,
   tracker: 45_000,
   language: 45_000,

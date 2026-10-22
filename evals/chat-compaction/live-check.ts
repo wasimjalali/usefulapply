@@ -34,7 +34,8 @@ async function post(pathname: string, body: unknown): Promise<{ status: number; 
   const address = ip();
   const response = await fetch(`${BASE_URL}${pathname}`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', cookie, 'cf-connecting-ip': address, 'x-forwarded-for': address },
+    // The preview's own origin (BETTER_AUTH_URL), which Better Auth trusts: it refuses a cookie-carrying request without one.
+    headers: { 'content-type': 'application/json', origin: BASE_URL, ...(cookie ? { cookie } : {}), 'cf-connecting-ip': address, 'x-forwarded-for': address },
     body: JSON.stringify(body),
   });
   const setCookie = response.headers.getSetCookie?.() ?? [];
@@ -73,7 +74,7 @@ function notes(part: number): string {
 async function main(): Promise<void> {
   const email = `live-compaction-${Date.now().toString(36)}@test.local`;
   const signUp = await post('/api/auth/sign-up/email', { email, password: PASSWORD, name: 'Live Check' });
-  if (signUp.status !== 200) throw new Error(`sign-up ${signUp.status}`);
+  if (signUp.status !== 200) throw new Error(`sign-up ${signUp.status}: ${JSON.stringify(signUp.json).slice(0, 300)}`);
   const userId = (signUp.json.user as { id: string }).id;
   const sessionId = crypto.randomUUID();
   const boschId = crypto.randomUUID();

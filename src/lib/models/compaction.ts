@@ -22,8 +22,12 @@ export const COMPACT_ABOVE_TOKENS = 75_000;
 export const COMPACTION_RESERVE_TOKENS = 15_000;
 /** Messages kept verbatim after the block: this many, or one more (see splitForCompaction). */
 export const KEEP_RECENT_MESSAGES = 4;
-/** Output cap of the compaction request. The summary is capped at 600 words (about 2,500 tokens of German) in its instructions; the rest is headroom for thinking, and a summary that hits this is a failure. */
-export const COMPACTION_MAX_TOKENS = 6_000;
+/**
+ * Output cap of the compaction request. The summary is capped at 600 words (about 2,500 tokens of German) in its
+ * instructions; the rest is thinking, which counts toward max_tokens. The live check (2026-10-23) used 5.8k tokens
+ * out for a 1.4k-char summary, so 12k (non-streamed, under STREAM_ABOVE_MAX_TOKENS). Hitting it is a failure.
+ */
+export const COMPACTION_MAX_TOKENS = 12_000;
 
 /** A compaction block as the API returns it, validated before it is stored or sent back. */
 export type CompactionBlock = Anthropic.Beta.BetaCompactionBlockParam & { type: 'compaction'; content: string };

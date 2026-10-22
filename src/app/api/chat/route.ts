@@ -771,7 +771,7 @@ async function compactChat(params: {
       cut = previous;
     }
     response = await callHaiku({
-      site: 'chat',
+      site: 'chat_compaction',
       system: params.system,
       tools: params.tools,
       messages: requestMessages(cut),
