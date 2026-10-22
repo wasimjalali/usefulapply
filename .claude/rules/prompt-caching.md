@@ -89,7 +89,7 @@ Read from the code on 2026-10-22. Change a site and this table in the same PR. "
 | Sonnet CV parsing (`parse-cv-core.ts`, `parseDocumentAsCV`) | none: the document comes first and the system prompt is short | n/a |
 
 - Chat runs `cacheConversation: false` and places its own 5m markers (new user turn, last tool result), so a request carries at most 4 markers: two 1h system blocks, then two 5m.
-- The per-turn state (time, pasted-ad flag) goes after the marked user turn in a `role: system` message, so it never breaks the read.
+- The per-turn state (time, the pasted-ad lines for the latest and an unanswered earlier message) goes after the marked user turn in a `role: system` message, so it never breaks the read.
 - The four writers do not share a prefix with each other (each opens with its own instructions), so a kit fan-out does not pre-warm anything. The 1h system blocks are warm from earlier kits instead.
 - `jsonMode` adds the JSON-only rule as an unmarked block after the marked system blocks, or inside the marked block when the system is a plain `systemPrompt`. Either way it is part of the prefix.
 - A failed-over request goes to Bedrock with the same markers. Bedrock keeps its own cache, so the first request after a failover is a full write.

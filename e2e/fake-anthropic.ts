@@ -106,6 +106,10 @@ interface CallRecord {
   structuredOutput: boolean;
   maxTokens: number | null;
   messageCount: number;
+  /** The role of every message, in order, mid-conversation system messages included. */
+  roles: string[];
+  /** The text of the mid-conversation system messages (the per-request state), joined by newlines. */
+  state: string;
   markers: MarkerRecord[];
   /** Hash of everything up to the first marker: the static prefix, identical across users when it is. */
   staticPrefixHash: string | null;
@@ -515,6 +519,13 @@ function record(body: MessagesBody, kind: CallRecord['kind'], writer: string, ma
     structuredOutput: Boolean(body.output_config?.format),
     maxTokens: body.max_tokens ?? null,
     messageCount: body.messages?.length ?? 0,
+    roles: (body.messages ?? []).map((message) => String(message.role)),
+    state: (body.messages ?? [])
+      .filter((message) => message.role === 'system')
+      .map((message) => (typeof message.content === 'string'
+        ? message.content
+        : blocksOf(message.content).filter((block) => block.type === 'text').map((block) => String(block.text ?? '')).join('')))
+      .join('\n'),
     markers,
     staticPrefixHash: markers[0]?.prefixHash ?? null,
     status: 200,

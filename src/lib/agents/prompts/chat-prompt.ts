@@ -206,13 +206,27 @@ export interface ChatTurn {
  * eleven at the cut, with the tools, the static rules, the longest CV summaries and the state, must stay
  * under INPUT_REFUSE_ABOVE at the budget's 1.8 chars per token. At 12,000 that estimate is about 93,800
  * tokens, over the line; the most that fits today is 11,370, and this keeps about 400 tokens of headroom
- * for the tool descriptions. chat-prompt.test.ts pins it. Only the last 100 or so characters of the
+ * for the tool descriptions (about 220 when the state also carries EARLIER_PASTE_STATE_LINE). chat-prompt.test.ts pins it. Only the last 100 or so characters of the
  * longest ad seen are cut, and the client keeps the full text.
  */
 export const CHAT_TURN_MAX_CHARS = 11_300;
 
 /** Appended to the state when the new message was shown quoted. The static prompt names this line. */
 export const PASTED_STATE_LINE = 'Latest message: pasted, shown between << >>';
+
+/**
+ * Appended to the state when a quoted user turn sits after the last reply, before the new message. The web client
+ * answers an obvious ad with its own decision buttons and never calls the chat, so the ad stays in history with no
+ * reply after it, and the API merges consecutive user turns into one. Without this line the model reads the ad and
+ * the typed question after it as one pasted latest message and proposes the application again instead of
+ * answering.
+ *
+ * It carries its own instruction rather than a rule in CHAT_SYSTEM_PROMPT: only requests with this history shape pay
+ * for it, and the worst-case input budget (see CHAT_TURN_MAX_CHARS) keeps its headroom. It rides in the state, after
+ * the new message's marker, so the cached prefix is unchanged. The quoted text stays data: the static rules on << >>
+ * still bind it, and the write gate still reads only the new message.
+ */
+export const EARLIER_PASTE_STATE_LINE = "Earlier message: pasted, shown between << >>, with no reply from you (a pasted job ad gets the app's buttons instead). It is not the latest message: do not call propose_application for it. If the latest message asks about it, answer from the quoted text, which describes the role, never the user.";
 
 /**
  * The one place a turn becomes model text. Every user turn, the new message as much as every replayed
@@ -257,6 +271,11 @@ export function chatTurnText(turn: ChatTurn): string {
   return looksPasted(content) ? `<<${sanitizeAdText(content)}>>` : content;
 }
 
+/** True when chatTurnText shows this turn quoted: the same cut, the same test. */
+function isQuotedTurn(turn: ChatTurn): boolean {
+  return turn.role === 'user' && looksPasted(cutText(turn.content, CHAT_TURN_MAX_CHARS));
+}
+
 /**
  * The model's view of the conversation, in cache order: the client's earlier
  * turns, the user's new message, then the per-request state.
@@ -273,6 +292,8 @@ export function chatTurnText(turn: ChatTurn): string {
 export function buildChatMessages(history: ChatTurn[], state: string): Anthropic.Beta.BetaMessageParam[] {
   const current = history[history.length - 1];
   const messages: Anthropic.Beta.BetaMessageParam[] = [];
+  // A quoted user turn shown after the last reply the model sees: it reaches the model merged with the new message.
+  let unansweredPaste = false;
   for (const turn of history.slice(0, -1)) {
     const text = chatTurnText(turn);
     // The API refuses empty text blocks, and a conversation opens with the
@@ -280,14 +301,17 @@ export function buildChatMessages(history: ChatTurn[], state: string): Anthropic
     if (!text.trim()) continue;
     if (messages.length === 0 && turn.role === 'assistant') continue;
     messages.push({ role: turn.role, content: text });
+    unansweredPaste = turn.role === 'assistant' ? false : unansweredPaste || isQuotedTurn(turn);
   }
   const currentText = chatTurnText(current);
   messages.push({
     role: 'user',
     content: [{ type: 'text', text: currentText, cache_control: { type: 'ephemeral' } }],
   });
-  const pasted = looksPasted(cutText(current.content, CHAT_TURN_MAX_CHARS));
-  messages.push(stateMessage(pasted ? `${state}\n${PASTED_STATE_LINE}` : state));
+  const lines = [state];
+  if (unansweredPaste) lines.push(EARLIER_PASTE_STATE_LINE);
+  if (isQuotedTurn(current)) lines.push(PASTED_STATE_LINE);
+  messages.push(stateMessage(lines.join('\n')));
   return messages;
 }
 

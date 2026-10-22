@@ -30,6 +30,10 @@ export interface FakeCall {
   structuredOutput: boolean;
   maxTokens: number | null;
   messageCount: number;
+  /** The role of every message, in order, mid-conversation system messages included. */
+  roles: string[];
+  /** The text of the mid-conversation system messages (the per-request state), joined by newlines. */
+  state: string;
   /** The cache_control markers of the request, in prefix order, each with the hash of the prefix up to it. */
   markers: FakeMarker[];
   /** Hash of everything up to the first marker. Identical across users when the static prefix is. */
