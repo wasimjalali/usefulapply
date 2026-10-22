@@ -8,20 +8,31 @@
  *   npx tsx evals/screening-logistics/run.ts --url http://localhost:8799 --runs 5 --label <label>
  *
  * Writes <out>/<label>.json (every raw response) and prints the pass counts.
+ *
+ * Haiku 5.5 (the swap, 2026-10-22): the same eight cases through the SHIPPED screening code and callHaiku,
+ * with the effort of one arm (low-nothink = effort low with thinking disabled):
+ *
+ *   npx tsx evals/screening-logistics/run.ts --model haiku --effort low --runs 5 --allow-anthropic-api
+ *   npx tsx evals/screening-logistics/run.ts --model haiku --effort medium --dry
+ *
+ * That path uses the haiku-55-swap harness (cases a-h only, cache numbers, p50/p95) and writes
+ * evals/results/2026-10-22-haiku-55-swap/screening/run-N.json. `--model gptoss` (the default) is the
+ * original proxy run above and is unchanged. The full screening eval, with the grounding cases and the
+ * judge, is `npx tsx evals/haiku-55-swap/run.ts screening`.
  */
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { buildScreeningPrompt } from '../../src/lib/services/screening';
 import { CASES, type EvalCase } from './fixtures';
+import { armById, parseCli } from '../haiku-55-swap/lib/core';
 
-const args = new Map<string, string>();
-for (let i = 2; i < process.argv.length; i += 2) args.set(process.argv[i].replace(/^--/, ''), process.argv[i + 1]);
-const URL_BASE = args.get('url') ?? 'http://localhost:8799';
-const RUNS = Number(args.get('runs') ?? 5);
-const LABEL = args.get('label') ?? 'run';
-const OUT = args.get('out') ?? 'evals/results/2026-10-22-screening-logistics';
-const ONLY = args.get('cases')?.split(',');
+const cli = parseCli(process.argv.slice(2));
+const URL_BASE = cli.get('url') ?? 'http://localhost:8799';
+const RUNS = cli.num('runs', 5);
+const LABEL = cli.get('label') ?? 'run';
+const OUT = cli.get('out') ?? 'evals/results/2026-10-22-screening-logistics';
+const ONLY = cli.list('cases');
+const MODEL = cli.get('model') ?? 'gptoss';
 
 const TEMPERATURE = 0.4;
 const MAX_TOKENS = 8000;
@@ -42,13 +53,13 @@ function replyText(result: ProxyReply['result']): string {
 }
 
 /** The answer text inside the first block, without the repeated question. */
-function answerOf(reply: string): string | null {
+export function answerOf(reply: string): string | null {
   const match = /---ANSWER_START---([\s\S]*?)---ANSWER_END---/.exec(reply);
   if (!match) return null;
   return match[1].split('\n').filter((line) => !/^\s*\*\*Q:/.test(line)).join('\n').trim();
 }
 
-function grade(id: EvalCase['id'], answer: string): string[] {
+export function grade(id: EvalCase['id'], answer: string): string[] {
   const failures: string[] = [];
   const must = (re: RegExp, why: string) => { if (!re.test(answer)) failures.push(why); };
   const never = (re: RegExp, why: string) => { if (re.test(answer)) failures.push(why); };
@@ -117,6 +128,8 @@ async function callModel(system: string, question: string, history: EvalCase['hi
 }
 
 async function main() {
+  // Imported here, not at the top: the Haiku path installs the harness hooks before anything from src loads.
+  const { buildScreeningPrompt } = await import('../../src/lib/services/screening');
   const cases = CASES.filter((c) => !ONLY || ONLY.includes(c.id));
   const records: unknown[] = [];
   const prompts: Record<string, { chars: number; primaryCVChars: number; masterCVChars: number; system: string }> = {};
@@ -166,7 +179,26 @@ async function main() {
   console.log(JSON.stringify({ summary, tokens: result.tokens, costUsd: result.costUsd }, null, 2));
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+/** The Haiku 5.5 arms, through the swap harness. Loaded here, after nothing from src is imported yet by the harness. */
+async function mainHaiku(): Promise<void> {
+  const effort = cli.get('effort');
+  if (!effort || !['low-nothink', 'low', 'medium', 'high'].includes(effort)) throw new Error('--model haiku needs --effort low-nothink|low|medium|high');
+  const { installHarness } = await import('../haiku-55-swap/lib/intercept');
+  installHarness();
+  const { optionsFromCli, runSite } = await import('../haiku-55-swap/lib/runner');
+  const { screeningSite } = await import('../haiku-55-swap/sites/screening');
+  const options = optionsFromCli(cli, screeningSite);
+  await runSite(screeningSite, {
+    ...options,
+    arms: [armById(`haiku-${effort}`)],
+    runs: cli.num('runs', 5),
+    only: ONLY ?? CASES.map((c) => c.id),
+  });
+}
+
+if (require.main === module) {
+  (MODEL === 'haiku' ? mainHaiku() : main()).catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
