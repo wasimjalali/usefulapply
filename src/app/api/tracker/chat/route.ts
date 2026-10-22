@@ -5,13 +5,15 @@ import {
   TRACKER_STATUSES,
   TRACKER_SYSTEM_PROMPT,
   buildTrackerMessages,
+  trackerOutcome,
   type TrackerIntent,
+  type TrackerModelAnswer,
   type TrackerStatus,
 } from '@/lib/agents/prompts/tracker-prompt';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
 import { listTrackerOverview } from '@/db/repos/sessions';
-import { flattenUntrusted as flatten, knownTimeZone, userNamed, wallClockToIso } from '@/lib/agents/chat-tools/untrusted';
+import { flattenUntrusted as flatten, knownTimeZone } from '@/lib/agents/chat-tools/untrusted';
 
 const MAX_MESSAGE_LENGTH = 500;
 
@@ -26,14 +28,7 @@ type Status = TrackerStatus;
 
 type Intent = TrackerIntent;
 
-interface ModelAnswer {
-  intent: Intent;
-  sessionId: string | null;
-  status: Status | null;
-  /** Local wall-clock the user meant, "2026-08-26T10:00". */
-  dateTime: string | null;
-  reply: string;
-}
+type ModelAnswer = TrackerModelAnswer;
 
 function parseAnswer(raw: string): ModelAnswer | null {
   const start = raw.indexOf('{');
@@ -132,49 +127,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const row = answer.sessionId ? rows.find((candidate) => candidate.id === answer.sessionId) : undefined;
-
-    // A status change writes to a row, so the user has to have named that
-    // application themselves. Without this an instruction hidden in a job ad
-    // could move a row the user never mentioned.
-    if (answer.intent === 'status_change' && row && answer.status && !userNamed(row, message)) {
-      return NextResponse.json({
-        reply: `Which application do you mean? Name the company and I'll move it.`,
-        action: { type: 'none' },
-      });
-    }
-
-    if (answer.intent === 'status_change' && row && answer.status) {
-      // The model answers in the user's wall clock, so it is resolved in the
-      // user's zone. Parsing it here would use the Worker's, which is UTC.
-      const validWhen = answer.dateTime ? wallClockToIso(answer.dateTime, timeZone) : null;
-      return NextResponse.json({
-        reply: answer.reply,
-        action: {
-          type: 'status',
-          sessionId: row.id,
-          status: answer.status,
-          dateTime: validWhen,
-          company: row.company,
-        },
-      });
-    }
-
-    if ((answer.intent === 'follow_up' || answer.intent === 'prep') && row) {
-      return NextResponse.json({
-        reply: answer.reply,
-        action: { type: answer.intent, sessionId: row.id, company: row.company },
-      });
-    }
-
-    if (answer.intent === 'hide_rejected' || answer.intent === 'show_rejected') {
-      return NextResponse.json({
-        reply: answer.reply,
-        action: { type: answer.intent },
-      });
-    }
-
-    return NextResponse.json({ reply: answer.reply, action: { type: 'none' } });
+    return NextResponse.json(trackerOutcome(answer, rows, message, timeZone));
   } catch (error) {
     console.error('[Tracker chat] failed:', error);
     return NextResponse.json({ error: 'That did not go through. Try again.' }, { status: 500 });

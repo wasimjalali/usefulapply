@@ -15,7 +15,7 @@ import { getDocuments } from '@/db/repos/documents';
 import { getSession } from '@/db/repos/sessions';
 import { getUserCredits } from '@/db/repos/credits';
 import { getTotalCredits, CREDIT_COSTS } from '@/lib/credit-costs';
-import { flattenUntrusted } from './untrusted';
+import { cutText, flattenUntrusted } from './untrusted';
 import { findOwnedNamedRow } from './write-tools';
 import type { ChatTool, ChatToolResult } from './types';
 
@@ -68,7 +68,7 @@ const proposeFollowUp: ChatTool = {
     const company = flattenUntrusted(row.company);
     // The label is trusted chrome and the company name is written by whoever
     // posted the ad, so the button carries a short name, not a sales line.
-    const shortCompany = company.length > 32 ? `${company.slice(0, 32)}...` : company;
+    const shortCompany = company.length > 32 ? `${cutText(company, 32)}...` : company;
 
     if (balance < cost) {
       return {

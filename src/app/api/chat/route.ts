@@ -16,6 +16,7 @@ import {
   type ChatToolContext,
   type ExecutedEffect,
 } from '@/lib/agents/chat-tools';
+import { settleChatReply } from '@/lib/agents/chat-tools/loop-reply';
 import { knownTimeZone, looksPasted } from '@/lib/agents/chat-tools/untrusted';
 import {
   appendToolRound,
@@ -49,11 +50,6 @@ const MAX_TOOL_CALLS_PER_ROUND = 4;
 // Thinking counts toward max_tokens on Haiku 5.5, and a reply is 1 to 3
 // sentences, so this is mostly thinking headroom.
 const CHAT_MAX_TOKENS = 4000;
-
-// The in-loop input budget is the model layer's (token-budget.ts): a round is
-// only sent if the previous round's measured input plus an estimate of what was
-// appended since stays under INPUT_REFUSE_ABOVE.
-const BUDGET_REPLY = 'That was too much to read in one go. Ask about one thing at a time.';
 
 // The stop reasons that leave a usable answer. Anything else (refusal,
 // max_tokens, a context-window stop) is a failure, never a reply.
@@ -138,8 +134,14 @@ export async function POST(req: NextRequest) {
     const isScreeningMode = context.mode === 'screening_answers';
     const maxMessageLength = isScreeningMode ? MAX_SCREENING_MESSAGE_LENGTH : MAX_MESSAGE_LENGTH;
 
+    // A blank message is refused before any gate that spends something (the
+    // screening turn below is claimed only after every refusal).
+    if (typeof message !== 'string' || !message.trim()) {
+      return NextResponse.json({ error: 'Type a message first.', code: 'MESSAGE_REQUIRED' }, { status: 400 });
+    }
+
     // Input length validation
-    if (message && message.length > maxMessageLength) {
+    if (message.length > maxMessageLength) {
       return NextResponse.json(
         {
           error: `Message is too long (${message.length} chars). Maximum: ${maxMessageLength} characters.`,
@@ -227,9 +229,11 @@ export async function POST(req: NextRequest) {
     // Build conversation history for the model. Roles are re-validated here:
     // chatHistory is client JSON and could otherwise smuggle a system turn.
     // The text stays raw: chatTurnText (chat-prompt.ts) cuts every turn to
-    // 5,000 chars and quotes pasted ones, the new message included, so a turn
-    // has the same bytes on the turn it is sent and on every turn that replays
-    // it (the server decides the quoting, never the client).
+    // CHAT_TURN_MAX_CHARS (pair-safe, lone surrogates replaced) and quotes
+    // pasted ones, the new message included, so a turn has the same bytes on
+    // the turn it is sent and on every turn that replays it (the server decides
+    // the quoting, never the client). A long turn is cut, never rejected, so a
+    // long ad in the history can't fail a later turn.
     const earlierTurns: ChatTurn[] = (context.chatHistory?.slice(-10) ?? [])
       .filter((msg): msg is ChatMessage =>
         Boolean(msg && (msg.role === 'user' || msg.role === 'assistant') && typeof msg.content === 'string'))
@@ -245,9 +249,12 @@ export async function POST(req: NextRequest) {
         reply = await generateScreeningReply({
           userId: user.id,
           message,
-          // Earlier turns cut and quoted, the question itself raw (screening's own layout).
+          // Earlier turns cut and quoted, the question itself raw (screening's own layout). Empty turns
+          // are left out, as buildChatMessages does (the API refuses empty text).
           history: [
-            ...earlierTurns.map((turn) => ({ role: turn.role, content: chatTurnText(turn) })),
+            ...earlierTurns
+              .map((turn) => ({ role: turn.role, content: chatTurnText(turn) }))
+              .filter((turn) => turn.content.trim()),
             { role: 'user' as const, content: message },
           ],
           context: screeningContext,
@@ -271,9 +278,6 @@ export async function POST(req: NextRequest) {
 
     // Agentic chat: the model can read the tracker, credits, documents and
     // feed, navigate, and apply tracker writes through the tool registry.
-    if (typeof message !== 'string' || !message.trim()) {
-      return NextResponse.json({ error: 'Type a message first.', code: 'MESSAGE_REQUIRED' }, { status: 400 });
-    }
     const timeZone = knownTimeZone(context.timeZone) ? context.timeZone : 'UTC';
     const toolContext: ChatToolContext = {
       userId: user.id,
@@ -297,10 +301,12 @@ export async function POST(req: NextRequest) {
     const requestExecutionId = crypto.randomUUID();
 
     const executed: ExecutedEffect[] = [];
-    const confirmActions: ChatActionChip[] = [];
+    let confirmActions: ChatActionChip[] = [];
     const failedToolNames: string[] = [];
+    const oversizedToolNames: string[] = [];
     let reply = '';
     let lastToolNames = '';
+    let loopFailure: { error: unknown } | null = null;
 
     try {
       // Measured input of the last call and what was appended after it: the
@@ -377,13 +383,14 @@ export async function POST(req: NextRequest) {
             : {};
           const result = await executeChatTool(call.name, args, toolContext);
           if (result.failed) failedToolNames.push(call.name);
+          if (result.oversized) oversizedToolNames.push(call.name);
           if (result.executed) executed.push(...result.executed);
           if (result.actions) confirmActions.push(...result.actions);
           results.push({
             type: 'tool_result',
             tool_use_id: call.id,
             content: JSON.stringify(result.data),
-            ...(result.failed ? { is_error: true } : {}),
+            ...(result.failed || result.oversized ? { is_error: true } : {}),
           });
         }
         // The last result carries the loop's 5m marker (moved each round), so the next round reads this one.
@@ -391,57 +398,17 @@ export async function POST(req: NextRequest) {
         previousInputTokens = response.inputTokensTotal;
         lastToolNames = toolUses[0].name;
       }
-    } catch (loopError) {
-      if (loopError instanceof InputBudgetError) {
-        // Too much to read: the history, a pasted ad and the tool results
-        // together would pass the input budget. Not an outage, so it answers
-        // with a fixed reply, and effects that already ran still go back.
-        console.error('Chat stopped at the input budget:', loopError.message);
-        if (executed.length === 0) {
-          confirmActions.length = 0;
-          reply = BUDGET_REPLY;
-        } else {
-          reply = replyAfterExecutedEffects(executed);
-        }
-      } else if (executed.length === 0) {
-        // A write may already be committed when a later round fails (a
-        // refusal, a max_tokens stop or an empty reply). Losing the reply is
-        // survivable; telling the user nothing happened when a row already
-        // moved is not, so the executed effects still go back (else branch).
-        // No tool round completed means the first model call failed, which is
-        // still a real request outage and belongs on the route's normal 500
-        // path. Once lastToolNames is set, a tool result was already returned
-        // and only the follow-up wording failed. Surface that known shape
-        // directly instead of falling through to the client's generic chat
-        // fallback. Proposal chips are discarded so a half-finished round
-        // cannot offer an action beside an error reply.
-        if (!lastToolNames) throw loopError;
-        console.error('Chat reply failed after a tool round:', loopError);
-        confirmActions.length = 0;
-        reply = lastToolNames === 'propose_cv_rewrite'
-          ? "I couldn't prepare that CV rewrite. Try again in a moment."
-          : "I couldn't complete that action. Try again in a moment.";
-      } else {
-        console.error('Chat tool loop failed after executed effects:', loopError);
-        reply = replyAfterExecutedEffects(executed);
-      }
+    } catch (error) {
+      loopFailure = { error };
     }
 
-    // A handler exception is a known failure even when the model answers the
-    // tool result with a generic conversational fallback. Do not let that text
-    // turn a failed CV rewrite proposal into "I'm here to help" or otherwise
-    // hide what did not run.
-    if (failedToolNames.length > 0) {
-      const failedCvRewrite = failedToolNames.includes('propose_cv_rewrite');
-      const failureReply = failedCvRewrite
-        ? "I couldn't prepare that CV rewrite. Try again in a moment."
-        : "I couldn't complete that action. Try again in a moment.";
-      // Never append to free-form model copy after a known handler failure. A
-      // mixed round may contain a stale success claim for the action that did
-      // not run. Successful handlers keep their action chips and effects, but
-      // the reply itself is the deterministic failure shape.
-      reply = failureReply;
-    }
+    // An early stop, a handler that threw or a result too large to read each
+    // end in a fixed reply; an outage (the first call failed) is rethrown to the
+    // 500 path below. loop-reply.ts has every case.
+    ({ reply, confirmActions } = settleChatReply(
+      { reply, executed, confirmActions, failedToolNames, oversizedToolNames, lastToolNames },
+      loopFailure,
+    ));
 
     // The tools cannot add a new claim to the source CVs. If the model offers
     // or promises that unsupported action anyway, replace it before it reaches
@@ -512,7 +479,10 @@ const MAX_CV_JSON_CHARS = 200_000;
  * request carries none), so this is a cheap early exit and not the only cap.
  *
  * Sized off what a legitimate request holds: a 200,000 char CV, ten history
- * turns of up to 5,000, a message, a master CV summary and a job description.
+ * turns, a message, a master CV summary and a job description. The client sends
+ * history turns whole (a pasted ad can be up to MAX_MESSAGE_LENGTH); the server
+ * cuts each to CHAT_TURN_MAX_CHARS (chat-prompt.ts), never rejects one. Real ads
+ * run to about 11,500 chars, so a window of them sits far below this.
  */
 const MAX_REQUEST_BYTES = 512_000;
 
@@ -556,28 +526,6 @@ function assertUsableChatStop(response: HaikuResponse): void {
   if (!response.stopReason || !USABLE_STOP_REASONS.has(response.stopReason)) {
     throw new Error(`Chat model stopped without a usable answer (stop_reason ${response.stopReason ?? 'missing'})`);
   }
-}
-
-/**
- * The reply when the loop stopped after effects ran. The message has to point
- * at the right place, and it has to be true of each kind of effect. A tracker
- * write is already committed to D1, so "saved" is a fact. A
- * cv_structure_updated effect has committed nothing: it is a proposal the
- * client can still refuse on a digest mismatch.
- */
-function replyAfterExecutedEffects(executed: ExecutedEffect[]): string {
-  const touchedCv = executed.some((effect) => effect.type === 'cv_structure_updated');
-  const touchedRow = executed.some((effect) => effect.type === 'tracker_updated');
-  if (touchedRow && touchedCv) {
-    return "That change saved, but I couldn't finish the reply. The tracker row is updated, and the CV edit is in the CV panel if it went through.";
-  }
-  if (touchedRow) {
-    return "That change saved, but I couldn't finish the reply. Check the tracker for the updated row.";
-  }
-  if (touchedCv) {
-    return "I couldn't finish the reply. If the CV edit went through it is in the CV panel, with an Undo button on it.";
-  }
-  return "I couldn't finish the reply. Ask me again and I'll pick it up from there.";
 }
 
 function extractActions(reply: string, context: ChatContext): Array<{label: string; action: string; icon: string}> {

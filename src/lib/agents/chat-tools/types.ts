@@ -175,6 +175,11 @@ export interface ChatToolResult {
   data: unknown;
   /** The handler threw. The route must surface this rather than trust a generic model fallback. */
   failed?: true;
+  /**
+   * The result was over MAX_TOOL_RESULT_CHARS and was replaced by a short error. Not a failure: the
+   * handler ran and its effects stand, so the route tells the user to ask about one thing at a time.
+   */
+  oversized?: true;
   executed?: ExecutedEffect[];
   /** Confirm chips for destructive proposals; the click is the second, confirming request. */
   actions?: ChatActionChip[];

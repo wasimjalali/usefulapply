@@ -4,11 +4,32 @@
  * chat tool registry and the tracker chat route so the two cannot drift.
  */
 
+/**
+ * The first `maxChars` UTF-16 code units of `value`, as text the API accepts. Every cut of text that reaches
+ * a prompt goes through here.
+ *
+ * Two ways a string fails at the API with a 400 ("no low surrogate"), and this closes both:
+ * - A plain `slice` that lands between the two halves of an emoji keeps a lone high surrogate, which
+ *   JSON.stringify writes as `\ud83d`. Here the cut moves back one unit instead, so the pair goes whole.
+ * - A lone surrogate the client sent itself. `toWellFormed` replaces it with U+FFFD before the cut.
+ *
+ * Deterministic, and cutting a cut changes nothing: the chat renders a turn the same way on the turn it is
+ * sent and on every turn that replays it, so the cached prefix stays byte-identical.
+ */
+export function cutText(value: string, maxChars: number): string {
+  const text = value.toWellFormed();
+  if (text.length <= maxChars) return text;
+  const last = text.charCodeAt(maxChars - 1);
+  // Well-formed, so a high surrogate here is the first half of a pair that the cut would split.
+  const end = last >= 0xd800 && last <= 0xdbff ? maxChars - 1 : maxChars;
+  return text.slice(0, Math.max(0, end));
+}
+
 /** One line, no control characters, short enough not to crowd the prompt. */
 export function flattenUntrusted(value: string | null | undefined): string {
   if (!value) return 'unknown';
   const clean = value.replace(/[\u0000-\u001F\u007F<>]+/g, ' ').trim();
-  return clean ? clean.slice(0, 80) : 'unknown';
+  return clean ? cutText(clean, 80) : 'unknown';
 }
 
 /**
@@ -18,7 +39,7 @@ export function flattenUntrusted(value: string | null | undefined): string {
  */
 export function sanitizeUntrustedText(value: string | null | undefined, cap = 1200): string {
   if (!value) return '';
-  return value.replace(/[\u0000-\u001F\u007F<>]+/g, ' ').replace(/\s{2,}/g, ' ').trim().slice(0, cap);
+  return cutText(value.replace(/[\u0000-\u001F\u007F<>]+/g, ' ').replace(/\s{2,}/g, ' ').trim(), cap);
 }
 
 /**
@@ -37,6 +58,7 @@ export const MAX_INSTRUCTION_CHARS = 300;
  */
 export function flattenInstruction(value: string): string {
   return value
+    .toWellFormed()
     .replace(/[\u0000-\u001F\u007F<>]+/g, ' ')
     .replace(/\s{2,}/g, ' ')
     .trim();
@@ -165,6 +187,8 @@ export function sanitizeAdText(value: string | null | undefined): string {
   if (!value) return '';
   return (
     value
+      // A lone surrogate is a 400 at the API (see cutText).
+      .toWellFormed()
       // Every tag in every writer prompt, and the << >> wrapper, needs a real
       // angle bracket. The single-angle-quote lookalikes read the same to a
       // human and cannot open or close anything.

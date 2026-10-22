@@ -50,7 +50,7 @@ import {
 import { isJobFeedConfigured } from '@/lib/job-feed/helpers';
 import type { JobFeedSettingsInput } from '@/lib/job-feed/types';
 import type { JobFeedSettings } from '@/lib/supabase/types';
-import { flattenUntrusted, userNamed } from './untrusted';
+import { cutText, flattenUntrusted, userNamed } from './untrusted';
 import type { ChatTool, ChatToolContext, ChatToolResult } from './types';
 
 const WORK_MODE_VALUES = JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => option.value);
@@ -93,7 +93,7 @@ function stringList(value: unknown, cap: number): string[] | null {
   const out: string[] = [];
   for (const item of value) {
     if (typeof item !== 'string') continue;
-    const trimmed = item.trim().slice(0, MAX_ITEM_LENGTH);
+    const trimmed = cutText(item.trim(), MAX_ITEM_LENGTH);
     if (!trimmed) continue;
     if (!out.some((existing) => existing.toLowerCase() === trimmed.toLowerCase())) out.push(trimmed);
     if (out.length > cap) return null;
@@ -765,7 +765,7 @@ const proposeFeedApplication: ChatTool = {
     const company = flattenUntrusted(found.job.company);
     // The label is trusted chrome and the company name is written by whoever
     // posted the ad, so the button carries a short name, not a sales line.
-    const shortCompany = company.length > 32 ? `${company.slice(0, 32)}...` : company;
+    const shortCompany = company.length > 32 ? `${cutText(company, 32)}...` : company;
 
     if (balance < cost) {
       return {

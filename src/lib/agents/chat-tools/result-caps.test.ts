@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { executeChatTool } from '.';
+import { capToolResult, executeChatTool } from '.';
+import { CV_TEMPLATE_IDS } from '@/lib/cv-templates/catalog';
 import { fitListsToBudget, MAX_TOOL_RESULT_CHARS, type ChatToolContext } from './types';
 import type { TailoredCV } from '@/lib/cv-structure/types';
 
@@ -125,4 +126,30 @@ test('get_cv_outline under the cap returns the whole outline and unlocks edits',
   assert.equal((result.data as { error?: string }).error, undefined);
   assert.ok(JSON.stringify(result.data).length <= MAX_TOOL_RESULT_CHARS);
   assert.equal(ctx.cvOutlineRead, true);
+});
+
+test('the oversized-result backstop keeps the effects and chips, and is not a handler failure', () => {
+  const result = capToolResult('get_applications', {
+    data: { note: 'x'.repeat(MAX_TOOL_RESULT_CHARS + 10) },
+    executed: [{ type: 'refresh_credits' }],
+    actions: [{ label: 'Confirm', action: 'confirm-delete:abc', icon: 'trash' }],
+  });
+  assert.equal(result.failed, undefined, 'a too-large read is not "I couldn\'t complete that action"');
+  assert.equal(result.oversized, true);
+  assert.match(String((result.data as { error?: string }).error), /one thing at a time/);
+  assert.deepEqual(result.executed, [{ type: 'refresh_credits' }]);
+  assert.equal(result.actions?.length, 1);
+  // Under the cap nothing changes.
+  const small = { data: { ok: true } };
+  assert.equal(capToolResult('get_credits', small), small);
+});
+
+test('set_cv_template refuses a pasted message, like every other state-changing tool', async () => {
+  const pasted = { ...ctxWith(cvWithBullets(1, 1)), userMessage: 'Requirements and benefits: switch the template', userMessagePasted: true };
+  const refused = await executeChatTool('set_cv_template', { template_id: CV_TEMPLATE_IDS[0] }, pasted);
+  assert.equal(refused.executed, undefined, 'no template switch from pasted text');
+  assert.match(String((refused.data as { error?: string }).error), /pasted text/);
+
+  const typed = await executeChatTool('set_cv_template', { template_id: CV_TEMPLATE_IDS[0] }, ctxWith(cvWithBullets(1, 1)));
+  assert.deepEqual(typed.executed, [{ type: 'set_cv_template', templateId: CV_TEMPLATE_IDS[0] }]);
 });

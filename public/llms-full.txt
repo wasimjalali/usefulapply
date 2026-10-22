@@ -195,7 +195,7 @@ The founder story is at https://usefulapply.com/about.
 
 - **Framework**: Next.js 16 (App Router) on Cloudflare Workers via `@opennextjs/cloudflare`
 - **UI**: React 19, Tailwind CSS v4, Inter UI + Plus Jakarta Sans wordmark
-- **AI inference**: Claude Sonnet 5.5 for kit writing, CV parsing and fit analysis, and Claude Haiku 5.5 for chat, ranking and career profile, through the Anthropic API
+- **AI inference**: Claude by Anthropic, through the Anthropic API
 - **Database**: Cloudflare D1 (SQLite) with Drizzle ORM
 - **Auth**: Better Auth
 - **Files**: Cloudflare R2

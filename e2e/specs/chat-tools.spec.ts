@@ -3,6 +3,7 @@ import { BASE_URL } from '../lib/env';
 import { fakeCalls, fakeControl, fakeReset, type FakeCall } from '../lib/fake-control';
 import { openLocalD1 } from '../lib/sqlite';
 import { createSignedInApiUser, nextTestIp, type TestUser } from '../lib/user';
+import { CHAT_TURN_MAX_CHARS } from '../../src/lib/agents/prompts/chat-prompt';
 
 /**
  * Main chat on Claude Haiku 5.5, end to end through the real /api/chat route: the real tool registry and
@@ -21,7 +22,11 @@ import { createSignedInApiUser, nextTestIp, type TestUser } from '../lib/user';
  *    and follows it, so what holds is the app's own gate. No write, no confirm chip, the row is untouched;
  *  - a forced input budget overflow answers with the deterministic reply and keeps executed effects;
  *  - every call goes to claude-haiku-5-5 with an effort, the static prefix is byte-identical across two
- *    users, and a second turn in the same chat reads the first turn's prefix from the cache.
+ *    users, and a second turn in the same chat reads the first turn's prefix from the cache;
+ *  - an emoji on the turn cut of a replayed ad and a lone surrogate the client sent never reach the model
+ *    (the API answers a lone surrogate with a 400, which used to fail every later turn of that chat);
+ *  - screening: a blank question is refused before a turn is spent, empty earlier turns are left out and
+ *    a lone surrogate in the question never reaches the model.
  */
 
 const BERLIN = 'Europe/Berlin';
@@ -106,6 +111,22 @@ function rowState(id: string): RowState {
   const db = openLocalD1();
   try {
     return db.prepare('SELECT status, interview_at, revision FROM application_sessions WHERE id = ?').get(id) as RowState;
+  } finally {
+    db.close();
+  }
+}
+function screeningTurnsUsed(id: string): number {
+  const db = openLocalD1();
+  try {
+    return (db.prepare('SELECT screening_turns_used AS n FROM application_sessions WHERE id = ?').get(id) as { n: number }).n;
+  } finally {
+    db.close();
+  }
+}
+function setTier(userId: string, tier: 'free' | 'plus' | 'max'): void {
+  const db = openLocalD1();
+  try {
+    db.prepare('UPDATE profiles SET subscription_tier = ? WHERE id = ?').run(tier, userId);
   } finally {
     db.close();
   }
@@ -306,6 +327,77 @@ test.describe.serial('chat tools on Haiku 5.5', () => {
       expect(await chatCalls(message)).toHaveLength(1);
     } finally {
       await fakeControl({ inputTokens: null });
+    }
+  });
+
+  test('an emoji on the turn cut of a replayed ad and a lone surrogate in the message never reach the model', async () => {
+    const tag = `Danke ${crypto.randomUUID()}`;
+    // The ad's emoji sits on code units CHAT_TURN_MAX_CHARS - 1 and CHAT_TURN_MAX_CHARS, where the cut lands.
+    const head = `${GERMAN_AD}\n`.repeat(30).slice(0, CHAT_TURN_MAX_CHARS - 1);
+    const ad = `${head}\u{1F680} Jetzt bewerben!`;
+    expect(ad.slice(0, CHAT_TURN_MAX_CHARS).isWellFormed(), 'a plain cut would split the pair').toBe(false);
+    const result = await chat(a, `${tag} \ud83d`, {
+      history: [
+        { role: 'user', content: ad },
+        { role: 'assistant', content: 'Pick one of the buttons to check your fit or generate the kit.' },
+      ],
+    });
+    expect(result.executed).toEqual([]);
+    const calls = await chatCalls(tag);
+    expect(calls.length).toBeGreaterThan(0);
+    for (const call of calls) {
+      expect(call.status).toBe(200);
+      expect(call.allUserText.isWellFormed(), 'the model was shown a lone surrogate').toBe(true);
+    }
+    // The ad was replayed cut before the emoji, whole up to it.
+    expect(calls[0].allUserText).toContain(head.slice(-60));
+  });
+
+  test('screening: a blank question spends no turn, empty earlier turns are left out, a lone surrogate never reaches the model', async () => {
+    setTier(a.user.id, 'plus');
+    const sessionId = seedRow(a.user.id, 'Northwind Foods', 'Controller');
+    const post = async (message: string, history: Array<{ role: 'user' | 'assistant'; content: string }>) => {
+      const ip = nextTestIp();
+      return a.api.post(`${BASE_URL}/api/chat`, {
+        data: {
+          message,
+          context: {
+            mode: 'screening_answers',
+            sessionId,
+            hasCV: true,
+            hasAnalysis: true,
+            jobTitle: 'Controller',
+            company: 'Northwind Foods',
+            jobDescription: GERMAN_AD,
+            chatHistory: history,
+          },
+        },
+        headers: { 'cf-connecting-ip': ip, 'x-forwarded-for': ip },
+        timeout: 120_000,
+      });
+    };
+    try {
+      const blank = await post('   \n ', []);
+      expect(blank.status()).toBe(400);
+      expect((await blank.json()).code).toBe('MESSAGE_REQUIRED');
+      expect(screeningTurnsUsed(sessionId), 'a blank question spends no turn').toBe(0);
+
+      const marker = crypto.randomUUID();
+      const answered = await post(`Wie lang ist Ihre Kuendigungsfrist? ${marker} \ud83d`, [
+        { role: 'user', content: 'Warum diese Stelle?' },
+        { role: 'assistant', content: '  \n ' },
+        { role: 'user', content: '' },
+        { role: 'assistant', content: 'Antwort eins.' },
+      ]);
+      expect(answered.status(), await answered.text()).toBe(200);
+      expect(screeningTurnsUsed(sessionId)).toBe(1);
+      const [call] = (await fakeCalls()).filter((entry) => entry.kind === 'messages' && entry.writer === 'screening' && entry.allUserText.includes(marker));
+      expect(call.status).toBe(200);
+      expect(call.messageCount, 'question, the one real answer and the new question').toBe(3);
+      expect(call.allUserText.isWellFormed()).toBe(true);
+      expect(call.lastUser).toContain('<application_context>');
+    } finally {
+      setTier(a.user.id, 'free');
     }
   });
 

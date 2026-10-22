@@ -46,6 +46,15 @@ export function harnessSelfTest(): string[] {
   const outcomes = [...mk('haiku-low-nothink', 8, 10, ['x']), ...mk('haiku-low', 9, 10), ...mk('haiku-medium', 10, 10), ...mk('haiku-high', 10, 10), ...mk('gptoss', 9, 10)];
   const verdict = decide(ARMS.map((arm) => summarizeArm(arm.id, outcomes)), []);
   must(verdict.winner === 'haiku-low', `decision rule picked ${verdict.winner}, expected haiku-low (low-nothink has a hard violation, low is within one failure)`);
+
+  // An aborted run, or arms that ran different numbers of cases, can't be compared: undecided, with the reason.
+  const summaries = ARMS.map((arm) => summarizeArm(arm.id, outcomes));
+  const aborted = decide(summaries, [], { aborted: 'spent $5.01 over --max-cost 5' });
+  must(aborted.winner === null && /aborted/.test(aborted.undecidedReason ?? ''), `an aborted run must be undecided with a reason, got ${aborted.winner} (${aborted.undecidedReason})`);
+  const short = [...mk('haiku-low-nothink', 8, 10, ['x']), ...mk('haiku-low', 9, 10), ...mk('haiku-medium', 4, 4), ...mk('haiku-high', 10, 10), ...mk('gptoss', 9, 10)];
+  const unequal = decide(ARMS.map((arm) => summarizeArm(arm.id, short)), [], { aborted: null });
+  must(unequal.winner === null && /unequal/.test(unequal.undecidedReason ?? ''), `arms with unequal case counts must be undecided, got ${unequal.winner} (${unequal.undecidedReason})`);
+  must(verdict.undecidedReason === null, 'a complete run with a winner carries no undecided reason');
   return problems;
 }
 

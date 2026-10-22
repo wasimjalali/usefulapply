@@ -242,7 +242,7 @@ export async function runSite<C extends SiteCase>(site: Site<C>, options: RunOpt
   }
 
   const summaries = options.arms.map((a) => summarizeArm(a.id, outcomes));
-  const decision = decide(summaries, site.absoluteHard);
+  const decision = decide(summaries, site.absoluteHard, { aborted });
 
   // Cache hygiene: within one (arm, run, group) every call should share the cached prefix, byte for byte.
   const prefixDrift: Array<{ arm: string; run: number; group: string; distinctPrefixes: number }> = [];
@@ -297,12 +297,12 @@ export async function runSite<C extends SiteCase>(site: Site<C>, options: RunOpt
     file = writeRun(site.id, result);
     console.log(`wrote ${file}`);
   }
-  printSummary(site.id, summaries, decision.winner, aborted);
+  printSummary(site.id, summaries, decision.winner, aborted, decision.undecidedReason);
   if (decision.winnerBelowBaseline) console.log(`  FLAG ${site.id}: the winner has more primary failures than gpt-oss; decide by hand.`);
   return { file, summaries, winner: decision.winner };
 }
 
-export function printSummary(site: string, summaries: ReturnType<typeof summarizeArm>[], winner: ArmId | null, aborted: string | null): void {
+export function printSummary(site: string, summaries: ReturnType<typeof summarizeArm>[], winner: ArmId | null, aborted: string | null, undecidedReason: string | null = null): void {
   const f = (x: number | null, d = 0) => (x === null ? '-' : x.toFixed(d));
   console.log(`\n== ${site} ==${aborted ? `  ABORTED: ${aborted}` : ''}`);
   console.log('arm                 pass        hard                     p50/p95 call ms   $/call    hit%  warm%');
@@ -312,5 +312,5 @@ export function printSummary(site: string, summaries: ReturnType<typeof summariz
       `${s.arm.padEnd(19)} ${`${s.pass}/${s.n}`.padEnd(11)} ${hard.padEnd(24)} ${`${f(s.latencyMs.callP50)}/${f(s.latencyMs.callP95)}`.padEnd(17)} ${f(s.cost.perCallUsd, 5).padEnd(9)} ${f(s.cache.hitRate === null ? null : s.cache.hitRate * 100)}   ${f(s.cache.warmHitRate === null ? null : s.cache.warmHitRate * 100)}`,
     );
   }
-  console.log(`decision (rule fixed before running): ${winner ?? 'undecided'}`);
+  console.log(`decision (rule fixed before running): ${winner ?? `undecided${undecidedReason ? ` (${undecidedReason})` : ''}`}`);
 }

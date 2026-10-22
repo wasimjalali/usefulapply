@@ -132,7 +132,7 @@ The full comparisons hub is at https://usefulapply.com/compare.
 ## Technical Details
 
 - Built with Next.js 16 (App Router) on Cloudflare Workers via `@opennextjs/cloudflare`
-- AI inference: Claude Sonnet 5.5 for kit writing, CV parsing and fit analysis, and Claude Haiku 5.5 for chat, ranking and career profile, through the Anthropic API
+- AI inference: Claude by Anthropic, through the Anthropic API
 - Authentication: Better Auth. Database: Cloudflare D1. Files: Cloudflare R2.
 - Payments: Stripe (subscriptions and add-on credit packs)
 - Anti-hallucination guardrails: every skill, metric, and claim is verified against the uploaded CV

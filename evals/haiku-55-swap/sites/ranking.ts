@@ -13,6 +13,8 @@
  *   - the ranker returned a valid LLM ranking (status completed_llm, not the deterministic fallback)
  *   - zero hard-constraint violations in its top 10 (wrong country, work mode, employment type, pay
  *     below the floor, no sponsorship) - this one is also the site's absolute hard metric
+ *     ('hard_in_top10'). Violations anywhere in the surfaced list are reported as 'hard_in_surfaced',
+ *     held to the gpt-oss count like other non-absolute hard metrics.
  *   - the model's own list covered at least 60% of the candidates
  *   - NDCG@10 against the reference is at least 0.70 (gains 2^relevance - 1)
  *   - it surfaced no more than the visible cap
@@ -52,6 +54,20 @@ async function loadRanker(): Promise<Ranker> {
 }
 
 let ranker: Ranker | null = null;
+
+/**
+ * Hard-constraint violations of a ranking, one entry each. 'hard_in_top10' (absolute: must be 0) counts the
+ * top 10; 'hard_in_surfaced' counts every surfaced item, since anything surfaced reaches the user, and is
+ * compared against gpt-oss like the other non-absolute hard metrics.
+ */
+export function hardMetrics(set: RankingSet, surfacedIds: string[]): string[] {
+  const byId = new Map(set.jobs.map((j) => [j.id, j]));
+  const violations = (id: string) => hardViolations(set.persona, byId.get(id)!).length;
+  return [
+    ...surfacedIds.slice(0, 10).flatMap((id) => Array.from({ length: violations(id) }, () => 'hard_in_top10')),
+    ...surfacedIds.flatMap((id) => Array.from({ length: violations(id) }, () => 'hard_in_surfaced')),
+  ];
+}
 
 function oracleReply(set: RankingSet): string {
   const ref = referenceRelevance(set, null);
@@ -102,7 +118,17 @@ export const rankingSite: Site<RankingSet> = {
       for (const j of set.jobs) {
         if (labels?.[set.id] && labels[set.id][j.id] === undefined) problems.push(`${set.id}: label missing for ${j.id}`);
       }
+      // A violation surfaced below the top 10 still reaches the user: it is counted over every surfaced item.
+      const broken = set.jobs.filter((j) => hardViolations(set.persona, j).length > 0);
+      const clean = set.jobs.filter((j) => hardViolations(set.persona, j).length === 0);
+      if (broken.length > 0 && clean.length >= 10) {
+        const surfacedIds = [...clean.slice(0, 10).map((j) => j.id), broken[0].id];
+        const graded = hardMetrics(set, surfacedIds);
+        if (graded.filter((h) => h === 'hard_in_top10').length !== 0) problems.push(`${set.id}: a violation at rank 11 counted in the top 10`);
+        if (!graded.includes('hard_in_surfaced')) problems.push(`${set.id}: a violation at rank 11 not counted in hard_in_surfaced`);
+      }
     }
+    if (rankingSite.absoluteHard.includes('hard_in_surfaced')) problems.push('hard_in_surfaced is reported against gpt-oss, not absolute');
     return problems;
   },
   oracle: (set): Oracle => () => ({ text: oracleReply(set) }),
@@ -118,7 +144,8 @@ export const rankingSite: Site<RankingSet> = {
     const surfaced = [...res.items].sort((a, b) => a.rank - b.rank);
     const ids = surfaced.map((i) => i.canonicalJobId);
     const top10 = ids.slice(0, 10);
-    const hard = top10.flatMap((id) => hardViolations(set.persona, byId.get(id)!)).map(() => 'hard_in_top10');
+    const hard = hardMetrics(set, ids);
+    const top10Hard = hard.filter((h) => h === 'hard_in_top10').length;
     const dups = top10.filter((id) => byId.get(id)?.dupOf && top10.includes(byId.get(id)!.dupOf!)).length;
 
     // Coverage: how much of the candidate list the model's own JSON answered for.
@@ -138,7 +165,7 @@ export const rankingSite: Site<RankingSet> = {
 
     const failures: string[] = [];
     if (res.status !== 'completed_llm') failures.push(`status ${res.status}${res.errorMessage ? `: ${res.errorMessage.slice(0, 120)}` : ''}`);
-    if (hard.length > 0) failures.push(`${hard.length} hard-constraint violation(s) in the top 10`);
+    if (top10Hard > 0) failures.push(`${top10Hard} hard-constraint violation(s) in the top 10`);
     if (coverage < COVERAGE_FLOOR) failures.push(`coverage ${(coverage * 100).toFixed(0)}% under ${COVERAGE_FLOOR * 100}%`);
     if (ndcg < NDCG_FLOOR) failures.push(`NDCG@10 ${ndcg.toFixed(2)} under ${NDCG_FLOOR}`);
     if (surfaced.length > set.visibleCap) failures.push(`surfaced ${surfaced.length}, cap ${set.visibleCap}`);
@@ -153,7 +180,7 @@ export const rankingSite: Site<RankingSet> = {
       pass: failures.length === 0,
       failures,
       hard,
-      metrics: { ndcg10: ndcg, ...(labels ? { ndcg10Designed: ndcgAt(10, ids, designed) } : {}), coverage, duplicatesTop10: dups, surfaced: surfaced.length, top10Hard: hard.length },
+      metrics: { ndcg10: ndcg, ...(labels ? { ndcg10Designed: ndcgAt(10, ids, designed) } : {}), coverage, duplicatesTop10: dups, surfaced: surfaced.length, top10Hard, surfacedHard: hard.length - top10Hard },
     };
   },
 };

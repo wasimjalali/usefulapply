@@ -258,6 +258,7 @@ export const DECISION_RULE = [
   '2. Hard constraints: for every hard-constraint metric it has no more violations than the gpt-oss arm, and zero violations for the metrics a site lists as absolute (ranking: hard-constraint violations in the top 10 must be 0; every site: no call over the 100k input budget).',
   '3. It produced no errors (a thrown error, an empty reply, a budget stop) that the best Haiku arm did not also produce.',
   'Tie-break between arms of the same effort rank: lower p50 per-call latency. If no arm qualifies the site is undecided and the orchestrator decides by hand.',
+  'A run that aborted (the --max-cost stop) or whose arms ran unequal case counts is undecided, whatever the numbers (added 2026-10-22 after review: an arm cut short has fewer chances to fail).',
   'gpt-oss is a baseline only: it is never a candidate. A winner with more primary failures than gpt-oss is flagged for the orchestrator. Cache hit rate and cost are reported but do not enter the rule.',
 ].join('\n');
 
@@ -267,13 +268,22 @@ export interface DecisionRow {
   reasons: string[];
 }
 
-export function decide(
-  summaries: ArmSummary[],
-  absoluteHard: string[],
-): { winner: ArmId | null; rows: DecisionRow[]; winnerBelowBaseline: boolean } {
+export interface Decision {
+  winner: ArmId | null;
+  rows: DecisionRow[];
+  winnerBelowBaseline: boolean;
+  /** Why no winner was picked although arms ran (an aborted run, unequal case counts), or null. */
+  undecidedReason: string | null;
+}
+
+/**
+ * `run.aborted` is the runner's abort reason (the --max-cost stop), or null. An aborted run or arms with
+ * unequal case counts are undecided: arms that ran fewer cases would look better on failure counts.
+ */
+export function decide(summaries: ArmSummary[], absoluteHard: string[], run: { aborted: string | null } = { aborted: null }): Decision {
   const haiku = summaries.filter((s) => armById(s.arm).kind === 'haiku');
   const baseline = summaries.find((s) => s.arm === 'gptoss') ?? null;
-  if (haiku.length === 0) return { winner: null, rows: [], winnerBelowBaseline: false };
+  if (haiku.length === 0) return { winner: null, rows: [], winnerBelowBaseline: false, undecidedReason: 'no Haiku arm ran' };
   const best = haiku.reduce((a, b) => (b.failures < a.failures || (b.failures === a.failures && b.passRate > a.passRate) ? b : a));
   const bestErrors = best.errors;
   const rows: DecisionRow[] = haiku.map((s) => {
@@ -295,9 +305,16 @@ export function decide(
     .filter((r) => r.eligible)
     .map((r) => ({ r, s: haiku.find((s) => s.arm === r.arm)!, rank: armById(r.arm).rank }))
     .sort((a, b) => a.rank - b.rank || (a.s.latencyMs.callP50 ?? Infinity) - (b.s.latencyMs.callP50 ?? Infinity));
+  const counts = new Set(summaries.map((s) => s.n));
+  const undecidedReason = run.aborted
+    ? `run aborted (${run.aborted}): the arms did not all run every case`
+    : counts.size > 1
+      ? `arms ran unequal case counts (${summaries.map((s) => `${s.arm} ${s.n}`).join(', ')})`
+      : null;
+  if (undecidedReason) return { winner: null, rows, winnerBelowBaseline: false, undecidedReason };
   const winner = eligible[0]?.s ?? null;
   const winnerBelowBaseline = Boolean(winner && baseline && winner.failures > baseline.failures);
-  return { winner: winner?.arm ?? null, rows, winnerBelowBaseline };
+  return { winner: winner?.arm ?? null, rows, winnerBelowBaseline, undecidedReason: winner ? null : 'no arm qualified' };
 }
 
 // ---------------------------------------------------------------------------

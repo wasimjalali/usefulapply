@@ -12,7 +12,7 @@
  */
 import type Anthropic from '@anthropic-ai/sdk';
 import { cvTemplateName, defaultCvTemplateName } from '@/lib/cv-templates/catalog';
-import { flattenUntrusted, looksPasted, sanitizeAdText } from '@/lib/agents/chat-tools/untrusted';
+import { cutText, flattenUntrusted, looksPasted, sanitizeAdText } from '@/lib/agents/chat-tools/untrusted';
 
 /** The primary CV summary the client sends. Capped so one field can't eat the input budget. */
 export const CHAT_CV_SUMMARY_MAX_CHARS = 5_000;
@@ -117,7 +117,7 @@ Call a tool when the user asks about their applications, interviews, follow-ups,
 - Only reference skills and experience that exist in the user's uploaded documents.`;
 
 function text(value: unknown, maxChars: number): string {
-  return typeof value === 'string' ? value.slice(0, maxChars) : '';
+  return typeof value === 'string' ? cutText(value, maxChars) : '';
 }
 
 /** Per-user context. No date, no request data: it must repeat byte for byte across a user's turns. */
@@ -200,8 +200,16 @@ export interface ChatTurn {
 /**
  * The longest a turn is ever shown to the model, the new message included. A typed message is far
  * shorter (past 350 chars it already counts as pasted), so the cut only ever lands on pasted text.
+ *
+ * Sized for real job ads (131 production job descriptions: p99 10,611 chars, longest 11,421) and held
+ * down by the input budget. The route sends up to eleven turns (ten replayed, then the new one), and all
+ * eleven at the cut, with the tools, the static rules, the longest CV summaries and the state, must stay
+ * under INPUT_REFUSE_ABOVE at the budget's 1.8 chars per token. At 12,000 that estimate is about 93,800
+ * tokens, over the line; the most that fits today is 11,370, and this keeps about 400 tokens of headroom
+ * for the tool descriptions. chat-prompt.test.ts pins it. Only the last 100 or so characters of the
+ * longest ad seen are cut, and the client keeps the full text.
  */
-export const CHAT_TURN_MAX_CHARS = 5_000;
+export const CHAT_TURN_MAX_CHARS = 11_300;
 
 /** Appended to the state when the new message was shown quoted. The static prompt names this line. */
 export const PASTED_STATE_LINE = 'Latest message: pasted, shown between << >>';
@@ -235,14 +243,16 @@ export const PASTED_STATE_LINE = 'Latest message: pasted, shown between << >>';
  * row and CV write that turn, computed on the full message.
  *
  * The cut comes before the test and the sanitizer, in that order, on both turns. A message over the cut
- * is shown cut on turn 1 too: the model only has to classify it, and the client keeps the full text.
+ * is shown cut on turn 1 too: the model only has to classify it, and the client keeps the full text. The
+ * cut never splits a surrogate pair and drops lone surrogates (cutText), so the turn is valid JSON for the
+ * API on every turn that replays it.
  *
  * A long typed message that is not an ad gets wrapped too. That is the honest outcome, not a false
  * positive: the same message refuses every CV and tracker write on the turn it was typed, so treating it
  * as data in later turns is the consistent reading of the same test rather than a new penalty.
  */
 export function chatTurnText(turn: ChatTurn): string {
-  const content = turn.content.slice(0, CHAT_TURN_MAX_CHARS);
+  const content = cutText(turn.content, CHAT_TURN_MAX_CHARS);
   if (turn.role !== 'user') return content;
   return looksPasted(content) ? `<<${sanitizeAdText(content)}>>` : content;
 }
@@ -276,7 +286,7 @@ export function buildChatMessages(history: ChatTurn[], state: string): Anthropic
     role: 'user',
     content: [{ type: 'text', text: currentText, cache_control: { type: 'ephemeral' } }],
   });
-  const pasted = looksPasted(current.content.slice(0, CHAT_TURN_MAX_CHARS));
+  const pasted = looksPasted(cutText(current.content, CHAT_TURN_MAX_CHARS));
   messages.push(stateMessage(pasted ? `${state}\n${PASTED_STATE_LINE}` : state));
   return messages;
 }
