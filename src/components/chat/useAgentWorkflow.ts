@@ -6,7 +6,7 @@
  * handleStopGeneration, getSmartFallbackResponse, and all associated state.
  */
 
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
@@ -32,6 +32,7 @@ import type { JobFeedApplicationGeneration } from '@/lib/supabase/types';
 import { readKitDocumentErrors, type StoredSessionRow } from '@/lib/open-session';
 import { applyServerRow, forgetSession, refreshFromServer } from '@/lib/session-sync';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
+import { needsAvailabilityPrompt } from '@/lib/profile/logistics';
 import type { KitDocument, KitDocumentErrors } from '@/lib/agents/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
 import {
@@ -194,8 +195,21 @@ export function useAgentWorkflow(options?: {
    * misses a real ad is never a dead end.
    */
   onChatAnsweredWithoutProposal?: (message: string) => void;
+  /**
+   * Which screen shows the start date and salary questions when this hook
+   * parks a run. The guided line and the chat each mount their own copy of
+   * this hook, so the one that parked is the one that renders the card.
+   */
+  logisticsHost?: 'guided' | 'chat';
 }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  // Read at call time: the guided line starts runs from timers and effects
+  // that hold an older render's closure, and a stale profile would skip the
+  // gate or ask twice.
+  const profileRef = useRef(profile);
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
   const datePrefs = useDatePrefs();
   const { toast } = useToast();
   const { setActiveTab } = useUIStore();
@@ -905,8 +919,53 @@ export function useAgentWorkflow(options?: {
     }
   };
 
-  const runAgentWorkflow = async (jobDescription: string, contextId?: string, _overrideContextData?: FitAnalysisContextData) => {
+  /**
+   * The kit writers use the applicant's own start date and salary, so they're
+   * asked once before the first kit. Parks the run (before any request, so no
+   * credits move) and returns true when the questions still need answering.
+   */
+  const parkForLogistics = (jobDescription: string, contextId?: string, contextData?: unknown): boolean => {
+    if (!needsAvailabilityPrompt(profileRef.current)) return false;
+    useUIStore.getState().setPendingLogistics({
+      host: options?.logisticsHost ?? 'chat',
+      sessionId: useSessionStore.getState().currentSession?.id ?? null,
+      jd: jobDescription,
+      contextId,
+      contextData,
+    });
+    setIsAgentWorking(false);
+    setAgentWorkflowPhase(null);
+    setV2Progress(null);
+    return true;
+  };
+
+  /** The questions are answered or skipped: say so, then run the parked kit as it was asked for. */
+  const resumeAfterLogistics = (outcome: 'saved' | 'skipped') => {
+    const parked = useUIStore.getState().pendingLogistics;
+    if (!parked) return;
+    useUIStore.getState().setPendingLogistics(null);
+    addChatMessage({
+      role: 'assistant',
+      content: outcome === 'saved'
+        ? 'Got it. Writing your kit now.'
+        : "No problem. I'll keep the timing general and leave salary out.",
+    });
+    void runAgentWorkflow(
+      parked.jd,
+      parked.contextId,
+      parked.contextData as FitAnalysisContextData | undefined,
+      { logisticsResolved: true },
+    );
+  };
+
+  const runAgentWorkflow = async (
+    jobDescription: string,
+    contextId?: string,
+    _overrideContextData?: FitAnalysisContextData,
+    runOptions?: { logisticsResolved?: boolean },
+  ) => {
     if (!currentCV) return;
+    if (!runOptions?.logisticsResolved && parkForLogistics(jobDescription, contextId, _overrideContextData)) return;
     void _overrideContextData; // Legacy UI state only. Never send it as writer context.
     let workflowSessionId = useSessionStore.getState().currentSession?.id;
     const controller = new AbortController();
@@ -1483,6 +1542,8 @@ export function useAgentWorkflow(options?: {
     fetchScreeningAnswers,
     handleStopGeneration,
     runAgentWorkflow,
+    parkForLogistics,
+    resumeAfterLogistics,
     runFitAnalysisFlow,
     // Setters needed by handleAction
     setFitAnalysisContextId,

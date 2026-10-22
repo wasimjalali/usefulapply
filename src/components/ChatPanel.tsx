@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Card } from './ui/Card';
 import { MarkdownText } from './MarkdownText';
 import { ChatMessage, type ChatMessageData } from './chat/ChatMessage';
+import { LogisticsQuestions } from './chat/LogisticsQuestions';
 import { ChatInput } from './chat/ChatInput';
 import { ChatHistory } from './chat/ChatHistory';
 import { FeedbackModal } from './chat/FeedbackModal';
@@ -201,6 +202,8 @@ export function ChatPanel({
     fetchScreeningAnswers,
     handleStopGeneration,
     runAgentWorkflow,
+    parkForLogistics,
+    resumeAfterLogistics,
     runFitAnalysisFlow,
     setFitAnalysisContextId,
     setFitAnalysisJD,
@@ -267,6 +270,12 @@ export function ChatPanel({
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
   const [shortCredits, setShortCredits] = useState<{ required: number; available: number } | null>(null);
   const [pendingDecisionJd, setPendingDecisionJd] = useState<string | null>(null);
+  // Shown here only when this panel parked the run and the application is still the open one.
+  const pendingLogistics = useUIStore((state) => state.pendingLogistics);
+  const chatLogistics = pendingLogistics?.host === 'chat'
+    && pendingLogistics.sessionId === (currentSession?.id ?? null)
+    ? pendingLogistics
+    : null;
   // The model answered an ad-shaped message as a question. One chip, no cost,
   // so a missed classification is recoverable without re-pasting.
   const [adFallbackJd, setAdFallbackJd] = useState<string | null>(null);
@@ -1532,6 +1541,9 @@ export function ChatPanel({
           setFitAnalysisJD(pending.jobDescription);
           setFitAnalysisContextData(ctxData ?? null);
         }
+        // The start date and salary questions come first. Asked before the fit
+        // is cleared, so a reload with the card open keeps the after-fit price.
+        if (parkForLogistics(jd, ctxId || undefined, ctxData)) break;
         // Clear pending state from session
         useAppStore.getState().updateCurrentSession({ pendingFitAnalysis: null });
         // Pass context data directly to avoid stale closure
@@ -1655,6 +1667,7 @@ export function ChatPanel({
     // "Generate application kit" for a job the user never pasted.
     setInputValue('');
     setPendingDecisionJd(null);
+    useUIStore.getState().setPendingLogistics(null);
     setShortCredits(null);
     setNeedsAccount(false);
     setPendingRegen(null);
@@ -2076,8 +2089,22 @@ export function ChatPanel({
             </div>
           )}
           
+          {/* The start date and salary questions, asked once before the first kit */}
+          {chatLogistics && (
+            <LogisticsQuestions
+              layout="chat"
+              saveLabel="Save and write"
+              onResolved={(outcome) => {
+                // The run clears the fit like a direct click would have.
+                useAppStore.getState().updateCurrentSession({ pendingFitAnalysis: null });
+                resumeAfterLogistics(outcome);
+              }}
+            />
+          )}
+
           {/* Inline follow-up: Fit analysis actions */}
           {!isAgentWorking &&
+            !chatLogistics &&
             !sessionHasKit(currentSession) &&
             !pendingDecisionJd &&
             !!(fitAnalysisContextId || hasFreshPendingFitAnalysis) && (

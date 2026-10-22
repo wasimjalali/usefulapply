@@ -8,6 +8,7 @@ import { Check, Loader2, Search, Sparkles, Upload } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 import { GuidedStepper } from '@/components/shell/GuidedStepper';
 import { NamedStages, type NamedStage } from '@/components/shell/NamedStages';
+import { LogisticsQuestions } from '@/components/chat/LogisticsQuestions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgentWorkflow } from '@/components/chat/useAgentWorkflow';
 import { useCVStore } from '@/store/useCVStore';
@@ -113,7 +114,7 @@ interface GuidedLineProps {
 
 export function GuidedLine({ onKitReady }: GuidedLineProps) {
   const router = useRouter();
-  const { user, signUp, signIn, signInWithGoogle } = useAuth();
+  const { user, profile, signUp, signIn, signInWithGoogle } = useAuth();
   const currentCV = useCVStore((s) => s.currentCV);
   const structuredCV = useCVStore((s) => s.structuredCV);
   const setCurrentCV = useCVStore((s) => s.setCurrentCV);
@@ -155,14 +156,18 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
   const maxSizeBytes = getPrimaryCVUploadLimitBytes(Boolean(user));
 
   const isAgentWorking = useUIStore((s) => s.isAgentWorking);
+  // The kit is parked until the start date and salary questions are answered.
+  const askingLogistics = useUIStore((s) => s.pendingLogistics?.host === 'guided');
   const {
     agentSteps,
     v2Progress,
     fitAnalysisContextId,
     runFitAnalysisFlow,
     runAgentWorkflow,
+    resumeAfterLogistics,
     setApplicationMode,
   } = useAgentWorkflow({
+    logisticsHost: 'guided',
     onSessionExpired: () => {
       setIsCreditError(false);
       setLineError('Your session expired. Sign in again to continue. Nothing was charged.');
@@ -237,6 +242,9 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
         if (step === 'signup' || step === 'verify-email') setStep(livePendingFit ? 'fit-result' : 'job');
         return;
       }
+      // A paid run reads the profile to decide whether to ask about the start
+      // date first. Wait for it, or a new user would skip the question.
+      if (intent.action !== 'fit' && !profile) return;
       clearResumeIntent();
       if (intent.action === 'fit') {
         setJobText(intent.jd);
@@ -253,7 +261,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
       void runAgentWorkflow(intent.jd, ctx?.contextId, ctx?.contextData as never);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [user, currentCV, step, pendingFit, createNewSession, runAgentWorkflow, setApplicationMode]);
+  }, [user, profile, currentCV, step, pendingFit, createNewSession, runAgentWorkflow, setApplicationMode]);
 
   useEffect(() => {
     if (kitStartedRef.current && !isAgentWorking && hasKit) {
@@ -1096,7 +1104,11 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
           </div>
         )}
 
-        {step === 'kit-working' && (
+        {step === 'kit-working' && askingLogistics && (
+          <LogisticsQuestions layout="line" saveLabel="Save and create my kit" onResolved={resumeAfterLogistics} />
+        )}
+
+        {step === 'kit-working' && !askingLogistics && (
           <div className="mt-9 w-full max-w-[720px] rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">
             <div className="mb-5 flex items-center gap-3">
               <h1 className="text-2xl font-semibold text-navy-800">

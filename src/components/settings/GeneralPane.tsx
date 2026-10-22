@@ -22,8 +22,25 @@ import {
   Select,
   ValueText,
 } from '@/components/settings/parts';
+import { AVAILABILITY_CHOICES, AVAILABILITY_LABELS, AVAILABILITY_NOTE_MAX, SALARY_EXPECTATION_MAX } from '@/lib/profile/logistics';
 
-type EditableField = 'full_name' | 'phone' | 'location';
+type EditableField = 'full_name' | 'phone' | 'location' | 'availability_note' | 'salary_expectation' | 'availability';
+
+// The start date and salary go through the profile service under their API
+// names, which also records that the applicant was asked.
+const LOGISTICS_UPDATE_KEYS: Partial<Record<EditableField, string>> = {
+  availability_note: 'availabilityNote',
+  salary_expectation: 'salaryExpectation',
+};
+const FIELD_MAX: Partial<Record<EditableField, number>> = {
+  availability_note: AVAILABILITY_NOTE_MAX,
+  salary_expectation: SALARY_EXPECTATION_MAX,
+};
+
+const AVAILABILITY_OPTIONS = [
+  { value: '', label: 'Not set' },
+  ...AVAILABILITY_CHOICES.map((value) => ({ value, label: AVAILABILITY_LABELS[value] })),
+];
 
 const DATE_FORMATS = [
   { value: 'dmy', sample: (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) },
@@ -115,10 +132,20 @@ export function GeneralPane() {
     }
     const next = draft.trim();
     if (next === stored(field)) return;
-    const { error } = await updateProfile({ [field]: next || null } as never);
+    const logisticsKey = LOGISTICS_UPDATE_KEYS[field];
+    const { error } = await updateProfile({ [logisticsKey ?? field]: next || null } as never);
     if (error) return;
+    // The update carries API names, so read the stored row back.
+    if (logisticsKey) await refreshProfile();
     flashSaved(field);
-  }, [draft, stored, updateProfile, flashSaved]);
+  }, [draft, stored, updateProfile, refreshProfile, flashSaved]);
+
+  const changeAvailability = useCallback(async (next: string) => {
+    const { error } = await updateProfile({ availability: next || null } as never);
+    if (error) return;
+    await refreshProfile();
+    flashSaved('availability');
+  }, [updateProfile, refreshProfile, flashSaved]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -320,13 +347,14 @@ export function GeneralPane() {
       ? 'Email and password'
       : null;
 
-  const editableRow = (field: EditableField, label: string, placeholder: string) => (
+  const editableRow = (field: EditableField, label: string, placeholder: string, emptyLabel?: string) => (
     <Row label={label}>
       {editing === field ? (
         <input
           autoFocus
           value={draft}
           placeholder={placeholder}
+          maxLength={FIELD_MAX[field]}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={() => commit(field)}
           onKeyDown={(e) => {
@@ -342,9 +370,9 @@ export function GeneralPane() {
         <button
           type="button"
           onClick={() => startEdit(field)}
-          className="text-sm text-charcoal hover:text-navy-600 cursor-pointer"
+          className="max-w-[260px] truncate text-sm text-charcoal hover:text-navy-600 cursor-pointer"
         >
-          {stored(field) || <span className="text-warm-gray">Add {label.toLowerCase()}</span>}
+          {stored(field) || <span className="text-warm-gray">{emptyLabel ?? `Add ${label.toLowerCase()}`}</span>}
         </button>
       )}
       {savedField === field && (
@@ -415,6 +443,26 @@ export function GeneralPane() {
             {photoBusy ? 'Working' : 'Change'}
           </LinkButton>
         </Row>
+      </RowGroup>
+
+      <Caption>APPLICATIONS</Caption>
+      <RowGroup>
+        <Row label="When you can start">
+          <Select
+            label="When you can start"
+            value={profile?.availability ?? ''}
+            options={AVAILABILITY_OPTIONS}
+            onChange={(next) => { void changeAvailability(next); }}
+          />
+          {savedField === 'availability' && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-sage-600">
+              <Check className="h-3.5 w-3.5" />
+              Saved
+            </span>
+          )}
+        </Row>
+        {editableRow('availability_note', 'Details', '3 months to the end of the quarter', 'Not set')}
+        {editableRow('salary_expectation', 'Salary expectation', '65,000 EUR gross a year', 'Not set')}
       </RowGroup>
 
       <Caption>SIGN-IN AND SECURITY</Caption>
