@@ -388,10 +388,11 @@ function haikuClientFor(sdk: MessagesClient): HaikuClient {
       if (params.max_tokens > STREAM_ABOVE_MAX_TOKENS) {
         const stream = sdk.beta.messages.stream(params);
         const message = await stream.finalMessage();
-        return Object.assign(message, { _request_id: stream.request_id ?? null });
+        return { ...message, _request_id: stream.request_id ?? null };
       }
+      // The SDK already defines a read-only `_request_id` on the message at runtime, so it is copied, not assigned.
       const { data, request_id } = await sdk.beta.messages.create(params).withResponse();
-      return Object.assign(data, { _request_id: request_id ?? null });
+      return { ...data, _request_id: request_id ?? null };
     },
     async countTokens(params) {
       const result = await sdk.beta.messages.countTokens(params);

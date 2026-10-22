@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import test from 'node:test';
 
 import type Anthropic from '@anthropic-ai/sdk';
@@ -695,4 +697,114 @@ test('without Bedrock credentials the default deps have no Bedrock client', () =
     for (const [key, value] of saved) if (value !== undefined) process.env[key] = value;
     resetProviderCachesForTests();
   }
+});
+
+// --- the real SDK clients, over HTTP, against a local server ---
+
+interface Seen { path: string; auth: string | undefined; body: Record<string, unknown> }
+
+async function withLocalApi(run: (url: string, seen: Seen[]) => Promise<void>): Promise<void> {
+  const seen: Seen[] = [];
+  const server = createServer((request: IncomingMessage, response: ServerResponse) => {
+    const chunks: Buffer[] = [];
+    request.on('data', (chunk: Buffer) => chunks.push(chunk));
+    request.on('end', () => {
+      const body = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}') as Record<string, unknown>;
+      seen.push({ path: request.url ?? '', auth: request.headers.authorization, body });
+      if ((request.url ?? '').includes('count_tokens')) {
+        response.writeHead(200, { 'content-type': 'application/json', 'request-id': 'req_count' });
+        response.end(JSON.stringify({ input_tokens: 4321 }));
+        return;
+      }
+      const message = {
+        id: 'msg_local', type: 'message', role: 'assistant', model: String(body.model), stop_sequence: null, stop_reason: 'end_turn',
+        content: [{ type: 'text', text: 'hello from the local api', citations: null }],
+        usage: { input_tokens: 5, output_tokens: 7, cache_read_input_tokens: 0, cache_creation_input_tokens: 0, cache_creation: { ephemeral_5m_input_tokens: 0, ephemeral_1h_input_tokens: 0 } },
+      };
+      if (body.stream === true) {
+        response.writeHead(200, { 'content-type': 'text/event-stream', 'request-id': 'req_stream' });
+        const send = (event: string, data: unknown) => response.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+        send('message_start', { type: 'message_start', message: { ...message, content: [] } });
+        send('content_block_start', { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '', citations: null } });
+        send('content_block_delta', { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'hello from the local api' } });
+        send('content_block_stop', { type: 'content_block_stop', index: 0 });
+        send('message_delta', { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 7 } });
+        send('message_stop', { type: 'message_stop' });
+        response.end();
+        return;
+      }
+      response.writeHead(200, { 'content-type': 'application/json', 'request-id': 'req_msg' });
+      response.end(JSON.stringify(message));
+    });
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  try {
+    await run(url, seen);
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+}
+
+async function withClientEnv(values: Record<string, string>, run: () => Promise<void>): Promise<void> {
+  const keys = ['ANTHROPIC_API_KEY', 'ANTHROPIC_BASE_URL', 'AWS_BEARER_TOKEN_BEDROCK', 'ANTHROPIC_BEDROCK_MANTLE_BASE_URL', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'];
+  const saved = keys.map((key) => [key, process.env[key]] as const);
+  for (const key of keys) delete process.env[key];
+  Object.assign(process.env, values);
+  resetProviderCachesForTests();
+  const log = console.log;
+  console.log = () => {};
+  try {
+    await run();
+  } finally {
+    console.log = log;
+    for (const [key, value] of saved) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    resetProviderCachesForTests();
+  }
+}
+
+test('the real Anthropic client: Bearer auth, beta path, request id, streamed above 16k max_tokens, count_tokens', async () => {
+  await withLocalApi(async (url, seen) => {
+    await withClientEnv({ ANTHROPIC_API_KEY: 'sk-local', ANTHROPIC_BASE_URL: url }, async () => {
+      const client = defaultHaikuClient();
+      const request = buildHaikuRequest(options(), 'low');
+      const message = await client.createMessage(request);
+      assert.equal(message._request_id, 'req_msg');
+      assert.equal(message.content[0].type, 'text');
+      assert.equal(seen[0].auth, 'Bearer sk-local');
+      assert.match(seen[0].path, /^\/v1\/messages\?beta=true/);
+      assert.equal(seen[0].body.model, 'claude-haiku-5-5');
+      assert.deepEqual(seen[0].body.output_config, { effort: 'low' });
+
+      const streamed = await client.createMessage({ ...request, max_tokens: 20_000 });
+      assert.equal(streamed._request_id, 'req_stream');
+      assert.equal(seen[1].body.stream, true);
+
+      assert.equal(await client.countTokens({ model: 'claude-haiku-5-5', system: request.system, messages: request.messages }), 4321);
+      assert.match(seen[2].path, /count_tokens/);
+    });
+  });
+});
+
+test('the real Bedrock client: Bearer token, its own base URL, the anthropic. model id, same body', async () => {
+  await withLocalApi(async (url, seen) => {
+    await withClientEnv({ ANTHROPIC_API_KEY: 'sk-local', AWS_BEARER_TOKEN_BEDROCK: 'bedrock-token', ANTHROPIC_BEDROCK_MANTLE_BASE_URL: `${url}/bedrock` }, async () => {
+      const client = defaultBedrockHaikuClient();
+      assert.ok(client);
+      const request = { ...buildHaikuRequest(options({ tools: [TOOL_A], cacheTtl: '1h' }), 'low'), model: 'anthropic.claude-haiku-5-5' };
+      const message = await client.createMessage(request);
+      assert.equal(message._request_id, 'req_msg');
+      assert.equal(seen[0].auth, 'Bearer bedrock-token');
+      assert.match(seen[0].path, /^\/bedrock\/v1\/messages/);
+      assert.equal(seen[0].body.model, 'anthropic.claude-haiku-5-5');
+      assert.equal(JSON.stringify(seen[0].body.system), JSON.stringify(request.system));
+      assert.equal(JSON.stringify(seen[0].body.tools), JSON.stringify(request.tools));
+
+      assert.equal(await client.countTokens({ model: request.model, system: request.system, messages: request.messages }), 4321);
+      assert.match(seen[1].path, /^\/bedrock\/v1\/messages\/count_tokens/);
+    });
+  });
 });
