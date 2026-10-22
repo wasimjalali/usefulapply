@@ -390,6 +390,10 @@ function schemaRuleError(schema: unknown, path = '$'): string | null {
   if ((types.includes('object') || node.properties !== undefined) && node.additionalProperties !== false) {
     return `output_config.format.schema: ${path} is an object without "additionalProperties": false`;
   }
+  // The live API rejects numeric bounds on integers (seen on 2026-10-22): "For 'integer' type, properties maximum, minimum are not supported".
+  if (types.includes('integer') && (node.minimum !== undefined || node.maximum !== undefined)) {
+    return `output_config.format.schema: For 'integer' type, properties maximum, minimum are not supported (${path})`;
+  }
   for (const [key, value] of Object.entries(node)) {
     // Under `properties` and `$defs` every value is a schema; elsewhere recurse into sub-schemas and arrays.
     if (key === 'properties' || key === '$defs' || key === 'definitions') {
