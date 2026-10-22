@@ -25,7 +25,8 @@ import {
  *                                  its own previews on 8792 (flag off) and 8796 (test-mode guard).
  *   data   e2e/specs/**            Data integrity: revisioned saves, credits, the queue runner.
  *                                  Preview on 8794 (E2E_PREVIEW_PORT) with the model pointed at
- *                                  e2e/fake-anthropic.ts on 18793.
+ *                                  e2e/fake-anthropic.ts on 18793, and the Bedrock failover pointed at the
+ *                                  same fake under /bedrock. The mcp lane has no Bedrock credentials.
  *   mcp    e2e/mcp/**              The MCP tool catalog end to end (PLAN section 7), over OAuth, on the local D1.
  *                                  Only with E2E_MCP=1 (npm run test:e2e sets it). Preview on 8798 (E2E_MCP_PORT, inspector
  *                                  E2E_MCP_INSPECTOR_PORT 19398) with MCP_ENABLED and MCP_TEST_MODE, and the model pointed at
@@ -200,9 +201,11 @@ const webServers = [
             `--inspector-port ${Number(process.env.E2E_INSPECTOR_PORT ?? 19229)}`,
             '--test-scheduled',
             `--var BETTER_AUTH_URL:${BASE_URL}`,
-            '--var AI_PROVIDER:anthropic',
             '--var ANTHROPIC_API_KEY:e2e-stub-key',
             `--var ANTHROPIC_BASE_URL:${FAKE_ANTHROPIC_URL}`,
+            // The Bedrock failover, pointed at the same fake under /bedrock. Fake values: they only authenticate to it.
+            '--var AWS_BEARER_TOKEN_BEDROCK:e2e-stub-bedrock-token',
+            `--var ANTHROPIC_BEDROCK_MANTLE_BASE_URL:${FAKE_ANTHROPIC_URL}/bedrock`,
           ].join(' '),
           url: BASE_URL,
           reuseExistingServer: false,
@@ -228,7 +231,6 @@ const webServers = [
             '--var MCP_ENABLED:true',
             '--var MCP_TEST_MODE:true',
             `--var BETTER_AUTH_URL:${MCP_BASE_URL}`,
-            '--var AI_PROVIDER:anthropic',
             '--var ANTHROPIC_API_KEY:e2e-stub-key',
             `--var ANTHROPIC_BASE_URL:${MCP_FAKE_URL}`,
             // Test value that only signs the download links of this run.
