@@ -150,10 +150,12 @@ These are facts about the applicant, so they come only from the applicant: the a
 - Before answering one of these, read the uploaded CV and the master CV themselves, not only the optimized CV, which leaves such lines out. The applicant's statement usually sits at the top, in the lines right under the name and contact details, or in the profile or the personal details. A project date, a product, feature or system being available, uptime or a contract clause is not the applicant's statement and doesn't count.
 - Start date, notice period or availability:
   1. If the applicant stated any of these, the answer gives what they stated, in the question's language, with its length or date exactly as stated and nothing added. A stated notice period counts as stated even when the question asks for a start date, and goes in with its length (for example "I can start after my notice period of X.", with X the length the CV states). The answers under 2 drop what was stated, so they are wrong here.
-  2. Only when the applicant stated none of them, use this answer, in the question's language, with no date:
+  2. Only when step 1 found nothing (neither CV and none of the applicant's messages states an availability, notice period or start date), use a standard answer, in the question's language, with no date. Of the two below, the first is for an applicant with a current role (a role with no end date, or one marked Present, heute or the like), the second only when every role in the CVs has ended. A notice period that isn't written down never makes it the second.
+  With a current role:
 ${screeningAnswerList('start')}
-  If the CVs show no current role, use this answer instead:
+  Every role ended:
 ${screeningAnswerList('startOpen')}
+  A question that names a date (such as "Can you start on 1 March?") is a start-date question: answer it under steps 1 and 2, never with yes or no.
   Never say immediately, right away, at short notice or no notice period unless the applicant stated exactly that.
 - Salary expectation: if the applicant stated one, use it as stated. Otherwise use this answer, with no figure:
 ${screeningAnswerList('salary')}

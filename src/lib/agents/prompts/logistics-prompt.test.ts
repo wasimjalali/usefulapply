@@ -232,7 +232,9 @@ test('screening: the job description and both applicant CVs are fenced, and each
     assert.match(text, /read the uploaded CV and the master CV themselves, not only the optimized CV, which leaves such lines out\. The applicant's statement usually sits at the top, in the lines right under the name and contact details, or in the profile or the personal details\. A project date, a product, feature or system being available, uptime or a contract clause is not the applicant's statement and doesn't count\./);
     // A stated value is used as stated; the standard answers are only for when nothing is stated.
     assert.match(text, /1\. If the applicant stated any of these, the answer gives what they stated, in the question's language, with its length or date exactly as stated and nothing added\./);
-    assert.match(text, /2\. Only when the applicant stated none of them, use this answer, in the question's language, with no date:/);
+    assert.match(text, /2\. Only when step 1 found nothing \(neither CV and none of the applicant's messages states an availability, notice period or start date\), use a standard answer, in the question's language, with no date\. Of the two below, the first is for an applicant with a current role \(a role with no end date, or one marked Present, heute or the like\), the second only when every role in the CVs has ended\. A notice period that isn't written down never makes it the second\.\n  With a current role:\n  English: "I can start after my notice period\."/);
+    assert.match(text, /  Every role ended:\n  English: "My start date is open to discussion\."/);
+    assert.match(text, /A question that names a date \(such as "Can you start on 1 March\?"\) is a start-date question: answer it under steps 1 and 2, never with yes or no\./);
   }
   assert.doesNotMatch(buildScreeningPrompt({}), /<applicant_primary_cv>|<applicant_master_cv>/);
 });
