@@ -545,7 +545,13 @@ function haikuFailover<T>(
     bedrock: () => deps.getBedrockClient?.() ?? null,
     attempt,
     pin: options.provider,
-    onFailover: (info) => captureFailoverEvent(info, (event) => deps.capture(event)),
+    // A request that compacts or carries a compaction block says so on the event: Bedrock may refuse an Anthropic-signed
+    // block (bedrock-probe.ts check 7), and those failures have to be findable.
+    onFailover: (info) => captureFailoverEvent(info, (event) => deps.capture(
+      options.compaction || carriesCompactionBlock(options.messages)
+        ? { ...event, properties: { ...event.properties, compaction: true } }
+        : event,
+    )),
   });
 }
 

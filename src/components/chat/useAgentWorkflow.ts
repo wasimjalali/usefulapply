@@ -652,6 +652,11 @@ export function useAgentWorkflow(options?: {
             role: 'assistant',
             content: 'You\'ve reached the chat message limit for this application. Start a new application from the sidebar to keep going.',
           });
+        } else if (errorData?.code === 'CHAT_PROVIDER_UNAVAILABLE') {
+          addWorkflowMessage(startedIn ?? undefined, {
+            role: 'assistant',
+            content: "I couldn't answer that just now. Your conversation is saved, so try again in a minute.",
+          });
         } else if (errorData?.code === 'MESSAGE_TOO_LONG') {
           addWorkflowMessage(startedIn ?? undefined, {
             role: 'assistant',

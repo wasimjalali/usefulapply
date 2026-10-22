@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test';
 import { BASE_URL } from '../lib/env';
-import { fakeCalls, fakeReset, type FakeCall } from '../lib/fake-control';
+import { fakeCalls, fakeControl, fakeReset, type FakeCall } from '../lib/fake-control';
 import { FAKE_SUMMARY_HEADER } from '../lib/model-script';
 import { openLocalD1 } from '../lib/sqlite';
 import { generateKitThroughUi, openApplication, signedInPage, storedApplication } from '../lib/app';
@@ -255,6 +255,22 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
     } finally {
       db.close();
     }
+  });
+
+  test('a provider 4xx on a turn that carries the block is a plain error, and nothing is dropped', async () => {
+    const before = chatMessagesOf(sessionId).length;
+    const row = compactionRow(sessionId);
+    await fakeControl({ primaryFail: { status: 400, count: 1, writer: 'chat' } });
+    try {
+      const result = await turn(page.request, sessionId, `Kurze Frage waehrend einer Stoerung. [${TAG}]`);
+      expect(result.status).toBe(503);
+      expect(result.body.code).toBe('CHAT_PROVIDER_UNAVAILABLE');
+    } finally {
+      await fakeControl({});
+    }
+    // The block and the history stay as they were; only the user's own message was stored.
+    expect(compactionRow(sessionId)).toEqual(row);
+    expect(chatMessagesOf(sessionId).length).toBe(before + 1);
   });
 
   test('screening reads the same D1 history, never the client\'s', async () => {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Anthropic from '@anthropic-ai/sdk';
 import { buildHaikuRequest, callHaiku, InputBudgetError, type HaikuCallOptions, type HaikuResponse } from '@/lib/models/haiku';
+import { providerHttpStatus } from '@/lib/models/anthropic';
 import { estimateInputTokens, isOverRefuseLimit, projectNextInputTokens } from '@/lib/models/token-budget';
 import {
   asCompactionBlock,
@@ -125,6 +126,8 @@ interface ChatContext {
 }
 
 export async function POST(req: NextRequest) {
+  // Set once the turn goes out on a compaction block: a provider 4xx on such a turn gets its own answer below.
+  let sentOnBlock = false;
   try {
     // Authentication: require logged-in user for chat (costs API money)
     const clientIP = getClientIP(req);
@@ -420,6 +423,7 @@ export async function POST(req: NextRequest) {
       // signed by the direct API. Whether Bedrock accepts that is checked by evals/haiku-55-swap/bedrock-probe.ts (check 6).
       // The next request starts on the Anthropic API again; client history is plain text, nothing signed crosses it.
       let pinnedProvider: 'bedrock' | undefined = compactedOn;
+      sentOnBlock = turnBlock !== null;
 
       for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
         const finalRound = round === MAX_TOOL_ROUNDS;
@@ -574,6 +578,16 @@ export async function POST(req: NextRequest) {
     });
     await posthog.flush();
     console.error('Chat error:', error);
+    // A 4xx on a turn that carried a compaction block (Bedrock refusing an Anthropic-signed block after a failover is
+    // the case evals/haiku-55-swap/bedrock-probe.ts check 7 probes). Said plainly, never answered as if it had been
+    // read: the history and the block stay as they are, and the next turn tries again.
+    const status = providerHttpStatus(error);
+    if (sentOnBlock && status !== null && status >= 400 && status < 500) {
+      return NextResponse.json(
+        { error: 'Chat is unavailable right now.', code: 'CHAT_PROVIDER_UNAVAILABLE' },
+        { status: 503 },
+      );
+    }
     return NextResponse.json(
       { error: 'Chat request failed' },
       { status: 500 }
