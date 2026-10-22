@@ -8,7 +8,7 @@ import { getCurrentUser } from '@/auth/server';
 import { getProfile } from '@/db/repos/profiles';
 import { claimScreeningTurn, countUserChatMessages, getSession, releaseScreeningTurn } from '@/db/repos/sessions';
 import { SCREENING_TURN_CAP } from '@/lib/screening-answers';
-import { generateScreeningReply, screeningAllowedForTier } from '@/lib/services/screening';
+import { generateScreeningReply, screeningAllowedForTier, screeningBudgetReply } from '@/lib/services/screening';
 import {
   chatToolDefinitions,
   executeChatTool,
@@ -22,7 +22,6 @@ import {
   appendToolRound,
   buildChatMessages,
   buildMainChatPrompt,
-  chatTurnText,
   type ChatTurn,
 } from '@/lib/agents/prompts/chat-prompt';
 import { isCvTemplateId } from '@/lib/cv-templates/catalog';
@@ -233,7 +232,8 @@ export async function POST(req: NextRequest) {
     // pasted ones, the new message included, so a turn has the same bytes on
     // the turn it is sent and on every turn that replays it (the server decides
     // the quoting, never the client). A long turn is cut, never rejected, so a
-    // long ad in the history can't fail a later turn.
+    // long ad in the history can't fail a later turn. Screening renders the same
+    // raw turns its own way (screeningMessages in screening.ts).
     const earlierTurns: ChatTurn[] = (context.chatHistory?.slice(-10) ?? [])
       .filter((msg): msg is ChatMessage =>
         Boolean(msg && (msg.role === 'user' || msg.role === 'assistant') && typeof msg.content === 'string'))
@@ -249,14 +249,9 @@ export async function POST(req: NextRequest) {
         reply = await generateScreeningReply({
           userId: user.id,
           message,
-          // Earlier turns cut and quoted, the question itself raw (screening's own layout). Empty turns
-          // are left out, as buildChatMessages does (the API refuses empty text).
-          history: [
-            ...earlierTurns
-              .map((turn) => ({ role: turn.role, content: chatTurnText(turn) }))
-              .filter((turn) => turn.content.trim()),
-            { role: 'user' as const, content: message },
-          ],
+          // Raw turns: screeningMessages (screening.ts) keeps the last ten, cuts each to its own cap and quotes
+          // pasted ones, and leaves empty turns out (the API refuses empty text).
+          history: [...earlierTurns, { role: 'user' as const, content: message }],
           context: screeningContext,
           route: '/api/chat',
         });
@@ -265,6 +260,13 @@ export async function POST(req: NextRequest) {
         // it back. Only this path releases: a client that gives up mid-call
         // still pays for the turn it started.
         if (screeningSessionId) await releaseScreeningTurn(user.id, screeningSessionId, screeningTurnsUsed);
+        // Over the input budget: nothing was sent, so not an outage. A fixed reply instead of a 500. No turn
+        // count goes back: the turn was just handed back, and the client keeps its count when none comes.
+        const budgetReply = screeningBudgetReply(modelError);
+        if (budgetReply) {
+          console.error('Screening stopped at the input budget:', modelError instanceof Error ? modelError.message : modelError);
+          return NextResponse.json({ success: true, reply: budgetReply, actions: [] });
+        }
         throw modelError;
       }
       return NextResponse.json({
