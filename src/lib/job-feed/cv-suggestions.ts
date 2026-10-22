@@ -269,7 +269,7 @@ export function estimateTotalExperienceYears(cv: StructuredCV): number {
   return Math.round(totalMonths / 12);
 }
 
-function parseYearMonthFromCVDate(value: string | undefined): { year: number; month: number } | null {
+export function parseYearMonthFromCVDate(value: string | undefined): { year: number; month: number } | null {
   if (!value) return null;
 
   // Try ISO-ish "YYYY-MM" / "YYYY-MM-DD" first.

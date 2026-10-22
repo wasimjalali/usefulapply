@@ -11,9 +11,10 @@
  * guarantees in user-facing artifacts.
  */
 
-import { callHaiku } from '@/lib/models/haiku';
+import { callHaiku, type HaikuCallOptions } from '@/lib/models/haiku';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import type { StructuredCV } from '@/lib/types/cv-schema';
+import { parseYearMonthFromCVDate } from '@/lib/job-feed/cv-suggestions';
 import {
   CAREER_PROFILE_SCHEMA_VERSION,
   type CareerProfile,
@@ -118,6 +119,10 @@ You are a career profile synthesizer for an AI job-search assistant. You read a 
 - Do NOT invent companies, skills, dates, technologies, or accomplishments that are not in the CV.
 - If the CV is too thin or ambiguous to support a confident inference, set the relevant confidence field to "low" and explain why in the rationale. Honest uncertainty is preferred over confident invention.
 - "Inferred" means "synthesized FROM evidence in the CV," not "guessed."
+- Numbers (counts, amounts, percentages, team sizes, maxima, ranges) appear exactly as the CV states them, or not at all. Do not compute your own totals, maxima, ranges or how often a title appears.
+- Tie a tool or skill to a piece of work only when that work's bullet names it. A tool that appears only in the skills list is a listed skill, not evidence of what it was used for.
+- Keep each achievement with the role it belongs to, and keep the CV's own verbs and levels: "supported a migration" is not "led a migration", one result is not "repeatedly", B2 is not fluent.
+- A role whose only bullet is "${CV_TRUNCATED_MARKER}" lost its detail to fit the input. Do not mention the truncation or guess the missing detail.
 
 # Field guidance
 
@@ -137,7 +142,7 @@ Where this candidate is heading NEXT, which is not always the same as where they
 - confidence: "high" only with explicit evidence (a stated goal in the summary, a clear recent shift in responsibilities). "low" when you're reading weak tea leaves. Be conservative: a wrong aspirationalTitle steers the whole feed toward roles the candidate can't get.
 
 ## yearsTotal / yearsInFunction
-Integer years. Compute from start/end dates in the CV's experience array. yearsInFunction <= yearsTotal. If dates are missing or "Present," compute from earliest start date to today (today = the moment of synthesis).
+Integer years. The user message lists durations computed in code from the CV's experience dates. They are facts: yearsTotal is the total, rounded; yearsInFunction is the sum of the listed durations of the roles in your chosen function, rounded, and never more than yearsTotal. Every duration you mention in a rationale or the narrative uses those figures. Do no date arithmetic of your own.
 
 ## primarySkillClusters (1-4 items) and secondarySkillClusters (0-4 items)
 Group related skills into named clusters that describe what the candidate can DO, not just what tools they have used. Examples of cluster names: "modern web frontend", "backend services in Go and Postgres", "data engineering on AWS", "growth experimentation", "B2B SaaS product strategy", "user research and qualitative synthesis".
@@ -146,16 +151,16 @@ Group related skills into named clusters that describe what the candidate can DO
 Do NOT cluster a skill that appears once in a single bullet as primary. Do NOT include filler skills (Microsoft Office, Email, Communication) unless the candidate's function is one where those are core (Sales Ops, EA).
 
 ## industryDomains
-Industries the candidate has actually worked in (e.g. "fintech", "consumer-saas", "enterprise-saas", "health-tech", "ecommerce", "ad-tech", "education", "gaming", "travel", "logistics", "media", "government", "non-profit"). Empty array if the candidate has only worked in industry-agnostic contexts.
+Industries the candidate has actually worked in (e.g. "fintech", "consumer-saas", "enterprise-saas", "health-tech", "ecommerce", "ad-tech", "education", "gaming", "travel", "logistics", "media", "government", "non-profit"). Empty array if the candidate has only worked in industry-agnostic contexts. List an industry only when the CV names it or clearly describes it for an employer; never infer one from a company name, a project's users or the school the candidate attended.
 
 ## toolsEnvironment
 Concrete tools, languages, frameworks, clouds, and platforms with strong evidence. Canonicalize (e.g. "JS" -> "JavaScript", "ts" -> "TypeScript"). Cap at ~15 entries. Don't pad.
 
 ## workingLanguages
-Languages the candidate clearly SHIPS work in (writing code, writing copy, conducting research). Distinct from spoken languages — a German speaker who has only ever worked in English-language environments has English as their working language. Use the language listing as a hint, not a guarantee.
+Human languages (spoken and written) from the CV's languages section, by their English names (German, not Deutsch). Include every language listed at a level the candidate can work in (native, fluent, C1, C2, B2 or similar wording) and leave out beginner levels. Never programming, query or markup languages (Python, SQL, Java, HTML): those belong in toolsEnvironment. When the CV has no languages section, use the language the CV is written in.
 
 ## narrative
-3-5 sentences. Plain English. No marketing fluff. The narrative is read by another AI as a soft prior — write it so that AI can quickly understand who this candidate is, what they are strong at, and what they are looking for. Avoid words like "leverage", "robust", "spearheaded", "orchestrated", "delve", "navigate". No em-dashes (use commas, colons, periods, parentheses).
+3-5 sentences. Plain English. No marketing fluff. The narrative is read by another AI as a soft prior: write it so that AI can quickly understand who this candidate is, what they are strong at, and what they want next only where the CV states it. Never state a goal, target role, location, work arrangement or other preference the CV does not state. Avoid words like "leverage", "robust", "spearheaded", "orchestrated", "delve", "navigate". No em-dashes (use commas, colons, periods, parentheses).
 
 ## negativeSignals
 Roles the candidate is clearly NOT a fit for (used as keyword negatives downstream). Derived from absence of evidence + the candidate's apparent trajectory. Examples: a backend engineer with no design tools listed -> "Product Designer", "UX Designer". A junior developer -> "Engineering Manager", "Director of Engineering". Cap at ~6 entries. Be conservative — false negatives cost the candidate a relevant job.
@@ -194,12 +199,13 @@ Return ONLY a single valid JSON object matching the schema below. No markdown, n
 
 # Self-check before returning
 1. Every cluster, title, and signal traces to specific evidence in the CV.
-2. yearsInFunction <= yearsTotal.
+2. yearsTotal, yearsInFunction and every duration you mention come from the durations in the user message; yearsInFunction <= yearsTotal.
 3. inferredTitles[0] is the strongest, most-recent fit.
 4. No invented companies, skills, or dates.
 5. version equals ${CAREER_PROFILE_SCHEMA_VERSION}.
 6. Narrative contains no em-dashes and no AI-tell phrases.
 7. targetDirection.pivot is null unless there's real pivot evidence; aspirationalTitles is empty when the candidate is staying on their current track.
+8. No goal, preference, number or tool-to-work link the CV does not state; workingLanguages holds human languages only.
 `;
 
 export interface GenerateCareerProfileResult {
@@ -216,17 +222,10 @@ export async function generateCareerProfile(
   generationContext?: LlmGenerationContext,
 ): Promise<GenerateCareerProfileResult> {
   const startTime = Date.now();
-  const userPrompt = buildSynthesisUserPrompt(cv);
+  const durations = computeExperienceDurations(cv, new Date());
 
-  // SYSTEM_TEXT is the cached prefix (identical for every user); the CV and
-  // today's date are in the user turn, after the marker.
   const response = await callHaiku({
-    site: 'career_profile',
-    system: { static: SYSTEM_TEXT },
-    messages: [{ role: 'user', content: userPrompt }],
-    jsonSchema: CAREER_PROFILE_JSON_SCHEMA,
-    maxTokens: SYNTHESIS_MAX_TOKENS,
-    cacheTtl: '5m',
+    ...buildCareerProfileCall(cv, durations),
     generationContext: generationContext ?? {
       requestExecutionId: crypto.randomUUID(),
       route: 'job-feed/career-profile',
@@ -236,7 +235,7 @@ export async function generateCareerProfile(
   });
 
   const latencyMs = Date.now() - startTime;
-  const profile = parseCareerProfileResponse(response.content);
+  const profile = applyCvFacts(parseCareerProfileResponse(response.content), cv, durations);
 
   return {
     profile,
@@ -248,16 +247,191 @@ export async function generateCareerProfile(
   };
 }
 
-export function buildSynthesisUserPrompt(cv: StructuredCV): string {
+/**
+ * The request without its generation context. SYSTEM_TEXT is the cached prefix (identical for every
+ * user); the CV, today's year-month and the computed durations are in the user turn, after the marker.
+ */
+export function buildCareerProfileCall(
+  cv: StructuredCV,
+  durations: ExperienceDurations,
+): Omit<HaikuCallOptions, 'generationContext'> {
+  return {
+    site: 'career_profile',
+    system: { static: SYSTEM_TEXT },
+    messages: [{ role: 'user', content: buildSynthesisUserPrompt(cv, durations) }],
+    jsonSchema: CAREER_PROFILE_JSON_SCHEMA,
+    maxTokens: SYNTHESIS_MAX_TOKENS,
+    cacheTtl: '5m',
+  };
+}
+
+export function buildSynthesisUserPrompt(cv: StructuredCV, durations: ExperienceDurations): string {
   const slimCV = capSlimCvToChars(slimStructuredCV(cv), SLIM_CV_MAX_CHARS);
+  const total = durations.totalMonths === null
+    ? 'unknown (no experience entry has a usable start date)'
+    : `${formatYears(durations.totalMonths)} (overlapping roles counted once)`;
+  const roleLines = durations.roles.map((r) => {
+    const label = `${oneLine(r.position) || 'Untitled role'} at ${oneLine(r.company) || 'unnamed employer'}`;
+    return r.months === null
+      ? `- ${label}: no usable start date, not counted`
+      : `- ${label}, ${r.start} to ${r.end}: ${formatYears(r.months)}`;
+  });
   return [
     'Synthesize a career profile from this candidate\'s structured CV.',
-    'Today\'s date for date math:',
-    new Date().toISOString().slice(0, 10),
+    `Today (year-month): ${durations.today}`,
+    '',
+    'Durations computed in code from the CV\'s experience dates. Use these figures for yearsTotal, yearsInFunction and every duration you state:',
+    `Total experience: ${total}`,
+    ...roleLines,
     '',
     'CV:',
     JSON.stringify(slimCV, null, 2),
   ].join('\n');
+}
+
+export interface ExperienceRoleDuration {
+  position: string;
+  company: string;
+  /** As written in the CV, for the prompt. */
+  start: string;
+  end: string;
+  /** Inclusive month count (2025-05 to 2025-08 is 4), null when the start date can't be read. */
+  months: number | null;
+}
+
+export interface ExperienceDurations {
+  /** YYYY-MM, UTC. */
+  today: string;
+  roles: ExperienceRoleDuration[];
+  /** Months covered by at least one role (overlaps counted once). 0 with no roles, null when no role is dated. */
+  totalMonths: number | null;
+}
+
+/**
+ * Role and total durations from the CV's experience dates, at month precision. Date math is a fact, not a
+ * judgment, so code does it and the model is handed the numbers. A current role, or one without an end date,
+ * runs to today; end dates past today are cut to today. Overlapping roles (freelance, a part-time job beside
+ * a full-time one) count once in the total.
+ */
+export function computeExperienceDurations(cv: StructuredCV, now: Date): ExperienceDurations {
+  const todayIndex = now.getUTCFullYear() * 12 + now.getUTCMonth();
+  const today = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+  const toIndex = (ym: { year: number; month: number }) => ym.year * 12 + (ym.month - 1);
+
+  const intervals: Array<[number, number]> = [];
+  const roles = (cv.experience ?? []).map((e): ExperienceRoleDuration => {
+    const startText = e.startDate?.normalized ?? e.startDate?.raw;
+    const endText = e.current ? undefined : (e.endDate?.normalized ?? e.endDate?.raw);
+    const start = parseYearMonthFromCVDate(startText);
+    const parsedEnd = endText ? parseYearMonthFromCVDate(endText) : null;
+    const base = { position: e.position ?? '', company: e.company ?? '', start: startText ?? 'no start date', end: !endText ? 'present' : parsedEnd ? endText : `${endText} (unreadable, counted to today)` };
+    if (!start) return { ...base, months: null };
+    const startIndex = toIndex(start);
+    const endIndex = Math.min(parsedEnd ? toIndex(parsedEnd) : todayIndex, todayIndex);
+    if (endIndex < startIndex) return { ...base, months: 0 };
+    intervals.push([startIndex, endIndex]);
+    return { ...base, months: endIndex - startIndex + 1 };
+  });
+
+  let totalMonths: number | null = roles.length === 0 ? 0 : null;
+  if (intervals.length > 0) {
+    intervals.sort((a, b) => a[0] - b[0]);
+    totalMonths = 0;
+    let [curStart, curEnd] = intervals[0];
+    for (const [s, e] of intervals.slice(1)) {
+      if (s <= curEnd + 1) {
+        curEnd = Math.max(curEnd, e);
+      } else {
+        totalMonths += curEnd - curStart + 1;
+        [curStart, curEnd] = [s, e];
+      }
+    }
+    totalMonths += curEnd - curStart + 1;
+  }
+  return { today, roles, totalMonths };
+}
+
+function formatYears(months: number): string {
+  return `${(months / 12).toFixed(1)} years`;
+}
+
+function oneLine(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Overwrite what code knows for sure: yearsTotal from the computed total (the model can't out-read the
+ * dates), yearsInFunction capped by it, and workingLanguages limited to human languages the CV lists.
+ */
+export function applyCvFacts(profile: CareerProfile, cv: StructuredCV, durations: ExperienceDurations): CareerProfile {
+  const yearsTotal = durations.totalMonths === null ? profile.yearsTotal : Math.round(durations.totalMonths / 12);
+  return {
+    ...profile,
+    yearsTotal,
+    yearsInFunction: Math.min(profile.yearsInFunction, yearsTotal),
+    workingLanguages: filterWorkingLanguages(profile.workingLanguages, cv),
+  };
+}
+
+/**
+ * Keep only human languages. With a languages section, an entry survives when it names one of the listed
+ * languages, in any of the common display languages ("German" matches "Deutsch", "English" matches
+ * "Englisch") or verbatim ("Twi"). Without a section, an entry survives when it is a known language name.
+ * Either way SQL, Java and C++ go.
+ */
+export function filterWorkingLanguages(entries: string[], cv: StructuredCV): string[] {
+  const listed = (cv.languages ?? []).map((l) => l.language).filter((l): l is string => typeof l === 'string' && l.trim().length > 0);
+  if (listed.length === 0) return entries.filter((entry) => languageCode(entry) !== null);
+  const keys = new Set(listed.flatMap(languageKeys));
+  return entries.filter((entry) => languageKeys(entry).some((key) => keys.has(key)));
+}
+
+function languageKeys(name: string): string[] {
+  const normalized = normalizeLanguageName(name);
+  const code = languageCode(name);
+  return code ? [normalized, `code:${code}`] : [normalized];
+}
+
+function normalizeLanguageName(name: string): string {
+  return name.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim().toLocaleLowerCase('en');
+}
+
+// ISO 639 codes for the languages a CV is likely to list, and the display languages a CV is likely to be
+// written in. A name outside these still matches a CV entry verbatim.
+const LANGUAGE_CODES = [
+  'af', 'am', 'ar', 'az', 'be', 'bg', 'bn', 'bs', 'ca', 'cs', 'cy', 'da', 'de', 'el', 'en', 'es', 'et', 'eu',
+  'fa', 'fi', 'fil', 'fr', 'ga', 'gl', 'gu', 'ha', 'he', 'hi', 'hr', 'hu', 'hy', 'id', 'ig', 'is', 'it', 'ja',
+  'ka', 'kk', 'km', 'kn', 'ko', 'ku', 'ky', 'lb', 'lo', 'lt', 'lv', 'mk', 'ml', 'mn', 'mr', 'ms', 'mt', 'my',
+  'ne', 'nl', 'no', 'nb', 'nn', 'pa', 'pl', 'ps', 'pt', 'ro', 'ru', 'si', 'sk', 'sl', 'so', 'sq', 'sr', 'sv',
+  'sw', 'ta', 'te', 'th', 'tl', 'tr', 'uk', 'ur', 'uz', 'vi', 'xh', 'yo', 'yue', 'zh', 'zu',
+];
+const DISPLAY_LOCALES = ['en', 'de', 'fr', 'es', 'it', 'nl', 'pt', 'pl', 'sv', 'da', 'nb', 'fi', 'cs', 'ro', 'hu', 'el', 'tr', 'ru', 'uk', 'ar', 'zh', 'ja', 'ko'];
+
+let languageCodeByName: Map<string, string> | null = null;
+
+function languageCode(name: string): string | null {
+  if (!languageCodeByName) {
+    const map = new Map<string, string>();
+    for (const locale of DISPLAY_LOCALES) {
+      const names = new Intl.DisplayNames([locale], { type: 'language' });
+      for (const code of LANGUAGE_CODES) {
+        const display = names.of(code);
+        if (display && display !== code) {
+          const key = normalizeLanguageName(display);
+          if (!map.has(key)) map.set(key, code);
+        }
+      }
+    }
+    for (const code of LANGUAGE_CODES) {
+      const display = new Intl.DisplayNames([code], { type: 'language' }).of(code);
+      if (display && display !== code) {
+        const key = normalizeLanguageName(display);
+        if (!map.has(key)) map.set(key, code);
+      }
+    }
+    languageCodeByName = map;
+  }
+  return languageCodeByName.get(normalizeLanguageName(name)) ?? null;
 }
 
 /**
