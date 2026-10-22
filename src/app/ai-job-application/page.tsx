@@ -118,7 +118,7 @@ const faqs = [
     a: "A full application: tailored CV, cover letter, application email, and follow-up email. On Plus and Max, screening question answers as well. All reference the same job description and draw from your real CV, so they're consistent in tone, claims, and emphasis.",
   },
   {
-    q: 'Does it work for jobs outside Germany?',
+    q: 'Does it work for jobs outside the US?',
     a: 'Yes. Useful Apply supports US, UK, Canada, and Germany markets with region-appropriate formatting, tone, and templates, including US Letter resumes and German Lebenslauf format.',
   },
 ];

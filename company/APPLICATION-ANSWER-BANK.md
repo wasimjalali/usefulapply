@@ -107,7 +107,7 @@ Keep this current: update when the product, stack or direction changes.
 
 ### Explain your location decision
 
-> I am based in Germany and the company is a Delaware C-Corp. The product targets English-speaking markets first: US, UK and Canada. I want to be in San Francisco for the network, the investors and the AI ecosystem. As an Afghan national with a German residence permit I may need visa support to be in the US, I will do everything on my end to make it work and would appreciate any help you can provide.
+> I am based in Germany and the company is a Delaware C-Corp. The product's primary market is the US, North America and other English-speaking countries. Europe is secondary. I want to be in San Francisco for the network, the investors and the AI ecosystem. As an Afghan national with a German residence permit I may need visa support to be in the US, I will do everything on my end to make it work and would appreciate any help you can provide.
 
 ### Commit exclusively for the next year?
 
