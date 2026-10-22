@@ -7,7 +7,7 @@
 
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
-export type ModelProvider = 'anthropic' | 'bedrock' | 'workers-ai';
+export type ModelProvider = 'anthropic' | 'bedrock';
 
 export type TaskType =
   // Extraction & analysis
@@ -32,7 +32,7 @@ export interface ModelConfig {
 
 export interface ModelResponse {
   content: string;
-  /** Tool calls the model asked for (callHaiku, and Workers AI function calling until it is removed). */
+  /** Tool calls the model asked for (callHaiku). */
   toolCalls?: Array<{ id: string; name: string; arguments: Record<string, unknown> }>;
   usage: {
     inputTokens: number;
@@ -141,7 +141,7 @@ export const MODEL_CONFIGS: Record<TaskType, ModelConfig> = {
   general_chat: {
     model: 'claude-sonnet-5-5',
     provider: 'anthropic',
-    maxTokens: 150,  // Reconciled: was 2048 in config but overridden to 100 in chat route. 150 gives Sonnet 4.6 headroom for helpful responses.
+    maxTokens: 150,  // Reconciled: was 2048 in config but overridden to 100 in chat route. 150 gives Sonnet headroom for helpful responses.
   },
 };
 

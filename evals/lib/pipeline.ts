@@ -75,7 +75,7 @@ export async function runKit(c: ResolvedCase, ctx: CallContext, fixed?: KitInter
     jobDescription: c.jdText,
     rawCV: c.cvText,
     masterCV: c.masterCvText ?? undefined,
-    // detectLanguage() is a Workers AI task, outside this eval. The case declares the language.
+    // detectLanguage() is a Haiku task (callHaiku), outside this eval. The case declares the language.
     detectedLanguage: c.language,
   };
 

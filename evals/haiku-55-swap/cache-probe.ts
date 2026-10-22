@@ -13,8 +13,9 @@
  * earlier run; no headers, no key). Paid: well under $1. Aborts above MAX_SPEND_USD.
  *
  * Request shape follows src/lib/models/anthropic.ts (adaptive thinking, output_config.effort low, no
- * temperature). @anthropic-ai/sdk 0.71.2 has no typed `cache_control` at the top level, `diagnostics`,
- * `output_config` or `role: "system"` messages, so requests are cast; the SDK forwards unknown body fields.
+ * temperature). The 2026-10-22 run used @anthropic-ai/sdk 0.71.2, which had no typed top-level
+ * `cache_control`, `diagnostics`, `output_config` or `role: "system"` messages, so requests are cast; the repo is on SDK 1.x
+ * now, which types most of these, and the casts stay so the request bodies match the recorded run.
  *
  * Every probe prefix is over 512 tokens (a ~2.6k-token system block plus a small tool) and starts with a
  * unique nonce, so no probe can read another probe's cache entry.

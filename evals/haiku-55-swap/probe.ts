@@ -11,8 +11,9 @@
  * Writes evals/results/2026-10-22-haiku-55-swap/p0-probe.json (no headers except the rate-limit report
  * headers, no key). Paid: a few cents. Aborts above MAX_SPEND_USD.
  *
- * Uses @anthropic-ai/sdk 0.71.2 (client.messages and client.beta.messages) for every call. The SDK has no
- * typed `compaction` param or block, so those requests are cast; the SDK forwards unknown body fields.
+ * Uses client.messages and client.beta.messages for every call. The 2026-10-22 run used @anthropic-ai/sdk 0.71.2,
+ * which had no typed `compaction` param or block, so those requests are cast (SDK 1.x types them; the casts stay
+ * so the request bodies match the recorded run).
  *
  * Credentials: loads .env.local / .dev.vars from the cwd or the main checkout (never printed).
  */

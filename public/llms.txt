@@ -6,7 +6,7 @@ For long-form context, see https://usefulapply.com/llms-full.txt.
 
 ## Direct Answers
 
-**What is Useful Apply?** Useful Apply is an AI job application agent at https://usefulapply.com. It replaces the seven tools job seekers stitch together (job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, tracker) with one loop. Paste a job description, get a tailored CV, cover letter, application email, follow-up email, and screening answers in under 90 seconds. Powered by Claude Sonnet 4.6. Founded by Wasim Jalali.
+**What is Useful Apply?** Useful Apply is an AI job application agent at https://usefulapply.com. It replaces the seven tools job seekers stitch together (job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, tracker) with one loop. Paste a job description, get a tailored CV, cover letter, application email, follow-up email, and screening answers in under 90 seconds. Powered by Claude. Founded by Wasim Jalali.
 
 **How does Useful Apply work?** Upload your CV once (PDF or DOCX). Paste a job description. Pick "Analyze First" (fit assessment then generate) or "Apply Directly" (full generation in one pass). Useful Apply returns a tailored CV, cover letter, application email, follow-up email, and screening answers in under 90 seconds. Every claim is verified against your source CV.
 

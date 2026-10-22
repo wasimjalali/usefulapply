@@ -31,7 +31,7 @@ import {
  *                                  Only with E2E_MCP=1 (npm run test:e2e sets it). Preview on 8798 (E2E_MCP_PORT, inspector
  *                                  E2E_MCP_INSPECTOR_PORT 19398) with MCP_ENABLED and MCP_TEST_MODE, and the model pointed at
  *                                  its own e2e/fake-anthropic.ts on 18798 (E2E_MCP_FAKE_PORT). Every model call, Haiku 5.5 sites
- *                                  included, goes to that fake: nothing in E2E binds Workers AI.
+ *                                  included, goes to that fake.
  *   mcp-exports e2e/mcp-exports/** The seven export formats in two templates through export_documents. Only with
  *                                  E2E_MCP_EXPORTS=1 (which also turns the mcp servers on): the mcp preview then runs with the
  *                                  Browser Run binding remote in its generated wrangler config (never committed), so it needs
@@ -117,15 +117,13 @@ function parseJsonc(text: string): Record<string, unknown> {
 }
 
 /**
- * The previews run wrangler.jsonc minus the `ai` binding and the production routes. The app no longer
- * calls Workers AI (every model call goes to the Anthropic API, which the previews point at the scripted
- * fake), and the binding is remote-only: it would reach the real account from a test.
+ * The previews run wrangler.jsonc minus the production routes. wrangler.jsonc has no `ai` binding any more
+ * (every model call goes to the Anthropic API, which the previews point at the scripted fake).
  */
 const E2E_WRANGLER = 'wrangler.e2e.generated.json';
 const E2E_MCP_WRANGLER = 'wrangler.e2e-mcp.generated.json';
 function writeE2eWranglerConfig(file: string, edit?: (config: Record<string, unknown>) => void): void {
   const config = parseJsonc(readFileSync(join(REPO_ROOT, 'wrangler.jsonc'), 'utf8'));
-  delete config.ai;
   delete config.routes;
   edit?.(config);
   writeFileSync(join(REPO_ROOT, file), `${JSON.stringify(config, null, 2)}\n`);

@@ -5,8 +5,9 @@
  * adaptive (the field is omitted) or `{type:'disabled'}` for 'low-nothink', no temperature (a 400),
  * structured output through `output_config.format`, native tool blocks.
  *
- * Caching (.claude/rules/prompt-caching.md): marker on the last tool, on the static system block, on the
- * stable-context block (all with the site's TTL), and optional automatic 5-minute caching of the
+ * Caching (.claude/rules/prompt-caching.md): marker on the static system block (the prefix before it,
+ * the tools, is cached with it; no marker on the last tool) and on the stable-context block (both with the
+ * site's TTL), and optional automatic 5-minute caching of the
  * conversation tail. The 1-hour markers always come first in the prefix, as the API requires.
  *
  * Budget: every request is measured (token-budget.ts) and refused above 90k tokens before it is sent.

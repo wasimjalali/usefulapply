@@ -25,7 +25,6 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import type { AnyD1Database } from 'drizzle-orm/d1';
 
-process.env.AI_PROVIDER = 'anthropic';
 process.env.ANTHROPIC_API_KEY = 'stub-key-not-real';
 
 const repoRoot = resolve(__dirname, '..');

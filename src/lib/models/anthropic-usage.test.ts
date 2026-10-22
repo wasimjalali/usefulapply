@@ -97,7 +97,7 @@ test('threshold compaction: a compaction and a message iteration are summed, cac
   assert.ok(Math.abs(haiku55CostUsd(usage).totalCostUsd - expected) < 1e-12);
 });
 
-test('without iterations the top level is used as before (Bedrock, Sonnet, Workers AI shapes)', () => {
+test('without iterations the top level is used as before (Bedrock and Sonnet shapes, plus the old Workers AI shape on stored rows)', () => {
   const n = normalizeProviderUsage({ input_tokens: 7, output_tokens: 3, cache_read_input_tokens: 2 });
   assert.equal(n.inputTokens, 7);
   assert.equal(n.cacheReadInputTokens, 2);

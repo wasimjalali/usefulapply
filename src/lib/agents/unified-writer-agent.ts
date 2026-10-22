@@ -2559,7 +2559,7 @@ export const unifiedWriterAgent = {
    * entire document behind a single free-text instruction.
    *
    * Runs on the same cached anti-hallucination system blocks as the full CV
-   * generation. Reuses the `optimize_cv` task so the model, temperature and
+   * generation. Reuses the `optimize_cv` task so the model, effort and
    * provider are identical; the route separates the two by `operation`.
    *
    * Never returns a partly trusted result. Either the section validated and

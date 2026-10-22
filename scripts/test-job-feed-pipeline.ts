@@ -7,7 +7,7 @@
  *   3. Build search plan
  *   4. Fetch jobs from SerpAPI
  *   5. Run prefilter
- *   6. Run LLM ranking (Workers AI, only inside the Worker; scripts get the deterministic path)
+ *   6. Run LLM ranking (Claude Haiku 5.5 on the Anthropic API; without ANTHROPIC_API_KEY or if the call fails, the deterministic order)
  *   7. Persist results
  *
  * Usage:
@@ -305,8 +305,8 @@ async function main() {
 
   // --- Step 7: Check LLM ranking credentials ---
   console.log('\n=== Step 7: LLM Ranking ===');
-  console.log('  Ranking uses the Workers AI binding, which only exists inside the Worker.');
-  console.log('  This script exercises the deterministic ranking path.');
+  console.log('  Ranking calls Claude Haiku 5.5 on the Anthropic API (a paid call) and needs ANTHROPIC_API_KEY.');
+  console.log('  Without it, or if the call fails, the run stores the deterministic order (llm_failed_fallback).');
 
   // --- Step 8: Run the full workflow via the real pipeline ---
   console.log('\n=== Step 8: Running full pipeline ===');

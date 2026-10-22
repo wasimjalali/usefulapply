@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { EmailValidationError } from '@/lib/agents/unified-writer-agent';
-import type { TokenUsage } from '@/lib/agents/types';
 import { getCurrentUser } from '@/auth/server';
 import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
 import { reserveCredits, captureReservation, releaseReservation } from '@/lib/supabase/credit-reservations';
 import { getPostHogServer } from '@/lib/posthog-server';
-import { ACTIVE_MODEL_ID, ACTIVE_MODEL_PRICING } from '@/lib/models';
 import { randomUUID } from 'crypto';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
@@ -130,53 +128,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // PostHog LLM analytics for regeneration
-    const traceId = `trace_${randomUUID()}`;
-    const INPUT_COST_PER_M = ACTIVE_MODEL_PRICING.inputPerM;
-    const OUTPUT_COST_PER_M = ACTIVE_MODEL_PRICING.outputPerM;
-    const regenStartTime = Date.now();
-
-    const trackRegenLLM = (step: string, tokens: TokenUsage) => {
-      try {
-        const posthog = getPostHogServer();
-        const inputCost = (tokens.input / 1_000_000) * INPUT_COST_PER_M;
-        const outputCost = (tokens.output / 1_000_000) * OUTPUT_COST_PER_M;
-        const totalCost = inputCost + outputCost;
-        const latencySeconds = (Date.now() - regenStartTime) / 1000;
-
-        posthog.capture({
-          distinctId: user.id,
-          event: '$ai_generation',
-          properties: {
-            // Required PostHog LLM analytics properties
-            // Who served the call: Bedrock after a failover, else the Anthropic API.
-            $ai_provider: tokens.provider ?? 'anthropic',
-            $ai_model: tokens.model ?? ACTIVE_MODEL_ID,
-            $ai_input_tokens: tokens.input,
-            $ai_output_tokens: tokens.output,
-            $ai_input_cost_usd: inputCost,
-            $ai_output_cost_usd: outputCost,
-            $ai_total_cost_usd: totalCost,
-            $ai_is_error: false,
-            $ai_http_status: 200,
-            $ai_trace_id: traceId,
-            $ai_latency: latencySeconds,
-            // Custom properties for segmentation
-            step,
-            total_tokens: tokens.input + tokens.output,
-            feature: 'regeneration',
-            workflow_action: `regen_${type}`,
-          },
-        });
-      } catch (e) {
-        console.error('[PostHog] Regen LLM tracking error:', e);
-      }
-    };
-
     const result = await prepared.execute(generationContext);
 
     if (result.type === 'cover-letter') {
-      trackRegenLLM('regen_cover_letter', result.tokens);
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({
         coverLetter: result.coverLetter,
@@ -187,7 +141,6 @@ export async function POST(request: NextRequest) {
       });
     }
     if (result.type === 'email') {
-      trackRegenLLM('regen_email', result.tokens);
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({
         email: result.email,
@@ -197,7 +150,6 @@ export async function POST(request: NextRequest) {
       });
     }
     if (result.type === 'follow_up_email') {
-      trackRegenLLM('regen_follow_up_email', result.tokens);
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
       return NextResponse.json({
         followUpEmail: result.followUpEmail,
@@ -208,7 +160,6 @@ export async function POST(request: NextRequest) {
     }
 
     const outcome = result.outcome;
-    trackRegenLLM('regen_cv_section', outcome.tokens);
 
     if (outcome.status === 'applied') {
       await captureReservation({ idempotencyKey: reservationKey, userId: user.id });
@@ -278,23 +229,9 @@ export async function POST(request: NextRequest) {
         });
       } catch { /* best-effort refund */ }
     }
-    // Track regeneration error in PostHog
+    // The model layer records failed attempts as $ai_generation; this is the route-level exception.
     try {
       const posthog = getPostHogServer();
-      posthog.capture({
-        distinctId: 'unknown',
-        event: '$ai_generation',
-        properties: {
-          $ai_provider: 'anthropic',
-          $ai_model: ACTIVE_MODEL_ID,
-          $ai_is_error: true,
-          $ai_http_status: 500,
-          $ai_error: error instanceof Error ? error.message : String(error),
-          step: 'regen_error',
-          feature: 'regeneration',
-        },
-      });
-      // Also capture as exception for Error Tracking dashboard
       posthog.captureException(error as Error, 'server_error', {
         endpoint: '/api/regenerate',
         method: 'POST',
