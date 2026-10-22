@@ -22,12 +22,16 @@
  *   case oracles, runs the graders, predicts cache behaviour, checks the output path), or run `check`
  *   (fixtures, graders, wire logic, decision rule; no model at all).
  *
+ *   Key: export ANTHROPIC_API_KEY, or pass --key-from-dev-vars (reads only that key from the main checkout's .dev.vars).
  *   Flags: --arms haiku-low,haiku-high,gptoss   --runs N   --cases id,id   --limit N   --salt on|off
  *          --max-cost USD (default 5, per site)   --gap-ms N   --judge-concurrency N
  *   Results: evals/results/2026-10-22-haiku-55-swap/<site>/run-N.json (never overwritten; gzipped over 5 MB).
  *   The decision rule is in lib/core.ts (DECISION_RULE) and is printed into every result file.
  */
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { parseEnv } from 'node:util';
 import { parseCli, SITE_IDS } from './lib/core';
 
 import type { Site, SiteCase } from './lib/runner';
@@ -47,8 +51,25 @@ const LOADERS: Record<string, SiteLoader> = {
 };
 const ORDER = ['language', 'tracker', 'screening', 'search_strategy', 'career_profile', 'ranking', 'chat'];
 
+/**
+ * --key-from-dev-vars: read ANTHROPIC_API_KEY (and nothing else) from the main checkout's .dev.vars into
+ * this process. The value is never printed. Only that key, so the eval never picks up the Bedrock failover
+ * credentials and every arm runs on the direct API.
+ */
+function loadAnthropicKey(): void {
+  if (process.env.ANTHROPIC_API_KEY) return;
+  const common = spawnSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], { cwd: __dirname, encoding: 'utf8' });
+  if (common.status !== 0) throw new Error('git rev-parse failed: run from inside the Useful Apply checkout');
+  const mainCheckout = path.dirname(common.stdout.trim());
+  const file = path.join(mainCheckout, '.dev.vars');
+  const parsed = parseEnv(readFileSync(file, 'utf8'));
+  if (!parsed.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not in the main checkout .dev.vars');
+  process.env.ANTHROPIC_API_KEY = parsed.ANTHROPIC_API_KEY;
+}
+
 async function main(): Promise<void> {
   const cli = parseCli(process.argv.slice(2));
+  if (cli.has('key-from-dev-vars')) loadAnthropicKey();
   const target = (cli.positional[0] ?? '').replace(/-/g, '_');
   if (!target) throw new Error('usage: run.ts <language|tracker|screening|search-strategy|career-profile|ranking|chat|all|check|ranking-labels> [flags]');
 
