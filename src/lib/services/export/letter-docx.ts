@@ -11,7 +11,7 @@ import {
   TextRun,
   convertMillimetersToTwip,
 } from 'docx';
-import { displayUrl, fullUrl, pickLetterLinks } from '@/lib/cv-templates/url';
+import { fullUrl, letterContactLinks } from '@/lib/cv-templates/url';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { DIN, dinClosing, dinReturnLine, plainContactLines, recipientLinesFor, type LetterInput, type LetterLayout } from './letter-html';
 import { localeFromLanguageCode } from '@/lib/cv-templates/locale';
@@ -64,10 +64,10 @@ function senderLines(letter: StructuredCoverLetter, size = BODY, din = false): A
     : [...sender.addressLines, sender.phone, sender.email].filter((x): x is string => Boolean(x && x.trim()));
   return [
     ...plain.map((text) => [line(text, { size })] as Array<TextRun | ExternalHyperlink>),
-    ...pickLetterLinks(sender.links).map(
-      (link) =>
+    ...letterContactLinks(sender.links).map(
+      ({ raw, text }) =>
         [
-          new ExternalHyperlink({ link: fullUrl(link), children: [new TextRun({ text: displayUrl(link), size, font: FONT, color: '1F4E79' })] }),
+          new ExternalHyperlink({ link: fullUrl(raw), children: [new TextRun({ text, size, font: FONT, color: '1F4E79' })] }),
         ] as Array<TextRun | ExternalHyperlink>,
     ),
   ];
