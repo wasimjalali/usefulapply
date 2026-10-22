@@ -675,7 +675,8 @@ export function useAgentWorkflow(options?: {
             // The route spends the turn against this row, so it has to be the
             // saved application, not the local draft id.
             sessionId: currentSession?.id,
-            jobDescription: currentSession?.jobDescription?.substring(0, 8000),
+            // The server cuts the ad at 20,000 chars (MAX_SCREENING_JOB_DESCRIPTION_CHARS); real ads run to about 11,500.
+            jobDescription: currentSession?.jobDescription?.substring(0, 20_000),
             matchingSkills: currentSession?.matchingSkills,
             missingSkills: currentSession?.missingSkills,
             generatedCVSummary: typeof currentSession?.generatedCV?.content === 'string'
