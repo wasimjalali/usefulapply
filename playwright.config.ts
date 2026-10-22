@@ -7,9 +7,6 @@ import {
   BASE_URL,
   FAKE_ANTHROPIC_PORT,
   FAKE_ANTHROPIC_URL,
-  MCP_AI_INSPECTOR_PORT,
-  MCP_AI_PORT,
-  MCP_AI_WORKER_NAME,
   MCP_BASE_URL,
   MCP_FAKE_PORT,
   MCP_FAKE_URL,
@@ -32,8 +29,8 @@ import {
  *   mcp    e2e/mcp/**              The MCP tool catalog end to end (PLAN section 7), over OAuth, on the local D1.
  *                                  Only with E2E_MCP=1 (npm run test:e2e sets it). Preview on 8798 (E2E_MCP_PORT, inspector
  *                                  E2E_MCP_INSPECTOR_PORT 19398) with MCP_ENABLED and MCP_TEST_MODE, and the model pointed at
- *                                  its own e2e/fake-anthropic.ts on 18798 (E2E_MCP_FAKE_PORT) and `AI` bound to a stand-in Worker
- *                                  (e2e/fake-ai/worker.mjs, wrangler dev on 18788, E2E_MCP_AI_PORT) because Workers AI is remote only.
+ *                                  its own e2e/fake-anthropic.ts on 18798 (E2E_MCP_FAKE_PORT). Every model call, Haiku 5.5 sites
+ *                                  included, goes to that fake: nothing in E2E binds Workers AI.
  *   mcp-exports e2e/mcp-exports/** The seven export formats in two templates through export_documents. Only with
  *                                  E2E_MCP_EXPORTS=1 (which also turns the mcp servers on): the mcp preview then runs with the
  *                                  Browser Run binding remote in its generated wrangler config (never committed), so it needs
@@ -119,14 +116,12 @@ function parseJsonc(text: string): Record<string, unknown> {
 }
 
 /**
- * The data project's preview runs wrangler.jsonc minus the `ai` binding and the
- * production routes. Workers AI is remote-only (it would reach the real account and
- * cost credits from a test) and the only thing here that uses it is language
- * detection, which falls back to English when the binding is absent.
+ * The previews run wrangler.jsonc minus the `ai` binding and the production routes. The app no longer
+ * calls Workers AI (every model call goes to the Anthropic API, which the previews point at the scripted
+ * fake), and the binding is remote-only: it would reach the real account from a test.
  */
 const E2E_WRANGLER = 'wrangler.e2e.generated.json';
 const E2E_MCP_WRANGLER = 'wrangler.e2e-mcp.generated.json';
-const E2E_FAKE_AI_WRANGLER = 'wrangler.e2e-fake-ai.generated.json';
 function writeE2eWranglerConfig(file: string, edit?: (config: Record<string, unknown>) => void): void {
   const config = parseJsonc(readFileSync(join(REPO_ROOT, 'wrangler.jsonc'), 'utf8'));
   delete config.ai;
@@ -143,15 +138,8 @@ writeE2eWranglerConfig(E2E_WRANGLER);
 if (MCP) {
   // The renderer behind export_documents is Browser Run, which does not run locally. Only the exports run points
   // the binding at the real service, in this generated copy and nowhere else.
-  // Workers AI is remote only too (it would bill the account), so the lane binds `AI` to a Worker of its own that
-  // answers the few prompts the specs reach (e2e/fake-ai/worker.mjs).
-  writeFileSync(
-    join(REPO_ROOT, E2E_FAKE_AI_WRANGLER),
-    `${JSON.stringify({ name: MCP_AI_WORKER_NAME, main: 'e2e/fake-ai/worker.mjs', compatibility_date: '2026-08-17' }, null, 2)}\n`,
-  );
   writeE2eWranglerConfig(E2E_MCP_WRANGLER, (config) => {
     if (MCP_EXPORTS) config.browser = { ...(config.browser as Record<string, unknown>), remote: true };
-    config.services = [...((config.services as unknown[] | undefined) ?? []), { binding: 'AI', service: MCP_AI_WORKER_NAME }];
   });
 }
 const artifacts = artifactRoot();
@@ -224,12 +212,6 @@ const webServers = [
     : []),
   ...(MCP && needs('mcp', 'mcp-exports')
     ? [
-        {
-          command: `npx wrangler dev -c ${E2E_FAKE_AI_WRANGLER} --port ${MCP_AI_PORT} --inspector-port ${MCP_AI_INSPECTOR_PORT}`,
-          url: `http://localhost:${MCP_AI_PORT}/`,
-          reuseExistingServer: false,
-          timeout: 60_000,
-        },
         {
           command: `npx tsx e2e/fake-anthropic.ts ${MCP_FAKE_PORT}`,
           url: `${MCP_FAKE_URL}/__health`,
