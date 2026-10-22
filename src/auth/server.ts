@@ -222,8 +222,13 @@ function createAuth(db: Database) {
           // Rendered CV and letter exports are personal data too.
           const { deleteUserExports } = await import('@/lib/services/export/storage');
           await deleteUserExports(deleting.id);
+          // The user's Anthropic user profile (the id model requests carry), then its D1 mapping.
+          const { deleteUserProfileForAccount } = await import('@/lib/models/user-profiles');
+          await deleteUserProfileForAccount(deleting.id);
           const { deleteAllUserData } = await import('@/db/repos/admin');
-          await deleteAllUserData(deleting.id);
+          const { anthropicProfileIds } = await deleteAllUserData(deleting.id);
+          const { deleteLeftoverUserProfiles } = await import('@/lib/models/user-profiles');
+          await deleteLeftoverUserProfiles(deleting.id, anthropicProfileIds);
         },
       },
     },
