@@ -2293,8 +2293,10 @@ function buildWorkflowOperationalTail(ingestion: {
 }
 
 // USD per million tokens (input, output), list prices for the ranking model (Claude Haiku 5.5, up to 100k prompt).
-// The ranking_model metadata stores total input (cache reads and writes included), so this is an upper bound:
-// cached reads are billed at a tenth of the input rate.
+// The ranking_model metadata stores only the total input (cache reads and writes included) with no split, so every
+// input token is priced at the base rate. That is an estimate, not a bound either way: cache reads cost 0.1x the
+// input rate (an over-count) while cache writes cost more, 1.25x for the 5-minute TTL the ranking markers use and
+// 2x for 1 hour (an under-count). The exact cost per call is on the $ai_generation event (cost_usd).
 const RANKING_MODEL_RATES: Record<string, [number, number]> = {
   'claude-haiku-5-5': [0.10, 0.50],
   // The same model on Amazon Bedrock (failover runs store this id), at the same list prices.

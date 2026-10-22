@@ -21,7 +21,8 @@
  *   - structured output requests (`output_config.format`), answered with schema-shaped JSON;
  *   - POST /v1/messages/count_tokens, a char-based count (3 chars per token, like English);
  *   - usage with cache_creation_input_tokens / cache_read_input_tokens and the 5m/1h split, from a
- *     simulation of the prompt cache: an entry is written at a cache_control marker and read by a later
+ *     simulation of the prompt cache: an entry is written at a cache_control marker (only by a request the fake
+ *     answers; one it refuses writes nothing) and read by a later
  *     request whose prefix, at a marker or within 20 blocks before it, was written before. Prefixes under
  *     512 tokens never cache. Mixed TTLs (1h before 5m) and at most 4 markers are enforced as 400s.
  *
@@ -211,9 +212,21 @@ function totalTokens(body: MessagesBody): number {
   return tokensOf(unitsOf(body).reduce((sum, unit) => sum + unit.json.length, 0));
 }
 
-interface CacheOutcome { read: number; creation: number; creation5m: number; creation1h: number; markers: MarkerRecord[] }
+interface CacheOutcome {
+  read: number;
+  creation: number;
+  creation5m: number;
+  creation1h: number;
+  markers: MarkerRecord[];
+  /** Store the entries this request writes. Called only once the response is going out: a refused request writes none. */
+  commit: () => void;
+}
 
-/** Simulate the prompt cache for one request and remember what it wrote. */
+/**
+ * Simulate the prompt cache for one request: what it reads, and what it would write. Nothing is stored until
+ * `commit`, which the handler calls after every check that can refuse the request, as the real API writes an entry
+ * only when a response starts.
+ */
 function simulateCache(units: Unit[], provider: Provider): CacheOutcome {
   const entries = cacheEntries[provider];
   const cumChars: number[] = [];
@@ -246,17 +259,19 @@ function simulateCache(units: Unit[], provider: Provider): CacheOutcome {
   let covered = read;
   let creation5m = 0;
   let creation1h = 0;
+  const writes = new Set<string>();
   for (const marker of markers) {
     const prefixTokens = tokensOf(cumChars[marker.unit]);
     if (prefixTokens < MIN_CACHEABLE_TOKENS || marker.unit <= hitUnit) continue;
-    if (!entries.has(marker.prefixHash)) {
+    if (!entries.has(marker.prefixHash) && !writes.has(marker.prefixHash)) {
       const written = prefixTokens - covered;
       if (marker.ttl === '1h') creation1h += written; else creation5m += written;
       covered = prefixTokens;
     }
-    entries.add(marker.prefixHash);
+    writes.add(marker.prefixHash);
   }
-  return { read, creation: creation5m + creation1h, creation5m, creation1h, markers };
+  const commit = () => { for (const hash of writes) entries.add(hash); };
+  return { read, creation: creation5m + creation1h, creation5m, creation1h, markers, commit };
 }
 
 // ---------------------------------------------------------------------------
@@ -642,6 +657,9 @@ createServer(async (request, response) => {
       };
       const replyError = replySchemaError(body, content);
       if (replyError) return fail(500, 'api_error', replyError);
+      // Every refusal is above: only a request that gets a response writes its cache entries (a cut stream has
+      // started its response, so it writes too, as the real API does).
+      cache.commit();
       if (body.stream) {
         const text = content.filter((block) => block.type === 'text').map((block) => String(block.text)).join('');
         let cut = false;
