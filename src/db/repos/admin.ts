@@ -499,9 +499,6 @@ const USER_ID_TABLES = [
   creditTransactions,
   subscriptions,
   messageFeedback,
-  // Normally gone already (deleteUserProfileForAccount deletes the profile at Anthropic first); a row a model call
-  // wrote in between is removed here and its id returned, so the caller deletes that profile too.
-  anthropicUserProfiles,
 ] as const;
 
 /** Bound every cron batch; CAS claims make the remainder safe to pick up next run. */
@@ -772,13 +769,14 @@ export async function listUnverifiedAuthUsers(
 /** Returns the Anthropic user profile ids it removed with the user's rows, for the caller to delete at Anthropic. */
 export async function deleteAllUserData(userId: string): Promise<{ anthropicProfileIds: string[] }> {
   const db = await getDb();
-  const anthropicRows = await db
-    .select({ profileId: anthropicUserProfiles.profile_id })
-    .from(anthropicUserProfiles)
-    .where(eq(anthropicUserProfiles.user_id, userId));
   for (const table of USER_ID_TABLES) {
     await db.delete(table).where(eq(table.user_id, userId));
   }
-  await db.delete(profiles).where(eq(profiles.id, userId));
+  // One atomic batch: a profile a model call stores before it is returned here, and once `profiles` is gone the FK
+  // refuses any later one (that caller deletes its own profile).
+  const [anthropicRows] = await db.batch([
+    db.delete(anthropicUserProfiles).where(eq(anthropicUserProfiles.user_id, userId)).returning({ profileId: anthropicUserProfiles.profile_id }),
+    db.delete(profiles).where(eq(profiles.id, userId)),
+  ]);
   return { anthropicProfileIds: anthropicRows.map((row) => row.profileId) };
 }

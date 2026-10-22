@@ -24,6 +24,7 @@
  *   the docs do not say what an enforcement refusal looks like, and a fresh profile must never route around one.
  */
 import { APIError } from '@anthropic-ai/sdk';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import {
   claimAnthropicUserProfileId,
   deleteAnthropicUserProfileRow,
@@ -38,6 +39,8 @@ const PROFILE_REQUEST_TIMEOUT_MS = 10_000;
 /** How long a call waits on a creation another request started (create timeout plus the D1 writes). */
 const SHARED_WAIT_MS = PROFILE_REQUEST_TIMEOUT_MS + 5_000;
 const CREATE_RETRY_AFTER_MS = 60_000;
+/** After a retrieve showed a rejected profile still exists, skip the check for that profile this long. */
+const EXISTS_RECHECK_AFTER_MS = 5 * 60_000;
 /** Profile ids remembered per isolate; the oldest is dropped past this. */
 const MAX_CACHED = 5_000;
 
@@ -102,6 +105,7 @@ let store: UserProfileStore = defaultStore;
 const known = new Map<string, string>();
 const inFlight = new Map<string, { promise: Promise<string | null>; startedAt: number }>();
 const retryAfter = new Map<string, number>();
+const confirmedExisting = new Map<string, number>();
 
 /** Swap D1, the API and PostHog for a test, and clear the per-isolate state. `null` restores the real ones. */
 export function setUserProfileStoreForTests(next: Partial<UserProfileStore> | null): void {
@@ -109,6 +113,22 @@ export function setUserProfileStoreForTests(next: Partial<UserProfileStore> | nu
   known.clear();
   inFlight.clear();
   retryAfter.clear();
+  confirmedExisting.clear();
+}
+
+/**
+ * Cleanup that the model call does not need to wait for (deleting a losing profile, checking a rejected one) runs past
+ * the response through ctx.waitUntil. Outside a Worker request (scripts, tests) there is no ctx, so it is awaited.
+ */
+async function afterResponse(task: Promise<void>): Promise<void> {
+  let ctx: { waitUntil(promise: Promise<unknown>): void };
+  try {
+    ({ ctx } = await getCloudflareContext({ async: true }));
+  } catch {
+    await task;
+    return;
+  }
+  ctx.waitUntil(task);
 }
 
 function remember(userId: string, profileId: string): void {
@@ -201,7 +221,7 @@ async function createAndStore(userId: string): Promise<string | null> {
       return null;
     }
     if (current === created) return created;
-    await removeQuietly(userId, created);
+    await afterResponse(removeQuietly(userId, created));
     if (current) return current;
     retryAfter.set(userId, Date.now() + CREATE_RETRY_AFTER_MS);
     return null;
@@ -209,7 +229,7 @@ async function createAndStore(userId: string): Promise<string | null> {
   if (winner !== created) {
     // Another isolate stored its profile first: use that one and delete ours.
     console.warn(JSON.stringify({ event: 'anthropic_user_profile_race_lost', user_id: userId, kept: winner, deleting: created }));
-    await removeQuietly(userId, created);
+    await afterResponse(removeQuietly(userId, created));
   } else {
     console.log(JSON.stringify({ event: 'anthropic_user_profile_created', user_id: userId, profile_id: created }));
   }
@@ -285,6 +305,13 @@ async function waitShared(userId: string, shared: Promise<string | null>): Promi
 export async function forgetRejectedUserProfile(userId: string | null | undefined, profileId: string | null, error: unknown): Promise<void> {
   if (!userId || !profileId) return;
   if (!(error instanceof APIError) || error.status !== 400 || !error.message.includes(profileId)) return;
+  const confirmedAt = confirmedExisting.get(profileId);
+  if (confirmedAt !== undefined && Date.now() - confirmedAt < EXISTS_RECHECK_AFTER_MS) return;
+  // The user's error does not wait on the lookup.
+  await afterResponse(checkRejected(userId, profileId, error));
+}
+
+async function checkRejected(userId: string, profileId: string, error: APIError): Promise<void> {
   let remote: RemoteProfile | null;
   try {
     remote = await store.retrieve(profileId);
@@ -293,6 +320,8 @@ export async function forgetRejectedUserProfile(userId: string | null | undefine
     return;
   }
   if (remote) {
+    confirmedExisting.set(profileId, Date.now());
+    if (confirmedExisting.size > MAX_CACHED) confirmedExisting.delete(confirmedExisting.keys().next().value as string);
     await reportFailure(userId, 'rejected', error, profileId, { profile_exists: true, enforcement_status: remote.enforcementStatus });
     return;
   }
@@ -336,6 +365,7 @@ export async function deleteUserProfileForAccount(userId: string): Promise<void>
 export async function deleteLeftoverUserProfiles(userId: string, profileIds: string[]): Promise<void> {
   known.delete(userId);
   for (const profileId of profileIds) {
+    // The one deleteUserProfileForAccount already deleted is a 404 here, which counts as success.
     console.warn(JSON.stringify({ event: 'anthropic_user_profile_leftover', user_id: userId, profile_id: profileId }));
     await removeQuietly(userId, profileId);
   }

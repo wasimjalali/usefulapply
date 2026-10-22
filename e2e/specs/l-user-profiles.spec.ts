@@ -314,7 +314,10 @@ test.describe.serial('Anthropic user profiles', () => {
     expect(first.status(), 'the call with the rejected id fails loud').toBe(500);
     const rejected = await fakeCalls();
     expect(rejected.map((call) => `${call.provider}:${call.status}:${call.userProfileId}`)).toEqual([`anthropic:400:${stale}`]);
-    expect(storedProfile(f.user.id), 'the stale mapping was dropped').toBeNull();
+    // The check runs after the response (waitUntil): wait for the lookup, then for the mapping to go.
+    await waitFor('the app to look the rejected profile up', async () =>
+      (await fakeProfiles()).events.find((event) => event.kind === 'retrieve' && event.id === stale));
+    await waitFor('the stale mapping to be dropped', async () => storedProfile(f.user.id) === null);
     expect(await createsFor(f.user.id)).toEqual([]);
     const checks = (await fakeProfiles()).events.filter((event) => event.kind === 'retrieve' && event.id === stale);
     expect(checks.map((event) => event.status), 'the app confirmed the profile is gone before dropping it').toEqual([404]);
@@ -341,17 +344,21 @@ test.describe.serial('Anthropic user profiles', () => {
 
     await fakeBanProfile(profileId);
     await fakeReset();
+    const refusedFirst = await postChat(g, 'Thanks for the help');
+    expect(refusedFirst.status(), 'a banned user is refused').toBe(500);
+    // The lookup runs after the response: let it finish before the next calls, so they would see any dropped mapping.
+    await waitFor('the app to look the banned profile up', async () =>
+      (await fakeProfiles()).events.find((event) => event.kind === 'retrieve' && event.id === profileId));
     for (let i = 0; i < 2; i++) {
       const refused = await postChat(g, 'Thanks for the help');
-      expect(refused.status(), 'a banned user is refused').toBe(500);
+      expect(refused.status(), 'a banned user stays refused').toBe(500);
     }
     const calls = await fakeCalls();
-    expect(calls.map((call) => `${call.status}:${call.userProfileId}`)).toEqual([`400:${profileId}`, `400:${profileId}`]);
+    expect(calls.map((call) => `${call.status}:${call.userProfileId}`)).toEqual([`400:${profileId}`, `400:${profileId}`, `400:${profileId}`]);
     expect(storedProfile(g.user.id), 'the mapping is kept').toBe(profileId);
     expect((await createsFor(g.user.id)).map((event) => event.status), 'no second profile').toEqual([200]);
     const checks = (await fakeProfiles()).events.filter((event) => event.kind === 'retrieve' && event.id === profileId);
-    expect(checks.length, 'the app looked the profile up before deciding').toBeGreaterThanOrEqual(1);
-    expect(checks.every((event) => event.status === 200)).toBe(true);
+    expect(checks.map((event) => event.status), 'one lookup: a profile confirmed to exist is not looked up again for 5 minutes').toEqual([200]);
   });
 
   test('(u7) an anonymous CV upload sends no profile and creates none', async () => {
