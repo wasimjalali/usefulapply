@@ -75,6 +75,29 @@ export type HaikuSite =
   | 'search_strategy'
   | 'career_profile';
 
+/**
+ * Per-call HTTP timeout. The SDK default is 10 minutes, so a hung primary would hold the user for up to
+ * 20 minutes (one SDK retry) before the Bedrock failover runs. About 4x the slowest call measured in
+ * production over 60 days (gpt-oss, slower than Haiku): interactive sites peaked at 24 s, the job feed at
+ * 114 s. The SDK arms it around the fetch until response headers, which for a non-streamed call is the
+ * whole generation. A timeout is a failover error (APIConnectionTimeoutError).
+ */
+export const HAIKU_SITE_TIMEOUT_MS: Readonly<Record<HaikuSite, number>> = {
+  chat: 45_000,
+  screening: 45_000,
+  tracker: 45_000,
+  language: 45_000,
+  ranking: 120_000,
+  search_strategy: 120_000,
+  career_profile: 120_000,
+};
+/** count_tokens is a cheap metadata call. */
+export const HAIKU_COUNT_TOKENS_TIMEOUT_MS = 15_000;
+
+export interface HaikuRequestOptions {
+  timeout: number;
+}
+
 export interface HaikuToolDefinition {
   name: string;
   description: string;
@@ -375,7 +398,7 @@ export function buildAiGenerationProperties(input: AiGenerationInput): Record<st
 // -------------------------------------------------------------------------------------------------
 
 export interface HaikuClient {
-  createMessage(params: HaikuRequest): Promise<HaikuMessage>;
+  createMessage(params: HaikuRequest, options?: HaikuRequestOptions): Promise<HaikuMessage>;
   /** Exact input tokens for system + tools + messages. Free. */
   countTokens(params: CountTokensParams): Promise<number>;
 }
@@ -393,18 +416,18 @@ export interface HaikuDeps {
 
 function haikuClientFor(sdk: MessagesClient): HaikuClient {
   return {
-    async createMessage(params) {
+    async createMessage(params, options) {
       if (params.max_tokens > STREAM_ABOVE_MAX_TOKENS) {
-        const stream = sdk.beta.messages.stream(params);
+        const stream = sdk.beta.messages.stream(params, options);
         const message = await stream.finalMessage();
         return { ...message, _request_id: stream.request_id ?? null };
       }
       // The SDK already defines a read-only `_request_id` on the message at runtime, so it is copied, not assigned.
-      const { data, request_id } = await sdk.beta.messages.create(params).withResponse();
+      const { data, request_id } = await sdk.beta.messages.create(params, options).withResponse();
       return { ...data, _request_id: request_id ?? null };
     },
     async countTokens(params) {
-      const result = await sdk.beta.messages.countTokens(params);
+      const result = await sdk.beta.messages.countTokens(params, { timeout: HAIKU_COUNT_TOKENS_TIMEOUT_MS });
       return result.input_tokens;
     },
   };
@@ -531,7 +554,10 @@ export async function callHaiku(options: HaikuCallOptions, deps: HaikuDeps = def
         throw new InputBudgetError(options.site, budget.totalTokens);
       }
 
-      const message = await client.createMessage(target.model === params.model ? params : { ...params, model: target.model });
+      const message = await client.createMessage(
+        target.model === params.model ? params : { ...params, model: target.model },
+        { timeout: HAIKU_SITE_TIMEOUT_MS[options.site] },
+      );
       const providerRequestId = message._request_id ?? message.id ?? null;
 
       const records = usageRecordsOf(message.usage);

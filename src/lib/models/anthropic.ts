@@ -232,6 +232,15 @@ const SONNET_EFFORT = 'low';
 export const STREAM_ABOVE_MAX_TOKENS = 16_000;
 
 /**
+ * Per-call HTTP timeouts in place of the SDK's 10 minutes, so a hung primary fails over to Bedrock in
+ * minutes, not after 20 (one SDK retry). The SDK arms the timeout until response headers: for a
+ * non-streamed call that is the whole generation (Sonnet 5.5 peaked at 30 s in production over 60 days,
+ * Sonnet 4.6 at 63 s), for a stream it is the time to the first byte.
+ */
+export const SONNET_TIMEOUT_MS = 120_000;
+export const SONNET_STREAM_FIRST_BYTE_TIMEOUT_MS = 60_000;
+
+/**
  * Thinking counts toward max_tokens and the Sonnet 5.5 tokenizer produces about 30% more
  * tokens than Sonnet 4.6 for the same text, so the budgets tuned on 4.6 are scaled up.
  */
@@ -435,11 +444,11 @@ async function sendSdkMessage(
   params: SonnetRequest,
 ): Promise<{ message: Anthropic.Message; requestId: string | null }> {
   if (params.max_tokens > STREAM_ABOVE_MAX_TOKENS) {
-    const stream = client.messages.stream(params);
+    const stream = client.messages.stream(params, { timeout: SONNET_STREAM_FIRST_BYTE_TIMEOUT_MS });
     const message = await stream.finalMessage();
     return { message, requestId: stream.request_id ?? null };
   }
-  const { data, request_id } = await client.messages.create(params).withResponse();
+  const { data, request_id } = await client.messages.create(params, { timeout: SONNET_TIMEOUT_MS }).withResponse();
   return { message: data, requestId: request_id ?? null };
 }
 
@@ -814,7 +823,7 @@ export async function callAnthropicStream(
     const ledger = await sonnetDeps.startLedger({ context, provider: target.provider, model: target.model });
     let providerResponseReceived = false;
     try {
-      const stream = target.getClient().messages.stream(params);
+      const stream = target.getClient().messages.stream(params, { timeout: SONNET_STREAM_FIRST_BYTE_TIMEOUT_MS });
 
       for await (const event of stream) {
         // Text deltas only: thinking and signature deltas never reach the caller.

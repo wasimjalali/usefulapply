@@ -4,9 +4,10 @@ import type { AddressInfo } from 'node:net';
 import test from 'node:test';
 
 import type Anthropic from '@anthropic-ai/sdk';
-import { APIError } from '@anthropic-ai/sdk';
+import AnthropicSdk, { APIError } from '@anthropic-ai/sdk';
 import { ModelStopError } from './anthropic';
 import {
+  HAIKU_SITE_TIMEOUT_MS,
   InputBudgetError,
   buildHaikuRequest,
   callHaiku,
@@ -19,7 +20,7 @@ import {
   type HaikuMessage,
   type HaikuRequest,
 } from './haiku';
-import { resetProviderCachesForTests } from './providers';
+import { isFailoverError, resetProviderCachesForTests } from './providers';
 
 const CONTEXT = {
   requestExecutionId: 'req-1',
@@ -832,4 +833,43 @@ test('the real Bedrock client: Bearer token, its own base URL, the anthropic. mo
       assert.match(seen[1].path, /^\/bedrock\/v1\/messages\/count_tokens/);
     });
   });
+});
+
+// --- timeouts: a hung primary must fail over in seconds, not after the SDK's 10 minutes ---
+
+test('every message call carries its site timeout, and count_tokens never borrows it', async () => {
+  const seen: Array<{ site: string; timeout: number | undefined }> = [];
+  for (const site of ['chat', 'ranking'] as const) {
+    const h = harness({
+      createMessage: async (_params, requestOptions) => {
+        seen.push({ site, timeout: requestOptions?.timeout });
+        return reply('ok');
+      },
+    });
+    await callHaiku(options({ site }), h.deps);
+  }
+  assert.deepEqual(seen, [
+    { site: 'chat', timeout: HAIKU_SITE_TIMEOUT_MS.chat },
+    { site: 'ranking', timeout: HAIKU_SITE_TIMEOUT_MS.ranking },
+  ]);
+  assert.ok(HAIKU_SITE_TIMEOUT_MS.chat < HAIKU_SITE_TIMEOUT_MS.ranking);
+});
+
+test('the real SDK turns a hung response into a timeout that fails over', async () => {
+  const server = createServer(() => {
+    // Accept the request and never answer.
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  try {
+    const client = new AnthropicSdk({ apiKey: 'test', baseURL: `http://127.0.0.1:${port}`, maxRetries: 0 });
+    const error = await client.messages
+      .create({ model: 'claude-haiku-5-5', max_tokens: 10, messages: [{ role: 'user', content: 'hi' }] }, { timeout: 200 })
+      .then(() => null, (caught: unknown) => caught);
+    assert.ok(error, 'the hung call resolved');
+    assert.equal(isFailoverError(error), true);
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
 });
