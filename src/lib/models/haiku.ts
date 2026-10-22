@@ -149,6 +149,17 @@ function effortParams(effort: HaikuEffort): { thinking?: { type: 'disabled' }; e
  * The Messages API body for a call. Exported so cache tests can build two requests and compare the
  * cached prefix byte for byte. Throws on options that cannot make a valid request.
  */
+function countMessageMarkers(messages: HaikuCallOptions['messages']): number {
+  let count = 0;
+  for (const message of messages) {
+    if (!Array.isArray(message.content)) continue;
+    for (const block of message.content as Array<{ cache_control?: unknown }>) {
+      if (block && typeof block === 'object' && block.cache_control) count += 1;
+    }
+  }
+  return count;
+}
+
 export function buildHaikuRequest(options: HaikuCallOptions, effort: HaikuEffort): Record<string, unknown> {
   const { site, system, messages, tools, toolChoice, jsonSchema, maxTokens } = options;
   if (!system.static.trim()) throw new Error(`callHaiku(${site}): system.static is empty`);
@@ -173,11 +184,12 @@ export function buildHaikuRequest(options: HaikuCallOptions, effort: HaikuEffort
   };
 
   if (hasTools) {
-    const toolBlocks = (tools as HaikuToolDefinition[]).map((tool, index, all) => ({
+    // No marker on the last tool: tools precede system in the prefix, so the system.static marker caches them
+    // too, and a fourth marker here would push chat (static, stableContext, its own turn marker) over 4.
+    const toolBlocks = (tools as HaikuToolDefinition[]).map((tool) => ({
       name: tool.name,
       description: tool.description,
       input_schema: canonicalizeSchema(tool.input_schema),
-      ...(index === all.length - 1 && { cache_control: marker }),
     }));
     params.tools = toolBlocks;
     // 'auto' is the API default, so it is omitted. 'none' keeps the tool list (the cache key) intact.
@@ -196,6 +208,12 @@ export function buildHaikuRequest(options: HaikuCallOptions, effort: HaikuEffort
 
   // Automatic caching marks the last block of the conversation (5m), after the 1h markers above.
   if (options.cacheConversation) params.cache_control = { type: 'ephemeral' };
+
+  const markerCount =
+    systemBlocks.length + (options.cacheConversation ? 1 : 0) + countMessageMarkers(messages);
+  if (markerCount > 4) {
+    throw new Error(`callHaiku(${site}): ${markerCount} cache markers, the API allows 4`);
+  }
 
   return params;
 }

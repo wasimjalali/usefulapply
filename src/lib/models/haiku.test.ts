@@ -273,25 +273,24 @@ function assertTtlOrder(list: Marker[]) {
   assert.ok(list.slice(firstFiveMinute).every((m) => m.ttl === '5m'), `a 1h marker follows a 5m marker: ${JSON.stringify(list)}`);
 }
 
-test('cache markers: last tool, static and stableContext blocks carry the site TTL', () => {
+test('cache markers: static and stableContext blocks carry the site TTL; tools get none (system covers them)', () => {
   const params = buildHaikuRequest(options({
     tools: [TOOL_A, TOOL_B],
     system: { static: 'static rules', stableContext: 'the CV' },
     cacheTtl: '1h',
   }), 'low');
   assert.deepEqual(markers(params), [
-    { where: 'tool:b_tool', ttl: '1h' },
     { where: 'system:0', ttl: '1h' },
     { where: 'system:1', ttl: '1h' },
   ]);
   const tools = params.tools as Array<{ cache_control?: unknown }>;
-  assert.equal(tools[0].cache_control, undefined);
+  assert.ok(tools.every((t) => t.cache_control === undefined));
 });
 
 test('cacheTtl 5m (the default) sends the marker without a ttl', () => {
   const params = buildHaikuRequest(options({ tools: [TOOL_A] }), 'low');
   assert.deepEqual((params.system as Array<{ cache_control: unknown }>)[0].cache_control, { type: 'ephemeral' });
-  assert.deepEqual((params.tools as Array<{ cache_control: unknown }>)[0].cache_control, { type: 'ephemeral' });
+  assert.equal((params.tools as Array<{ cache_control?: unknown }>)[0].cache_control, undefined);
 });
 
 test('cacheConversation adds an automatic 5m marker after the 1h markers; at most 4 markers', () => {
@@ -302,8 +301,8 @@ test('cacheConversation adds an automatic 5m marker after the 1h markers; at mos
     cacheConversation: true,
   }), 'low');
   const list = markers(params);
-  assert.deepEqual(list.map((m) => m.where), ['tool:b_tool', 'system:0', 'system:1', 'conversation']);
-  assert.deepEqual(list.map((m) => m.ttl), ['1h', '1h', '1h', '5m']);
+  assert.deepEqual(list.map((m) => m.where), ['system:0', 'system:1', 'conversation']);
+  assert.deepEqual(list.map((m) => m.ttl), ['1h', '1h', '5m']);
   assertTtlOrder(list);
   assert.ok(list.length <= 4);
   assert.deepEqual(params.cache_control, { type: 'ephemeral' });
@@ -474,4 +473,16 @@ test('a PostHog failure is logged and does not fail the call', async () => {
   } finally {
     console.error = original;
   }
+});
+
+test('more than 4 cache markers (system blocks + conversation + message markers) throws before sending', () => {
+  const marked = { type: 'text' as const, text: 'turn', cache_control: { type: 'ephemeral' as const } };
+  assert.throws(
+    () => buildHaikuRequest(options({
+      system: { static: 'static rules', stableContext: 'the CV' },
+      messages: [{ role: 'user', content: [marked] }, { role: 'assistant', content: 'ok' }, { role: 'user', content: [marked] }],
+      cacheConversation: true,
+    }), 'low'),
+    /5 cache markers/,
+  );
 });

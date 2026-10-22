@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Anthropic from '@anthropic-ai/sdk';
 import { callHaiku, InputBudgetError, type HaikuResponse } from '@/lib/models/haiku';
+import { isOverRefuseLimit, projectNextInputTokens } from '@/lib/models/token-budget';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
@@ -42,13 +43,9 @@ const MAX_TOOL_CALLS_PER_ROUND = 4;
 // sentences, so this is mostly thinking headroom.
 const CHAT_MAX_TOKENS = 4000;
 
-// The in-loop input budget (100k is the price tier; this leaves headroom for
-// tokenizer drift). A round is only sent if the previous round's measured
-// input plus an estimate of what was appended since stays under it.
-const CHAT_INPUT_BUDGET_TOKENS = 90_000;
-// Conservative chars per token for that estimate: German measured 1.86 to
-// 2.05 on Haiku 5.5's tokenizer (P0, evals/results/2026-10-22-haiku-55-swap.md).
-const ESTIMATE_CHARS_PER_TOKEN = 1.8;
+// The in-loop input budget is the model layer's (token-budget.ts): a round is
+// only sent if the previous round's measured input plus an estimate of what was
+// appended since stays under INPUT_REFUSE_ABOVE.
 const BUDGET_REPLY = 'That was too much to read in one go. Ask about one thing at a time.';
 
 // The stop reasons that leave a usable answer. Anything else (refusal,
@@ -304,8 +301,8 @@ export async function POST(req: NextRequest) {
       for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
         const finalRound = round === MAX_TOOL_ROUNDS;
         if (previousInputTokens !== null) {
-          const projected = previousInputTokens + estimateTokens(appendedSinceLastCall);
-          if (projected > CHAT_INPUT_BUDGET_TOKENS) throw new InputBudgetError('chat', projected);
+          const projected = projectNextInputTokens(previousInputTokens, appendedSinceLastCall);
+          if (isOverRefuseLimit(projected)) throw new InputBudgetError('chat', projected);
         }
 
         const response = await callHaiku({
@@ -318,7 +315,7 @@ export async function POST(req: NextRequest) {
           toolChoice: finalRound ? 'none' : 'auto',
           maxTokens: CHAT_MAX_TOKENS,
           cacheTtl: '1h',
-          cacheConversation: true,
+          cacheConversation: false, // its own 5m marker sits on the new user turn (chat-prompt.ts)
           generationContext: {
             requestExecutionId,
             userId: user.id,
@@ -579,10 +576,6 @@ function assertUsableChatStop(response: HaikuResponse): void {
   if (!response.stopReason || !USABLE_STOP_REASONS.has(response.stopReason)) {
     throw new Error(`Chat model stopped without a usable answer (stop_reason ${response.stopReason ?? 'missing'})`);
   }
-}
-
-function estimateTokens(turns: Anthropic.Beta.BetaMessageParam[]): number {
-  return Math.ceil(JSON.stringify(turns).length / ESTIMATE_CHARS_PER_TOKEN);
 }
 
 /**
