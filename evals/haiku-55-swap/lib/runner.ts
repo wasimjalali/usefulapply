@@ -225,7 +225,16 @@ export async function runSite<C extends SiteCase>(site: Site<C>, options: RunOpt
         judgeRequestShown = true;
         console.log(`[dry] ${site.id} judge request: system ${plan.spec.rubric.length} chars, user ${prompt.length} chars`);
       }
-      const verdict = await judgeOnce(plan.spec, prompt, { dry: options.dry, canned: plan.canned });
+      let verdict: Awaited<ReturnType<typeof judgeOnce>>;
+      try {
+        verdict = await judgeOnce(plan.spec, prompt, { dry: options.dry, canned: plan.canned });
+      } catch (error) {
+        // A judge failure must never lose the paid run: the case counts as an error and the run is still written.
+        o.error = `judge: ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)}`;
+        o.pass = false;
+        o.failures = [...o.failures, `judge failed: ${o.error}`];
+        return;
+      }
       judgeCalls += 1;
       judgeCost += verdict.costUsd;
       plan.apply(verdict.verdict, o, c);
