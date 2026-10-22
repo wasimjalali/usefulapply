@@ -5,7 +5,9 @@
  * 5 s. A miss still asks Better Auth, so the cached JSON can't drift from it.
  *
  * Two layers: a small per-isolate memo, then a shared store (the Workers Cache
- * API). Only 200 JSON answers are kept. The caller checks MCP_ENABLED before
+ * API). Only 200 JSON answers are kept. There's no cross-request single-flight:
+ * a promise shared between requests never settles if its owner disconnects, so
+ * every request that misses both layers fills for itself. The caller checks MCP_ENABLED before
  * anything here runs, so a cached document is never served while MCP is off.
  */
 
@@ -43,7 +45,10 @@ function storeKey(url: string, deployVersion: string): Request {
 
 export function createDiscoveryHandler(deps: {
   isEnabled: () => boolean;
-  /** Better Auth's handler. Always called with a clean GET (no caller headers) for a miss. */
+  /**
+   * Better Auth's handler. Always called with a clean GET for a miss: the only caller header copied in is
+   * cf-connecting-ip, so Better Auth's rate limiter can tell clients apart.
+   */
   fill: (request: Request) => Promise<Response>;
   store?: DiscoveryStore;
   /**
@@ -56,7 +61,6 @@ export function createDiscoveryHandler(deps: {
   now?: () => number;
 }): (request: Request) => Promise<Response> {
   const memo = new Map<string, Entry>();
-  const inFlight = new Map<string, Promise<Entry | undefined>>();
   const now = deps.now ?? Date.now;
 
   function respond(entry: Entry, method: string): Response {
@@ -76,10 +80,23 @@ export function createDiscoveryHandler(deps: {
   }
 
   const fresh = (entry: Entry) => now() - entry.at < DISCOVERY_TTL_MS;
-  const version = async () => (deps.deployVersion ? await deps.deployVersion() : 'unversioned');
 
-  function passthrough(upstream: Response, method: string): Response {
-    return method === 'HEAD' ? new Response(null, { status: upstream.status, headers: upstream.headers }) : upstream;
+  /** A clean GET for Better Auth. Only cf-connecting-ip is copied from the caller (for its rate limiter). */
+  function fillRequest(key: string, caller: Request): Request {
+    const headers = new Headers();
+    const ip = caller.headers.get('cf-connecting-ip');
+    if (ip) headers.set('cf-connecting-ip', ip);
+    return new Request(key, { method: 'GET', headers });
+  }
+
+  async function passthrough(upstream: Response, method: string): Promise<Response> {
+    if (method !== 'HEAD') return upstream;
+    try {
+      await upstream.body?.cancel();
+    } catch {
+      // Dropping the body is all that matters here.
+    }
+    return new Response(null, { status: upstream.status, headers: upstream.headers });
   }
 
   async function writeStore(deployVersion: string, key: string, entry: Entry): Promise<void> {
@@ -111,68 +128,50 @@ export function createDiscoveryHandler(deps: {
       return respond(inMemo, request.method);
     }
 
-    const pending = inFlight.get(key);
-    if (pending) {
-      const shared = await pending;
-      if (shared) return respond(shared, request.method);
-      // The shared answer wasn't cacheable (or failed): ask Better Auth for ourselves.
-      return passthrough(await deps.fill(new Request(key, { method: 'GET' })), request.method);
-    }
-
-    let raw: Response | undefined;
-    const flight = (async (): Promise<Entry | undefined> => {
-      const deployVersion = deps.store ? await version() : undefined;
-      if (deps.store && deployVersion !== undefined) {
-        try {
-          const stored = await deps.store.match(storeKey(key, deployVersion));
-          if (stored) {
-            const at = Number(stored.headers.get(FILLED_AT_HEADER));
-            const entry: Entry = {
-              contentType: stored.headers.get('content-type') ?? 'application/json',
-              cacheControl: stored.headers.get(CLIENT_CC_HEADER),
-              body: await stored.text(),
-              at,
-            };
-            if (Number.isFinite(at) && fresh(entry)) {
-              remember(key, entry);
-              return entry;
-            }
+    // No known deploy version means no shared store (memo only).
+    const deployVersion = deps.store ? await deps.deployVersion?.() : undefined;
+    if (deps.store && deployVersion !== undefined) {
+      try {
+        const stored = await deps.store.match(storeKey(key, deployVersion));
+        const filledAt = stored?.headers.get(FILLED_AT_HEADER);
+        if (stored && filledAt) {
+          const entry: Entry = {
+            contentType: stored.headers.get('content-type') ?? 'application/json',
+            cacheControl: stored.headers.get(CLIENT_CC_HEADER),
+            body: await stored.text(),
+            at: Number(filledAt),
+          };
+          if (Number.isFinite(entry.at) && fresh(entry)) {
+            remember(key, entry);
+            return respond(entry, request.method);
           }
-        } catch (error) {
-          console.error('[mcp] discovery cache read failed', error instanceof Error ? error.message : error);
         }
+      } catch (error) {
+        console.error('[mcp] discovery cache read failed', error instanceof Error ? error.message : error);
       }
-
-      // Miss. HEAD is filled with a GET so the document can be kept; the body is dropped when answering.
-      const upstream = await deps.fill(new Request(key, { method: 'GET' }));
-      const contentType = upstream.headers.get('content-type');
-      if (upstream.status !== 200 || !contentType?.includes('application/json')) {
-        raw = upstream;
-        return undefined;
-      }
-
-      // Only these two headers are kept and replayed: never set-cookie, vary, cf-*, age, date or CORS.
-      const entry: Entry = {
-        contentType,
-        cacheControl: upstream.headers.get('cache-control'),
-        body: await upstream.text(),
-        at: now(),
-      };
-      remember(key, entry);
-
-      if (deps.store && deployVersion !== undefined) {
-        const write = writeStore(deployVersion, key, entry);
-        const scheduled = deps.waitUntil ? await deps.waitUntil(write) : false;
-        if (!scheduled) await write;
-      }
-      return entry;
-    })();
-    inFlight.set(key, flight);
-    try {
-      const entry = await flight;
-      return entry ? respond(entry, request.method) : passthrough(raw!, request.method);
-    } finally {
-      inFlight.delete(key);
     }
+
+    // Miss. HEAD is filled with a GET so the document can be kept; the body is dropped when answering.
+    const upstream = await deps.fill(fillRequest(key, request));
+    const contentType = upstream.headers.get('content-type');
+    if (upstream.status !== 200 || !contentType?.includes('application/json')) {
+      return passthrough(upstream, request.method);
+    }
+
+    // Only these two headers are kept and replayed: never set-cookie, vary, cf-*, age, date or CORS.
+    const entry: Entry = {
+      contentType,
+      cacheControl: upstream.headers.get('cache-control'),
+      body: await upstream.text(),
+      at: now(),
+    };
+    remember(key, entry);
+
+    if (deps.store && deployVersion !== undefined) {
+      const write = writeStore(deployVersion, key, entry);
+      const scheduled = deps.waitUntil ? await deps.waitUntil(write) : false;
+      if (!scheduled) await write;
+    }
+    return respond(entry, request.method);
   };
 }
