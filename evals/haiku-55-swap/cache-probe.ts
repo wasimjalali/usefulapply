@@ -351,7 +351,6 @@ function req(m: Model, o: Opts): R {
 
 let nonceCounter = 0;
 const nonceFor = (m: Model, probe: string): string => `cache-probe ${RUN_ID} ${m.key} ${probe} #${++nonceCounter}`;
-const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 const Q_TITLE = 'What was the candidate\'s most recent job title? One sentence.';
 const makeResult = (id: number, name: string, m: Model): ProbeResult => ({ id, name, model: m.key, rows: [], findings: [] });
