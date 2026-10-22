@@ -67,6 +67,8 @@ const MAX_CHAT_MESSAGES_PER_SESSION = 50;
 // wrap up); the final round runs with tool_choice none so it must answer.
 const MAX_TOOL_ROUNDS = 3;
 const MAX_TOOL_CALLS_PER_ROUND = 4;
+// Compaction requests one turn may send before it goes out as it is (the budget guard then decides).
+const MAX_COMPACTION_PASSES = 2;
 
 // Thinking counts toward max_tokens on Haiku 5.5, and a reply is 1 to 3
 // sentences, so this is mostly thinking headroom.
@@ -371,8 +373,12 @@ export async function POST(req: NextRequest) {
 
     // On-demand compaction (compaction.ts): over COMPACT_ABOVE_TOKENS projected, summarize everything before the
     // last few messages first, then send the turn on the block. Saved applications only: their history is in D1,
-    // and the block is stored next to it.
-    if (persistedSessionId && projectChatInput({ system, tools, messages }) > COMPACT_ABOVE_TOKENS) {
+    // and the block is stored next to it. A history that grew a lot without a chat turn (ads the client answered
+    // with its buttons) may need a second pass: each pass is itself held under the line, so it compacts the oldest
+    // part, and the second folds that block and the next part together.
+    let turnBlock = compaction?.block ?? null;
+    for (let pass = 0; pass < MAX_COMPACTION_PASSES; pass += 1) {
+      if (!persistedSessionId || projectChatInput({ system, tools, messages }) <= COMPACT_ABOVE_TOKENS) break;
       const compacted = await compactChat({
         userId: user.id,
         sessionId: persistedSessionId,
@@ -380,14 +386,15 @@ export async function POST(req: NextRequest) {
         system,
         tools,
         turns: earlierTurns,
-        earlier: compaction?.block ?? null,
+        earlier: turnBlock,
+        provider: compactedOn,
       });
-      if (compacted) {
-        compaction = compacted.stored ? { block: compacted.block, coversThroughMessageId: compacted.coversThroughMessageId } : null;
-        compactedOn = compacted.provider === 'bedrock' ? 'bedrock' : undefined;
-        earlierTurns = earlierTurns.slice(compacted.cut);
-        messages = buildChatMessages([...earlierTurns.map(chatTurnOf), newTurn], prompt.state, compacted.block);
-      }
+      if (!compacted) break;
+      if (compacted.stored) compaction = { block: compacted.block, coversThroughMessageId: compacted.coversThroughMessageId };
+      compactedOn = compacted.provider === 'bedrock' ? 'bedrock' : compactedOn;
+      turnBlock = compacted.block;
+      earlierTurns = earlierTurns.slice(compacted.cut);
+      messages = buildChatMessages([...earlierTurns.map(chatTurnOf), newTurn], prompt.state, turnBlock);
     }
 
     const executed: ExecutedEffect[] = [];
@@ -667,6 +674,11 @@ type ChatTools = NonNullable<HaikuCallOptions['tools']>;
  * bytes they are sent in.
  */
 function projectChatInput(parts: { system: ChatSystem; tools: ChatTools; messages: HaikuCallOptions['messages'] }): number {
+  return estimateChatRequest(parts) + COMPACTION_RESERVE_TOKENS;
+}
+
+/** A request with the chat's tools and system, estimated the way the budget guard estimates it. */
+function estimateChatRequest(parts: { system: ChatSystem; tools: ChatTools; messages: HaikuCallOptions['messages'] }): number {
   const request = buildHaikuRequest({
     site: 'chat',
     system: parts.system,
@@ -676,7 +688,7 @@ function projectChatInput(parts: { system: ChatSystem; tools: ChatTools; message
     cacheTtl: '1h',
     generationContext: { requestExecutionId: 'projection', route: '/api/chat', feature: 'chat', operation: 'projection' },
   }, 'low');
-  return estimateInputTokens({ system: request.system, tools: request.tools, messages: request.messages }) + COMPACTION_RESERVE_TOKENS;
+  return estimateInputTokens({ system: request.system, tools: request.tools, messages: request.messages });
 }
 
 /**
@@ -688,7 +700,11 @@ function projectChatInput(parts: { system: ChatSystem; tools: ChatTools; message
  * event, and the turn goes out uncompacted (the budget guard still stops one that no longer fits).
  *
  * A block written by Bedrock (a failover) is used for this turn only, with the turn pinned to Bedrock, and never
- * stored: its signature is Bedrock's, and the next turn starts on the Anthropic API again.
+ * stored: its signature is Bedrock's, and the next turn starts on the Anthropic API again. A second pass on such a
+ * block is pinned to Bedrock too (`provider`).
+ *
+ * The request itself stays under COMPACT_ABOVE_TOKENS: when everything before the kept messages is more than that,
+ * only the oldest part is compacted, and the turn (or the next one) compacts again on top of the block.
  */
 async function compactChat(params: {
   userId: string;
@@ -698,9 +714,19 @@ async function compactChat(params: {
   tools: ChatTools;
   turns: StoredTurn[];
   earlier: CompactionBlock | null;
+  provider: 'bedrock' | undefined;
 }): Promise<{ block: CompactionBlock; cut: number; coversThroughMessageId: string; provider: string; stored: boolean } | null> {
-  const cut = splitForCompaction(params.turns.map((turn) => turn.role));
+  let cut = splitForCompaction(params.turns.map((turn) => turn.role));
   if (cut === null) return null;
+  const requestMessages = (end: number) => buildCompactionMessages(params.turns.slice(0, end).map(chatTurnOf), params.earlier);
+  // Every range tried holds a user turn (splitForCompaction guarantees the first), so there is always one to summarize.
+  const holdsUser = (end: number) => params.turns.slice(0, end).some((turn) => turn.role === 'user');
+  while (
+    cut > 1 && holdsUser(cut - 1)
+    && estimateChatRequest({ system: params.system, tools: params.tools, messages: requestMessages(cut) }) > COMPACT_ABOVE_TOKENS
+  ) {
+    cut -= 1;
+  }
   const coversThroughMessageId = params.turns[cut - 1].id;
   if (!coversThroughMessageId) throw new Error('compactChat: a saved application turn has no id');
 
@@ -710,11 +736,12 @@ async function compactChat(params: {
       site: 'chat',
       system: params.system,
       tools: params.tools,
-      messages: buildCompactionMessages(params.turns.slice(0, cut).map(chatTurnOf), params.earlier),
+      messages: requestMessages(cut),
       maxTokens: COMPACTION_MAX_TOKENS,
       cacheTtl: '1h',
       cacheConversation: false,
       compaction: { instructions: CHAT_COMPACTION_INSTRUCTIONS },
+      provider: params.provider,
       generationContext: {
         requestExecutionId: params.requestExecutionId,
         userId: params.userId,

@@ -316,6 +316,41 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
     expect(rows.some((row) => row.id === fiftyFirstId)).toBe(false);
   });
 
+  test('a history that grew past the line without chat turns compacts in two passes, each under the line, and the turn is answered', async ({ request }) => {
+    // Eighteen long pastes the client answered with its own buttons: rows in D1, no chat turn in between.
+    const api = request;
+    const bigUser = await createSignedInApiUser(api, 'twopass');
+    const bigSession = seedApplication(bigUser.id, 'Lumen Logistics', 'Platform Engineer');
+    const db = openLocalD1();
+    try {
+      const insert = db.prepare("INSERT INTO chat_messages (id, session_id, user_id, role, content, actions, created_at) VALUES (?, ?, ?, 'user', ?, '[]', ?)");
+      const start = Date.now() - 3_600_000;
+      for (let i = 0; i < 18; i += 1) insert.run(`msg-seed-p-${i}-${bigSession}`, bigSession, bigUser.id, longNotes(100 + i), new Date(start + i * 1_000).toISOString());
+    } finally {
+      db.close();
+    }
+    const before = (await fakeCalls()).length;
+    const message = 'Danke, was ist der naechste Schritt?';
+    const result = await turn(api, bigSession, message);
+    expect(result.status, JSON.stringify(result.body)).toBe(200);
+    expect(result.body.reply).not.toMatch(/too much to read/);
+    const calls = (await fakeCalls()).slice(before).filter((call) => call.kind === 'messages' && call.writer === 'chat');
+    const passes = calls.filter((call) => call.compaction);
+    expect(passes).toHaveLength(2);
+    // The second pass folds the first block in, and both stayed well under the 100k tier.
+    expect(passes[0].blockTypes[0]).not.toEqual(['compaction']);
+    expect(passes[1].blockTypes[0]).toEqual(['compaction']);
+    for (const pass of passes) expect(pass.usage?.total ?? Infinity).toBeLessThan(75_000);
+    const answered = calls.filter((call) => !call.compaction);
+    expect(answered[0].lastUser).toBe(message);
+    expect(answered[0].blockTypes[0]).toEqual(['compaction']);
+    // The stored block is the second one and covers more than the first.
+    const row = compactionRow(bigSession);
+    const stored = chatMessagesOf(bigSession);
+    expect(stored.findIndex((m) => m.id === row?.covers_through_message_id)).toBeGreaterThan(8);
+    expect(result.body.compactedThroughMessageId).toBe(row?.covers_through_message_id);
+  });
+
   test('deleting the account removes the compaction row and the messages', async () => {
     expect(compactionRow(sessionId)).toBeDefined();
     const ip = nextTestIp();
