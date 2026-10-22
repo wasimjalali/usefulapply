@@ -24,6 +24,8 @@ import { callWorkersAI, type WorkersAiChatMessage } from '@/lib/models/workers-a
 import { sanitizeDashes } from '@/lib/config/typo-corrections';
 import { InvalidInputError, NotFoundError } from './errors';
 import { isSectionHidden, visibleCvData } from '@/lib/cv-templates/hidden';
+import { withDrivingLicenceLine } from '@/lib/cv-templates/driving-licence';
+import { inferCvLanguageFromHeaders } from '@/lib/cv-parser/section-splitter';
 import type { CVData } from '@/lib/cv-templates/types';
 import { buildSessionUpdateStatement, kitFromRow, type Kit } from './kit';
 import { flattenUntrusted, sanitizeAdText } from '@/lib/agents/chat-tools/untrusted';
@@ -287,7 +289,7 @@ function currentCvText(kit: Kit): string | undefined {
   const licence = data.personal.driverLicense;
   const additionalInfo = isSectionHidden(data as unknown as CVData, 'additionalInfo')
     ? undefined
-    : data.additionalInfo || (licence ? [`Driver's License: ${licence}`] : undefined);
+    : withDrivingLicenceLine(data.additionalInfo, licence, data.sectionHeaders && Object.keys(data.sectionHeaders).length > 0 ? inferCvLanguageFromHeaders(data.sectionHeaders) : undefined);
   if (additionalInfo?.length) {
     lines.push('');
     for (const item of additionalInfo) lines.push(`- ${item}`);

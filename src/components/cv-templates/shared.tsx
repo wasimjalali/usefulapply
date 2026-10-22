@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { Github, Globe, Linkedin, Mail, MapPin, Phone } from 'lucide-react';
 import type { CVData } from '@/lib/cv-templates/types';
 import { labelColon, uiText } from '@/lib/cv-templates/locale';
-import { displayUrl, fullUrl } from '@/lib/cv-templates/url';
+import { contactLinks, fullUrl } from '@/lib/cv-templates/url';
 
 /**
  * Pieces the six templates share, so a layout rule is written once.
@@ -162,10 +162,10 @@ export function ContactRows({ data, iconSize, iconColor, iconGap, textColor, col
   const linkStyle: CSSProperties = { ...itemStyle, whiteSpace: 'normal', minWidth: 0 };
   // The visible text is the address (linkedin.com/in/name), never a label alone: most ATS read only
   // the text, and a printed copy loses the link. The anchor keeps the full URL, so it stays clickable.
-  const link = (raw: string, Icon: typeof Mail, key: string) => (
+  const link = (raw: string, text: string, Icon: typeof Mail, key: string) => (
     <a key={key} href={fullUrl(raw)} target="_blank" rel="noopener noreferrer" style={linkStyle}>
       {icon(Icon)}
-      <span>{wrapAtSlashes(displayUrl(raw))}</span>
+      <span>{wrapAtSlashes(text)}</span>
     </a>
   );
 
@@ -195,10 +195,18 @@ export function ContactRows({ data, iconSize, iconColor, iconGap, textColor, col
       </span>,
     );
   }
-  if (p.linkedIn) items.push(link(p.linkedIn, Linkedin, 'linkedin'));
-  if (p.github) items.push(link(p.github, Github, 'github'));
-  if (p.portfolio) items.push(link(p.portfolio, Globe, 'portfolio'));
-  if (p.website) items.push(link(p.website, Globe, 'website'));
+  // Two links that would read the same (a website and its #work portfolio) are told apart, or shown once, by contactLinks.
+  const linkIcons: Array<[string | undefined, typeof Mail, string]> = [
+    [p.linkedIn, Linkedin, 'linkedin'],
+    [p.github, Github, 'github'],
+    [p.portfolio, Globe, 'portfolio'],
+    [p.website, Globe, 'website'],
+  ];
+  const shownLinks = contactLinks(linkIcons.map(([raw]) => raw ?? ''));
+  for (const { raw, text } of shownLinks) {
+    const [, Icon, key] = linkIcons.find(([source]) => source === raw)!;
+    items.push(link(raw, text, Icon, key));
+  }
 
   // One flowing row: items wrap where the line ends. No balancing, so nothing is left alone on a line
   // while the line above still has room, and a long address or portfolio link flows like text.

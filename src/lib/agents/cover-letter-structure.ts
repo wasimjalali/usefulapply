@@ -17,7 +17,7 @@
  * canvas, copy and the legacy export keep using.
  */
 
-import { displayUrl, pickLetterLinks } from '@/lib/cv-templates/url';
+import { letterContactLinks } from '@/lib/cv-templates/url';
 import type { MasterContext } from './types';
 import type { CoverLetterRecipient, CoverLetterSender, StructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { cleanLetterText, US_STATE_CODES } from './cover-letter-guards';
@@ -231,7 +231,7 @@ export function renderCoverLetterBody(letter: StructuredCoverLetter): string {
     sender.email ?? '',
     sender.phone ?? '',
     // Clean visible addresses (linkedin.com/in/name), at most two: LinkedIn, then a personal site.
-    ...pickLetterLinks(sender.links).map((link) => displayUrl(link)),
+    ...letterContactLinks(sender.links).map((link) => link.text),
   ].filter(Boolean);
   const recipientBlock = (letter.market === 'dach'
     ? [recipient.companyName, recipient.department, recipient.contactPerson, ...recipient.addressLines]

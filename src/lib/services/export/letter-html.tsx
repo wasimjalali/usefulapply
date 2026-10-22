@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from './static-markup';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
-import { displayUrl, fullUrl, pickLetterLinks } from '@/lib/cv-templates/url';
+import { fullUrl, letterContactLinks } from '@/lib/cv-templates/url';
 import { fontFaceCssInline, type FontFileLoader } from '@/lib/cv-templates/fonts';
 import type { PaperSize } from '@/lib/cv-templates/print-spec';
 import { EXPORT_CSP, escapeHtml } from './cv-html';
@@ -116,13 +116,13 @@ function senderContactLines(letter: StructuredCoverLetter): string[] {
     ...sender.addressLines,
     ...(sender.phone ? [sender.phone] : []),
     ...(sender.email ? [sender.email] : []),
-    ...pickLetterLinks(sender.links).map((link) => displayUrl(link)),
+    ...letterContactLinks(sender.links).map((link) => link.text),
   ].filter((line) => line.trim().length > 0);
 }
 
 /** One contact line as it is printed: a link line stays clickable with its full URL. */
 function ContactLine({ line, letter }: { line: string; letter: StructuredCoverLetter }) {
-  const target = pickLetterLinks(letter.sender.links).find((link) => displayUrl(link) === line);
+  const target = letterContactLinks(letter.sender.links).find((link) => link.text === line)?.raw;
   // A long address wraps after its slashes instead of running past the letterhead.
   return target ? <a href={fullUrl(target)} style={{ overflowWrap: 'anywhere' }}>{line.split('/').flatMap((part, i) => (i === 0 ? [part] : ['/', <wbr key={i} />, part]))}</a> : <>{line}</>;
 }
@@ -201,7 +201,7 @@ export const LETTERHEAD_MAX_CONTACT_LINES = 8;
  * lines overlap. The links come after these and keep their own lines.
  */
 export function plainContactLines(letter: StructuredCoverLetter, cap = LETTERHEAD_MAX_CONTACT_LINES): string[] {
-  const links = pickLetterLinks(letter.sender.links).length;
+  const links = letterContactLinks(letter.sender.links).length;
   const room = Math.max(1, cap - links);
   let address = letter.sender.addressLines.map((part) => part.trim()).filter(Boolean);
   let reach = [letter.sender.phone, letter.sender.email].map((part) => part?.trim() ?? '').filter(Boolean);
@@ -212,7 +212,7 @@ export function plainContactLines(letter: StructuredCoverLetter, cap = LETTERHEA
 
 /** Every letterhead line of a DIN letter under the name: the capped plain lines, then the clean links. */
 export function dinSenderLines(letter: StructuredCoverLetter): string[] {
-  return [...plainContactLines(letter), ...pickLetterLinks(letter.sender.links).map((link) => displayUrl(link))];
+  return [...plainContactLines(letter), ...letterContactLinks(letter.sender.links).map((link) => link.text)];
 }
 
 export function letterheadStyle(lines: number): { lineHeight?: string; fontSize?: string } {
