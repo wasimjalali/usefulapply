@@ -6,6 +6,7 @@ import { and, desc, eq, gte, inArray, isNotNull, isNull, lt, lte, notExists, or,
 import type { Json } from '@/lib/supabase/types';
 import { chunk, D1_MAX_PARAMS, isUniqueViolation, getDb, nowIso } from '../client';
 import {
+  anthropicUserProfiles,
   applicationSessions,
   chatMessages,
   connectedAccounts,
@@ -498,6 +499,9 @@ const USER_ID_TABLES = [
   creditTransactions,
   subscriptions,
   messageFeedback,
+  // Normally gone already (deleteUserProfileForAccount deletes the profile at Anthropic first); this also clears a
+  // row a model call wrote in between.
+  anthropicUserProfiles,
 ] as const;
 
 /** Bound every cron batch; CAS claims make the remainder safe to pick up next run. */

@@ -121,6 +121,9 @@ export default function PrivacyPage() {
           process the content you submit in order to return a result. We do not use your CV or
           application materials to train our own models. We instruct providers not to use that
           content to train their general models, subject to each provider&apos;s published terms.
+          With each request we also send Anthropic a pseudonymous ID for your account (our internal
+          user ID, not your name or email), so Anthropic&apos;s safety checks apply to your account
+          alone instead of to all of Useful Apply.
         </LegalP>
         <LegalP>
           We use PostHog for product analytics, error tracking and session replay. Session

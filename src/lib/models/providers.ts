@@ -23,6 +23,9 @@
  * The caller's `attempt` owns the ledger row, so the failed primary attempt and the Bedrock attempt each get
  * their own.
  *
+ * Every target carries the user's Anthropic profile id (user-profiles.ts), resolved once per call: the same id on both
+ * providers, sent as the `anthropic-user-profile-id` header (the Bedrock SDK moves it into the body).
+ *
  * Cost on Bedrock is priced at the direct-API list prices (the global endpoint). Regional endpoints carry a
  * 10% premium over that, which is not modelled.
  */
@@ -252,6 +255,11 @@ export interface FailoverTarget<C> {
   model: string;
   /** Builds the client for this attempt. Called inside the attempt so a missing key is that attempt's error. */
   getClient: () => C;
+  /**
+   * The user's Anthropic profile id (user-profiles.ts), the same on both providers, or null for a call with no user
+   * or a profile that could not be resolved. Every request of the attempt sends it (`userProfileRequestOptions`).
+   */
+  userProfileId: string | null;
 }
 
 export interface FailoverArgs<C, T> {
@@ -262,6 +270,8 @@ export interface FailoverArgs<C, T> {
   /** null when Bedrock is not configured. */
   bedrock: () => C | null;
   attempt: (target: FailoverTarget<C>) => Promise<T>;
+  /** Resolved once by the caller and put on every target. Absent means none. */
+  userProfileId?: string | null;
   /**
    * Skip the choice: 'bedrock' goes straight to Bedrock, 'anthropic' stays on the primary. Either way a failure
    * is a failure: no hop to the other provider. Used inside one request's multi-round loop so assistant content
@@ -302,16 +312,17 @@ async function capturePostHog(event: { distinctId: string; event: string; proper
 
 export async function runWithFailover<C, T>(args: FailoverArgs<C, T>): Promise<T> {
   logBedrockStateOnce();
+  const userProfileId = args.userProfileId ?? null;
   if (args.pin === 'bedrock') {
     const bedrock = args.bedrock();
     if (!bedrock) throw new Error('This request is pinned to Amazon Bedrock but Bedrock is not configured');
-    return await args.attempt({ provider: 'bedrock', model: bedrockModelId(args.model), getClient: () => bedrock });
+    return await args.attempt({ provider: 'bedrock', model: bedrockModelId(args.model), getClient: () => bedrock, userProfileId });
   }
   if (args.pin === 'anthropic') {
-    return await args.attempt({ provider: 'anthropic', model: args.model, getClient: args.primary });
+    return await args.attempt({ provider: 'anthropic', model: args.model, getClient: args.primary, userProfileId });
   }
   try {
-    return await args.attempt({ provider: 'anthropic', model: args.model, getClient: args.primary });
+    return await args.attempt({ provider: 'anthropic', model: args.model, getClient: args.primary, userProfileId });
   } catch (error) {
     if (!isFailoverError(error)) throw error;
     if (args.canFailOver && !args.canFailOver()) throw error;
@@ -364,6 +375,6 @@ export async function runWithFailover<C, T>(args: FailoverArgs<C, T>): Promise<T
       console.error('[providers] llm_provider_failover capture failed', captureError);
     }
 
-    return await args.attempt({ provider: 'bedrock', model: bedrockModel, getClient: () => bedrock });
+    return await args.attempt({ provider: 'bedrock', model: bedrockModel, getClient: () => bedrock, userProfileId });
   }
 }
