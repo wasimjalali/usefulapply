@@ -208,9 +208,9 @@ export function setDryRun(v: boolean): void {
 }
 
 /**
- * Request body for the Anthropic API. Typed loosely on purpose: @anthropic-ai/sdk 0.71.2 has no
- * `adaptive` thinking type and no `output_config` on MessageCreateParams, but it forwards unknown
- * body fields unchanged, so the cast is the only workaround needed.
+ * Request body for the Anthropic API. Typed loosely on purpose: the 2026-10-12 run used
+ * @anthropic-ai/sdk 0.71.2, which had no `adaptive` thinking type and no `output_config` on
+ * MessageCreateParams. SDK 1.x types both; the loose type stays so the request stays byte-identical to that run.
  * B arms: no temperature/top_p/top_k, adaptive thinking, output_config.effort, no prefill,
  * no tool_choice, no server-side fallbacks (another model answering would contaminate the eval).
  */

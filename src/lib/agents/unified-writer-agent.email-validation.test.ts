@@ -204,7 +204,7 @@ test('malformed email JSON retries without copying draft text into correction in
   });
   assert.equal(calls.length, 2);
   assert.doesNotMatch(calls[1].prompt, /Private draft fragment/u);
-  assert.deepEqual(result.tokens, { input: 17, output: 8 });
+  assert.deepEqual(result.tokens, { input: 17, output: 8, provider: 'anthropic', model: 'test-model' });
 });
 
 test('a persistent invalid application email fails after one correction', async () => {
@@ -250,7 +250,7 @@ test('a valid application email uses one model call', async () => {
   const result = await generateApplicationEmailWithRetry(context(), GENERATION_CONTEXT, modelCall);
 
   assert.equal(calls, 1);
-  assert.deepEqual(result.tokens, { input: 11, output: 6 });
+  assert.deepEqual(result.tokens, { input: 11, output: 6, provider: 'anthropic', model: 'test-model' });
   assert.equal(result.result.subject, 'Application: Software Engineer, Ada Lovelace');
 });
 
@@ -275,7 +275,7 @@ test('follow-up email validation gets the same bounded correction', async () => 
   const result = await generateFollowUpEmailWithRetry(context(), GENERATION_CONTEXT, modelCall);
 
   assert.equal(calls.length, 2);
-  assert.deepEqual(result.tokens, { input: 8, output: 4 });
+  assert.deepEqual(result.tokens, { input: 8, output: 4, provider: 'anthropic', model: 'test-model' });
   assert.equal(result.result.recommendedDelay, 5);
   assert.equal(result.result.subject, 'Following Up: Software Engineer, Ada Lovelace');
   assert.equal(calls[1].generationContext?.parentGenerationId, 'generation-1');

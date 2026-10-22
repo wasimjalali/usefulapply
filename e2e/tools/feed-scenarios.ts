@@ -12,10 +12,11 @@
  *   - SerpAPI: `fetch` is wrapped. A request to serpapi.com is answered from a stub (a few jobs, or a
  *     500 when a scenario asks for one) and counted. SERPAPI_API_KEY is set to a dummy value only so
  *     the provider code builds its request. Any other outside request fails the run.
- *   - The ranker: the in-process platform has no Workers AI binding, so ranking takes its
- *     deterministic path. Users here have no CV, so no career profile or search strategy is
+ *   - The ranker: it calls Claude Haiku 5.5 (rankWithHaiku), which is the scripted fake model's
+ *     ranking writer on FAKE_ANTHROPIC_PORT. If the fake fails, ranking falls back to the
+ *     deterministic order. Users here have no CV, so no career profile or search strategy is
  *     synthesized and the legacy planner (target roles x countries) builds the queries.
- *   - The kit writer is the scripted fake model on FAKE_ANTHROPIC_PORT, as in scenarios.ts.
+ *   - The kit writer is the same scripted fake model, as in scenarios.ts.
  *
  * Prints `__RESULT__{...report}`; exits non-zero if any scenario failed.
  */

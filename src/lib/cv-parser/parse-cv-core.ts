@@ -150,8 +150,8 @@ export async function parseCvBuffer(params: {
     };
 
     // The Claude parser already sees the full source document, so use its
-    // explicit, allow-listed language when available. If Workers AI fails safe
-    // to English, recognised source headers are stronger evidence than the
+    // explicit, allow-listed language when available. If the Haiku language
+    // detector fails safe to English, recognised source headers are stronger evidence than the
     // fallback and prevent a mixed-language template.
     const classified = parsedDocumentLanguage
       ? { language: parsedDocumentLanguage, usedFallback: false }

@@ -338,7 +338,9 @@ function overrideApplies(writer: string): boolean {
 
 function firstMessageText(body: MessagesBody): string {
   const first = body.messages?.[0]?.content;
-  return typeof first === 'string' ? first : JSON.stringify(first ?? '');
+  if (typeof first === 'string') return first;
+  // An array of blocks (the cache-marked layouts): join the text blocks, as the model reads them.
+  return blocksOf(first).filter((block) => block.type === 'text').map((block) => String(block.text ?? '')).join('');
 }
 
 function record(body: MessagesBody, kind: CallRecord['kind'], writer: string, markers: MarkerRecord[], provider: Provider, auth: CallRecord['auth']): CallRecord {

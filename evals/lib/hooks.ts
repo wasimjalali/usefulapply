@@ -3,7 +3,7 @@
  *
  *  - '@/lib/models'            -> evals/lib/models-shim.ts (no ledger, no D1)
  *  - modules that need Workers bindings, PostHog or storage -> inert stubs. None of them is
- *    on a Claude task path: the language detector's Workers AI call is bypassed because the
+ *    on a Claude task path: the language detector's Haiku call is bypassed because the
  *    harness sets context.detectedLanguage from the case itself.
  *  - prompt variants: when an arm names a variant other than 'production', a file in
  *    evals/prompt-variants/<variant>/ with the same base name as a production prompt module
@@ -20,7 +20,6 @@ const PROMPTS_DIR = path.join(ROOT, 'src', 'lib', 'agents', 'prompts');
 const VARIANTS_DIR = path.join(ROOT, 'evals', 'prompt-variants');
 
 const STUBS: Record<string, unknown> = {
-  '@/lib/models/workers-ai': { callWorkersAI: async () => { throw new Error('Workers AI is not available in the eval'); } },
   '@/lib/posthog-server': { getPostHogServer: () => ({ captureException() {}, capture() {}, async flush() {} }) },
   '@/lib/storage/applicantStore': { loadApplicantDocuments: async () => ({}) },
 };
@@ -64,7 +63,6 @@ export function installHooks(promptVariant: string, shim: unknown): void {
 //    module with callHaiku wrapped. While an eval scope has a backend (dry run, or the gpt-oss
 //    baseline), the call goes to that backend instead of the network. Without one, the real
 //    callHaiku runs and evals/haiku-55-swap/lib/wire.ts records and rewrites the HTTP request.
-//  - '@/lib/models/workers-ai': only until the swap lands in src (dry runs against pre-swap code).
 //  - '@/db/repos/adminMetrics': the LLM ledger. The harness never writes to a ledger.
 //  - '@/lib/posthog-server': inert, as in installHooks().
 //  - '@opennextjs/cloudflare': getCloudflareContext() returns globalThis.__evalCfEnv (the chat site sets
@@ -140,16 +138,6 @@ export function installHaikuHooks(): void {
     if (request === '@/lib/storage/applicantStore') return { loadApplicantDocuments: async () => ({}) };
     if (request === '@opennextjs/cloudflare') {
       return { getCloudflareContext: async () => ({ env: g.__evalCfEnv ?? {} }), initOpenNextCloudflareForDev: () => undefined };
-    }
-    if (request === '@/lib/models/workers-ai') {
-      // Pre-swap code only. After the swap nothing imports it.
-      return {
-        callWorkersAI: async (options: unknown) => {
-          const handled = g.__evalHaikuBackend?.('workers-ai', options);
-          if (!handled) throw new Error('callWorkersAI outside an eval backend: Workers AI is not available in the eval');
-          return handled;
-        },
-      };
     }
 
     let resolved: string | null = null;

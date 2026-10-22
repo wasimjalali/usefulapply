@@ -70,6 +70,30 @@ Consequences for us:
 ## Compaction
 - The compaction block goes first in `messages`, so the prefix after `system` changes once at compaction. Put a marker right after the compaction block so the next turns read it.
 
+## Our layout per site
+Read from the code on 2026-10-22. Change a site and this table in the same PR. "Shared" means the same bytes for every user, "per user" means the bytes depend on one user's data.
+
+| Site | Cached blocks (marker TTL) | Shared or per user |
+|---|---|---|
+| Haiku `chat` | tools + static system (1h), stableContext: document flags, CV and master CV summaries (1h), new user turn (5m), last tool result (5m) | system shared; stableContext and turns per user |
+| Haiku `screening` | static prompt (1h), applicant CVs as stableContext (1h) | static shared; CVs per user |
+| Haiku `tracker` | static system (5m, about 545 tokens, close to the 512 minimum) | shared |
+| Haiku `language` | static system (5m), far under 512 tokens so no entry is written | shared (uncached in practice) |
+| Haiku `ranking` | static system (5m), user profile as stableContext (5m); candidates are in the user turn, uncached | system shared; profile per user |
+| Haiku `search_strategy`, `career_profile` | static system (5m); profile or CV and the date are in the user turn, uncached | shared |
+| Sonnet `optimize_cv`, `rewrite_cv_section` | writer system blocks (1h); no user-message marker | shared; the section rewrite reads the kit's CV system block |
+| Sonnet `write_cover_letter`, `write_email`, `write_follow_up_email` | writer system blocks (1h); end of the first attempt's user message (5m) so a validation retry reads it; regenerate also marks the session context (1h) | system shared; user message per application |
+| Sonnet `fit_assessment` | system blocks (5m); static evaluation framework at the head of the user message (5m) | shared |
+| Sonnet `parse_job`, `skill_matching` | `parse_job`: plain system prompt marked (5m); `skill_matching`: static matching rules at the head of the user message (5m) | shared |
+| Sonnet `extract_applicant`, `extract_metrics` | the whole user prompt (5m); depends on the CVs only, not the job | per user |
+| Sonnet CV parsing (`parse-cv-core.ts`, `parseDocumentAsCV`) | none: the document comes first and the system prompt is short | n/a |
+
+- Chat runs `cacheConversation: false` and places its own 5m markers (new user turn, last tool result), so a request carries at most 4 markers: two 1h system blocks, then two 5m.
+- The per-turn state (time, pasted-ad flag) goes after the marked user turn in a `role: system` message, so it never breaks the read.
+- The four writers do not share a prefix with each other (each opens with its own instructions), so a kit fan-out does not pre-warm anything. The 1h system blocks are warm from earlier kits instead.
+- `jsonMode` adds the JSON-only rule as an unmarked block after the marked system blocks, or inside the marked block when the system is a plain `systemPrompt`. Either way it is part of the prefix.
+- A failed-over request goes to Bedrock with the same markers. Bedrock keeps its own cache, so the first request after a failover is a full write.
+
 ## Measure and test
 - Total prompt = `input_tokens + cache_creation_input_tokens + cache_read_input_tokens`. `input_tokens` alone is only the uncached tail. Budget guards (100k) and cost tracking use the sum, plus `usage.iterations` when compaction ran.
 - Every call logs per-site `cache_creation_input_tokens`, `cache_read_input_tokens`, `input_tokens` and the TTL split (`cache_creation.ephemeral_5m_input_tokens` / `ephemeral_1h_input_tokens`) to PostHog `$ai_generation`. Hit rate = read / (read + write + uncached input).

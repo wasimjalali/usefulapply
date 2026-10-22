@@ -233,7 +233,7 @@ export const STREAM_ABOVE_MAX_TOKENS = 16_000;
 
 /**
  * Thinking counts toward max_tokens and the Sonnet 5.5 tokenizer produces about 30% more
- * tokens than Sonnet 4.6 for the same text, so the budgets tuned on 4.6 are scaled up.
+ * tokens than the old Sonnet 4.6 for the same text, so the budgets first tuned on 4.6 are scaled up.
  */
 function sonnetMaxTokens(taskMaxTokens: number): number {
   return Math.max(4000, 4 * taskMaxTokens);
