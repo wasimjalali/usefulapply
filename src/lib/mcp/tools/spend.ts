@@ -43,6 +43,7 @@ import {
   MAX_SCREENING_MESSAGE_LENGTH,
   buildScreeningAnswersWrite,
   generateScreeningReply,
+  loadApplicantCvs,
   loadScreeningContext,
   screeningAllowedForTier,
 } from '@/lib/services/screening';
@@ -709,6 +710,8 @@ const draftScreeningAnswers = defineTool({
     }
     // Ownership, and the tailored CV the answers are kept with.
     const context = await loadScreeningContext(userId, args.applicationId);
+    // The applicant's own CVs, read before anything is spent: a failed read here costs no quota unit and no turn.
+    const applicantCvs = await loadApplicantCvs(userId);
 
     // What this call has spent so far, so a failure anywhere (the model call, or the save in the settle batch) gives it back.
     let quotaConsumed = false;
@@ -738,6 +741,7 @@ const draftScreeningAnswers = defineTool({
             message,
             history: [{ role: 'user', content: message }],
             context,
+            applicantCvs,
             route: 'mcp:draft_screening_answers',
             clientRequestId: args.idempotencyKey,
             applicationSessionId: args.applicationId,
