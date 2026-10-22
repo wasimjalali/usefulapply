@@ -221,12 +221,21 @@ export async function writeRankingLabels(dry: boolean, allowed: boolean): Promis
       `<postings>\n${JSON.stringify(set.jobs.map((j) => ({ jobId: j.id, title: j.title, company: j.company, location: j.location, workMode: j.workMode, employmentType: j.employmentType, salary: j.salaryText, description: j.description.slice(0, 2500) })), null, 1)}\n</postings>`,
     ].join('\n\n');
     const canned = { labels: set.jobs.map((j) => ({ jobId: j.id, relevance: designedRelevance(set.persona, j), reason: 'dry run' })) };
-    const out = await judgeOnce<{ labels: Array<{ jobId: string; relevance: number }> }>(spec, prompt, { dry, canned });
-    cost += out.costUsd;
     const map: Record<string, number> = {};
-    for (const l of out.verdict.labels) map[l.jobId] = l.relevance;
-    const missing = set.jobs.filter((j) => map[j.id] === undefined);
-    if (missing.length > 0) throw new Error(`${set.id}: judge skipped ${missing.length} postings`);
+    let missing = set.jobs;
+    let out: Awaited<ReturnType<typeof judgeOnce<{ labels: Array<{ jobId: string; relevance: number }> }>>> | null = null;
+    // The labeller sometimes skips a posting in a list of 40: ask again for the missing ones only, up to twice.
+    for (let attempt = 1; attempt <= 3 && missing.length > 0; attempt += 1) {
+      const ask = attempt === 1
+        ? prompt
+        : `${prompt}\n\nLabel ONLY these postings, which the previous answer skipped. Return one label for each jobId: ${missing.map((j) => j.id).join(', ')}`;
+      out = await judgeOnce<{ labels: Array<{ jobId: string; relevance: number }> }>(spec, ask, { dry, canned });
+      cost += out.costUsd;
+      for (const l of out.verdict.labels) if (map[l.jobId] === undefined && set.jobs.some((j) => j.id === l.jobId)) map[l.jobId] = l.relevance;
+      missing = set.jobs.filter((j) => map[j.id] === undefined);
+      if (missing.length > 0) console.log(`${set.id}: attempt ${attempt} skipped ${missing.length} postings`);
+    }
+    if (missing.length > 0 || !out) throw new Error(`${set.id}: judge skipped ${missing.length} postings after 3 attempts`);
     labels[set.id] = map;
     console.log(`${set.id}: ${set.jobs.length} labelled (${dry ? 'dry' : `$${out.costUsd.toFixed(3)}`}), prompt ${prompt.length} chars`);
   });
