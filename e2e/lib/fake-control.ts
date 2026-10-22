@@ -81,6 +81,8 @@ export interface FakeControl {
   profileCreateFail?: { status: 500 | 529 | 400; count: number } | null;
   /** Hold every profile create this long before answering. */
   profileCreateHoldMs?: number;
+  /** DELETE /v1/user_profiles/{id} answers `status` to the next `count` deletes. null clears it. */
+  profileDeleteFail?: { status: 500 | 503; count: number } | null;
 }
 
 export async function fakeControl(body: FakeControl, url: string = FAKE_ANTHROPIC_URL): Promise<void> {
@@ -88,7 +90,7 @@ export async function fakeControl(body: FakeControl, url: string = FAKE_ANTHROPI
   if (!response.ok) throw new Error('fake model control call failed');
 }
 
-export interface FakeProfile { id: string; referenceId: string | null; accessType: string; createdAt: string; deletedAt: string | null }
+export interface FakeProfile { id: string; referenceId: string | null; accessType: string; createdAt: string; deletedAt: string | null; enforcement: 'unrestricted' | 'banned' }
 export interface FakeProfileEvent { kind: 'create' | 'delete' | 'retrieve'; id: string | null; referenceId: string | null; status: number; at: string }
 
 /** Every user profile the fake holds (they outlive /__reset) and every create, delete and retrieve it answered. */
@@ -101,4 +103,10 @@ export async function fakeProfiles(url: string = FAKE_ANTHROPIC_URL): Promise<{ 
 export async function fakeAddProfile(id: string, referenceId: string, url: string = FAKE_ANTHROPIC_URL): Promise<void> {
   const response = await fetch(`${url}/__profiles`, { method: 'POST', body: JSON.stringify({ id, referenceId }) });
   if (!response.ok) throw new Error(`fake profile add failed: ${await response.text()}`);
+}
+
+/** Ban a profile the fake holds: a request naming it then gets a 400 that names the id, and a retrieve shows the ban. */
+export async function fakeBanProfile(id: string, url: string = FAKE_ANTHROPIC_URL): Promise<void> {
+  const response = await fetch(`${url}/__profiles`, { method: 'POST', body: JSON.stringify({ id, enforcement: 'banned' }) });
+  if (!response.ok) throw new Error(`fake profile ban failed: ${await response.text()}`);
 }

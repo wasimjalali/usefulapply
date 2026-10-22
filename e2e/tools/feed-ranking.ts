@@ -199,6 +199,12 @@ async function main(): Promise<void> {
     assert.deepEqual(ranking.markers.map((marker) => [marker.where, marker.ttl]), [['system', '5m'], ['system', '5m']]);
     firstStaticHash = ranking.staticPrefixHash;
 
+    // Every request of the run, the count included, names the user's Anthropic profile (the one stored in D1).
+    const stored = await one('SELECT profile_id FROM anthropic_user_profiles WHERE user_id = ?', userId);
+    assert.ok(String(stored?.profile_id ?? '').startsWith('uprof_'), 'the run created and stored a user profile');
+    const unnamed = (await fakeCalls()).filter((call) => call.userProfileId !== stored.profile_id).map((call) => `${call.kind}:${call.writer}:${call.userProfileId}`);
+    assert.deepEqual(unnamed, [], 'requests that do not name the user\'s profile');
+
     // The run: 40 candidates went to the model, 25 (the Max cap) came back ranked, and the ranking is the model's.
     const finished = await runOf(userId);
     assert.equal(finished.status, 'completed');
@@ -223,7 +229,7 @@ async function main(): Promise<void> {
       ranking.usage?.total,
       'the ledger holds input, cache reads and cache writes of the request',
     );
-    return { candidates: finished.metadata.ranking_candidate_count, rankingInputTokens: ranking.usage?.total, countedTokens: counts[0].countedTokens, countTokensCalls: counts.length, ranked: items.length, ledger };
+    return { candidates: finished.metadata.ranking_candidate_count, rankingInputTokens: ranking.usage?.total, countedTokens: counts[0].countedTokens, countTokensCalls: counts.length, ranked: items.length, userProfileId: stored.profile_id, ledger };
   });
 
   await scenario('r2. a second Max user\'s run has the same static prefix and reads it from the cache', async () => {

@@ -12,13 +12,16 @@
  *   request options. Anonymous and system calls send none.
  * - POST /v1/user_profiles is not idempotent. Concurrent first calls in one isolate share one creation; across
  *   isolates the D1 insert is ON CONFLICT DO NOTHING and the losing writer deletes its own profile at Anthropic.
+ *   A shared creation belongs to the request that started it, and a cancelled request can leave it unsettled, so
+ *   every other waiter gives up after SHARED_WAIT_MS (no header) and a stale entry is replaced.
  * - A profile that cannot be created or stored never blocks the model call: the call goes out without the header,
  *   and the failure is logged (Workers Logs) and captured (PostHog `anthropic_user_profile_failed`). After a failure
  *   the user's next calls skip creation for CREATE_RETRY_AFTER_MS, so an outage does not add a slow create to every call.
  * - The header is a request header (a body field on Bedrock), outside the prompt, so prompt-cache keys do not change.
  * - The API answers a 400 to an id it does not know for this organization (a profile deleted elsewhere, or an API key
- *   from another organization). That call fails as it is; `forgetRejectedUserProfile` drops the stored id so the user's
- *   next call creates a new profile instead of failing the same way forever.
+ *   from another organization). That call fails as it is; `forgetRejectedUserProfile` drops the stored id only once a
+ *   retrieve answers 404, so the user's next call creates a new profile. A profile that still exists is never swapped:
+ *   the docs do not say what an enforcement refusal looks like, and a fresh profile must never route around one.
  */
 import { APIError } from '@anthropic-ai/sdk';
 import {
@@ -32,11 +35,17 @@ import { getPrimaryClient } from './providers';
 export const USER_PROFILE_HEADER = 'anthropic-user-profile-id';
 
 const PROFILE_REQUEST_TIMEOUT_MS = 10_000;
+/** How long a call waits on a creation another request started (create timeout plus the D1 writes). */
+const SHARED_WAIT_MS = PROFILE_REQUEST_TIMEOUT_MS + 5_000;
 const CREATE_RETRY_AFTER_MS = 60_000;
 /** Profile ids remembered per isolate; the oldest is dropped past this. */
 const MAX_CACHED = 5_000;
 
 type FailureStage = 'read' | 'create' | 'store' | 'cleanup' | 'delete' | 'rejected';
+
+export interface RemoteProfile {
+  enforcementStatus: string;
+}
 
 export interface UserProfileStore {
   read(userId: string): Promise<string | null>;
@@ -47,6 +56,8 @@ export interface UserProfileStore {
   create(userId: string): Promise<string>;
   /** Deletes the profile at Anthropic. A 404 (already gone) is success. */
   remove(profileId: string): Promise<void>;
+  /** Reads the profile at Anthropic; null when it answers 404. */
+  retrieve(profileId: string): Promise<RemoteProfile | null>;
   capture(event: { distinctId: string; event: string; properties: Record<string, unknown> }): Promise<void>;
 }
 
@@ -71,6 +82,15 @@ const defaultStore: UserProfileStore = {
       throw error;
     }
   },
+  async retrieve(profileId) {
+    try {
+      const profile = await getPrimaryClient().userProfiles.retrieve(profileId, {}, { timeout: PROFILE_REQUEST_TIMEOUT_MS, maxRetries: 1 });
+      return { enforcementStatus: profile.enforcement_status };
+    } catch (error) {
+      if (error instanceof APIError && error.status === 404) return null;
+      throw error;
+    }
+  },
   async capture(event) {
     const posthog = getPostHogServer();
     posthog.capture(event);
@@ -80,7 +100,7 @@ const defaultStore: UserProfileStore = {
 
 let store: UserProfileStore = defaultStore;
 const known = new Map<string, string>();
-const inFlight = new Map<string, Promise<string | null>>();
+const inFlight = new Map<string, { promise: Promise<string | null>; startedAt: number }>();
 const retryAfter = new Map<string, number>();
 
 /** Swap D1, the API and PostHog for a test, and clear the per-isolate state. `null` restores the real ones. */
@@ -105,7 +125,13 @@ function describe(error: unknown): { message: string; httpStatus: number | null;
   };
 }
 
-async function reportFailure(userId: string, stage: FailureStage, error: unknown, profileId: string | null = null): Promise<void> {
+async function reportFailure(
+  userId: string,
+  stage: FailureStage,
+  error: unknown,
+  profileId: string | null = null,
+  extra: Record<string, string | boolean | null> = {},
+): Promise<void> {
   const { message, httpStatus, errorType } = describe(error);
   console.error(JSON.stringify({
     event: 'anthropic_user_profile_failed',
@@ -114,23 +140,34 @@ async function reportFailure(userId: string, stage: FailureStage, error: unknown
     profile_id: profileId,
     http_status: httpStatus,
     error_type: errorType,
+    ...extra,
     message,
   }));
   try {
     await store.capture({
       distinctId: userId,
       event: 'anthropic_user_profile_failed',
-      properties: { stage, http_status: httpStatus, error_type: errorType, profile_id: profileId },
+      properties: { stage, http_status: httpStatus, error_type: errorType, profile_id: profileId, ...extra },
     });
   } catch (captureError) {
     console.error('[user-profiles] PostHog capture failed', captureError);
   }
 }
 
+/** The stored id, reading D1 a second time if the first read fails (a transient D1 error must not unattribute a call). */
+async function readStored(userId: string): Promise<string | null> {
+  try {
+    return await store.read(userId);
+  } catch (error) {
+    console.warn(JSON.stringify({ event: 'anthropic_user_profile_read_retry', user_id: userId, message: describe(error).message }));
+    return await store.read(userId);
+  }
+}
+
 async function createAndStore(userId: string): Promise<string | null> {
   let stored: string | null;
   try {
-    stored = await store.read(userId);
+    stored = await readStored(userId);
   } catch (error) {
     // Without the mapping we cannot know whether a profile exists; creating one could orphan the stored one.
     await reportFailure(userId, 'read', error);
@@ -153,8 +190,20 @@ async function createAndStore(userId: string): Promise<string | null> {
     winner = await store.claim(userId, created);
   } catch (error) {
     await reportFailure(userId, 'store', error, created);
-    retryAfter.set(userId, Date.now() + CREATE_RETRY_AFTER_MS);
+    // The insert may have landed before the failure (its follow-up read failed): look before deleting anything.
+    let current: string | null;
+    try {
+      current = await store.read(userId);
+    } catch (readError) {
+      // Unknown whether ours is stored: keep it rather than delete a profile other isolates may already send.
+      await reportFailure(userId, 'read', readError, created);
+      retryAfter.set(userId, Date.now() + CREATE_RETRY_AFTER_MS);
+      return null;
+    }
+    if (current === created) return created;
     await removeQuietly(userId, created);
+    if (current) return current;
+    retryAfter.set(userId, Date.now() + CREATE_RETRY_AFTER_MS);
     return null;
   }
   if (winner !== created) {
@@ -186,7 +235,7 @@ export async function resolveUserProfileId(userId: string | null | undefined): P
   if (cached) return cached;
 
   const pending = inFlight.get(userId);
-  if (pending) return pending;
+  if (pending && Date.now() - pending.startedAt < SHARED_WAIT_MS) return waitShared(userId, pending.promise);
 
   const until = retryAfter.get(userId);
   if (until !== undefined) {
@@ -197,25 +246,58 @@ export async function resolveUserProfileId(userId: string | null | undefined): P
     retryAfter.delete(userId);
   }
 
-  const resolving = createAndStore(userId)
+  const startedAt = Date.now();
+  const resolving: Promise<string | null> = createAndStore(userId)
     .then((profileId) => {
       if (profileId) remember(userId, profileId);
       return profileId;
     })
-    .finally(() => inFlight.delete(userId));
-  inFlight.set(userId, resolving);
+    .finally(() => {
+      // A stale entry may have been replaced by a newer creation: only remove our own.
+      if (inFlight.get(userId)?.promise === resolving) inFlight.delete(userId);
+    });
+  inFlight.set(userId, { promise: resolving, startedAt });
   return resolving;
 }
 
+/** Wait on a creation another request started, at most SHARED_WAIT_MS; then go without the header. */
+async function waitShared(userId: string, shared: Promise<string | null>): Promise<string | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const giveUp = new Promise<null>((resolve) => {
+    timer = setTimeout(() => {
+      console.warn(JSON.stringify({ event: 'anthropic_user_profile_skipped', user_id: userId, reason: 'shared_wait_timeout' }));
+      resolve(null);
+    }, SHARED_WAIT_MS);
+  });
+  try {
+    return await Promise.race([shared, giveUp]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
- * Called with a call's final error. A 400 from the Anthropic API that names the profile id means the API no longer
- * accepts it: drop the mapping (only while it still holds that id) and report it. The call itself is not retried.
+ * Called with a call's final error. A 400 from the Anthropic API that names the profile id may mean the profile is gone
+ * (deleted elsewhere, or an API key from another organization), or may be how an enforcement action refuses the user.
+ * Only a retrieve that answers 404 proves the first: then the mapping is dropped (only while it still holds that id) so
+ * the next call creates a new profile. A profile that still exists is kept, whatever the 400 said. Never retries the call.
  */
 export async function forgetRejectedUserProfile(userId: string | null | undefined, profileId: string | null, error: unknown): Promise<void> {
   if (!userId || !profileId) return;
   if (!(error instanceof APIError) || error.status !== 400 || !error.message.includes(profileId)) return;
+  let remote: RemoteProfile | null;
+  try {
+    remote = await store.retrieve(profileId);
+  } catch (lookupError) {
+    await reportFailure(userId, 'rejected', lookupError, profileId, { lookup_failed: true });
+    return;
+  }
+  if (remote) {
+    await reportFailure(userId, 'rejected', error, profileId, { profile_exists: true, enforcement_status: remote.enforcementStatus });
+    return;
+  }
   known.delete(userId);
-  await reportFailure(userId, 'rejected', error, profileId);
+  await reportFailure(userId, 'rejected', error, profileId, { profile_exists: false });
   try {
     await store.deleteRow(userId, profileId);
   } catch (deleteError) {
@@ -245,4 +327,16 @@ export async function deleteUserProfileForAccount(userId: string): Promise<void>
   }
   await store.deleteRow(userId);
   console.log(JSON.stringify({ event: 'anthropic_user_profile_deleted', user_id: userId, profile_id: profileId }));
+}
+
+/**
+ * Account deletion, after the user's rows are gone: delete any profile a model call stored between
+ * deleteUserProfileForAccount and the wipe. Logged, not thrown: the rows are gone, so a retry could not find them.
+ */
+export async function deleteLeftoverUserProfiles(userId: string, profileIds: string[]): Promise<void> {
+  known.delete(userId);
+  for (const profileId of profileIds) {
+    console.warn(JSON.stringify({ event: 'anthropic_user_profile_leftover', user_id: userId, profile_id: profileId }));
+    await removeQuietly(userId, profileId);
+  }
 }

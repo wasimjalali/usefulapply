@@ -1,8 +1,8 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext } from '@playwright/test';
 import { storedApplication } from '../lib/app';
 import { BASE_URL } from '../lib/env';
-import { fakeAddProfile, fakeCalls, fakeControl, fakeProfiles, fakeReset, type FakeCall } from '../lib/fake-control';
-import { JOB_DESCRIPTION } from '../lib/model-script';
+import { fakeAddProfile, fakeBanProfile, fakeCalls, fakeControl, fakeProfiles, fakeReset, type FakeCall } from '../lib/fake-control';
+import { JOB_DESCRIPTION, PRIMARY_CV } from '../lib/model-script';
 import { runTool } from '../lib/run-tool';
 import { openLocalD1 } from '../lib/sqlite';
 import { callAgent, createSignedInApiUser, nextTestIp, type AgentEvent, type TestUser } from '../lib/user';
@@ -23,9 +23,14 @@ import { callAgent, createSignedInApiUser, nextTestIp, type AgentEvent, type Tes
  *    sends the stored id;
  *  - (u3) a profile create that fails (500) does not cost the user the kit: it completes, charged once, and no
  *    request carries a profile; nothing is stored;
- *  - (u4) account deletion deletes the profile at Anthropic and the D1 row, and leaves other users' profiles alone;
+ *  - (u4) account deletion whose profile delete fails at Anthropic stops (the account, the row and the profile stay)
+ *    and a second confirmation finishes it: the profile is deleted at Anthropic, then the D1 row, other users untouched;
  *  - (u5) a stored id the API no longer accepts (deleted elsewhere, or an API key from another organization): that
- *    call fails with the API's 400, the stale mapping is dropped, and the next call creates a new profile and works.
+ *    call fails with the API's 400, the app confirms with a retrieve (404) that the profile is gone, drops the mapping,
+ *    and the next call creates a new profile and works;
+ *  - (u6) a banned profile whose refusal is a 400 naming the id: the retrieve shows the profile still exists, so the app
+ *    keeps the mapping and never swaps the user onto a fresh, unrestricted profile;
+ *  - (u7) an anonymous CV upload sends no profile and creates none.
  */
 
 interface ApiUser { user: TestUser; api: APIRequestContext }
@@ -241,7 +246,7 @@ test.describe.serial('Anthropic user profiles', () => {
     expect(calls.every((call) => call.userProfileId === null), JSON.stringify(profileTrail(calls))).toBe(true);
   });
 
-  test('(u4) account deletion deletes the profile at Anthropic and the D1 row, and leaves other users alone', async () => {
+  test('(u4) account deletion: a failed profile delete stops it, a second confirmation deletes the profile, then the row', async () => {
     const e = await apiUser('profiles-delete');
     const other = await apiUser('profiles-keep');
     await fakeReset();
@@ -254,27 +259,41 @@ test.describe.serial('Anthropic user profiles', () => {
     expect(profileId).toMatch(/^uprof_/);
     expect(otherProfile).toMatch(/^uprof_/);
 
-    const ip = nextTestIp();
-    const ask = await e.api.delete(`${BASE_URL}/api/auth/delete-account`, { headers: { 'cf-connecting-ip': ip, 'x-forwarded-for': ip } });
-    expect(ask.status(), await ask.text()).toBe(200);
-    // The confirmation link goes to a mailbox nobody reads: take its token from Better Auth's verification row.
-    const db = openLocalD1();
-    let token: string;
-    try {
-      const row = db.prepare("SELECT identifier FROM verification WHERE value = ? AND identifier LIKE 'delete-account-%' ORDER BY created_at DESC LIMIT 1")
-        .get(e.user.id) as { identifier: string } | undefined;
-      expect(row, 'a delete-account verification row').toBeTruthy();
-      token = (row as { identifier: string }).identifier.slice('delete-account-'.length);
-    } finally {
-      db.close();
-    }
-    const confirm = await e.api.get(`${BASE_URL}/api/auth/delete-user/callback?token=${token}`, { maxRedirects: 0 });
+    const confirmDeletion = async () => {
+      const ip = nextTestIp();
+      const ask = await e.api.delete(`${BASE_URL}/api/auth/delete-account`, { headers: { 'cf-connecting-ip': ip, 'x-forwarded-for': ip } });
+      expect(ask.status(), await ask.text()).toBe(200);
+      // The confirmation link goes to a mailbox nobody reads: take its token from Better Auth's verification row.
+      const db = openLocalD1();
+      let token: string;
+      try {
+        const row = db.prepare("SELECT identifier FROM verification WHERE value = ? AND identifier LIKE 'delete-account-%' ORDER BY created_at DESC LIMIT 1")
+          .get(e.user.id) as { identifier: string } | undefined;
+        expect(row, 'a delete-account verification row').toBeTruthy();
+        token = (row as { identifier: string }).identifier.slice('delete-account-'.length);
+      } finally {
+        db.close();
+      }
+      return e.api.get(`${BASE_URL}/api/auth/delete-user/callback?token=${token}`, { maxRedirects: 0 });
+    };
+
+    // Anthropic fails every delete attempt (the SDK tries three times): the deletion stops before the user row goes.
+    await fakeControl({ profileDeleteFail: { status: 500, count: 3 } });
+    const failed = await confirmDeletion();
+    expect(failed.status(), 'the deletion stops when the profile cannot be deleted').toBeGreaterThanOrEqual(400);
+    expect(userRowExists(e.user.id)).toBe(true);
+    expect(storedProfile(e.user.id)).toBe(profileId);
+    expect((await fakeProfiles()).profiles.find((p) => p.id === profileId)?.deletedAt).toBeNull();
+    expect((await fakeProfiles()).events.filter((event) => event.kind === 'delete' && event.id === profileId).map((event) => event.status)).toEqual([500, 500, 500]);
+
+    await fakeControl({});
+    const confirm = await confirmDeletion();
     expect(confirm.status(), await confirm.text()).toBe(200);
 
     expect(userRowExists(e.user.id)).toBe(false);
     expect(storedProfile(e.user.id)).toBeNull();
     const { profiles, events } = await fakeProfiles();
-    expect(events.filter((event) => event.kind === 'delete' && event.id === profileId).map((event) => event.status)).toEqual([200]);
+    expect(events.filter((event) => event.kind === 'delete' && event.id === profileId).map((event) => event.status)).toEqual([500, 500, 500, 200]);
     expect(profiles.find((p) => p.id === profileId)?.deletedAt).toBeTruthy();
     expect(profiles.find((p) => p.id === otherProfile)?.deletedAt).toBeNull();
     expect(storedProfile(other.user.id)).toBe(otherProfile);
@@ -297,6 +316,8 @@ test.describe.serial('Anthropic user profiles', () => {
     expect(rejected.map((call) => `${call.provider}:${call.status}:${call.userProfileId}`)).toEqual([`anthropic:400:${stale}`]);
     expect(storedProfile(f.user.id), 'the stale mapping was dropped').toBeNull();
     expect(await createsFor(f.user.id)).toEqual([]);
+    const checks = (await fakeProfiles()).events.filter((event) => event.kind === 'retrieve' && event.id === stale);
+    expect(checks.map((event) => event.status), 'the app confirmed the profile is gone before dropping it').toEqual([404]);
 
     await fakeReset();
     const second = await postChat(f, 'Thanks for the help');
@@ -308,5 +329,45 @@ test.describe.serial('Anthropic user profiles', () => {
     const calls = await fakeCalls();
     expect(calls.length).toBeGreaterThan(0);
     expect(calls.every((call) => call.userProfileId === fresh && call.status === 200), JSON.stringify(profileTrail(calls))).toBe(true);
+  });
+
+  test('(u6) a banned profile refused with a 400 naming its id: the mapping stays, no fresh profile replaces it', async () => {
+    const g = await apiUser('profiles-banned');
+    await fakeReset();
+    const first = await postChat(g, 'Thanks for the help');
+    expect(first.status(), await first.text()).toBe(200);
+    const profileId = storedProfile(g.user.id) as string;
+    expect(profileId).toMatch(/^uprof_/);
+
+    await fakeBanProfile(profileId);
+    await fakeReset();
+    for (let i = 0; i < 2; i++) {
+      const refused = await postChat(g, 'Thanks for the help');
+      expect(refused.status(), 'a banned user is refused').toBe(500);
+    }
+    const calls = await fakeCalls();
+    expect(calls.map((call) => `${call.status}:${call.userProfileId}`)).toEqual([`400:${profileId}`, `400:${profileId}`]);
+    expect(storedProfile(g.user.id), 'the mapping is kept').toBe(profileId);
+    expect((await createsFor(g.user.id)).map((event) => event.status), 'no second profile').toEqual([200]);
+    const checks = (await fakeProfiles()).events.filter((event) => event.kind === 'retrieve' && event.id === profileId);
+    expect(checks.length, 'the app looked the profile up before deciding').toBeGreaterThanOrEqual(1);
+    expect(checks.every((event) => event.status === 200)).toBe(true);
+  });
+
+  test('(u7) an anonymous CV upload sends no profile and creates none', async () => {
+    const api = await playwrightRequest.newContext();
+    await fakeReset();
+    const before = (await fakeProfiles()).events.filter((event) => event.kind === 'create').length;
+    const ip = nextTestIp();
+    const response = await api.post(`${BASE_URL}/api/parse-cv`, {
+      multipart: { file: { name: 'tomas-brandt.txt', mimeType: 'text/plain', buffer: Buffer.from(PRIMARY_CV) } },
+      headers: { 'cf-connecting-ip': ip, 'x-forwarded-for': ip },
+      timeout: 120_000,
+    });
+    expect(response.status(), await response.text()).toBe(200);
+    const calls = await fakeCalls();
+    expect(calls.filter((call) => call.kind === 'messages').length, 'the parse called the model').toBeGreaterThanOrEqual(1);
+    expect(calls.every((call) => call.userProfileId === null), JSON.stringify(profileTrail(calls))).toBe(true);
+    expect((await fakeProfiles()).events.filter((event) => event.kind === 'create').length).toBe(before);
   });
 });

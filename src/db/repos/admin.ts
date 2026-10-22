@@ -499,8 +499,8 @@ const USER_ID_TABLES = [
   creditTransactions,
   subscriptions,
   messageFeedback,
-  // Normally gone already (deleteUserProfileForAccount deletes the profile at Anthropic first); this also clears a
-  // row a model call wrote in between.
+  // Normally gone already (deleteUserProfileForAccount deletes the profile at Anthropic first); a row a model call
+  // wrote in between is removed here and its id returned, so the caller deletes that profile too.
   anthropicUserProfiles,
 ] as const;
 
@@ -769,10 +769,16 @@ export async function listUnverifiedAuthUsers(
     .limit(CRON_BATCH_LIMIT);
 }
 
-export async function deleteAllUserData(userId: string): Promise<void> {
+/** Returns the Anthropic user profile ids it removed with the user's rows, for the caller to delete at Anthropic. */
+export async function deleteAllUserData(userId: string): Promise<{ anthropicProfileIds: string[] }> {
   const db = await getDb();
+  const anthropicRows = await db
+    .select({ profileId: anthropicUserProfiles.profile_id })
+    .from(anthropicUserProfiles)
+    .where(eq(anthropicUserProfiles.user_id, userId));
   for (const table of USER_ID_TABLES) {
     await db.delete(table).where(eq(table.user_id, userId));
   }
   await db.delete(profiles).where(eq(profiles.id, userId));
+  return { anthropicProfileIds: anthropicRows.map((row) => row.profileId) };
 }

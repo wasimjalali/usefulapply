@@ -3,24 +3,11 @@
  * does (src/lib/models/user-profiles.ts), send a Haiku 5.5 message and a count_tokens request that name it, confirm
  * the API rejects an id that is not ours, then delete the profile and confirm it is gone. Costs a few hundred tokens.
  *
- * Run: npx tsx e2e/tools/user-profile-live-check.ts [out.json]
- * Key: ANTHROPIC_API_KEY from the environment, else ANTHROPIC_API_KEY alone from the main checkout's .dev.vars (read
- * into this process, never printed), as evals/haiku-55-swap/run.ts --key-from-dev-vars does.
+ * Run: ANTHROPIC_API_KEY=... npx tsx e2e/tools/user-profile-live-check.ts [out.json]
  */
-import { spawnSync } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { parseEnv } from 'node:util';
 import Anthropic, { APIError } from '@anthropic-ai/sdk';
-
-function loadAnthropicKey(): void {
-  if (process.env.ANTHROPIC_API_KEY) return;
-  const common = spawnSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], { cwd: __dirname, encoding: 'utf8' });
-  if (common.status !== 0) throw new Error('git rev-parse failed: run from inside the Useful Apply checkout');
-  const parsed = parseEnv(readFileSync(path.join(path.dirname(common.stdout.trim()), '.dev.vars'), 'utf8'));
-  if (!parsed.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not in the main checkout .dev.vars');
-  process.env.ANTHROPIC_API_KEY = parsed.ANTHROPIC_API_KEY;
-}
 
 async function expectError(run: () => Promise<unknown>): Promise<{ status: number | null; type: string | null; message: string }> {
   try {
@@ -33,7 +20,7 @@ async function expectError(run: () => Promise<unknown>): Promise<{ status: numbe
 }
 
 async function main(): Promise<void> {
-  loadAnthropicKey();
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error('Set ANTHROPIC_API_KEY to run the live check');
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 1 });
   const referenceId = `useful-apply-live-check-${new Date().toISOString()}`;
   const steps: Record<string, unknown> = { ranAt: new Date().toISOString(), sdk: '@anthropic-ai/sdk 1.1.0', referenceId };

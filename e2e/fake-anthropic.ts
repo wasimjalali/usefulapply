@@ -46,6 +46,7 @@
  *   skipCalls    n   answer the first n messages calls of that writer with their real size, then override
  *   profileCreateFail  { status, count } | null   POST /v1/user_profiles answers `status` to the next `count` creates
  *   profileCreateHoldMs  n   hold every profile create this long before answering (a window for a spec to race it)
+ *   profileDeleteFail  { status, count } | null   DELETE /v1/user_profiles/{id} answers `status` to the next `count` deletes
  * GET /__calls returns the call log, GET /__reset clears it, the cache and the control state.
  *
  * User profiles (https://platform.claude.com/docs/en/manage-claude/user-profiles), on the Anthropic endpoint only:
@@ -55,7 +56,9 @@
  * after a delete), and in the top-level `user_profile_id` body field on Bedrock (format checked only, as Bedrock
  * does; the header there is a 400 so a request that skipped the SDK's move fails). Every call records the id it
  * carried as `userProfileId`. Profiles outlive /__reset, like the real ones: GET /__profiles lists them and every
- * create and delete; POST /__profiles { id, referenceId } adds one made elsewhere (another isolate's, in a race).
+ * create and delete; POST /__profiles { id, referenceId } adds one made elsewhere (another isolate's, in a race), and
+ * { id, enforcement: 'banned' } bans one: a request naming it gets a 400 that names the id (the docs do not say what an
+ * enforcement refusal looks like, so the fake takes the shape a stale-id check could mistake for a deleted profile).
  * A question containing FAKE-AI-FAIL makes the screening call fail (500); FAKE-AI-ECHO-PROMPT makes it
  * answer with the application block it was shown.
  */
@@ -135,12 +138,13 @@ interface CallRecord {
 
 const calls: CallRecord[] = [];
 
-interface FakeProfile { id: string; referenceId: string | null; accessType: string; createdAt: string; deletedAt: string | null }
+interface FakeProfile { id: string; referenceId: string | null; accessType: string; createdAt: string; deletedAt: string | null; enforcement: 'unrestricted' | 'banned' }
 interface ProfileEvent { kind: 'create' | 'delete' | 'retrieve'; id: string | null; referenceId: string | null; status: number; at: string }
 const profiles = new Map<string, FakeProfile>();
 const profileEvents: ProfileEvent[] = [];
 let profileCreateFail: { status: number; remaining: number } | null = null;
 let profileCreateHoldMs = 0;
+let profileDeleteFail: { status: number; remaining: number } | null = null;
 const PROFILE_ID = /^uprof_[A-Za-z0-9]{10,}$/;
 const PROFILE_HEADER = 'anthropic-user-profile-id';
 // Each provider has its own prompt cache, like the real services.
@@ -577,7 +581,9 @@ function profileOf(request: IncomingMessage, body: MessagesBody, provider: Provi
   if (bodyId !== undefined) return { id: null, error: 'user_profile_id: Extra inputs are not permitted' };
   if (headerId === null) return { id: null, error: null };
   if (!PROFILE_ID.test(headerId)) return { id: headerId, error: `${PROFILE_HEADER}: malformed user profile id` };
-  if (!profiles.has(headerId)) return { id: headerId, error: `${PROFILE_HEADER}: user profile ${headerId} does not belong to this organization` };
+  const profile = profiles.get(headerId);
+  if (!profile) return { id: headerId, error: `The \`user_profile_id\` '${headerId}' does not belong to this organization.` };
+  if (profile.enforcement === 'banned') return { id: headerId, error: `The \`user_profile_id\` '${headerId}' is banned.` };
   return { id: headerId, error: null };
 }
 
@@ -595,6 +601,7 @@ createServer(async (request, response) => {
         primaryStreamCut?: { count: number; skip?: number; writer?: string } | null;
         profileCreateFail?: { status: number; count: number } | null;
         profileCreateHoldMs?: number;
+        profileDeleteFail?: { status: number; count: number } | null;
       };
       failWriters = new Set(Array.isArray(body.failWriter) ? body.failWriter : body.failWriter ? [body.failWriter] : []);
       delayMs = body.delayMs ?? 0;
@@ -608,15 +615,22 @@ createServer(async (request, response) => {
         : null;
       profileCreateFail = body.profileCreateFail ? { status: body.profileCreateFail.status, remaining: body.profileCreateFail.count } : null;
       profileCreateHoldMs = body.profileCreateHoldMs ?? 0;
-      return json(response, 200, { ok: true, failWriters: [...failWriters], delayMs, override, primaryFail, primaryStreamCut, profileCreateFail, profileCreateHoldMs });
+      profileDeleteFail = body.profileDeleteFail ? { status: body.profileDeleteFail.status, remaining: body.profileDeleteFail.count } : null;
+      return json(response, 200, { ok: true, failWriters: [...failWriters], delayMs, override, primaryFail, primaryStreamCut, profileCreateFail, profileCreateHoldMs, profileDeleteFail });
     }
     if (url.pathname === '/__profiles' && request.method === 'GET') {
       return json(response, 200, { profiles: [...profiles.values()], events: profileEvents });
     }
     if (url.pathname === '/__profiles' && request.method === 'POST') {
-      const body = JSON.parse((await readBody(request)) || '{}') as { id?: string; referenceId?: string };
+      const body = JSON.parse((await readBody(request)) || '{}') as { id?: string; referenceId?: string; enforcement?: 'banned' };
       if (!body.id || !PROFILE_ID.test(body.id)) return json(response, 400, { error: 'id must be a uprof_ id' });
-      profiles.set(body.id, { id: body.id, referenceId: body.referenceId ?? null, accessType: 'application', createdAt: new Date().toISOString(), deletedAt: null });
+      const existing = profiles.get(body.id);
+      if (body.enforcement) {
+        if (!existing) return json(response, 404, { error: 'no such profile to enforce on' });
+        existing.enforcement = body.enforcement;
+        return json(response, 200, { ok: true });
+      }
+      profiles.set(body.id, { id: body.id, referenceId: body.referenceId ?? null, accessType: 'application', createdAt: new Date().toISOString(), deletedAt: null, enforcement: 'unrestricted' });
       return json(response, 200, { ok: true });
     }
     if (url.pathname === '/__calls') return json(response, 200, calls);
@@ -633,6 +647,7 @@ createServer(async (request, response) => {
       overrideSeen = 0;
       profileCreateFail = null;
       profileCreateHoldMs = 0;
+      profileDeleteFail = null;
       return json(response, 200, { ok: true });
     }
 
@@ -668,7 +683,7 @@ createServer(async (request, response) => {
           return refuse(profileCreateFail.status, profileCreateFail.status === 529 ? 'overloaded_error' : 'api_error', `scripted ${profileCreateFail.status}`);
         }
         const id = `uprof_${createHash('sha256').update(`${at}:${Math.random()}`).digest('hex').slice(0, 24)}`;
-        const profile: FakeProfile = { id, referenceId: event.referenceId, accessType: body.access_type ?? 'application', createdAt: at, deletedAt: null };
+        const profile: FakeProfile = { id, referenceId: event.referenceId, accessType: body.access_type ?? 'application', createdAt: at, deletedAt: null, enforcement: 'unrestricted' };
         profiles.set(id, profile);
         event.id = id;
         return json(response, 200, {
@@ -682,6 +697,11 @@ createServer(async (request, response) => {
       const profile = profiles.get(id);
       const live = profile && !profile.deletedAt ? profile : null;
       if (request.method === 'DELETE') {
+        if (profileDeleteFail && profileDeleteFail.remaining > 0) {
+          profileDeleteFail.remaining -= 1;
+          profileEvents.push({ kind: 'delete', id, referenceId: profile?.referenceId ?? null, status: profileDeleteFail.status, at });
+          return apiError(response, profileDeleteFail.status, 'api_error', `scripted ${profileDeleteFail.status}`);
+        }
         profileEvents.push({ kind: 'delete', id, referenceId: profile?.referenceId ?? null, status: live ? 200 : 404, at });
         if (!live) return apiError(response, 404, 'not_found_error', 'user profile not found');
         live.deletedAt = at;
@@ -690,7 +710,12 @@ createServer(async (request, response) => {
       if (request.method === 'GET') {
         profileEvents.push({ kind: 'retrieve', id, referenceId: profile?.referenceId ?? null, status: live ? 200 : 404, at });
         if (!live) return apiError(response, 404, 'not_found_error', 'user profile not found');
-        return json(response, 200, { type: 'user_profile', id, access_type: live.accessType, external_user_details: { reference_id: live.referenceId } });
+        const banned = live.enforcement === 'banned';
+        return json(response, 200, {
+          type: 'user_profile', id, access_type: live.accessType, external_user_details: { reference_id: live.referenceId },
+          enforcement_status: live.enforcement,
+          enforcement_actions: banned ? [{ type: 'ban', id: 'enac_fake', reason: 'usage_policy_violation', action: null, opened_at: live.createdAt, expires_at: null }] : [],
+        });
       }
       return json(response, 404, { error: 'not found' });
     }

@@ -226,7 +226,9 @@ function createAuth(db: Database) {
           const { deleteUserProfileForAccount } = await import('@/lib/models/user-profiles');
           await deleteUserProfileForAccount(deleting.id);
           const { deleteAllUserData } = await import('@/db/repos/admin');
-          await deleteAllUserData(deleting.id);
+          const { anthropicProfileIds } = await deleteAllUserData(deleting.id);
+          const { deleteLeftoverUserProfiles } = await import('@/lib/models/user-profiles');
+          await deleteLeftoverUserProfiles(deleting.id, anthropicProfileIds);
         },
       },
     },

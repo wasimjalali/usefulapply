@@ -15,6 +15,7 @@ interface Report {
  *    is persisted (25 items, source llm), and the ledger holds the cache fields;
  *  - a second user's run has the same static prefix, byte for byte, and reads it from the cache;
  *  - a 500 from the ranker ends in llm_failed_fallback: the run still completes with the deterministic order;
+ *  - every request of the first run, count_tokens included, names the user's Anthropic profile (the one in D1);
  *  - nothing but the stubbed SerpAPI calls left the machine.
  */
 test('(feed-ranking) a Max run counts tokens, persists the Haiku ranking, shares its prefix across users and falls back on a 500', async () => {
@@ -26,6 +27,7 @@ test('(feed-ranking) a Max run counts tokens, persists the Haiku ranking, shares
   const [first, second, fallback] = report.scenarios;
   expect(first.observed).toMatchObject({ candidates: 40, ranked: 25 });
   expect(first.observed.countTokensCalls, 'the exact count was asked').toBeGreaterThanOrEqual(1);
+  expect(String(first.observed.userProfileId), 'every request of the run, count_tokens included, named the user profile').toMatch(/^uprof_/);
   expect(Number(first.observed.rankingInputTokens)).toBeGreaterThan(40_000);
   expect(Number(second.observed.secondRead)).toBeGreaterThan(0);
   expect(String(fallback.observed.rankingError).length).toBeGreaterThan(0);
