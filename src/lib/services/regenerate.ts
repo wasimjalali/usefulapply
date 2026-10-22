@@ -21,6 +21,7 @@ import {
   resolveCVSectionTarget,
   type CVSectionRewriteResult,
   type ResolvedCVSection,
+  type WriterCacheOptions,
 } from '@/lib/agents/unified-writer-agent';
 import type { MasterContext } from '@/lib/agents/types';
 import { loadApplicantLogistics } from '@/lib/profile/logistics.server';
@@ -136,6 +137,12 @@ export interface PreparedRegeneration {
    */
   buildWrite(generated: GeneratedRegeneration, guard: SQL, now: string): Promise<BuiltRegenerationWrite | null>;
 }
+
+/**
+ * A regenerated document is often rewritten again in the same session (a new instruction after reading the
+ * result), so its writer keeps the session context in the prompt cache for an hour. See WriterCacheOptions.
+ */
+const SESSION_REUSE: WriterCacheOptions = { reusedInSession: true };
 
 const CREDIT_ACTION = {
   'cover-letter': 'COVER_LETTER_REGEN',
@@ -287,7 +294,7 @@ export async function prepareRegeneration(userId: string, request: RegenerateReq
       };
 
       if (request.type === 'cover-letter') {
-        const { result: letter, tokens } = await unifiedWriterAgent.generateCoverLetter(masterContext, generationContext);
+        const { result: letter, tokens } = await unifiedWriterAgent.generateCoverLetter(masterContext, generationContext, SESSION_REUSE);
         const coverLetter = letter.body;
         if (!coverLetter.trim()) {
           throw new Error('Empty cover letter generation');
@@ -327,7 +334,7 @@ export async function prepareRegeneration(userId: string, request: RegenerateReq
       }
 
       if (request.type === 'email') {
-        const { result: email, tokens } = await unifiedWriterAgent.generateApplicationEmail(masterContext, generationContext);
+        const { result: email, tokens } = await unifiedWriterAgent.generateApplicationEmail(masterContext, generationContext, SESSION_REUSE);
         if (!email?.subject?.trim() || !email?.body?.trim()) {
           throw new Error('Empty application email generation');
         }
@@ -354,7 +361,7 @@ export async function prepareRegeneration(userId: string, request: RegenerateReq
             masterContext.applicationEmail = { subject: storedEmail.subject, body: storedEmail.body };
           }
         }
-        const { result: followUpEmail, tokens } = await unifiedWriterAgent.generateFollowUpEmail(masterContext, generationContext);
+        const { result: followUpEmail, tokens } = await unifiedWriterAgent.generateFollowUpEmail(masterContext, generationContext, SESSION_REUSE);
         if (!followUpEmail?.subject?.trim() || !followUpEmail?.body?.trim()) {
           throw new Error('Empty follow-up email generation');
         }

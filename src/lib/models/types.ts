@@ -39,7 +39,7 @@ export interface ModelResponse {
     outputTokens: number;
     cacheCreationInputTokens?: number;
     cacheReadInputTokens?: number;
-    /** 5-minute and 1-hour split of cacheCreationInputTokens (callHaiku). */
+    /** 5-minute and 1-hour split of cacheCreationInputTokens (callHaiku and callAnthropic). */
     cacheCreation5mInputTokens?: number;
     cacheCreation1hInputTokens?: number;
   };
@@ -54,22 +54,36 @@ export interface ConversationMessage {
   content: string;
 }
 
+/** Cache lifetime of one marker. 5 minutes is the API default (write 1.25x), 1 hour writes at 2x. */
+export type CacheTtl = '5m' | '1h';
+
 export interface CacheableContentBlock {
   type: 'text';
   text: string;
-  cache_control?: { type: 'ephemeral' };
+  /** A cache marker. No `ttl` means 5 minutes; markers with a longer TTL must come first in a request. */
+  cache_control?: { type: 'ephemeral'; ttl?: CacheTtl };
 }
 
 export interface ModelCallOptions {
   task: TaskType;
+  /** The whole user message. With `promptBlocks`, it must equal their texts joined. */
   prompt: string;
+  /**
+   * The same user message split into blocks so markers can sit inside it. Splitting never changes the text:
+   * the blocks must join to `prompt` exactly, or the call throws before anything is sent.
+   */
+  promptBlocks?: CacheableContentBlock[];
   systemPrompt?: string;
+  /** A cache marker on a plain `systemPrompt` (the JSON rule jsonMode appends is inside the marked block). */
+  systemPromptCacheTtl?: CacheTtl;
   /** Structured system blocks with cache_control for Anthropic prompt caching */
   systemBlocks?: CacheableContentBlock[];
   maxTokens?: number;
   jsonMode?: boolean;
   conversationHistory?: ConversationMessage[];
   generationContext?: LlmGenerationContext;
+  /** The call site's label on the PostHog `$ai_generation` event. Defaults to the task. */
+  site?: string;
 }
 
 // Model configurations. The model ID is resolved at runtime in anthropic.ts; `model` here is informational.
