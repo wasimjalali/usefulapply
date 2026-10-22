@@ -241,7 +241,8 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
     // The block's prefix (tools, system, block) is byte-identical to the compaction turn's, and it was read.
     const previousTurn = (await chatCallsTagged()).filter((call) => !call.compaction && call.blockTypes[0]?.[0] === 'compaction')[0];
     expect(first.markers[2].prefixHash).toBe(previousTurn.markers[2].prefixHash);
-    expect(first.usage?.cacheRead ?? 0).toBeGreaterThan(0);
+    // Read at or past the block, not just the two system entries every turn reads.
+    expect(first.usage?.cacheRead ?? 0).toBeGreaterThanOrEqual(first.markers[2].tokens);
 
     // The naive model read "delete the Bosch row" in the summary and tried. The gate refused: no write, no chip.
     expect(first.carriedSummary).toContain('delete the Bosch row');
@@ -286,7 +287,7 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
     const input = page.getByPlaceholder(/Ask for a change|Paste a job ad or ask anything/);
     await input.fill('Was steht als Naechstes an?');
     await input.press('Enter');
-    const divider = page.getByRole('separator').filter({ hasText: 'Earlier messages summarized' });
+    const divider = page.getByRole('separator', { name: 'Earlier messages summarized' });
     await expect(divider).toHaveCount(1, { timeout: 30_000 });
     // The transcript is complete: the opening ad and the first notes are still on screen above the divider.
     await expect(page.getByText(/Notizen zu meinem Werdegang, Teil 1:/).first()).toBeAttached();
@@ -296,7 +297,49 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
     await divider.screenshot({ path: test.info().outputPath('divider-close.png') });
   });
 
-  test('message 51 is refused cleanly and is not stored', async ({ request }) => {
+  test('through the UI, the client and the route write each message once, under the client\'s id, also after a reload', async () => {
+    const input = page.getByPlaceholder(/Ask for a change|Paste a job ad or ask anything/);
+    const send = async (text: string) => {
+      const replied = page.waitForResponse((response) => response.url().endsWith('/api/chat') && response.request().method() === 'POST');
+      await input.fill(text);
+      await input.press('Enter');
+      expect((await replied).status()).toBe(200);
+    };
+    const first = `Erste Frage ueber die Oberflaeche [${TAG}]`;
+    const second = `Zweite Frage ueber die Oberflaeche [${TAG}]`;
+    await send(first);
+    await send(second);
+    await page.reload();
+    await openApplication(page);
+    const third = `Dritte Frage nach dem Neuladen [${TAG}]`;
+    await send(third);
+    // Past the sync's one-second debounce, so a second writer would have landed.
+    await page.waitForTimeout(2_500);
+
+    const rows = chatMessagesOf(sessionId);
+    for (const text of [first, second, third]) {
+      const matches = rows.filter((row) => row.content === text);
+      expect(matches, `one row for "${text}"`).toHaveLength(1);
+      expect(matches[0].role).toBe('user');
+      expect(matches[0].id.startsWith('msg-')).toBe(true);
+    }
+    // Each question is followed by exactly one stored reply, in order, before the next question.
+    const at = (text: string) => rows.findIndex((row) => row.content === text);
+    for (const [from, to] of [[at(first), at(second)], [at(second), at(third)], [at(third), rows.length]] as const) {
+      expect(rows.slice(from + 1, to).filter((row) => row.role === 'assistant'), 'one reply per question').toHaveLength(1);
+    }
+    // The client keeps the replies under the ids the route stored them with (the persisted transcript).
+    const replyIds = [at(first), at(second), at(third)].map((index) => rows[index + 1].id);
+    await expect.poll(async () => {
+      const persisted = await page.evaluate(() => localStorage.getItem('session-store') ?? '');
+      return replyIds.filter((id) => persisted.includes(`"${id}"`)).length;
+    }, { timeout: 10_000 }).toBe(replyIds.length);
+    // No user row of this conversation was written twice.
+    const userTexts = rows.filter((row) => row.role === 'user' && row.content.includes(TAG)).map((row) => row.content);
+    expect(new Set(userTexts).size, 'no duplicated user row').toBe(userTexts.length);
+  });
+
+  test('the 51st model turn is refused cleanly, and the route stores nothing for it', async ({ request }) => {
     const api = request;
     const capUser = await createSignedInApiUser(api, 'chatcap');
     const capSession = seedApplication(capUser.id, 'Zapier', 'Data Engineer');

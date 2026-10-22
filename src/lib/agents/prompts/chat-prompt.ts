@@ -205,12 +205,11 @@ export interface ChatTurn {
  *
  * Sized for real job ads (131 production job descriptions: p99 10,611 chars, longest 11,421) and held
  * down by the input budget. A local conversation sends up to eleven turns (ten replayed, then the new one); a
- * saved application sends its whole D1 history and compacts it before 75k (compaction.ts), keeping at most
- * five turns plus the new one verbatim, so the eleven-turn case stays the worst one. All
- * eleven at the cut, with the tools, the static rules, the longest CV summaries and the state, must stay
- * under INPUT_REFUSE_ABOVE at the budget's 1.8 chars per token. At 12,000 that estimate is about 93,800
- * tokens, over the line; the most that fits today is 11,370, and this keeps about 400 tokens of headroom
- * for the tool descriptions (about 220 when the state also carries EARLIER_PASTE_STATE_LINE). chat-prompt.test.ts pins it. Only the last 100 or so characters of the
+ * saved application sends its whole D1 history and compacts it before 75k (compaction.ts), usually keeping four
+ * or five turns plus the new one verbatim; when compaction cannot run or fails, the input guard (InputBudgetError,
+ * the fixed budget reply) holds the line instead. All eleven at the cut, with the tools, the static rules, the
+ * longest CV summaries and the state, must stay under INPUT_REFUSE_ABOVE at the budget's 1.8 chars per token, with
+ * a little headroom for the tool descriptions; chat-prompt.test.ts pins it. Only the last 100 or so characters of the
  * longest ad seen are cut, and the client keeps the full text.
  */
 export const CHAT_TURN_MAX_CHARS = 11_300;

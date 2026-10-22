@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { and, asc, desc, eq, gte, inArray, isNotNull, lt, lte, or, sql } from 'drizzle-orm';
 import { getDb, nowIso, stripIdentity } from '../client';
-import { applicationSessions, chatMessages } from '../schema';
+import { applicationSessions, chatCompactions, chatMessages } from '../schema';
 import { withRecipientReset } from '../session-recipient-reset';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
 import { RevisionConflict } from '@/lib/services/errors';
@@ -497,6 +497,8 @@ export async function storeChatReply(
 export async function clearChatMessages(userId: string, sessionId: string): Promise<{ error: Error | null }> {
   const db = await getDb();
   await db.delete(chatMessages).where(and(eq(chatMessages.session_id, sessionId), eq(chatMessages.user_id, userId)));
+  // The summary of a cleared conversation goes with it (the chat route would drop it as stale on the next turn anyway).
+  await db.delete(chatCompactions).where(and(eq(chatCompactions.session_id, sessionId), eq(chatCompactions.user_id, userId)));
   return { error: null };
 }
 

@@ -2033,7 +2033,7 @@ export function ChatPanel({
                 answersInDoc={(currentSession?.screeningAnswers?.length ?? 0) > 0}
               />
               {message.id === compactedThroughMessageId && (
-                <div role="separator" className="flex items-center gap-3">
+                <div role="separator" aria-label="Earlier messages summarized" className="flex items-center gap-3">
                   <span className="h-px flex-1 bg-cream-200" />
                   <span className="text-xs text-warm-gray">Earlier messages summarized</span>
                   <span className="h-px flex-1 bg-cream-200" />

@@ -26,6 +26,7 @@ export {
   getApplicationRevision,
   deleteSession,
   getChatMessages,
+  getChatCompactionMarker,
   addChatMessage,
   clearChatMessages,
 } from './sessions';

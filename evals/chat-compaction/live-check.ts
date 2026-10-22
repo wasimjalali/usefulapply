@@ -19,9 +19,12 @@ import { openLocalD1 } from '../../e2e/lib/sqlite';
 import { haiku55CostUsd } from '../../src/lib/models/anthropic';
 
 const BASE_URL = process.env.LIVE_BASE_URL ?? 'http://localhost:8820';
+// It seeds the local D1 file, so it only ever talks to a local preview.
+if (!['localhost', '127.0.0.1'].includes(new URL(BASE_URL).hostname)) throw new Error(`live-check runs against a local preview only, not ${BASE_URL}`);
 const ROOT = path.resolve(__dirname, '..', '..');
 const OUT = path.join(ROOT, 'evals', 'results', '2026-10-23-chat-compaction-live.json');
-const PASSWORD = 'Live-Check-Passw0rd!x';
+// A throwaway account on the local D1, with a password made up for this run.
+const PASSWORD = `Lc-${crypto.randomUUID()}-Aa1!`;
 
 let cookie = '';
 let ipCounter = 0;

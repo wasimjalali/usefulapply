@@ -5,6 +5,7 @@ import { estimateInputTokens, isOverRefuseLimit, projectNextInputTokens } from '
 import {
   asCompactionBlock,
   COMPACT_ABOVE_TOKENS,
+  summaryFormatProblem,
   COMPACTION_MAX_TOKENS,
   COMPACTION_RESERVE_TOKENS,
   splitForCompaction,
@@ -238,43 +239,13 @@ export async function POST(req: NextRequest) {
       if (userMessageCount >= MAX_CHAT_MESSAGES_PER_SESSION) return chatLimitReached();
     }
 
-    // The turn is claimed last, after every gate that can refuse the request.
-    // Claiming earlier would spend a turn on a request that never reaches the
-    // model, and the chat limit above does exactly that.
-    if (screeningSessionId) {
-      const claim = await claimScreeningTurn(user.id, screeningSessionId, SCREENING_TURN_CAP);
-      if (!claim.ok) {
-        if (claim.reason === 'not_found') {
-          return NextResponse.json({ error: 'Application not found' }, { status: 404 });
-        }
-        return NextResponse.json(
-          {
-            error: `That's the ${SCREENING_TURN_CAP} screening answers for this application.`,
-            code: 'SCREENING_CAP_REACHED',
-            screeningTurnsUsed: claim.turnsUsed,
-            screeningTurnCap: SCREENING_TURN_CAP,
-          },
-          { status: 429 }
-        );
-      }
-      screeningTurnsUsed = claim.turnsUsed;
-    }
-    if (storesTurn && persistedSessionId && typeof messageId === 'string') {
-      const claim = await claimUserChatTurn(user.id, persistedSessionId, { id: messageId, content: message }, MAX_CHAT_MESSAGES_PER_SESSION);
-      if (!claim.ok) {
-        if (claim.reason === 'cap_reached') return chatLimitReached();
-        if (claim.reason === 'not_found') return NextResponse.json({ error: 'Application not found' }, { status: 404 });
-        // An id that is someone else's, already answered, or names a different text: never a second turn.
-        return NextResponse.json({ error: 'Invalid message id.' }, { status: 409 });
-      }
-    }
-
-    // The model's history, raw: chatTurnText (chat-prompt.ts) cuts every turn to CHAT_TURN_MAX_CHARS (pair-safe, lone
-    // surrogates replaced) and quotes pasted ones, the new message included, so a turn has the same bytes on the turn
-    // it is sent and on every turn that replays it (the server decides the quoting, never the client). Screening
-    // renders the same raw turns its own way (screeningMessages in screening.ts).
+    // The model's history, read before any turn is claimed, so a D1 error here spends nothing. Raw: chatTurnText
+    // (chat-prompt.ts) cuts every turn to CHAT_TURN_MAX_CHARS (pair-safe, lone surrogates replaced) and quotes pasted
+    // ones, the new message included, so a turn has the same bytes on the turn it is sent and on every turn that
+    // replays it (the server decides the quoting, never the client). Screening renders the same raw turns its own way
+    // (screeningMessages in screening.ts).
     //   Saved application: every message in D1 after the compaction block, if there is one. The new message is left
-    //   out by its id (the route just stored it, or the sync did).
+    //   out by its id (the route stores it below, or the sync already did).
     //   Local conversation: the client's last ten turns, roles re-validated (client JSON could smuggle a system turn).
     let earlierTurns: StoredTurn[];
     let compaction: { block: CompactionBlock; coversThroughMessageId: string } | null = null;
@@ -304,6 +275,37 @@ export async function POST(req: NextRequest) {
         .filter((msg): msg is ChatMessage =>
           Boolean(msg && (msg.role === 'user' || msg.role === 'assistant') && typeof msg.content === 'string'))
         .map((msg) => ({ id: null, role: msg.role, content: msg.content }));
+    }
+
+    // The turn is claimed last, after every gate that can refuse the request.
+    // Claiming earlier would spend a turn on a request that never reaches the
+    // model, and the chat limit above does exactly that.
+    if (screeningSessionId) {
+      const claim = await claimScreeningTurn(user.id, screeningSessionId, SCREENING_TURN_CAP);
+      if (!claim.ok) {
+        if (claim.reason === 'not_found') {
+          return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+        }
+        return NextResponse.json(
+          {
+            error: `That's the ${SCREENING_TURN_CAP} screening answers for this application.`,
+            code: 'SCREENING_CAP_REACHED',
+            screeningTurnsUsed: claim.turnsUsed,
+            screeningTurnCap: SCREENING_TURN_CAP,
+          },
+          { status: 429 }
+        );
+      }
+      screeningTurnsUsed = claim.turnsUsed;
+    }
+    if (storesTurn && persistedSessionId && typeof messageId === 'string') {
+      const claim = await claimUserChatTurn(user.id, persistedSessionId, { id: messageId, content: message }, MAX_CHAT_MESSAGES_PER_SESSION);
+      if (!claim.ok) {
+        if (claim.reason === 'cap_reached') return chatLimitReached();
+        if (claim.reason === 'not_found') return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+        // An id that is someone else's, already answered, or names a different text: never a second turn.
+        return NextResponse.json({ error: 'Invalid message id.' }, { status: 409 });
+      }
     }
 
     if (isScreeningMode) {
@@ -546,7 +548,9 @@ export async function POST(req: NextRequest) {
     // The reply goes into the history now, under the id the client will show it with, so a quick next turn has it
     // even before the client's sync runs. The sync then writes the client's copy over it (a reply can gain a note).
     let replyMessageId: string | undefined;
-    if (storesTurn && persistedSessionId) {
+    // A client that stopped waiting (the Stop button) never shows this reply, so it is not stored either, where the
+    // runtime reports the disconnect. Best effort: the user's own message is stored either way.
+    if (storesTurn && persistedSessionId && !req.signal?.aborted) {
       replyMessageId = newChatMessageId();
       const stored = await storeChatReply(user.id, persistedSessionId, { id: replyMessageId, content: reply, actions });
       // The user still gets the reply; the next turn's history will miss it, so this is loud.
@@ -720,22 +724,23 @@ async function compactChat(params: {
   earlier: CompactionBlock | null;
   provider: 'bedrock' | undefined;
 }): Promise<{ block: CompactionBlock; cut: number; coversThroughMessageId: string; provider: string; stored: boolean } | null> {
-  let cut = splitForCompaction(params.turns.map((turn) => turn.role));
-  if (cut === null) return null;
-  const requestMessages = (end: number) => buildCompactionMessages(params.turns.slice(0, end).map(chatTurnOf), params.earlier);
-  // Every range tried holds a user turn (splitForCompaction guarantees the first), so there is always one to summarize.
-  const holdsUser = (end: number) => params.turns.slice(0, end).some((turn) => turn.role === 'user');
-  while (
-    cut > 1 && holdsUser(cut - 1)
-    && estimateChatRequest({ system: params.system, tools: params.tools, messages: requestMessages(cut) }) > COMPACT_ABOVE_TOKENS
-  ) {
-    cut -= 1;
-  }
-  const coversThroughMessageId = params.turns[cut - 1].id;
-  if (!coversThroughMessageId) throw new Error('compactChat: a saved application turn has no id');
-
+  const first = splitForCompaction(params.turns.map((turn) => turn.role));
+  if (first === null) return null;
+  // Over the line, step back to the previous range that still ends on a user turn (the shape splitForCompaction
+  // picks), never into one ending on an assistant turn.
+  const endsOnUser = (end: number) => end > 0 && params.turns[end - 1].role === 'user';
+  let cut = first;
   let response: HaikuResponse;
   try {
+    const requestMessages = (end: number) => buildCompactionMessages(params.turns.slice(0, end).map(chatTurnOf), params.earlier);
+    const tooBig = (end: number) =>
+      estimateChatRequest({ system: params.system, tools: params.tools, messages: requestMessages(end) }) > COMPACT_ABOVE_TOKENS;
+    while (tooBig(cut)) {
+      let previous = cut - 1;
+      while (previous > 0 && !endsOnUser(previous)) previous -= 1;
+      if (previous <= 0) break;
+      cut = previous;
+    }
     response = await callHaiku({
       site: 'chat',
       system: params.system,
@@ -758,18 +763,32 @@ async function compactChat(params: {
     console.error('[chat] compaction failed, sending the turn uncompacted:', error instanceof Error ? error.message : error);
     return null;
   }
+  const coversThroughMessageId = params.turns[cut - 1].id;
+  if (!coversThroughMessageId) throw new Error('compactChat: a saved application turn has no id');
   const block = response.rawContent.map((item) => asCompactionBlock(item)).find((item) => item !== null);
   // readHaikuContent already refused a response without one; this is the type narrowing, and a loud stop if not.
   if (!block) throw new Error('compactChat: compaction response carried no block');
+  // The summary replaces the quoted turns on every later turn, so one that broke the format (an unclosed << , a
+  // heading or a line shaped like the app's state) is never used. The signature covers the text, so it cannot be
+  // repaired, only refused: the turn goes out uncompacted.
+  const broken = summaryFormatProblem(block.content);
+  if (broken) {
+    console.error(`[chat] compaction summary refused (${broken}), sending the turn uncompacted`);
+    return null;
+  }
 
   let stored = false;
   if (response.provider !== 'bedrock') {
-    stored = await saveChatCompaction(params.userId, params.sessionId, {
-      block,
-      coversThroughMessageId,
-      inputTokens: response.inputTokensTotal,
-    });
-    if (!stored) throw new Error('compactChat: the compaction was not stored for an application the route already checked');
+    try {
+      stored = await saveChatCompaction(params.userId, params.sessionId, {
+        block,
+        coversThroughMessageId,
+        inputTokens: response.inputTokensTotal,
+      });
+    } catch (error) {
+      console.error('[chat] compaction not stored, used for this turn only:', error instanceof Error ? error.message : error);
+    }
+    if (!stored) console.error(`[chat] compaction not stored for ${params.sessionId}, used for this turn only`);
   }
   return { block, cut, coversThroughMessageId, provider: response.provider, stored };
 }

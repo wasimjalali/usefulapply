@@ -60,7 +60,7 @@ import {
   answerFor,
   blocksOf,
   haikuAnswerFor,
-  issuedCompactionSignatures,
+  issuedCompactionBlocks,
   issuedThinkingSignatures,
   lastUserText,
   writerFor,
@@ -83,7 +83,7 @@ type Provider = 'anthropic' | 'bedrock';
 /** Bedrock signs the thinking blocks it issues with this prefix; the Anthropic API refuses them. */
 const BEDROCK_SIGNATURE_PREFIX = 'bedrock-sig:';
 
-interface MarkerRecord { unit: number; where: 'tools' | 'system' | 'message' | 'automatic'; ttl: Ttl; prefixHash: string }
+interface MarkerRecord { unit: number; where: 'tools' | 'system' | 'message' | 'automatic'; ttl: Ttl; prefixHash: string; tokens: number }
 
 interface CallRecord {
   kind: 'messages' | 'count_tokens';
@@ -260,7 +260,7 @@ function simulateCache(units: Unit[], provider: Provider): CacheOutcome {
   }
   const markers: MarkerRecord[] = [];
   units.forEach((unit, index) => {
-    if (unit.marker) markers.push({ unit: index, where: unit.marker.where, ttl: unit.marker.ttl, prefixHash: hashes[index] });
+    if (unit.marker) markers.push({ unit: index, where: unit.marker.where, ttl: unit.marker.ttl, prefixHash: hashes[index], tokens: tokensOf(cumChars[index]) });
   });
 
   // A read: from each marker, the nearest earlier boundary (within 20 blocks) whose prefix was written.
@@ -304,9 +304,10 @@ function validate(body: MessagesBody, writer: Writer | null, markers: MarkerReco
       ? 'compaction: Extra inputs are not permitted'
       : "messages.0.content.0: Input tag 'compaction' found using 'type' does not match any of the expected tags";
   }
-  // A block goes back exactly as it was issued: the signature covers it.
+  // A block goes back exactly as it was issued, every field: the signature covers it.
   for (const block of carried) {
-    if (!issuedCompactionSignatures.has(String(block.signature))) return 'Invalid `signature` in `compaction` block';
+    const issued = issuedCompactionBlocks.get(String(block.signature));
+    if (!issued || JSON.stringify(stripCacheControl(block)) !== JSON.stringify(issued)) return 'Invalid `signature` in `compaction` block';
   }
   if (body.compaction && body.compaction.type !== 'summarize') return 'compaction.type: Input should be \'summarize\'';
   // API 2026-10-21: any value of a sampling parameter is a 400, for every model.
@@ -633,6 +634,9 @@ createServer(async (request, response) => {
       const writer = writerFor(body.system) ?? 'unknown';
       const entry = record(body, 'count_tokens', writer, [], provider, auth);
       entry.betas = betasOf(request);
+      // The same message checks as a messages call: a carried block without the beta header is a 400 here too.
+      const countInvalid = validate({ ...body, compaction: undefined }, null, [], provider, entry.betas);
+      if (countInvalid) { entry.status = 400; return apiError(response, 400, 'invalid_request_error', countInvalid); }
       const modelError = modelIdError(provider, body.model);
       if (modelError) { entry.status = 400; return apiError(response, 400, 'invalid_request_error', modelError); }
       const counted = overrideApplies(writer) ? (override as NonNullable<typeof override>).inputTokens : totalTokens(body);

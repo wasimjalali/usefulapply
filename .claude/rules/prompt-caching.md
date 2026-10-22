@@ -71,7 +71,7 @@ Consequences for us:
 - The compaction block goes first in `messages`, so the prefix after `system` changes once at compaction. Put a marker right after the compaction block so the next turns read it.
 
 ## Our layout per site
-Read from the code on 2026-10-22. Change a site and this table in the same PR. "Shared" means the same bytes for every user, "per user" means the bytes depend on one user's data.
+Read from the code on 2026-10-23. Change a site and this table in the same PR. "Shared" means the same bytes for every user, "per user" means the bytes depend on one user's data.
 
 | Site | Cached blocks (marker TTL) | Shared or per user |
 |---|---|---|

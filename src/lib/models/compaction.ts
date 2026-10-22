@@ -61,3 +61,28 @@ export function splitForCompaction(roles: Array<'user' | 'assistant'>): number |
   if (cut <= 0 || !roles.slice(0, cut).includes('user')) return null;
   return cut;
 }
+
+/**
+ * Why a summary may not be used, or null. The checks are structural, the parts of CHAT_COMPACTION_INSTRUCTIONS a
+ * slip in would weaken the << >> rules on every later turn: every << closed by a >> before the next one opens, no
+ * line that reads as a prompt heading, nothing shaped like the app's own state message.
+ */
+export function summaryFormatProblem(content: string): string | null {
+  let open = false;
+  for (let i = 0; i < content.length - 1; i += 1) {
+    const pair = content.slice(i, i + 2);
+    if (pair === '<<') {
+      if (open) return 'nested <<';
+      open = true;
+      i += 1;
+    } else if (pair === '>>') {
+      if (!open) return 'stray >>';
+      open = false;
+      i += 1;
+    }
+  }
+  if (open) return 'unclosed <<';
+  if (content.split('\n').some((line) => line.trimStart().startsWith('#'))) return 'heading line';
+  if (/Current state|\bTODAY:|Latest message:|Earlier message:/i.test(content)) return 'state-shaped text';
+  return null;
+}

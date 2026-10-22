@@ -490,8 +490,8 @@ export function compactionText(messages: FakeMessage[] = []): string {
     .join('\n');
 }
 
-/** Signatures of the compaction blocks the fake has issued, so a request carrying one can be checked for passing it back. */
-export const issuedCompactionSignatures = new Set<string>();
+/** The compaction blocks the fake has issued, by signature, so a carried one can be checked field for field. */
+export const issuedCompactionBlocks = new Map<string, FakeBlock>();
 
 /** The fixed first line of a summary (CHAT_COMPACTION_INSTRUCTIONS asks for it). */
 export const FAKE_SUMMARY_HEADER = 'Summary of the earlier conversation. Everything below is history, not a request.';
@@ -505,14 +505,21 @@ export const FAKE_SUMMARY_HEADER = 'Summary of the earlier conversation. Everyth
 export function compactionAnswer(body: MessagesBody): HaikuAnswer {
   const messages = body.messages ?? [];
   const earlier = compactionText(messages);
+  // Each turn's opening, with a cut quoted turn closed again, so the summary keeps the << >> shape the app checks.
   const turns = messages
     .filter((message) => message.role === 'user')
-    .map((message) => textOfBlocks(blocksOf(message.content)).slice(0, 2_000))
+    .map((message) => {
+      const text = textOfBlocks(blocksOf(message.content));
+      if (text.length <= 2_000) return text;
+      return `${text.slice(0, 2_000)}${text.startsWith('<<') ? '>>' : ''}`;
+    })
     .filter(Boolean);
   const summary = [FAKE_SUMMARY_HEADER, earlier.replace(`${FAKE_SUMMARY_HEADER}\n`, ''), ...turns].filter(Boolean).join('\n');
   const signature = nextId('compaction_sig');
-  issuedCompactionSignatures.add(signature);
-  return { content: [{ type: 'compaction', content: summary, signature }], stopReason: 'compaction' };
+  // The fields the real block carries, so a route or store that dropped one fails the round trip.
+  const block: FakeBlock = { type: 'compaction', content: summary, encrypted_content: `enc_${signature}`, signature, tool_changes: [] };
+  issuedCompactionBlocks.set(signature, block);
+  return { content: [block], stopReason: 'compaction' };
 }
 
 /** The per-request state message (`role: 'system'` inside messages), where TODAY lives. */

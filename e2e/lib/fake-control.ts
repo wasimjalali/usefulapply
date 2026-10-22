@@ -1,6 +1,6 @@
 import { FAKE_ANTHROPIC_URL } from './env';
 
-export interface FakeMarker { unit: number; where: 'tools' | 'system' | 'message' | 'automatic'; ttl: '5m' | '1h'; prefixHash: string }
+export interface FakeMarker { unit: number; where: 'tools' | 'system' | 'message' | 'automatic'; ttl: '5m' | '1h'; prefixHash: string; tokens: number }
 
 export interface FakeCall {
   kind: 'messages' | 'count_tokens';

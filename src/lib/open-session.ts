@@ -11,8 +11,10 @@
 
 import {
   getSession as getStoredSession,
+  getChatCompactionMarker,
   getChatMessages,
 } from '@/lib/supabase';
+import { useChatCompactionMarker } from '@/components/chat/compaction-marker';
 import {
   useSessionStore,
   type ChatMessage,
@@ -46,10 +48,12 @@ export async function hydrateChatIfEmpty(sessionId: string, generation = openGen
   if (sessionId.startsWith('session-')) return;
   if (hydratedChatIds.has(sessionId)) return;
 
-  const messages = await getChatMessages(sessionId);
+  const [messages, compactedThrough] = await Promise.all([getChatMessages(sessionId), getChatCompactionMarker(sessionId)]);
   if (generation !== openGeneration) return;
   if (useSessionStore.getState().currentSession?.id !== sessionId) return;
   hydratedChatIds.add(sessionId);
+  // The chat divider on a device that never saw the turn that compacted (the route returns it with every reply too).
+  useChatCompactionMarker.getState().setMarker(sessionId, compactedThrough);
   if (!messages || messages.length === 0) return;
   applyChat(sessionId, mapChatRowsToStore(messages));
 }

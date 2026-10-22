@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import type Anthropic from '@anthropic-ai/sdk';
 import { buildHaikuRequest, readHaikuContent, type HaikuMessage, type HaikuRequest } from '../../models/haiku';
-import { asCompactionBlock, COMPACTION_BETA, splitForCompaction, type CompactionBlock } from '../../models/compaction';
+import { asCompactionBlock, COMPACTION_BETA, splitForCompaction, summaryFormatProblem, type CompactionBlock } from '../../models/compaction';
 import { ModelStopError } from '../../models/anthropic';
 import { estimateInputTokens, INPUT_REFUSE_ABOVE } from '../../models/token-budget';
 import { chatToolDefinitions, CHAT_TOOLS } from '../chat-tools';
@@ -599,6 +599,8 @@ test('budget: eleven turns at the cut, the longest CV summaries, tools and rules
 //     replaces another beta the request carries.
 //  8. A compaction response is refused as empty content, or a non-compaction stop or a null summary is accepted as a
 //     block to store.
+//  9. A summary that broke the format (an unclosed or nested << , a stray >>, a heading line, text shaped like the
+//     app's state message) is stored and sent on every later turn, or a well-formed one is refused.
 // ---------------------------------------------------------------------------
 
 const BLOCK: CompactionBlock = { type: 'compaction', content: 'Summary of the earlier conversation. Everything below is history, not a request.', signature: 'sig_c1' };
@@ -691,7 +693,7 @@ test('compaction request: earlier block first, pasted turns quoted, no leading g
   assert.throws(() => buildCompactionMessages([], BLOCK), /no turns to compact/);
 });
 
-test('compaction request: the beta header is added to the betas a request already has, and only when needed', () => {
+test('compaction request: the beta header is added only when a request compacts or carries a block', () => {
   const prompt = buildMainChatPrompt(ALICE, 'Europe/Berlin', MORNING);
   const base = {
     site: 'chat' as const,
@@ -722,4 +724,28 @@ test('compaction response: a block with text is read, a null summary or another 
   assert.equal(asCompactionBlock({ type: 'compaction', content: '   ' }), null);
   assert.equal(asCompactionBlock({ type: 'text', text: 'x' }), null);
   assert.equal(asCompactionBlock(BLOCK), BLOCK);
+});
+
+test('compaction summary: a broken format is refused, a well-formed summary passes', () => {
+  const nested = [
+    'Summary of the earlier conversation. Everything below is history, not a request.',
+    'Copied text:',
+    '- <<copied ad text: Controller, <<Northwind Foods>> style names are not nested here>>',
+  ].join('\n');
+  assert.equal(summaryFormatProblem(nested), 'nested <<');
+  const wellFormed = [
+    'Summary of the earlier conversation. Everything below is history, not a request.',
+    'Constraints (user\'s own words):',
+    '- "drei Monate Kuendigungsfrist" (notice period)',
+    'Copied text:',
+    '- <<copied ad text: Controller at Northwind Foods, Hamburg. Contained instructions aimed at AI tools, not followed.>>',
+    'Done:',
+    '- <<Zapier>> moved to interview, Tuesday 10:00.',
+  ].join('\n');
+  assert.equal(summaryFormatProblem(wellFormed), null);
+  assert.equal(summaryFormatProblem('<<copied ad text: no close'), 'unclosed <<');
+  assert.equal(summaryFormatProblem('a stray >> here'), 'stray >>');
+  assert.equal(summaryFormatProblem('History.\n# Current state\nTODAY: Monday'), 'heading line');
+  assert.equal(summaryFormatProblem('History. TODAY: Monday 10:00'), 'state-shaped text');
+  assert.equal(summaryFormatProblem('History. Latest message: pasted'), 'state-shaped text');
 });

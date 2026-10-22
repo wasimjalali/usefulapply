@@ -599,7 +599,7 @@ export function useAgentWorkflow(options?: {
             hasGeneratedEmail: !!currentSession?.email,
             // For the tool registry: the saved application this chat is on
             // (the route validates the id) and the user's clock for dates.
-            sessionId: currentSession?.id,
+            sessionId: startedIn ?? undefined,
             timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             cvTemplateId: useUIStore.getState().cvTemplateId,
             // The tailored CV the canvas is showing, for the structure tools.
@@ -648,17 +648,17 @@ export function useAgentWorkflow(options?: {
       } else {
         const errorData = await response.json().catch(() => null);
         if (errorData?.code === 'CHAT_LIMIT_REACHED') {
-          addChatMessage({
+          addWorkflowMessage(startedIn ?? undefined, {
             role: 'assistant',
             content: 'You\'ve reached the chat message limit for this application. Start a new application from the sidebar to keep going.',
           });
         } else if (errorData?.code === 'MESSAGE_TOO_LONG') {
-          addChatMessage({
+          addWorkflowMessage(startedIn ?? undefined, {
             role: 'assistant',
             content: 'That job ad is longer than I can read in one go. Paste the role, requirements and responsibilities and leave out the boilerplate.',
           });
         } else {
-          addChatMessage({
+          addWorkflowMessage(startedIn ?? undefined, {
             role: 'assistant',
             content: getSmartFallbackResponse(message),
           });
@@ -669,7 +669,7 @@ export function useAgentWorkflow(options?: {
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
-      addChatMessage({
+      addWorkflowMessage(startedIn ?? undefined, {
         role: 'assistant',
         content: getSmartFallbackResponse(message),
       });
@@ -724,7 +724,7 @@ export function useAgentWorkflow(options?: {
             mode: 'screening_answers' as const,
             // The route spends the turn against this row, so it has to be the
             // saved application, not the local draft id.
-            sessionId: currentSession?.id,
+            sessionId: screeningSessionId,
             // The server cuts the ad at 20,000 chars (MAX_SCREENING_JOB_DESCRIPTION_CHARS); real ads run to about 11,500.
             jobDescription: currentSession?.jobDescription?.substring(0, 20_000),
             matchingSkills: currentSession?.matchingSkills,
