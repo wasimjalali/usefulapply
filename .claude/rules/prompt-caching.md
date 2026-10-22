@@ -1,0 +1,68 @@
+---
+paths:
+  - "src/lib/models/**"
+  - "src/lib/agents/**"
+  - "src/lib/services/**"
+  - "src/lib/job-feed/**"
+  - "src/app/api/**"
+  - "evals/**"
+---
+
+# Prompt caching (Anthropic API)
+
+Source: Anthropic docs, read 2026-10-22: prompt-caching, tool-use-with-prompt-caching, cache-diagnostics. Re-read them before changing a cache layout. Every LLM call in the app takes every cache opportunity, and its hit rate is measured.
+
+## How the cache works (the parts that bite)
+- The cache key is a hash of the whole prefix in the order `tools` → `system` → `messages`, up to the block marked `cache_control`. One byte different anywhere before the marker is a miss.
+- A write happens only at a marker. A read walks back at most 20 blocks from each marker looking for an entry an earlier request wrote. It never finds "stable content behind the marker" on its own. So put the marker on the last block that's identical across the requests you want to share, never on a block that changes every request.
+- Up to 4 markers per request. Markers cost nothing; only writes and reads are billed.
+- Minimum cacheable length is 512 tokens on Haiku 5.5 and Sonnet 5.5. Shorter prefixes silently don't cache (both cache fields read 0). If a prefix is just short, growing it to 512 can pay for itself.
+- A cache entry is usable only after the first response that wrote it has started. Parallel requests sent at once all miss.
+- Caches are per workspace on the Claude API. All app traffic uses one key in one workspace.
+- Lifetime counts from the start of the request, including generation time. Each hit refreshes it for free.
+
+## What invalidates
+| Change | Invalidates |
+|---|---|
+| Tool definitions (name, description, schema, order, JSON key order) | everything |
+| `system` text | system and messages |
+| `tool_choice`, `disable_parallel_tool_use` | messages |
+| Images present vs absent | messages |
+| Thinking config or `output_config.effort` | messages always; on some models system and tools too |
+| Model | everything (cache is per model) |
+| Dropping or editing a thinking block from an earlier assistant turn | messages from that point |
+
+Consequences for us:
+- Each call site has one fixed model, effort and thinking config. Never vary effort per request within a site. Two sites can share a cached prefix only if model, tools, system, effort and thinking all match.
+- Keep `tool_choice` constant across a chat's tool loop. Don't switch to `tool_choice: none` for a final round: it throws away the messages cache. Steer the last round with an instruction instead (or accept the miss knowingly and put a marker before it).
+- Pass thinking blocks back unchanged. Haiku 5.5 and Sonnet 5.5 preserve them, so the cache stays valid.
+- Per-turn dynamic instructions (today's date, app state, a mode switch) go in a mid-conversation `{"role": "system"}` message appended to `messages`, never into the top-level `system`. Haiku 5.5 and Sonnet 5.5 support this without invalidating the prefix.
+- Serialize tool schemas and any JSON we put in a prompt deterministically (stable key order). Tool order is fixed.
+
+## Layout rules
+1. Order: tools, then static system instructions, then per-user stable context (CV, master CV, profile), then per-request content (job ad, question, history), then the incoming message.
+2. No timestamps, request ids, random ids, user names or counts inside a cached prefix.
+3. Markers:
+   - one-shot calls with a varying tail: explicit marker on the last static block (end of system, or end of the per-user context block). Not automatic caching: it would mark the varying last block.
+   - multi-turn chat: automatic caching (top-level `cache_control`) or a marker on the last message, so each turn reads the previous turn's prefix. Add an explicit marker on the system/stable-context block too. With long tool loops, add a second marker so the 20-block lookback always reaches an earlier write.
+4. Share prefixes across sites where model/effort/tools match: the same CV block, in the same bytes, before site-specific instructions.
+
+## TTL
+- 5 minutes (write 1.25x) where the same prefix is hit more often than every 5 minutes (feed ranking system prompt across users, kit writers fanning out, tool loops inside one request).
+- 1 hour (write 2x) where a user pauses: the chat's stable prefix (tools + system + CV), since users often answer after more than 5 minutes. Longer TTL markers must come before shorter ones in the same request.
+- Haiku 5.5 prices (≤100k prompt): input $0.10, 5m write $0.125, 1h write $0.20, read $0.01, output $0.50 per MTok. Cached reads and writes count toward the 100k prompt-length tier.
+- Sonnet 5.5: input $2, 5m write $2.50, 1h write $4, read $0.10 (0.05x), output $10.
+
+## Parallel calls and pre-warming
+- When one context feeds several parallel calls (the kit writers: CV, letter, emails), warm the shared prefix first: a `max_tokens: 0` request with the same model, tools, system, effort and thinking config and the marker on the shared block, then fan out. Or send the first call and start the rest once its response has started. Without this every parallel call pays a full write.
+- `max_tokens: 0` is rejected with `stream: true`, `thinking.type: enabled` (extended thinking), structured outputs (`output_config.format`) or a forced `tool_choice` (`tool` / `any`). The thinking and effort config must match the real calls or the warm-up writes an entry nobody reads, so pre-warm only sites whose real calls use adaptive thinking or none. Sites with extended thinking, a forced tool or structured outputs stagger instead (first call, then the rest once it has started). The P0 probe confirms which form works for each site.
+- Batch API: cache hits are best effort. Write the shared prefix with a 1-hour marker in a single first request, then submit the rest.
+
+## Compaction
+- The compaction block goes first in `messages`, so the prefix after `system` changes once at compaction. Put a marker right after the compaction block so the next turns read it.
+
+## Measure and test
+- Total prompt = `input_tokens + cache_creation_input_tokens + cache_read_input_tokens`. `input_tokens` alone is only the uncached tail. Budget guards (100k) and cost tracking use the sum, plus `usage.iterations` when compaction ran.
+- Every call logs per-site `cache_creation_input_tokens`, `cache_read_input_tokens`, `input_tokens` and the TTL split (`cache_creation.ephemeral_5m_input_tokens` / `ephemeral_1h_input_tokens`) to PostHog `$ai_generation`. Hit rate = read / (read + write + uncached input).
+- Each site has a test that builds two different requests and asserts the cached prefix (everything up to the marker) is byte-identical.
+- When a hit rate drops, use cache diagnostics: send `diagnostics: { previous_message_id }` and read `cache_miss_reason` (model_changed, system_changed, tools_changed, messages_changed, ...). Only fingerprints are stored, no prompt text.
