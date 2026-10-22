@@ -17,14 +17,17 @@ import {
   type LlmGenerationContext,
 } from '@/db/repos/adminMetrics';
 import type { Json } from '@/db/schema';
+import { getPostHogServer } from '@/lib/posthog-server';
 import {
+  captureFailoverEvent,
   getBedrockClient,
   getPrimaryClient,
   runWithFailover,
   type FailoverTarget,
   type MessagesClient,
+  type ProviderName,
 } from './providers';
-import type { ModelResponse, ConversationMessage, CacheableContentBlock } from './types';
+import type { ModelResponse, ConversationMessage, CacheableContentBlock, CacheTtl } from './types';
 
 type LedgerAwareResponse = {
   usage?: unknown;
@@ -250,7 +253,24 @@ export interface ModelPricing {
 
 // Cache read is $0.10 (5% of input) per the Sonnet 5.5 model page on platform.claude.com.
 // The same list prices apply on Amazon Bedrock's global endpoint; regional endpoints carry a 10% premium, not modelled.
-const SONNET_55_PRICING: ModelPricing = { inputPerM: 2, outputPerM: 10, cacheWritePerM: 2.5, cacheReadPerM: 0.1 };
+const SONNET_55_PRICING: Required<ModelPricing> = { inputPerM: 2, outputPerM: 10, cacheWritePerM: 2.5, cacheWrite1hPerM: 4, cacheReadPerM: 0.1 };
+
+/**
+ * Cost in USD of one Sonnet 5.5 response from its raw `usage`, with the 5-minute and 1-hour writes priced
+ * apart. Throws on a usage shape it does not understand: a missing cost must not read as $0.
+ */
+export function sonnet55CostUsd(rawUsage: unknown): { inputCostUsd: number; outputCostUsd: number; totalCostUsd: number } {
+  const records = usageRecordsOf(rawUsage);
+  if (!records) throw new Error('Cannot price Sonnet 5.5 usage: unrecognised usage shape');
+  const p = sumUsageParts(records);
+  const rate = SONNET_55_PRICING;
+  const inputCostUsd = (p.inputTokens * rate.inputPerM
+    + p.cacheReadInputTokens * rate.cacheReadPerM
+    + p.cacheCreation5mInputTokens * rate.cacheWritePerM
+    + p.cacheCreation1hInputTokens * rate.cacheWrite1hPerM) / 1_000_000;
+  const outputCostUsd = (p.outputTokens * rate.outputPerM) / 1_000_000;
+  return { inputCostUsd, outputCostUsd, totalCostUsd: inputCostUsd + outputCostUsd };
+}
 
 /**
  * Claude Haiku 5.5 list price per million tokens (platform.claude.com Haiku 5.5 page, read 2026-10-22).
@@ -297,6 +317,7 @@ export const ACTIVE_MODEL_ID = SONNET_MODEL_ID;
 export const ACTIVE_MODEL_PRICING: ModelPricing = SONNET_55_PRICING;
 
 type SystemParam = string | Anthropic.TextBlockParam[];
+type SonnetRequest = Anthropic.MessageCreateParamsNonStreaming;
 
 /** Request body for a Sonnet 5.5 call (see the file header for the shape). */
 function buildSdkParams(params: {
@@ -304,7 +325,7 @@ function buildSdkParams(params: {
   maxTokens: number;
   system?: SystemParam;
   messages: Anthropic.MessageParam[];
-}): Anthropic.MessageCreateParamsNonStreaming {
+}): SonnetRequest {
   return {
     model: params.model,
     max_tokens: sonnetMaxTokens(params.maxTokens),
@@ -317,20 +338,101 @@ function buildSdkParams(params: {
 
 const JSON_INSTRUCTION = 'IMPORTANT: You MUST respond with ONLY valid JSON. No markdown code blocks, no explanations, no text before or after the JSON. Start your response with { and end with }. Ensure all strings are properly escaped.';
 
-/** Structured system blocks (with cache_control) win over a plain string; jsonMode appends the JSON-only rule. */
-function buildSystemParam(options: Pick<AnthropicCallOptions, 'systemPrompt' | 'systemBlocks' | 'jsonMode'>): SystemParam | undefined {
-  const { systemPrompt, systemBlocks, jsonMode } = options;
+/** The API marker for a TTL. 5 minutes is the API default, so it is sent without a ttl (the shape the probes measured). */
+function cacheControl(ttl: CacheTtl): Anthropic.CacheControlEphemeral {
+  return ttl === '1h' ? { type: 'ephemeral', ttl: '1h' } : { type: 'ephemeral' };
+}
+
+function textBlockParam(block: CacheableContentBlock): Anthropic.TextBlockParam {
+  return block.cache_control
+    ? { type: 'text', text: block.text, cache_control: cacheControl(block.cache_control.ttl ?? '5m') }
+    : { type: 'text', text: block.text };
+}
+
+/**
+ * Structured system blocks (with cache_control) win over a plain string; jsonMode appends the JSON-only rule.
+ * A plain string with `systemPromptCacheTtl` becomes one marked block holding the same text, JSON rule included.
+ */
+function buildSystemParam(
+  options: Pick<AnthropicCallOptions, 'systemPrompt' | 'systemBlocks' | 'jsonMode' | 'systemPromptCacheTtl'>,
+): SystemParam | undefined {
+  const { systemPrompt, systemBlocks, jsonMode, systemPromptCacheTtl } = options;
   if (systemBlocks && systemBlocks.length > 0) {
-    return jsonMode ? [...systemBlocks, { type: 'text', text: JSON_INSTRUCTION }] : [...systemBlocks];
+    const blocks = systemBlocks.map(textBlockParam);
+    return jsonMode ? [...blocks, { type: 'text', text: JSON_INSTRUCTION }] : blocks;
   }
-  if (systemPrompt) return jsonMode ? `${systemPrompt}\n\n${JSON_INSTRUCTION}` : systemPrompt;
+  if (systemPrompt) {
+    const text = jsonMode ? `${systemPrompt}\n\n${JSON_INSTRUCTION}` : systemPrompt;
+    return systemPromptCacheTtl ? [{ type: 'text', text, cache_control: cacheControl(systemPromptCacheTtl) }] : text;
+  }
   return undefined;
+}
+
+/** The user message: split into blocks when the caller marked positions inside it, else the plain string. */
+function buildMessages(options: Pick<AnthropicCallOptions, 'prompt' | 'promptBlocks' | 'conversationHistory'>): Anthropic.MessageParam[] {
+  const { prompt, promptBlocks, conversationHistory } = options;
+  if (conversationHistory && conversationHistory.length > 0) {
+    if (promptBlocks) throw new Error('callAnthropic: promptBlocks cannot be combined with conversationHistory');
+    return conversationHistory.map((msg) => ({ role: msg.role, content: msg.content }));
+  }
+  if (promptBlocks) {
+    if (promptBlocks.length === 0) throw new Error('callAnthropic: promptBlocks is empty');
+    // Splitting is for cache markers only. The model must read exactly the prompt the builder wrote.
+    if (promptBlocks.map((block) => block.text).join('') !== prompt) {
+      throw new Error('callAnthropic: promptBlocks do not join to the prompt; a cache split must never change the text');
+    }
+    if (promptBlocks.some((block) => block.text.length === 0)) {
+      throw new Error('callAnthropic: promptBlocks contains an empty block (the API rejects empty text blocks)');
+    }
+    return [{ role: 'user', content: promptBlocks.map(textBlockParam) }];
+  }
+  return [{ role: 'user', content: prompt }];
+}
+
+/** The TTL of every cache marker in a request, in prefix order (system, then messages). */
+export function cacheMarkerTtls(params: Pick<SonnetRequest, 'system' | 'messages'>): CacheTtl[] {
+  const ttls: CacheTtl[] = [];
+  const visit = (block: { cache_control?: Anthropic.CacheControlEphemeral | null }) => {
+    if (block.cache_control) ttls.push(block.cache_control.ttl ?? '5m');
+  };
+  if (Array.isArray(params.system)) params.system.forEach(visit);
+  for (const message of params.messages) {
+    if (Array.isArray(message.content)) {
+      for (const block of message.content) visit(block as { cache_control?: Anthropic.CacheControlEphemeral | null });
+    }
+  }
+  return ttls;
+}
+
+/** The API allows 4 markers, and a 1-hour marker after a 5-minute one is a 400. Fail here, before sending. */
+function assertCacheMarkers(params: SonnetRequest, label: string): void {
+  const ttls = cacheMarkerTtls(params);
+  if (ttls.length > 4) throw new Error(`${label}: ${ttls.length} cache markers, the API allows 4`);
+  const first5m = ttls.indexOf('5m');
+  if (first5m !== -1 && ttls.indexOf('1h', first5m) !== -1) {
+    throw new Error(`${label}: a 1h cache marker after a 5m one (${ttls.join(', ')}); longer TTLs come first`);
+  }
+}
+
+/**
+ * The Messages API body of one callAnthropic call. Exported so cache tests can build two requests and compare
+ * the cached prefix byte for byte. Throws on options that cannot make a valid request.
+ */
+export function buildSonnetRequest(options: AnthropicCallOptions, model: string = SONNET_MODEL_ID): SonnetRequest {
+  const params = buildSdkParams({
+    model,
+    maxTokens: options.maxTokens ?? 4096,
+    system: buildSystemParam(options),
+    messages: buildMessages(options),
+  });
+  assertCacheMarkers(params, `callAnthropic(${options.site ?? options.generationContext?.operation ?? 'unlabelled'})`);
+  return params;
 }
 
 /** One SDK Messages call. Streams (and waits for the final message) above STREAM_ABOVE_MAX_TOKENS. */
 async function sendSdkMessage(
   client: MessagesClient,
-  params: Anthropic.MessageCreateParamsNonStreaming,
+  params: SonnetRequest,
 ): Promise<{ message: Anthropic.Message; requestId: string | null }> {
   if (params.max_tokens > STREAM_ABOVE_MAX_TOKENS) {
     const stream = client.messages.stream(params);
@@ -412,50 +514,206 @@ export function billedFailureUsage(error: unknown): Partial<Parameters<typeof fa
 
 export interface AnthropicCallOptions {
   prompt: string;
+  /** The user message split into blocks for cache markers. Must join to `prompt` exactly (see ModelCallOptions). */
+  promptBlocks?: CacheableContentBlock[];
   systemPrompt?: string;
+  /** A cache marker on a plain `systemPrompt`. */
+  systemPromptCacheTtl?: CacheTtl;
   /** Structured system blocks with cache_control for prompt caching */
   systemBlocks?: CacheableContentBlock[];
   maxTokens?: number;
   jsonMode?: boolean;
   conversationHistory?: ConversationMessage[];
   generationContext?: LlmGenerationContext;
+  /** PostHog `$ai_generation` site label. Defaults to the generation context's operation. */
+  site?: string;
 }
 
-/** One non-streaming attempt on one provider, with its own ledger row. Throws the original error. */
+// -------------------------------------------------------------------------------------------------
+// Dependencies (real by default, swappable in tests) and the PostHog `$ai_generation` event
+// -------------------------------------------------------------------------------------------------
+
+export interface SonnetDeps {
+  getClient(): MessagesClient;
+  /** The Amazon Bedrock client, or null when it is not configured (failover off). */
+  getBedrockClient(): MessagesClient | null;
+  startLedger: typeof startLlmGeneration;
+  completeLedger: typeof completeProviderGeneration;
+  failLedger: typeof recordProviderFailure;
+  /** `event` defaults to `$ai_generation`. */
+  capture(event: { distinctId: string; event?: string; properties: Record<string, unknown> }): Promise<void>;
+}
+
+const defaultSonnetDeps: SonnetDeps = {
+  getClient: getPrimaryClient,
+  getBedrockClient,
+  startLedger: startLlmGeneration,
+  completeLedger: completeProviderGeneration,
+  failLedger: recordProviderFailure,
+  async capture({ distinctId, event, properties }) {
+    const posthog = getPostHogServer();
+    posthog.capture({ distinctId, event: event ?? '$ai_generation', properties });
+    await posthog.flush();
+  },
+};
+
+let sonnetDeps: SonnetDeps = defaultSonnetDeps;
+
+/** Swap the clients, ledger and PostHog capture for a test. `null` restores the real ones. */
+export function setSonnetDepsForTests(deps: Partial<SonnetDeps> | null): void {
+  sonnetDeps = deps ? { ...defaultSonnetDeps, ...deps } : defaultSonnetDeps;
+}
+
+export interface SonnetGenerationInput {
+  site: string;
+  provider: ProviderName;
+  model: string;
+  context: LlmGenerationContext;
+  generationId: string;
+  latencyMs: number;
+  stopReason: string | null;
+  providerRequestId: string | null;
+  /** The raw `usage` of the response, or null when no response came back. */
+  rawUsage: unknown;
+  /** TTLs of the request's cache markers, in prefix order. */
+  cacheMarkers: CacheTtl[];
+  errorKind: string | null;
+  httpStatus: number | null;
+}
+
+/**
+ * Properties of the PostHog `$ai_generation` event for one Sonnet attempt. Counts and labels only: no prompt,
+ * no user data. Same fields as callHaiku's event, so one PostHog view covers both models.
+ */
+export function buildSonnetGenerationProperties(input: SonnetGenerationInput): Record<string, unknown> {
+  const records = input.rawUsage === null || input.rawUsage === undefined ? null : usageRecordsOf(input.rawUsage);
+  const u = records ? sumUsageParts(records) : null;
+  const cost = u ? sonnet55CostUsd(input.rawUsage) : null;
+  const read = u?.cacheReadInputTokens ?? null;
+  const write = u?.cacheCreationInputTokens ?? null;
+  const uncached = u?.inputTokens ?? null;
+  const total = u ? u.inputTokens + u.cacheReadInputTokens + u.cacheCreationInputTokens : null;
+  return {
+    // PostHog LLM analytics
+    $ai_provider: input.provider,
+    $ai_model: input.model,
+    $ai_input_tokens: uncached,
+    $ai_output_tokens: u?.outputTokens ?? null,
+    $ai_cache_read_input_tokens: read,
+    $ai_cache_creation_input_tokens: write,
+    $ai_input_cost_usd: cost?.inputCostUsd ?? null,
+    $ai_output_cost_usd: cost?.outputCostUsd ?? null,
+    $ai_total_cost_usd: cost?.totalCostUsd ?? null,
+    $ai_latency: input.latencyMs / 1000,
+    $ai_is_error: input.errorKind !== null,
+    $ai_http_status: input.errorKind === null ? 200 : input.httpStatus,
+    $ai_trace_id: input.context.requestExecutionId,
+    // Our own, per .claude/rules/posthog.md and prompt-caching.md
+    provider: input.provider,
+    model: input.model,
+    site: input.site,
+    effort: SONNET_EFFORT,
+    feature: input.context.feature,
+    operation: input.context.operation,
+    route: input.context.route,
+    generation_id: input.generationId,
+    provider_request_id: input.providerRequestId,
+    stop_reason: input.stopReason,
+    input_tokens: uncached,
+    output_tokens: u?.outputTokens ?? null,
+    cache_read_tokens: read,
+    cache_creation_tokens: write,
+    cache_creation_5m_tokens: u?.cacheCreation5mInputTokens ?? null,
+    cache_creation_1h_tokens: u?.cacheCreation1hInputTokens ?? null,
+    input_tokens_total: total,
+    // read / (read + write + uncached); null when the response carried no usage
+    cache_hit_rate: total ? (read as number) / total : null,
+    cache_markers: input.cacheMarkers.join(','),
+    cost_usd: cost?.totalCostUsd ?? null,
+    latency_ms: input.latencyMs,
+    error_kind: input.errorKind,
+  };
+}
+
+async function captureSonnetGeneration(context: LlmGenerationContext, input: Omit<SonnetGenerationInput, 'context'>): Promise<void> {
+  const distinctId = context.userId ?? 'unattributed';
+  try {
+    const properties = buildSonnetGenerationProperties({ ...input, context });
+    // No user: keep these events from piling onto one anonymous person profile.
+    await sonnetDeps.capture({ distinctId, properties: context.userId ? properties : { ...properties, $process_person_profile: false } });
+  } catch (error) {
+    // Observability must not take the product down, but a lost event is logged, not swallowed.
+    console.error('[anthropic] PostHog $ai_generation capture failed', error);
+  }
+}
+
+/** One non-streaming attempt on one provider, with its own ledger row and `$ai_generation` event. Throws the original error. */
 async function sdkTextAttempt(
   target: FailoverTarget<MessagesClient>,
   call: {
     context: LlmGenerationContext;
-    maxTokens: number;
-    system?: SystemParam;
-    messages: Anthropic.MessageParam[];
+    site: string;
+    /** Built for the primary model; the target's model id is swapped in. */
+    params: SonnetRequest;
     errorKindFallback: string;
   },
 ): Promise<{ text: string; message: Anthropic.Message; ledgerId: string; latencyMs: number }> {
   const startTime = Date.now();
-  const ledger = await startLlmGeneration({ context: call.context, provider: target.provider, model: target.model });
+  const ledger = await sonnetDeps.startLedger({ context: call.context, provider: target.provider, model: target.model });
+  const params = target.model === call.params.model ? call.params : { ...call.params, model: target.model };
+  const cacheMarkers = cacheMarkerTtls(params);
   let providerResponseReceived = false;
   try {
-    const params = buildSdkParams({ model: target.model, maxTokens: call.maxTokens, system: call.system, messages: call.messages });
     const { message, requestId } = await sendSdkMessage(target.getClient(), params);
     // Throws on a refusal or truncation before the ledger marks the call complete.
     const text = sdkMessageText(message, requestId, params.max_tokens);
     providerResponseReceived = true;
-    await completeProviderGeneration({
+    await sonnetDeps.completeLedger({
       id: ledger.id,
       startedAtMs: startTime,
       response: { usage: message.usage, id: message.id, _request_id: requestId ?? undefined },
     });
-    return { text, message, ledgerId: ledger.id, latencyMs: Date.now() - startTime };
+    const latencyMs = Date.now() - startTime;
+    await captureSonnetGeneration(call.context, {
+      site: call.site,
+      provider: target.provider,
+      model: target.model,
+      generationId: ledger.id,
+      latencyMs,
+      stopReason: message.stop_reason ?? null,
+      providerRequestId: requestId ?? message.id ?? null,
+      rawUsage: message.usage,
+      cacheMarkers,
+      errorKind: null,
+      httpStatus: null,
+    });
+    return { text, message, ledgerId: ledger.id, latencyMs };
   } catch (error) {
     if (!providerResponseReceived) {
-      await recordProviderFailure({
+      const latencyMs = Date.now() - startTime;
+      const errorKind = providerErrorKind(error, call.errorKindFallback);
+      const httpStatus = providerHttpStatus(error);
+      await sonnetDeps.failLedger({
         id: ledger.id,
-        latencyMs: Date.now() - startTime,
+        latencyMs,
         attemptCount: 1,
-        errorKind: providerErrorKind(error, call.errorKindFallback),
-        httpStatus: providerHttpStatus(error),
+        errorKind,
+        httpStatus,
         ...billedFailureUsage(error),
+      });
+      // A refusal or truncation was billed: its usage and cost stay on the event.
+      await captureSonnetGeneration(call.context, {
+        site: call.site,
+        provider: target.provider,
+        model: target.model,
+        generationId: ledger.id,
+        latencyMs,
+        stopReason: error instanceof ModelStopError ? error.errorKind : null,
+        providerRequestId: error instanceof ModelStopError ? error.billed.providerRequestId : null,
+        rawUsage: error instanceof ModelStopError ? error.billed.usage : null,
+        cacheMarkers,
+        errorKind,
+        httpStatus,
       });
     }
     throw error;
@@ -464,17 +722,19 @@ async function sdkTextAttempt(
 
 function sonnetFailover<T>(
   context: LlmGenerationContext,
+  site: string,
   attempt: (target: FailoverTarget<MessagesClient>) => Promise<T>,
   canFailOver?: () => boolean,
 ): Promise<T> {
   return runWithFailover<MessagesClient, T>({
-    site: context.operation,
+    site,
     model: SONNET_MODEL_ID,
     context,
-    primary: getPrimaryClient,
-    bedrock: getBedrockClient,
+    primary: () => sonnetDeps.getClient(),
+    bedrock: () => sonnetDeps.getBedrockClient(),
     attempt,
     canFailOver,
+    onFailover: (info) => captureFailoverEvent(info, (event) => sonnetDeps.capture(event)),
   });
 }
 
@@ -482,24 +742,24 @@ function sonnetFailover<T>(
  * Call Claude Sonnet 5.5 for all kit-writing, parsing and analysis tasks.
  */
 export async function callAnthropic(options: AnthropicCallOptions): Promise<ModelResponse> {
-  const { prompt, maxTokens = 4096, conversationHistory } = options;
-  const system = buildSystemParam(options);
-  const messages: Anthropic.MessageParam[] = conversationHistory && conversationHistory.length > 0
-    ? conversationHistory.map((msg) => ({ role: msg.role, content: msg.content }))
-    : [{ role: 'user', content: prompt }];
   const context = options.generationContext ?? fallbackGenerationContext('direct_anthropic_call');
+  const site = options.site ?? context.operation;
+  // Built before the try: a request that breaks the cache rules is a programming error, not a provider failure.
+  const params = buildSonnetRequest({ ...options, site });
 
   try {
-    const { text: content, message, ledgerId, latencyMs, provider, model } = await sonnetFailover(context, async (target) => ({
-      ...(await sdkTextAttempt(target, { context, maxTokens, system, messages, errorKindFallback: 'provider_error' })),
+    const { text: content, message, ledgerId, latencyMs, provider, model } = await sonnetFailover(context, site, async (target) => ({
+      ...(await sdkTextAttempt(target, { context, site, params, errorKindFallback: 'provider_error' })),
       provider: target.provider,
       model: target.model,
     }));
 
     const cacheCreation = message.usage.cache_creation_input_tokens ?? 0;
     const cacheRead = message.usage.cache_read_input_tokens ?? 0;
+    const records = usageRecordsOf(message.usage);
+    const parts = records ? sumUsageParts(records) : null;
     if (cacheCreation > 0 || cacheRead > 0) {
-      console.log(`[Anthropic Cache] write=${cacheCreation} read=${cacheRead} input=${message.usage.input_tokens} output=${message.usage.output_tokens}`);
+      console.log(`[Anthropic Cache] ${site} write=${cacheCreation} (5m=${parts?.cacheCreation5mInputTokens ?? '?'} 1h=${parts?.cacheCreation1hInputTokens ?? '?'}) read=${cacheRead} input=${message.usage.input_tokens} output=${message.usage.output_tokens}`);
     }
 
     return {
@@ -509,6 +769,8 @@ export async function callAnthropic(options: AnthropicCallOptions): Promise<Mode
         outputTokens: message.usage.output_tokens,
         cacheCreationInputTokens: cacheCreation || undefined,
         cacheReadInputTokens: cacheRead || undefined,
+        cacheCreation5mInputTokens: parts?.cacheCreation5mInputTokens || undefined,
+        cacheCreation1hInputTokens: parts?.cacheCreation1hInputTokens || undefined,
       },
       model,
       provider,
@@ -530,9 +792,9 @@ export async function callAnthropicStream(
   options: AnthropicCallOptions,
   onChunk: (chunk: string) => void,
 ): Promise<ModelResponse> {
-  const { prompt, maxTokens = 4096 } = options;
-  const system = buildSystemParam(options);
   const context = options.generationContext ?? fallbackGenerationContext('direct_anthropic_stream');
+  const site = options.site ?? context.operation;
+  const baseParams = buildSonnetRequest({ ...options, conversationHistory: undefined, site });
   let textEmitted = false;
 
   const attempt = async (target: FailoverTarget<MessagesClient>): Promise<ModelResponse> => {
@@ -543,14 +805,15 @@ export async function callAnthropicStream(
     let cacheCreationTokens = 0;
     let cacheReadTokens = 0;
     let providerRequestId: string | null = null;
-    const finalUsage: Record<string, number> = {};
+    const finalUsage: Record<string, unknown> = {};
     let stopReason: string | null | undefined;
     let stopDetails: { category?: string | null } | null | undefined;
+    const params = target.model === baseParams.model ? baseParams : { ...baseParams, model: target.model };
+    const cacheMarkers = cacheMarkerTtls(params);
 
-    const ledger = await startLlmGeneration({ context, provider: target.provider, model: target.model });
+    const ledger = await sonnetDeps.startLedger({ context, provider: target.provider, model: target.model });
     let providerResponseReceived = false;
     try {
-      const params = buildSdkParams({ model: target.model, maxTokens, system, messages: [{ role: 'user', content: prompt }] });
       const stream = target.getClient().messages.stream(params);
 
       for await (const event of stream) {
@@ -590,8 +853,9 @@ export async function callAnthropicStream(
             cacheReadTokens = exactCacheReadTokens;
             finalUsage.cache_read_input_tokens = exactCacheReadTokens;
           }
+          if (usage.cache_creation) finalUsage.cache_creation = { ...usage.cache_creation };
           if (cacheCreationTokens > 0 || cacheReadTokens > 0) {
-            console.log(`[Anthropic Cache Stream] write=${cacheCreationTokens} read=${cacheReadTokens} input=${inputTokens}`);
+            console.log(`[Anthropic Cache Stream] ${site} write=${cacheCreationTokens} read=${cacheReadTokens} input=${inputTokens}`);
           }
         }
       }
@@ -606,7 +870,7 @@ export async function callAnthropicStream(
       });
 
       providerResponseReceived = true;
-      await completeProviderGeneration({
+      await sonnetDeps.completeLedger({
         id: ledger.id,
         startedAtMs: startTime,
         response: {
@@ -615,6 +879,23 @@ export async function callAnthropicStream(
         },
       });
 
+      const latencyMs = Date.now() - startTime;
+      await captureSonnetGeneration(context, {
+        site,
+        provider: target.provider,
+        model: target.model,
+        generationId: ledger.id,
+        latencyMs,
+        stopReason: stopReason ?? null,
+        providerRequestId,
+        rawUsage: Object.keys(finalUsage).length > 0 ? finalUsage : null,
+        cacheMarkers,
+        errorKind: null,
+        httpStatus: null,
+      });
+
+      const parts = usageRecordsOf(finalUsage);
+      const split = parts ? sumUsageParts(parts) : null;
       return {
         content: fullContent,
         usage: {
@@ -622,21 +903,39 @@ export async function callAnthropicStream(
           outputTokens,
           cacheCreationInputTokens: cacheCreationTokens || undefined,
           cacheReadInputTokens: cacheReadTokens || undefined,
+          cacheCreation5mInputTokens: split?.cacheCreation5mInputTokens || undefined,
+          cacheCreation1hInputTokens: split?.cacheCreation1hInputTokens || undefined,
         },
         model: target.model,
         provider: target.provider,
-        latencyMs: Date.now() - startTime,
+        latencyMs,
         generationId: ledger.id,
       };
     } catch (error) {
       if (!providerResponseReceived) {
-        await recordProviderFailure({
+        const latencyMs = Date.now() - startTime;
+        const errorKind = providerErrorKind(error, 'provider_stream_error');
+        const httpStatus = providerHttpStatus(error);
+        await sonnetDeps.failLedger({
           id: ledger.id,
-          latencyMs: Date.now() - startTime,
+          latencyMs,
           attemptCount: 1,
-          errorKind: providerErrorKind(error, 'provider_stream_error'),
-          httpStatus: providerHttpStatus(error),
+          errorKind,
+          httpStatus,
           ...billedFailureUsage(error),
+        });
+        await captureSonnetGeneration(context, {
+          site,
+          provider: target.provider,
+          model: target.model,
+          generationId: ledger.id,
+          latencyMs,
+          stopReason: error instanceof ModelStopError ? error.errorKind : null,
+          providerRequestId,
+          rawUsage: error instanceof ModelStopError ? error.billed.usage : null,
+          cacheMarkers,
+          errorKind,
+          httpStatus,
         });
       }
       throw error;
@@ -644,7 +943,7 @@ export async function callAnthropicStream(
   };
 
   try {
-    return await sonnetFailover(context, attempt, () => !textEmitted);
+    return await sonnetFailover(context, site, attempt, () => !textEmitted);
   } catch (error) {
     console.error('Anthropic streaming error:', error);
     throw new Error(`Anthropic streaming failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -667,18 +966,25 @@ export async function extractDocumentText(
   const system = 'You are a document text extractor. Extract ALL text content from the provided document faithfully. Preserve the original structure, section headers, dates, bullet points, and formatting. Return ONLY the extracted text, nothing else.';
   const userText = 'Extract ALL text content from this CV/resume document. Preserve the original structure including section headers, dates, company names, job titles, bullet points, skills, education, and languages. Return ONLY the extracted text with proper formatting.';
 
+  // No cache marker: the static part before the document is the short system prompt, under the 512-token minimum.
+  const params = buildSdkParams({
+    model: SONNET_MODEL_ID,
+    maxTokens: 8192,
+    system,
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64Data } },
+        { type: 'text', text: userText },
+      ],
+    }],
+  });
+
   try {
-    const { text } = await sonnetFailover(context, (target) => sdkTextAttempt(target, {
+    const { text } = await sonnetFailover(context, context.operation, (target) => sdkTextAttempt(target, {
       context,
-      maxTokens: 8192,
-      system,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64Data } },
-          { type: 'text', text: userText },
-        ],
-      }],
+      site: context.operation,
+      params,
       errorKindFallback: 'document_extraction_provider_error',
     }));
     console.log(`[Anthropic] PDF document extraction: ${text.length} chars in ${Date.now() - startTime}ms`);
@@ -726,12 +1032,20 @@ export async function parseDocumentAsCV(options: {
     ...(visualMode && { citations: { enabled: true } }),
   };
 
-  // With citations enabled the answer can arrive as several text blocks, so all are joined.
-  const { text } = await sonnetFailover(context, (target) => sdkTextAttempt(target, {
-    context,
+  // No cache marker: the document comes first in the message, so the only static prefix is the short system
+  // prompt, under the 512-token minimum. Each CV is parsed once, so there is no per-user reuse either.
+  const params = buildSdkParams({
+    model: SONNET_MODEL_ID,
     maxTokens,
     system: systemPrompt,
     messages: [{ role: 'user', content: [documentBlock, { type: 'text', text: prompt }] }],
+  });
+
+  // With citations enabled the answer can arrive as several text blocks, so all are joined.
+  const { text } = await sonnetFailover(context, context.operation, (target) => sdkTextAttempt(target, {
+    context,
+    site: context.operation,
+    params,
     errorKindFallback: 'document_parse_provider_error',
   }));
   console.log(`[Anthropic] CV document parse (visualMode=${visualMode}): ${text.length} chars in ${Date.now() - startTime}ms`);

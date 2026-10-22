@@ -30,7 +30,7 @@ import {
   addTokenUsage,
   tokenUsageOf,
 } from './types';
-import { callModel, type ModelCallOptions, type ModelResponse } from '@/lib/models';
+import { callModel, type CacheableContentBlock, type CacheTtl, type ModelCallOptions, type ModelResponse } from '@/lib/models';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import { loadApplicantDocuments } from '@/lib/storage/applicantStore';
 import { fixTypos, sanitizeDashes } from '@/lib/config/typo-corrections';
@@ -41,6 +41,8 @@ import {
   detectLanguage,
   computeSkillMatch,
   extractVerifiedMetrics,
+  promptBlock,
+  staticHeadPromptBlocks,
   type WithTokens,
 } from './context-builder';
 import {
@@ -1629,6 +1631,182 @@ function validateFollowUpEmail(
   return { subject, body, recommendedDelay };
 }
 
+// =====================================================
+// PROMPT CACHE LAYOUT (one place for every writer call's markers)
+//
+// Markers and block splits only: every prompt reaches the model with exactly the text its builder wrote
+// (callAnthropic refuses blocks that do not join to the prompt). Rules: .claude/rules/prompt-caching.md.
+//
+// - Writer system blocks (CV, letter, application email, follow-up) live 1 hour. They are static, so every
+//   user shares them, and they are the one block regenerate and the CV section rewrite reuse from the kit.
+//   1h also keeps them warm between the few kits an hour we see today, where 5m would rewrite them each kit.
+// - The writers with a validation retry (letter, application email, follow-up) mark the end of the first
+//   attempt's user message (5m), so the retry, which appends a correction, reads the whole first prompt.
+// - Regenerate marks the session context too (1h): everything before the rewrite-instruction slot, which
+//   stays the same for every rewrite of that document while the user reads and asks again. The kit does not:
+//   regenerate rebuilds the applicant, metrics and skill lists from stored rows, so its bytes differ from the
+//   kit's and a kit-side 1h write would never be read.
+// - No writer shares a prefix with another: each starts with its own system instructions. Sharing the CVs
+//   would need one CV block before the instructions, but each writer labels the CVs in its own words (the
+//   labels are part of the factuality framing), so that would mean rewording prompts.
+// =====================================================
+
+/** How a writer call is used, for its cache markers. */
+export interface WriterCacheOptions {
+  /** Regenerate: the document is likely rewritten again in this session, so the session context lives 1 hour. */
+  reusedInSession?: boolean;
+}
+
+const WRITER_SYSTEM_TTL: CacheTtl = '1h';
+const SESSION_CONTEXT_TTL: CacheTtl = '1h';
+const RETRY_PREFIX_TTL: CacheTtl = '5m';
+
+/** The builder's system blocks with their markers set to the writer TTL. The text is untouched. */
+function writerSystemBlocks(blocks: CacheableContentBlock[]): CacheableContentBlock[] {
+  return blocks.map((block) => promptBlock(block.text, block.cache_control ? WRITER_SYSTEM_TTL : undefined));
+}
+
+function outputLanguageOf(context: MasterContext): SupportedLanguage {
+  return normalizeLanguage(context.userLanguageOverride || context.detectedLanguage);
+}
+
+/**
+ * Length of the part of a writer's user prompt that does not depend on the rewrite instruction: the prompt is
+ * built without an instruction and with a probe one, and the common prefix ends where the instruction slot (or
+ * the first text that depends on it) begins. Content-independent: no heading search, so nothing in a CV or an
+ * ad can move it. Returns 0 when the real prompt does not share that prefix (never expected).
+ */
+export function sessionContextLength(build: (context: MasterContext) => string, context: MasterContext, prompt: string): number {
+  const without = build({ ...context, userInstruction: undefined });
+  const probe = build({ ...context, userInstruction: 'x' });
+  const limit = Math.min(without.length, probe.length);
+  let length = 0;
+  while (length < limit && without.charCodeAt(length) === probe.charCodeAt(length)) length += 1;
+  // Never split a surrogate pair across two blocks.
+  const last = without.charCodeAt(length - 1);
+  if (length > 0 && last >= 0xd800 && last <= 0xdbff) length -= 1;
+  return prompt.slice(0, length) === without.slice(0, length) ? length : 0;
+}
+
+/** The user message of a writer that can retry: the end of the first attempt is marked for the retry. */
+function writerUserMessage(
+  build: (context: MasterContext) => string,
+  context: MasterContext,
+  cache: WriterCacheOptions,
+): Pick<ModelCallOptions, 'prompt' | 'promptBlocks'> {
+  const prompt = build(context);
+  if (cache.reusedInSession) {
+    const length = sessionContextLength(build, context, prompt);
+    if (length > 0 && length < prompt.length) {
+      return {
+        prompt,
+        promptBlocks: [promptBlock(prompt.slice(0, length), SESSION_CONTEXT_TTL), promptBlock(prompt.slice(length), RETRY_PREFIX_TTL)],
+      };
+    }
+    console.error('[prompt-cache] no session context boundary in a writer prompt; sending it with the retry marker only');
+  }
+  return { prompt, promptBlocks: [promptBlock(prompt, RETRY_PREFIX_TTL)] };
+}
+
+/** A retry: the first attempt's blocks unchanged (so their cache is read), then the correction, unmarked. */
+export function withCorrection(options: ModelCallOptions, correction: string): ModelCallOptions {
+  return {
+    ...options,
+    site: `${options.site ?? options.task}_retry`,
+    prompt: `${options.prompt}${correction}`,
+    promptBlocks: options.promptBlocks ? [...options.promptBlocks, promptBlock(correction)] : undefined,
+  };
+}
+
+export function cvCallOptions(context: MasterContext, generationContext?: LlmGenerationContext): ModelCallOptions {
+  // No user-message marker: the CV has no retry and its user message is per request.
+  return {
+    task: 'optimize_cv',
+    site: 'optimize_cv',
+    prompt: buildCVOptimizationUserPrompt(context, outputLanguageOf(context)),
+    systemBlocks: writerSystemBlocks(buildCVOptimizationSystemBlocks()),
+    jsonMode: true,
+    generationContext,
+  };
+}
+
+export function cvSectionCallOptions(
+  context: MasterContext,
+  section: ResolvedCVSection,
+  generationContext?: LlmGenerationContext,
+): ModelCallOptions {
+  // Reads the kit CV's system block. The user message opens with the section kind and label, so two
+  // rewrites share nothing after the system unless the prompt were reordered.
+  return {
+    task: 'optimize_cv',
+    site: 'rewrite_cv_section',
+    prompt: buildCVSectionRewriteUserPrompt(context, section, outputLanguageOf(context)),
+    systemBlocks: writerSystemBlocks(buildCVOptimizationSystemBlocks()),
+    jsonMode: true,
+    generationContext,
+  };
+}
+
+export function coverLetterCallOptions(
+  context: MasterContext,
+  generationContext?: LlmGenerationContext,
+  cache: WriterCacheOptions = {},
+): ModelCallOptions {
+  return {
+    task: 'write_cover_letter',
+    site: 'write_cover_letter',
+    ...writerUserMessage(buildCoverLetterUserPrompt, context, cache),
+    systemBlocks: writerSystemBlocks(buildCoverLetterSystemBlocks()),
+    jsonMode: true,
+    generationContext,
+  };
+}
+
+export function applicationEmailCallOptions(
+  context: MasterContext,
+  generationContext?: LlmGenerationContext,
+  cache: WriterCacheOptions = {},
+): ModelCallOptions {
+  return {
+    task: 'write_email',
+    site: 'write_email',
+    ...writerUserMessage(buildApplicationEmailUserPrompt, context, cache),
+    systemBlocks: writerSystemBlocks(buildApplicationEmailSystemBlocks()),
+    jsonMode: true,
+    generationContext,
+  };
+}
+
+export function followUpEmailCallOptions(
+  context: MasterContext,
+  generationContext?: LlmGenerationContext,
+  cache: WriterCacheOptions = {},
+): ModelCallOptions {
+  return {
+    task: 'write_follow_up_email',
+    site: 'write_follow_up_email',
+    ...writerUserMessage(buildFollowUpEmailUserPrompt, context, cache),
+    systemBlocks: writerSystemBlocks(buildFollowUpEmailSystemBlocks()),
+    jsonMode: true,
+    generationContext,
+  };
+}
+
+export function fitAssessmentCallOptions(context: MasterContext, generationContext?: LlmGenerationContext): ModelCallOptions {
+  const { applicant, job, match } = context;
+  const prompt = buildFitAssessmentPrompt({ applicant, job, match, masterCV: context.masterCV });
+  // One-shot, 5m: the static system (about 800 tokens) and the static evaluation framework that opens the
+  // user message (about 420) are the same for everyone; the candidate data starts at the profile heading.
+  return {
+    task: 'fit_assessment',
+    site: 'fit_assessment',
+    prompt,
+    promptBlocks: staticHeadPromptBlocks(prompt, '=== CANDIDATE PROFILE ===', '5m'),
+    systemBlocks: buildFitAssessmentSystemBlocks(),
+    generationContext,
+  };
+}
+
 type EmailModelCall = (options: ModelCallOptions) => Promise<ModelResponse>;
 
 function parseAndValidateEmail<T>(
@@ -1666,8 +1844,10 @@ async function generateEmailWithValidationRetry<T>(
     if (!(error instanceof EmailValidationError)) throw error;
     console.warn(`[UnifiedAgent] Retrying ${responseLabel.toLowerCase()} after validation miss:`, error.message);
     const retry = await modelCall({
-      ...options,
-      prompt: `${options.prompt}\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.message}. Rewrite the complete email once and return only valid JSON. ${correctionRequirements} Preserve every factuality rule. Do not add any applicant fact, skill, metric or claim that is absent from the Primary CV and Master CV, apart from the saved profile values the LOGISTICS rules give.`,
+      ...withCorrection(
+        options,
+        `\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.message}. Rewrite the complete email once and return only valid JSON. ${correctionRequirements} Preserve every factuality rule. Do not add any applicant fact, skill, metric or claim that is absent from the Primary CV and Master CV, apart from the saved profile values the LOGISTICS rules give.`,
+      ),
       generationContext: options.generationContext
         ? { ...options.generationContext, parentGenerationId: response.generationId }
         : undefined,
@@ -1684,17 +1864,12 @@ export async function generateApplicationEmailWithRetry(
   context: MasterContext,
   generationContext?: LlmGenerationContext,
   modelCall: EmailModelCall = callModel,
+  cache: WriterCacheOptions = {},
 ): Promise<WithTokens<{ subject: string; body: string }>> {
   const outputLang = normalizeLanguage(context.userLanguageOverride || context.detectedLanguage);
   const subject = buildApplicationEmailSubject(context, outputLang);
   return generateEmailWithValidationRetry(
-    {
-      task: 'write_email',
-      prompt: buildApplicationEmailUserPrompt(context),
-      systemBlocks: buildApplicationEmailSystemBlocks(),
-      jsonMode: true,
-      generationContext,
-    },
+    applicationEmailCallOptions(context, generationContext, cache),
     'Application email response',
     'Keep the standard: a body of at most four sentences, with the attachment reference and the applicant signature.',
     (parsed) => validateApplicationEmail(parsed, outputLang, context.applicant?.name, subject, savedLogisticsText(context, 'email')),
@@ -1706,18 +1881,13 @@ export async function generateFollowUpEmailWithRetry(
   context: MasterContext,
   generationContext?: LlmGenerationContext,
   modelCall: EmailModelCall = callModel,
+  cache: WriterCacheOptions = {},
 ): Promise<WithTokens<{ subject: string; body: string; recommendedDelay: number }>> {
   const outputLang = normalizeLanguage(context.userLanguageOverride || context.detectedLanguage);
   const recommendedDelay = outputLang === 'de' ? 7 : 5;
   const subject = buildFollowUpEmailSubject(context, outputLang);
   return generateEmailWithValidationRetry(
-    {
-      task: 'write_follow_up_email',
-      prompt: buildFollowUpEmailUserPrompt(context),
-      systemBlocks: buildFollowUpEmailSystemBlocks(),
-      jsonMode: true,
-      generationContext,
-    },
+    followUpEmailCallOptions(context, generationContext, cache),
     'Follow-up email response',
     `Keep the standard: a body of at most 80 words. Set recommendedDelay to exactly ${recommendedDelay} and keep the applicant signature.`,
     (parsed) => validateFollowUpEmail(parsed, outputLang, context.applicant?.name, recommendedDelay, subject, savedLogisticsText(context, 'email')),
@@ -2210,16 +2380,11 @@ export const unifiedWriterAgent = {
     context: MasterContext,
     generationContext?: LlmGenerationContext,
   ): Promise<WithTokens<NonNullable<MasterContext['fitAnalysis']>>> {
-    const { applicant, job, match } = context;
+    const { match } = context;
     
     const fitLevel = computeFitLevel(match?.score ?? 0);
 
-    const response = await callModel({
-      task: 'fit_assessment',
-      prompt: buildFitAssessmentPrompt({ applicant, job, match, masterCV: context.masterCV }),
-      systemBlocks: buildFitAssessmentSystemBlocks(),
-      generationContext,
-    });
+    const response = await callModel(fitAssessmentCallOptions(context, generationContext));
 
     const tokens: TokenUsage = tokenUsageOf(response);
 
@@ -2262,16 +2427,8 @@ export const unifiedWriterAgent = {
     
     console.log('[UnifiedAgent] Generating structured CV data in language:', outputLang);
 
-    // ---- PROMPT CACHING: Static instructions go into cacheable system blocks ----
-    const cvOptimizationSystemBlocks = buildCVOptimizationSystemBlocks();
-
-    const response = await callModel({
-      task: 'optimize_cv',
-      prompt: buildCVOptimizationUserPrompt(context, outputLang),
-      systemBlocks: cvOptimizationSystemBlocks,
-      jsonMode: true,
-      generationContext,
-    });
+    // ---- PROMPT CACHING: see cvCallOptions ----
+    const response = await callModel(cvCallOptions(context, generationContext));
 
     const tokens: TokenUsage = tokenUsageOf(response);
 
@@ -2416,13 +2573,7 @@ export const unifiedWriterAgent = {
     console.log('[UnifiedAgent] Rewriting CV section:', section.kind);
     const outputLang = this.getOutputLanguage(context);
 
-    const response = await callModel({
-      task: 'optimize_cv',
-      prompt: buildCVSectionRewriteUserPrompt(context, section, outputLang),
-      systemBlocks: buildCVOptimizationSystemBlocks(),
-      jsonMode: true,
-      generationContext,
-    });
+    const response = await callModel(cvSectionCallOptions(context, section, generationContext));
 
     const tokens: TokenUsage = tokenUsageOf(response);
 
@@ -2614,22 +2765,16 @@ export const unifiedWriterAgent = {
   async generateCoverLetter(
     context: MasterContext,
     generationContext?: LlmGenerationContext,
+    cache: WriterCacheOptions = {},
   ): Promise<WithTokens<{ body: string; structured: StructuredCoverLetter }>> {
     const outputLang = this.getOutputLanguage(context);
 
     console.log('[UnifiedAgent] Generating cover letter in language:', outputLang);
 
-    // ---- PROMPT CACHING: Static cover letter rules into cacheable system blocks ----
-    const coverLetterSystemBlocks = buildCoverLetterSystemBlocks();
-    const basePrompt = buildCoverLetterUserPrompt(context);
+    // ---- PROMPT CACHING: see coverLetterCallOptions ----
+    const options = coverLetterCallOptions(context, generationContext, cache);
 
-    const response = await callModel({
-      task: 'write_cover_letter',
-      prompt: basePrompt,
-      systemBlocks: coverLetterSystemBlocks,
-      jsonMode: true,
-      generationContext,
-    });
+    const response = await callModel(options);
 
     let tokens: TokenUsage = tokenUsageOf(response);
 
@@ -2638,13 +2783,10 @@ export const unifiedWriterAgent = {
     } catch (error) {
       if (!(error instanceof CoverLetterValidationError)) throw error;
       console.warn('[UnifiedAgent] Retrying cover letter after validation miss:', error.issues.join(', '));
-      const retry = await callModel({
-        task: 'write_cover_letter',
-        prompt: `${basePrompt}\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.issues.join('; ')}. Rewrite the complete letter once and return only the JSON object. Fix every named issue. Preserve every factuality rule. Do not add any applicant fact, skill, metric or claim that is absent from the Primary CV and Master CV, apart from the saved profile values in APPLICANT LOGISTICS.`,
-        systemBlocks: coverLetterSystemBlocks,
-        jsonMode: true,
-        generationContext,
-      });
+      const retry = await callModel(withCorrection(
+        options,
+        `\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.issues.join('; ')}. Rewrite the complete letter once and return only the JSON object. Fix every named issue. Preserve every factuality rule. Do not add any applicant fact, skill, metric or claim that is absent from the Primary CV and Master CV, apart from the saved profile values in APPLICANT LOGISTICS.`,
+      ));
       tokens = addTokenUsage(tokens, tokenUsageOf(retry));
       return { result: buildCoverLetter(retry.content, context, outputLang), tokens };
     }
@@ -2654,24 +2796,32 @@ export const unifiedWriterAgent = {
    * Generate application email
    * The model writes the body; the subject is built in code
    */
-  async generateApplicationEmail(context: MasterContext, generationContext?: LlmGenerationContext): Promise<WithTokens<{ subject: string; body: string }>> {
+  async generateApplicationEmail(
+    context: MasterContext,
+    generationContext?: LlmGenerationContext,
+    cache: WriterCacheOptions = {},
+  ): Promise<WithTokens<{ subject: string; body: string }>> {
     const outputLang = this.getOutputLanguage(context);
     
     console.log('[UnifiedAgent] Generating email in language:', outputLang);
 
-    return generateApplicationEmailWithRetry(context, generationContext);
+    return generateApplicationEmailWithRetry(context, generationContext, callModel, cache);
   },
 
   /**
    * Generate follow-up email to send 5-7 days after the primary application email
    * Uses a DIFFERENT achievement than the primary email for the value hook
    */
-  async generateFollowUpEmail(context: MasterContext, generationContext?: LlmGenerationContext): Promise<WithTokens<{ subject: string; body: string; recommendedDelay: number }>> {
+  async generateFollowUpEmail(
+    context: MasterContext,
+    generationContext?: LlmGenerationContext,
+    cache: WriterCacheOptions = {},
+  ): Promise<WithTokens<{ subject: string; body: string; recommendedDelay: number }>> {
     const outputLang = this.getOutputLanguage(context);
     
     console.log('[UnifiedAgent] Generating follow-up email in language:', outputLang);
 
-    return generateFollowUpEmailWithRetry(context, generationContext);
+    return generateFollowUpEmailWithRetry(context, generationContext, callModel, cache);
   },
 };
 
