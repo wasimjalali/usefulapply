@@ -8,9 +8,11 @@
 import type { ScreeningPromptContext } from '../../src/lib/services/screening';
 
 export interface EvalCase {
-  id: 'a' | 'b' | 'c' | 'd';
+  id: 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h';
   title: string;
   question: string;
+  /** Earlier turns, sent before the question as the chat route sends them (short user turns go in unquoted). */
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>;
   context: ScreeningPromptContext;
   expect: string;
 }
@@ -64,9 +66,10 @@ SPRACHEN
 Deutsch: Muttersprache
 Englisch: verhandlungssicher (C1)`;
 
-const DE_HEADER = (available: boolean) => `Lena Hoffmann
+/** The header, with the applicant's own logistics line under the contact details when there is one. */
+const DE_HEADER = (line: string | null) => `Lena Hoffmann
 Senior Data Analyst
-Hamburg, Deutschland | lena.hoffmann@example.com | +49 40 0000000${available ? '\nAb sofort verfügbar' : ''}`;
+Hamburg, Deutschland | lena.hoffmann@example.com | +49 40 0000000${line ? `\n${line}` : ''}`;
 
 /** The tailored CV the kit wrote: the header line about availability doesn't survive it, the bullets do. */
 const DE_TAILORED = (portalBullet: boolean) => `Lena Hoffmann, Senior Data Analyst
@@ -81,14 +84,14 @@ Data Analyst, Alster Versand AG, Hamburg (09/2017 - 02/2021)
 - Datenqualitätsprüfungen in SQL automatisiert, manuelle Prüfzeit um 6 Stunden pro Woche reduziert.
 Fachkenntnisse: SQL, Power BI, Python (pandas), Snowflake`;
 
-const deContext = (available: boolean, portalBullet: boolean): ScreeningPromptContext => ({
+const deContext = (headerLine: string | null, portalBullet: boolean): ScreeningPromptContext => ({
   jobTitle: 'Senior Data Analyst (m/w/d)',
   company: 'Nordhafen Handels GmbH',
   jobDescription: DE_JD,
   matchingSkills: ['SQL', 'Power BI', 'Python'],
   missingSkills: [],
   generatedCVSummary: DE_TAILORED(portalBullet),
-  primaryCV: `${DE_HEADER(available)}\n\n${DE_BODY(portalBullet)}`,
+  primaryCV: `${DE_HEADER(headerLine)}\n\n${DE_BODY(portalBullet)}`,
 });
 
 // ---------------------------------------------------------------------------
@@ -303,19 +306,82 @@ const enContext = (withNotice: boolean): ScreeningPromptContext => ({
   masterCV: enMaster(withNotice),
 });
 
+// ---------------------------------------------------------------------------
+// English applicant between roles (case f): every role has an end date
+// ---------------------------------------------------------------------------
+
+const EN_OPEN_PRIMARY = `Priya Raman
+Data Analyst
+Sheffield, United Kingdom | priya.raman@example.com
+
+PROFILE
+Data analyst with six years in retail and logistics reporting. Builds SQL models and Power BI reports that store and warehouse managers use every day.
+
+EXPERIENCE
+Data Analyst, Peak Retail Group, Sheffield (2021 - 2025)
+- Built the weekly store performance pack in Power BI for 120 stores.
+- Rebuilt the stock-availability model in SQL, cutting refresh time from four hours to 30 minutes.
+
+Junior Analyst, Don Valley Logistics, Rotherham (2019 - 2021)
+- Produced daily warehouse throughput reports for three sites.
+
+EDUCATION
+BSc Economics, University of Sheffield (2016 - 2019)
+
+SKILLS
+SQL, Power BI, Excel, Python (pandas)`;
+
+const EN_OPEN_TAILORED = `Priya Raman, Data Analyst
+Data analyst with six years in retail and logistics reporting.
+
+Data Analyst, Peak Retail Group, Sheffield (2021 - 2025)
+- Built the weekly store performance pack in Power BI for 120 stores.
+- Rebuilt the stock-availability model in SQL, cutting refresh time from four hours to 30 minutes.
+
+Junior Analyst, Don Valley Logistics, Rotherham (2019 - 2021)
+- Produced daily warehouse throughput reports for three sites.
+Skills: SQL, Power BI, Excel, Python`;
+
+const EN_OPEN_JD = `Reporting Analyst, Leeds
+
+Calder Foods is hiring a Reporting Analyst to own weekly trading and supply reporting.
+
+You have:
+- 3+ years building reports in SQL and Power BI
+- Experience with retail or supply chain data
+
+Salary: £38,000 - £44,000. Start date: January.`;
+
+const enOpenContext: ScreeningPromptContext = {
+  jobTitle: 'Reporting Analyst',
+  company: 'Calder Foods',
+  jobDescription: EN_OPEN_JD,
+  matchingSkills: ['SQL', 'Power BI'],
+  missingSkills: [],
+  generatedCVSummary: EN_OPEN_TAILORED,
+  primaryCV: EN_OPEN_PRIMARY,
+};
+
+/** The earlier answer case h starts from: "sofort", which the CV doesn't say. */
+const WRONG_SOFORT_ANSWER = `---ANSWER_START---
+**Q: Wann können Sie anfangen?**
+
+Ich kann sofort anfangen.
+---ANSWER_END---`;
+
 export const CASES: EvalCase[] = [
   {
     id: 'a',
     title: 'DE, current role, "Ab sofort verfügbar" only in the Primary CV header',
     question: 'Wann können Sie anfangen?',
-    context: deContext(true, false),
+    context: deContext('Ab sofort verfügbar', false),
     expect: 'says ab sofort / sofort; never a Kündigungsfrist',
   },
   {
     id: 'b',
     title: 'DE, no availability stated, product bullet "Sofort verfügbar: Self-Service-Portal ..."',
     question: 'Wann können Sie anfangen?',
-    context: deContext(false, true),
+    context: deContext(null, true),
     expect: 'standard wording (nach Ablauf meiner Kündigungsfrist); never sofort; no date',
   },
   {
@@ -331,5 +397,37 @@ export const CASES: EvalCase[] = [
     question: 'What are your salary expectations?',
     context: enContext(false),
     expect: 'no figure, no currency',
+  },
+  {
+    id: 'e',
+    title: 'EN, current role, nothing stated, pasted question names a date',
+    question: 'Can you start on 1 March?',
+    context: enContext(false),
+    expect: 'standard wording (after my notice period); no commitment to 1 March; never immediately',
+  },
+  {
+    id: 'f',
+    title: 'EN, no current role (every role ended), nothing stated',
+    question: 'When can you start?',
+    context: enOpenContext,
+    expect: 'the open-date answer; no notice period; no date',
+  },
+  {
+    id: 'g',
+    title: 'DE, "Verfügbar ab 01.03.2027" only in the Primary CV header',
+    question: 'Ab wann stehen Sie uns zur Verfügung?',
+    context: deContext('Verfügbar ab 01.03.2027', false),
+    expect: 'gives 01.03.2027 (or 1. März 2027); never sofort; never a Kündigungsfrist',
+  },
+  {
+    id: 'h',
+    title: 'DE, "Kündigungsfrist 3 Monate" in the Primary CV header, an earlier assistant answer said "sofort"',
+    question: 'Wann wäre Ihr frühestmöglicher Eintrittstermin?',
+    history: [
+      { role: 'user', content: 'Wann können Sie anfangen?' },
+      { role: 'assistant', content: WRONG_SOFORT_ANSWER },
+    ],
+    context: deContext('Kündigungsfrist 3 Monate', false),
+    expect: 'gives the 3-month notice period; never sofort (unless "nicht sofort")',
   },
 ];

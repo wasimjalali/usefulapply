@@ -2,7 +2,7 @@
  * Screening logistics eval: the shipped screening prompt (buildScreeningPrompt
  * from src) against gpt-oss-120b on Workers AI, through the local proxy in
  * worker.ts. Same input shape as callWorkersAI for screening: a system message,
- * the user's questions, temperature 0.4, max_tokens 8000.
+ * any earlier turns (case h), the user's questions, temperature 0.4, max_tokens 8000.
  *
  *   npx wrangler dev -c evals/screening-logistics/wrangler.jsonc --port 8799
  *   npx tsx evals/screening-logistics/run.ts --url http://localhost:8799 --runs 5 --label <label>
@@ -55,6 +55,8 @@ function grade(id: EvalCase['id'], answer: string): string[] {
   switch (id) {
     case 'a':
       must(/sofort/i, 'does not say sofort');
+      // "nicht sofort" says the opposite of what the CV states.
+      never(/\b(nicht|kein\w*)\s+(ab\s+)?sofort/i, 'negates sofort');
       never(/kündigungsfrist/i, 'asserts a Kündigungsfrist');
       break;
     case 'b':
@@ -71,16 +73,41 @@ function grade(id: EvalCase['id'], answer: string): string[] {
       never(/\d/, 'carries a figure');
       never(/[£€$]|\bGBP\b|\bEUR\b/i, 'carries a currency');
       break;
+    case 'e': {
+      must(/after (my notice period|giving notice)/i, 'not the standard wording');
+      never(/immediately|right away|at short notice|no notice/i, 'claims a quick start');
+      // Naming 1 March is a commitment unless the answer says it can't promise it.
+      const namesDate = /\b1(st)?\s+(of\s+)?March\b|\bMarch\s+1(st)?\b/i.test(answer);
+      if (namesDate && !/\b(cannot|can't|can not|unable|not able|not commit|can't commit)\b/i.test(answer)) failures.push('commits to 1 March');
+      never(/^\s*yes\b/i, 'answers yes');
+      break;
+    }
+    case 'f':
+      must(/open to discussion/i, 'not the open-date answer');
+      never(/notice/i, 'asserts a notice period');
+      never(/immediately|right away|at short notice/i, 'claims a quick start');
+      never(/\d/, 'carries a date');
+      break;
+    case 'g':
+      must(/0?1\.\s?0?3\.\s?2027|1\.\s*März\s*2027/i, 'does not give 01.03.2027');
+      never(/sofort|umgehend|unverzüglich/i, 'claims a quick start');
+      never(/kündigungsfrist/i, 'asserts a Kündigungsfrist');
+      break;
+    case 'h':
+      must(/\b(3|drei)[\s\-\u2010\u2011]*monat/i, 'does not give 3 Monate');
+      never(/(?<!nicht\s)(?<!nicht\sab\s)sofort/i, 'says sofort');
+      never(/umgehend|unverzüglich|kurzfristig/i, 'claims a quick start');
+      break;
   }
   return failures;
 }
 
-async function callModel(system: string, question: string): Promise<ProxyReply> {
+async function callModel(system: string, question: string, history: EvalCase['history'] = []): Promise<ProxyReply> {
   const res = await fetch(URL_BASE, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      messages: [{ role: 'system', content: system }, { role: 'user', content: question }],
+      messages: [{ role: 'system', content: system }, ...history, { role: 'user', content: question }],
       temperature: TEMPERATURE,
       max_tokens: MAX_TOKENS,
     }),
@@ -107,7 +134,7 @@ async function main() {
     };
     summary[c.id] = { pass: 0, runs: 0 };
     for (let run = 1; run <= RUNS; run++) {
-      const reply = await callModel(system, c.question);
+      const reply = await callModel(system, c.question, c.history);
       const text = replyText(reply.result);
       const answer = answerOf(text);
       const failures = answer === null ? ['no answer block'] : grade(c.id, answer);
@@ -130,7 +157,7 @@ async function main() {
     summary,
     tokens: { input: tokensIn, output: tokensOut },
     costUsd: Number(cost.toFixed(5)),
-    cases: cases.map((c) => ({ id: c.id, title: c.title, question: c.question, expect: c.expect })),
+    cases: cases.map((c) => ({ id: c.id, title: c.title, question: c.question, history: c.history, expect: c.expect })),
     prompts,
     records,
   };
