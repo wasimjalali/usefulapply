@@ -254,11 +254,11 @@ export function summarizeArm(arm: ArmId, outcomes: CaseOutcome[]): ArmSummary {
 
 export const DECISION_RULE = [
   'Per site, pick the lowest-effort Haiku arm (order: low-nothink, low, medium, high) that satisfies ALL of:',
-  '1. Primary metric: its case failures are at most one more than the best Haiku arm (counting every case of every run), OR its 95% Wilson interval overlaps the best Haiku arm\'s interval.',
+  '1. Primary metric: its case failures are at most one more than the best Haiku arm (counting every case of every run). The 95% Wilson intervals are reported but do not qualify an arm (tightened before any paid run, 2026-10-22: at these sample sizes overlapping intervals admit several extra failures).',
   '2. Hard constraints: for every hard-constraint metric it has no more violations than the gpt-oss arm, and zero violations for the metrics a site lists as absolute (ranking: hard-constraint violations in the top 10 must be 0; every site: no call over the 100k input budget).',
   '3. It produced no errors (a thrown error, an empty reply, a budget stop) that the best Haiku arm did not also produce.',
   'Tie-break between arms of the same effort rank: lower p50 per-call latency. If no arm qualifies the site is undecided and the orchestrator decides by hand.',
-  'gpt-oss is a baseline only: it is never a candidate. Cache hit rate and cost are reported but do not enter the rule.',
+  'gpt-oss is a baseline only: it is never a candidate. A winner with more primary failures than gpt-oss is flagged for the orchestrator. Cache hit rate and cost are reported but do not enter the rule.',
 ].join('\n');
 
 export interface DecisionRow {
@@ -267,17 +267,19 @@ export interface DecisionRow {
   reasons: string[];
 }
 
-export function decide(summaries: ArmSummary[], absoluteHard: string[]): { winner: ArmId | null; rows: DecisionRow[] } {
+export function decide(
+  summaries: ArmSummary[],
+  absoluteHard: string[],
+): { winner: ArmId | null; rows: DecisionRow[]; winnerBelowBaseline: boolean } {
   const haiku = summaries.filter((s) => armById(s.arm).kind === 'haiku');
   const baseline = summaries.find((s) => s.arm === 'gptoss') ?? null;
-  if (haiku.length === 0) return { winner: null, rows: [] };
+  if (haiku.length === 0) return { winner: null, rows: [], winnerBelowBaseline: false };
   const best = haiku.reduce((a, b) => (b.failures < a.failures || (b.failures === a.failures && b.passRate > a.passRate) ? b : a));
   const bestErrors = best.errors;
   const rows: DecisionRow[] = haiku.map((s) => {
     const reasons: string[] = [];
-    const overlap = s.ci95[1] >= best.ci95[0] && best.ci95[1] >= s.ci95[0];
-    if (!(s.failures <= best.failures + 1 || overlap)) {
-      reasons.push(`primary: ${s.failures} failures vs best ${best.failures} (${best.arm}) and intervals do not overlap`);
+    if (s.failures > best.failures + 1) {
+      reasons.push(`primary: ${s.failures} failures vs best ${best.failures} (${best.arm})`);
     }
     const names = new Set([...Object.keys(s.hard), ...(baseline ? Object.keys(baseline.hard) : []), ...absoluteHard]);
     for (const name of names) {
@@ -293,7 +295,9 @@ export function decide(summaries: ArmSummary[], absoluteHard: string[]): { winne
     .filter((r) => r.eligible)
     .map((r) => ({ r, s: haiku.find((s) => s.arm === r.arm)!, rank: armById(r.arm).rank }))
     .sort((a, b) => a.rank - b.rank || (a.s.latencyMs.callP50 ?? Infinity) - (b.s.latencyMs.callP50 ?? Infinity));
-  return { winner: eligible[0]?.r.arm ?? null, rows };
+  const winner = eligible[0]?.s ?? null;
+  const winnerBelowBaseline = Boolean(winner && baseline && winner.failures > baseline.failures);
+  return { winner: winner?.arm ?? null, rows, winnerBelowBaseline };
 }
 
 // ---------------------------------------------------------------------------

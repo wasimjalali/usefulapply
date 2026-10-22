@@ -289,6 +289,7 @@ export async function runSite<C extends SiteCase>(site: Site<C>, options: RunOpt
     console.log(`wrote ${file}`);
   }
   printSummary(site.id, summaries, decision.winner, aborted);
+  if (decision.winnerBelowBaseline) console.log(`  FLAG ${site.id}: the winner has more primary failures than gpt-oss; decide by hand.`);
   return { file, summaries, winner: decision.winner };
 }
 
