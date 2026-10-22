@@ -69,13 +69,16 @@ export function settleChatReply(
     // offer an action beside "I couldn't finish the reply". Executed effects
     // are not chips and still go back.
     confirmActions = [];
-  } else if (state.oversizedToolNames.length > 0 && state.executed.length === 0) {
+  } else if (state.oversizedToolNames.length > 0 && state.executed.length === 0 && state.failedToolNames.length === 0) {
     // A result too large to read was replaced by an error the model saw. With
     // nothing else done this turn, the useful answer is fixed: ask about one
-    // thing at a time. When a write ran in the same turn, the model's reply
-    // stands: it read that write's result and the too-large error, and a fixed
-    // line here would hide the write.
+    // thing at a time, and no chip the model proposed beside its own reply
+    // stays next to that line. When a write ran in the same turn, the model's
+    // reply stands: it read that write's result and the too-large error, and a
+    // fixed line here would hide the write. A handler that threw is settled
+    // below, which keeps the chips of the handlers that ran.
     reply = BUDGET_REPLY;
+    confirmActions = [];
   }
 
   // A handler exception is a known failure even when the model answers the

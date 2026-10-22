@@ -57,9 +57,16 @@ test('an oversized tool result: the user is told to ask about one thing at a tim
   assert.equal(out.reply, BUDGET_REPLY);
   assert.match(BUDGET_REPLY, /Ask about one thing at a time\./);
 
+  // Nothing ran and the reply is the fixed budget line: a chip the model proposed beside it goes too.
+  const withChip = settleChatReply(state({ reply: 'Use the button to delete Bosch.', oversizedToolNames: ['get_applications'], confirmActions: [DELETE_CHIP] }), null);
+  assert.equal(withChip.reply, BUDGET_REPLY);
+  assert.deepEqual(withChip.confirmActions, []);
+
   // With a write in the same turn the model's reply stands: it saw the write succeed and the too-large error.
   const withWrite = settleChatReply(state({ reply: 'Moved Zapier to interview. Ask about the rest one at a time.', executed: [ROW_MOVED], oversizedToolNames: ['get_applications'] }), null);
   assert.equal(withWrite.reply, 'Moved Zapier to interview. Ask about the rest one at a time.');
+  // The model's reply stands there, and so do its chips.
+  assert.deepEqual(settleChatReply(state({ reply: 'Moved Zapier.', executed: [ROW_MOVED], oversizedToolNames: ['get_applications'], confirmActions: [DELETE_CHIP] }), null).confirmActions, [DELETE_CHIP]);
 });
 
 test('a handler that threw wins over everything: the deterministic failure line, chips kept for the handlers that ran', () => {

@@ -92,6 +92,12 @@ export type TrackerAction =
  */
 export const TRACKER_WHICH_APPLICATION_REPLY = "Which application do you mean, and what changed? Name the company and the new status.";
 
+/**
+ * A follow-up draft or interview prep the app can't open: no row, or a row that isn't among those shown. The
+ * model's reply would say it is drafting or prepping, so it is replaced. No status to ask for here.
+ */
+export const TRACKER_WHICH_APPLICATION_FOR_ACTION_REPLY = "Which application do you mean? Name the company and I'll open it.";
+
 /** What the route returns for the model's answer: the reply and the one action the client applies. */
 export function trackerOutcome(
   answer: TrackerModelAnswer,
@@ -118,7 +124,8 @@ export function trackerOutcome(
     };
   }
 
-  if ((answer.intent === 'follow_up' || answer.intent === 'prep') && row) {
+  if (answer.intent === 'follow_up' || answer.intent === 'prep') {
+    if (!row) return { reply: TRACKER_WHICH_APPLICATION_FOR_ACTION_REPLY, action: { type: 'none' } };
     return { reply: answer.reply, action: { type: answer.intent, sessionId: row.id, company: row.company } };
   }
 

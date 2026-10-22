@@ -6,6 +6,7 @@ import {
   TRACKER_INTENTS,
   TRACKER_STATUSES,
   TRACKER_SYSTEM_PROMPT,
+  TRACKER_WHICH_APPLICATION_FOR_ACTION_REPLY,
   TRACKER_WHICH_APPLICATION_REPLY,
   buildTrackerMessages,
   trackerOutcome,
@@ -92,6 +93,19 @@ test('tracker: other intents keep their actions', () => {
   assert.deepEqual(trackerOutcome(answer({ intent: 'answer', sessionId: null, status: null, reply: 'You have one.' }), [ZAPIER], 'what is due?', 'UTC'), {
     reply: 'You have one.', action: { type: 'none' },
   });
+});
+
+test('tracker: a follow-up or prep for a row that was not shown asks which application, with no action', () => {
+  const unknown = '33333333-3333-4333-8333-333333333333';
+  for (const intent of ['follow_up', 'prep'] as const) {
+    for (const sessionId of [unknown, null]) {
+      const out = trackerOutcome(answer({ intent, sessionId, status: null, reply: 'Drafting your follow-up to Lumen.' }), [ZAPIER, BOSCH], 'write a follow-up to Lumen', 'UTC');
+      assert.deepEqual(out, { reply: TRACKER_WHICH_APPLICATION_FOR_ACTION_REPLY, action: { type: 'none' } }, `${intent} ${sessionId}`);
+    }
+  }
+  // The status-change wording asks for a new status, which a follow-up or prep request never has.
+  assert.doesNotMatch(TRACKER_WHICH_APPLICATION_FOR_ACTION_REPLY, /status|Drafting|[—–]/);
+  assert.match(TRACKER_WHICH_APPLICATION_FOR_ACTION_REPLY, /^Which application do you mean\?/);
 });
 
 test('tracker: a lone surrogate in the user message never reaches the request', () => {
