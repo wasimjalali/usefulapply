@@ -10,9 +10,17 @@
  * conversation tail. The 1-hour markers always come first in the prefix, as the API requires.
  *
  * Budget: every request is measured (token-budget.ts) and refused above 90k tokens before it is sent.
- * Every call writes a ledger row (provider 'anthropic') and one PostHog `$ai_generation` event.
+ * Every attempt writes a ledger row and one PostHog `$ai_generation` event.
+ *
+ * Failover (providers.ts): after a network failure or a 5xx on the Anthropic API, the same request goes to
+ * Claude in Amazon Bedrock (model `anthropic.claude-haiku-5-5`). The failed primary attempt and the Bedrock
+ * attempt each have their own ledger row and `$ai_generation` event (`$ai_provider` 'anthropic' / 'bedrock');
+ * the cache markers are byte-identical, Bedrock keeps its own cache. The count_tokens guard fails over too,
+ * and if Bedrock cannot count either the guard fails loud (it never estimates past the cap).
+ * Beta types and `client.beta.messages` are used because `usage.iterations` and system-message fields exist
+ * only there; no `betas` header is sent.
  */
-import Anthropic from '@anthropic-ai/sdk';
+import type Anthropic from '@anthropic-ai/sdk';
 import {
   startLlmGeneration,
   type LlmGenerationContext,
@@ -20,11 +28,11 @@ import {
 import { getPostHogServer } from '@/lib/posthog-server';
 import {
   ModelStopError,
+  STREAM_ABOVE_MAX_TOKENS,
   assertUsableStop,
   billedFailureUsage,
   completeProviderGeneration,
   haiku55CostUsd,
-  providerAttemptCount,
   providerErrorKind,
   providerHttpStatus,
   recordProviderFailure,
@@ -32,6 +40,16 @@ import {
   usageRecordsOf,
   type UsageParts,
 } from './anthropic';
+import {
+  captureFailoverEvent,
+  getBedrockClient,
+  getPrimaryClient,
+  markNotFailoverEligible,
+  runWithFailover,
+  type FailoverTarget,
+  type MessagesClient,
+  type ProviderName,
+} from './providers';
 import { resolveHaikuEffort } from './haiku-effort';
 import {
   INPUT_HARD_LIMIT,
@@ -113,8 +131,10 @@ export class InputBudgetError extends Error {
 // Request building
 // -------------------------------------------------------------------------------------------------
 
-type CacheControl = { type: 'ephemeral'; ttl?: '1h' };
-type SystemBlock = { type: 'text'; text: string; cache_control?: CacheControl };
+/** The Messages API body of one call (non-streaming shape; calls above STREAM_ABOVE_MAX_TOKENS stream). */
+export type HaikuRequest = Anthropic.Beta.Messages.MessageCreateParamsNonStreaming;
+type CountTokensParams = Anthropic.Beta.Messages.MessageCountTokensParams;
+type CacheControl = Anthropic.Beta.BetaCacheControlEphemeral;
 
 function cacheControl(ttl: '5m' | '1h'): CacheControl {
   // 5 minutes is the API default, so it is sent without a ttl (the shape the probes measured).
@@ -139,10 +159,17 @@ export function canonicalizeSchema<T>(value: T, parentKey?: string): T {
 }
 
 /** `thinking` is omitted (adaptive) except for 'low-nothink'; effort is always sent. */
-function effortParams(effort: HaikuEffort): { thinking?: { type: 'disabled' }; effortLevel: 'low' | 'medium' | 'high' } {
+function effortParams(effort: HaikuEffort): { thinking?: Anthropic.Beta.BetaThinkingConfigDisabled; effortLevel: 'low' | 'medium' | 'high' } {
   return effort === 'low-nothink'
     ? { thinking: { type: 'disabled' }, effortLevel: 'low' }
     : { effortLevel: effort };
+}
+
+/** A tool schema in canonical key order. The API wants an object schema; anything else fails loud here. */
+function toolInputSchema(tool: HaikuToolDefinition): Anthropic.Beta.BetaTool.InputSchema {
+  const schema = canonicalizeSchema(tool.input_schema);
+  if (schema.type !== 'object') throw new Error(`callHaiku: tool "${tool.name}" input_schema.type must be "object"`);
+  return { ...schema, type: 'object' };
 }
 
 /**
@@ -153,14 +180,14 @@ function countMessageMarkers(messages: HaikuCallOptions['messages']): number {
   let count = 0;
   for (const message of messages) {
     if (!Array.isArray(message.content)) continue;
-    for (const block of message.content as Array<{ cache_control?: unknown }>) {
-      if (block && typeof block === 'object' && block.cache_control) count += 1;
+    for (const block of message.content) {
+      if ('cache_control' in block && block.cache_control) count += 1;
     }
   }
   return count;
 }
 
-export function buildHaikuRequest(options: HaikuCallOptions, effort: HaikuEffort): Record<string, unknown> {
+export function buildHaikuRequest(options: HaikuCallOptions, effort: HaikuEffort): HaikuRequest {
   const { site, system, messages, tools, toolChoice, jsonSchema, maxTokens } = options;
   if (!system.static.trim()) throw new Error(`callHaiku(${site}): system.static is empty`);
   if (messages.length === 0) throw new Error(`callHaiku(${site}): messages is empty`);
@@ -173,31 +200,29 @@ export function buildHaikuRequest(options: HaikuCallOptions, effort: HaikuEffort
   const ttl = options.cacheTtl ?? '5m';
   const marker = cacheControl(ttl);
 
-  const systemBlocks: SystemBlock[] = [{ type: 'text', text: system.static, cache_control: marker }];
+  const systemBlocks: Anthropic.Beta.BetaTextBlockParam[] = [{ type: 'text', text: system.static, cache_control: marker }];
   if (system.stableContext && system.stableContext.trim()) {
     systemBlocks.push({ type: 'text', text: system.stableContext, cache_control: marker });
   }
 
-  const params: Record<string, unknown> = {
+  const params: HaikuRequest = {
     model: HAIKU_MODEL_ID,
     max_tokens: maxTokens,
+    system: systemBlocks,
+    messages,
   };
 
   if (hasTools) {
     // No marker on the last tool: tools precede system in the prefix, so the system.static marker caches them
     // too, and a fourth marker here would push chat (static, stableContext, its own turn marker) over 4.
-    const toolBlocks = (tools as HaikuToolDefinition[]).map((tool) => ({
+    params.tools = (tools ?? []).map((tool) => ({
       name: tool.name,
       description: tool.description,
-      input_schema: canonicalizeSchema(tool.input_schema),
+      input_schema: toolInputSchema(tool),
     }));
-    params.tools = toolBlocks;
     // 'auto' is the API default, so it is omitted. 'none' keeps the tool list (the cache key) intact.
     if (toolChoice === 'none') params.tool_choice = { type: 'none' };
   }
-
-  params.system = systemBlocks;
-  params.messages = messages;
 
   const { thinking, effortLevel } = effortParams(effort);
   if (thinking) params.thinking = thinking;
@@ -222,14 +247,11 @@ export function buildHaikuRequest(options: HaikuCallOptions, effort: HaikuEffort
 // Response handling
 // -------------------------------------------------------------------------------------------------
 
-export interface HaikuMessage {
-  id: string;
-  content: Anthropic.Beta.BetaContentBlock[];
-  stop_reason: string | null;
-  stop_details?: unknown;
-  usage: unknown;
+/** What callHaiku reads of a response: a BetaMessage satisfies it, plus the HTTP request id. */
+export type HaikuMessage = Pick<Anthropic.Beta.BetaMessage, 'id' | 'content' | 'stop_reason' | 'usage'> & {
+  stop_details?: Anthropic.Beta.BetaMessage['stop_details'];
   _request_id?: string | null;
-}
+};
 
 /**
  * Throws a ModelStopError for a refusal, a max_tokens stop, or content with neither text nor a
@@ -241,14 +263,17 @@ export function readHaikuContent(
   maxTokens: number,
 ): { content: string; toolCalls: NonNullable<HaikuResponse['toolCalls']> } {
   const billed = { usage: message.usage, providerRequestId: message._request_id ?? message.id ?? null };
-  assertUsableStop(message.stop_reason, message.stop_details, maxTokens, billed, true);
+  assertUsableStop(message.stop_reason, message.stop_details, maxTokens, billed);
 
   let content = '';
   const toolCalls: NonNullable<HaikuResponse['toolCalls']> = [];
   for (const block of message.content) {
     if (block.type === 'text') content += block.text;
     else if (block.type === 'tool_use') {
-      toolCalls.push({ id: block.id, name: block.name, arguments: block.input as Record<string, unknown> });
+      if (block.input === null || typeof block.input !== 'object' || Array.isArray(block.input)) {
+        throw new Error(`Haiku returned tool_use "${block.name}" with a non-object input`);
+      }
+      toolCalls.push({ id: block.id, name: block.name, arguments: Object.fromEntries(Object.entries(block.input)) });
     }
   }
   if (content.trim().length === 0 && toolCalls.length === 0) {
@@ -267,6 +292,9 @@ export function readHaikuContent(
 
 export interface AiGenerationInput {
   site: HaikuSite;
+  /** Who served the attempt, and under which model id (Bedrock ids are prefixed `anthropic.`). */
+  provider: ProviderName;
+  model: string;
   effort: HaikuEffort;
   context: LlmGenerationContext;
   generationId: string;
@@ -291,8 +319,8 @@ export function buildAiGenerationProperties(input: AiGenerationInput): Record<st
   const total = u ? u.inputTokens + u.cacheReadInputTokens + u.cacheCreationInputTokens : null;
   return {
     // PostHog LLM analytics
-    $ai_provider: 'anthropic',
-    $ai_model: HAIKU_MODEL_ID,
+    $ai_provider: input.provider,
+    $ai_model: input.model,
     $ai_input_tokens: uncached,
     $ai_output_tokens: u?.outputTokens ?? null,
     $ai_cache_read_input_tokens: read,
@@ -305,8 +333,8 @@ export function buildAiGenerationProperties(input: AiGenerationInput): Record<st
     $ai_http_status: input.errorKind === null ? 200 : input.httpStatus,
     $ai_trace_id: input.context.requestExecutionId,
     // Our own, per .claude/rules/posthog.md and prompt-caching.md
-    provider: 'anthropic',
-    model: HAIKU_MODEL_ID,
+    provider: input.provider,
+    model: input.model,
     site: input.site,
     effort: input.effort,
     feature: input.context.feature,
@@ -338,58 +366,60 @@ export function buildAiGenerationProperties(input: AiGenerationInput): Record<st
 // -------------------------------------------------------------------------------------------------
 
 export interface HaikuClient {
-  createMessage(params: Record<string, unknown>): Promise<HaikuMessage>;
+  createMessage(params: HaikuRequest): Promise<HaikuMessage>;
   /** Exact input tokens for system + tools + messages. Free. */
-  countTokens(params: Record<string, unknown>): Promise<number>;
+  countTokens(params: CountTokensParams): Promise<number>;
 }
 
 export interface HaikuDeps {
   getClient(): HaikuClient;
+  /** The Amazon Bedrock client, or null when it is not configured (failover off). Absent means off. */
+  getBedrockClient?(): HaikuClient | null;
   startLedger: typeof startLlmGeneration;
   completeLedger: typeof completeProviderGeneration;
   failLedger: typeof recordProviderFailure;
-  capture(event: { distinctId: string; properties: Record<string, unknown> }): Promise<void>;
+  /** `event` defaults to `$ai_generation`. */
+  capture(event: { distinctId: string; event?: string; properties: Record<string, unknown> }): Promise<void>;
 }
 
-// The SDK rejects non-streaming requests it estimates could run past its HTTP timeout, so
-// requests above this budget stream and wait for the final message (same as anthropic.ts).
-const STREAM_ABOVE_MAX_TOKENS = 16_000;
-
-let cachedSdk: { key: string; client: Anthropic } | null = null;
-
-/** The real client. Throws at call time when ANTHROPIC_API_KEY is missing. */
-export function defaultHaikuClient(): HaikuClient {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set: callHaiku needs the direct Anthropic API key');
-  if (!cachedSdk || cachedSdk.key !== apiKey) cachedSdk = { key: apiKey, client: new Anthropic({ apiKey }) };
-  const client = cachedSdk.client;
+function haikuClientFor(sdk: MessagesClient): HaikuClient {
   return {
     async createMessage(params) {
-      // The SDK (0.71.2) has no typed `output_config` or top-level `cache_control`, but forwards them.
-      if ((params.max_tokens as number) > STREAM_ABOVE_MAX_TOKENS) {
-        const stream = client.messages.stream(params as unknown as Anthropic.MessageStreamParams);
+      if (params.max_tokens > STREAM_ABOVE_MAX_TOKENS) {
+        const stream = sdk.beta.messages.stream(params);
         const message = await stream.finalMessage();
-        return Object.assign(message, { _request_id: stream.request_id ?? null }) as unknown as HaikuMessage;
+        return Object.assign(message, { _request_id: stream.request_id ?? null });
       }
-      return (await client.messages.create(
-        params as unknown as Anthropic.MessageCreateParamsNonStreaming,
-      )) as unknown as HaikuMessage;
+      const { data, request_id } = await sdk.beta.messages.create(params).withResponse();
+      return Object.assign(data, { _request_id: request_id ?? null });
     },
     async countTokens(params) {
-      const result = await client.messages.countTokens(params as unknown as Anthropic.MessageCountTokensParams);
+      const result = await sdk.beta.messages.countTokens(params);
       return result.input_tokens;
     },
   };
 }
 
+/** The Anthropic API client. Throws at call time when ANTHROPIC_API_KEY is missing. */
+export function defaultHaikuClient(): HaikuClient {
+  return haikuClientFor(getPrimaryClient());
+}
+
+/** The Amazon Bedrock client, or null when no Bedrock credentials are configured. */
+export function defaultBedrockHaikuClient(): HaikuClient | null {
+  const sdk = getBedrockClient();
+  return sdk ? haikuClientFor(sdk) : null;
+}
+
 const defaultDeps: HaikuDeps = {
   getClient: defaultHaikuClient,
+  getBedrockClient: defaultBedrockHaikuClient,
   startLedger: startLlmGeneration,
   completeLedger: completeProviderGeneration,
   failLedger: recordProviderFailure,
-  async capture({ distinctId, properties }) {
+  async capture({ distinctId, event, properties }) {
     const posthog = getPostHogServer();
-    posthog.capture({ distinctId, event: '$ai_generation', properties });
+    posthog.capture({ distinctId, event: event ?? '$ai_generation', properties });
     await posthog.flush();
   },
 };
@@ -410,158 +440,192 @@ function budgetErrorKind(error: unknown): string {
   return error instanceof InputBudgetError ? 'input_budget' : providerErrorKind(error, 'provider_error');
 }
 
+/** The one failover helper, wired to this call's deps, site and context. */
+function haikuFailover<T>(
+  deps: HaikuDeps,
+  options: HaikuCallOptions,
+  attempt: (target: FailoverTarget<HaikuClient>) => Promise<T>,
+): Promise<T> {
+  return runWithFailover<HaikuClient, T>({
+    site: options.site,
+    model: HAIKU_MODEL_ID,
+    context: options.generationContext,
+    primary: () => deps.getClient(),
+    bedrock: () => deps.getBedrockClient?.() ?? null,
+    attempt,
+    onFailover: (info) => captureFailoverEvent(info, (event) => deps.capture(event)),
+  });
+}
+
+/**
+ * Measure a request: the local estimate, and an exact count_tokens call only above COUNT_TOKENS_ABOVE.
+ * The count fails over to Bedrock like a message does. If that fails too, the guard fails loud with the
+ * count's error and the call is not sent (a budget that could not be checked must not read as "fine").
+ */
+async function measureBudget(deps: HaikuDeps, options: HaikuCallOptions, params: HaikuRequest): Promise<InputBudgetCheck> {
+  return measureInputBudget(
+    { system: params.system, tools: params.tools, messages: params.messages },
+    async () => {
+      try {
+        return await haikuFailover(deps, options, (target) => target.getClient().countTokens({
+          model: target.model,
+          system: params.system,
+          ...(params.tools ? { tools: params.tools } : {}),
+          messages: params.messages,
+        }));
+      } catch (error) {
+        // Bedrock was already tried for the count: do not try it again for the message.
+        throw markNotFailoverEligible(error);
+      }
+    },
+  );
+}
+
 // -------------------------------------------------------------------------------------------------
 // The call
 // -------------------------------------------------------------------------------------------------
 
 /**
- * Measure a request exactly the way callHaiku will before sending it: the local estimate, and an exact
- * count_tokens call only above COUNT_TOKENS_ABOVE. Call sites that shrink their input to fit the budget
- * (job-feed ranking) use this so their numbers match callHaiku's own guard.
+ * Measure a request exactly the way callHaiku will before sending it. Call sites that shrink their input to
+ * fit the budget (job-feed ranking) use this so their numbers match callHaiku's own guard.
  */
 export async function measureHaikuRequest(
   options: HaikuCallOptions,
   deps: HaikuDeps = defaultDeps,
 ): Promise<InputBudgetCheck> {
-  const params = buildHaikuRequest(options, resolveHaikuEffort(options.site));
-  const client = deps.getClient();
-  return measureInputBudget(
-    { system: params.system, tools: params.tools, messages: params.messages },
-    () => client.countTokens({
-      model: HAIKU_MODEL_ID,
-      system: params.system,
-      ...(params.tools ? { tools: params.tools } : {}),
-      messages: params.messages,
-    }),
-  );
+  return measureBudget(deps, options, buildHaikuRequest(options, resolveHaikuEffort(options.site)));
 }
 
 export async function callHaiku(options: HaikuCallOptions, deps: HaikuDeps = defaultDeps): Promise<HaikuResponse> {
   const effort = resolveHaikuEffort(options.site);
   const params = buildHaikuRequest(options, effort);
   const context = options.generationContext;
-  const startedAtMs = Date.now();
-
-  const ledger = await deps.startLedger({ context, provider: 'anthropic', model: HAIKU_MODEL_ID });
   let budget: InputBudgetCheck | null = null;
 
-  try {
-    const client = deps.getClient();
+  // One attempt on one provider, with its own ledger row and its own $ai_generation event. It throws the
+  // original error after recording it, so the failover helper can read it.
+  const attempt = async (target: FailoverTarget<HaikuClient>): Promise<HaikuResponse> => {
+    const startedAtMs = Date.now();
+    const ledger = await deps.startLedger({ context, provider: target.provider, model: target.model });
 
-    budget = await measureInputBudget(
-      { system: params.system, tools: params.tools, messages: params.messages },
-      () => client.countTokens({
-        model: HAIKU_MODEL_ID,
-        system: params.system,
-        ...(params.tools ? { tools: params.tools } : {}),
-        messages: params.messages,
-      }),
-    );
-    if (isOverRefuseLimit(budget.totalTokens)) {
-      console.error(
-        `[haiku] ${options.site}: refusing to send ${budget.totalTokens} input tokens (limit ${INPUT_REFUSE_ABOVE}, hard ${INPUT_HARD_LIMIT})`,
-      );
-      throw new InputBudgetError(options.site, budget.totalTokens);
+    try {
+      const client = target.getClient();
+
+      // Measured once per call, on the first attempt: Bedrock gets the same request, so the same budget.
+      budget ??= await measureBudget(deps, options, params);
+      if (isOverRefuseLimit(budget.totalTokens)) {
+        console.error(
+          `[haiku] ${options.site}: refusing to send ${budget.totalTokens} input tokens (limit ${INPUT_REFUSE_ABOVE}, hard ${INPUT_HARD_LIMIT})`,
+        );
+        throw new InputBudgetError(options.site, budget.totalTokens);
+      }
+
+      const message = await client.createMessage(target.model === params.model ? params : { ...params, model: target.model });
+      const providerRequestId = message._request_id ?? message.id ?? null;
+
+      const records = usageRecordsOf(message.usage);
+      if (!records) throw new Error('Haiku response has no recognisable usage block');
+      const usage = sumUsageParts(records);
+
+      // Throws on a refusal, a max_tokens stop or an empty reply, after which the failure handler
+      // below records the billed usage on the failed ledger row.
+      const { content, toolCalls } = readHaikuContent(message, options.maxTokens);
+
+      // List prices of the direct API on both providers. Bedrock's regional endpoints cost 10% more: not modelled.
+      const cost = haiku55CostUsd(message.usage);
+      const latencyMs = Date.now() - startedAtMs;
+      const inputTokensTotal = usage.inputTokens + usage.cacheReadInputTokens + usage.cacheCreationInputTokens;
+
+      await deps.completeLedger({
+        id: ledger.id,
+        startedAtMs,
+        response: { usage: message.usage, id: message.id, _request_id: message._request_id ?? undefined },
+      });
+
+      if (isOverHardLimit(inputTokensTotal)) {
+        // Already sent and billed: the pre-send estimate drifted. Loud, never silent.
+        console.error(`[haiku] ${options.site}: ${inputTokensTotal} input tokens reached the hard limit ${INPUT_HARD_LIMIT}`);
+      }
+
+      await captureGeneration(deps, context, buildAiGenerationProperties({
+        site: options.site,
+        provider: target.provider,
+        model: target.model,
+        effort,
+        context,
+        generationId: ledger.id,
+        latencyMs,
+        stopReason: message.stop_reason,
+        providerRequestId,
+        usage,
+        costUsd: cost.totalCostUsd,
+        inputCostUsd: cost.inputCostUsd,
+        outputCostUsd: cost.outputCostUsd,
+        budget,
+        errorKind: null,
+        httpStatus: 200,
+      }));
+
+      return {
+        content,
+        ...(toolCalls.length > 0 && { toolCalls }),
+        usage: {
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+          cacheCreationInputTokens: usage.cacheCreationInputTokens,
+          cacheReadInputTokens: usage.cacheReadInputTokens,
+          cacheCreation5mInputTokens: usage.cacheCreation5mInputTokens,
+          cacheCreation1hInputTokens: usage.cacheCreation1hInputTokens,
+        },
+        model: target.model,
+        provider: target.provider,
+        latencyMs,
+        generationId: ledger.id,
+        rawContent: message.content,
+        inputTokensTotal,
+        stopReason: message.stop_reason,
+        effort,
+        costUsd: cost.totalCostUsd,
+      };
+    } catch (error) {
+      const latencyMs = Date.now() - startedAtMs;
+      const errorKind = budgetErrorKind(error);
+      const httpStatus = providerHttpStatus(error);
+      const billed = billedFailureUsage(error);
+      await deps.failLedger({
+        id: ledger.id,
+        latencyMs,
+        attemptCount: 1,
+        errorKind,
+        httpStatus,
+        ...billed,
+      });
+      // A refusal, truncation or empty reply is billed: keep its usage and cost on the PostHog event.
+      const billedUsage = error instanceof ModelStopError ? error.billed.usage : null;
+      const billedRecords = billedUsage ? usageRecordsOf(billedUsage) : null;
+      const billedCost = billedRecords ? haiku55CostUsd(billedUsage) : null;
+      await captureGeneration(deps, context, buildAiGenerationProperties({
+        site: options.site,
+        provider: target.provider,
+        model: target.model,
+        effort,
+        context,
+        generationId: ledger.id,
+        latencyMs,
+        stopReason: null,
+        providerRequestId: billed.providerRequestId ?? null,
+        usage: billedRecords ? sumUsageParts(billedRecords) : null,
+        costUsd: billedCost?.totalCostUsd ?? null,
+        inputCostUsd: billedCost?.inputCostUsd ?? null,
+        outputCostUsd: billedCost?.outputCostUsd ?? null,
+        budget,
+        errorKind,
+        httpStatus,
+      }));
+      console.error(`[haiku] ${options.site} failed on ${target.provider} (${errorKind})`, error instanceof Error ? error.message : error);
+      throw error;
     }
+  };
 
-    const message = await client.createMessage(params);
-    const providerRequestId = message._request_id ?? message.id ?? null;
-
-    const records = usageRecordsOf(message.usage);
-    if (!records) throw new Error('Haiku response has no recognisable usage block');
-    const usage = sumUsageParts(records);
-
-    // Throws on a refusal, a max_tokens stop or an empty reply, after which the failure handler
-    // below records the billed usage on the failed ledger row.
-    const { content, toolCalls } = readHaikuContent(message, options.maxTokens);
-
-    const cost = haiku55CostUsd(message.usage);
-    const latencyMs = Date.now() - startedAtMs;
-    const inputTokensTotal = usage.inputTokens + usage.cacheReadInputTokens + usage.cacheCreationInputTokens;
-
-    await deps.completeLedger({
-      id: ledger.id,
-      startedAtMs,
-      response: { usage: message.usage, id: message.id, _request_id: message._request_id ?? undefined },
-    });
-
-    if (isOverHardLimit(inputTokensTotal)) {
-      // Already sent and billed: the pre-send estimate drifted. Loud, never silent.
-      console.error(`[haiku] ${options.site}: ${inputTokensTotal} input tokens reached the hard limit ${INPUT_HARD_LIMIT}`);
-    }
-
-    await captureGeneration(deps, context, buildAiGenerationProperties({
-      site: options.site,
-      effort,
-      context,
-      generationId: ledger.id,
-      latencyMs,
-      stopReason: message.stop_reason,
-      providerRequestId,
-      usage,
-      costUsd: cost.totalCostUsd,
-      inputCostUsd: cost.inputCostUsd,
-      outputCostUsd: cost.outputCostUsd,
-      budget,
-      errorKind: null,
-      httpStatus: 200,
-    }));
-
-    return {
-      content,
-      ...(toolCalls.length > 0 && { toolCalls }),
-      usage: {
-        inputTokens: usage.inputTokens,
-        outputTokens: usage.outputTokens,
-        cacheCreationInputTokens: usage.cacheCreationInputTokens,
-        cacheReadInputTokens: usage.cacheReadInputTokens,
-        cacheCreation5mInputTokens: usage.cacheCreation5mInputTokens,
-        cacheCreation1hInputTokens: usage.cacheCreation1hInputTokens,
-      },
-      model: HAIKU_MODEL_ID,
-      provider: 'anthropic',
-      latencyMs,
-      generationId: ledger.id,
-      rawContent: message.content,
-      inputTokensTotal,
-      stopReason: message.stop_reason,
-      effort,
-      costUsd: cost.totalCostUsd,
-    };
-  } catch (error) {
-    const latencyMs = Date.now() - startedAtMs;
-    const errorKind = budgetErrorKind(error);
-    const httpStatus = providerHttpStatus(error);
-    const billed = billedFailureUsage(error);
-    await deps.failLedger({
-      id: ledger.id,
-      latencyMs,
-      attemptCount: providerAttemptCount(error),
-      errorKind,
-      httpStatus,
-      ...billed,
-    });
-    // A refusal, truncation or empty reply is billed: keep its usage and cost on the PostHog event.
-    const billedUsage = error instanceof ModelStopError ? error.billed.usage : null;
-    const billedRecords = billedUsage ? usageRecordsOf(billedUsage) : null;
-    const billedCost = billedRecords ? haiku55CostUsd(billedUsage) : null;
-    await captureGeneration(deps, context, buildAiGenerationProperties({
-      site: options.site,
-      effort,
-      context,
-      generationId: ledger.id,
-      latencyMs,
-      stopReason: null,
-      providerRequestId: billed.providerRequestId ?? null,
-      usage: billedRecords ? sumUsageParts(billedRecords) : null,
-      costUsd: billedCost?.totalCostUsd ?? null,
-      inputCostUsd: billedCost?.inputCostUsd ?? null,
-      outputCostUsd: billedCost?.outputCostUsd ?? null,
-      budget,
-      errorKind,
-      httpStatus,
-    }));
-    console.error(`[haiku] ${options.site} failed (${errorKind})`, error instanceof Error ? error.message : error);
-    throw error;
-  }
+  return haikuFailover(deps, options, attempt);
 }

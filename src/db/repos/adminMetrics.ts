@@ -15,7 +15,7 @@ function canonicalJson(value: unknown): string {
 }
 
 export type AdminAuthEventType = 'signup' | 'session_started';
-export type LlmUsageProvider = 'anthropic' | 'bedrock' | 'digitalocean' | 'workers-ai';
+export type LlmUsageProvider = 'anthropic' | 'bedrock' | 'workers-ai';
 
 export type LlmGenerationContext = {
   requestExecutionId: string;

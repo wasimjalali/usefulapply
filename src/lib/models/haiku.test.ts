@@ -1,17 +1,23 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import type Anthropic from '@anthropic-ai/sdk';
+import { APIError } from '@anthropic-ai/sdk';
 import { ModelStopError } from './anthropic';
 import {
   InputBudgetError,
   buildHaikuRequest,
   callHaiku,
+  defaultBedrockHaikuClient,
   defaultHaikuClient,
+  measureHaikuRequest,
   type HaikuCallOptions,
   type HaikuClient,
   type HaikuDeps,
   type HaikuMessage,
+  type HaikuRequest,
 } from './haiku';
+import { resetProviderCachesForTests } from './providers';
 
 const CONTEXT = {
   requestExecutionId: 'req-1',
@@ -23,13 +29,20 @@ const CONTEXT = {
 
 const ZERO_SPLIT = { ephemeral_5m_input_tokens: 0, ephemeral_1h_input_tokens: 0 };
 
-function usage(input: number, output: number, read = 0, write = 0, split = ZERO_SPLIT) {
+function usage(input: number, output: number, read = 0, write = 0, split = ZERO_SPLIT): Anthropic.Beta.BetaUsage {
   return {
     input_tokens: input,
     output_tokens: output,
     cache_read_input_tokens: read,
     cache_creation_input_tokens: write,
     cache_creation: split,
+    fallback_credit: null,
+    inference_geo: null,
+    iterations: null,
+    output_tokens_details: null,
+    server_tool_use: null,
+    service_tier: null,
+    speed: null,
   };
 }
 
@@ -57,8 +70,8 @@ function options(over: Partial<HaikuCallOptions> = {}): HaikuCallOptions {
 
 interface Harness {
   deps: HaikuDeps;
-  sent: Record<string, unknown>[];
-  counted: Record<string, unknown>[];
+  sent: HaikuRequest[];
+  counted: Parameters<HaikuClient['countTokens']>[0][];
   started: unknown[];
   completed: Record<string, unknown>[];
   failed: Record<string, unknown>[];
@@ -197,7 +210,7 @@ test('a max_tokens stop and a refusal fail loud even for Haiku', async () => {
   );
   assert.equal(truncated.failed[0].errorKind, 'provider_max_tokens');
 
-  const refused = harness({ createMessage: async () => reply('', usage(10, 0), { stop_reason: 'refusal', stop_details: { category: 'x' } }) });
+  const refused = harness({ createMessage: async () => reply('', usage(10, 0), { stop_reason: 'refusal', stop_details: { type: 'refusal', category: 'cyber', explanation: null, fallback_credit_token: null, fallback_has_prefill_claim: null, recommended_model: null } }) });
   await assert.rejects(
     callHaiku(options(), refused.deps),
     (error: unknown) => error instanceof ModelStopError && error.errorKind === 'provider_refusal',
@@ -254,13 +267,13 @@ const TOOL_B = { name: 'b_tool', description: 'second', input_schema: { type: 'o
 interface Marker { where: string; ttl: '5m' | '1h' }
 
 /** Cache markers in the order the API reads the prefix: tools, system, then messages, then top level. */
-function markers(params: Record<string, unknown>): Marker[] {
+function markers(params: HaikuRequest): Marker[] {
   const out: Marker[] = [];
   const ttlOf = (cc: unknown) => ((cc as { ttl?: string }).ttl === '1h' ? '1h' : '5m') as '5m' | '1h';
-  (params.tools as Array<{ name: string; cache_control?: unknown }> | undefined)?.forEach((t) => {
-    if (t.cache_control) out.push({ where: `tool:${t.name}`, ttl: ttlOf(t.cache_control) });
+  params.tools?.forEach((t) => {
+    if ('cache_control' in t && t.cache_control) out.push({ where: `tool:${'name' in t ? t.name : '?'}`, ttl: ttlOf(t.cache_control) });
   });
-  (params.system as Array<{ text: string; cache_control?: unknown }>).forEach((b, i) => {
+  (params.system as Anthropic.Beta.BetaTextBlockParam[]).forEach((b, i) => {
     if (b.cache_control) out.push({ where: `system:${i}`, ttl: ttlOf(b.cache_control) });
   });
   if (params.cache_control) out.push({ where: 'conversation', ttl: ttlOf(params.cache_control) });
@@ -351,7 +364,7 @@ test('request shape: no temperature, adaptive thinking omitted, effort in output
   for (const effort of ['low', 'medium', 'high'] as const) {
     const params = buildHaikuRequest(options(), effort);
     assert.equal(params.model, 'claude-haiku-5-5');
-    assert.equal(params.temperature, undefined);
+    assert.ok(!('temperature' in params) && !('top_p' in params) && !('top_k' in params));
     assert.equal(params.thinking, undefined);
     assert.deepEqual(params.output_config, { effort });
     assert.equal(params.max_tokens, 500);
@@ -426,11 +439,18 @@ test('a call records the ledger and one $ai_generation event with the per-site c
 });
 
 test('compaction-style usage (iterations) is summed in tokens, cost and the event', async () => {
-  const u = {
+  const iteration = (u: Anthropic.Beta.BetaUsage) => ({
+    input_tokens: u.input_tokens,
+    output_tokens: u.output_tokens,
+    cache_read_input_tokens: u.cache_read_input_tokens ?? 0,
+    cache_creation_input_tokens: u.cache_creation_input_tokens ?? 0,
+    cache_creation: u.cache_creation,
+  });
+  const u: Anthropic.Beta.BetaUsage = {
     ...usage(0, 0),
     iterations: [
-      { type: 'compaction', ...usage(2782, 1069) },
-      { type: 'message', ...usage(500, 80, 1000, 0) },
+      { type: 'compaction', ...iteration(usage(2782, 1069)) },
+      { type: 'message', model: null, ...iteration(usage(500, 80, 1000, 0)) },
     ],
   };
   const h = harness({ createMessage: async () => reply('summarised answer', u) });
@@ -485,4 +505,194 @@ test('more than 4 cache markers (system blocks + conversation + message markers)
     }), 'low'),
     /5 cache markers/,
   );
+});
+
+// --- failover to Amazon Bedrock ---
+
+const overloaded = () => APIError.generate(529, { type: 'error', error: { type: 'overloaded_error', message: 'Overloaded' } }, 'Overloaded', new Headers());
+const badRequest = () => APIError.generate(400, { type: 'error', error: { type: 'invalid_request_error', message: 'bad' } }, 'bad', new Headers());
+
+interface FailoverHarness extends Harness {
+  bedrockSent: HaikuRequest[];
+  bedrockCounted: Parameters<HaikuClient['countTokens']>[0][];
+  captured: Array<{ distinctId: string; event?: string; properties: Record<string, unknown> }>;
+  started: Array<{ provider: string; model: string }>;
+}
+
+function failoverHarness(primary: Partial<HaikuClient>, bedrock: Partial<HaikuClient> | null = {}): FailoverHarness {
+  const h = harness(primary) as FailoverHarness;
+  h.bedrockSent = [];
+  h.bedrockCounted = [];
+  h.captured = [];
+  let n = 0;
+  h.deps.startLedger = (async (params: { provider: string; model: string }) => {
+    h.started.push(params);
+    n += 1;
+    return { id: `gen-${n}`, startedAt: '2026-10-22T00:00:00.000Z' };
+  }) as HaikuDeps['startLedger'];
+  h.deps.capture = async (event) => {
+    h.captured.push(event);
+    if (event.event === undefined) h.events.push(event.properties);
+  };
+  h.deps.getBedrockClient = () => (bedrock === null ? null : {
+    createMessage: async (params) => { h.bedrockSent.push(params); return reply('from bedrock'); },
+    countTokens: async (params) => { h.bedrockCounted.push(params); return 1000; },
+    ...bedrock,
+  });
+  return h;
+}
+
+async function quiet<T>(run: () => Promise<T>): Promise<T> {
+  const warn = console.warn;
+  const error = console.error;
+  console.warn = () => {};
+  console.error = () => {};
+  try {
+    return await run();
+  } finally {
+    console.warn = warn;
+    console.error = error;
+  }
+}
+
+test('a 400 from the primary never reaches Bedrock', async () => {
+  const error = badRequest();
+  const h = failoverHarness({ createMessage: async () => { throw error; } });
+  await quiet(() => assert.rejects(callHaiku(options(), h.deps), (thrown: unknown) => thrown === error));
+  assert.equal(h.bedrockSent.length, 0);
+  assert.equal(h.failed.length, 1);
+  assert.equal(h.captured.filter((e) => e.event === 'llm_provider_failover').length, 0);
+});
+
+test('a refusal on the primary never reaches Bedrock', async () => {
+  const h = failoverHarness({ createMessage: async () => reply('', usage(10, 0), { stop_reason: 'refusal' }) });
+  await quiet(() => assert.rejects(callHaiku(options(), h.deps), ModelStopError));
+  assert.equal(h.bedrockSent.length, 0);
+});
+
+test('a 529 with Bedrock not configured keeps the failure path: one failed row, the original error', async () => {
+  const error = overloaded();
+  const h = failoverHarness({ createMessage: async () => { throw error; } }, null);
+  await quiet(() => assert.rejects(callHaiku(options(), h.deps), (thrown: unknown) => thrown === error));
+  assert.equal(h.started.length, 1);
+  assert.equal(h.failed.length, 1);
+  assert.equal(h.failed[0].httpStatus, 529);
+});
+
+test('a 529 fails over: failed anthropic row, bedrock row, two $ai_generation events and a failover event', async () => {
+  const h = failoverHarness({ createMessage: async () => { throw overloaded(); } });
+  const response = await quiet(() => callHaiku(options({ site: 'chat', cacheTtl: '1h' }), h.deps));
+
+  assert.equal(response.content, 'from bedrock');
+  assert.equal(response.provider, 'bedrock');
+  assert.equal(response.model, 'anthropic.claude-haiku-5-5');
+  assert.equal(response.generationId, 'gen-2');
+
+  assert.deepEqual(h.started, [
+    { context: CONTEXT, provider: 'anthropic', model: 'claude-haiku-5-5' },
+    { context: CONTEXT, provider: 'bedrock', model: 'anthropic.claude-haiku-5-5' },
+  ]);
+  assert.equal(h.failed.length, 1);
+  assert.equal(h.failed[0].id, 'gen-1');
+  assert.equal(h.failed[0].httpStatus, 529);
+  assert.equal(h.completed.length, 1);
+  assert.equal(h.completed[0].id, 'gen-2');
+
+  const generations = h.captured.filter((e) => e.event === undefined).map((e) => e.properties);
+  assert.deepEqual(generations.map((e) => [e.$ai_provider, e.$ai_model, e.$ai_is_error]), [
+    ['anthropic', 'claude-haiku-5-5', true],
+    ['bedrock', 'anthropic.claude-haiku-5-5', false],
+  ]);
+  const failover = h.captured.filter((e) => e.event === 'llm_provider_failover');
+  assert.equal(failover.length, 1);
+  assert.equal(failover[0].distinctId, 'user-1');
+  assert.deepEqual(
+    { site: failover[0].properties.site, model: failover[0].properties.model, kind: failover[0].properties.primary_error_kind, status: failover[0].properties.primary_http_status },
+    { site: 'chat', model: 'claude-haiku-5-5', kind: 'overloaded', status: 529 },
+  );
+});
+
+test('Bedrock gets the same request: only the model id differs, cache markers byte-identical', async () => {
+  const primarySent: HaikuRequest[] = [];
+  const h = failoverHarness({ createMessage: async (params) => { primarySent.push(params); throw overloaded(); } });
+  await quiet(() => callHaiku(options({
+    tools: [TOOL_A, TOOL_B],
+    system: { static: 'static rules', stableContext: 'the CV' },
+    cacheTtl: '1h',
+    cacheConversation: true,
+    jsonSchema: { type: 'object', properties: { a: { type: 'string' } } },
+  }), h.deps));
+  assert.equal(h.bedrockSent.length, 1);
+  assert.equal(h.bedrockSent[0].model, 'anthropic.claude-haiku-5-5');
+  assert.equal(JSON.stringify({ ...h.bedrockSent[0], model: '' }), JSON.stringify({ ...primarySent[0], model: '' }));
+});
+
+test('failover is per call: the next call goes to the primary again', async () => {
+  let calls = 0;
+  const h = failoverHarness({
+    createMessage: async () => {
+      calls += 1;
+      if (calls === 1) throw overloaded();
+      return reply('primary again');
+    },
+  });
+  assert.equal((await quiet(() => callHaiku(options(), h.deps))).provider, 'bedrock');
+  const second = await callHaiku(options(), h.deps);
+  assert.equal(second.provider, 'anthropic');
+  assert.equal(second.content, 'primary again');
+});
+
+test('when Bedrock fails too, its error is thrown after one attempt on each, two failed rows', async () => {
+  const bedrockError = APIError.generate(503, undefined, 'unavailable', new Headers());
+  const h = failoverHarness(
+    { createMessage: async () => { throw overloaded(); } },
+    { createMessage: async () => { throw bedrockError; } },
+  );
+  await quiet(() => assert.rejects(callHaiku(options(), h.deps), (thrown: unknown) => thrown === bedrockError));
+  assert.equal(h.failed.length, 2);
+  assert.deepEqual(h.failed.map((f) => f.httpStatus), [529, 503]);
+});
+
+test('count_tokens fails over: a 503 on the primary count is counted on Bedrock, then the message goes to the primary', async () => {
+  const h = failoverHarness({ countTokens: async () => { throw APIError.generate(503, undefined, 'down', new Headers()); } });
+  const response = await quiet(() => callHaiku(options({ messages: BIG }), h.deps));
+  assert.equal(h.bedrockCounted.length, 1);
+  assert.equal(h.bedrockCounted[0].model, 'anthropic.claude-haiku-5-5');
+  assert.equal(h.sent.length, 1);
+  assert.equal(response.provider, 'anthropic');
+});
+
+test('count_tokens failing on Bedrock too fails the guard loud: nothing is sent, no second failover for the message', async () => {
+  const countError = APIError.generate(503, undefined, 'bedrock count down', new Headers());
+  const h = failoverHarness(
+    { countTokens: async () => { throw APIError.generate(529, undefined, 'overloaded', new Headers()); } },
+    { countTokens: async () => { throw countError; } },
+  );
+  await quiet(() => assert.rejects(callHaiku(options({ messages: BIG }), h.deps), (thrown: unknown) => thrown === countError));
+  assert.equal(h.sent.length, 0);
+  assert.equal(h.bedrockSent.length, 0);
+  assert.equal(h.failed.length, 1);
+});
+
+test('measureHaikuRequest counts on Bedrock when the primary count fails over, and fails loud when both fail', async () => {
+  const h = failoverHarness({ countTokens: async () => { throw overloaded(); } });
+  const check = await quiet(() => measureHaikuRequest(options({ messages: BIG }), h.deps));
+  assert.equal(check.exactTokens, 1000);
+  const both = failoverHarness({ countTokens: async () => { throw overloaded(); } }, { countTokens: async () => { throw new Error('bedrock count boom'); } });
+  await quiet(() => assert.rejects(measureHaikuRequest(options({ messages: BIG }), both.deps), /bedrock count boom/));
+});
+
+test('without Bedrock credentials the default deps have no Bedrock client', () => {
+  const saved = ['AWS_BEARER_TOKEN_BEDROCK', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'].map((key) => [key, process.env[key]] as const);
+  for (const [key] of saved) delete process.env[key];
+  resetProviderCachesForTests();
+  const log = console.log;
+  console.log = () => {};
+  try {
+    assert.equal(defaultBedrockHaikuClient(), null);
+  } finally {
+    console.log = log;
+    for (const [key, value] of saved) if (value !== undefined) process.env[key] = value;
+    resetProviderCachesForTests();
+  }
 });
