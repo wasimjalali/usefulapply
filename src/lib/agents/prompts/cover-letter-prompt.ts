@@ -16,9 +16,6 @@ import { sanitizeAdText } from '@/lib/agents/chat-tools/untrusted';
 import { normalizeLanguage } from '@/lib/utils/language-detector';
 import { buildLogisticsBlock } from './logistics-prompt';
 
-// Multilingual hints that a CV has a relocation line (relocate, Umzug, déménager, mobilité géographique, reubicar, trasladar, mudança, trasferire, verhuizen).
-const RELOCATION_TERMS = /relocat|umzug|umzugsbereit|déménag|mobilité géographique|reubica|traslad|mudan|trasferi|verhuiz/iu;
-
 // Dash characters the output must not contain, built from code points so this
 // source file contains none of them.
 const EM_DASH = String.fromCharCode(0x2014);
@@ -348,7 +345,7 @@ ${allowBlock}${blockList}In place of any skill outside the allow-list, emphasize
 })()}
 === RELOCATION CONSTRAINT (BINDING) ===
 Job location: ${sanitizeAdText(job?.location) || 'Not specified'}
-${RELOCATION_TERMS.test([rawCV, masterCV].filter(Boolean).join('\n')) ? `The scan found a relocation line in the CVs. The applicant's relocation preferences are only what is written in the Primary CV or Master CV above. If the job location (${sanitizeAdText(job?.location) || 'unknown'}) is not explicitly covered by that statement, the letter doesn't mention relocation willingness at all.` : `The scan flagged no relocation line. If the Primary CV or Master CV states the applicant's willingness to relocate, use it as written; otherwise don't mention relocation.`}
+Relocation is mentioned only if the Primary CV or Master CV states the applicant's own willingness to relocate, and only for the places that statement covers. A data centre move, change management or a data transfer is not a relocation statement.
 Relocation willingness is never stated for a city or country the Primary CV or Master CV doesn't explicitly list.
 
 ${buildLogisticsBlock(context, 'letter')}
