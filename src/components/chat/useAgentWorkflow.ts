@@ -629,7 +629,8 @@ export function useAgentWorkflow(options?: {
     // Own controller: this must never replace the SSE workflow's abort handle.
     const controller = new AbortController();
     try {
-      const { masterCV, certifications } = useAppStore.getState();
+      // No master CV here: the route reads the applicant's own CVs on the server.
+      const { certifications } = useAppStore.getState();
       const recentMessages = messages.slice(-10).map(msg => ({
         role: msg.role,
         content: msg.content,
@@ -645,8 +646,6 @@ export function useAgentWorkflow(options?: {
             hasAnalysis: !!currentSession?.gaps,
             jobTitle: currentSession?.jobTitle,
             company: currentSession?.company,
-            hasMasterCV: !!masterCV,
-            masterCVSummary: masterCV?.rawText?.substring(0, 3000),
             hasCertifications: certifications.length > 0,
             certificationsCount: certifications.length,
             certificationsList: certifications.map(c => c.fileName).join(', '),
