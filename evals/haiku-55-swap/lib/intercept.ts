@@ -17,7 +17,7 @@
  */
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { createHash } from 'node:crypto';
-import { installHaikuHooks, setHaikuBackend } from '../../lib/hooks';
+import { installHaikuHooks, setHaikuBackend, setOfflineMeasure } from '../../lib/hooks';
 import { costUsd, inputTotal, HARNESS_INPUT_BUDGET, wireEffort, type Arm, type CallRecord, type SiteId, type Usage } from './core';
 
 export interface NeutralMessage {
@@ -361,6 +361,7 @@ function haikuShaped(reply: OracleReply, rec: CallRecord, req: NeutralRequest) {
 /** Installs the module redirects and the backend router. Call once, before any src module is imported. */
 export function installHarness(): void {
   installHaikuHooks();
+  setOfflineMeasure(() => scopeStore.getStore()?.dry === true);
   setHaikuBackend((kind, options) => {
     const scope = scopeStore.getStore();
     if (!scope) return null;

@@ -76,6 +76,8 @@ export type HaikuBackendHook = (kind: 'haiku' | 'workers-ai' | 'workers-ai-bindi
 
 interface HaikuHookGlobals {
   __evalHaikuBackend?: HaikuBackendHook;
+  /** True while measureHaikuRequest must count locally (a dry run has no network and no key). */
+  __evalOfflineMeasure?: () => boolean;
   __evalCfEnv?: Record<string, unknown>;
   __evalStubs?: Record<string, unknown>;
 }
@@ -92,6 +94,11 @@ export function registerStub(request: string, exports: unknown): void {
  */
 export function setHaikuBackend(hook: HaikuBackendHook | undefined): void {
   g.__evalHaikuBackend = hook;
+}
+
+/** Decides, per call, whether measureHaikuRequest counts with the local estimate instead of count_tokens. */
+export function setOfflineMeasure(check: (() => boolean) | undefined): void {
+  g.__evalOfflineMeasure = check;
 }
 
 export function setCloudflareEnv(env: Record<string, unknown> | undefined): void {
@@ -155,13 +162,40 @@ export function installHaikuHooks(): void {
       if (!cache.has(resolved)) {
         const real = origLoad.apply(this, args) as Record<string, unknown>;
         const realCall = real.callHaiku as (options: unknown) => Promise<unknown>;
+        const realMeasure = real.measureHaikuRequest as (options: unknown, deps?: unknown) => Promise<unknown>;
         cache.set(resolved, wrapped(real, {
           callHaiku: (options: unknown) => g.__evalHaikuBackend?.('haiku', options) ?? realCall(options),
+          // Offline (dry): the same guard, with count_tokens answered by the local estimate.
+          measureHaikuRequest: (options: unknown, deps?: unknown) =>
+            g.__evalOfflineMeasure?.() ? realMeasure(options, offlineMeasureDeps()) : realMeasure(options, deps),
         }));
       }
       return cache.get(resolved);
     }
     return origLoad.apply(this, args);
+  };
+}
+
+/** Deps for measureHaikuRequest with no network: count_tokens is the local estimate, nothing else may run. */
+function offlineMeasureDeps(): unknown {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded lazily, after the hooks are installed
+  const { estimateInputTokens } = require(path.join(ROOT, 'src', 'lib', 'models', 'token-budget.ts')) as {
+    estimateInputTokens: (parts: { system: unknown; tools: unknown; messages: unknown }) => number;
+  };
+  const refuse = () => {
+    throw new Error('offline measure: only count_tokens may run');
+  };
+  return {
+    getClient: () => ({
+      createMessage: refuse,
+      countTokens: async (params: { system: unknown; tools?: unknown; messages: unknown }) =>
+        estimateInputTokens({ system: params.system, tools: params.tools, messages: params.messages }),
+    }),
+    getBedrockClient: () => null,
+    startLedger: refuse,
+    completeLedger: refuse,
+    failLedger: refuse,
+    capture: async () => {},
   };
 }
 

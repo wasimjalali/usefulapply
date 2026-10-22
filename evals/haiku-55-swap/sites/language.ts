@@ -53,7 +53,7 @@ export const languageSite: Site<LanguageDoc> = {
     if (!LANGUAGE_DOCS.some((d) => d.kind === 'over-24k' && d.text.length > 24_000)) problems.push('no document over the 24,000 character cut');
     return problems;
   },
-  oracle: (doc) => () => ({ text: doc.label }),
+  oracle: (doc) => () => ({ text: JSON.stringify({ language: doc.label }) }),
   async run(doc) {
     const res = await detectLanguageResult(doc.text, generationContext('language_detection', 'language_classification'));
     const graded = gradeLanguage(doc, res);
