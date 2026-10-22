@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { ConversationColumn } from '@/components/shell/ConversationColumn';
 import { ColumnSash } from '@/components/shell/ColumnSash';
@@ -22,6 +22,7 @@ export function AppShell() {
   const isAgentWorking = useUIStore((s) => s.isAgentWorking);
   const activeTab = useUIStore((s) => s.activeTab);
   const setActiveTab = useUIStore((s) => s.setActiveTab);
+  const conversationCollapsed = useUIStore((s) => s.conversationCollapsed);
   const setConversationCollapsed = useUIStore((s) => s.setConversationCollapsed);
   const canvasCollapsed = useUIStore((s) => s.canvasCollapsed);
   const setCanvasCollapsed = useUIStore((s) => s.setCanvasCollapsed);
@@ -51,22 +52,36 @@ export function AppShell() {
     return () => window.removeEventListener('resize', onResize);
   }, [conversationWidth, setConversationWidth]);
 
-  // Below this the 224px sidebar and the 520px conversation leave the canvas
-  // nothing to draw in, and the tracker table is the widest thing in it. Fold
-  // the conversation on the way down, restore it on the way back up, and leave
-  // the user's own choice alone in between.
+  // Below this the 225px sidebar, the 400px conversation floor and the 480px
+  // canvas floor no longer fit side by side, so the two take turns: one gets
+  // the row and the other folds to its rail. The canvas wins on the way down,
+  // and both come back on the way up. In between, the user's choice stands.
+  const [compact, setCompact] = useState(false);
+  // A layout effect, so a first render at tablet width never paints the
+  // squeezed row before the fold. The shell only ever renders on the client.
   const wasNarrowRef = useRef<boolean | null>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const media = window.matchMedia('(max-width: 1100px)');
     const sync = () => {
       if (wasNarrowRef.current === media.matches) return;
+      const widening = wasNarrowRef.current === true;
       wasNarrowRef.current = media.matches;
+      setCompact(media.matches);
       setConversationCollapsed(media.matches);
+      if (widening) setCanvasCollapsed(false);
     };
     sync();
     media.addEventListener('change', sync);
     return () => media.removeEventListener('change', sync);
-  }, [setConversationCollapsed]);
+  }, [setConversationCollapsed, setCanvasCollapsed]);
+
+  // Compact, opening the canvas has to fold the conversation in the same
+  // update, or the two squeeze into a row too narrow for either.
+  const toggleCanvas = () => {
+    if (!canvasCollapsed) setCanvasCollapsed(true);
+    else if (compact) setConversationCollapsed(true);
+    else setCanvasCollapsed(false);
+  };
 
   const handleTabChange = (tab: KitTab) => {
     if (activeTab === 'jobs' || activeTab === 'tracker') return;
@@ -78,8 +93,9 @@ export function AppShell() {
       <div className="relative flex h-full w-full min-w-0 min-h-0 bg-cream-100">
         <KitExportHost />
         <Sidebar isWorking={isAgentWorking} />
-        <ConversationColumn onTabChange={handleTabChange} columnRef={conversationRef} />
-        {!canvasCollapsed && (
+        <ConversationColumn onTabChange={handleTabChange} columnRef={conversationRef} compact={compact} />
+        {/* Nothing to resize while either side is a rail. */}
+        {!canvasCollapsed && !conversationCollapsed && (
           <ColumnSash
             getConversationWidth={() => conversationRef.current?.getBoundingClientRect().width ?? 0}
             sidebarWidth={SIDEBAR_WIDTH}
@@ -87,7 +103,8 @@ export function AppShell() {
         )}
         <CanvasColumn
           collapsed={canvasCollapsed}
-          onToggleCollapsed={() => setCanvasCollapsed(!canvasCollapsed)}
+          compact={compact}
+          onToggleCollapsed={toggleCanvas}
           toolbarNode={toolbarNode}
           setToolbarNode={setToolbarNode}
         />

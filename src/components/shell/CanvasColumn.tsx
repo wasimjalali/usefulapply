@@ -15,6 +15,8 @@ import { useUIStore, type KitTab } from '@/store/useUIStore';
 
 interface CanvasColumnProps {
   collapsed: boolean;
+  /** Below 1100px the canvas and the conversation take turns for the row. */
+  compact: boolean;
   onToggleCollapsed: () => void;
   toolbarNode: HTMLDivElement | null;
   setToolbarNode: (node: HTMLDivElement | null) => void;
@@ -35,6 +37,7 @@ const TAB_LABEL: Record<KitTab, string> = {
 
 export function CanvasColumn({
   collapsed,
+  compact,
   onToggleCollapsed,
   toolbarNode,
   setToolbarNode,
@@ -87,15 +90,23 @@ export function CanvasColumn({
   })();
 
   if (collapsed) {
+    // Compact, this rail is the only way back and it mirrors the
+    // conversation's rail, so its toggle sits at the top like that one.
+    const label = compact ? 'Show the canvas' : 'Expand canvas';
     return (
-      /* The toggle lives at the bottom right in both states, so it never
-         jumps when the canvas opens or closes. */
-      <div className="flex h-full w-12 flex-shrink-0 flex-col items-center justify-end border-l border-cream-200 bg-cream-100 py-4">
+      /* Otherwise the toggle lives at the bottom right in both states, so it
+         never jumps when the canvas opens or closes. */
+      <div
+        className={`flex h-full w-12 flex-shrink-0 flex-col items-center border-l border-cream-200 bg-cream-100 ${
+          compact ? 'justify-start py-3' : 'justify-end py-4'
+        }`}
+      >
         <button
           type="button"
           onClick={onToggleCollapsed}
           className="rounded-full border border-cream-200 bg-cream-50 p-1.5 text-warm-gray shadow-sm hover:text-navy-700 cursor-pointer"
-          aria-label="Expand canvas"
+          aria-label={label}
+          title={label}
         >
           <PanelRightOpen className="h-4 w-4" />
         </button>
@@ -105,18 +116,24 @@ export function CanvasColumn({
 
   return (
     <section className="relative flex min-w-0 flex-1 flex-col bg-cream-100">
-      <button
-        type="button"
-        onClick={onToggleCollapsed}
-        className="absolute bottom-4 right-4 z-20 rounded-full border border-cream-200 bg-cream-50 p-1.5 text-warm-gray shadow-sm hover:text-navy-700 cursor-pointer"
-        aria-label="Collapse canvas"
-      >
-        <PanelRightClose className="h-4 w-4" />
-      </button>
+      {/* Compact, the conversation's rail already switches the view, and a
+          second control for the same move is noise. */}
+      {!compact && (
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          className="absolute bottom-4 right-4 z-20 rounded-full border border-cream-200 bg-cream-50 p-1.5 text-warm-gray shadow-sm hover:text-navy-700 cursor-pointer"
+          aria-label="Collapse canvas"
+        >
+          <PanelRightClose className="h-4 w-4" />
+        </button>
+      )}
 
       {isKit && (
         <>
-          <div className="flex items-center gap-3 border-b border-cream-200 px-5 py-3">
+          {/* At tablet width the tabs and Download all only just fit, and an Answers tab tips them over: labels
+              never break, Download all wraps to its own line instead. */}
+          <div className="flex flex-wrap items-center gap-3 border-b border-cream-200 px-5 py-3">
             <div className="inline-flex items-center rounded-full border border-cream-200 bg-cream-50 p-0.5" role="tablist">
               {TABS.map((tab) => {
                 const Icon = tab.icon;
@@ -128,7 +145,7 @@ export function CanvasColumn({
                     role="tab"
                     aria-selected={on}
                     onClick={() => selectTab(tab.id)}
-                    className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm cursor-pointer ${
+                    className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm cursor-pointer ${
                       on
                         ? 'bg-white font-semibold text-navy-800 shadow-sm'
                         : 'font-medium text-warm-gray hover:text-navy-700'
@@ -145,7 +162,7 @@ export function CanvasColumn({
                   role="tab"
                   aria-selected={activeTab === 'answers'}
                   onClick={() => selectTab('answers')}
-                  className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm cursor-pointer ${
+                  className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm cursor-pointer ${
                     activeTab === 'answers'
                       ? 'bg-white font-semibold text-navy-800 shadow-sm'
                       : 'font-medium text-warm-gray hover:text-navy-700'
@@ -159,8 +176,10 @@ export function CanvasColumn({
                 </button>
               )}
             </div>
-            <div className="flex-1" />
-            <KitDownloadAll />
+            {/* ml-auto rather than a spacer, so it keeps to the right on its own line too. */}
+            <div className="ml-auto">
+              <KitDownloadAll />
+            </div>
           </div>
 
           {/* Per-tab rows. Panels portal their controls in; hidden (not unmounted)

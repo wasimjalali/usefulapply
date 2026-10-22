@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { openSettings } from '@/store/useSettingsStore';
 import { Card } from './ui/Card';
@@ -140,30 +140,37 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const [cvScale, setCvScale] = useState(1);
   const [cvScaledHeight, setCvScaledHeight] = useState<number | null>(null);
 
-  useEffect(() => {
+  // A layout effect, so the first paint already has the page scaled: measured
+  // only after paint, a canvas narrower than the page flashed it at full size.
+  useLayoutEffect(() => {
     let rafId: number | null = null;
+
+    const measure = () => {
+      if (!cvContainerRef.current || !cvWrapperRef.current) return;
+      const containerWidth = cvContainerRef.current.clientWidth;
+      // scrollWidth gives the actual rendered width, unaffected by transform: scale
+      const naturalWidth = cvWrapperRef.current.scrollWidth;
+      const naturalHeight = cvWrapperRef.current.scrollHeight;
+      if (containerWidth > 0 && naturalWidth > 0 && containerWidth < naturalWidth) {
+        const newScale = containerWidth / naturalWidth;
+        setCvScale(newScale);
+        setCvScaledHeight(naturalHeight > 0 ? Math.ceil(naturalHeight * newScale) : null);
+      } else {
+        setCvScale(1);
+        setCvScaledHeight(null);
+      }
+    };
 
     const updateScale = () => {
       if (rafId !== null) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
         rafId = null;
-        if (!cvContainerRef.current || !cvWrapperRef.current) return;
-        const containerWidth = cvContainerRef.current.clientWidth;
-        // scrollWidth gives the actual rendered width, unaffected by transform: scale
-        const naturalWidth = cvWrapperRef.current.scrollWidth;
-        const naturalHeight = cvWrapperRef.current.scrollHeight;
-        if (containerWidth > 0 && naturalWidth > 0 && containerWidth < naturalWidth) {
-          const newScale = containerWidth / naturalWidth;
-          setCvScale(newScale);
-          setCvScaledHeight(naturalHeight > 0 ? Math.ceil(naturalHeight * newScale) : null);
-        } else {
-          setCvScale(1);
-          setCvScaledHeight(null);
-        }
+        measure();
       });
     };
 
-    // Delay slightly so the CV template renders at its natural size first
+    measure();
+    // Measure again once fonts and the photo have settled the template's size
     const timer = setTimeout(updateScale, 50);
     // Watch container width changes (window resize, chat panel resize)
     const roContainer = new ResizeObserver(updateScale);
