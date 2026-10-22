@@ -8,7 +8,7 @@ import { REPO_ROOT } from '../lib/env';
 /**
  * (l) The shell at tablet and laptop widths, with a kit on the canvas and a conversation that has messages.
  *
- * Below 1100px the 225px sidebar, a 400px conversation and a usable canvas don't fit side by side, so the
+ * Below 1100px the 224px sidebar, a 400px conversation and a usable canvas don't fit side by side, so the
  * conversation and the canvas take turns: one gets the room beside the sidebar, the other is a rail with the
  * toggle back. Above it both columns show.
  *
@@ -37,7 +37,6 @@ function branchSlug(): string {
 }
 const SHOTS = process.env.E2E_SHOTS ?? join(mainCheckout(), 'verify', branchSlug(), 'layout');
 
-const SIDEBAR = 225;
 const RAIL = 48;
 const USABLE = 480;
 
@@ -57,16 +56,23 @@ async function box(locator: Locator) {
 }
 const width = async (locator: Locator) => (await box(locator)).width;
 
-/** Read, or set then read, the scroll offset of the chat's message list. */
-async function chatScroll(page: Page, set?: number): Promise<number> {
-  return chat(page).evaluate((section, value) => {
-    const list = Array.from(section.querySelectorAll<HTMLElement>('*')).find(
-      (node) => /(auto|scroll)/.test(getComputedStyle(node).overflowY) && node.scrollHeight > node.clientHeight,
-    );
-    if (!list) throw new Error('no scrolling message list in the chat');
-    if (value !== undefined) list.scrollTop = value;
+/** The sidebar's real width, so the expected column widths follow it. */
+const sidebar = async (page: Page) => width(page.locator('aside').first());
+
+/**
+ * Read the scroll offset of the chat's message list (the scrolling ancestor of the kit message), or first move it to
+ * the middle of its range.
+ */
+async function chatScroll(page: Page, toMiddle = false): Promise<number> {
+  return chat(page).getByText(/Your kit for Northwind Foods is ready/).evaluate((message, value) => {
+    let list: HTMLElement | null = message.parentElement;
+    while (list && !/(auto|scroll)/.test(getComputedStyle(list).overflowY)) list = list.parentElement;
+    if (!list) throw new Error('the kit message has no scrolling ancestor');
+    const range = list.scrollHeight - list.clientHeight;
+    if (range < 200) throw new Error('the conversation is too short to prove a scroll offset');
+    if (value) list.scrollTop = Math.round(range / 2);
     return list.scrollTop;
-  }, set);
+  }, toMiddle);
 }
 
 /** The page never scrolls sideways: a squeezed column shows up as overflow before it shows up as a number. */
@@ -115,7 +121,7 @@ async function expectCanvasView(page: Page, viewport: number) {
   const letterTab = await box(page.getByRole('tab', { name: 'Cover letter' }));
   expect(letterTab.height).toBe(cvTab.height);
   expect((await box(page.getByRole('button', { name: 'Download all' }))).height).toBeLessThanOrEqual(40);
-  expect(Math.abs(canvasWidth - (viewport - SIDEBAR - RAIL))).toBeLessThanOrEqual(2);
+  expect(Math.abs(canvasWidth - (viewport - (await sidebar(page)) - RAIL))).toBeLessThanOrEqual(1);
   await expectNoSideScroll(page);
 }
 
@@ -127,7 +133,7 @@ async function expectChatView(page: Page, viewport: number) {
   await expect(showChat(page)).toHaveCount(0);
   const chatWidth = await width(chat(page));
   expect(chatWidth).toBeGreaterThanOrEqual(USABLE);
-  expect(Math.abs(chatWidth - (viewport - SIDEBAR - RAIL))).toBeLessThanOrEqual(2);
+  expect(Math.abs(chatWidth - (viewport - (await sidebar(page)) - RAIL))).toBeLessThanOrEqual(1);
   // The conversation is the real one, messages and all.
   await expect(chat(page).getByText(/Your kit for Northwind Foods is ready/)).toBeVisible();
   await expectNoSideScroll(page);
@@ -154,7 +160,7 @@ test('(l1-l3) chat and canvas take turns below 1100px and sit side by side above
     // message list is where the user left it, not back at the top.
     const draft = `Draft kept across the switch at ${viewport}`;
     await chat(page).getByPlaceholder('Ask for a change or a screening answer').fill(draft);
-    const offset = await chatScroll(page, 600);
+    const offset = await chatScroll(page, true);
     expect(offset).toBeGreaterThan(0);
 
     await recordPaints(page, `${viewport}-to-canvas`, () => showCanvas(page).click());
@@ -183,7 +189,7 @@ test('(l1-l3) chat and canvas take turns below 1100px and sit side by side above
   await recordPaints(page, '1280-collapse-canvas', () => collapseCanvas(page).click());
   await expect(canvas(page)).toHaveCount(0);
   await expect(chat(page)).toBeVisible();
-  expect(await width(chat(page))).toBeGreaterThanOrEqual(1280 - SIDEBAR - RAIL - 2);
+  expect(await width(chat(page))).toBeGreaterThanOrEqual(1280 - (await sidebar(page)) - RAIL - 1);
   await shot(page, '1280-chat');
   await expandCanvas(page).click();
   await expect(canvas(page)).toBeVisible();
@@ -193,7 +199,7 @@ test('(l1-l3) chat and canvas take turns below 1100px and sit side by side above
   const cold = await context.newPage();
   await cold.setViewportSize({ width: 768, height: 900 });
   await cold.addInitScript(() => {
-    const frames: { canvas: number; spill: number }[] = [];
+    const frames: { canvas: number; spill: number | null }[] = [];
     (window as unknown as { layoutFrames: typeof frames }).layoutFrames = frames;
     const sample = () => {
       const column = document.querySelector('section:has([role="tablist"])');
@@ -205,7 +211,7 @@ test('(l1-l3) chat and canvas take turns below 1100px and sit side by side above
           ?.parentElement?.getBoundingClientRect();
         frames.push({
           canvas: bounds.width,
-          spill: page ? Math.max(page.right - bounds.right, bounds.left - page.left) : 0,
+          spill: page ? Math.max(page.right - bounds.right, bounds.left - page.left) : null,
         });
       }
       requestAnimationFrame(sample);
@@ -217,10 +223,14 @@ test('(l1-l3) chat and canvas take turns below 1100px and sit side by side above
     await expect(canvas(cold)).toBeVisible({ timeout: 30_000 });
   });
   await expectCanvasView(cold, 768);
-  const frames = await cold.evaluate(() => (window as unknown as { layoutFrames: { canvas: number; spill: number }[] }).layoutFrames);
+  await expect(cold.getByRole('button', { name: 'Full Preview' })).toBeVisible();
+  const frames = await cold.evaluate(() => (window as unknown as { layoutFrames: { canvas: number; spill: number | null }[] }).layoutFrames);
   expect(frames.length).toBeGreaterThan(5);
   expect(Math.min(...frames.map((frame) => frame.canvas))).toBeGreaterThanOrEqual(USABLE);
-  expect(Math.max(...frames.map((frame) => frame.spill))).toBeLessThanOrEqual(1);
+  // Only frames that had the CV page on them say anything about its scale, so there must be some.
+  const spills = frames.map((frame) => frame.spill).filter((spill): spill is number => spill !== null);
+  expect(spills.length).toBeGreaterThan(5);
+  expect(Math.max(...spills)).toBeLessThanOrEqual(1);
   await shot(cold, '768-cold-start');
 
   // New application from the canvas view: the reset lands in the chat, so the chat comes forward with its job ad field.

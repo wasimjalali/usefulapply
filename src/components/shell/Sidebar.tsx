@@ -31,6 +31,9 @@ interface SidebarProps {
 const SEARCH_DIALOG_FOCUSABLE =
   'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
 
+/** The sidebar's fixed width, border included. The shell lays the folded chat out from it. */
+export const SIDEBAR_WIDTH = 224;
+
 export function Sidebar({ isWorking = false }: SidebarProps) {
   const requestNewApplication = useUIStore((s) => s.requestNewApplication);
   const { user, profile } = useAuth();
@@ -148,7 +151,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
 
   return (
     <>
-    <aside className="flex h-full w-[224px] flex-shrink-0 flex-col border-r border-cream-200 bg-cream-100 px-2.5 pb-2.5 pt-3">
+    <aside style={{ width: SIDEBAR_WIDTH }} className="flex h-full flex-shrink-0 flex-col border-r border-cream-200 bg-cream-100 px-2.5 pb-2.5 pt-3">
       <div className="px-2 py-1">
         <button
           type="button"

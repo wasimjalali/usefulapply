@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
-import { Sidebar } from '@/components/shell/Sidebar';
+import { Sidebar, SIDEBAR_WIDTH } from '@/components/shell/Sidebar';
 import { ConversationColumn } from '@/components/shell/ConversationColumn';
 import { ColumnSash } from '@/components/shell/ColumnSash';
 import { CanvasColumn } from '@/components/shell/CanvasColumn';
@@ -15,9 +15,6 @@ function CreditsProvider({ children }: { children: ReactNode }) {
   const value = useCreditsBalanceState();
   return <CreditsContext.Provider value={value}>{children}</CreditsContext.Provider>;
 }
-
-/** The sidebar is a fixed column; the sash needs it to know its drag range. */
-const SIDEBAR_WIDTH = 225;
 
 export function AppShell() {
   const isAgentWorking = useUIStore((s) => s.isAgentWorking);
@@ -53,7 +50,7 @@ export function AppShell() {
     return () => window.removeEventListener('resize', onResize);
   }, [conversationWidth, setConversationWidth]);
 
-  // Below this the 225px sidebar, the 400px conversation floor and the 480px
+  // Below this the 224px sidebar, the 400px conversation floor and the 480px
   // canvas floor no longer fit side by side, so the two take turns: one gets
   // the row and the other folds to its rail. Both come back on the way up.
   // A layout effect, so a first render at tablet width never paints the
