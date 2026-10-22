@@ -279,8 +279,12 @@ export function useAgentWorkflow(options?: {
   const chatRequestHistory = (message: string) => {
     const live = useSessionStore.getState().currentSession;
     if (live && !live.id.startsWith('session-')) {
-      const own = live.chatMessages.findLast((entry) => entry.role === 'user' && entry.content === message);
-      return { chatHistory: [], messageId: own?.id };
+      // The message as the newest user turn with no reply after it. A message the chat already answered (an ad the
+      // "Not a job ad" button sends again) goes without an id: the route claims each message for one turn only, so it
+      // reads the history without storing anything, and the reply syncs like any client message.
+      const index = live.chatMessages.findLastIndex((entry) => entry.role === 'user' && entry.content === message);
+      const answered = index !== -1 && live.chatMessages.slice(index + 1).some((entry) => entry.role === 'assistant');
+      return { chatHistory: [], messageId: index === -1 || answered ? undefined : live.chatMessages[index].id };
     }
     return {
       chatHistory: messages.slice(-10).map((msg) => ({ role: msg.role, content: msg.content })),
@@ -566,6 +570,15 @@ export function useAgentWorkflow(options?: {
     // synchronously, so the closure still holds the previous (null) session
     // and every effect in the reply would be dropped as "not still here".
     const startedIn = useSessionStore.getState().currentSession?.id ?? null;
+    // A failure answer goes to the application the turn started in, or to the open one when that id is gone (a local
+    // conversation that got its saved id while the request was out).
+    const addFailureReply = (message: { role: 'assistant'; content: string }) => {
+      const state = useSessionStore.getState();
+      const known = startedIn !== null
+        && (state.currentSession?.id === startedIn || state.sessions.some((session) => session.id === startedIn));
+      if (known) addWorkflowMessage(startedIn, message);
+      else addChatMessage(message);
+    };
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -648,22 +661,22 @@ export function useAgentWorkflow(options?: {
       } else {
         const errorData = await response.json().catch(() => null);
         if (errorData?.code === 'CHAT_LIMIT_REACHED') {
-          addWorkflowMessage(startedIn ?? undefined, {
+          addFailureReply({
             role: 'assistant',
             content: 'You\'ve reached the chat message limit for this application. Start a new application from the sidebar to keep going.',
           });
         } else if (errorData?.code === 'CHAT_PROVIDER_UNAVAILABLE') {
-          addWorkflowMessage(startedIn ?? undefined, {
+          addFailureReply({
             role: 'assistant',
             content: "I couldn't answer that just now. Your conversation is saved, so try again in a minute.",
           });
         } else if (errorData?.code === 'MESSAGE_TOO_LONG') {
-          addWorkflowMessage(startedIn ?? undefined, {
+          addFailureReply({
             role: 'assistant',
             content: 'That job ad is longer than I can read in one go. Paste the role, requirements and responsibilities and leave out the boilerplate.',
           });
         } else {
-          addWorkflowMessage(startedIn ?? undefined, {
+          addFailureReply({
             role: 'assistant',
             content: getSmartFallbackResponse(message),
           });
@@ -674,7 +687,7 @@ export function useAgentWorkflow(options?: {
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
-      addWorkflowMessage(startedIn ?? undefined, {
+      addFailureReply({
         role: 'assistant',
         content: getSmartFallbackResponse(message),
       });

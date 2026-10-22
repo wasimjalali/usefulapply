@@ -257,9 +257,9 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
     }
   });
 
-  test('a provider 4xx on a turn that carries the block is a plain error, and nothing is dropped', async () => {
+  test('a provider 4xx on a turn that carries the block is a plain error, the history stays, the block is dropped for a fresh one', async () => {
     const before = chatMessagesOf(sessionId).length;
-    const row = compactionRow(sessionId);
+    expect(compactionRow(sessionId)).toBeDefined();
     await fakeControl({ primaryFail: { status: 400, count: 1, writer: 'chat' } });
     try {
       const result = await turn(page.request, sessionId, `Kurze Frage waehrend einer Stoerung. [${TAG}]`);
@@ -268,9 +268,27 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
     } finally {
       await fakeControl({});
     }
-    // The block and the history stay as they were; only the user's own message was stored.
-    expect(compactionRow(sessionId)).toEqual(row);
+    // Every message stays and only the user's own one was added. The block goes, so a block the API refuses cannot
+    // sink every later turn: the next turn compacts again from the full history.
     expect(chatMessagesOf(sessionId).length).toBe(before + 1);
+    expect(compactionRow(sessionId)).toBeUndefined();
+    const compactionsBefore = (await chatCallsTagged()).filter((call) => call.compaction).length;
+    const next = await turn(page.request, sessionId, `Nach der Stoerung. [${TAG}]`);
+    expect(next.status, JSON.stringify(next.body)).toBe(200);
+    expect((await chatCallsTagged()).filter((call) => call.compaction).length).toBe(compactionsBefore + 1);
+    expect(compactionRow(sessionId)?.covers_through_message_id).toBe(next.body.compactedThroughMessageId);
+    coveredId = next.body.compactedThroughMessageId as string;
+  });
+
+  test('a turn sent without an id (a message the chat already answered) still runs and is stored under a server id', async () => {
+    const before = chatMessagesOf(sessionId).filter((row) => row.role === 'user').length;
+    const message = `Ohne Kennung gesendet. [${TAG}]`;
+    const result = await turn(page.request, sessionId, message, { messageId: null });
+    expect(result.status, JSON.stringify(result.body)).toBe(200);
+    const users = chatMessagesOf(sessionId).filter((row) => row.role === 'user');
+    expect(users).toHaveLength(before + 1);
+    expect(users.find((row) => row.content === message)?.id).toMatch(/^msg-[0-9a-f-]{36}$/);
+    expect(typeof result.body.replyMessageId).toBe('string');
   });
 
   test('screening reads the same D1 history, never the client\'s', async () => {
@@ -325,6 +343,13 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
     const second = `Zweite Frage ueber die Oberflaeche [${TAG}]`;
     await send(first);
     await send(second);
+    // Before the reload: the store holds both replies under the ids the route stored them with (no hydrate yet).
+    const beforeReload = chatMessagesOf(sessionId);
+    const earlyReplies = [first, second].map((text) => beforeReload[beforeReload.findIndex((row) => row.content === text) + 1].id);
+    await expect.poll(async () => {
+      const persisted = await page.evaluate(() => localStorage.getItem('session-store') ?? '');
+      return earlyReplies.filter((id) => persisted.includes(`"${id}"`)).length;
+    }, { timeout: 10_000 }).toBe(2);
     await page.reload();
     await openApplication(page);
     const third = `Dritte Frage nach dem Neuladen [${TAG}]`;

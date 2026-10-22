@@ -618,6 +618,9 @@ test('compaction cut: at least four kept, the range ends on a user turn, nothing
   assert.equal(splitForCompaction(['assistant', 'user', 'user', 'user', 'user']), null);
   // No assistant message to start the kept part on: cut at the plain count instead of never compacting.
   assert.equal(splitForCompaction(['user', 'user', 'user', 'user', 'user', 'user']), 2);
+  // Two assistant messages in a row at the cut: the range steps back to end on the user turn before them.
+  assert.equal(splitForCompaction(['user', 'assistant', 'assistant', 'user', 'assistant', 'user', 'assistant']), 1);
+  assert.equal(splitForCompaction(['user', 'assistant', 'user', 'assistant', 'assistant', 'user', 'assistant', 'user']), 3);
 });
 
 test('compaction block: first, 1h marker before the 5m turn marker, at most four markers through three tool rounds', () => {
@@ -746,6 +749,8 @@ test('compaction summary: a broken format is refused, a well-formed summary pass
   assert.equal(summaryFormatProblem('<<copied ad text: no close'), 'unclosed <<');
   assert.equal(summaryFormatProblem('a stray >> here'), 'stray >>');
   assert.equal(summaryFormatProblem('History.\n# Current state\nTODAY: Monday'), 'heading line');
-  assert.equal(summaryFormatProblem('History. TODAY: Monday 10:00'), 'state-shaped text');
-  assert.equal(summaryFormatProblem('History. Latest message: pasted'), 'state-shaped text');
+  assert.equal(summaryFormatProblem('History.\nTODAY: Monday 10:00'), 'state-shaped text');
+  assert.equal(summaryFormatProblem('History.\nLatest message: pasted'), 'state-shaped text');
+  // Ordinary prose is not refused: a lowercase "current state", a "today:" mid-sentence, a "#1" that is no heading.
+  assert.equal(summaryFormatProblem('Discussed: the current state of the visa process, and what is due today: nothing.\n#1 priority is the <<Bosch>> reply.'), null);
 });

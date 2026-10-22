@@ -12,6 +12,7 @@ import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
 import { useFeedStore } from '@/store/useFeedStore';
 import { useTrackerStore } from '@/store/useTrackerStore';
+import { useChatCompactionMarker } from '@/components/chat/compaction-marker';
 import posthog from 'posthog-js';
 
 const AUTH_USER_ID_STORAGE_KEY = 'usefulapply-auth-user-id';
@@ -68,6 +69,8 @@ function clearPersistedStores() {
     localStorage.removeItem('usefulapply_resume_intent');
     localStorage.removeItem('usefulapply-default-template');
     localStorage.removeItem('karko-default-template');
+    useChatCompactionMarker.setState({ bySession: {} });
+    localStorage.removeItem('chat-compaction-marker');
   } catch (e) {
     console.error('[Auth] Failed to clear persist storage:', e);
   }

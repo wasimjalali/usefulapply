@@ -128,6 +128,7 @@ interface ChatContext {
 export async function POST(req: NextRequest) {
   // Set once the turn goes out on a compaction block: a provider 4xx on such a turn gets its own answer below.
   let sentOnBlock = false;
+  let failedBlockSession: { userId: string; sessionId: string } | null = null;
   try {
     // Authentication: require logged-in user for chat (costs API money)
     const clientIP = getClientIP(req);
@@ -231,10 +232,13 @@ export async function POST(req: NextRequest) {
       { error: 'Chat message limit reached for this application. Start a new application to continue chatting.', code: 'CHAT_LIMIT_REACHED' },
       { status: 429 },
     );
-    // With an id, a chat turn is stored here and the cap is spent by that write (one statement, so two requests at
-    // once cannot both take the last slot). Screening and a client without ids only count. A local conversation
-    // counts its client history until it has a D1 row.
-    const storesTurn = Boolean(persistedSessionId && !isScreeningMode && typeof messageId === 'string');
+    // A chat turn on a saved application is stored here, and the cap is spent by that write (one statement, so two
+    // requests at once cannot both take the last slot). A request without an id (a message the chat already answered,
+    // sent again by the "Not a job ad" button, or a client from before Phase 2) is stored under a fresh server id, so
+    // leaving the id out never buys a turn the count would not. Screening has its own cap and only counts here. A
+    // local conversation counts its client history until it has a D1 row.
+    const storesTurn = Boolean(persistedSessionId && !isScreeningMode);
+    const turnMessageId = typeof messageId === 'string' ? messageId : newChatMessageId();
     if (!storesTurn) {
       const userMessageCount = persistedSessionId
         ? await countUserChatMessages(user.id, persistedSessionId)
@@ -253,18 +257,21 @@ export async function POST(req: NextRequest) {
     let earlierTurns: StoredTurn[];
     let compaction: { block: CompactionBlock; coversThroughMessageId: string } | null = null;
     if (persistedSessionId) {
-      const rows = (await getChatMessages(user.id, persistedSessionId))
-        .filter((row) => (row.role === 'user' || row.role === 'assistant') && row.id !== messageId)
+      const allRows = (await getChatMessages(user.id, persistedSessionId))
+        .filter((row) => row.role === 'user' || row.role === 'assistant')
         .map((row) => ({ id: row.id, role: row.role as 'user' | 'assistant', content: row.content }));
+      const rows = allRows.filter((row) => row.id !== messageId);
       earlierTurns = rows;
       if (!isScreeningMode) {
         const stored = await getChatCompaction(user.id, persistedSessionId);
         if (stored) {
           const block = asCompactionBlock(stored.block);
-          const covered = rows.findIndex((row) => row.id === stored.coversThroughMessageId);
+          // Looked up before the new message is left out, so a request naming the covered message itself (a replayed
+          // id, refused below) never makes a valid block look stale.
+          const covered = allRows.findIndex((row) => row.id === stored.coversThroughMessageId);
           if (block && covered !== -1) {
             compaction = { block, coversThroughMessageId: stored.coversThroughMessageId };
-            earlierTurns = rows.slice(covered + 1);
+            earlierTurns = allRows.slice(covered + 1).filter((row) => row.id !== messageId);
           } else {
             // The messages it summarized are gone (the chat was cleared) or the row is unreadable: the full history
             // goes instead, and the turn compacts again if it has to.
@@ -301,8 +308,8 @@ export async function POST(req: NextRequest) {
       }
       screeningTurnsUsed = claim.turnsUsed;
     }
-    if (storesTurn && persistedSessionId && typeof messageId === 'string') {
-      const claim = await claimUserChatTurn(user.id, persistedSessionId, { id: messageId, content: message }, MAX_CHAT_MESSAGES_PER_SESSION);
+    if (storesTurn && persistedSessionId) {
+      const claim = await claimUserChatTurn(user.id, persistedSessionId, { id: turnMessageId, content: message }, MAX_CHAT_MESSAGES_PER_SESSION);
       if (!claim.ok) {
         if (claim.reason === 'cap_reached') return chatLimitReached();
         if (claim.reason === 'not_found') return NextResponse.json({ error: 'Application not found' }, { status: 404 });
@@ -424,6 +431,7 @@ export async function POST(req: NextRequest) {
       // The next request starts on the Anthropic API again; client history is plain text, nothing signed crosses it.
       let pinnedProvider: 'bedrock' | undefined = compactedOn;
       sentOnBlock = turnBlock !== null;
+      failedBlockSession = sentOnBlock && persistedSessionId ? { userId: user.id, sessionId: persistedSessionId } : null;
 
       for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
         const finalRound = round === MAX_TOOL_ROUNDS;
@@ -583,6 +591,13 @@ export async function POST(req: NextRequest) {
     // read: the history and the block stay as they are, and the next turn tries again.
     const status = providerHttpStatus(error);
     if (sentOnBlock && status !== null && status >= 400 && status < 500) {
+      // The block is dropped, so the next turn compacts again from the full history: a block the API itself no longer
+      // accepts must not sink every later turn. If it was Bedrock refusing a valid block, that costs one compaction.
+      if (failedBlockSession) {
+        await deleteChatCompaction(failedBlockSession.userId, failedBlockSession.sessionId).catch((deleteError) => {
+          console.error('[chat] could not drop the refused compaction block:', deleteError instanceof Error ? deleteError.message : deleteError);
+        });
+      }
       return NextResponse.json(
         { error: 'Chat is unavailable right now.', code: 'CHAT_PROVIDER_UNAVAILABLE' },
         { status: 503 },

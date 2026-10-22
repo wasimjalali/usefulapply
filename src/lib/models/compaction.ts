@@ -50,16 +50,17 @@ export function carriesCompactionBlock(messages: Anthropic.Beta.BetaMessageParam
 /**
  * Where to cut a history of `length` messages: everything before the returned index is compacted, the rest is kept
  * verbatim. Four are kept, or five when that lets the kept part start on an assistant message, so the compacted range
- * ends on a user turn (the shape P0 verified; a range ending on an assistant turn reads as a prefill). Never more
- * than five: the kept turns ride in every later request until the next compaction. Returns null when nothing would
- * be left to compact.
+ * ends on a user turn (the shape P0 verified; a range ending on an assistant turn reads as a prefill). Usually no
+ * more than five: the kept turns ride in every later request until the next compaction. The range always ends on a
+ * user turn; returns null when there is none to end on.
  */
 export function splitForCompaction(roles: Array<'user' | 'assistant'>): number | null {
   let cut = roles.length - KEEP_RECENT_MESSAGES;
   if (roles[cut] !== 'assistant' && cut - 1 > 0 && roles[cut - 1] === 'assistant') cut -= 1;
-  // The range has to hold at least one user turn, or the request would have nothing the model can summarize.
-  if (cut <= 0 || !roles.slice(0, cut).includes('user')) return null;
-  return cut;
+  // Two assistant messages in a row (a workflow notice after a reply) can still leave the range on an assistant turn:
+  // step back to the last user turn, keeping a little more verbatim instead.
+  while (cut > 0 && roles[cut - 1] !== 'user') cut -= 1;
+  return cut > 0 ? cut : null;
 }
 
 /**
@@ -82,7 +83,8 @@ export function summaryFormatProblem(content: string): string | null {
     }
   }
   if (open) return 'unclosed <<';
-  if (content.split('\n').some((line) => line.trimStart().startsWith('#'))) return 'heading line';
-  if (/Current state|\bTODAY:|Latest message:|Earlier message:/i.test(content)) return 'state-shaped text';
+  // A markdown heading ("# Current state" included), not a "#1" in prose; the app's own state lines, exactly.
+  if (content.split('\n').some((line) => /^\s*#{1,6}\s/.test(line))) return 'heading line';
+  if (/^\s*(TODAY:|Latest message:|Earlier message:)/m.test(content)) return 'state-shaped text';
   return null;
 }
