@@ -108,7 +108,7 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
                   role="radio"
                   aria-checked={selected}
                   onClick={() => setChoice(selected ? null : value)}
-                  className={`inline-flex h-9 items-center rounded-full border px-4 text-sm font-medium shadow-sm transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/50 cursor-pointer ${
+                  className={`inline-flex items-center rounded-full border text-sm ${isLine ? 'h-9 px-4' : 'h-8 px-3'} font-medium shadow-sm transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/50 cursor-pointer ${
                     selected
                       ? 'border-navy-600 bg-navy-600 text-white'
                       : 'border-cream-200 bg-cream-50 text-navy-800 hover:bg-white'
@@ -151,7 +151,7 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
 
       {error && <p role="alert" className="mt-4 text-sm text-red-600">{error}</p>}
 
-      <div className="mt-6 flex flex-wrap items-center gap-4">
+      <div className="mt-6 flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={save}
@@ -165,7 +165,7 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
           type="button"
           onClick={skip}
           disabled={busy !== null}
-          className="text-sm font-medium text-navy-600 transition-colors duration-200 hover:text-navy-800 disabled:cursor-not-allowed disabled:text-warm-gray cursor-pointer"
+          className="rounded-lg px-2 py-1 text-sm font-medium text-navy-600 transition-colors duration-200 hover:text-navy-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/50 disabled:cursor-not-allowed disabled:text-warm-gray cursor-pointer"
         >
           Skip for now
         </button>
