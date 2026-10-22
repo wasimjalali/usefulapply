@@ -17,7 +17,23 @@ import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import type { JobFeedSettings } from '@/lib/supabase/types';
 
-export const SEARCH_STRATEGY_SCHEMA_VERSION = 1 as const;
+import { SEARCH_STRATEGY_SCHEMA_VERSION } from '@/lib/job-feed/search-strategy-types';
+import type {
+  SearchExpectedRecall,
+  SearchQueryType,
+  SearchStrategy,
+  SearchStrategyQuery,
+} from '@/lib/job-feed/search-strategy-types';
+
+// The constant and types live in a server-free module so client code (search-plan via feed-actions)
+// can import them without pulling the model layer into the browser bundle.
+export { SEARCH_STRATEGY_SCHEMA_VERSION } from '@/lib/job-feed/search-strategy-types';
+export type {
+  SearchExpectedRecall,
+  SearchQueryType,
+  SearchStrategy,
+  SearchStrategyQuery,
+} from '@/lib/job-feed/search-strategy-types';
 
 // Thinking counts toward max_tokens; the JSON itself is ~1.5k tokens.
 const STRATEGY_MAX_TOKENS = 8000;
@@ -51,45 +67,6 @@ export const SEARCH_STRATEGY_JSON_SCHEMA: Record<string, unknown> = {
   required: ['version', 'generatedAt', 'sourceProfileGeneratedAt', 'queries', 'negativeTerms'],
   additionalProperties: false,
 };
-
-export type SearchQueryType = 'short_tail' | 'long_tail' | 'localized';
-export type SearchExpectedRecall = 'high' | 'medium' | 'low';
-
-export interface SearchStrategyQuery {
-  type: SearchQueryType;
-  /** Raw SerpAPI `q` value. Already localized for the target country when applicable. */
-  query: string;
-  /** ISO 3166-1 alpha-2 country code (lowercase) — must be one of settings.target_countries. */
-  targetCountry: string;
-  /** Short justification used for run diagnostics + UX preview. */
-  rationale: string;
-  expectedRecall: SearchExpectedRecall;
-  /**
-   * 0-based index into queries[] of a fallback to retry when this query
-   * returns zero results. Null when no fallback is available (e.g. it is
-   * itself the short-tail / safe option).
-   */
-  fallbackTo: number | null;
-}
-
-export interface SearchStrategy {
-  version: typeof SEARCH_STRATEGY_SCHEMA_VERSION;
-  generatedAt: string;
-  /** ISO timestamp of the profile this strategy was synthesized against. */
-  sourceProfileGeneratedAt: string;
-  /**
-   * True when the user confirmed or edited this query list. Daily runs must
-   * reuse it and must not silently regenerate over it.
-   */
-  userConfirmed?: boolean;
-  queries: SearchStrategyQuery[];
-  /**
-   * Negative title/keyword terms used by the ranker as a downweight signal
-   * (NOT applied as SerpAPI minus operators — Google Jobs is finicky with
-   * exclusion syntax and we'd rather see and skip than miss-and-skip).
-   */
-  negativeTerms: string[];
-}
 
 // ---------------------------------------------------------------------------
 // settings_hash — stable hash of the inputs that materially affect search shape.

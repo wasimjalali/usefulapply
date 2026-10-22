@@ -13,7 +13,7 @@ import {
   SEARCH_STRATEGY_SCHEMA_VERSION,
   type SearchStrategy,
   type SearchStrategyQuery,
-} from '@/lib/job-feed/search-strategy';
+} from '@/lib/job-feed/search-strategy-types';
 
 export interface ConfirmedSearchQuery {
   query: string;

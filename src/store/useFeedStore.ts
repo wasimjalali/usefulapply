@@ -16,7 +16,7 @@ import type {
   JobFeedOverviewResponse,
   JobFeedSettingsInput,
 } from '@/lib/job-feed/types';
-import type { SearchStrategy } from '@/lib/job-feed/search-strategy';
+import type { SearchStrategy } from '@/lib/job-feed/search-strategy-types';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import type { ConfirmedSearchQuery } from '@/lib/job-feed/search-plan';
 

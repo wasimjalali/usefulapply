@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { ArrowLeft, Check, Loader2, X } from 'lucide-react';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
-import type { SearchStrategy } from '@/lib/job-feed/search-strategy';
+import type { SearchStrategy } from '@/lib/job-feed/search-strategy-types';
 import type { JobFeedOverviewResponse, JobFeedSettingsInput } from '@/lib/job-feed/types';
 import {
   JOB_FEED_COUNTRY_OPTIONS,
