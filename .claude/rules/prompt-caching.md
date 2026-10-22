@@ -32,9 +32,18 @@ Source: Anthropic docs, read 2026-10-22: prompt-caching, tool-use-with-prompt-ca
 | Model | everything (cache is per model) |
 | Dropping or editing a thinking block from an earlier assistant turn | messages from that point |
 
+Measured on claude-haiku-5-5 and claude-sonnet-5-5 (P0b probe, evals/results/2026-10-22-haiku-55-swap.md), which overrides the generic table for these two models:
+- Changing `output_config.effort` (low, medium, high or omitted) invalidated nothing. Omitting `thinking` behaves as adaptive and invalidated nothing.
+- `thinking: {type: "disabled"}` on Haiku 5.5 invalidated everything, tools and system included. Sonnet 5.5 rejects `disabled` (it wants `{"type": "between_tools"}`).
+- `tool_choice` auto to none invalidated nothing, and switching back read the same entry.
+- `output_config.format` adds about 186 tokens to the prompt and changes the cache key: a call with a format can't read an entry written without one. Two calls with the same format share.
+- A different tool description is a full miss, so sites that share a prefix need byte-identical tools.
+Re-run evals/haiku-55-swap/cache-probe.ts before relying on these for a new model.
+
 Consequences for us:
-- Each call site has one fixed model, effort and thinking config. Never vary effort per request within a site. Two sites can share a cached prefix only if model, tools, system, effort and thinking all match.
-- Keep `tool_choice` constant across a chat's tool loop. Don't switch to `tool_choice: none` for a final round: it throws away the messages cache. Steer the last round with an instruction instead (or accept the miss knowingly and put a marker before it).
+- Each call site keeps one fixed model, effort and thinking config anyway, so its behaviour is predictable. Sites with different effort can still share a cached prefix; sites must match on model, tools, system, thinking mode (adaptive vs disabled) and format.
+- Never use `thinking: disabled` on a Haiku site that should share a cache with others.
+- A chat may switch to `tool_choice: none` for a final round without losing the cache, but on a first round Haiku can return empty content with none: handle empty content as a loud failure.
 - Pass thinking blocks back unchanged. Haiku 5.5 and Sonnet 5.5 preserve them, so the cache stays valid.
 - Per-turn dynamic instructions (today's date, app state, a mode switch) go in a mid-conversation `{"role": "system"}` message appended to `messages`, never into the top-level `system`. Haiku 5.5 and Sonnet 5.5 support this without invalidating the prefix.
 - Serialize tool schemas and any JSON we put in a prompt deterministically (stable key order). Tool order is fixed.
@@ -54,8 +63,8 @@ Consequences for us:
 - Sonnet 5.5: input $2, 5m write $2.50, 1h write $4, read $0.10 (0.05x), output $10.
 
 ## Parallel calls and pre-warming
-- When one context feeds several parallel calls (the kit writers: CV, letter, emails), warm the shared prefix first: a `max_tokens: 0` request with the same model, tools, system, effort and thinking config and the marker on the shared block, then fan out. Or send the first call and start the rest once its response has started. Without this every parallel call pays a full write.
-- `max_tokens: 0` is rejected with `stream: true`, `thinking.type: enabled` (extended thinking), structured outputs (`output_config.format`) or a forced `tool_choice` (`tool` / `any`). The thinking and effort config must match the real calls or the warm-up writes an entry nobody reads, so pre-warm only sites whose real calls use adaptive thinking or none. Sites with extended thinking, a forced tool or structured outputs stagger instead (first call, then the rest once it has started). The P0 probe confirms which form works for each site.
+- When one context feeds several parallel calls (the kit writers: CV, letter, emails), calls sent at the same moment all miss and each pays a full write (measured). Either warm the shared prefix first with a `max_tokens: 0` request (same model, tools, system, thinking; marker on the shared block), or stream the first call and start the rest at its `message_start` event (measured: they hit, 0.2 to 0.7 s later than a simultaneous start, much earlier than waiting for completion).
+- `max_tokens: 0` is rejected with `stream: true`, `thinking.type: enabled` (extended thinking), structured outputs (`output_config.format`) or a forced `tool_choice` (`tool` / `any`). The thinking and effort config must match the real calls or the warm-up writes an entry nobody reads, so pre-warm only sites whose real calls use adaptive thinking or none. Sites with extended thinking, a forced tool or structured outputs stagger instead (first call, then the rest once it has started). Measured: the warm-up works with adaptive thinking at effort low on both models; with `output_config.format` it's a 400, so format sites stagger on `message_start`.
 - Batch API: cache hits are best effort. Write the shared prefix with a 1-hour marker in a single first request, then submit the rest.
 
 ## Compaction
@@ -65,4 +74,5 @@ Consequences for us:
 - Total prompt = `input_tokens + cache_creation_input_tokens + cache_read_input_tokens`. `input_tokens` alone is only the uncached tail. Budget guards (100k) and cost tracking use the sum, plus `usage.iterations` when compaction ran.
 - Every call logs per-site `cache_creation_input_tokens`, `cache_read_input_tokens`, `input_tokens` and the TTL split (`cache_creation.ephemeral_5m_input_tokens` / `ephemeral_1h_input_tokens`) to PostHog `$ai_generation`. Hit rate = read / (read + write + uncached input).
 - Each site has a test that builds two different requests and asserts the cached prefix (everything up to the marker) is byte-identical.
+- Chat growth measured: each turn reads everything before it and writes only the new turn, about 90 to 93% hit rate from turn 3. Mixed TTL (1h marker on system, 5m automatic on the conversation) works; 5m before 1h is a 400.
 - When a hit rate drops, use cache diagnostics: send `diagnostics: { previous_message_id }` and read `cache_miss_reason` (model_changed, system_changed, tools_changed, messages_changed, ...). Only fingerprints are stored, no prompt text.
