@@ -8,7 +8,9 @@ import {
   AVAILABILITY_CHOICES,
   AVAILABILITY_LABELS,
   AVAILABILITY_NOTE_MAX,
+  LOGISTICS_TEXT_BLOCKED_MESSAGE,
   SALARY_EXPECTATION_MAX,
+  hasBlockedLogisticsText,
   needsAvailabilityPrompt,
   type AvailabilityChoice,
 } from '@/lib/profile/logistics';
@@ -111,6 +113,11 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
 
   const save = () => {
     if (!canSave || busyRef.current || !fresh) return;
+    // The server refuses these signs and hides why in production, so say it here before any request.
+    if ((choice && hasBlockedLogisticsText(noteTrimmed)) || hasBlockedLogisticsText(salaryTrimmed)) {
+      setError(LOGISTICS_TEXT_BLOCKED_MESSAGE);
+      return;
+    }
     void store(
       {
         availability: choice,
@@ -176,7 +183,7 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
           </span>
           <input
             value={note}
-            onChange={(event) => setNote(event.target.value)}
+            onChange={(event) => { setNote(event.target.value); setError(null); }}
             onKeyDown={(event) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) save(); }}
             disabled={busy !== null}
             maxLength={AVAILABILITY_NOTE_MAX}
@@ -189,7 +196,7 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
           <span className="text-sm font-medium text-navy-800">Salary expectation (optional)</span>
           <input
             value={salary}
-            onChange={(event) => setSalary(event.target.value)}
+            onChange={(event) => { setSalary(event.target.value); setError(null); }}
             onKeyDown={(event) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) save(); }}
             disabled={busy !== null}
             maxLength={SALARY_EXPECTATION_MAX}

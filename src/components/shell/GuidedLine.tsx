@@ -10,7 +10,8 @@ import { GuidedStepper } from '@/components/shell/GuidedStepper';
 import { NamedStages, type NamedStage } from '@/components/shell/NamedStages';
 import { LogisticsQuestions } from '@/components/chat/LogisticsQuestions';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAgentWorkflow } from '@/components/chat/useAgentWorkflow';
+import { PROFILE_UNAVAILABLE, useAgentWorkflow } from '@/components/chat/useAgentWorkflow';
+import { stepAfterDroppedResume } from '@/lib/profile/logistics-resume';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -114,7 +115,7 @@ interface GuidedLineProps {
 
 export function GuidedLine({ onKitReady }: GuidedLineProps) {
   const router = useRouter();
-  const { user, profile, signUp, signIn, signInWithGoogle } = useAuth();
+  const { user, signUp, signIn, signInWithGoogle } = useAuth();
   const currentCV = useCVStore((s) => s.currentCV);
   const structuredCV = useCVStore((s) => s.structuredCV);
   const setCurrentCV = useCVStore((s) => s.setCurrentCV);
@@ -244,9 +245,6 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
         if (step === 'signup' || step === 'verify-email') setStep(livePendingFit ? 'fit-result' : 'job');
         return;
       }
-      // A paid run reads the profile to decide whether to ask about the start
-      // date first. Wait for it, or a new user would skip the question.
-      if (intent.action !== 'fit' && !profile) return;
       clearResumeIntent();
       if (intent.action === 'fit') {
         setJobText(intent.jd);
@@ -260,10 +258,17 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
       setLineError(null);
       setStep('kit-working');
       setApplicationMode(intent.action === 'direct' ? 'apply_directly' : 'analyze_first');
-      void runAgentWorkflow(intent.jd, ctx?.contextId, ctx?.contextData as never);
+      // The run reads the profile itself before deciding whether to ask the start date questions. A
+      // profile that can't be read comes back as an error, so the user isn't left on "Building".
+      void runAgentWorkflow(intent.jd, ctx?.contextId, ctx?.contextData as never).then((result) => {
+        if (result !== 'profile-unavailable') return;
+        kitStartedRef.current = false;
+        setLineError(PROFILE_UNAVAILABLE);
+        setStep(stepAfterDroppedResume(Boolean(livePendingFit)));
+      });
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [user, profile, currentCV, step, pendingFit, createNewSession, runAgentWorkflow, setApplicationMode]);
+  }, [user, currentCV, step, pendingFit, createNewSession, runAgentWorkflow, setApplicationMode]);
 
   useEffect(() => {
     if (kitStartedRef.current && !isAgentWorking && hasKit) {
@@ -1112,7 +1117,15 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
             saveLabel="Save and create my kit"
             onResolved={(outcome) => {
               const notice = resumeAfterLogistics(outcome);
-              if (notice) setLogisticsNotice(notice);
+              if (notice) {
+                setLogisticsNotice(notice);
+                return;
+              }
+              // Nothing ran (the parked kit belongs to another application now, or another run is
+              // working), so "Building" would never end: go back to where the user came from.
+              kitStartedRef.current = false;
+              setLineError("We couldn't start your kit. Try again.");
+              setStep(stepAfterDroppedResume(Boolean(pendingFit)));
             }}
           />
         )}

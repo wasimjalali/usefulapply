@@ -167,6 +167,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshProfile = useCallback(async (): Promise<Profile | null> => {
     if (!user) return null;
     const profileData = await fetchProfile(user.id);
+    if (!profileData) {
+      // A failed read must not blank the app-wide profile: keep the last good one so Settings and the
+      // writers' gate don't lose it. Callers still see null and decide what to do.
+      console.error('[AuthContext] Profile refresh failed or returned nothing; keeping the previous profile.');
+      return null;
+    }
     setProfile(profileData);
     return profileData;
   }, [user, fetchProfile]);

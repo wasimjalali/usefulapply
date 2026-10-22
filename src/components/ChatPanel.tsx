@@ -9,7 +9,7 @@ import { ChatInput } from './chat/ChatInput';
 import { ChatHistory } from './chat/ChatHistory';
 import { FeedbackModal } from './chat/FeedbackModal';
 import { AgentProgressV2 } from './AgentProgressV2';
-import { useAgentWorkflow } from './chat/useAgentWorkflow';
+import { PROFILE_UNAVAILABLE, useAgentWorkflow } from './chat/useAgentWorkflow';
 import { useAppStore } from '@/store/useAppStore';
 import { isApplicationSession, useSessionStore } from '@/store/useSessionStore';
 import { hasTailoredCv, sessionHasKit } from '@/components/shell/application-status';
@@ -202,6 +202,7 @@ export function ChatPanel({
     fetchScreeningAnswers,
     handleStopGeneration,
     runAgentWorkflow,
+    ensureProfileLoaded,
     parkForLogistics,
     resumeAfterLogistics,
     runFitAnalysisFlow,
@@ -1545,6 +1546,15 @@ export function ChatPanel({
         }
         // The start date and salary questions come first. Asked before the fit
         // is cleared, so a reload with the card open keeps the after-fit price.
+        // The profile is awaited first: with it unloaded the gate can't tell, and
+        // the run would clear the fit before parking.
+        if (!(await ensureProfileLoaded())) {
+          console.error('[ChatPanel] The profile could not be read, so the kit did not start.');
+          addChatMessage({ role: 'assistant', content: PROFILE_UNAVAILABLE });
+          break;
+        }
+        // Another click may have started a run while the profile loaded.
+        if (useUIStore.getState().isAgentWorking) break;
         if (parkForLogistics(jd, ctxId || undefined, ctxData)) break;
         // Clear pending state from session
         useAppStore.getState().updateCurrentSession({ pendingFitAnalysis: null });

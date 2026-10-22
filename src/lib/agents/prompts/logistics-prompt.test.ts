@@ -277,7 +277,7 @@ test('the email and letter system blocks forbid "immediately" and "no notice per
   for (const blocks of [buildApplicationEmailSystemBlocks(), buildCoverLetterSystemBlocks()]) {
     assert.match(systemText(blocks), /it never says the applicant can start immediately or has no notice period\./);
   }
-  assert.match(systemText(buildFollowUpEmailSystemBlocks()), /never says the applicant can start immediately or has no notice period unless they stated exactly that\./);
+  assert.match(systemText(buildFollowUpEmailSystemBlocks()), /never says the applicant can start immediately or has no notice period unless that is what the applicant saved or stated\./);
   // The user-prompt block says it too, and a stated-salary letter carries the "something else does not count" caveat.
   assert.match(buildLogisticsBlock(context(), 'letter'), /Never write that the applicant can start immediately, right away, at short notice or as soon as a date is agreed, or that they have no notice period/);
   const salaryLetter = buildLogisticsBlock(context({ masterCV: 'Salary expectation: 85,000 EUR per year' }), 'letter');
@@ -432,8 +432,52 @@ test('a saved availability beats a CV statement, in the letter, the email and th
 
   const followUp = buildFollowUpEmailUserPrompt(ctx);
   assert.match(followUp, /RULE 6: LOGISTICS\nThe applicant saved their availability in their Useful Apply profile, the only source for it, and it wins over anything the Primary CV or the Master CV says\./);
-  assert.match(followUp, /Saved availability: the applicant can start one month after accepting an offer\.\nThe follow-up usually leaves it out\. If it mentions it at all, it uses only that statement/);
+  assert.match(followUp, /Saved availability: the applicant can start one month after accepting an offer\.\nOnly the timing in the saved availability is used, never a salary or anything else it mentions \(the follow-up never carries a salary\)\.\nThe follow-up usually leaves it out\. If it mentions it at all, it uses only that statement/);
   assert.match(systemText(buildFollowUpEmailSystemBlocks()), /unless the applicant's saved profile, the Primary CV, the Master CV or the applicant's rewrite instruction states it/);
+});
+
+test('a saved start date uses only its timing: the details can carry a salary, and the writers are told not to use it', () => {
+  const ctx = context({ logistics: saved({ availabilityNote: 'from 1 March, expecting 90k' }) });
+  assert.match(buildLogisticsBlock(ctx, 'email'), /Saved availability: [^\n]+\nOnly the timing in the saved availability is used, never a salary or anything else it mentions \(the email never carries a salary\)\.\n/);
+  assert.match(buildLogisticsBlock(ctx, 'letter'), /Saved availability: [^\n]+\nOnly the timing in the saved availability is used, never a salary or anything else it mentions \(the letter states a salary only as its salary rules below allow\)\.\n/);
+  assert.match(buildFollowUpEmailUserPrompt(ctx), /Only the timing in the saved availability is used, never a salary or anything else it mentions \(the follow-up never carries a salary\)\./);
+  // Nothing saved: no such sentence, the blocks are as they were.
+  for (const document of ['email', 'letter'] as const) assert.doesNotMatch(buildLogisticsBlock(context(), document), /Only the timing in the saved availability/);
+  assert.doesNotMatch(buildFollowUpEmailUserPrompt(context()), /Only the timing in the saved availability/);
+});
+
+test('a saved "immediately" is allowed to be written; without it the clause is unchanged', () => {
+  const immediate = context({ logistics: saved({ availability: 'immediately', availabilityNote: null }) });
+  for (const document of ['email', 'letter'] as const) {
+    const block = buildLogisticsBlock(immediate, document);
+    assert.match(block, /or that they have no notice period, unless that is what the applicant saved or stated\./);
+    assert.doesNotMatch(block, /unless the applicant stated exactly that/);
+    // Another saved choice, or nothing saved, keeps the strict clause.
+    for (const other of [context({ logistics: saved({ availability: '2_weeks', availabilityNote: null }) }), context()]) {
+      assert.match(buildLogisticsBlock(other, document), /unless the applicant stated exactly that\./);
+    }
+  }
+  assert.match(buildFollowUpEmailUserPrompt(immediate), /has no notice period unless that is what the applicant saved or stated\./);
+  assert.match(buildFollowUpEmailUserPrompt(context()), /has no notice period unless they stated exactly that\./);
+  assert.match(systemText(buildFollowUpEmailSystemBlocks()), /unless that is what the applicant saved or stated\./);
+});
+
+test('the follow-up retry correction points at rules the follow-up prompt has', async () => {
+  // The follow-up prompt has no APPLICANT LOGISTICS block, only RULE 6: LOGISTICS, so the retry names neither block.
+  assert.match(buildFollowUpEmailUserPrompt(context()), /RULE 6: LOGISTICS/);
+  assert.doesNotMatch(buildFollowUpEmailUserPrompt(context()), /APPLICANT LOGISTICS/);
+  const prompts: string[] = [];
+  const answers = [
+    JSON.stringify({ body: 'Dear Hiring Team,\nI can start [1. März].\nAda Lovelace', recommendedDelay: 5 }),
+    JSON.stringify({ body: 'Dear Hiring Team,\nI would welcome a call.\nAda Lovelace', recommendedDelay: 5 }),
+  ];
+  await generateFollowUpEmailWithRetry(context(), undefined, async (options: { prompt: string }) => {
+    prompts.push(options.prompt);
+    return { content: answers.shift(), usage: { inputTokens: 1, outputTokens: 1 }, generationId: 'g' } as unknown as ModelResponse;
+  });
+  assert.equal(prompts.length, 2);
+  assert.match(prompts[1], /apart from the saved profile values the LOGISTICS rules give\./);
+  assert.doesNotMatch(prompts[1], /APPLICANT LOGISTICS/);
 });
 
 test('salary: a saved expectation is offered to the letter only, with the ad-asks rule and the amount kept as written', () => {
@@ -473,7 +517,10 @@ test('screening answers with the saved values, and keeps the fixed salary answer
   assert.ok(!noSalary.includes('65.000'));
 });
 
-test('the bracket guards accept only the exact saved text: a saved value survives, an unsaved figure still fails', async () => {
+// Defense in depth: the profile service refuses "[" and "]" in both values, so a stored value never holds
+// a bracketed span today. The guard still accepts only exact saved text, which this proves with values
+// the store can't hold, so it stays correct if that rule is ever relaxed or an old row holds brackets.
+test('the bracket guards accept only the exact saved text (defense in depth): a saved value survives, an unsaved figure still fails', async () => {
   const ctx = context({ logistics: saved({ availabilityNote: '3 Monate [zum Quartalsende]', salaryExpectation: '65.000 EUR [brutto]' }) });
   const letterAnswer = (closing: string) => JSON.stringify({
     subject: 'Application for Senior Data Analyst',

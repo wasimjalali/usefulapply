@@ -33,12 +33,16 @@ import { readKitDocumentErrors, type StoredSessionRow } from '@/lib/open-session
 import { applyServerRow, forgetSession, refreshFromServer } from '@/lib/session-sync';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { needsAvailabilityPrompt } from '@/lib/profile/logistics';
+import { parkedRunStillValid } from '@/lib/profile/logistics-resume';
 import type { KitDocument, KitDocumentErrors } from '@/lib/agents/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
 import {
   createSession as createStoredSession,
   deleteSession as deleteStoredSession,
 } from '@/lib/supabase';
+
+/** What the user hears when a signed-in user's profile can't be read before a kit. */
+export const PROFILE_UNAVAILABLE = "We couldn't load your profile. Try again.";
 
 // AgentStepData type for V2 progress tracking
 export interface AgentStepData {
@@ -951,7 +955,7 @@ export function useAgentWorkflow(options?: {
     if (!parked) return null;
     useUIStore.getState().setPendingLogistics(null);
     const currentSessionId = useSessionStore.getState().currentSession?.id ?? null;
-    if (parked.sessionId !== currentSessionId || useUIStore.getState().isAgentWorking) return null;
+    if (!parkedRunStillValid(parked.sessionId, currentSessionId, useUIStore.getState().isAgentWorking)) return null;
     const content = outcome === 'skipped'
       ? "No problem. I'll keep the timing general and leave salary out."
       : 'Got it. Writing your kit now.';
@@ -966,22 +970,37 @@ export function useAgentWorkflow(options?: {
     return content;
   };
 
+  /**
+   * A signed-in user whose profile hasn't loaded yet (a click right after the page opens) would skip the
+   * start date questions, so the profile is read first. Returns false when it can't be read, so the caller
+   * says so instead of starting a run that would skip the questions.
+   */
+  const ensureProfileLoaded = async (): Promise<boolean> => {
+    if (!user || profileRef.current) return true;
+    const loaded = await refreshProfile();
+    if (!loaded) return false;
+    profileRef.current = loaded;
+    return true;
+  };
+
+  /** Resolves 'profile-unavailable' when the run didn't start because the profile couldn't be read. */
   const runAgentWorkflow = async (
     jobDescription: string,
     contextId?: string,
     _overrideContextData?: FitAnalysisContextData,
     runOptions?: { logisticsResolved?: boolean },
-  ) => {
+  ): Promise<'profile-unavailable' | void> => {
     if (!currentCV) return;
     // A new run replaces whatever was parked; this one parks again if it still needs the answers.
     if (!runOptions?.logisticsResolved) useUIStore.getState().setPendingLogistics(null);
-    // A signed-in user whose profile hasn't loaded yet (a click right after the page opens) would skip the
-    // questions, so the profile is read first. A failed read leaves it null and the run goes on without them.
-    if (!runOptions?.logisticsResolved && user && !profileRef.current) {
-      const loaded = await refreshProfile();
-      if (loaded) profileRef.current = loaded;
+    if (!runOptions?.logisticsResolved) {
+      if (!(await ensureProfileLoaded())) {
+        console.error('[useAgentWorkflow] The profile could not be read, so the kit did not start.');
+        addChatMessage({ role: 'assistant', content: PROFILE_UNAVAILABLE });
+        return 'profile-unavailable';
+      }
+      if (parkForLogistics(jobDescription, contextId, _overrideContextData)) return;
     }
-    if (!runOptions?.logisticsResolved && parkForLogistics(jobDescription, contextId, _overrideContextData)) return;
     void _overrideContextData; // Legacy UI state only. Never send it as writer context.
     let workflowSessionId = useSessionStore.getState().currentSession?.id;
     const controller = new AbortController();
@@ -1558,6 +1577,7 @@ export function useAgentWorkflow(options?: {
     fetchScreeningAnswers,
     handleStopGeneration,
     runAgentWorkflow,
+    ensureProfileLoaded,
     parkForLogistics,
     resumeAfterLogistics,
     runFitAnalysisFlow,

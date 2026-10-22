@@ -5,8 +5,10 @@ import { InvalidInputError } from '@/lib/services/errors';
 import {
   AVAILABILITY_CHOICES,
   AVAILABILITY_NOTE_MAX,
+  LOGISTICS_TEXT_BLOCKED_MESSAGE,
   SALARY_EXPECTATION_MAX,
   availabilityFact,
+  hasBlockedLogisticsText,
   logisticsFromProfile,
   needsAvailabilityPrompt,
   normalizeLogisticsUpdate,
@@ -85,4 +87,16 @@ test('< > [ ] in the note or salary are refused at the source', () => {
     assert.throws(() => normalizeLogisticsUpdate({ salaryExpectation: bad }), /can't contain < > \[ or \]/, bad);
     assert.throws(() => normalizeLogisticsUpdate({ availabilityNote: bad }), InvalidInputError, bad);
   }
+});
+
+test('the screens run the same blocked-sign check as the service, and say why in the agreed words', () => {
+  for (const bad of ['>60.000 EUR', '<70k', '3 Monate [Quartalsende]', 'x]', 'a > b']) {
+    assert.equal(hasBlockedLogisticsText(bad), true, bad);
+  }
+  // Normal punctuation passes, and so does everything the service accepts.
+  for (const fine of ['65.000 EUR brutto/Jahr', '3 Monate zum Quartalsende (nach der Probezeit)', 'over 60k, negotiable', "ab 1. März; Mo-Fr", '€70k - 75k']) {
+    assert.equal(hasBlockedLogisticsText(fine), false, fine);
+    assert.doesNotThrow(() => normalizeLogisticsUpdate({ salaryExpectation: fine, availabilityNote: fine }), fine);
+  }
+  assert.equal(LOGISTICS_TEXT_BLOCKED_MESSAGE, "Use letters, numbers and normal punctuation. < > [ and ] aren't allowed.");
 });

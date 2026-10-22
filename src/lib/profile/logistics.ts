@@ -24,6 +24,18 @@ export const AVAILABILITY_LABELS: Record<AvailabilityChoice, string> = {
 export const AVAILABILITY_NOTE_MAX = 200;
 export const SALARY_EXPECTATION_MAX = 120;
 
+/** What the screens say when the start date details or the salary hold one of the four blocked signs. */
+export const LOGISTICS_TEXT_BLOCKED_MESSAGE = "Use letters, numbers and normal punctuation. < > [ and ] aren't allowed.";
+
+/**
+ * The writers fence these values in << >> and the placeholder guard looks for [brackets], so the four
+ * signs are refused (a salary like ">60k" has to be written "over 60k"). The screens run the same check
+ * before saving, so the user hears why instead of seeing a generic failure.
+ */
+export function hasBlockedLogisticsText(text: string): boolean {
+  return /[<>[\]]/.test(text);
+}
+
 /** What the writers get. Every field null means the applicant never said, and nothing is invented. */
 export interface ApplicantLogistics {
   availability: AvailabilityChoice | null;
@@ -56,9 +68,7 @@ function cleanText(value: unknown, max: number, field: string, label: string): s
   const text = value.replace(/\s+/g, ' ').trim();
   if (text.length === 0) return null;
   if (text.length > max) throw new InvalidInputError(`${label} can be at most ${max} characters.`, field);
-  // The writers fence these values in << >> and the placeholder guard looks for [brackets], so the
-  // four signs never get stored (a salary like ">60k" is written "over 60k").
-  if (/[<>[\]]/.test(text)) throw new InvalidInputError(`${label} can't contain < > [ or ].`, field);
+  if (hasBlockedLogisticsText(text)) throw new InvalidInputError(`${label} can't contain < > [ or ].`, field);
   return text;
 }
 

@@ -9,7 +9,7 @@ import type { TestUser } from '../lib/user';
  * The applicant's own start date and salary expectation through the MCP tools (migration 0012).
  *
  * - get_account starts with nulls and availabilityAsked false.
- * - update_profile refuses a bad choice, a note over 200 and a salary over 120 without saving or stamping anything,
+ * - update_profile refuses a bad choice, a note over 200, a salary over 120 and "other" with no details without saving or stamping anything,
  *   and an update of other fields does not count as having asked.
  * - A valid save round-trips through get_account, text is tidied, a partial update keeps the rest and null clears.
  * - A skip (availability: null) records that the user was asked, and nothing leaks to another account.
@@ -76,6 +76,8 @@ test.describe.serial('availability and salary expectation', () => {
     // The writers fence these values and watch for [placeholders], so the four signs never get stored.
     expect(await agent.fails('update_profile', { salaryExpectation: '>60k' })).toMatch(/can't contain/);
     expect(await agent.fails('update_profile', { availabilityNote: '3 Monate [Quartalsende]' })).toMatch(/can't contain/);
+    // Other means the details are the whole start date, so it can't be set without them.
+    expect(await agent.fails('update_profile', { availability: 'other' })).toMatch(/availabilityNote/);
 
     const row = profileRow(user.id);
     expect(row).toMatchObject({ availability: null, availability_note: null, salary_expectation: null, availability_asked_at: null });
@@ -159,9 +161,15 @@ test.describe.serial('availability and salary expectation', () => {
     expect(await account()).toMatchObject({ availability: '1_month', availabilityNote: 'after the move' });
     const changed = await agent.ok<Saved>('update_profile', { availability: '2_weeks' });
     expect(changed).toMatchObject({ availability: '2_weeks', availabilityNote: null });
-    // Other keeps the stored details; a note given with the choice is kept.
+    // Other is the details, so it needs them in the same call. With another choice saved there is nothing to keep.
+    expect(await agent.fails('update_profile', { availability: 'other' })).toMatch(/availabilityNote/);
+    expect(await agent.fails('update_profile', { availability: 'other', availabilityNote: null })).toMatch(/availabilityNote/);
+    expect(await agent.fails('update_profile', { availability: 'other', availabilityNote: '   ' })).toMatch(/availabilityNote/);
+    expect(await account(), 'the refused calls changed nothing').toMatchObject({ availability: '2_weeks', availabilityNote: null });
+    // Other with details saved already keeps them when the call doesn't clear them; a note given with the choice is kept.
     await agent.ok('update_profile', { availability: 'other', availabilityNote: 'after the move' });
     expect((await agent.ok<Saved>('update_profile', { availability: 'other' })).availabilityNote).toBe('after the move');
+    expect(await agent.fails('update_profile', { availability: 'other', availabilityNote: '' })).toMatch(/availabilityNote/);
     const back = await agent.ok<Saved>('update_profile', { availability: '1_month' });
     expect(back).toMatchObject({ availability: '1_month', availabilityNote: null });
   });

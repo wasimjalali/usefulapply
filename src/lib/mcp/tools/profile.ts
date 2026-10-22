@@ -279,6 +279,24 @@ function logisticsInputFrom(args: { availability?: AvailabilityChoice | null; av
   return given;
 }
 
+/**
+ * "Other" means the details are the whole start date, so it needs them. They must come in the same call,
+ * unless the saved choice is already "other" with details that this call doesn't clear. Otherwise a
+ * switch from "3 months" would leave the old note standing alone as the start date.
+ */
+function requireDetailsForOther(
+  args: { availability?: AvailabilityChoice | null; availabilityNote?: string | null },
+  saved: { availability?: string | null; availability_note?: string | null } | null,
+) {
+  if (args.availability !== 'other') return;
+  const detailsAfter = args.availabilityNote !== undefined
+    ? args.availabilityNote?.trim() || null
+    : saved?.availability === 'other' ? saved.availability_note?.trim() || null : null;
+  if (!detailsAfter) {
+    throw new InvalidInputError('Setting availability to other needs availabilityNote in the same call, saying when the user can start.', 'availabilityNote');
+  }
+}
+
 const profileOutput = z.object({
   fullName: z.string().nullable(),
   phone: z.string().nullable(),
@@ -298,7 +316,7 @@ const updateProfile = defineTool({
   name: 'update_profile',
   title: 'Update profile',
   description:
-    "Updates contact details the user's CV header and cover letter letterhead use. Also saves when the user can start and their salary expectation. Saving availability, even as null, records that the user was asked. A new start date (other than other) clears the old details unless new details are given. Only the fields given change. Returns the saved values.",
+    "Updates contact details the user's CV header and cover letter letterhead use. Also saves when the user can start and their salary expectation. Saving availability, even as null, records that the user was asked. A new start date (other than other) clears the old details unless new details are given. Setting other needs availabilityNote in the same call, unless other and its details are already saved. Only the fields given change. Returns the saved values.",
   hints: WRITE_DESTRUCTIVE_IDEMPOTENT,
   input: z.object({
     fullName: textField('Full name', 200),
@@ -321,6 +339,7 @@ const updateProfile = defineTool({
   output: profileOutput,
   async confirm(args, { userId }) {
     const profile = await getProfile(userId);
+    requireDetailsForOther(args, profile);
     if (!profile) return null;
     const given: Record<(typeof PROFILE_FIELDS)[number], string | null | undefined> = {
       full_name: args.fullName,
@@ -362,6 +381,7 @@ const updateProfile = defineTool({
     assign('website_url', args.websiteUrl);
     assign('date_of_birth', args.dateOfBirth);
     assign('nationality', args.nationality);
+    requireDetailsForOther(args, await getProfile(userId));
     Object.assign(updates, normalizeLogisticsUpdate(logisticsInputFrom(args)));
     if (Object.keys(updates).length === 0) throw new InvalidInputError('Give at least one field to update');
     const profile = await updateUserProfile(userId, updates);

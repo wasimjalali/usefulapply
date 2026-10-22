@@ -22,7 +22,14 @@ import {
   Select,
   ValueText,
 } from '@/components/settings/parts';
-import { AVAILABILITY_CHOICES, AVAILABILITY_LABELS, AVAILABILITY_NOTE_MAX, SALARY_EXPECTATION_MAX } from '@/lib/profile/logistics';
+import {
+  AVAILABILITY_CHOICES,
+  AVAILABILITY_LABELS,
+  AVAILABILITY_NOTE_MAX,
+  LOGISTICS_TEXT_BLOCKED_MESSAGE,
+  SALARY_EXPECTATION_MAX,
+  hasBlockedLogisticsText,
+} from '@/lib/profile/logistics';
 
 type EditableField = 'full_name' | 'phone' | 'location' | 'availability_note' | 'salary_expectation' | 'availability';
 
@@ -37,11 +44,18 @@ const FIELD_MAX: Partial<Record<EditableField, number>> = {
   salary_expectation: SALARY_EXPECTATION_MAX,
 };
 
-/** "Other" with no Details, or Details with no start choice: the writers ignore both, so "Saved" would mislead. */
-function logisticsUnusable(row: { availability?: string | null; availability_note?: string | null } | null): boolean {
-  if (!row) return false;
+const SAVE_FAILED = "We couldn't save that. Try again.";
+
+/**
+ * "Other" with no Details, or Details with no start choice: the writers ignore both, so "Saved" would
+ * mislead. Returns what to tell the user, or null when the saved start date is usable.
+ */
+function logisticsUnusable(row: { availability?: string | null; availability_note?: string | null } | null): string | null {
+  if (!row) return null;
   const note = row.availability_note?.trim();
-  return (row.availability === 'other' && !note) || (!row.availability && Boolean(note));
+  if (row.availability === 'other' && !note) return 'Add details to use Other.';
+  if (!row.availability && note) return 'Pick when you can start to use these details.';
+  return null;
 }
 
 const AVAILABILITY_OPTIONS = [
@@ -86,8 +100,11 @@ export function GeneralPane() {
   const [draft, setDraft] = useState('');
   const cancelledEditRef = useRef(false);
   const [savedField, setSavedField] = useState<EditableField | null>(null);
-  // The row whose last save the writers can't use (see logisticsUnusable). Cleared by the next edit.
-  const [unusableField, setUnusableField] = useState<EditableField | null>(null);
+  // The row whose last save the writers can't use (see logisticsUnusable), with what to tell the user.
+  // Cleared by the next edit.
+  const [unusable, setUnusable] = useState<{ field: EditableField; message: string } | null>(null);
+  // The row whose last save was refused or failed, so a rejected edit never just vanishes.
+  const [saveError, setSaveError] = useState<{ field: EditableField; message: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -129,28 +146,45 @@ export function GeneralPane() {
     // Escape removes the input, and a removed node never fires blur, so the
     // cancel flag is cleared here rather than in commit alone.
     cancelledEditRef.current = false;
-    setUnusableField(null);
+    setUnusable(null);
+    setSaveError(null);
     setDraft(stored(field));
     setEditing(field);
   }, [stored]);
 
-  const commit = useCallback(async (field: EditableField) => {
-    setEditing(null);
+  const commit = useCallback(async (field: EditableField, input?: HTMLInputElement) => {
     if (cancelledEditRef.current) {
       cancelledEditRef.current = false;
+      setEditing(null);
       return;
     }
     const next = draft.trim();
-    if (next === stored(field)) return;
     const logisticsKey = LOGISTICS_UPDATE_KEYS[field];
+    if (logisticsKey && hasBlockedLogisticsText(next)) {
+      // Keep the edit open with the reason: the server would refuse it and hide why.
+      setSaveError({ field, message: LOGISTICS_TEXT_BLOCKED_MESSAGE });
+      window.setTimeout(() => input?.focus(), 0);
+      return;
+    }
+    setSaveError(null);
+    setEditing(null);
+    if (next === stored(field)) return;
     const { error } = await updateProfile({ [logisticsKey ?? field]: next || null });
-    if (error) return;
+    if (error) {
+      console.error('[GeneralPane] Profile save failed:', error);
+      // Reopen with what the user typed so they can retry.
+      setDraft(next);
+      setEditing(field);
+      setSaveError({ field, message: SAVE_FAILED });
+      return;
+    }
     // The update carries API names, so read the stored row back.
     if (logisticsKey) {
       const latest = await refreshProfile();
-      if (logisticsUnusable(latest)) {
+      const message = field === 'availability_note' ? logisticsUnusable(latest) : null;
+      if (message) {
         setSavedField(null);
-        setUnusableField(field);
+        setUnusable({ field, message });
         return;
       }
     }
@@ -158,13 +192,18 @@ export function GeneralPane() {
   }, [draft, stored, updateProfile, refreshProfile, flashSaved]);
 
   const changeAvailability = useCallback(async (next: string) => {
-    setUnusableField(null);
+    setUnusable(null);
+    setSaveError(null);
     setSavedField(null);
     const { error } = await updateProfile({ availability: next || null });
-    if (error) return;
-    const latest = await refreshProfile();
-    if (logisticsUnusable(latest)) {
-      setUnusableField('availability');
+    if (error) {
+      console.error('[GeneralPane] Start date save failed:', error);
+      setSaveError({ field: 'availability', message: SAVE_FAILED });
+      return;
+    }
+    const message = logisticsUnusable(await refreshProfile());
+    if (message) {
+      setUnusable({ field: 'availability', message });
       return;
     }
     flashSaved('availability');
@@ -370,8 +409,13 @@ export function GeneralPane() {
       ? 'Email and password'
       : null;
 
+  // A refused or failed save is long, so it sits under the label instead of widening the row.
+  const saveErrorHint = (field: EditableField) => (
+    saveError?.field === field ? <span role="alert" className="text-red-600">{saveError.message}</span> : undefined
+  );
+
   const editableRow = (field: EditableField, label: string, placeholder: string, emptyLabel?: string) => (
-    <Row label={label}>
+    <Row label={label} hint={saveErrorHint(field)}>
       {editing === field ? (
         <input
           autoFocus
@@ -379,7 +423,7 @@ export function GeneralPane() {
           placeholder={placeholder}
           maxLength={FIELD_MAX[field]}
           onChange={(e) => setDraft(e.target.value)}
-          onBlur={() => commit(field)}
+          onBlur={(e) => commit(field, e.currentTarget)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.currentTarget.blur();
             if (e.key === 'Escape') {
@@ -405,7 +449,7 @@ export function GeneralPane() {
           Saved
         </span>
       )}
-      {unusableField === field && <p role="alert" className="text-xs text-red-600">Add details to use Other.</p>}
+      {unusable?.field === field && <p role="alert" className="text-xs text-red-600">{unusable.message}</p>}
     </Row>
   );
 
@@ -472,7 +516,7 @@ export function GeneralPane() {
 
       <Caption>APPLICATIONS</Caption>
       <RowGroup>
-        <Row label="When you can start">
+        <Row label="When you can start" hint={saveErrorHint('availability')}>
           <Select
             label="When you can start"
             value={profile?.availability ?? ''}
@@ -485,7 +529,7 @@ export function GeneralPane() {
               Saved
             </span>
           )}
-          {unusableField === 'availability' && <p role="alert" className="text-xs text-red-600">Add details to use Other.</p>}
+          {unusable?.field === 'availability' && <p role="alert" className="text-xs text-red-600">{unusable.message}</p>}
         </Row>
         {editableRow('availability_note', 'Details', '3 months to the end of the quarter', 'Not set')}
         {editableRow('salary_expectation', 'Salary expectation', '65,000 EUR gross a year', 'Not set')}

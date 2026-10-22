@@ -1020,9 +1020,12 @@ function textContainsPhrase(text: string, value: string): boolean {
  * The applicant's saved profile text a document may carry in brackets: the
  * start-date note, and in a letter the salary expectation. Only these exact
  * strings (and their dash and typo cleaned forms, which the output gets too)
- * are accepted, so a saved "65.000 EUR [brutto]" survives and a bracketed
- * figure the applicant never saved still fails as a placeholder. The emails
- * never get the salary.
+ * are accepted, and a bracketed figure the applicant never saved still fails
+ * as a placeholder. The emails never get the salary. Defense in depth: the
+ * profile service refuses "[" and "]" in both values (see
+ * normalizeLogisticsUpdate), so today a saved value never holds a bracketed
+ * span and this accepts nothing. It keeps the guard correct if that rule is
+ * ever relaxed or an old row holds brackets.
  */
 function savedLogisticsText(context: MasterContext, document: 'letter' | 'email'): string[] {
   const values = [context.logistics?.availabilityNote, document === 'letter' ? context.logistics?.salaryExpectation : null]
@@ -1665,7 +1668,7 @@ async function generateEmailWithValidationRetry<T>(
     console.warn(`[UnifiedAgent] Retrying ${responseLabel.toLowerCase()} after validation miss:`, error.message);
     const retry = await modelCall({
       ...options,
-      prompt: `${options.prompt}\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.message}. Rewrite the complete email once and return only valid JSON. ${correctionRequirements} Preserve every factuality rule. Do not add any applicant fact, skill, metric or claim that is absent from the Primary CV and Master CV, apart from the saved profile values in APPLICANT LOGISTICS.`,
+      prompt: `${options.prompt}\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.message}. Rewrite the complete email once and return only valid JSON. ${correctionRequirements} Preserve every factuality rule. Do not add any applicant fact, skill, metric or claim that is absent from the Primary CV and Master CV, apart from the saved profile values the LOGISTICS rules give.`,
       generationContext: options.generationContext
         ? { ...options.generationContext, parentGenerationId: response.generationId }
         : undefined,
