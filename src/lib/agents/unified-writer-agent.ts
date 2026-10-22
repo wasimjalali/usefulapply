@@ -1017,6 +1017,26 @@ function textContainsPhrase(text: string, value: string): boolean {
 }
 
 /**
+ * The applicant's saved profile text a document may carry in brackets: the
+ * start-date note, and in a letter the salary expectation. Only these exact
+ * strings (and their dash and typo cleaned forms, which the output gets too)
+ * are accepted, so a saved "65.000 EUR [brutto]" survives and a bracketed
+ * figure the applicant never saved still fails as a placeholder. The emails
+ * never get the salary.
+ */
+function savedLogisticsText(context: MasterContext, document: 'letter' | 'email'): string[] {
+  const values = [context.logistics?.availabilityNote, document === 'letter' ? context.logistics?.salaryExpectation : null]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
+  return [...new Set(values.flatMap((value) => [value, sanitizeDashes(fixTypos(value))]))];
+}
+
+/** A bracketed span ("[Name]", "[70.000 EUR]") that none of the sources contains verbatim. */
+function hasBracketOutside(text: string, sources: string[]): boolean {
+  return (text.match(/\[[^\]]+\]/gu) ?? []).some((bracketed) => !sources.some((source) => source.includes(bracketed)));
+}
+
+/**
  * Validate the model's letter. Only the paragraphs can fail it, which takes
  * the one retry: they are the letter. Length is a prompt standard, never a
  * reason to fail. The optional fields degrade instead of failing
@@ -1150,7 +1170,9 @@ function validateCoverLetterFields(
     }
   }
 
-  if (paragraphs.some((paragraph) => hasUnverifiedBrackets(paragraph, adText, jobTitle))) {
+  // A bracket the ad, the job title or the applicant's saved profile text contains is theirs, not a placeholder.
+  const bracketSources = [adText, ...savedLogisticsText(context, 'letter')].join('\n');
+  if (paragraphs.some((paragraph) => hasUnverifiedBrackets(paragraph, bracketSources, jobTitle))) {
     issues.push('the letter contained a placeholder');
   }
   issues.push(...findBoundaryBlacklistedPhrases(paragraphs.join('\n')).map((phrase) => `blacklisted phrase "${phrase}"`));
@@ -1559,6 +1581,7 @@ function validateApplicationEmail(
   language: SupportedLanguage,
   applicantName: string | undefined,
   subject: string,
+  savedText: string[],
 ): { subject: string; body: string } {
   if (typeof parsed.body !== 'string') {
     throw new EmailValidationError('Application email body must be a string');
@@ -1569,7 +1592,7 @@ function validateApplicationEmail(
   // Body length is a prompt standard (four sentences), never a reason to fail
   // or retry. Only emptiness fails here.
   if (!body) throw new EmailValidationError('Application email body was empty');
-  if (/\[[^\]]+\]/u.test(body)) throw new EmailValidationError('Application email contained a placeholder');
+  if (hasBracketOutside(body, savedText)) throw new EmailValidationError('Application email contained a placeholder');
   if (applicantName?.trim() && !normalizeComparisonText(body).includes(normalizeComparisonText(applicantName))) {
     throw new EmailValidationError('Application email signature was missing the applicant name');
   }
@@ -1582,6 +1605,7 @@ function validateFollowUpEmail(
   applicantName: string | undefined,
   recommendedDelay: number,
   subject: string,
+  savedText: string[],
 ): { subject: string; body: string; recommendedDelay: number } {
   if (typeof parsed.body !== 'string') {
     throw new EmailValidationError('Follow-up email body must be a string');
@@ -1593,7 +1617,7 @@ function validateFollowUpEmail(
   // retry. Only emptiness fails here.
   if (!body) throw new EmailValidationError('Follow-up email body was empty');
   if (Number(parsed.recommendedDelay) !== recommendedDelay) throw new EmailValidationError('Follow-up email returned an invalid recommended delay');
-  if (/\[[^\]]+\]/u.test(body)) throw new EmailValidationError('Follow-up email contained a placeholder');
+  if (hasBracketOutside(body, savedText)) throw new EmailValidationError('Follow-up email contained a placeholder');
   if (applicantName?.trim() && !normalizeComparisonText(body).includes(normalizeComparisonText(applicantName))) {
     throw new EmailValidationError('Follow-up email signature was missing the applicant name');
   }
@@ -1674,7 +1698,7 @@ export async function generateApplicationEmailWithRetry(
     },
     'Application email response',
     'Keep the standard: a body of at most four sentences, with the attachment reference and the applicant signature.',
-    (parsed) => validateApplicationEmail(parsed, outputLang, context.applicant?.name, subject),
+    (parsed) => validateApplicationEmail(parsed, outputLang, context.applicant?.name, subject, savedLogisticsText(context, 'email')),
     modelCall,
   );
 }
@@ -1697,7 +1721,7 @@ export async function generateFollowUpEmailWithRetry(
     },
     'Follow-up email response',
     `Keep the standard: a body of at most 80 words. Set recommendedDelay to exactly ${recommendedDelay} and keep the applicant signature.`,
-    (parsed) => validateFollowUpEmail(parsed, outputLang, context.applicant?.name, recommendedDelay, subject),
+    (parsed) => validateFollowUpEmail(parsed, outputLang, context.applicant?.name, recommendedDelay, subject, savedLogisticsText(context, 'email')),
     modelCall,
   );
 }

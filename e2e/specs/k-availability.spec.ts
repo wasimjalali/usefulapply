@@ -20,8 +20,8 @@ import { creditsOf, setBalance } from '../lib/user';
  *   k4  User B has a kit already and empty fields. The chat path shows the card, Skip stamps asked-at with no
  *       start date, the kit runs, and a third kit shows no card.
  *
- * The writer prompt block (what the letter and emails are told about the saved values) is a separate piece of work.
- * The prompt assertions below are test.fixme until it lands; they're written out so they only need unskipping.
+ *   k1b, k3b, k4b  The captured cover letter prompt: the saved note and salary, the never-mention rule once the
+ *       salary is cleared, and the fallback wording after a skip.
  */
 
 const GERMAN_AD = `${JOB_DESCRIPTION} Bitte nennen Sie Ihre Gehaltsvorstellung und den frühestmöglichen Eintrittstermin.`;
@@ -160,7 +160,7 @@ test.describe.serial('(k) start date and salary', () => {
     await shoot(page, '4-kit-ready');
   });
 
-  test.fixme('(k1b) the cover letter prompt carries the note and the salary (needs the writer prompt block)', async () => {
+  test('(k1b) the cover letter prompt carries the note and the salary', async () => {
     expect(letterPrompt).toContain(NOTE);
     expect(letterPrompt).toContain(SALARY);
   });
@@ -205,17 +205,23 @@ test.describe.serial('(k) start date and salary', () => {
     await shoot(page, '6-settings-salary-cleared', { scrollTo: 'Salary expectation' });
   });
 
-  test.fixme('(k3b) with the salary cleared, the regenerated letter prompt never mentions salary (needs the writer prompt block)', async () => {
+  test('(k3b) with the salary cleared, the regenerated letter prompt never mentions salary', async () => {
     const { page } = a;
     await fakeReset();
     await page.goto('/dashboard');
     await page.getByRole('button', { name: /Northwind Foods/ }).first().click();
     await page.getByRole('tab', { name: 'Cover letter' }).click();
-    await page.getByRole('button', { name: /Regenerate/ }).first().click();
+    // A rewrite is asked for in the composer and confirmed on the cost chip (0.5 credits).
+    const input = page.getByPlaceholder(/Ask for a change/);
+    await input.fill('Rewrite the cover letter');
+    await input.press('Enter');
+    await page.getByRole('button', { name: 'Rewrite it' }).click();
     await expect.poll(async () => (await fakeCalls()).some((call) => call.writer === 'coverLetter')).toBe(true);
     const prompt = (await fakeCalls()).find((call) => call.writer === 'coverLetter')?.user ?? '';
     expect(prompt).not.toContain(SALARY);
     expect(prompt).toMatch(/never mention salary/i);
+    // The regenerate read the profile fresh: the saved start date is still there.
+    expect(prompt).toContain(`<<${NOTE}>>`);
   });
 
   test('(k4) an existing user with empty fields: Skip is remembered and the next kit shows no card', async ({ browser, request }) => {
@@ -253,7 +259,7 @@ test.describe.serial('(k) start date and salary', () => {
     await a.context.close();
   });
 
-  test.fixme('(k4b) after a skip the letter prompt carries the neutral notice-period wording and no salary (needs the writer prompt block)', async () => {
+  test('(k4b) after a skip the letter prompt carries the neutral notice-period wording and no salary', async () => {
     const prompt = (await fakeCalls()).find((call) => call.writer === 'coverLetter')?.user ?? '';
     expect(prompt).not.toContain('65');
     expect(prompt).toMatch(/not stated|never mention salary/i);
