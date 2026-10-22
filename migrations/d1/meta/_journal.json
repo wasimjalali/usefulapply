@@ -78,6 +78,13 @@
       "when": 1787238583117,
       "tag": "0011_application_edit_history",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1787238583118,
+      "tag": "0012_profile_availability_salary",
+      "breakpoints": true
     }
   ]
 }

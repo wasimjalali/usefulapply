@@ -11,7 +11,7 @@ import * as creditsRepo from './repos/credits';
 import * as subscriptionsRepo from './repos/subscriptions';
 import * as feedbackRepo from './repos/feedback';
 import * as mcpGrantsRepo from './repos/mcpGrants';
-import { linkProfilePhoto, removeProfilePhoto, updateUserProfile, type UserEditableProfile } from '@/lib/services/profile';
+import { linkProfilePhoto, removeProfilePhoto, updateUserProfile, type ProfileUpdateInput } from '@/lib/services/profile';
 
 async function requireCurrentUser(): Promise<{ id: string; email?: string }> {
   const auth = await getAuth();
@@ -46,7 +46,7 @@ export async function getOrCreateProfileAction(userId: string) {
   return profilesRepo.getOrCreateProfile(user.id, user.email);
 }
 
-export async function updateProfileAction(userId: string, updates: Partial<UserEditableProfile>) {
+export async function updateProfileAction(userId: string, updates: ProfileUpdateInput) {
   await requireUserId(userId);
   return updateUserProfile(userId, updates);
 }

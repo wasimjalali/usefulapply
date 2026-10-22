@@ -13,6 +13,7 @@ import { clearKitDocumentError, getSession, updateSession, type ApplicationSessi
 import { saveKitDocument } from '@/lib/services/kit';
 import { getDocumentByType, type Document } from '@/db/repos/documents';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
+import { loadApplicantLogistics } from '@/lib/profile/logistics.server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -186,6 +187,9 @@ export async function POST(request: NextRequest) {
       detectedLanguage,
       storedArtifacts,
     );
+    // The saved start date, read fresh from D1 like every other writer. Not swallowed: a failed read
+    // lands in the catch below, which releases the reservation.
+    masterContext.logistics = await loadApplicantLogistics(user.id);
 
     const traceId = `trace_${randomUUID()}`;
     const INPUT_COST_PER_M = ACTIVE_MODEL_PRICING.inputPerM;

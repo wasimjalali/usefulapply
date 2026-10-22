@@ -21,6 +21,7 @@ import {
   wrapLong,
   wrapShort,
 } from '@/lib/mcp/tools/shared';
+import { profileGaps } from '@/lib/profile/logistics';
 import { parseScreeningAnswers, SCREENING_TURN_CAP } from '@/lib/screening-answers';
 import { createApplication, deleteApplication } from '@/lib/services/applications';
 import { InvalidInputError, NotFoundError, OperationFailedEarlierError, RevisionConflict } from '@/lib/services/errors';
@@ -51,6 +52,15 @@ import {
 const SPEND_HINTS = { readOnly: false, destructive: false, idempotent: true, openWorld: false } as const;
 const SPEND_DESTRUCTIVE_HINTS = { readOnly: false, destructive: true, idempotent: true, openWorld: false } as const;
 const WRITE_HINTS = { readOnly: false, destructive: false, idempotent: true, openWorld: false } as const;
+
+/** Appended to the descriptions of the tools that start a kit, so a client asks once before the first one. */
+export const START_DATE_NOTE =
+  "Before the first kit, read get_account. If profile.availability is null and availabilityAsked is false, ask the user when they can start and their salary expectation (optional), then save with update_profile. If they'd rather not say, save availability as null and go on: the letter uses a neutral notice-period line and never mentions salary.";
+
+/** What the user hasn't told us yet. Advisory: it never blocks a call. */
+export const profileGapsSchema = z
+  .array(z.enum(['availability', 'salaryExpectation']))
+  .describe("Saved details still missing that the writers would use. Advisory: the call went ahead without them. Save them with update_profile.");
 
 const balanceSchema = z.object({
   total: z.number(),
@@ -275,7 +285,7 @@ const generateApplicationKit = defineTool({
   name: 'generate_application_kit',
   title: 'Generate application kit',
   description:
-    `Queues the tailored CV, cover letter, application email and follow-up email for an application and returns an operation id to poll with get_operation. Costs ${CREDIT_COSTS.FULL_APPLICATION} credits, or ${CREDIT_COSTS.GENERATION_AFTER_FIT} when the application has a paid fit analysis that has not been used for a kit yet; credits are reserved when queued and returned if the generation fails.`,
+    `Queues the tailored CV, cover letter, application email and follow-up email for an application and returns an operation id to poll with get_operation. Costs ${CREDIT_COSTS.FULL_APPLICATION} credits, or ${CREDIT_COSTS.GENERATION_AFTER_FIT} when the application has a paid fit analysis that has not been used for a kit yet; credits are reserved when queued and returned if the generation fails. ${START_DATE_NOTE}`,
   hints: SPEND_DESTRUCTIVE_HINTS,
   input: z.object({
     idempotencyKey: idempotencyKeyField,
@@ -299,6 +309,7 @@ const generateApplicationKit = defineTool({
     pollAfterSeconds: z.number(),
     creditsReserved: z.number(),
     balance: balanceSchema,
+    profileGaps: profileGapsSchema,
   }),
   async confirm(args, { userId }) {
     if (args.regenerate !== true) return null;
@@ -350,6 +361,7 @@ const generateApplicationKit = defineTool({
       pollAfterSeconds: 10,
       creditsReserved: queued.creditsReserved,
       balance: await creditsSnapshot(userId),
+      profileGaps: profileGaps(await getProfile(userId)),
     });
   },
 });
@@ -398,7 +410,7 @@ const regenerateDocument = defineTool({
   name: 'regenerate_document',
   title: 'Regenerate document',
   description:
-    `Writes a new cover letter, application email or follow-up email for an application, optionally following an instruction, and replaces the current one. Costs ${CREDIT_COSTS.COVER_LETTER_REGEN} credits; the replaced version is kept for undo_last_edit.`,
+    `Writes a new cover letter, application email or follow-up email for an application, optionally following an instruction, and replaces the current one. Costs ${CREDIT_COSTS.COVER_LETTER_REGEN} credits; the replaced version is kept for undo_last_edit. Uses the saved start date and salary expectation. After update_profile, regenerate the letter or email to apply them.`,
   hints: SPEND_DESTRUCTIVE_HINTS,
   input: z.object({
     idempotencyKey: idempotencyKeyField,
@@ -418,6 +430,7 @@ const regenerateDocument = defineTool({
     revision: z.number(),
     creditsUsed: z.number(),
     balance: balanceSchema,
+    profileGaps: profileGapsSchema,
   }),
   async confirm(args, { userId }) {
     const row = await requireApplication(userId, args.applicationId).catch((error) => {
@@ -487,6 +500,7 @@ const regenerateDocument = defineTool({
       replayed,
       creditsUsed: replayed ? 0 : CREDIT_COSTS[prepared.creditAction],
       balance: await creditsSnapshot(userId),
+      profileGaps: profileGaps(await getProfile(userId)),
     });
   },
 });
@@ -658,7 +672,7 @@ const draftScreeningAnswers = defineTool({
   name: 'draft_screening_answers',
   title: 'Draft screening answers',
   description:
-    `Drafts answers to an employer's screening questions from the application's tailored CV and job ad, and saves them on the application. Costs no credits; each call uses one of the ${SCREENING_TURN_CAP} screening turns an application has, and the account's plan must include screening answers. ${UNTRUSTED_NOTE}`,
+    `Drafts answers to an employer's screening questions from the application's tailored CV and job ad, and saves them on the application. Costs no credits; each call uses one of the ${SCREENING_TURN_CAP} screening turns an application has, and the account's plan must include screening answers. Salary and start-date questions use the saved values. When salary isn't set the answer says it's open to discussion; tell the user and offer to save it. ${UNTRUSTED_NOTE}`,
   hints: SPEND_HINTS,
   input: z.object({
     idempotencyKey: idempotencyKeyField,
@@ -679,6 +693,7 @@ const draftScreeningAnswers = defineTool({
     revision: z.number(),
     creditsUsed: z.number(),
     balance: balanceSchema,
+    profileGaps: profileGapsSchema,
   }),
   async run(args, { userId }) {
     await checkToolRateLimit('draft_screening_answers', userId);
@@ -779,6 +794,7 @@ const draftScreeningAnswers = defineTool({
       revision: stored.revision,
       creditsUsed: 0,
       balance: await creditsSnapshot(userId),
+      profileGaps: profileGaps(profile),
     });
   },
 });

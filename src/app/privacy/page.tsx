@@ -48,8 +48,10 @@ export default function PrivacyPage() {
           <li>
             <strong className="text-charcoal">Career and application data:</strong> CVs and
             resumes you upload or paste, profile photos you add to a CV, job descriptions, job
-            search preferences, career-profile answers, application tracker entries, chat
-            messages and any screening-question answers you submit.
+            search preferences, career-profile answers, your availability and salary expectation
+            if you give one, application tracker entries, chat messages and any
+            screening-question answers you submit. We use your availability and salary expectation
+            only to write your documents, and we delete them with your account.
           </li>
           <li>
             <strong className="text-charcoal">Generated content:</strong> tailored CVs, cover
@@ -372,7 +374,10 @@ export default function PrivacyPage() {
               </tr>
               <tr className="border-b border-cream-200 align-top">
                 <td className="py-2 pr-3">Professional information</td>
-                <td className="py-2 pr-3">CV content, work history, job preferences</td>
+                <td className="py-2 pr-3">
+                  CV content, work history, job preferences, availability and salary expectation (if
+                  you give one)
+                </td>
                 <td className="py-2">AI providers, Cloudflare storage</td>
               </tr>
               <tr className="align-top">
@@ -482,8 +487,9 @@ export default function PrivacyPage() {
         <LegalP>
           What your assistant can do depends on the scopes you grant: read, write and spend. It
           can read, change and delete your account details, profile and photo, CVs,
-          applications, kit documents, job feed and settings. It can see your credit balance and
-          history. With the spend scope, it can use your credits.
+          applications, kit documents, job feed and settings. That includes the availability and
+          salary expectation in your profile, if you have given them. It can see your credit
+          balance and history. With the spend scope, it can use your credits.
         </LegalP>
 
         <LegalH3>Consent and access</LegalH3>

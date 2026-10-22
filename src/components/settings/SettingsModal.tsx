@@ -169,7 +169,7 @@ export function SettingsModal() {
             type="button"
             onClick={handleClose}
             aria-label="Close settings"
-            className="absolute right-6 top-7 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full text-warm-gray hover:bg-cream-100 hover:text-navy-800 md:right-8 cursor-pointer"
+            className="absolute right-6 top-7 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-warm-gray ring-4 ring-white hover:bg-cream-100 hover:text-navy-800 md:right-8 cursor-pointer"
           >
             <X className="h-6 w-6" />
           </button>

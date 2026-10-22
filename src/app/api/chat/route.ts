@@ -20,6 +20,7 @@ import { validateCvShape } from '@/lib/cv-structure/validate';
 import type { TailoredCV } from '@/lib/cv-structure/types';
 import { sanitizeDashes } from '@/lib/config/typo-corrections';
 import { guardUnsupportedCvAdditionOffer } from '@/lib/agents/chat-reply-guard';
+import { loadApplicantLogistics } from '@/lib/profile/logistics.server';
 
 // Input/output limits. A pasted job ad is the main thing that arrives here:
 // the model reads it and calls propose_application, which is how a run starts.
@@ -221,11 +222,13 @@ export async function POST(req: NextRequest) {
       // part of max_tokens reasoning before the answer.
       let reply: string;
       try {
+        // Start date and salary come from D1 by userId, overwriting anything the browser sent.
+        const screeningContext = { ...context, logistics: await loadApplicantLogistics(user.id) };
         reply = await generateScreeningReply({
           userId: user.id,
           message,
           history,
-          context,
+          context: screeningContext,
           route: '/api/chat',
         });
       } catch (modelError) {

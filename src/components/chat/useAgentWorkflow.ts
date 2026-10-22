@@ -6,7 +6,7 @@
  * handleStopGeneration, getSmartFallbackResponse, and all associated state.
  */
 
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
@@ -32,12 +32,17 @@ import type { JobFeedApplicationGeneration } from '@/lib/supabase/types';
 import { readKitDocumentErrors, type StoredSessionRow } from '@/lib/open-session';
 import { applyServerRow, forgetSession, refreshFromServer } from '@/lib/session-sync';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
+import { needsAvailabilityPrompt } from '@/lib/profile/logistics';
+import { parkedRunStillValid } from '@/lib/profile/logistics-resume';
 import type { KitDocument, KitDocumentErrors } from '@/lib/agents/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
 import {
   createSession as createStoredSession,
   deleteSession as deleteStoredSession,
 } from '@/lib/supabase';
+
+/** What the user hears when a signed-in user's profile can't be read before a kit. */
+export const PROFILE_UNAVAILABLE = "We couldn't load your profile. Try again.";
 
 // AgentStepData type for V2 progress tracking
 export interface AgentStepData {
@@ -194,8 +199,21 @@ export function useAgentWorkflow(options?: {
    * misses a real ad is never a dead end.
    */
   onChatAnsweredWithoutProposal?: (message: string) => void;
+  /**
+   * Which screen shows the start date and salary questions when this hook
+   * parks a run. The guided line and the chat each mount their own copy of
+   * this hook, so the one that parked is the one that renders the card.
+   */
+  logisticsHost?: 'guided' | 'chat';
 }) {
-  const { user } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
+  // Read at call time: the guided line starts runs from timers and effects
+  // that hold an older render's closure, and a stale profile would skip the
+  // gate or ask twice.
+  const profileRef = useRef(profile);
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
   const datePrefs = useDatePrefs();
   const { toast } = useToast();
   const { setActiveTab } = useUIStore();
@@ -696,6 +714,8 @@ export function useAgentWorkflow(options?: {
 
   const runFitAnalysisFlow = async (jobDescription: string) => {
     if (!currentCV) return;
+    // A fit run replaces a parked kit run (its card closes), so the two can't run side by side.
+    useUIStore.getState().setPendingLogistics(null);
     const fitWorkflowSessionId = useSessionStore.getState().currentSession?.id;
 
     setIsAgentWorking(true);
@@ -904,8 +924,83 @@ export function useAgentWorkflow(options?: {
     }
   };
 
-  const runAgentWorkflow = async (jobDescription: string, contextId?: string, _overrideContextData?: FitAnalysisContextData) => {
+  /**
+   * The kit writers use the applicant's own start date and salary, so they're
+   * asked once before the first kit. Parks the run (before any request, so no
+   * credits move) and returns true when the questions still need answering.
+   */
+  const parkForLogistics = (jobDescription: string, contextId?: string, contextData?: unknown): boolean => {
+    if (!needsAvailabilityPrompt(profileRef.current)) return false;
+    useUIStore.getState().setPendingLogistics({
+      host: options?.logisticsHost ?? 'chat',
+      sessionId: useSessionStore.getState().currentSession?.id ?? null,
+      jd: jobDescription,
+      contextId,
+      contextData,
+    });
+    setIsAgentWorking(false);
+    setAgentWorkflowPhase(null);
+    setV2Progress(null);
+    return true;
+  };
+
+  /**
+   * The questions are answered or skipped: say so, then run the parked kit as it was asked for.
+   * `beforeRun` is the caller's own step that must happen only when the run really starts (the chat
+   * clears the fit there). Returns the sentence to announce, or null when nothing ran: the parked run
+   * belongs to another application now, or another run is already working, so credits can't be spent twice.
+   */
+  const resumeAfterLogistics = (outcome: 'saved' | 'skipped' | 'answered', beforeRun?: () => void): string | null => {
+    const parked = useUIStore.getState().pendingLogistics;
+    if (!parked) return null;
+    useUIStore.getState().setPendingLogistics(null);
+    const currentSessionId = useSessionStore.getState().currentSession?.id ?? null;
+    if (!parkedRunStillValid(parked.sessionId, currentSessionId, useUIStore.getState().isAgentWorking)) return null;
+    const content = outcome === 'skipped'
+      ? "No problem. I'll keep the timing general and leave salary out."
+      : 'Got it. Writing your kit now.';
+    addChatMessage({ role: 'assistant', content });
+    beforeRun?.();
+    void runAgentWorkflow(
+      parked.jd,
+      parked.contextId,
+      parked.contextData as FitAnalysisContextData | undefined,
+      { logisticsResolved: true },
+    );
+    return content;
+  };
+
+  /**
+   * A signed-in user whose profile hasn't loaded yet (a click right after the page opens) would skip the
+   * start date questions, so the profile is read first. Returns false when it can't be read, so the caller
+   * says so instead of starting a run that would skip the questions.
+   */
+  const ensureProfileLoaded = async (): Promise<boolean> => {
+    if (!user || profileRef.current) return true;
+    const loaded = await refreshProfile();
+    if (!loaded) return false;
+    profileRef.current = loaded;
+    return true;
+  };
+
+  /** Resolves 'profile-unavailable' when the run didn't start because the profile couldn't be read. */
+  const runAgentWorkflow = async (
+    jobDescription: string,
+    contextId?: string,
+    _overrideContextData?: FitAnalysisContextData,
+    runOptions?: { logisticsResolved?: boolean },
+  ): Promise<'profile-unavailable' | void> => {
     if (!currentCV) return;
+    // A new run replaces whatever was parked; this one parks again if it still needs the answers.
+    if (!runOptions?.logisticsResolved) useUIStore.getState().setPendingLogistics(null);
+    if (!runOptions?.logisticsResolved) {
+      if (!(await ensureProfileLoaded())) {
+        console.error('[useAgentWorkflow] The profile could not be read, so the kit did not start.');
+        addChatMessage({ role: 'assistant', content: PROFILE_UNAVAILABLE });
+        return 'profile-unavailable';
+      }
+      if (parkForLogistics(jobDescription, contextId, _overrideContextData)) return;
+    }
     void _overrideContextData; // Legacy UI state only. Never send it as writer context.
     let workflowSessionId = useSessionStore.getState().currentSession?.id;
     const controller = new AbortController();
@@ -1482,6 +1577,9 @@ export function useAgentWorkflow(options?: {
     fetchScreeningAnswers,
     handleStopGeneration,
     runAgentWorkflow,
+    ensureProfileLoaded,
+    parkForLogistics,
+    resumeAfterLogistics,
     runFitAnalysisFlow,
     // Setters needed by handleAction
     setFitAnalysisContextId,

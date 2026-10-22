@@ -21,6 +21,7 @@ import {
   type AllowedFileBucket,
 } from '@/storage/paths';
 import type { Profile } from '@/lib/supabase/types';
+import { normalizeLogisticsUpdate, touchesLogistics, type LogisticsPatch } from '@/lib/profile/logistics';
 import { InvalidInputError } from './errors';
 
 // Columns a signed-in user may edit about themselves. Entitlement and
@@ -47,8 +48,41 @@ export const USER_EDITABLE_PROFILE_FIELDS = [
   'timezone',
   'date_format',
   'job_feed_last_seen_run_date',
+  // The applicant's own start date and salary expectation. Validated by normalizeLogisticsUpdate;
+  // availability_asked_at is never accepted from a caller, the server stamps it (see below).
+  'availability',
+  'availability_note',
+  'salary_expectation',
 ] as const;
 export type UserEditableProfile = Pick<Profile, (typeof USER_EDITABLE_PROFILE_FIELDS)[number]>;
+
+/** What an update may carry: the columns above, plus camelCase aliases for the two logistics text fields (the MCP tool's names). */
+export type ProfileUpdateInput = Partial<UserEditableProfile> & {
+  availabilityNote?: string | null;
+  salaryExpectation?: string | null;
+};
+
+const LOGISTICS_COLUMNS = ['availability', 'availability_note', 'salary_expectation'] as const;
+const LOGISTICS_ALIASES = ['availabilityNote', 'salaryExpectation'] as const;
+// Input key (camelCase, what normalizeLogisticsUpdate reads) -> stored column.
+const LOGISTICS_INPUT_TO_COLUMN = {
+  availability: 'availability',
+  availabilityNote: 'availability_note',
+  salaryExpectation: 'salary_expectation',
+} as const;
+
+// Caps on the existing free-text fields, the same numbers the MCP update_profile tool enforces.
+const FIELD_MAX_LENGTH: Partial<Record<(typeof USER_EDITABLE_PROFILE_FIELDS)[number], number>> = {
+  full_name: 200,
+  phone: 50,
+  location: 200,
+  linkedin_url: 300,
+  github_url: 300,
+  portfolio_url: 300,
+  website_url: 300,
+  date_of_birth: 32,
+  nationality: 100,
+};
 
 const DATE_FORMATS = ['dmy', 'mdy', 'iso'];
 
@@ -71,25 +105,67 @@ function ownedAvatarKey(userId: string, value: string): string {
   return key;
 }
 
-export async function updateUserProfile(userId: string, updates: Partial<UserEditableProfile>): Promise<Profile> {
+/**
+ * Reads the start date and salary expectation out of an update (column names or camelCase
+ * aliases; an undefined value means "not given", not "clear") and validates them.
+ */
+function logisticsPatchFrom(updates: Record<string, unknown>): LogisticsPatch {
+  const input: Record<string, unknown> = {};
+  for (const [inputKey, column] of Object.entries(LOGISTICS_INPUT_TO_COLUMN)) {
+    const viaAlias = updates[inputKey] !== undefined;
+    const viaColumn = inputKey !== column && updates[column] !== undefined;
+    if (viaAlias && viaColumn) throw new InvalidInputError(`Give ${inputKey} or ${column}, not both.`);
+    if (viaAlias) input[inputKey] = updates[inputKey];
+    else if (viaColumn) input[inputKey] = updates[column];
+  }
+  return normalizeLogisticsUpdate(input);
+}
+
+/**
+ * Validates an update and returns exactly what may be written: the whitelisted columns, the
+ * normalised logistics fields, and availability_asked_at stamped (server time) whenever the update
+ * touches the start date or salary, so a skip (availability: null) is remembered. Pure apart from
+ * the clock, which `now` replaces in tests.
+ */
+export function prepareProfileWrite(userId: string, updates: ProfileUpdateInput, now: string = nowIso()): Partial<Profile> {
+  const raw = updates as Record<string, unknown>;
   if (typeof updates.timezone === 'string' && !isKnownTimezone(updates.timezone)) {
     throw new InvalidInputError('Unknown timezone');
   }
   if (typeof updates.date_format === 'string' && !DATE_FORMATS.includes(updates.date_format)) {
     throw new InvalidInputError('Unknown date format');
   }
-  const safe: Partial<UserEditableProfile> = {};
-  for (const key of USER_EDITABLE_PROFILE_FIELDS) {
-    if (key in updates) {
-      (safe as Record<string, unknown>)[key] = (updates as Record<string, unknown>)[key];
-    }
-  }
-  const rejected = Object.keys(updates).filter((k) => !(USER_EDITABLE_PROFILE_FIELDS as readonly string[]).includes(k));
+  const allowed: readonly string[] = [...USER_EDITABLE_PROFILE_FIELDS, ...LOGISTICS_ALIASES];
+  const rejected = Object.keys(updates).filter((k) => !allowed.includes(k));
   if (rejected.length > 0) {
     throw new InvalidInputError(`Forbidden profile fields: ${rejected.join(', ')}`);
   }
+  const logistics = logisticsPatchFrom(raw);
+  const safe: Partial<Profile> = {};
+  for (const key of USER_EDITABLE_PROFILE_FIELDS) {
+    if ((LOGISTICS_COLUMNS as readonly string[]).includes(key)) continue;
+    if (key in updates) {
+      (safe as Record<string, unknown>)[key] = raw[key];
+      const max = FIELD_MAX_LENGTH[key];
+      const value = raw[key];
+      if (max !== undefined && typeof value === 'string' && value.length > max) {
+        throw new InvalidInputError(`${key.replace(/_/g, ' ')} can be at most ${max} characters.`);
+      }
+    }
+  }
   if (typeof safe.avatar_url === 'string') safe.avatar_url = ownedAvatarKey(userId, safe.avatar_url);
-  return profilesRepo.updateProfile(userId, safe);
+  Object.assign(safe, logistics);
+  // A new start-date choice must not keep the old choice's note ("3 Monate zum Quartalsende" next to
+  // "In 1 month"). Only "Other" keeps a stored note, and only when the update doesn't give one.
+  if ('availability' in logistics && logistics.availability !== 'other' && !('availability_note' in logistics)) {
+    safe.availability_note = null;
+  }
+  if (touchesLogistics(logistics)) safe.availability_asked_at = now;
+  return safe;
+}
+
+export async function updateUserProfile(userId: string, updates: ProfileUpdateInput): Promise<Profile> {
+  return profilesRepo.updateProfile(userId, prepareProfileWrite(userId, updates));
 }
 
 // ---------------------------------------------------------------------------

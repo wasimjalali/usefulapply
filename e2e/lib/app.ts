@@ -46,8 +46,27 @@ export interface Signedin {
   page: Page;
 }
 
-export async function signedInPage(browser: Browser, request: APIRequestContext, label: string): Promise<Signedin> {
+/**
+ * The web app asks a new applicant when they can start before the first kit (see LogisticsQuestions). Specs that
+ * aren't about that question start from a user who was already asked, so their kit runs aren't parked on the card.
+ * Pass `askedAvailability: false` for a user who meets it.
+ */
+export async function signedInPage(
+  browser: Browser,
+  request: APIRequestContext,
+  label: string,
+  options: { askedAvailability?: boolean } = {},
+): Promise<Signedin> {
   const user = await createTestUser(request, label);
+  if (options.askedAvailability !== false) {
+    const db = openLocalD1();
+    try {
+      const { changes } = db.prepare('UPDATE profiles SET availability_asked_at = ? WHERE id = ?').run(new Date().toISOString(), user.id);
+      if (changes !== 1) throw new Error(`no profile row to mark as asked for ${user.id}`);
+    } finally {
+      db.close();
+    }
+  }
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     extraHTTPHeaders: { 'cf-connecting-ip': user.ip, 'x-forwarded-for': user.ip },

@@ -44,7 +44,7 @@ Keep this current: update when the product, stack or direction changes.
 
 > The real competition isn't the resume builders, it's the free platform features. ChatGPT has tailored a CV to a posting since June, free, but English only and web only. Indeed Career Scout is free inside the Indeed app. LinkedIn's AI job search went free to everyone in January. Those three give away a slice of what we charge for, and any answer that ignores them isn't serious.
 >
-> Where they stop is where we live. ChatGPT's resume tool is English only; we generate in seven languages with German CV conventions and two German templates, and LinkedIn only reached German in January. None of them writes the application email, the follow-up or the screening answers. And a general chatbot will invent a metric if you push it, whereas refusing to is our highest-priority generation rule.
+> Where they stop is where we live. ChatGPT's resume tool is English only; we generate in seven languages with German CV conventions and two German templates, and LinkedIn only reached German in January. None of them writes the application email, the follow-up or the screening answers. And a general chatbot will invent a metric if you push it, whereas refusing to is our highest-priority generation rule. The same goes for logistics: we ask for your real start date and salary expectation once, and the letters use only those.
 >
 > We're also not the first full loop; Jobscan and Career.io ship one too. Our claim is narrower and better: we're trying to be the loop a job seeker can trust, with honest public pricing, grounded output and the user's hand on every send.
 >

@@ -132,6 +132,8 @@ export interface UnifiedAgentInput {
   jobPreferences?: MasterContext['jobPreferences'];
   /** Recipient details from the stored application session row (see MasterContext). */
   letterRecipient?: MasterContext['letterRecipient'];
+  /** The applicant's saved start date and salary expectation, loaded from D1 by the server (see MasterContext). */
+  logistics?: MasterContext['logistics'];
   generationContext?: LlmGenerationContext;
 }
 
@@ -1015,6 +1017,29 @@ function textContainsPhrase(text: string, value: string): boolean {
 }
 
 /**
+ * The applicant's saved profile text a document may carry in brackets: the
+ * start-date note, and in a letter the salary expectation. Only these exact
+ * strings (and their dash and typo cleaned forms, which the output gets too)
+ * are accepted, and a bracketed figure the applicant never saved still fails
+ * as a placeholder. The emails never get the salary. Defense in depth: the
+ * profile service refuses "[" and "]" in both values (see
+ * normalizeLogisticsUpdate), so today a saved value never holds a bracketed
+ * span and this accepts nothing. It keeps the guard correct if that rule is
+ * ever relaxed or an old row holds brackets.
+ */
+function savedLogisticsText(context: MasterContext, document: 'letter' | 'email'): string[] {
+  const values = [context.logistics?.availabilityNote, document === 'letter' ? context.logistics?.salaryExpectation : null]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
+  return [...new Set(values.flatMap((value) => [value, sanitizeDashes(fixTypos(value))]))];
+}
+
+/** A bracketed span ("[Name]", "[70.000 EUR]") that none of the sources contains verbatim. */
+function hasBracketOutside(text: string, sources: string[]): boolean {
+  return (text.match(/\[[^\]]+\]/gu) ?? []).some((bracketed) => !sources.some((source) => source.includes(bracketed)));
+}
+
+/**
  * Validate the model's letter. Only the paragraphs can fail it, which takes
  * the one retry: they are the letter. Length is a prompt standard, never a
  * reason to fail. The optional fields degrade instead of failing
@@ -1148,7 +1173,9 @@ function validateCoverLetterFields(
     }
   }
 
-  if (paragraphs.some((paragraph) => hasUnverifiedBrackets(paragraph, adText, jobTitle))) {
+  // A bracket the ad, the job title or the applicant's saved profile text contains is theirs, not a placeholder.
+  const bracketSources = [adText, ...savedLogisticsText(context, 'letter')].join('\n');
+  if (paragraphs.some((paragraph) => hasUnverifiedBrackets(paragraph, bracketSources, jobTitle))) {
     issues.push('the letter contained a placeholder');
   }
   issues.push(...findBoundaryBlacklistedPhrases(paragraphs.join('\n')).map((phrase) => `blacklisted phrase "${phrase}"`));
@@ -1557,6 +1584,7 @@ function validateApplicationEmail(
   language: SupportedLanguage,
   applicantName: string | undefined,
   subject: string,
+  savedText: string[],
 ): { subject: string; body: string } {
   if (typeof parsed.body !== 'string') {
     throw new EmailValidationError('Application email body must be a string');
@@ -1567,7 +1595,7 @@ function validateApplicationEmail(
   // Body length is a prompt standard (four sentences), never a reason to fail
   // or retry. Only emptiness fails here.
   if (!body) throw new EmailValidationError('Application email body was empty');
-  if (/\[[^\]]+\]/u.test(body)) throw new EmailValidationError('Application email contained a placeholder');
+  if (hasBracketOutside(body, savedText)) throw new EmailValidationError('Application email contained a placeholder');
   if (applicantName?.trim() && !normalizeComparisonText(body).includes(normalizeComparisonText(applicantName))) {
     throw new EmailValidationError('Application email signature was missing the applicant name');
   }
@@ -1580,6 +1608,7 @@ function validateFollowUpEmail(
   applicantName: string | undefined,
   recommendedDelay: number,
   subject: string,
+  savedText: string[],
 ): { subject: string; body: string; recommendedDelay: number } {
   if (typeof parsed.body !== 'string') {
     throw new EmailValidationError('Follow-up email body must be a string');
@@ -1591,7 +1620,7 @@ function validateFollowUpEmail(
   // retry. Only emptiness fails here.
   if (!body) throw new EmailValidationError('Follow-up email body was empty');
   if (Number(parsed.recommendedDelay) !== recommendedDelay) throw new EmailValidationError('Follow-up email returned an invalid recommended delay');
-  if (/\[[^\]]+\]/u.test(body)) throw new EmailValidationError('Follow-up email contained a placeholder');
+  if (hasBracketOutside(body, savedText)) throw new EmailValidationError('Follow-up email contained a placeholder');
   if (applicantName?.trim() && !normalizeComparisonText(body).includes(normalizeComparisonText(applicantName))) {
     throw new EmailValidationError('Follow-up email signature was missing the applicant name');
   }
@@ -1639,7 +1668,7 @@ async function generateEmailWithValidationRetry<T>(
     console.warn(`[UnifiedAgent] Retrying ${responseLabel.toLowerCase()} after validation miss:`, error.message);
     const retry = await modelCall({
       ...options,
-      prompt: `${options.prompt}\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.message}. Rewrite the complete email once and return only valid JSON. ${correctionRequirements} Preserve every factuality rule. Do not add any applicant fact, skill, metric or claim that is absent from the Primary CV and Master CV.`,
+      prompt: `${options.prompt}\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.message}. Rewrite the complete email once and return only valid JSON. ${correctionRequirements} Preserve every factuality rule. Do not add any applicant fact, skill, metric or claim that is absent from the Primary CV and Master CV, apart from the saved profile values the LOGISTICS rules give.`,
       generationContext: options.generationContext
         ? { ...options.generationContext, parentGenerationId: response.generationId }
         : undefined,
@@ -1672,7 +1701,7 @@ export async function generateApplicationEmailWithRetry(
     },
     'Application email response',
     'Keep the standard: a body of at most four sentences, with the attachment reference and the applicant signature.',
-    (parsed) => validateApplicationEmail(parsed, outputLang, context.applicant?.name, subject),
+    (parsed) => validateApplicationEmail(parsed, outputLang, context.applicant?.name, subject, savedLogisticsText(context, 'email')),
     modelCall,
   );
 }
@@ -1695,7 +1724,7 @@ export async function generateFollowUpEmailWithRetry(
     },
     'Follow-up email response',
     `Keep the standard: a body of at most 80 words. Set recommendedDelay to exactly ${recommendedDelay} and keep the applicant signature.`,
-    (parsed) => validateFollowUpEmail(parsed, outputLang, context.applicant?.name, recommendedDelay, subject),
+    (parsed) => validateFollowUpEmail(parsed, outputLang, context.applicant?.name, recommendedDelay, subject, savedLogisticsText(context, 'email')),
     modelCall,
   );
 }
@@ -1815,6 +1844,7 @@ export const unifiedWriterAgent = {
       masterCV: input.masterCV,
       jobPreferences: input.jobPreferences,
       letterRecipient: input.letterRecipient,
+      logistics: input.logistics,
     };
 
     try {
@@ -2632,7 +2662,7 @@ export const unifiedWriterAgent = {
       console.warn('[UnifiedAgent] Retrying cover letter after validation miss:', error.issues.join(', '));
       const retry = await callModel({
         task: 'write_cover_letter',
-        prompt: `${basePrompt}\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.issues.join('; ')}. Rewrite the complete letter once and return only the JSON object. Fix every named issue. Preserve every factuality rule. Do not add any applicant fact, skill, metric or claim that is absent from the Primary CV and Master CV.`,
+        prompt: `${basePrompt}\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.issues.join('; ')}. Rewrite the complete letter once and return only the JSON object. Fix every named issue. Preserve every factuality rule. Do not add any applicant fact, skill, metric or claim that is absent from the Primary CV and Master CV, apart from the saved profile values in APPLICANT LOGISTICS.`,
         systemBlocks: coverLetterSystemBlocks,
         jsonMode: true,
         generationContext,

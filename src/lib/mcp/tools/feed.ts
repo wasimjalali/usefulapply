@@ -1,5 +1,8 @@
 import { z } from 'zod';
 import { getSettings } from '@/db/repos/jobFeed';
+import { getProfile } from '@/db/repos/profiles';
+import { profileGaps } from '@/lib/profile/logistics';
+import { START_DATE_NOTE, profileGapsSchema } from '@/lib/mcp/tools/spend';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { JOB_FEED_COUNTRY_OPTIONS, JOB_FEED_REMOTE_PREFERENCE_OPTIONS } from '@/lib/job-feed/constants';
 import { toJobFeedInput } from '@/lib/job-feed/helpers';
@@ -558,7 +561,7 @@ const withdrawFeedConsentTool = defineTool({
 const applyToFeedJobTool = defineTool({
   name: 'apply_to_feed_job',
   title: 'Apply to feed job',
-  description: `Creates an application from a job in the user's feed, then runs a fit check (${CREDIT_COSTS.FIT_ANALYSIS} credits) or queues the full application kit (${CREDIT_COSTS.FULL_APPLICATION} credits, or ${CREDIT_COSTS.GENERATION_AFTER_FIT} after a fit check on the same job). A fit check returns its result directly; a kit returns an operationId to read with get_operation. ${UNTRUSTED_NOTE}`,
+  description: `Creates an application from a job in the user's feed, then runs a fit check (${CREDIT_COSTS.FIT_ANALYSIS} credits) or queues the full application kit (${CREDIT_COSTS.FULL_APPLICATION} credits, or ${CREDIT_COSTS.GENERATION_AFTER_FIT} after a fit check on the same job). A fit check returns its result directly; a kit returns an operationId to read with get_operation. ${START_DATE_NOTE} ${UNTRUSTED_NOTE}`,
   hints: { readOnly: false, destructive: false, idempotent: true, openWorld: false },
   input: z.object({
     jobId: z.string().min(1).max(100).describe('A jobId from get_job_feed. The user needs a primary CV on file.'),
@@ -585,6 +588,7 @@ const applyToFeedJobTool = defineTool({
     replayed: z.boolean(),
     joinedRunning: z.boolean(),
     balance: z.object({ total: z.number(), monthly: z.number(), rollover: z.number(), addon: z.number() }),
+    profileGaps: profileGapsSchema,
   }),
   async run({ jobId, mode, idempotencyKey, waitSeconds }, { userId }) {
     return feedCall(async () => {
@@ -597,6 +601,7 @@ const applyToFeedJobTool = defineTool({
         spendLimit: await mcpSpendLimit(userId),
       });
       const job = { title: wrapShort(outcome.job.title), company: wrapShort(outcome.job.company) };
+      const gaps = profileGaps(await getProfile(userId));
 
       if (outcome.kind === 'kit_exists') {
         return ok({
@@ -612,6 +617,7 @@ const applyToFeedJobTool = defineTool({
           replayed: false,
           joinedRunning: false,
           balance: await creditsSnapshot(userId),
+          profileGaps: gaps,
         });
       }
 
@@ -635,6 +641,7 @@ const applyToFeedJobTool = defineTool({
           replayed: outcome.replayed,
           joinedRunning: false,
           balance: await creditsSnapshot(userId),
+          profileGaps: gaps,
         });
       }
 
@@ -657,6 +664,7 @@ const applyToFeedJobTool = defineTool({
         replayed: outcome.replayed,
         joinedRunning: outcome.joinedRunning,
         balance: await creditsSnapshot(userId),
+        profileGaps: gaps,
       });
     });
   },

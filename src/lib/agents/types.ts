@@ -3,6 +3,7 @@
  * Useful Apply Unified Agent Architecture
  */
 
+import type { ApplicantLogistics } from '@/lib/profile/logistics';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
 
 // Token usage tracking for API calls
@@ -44,6 +45,13 @@ export interface MasterContext {
 
   /** A rewrite instruction typed by the applicant in the chat composer. User-authored, already length-capped and flattened by the route. Never ad-authored. */
   userInstruction?: string;
+
+  /**
+   * The applicant's own start date and salary expectation from their profile (migration 0012), loaded
+   * fresh from D1 by the server for every writer run. Top-level, not under `applicant`: that block is
+   * extracted from and checked against the CVs, and these are stated by the user, not in any CV.
+   */
+  logistics?: ApplicantLogistics;
 
   // Applicant profile (extracted from CV by Context Agent)
   applicant?: {
