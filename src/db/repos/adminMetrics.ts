@@ -15,7 +15,8 @@ function canonicalJson(value: unknown): string {
 }
 
 export type AdminAuthEventType = 'signup' | 'session_started';
-export type LlmUsageProvider = 'anthropic' | 'bedrock' | 'digitalocean' | 'workers-ai';
+// 'workers-ai' only appears on rows stored before the Haiku 5.5 swap; nothing writes it now.
+export type LlmUsageProvider = 'anthropic' | 'bedrock' | 'workers-ai';
 
 export type LlmGenerationContext = {
   requestExecutionId: string;

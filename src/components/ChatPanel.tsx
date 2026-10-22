@@ -110,7 +110,7 @@ function buildJobFeedAutostartKey(params: {
 
 /**
  * Unambiguous pasted job ads only. These skip the model and show the decision
- * chips instantly; everything else goes to /api/chat, where gpt-oss decides
+ * chips instantly; everything else goes to /api/chat, where the model decides
  * whether it is an ad (propose_application) or a question to answer. Keeping
  * this test narrow is the point: the old heuristic turned any longish message
  * with one marker word into a job ad.

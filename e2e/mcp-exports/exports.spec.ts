@@ -64,7 +64,7 @@ test.describe.serial('export_documents: seven formats, two templates', () => {
       .poll(async () => (await agent.ok<{ status: string }>('get_operation', { operationId: kit.operationId })).status, { timeout: 90_000, intervals: [1_000, 2_000] })
       .toBe('succeeded');
 
-    // Screening answers are written by Workers AI, which a local preview does not have: put two where the product keeps them.
+    // Screening answers come from a separate Haiku call that this spec does not make: put two where the product keeps them.
     const db = openLocalD1();
     try {
       const row = db.prepare('SELECT generated_cv, revision FROM application_sessions WHERE id = ? AND user_id = ?').get(applicationId, user.id) as { generated_cv: string; revision: number };

@@ -87,9 +87,9 @@ Keep this current: update when the product, stack or direction changes.
 
 ### Tech stack
 
-> Next.js 16 with React 19 and TypeScript, Tailwind CSS 4 and Zustand, running on Cloudflare Workers via OpenNext. Cloudflare D1 for data with Drizzle, R2 for file storage, KV for caching, Better Auth for accounts, Cloudflare Email Service for transactional email, Stripe for payments, PostHog for analytics. Generation runs on Claude Sonnet 5.5 through the Anthropic API. Lighter high-volume tasks like chat and job-feed ranking run on open-weight GPT-OSS-120B through Cloudflare Workers AI, with SerpAPI for job data. I write all the code with Claude Code, Cursor and similar AI coding tools.
+> Next.js 16 with React 19 and TypeScript, Tailwind CSS 4 and Zustand, running on Cloudflare Workers via OpenNext. Cloudflare D1 for data with Drizzle, R2 for file storage, KV for caching, Better Auth for accounts, Cloudflare Email Service for transactional email, Stripe for payments, PostHog for analytics. Generation runs on Claude Sonnet 5.5 through the Anthropic API. Lighter high-volume tasks like chat, screening answers and job-feed ranking run on Claude Haiku 5.5, with SerpAPI for job data. I write all the code with Claude Code, Cursor and similar AI coding tools.
 
-*If they push on model choice:* the documents a user actually sends to an employer run on Sonnet 5.5 via the Anthropic API, because output quality there is the product. It replaced Sonnet 4.6 after an October 2026 eval where it invented fewer claims and ran faster for less. High-volume auxiliary tasks run on cost-efficient open-weight models through Workers AI, which keeps unit economics sane without touching what gets read. **Do not claim any model upgrade before it ships.**
+*If they push on model choice:* the documents a user actually sends to an employer run on Sonnet 5.5 via the Anthropic API, because output quality there is the product. It replaced Sonnet 4.6 after an October 2026 eval where it invented fewer claims and ran faster for less. High-volume auxiliary tasks like chat and job ranking run on Claude Haiku 5.5, picked per task in an effort eval, with prompt caching on every call, which keeps unit economics sane without touching what gets read. **Do not claim any model upgrade before it ships.**
 
 ### Who writes the code?
 

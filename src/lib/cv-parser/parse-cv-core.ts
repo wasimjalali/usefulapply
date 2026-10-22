@@ -47,19 +47,12 @@ export interface ParsedCv {
   region: 'US' | 'EU';
 }
 
-/** True when an AI provider is configured (Bedrock, direct Anthropic or DigitalOcean). */
+/**
+ * True when the Anthropic API key is set. Amazon Bedrock credentials alone do not count: Bedrock is only
+ * the failover for a call that already started on the Anthropic API.
+ */
 export function hasCvParsingCapability(): boolean {
-  const aiProvider = process.env.AI_PROVIDER as 'digitalocean' | 'bedrock' | 'anthropic' | undefined;
-  const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
-  const hasBedrockKeys = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) || !!process.env.AWS_BEARER_TOKEN_BEDROCK;
-  const hasDigitalOceanKeys = !!(process.env.DIGITALOCEAN_AGENT_ENDPOINT && process.env.DIGITALOCEAN_ACCESS_KEY);
-  return aiProvider === 'digitalocean'
-    ? hasDigitalOceanKeys
-    : aiProvider === 'bedrock'
-      ? hasBedrockKeys
-      : aiProvider === 'anthropic'
-        ? hasAnthropicKey
-        : hasAnthropicKey || hasBedrockKeys || hasDigitalOceanKeys;
+  return !!process.env.ANTHROPIC_API_KEY;
 }
 
 function hasMinimumCvSignals(cv: StructuredCV): boolean {
@@ -157,15 +150,12 @@ export async function parseCvBuffer(params: {
     };
 
     // The Claude parser already sees the full source document, so use its
-    // explicit, allow-listed language when available. If Workers AI fails safe
-    // to English, recognised source headers are stronger evidence than the
+    // explicit, allow-listed language when available. If the Haiku language
+    // detector fails safe to English, recognised source headers are stronger evidence than the
     // fallback and prevent a mixed-language template.
     const classified = parsedDocumentLanguage
       ? { language: parsedDocumentLanguage, usedFallback: false }
-      : await detectLanguageResult(
-          rawText,
-          { ...generationContext, operation: 'parse_cv_language_classification' },
-        );
+      : await detectLanguageResult(rawText, generationContext);
     const headerLanguage = inferCvLanguageFromHeaders(originalHeaders);
     const detectedLang = classified.usedFallback && headerLanguage !== 'en'
       ? headerLanguage
@@ -203,7 +193,6 @@ async function parseDocumentWithAIOrFallback(options: {
       prompt: getDocumentParsingPrompt(),
       systemPrompt: 'You are a precise CV parser. Extract factual information only. Return valid JSON. Do not infer or fabricate any information not explicitly present in the source document.',
       maxTokens: 8192,
-      temperature: 0.3,
       visualMode: docFormat === 'pdf' && documentType !== 'master_cv',
       generationContext: { ...generationContext, operation: 'parse_cv_document_native' },
     });
@@ -466,7 +455,6 @@ async function parseWithAI(
   const response = await callAnthropic({
     prompt,
     systemPrompt: 'You are a precise CV parser. Extract factual information only. Return valid JSON. Do not infer or fabricate any information not explicitly present in the source document.',
-    temperature: 0.3,
     maxTokens: 8192,  // Master CVs with 10+ years of experience can exceed 4096 tokens of JSON output
     jsonMode: true,
     generationContext,

@@ -2292,9 +2292,16 @@ function buildWorkflowOperationalTail(ingestion: {
   return ` ${notes.join(', and ')}.`;
 }
 
-// GPT-4.1 Mini pricing: $0.40/M input, $1.60/M output
-// USD per million tokens (input, output) on Workers AI, August 2026 list prices.
+// USD per million tokens (input, output), list prices for the ranking model (Claude Haiku 5.5, up to 100k prompt).
+// The ranking_model metadata stores only the total input (cache reads and writes included) with no split, so every
+// input token is priced at the base rate. That is an estimate, not a bound either way: cache reads cost 0.1x the
+// input rate (an over-count) while cache writes cost more, 1.25x for the 5-minute TTL the ranking markers use and
+// 2x for 1 hour (an under-count). The exact cost per call is on the $ai_generation event (cost_usd).
 const RANKING_MODEL_RATES: Record<string, [number, number]> = {
+  'claude-haiku-5-5': [0.10, 0.50],
+  // The same model on Amazon Bedrock (failover runs store this id), at the same list prices.
+  'anthropic.claude-haiku-5-5': [0.10, 0.50],
+  // Historical runs only (Workers AI, retired). Keeps their stored cost estimate readable.
   '@cf/openai/gpt-oss-120b': [0.35, 0.75],
   '@cf/deepseek-ai/deepseek-v4-flash-0731': [0.44, 1.32],
   '@cf/meta/llama-4-scout-17b-16e-instruct': [0.27, 0.85],

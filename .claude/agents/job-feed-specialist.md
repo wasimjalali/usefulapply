@@ -13,7 +13,7 @@ You are the specialist for Useful Apply's Daily Job Feed pipeline. The feature s
 User clicks run → getOrSynthesizeCareerProfileAdmin (synthesize if missing) →
   loadOrGenerateSearchStrategyAdmin (AI query plan, cached; legacy buildJobFeedSearchPlan as fallback) →
   SerpAPI fetch (paid per call) → normalize + dedupe canonical jobs → exclude blocked →
-  prefilter (HARD constraints ONLY) → LLM ranker (ALL survivors, Workers AI ranker in `src/lib/job-feed/workers-ai-ranking.ts`;
+  prefilter (HARD constraints ONLY) → LLM ranker (ALL survivors, Haiku 5.5 ranker in `src/lib/job-feed/llm-ranking.ts`;
   consumes clusters/seniority/targetDirection/negativeTerms/excludedTerms) →
   persist ranked_items → /api/job-feed/overview reads ranked_items (7-day inbox) → FeedCanvas renders
 ```
@@ -25,7 +25,8 @@ User clicks run → getOrSynthesizeCareerProfileAdmin (synthesize if missing) �
 | `src/lib/job-feed/ingestion.ts` | buildJobFeedSearchPlan, ingestJobFeedRunJobs, splitCompositeRole defence, pickQueryLanguage (returns null — country drives hl), indexLocationsByCountry (rotates cities) |
 | `src/lib/job-feed/serpapi.ts` | buildSerpApiSearchParams, fetchSerpApiJobs, normalizeSerpApiJob, inferWorkMode (multi-language keywords) |
 | `src/lib/job-feed/prefilter.ts` | getRejectReasons — ONLY employment_type_mismatch, salary_mismatch, work_authorization_mismatch. Everything soft is the LLM's job. |
-| `src/lib/job-feed/workers-ai-ranking.ts` | the Workers AI ranker (system prompt, profile and candidate messages, ranking request). Read the file for current exports. |
+| `src/lib/job-feed/llm-ranking.ts` | the Haiku 5.5 ranker (callHaiku, structured output): the ranking request and its result handling. Read the file for current exports. |
+| `src/lib/job-feed/llm-ranking-prompt.ts` | RANKING_SYSTEM_PROMPT (the static, cached system prompt), the profile and candidate messages, the excerpt and input budget (fitCandidatesToBudget) and RANKING_JSON_SCHEMA. |
 | `src/lib/job-feed/ranking.ts` | rankJobFeedCandidates thin wrapper |
 | `src/lib/job-feed/career-profile.ts` | CareerProfile type + schema version + isCurrentCareerProfile guard. NEVER imported by src/lib/agents/**. |
 | `src/lib/job-feed/career-profile-synthesis.ts` | generateCareerProfile — LLM reads StructuredCV, emits the matching profile (clusters, seniority, targetDirection, negativeSignals). |
@@ -57,7 +58,7 @@ User clicks run → getOrSynthesizeCareerProfileAdmin (synthesize if missing) �
 **Common tasks and where to start:**
 
 - **"Jobs aren't showing up for a user"** → check `job_feed_raw_fetches.response_error` for the run, `hl` / `location` / `gl` in `request_params`, then prefilter rejection counts in `job_feed_runs.metadata.prefilter_rejections_by_reason`.
-- **"Ranking quality dropped"** → check recent changes to SYSTEM_PROMPT; verify candidates are coming from `prefilter.survivors` (not `shortlist`); check cached_tokens count in the ranker log line (low cache hit rate = something in the static prefix moved).
+- **"Ranking quality dropped"** → check recent changes to RANKING_SYSTEM_PROMPT in `src/lib/job-feed/llm-ranking-prompt.ts`; verify candidates are coming from `prefilter.survivors` (not `shortlist`); check cached_tokens count in the ranker log line (low cache hit rate = something in the static prefix moved).
 - **"A run is stuck running"** → the run is synchronous and on-click; check the idempotency guard in `runJobFeedFoundationWorkflow` (stale running-run reset after 15 min) and whether the LLM/SerpAPI call threw. There is no batch reconciler.
 - **"Cost is high"** → check `ranking_model.input_tokens / cached_tokens` ratio. Cached should be ~1,500+ after first run per user. If ~0, something moved out of the static prefix.
 

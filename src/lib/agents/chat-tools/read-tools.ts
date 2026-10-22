@@ -17,14 +17,11 @@ import { CREDIT_COSTS, getTotalCredits } from '@/lib/credit-costs';
 import { defaultFollowUpDue, parseDate } from '@/components/tracker/tracker-status';
 import { dayKey } from '@/lib/utils/format-date';
 import { flattenUntrusted, sanitizeUntrustedText } from './untrusted';
-import type { ChatTool } from './types';
+import { fitListsToBudget, type ChatTool } from './types';
 
 function wrapped(value: string | null | undefined): string {
   return `<<${flattenUntrusted(value)}>>`;
 }
-
-/** Enough rows for the model to answer from without flooding the prompt. */
-const MAX_APPLICATIONS_IN_PROMPT = 60;
 
 function applicationLine(row: TrackerApplicationRow, todayKey: string, timeZone: string) {
   const followUpDue = parseDate(row.follow_up_due_at)
@@ -61,16 +58,11 @@ const getApplications: ChatTool = {
   parameters: { type: 'object', properties: {}, additionalProperties: false },
   handler: async (_args, ctx) => {
     const applications = await trackerSnapshot(ctx.userId, ctx.timeZone);
+    // Newest first from the repo; the result cap keeps a 300-row hunt from
+    // flooding every remaining round's prompt, and truncated_lists says how
+    // many of `count` are shown.
     return {
-      data: {
-        count: applications.length,
-        // Newest first from the repo; the cap keeps a 300-row hunt from
-        // flooding every remaining round's prompt.
-        applications: applications.slice(0, MAX_APPLICATIONS_IN_PROMPT),
-        ...(applications.length > MAX_APPLICATIONS_IN_PROMPT
-          ? { note: `Showing the ${MAX_APPLICATIONS_IN_PROMPT} most recent of ${applications.length}.` }
-          : {}),
-      },
+      data: fitListsToBudget({ count: applications.length, applications }, ['applications']),
     };
   },
 };
@@ -151,7 +143,7 @@ const getDocumentsTool: ChatTool = {
   handler: async (_args, ctx) => {
     const documents = await getDocuments(ctx.userId);
     return {
-      data: {
+      data: fitListsToBudget({
         documents: documents.map((doc) => ({
           type: doc.type,
           file_name: flattenUntrusted(doc.file_name),
@@ -159,7 +151,7 @@ const getDocumentsTool: ChatTool = {
         })),
         has_primary_cv: documents.some((doc) => doc.type === 'primary_cv'),
         has_master_cv: documents.some((doc) => doc.type === 'master_cv'),
-      },
+      }, ['documents']),
     };
   },
 };
@@ -193,7 +185,7 @@ const getFeedDigest: ChatTool = {
   parameters: { type: 'object', properties: {}, additionalProperties: false },
   handler: async (_args, ctx) => {
     const digest = await feedSnapshot(ctx.userId, 8);
-    return { data: digest };
+    return { data: fitListsToBudget(digest, ['items']) };
   },
 };
 
@@ -210,7 +202,7 @@ const morningBriefing: ChatTool = {
     ]);
     const inSevenDays = Date.now() + 7 * 24 * 60 * 60 * 1000;
     return {
-      data: {
+      data: fitListsToBudget({
         follow_ups_overdue: applications.filter((app) => app.follow_up_overdue),
         follow_ups_due_today: applications.filter((app) => app.follow_up_due_today),
         interviews_upcoming: applications.filter(
@@ -219,7 +211,7 @@ const morningBriefing: ChatTool = {
         drafted_not_sent: applications.filter((app) => app.status === 'drafted').length,
         strong_feed_matches: feed.items.filter((item) => item.fit === 'strong'),
         total_credits: creditsResult.credits ? getTotalCredits(creditsResult.credits) : null,
-      },
+      }, ['follow_ups_overdue', 'follow_ups_due_today', 'interviews_upcoming', 'strong_feed_matches']),
     };
   },
 };

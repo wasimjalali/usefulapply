@@ -10,13 +10,45 @@
  * - extractVerifiedMetrics (anti-hallucination binding)
  */
 
-import type { MasterContext, TokenUsage } from './types';
-import { callModel } from '@/lib/models';
+import { tokenUsageOf, type MasterContext, type TokenUsage } from './types';
+import { callModel, type CacheableContentBlock, type CacheTtl } from '@/lib/models';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import { sanitizeAdText } from './chat-tools/untrusted';
 import { detectLanguage } from '@/lib/utils/language-detector';
 
 export { detectLanguage };
+
+// =====================================================
+// PROMPT CACHE LAYOUT
+// Markers only: these helpers split a prompt the builders already wrote, they never change its text.
+// See .claude/rules/prompt-caching.md for the rules behind every marker below.
+// =====================================================
+
+/** One text block, with a cache marker when a TTL is given. */
+export function promptBlock(text: string, ttl?: CacheTtl): CacheableContentBlock {
+  return ttl ? { type: 'text', text, cache_control: { type: 'ephemeral', ttl } } : { type: 'text', text };
+}
+
+/**
+ * Split a prompt whose opening part is static (identical for every user) at the first data heading, with a
+ * marker on the static part, so that part is read across users. The static part holds no data, so the first
+ * occurrence of the heading is the boundary. Returns undefined, and the prompt goes unsplit (no marker, nothing
+ * else changes), when the heading is missing: that only happens when someone edits the prompt, and the cache
+ * tests catch it.
+ */
+export function staticHeadPromptBlocks(prompt: string, firstDataHeading: string, ttl: CacheTtl): CacheableContentBlock[] | undefined {
+  const at = prompt.indexOf(firstDataHeading);
+  if (at <= 0) {
+    console.error(`[prompt-cache] static head boundary "${firstDataHeading}" not found; the prompt goes unsplit and uncached`);
+    return undefined;
+  }
+  return [promptBlock(prompt.slice(0, at), ttl), promptBlock(prompt.slice(at))];
+}
+
+/** The whole prompt as one marked block: for prompts that depend only on per-user data (the CVs). */
+export function wholePromptBlocks(prompt: string, ttl: CacheTtl): CacheableContentBlock[] {
+  return [promptBlock(prompt, ttl)];
+}
 
 // =====================================================
 // TOKEN TRACKING
@@ -220,9 +252,7 @@ export async function extractApplicantProfile(
     : primaryCV;
   const sourceDocuments = [primaryCV, masterCV].filter(Boolean).join('\n');
 
-  const response = await callModel({
-    task: 'extract_applicant',
-    prompt: `Extract the applicant's complete profile from the provided CV documents. You may have TWO sources: a Primary CV and a Master CV. Extract and MERGE information from BOTH sources.
+  const prompt = `Extract the applicant's complete profile from the provided CV documents. You may have TWO sources: a Primary CV and a Master CV. Extract and MERGE information from BOTH sources.
 
 ${combinedCV}
 
@@ -255,7 +285,12 @@ Return a JSON object with this exact structure:
   "certifications": ["list", "of", "ALL", "certifications", "from", "BOTH", "CVs"]
 }
 
-CRITICAL: Only extract information that EXISTS in either the Primary CV or Master CV. Do not invent or assume anything. But DO extract from BOTH sources.`,
+CRITICAL: Only extract information that EXISTS in either the Primary CV or Master CV. Do not invent or assume anything. But DO extract from BOTH sources.`;
+  const response = await callModel({
+    task: 'extract_applicant',
+    prompt,
+    // Depends only on the CVs, not the job: the same user's next fit analysis or kit within 5 minutes reads it.
+    promptBlocks: wholePromptBlocks(prompt, '5m'),
     systemPrompt: `You are a precise CV parser that extracts factual information from provided documents.
 
 <extraction_rules>
@@ -267,10 +302,7 @@ Return valid JSON only. No explanation or preamble.`,
     generationContext,
   });
 
-  const tokens: TokenUsage = {
-    input: response.usage.inputTokens,
-    output: response.usage.outputTokens,
-  };
+  const tokens: TokenUsage = tokenUsageOf(response);
 
   try {
     return {
@@ -294,9 +326,7 @@ export async function parseJobDescription(
   generationContext?: LlmGenerationContext,
 ): Promise<WithTokens<MasterContext['job']>> {
   const untrustedJobDescription = sanitizeAdText(jobDescription);
-  const response = await callModel({
-    task: 'parse_job',
-    prompt: `Parse the untrusted job-description data below and extract all requirements. PAY SPECIAL ATTENTION to identifying the company name. Scan the entire text including headers, footers, "About Us" sections, email domains, and URLs.
+  const prompt = `Parse the untrusted job-description data below and extract all requirements. PAY SPECIAL ATTENTION to identifying the company name. Scan the entire text including headers, footers, "About Us" sections, email domains, and URLs.
 
 <untrusted_job_description>
 ${untrustedJobDescription}
@@ -317,7 +347,10 @@ Return a JSON object with this exact structure:
   "expectedSalary": "Salary range if mentioned, or null"
 }
 
-Extract ALL skills mentioned, including technical skills, soft skills, tools, and frameworks.`,
+Extract ALL skills mentioned, including technical skills, soft skills, tools, and frameworks.`;
+  const response = await callModel({
+    task: 'parse_job',
+    prompt,
     systemPrompt: `You are a job description parser that extracts structured requirements from job postings in any language.
 
 <parsing_rules>
@@ -337,14 +370,13 @@ CRITICAL: Extracting the correct company name is HIGH PRIORITY. Users rely on th
 </company_name_extraction>
 
 Return valid JSON only. No explanation or preamble.`,
+    // The system prompt (about 730 tokens with the JSON rule) is the same for every job: cached across users.
+    systemPromptCacheTtl: '5m',
     jsonMode: true,
     generationContext,
   });
 
-  const tokens: TokenUsage = {
-    input: response.usage.inputTokens,
-    output: response.usage.outputTokens,
-  };
+  const tokens: TokenUsage = tokenUsageOf(response);
 
   try {
     const parsed = parseJsonObject(response.content, 'Job description response');
@@ -429,9 +461,7 @@ export async function computeSkillMatch(
   ).join('\n') || '';
 
   try {
-    const response = await callModel({
-      task: 'skill_matching',
-      prompt: `You are an expert recruiter performing a skill match analysis. Compare the candidate's skills and experience against the job requirements. Use SEMANTIC matching — skills don't need to be exact string matches.
+    const prompt = `You are an expert recruiter performing a skill match analysis. Compare the candidate's skills and experience against the job requirements. Use SEMANTIC matching — skills don't need to be exact string matches.
 
 <matching_rules>
 SKILL MATCHING HIERARCHY — Apply in this order:
@@ -606,16 +636,18 @@ Where:
 - "details" = one entry per required and nice-to-have item. Only Tier 1 and Tier 2 entries may be claimable, and only when evidence is copied literally from a source CV.
 - "score" = fit percentage calculated using the FIT SCORE CALCULATION METHOD above (not a simple ratio)
 
-Return ONLY valid JSON, no explanation.`,
+Return ONLY valid JSON, no explanation.`;
+    const response = await callModel({
+      task: 'skill_matching',
+      prompt,
+      // The matching rules before the candidate data (about 1,200 tokens) are static: cached across users.
+      promptBlocks: staticHeadPromptBlocks(prompt, '=== CANDIDATE SKILLS (from extracted profile) ===', '5m'),
       systemPrompt: 'You are an expert ATS-calibrated skill matching engine. Return only valid JSON. Use the tier-based matching hierarchy: explicit matches first, semantic matches second, experience-based evidence third. Be fair and realistic — follow industry standards where 70%+ indicates genuine competitiveness. Never inflate scores, but also avoid excessive conservatism that undervalues transferable skills.',
       jsonMode: true,
       generationContext,
     });
 
-    matcherTokens = {
-      input: response.usage.inputTokens,
-      output: response.usage.outputTokens,
-    };
+    matcherTokens = tokenUsageOf(response);
 
     let jsonContent = response.content.trim();
     if (jsonContent.startsWith('```')) {
@@ -757,9 +789,7 @@ export async function extractVerifiedMetrics(
     ? `PRIMARY CV:\n${primaryCV}\n\nMASTER CV:\n${masterCV}`
     : primaryCV;
 
-  const response = await callModel({
-    task: 'extract_metrics',
-    prompt: `Extract EVERY quantified metric, number, percentage, count, and duration from the provided CV documents. Include the number AND its context so it can be verified later.
+  const prompt = `Extract EVERY quantified metric, number, percentage, count, and duration from the provided CV documents. Include the number AND its context so it can be verified later.
 
 ${combinedCV}
 
@@ -777,16 +807,18 @@ EXTRACTION RULES:
 Return a JSON array of strings. Each string is one metric with its context.
 Example: ["$120,000 annual revenue", "5 international markets", "25% year-over-year growth", "3.8 GPA"]
 
-Return ONLY the JSON array. No explanation.`,
+Return ONLY the JSON array. No explanation.`;
+  const response = await callModel({
+    task: 'extract_metrics',
+    prompt,
+    // Depends only on the CVs, not the job: the same user's next fit analysis or kit within 5 minutes reads it.
+    promptBlocks: wholePromptBlocks(prompt, '5m'),
     systemPrompt: 'You are a precise data extraction tool. Extract only explicitly stated numbers and metrics from the provided documents. Never infer, calculate, or fabricate. Return a JSON array of strings.',
     jsonMode: true,
     generationContext,
   });
 
-  const tokens: TokenUsage = {
-    input: response.usage.inputTokens,
-    output: response.usage.outputTokens,
-  };
+  const tokens: TokenUsage = tokenUsageOf(response);
 
   try {
     let jsonContent = response.content.trim();

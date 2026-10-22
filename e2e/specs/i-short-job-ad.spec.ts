@@ -17,8 +17,8 @@ const MODEL_REPLY = 'Pick a button below to continue.';
 const adOfLength = (length: number): string => `${'Product Engineer, Lumen Logistics GmbH, Berlin. Build internal tools. '.repeat(5).slice(0, length - 1)}x`;
 
 /**
- * (i) A short pasted job ad. Chat runs on Workers AI, which the data preview does not have, so the
- * /api/chat response is scripted in the browser: the model calls propose_application and says to
+ * (i) A short pasted job ad. The chat model (Haiku 5.5) is not in play here: the
+ * /api/chat response is scripted in the browser, so the proposal is fixed: the model calls propose_application and says to
  * pick a button. What is under test is what the client does with that proposal.
  *
  * 166 characters (the ad the brief called 176): the buttons show, with a hint that the posting looks short.

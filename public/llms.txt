@@ -6,7 +6,7 @@ For long-form context, see https://usefulapply.com/llms-full.txt.
 
 ## Direct Answers
 
-**What is Useful Apply?** Useful Apply is an AI job application agent at https://usefulapply.com. It replaces the seven tools job seekers stitch together (job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, tracker) with one loop. Paste a job description, get a tailored CV, cover letter, application email, follow-up email, and screening answers in under 90 seconds. Powered by Claude Sonnet 4.6. Founded by Wasim Jalali.
+**What is Useful Apply?** Useful Apply is an AI job application agent at https://usefulapply.com. It replaces the seven tools job seekers stitch together (job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, tracker) with one loop. Paste a job description, get a tailored CV, cover letter, application email, follow-up email, and screening answers in under 90 seconds. Powered by Claude. Founded by Wasim Jalali.
 
 **How does Useful Apply work?** Upload your CV once (PDF or DOCX). Paste a job description. Pick "Analyze First" (fit assessment then generate) or "Apply Directly" (full generation in one pass). Useful Apply returns a tailored CV, cover letter, application email, follow-up email, and screening answers in under 90 seconds. Every claim is verified against your source CV.
 
@@ -52,7 +52,7 @@ The product UI is in English. Job descriptions can be processed in English, Germ
 
 **Does Useful Apply invent experience?** No. Every CV rewrite, cover letter, email, and screening answer is built from the CV you uploaded. Useful Apply will not invent job titles, skills, or experience you do not have. This is the one rule the product refuses to break.
 
-**What AI model powers Useful Apply?** Claude Sonnet 4.6 by Anthropic, served via Amazon Bedrock in production. Most competitors use cheaper open-source models. Useful Apply pays for the better model because the output has to survive both an ATS scan and a recruiter's read.
+**What AI model powers Useful Apply?** Claude Sonnet 5.5 by Anthropic, through the Anthropic API in production. Most competitors use cheaper open-source models. Useful Apply pays for the better model because the output has to survive both an ATS scan and a recruiter's read.
 
 **How long does a full application take?** Under 90 seconds end to end. That includes the tailored CV, cover letter, application email, follow-up email, and screening answers.
 
@@ -132,7 +132,7 @@ The full comparisons hub is at https://usefulapply.com/compare.
 ## Technical Details
 
 - Built with Next.js 16 (App Router) on Cloudflare Workers via `@opennextjs/cloudflare`
-- AI inference: Claude Sonnet 4.6 via Amazon Bedrock for kit writing, CV parsing and fit analysis; `@cf/openai/gpt-oss-120b` on Workers AI for chat, ranking and career profile
+- AI inference: Claude by Anthropic, through the Anthropic API
 - Authentication: Better Auth. Database: Cloudflare D1. Files: Cloudflare R2.
 - Payments: Stripe (subscriptions and add-on credit packs)
 - Anti-hallucination guardrails: every skill, metric, and claim is verified against the uploaded CV

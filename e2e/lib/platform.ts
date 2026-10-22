@@ -61,7 +61,6 @@ function writeConfig(dir: string): string {
 
 /** Model settings for in-process runs: the real SDK, pointed at the scripted fake. Must be set before the agents are imported. */
 export function pointModelAtFake(): void {
-  process.env.AI_PROVIDER = 'anthropic';
   process.env.ANTHROPIC_API_KEY = 'e2e-stub-key';
   process.env.ANTHROPIC_BASE_URL = FAKE_ANTHROPIC_URL;
 }

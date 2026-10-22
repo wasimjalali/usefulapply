@@ -108,7 +108,7 @@ Useful Apply enforces zero fabrication through architectural rules in the AI pip
 - The job description is **never** treated as a source of facts about the applicant. It is used only for keyword alignment, tone, and structural cues.
 - Every generated claim (job title, skill, metric, project, qualification) is verified against the parsed CV before being included in any output.
 - If the CV does not contain a skill the job requires, Useful Apply acknowledges transferable experience rather than inventing the missing skill.
-- The AI model used in production is **Claude Sonnet 4.6 by Anthropic**, served via Amazon Bedrock. Sonnet 4.6 is one of the most capable models for instruction-following and structured output, which makes the anti-hallucination guardrails enforceable.
+- The AI model used in production is **Claude Sonnet 5.5 by Anthropic**, through the Anthropic API. Sonnet 5.5 is one of the most capable models for instruction-following and structured output, which makes the anti-hallucination guardrails enforceable.
 - Most competitors use cheaper open-source models. Useful Apply pays for the better model because the output has to survive both an ATS scan and a recruiter's read.
 
 Read more: https://usefulapply.com/ai-job-application/zero-fabrication.
@@ -195,7 +195,7 @@ The founder story is at https://usefulapply.com/about.
 
 - **Framework**: Next.js 16 (App Router) on Cloudflare Workers via `@opennextjs/cloudflare`
 - **UI**: React 19, Tailwind CSS v4, Inter UI + Plus Jakarta Sans wordmark
-- **AI inference**: Claude Sonnet 4.6 via Amazon Bedrock for kit writing, CV parsing and fit analysis; `@cf/openai/gpt-oss-120b` on Workers AI for chat, ranking and career profile
+- **AI inference**: Claude by Anthropic, through the Anthropic API
 - **Database**: Cloudflare D1 (SQLite) with Drizzle ORM
 - **Auth**: Better Auth
 - **Files**: Cloudflare R2

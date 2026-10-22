@@ -1,7 +1,7 @@
 /**
  * Model Abstraction Layer
- * Primary: Claude Sonnet 5.5 on the direct Anthropic API (Sonnet 4.6 on the Bedrock / DigitalOcean fallback)
- * Previous: Claude Sonnet 4.5 (USE_PREVIOUS_MODEL=true) | Fallback: Claude Haiku 4.5 (USE_FALLBACK_MODEL=true)
+ * Claude Sonnet 5.5 for the kit tasks (anthropic.ts), Claude Haiku 5.5 for the other sites (haiku.ts), both on
+ * the Anthropic API with Claude in Amazon Bedrock as the failover (providers.ts).
  */
 
 import { callAnthropic, callAnthropicStream, parseAnthropicJSON, ACTIVE_MODEL_ID, ACTIVE_MODEL_PRICING } from './anthropic';
@@ -16,26 +16,49 @@ import {
 export * from './types';
 export { parseAnthropicJSON, ACTIVE_MODEL_ID, ACTIVE_MODEL_PRICING };
 export type { ModelPricing } from './anthropic';
+export { HAIKU_55_PRICING, haiku55CostUsd, haiku55PricingFor, sonnet55CostUsd } from './anthropic';
+export {
+  callHaiku,
+  buildHaikuRequest,
+  HAIKU_MODEL_ID,
+  InputBudgetError,
+  type HaikuCallOptions,
+  type HaikuEffort,
+  type HaikuResponse,
+  type HaikuSite,
+  type HaikuToolDefinition,
+} from './haiku';
+export { HAIKU_EFFORTS, HAIKU_SITE_EFFORT, resolveHaikuEffort } from './haiku-effort';
+export {
+  CHARS_PER_TOKEN,
+  COUNT_TOKENS_ABOVE,
+  INPUT_HARD_LIMIT,
+  INPUT_REFUSE_ABOVE,
+  estimateInputTokens,
+  estimateTokens,
+  projectNextInputTokens,
+} from './token-budget';
 
 /**
  * Main function to call Claude (model resolved at runtime in anthropic.ts)
  */
 export async function callModel(options: ModelCallOptions): Promise<ModelResponse> {
-  const { task, prompt, systemPrompt, systemBlocks, temperature, maxTokens, jsonMode, conversationHistory, generationContext } = options;
+  const { task, prompt, promptBlocks, systemPrompt, systemPromptCacheTtl, systemBlocks, maxTokens, jsonMode, conversationHistory, generationContext, site } = options;
   
   const config = getModelConfig(task);
   
-  const finalTemp = temperature ?? config.temperature;
   const finalMaxTokens = maxTokens ?? config.maxTokens;
   
   return callAnthropic({
     prompt,
+    promptBlocks,
     systemPrompt,
+    systemPromptCacheTtl,
     systemBlocks,
-    temperature: finalTemp,
     maxTokens: finalMaxTokens,
     jsonMode,
     conversationHistory,
+    site: site ?? task,
     generationContext: generationContext
       ? { ...generationContext, operation: task }
       : {
@@ -54,19 +77,22 @@ export async function callModelStream(
   options: ModelCallOptions,
   onChunk: (chunk: string) => void
 ): Promise<ModelResponse> {
-  const { task, prompt, systemPrompt, temperature, maxTokens, generationContext } = options;
+  const { task, prompt, promptBlocks, systemPrompt, systemPromptCacheTtl, systemBlocks, maxTokens, jsonMode, generationContext, site } = options;
   
   const config = getModelConfig(task);
   
-  const finalTemp = temperature ?? config.temperature;
   const finalMaxTokens = maxTokens ?? config.maxTokens;
   
   return callAnthropicStream(
     {
       prompt,
+      promptBlocks,
       systemPrompt,
-      temperature: finalTemp,
+      systemPromptCacheTtl,
+      systemBlocks,
       maxTokens: finalMaxTokens,
+      jsonMode,
+      site: site ?? task,
       generationContext: generationContext
         ? { ...generationContext, operation: task }
         : {
@@ -89,19 +115,22 @@ export function parseModelJSON<T>(content: string): T {
 
 /**
  * Get estimated cost for a model call (in USD), at the active model's list price
- * (Sonnet 5.5: $2/M input, $10/M output; Sonnet 4.6: $3/$15; Haiku 4.5: $1/$5;
- * cache writes 1.25x input; cache reads 0.05x input on Sonnet 5.5, 0.1x on the others)
+ * (Sonnet 5.5: $2/M input, $10/M output; 5-minute cache writes 1.25x input, 1-hour writes 2x, cache reads 0.05x input)
  */
 export function estimateCost(
   task: TaskType,
   inputTokens: number,
   outputTokens: number,
-  cache: { writeTokens?: number; readTokens?: number } = {},
+  cache: { writeTokens?: number; write1hTokens?: number; readTokens?: number } = {},
 ): number {
   const p = ACTIVE_MODEL_PRICING;
+  const write1h = cache.write1hTokens ?? 0;
+  // writeTokens is the total; the 1-hour part of it is priced at the 1-hour rate.
+  const write5m = Math.max(0, (cache.writeTokens ?? 0) - write1h);
   return (inputTokens * p.inputPerM
     + outputTokens * p.outputPerM
-    + (cache.writeTokens ?? 0) * p.cacheWritePerM
+    + write5m * p.cacheWritePerM
+    + write1h * (p.cacheWrite1hPerM ?? 2 * p.inputPerM)
     + (cache.readTokens ?? 0) * p.cacheReadPerM) / 1_000_000;
 }
 
@@ -115,6 +144,7 @@ export function logModelUsage(
 ): void {
   const cost = estimateCost(task, response.usage.inputTokens, response.usage.outputTokens, {
     writeTokens: response.usage.cacheCreationInputTokens,
+    write1hTokens: response.usage.cacheCreation1hInputTokens,
     readTokens: response.usage.cacheReadInputTokens,
   });
   

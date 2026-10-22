@@ -12,55 +12,61 @@
  */
 
 import { createHash } from 'node:crypto';
-import { callWorkersAI } from '@/lib/models/workers-ai';
+import { callHaiku } from '@/lib/models/haiku';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import type { JobFeedSettings } from '@/lib/supabase/types';
 
-export const SEARCH_STRATEGY_SCHEMA_VERSION = 1 as const;
+import { SEARCH_STRATEGY_SCHEMA_VERSION } from '@/lib/job-feed/search-strategy-types';
+import type {
+  SearchExpectedRecall,
+  SearchQueryType,
+  SearchStrategy,
+  SearchStrategyQuery,
+} from '@/lib/job-feed/search-strategy-types';
 
-const STRATEGY_TEMPERATURE = 0.4;
-// gpt-oss spends part of this budget reasoning before the JSON.
-const STRATEGY_MAX_TOKENS = 5000;
+// The constant and types live in a server-free module so client code (search-plan via feed-actions)
+// can import them without pulling the model layer into the browser bundle.
+export { SEARCH_STRATEGY_SCHEMA_VERSION } from '@/lib/job-feed/search-strategy-types';
+export type {
+  SearchExpectedRecall,
+  SearchQueryType,
+  SearchStrategy,
+  SearchStrategyQuery,
+} from '@/lib/job-feed/search-strategy-types';
 
-export type SearchQueryType = 'short_tail' | 'long_tail' | 'localized';
-export type SearchExpectedRecall = 'high' | 'medium' | 'low';
+// Thinking counts toward max_tokens; the JSON itself is ~1.5k tokens.
+const STRATEGY_MAX_TOKENS = 8000;
 
-export interface SearchStrategyQuery {
-  type: SearchQueryType;
-  /** Raw SerpAPI `q` value. Already localized for the target country when applicable. */
-  query: string;
-  /** ISO 3166-1 alpha-2 country code (lowercase) — must be one of settings.target_countries. */
-  targetCountry: string;
-  /** Short justification used for run diagnostics + UX preview. */
-  rationale: string;
-  expectedRecall: SearchExpectedRecall;
-  /**
-   * 0-based index into queries[] of a fallback to retry when this query
-   * returns zero results. Null when no fallback is available (e.g. it is
-   * itself the short-tail / safe option).
-   */
-  fallbackTo: number | null;
-}
-
-export interface SearchStrategy {
-  version: typeof SEARCH_STRATEGY_SCHEMA_VERSION;
-  generatedAt: string;
-  /** ISO timestamp of the profile this strategy was synthesized against. */
-  sourceProfileGeneratedAt: string;
-  /**
-   * True when the user confirmed or edited this query list. Daily runs must
-   * reuse it and must not silently regenerate over it.
-   */
-  userConfirmed?: boolean;
-  queries: SearchStrategyQuery[];
-  /**
-   * Negative title/keyword terms used by the ranker as a downweight signal
-   * (NOT applied as SerpAPI minus operators — Google Jobs is finicky with
-   * exclusion syntax and we'd rather see and skip than miss-and-skip).
-   */
-  negativeTerms: string[];
-}
+// Structured output (output_config.format). parseSearchStrategyResponse still
+// enforces the allowed countries, one short_tail per country and fallbackTo ranges.
+export const SEARCH_STRATEGY_JSON_SCHEMA: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    version: { type: 'integer' },
+    generatedAt: { type: 'string' },
+    sourceProfileGeneratedAt: { type: 'string' },
+    queries: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          type: { type: 'string', enum: ['short_tail', 'long_tail', 'localized'] },
+          query: { type: 'string' },
+          targetCountry: { type: 'string' },
+          rationale: { type: 'string' },
+          expectedRecall: { type: 'string', enum: ['high', 'medium', 'low'] },
+          fallbackTo: { anyOf: [{ type: 'integer' }, { type: 'null' }] },
+        },
+        required: ['type', 'query', 'targetCountry', 'rationale', 'expectedRecall', 'fallbackTo'],
+        additionalProperties: false,
+      },
+    },
+    negativeTerms: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['version', 'generatedAt', 'sourceProfileGeneratedAt', 'queries', 'negativeTerms'],
+  additionalProperties: false,
+};
 
 // ---------------------------------------------------------------------------
 // settings_hash — stable hash of the inputs that materially affect search shape.
@@ -87,7 +93,7 @@ export function computeSettingsHash(settings: JobFeedSettings): string {
   return createHash('sha256').update(JSON.stringify(material)).digest('hex').slice(0, 16);
 }
 
-const SYSTEM_TEXT = `# Role
+export const SYSTEM_TEXT = `# Role
 You are a SerpAPI query strategist for an AI job-search assistant. You translate a candidate's career profile and current search settings into a structured plan of Google Jobs queries that maximize relevant matches inside a strict daily query budget. Downstream the planner picks queries from your list and runs them in priority order.
 
 # Your inputs
@@ -190,13 +196,21 @@ export async function generateSearchStrategy(params: {
   const startTime = Date.now();
   const userPrompt = buildStrategyUserPrompt(params.profile, params.settings);
 
-  const response = await callWorkersAI({
-    prompt: userPrompt,
-    systemPrompt: SYSTEM_TEXT,
-    temperature: STRATEGY_TEMPERATURE,
+  // SYSTEM_TEXT is the cached prefix (identical for every user); the profile,
+  // settings and today's date are in the user turn, after the marker.
+  const response = await callHaiku({
+    site: 'search_strategy',
+    system: { static: SYSTEM_TEXT },
+    messages: [{ role: 'user', content: userPrompt }],
+    jsonSchema: SEARCH_STRATEGY_JSON_SCHEMA,
     maxTokens: STRATEGY_MAX_TOKENS,
-    jsonMode: true,
-    generationContext: params.generationContext,
+    cacheTtl: '5m',
+    generationContext: params.generationContext ?? {
+      requestExecutionId: crypto.randomUUID(),
+      route: 'job-feed/search-strategy',
+      feature: 'job_feed',
+      operation: 'search_strategy_generation',
+    },
   });
 
   const latencyMs = Date.now() - startTime;
@@ -204,15 +218,15 @@ export async function generateSearchStrategy(params: {
 
   return {
     strategy,
-    modelProvider: response.provider ?? 'anthropic',
-    modelName: response.model ?? 'unknown',
-    inputTokens: response.usage?.inputTokens ?? 0,
-    outputTokens: response.usage?.outputTokens ?? 0,
+    modelProvider: response.provider,
+    modelName: response.model,
+    inputTokens: response.inputTokensTotal,
+    outputTokens: response.usage.outputTokens,
     latencyMs,
   };
 }
 
-function buildStrategyUserPrompt(profile: CareerProfile, settings: JobFeedSettings): string {
+export function buildStrategyUserPrompt(profile: CareerProfile, settings: JobFeedSettings): string {
   const settingsForModel = {
     target_countries: settings.target_countries ?? [],
     target_cities: settings.target_cities ?? [],

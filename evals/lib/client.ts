@@ -3,10 +3,11 @@
  *
  * Why not src/lib/models/anthropic.ts: callAnthropic() writes every call to the production
  * D1 usage ledger (startLlmGeneration) and imports the D1 client. The eval must not touch
- * either. So this file reproduces the exact request body that callAnthropic builds for
- * Bedrock (same auth modes, same cachePoint conversion, same retry set, same 120 s timeout
- * on the bearer path) and adds what the eval needs: stop_reason, full usage, retries and
- * the raw response.
+ * either. So this file builds its own requests and adds what the eval needs: stop_reason,
+ * full usage, retries and the raw response. The Anthropic arms use the Messages API shape of
+ * production. The Bedrock arm (unused) reproduces the Sonnet 4.6 Bedrock paths production
+ * had until 2026-10-22 (Converse with a bearer token, or the InvokeModel SDK client); those
+ * paths are gone from src/lib/models, which now only fails over to Claude in Amazon Bedrock.
  *
  * Deliberate differences from production, all in observability only:
  *  - the SDK path sets maxRetries 0 and retries here (same statuses plus 408/409) so the
@@ -168,7 +169,7 @@ async function callBedrockSdk(req: ProviderRequest): Promise<Omit<ProviderResult
         .create({
           model: req.model,
           max_tokens: req.max_tokens,
-          temperature: req.temperature,
+          // No temperature: @anthropic-ai/sdk 1.x and the 2026-10-21 API reject it. This arm is unused.
           ...(req.system && { system: req.system }),
           messages: req.messages,
         })
@@ -207,9 +208,9 @@ export function setDryRun(v: boolean): void {
 }
 
 /**
- * Request body for the Anthropic API. Typed loosely on purpose: @anthropic-ai/sdk 0.71.2 has no
- * `adaptive` thinking type and no `output_config` on MessageCreateParams, but it forwards unknown
- * body fields unchanged, so the cast is the only workaround needed.
+ * Request body for the Anthropic API. Typed loosely on purpose: the 2026-10-12 run used
+ * @anthropic-ai/sdk 0.71.2, which had no `adaptive` thinking type and no `output_config` on
+ * MessageCreateParams. SDK 1.x types both; the loose type stays so the request stays byte-identical to that run.
  * B arms: no temperature/top_p/top_k, adaptive thinking, output_config.effort, no prefill,
  * no tool_choice, no server-side fallbacks (another model answering would contaminate the eval).
  */

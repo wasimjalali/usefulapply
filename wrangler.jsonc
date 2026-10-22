@@ -61,14 +61,7 @@
 	"version_metadata": {
 		"binding": "CF_VERSION_METADATA"
 	},
-	// Workers AI for job feed ranking. Primary model, then the fallback model on
-	// failure, then deterministic ordering (see openai-ranking.ts).
-	"ai": {
-		"binding": "AI"
-	},
 	"vars": {
-		"JOB_FEED_RANKING_MODEL": "@cf/openai/gpt-oss-120b",
-		"JOB_FEED_RANKING_FALLBACK_MODEL": "@cf/deepseek-ai/deepseek-v4-flash-0731",
 		// MCP server (/mcp), its OAuth server and /integrations. "false" turns all of them off (404).
 		"MCP_ENABLED": "true"
 	},

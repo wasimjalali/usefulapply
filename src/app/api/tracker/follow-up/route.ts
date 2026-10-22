@@ -7,7 +7,6 @@ import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
 import { reserveCredits, captureReservation, releaseReservation } from '@/lib/supabase/credit-reservations';
 import { detectLanguage, isSupportedLanguage, type SupportedLanguage } from '@/lib/utils/language-detector';
 import { getPostHogServer } from '@/lib/posthog-server';
-import { ACTIVE_MODEL_ID, ACTIVE_MODEL_PRICING } from '@/lib/models';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { clearKitDocumentError, getSession, updateSession, type ApplicationSession } from '@/db/repos/sessions';
 import { saveKitDocument } from '@/lib/services/kit';
@@ -191,11 +190,6 @@ export async function POST(request: NextRequest) {
     // lands in the catch below, which releases the reservation.
     masterContext.logistics = await loadApplicantLogistics(user.id);
 
-    const traceId = `trace_${randomUUID()}`;
-    const INPUT_COST_PER_M = ACTIVE_MODEL_PRICING.inputPerM;
-    const OUTPUT_COST_PER_M = ACTIVE_MODEL_PRICING.outputPerM;
-    const regenStartTime = Date.now();
-
     const { result: followUpEmail, tokens } = await unifiedWriterAgent.generateFollowUpEmail(masterContext, generationContext);
     if (!followUpEmail?.subject?.trim() || !followUpEmail?.body?.trim()) {
       await releaseReservation({
@@ -204,36 +198,6 @@ export async function POST(request: NextRequest) {
         reason: 'empty_follow_up',
       });
       return NextResponse.json({ error: 'Failed to write the follow-up.' }, { status: 500 });
-    }
-
-    try {
-      const posthog = getPostHogServer();
-      const inputCost = (tokens.input / 1_000_000) * INPUT_COST_PER_M;
-      const outputCost = (tokens.output / 1_000_000) * OUTPUT_COST_PER_M;
-      posthog.capture({
-        distinctId: user.id,
-        event: '$ai_generation',
-        properties: {
-          $ai_provider: 'anthropic',
-          $ai_model: ACTIVE_MODEL_ID,
-          $ai_input_tokens: tokens.input,
-          $ai_output_tokens: tokens.output,
-          $ai_input_cost_usd: inputCost,
-          $ai_output_cost_usd: outputCost,
-          $ai_total_cost_usd: inputCost + outputCost,
-          $ai_is_error: false,
-          $ai_http_status: 200,
-          $ai_trace_id: traceId,
-          $ai_latency: (Date.now() - regenStartTime) / 1000,
-          step: 'regen_follow_up_email',
-          total_tokens: tokens.input + tokens.output,
-          feature: 'tracker_follow_up',
-          workflow_action: 'regen_follow_up_email',
-        },
-      });
-      await posthog.flush();
-    } catch (error) {
-      console.error('[PostHog] Tracker follow-up tracking error:', error);
     }
 
     const written = {

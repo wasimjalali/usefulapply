@@ -27,7 +27,8 @@
  * expectation is the only salary a letter may state (only when the ad asks)
  * and never reaches an email prompt. Empty answers leave the rules above as
  * they were. The saved text is the applicant's own wording, so it rides
- * inside << >>, sanitized like ad text, and can't close its fence.
+ * inside a marker, sanitized like ad text, and can't close it: << >> in the
+ * kit writers, an <applicant_saved_value> tag in screening (see ProfileValueMarker).
  */
 
 import type { MasterContext } from '@/lib/agents/types';
@@ -41,32 +42,46 @@ import {
 } from '@/lib/profile/logistics';
 
 /**
- * A saved profile value on its way into a prompt, inside << >>: one line,
- * angle brackets and prompt chrome neutralised the way ad text is, capped.
+ * How a saved profile value is marked in a prompt.
+ * - 'quote', << >>: the kit writers. Their only other << >> text is the applicant's own rewrite instruction,
+ *   so both meanings there are the applicant's own words.
+ * - 'tag', <applicant_saved_value>: screening. Its earlier chat turns carry pasted text (a job ad) in << >>,
+ *   and that is never the applicant's statement, so the saved values need a marker nothing else uses.
  */
-function fencedProfileValue(value: string, max: number): string {
-  return `<<${sanitizeAdText(value.replace(/\s+/g, ' ').trim().slice(0, max))}>>`;
+export type ProfileValueMarker = 'quote' | 'tag';
+
+/** The tag screening wraps each saved profile value in. Nothing else in any prompt uses it. */
+export const SAVED_VALUE_TAG = 'applicant_saved_value';
+
+/**
+ * A saved profile value on its way into a prompt, inside its marker: one line,
+ * angle brackets and prompt chrome neutralised the way ad text is (so it can't
+ * close the marker or open a tag), capped.
+ */
+function fencedProfileValue(value: string, max: number, marker: ProfileValueMarker): string {
+  const text = sanitizeAdText(value.replace(/\s+/g, ' ').trim().slice(0, max));
+  return marker === 'tag' ? `<${SAVED_VALUE_TAG}>${text}</${SAVED_VALUE_TAG}>` : `<<${text}>>`;
 }
 
 /**
  * The applicant's saved availability as one prompt line, or null when they
  * gave none. "Other" without a note counts as none.
  */
-export function profileAvailabilityLine(logistics: ApplicantLogistics | undefined): string | null {
+export function profileAvailabilityLine(logistics: ApplicantLogistics | undefined, marker: ProfileValueMarker = 'quote'): string | null {
   if (!logistics?.availability) return null;
   const note = logistics.availabilityNote?.trim() || null;
   if (logistics.availability === 'other') {
-    return note ? `in the applicant's own words, ${fencedProfileValue(note, AVAILABILITY_NOTE_MAX)}` : null;
+    return note ? `in the applicant's own words, ${fencedProfileValue(note, AVAILABILITY_NOTE_MAX, marker)}` : null;
   }
   const fact = availabilityFact({ ...logistics, availabilityNote: null });
   if (!fact) return null;
-  return note ? `the applicant ${fact}; their own details on it: ${fencedProfileValue(note, AVAILABILITY_NOTE_MAX)}` : `the applicant ${fact}`;
+  return note ? `the applicant ${fact}; their own details on it: ${fencedProfileValue(note, AVAILABILITY_NOTE_MAX, marker)}` : `the applicant ${fact}`;
 }
 
 /** The applicant's saved salary expectation, fenced, or null when they gave none. */
-export function profileSalaryLine(logistics: ApplicantLogistics | undefined): string | null {
+export function profileSalaryLine(logistics: ApplicantLogistics | undefined, marker: ProfileValueMarker = 'quote'): string | null {
   const salary = logistics?.salaryExpectation?.trim();
-  return salary ? fencedProfileValue(salary, SALARY_EXPECTATION_MAX) : null;
+  return salary ? fencedProfileValue(salary, SALARY_EXPECTATION_MAX, marker) : null;
 }
 
 /**

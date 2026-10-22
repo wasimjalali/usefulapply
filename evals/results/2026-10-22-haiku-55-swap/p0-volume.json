@@ -1,0 +1,524 @@
+{
+  "queriedAt": "2026-10-22",
+  "window": "last 30 days",
+  "note": "SELECT only, aggregate counts and token sums only. Feed tier is the profile current tier, not the tier at run time.",
+  "queries": {
+    "llm_generations": "SELECT feature, operation, provider, model, status, count(*) n, sum(input_tokens) i, sum(output_tokens) o, sum(cache_read_input_tokens) cr FROM llm_generations WHERE started_at > datetime('now','-30 days') GROUP BY 1,2,3,4,5 ORDER BY n DESC",
+    "chat_messages": "SELECT role, count(*) n FROM chat_messages WHERE created_at > datetime('now','-30 days') GROUP BY role",
+    "feed_runs": "SELECT p.subscription_tier tier, r.status, r.trigger_source, count(*) n, count(distinct r.user_id) users FROM job_feed_runs r JOIN profiles p ON p.id = r.user_id WHERE r.created_at > datetime('now','-30 days') GROUP BY 1,2,3",
+    "sessions": "SELECT count(*) sessions_created_30d, sum(screening_turns_used) screening_turns_on_those, sum(case when screening_turns_used>0 then 1 else 0 end) with_screening FROM application_sessions WHERE created_at > datetime('now','-30 days')",
+    "users": "distinct user_id counts over llm_generations, chat_messages, application_sessions and job_feed_runs in the window, plus count(*) of profiles"
+  },
+  "results": {
+    "llm_generations": [
+      {
+        "feature": "application_generation",
+        "operation": "write_follow_up_email",
+        "provider": "bedrock",
+        "model": "us.anthropic.claude-sonnet-4-6",
+        "status": "response_received",
+        "n": 33,
+        "i": 180338,
+        "o": 6579,
+        "cr": 0
+      },
+      {
+        "feature": "fit_analysis",
+        "operation": "fit_analysis",
+        "provider": "workers-ai",
+        "model": "@cf/openai/gpt-oss-120b",
+        "status": "response_received",
+        "n": 24,
+        "i": 20154,
+        "o": 1545,
+        "cr": 0
+      },
+      {
+        "feature": "application_generation",
+        "operation": "write_email",
+        "provider": "bedrock",
+        "model": "us.anthropic.claude-sonnet-4-6",
+        "status": "response_received",
+        "n": 22,
+        "i": 102827,
+        "o": 4783,
+        "cr": 16616
+      },
+      {
+        "feature": "application_generation",
+        "operation": "write_cover_letter",
+        "provider": "bedrock",
+        "model": "us.anthropic.claude-sonnet-4-6",
+        "status": "response_received",
+        "n": 21,
+        "i": 117346,
+        "o": 7587,
+        "cr": 33152
+      },
+      {
+        "feature": "application_generation",
+        "operation": "optimize_cv",
+        "provider": "bedrock",
+        "model": "us.anthropic.claude-sonnet-4-6",
+        "status": "response_received",
+        "n": 19,
+        "i": 82283,
+        "o": 58003,
+        "cr": 44120
+      },
+      {
+        "feature": "chat",
+        "operation": "general_chat",
+        "provider": "workers-ai",
+        "model": "@cf/openai/gpt-oss-120b",
+        "status": "response_received",
+        "n": 18,
+        "i": 112857,
+        "o": 1353,
+        "cr": 0
+      },
+      {
+        "feature": "fit_analysis",
+        "operation": "extract_applicant",
+        "provider": "bedrock",
+        "model": "us.anthropic.claude-sonnet-4-6",
+        "status": "response_received",
+        "n": 15,
+        "i": 60279,
+        "o": 29034,
+        "cr": 0
+      },
+      {
+        "feature": "fit_analysis",
+        "operation": "extract_metrics",
+        "provider": "bedrock",
+        "model": "us.anthropic.claude-sonnet-4-6",
+        "status": "response_received",
+        "n": 15,
+        "i": 57054,
+        "o": 11847,
+        "cr": 0
+      },
+      {
+        "feature": "fit_analysis",
+        "operation": "fit_assessment",
+        "provider": "bedrock",
+        "model": "us.anthropic.claude-sonnet-4-6",
+        "status": "response_received",
+        "n": 15,
+        "i": 82839,
+        "o": 2403,
+        "cr": 0
+      },
+      {
+        "feature": "fit_analysis",
+        "operation": "parse_job",
+        "provider": "bedrock",
+        "model": "us.anthropic.claude-sonnet-4-6",
+        "status": "response_received",
+        "n": 15,
+        "i": 28311,
+        "o": 7329,
+        "cr": 0
+      },
+      {
+        "feature": "fit_analysis",
+        "operation": "skill_matching",
+        "provider": "bedrock",
+        "model": "us.anthropic.claude-sonnet-4-6",
+        "status": "response_received",
+        "n": 14,
+        "i": 103427,
+        "o": 13019,
+        "cr": 0
+      },
+      {
+        "feature": "application_generation",
+        "operation": "extract_applicant",
+        "provider": "bedrock",
+        "model": "us.anthropic.claude-sonnet-4-6",
+        "status": "response_received",
+        "n": 9,
+        "i": 21674,
+        "o": 14895,
+        "cr": 0
+      },
+      {
+        "feature": "application_generation",
+        "operation": "extract_metrics",
+        "provider": "bedrock",
+        "model": "us.anthropic.claude-sonnet-4-6",
+        "status": "response_received",
+        "n": 9,
+        "i": 19754,
+        "o": 3899,
+        "cr": 0
+      },
+      {
+        "feature": "application_generation",
+        "operation": "parse_job",
+        "provider": "bedrock",
+        "model": "us.anthropic.claude-sonnet-4-6",
+        "status": "response_received",
+        "n": 9,
+        "i": 16935,
+        "o": 4545,
+        "cr": 0
+      },
+      {
+        "feature": "application_generation",
+        "operation": "skill_matching",
+        "provider": "bedrock",
+        "model": "us.anthropic.claude-sonnet-4-6",
+        "status": "response_received",
+        "n": 9,
+        "i": 49123,
+        "o": 5828,
+        "cr": 0
+      },
+      {
+        "feature": "fit_analysis",
+        "operation": "extract_applicant",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "status": "response_received",
+        "n": 9,
+        "i": 55368,
+        "o": 16490,
+        "cr": 0
+      },
+      {
+        "feature": "fit_analysis",
+        "operation": "extract_metrics",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "status": "response_received",
+        "n": 9,
+        "i": 52363,
+        "o": 8733,
+        "cr": 0
+      },
+      {
+        "feature": "fit_analysis",
+        "operation": "fit_assessment",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "status": "response_received",
+        "n": 9,
+        "i": 61364,
+        "o": 2335,
+        "cr": 0
+      },
+      {
+        "feature": "fit_analysis",
+        "operation": "parse_job",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "status": "response_received",
+        "n": 9,
+        "i": 17691,
+        "o": 3820,
+        "cr": 0
+      },
+      {
+        "feature": "fit_analysis",
+        "operation": "skill_matching",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "status": "response_received",
+        "n": 9,
+        "i": 98266,
+        "o": 5999,
+        "cr": 0
+      },
+      {
+        "feature": "application_generation",
+        "operation": "optimize_cv",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "status": "response_received",
+        "n": 8,
+        "i": 64422,
+        "o": 24934,
+        "cr": 0
+      },
+      {
+        "feature": "application_generation",
+        "operation": "write_cover_letter",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "status": "response_received",
+        "n": 8,
+        "i": 77292,
+        "o": 5593,
+        "cr": 0
+      },
+      {
+        "feature": "application_generation",
+        "operation": "write_email",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "status": "response_received",
+        "n": 8,
+        "i": 62742,
+        "o": 2611,
+        "cr": 0
+      },
+      {
+        "feature": "application_generation",
+        "operation": "write_follow_up_email",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "status": "response_received",
+        "n": 8,
+        "i": 66115,
+        "o": 1692,
+        "cr": 0
+      },
+      {
+        "feature": "application_generation",
+        "operation": "generate_with_context",
+        "provider": "workers-ai",
+        "model": "@cf/openai/gpt-oss-120b",
+        "status": "response_received",
+        "n": 7,
+        "i": 6131,
+        "o": 1224,
+        "cr": 0
+      },
+      {
+        "feature": "chat",
+        "operation": "tool_call:get_cv_outline",
+        "provider": "workers-ai",
+        "model": "@cf/openai/gpt-oss-120b",
+        "status": "response_received",
+        "n": 7,
+        "i": 51432,
+        "o": 968,
+        "cr": 0
+      },
+      {
+        "feature": "chat",
+        "operation": "tool_call:propose_cv_rewrite",
+        "provider": "workers-ai",
+        "model": "@cf/openai/gpt-oss-120b",
+        "status": "response_received",
+        "n": 7,
+        "i": 44315,
+        "o": 1277,
+        "cr": 0
+      },
+      {
+        "feature": "chat",
+        "operation": "tool_call:propose_application",
+        "provider": "workers-ai",
+        "model": "@cf/openai/gpt-oss-120b",
+        "status": "response_received",
+        "n": 6,
+        "i": 37723,
+        "o": 114,
+        "cr": 0
+      },
+      {
+        "feature": "cv_parse",
+        "operation": "parse_cv_document_native",
+        "provider": "bedrock",
+        "model": "us.anthropic.claude-sonnet-4-6",
+        "status": "response_received",
+        "n": 6,
+        "i": 43733,
+        "o": 13714,
+        "cr": 0
+      },
+      {
+        "feature": "regeneration",
+        "operation": "optimize_cv",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "status": "response_received",
+        "n": 6,
+        "i": 62331,
+        "o": 1105,
+        "cr": 41956
+      },
+      {
+        "feature": "application_generation",
+        "operation": "full_optimization",
+        "provider": "workers-ai",
+        "model": "@cf/openai/gpt-oss-120b",
+        "status": "response_received",
+        "n": 4,
+        "i": 3056,
+        "o": 325,
+        "cr": 0
+      },
+      {
+        "feature": "cv_parse",
+        "operation": "parse_cv_text",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "status": "response_received",
+        "n": 4,
+        "i": 9917,
+        "o": 3240,
+        "cr": 0
+      },
+      {
+        "feature": "cv_parse",
+        "operation": "parse_cv_document_native",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "status": "response_received",
+        "n": 3,
+        "i": 23139,
+        "o": 9950,
+        "cr": 0
+      },
+      {
+        "feature": "regeneration",
+        "operation": "optimize_cv",
+        "provider": "bedrock",
+        "model": "us.anthropic.claude-sonnet-4-6",
+        "status": "response_received",
+        "n": 3,
+        "i": 10332,
+        "o": 530,
+        "cr": 17648
+      },
+      {
+        "feature": "application_generation",
+        "operation": "extract_applicant",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "status": "response_received",
+        "n": 2,
+        "i": 14704,
+        "o": 4154,
+        "cr": 0
+      },
+      {
+        "feature": "application_generation",
+        "operation": "extract_metrics",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "status": "response_received",
+        "n": 2,
+        "i": 14034,
+        "o": 2259,
+        "cr": 0
+      },
+      {
+        "feature": "application_generation",
+        "operation": "parse_job",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "status": "response_received",
+        "n": 2,
+        "i": 3027,
+        "o": 553,
+        "cr": 0
+      },
+      {
+        "feature": "application_generation",
+        "operation": "skill_matching",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "status": "response_received",
+        "n": 2,
+        "i": 24266,
+        "o": 572,
+        "cr": 0
+      },
+      {
+        "feature": "cv_parse",
+        "operation": "parse_cv_text",
+        "provider": "bedrock",
+        "model": "us.anthropic.claude-sonnet-4-6",
+        "status": "response_received",
+        "n": 2,
+        "i": 7816,
+        "o": 7132,
+        "cr": 0
+      },
+      {
+        "feature": "job_feed",
+        "operation": "job_feed_ranking",
+        "provider": "workers-ai",
+        "model": "@cf/openai/gpt-oss-120b",
+        "status": "response_received",
+        "n": 2,
+        "i": 54962,
+        "o": 12473,
+        "cr": 0
+      },
+      {
+        "feature": "chat",
+        "operation": "screening_chat",
+        "provider": "workers-ai",
+        "model": "@cf/openai/gpt-oss-120b",
+        "status": "response_received",
+        "n": 1,
+        "i": 2439,
+        "o": 634,
+        "cr": 0
+      },
+      {
+        "feature": "chat",
+        "operation": "tool_call:propose_cv_rewrite",
+        "provider": "workers-ai",
+        "model": "@cf/openai/gpt-oss-120b",
+        "status": "failed",
+        "n": 1,
+        "i": null,
+        "o": null,
+        "cr": null
+      },
+      {
+        "feature": "regeneration",
+        "operation": "write_follow_up_email",
+        "provider": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "status": "response_received",
+        "n": 1,
+        "i": 8936,
+        "o": 197,
+        "cr": 1499
+      }
+    ],
+    "chat_messages": [
+      {
+        "role": "assistant",
+        "n": 43
+      },
+      {
+        "role": "user",
+        "n": 18
+      }
+    ],
+    "feed_runs": [
+      {
+        "tier": "max",
+        "status": "completed",
+        "trigger_source": "manual_user",
+        "n": 2,
+        "users": 1
+      }
+    ],
+    "sessions": [
+      {
+        "sessions_created_30d": 14,
+        "screening_turns_on_those": 0,
+        "with_screening": 0
+      }
+    ],
+    "users": [
+      {
+        "llm_users_30d": 5,
+        "chat_users_30d": 5,
+        "session_users_30d": 5,
+        "profiles_total": 51,
+        "feed_users_30d": 1
+      }
+    ]
+  }
+}

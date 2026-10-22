@@ -34,7 +34,7 @@ import {
 } from '@/lib/supabase/credit-reservations';
 import { transitionJobFeedApplicationGenerationAdmin } from '@/lib/job-feed/server';
 import { getPostHogServer } from '@/lib/posthog-server';
-import { ACTIVE_MODEL_ID, ACTIVE_MODEL_PRICING } from '@/lib/models';
+import { ACTIVE_MODEL_ID } from '@/lib/models';
 import { randomUUID, createHash } from 'crypto';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
@@ -248,82 +248,11 @@ export async function POST(request: NextRequest) {
   
   const stream = new ReadableStream({
     async start(controller) {
-      // PostHog LLM analytics — hoisted above try/catch so error tracking works in catch block
-      const traceId = `trace_${randomUUID()}`;
+      // The model layer captures one $ai_generation per attempt (tokens, cache fields, cost, failures).
+      // distinctId and currentAction stay here for the product events and captureException below.
       const requestExecutionId = randomUUID();
-      const stepStartTimes = new Map<string, number>();
       let distinctId = 'anonymous';
       let currentAction = 'unknown';
-
-      // Active model list price (per million tokens)
-      const INPUT_COST_PER_M = ACTIVE_MODEL_PRICING.inputPerM;
-      const OUTPUT_COST_PER_M = ACTIVE_MODEL_PRICING.outputPerM;
-
-      const trackLLMStep = (stepId: string, tokens?: { input: number; output: number }) => {
-        if (!tokens) return;
-        try {
-          const posthog = getPostHogServer();
-          const inputCost = (tokens.input / 1_000_000) * INPUT_COST_PER_M;
-          const outputCost = (tokens.output / 1_000_000) * OUTPUT_COST_PER_M;
-          const totalCost = inputCost + outputCost;
-          const stepStart = stepStartTimes.get(stepId);
-          const latencySeconds = stepStart ? (Date.now() - stepStart) / 1000 : undefined;
-
-          posthog.capture({
-            distinctId,
-            event: '$ai_generation',
-            properties: {
-              // Required PostHog LLM analytics properties
-              $ai_provider: 'anthropic',
-              $ai_model: ACTIVE_MODEL_ID,
-              $ai_input_tokens: tokens.input,
-              $ai_output_tokens: tokens.output,
-              $ai_input_cost_usd: inputCost,
-              $ai_output_cost_usd: outputCost,
-              $ai_total_cost_usd: totalCost,
-              $ai_is_error: false,
-              $ai_http_status: 200,
-              $ai_trace_id: traceId,
-              ...(latencySeconds !== undefined && { $ai_latency: latencySeconds }),
-              // Custom properties for segmentation
-              step: stepId,
-              total_tokens: tokens.input + tokens.output,
-              feature: currentAction === 'fit_analysis' ? 'fit_analysis' : 'application_generation',
-              workflow_action: currentAction,
-            },
-          });
-        } catch (e) {
-          console.error('[PostHog] LLM tracking error:', e);
-        }
-      };
-
-      // Track LLM errors to PostHog
-      const trackLLMError = (stepId: string, error: unknown) => {
-        try {
-          const posthog = getPostHogServer();
-          const stepStart = stepStartTimes.get(stepId);
-          const latencySeconds = stepStart ? (Date.now() - stepStart) / 1000 : undefined;
-
-          posthog.capture({
-            distinctId,
-            event: '$ai_generation',
-            properties: {
-              $ai_provider: 'anthropic',
-              $ai_model: ACTIVE_MODEL_ID,
-              $ai_is_error: true,
-              $ai_http_status: 500,
-              $ai_trace_id: traceId,
-              ...(latencySeconds !== undefined && { $ai_latency: latencySeconds }),
-              $ai_error: error instanceof Error ? error.message : String(error),
-              step: stepId,
-              feature: currentAction === 'fit_analysis' ? 'fit_analysis' : 'application_generation',
-              workflow_action: currentAction,
-            },
-          });
-        } catch (e) {
-          console.error('[PostHog] LLM error tracking error:', e);
-        }
-      };
 
       let activeReservationKey: string | null = null;
       let activeReservationUserId: string | null = null;
@@ -509,7 +438,6 @@ export async function POST(request: NextRequest) {
         const createEventHandler = (stepIndexFn: (id: string) => number) => (event: AgentEvent) => {
           switch (event.type) {
             case 'step_started':
-              stepStartTimes.set(event.step.id, Date.now());
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                 type: 'step_start',
                 step: event.step.id,
@@ -518,7 +446,6 @@ export async function POST(request: NextRequest) {
               })}\n\n`));
               break;
             case 'step_completed':
-              trackLLMStep(event.step.id, event.tokens);
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                 type: 'step_complete',
                 step: event.step.id,
@@ -527,7 +454,6 @@ export async function POST(request: NextRequest) {
               })}\n\n`));
               break;
             case 'step_error':
-              trackLLMError(event.step.id, event.error);
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                 type: 'step_error',
                 step: event.step.id,
@@ -1065,7 +991,6 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        trackLLMError('workflow', error);
         console.error('[agent-v2] workflow failed:', errorMsg);
         try {
           const posthog = getPostHogServer();

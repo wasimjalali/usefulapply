@@ -1,0 +1,10 @@
+[Anthropic] Using direct Anthropic API (model: claude-sonnet-5-5)
+plain                      stop=end_turn effort=low in=14 out=5 read=0 write=1963 (5m 1963 / 1h 0) total_in=1977 hit=0.0% cost=$0.000249 1192ms
+tools round 1              stop=tool_use effort=low in=93 out=52 read=0 write=2282 (5m 0 / 1h 2282) total_in=2375 hit=0.0% cost=$0.000492 831ms
+  tool call: get_tracker_count {"status":"interview"}
+tools round 2              stop=end_turn effort=low in=151 out=13 read=2282 write=0 (5m 0 / 1h 0) total_in=2433 hit=93.8% cost=$0.000044 772ms
+jsonSchema                 stop=end_turn effort=low in=13 out=33 read=0 write=2195 (5m 2195 / 1h 0) total_in=2208 hit=0.0% cost=$0.000292 1654ms
+conversation turn 1        stop=end_turn effort=low in=4 out=3 read=0 write=2523 (5m 12 / 1h 2511) total_in=2527 hit=0.0% cost=$0.000506 1523ms
+conversation turn 2        stop=end_turn effort=low in=4 out=3 read=2523 write=16 (5m 16 / 1h 0) total_in=2543 hit=99.2% cost=$0.000029 747ms
+
+Total spend: $0.001612 (cap $0.05)

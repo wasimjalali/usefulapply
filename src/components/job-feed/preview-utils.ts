@@ -5,7 +5,7 @@ import type {
   JobFeedSettingsInput,
 } from '@/lib/job-feed/types';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
-import type { SearchStrategy } from '@/lib/job-feed/search-strategy';
+import type { SearchStrategy } from '@/lib/job-feed/search-strategy-types';
 import { createDefaultJobFeedInput } from '@/lib/job-feed/helpers';
 
 export type JobFeedPreviewMode =
