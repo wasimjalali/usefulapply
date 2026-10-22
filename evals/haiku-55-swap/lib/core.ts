@@ -255,7 +255,7 @@ export function summarizeArm(arm: ArmId, outcomes: CaseOutcome[]): ArmSummary {
 export const DECISION_RULE = [
   'Per site, pick the lowest-effort Haiku arm (order: low-nothink, low, medium, high) that satisfies ALL of:',
   '1. Primary metric: its case failures are at most one more than the best Haiku arm (counting every case of every run). The 95% Wilson intervals are reported but do not qualify an arm (tightened before any paid run, 2026-10-22: at these sample sizes overlapping intervals admit several extra failures).',
-  '2. Hard constraints: for every hard-constraint metric it has no more violations than the gpt-oss arm, and zero violations for the metrics a site lists as absolute (ranking: hard-constraint violations in the top 10 must be 0; every site: no call over the 100k input budget).',
+  '2. Hard constraints: for every hard-constraint metric it has no more violations than the gpt-oss arm, and zero violations for the metrics a site lists as absolute (ranking: hard-constraint violations in the top 10 must be 0, and hard_in_surfaced (every surfaced item) is held to the gpt-oss count; every site: no call over the 100k input budget).',
   '3. It produced no errors (a thrown error, an empty reply, a budget stop) that the best Haiku arm did not also produce.',
   'Tie-break between arms of the same effort rank: lower p50 per-call latency. If no arm qualifies the site is undecided and the orchestrator decides by hand.',
   'A run that aborted (the --max-cost stop) or whose arms ran unequal case counts is undecided, whatever the numbers (added 2026-10-22 after review: an arm cut short has fewer chances to fail).',

@@ -237,7 +237,14 @@ export async function runSite<C extends SiteCase>(site: Site<C>, options: RunOpt
       }
       judgeCalls += 1;
       judgeCost += verdict.costUsd;
-      plan.apply(verdict.verdict, o, c);
+      try {
+        plan.apply(verdict.verdict, o, c);
+      } catch (error) {
+        // A verdict that parsed but lacks a field the grader reads: same rule, never lose the run.
+        o.error = `judge verdict: ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)}`;
+        o.pass = false;
+        o.failures = [...o.failures, `judge verdict unusable: ${o.error}`];
+      }
     });
   }
 
