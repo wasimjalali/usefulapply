@@ -675,6 +675,8 @@ export const chatMessages = sqliteTable(
   (t) => [
     index('chat_messages_session_idx').on(t.session_id, t.created_at),
     index('chat_messages_user_idx').on(t.user_id),
+    // Migration 0013: backs the per-application user-message count of the chat cap.
+    index('chat_messages_session_role_idx').on(t.session_id, t.role),
     check('chat_messages_role_check', sql`${t.role} in ('user', 'assistant', 'system')`),
   ],
 );

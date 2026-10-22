@@ -37,6 +37,7 @@ import { parkedRunStillValid } from '@/lib/profile/logistics-resume';
 import type { KitDocument, KitDocumentErrors } from '@/lib/agents/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
 import { useChatCompactionMarker } from './compaction-marker';
+import { flushChatSync } from '@/lib/chat-sync-flush';
 import {
   createSession as createStoredSession,
   deleteSession as deleteStoredSession,
@@ -571,6 +572,8 @@ export function useAgentWorkflow(options?: {
     try {
       const { masterCV, certifications } = useAppStore.getState();
       const { chatHistory: recentMessages, messageId } = chatRequestHistory(message);
+      // Messages added just before this turn reach D1 first, so the route's history keeps the transcript's order.
+      if (messageId && startedIn) await flushChatSync(startedIn, messageId);
 
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -696,6 +699,8 @@ export function useAgentWorkflow(options?: {
       // Screening runs on a saved application, so the route reads the history from D1; the id only keeps the question
       // itself out of it when the transcript already holds it.
       const { chatHistory: recentMessages, messageId } = chatRequestHistory(question);
+      const screeningSessionId = useSessionStore.getState().currentSession?.id;
+      if (messageId && screeningSessionId) await flushChatSync(screeningSessionId, messageId);
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
