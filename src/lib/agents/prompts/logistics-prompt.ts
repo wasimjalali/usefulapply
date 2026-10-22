@@ -44,7 +44,7 @@ const STANDARD_AVAILABILITY: Record<SupportedLanguage, string> = {
   de: '"nach Ablauf meiner Kündigungsfrist"',
   fr: '"à l\'issue de mon préavis"',
   es: '"una vez finalizado mi preaviso"',
-  pt: '"após o período de aviso prévio"',
+  pt: '"após o período de pré-aviso"',
   it: '"al termine del mio periodo di preavviso"',
   nl: '"na afloop van mijn opzegtermijn"',
 };
@@ -70,18 +70,18 @@ const SCREENING_ANSWERS: Record<SupportedLanguage, { start: string; startOpen: s
   },
   fr: {
     start: 'Je peux commencer à l\'issue de mon préavis.',
-    startOpen: 'Ma date de prise de poste est à convenir ensemble.',
+    startOpen: 'Ma date de prise de poste reste à convenir avec vous.',
     salary: 'Mes prétentions salariales sont à discuter lors d\'un entretien.',
   },
   es: {
     start: 'Puedo incorporarme una vez finalizado mi preaviso.',
     startOpen: 'La fecha de incorporación es a convenir.',
-    salary: 'Mis expectativas salariales son negociables y las comento con gusto en una entrevista.',
+    salary: 'Mis expectativas salariales las comento con gusto en una entrevista.',
   },
   pt: {
-    start: 'Posso começar após o período de aviso prévio.',
+    start: 'Posso começar após o período de pré-aviso.',
     startOpen: 'A data de início é a combinar.',
-    salary: 'A minha pretensão salarial é negociável e posso discuti-la numa entrevista.',
+    salary: 'A minha pretensão salarial discuto-a com gosto numa entrevista.',
   },
   it: {
     start: 'Posso iniziare al termine del mio periodo di preavviso.',
@@ -112,70 +112,126 @@ export function screeningAnswerList(kind: 'start' | 'startOpen' | 'salary'): str
 }
 
 // A phrase must start at a word boundary that also holds for non-ASCII letters.
-const START = '(?<![\\p{L}\\p{N}])';
+// A hyphen is no boundary either: "Datenbank-Eintritt" is a compound, not "Eintritt".
+const START = '(?<![\\p{L}\\p{N}-])';
 // A label ("Availability: ...") opens a line or follows a separator, so a label
 // word inside a sentence ("Project start date: 03/2021") is not a label.
 const LABEL_START = '(?:^|[|;\\u2022\\u00B7]\\s*)(?:[-*\\u2022\\u00B7]\\s*)?';
 // ":", "=", or a spaced hyphen or en dash ("Availability - immediately").
 const LABEL_END = '\\s*(?::|=|[-\\u2013]\\s)';
+// A phrased statement ("available from March", "can start in May") must stand
+// where the applicant would say it: at the start of a line or sentence, after a
+// separator, and with no subject or a first-person one. "Users can start
+// immediately" and "Platform available after go-live" are about a product.
+const SENTENCE_START = '(?:^|[|;\\u2022\\u00B7]\\s*|[.!?]\\s+)(?:[-*\\u2022\\u00B7]\\s*)?(?:(?:please note|note|nb)\\s*[:,-]?\\s*)?';
+const FIRST_PERSON =
+  '(?:(?:i have|i\'ve got|i\\u2019ve got|ich habe|j[\'\\u2019]ai|tengo|tenho|ik heb)\\s+(?:(?:a|an|eine|une|un|una|um|uma|een)\\s+)?)?'
+  + '(?:(?:i|ich|je|yo|eu|io|ik)(?:[\'\\u2019]m)?\\s+)?'
+  + '(?:(?:am|bin|suis|ben|estoy|soy|sou|estou|sono)\\s+)?';
+// Month names and abbreviations in the supported languages, whole words only: "Marketo" and "Decathlon" are not months.
+const MONTH = '(?:jan(?:uary|uar|uari)?|feb(?:ruary|ruar|ruari)?|mar(?:ch|s|zo)?|março|mär(?:z)?|maart|apr(?:il)?|may|mai|jun(?:e|i)?|jul(?:y|i)?|aug(?:ust|ustus)?|sep(?:t(?:ember)?)?|oct(?:ober)?|okt(?:ober)?|nov(?:ember)?|dec(?:ember)?|dez(?:ember)?|janvier|février|avril|juin|juillet|août|septembre|octobre|novembre|décembre|enero|febrero|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|janeiro|fevereiro|maio|junho|julho|setembro|outubro|dezembro|gennaio|febbraio|aprile|maggio|giugno|luglio|settembre|ottobre|mei)(?![\\p{L}])';
 // What follows "available from": a date or a month, not "SAP".
-const DATE_AHEAD = '(?:\\d|(?:early|mid|late|anfang|mitte|ende|début|fin|inizio|fine|begin|eind)(?![\\p{L}])|jan|feb|mar|mär|apr|may|mai|jun|jul|aug|sep|oct|okt|nov|dec|dez|maa|mei)';
+const DATE_AHEAD = '(?:\\d|(?:early|mid|late|anfang|mitte|ende|début|fin|inizio|fine|begin|eind)(?![\\p{L}])|' + MONTH + ')';
+// "Available from April 2019 to May 2020" is a past range, not an availability.
+const NOT_A_RANGE = '(?![^.;|]{0,25}?(?:\\s(?:to|until|till|through|bis|au|à|tot)\\s+(?:\\d|' + MONTH + ')|\\s?[-\\u2013]\\s?(?:\\d{4}|' + MONTH + ')))';
 const COUNT = '(?:\\d+|one|two|three|four|six|eight|twelve|ein|einen|einem|zwei|drei|vier|sechs|un|une|una|um|uma|deux|dos|dois|due|trois|tres|três|tre|een|één|twee|drie)';
+const COUNT_WORD = '(?:\\d|' + COUNT + '(?![\\p{L}]))';
 
 function labelled(labels: string[]): string {
   return LABEL_START + '(?:' + labels.join('|') + ')' + LABEL_END;
 }
 
+/** A label with no colon, followed by what proves it is a statement ("Notice period 1 month"). */
+function labelledBare(labels: string[], follow: string): string {
+  return LABEL_START + '(?:' + labels.join('|') + ')\\s+' + follow;
+}
+
+/** Phrases that carry their own first person ("my notice period"). */
 function phrased(phrases: string[]): string {
   return START + '(?:' + phrases.join('|') + ')';
+}
+
+/** Phrases tied to the applicant by where they stand in the line. */
+function sentence(phrases: string[]): string {
+  return SENTENCE_START + FIRST_PERSON + '(?:' + phrases.join('|') + ')';
 }
 
 // Statements of when a person can start. Bare "availability" and bare
 // "notice period" are left out: "99.9% availability" is an achievement and
 // "notice period clauses in supplier contracts" is someone's job.
 const AVAILABILITY_PATTERN = new RegExp(
-  labelled([
-    'availability', 'available', 'date available', '(?:earliest (?:possible )?)?start(?:ing)?(?: date)?', 'notice(?: period)?',
-    'verfügbarkeit', 'verfügbar', 'kündigungsfrist', 'eintritt(?:stermin|sdatum)?', 'frühest(?:er|möglicher) (?:eintritt(?:stermin)?|starttermin)', 'starttermin',
-    'disponibilité', 'date de disponibilité', 'préavis', 'date de début',
-    'disponibilidad', 'preaviso', 'incorporación', 'fecha de incorporación',
-    'disponibilidade', 'aviso prévio', 'data de início',
-    'disponibilità', 'preavviso', 'data di inizio',
-    'beschikbaarheid', 'beschikbaar', 'opzegtermijn', 'startdatum',
-  ]) + '|' + phrased([
-    'my notice period', 'notice period (?:of|is)', COUNT + '[- ]?(?:weeks?|months?)[\'\\u2019]?s?\\s+notice',
-    'available (?:to start|immediately|at short notice|for (?:an )?immediate start)', 'available (?:from|as of|starting)\\s+' + DATE_AHEAD,
-    'immediately available', '(?:can|could|able to) start (?:on|in|from|after|within|immediately|asap|right away|straight away)',
-    'earliest (?:possible )?start(?:ing)? date (?:is|would be)',
-    'meine kündigungsfrist', 'kündigungsfrist (?:von|beträgt)', COUNT + '\\s*(?:wochen|monate?n?)\\s+kündigungsfrist',
-    'verfügbar (?:ab|zum|sofort|nach)', 'sofort verfügbar', 'eintritt (?:ab|zum|möglich|nach)', 'frühestmöglich\\p{L}* (?:eintritt|start)', 'frühester (?:eintritt|starttermin)',
-    'mon préavis', 'préavis (?:de|d[\'\\u2019])\\s*' + COUNT, 'disponible (?:à partir|dès|immédiatement|de suite|sous)', 'disponibilité immédiate',
-    'mi preaviso', 'preaviso de\\s*' + COUNT, 'disponibilidad inmediata', 'incorporación (?:inmediata|a partir)', 'disponible (?:a partir|de inmediato|inmediatamente)',
-    'meu aviso prévio', 'aviso prévio de\\s*' + COUNT, 'disponibilidade imediata', 'disponível (?:a partir|de imediato|imediatamente)',
-    'mio preavviso', 'preavviso di\\s*' + COUNT, 'disponibilità immediata', 'disponibile (?:da subito|dal\\s*\\d|a partire|immediatamente)',
-    'mijn opzegtermijn', 'opzegtermijn van\\s*' + COUNT, 'beschikbaar (?:per direct|per omgaande|per\\s*\\d|vanaf\\s*' + DATE_AHEAD + ')',
-  ]),
+  [
+    labelled([
+      'availability', 'available', 'date available', '(?:earliest (?:possible )?)?start(?:ing)?(?: date)?', 'notice(?: period)?',
+      'verfügbarkeit', 'verfügbar', 'kündigungsfrist', 'eintritt(?:stermin|sdatum)?', 'möglich(?:er)? eintritt(?:stermin)?', 'frühest(?:er|möglicher) (?:eintritt(?:stermin)?|starttermin)', 'starttermin',
+      'disponibilité', 'date de disponibilité', 'préavis', 'date de début',
+      'disponibilidad', 'preaviso', 'incorporación', 'fecha de incorporación',
+      'disponibilidade', 'aviso prévio', 'pré-aviso', 'data de início',
+      'disponibilità', 'preavviso', 'data di inizio',
+      'beschikbaarheid', 'beschikbaar', 'opzegtermijn', 'startdatum',
+    ]),
+    // "Notice period 1 month", "Préavis 3 mois", "Kündigungsfrist 3 Monate zum Quartalsende".
+    labelledBare([
+      'notice(?: period)?', 'kündigungsfrist', 'préavis', 'preaviso', 'aviso prévio', 'pré-aviso', 'preavviso', 'opzegtermijn',
+    ], COUNT_WORD),
+    // "Verfügbarkeit ab 1. März 2027". A bare "availability 99.9%" stays out.
+    labelledBare([
+      'availability', 'verfügbarkeit', 'disponibilité', 'disponibilidad', 'disponibilidade', 'disponibilità', 'beschikbaarheid',
+    ], '(?:ab|from|as of|starting|à partir|à compter|dès|desde|a partir|dal|a partire|vanaf|per|sofort|immediately|immédiat|inmediat|imediat|immediat|direct)(?![\\p{L}])'),
+    phrased([
+      'my notice period', 'meine kündigungsfrist', 'mon préavis', 'mi preaviso', 'meu aviso prévio', 'o meu (?:aviso prévio|pré-aviso)', 'meu pré-aviso', 'mio preavviso', 'mijn opzegtermijn',
+    ]),
+    sentence([
+      'notice period (?:of|is)', COUNT + '[- ]?(?:days?|weeks?|months?)[\'\\u2019]?s?\\s+notice',
+      'available (?:to start|immediately|at short notice|for (?:an )?immediate start)', 'available (?:from|as of|starting)\\s+' + DATE_AHEAD + NOT_A_RANGE,
+      'immediately available', '(?:can|could|able to) start (?:on|in|from|after|within|immediately|asap|right away|straight away)',
+      'earliest (?:possible )?start(?:ing)? date (?:is|would be)',
+      'kündigungsfrist (?:von|beträgt)', COUNT + '\\s*(?:wochen|monate?n?)\\s+kündigungsfrist',
+      'verfügbar (?:ab|zum|sofort|nach)', 'sofort verfügbar', 'eintritt (?:frühestens )?(?:ab|zum|möglich|nach)', 'frühestmöglich\\p{L}* (?:eintritt|start)', 'frühester (?:eintritt|starttermin)',
+      '(?:ab|zum|per|frühestens(?: ab| zum)?)\\s+(?:dem\\s+)?' + DATE_AHEAD + '[^!?;|]{0,30}?verfügbar(?![\\p{L}])',
+      'préavis (?:de|d[\'\\u2019])\\s*' + COUNT, 'disponible (?:à partir|à compter|dès|immédiatement|de suite|sous\\s+' + COUNT_WORD + ')', 'disponibilité immédiate', 'libre de tout engagement',
+      'preaviso de\\s*' + COUNT, 'disponibilidad inmediata', 'incorporación (?:inmediata|a partir)', 'disponible (?:a partir|de inmediato|inmediatamente)',
+      '(?:aviso prévio|pré-aviso) de\\s*' + COUNT, 'disponibilidade imediata', 'disponível (?:a partir|de imediato|imediatamente)',
+      'preavviso di\\s*' + COUNT, 'disponibilità immediata', 'disponibile (?:da subito|dal\\s*\\d|a partire|immediatamente)',
+      'opzegtermijn van\\s*' + COUNT, 'per (?:direct|omgaande) beschikbaar', 'beschikbaar (?:per direct|per omgaande|per\\s*\\d|vanaf\\s*' + DATE_AHEAD + ')',
+    ]),
+  ].join('|'),
   'iu',
 );
 
+// A figure that looks like pay: "65,000", "65.000", "80k", "55 EUR", "€60000". A job-grade or colour code is not.
+const PAY_FIGURE = '(?:\\d{2,3}[.,\\s\\u2019\']\\d{3}|\\d+\\s?k(?![\\p{L}])|\\d+\\s*(?:€|\\$|£|eur|euro|usd|chf|gbp)|(?:€|\\$|£|eur|euro|usd|chf|gbp)\\s*\\d)';
+
 const SALARY_PATTERN = new RegExp(
-  labelled([
-    'salary(?: expectations?| requirements?)?', '(?:desired|expected|target) (?:salary|compensation)', 'compensation(?: expectations?)?',
-    'gehalt', 'gehaltsvorstellung(?:en)?', 'gehaltswunsch', 'wunschgehalt',
-    'salaire(?: souhaité)?', 'rémunération(?: souhaitée)?', 'prétentions? salariales?',
-    'salario(?: deseado)?', 'pretensi(?:ón|ones) salarial(?:es)?', 'expectativa salarial',
-    'salário', 'pretensão salarial', 'pretensões salariais',
-    'retribuzione(?: desiderata)?', 'ral(?: desiderata)?',
-    'salaris', 'salarisindicatie', 'salariswens', 'gewenst salaris',
-  ]) + '|' + phrased([
-    'salary expectations?', 'expected salary', 'desired salary', 'target salary', 'salary requirements?', 'compensation expectations?', 'desired compensation',
-    'gehaltsvorstellung', 'gehaltswunsch', 'gehaltserwartung', 'wunschgehalt',
-    'prétentions? salariales?', 'salaire souhaité', 'rémunération souhaitée',
-    'pretensi(?:ón|ones) salarial(?:es)?', 'expectativa salarial', 'salario deseado',
-    'pretensão salarial', 'pretensões salariais',
-    'retribuzione desiderata', 'aspettative economiche', 'ral desiderata',
-    'salarisindicatie', 'salariswens', 'gewenst salaris',
-  ]),
+  [
+    // A label that names an expectation is a statement on its own.
+    labelled([
+      'salary (?:expectations?|requirements?)', '(?:desired|expected|target) (?:salary|compensation)', 'compensation expectations?',
+      'gehaltsvorstellung(?:en)?', 'gehaltswunsch', 'gehaltserwartung', 'wunschgehalt',
+      'salaire souhaité', 'rémunération souhaitée', 'prétentions? salariales?',
+      'salario deseado', 'pretensi(?:ón|ones) salarial(?:es)?', 'expectativa salarial',
+      'pretensão salarial', 'pretensões salariais',
+      'retribuzione desiderata', 'ral desiderata', 'aspettative economiche',
+      'salarisindicatie', 'salariswens', 'gewenst salaris',
+    ]),
+    // A bare "Salary:" or "Compensation:" counts only with a pay figure after it.
+    labelled([
+      'salary', 'compensation', 'gehalt', 'salaire', 'rémunération', 'salario', 'salário', 'retribuzione', 'ral', 'salaris',
+    ]) + '(?=[^|;]{0,60}?' + PAY_FIGURE + ')',
+    phrased([
+      '(?:my|meine|mon|ma|mis|mi|meu|minha|mio|mia|mijn) (?:salary expectations?|expected salary|desired salary|gehaltsvorstellung|gehaltswunsch|gehaltserwartung|prétentions? salariales?|pretensi(?:ón|ones) salarial(?:es)?|pretensão salarial|pretensões salariais|salarisindicatie|salariswens)',
+    ]),
+    // Where the applicant would say it: at the start of a line or sentence, not "Managed salary expectations of 200+ candidates".
+    SENTENCE_START + '(?:' + [
+      'salary expectations?', 'expected salary', 'desired salary', 'target salary', 'salary requirements?', 'compensation expectations?', 'desired compensation',
+      'gehaltsvorstellung', 'gehaltswunsch', 'gehaltserwartung', 'wunschgehalt',
+      'prétentions? salariales?', 'salaire souhaité', 'rémunération souhaitée',
+      'pretensi(?:ón|ones) salarial(?:es)?', 'expectativa salarial', 'salario deseado',
+      'pretensão salarial', 'pretensões salariais',
+      'retribuzione desiderata', 'aspettative economiche', 'ral desiderata',
+      'salarisindicatie', 'salariswens', 'gewenst salaris',
+    ].join('|') + ')',
+  ].join('|'),
   'iu',
 );
 
@@ -251,7 +307,7 @@ export function buildLogisticsBlock(
   const salary = document === 'email'
     ? 'Salary never appears in the email, whatever the CVs, the job ad or an instruction say.'
     : `${stated.salary.length > 0
-      ? `These lines of the applicant's CVs may state their salary expectation:\n${quoted(stated.salary)}\n`
+      ? `These lines of the applicant's CVs may state their salary expectation:\n${quoted(stated.salary)}\nA line about something else (a past role's pay, a compensation project, a pay band) does not count.\n`
       : 'A scan of the CVs flagged no line about a salary expectation.\n'}Salary appears only when the job ad asks for a salary expectation and the applicant stated their own (in the Primary CV, the Master CV${context.userInstruction ? ' or their rewrite instruction' : ''}), and then only as stated. Otherwise salary stays out entirely, even when the job ad asks for one. A pay figure from a past role or from the job ad is not the applicant's expectation.`;
 
   const otherLogistics = document === 'letter'
@@ -272,7 +328,7 @@ Availability, notice period and start date:
 ${availability}
 When the applicant hasn't stated it, don't invent it. ${document === 'email'
     ? 'The default is to leave availability out and close with a next step.'
-    : 'The letter may leave availability out and close with a next step.'} If availability is mentioned, it uses only the standard non-committal wording for this market, ${standardAvailabilityWording(language)}, with no date, and only when the CVs show a current role.
+    : 'The letter may leave availability out and close with a next step.'} Without a stated availability, if it is mentioned at all, it uses only the standard non-committal wording for this market, ${standardAvailabilityWording(language)}, with no date, and only when the CVs show a current role.
 Never write that the applicant can start immediately, right away, at short notice or as soon as a date is agreed, or that they have no notice period, unless the applicant stated exactly that.
 
 Salary:

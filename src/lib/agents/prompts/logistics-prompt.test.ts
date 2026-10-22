@@ -103,9 +103,22 @@ test('the scan finds common ways of stating availability and salary', () => {
     'Disponibilité immédiate', 'Available: immediately', 'Availability - immediately', 'Start: ASAP', 'Disponible de inmediato',
     'Please note: 3 weeks notice', 'Notice period: 3 months', 'Available from 1 March 2027', 'Préavis de 3 mois',
     'Opzegtermijn van 1 maand', 'Beschikbaar per direct', 'Disponibile dal 1 marzo', 'Skills: SQL | Availability: 3 months notice',
+    // Labels without a colon.
+    'Kündigungsfrist 3 Monate zum Quartalsende', 'Verfügbarkeit ab 1. März 2027', 'Préavis 3 mois', 'Notice period 1 month', 'Opzegtermijn 1 maand',
+    // Verb-final German, "frühestens", a label with a qualifier, French and Dutch wordings, a bare count.
+    'Ich bin ab dem 01.03.2027 verfügbar', 'Eintritt frühestens zum 01.04.', 'Möglicher Eintrittstermin: nach Absprache',
+    'Disponible à compter du 1er mars', 'Libre de tout engagement', 'Per direct beschikbaar', '30 days notice',
+    // First-person and sentence-start forms.
+    'I am available from 1 March 2027', 'I\'m available immediately', 'I can start in May', 'Ich bin sofort verfügbar', 'Je suis disponible à partir du 1er mars',
+    'Currently employed. Available from May 2027', '- Available immediately', 'I have a notice period of 3 months',
+    'Posso começar após o meu pré-aviso', 'O meu pré-aviso de 2 meses',
   ];
   for (const line of availability) assert.deepEqual(findStatedLogistics([line]).availability, [line], line);
-  const salary = ['Salary: 80k', 'Gehalt: 70.000 EUR', 'Desired compensation: 120k', 'Rémunération souhaitée : 55k', 'Gehaltsvorstellung: 75.000 EUR'];
+  const salary = [
+    'Salary: 80k', 'Gehalt: 70.000 EUR', 'Desired compensation: 120k', 'Rémunération souhaitée : 55k', 'Gehaltsvorstellung: 75.000 EUR',
+    'Salary expectation: 65,000 EUR', 'Gehaltsvorstellung: 65.000 EUR brutto', 'My salary expectation is 70k', 'Expected salary 60,000 USD', 'RAL: 45.000 euro',
+    'Salary expectation: negotiable',
+  ];
   for (const line of salary) assert.deepEqual(findStatedLogistics([line]).salary, [line], line);
 });
 
@@ -115,8 +128,19 @@ test('the scan ignores lines that only use the words', () => {
     'Data beschikbaar per e-mail', 'Report disponibile dal sistema ERP', 'Earliest start time scheduling',
     'Reduced notice period for supplier contracts', 'Negotiated notice period clauses in supplier contracts',
     'Eintrittstermine koordiniert', 'Kept the reporting platform at 99.9% availability',
+    // Product and system lines with the banned wording are not the applicant's availability.
+    'Redesigned onboarding so users can start immediately', 'Kept services available immediately after failover',
+    'new hires can start within one day', 'Plattform verfügbar nach Go-Live', 'Datenbank-Eintritt nach Validierung',
+    'Application mobile disponible sous iOS', 'Available from April 2019 to May 2020 as on-call engineer', 'available from Marketo',
+    'Dashboards available from Decathlon\'s data lake', 'Reports available from Decathlon', 'Availability 99.9% across regions',
+    'Notice period clauses for suppliers', 'Mit dem Umbau-Eintritt nach Wartung',
   ];
   for (const line of other) assert.deepEqual(findStatedLogistics([line]), { availability: [], salary: [] }, line);
+  const salaryOther = [
+    'Managed salary expectations of 200+ candidates', '- Compensation: job grading, Mercer benchmarking', 'RAL: 9010 Farbtöne',
+    'Built a salary expectations survey for 200 candidates', 'Compensation: job grading and benchmarking',
+  ];
+  for (const line of salaryOther) assert.deepEqual(findStatedLogistics([line]), { availability: [], salary: [] }, line);
 });
 
 test('a long line is quoted around the statement, not cut before it', () => {
@@ -183,7 +207,7 @@ test('every language has its own standard wording, and screening answers carry i
     de: 'nach Ablauf meiner Kündigungsfrist',
     fr: 'à l\'issue de mon préavis',
     es: 'una vez finalizado mi preaviso',
-    pt: 'após o período de aviso prévio',
+    pt: 'após o período de pré-aviso',
     it: 'al termine del mio periodo di preavviso',
     nl: 'na afloop van mijn opzegtermijn',
   };
@@ -268,9 +292,69 @@ test('screening: the job description is fenced, and the applicant\'s own CV line
   assert.match(silent, /a scan flagged no line about availability; if the CV text above states it, use that/);
 });
 
-test('the cached system prefixes stay static', () => {
-  for (const build of [buildApplicationEmailSystemBlocks, buildCoverLetterSystemBlocks, buildFollowUpEmailSystemBlocks]) {
-    assert.equal(systemText(build()), systemText(build()));
-    assert.doesNotMatch(systemText(build()), /Kündigungsfrist|after my notice period|Job location \(the market\)/);
+test('the cached system prefixes stay static, whatever the request carries', () => {
+  const builders = [buildApplicationEmailSystemBlocks, buildCoverLetterSystemBlocks, buildFollowUpEmailSystemBlocks];
+  const before = builders.map((build) => systemText(build()));
+
+  const english = context();
+  const german = context({
+    sessionId: 'session-2',
+    jobDescription: 'Leitung Controlling (m/w/d). Eintritt zum 1. April. Gehalt: 90.000 EUR.',
+    rawCV: 'Max Mustermann, Controller\nKündigungsfrist: 3 Monate zum Quartalsende\nGehaltsvorstellung: 85.000 EUR',
+    masterCV: 'Verfügbar ab 01.03.2027\nUmzugsbereit innerhalb Deutschlands',
+    detectedLanguage: 'de',
+    userInstruction: 'Erwähne, dass ich sofort starten kann.',
+    job: { ...context().job!, title: 'Leitung Controlling', companyName: 'Borealis GmbH', location: 'München, Deutschland' },
+  });
+  const requestOnly = [
+    'Kündigungsfrist', 'Verfügbar ab 01.03.2027', 'Gehaltsvorstellung', 'Borealis', 'Max Mustermann', 'München',
+    'after my notice period', 'Job location (the market)', 'Erwähne, dass ich sofort starten kann',
+  ];
+
+  for (const ctx of [english, german]) {
+    const userPrompts = [buildApplicationEmailUserPrompt(ctx), buildCoverLetterUserPrompt(ctx), buildFollowUpEmailUserPrompt(ctx)];
+    assert.notEqual(userPrompts[0], buildApplicationEmailUserPrompt(ctx === english ? german : english));
+    const after = builders.map((build) => systemText(build()));
+    assert.deepEqual(after, before, 'the system text is byte-identical after building user prompts for different requests');
+    for (const text of after) for (const value of requestOnly) assert.ok(!text.includes(value), `system text carries request data: ${value}`);
+  }
+  // The request data does ride in the user prompts.
+  assert.match(buildCoverLetterUserPrompt(german), /Kündigungsfrist: 3 Monate zum Quartalsende/);
+  assert.match(buildApplicationEmailUserPrompt(german), /"nach Ablauf meiner Kündigungsfrist"/);
+});
+
+test('the email and letter system blocks forbid "immediately" and "no notice period"', () => {
+  for (const blocks of [buildApplicationEmailSystemBlocks(), buildCoverLetterSystemBlocks()]) {
+    assert.match(systemText(blocks), /it never says the applicant can start immediately or has no notice period\./);
+  }
+  assert.match(systemText(buildFollowUpEmailSystemBlocks()), /never says the applicant can start immediately or has no notice period unless they stated exactly that\./);
+  // The user-prompt block says it too, and a stated-salary letter carries the "something else does not count" caveat.
+  assert.match(buildLogisticsBlock(context(), 'letter'), /Never write that the applicant can start immediately, right away, at short notice or as soon as a date is agreed, or that they have no notice period/);
+  const salaryLetter = buildLogisticsBlock(context({ masterCV: 'Salary expectation: 85,000 EUR per year' }), 'letter');
+  assert.match(salaryLetter, /- "Salary expectation: 85,000 EUR per year"\nA line about something else \(a past role's pay, a compensation project, a pay band\) does not count\./);
+});
+
+test('the letter\'s standard-wording sentence only applies when no availability is stated', () => {
+  assert.match(buildLogisticsBlock(context(), 'letter'), /Without a stated availability, if it is mentioned at all, it uses only the standard non-committal wording/);
+});
+
+test('relocation: both CVs are scanned in several languages and a miss never claims absence', () => {
+  const none = buildCoverLetterUserPrompt(context());
+  assert.match(none, /The scan flagged no relocation line\. If the Primary CV or Master CV states the applicant's willingness to relocate, use it as written; otherwise don't mention relocation\./);
+  assert.doesNotMatch(none, /No relocation statement found/);
+  const hits: Array<Partial<MasterContext>> = [
+    { masterCV: 'Willing to relocate within the EU' },
+    { rawCV: `${CV}\nUmzugsbereit innerhalb Deutschlands` },
+    { rawCV: `${CV}\nPrêt à déménager en France` },
+    { masterCV: 'Mobilité géographique: Europe' },
+    { masterCV: 'Disponible para reubicarme' },
+    { masterCV: 'Disponibilidade para mudança de cidade' },
+    { masterCV: 'Disponibile a trasferirsi' },
+    { masterCV: 'Bereid te verhuizen' },
+  ];
+  for (const overrides of hits) {
+    const prompt = buildCoverLetterUserPrompt(context(overrides));
+    assert.match(prompt, /The scan found a relocation line in the CVs\./, JSON.stringify(overrides));
+    assert.doesNotMatch(prompt, /flagged no relocation line/);
   }
 });

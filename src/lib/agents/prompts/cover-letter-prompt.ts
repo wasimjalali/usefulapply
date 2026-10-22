@@ -16,6 +16,9 @@ import { sanitizeAdText } from '@/lib/agents/chat-tools/untrusted';
 import { normalizeLanguage } from '@/lib/utils/language-detector';
 import { buildLogisticsBlock } from './logistics-prompt';
 
+// Multilingual hints that a CV has a relocation line (relocate, Umzug, déménager, mobilité géographique, reubicar, trasladar, mudança, trasferire, verhuizen).
+const RELOCATION_TERMS = /relocat|umzug|umzugsbereit|déménag|mobilité géographique|reubica|traslad|mudan|trasferi|verhuiz/iu;
+
 // Dash characters the output must not contain, built from code points so this
 // source file contains none of them.
 const EM_DASH = String.fromCharCode(0x2014);
@@ -188,11 +191,11 @@ Lead with what the CVs support. When the ad asks for something the CVs don't sho
 </gaps>
 
 <relocation>
-Read the applicant's current location (from the CVs), the job location (from the JD) and the exact relocation text in the Master CV.
-- If the job is on-site or hybrid, in a different country from the applicant's current location, and the Master CV's relocation statement covers that country or region, include a brief, confident sentence: where the applicant is now and that they are willing to relocate to the job's location.
-- Relocation is mentioned only for places the Master CV covers. A statement naming specific cities or regions covers only those; a statement naming a general area covers only places inside it.
-- No relocation mention for fully remote roles, roles in the applicant's own country, roles in countries the Master CV statement doesn't cover, or when the Master CV has no relocation statement.
-- Willingness to relocate never goes beyond what the Master CV explicitly states.
+Read the applicant's current location (from the CVs), the job location (from the JD) and the exact relocation text in the Primary CV or Master CV.
+- If the job is on-site or hybrid, in a different country from the applicant's current location, and a relocation statement in the Primary CV or Master CV covers that country or region, include a brief, confident sentence: where the applicant is now and that they are willing to relocate to the job's location.
+- Relocation is mentioned only for places a CV statement covers. A statement naming specific cities or regions covers only those; a statement naming a general area covers only places inside it.
+- No relocation mention for fully remote roles, roles in the applicant's own country, roles in countries no CV statement covers, or when neither CV has a relocation statement.
+- Willingness to relocate never goes beyond what the Primary CV or Master CV explicitly states.
 </relocation>
 
 <length_and_structure>
@@ -345,8 +348,8 @@ ${allowBlock}${blockList}In place of any skill outside the allow-list, emphasize
 })()}
 === RELOCATION CONSTRAINT (BINDING) ===
 Job location: ${sanitizeAdText(job?.location) || 'Not specified'}
-${masterCV && /relocat/i.test(masterCV) ? `Master CV relocation statement found. The applicant's relocation preferences are only what is written in the Master CV above. If the job location (${sanitizeAdText(job?.location) || 'unknown'}) is not explicitly covered by the Master CV's relocation statement, the letter doesn't mention relocation willingness at all.` : `No relocation statement found in the Master CV, so the letter doesn't mention relocation willingness.`}
-Relocation willingness is never stated for a city or country the Master CV doesn't explicitly list.
+${RELOCATION_TERMS.test([rawCV, masterCV].filter(Boolean).join('\n')) ? `The scan found a relocation line in the CVs. The applicant's relocation preferences are only what is written in the Primary CV or Master CV above. If the job location (${sanitizeAdText(job?.location) || 'unknown'}) is not explicitly covered by that statement, the letter doesn't mention relocation willingness at all.` : `The scan flagged no relocation line. If the Primary CV or Master CV states the applicant's willingness to relocate, use it as written; otherwise don't mention relocation.`}
+Relocation willingness is never stated for a city or country the Primary CV or Master CV doesn't explicitly list.
 
 ${buildLogisticsBlock(context, 'letter')}
 ${context.jobPreferences && (context.jobPreferences.remotePreference || context.jobPreferences.seniorityTarget) ? `=== APPLICANT JOB PREFERENCES ===
