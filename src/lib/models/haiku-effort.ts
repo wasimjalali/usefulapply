@@ -12,15 +12,17 @@ import type { HaikuEffort, HaikuSite } from './haiku';
 
 export const HAIKU_EFFORTS: readonly HaikuEffort[] = ['low-nothink', 'low', 'medium', 'high'];
 
-// Placeholder: 'low' everywhere until the per-site evals pick (evals/haiku-55-swap).
+// Picked by the effort eval of 2026-10-22 (evals/results/2026-10-22-haiku-55-swap.md): the lowest effort
+// within one failure of the best arm, with the hard constraints checked. Medium where thinking bought
+// fewer invented claims or rule violations (tracker, screening, ranking, career profile).
 export const HAIKU_SITE_EFFORT: Readonly<Record<HaikuSite, HaikuEffort>> = {
   chat: 'low',
-  screening: 'low',
-  tracker: 'low',
+  screening: 'medium',
+  tracker: 'medium',
   language: 'low',
-  ranking: 'low',
+  ranking: 'medium',
   search_strategy: 'low',
-  career_profile: 'low',
+  career_profile: 'medium',
 };
 
 export function haikuEffortEnvName(site: HaikuSite): string {

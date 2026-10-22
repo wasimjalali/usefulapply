@@ -29,10 +29,20 @@ test('a site missing from the map throws', () => {
 
 // --- behaviour ---
 
-test('every site has an effort, low until the evals pick', () => {
+test('every site runs the effort the 2026-10-22 eval picked, never with thinking disabled', () => {
+  const picked = {
+    chat: 'low',
+    screening: 'medium',
+    tracker: 'medium',
+    language: 'low',
+    ranking: 'medium',
+    search_strategy: 'low',
+    career_profile: 'medium',
+  } as const;
   for (const site of SITES) {
-    assert.equal(HAIKU_SITE_EFFORT[site], 'low', site);
-    assert.equal(resolveHaikuEffort(site, {}), 'low', site);
+    assert.equal(HAIKU_SITE_EFFORT[site], picked[site], site);
+    assert.equal(resolveHaikuEffort(site, {}), picked[site], site);
+    assert.notEqual(HAIKU_SITE_EFFORT[site], 'low-nothink', site);
   }
 });
 
