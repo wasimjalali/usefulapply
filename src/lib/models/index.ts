@@ -1,7 +1,7 @@
 /**
  * Model Abstraction Layer
- * Primary: Claude Sonnet 5.5 on the direct Anthropic API (Sonnet 4.6 on the Bedrock / DigitalOcean fallback)
- * Previous: Claude Sonnet 4.5 (USE_PREVIOUS_MODEL=true) | Fallback: Claude Haiku 4.5 (USE_FALLBACK_MODEL=true)
+ * Claude Sonnet 5.5 for the kit tasks (anthropic.ts), Claude Haiku 5.5 for the other sites (haiku.ts), both on
+ * the Anthropic API with Claude in Amazon Bedrock as the failover (providers.ts).
  */
 
 import { callAnthropic, callAnthropicStream, parseAnthropicJSON, ACTIVE_MODEL_ID, ACTIVE_MODEL_PRICING } from './anthropic';
@@ -43,18 +43,16 @@ export {
  * Main function to call Claude (model resolved at runtime in anthropic.ts)
  */
 export async function callModel(options: ModelCallOptions): Promise<ModelResponse> {
-  const { task, prompt, systemPrompt, systemBlocks, temperature, maxTokens, jsonMode, conversationHistory, generationContext } = options;
+  const { task, prompt, systemPrompt, systemBlocks, maxTokens, jsonMode, conversationHistory, generationContext } = options;
   
   const config = getModelConfig(task);
   
-  const finalTemp = temperature ?? config.temperature;
   const finalMaxTokens = maxTokens ?? config.maxTokens;
   
   return callAnthropic({
     prompt,
     systemPrompt,
     systemBlocks,
-    temperature: finalTemp,
     maxTokens: finalMaxTokens,
     jsonMode,
     conversationHistory,
@@ -76,18 +74,16 @@ export async function callModelStream(
   options: ModelCallOptions,
   onChunk: (chunk: string) => void
 ): Promise<ModelResponse> {
-  const { task, prompt, systemPrompt, temperature, maxTokens, generationContext } = options;
+  const { task, prompt, systemPrompt, maxTokens, generationContext } = options;
   
   const config = getModelConfig(task);
   
-  const finalTemp = temperature ?? config.temperature;
   const finalMaxTokens = maxTokens ?? config.maxTokens;
   
   return callAnthropicStream(
     {
       prompt,
       systemPrompt,
-      temperature: finalTemp,
       maxTokens: finalMaxTokens,
       generationContext: generationContext
         ? { ...generationContext, operation: task }
@@ -111,8 +107,7 @@ export function parseModelJSON<T>(content: string): T {
 
 /**
  * Get estimated cost for a model call (in USD), at the active model's list price
- * (Sonnet 5.5: $2/M input, $10/M output; Sonnet 4.6: $3/$15; Haiku 4.5: $1/$5;
- * cache writes 1.25x input; cache reads 0.05x input on Sonnet 5.5, 0.1x on the others)
+ * (Sonnet 5.5: $2/M input, $10/M output; cache writes 1.25x input, cache reads 0.05x input)
  */
 export function estimateCost(
   task: TaskType,

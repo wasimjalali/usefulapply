@@ -169,7 +169,7 @@ test('messages: the next turn replays the same prefix up to the previous marker'
   const asText = (m: (typeof turn1)[number]) =>
     typeof m.content === 'string'
       ? m.content
-      : m.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
+      : (m.content ?? []).map((b) => (b.type === 'text' ? b.text : '')).join('');
   assert.equal(turn1[0].role, turn2[0].role);
   assert.equal(asText(turn1[0]), asText(turn2[0]));
   assert.equal(turn2[turn2.length - 1].role as string, 'system');

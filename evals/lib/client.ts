@@ -168,7 +168,7 @@ async function callBedrockSdk(req: ProviderRequest): Promise<Omit<ProviderResult
         .create({
           model: req.model,
           max_tokens: req.max_tokens,
-          temperature: req.temperature,
+          // No temperature: @anthropic-ai/sdk 1.x and the 2026-10-21 API reject it. This arm is unused.
           ...(req.system && { system: req.system }),
           messages: req.messages,
         })
