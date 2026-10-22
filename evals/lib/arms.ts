@@ -1,7 +1,7 @@
 import type { ArmConfig } from './types';
 
 const region = process.env.AWS_REGION || 'us-east-1';
-// Same derivation as src/lib/models/anthropic.ts (BEDROCK_MODEL_ID).
+// The derivation src/lib/models/anthropic.ts used for its Sonnet 4.6 Bedrock id until 2026-10-22 (production now fails over to Claude in Amazon Bedrock, see providers.ts).
 const bedrockPrefix = region === 'us-east-1' ? 'us' : region.startsWith('eu') ? 'eu' : 'us';
 
 /**

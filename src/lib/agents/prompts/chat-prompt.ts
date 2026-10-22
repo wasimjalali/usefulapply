@@ -228,10 +228,8 @@ export function buildChatMessages(history: ChatTurn[], state: string): Anthropic
 
 /**
  * A mid-conversation system message. Haiku 5.5 takes `role: 'system'` inside
- * `messages` without invalidating the prefix before it (P0b probe 4), but SDK
- * 0.71.2's types only know user and assistant, so the type is widened here,
- * in one place.
+ * `messages` without invalidating the prefix before it (P0b probe 4).
  */
 function stateMessage(state: string): Anthropic.Beta.BetaMessageParam {
-  return { role: 'system', content: state } as unknown as Anthropic.Beta.BetaMessageParam;
+  return { role: 'system', content: state };
 }

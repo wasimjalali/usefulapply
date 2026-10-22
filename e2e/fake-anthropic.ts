@@ -1,8 +1,14 @@
 /**
- * A stand-in for api.anthropic.com for the e2e run. The preview Worker is
- * pointed at it with `--var ANTHROPIC_BASE_URL:http://127.0.0.1:18793`, so the
- * real SDK, the real agents and the real validators run and only the model's
- * answers are scripted (see lib/model-script.ts).
+ * A stand-in for api.anthropic.com AND for Claude in Amazon Bedrock for the e2e run. The preview Worker is
+ * pointed at it with `--var ANTHROPIC_BASE_URL:http://127.0.0.1:18793` (the primary) and
+ * `--var ANTHROPIC_BEDROCK_MANTLE_BASE_URL:http://127.0.0.1:18793/bedrock` (the failover), so the real SDKs,
+ * the real agents and the real validators run and only the model's answers are scripted (see lib/model-script.ts).
+ *
+ * Two endpoints, one script. `/v1/...` is the Anthropic API; `/bedrock/v1/...` is the Bedrock mantle endpoint.
+ * Each has its own prompt cache, and every call in /__calls says which provider served it. Like the real
+ * services: both accept `Authorization: Bearer <key>` (SDK 1.x no longer sends x-api-key; the Anthropic API
+ * still accepts it too), Bedrock needs a Bearer token and a model id with the `anthropic.` prefix, and the
+ * Anthropic API refuses that prefix. Both reject temperature, top_p and top_k with a 400 (API 2026-10-21).
  *
  * It answers both model families the app calls: the Sonnet 5.5 kit writers and CV parser, and every Claude
  * Haiku 5.5 site (chat, tracker, screening, language, ranking, search strategy, career profile). The site is
@@ -18,8 +24,12 @@
  *
  * Run: npx tsx e2e/fake-anthropic.ts [port]
  *
- * Control for a test: POST /__control with any of
+ * Control for a test: POST /__control with any of (each POST replaces the whole control state)
  *   failWriter   "chat" | ["ranking", ...] | null   those writers answer 500 until reset
+ *   primaryFail  { status, count, skip?, writer? } | null   the Anthropic endpoint (never Bedrock) answers `status`
+ *                (529 overloaded, 400 invalid_request, 503 and 500 api_error) to the next `count` messages requests, after letting `skip`
+ *                requests through, for one writer or all. The SDK retries once, so one logical call is two requests:
+ *                count 2 fails one call, count 4 fails two.
  *   delayMs      delay every answer
  *   inputTokens  number | null   force the input size: count_tokens returns it, and so does the usage of a
  *                messages call (input + cache reads + cache writes), so the 100k budget paths can be driven
@@ -54,11 +64,19 @@ const LOOKBACK_BLOCKS = 20;
 const MAX_MARKERS = 4;
 
 type Ttl = '5m' | '1h';
+type Provider = 'anthropic' | 'bedrock';
+
+/** Bedrock signs the thinking blocks it issues with this prefix; the Anthropic API refuses them. */
+const BEDROCK_SIGNATURE_PREFIX = 'bedrock-sig:';
 
 interface MarkerRecord { unit: number; where: 'tools' | 'system' | 'message' | 'automatic'; ttl: Ttl; prefixHash: string }
 
 interface CallRecord {
   kind: 'messages' | 'count_tokens';
+  /** The endpoint the request came to: the Anthropic API or the Bedrock mantle path. */
+  provider: Provider;
+  /** How the request authenticated: `Authorization: Bearer` or `x-api-key`. */
+  auth: 'bearer' | 'x-api-key' | 'none';
   writer: string;
   at: string;
   stream: boolean;
@@ -88,11 +106,28 @@ interface CallRecord {
 }
 
 const calls: CallRecord[] = [];
-const cacheEntries = new Set<string>();
+// Each provider has its own prompt cache, like the real services.
+const cacheEntries: Record<Provider, Set<string>> = { anthropic: new Set(), bedrock: new Set() };
 let failWriters = new Set<string>();
 let delayMs = 0;
+let primaryFail: { status: number; remaining: number; skip: number; writer: string | null } | null = null;
 let override: { inputTokens: number; writer: string | null; skip: number } | null = null;
 let overrideSeen = 0;
+
+function authOf(request: IncomingMessage): CallRecord['auth'] {
+  if (/^Bearer\s+\S+/.test(String(request.headers.authorization ?? ''))) return 'bearer';
+  if (String(request.headers['x-api-key'] ?? '').length > 0) return 'x-api-key';
+  return 'none';
+}
+
+/** Bedrock ids carry the `anthropic.` provider prefix; the Anthropic API does not know them. */
+function modelIdError(provider: Provider, model: string | undefined): string | null {
+  if (!model) return 'model: Field required';
+  if (provider === 'bedrock') {
+    return model.startsWith('anthropic.') ? null : `The provided model identifier is invalid: ${model} (Bedrock ids start with "anthropic.")`;
+  }
+  return model.startsWith('anthropic.') ? `model: ${model}` : null;
+}
 
 function readBody(request: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -168,7 +203,8 @@ function totalTokens(body: MessagesBody): number {
 interface CacheOutcome { read: number; creation: number; creation5m: number; creation1h: number; markers: MarkerRecord[] }
 
 /** Simulate the prompt cache for one request and remember what it wrote. */
-function simulateCache(units: Unit[]): CacheOutcome {
+function simulateCache(units: Unit[], provider: Provider): CacheOutcome {
+  const entries = cacheEntries[provider];
   const cumChars: number[] = [];
   const hashes: string[] = [];
   const hash = createHash('sha256');
@@ -190,7 +226,7 @@ function simulateCache(units: Unit[]): CacheOutcome {
   for (const marker of markers) {
     if (tokensOf(cumChars[marker.unit]) < MIN_CACHEABLE_TOKENS) continue;
     for (let j = marker.unit; j >= Math.max(0, marker.unit - LOOKBACK_BLOCKS + 1); j--) {
-      if (cacheEntries.has(hashes[j])) { hitUnit = Math.max(hitUnit, j); break; }
+      if (entries.has(hashes[j])) { hitUnit = Math.max(hitUnit, j); break; }
     }
   }
   const read = hitUnit >= 0 ? tokensOf(cumChars[hitUnit]) : 0;
@@ -202,12 +238,12 @@ function simulateCache(units: Unit[]): CacheOutcome {
   for (const marker of markers) {
     const prefixTokens = tokensOf(cumChars[marker.unit]);
     if (prefixTokens < MIN_CACHEABLE_TOKENS || marker.unit <= hitUnit) continue;
-    if (!cacheEntries.has(marker.prefixHash)) {
+    if (!entries.has(marker.prefixHash)) {
       const written = prefixTokens - covered;
       if (marker.ttl === '1h') creation1h += written; else creation5m += written;
       covered = prefixTokens;
     }
-    cacheEntries.add(marker.prefixHash);
+    entries.add(marker.prefixHash);
   }
   return { read, creation: creation5m + creation1h, creation5m, creation1h, markers };
 }
@@ -216,9 +252,18 @@ function simulateCache(units: Unit[]): CacheOutcome {
 // Request checks the API makes, so an app bug shows as the 400 it would be in production
 // ---------------------------------------------------------------------------
 
-function validate(body: MessagesBody, writer: Writer | null, markers: MarkerRecord[]): string | null {
-  if (body.temperature !== undefined && writer && HAIKU_WRITERS.has(writer)) {
-    return '`temperature` may only be set to 1 when thinking is enabled or adaptive.';
+function validate(body: MessagesBody, writer: Writer | null, markers: MarkerRecord[], provider: Provider): string | null {
+  // API 2026-10-21: any value of a sampling parameter is a 400, for every model.
+  for (const name of ['temperature', 'top_p', 'top_k'] as const) {
+    if ((body as Record<string, unknown>)[name] !== undefined) return `${name}: Extra inputs are not permitted (sampling parameters are removed in 2026-10-21)`;
+  }
+  // A thinking block is signed by the provider that produced it. The Anthropic API rejects one signed by Bedrock,
+  // so a loop that moves a request between providers mid-conversation fails here, in CI.
+  if (provider === 'anthropic') {
+    for (const message of body.messages ?? []) {
+      const foreign = blocksOf(message.content).find((block) => block.type === 'thinking' && String(block.signature).startsWith(BEDROCK_SIGNATURE_PREFIX));
+      if (foreign) return 'Invalid `signature` in `thinking` block';
+    }
   }
   if (markers.length > MAX_MARKERS) return `A maximum of ${MAX_MARKERS} blocks with cache_control may be provided. Found ${markers.length}.`;
   const firstShort = markers.findIndex((marker) => marker.ttl === '5m');
@@ -296,13 +341,15 @@ function firstMessageText(body: MessagesBody): string {
   return typeof first === 'string' ? first : JSON.stringify(first ?? '');
 }
 
-function record(body: MessagesBody, kind: CallRecord['kind'], writer: string, markers: MarkerRecord[]): CallRecord {
+function record(body: MessagesBody, kind: CallRecord['kind'], writer: string, markers: MarkerRecord[], provider: Provider, auth: CallRecord['auth']): CallRecord {
   const userTexts = (body.messages ?? [])
     .filter((message) => message.role === 'user')
     .map((message) => blocksOf(message.content).filter((block) => block.type === 'text').map((block) => String(block.text ?? '')).join('\n'))
     .filter(Boolean);
   const entry: CallRecord = {
     kind,
+    provider,
+    auth,
     writer,
     at: new Date().toISOString(),
     stream: Boolean(body.stream),
@@ -342,18 +389,24 @@ createServer(async (request, response) => {
         inputTokens?: number | null;
         inputTokensFor?: string | null;
         skipCalls?: number;
+        primaryFail?: { status: number; count: number; skip?: number; writer?: string } | null;
       };
       failWriters = new Set(Array.isArray(body.failWriter) ? body.failWriter : body.failWriter ? [body.failWriter] : []);
       delayMs = body.delayMs ?? 0;
       override = typeof body.inputTokens === 'number' ? { inputTokens: body.inputTokens, writer: body.inputTokensFor ?? null, skip: body.skipCalls ?? 0 } : null;
       overrideSeen = 0;
-      return json(response, 200, { ok: true, failWriters: [...failWriters], delayMs, override });
+      primaryFail = body.primaryFail
+        ? { status: body.primaryFail.status, remaining: body.primaryFail.count, skip: body.primaryFail.skip ?? 0, writer: body.primaryFail.writer ?? null }
+        : null;
+      return json(response, 200, { ok: true, failWriters: [...failWriters], delayMs, override, primaryFail });
     }
     if (url.pathname === '/__calls') return json(response, 200, calls);
     if (url.pathname === '/__health') return json(response, 200, { ok: true });
     if (url.pathname === '/__reset') {
       calls.length = 0;
-      cacheEntries.clear();
+      cacheEntries.anthropic.clear();
+      cacheEntries.bedrock.clear();
+      primaryFail = null;
       failWriters = new Set();
       delayMs = 0;
       override = null;
@@ -361,10 +414,21 @@ createServer(async (request, response) => {
       return json(response, 200, { ok: true });
     }
 
+    const provider: Provider = url.pathname.startsWith('/bedrock/') ? 'bedrock' : 'anthropic';
+    const auth = authOf(request);
+    if (request.method === 'POST' && (url.pathname.endsWith('/v1/messages') || url.pathname.endsWith('/v1/messages/count_tokens'))) {
+      // Neither service answers without a credential. Bedrock's mantle endpoint takes a Bearer token only.
+      if (auth === 'none' || (provider === 'bedrock' && auth !== 'bearer')) {
+        return apiError(response, 401, 'authentication_error', provider === 'bedrock' ? 'Missing Bearer token' : 'x-api-key header or Authorization: Bearer is required');
+      }
+    }
+
     if (request.method === 'POST' && url.pathname.endsWith('/v1/messages/count_tokens')) {
       const body = JSON.parse(await readBody(request)) as MessagesBody;
       const writer = writerFor(body.system) ?? 'unknown';
-      const entry = record(body, 'count_tokens', writer, []);
+      const entry = record(body, 'count_tokens', writer, [], provider, auth);
+      const modelError = modelIdError(provider, body.model);
+      if (modelError) { entry.status = 400; return apiError(response, 400, 'invalid_request_error', modelError); }
       const counted = overrideApplies(writer) ? (override as NonNullable<typeof override>).inputTokens : totalTokens(body);
       entry.countedTokens = counted;
       return json(response, 200, { input_tokens: counted });
@@ -374,12 +438,24 @@ createServer(async (request, response) => {
       const body = JSON.parse(await readBody(request)) as MessagesBody;
       const writer = writerFor(body.system);
       const units = unitsOf(body);
-      const cache = simulateCache(units);
-      const entry = record(body, 'messages', writer ?? 'unknown', cache.markers);
+      const cache = simulateCache(units, provider);
+      const entry = record(body, 'messages', writer ?? 'unknown', cache.markers, provider, auth);
       const fail = (status: number, type: string, message: string) => { entry.status = status; apiError(response, status, type, message); };
 
       if (!writer) return fail(500, 'api_error', 'unscripted writer');
-      const invalid = validate(body, writer, cache.markers);
+      const modelError = modelIdError(provider, body.model);
+      if (modelError) return fail(400, 'invalid_request_error', modelError);
+      if (provider === 'anthropic' && primaryFail && (primaryFail.writer === null || primaryFail.writer === writer)) {
+        if (primaryFail.skip > 0) {
+          primaryFail.skip -= 1;
+        } else if (primaryFail.remaining > 0) {
+          primaryFail.remaining -= 1;
+          if (primaryFail.status === 529) return fail(529, 'overloaded_error', 'Overloaded');
+          if (primaryFail.status === 400) return fail(400, 'invalid_request_error', 'scripted 400');
+          return fail(primaryFail.status, 'api_error', `scripted ${primaryFail.status}`);
+        }
+      }
+      const invalid = validate(body, writer, cache.markers, provider);
       if (invalid) return fail(400, 'invalid_request_error', invalid);
       if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));
       if (failWriters.has(writer)) return fail(500, 'api_error', `scripted failure for ${writer}`);
@@ -396,7 +472,12 @@ createServer(async (request, response) => {
       } else if (haiku) {
         if (body.stream) return fail(500, 'api_error', 'the fake does not script a streamed Haiku answer');
         const answer = haikuAnswerFor(writer, body);
-        content = answer.content;
+        content = answer.content.map((block) => {
+          if (provider !== 'bedrock' || block.type !== 'thinking') return block;
+          const signature = `${BEDROCK_SIGNATURE_PREFIX}${String(block.signature)}`;
+          issuedThinkingSignatures.add(signature);
+          return { ...block, signature };
+        });
         stopReason = answer.stopReason;
       } else {
         content = [{ type: 'text', text: answerFor(writer, firstMessageText(body)) }];

@@ -155,3 +155,28 @@ test('a request over 100k prompt tokens is priced at the high tier', () => {
   const expected = (40_000 * 0.5 + 61_000 * 0.05 + 1000 * 2.5) / 1e6;
   assert.ok(Math.abs(haiku55CostUsd(usage).totalCostUsd - expected) < 1e-12);
 });
+
+// --- token usage labels for analytics (agents/types.ts) ---
+
+import { addTokenUsage, tokenUsageOf } from '../agents/types';
+
+const modelResponse = (provider: 'anthropic' | 'bedrock', model: string, inputTokens: number, outputTokens: number) => ({
+  usage: { inputTokens, outputTokens },
+  provider,
+  model,
+});
+
+test('tokenUsageOf carries who served the call and under which model id', () => {
+  assert.deepEqual(
+    tokenUsageOf(modelResponse('bedrock', 'anthropic.claude-sonnet-5-5', 100, 20)),
+    { input: 100, output: 20, provider: 'bedrock', model: 'anthropic.claude-sonnet-5-5' },
+  );
+});
+
+test('a sum is labelled Bedrock if any part ran there, else by the first labelled part; placeholders add nothing', () => {
+  const direct = tokenUsageOf(modelResponse('anthropic', 'claude-sonnet-5-5', 10, 1));
+  const bedrock = tokenUsageOf(modelResponse('bedrock', 'anthropic.claude-sonnet-5-5', 20, 2));
+  assert.deepEqual(addTokenUsage(direct, bedrock, { input: 0, output: 0 }), { input: 30, output: 3, provider: 'bedrock', model: 'anthropic.claude-sonnet-5-5' });
+  assert.deepEqual(addTokenUsage({ input: 0, output: 0 }, direct, direct), { input: 20, output: 2, provider: 'anthropic', model: 'claude-sonnet-5-5' });
+  assert.deepEqual(addTokenUsage({ input: 1, output: 2 }, { input: 3, output: 4 }), { input: 4, output: 6 });
+});

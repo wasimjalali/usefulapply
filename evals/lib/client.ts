@@ -3,10 +3,11 @@
  *
  * Why not src/lib/models/anthropic.ts: callAnthropic() writes every call to the production
  * D1 usage ledger (startLlmGeneration) and imports the D1 client. The eval must not touch
- * either. So this file reproduces the exact request body that callAnthropic builds for
- * Bedrock (same auth modes, same cachePoint conversion, same retry set, same 120 s timeout
- * on the bearer path) and adds what the eval needs: stop_reason, full usage, retries and
- * the raw response.
+ * either. So this file builds its own requests and adds what the eval needs: stop_reason,
+ * full usage, retries and the raw response. The Anthropic arms use the Messages API shape of
+ * production. The Bedrock arm (unused) reproduces the Sonnet 4.6 Bedrock paths production
+ * had until 2026-10-22 (Converse with a bearer token, or the InvokeModel SDK client); those
+ * paths are gone from src/lib/models, which now only fails over to Claude in Amazon Bedrock.
  *
  * Deliberate differences from production, all in observability only:
  *  - the SDK path sets maxRetries 0 and retries here (same statuses plus 408/409) so the
@@ -168,7 +169,7 @@ async function callBedrockSdk(req: ProviderRequest): Promise<Omit<ProviderResult
         .create({
           model: req.model,
           max_tokens: req.max_tokens,
-          temperature: req.temperature,
+          // No temperature: @anthropic-ai/sdk 1.x and the 2026-10-21 API reject it. This arm is unused.
           ...(req.system && { system: req.system }),
           messages: req.messages,
         })

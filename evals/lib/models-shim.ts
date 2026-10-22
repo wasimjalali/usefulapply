@@ -37,7 +37,8 @@ export interface ExplicitCall {
   prompt: string;
   systemPrompt?: string;
   systemBlocks?: SystemBlock[];
-  temperature: number;
+  /** Production no longer sends one (src/lib/models); only the parse_cv call of the old A arm still passes it. */
+  temperature?: number;
   maxTokens: number;
   jsonMode?: boolean;
 }
@@ -62,7 +63,7 @@ export async function executeCall(call: ExplicitCall): Promise<{ text: string; r
   const req: ProviderRequest = {
     model: arm.modelId,
     max_tokens: maxTokens,
-    ...(arm.dropTemperature ? {} : { temperature: call.temperature }),
+    ...(arm.dropTemperature || call.temperature === undefined ? {} : { temperature: call.temperature }),
     ...(systemParam && { system: systemParam }),
     messages: [{ role: 'user', content: call.prompt }],
   };
@@ -138,7 +139,6 @@ export async function callModel(options: ModelCallOptions): Promise<ModelRespons
     prompt: options.prompt,
     systemPrompt: options.systemPrompt,
     systemBlocks: options.systemBlocks as SystemBlock[] | undefined,
-    temperature: options.temperature ?? config.temperature,
     maxTokens: options.maxTokens ?? config.maxTokens,
     jsonMode: options.jsonMode,
   });

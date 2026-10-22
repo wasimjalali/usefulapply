@@ -22,6 +22,7 @@ import { getCurrentUser } from '@/auth/server';
 import { getSession, updateSession } from '@/db/repos/sessions';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { saveLetterRecipientFromAd } from '@/lib/agents/persist-letter-recipient';
+import type { TokenUsage } from '@/lib/agents/types';
 import { isSameStoredText, storedTextOrEmpty } from '@/db/trim-text';
 import { claimAnonymousGeneration, releaseAnonymousGeneration } from '@/db/repos/anonymous';
 import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
@@ -259,7 +260,7 @@ export async function POST(request: NextRequest) {
       const INPUT_COST_PER_M = ACTIVE_MODEL_PRICING.inputPerM;
       const OUTPUT_COST_PER_M = ACTIVE_MODEL_PRICING.outputPerM;
 
-      const trackLLMStep = (stepId: string, tokens?: { input: number; output: number }) => {
+      const trackLLMStep = (stepId: string, tokens?: TokenUsage) => {
         if (!tokens) return;
         try {
           const posthog = getPostHogServer();
@@ -274,8 +275,9 @@ export async function POST(request: NextRequest) {
             event: '$ai_generation',
             properties: {
               // Required PostHog LLM analytics properties
-              $ai_provider: 'anthropic',
-              $ai_model: ACTIVE_MODEL_ID,
+              // Who served the step: Bedrock after a failover, else the Anthropic API.
+              $ai_provider: tokens.provider ?? 'anthropic',
+              $ai_model: tokens.model ?? ACTIVE_MODEL_ID,
               $ai_input_tokens: tokens.input,
               $ai_output_tokens: tokens.output,
               $ai_input_cost_usd: inputCost,

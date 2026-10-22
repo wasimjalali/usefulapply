@@ -214,8 +214,9 @@ export async function POST(request: NextRequest) {
         distinctId: user.id,
         event: '$ai_generation',
         properties: {
-          $ai_provider: 'anthropic',
-          $ai_model: ACTIVE_MODEL_ID,
+          // Who served the call: Bedrock after a failover, else the Anthropic API.
+          $ai_provider: tokens.provider ?? 'anthropic',
+          $ai_model: tokens.model ?? ACTIVE_MODEL_ID,
           $ai_input_tokens: tokens.input,
           $ai_output_tokens: tokens.output,
           $ai_input_cost_usd: inputCost,

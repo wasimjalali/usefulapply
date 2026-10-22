@@ -3,6 +3,7 @@
  * Useful Apply Unified Agent Architecture
  */
 
+import type { ModelProvider, ModelResponse } from '@/lib/models/types';
 import type { ApplicantLogistics } from '@/lib/profile/logistics';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
 
@@ -10,6 +11,33 @@ import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
 export interface TokenUsage {
   input: number;
   output: number;
+  /**
+   * Who served the call and under which model id (`anthropic` / `claude-sonnet-5-5`, or `bedrock` /
+   * `anthropic.claude-sonnet-5-5` after a failover), so analytics label it right. When several calls are summed
+   * and one of them ran on Bedrock, the sum is labelled Bedrock. Absent for zero-cost placeholders.
+   */
+  provider?: ModelProvider;
+  model?: string;
+}
+
+/** Tokens and the serving provider of one model response. */
+export function tokenUsageOf(response: Pick<ModelResponse, 'usage' | 'provider' | 'model'>): TokenUsage {
+  return {
+    input: response.usage.inputTokens,
+    output: response.usage.outputTokens,
+    provider: response.provider,
+    model: response.model,
+  };
+}
+
+/** Sum token usages. The label is Bedrock if any part ran there, else the first part's. */
+export function addTokenUsage(...parts: TokenUsage[]): TokenUsage {
+  const labelled = parts.find((part) => part.provider === 'bedrock') ?? parts.find((part) => part.provider !== undefined);
+  return {
+    input: parts.reduce((sum, part) => sum + part.input, 0),
+    output: parts.reduce((sum, part) => sum + part.output, 0),
+    ...(labelled && { provider: labelled.provider, model: labelled.model }),
+  };
 }
 
 // Agent role (unified agent handles all tasks)
@@ -282,7 +310,7 @@ export interface OptimizationAnalysis {
 // Event types for streaming progress
 export type AgentEvent = 
   | { type: 'step_started'; step: { id: string; description: string } }
-  | { type: 'step_completed'; step: { id: string; description?: string }; tokens?: { input: number; output: number }; latencyMs?: number }
+  | { type: 'step_completed'; step: { id: string; description?: string }; tokens?: TokenUsage; latencyMs?: number }
   | { type: 'step_error'; step: { id: string }; error: string }
   | { type: 'message'; content: string }
   | { type: 'progress'; percent: number; message: string }
