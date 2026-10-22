@@ -119,6 +119,11 @@ Useful Apply is a Next.js 16 app generating job application materials (CV, Cover
 ### Agent Flow — Apply Directly Mode
 - Runs `runJobCopilot()` → full Phase 1 + Phase 2 in one pass (no fit assessment)
 
+### Chat history and limits
+- A saved application's chat runs on server-owned history: `/api/chat` reads `chat_messages` from D1 (never the client's copy) and stores the user's turn and the reply itself, under ids the client's sync also uses (`src/lib/chat-message-id.ts`), so no row is written twice. A local `session-` conversation still sends its last 10 turns.
+- 50 user messages per application, enforced by the route's write (`claimUserChatTurn`).
+- Before a turn whose projected input passes 75k tokens, the route compacts everything but the last 4+ messages into one signed block (`src/lib/models/compaction.ts`, summary prompt in `src/lib/agents/prompts/chat-compaction-prompt.ts`), stored per application in `chat_compactions` (migration 0013). ChatPanel shows one "Earlier messages summarized" divider; the transcript stays complete.
+
 ### Job Feed: user-triggered, never scheduled
 - No cron or scheduler starts feed runs, by design. The user (web app) or `run_job_feed` (MCP) starts at most one completed run per day (a failed run can be retried at once): the next one may start at least 20 hours after the last one started and on a new local day, or after 28 hours whatever the day (`src/lib/services/feed/cooldown.ts`).
 - `enabled` (`automationEnabled` in the MCP tools) is an on/off switch for the feed, not a schedule. Don't add a scheduler (decided 2026-10-21).

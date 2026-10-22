@@ -20,7 +20,7 @@ export const COMPACTION_BETA = 'compact-2026-09-04';
 export const COMPACT_ABOVE_TOKENS = 75_000;
 /** Headroom for the tool rounds a turn may run (results are capped at 15k chars each). */
 export const COMPACTION_RESERVE_TOKENS = 15_000;
-/** Messages kept verbatim after the block. At least this many; see splitForCompaction. */
+/** Messages kept verbatim after the block: this many, or one more (see splitForCompaction). */
 export const KEEP_RECENT_MESSAGES = 4;
 /** Output cap of the compaction request. The summary is capped at 600 words (about 2,500 tokens of German) in its instructions; the rest is headroom for thinking, and a summary that hits this is a failure. */
 export const COMPACTION_MAX_TOKENS = 6_000;
@@ -49,16 +49,14 @@ export function carriesCompactionBlock(messages: Anthropic.Beta.BetaMessageParam
 
 /**
  * Where to cut a history of `length` messages: everything before the returned index is compacted, the rest is kept
- * verbatim. At least KEEP_RECENT_MESSAGES are kept, and the kept part starts on an assistant message when there is
- * one to start on, so the compacted range ends on a user turn (the shape P0 verified; a range ending on an assistant
- * turn would read as a prefill). A history with no assistant message to start on (ads the client answered with its
- * buttons, one after another) is cut at the plain count. Returns null when nothing would be left to compact.
+ * verbatim. Four are kept, or five when that lets the kept part start on an assistant message, so the compacted range
+ * ends on a user turn (the shape P0 verified; a range ending on an assistant turn reads as a prefill). Never more
+ * than five: the kept turns ride in every later request until the next compaction. Returns null when nothing would
+ * be left to compact.
  */
 export function splitForCompaction(roles: Array<'user' | 'assistant'>): number | null {
-  const plain = roles.length - KEEP_RECENT_MESSAGES;
-  let cut = plain;
-  while (cut > 0 && roles[cut] !== 'assistant') cut -= 1;
-  if (cut <= 0) cut = plain;
+  let cut = roles.length - KEEP_RECENT_MESSAGES;
+  if (roles[cut] !== 'assistant' && cut - 1 > 0 && roles[cut - 1] === 'assistant') cut -= 1;
   // The range has to hold at least one user turn, or the request would have nothing the model can summarize.
   if (cut <= 0 || !roles.slice(0, cut).includes('user')) return null;
   return cut;

@@ -204,7 +204,9 @@ export interface ChatTurn {
  * shorter (past 350 chars it already counts as pasted), so the cut only ever lands on pasted text.
  *
  * Sized for real job ads (131 production job descriptions: p99 10,611 chars, longest 11,421) and held
- * down by the input budget. The route sends up to eleven turns (ten replayed, then the new one), and all
+ * down by the input budget. A local conversation sends up to eleven turns (ten replayed, then the new one); a
+ * saved application sends its whole D1 history and compacts it before 75k (compaction.ts), keeping at most
+ * five turns plus the new one verbatim, so the eleven-turn case stays the worst one. All
  * eleven at the cut, with the tools, the static rules, the longest CV summaries and the state, must stay
  * under INPUT_REFUSE_ABOVE at the budget's 1.8 chars per token. At 12,000 that estimate is about 93,800
  * tokens, over the line; the most that fits today is 11,370, and this keeps about 400 tokens of headroom
