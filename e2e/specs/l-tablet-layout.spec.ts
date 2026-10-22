@@ -16,8 +16,11 @@ import { REPO_ROOT } from '../lib/env';
  *       to its rail in the same step), Show the canvas switches back. Whichever column shows gets at least 480px.
  *   l2  Back up to 1280 both columns show again, the canvas keeps at least 480px, and Collapse/Expand canvas
  *       still work as before.
- *       The chat stays mounted behind its rail, so a draft survives the trip, and the canvas header never wraps.
- *   l3  A cold load at 768 opens straight on the canvas, never on the squeezed three-column layout.
+ *       The chat stays mounted behind its rail, so a draft and the scroll offset survive the trip, and the canvas
+ *       header never wraps.
+ *   l3  A cold load at 768 opens straight on the canvas: sampled on every animation frame from the first, the canvas
+ *       never drops under 480px and the CV page never spills past it (no squeezed row, no unscaled page). New
+ *       application from there brings the chat forward, where its job ad field is.
  *
  * Screenshots of both states at each width, and per-paint CDP screencast frames of the toggles and the cold
  * load, go to `<main checkout>/verify/<branch>/layout/`.
@@ -39,17 +42,31 @@ const RAIL = 48;
 const USABLE = 480;
 
 const canvas = (page: Page) => page.locator('section:has([role="tablist"])');
-// The feed's conversation stays mounted, hidden, beside the application's: only the visible one counts.
-const chat = (page: Page) => page.locator('section:has(> header h2):visible');
+// The feed's conversation stays mounted, hidden, beside the application's, and the application's own stays
+// mounted, inert and transparent, behind its rail: only the one on screen counts.
+const chat = (page: Page) => page.locator('section:has(> header h2):visible:not([inert] *)');
 const showChat = (page: Page) => page.getByRole('button', { name: 'Show the conversation' });
 const showCanvas = (page: Page) => page.getByRole('button', { name: 'Show the canvas' });
 const expandCanvas = (page: Page) => page.getByRole('button', { name: 'Expand canvas' });
 const collapseCanvas = (page: Page) => page.getByRole('button', { name: 'Collapse canvas' });
 
-async function width(locator: Locator): Promise<number> {
-  const box = await locator.boundingBox();
-  if (!box) throw new Error('column is not on screen');
-  return box.width;
+async function box(locator: Locator) {
+  const found = await locator.boundingBox();
+  if (!found) throw new Error(`${locator} is not on screen`);
+  return found;
+}
+const width = async (locator: Locator) => (await box(locator)).width;
+
+/** Read, or set then read, the scroll offset of the chat's message list. */
+async function chatScroll(page: Page, set?: number): Promise<number> {
+  return chat(page).evaluate((section, value) => {
+    const list = Array.from(section.querySelectorAll<HTMLElement>('*')).find(
+      (node) => /(auto|scroll)/.test(getComputedStyle(node).overflowY) && node.scrollHeight > node.clientHeight,
+    );
+    if (!list) throw new Error('no scrolling message list in the chat');
+    if (value !== undefined) list.scrollTop = value;
+    return list.scrollTop;
+  }, set);
 }
 
 /** The page never scrolls sideways: a squeezed column shows up as overflow before it shows up as a number. */
@@ -94,10 +111,10 @@ async function expectCanvasView(page: Page, viewport: number) {
   const canvasWidth = await width(canvas(page));
   expect(canvasWidth).toBeGreaterThanOrEqual(USABLE);
   // No label breaks onto a second line in the canvas header.
-  const cvTab = await page.getByRole('tab', { name: 'CV', exact: true }).boundingBox();
-  const letterTab = await page.getByRole('tab', { name: 'Cover letter' }).boundingBox();
-  expect(letterTab?.height).toBe(cvTab?.height);
-  expect((await page.getByRole('button', { name: 'Download all' }).boundingBox())?.height).toBeLessThanOrEqual(40);
+  const cvTab = await box(page.getByRole('tab', { name: 'CV', exact: true }));
+  const letterTab = await box(page.getByRole('tab', { name: 'Cover letter' }));
+  expect(letterTab.height).toBe(cvTab.height);
+  expect((await box(page.getByRole('button', { name: 'Download all' }))).height).toBeLessThanOrEqual(40);
   expect(Math.abs(canvasWidth - (viewport - SIDEBAR - RAIL))).toBeLessThanOrEqual(2);
   await expectNoSideScroll(page);
 }
@@ -133,9 +150,12 @@ test('(l1-l3) chat and canvas take turns below 1100px and sit side by side above
     await expectChatView(page, viewport);
     await shot(page, `${viewport}-chat`);
 
-    // The chat stays mounted behind its rail: a draft typed before the switch is still there after it.
+    // The chat stays mounted behind its rail: a draft typed before the switch is still there after it, and the
+    // message list is where the user left it, not back at the top.
     const draft = `Draft kept across the switch at ${viewport}`;
     await chat(page).getByPlaceholder('Ask for a change or a screening answer').fill(draft);
+    const offset = await chatScroll(page, 600);
+    expect(offset).toBeGreaterThan(0);
 
     await recordPaints(page, `${viewport}-to-canvas`, () => showCanvas(page).click());
     await expectCanvasView(page, viewport);
@@ -143,6 +163,7 @@ test('(l1-l3) chat and canvas take turns below 1100px and sit side by side above
     await showChat(page).click();
     await expectChatView(page, viewport);
     await expect(chat(page).getByPlaceholder('Ask for a change or a screening answer')).toHaveValue(draft);
+    expect(await chatScroll(page)).toBe(offset);
     await chat(page).getByPlaceholder('Ask for a change or a screening answer').fill('');
     await showCanvas(page).click();
     await expectCanvasView(page, viewport);
@@ -168,14 +189,45 @@ test('(l1-l3) chat and canvas take turns below 1100px and sit side by side above
   await expect(canvas(page)).toBeVisible();
   await expect(chat(page)).toBeVisible();
 
-  // l3: a cold load at tablet width, recorded from the first paint.
+  // l3: a cold load at tablet width, recorded from the first paint and sampled on every animation frame.
   const cold = await context.newPage();
   await cold.setViewportSize({ width: 768, height: 900 });
+  await cold.addInitScript(() => {
+    const frames: { canvas: number; spill: number }[] = [];
+    (window as unknown as { layoutFrames: typeof frames }).layoutFrames = frames;
+    const sample = () => {
+      const column = document.querySelector('section:has([role="tablist"])');
+      if (column) {
+        const bounds = column.getBoundingClientRect();
+        // The CV's size wrapper holds the Full Preview button; unscaled, it is the page's full 816px.
+        const page = Array.from(column.querySelectorAll('button'))
+          .find((button) => button.textContent?.includes('Full Preview'))
+          ?.parentElement?.getBoundingClientRect();
+        frames.push({
+          canvas: bounds.width,
+          spill: page ? Math.max(page.right - bounds.right, bounds.left - page.left) : 0,
+        });
+      }
+      requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  });
   await recordPaints(cold, '768-cold-start', async () => {
     await cold.goto('/dashboard');
     await expect(canvas(cold)).toBeVisible({ timeout: 30_000 });
   });
   await expectCanvasView(cold, 768);
+  const frames = await cold.evaluate(() => (window as unknown as { layoutFrames: { canvas: number; spill: number }[] }).layoutFrames);
+  expect(frames.length).toBeGreaterThan(5);
+  expect(Math.min(...frames.map((frame) => frame.canvas))).toBeGreaterThanOrEqual(USABLE);
+  expect(Math.max(...frames.map((frame) => frame.spill))).toBeLessThanOrEqual(1);
   await shot(cold, '768-cold-start');
+
+  // New application from the canvas view: the reset lands in the chat, so the chat comes forward with its job ad field.
+  await cold.getByRole('button', { name: 'New Application' }).click();
+  await expect(chat(cold).getByPlaceholder('Paste a job ad or ask anything')).toBeVisible();
+  await expect(showCanvas(cold)).toBeVisible();
+  expect(await width(chat(cold))).toBeGreaterThanOrEqual(USABLE);
+  await shot(cold, '768-new-application');
   await context.close();
 });

@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { ConversationColumn } from '@/components/shell/ConversationColumn';
 import { ColumnSash } from '@/components/shell/ColumnSash';
@@ -54,11 +55,10 @@ export function AppShell() {
 
   // Below this the 225px sidebar, the 400px conversation floor and the 480px
   // canvas floor no longer fit side by side, so the two take turns: one gets
-  // the row and the other folds to its rail. The canvas wins on the way down,
-  // and both come back on the way up. In between, the user's choice stands.
-  const [compact, setCompact] = useState(false);
+  // the row and the other folds to its rail. Both come back on the way up.
   // A layout effect, so a first render at tablet width never paints the
   // squeezed row before the fold. The shell only ever renders on the client.
+  const [compact, setCompact] = useState(false);
   const wasNarrowRef = useRef<boolean | null>(null);
   useLayoutEffect(() => {
     const media = window.matchMedia('(max-width: 1100px)');
@@ -67,20 +67,50 @@ export function AppShell() {
       const widening = wasNarrowRef.current === true;
       wasNarrowRef.current = media.matches;
       setCompact(media.matches);
-      setConversationCollapsed(media.matches);
-      if (widening) setCanvasCollapsed(false);
+      if (!media.matches) {
+        setConversationCollapsed(false);
+        if (widening) setCanvasCollapsed(false);
+      }
     };
     sync();
     media.addEventListener('change', sync);
     return () => media.removeEventListener('change', sync);
   }, [setConversationCollapsed, setCanvasCollapsed]);
 
+  // Compact, only one of the two may be open. With both open the canvas takes
+  // the row: on the way down, on a cold load, or from any future caller that
+  // opens one without folding the other. A chat-only view the user already
+  // chose is left as it is, so narrowing or a remount never flips it.
+  useLayoutEffect(() => {
+    if (compact && !canvasCollapsed && !conversationCollapsed) setConversationCollapsed(true);
+  }, [compact, canvasCollapsed, conversationCollapsed, setConversationCollapsed]);
+
+  // Starting an application resets the workspace inside ChatPanel, and its
+  // job ad field lives in the chat. Compact, with the chat folded, the reset
+  // would land behind the rail and leave an empty canvas, so bring it forward.
+  const newApplicationRequest = useUIStore((s) => s.newApplicationRequest);
+  const seenNewApplicationRef = useRef(newApplicationRequest);
+  useLayoutEffect(() => {
+    if (newApplicationRequest === seenNewApplicationRef.current) return;
+    seenNewApplicationRef.current = newApplicationRequest;
+    if (compact && conversationCollapsed) setCanvasCollapsed(true);
+  }, [newApplicationRequest, compact, conversationCollapsed, setCanvasCollapsed]);
+
   // Compact, opening the canvas has to fold the conversation in the same
-  // update, or the two squeeze into a row too narrow for either.
-  const toggleCanvas = () => {
-    if (!canvasCollapsed) setCanvasCollapsed(true);
-    else if (compact) setConversationCollapsed(true);
-    else setCanvasCollapsed(false);
+  // update, or the two squeeze into a row too narrow for either. The button
+  // that was clicked unmounts with the switch, so focus moves to the control
+  // that switches back, and a keyboard user keeps their place.
+  const toggleCanvas = (event: MouseEvent<HTMLButtonElement>) => {
+    const hadFocus = document.activeElement === event.currentTarget;
+    flushSync(() => {
+      if (!canvasCollapsed) setCanvasCollapsed(true);
+      else if (compact) setConversationCollapsed(true);
+      else setCanvasCollapsed(false);
+    });
+    if (hadFocus) {
+      const next = compact && canvasCollapsed ? 'conversation' : 'canvas';
+      document.querySelector<HTMLElement>(`[data-shell-toggle="${next}"]`)?.focus();
+    }
   };
 
   const handleTabChange = (tab: KitTab) => {

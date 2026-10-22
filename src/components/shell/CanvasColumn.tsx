@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import { FileText, Mail, Send, Sparkles, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { CVPanel } from '@/components/CVPanel';
 import { CoverLetterPanel } from '@/components/CoverLetterPanel';
@@ -17,7 +17,7 @@ interface CanvasColumnProps {
   collapsed: boolean;
   /** Below 1100px the canvas and the conversation take turns for the row. */
   compact: boolean;
-  onToggleCollapsed: () => void;
+  onToggleCollapsed: (event: MouseEvent<HTMLButtonElement>) => void;
   toolbarNode: HTMLDivElement | null;
   setToolbarNode: (node: HTMLDivElement | null) => void;
 }
@@ -107,6 +107,7 @@ export function CanvasColumn({
           className="rounded-full border border-cream-200 bg-cream-50 p-1.5 text-warm-gray shadow-sm hover:text-navy-700 cursor-pointer"
           aria-label={label}
           title={label}
+          data-shell-toggle="canvas"
         >
           <PanelRightOpen className="h-4 w-4" />
         </button>
@@ -124,6 +125,7 @@ export function CanvasColumn({
           onClick={onToggleCollapsed}
           className="absolute bottom-4 right-4 z-20 rounded-full border border-cream-200 bg-cream-50 p-1.5 text-warm-gray shadow-sm hover:text-navy-700 cursor-pointer"
           aria-label="Collapse canvas"
+          data-shell-toggle="canvas"
         >
           <PanelRightClose className="h-4 w-4" />
         </button>

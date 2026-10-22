@@ -1,5 +1,6 @@
 'use client';
 
+import { flushSync } from 'react-dom';
 import { PanelLeftOpen } from 'lucide-react';
 import { ChatPanel } from '@/components/ChatPanel';
 import { FeedConversation } from '@/components/job-feed/FeedConversation';
@@ -37,7 +38,9 @@ export function ConversationColumn({ onTabChange, columnRef, compact }: Conversa
 
   // The right border divides this column from the canvas. With the canvas
   // folded there is nothing to divide, and it reads as a stray rule.
-  const readingWidth = canvasCollapsed ? 'w-full' : 'w-full border-r border-cream-200';
+  // Behind its rail the column has nothing beside it either, and it has to
+  // lay out at the width it will show at.
+  const readingWidth = canvasCollapsed || collapsed ? 'w-full' : 'w-full border-r border-cream-200';
 
   const title = currentSession
     ? [currentSession.company, currentSession.jobTitle].filter(Boolean).join(', ') || 'New application'
@@ -56,13 +59,24 @@ export function ConversationColumn({ onTabChange, columnRef, compact }: Conversa
 
   // Folded, the column is a rail with one way back. Compact, there is only
   // room for one of the two, so coming back folds the canvas to its rail.
-  // The column itself stays mounted behind the rail, hidden, so the chat
-  // keeps its scroll, its draft and its state across the switch.
+  // This button unmounts with the switch, so focus moves to the canvas rail's
+  // toggle, the way back.
+  const showConversation = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!compact) {
+      setCollapsed(false);
+      return;
+    }
+    const hadFocus = document.activeElement === event.currentTarget;
+    flushSync(() => setCanvasCollapsed(true));
+    if (hadFocus) document.querySelector<HTMLElement>('[data-shell-toggle="canvas"]')?.focus();
+  };
+
   const rail = collapsed && (
     <div className="flex h-full w-12 flex-shrink-0 flex-col items-center border-r border-cream-200 bg-cream-100 py-3">
       <button
         type="button"
-        onClick={() => (compact ? setCanvasCollapsed(true) : setCollapsed(false))}
+        onClick={showConversation}
+        data-shell-toggle="conversation"
         className="rounded-full border border-cream-200 bg-cream-50 p-1.5 text-warm-gray shadow-sm hover:text-navy-700 cursor-pointer"
         aria-label="Show the conversation"
         title="Show the conversation"
@@ -72,7 +86,7 @@ export function ConversationColumn({ onTabChange, columnRef, compact }: Conversa
     </div>
   );
 
-  const useDraggedWidth = !canvasCollapsed && draggedWidth !== null;
+  const useDraggedWidth = !collapsed && !canvasCollapsed && draggedWidth !== null;
 
   return (
     <>
@@ -80,13 +94,25 @@ export function ConversationColumn({ onTabChange, columnRef, compact }: Conversa
       <div
         ref={columnRef}
         style={useDraggedWidth ? { width: `${draggedWidth}px` } : undefined}
-        className={`relative h-full min-h-0 ${collapsed ? 'hidden' : 'flex'} ${
+        // Behind its rail the column stays mounted and laid out, out of sight,
+        // over the canvas at the exact width it will show at (the row less
+        // the 225px sidebar and the canvas rail). display:none would drop the
+        // message list's scroll offset, so the chat came back at the top.
+        // Opacity rather than visibility: the composer transitions all its
+        // properties, so an inherited visibility lingered for 200ms over the
+        // canvas. inert keeps it out of the tab order and the a11y tree.
+        inert={collapsed}
+        className={`h-full min-h-0 ${
+          collapsed ? 'pointer-events-none absolute inset-y-0 left-[225px] right-12 flex opacity-0' : 'relative flex'
+        } ${
           // The canvas only ever needs one CV page plus its margins (816 + 128
           // = 944), and the sidebar takes 225. Everything past that is surplus,
           // so the chat takes it instead of leaving it as dead cream either
           // side of the page. calc goes negative on small screens, where the
           // floor takes over and the canvas keeps every pixel it can get.
-          canvasCollapsed
+          collapsed
+            ? ''
+            : canvasCollapsed
             ? 'min-w-0 flex-1'
             : useDraggedWidth
               ? 'flex-shrink-0'
