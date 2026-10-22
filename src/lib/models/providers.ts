@@ -224,6 +224,12 @@ export interface FailoverArgs<C, T> {
   /** null when Bedrock is not configured. */
   bedrock: () => C | null;
   attempt: (target: FailoverTarget<C>) => Promise<T>;
+  /**
+   * Skip the choice: 'bedrock' goes straight to Bedrock, 'anthropic' stays on the primary. Either way a failure
+   * is a failure: no hop to the other provider. Used inside one request's multi-round loop so assistant content
+   * signed by one provider (thinking blocks) is never sent to the other.
+   */
+  pin?: ProviderName;
   /** Return false once part of the answer reached the caller: a failure after that stays a failure. */
   canFailOver?: () => boolean;
   onFailover?: (info: FailoverInfo) => Promise<void> | void;
@@ -257,6 +263,14 @@ async function capturePostHog(event: { distinctId: string; event: string; proper
 
 export async function runWithFailover<C, T>(args: FailoverArgs<C, T>): Promise<T> {
   logBedrockStateOnce();
+  if (args.pin === 'bedrock') {
+    const bedrock = args.bedrock();
+    if (!bedrock) throw new Error('This request is pinned to Amazon Bedrock but Bedrock is not configured');
+    return await args.attempt({ provider: 'bedrock', model: bedrockModelId(args.model), getClient: () => bedrock });
+  }
+  if (args.pin === 'anthropic') {
+    return await args.attempt({ provider: 'anthropic', model: args.model, getClient: args.primary });
+  }
   try {
     return await args.attempt({ provider: 'anthropic', model: args.model, getClient: args.primary });
   } catch (error) {

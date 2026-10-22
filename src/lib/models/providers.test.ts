@@ -267,6 +267,33 @@ test('a failing failover event does not block the Bedrock attempt', async () => 
   }
 });
 
+// --- pinned provider (one request's tool loop) ---------------------------------------------------------
+
+test('pinned to Bedrock: straight to Bedrock with no primary attempt, and a failure there is a failure', async () => {
+  const p = plan();
+  const bedrockError = httpError(529, 'overloaded_error');
+  await assert.rejects(
+    runWithFailover({ ...p.args(async () => { throw bedrockError; }), pin: 'bedrock' as const }),
+    (thrown: unknown) => thrown === bedrockError,
+  );
+  assert.deepEqual(p.attempts, [{ provider: 'bedrock', model: 'anthropic.claude-haiku-5-5' }]);
+  assert.equal(p.events.length, 0);
+  assert.equal(await runWithFailover({ ...p.args(async (provider) => provider), pin: 'bedrock' as const }), 'bedrock');
+});
+
+test('pinned to Bedrock without Bedrock configured throws a clear error and never tries the primary', async () => {
+  const p = plan({ bedrock: null });
+  await assert.rejects(runWithFailover({ ...p.args(async () => 'x'), pin: 'bedrock' as const }), /pinned to Amazon Bedrock but Bedrock is not configured/);
+  assert.equal(p.attempts.length, 0);
+});
+
+test('pinned to the Anthropic API: a 529 does not fail over', async () => {
+  const p = plan();
+  const error = httpError(529, 'overloaded_error');
+  await assert.rejects(runWithFailover({ ...p.args(async () => { throw error; }), pin: 'anthropic' as const }), (thrown: unknown) => thrown === error);
+  assert.deepEqual(p.attempts.map((a) => a.provider), ['anthropic']);
+});
+
 // --- clients ---------------------------------------------------------------------------------------------
 
 const ENV_KEYS = [

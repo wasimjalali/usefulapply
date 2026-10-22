@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { EmailValidationError } from '@/lib/agents/unified-writer-agent';
+import type { TokenUsage } from '@/lib/agents/types';
 import { getCurrentUser } from '@/auth/server';
 import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
 import { reserveCredits, captureReservation, releaseReservation } from '@/lib/supabase/credit-reservations';
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
     const OUTPUT_COST_PER_M = ACTIVE_MODEL_PRICING.outputPerM;
     const regenStartTime = Date.now();
 
-    const trackRegenLLM = (step: string, tokens: { input: number; output: number }) => {
+    const trackRegenLLM = (step: string, tokens: TokenUsage) => {
       try {
         const posthog = getPostHogServer();
         const inputCost = (tokens.input / 1_000_000) * INPUT_COST_PER_M;
@@ -148,8 +149,9 @@ export async function POST(request: NextRequest) {
           event: '$ai_generation',
           properties: {
             // Required PostHog LLM analytics properties
-            $ai_provider: 'anthropic',
-            $ai_model: ACTIVE_MODEL_ID,
+            // Who served the call: Bedrock after a failover, else the Anthropic API.
+            $ai_provider: tokens.provider ?? 'anthropic',
+            $ai_model: tokens.model ?? ACTIVE_MODEL_ID,
             $ai_input_tokens: tokens.input,
             $ai_output_tokens: tokens.output,
             $ai_input_cost_usd: inputCost,

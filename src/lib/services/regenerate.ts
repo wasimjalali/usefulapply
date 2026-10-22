@@ -14,6 +14,7 @@
  * description are read from the user's stored rows, never from the caller.
  */
 
+import type { TokenUsage } from '@/lib/agents/types';
 import { sql, type SQL } from 'drizzle-orm';
 import {
   unifiedWriterAgent,
@@ -94,11 +95,6 @@ export type RegenerationResult =
       landed?: boolean;
       revision?: number;
     };
-
-interface TokenUsage {
-  input: number;
-  output: number;
-}
 
 /** What a writer produced, before any of it is saved. */
 export type GeneratedRegeneration =

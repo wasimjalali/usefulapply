@@ -66,6 +66,9 @@ const MAX_MARKERS = 4;
 type Ttl = '5m' | '1h';
 type Provider = 'anthropic' | 'bedrock';
 
+/** Bedrock signs the thinking blocks it issues with this prefix; the Anthropic API refuses them. */
+const BEDROCK_SIGNATURE_PREFIX = 'bedrock-sig:';
+
 interface MarkerRecord { unit: number; where: 'tools' | 'system' | 'message' | 'automatic'; ttl: Ttl; prefixHash: string }
 
 interface CallRecord {
@@ -249,10 +252,18 @@ function simulateCache(units: Unit[], provider: Provider): CacheOutcome {
 // Request checks the API makes, so an app bug shows as the 400 it would be in production
 // ---------------------------------------------------------------------------
 
-function validate(body: MessagesBody, writer: Writer | null, markers: MarkerRecord[]): string | null {
+function validate(body: MessagesBody, writer: Writer | null, markers: MarkerRecord[], provider: Provider): string | null {
   // API 2026-10-21: any value of a sampling parameter is a 400, for every model.
   for (const name of ['temperature', 'top_p', 'top_k'] as const) {
     if ((body as Record<string, unknown>)[name] !== undefined) return `${name}: Extra inputs are not permitted (sampling parameters are removed in 2026-10-21)`;
+  }
+  // A thinking block is signed by the provider that produced it. The Anthropic API rejects one signed by Bedrock,
+  // so a loop that moves a request between providers mid-conversation fails here, in CI.
+  if (provider === 'anthropic') {
+    for (const message of body.messages ?? []) {
+      const foreign = blocksOf(message.content).find((block) => block.type === 'thinking' && String(block.signature).startsWith(BEDROCK_SIGNATURE_PREFIX));
+      if (foreign) return 'Invalid `signature` in `thinking` block';
+    }
   }
   if (markers.length > MAX_MARKERS) return `A maximum of ${MAX_MARKERS} blocks with cache_control may be provided. Found ${markers.length}.`;
   const firstShort = markers.findIndex((marker) => marker.ttl === '5m');
@@ -444,7 +455,7 @@ createServer(async (request, response) => {
           return fail(primaryFail.status, 'api_error', `scripted ${primaryFail.status}`);
         }
       }
-      const invalid = validate(body, writer, cache.markers);
+      const invalid = validate(body, writer, cache.markers, provider);
       if (invalid) return fail(400, 'invalid_request_error', invalid);
       if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));
       if (failWriters.has(writer)) return fail(500, 'api_error', `scripted failure for ${writer}`);
@@ -461,7 +472,12 @@ createServer(async (request, response) => {
       } else if (haiku) {
         if (body.stream) return fail(500, 'api_error', 'the fake does not script a streamed Haiku answer');
         const answer = haikuAnswerFor(writer, body);
-        content = answer.content;
+        content = answer.content.map((block) => {
+          if (provider !== 'bedrock' || block.type !== 'thinking') return block;
+          const signature = `${BEDROCK_SIGNATURE_PREFIX}${String(block.signature)}`;
+          issuedThinkingSignatures.add(signature);
+          return { ...block, signature };
+        });
         stopReason = answer.stopReason;
       } else {
         content = [{ type: 'text', text: answerFor(writer, firstMessageText(body)) }];

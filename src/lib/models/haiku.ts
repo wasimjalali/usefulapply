@@ -102,9 +102,18 @@ export interface HaikuCallOptions {
   /** Multi-turn: also cache the conversation tail (automatic caching, 5m). */
   cacheConversation?: boolean;
   generationContext: LlmGenerationContext;
+  /**
+   * Pin the call to one provider, with no failover in either direction. A multi-round loop that passes the
+   * assistant's content back (thinking and tool_use blocks are signed by whoever produced them) sets this to
+   * 'bedrock' once a round was answered by Bedrock, so those blocks never reach the Anthropic API. Unset
+   * (the default) tries the Anthropic API and fails over to Bedrock. Per request, never stored anywhere.
+   */
+  provider?: ProviderName;
 }
 
 export interface HaikuResponse extends ModelResponse {
+  /** Who answered. A loop passes 'bedrock' back as `provider` for the rounds that follow. */
+  provider: ProviderName;
   /** Append verbatim as the assistant turn (keeps thinking and tool_use blocks unaltered). */
   rawContent: Anthropic.Beta.BetaContentBlock[];
   /** input + cache_read + cache_creation (+ compaction iterations). Used by the 100k budget guard. */
@@ -454,6 +463,7 @@ function haikuFailover<T>(
     primary: () => deps.getClient(),
     bedrock: () => deps.getBedrockClient?.() ?? null,
     attempt,
+    pin: options.provider,
     onFailover: (info) => captureFailoverEvent(info, (event) => deps.capture(event)),
   });
 }

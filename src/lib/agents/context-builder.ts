@@ -10,7 +10,7 @@
  * - extractVerifiedMetrics (anti-hallucination binding)
  */
 
-import type { MasterContext, TokenUsage } from './types';
+import { tokenUsageOf, type MasterContext, type TokenUsage } from './types';
 import { callModel } from '@/lib/models';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import { sanitizeAdText } from './chat-tools/untrusted';
@@ -267,10 +267,7 @@ Return valid JSON only. No explanation or preamble.`,
     generationContext,
   });
 
-  const tokens: TokenUsage = {
-    input: response.usage.inputTokens,
-    output: response.usage.outputTokens,
-  };
+  const tokens: TokenUsage = tokenUsageOf(response);
 
   try {
     return {
@@ -341,10 +338,7 @@ Return valid JSON only. No explanation or preamble.`,
     generationContext,
   });
 
-  const tokens: TokenUsage = {
-    input: response.usage.inputTokens,
-    output: response.usage.outputTokens,
-  };
+  const tokens: TokenUsage = tokenUsageOf(response);
 
   try {
     const parsed = parseJsonObject(response.content, 'Job description response');
@@ -612,10 +606,7 @@ Return ONLY valid JSON, no explanation.`,
       generationContext,
     });
 
-    matcherTokens = {
-      input: response.usage.inputTokens,
-      output: response.usage.outputTokens,
-    };
+    matcherTokens = tokenUsageOf(response);
 
     let jsonContent = response.content.trim();
     if (jsonContent.startsWith('```')) {
@@ -783,10 +774,7 @@ Return ONLY the JSON array. No explanation.`,
     generationContext,
   });
 
-  const tokens: TokenUsage = {
-    input: response.usage.inputTokens,
-    output: response.usage.outputTokens,
-  };
+  const tokens: TokenUsage = tokenUsageOf(response);
 
   try {
     let jsonContent = response.content.trim();

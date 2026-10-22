@@ -655,6 +655,31 @@ test('when Bedrock fails too, its error is thrown after one attempt on each, two
   assert.deepEqual(h.failed.map((f) => f.httpStatus), [529, 503]);
 });
 
+test('pinned to Bedrock: no primary attempt, no count on the primary, and a Bedrock failure is a failure', async () => {
+  const primaryCalls: string[] = [];
+  const h = failoverHarness({
+    createMessage: async () => { primaryCalls.push('create'); return reply('primary'); },
+    countTokens: async () => { primaryCalls.push('count'); return 1000; },
+  });
+  const response = await callHaiku(options({ messages: BIG, provider: 'bedrock' }), h.deps);
+  assert.equal(response.provider, 'bedrock');
+  assert.deepEqual(primaryCalls, []);
+  assert.equal(h.bedrockCounted.length, 1);
+  assert.deepEqual(h.started.map((s) => s.provider), ['bedrock']);
+
+  const down = failoverHarness({}, { createMessage: async () => { throw overloaded(); } });
+  await quiet(() => assert.rejects(callHaiku(options({ provider: 'bedrock' }), down.deps)));
+  assert.deepEqual(down.started.map((s) => s.provider), ['bedrock']);
+  assert.equal(down.failed.length, 1);
+  assert.equal(down.sent.length, 0);
+});
+
+test('HaikuResponse.provider says who answered, so a loop can pin the rest of its request', async () => {
+  const h = failoverHarness({ createMessage: async () => { throw overloaded(); } });
+  assert.equal((await quiet(() => callHaiku(options(), h.deps))).provider, 'bedrock');
+  assert.equal((await callHaiku(options(), harness().deps)).provider, 'anthropic');
+});
+
 test('count_tokens fails over: a 503 on the primary count is counted on Bedrock, then the message goes to the primary', async () => {
   const h = failoverHarness({ countTokens: async () => { throw APIError.generate(503, undefined, 'down', new Headers()); } });
   const response = await quiet(() => callHaiku(options({ messages: BIG }), h.deps));

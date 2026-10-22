@@ -27,6 +27,8 @@ import {
   type KitDocument,
   type KitDocumentErrors,
   type TokenUsage,
+  addTokenUsage,
+  tokenUsageOf,
 } from './types';
 import { callModel, type ModelCallOptions, type ModelResponse } from '@/lib/models';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
@@ -1656,10 +1658,7 @@ async function generateEmailWithValidationRetry<T>(
   modelCall: EmailModelCall,
 ): Promise<WithTokens<T>> {
   const response = await modelCall(options);
-  let tokens: TokenUsage = {
-    input: response.usage.inputTokens,
-    output: response.usage.outputTokens,
-  };
+  let tokens: TokenUsage = tokenUsageOf(response);
 
   try {
     return { result: parseAndValidateEmail(response.content, responseLabel, validate), tokens };
@@ -1673,10 +1672,7 @@ async function generateEmailWithValidationRetry<T>(
         ? { ...options.generationContext, parentGenerationId: response.generationId }
         : undefined,
     });
-    tokens = {
-      input: tokens.input + retry.usage.inputTokens,
-      output: tokens.output + retry.usage.outputTokens,
-    };
+    tokens = addTokenUsage(tokens, tokenUsageOf(retry));
     return {
       result: parseAndValidateEmail(retry.content, responseLabel, validate),
       tokens,
@@ -1905,10 +1901,7 @@ export const unifiedWriterAgent = {
         console.warn('[UsefulApply] WARNING: Could not extract applicant email from CV');
       }
 
-      const analysisTokens: TokenUsage = {
-        input: applicantResult.tokens.input + jobResult.tokens.input + (metricsSettled.status === 'fulfilled' ? metricsSettled.value.tokens.input : 0),
-        output: applicantResult.tokens.output + jobResult.tokens.output + (metricsSettled.status === 'fulfilled' ? metricsSettled.value.tokens.output : 0),
-      };
+      const analysisTokens: TokenUsage = addTokenUsage(applicantResult.tokens, jobResult.tokens, metricsSettled.status === 'fulfilled' ? metricsSettled.value.tokens : { input: 0, output: 0 });
       emit({ type: 'step_completed', step: { id: 'analysis', description: 'CV parsed and job analyzed' }, tokens: analysisTokens });
 
       // Step 3: Compute skill match (depends on both applicant + job from above)
@@ -2012,10 +2005,7 @@ export const unifiedWriterAgent = {
       context.job = jobResult.result;
       context.verifiedMetrics = metricsSettled2.status === 'fulfilled' ? metricsSettled2.value.result : [];
       context.detectedLanguage = languageSettled2.status === 'fulfilled' ? languageSettled2.value : 'en';
-      const analysisTokens2: TokenUsage = {
-        input: applicantResult.tokens.input + jobResult.tokens.input + (metricsSettled2.status === 'fulfilled' ? metricsSettled2.value.tokens.input : 0),
-        output: applicantResult.tokens.output + jobResult.tokens.output + (metricsSettled2.status === 'fulfilled' ? metricsSettled2.value.tokens.output : 0),
-      };
+      const analysisTokens2: TokenUsage = addTokenUsage(applicantResult.tokens, jobResult.tokens, metricsSettled2.status === 'fulfilled' ? metricsSettled2.value.tokens : { input: 0, output: 0 });
       emit({ type: 'step_completed', step: { id: 'analysis', description: 'CV parsed and job analyzed' }, tokens: analysisTokens2 });
 
       // Step 2: Skill matching (depends on both applicant + job from above)
@@ -2231,10 +2221,7 @@ export const unifiedWriterAgent = {
       generationContext,
     });
 
-    const tokens: TokenUsage = {
-      input: response.usage.inputTokens,
-      output: response.usage.outputTokens,
-    };
+    const tokens: TokenUsage = tokenUsageOf(response);
 
     return {
       result: {
@@ -2286,10 +2273,7 @@ export const unifiedWriterAgent = {
       generationContext,
     });
 
-    const tokens: TokenUsage = {
-      input: response.usage.inputTokens,
-      output: response.usage.outputTokens,
-    };
+    const tokens: TokenUsage = tokenUsageOf(response);
 
     try {
       // Last balanced JSON object that parses: text around it, or a corrected
@@ -2440,10 +2424,7 @@ export const unifiedWriterAgent = {
       generationContext,
     });
 
-    const tokens: TokenUsage = {
-      input: response.usage.inputTokens,
-      output: response.usage.outputTokens,
-    };
+    const tokens: TokenUsage = tokenUsageOf(response);
 
     // Deliberately not wrapped in a try/catch with a fallback. The other
     // writers can fall back to raw text because a rough letter is still a
@@ -2650,10 +2631,7 @@ export const unifiedWriterAgent = {
       generationContext,
     });
 
-    let tokens: TokenUsage = {
-      input: response.usage.inputTokens,
-      output: response.usage.outputTokens,
-    };
+    let tokens: TokenUsage = tokenUsageOf(response);
 
     try {
       return { result: buildCoverLetter(response.content, context, outputLang), tokens };
@@ -2667,10 +2645,7 @@ export const unifiedWriterAgent = {
         jsonMode: true,
         generationContext,
       });
-      tokens = {
-        input: tokens.input + retry.usage.inputTokens,
-        output: tokens.output + retry.usage.outputTokens,
-      };
+      tokens = addTokenUsage(tokens, tokenUsageOf(retry));
       return { result: buildCoverLetter(retry.content, context, outputLang), tokens };
     }
   },
