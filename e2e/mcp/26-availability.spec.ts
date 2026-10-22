@@ -73,6 +73,9 @@ test.describe.serial('availability and salary expectation', () => {
     // A good field next to a bad one: the whole call is refused, the good one is not saved.
     expect(await agent.fails('update_profile', { location: 'Hamburg, Germany', salaryExpectation: 'y'.repeat(121) })).toMatch(/120/);
     expect(await agent.fails('update_profile', {})).toMatch(/at least one field/i);
+    // The writers fence these values and watch for [placeholders], so the four signs never get stored.
+    expect(await agent.fails('update_profile', { salaryExpectation: '>60k' })).toMatch(/can't contain/);
+    expect(await agent.fails('update_profile', { availabilityNote: '3 Monate [Quartalsende]' })).toMatch(/can't contain/);
 
     const row = profileRow(user.id);
     expect(row).toMatchObject({ availability: null, availability_note: null, salary_expectation: null, availability_asked_at: null });
@@ -100,7 +103,7 @@ test.describe.serial('availability and salary expectation', () => {
     expect(row).toMatchObject({ availability: 'other', availability_note: '3 Monate zum Quartalsende', salary_expectation: '65.000 EUR brutto/Jahr' });
     expect(typeof row.availability_asked_at).toBe('string');
 
-    // Switching to a fixed choice leaves the note and salary alone; whitespace-only text clears.
+    // Switching to a fixed choice with whitespace-only text clears the note and leaves the salary alone.
     const switched = await agent.ok<Saved>('update_profile', { availability: '1_month', availabilityNote: '   ' });
     expect(switched).toMatchObject({ availability: '1_month', availabilityNote: null, salaryExpectation: '65.000 EUR brutto/Jahr' });
   });
@@ -127,6 +130,40 @@ test.describe.serial('availability and salary expectation', () => {
     await agent.ok('update_profile', { salaryExpectation: '70,000 EUR gross a year' });
     const after = await agent.ok<{ profileGaps: Gaps }>('draft_screening_answers', { idempotencyKey: uuid(), applicationId, questions });
     expect(after.profileGaps).toEqual([]);
+  });
+
+  test('overwriting or clearing a saved start date or salary asks first, and a declined form changes nothing', async () => {
+    const { client, asked } = await agent.elicitingClient('decline');
+    try {
+      const before = profileRow(user.id);
+      for (const args of [{ salaryExpectation: '80,000 EUR gross a year' }, { salaryExpectation: null }, { availability: '3_months' }]) {
+        const result = await client.callTool({ name: 'update_profile', arguments: args });
+        expect(result.isError, JSON.stringify(args)).toBe(true);
+        expect((result.content as Array<{ text: string }>)[0].text).toMatch(/declined the confirmation form, so nothing was changed/);
+      }
+      expect(asked).toHaveLength(3);
+      expect(asked[0]).toMatch(/Overwrite the saved salary expectation/);
+      expect(asked[2]).toMatch(/Overwrite the saved start date/);
+      expect(profileRow(user.id), 'a declined form left every column as it was').toEqual(before);
+
+      // Filling an empty field overwrites nothing, so it asks nothing.
+      const filled = await client.callTool({ name: 'update_profile', arguments: { availabilityNote: 'after the move' } });
+      expect(filled.isError).toBeFalsy();
+      expect(asked).toHaveLength(3);
+    } finally {
+      await client.close();
+    }
+  });
+
+  test('a new start-date choice clears the old details, so the two never disagree', async () => {
+    expect(await account()).toMatchObject({ availability: '1_month', availabilityNote: 'after the move' });
+    const changed = await agent.ok<Saved>('update_profile', { availability: '2_weeks' });
+    expect(changed).toMatchObject({ availability: '2_weeks', availabilityNote: null });
+    // Other keeps the stored details; a note given with the choice is kept.
+    await agent.ok('update_profile', { availability: 'other', availabilityNote: 'after the move' });
+    expect((await agent.ok<Saved>('update_profile', { availability: 'other' })).availabilityNote).toBe('after the move');
+    const back = await agent.ok<Saved>('update_profile', { availability: '1_month' });
+    expect(back).toMatchObject({ availability: '1_month', availabilityNote: null });
   });
 
   test('a skip records that the user was asked, leaves the values empty, and another account sees none of this', async ({ browser, request }) => {

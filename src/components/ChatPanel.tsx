@@ -270,6 +270,8 @@ export function ChatPanel({
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
   const [shortCredits, setShortCredits] = useState<{ required: number; available: number } | null>(null);
   const [pendingDecisionJd, setPendingDecisionJd] = useState<string | null>(null);
+  // Read aloud when the questions close, because the card that held focus is gone by then.
+  const [logisticsNotice, setLogisticsNotice] = useState('');
   // Shown here only when this panel parked the run and the application is still the open one.
   const pendingLogistics = useUIStore((state) => state.pendingLogistics);
   const chatLogistics = pendingLogistics?.host === 'chat'
@@ -2089,15 +2091,18 @@ export function ChatPanel({
             </div>
           )}
           
+          <p role="status" aria-live="polite" className="sr-only">{logisticsNotice}</p>
           {/* The start date and salary questions, asked once before the first kit */}
           {chatLogistics && (
             <LogisticsQuestions
               layout="chat"
               saveLabel="Save and write"
               onResolved={(outcome) => {
-                // The run clears the fit like a direct click would have.
-                useAppStore.getState().updateCurrentSession({ pendingFitAnalysis: null });
-                resumeAfterLogistics(outcome);
+                // The run clears the fit like a direct click would have, but only if it really starts.
+                const notice = resumeAfterLogistics(outcome, () => {
+                  useAppStore.getState().updateCurrentSession({ pendingFitAnalysis: null });
+                });
+                if (notice) setLogisticsNotice(notice);
               }}
             />
           )}

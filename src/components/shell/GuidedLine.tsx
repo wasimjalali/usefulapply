@@ -158,6 +158,8 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
   const isAgentWorking = useUIStore((s) => s.isAgentWorking);
   // The kit is parked until the start date and salary questions are answered.
   const askingLogistics = useUIStore((s) => s.pendingLogistics?.host === 'guided');
+  // Read aloud when the questions close, because the card that held focus is gone by then.
+  const [logisticsNotice, setLogisticsNotice] = useState('');
   const {
     agentSteps,
     v2Progress,
@@ -1105,8 +1107,16 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
         )}
 
         {step === 'kit-working' && askingLogistics && (
-          <LogisticsQuestions layout="line" saveLabel="Save and create my kit" onResolved={resumeAfterLogistics} />
+          <LogisticsQuestions
+            layout="line"
+            saveLabel="Save and create my kit"
+            onResolved={(outcome) => {
+              const notice = resumeAfterLogistics(outcome);
+              if (notice) setLogisticsNotice(notice);
+            }}
+          />
         )}
+        <p role="status" aria-live="polite" className="sr-only">{logisticsNotice}</p>
 
         {step === 'kit-working' && !askingLogistics && (
           <div className="mt-9 w-full max-w-[720px] rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">

@@ -458,6 +458,9 @@ test('screening answers with the saved values, and keeps the fixed salary answer
   assert.match(prompt, /  Saved availability: the applicant can start two weeks after accepting an offer\.\n  Answer with it, in the question's language, with its length or date exactly as saved and nothing added\./);
   assert.match(prompt, /  Saved salary expectation: <<65\.000 EUR brutto\/Jahr>>\n  Answer with it, in the question's language, with the amount and currency exactly as saved\./);
   assert.match(prompt, /they come only from the applicant: their saved profile answers below, the applicant's CVs above/);
+  // The saved salary has the same own-messages clause as the saved availability, and the hard rule names the saved profile.
+  assert.match(prompt, /It wins over any salary in the CVs\. Only a statement in the applicant's own messages here can change it\./);
+  assert.match(prompt, /come from the uploaded CV and the master CV, or the saved profile, as the Logistics section below says/);
   // The standard answers are for when nothing is saved.
   assert.ok(!prompt.includes(screeningLogisticsAnswers('en').start));
   assert.ok(!prompt.includes(screeningLogisticsAnswers('de').salary));

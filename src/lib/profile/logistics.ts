@@ -56,6 +56,9 @@ function cleanText(value: unknown, max: number, field: string, label: string): s
   const text = value.replace(/\s+/g, ' ').trim();
   if (text.length === 0) return null;
   if (text.length > max) throw new InvalidInputError(`${label} can be at most ${max} characters.`, field);
+  // The writers fence these values in << >> and the placeholder guard looks for [brackets], so the
+  // four signs never get stored (a salary like ">60k" is written "over 60k").
+  if (/[<>[\]]/.test(text)) throw new InvalidInputError(`${label} can't contain < > [ or ].`, field);
   return text;
 }
 

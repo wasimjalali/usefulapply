@@ -155,6 +155,11 @@ export function prepareProfileWrite(userId: string, updates: ProfileUpdateInput,
   }
   if (typeof safe.avatar_url === 'string') safe.avatar_url = ownedAvatarKey(userId, safe.avatar_url);
   Object.assign(safe, logistics);
+  // A new start-date choice must not keep the old choice's note ("3 Monate zum Quartalsende" next to
+  // "In 1 month"). Only "Other" keeps a stored note, and only when the update doesn't give one.
+  if ('availability' in logistics && logistics.availability !== 'other' && !('availability_note' in logistics)) {
+    safe.availability_note = null;
+  }
   if (touchesLogistics(logistics)) safe.availability_asked_at = now;
   return safe;
 }

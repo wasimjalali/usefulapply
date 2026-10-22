@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page, type Route } from '@playwright/test';
 import { generateKitThroughUi, signedInPage, type Signedin } from '../lib/app';
 import { REPO_ROOT } from '../lib/env';
 import { fakeCalls, fakeReset } from '../lib/fake-control';
@@ -20,8 +20,13 @@ import { creditsOf, setBalance } from '../lib/user';
  *   k4  User B has a kit already and empty fields. The chat path shows the card, Skip stamps asked-at with no
  *       start date, the kit runs, and a third kit shows no card.
  *
+ *   k5  Chat after a fit check: Generate parks before the fit is cleared, a reload with the card open keeps the
+ *       fit and the Generate button, and Save runs the kit at the after-fit price (1.5).
+ *   k6  A double click on Save runs one kit and charges once.
+ *   k7  A failed save keeps the card and its error, and Skip still runs the kit (the stamp is simply not written).
+ *
  *   k1b, k3b, k4b  The captured cover letter prompt: the saved note and salary, the never-mention rule once the
- *       salary is cleared, and the fallback wording after a skip.
+ *       salary is cleared, and the exact fallback wording after a skip.
  */
 
 const GERMAN_AD = `${JOB_DESCRIPTION} Bitte nennen Sie Ihre Gehaltsvorstellung und den frühestmöglichen Eintrittstermin.`;
@@ -83,8 +88,8 @@ async function shoot(page: Page, name: string, options: { chat?: boolean; scroll
   await page.setViewportSize({ width: 1280, height: 800 });
 }
 
-/** The chat path for a job: the model proposes the application, the user skips the fit check. */
-async function startKitThroughChat(page: Page, jobAd: string) {
+/** The chat path for a job: the model proposes the application, then the user skips the fit check (or asks for it). */
+async function startKitThroughChat(page: Page, jobAd: string, how: 'skip-check' | 'check-fit' = 'skip-check') {
   await page.route('**/api/chat', async (route) => {
     await route.fulfill({
       status: 200,
@@ -96,7 +101,7 @@ async function startKitThroughChat(page: Page, jobAd: string) {
   const input = page.getByPlaceholder(/Ask for a change|Paste a job ad or ask anything/);
   await input.fill(jobAd);
   await input.press('Enter');
-  await page.getByRole('button', { name: SKIP_CHECK }).click();
+  await page.getByRole('button', { name: how === 'skip-check' ? SKIP_CHECK : /Check my fit/ }).click();
 }
 
 const kitReady = (page: Page) => page.getByText(/Your kit for .* is ready/).last();
@@ -105,6 +110,7 @@ test.describe.serial('(k) start date and salary', () => {
   let a: Signedin;
   let afterFit = 0;
   let letterPrompt = '';
+  let skipLetterPrompt = '';
 
   test('(k1) the card parks the kit before any request, Save runs it at the after-fit price', async ({ browser, request }) => {
     test.setTimeout(300_000);
@@ -133,7 +139,7 @@ test.describe.serial('(k) start date and salary', () => {
     // 2. Other needs details before it can be saved.
     const save = page.getByRole('button', { name: 'Save and create my kit' });
     await expect(save).toBeDisabled();
-    await page.getByRole('radio', { name: 'Other' }).click();
+    await page.getByRole('button', { name: 'Other', exact: true }).click();
     await expect(save).toBeDisabled();
     await shoot(page, '2-guided-line-other-needs-details');
     await page.getByPlaceholder('3 months to the end of the quarter').fill(NOTE);
@@ -144,7 +150,7 @@ test.describe.serial('(k) start date and salary', () => {
 
     // 3. The kit runs at the after-fit price: 0.5 + 1.5 = 2.0 in total.
     await expect(page.getByText(/Your kit for Northwind Foods is ready/)).toBeVisible({ timeout: 120_000 });
-    await expect(page.getByText('Got it. Writing your kit now.')).toBeVisible();
+    await expect(page.getByText('Got it. Writing your kit now.').first()).toBeVisible();
     expect(afterFit - creditsOf(user.id).total).toBe(1.5);
     const row = profileRow(user.id);
     expect(row.availability).toBe('other');
@@ -191,16 +197,29 @@ test.describe.serial('(k) start date and salary', () => {
     await page.getByRole('combobox', { name: 'When you can start' }).selectOption('1_month');
     await expect(page.getByText('Saved').first()).toBeVisible();
     await expect.poll(() => profileRow(user.id).availability).toBe('1_month');
+    // A new choice drops the old details ("3 Monate zum Quartalsende" next to "In 1 month" would disagree).
+    expect(profileRow(user.id).availability_note).toBeNull();
+    await expect(page.getByRole('button', { name: NOTE })).toHaveCount(0);
 
-    // Clearing the salary leaves the start date and the details alone, and the asked-at stamp stays set.
+    // Other with no details isn't used by the writers, so the row says so instead of "Saved".
+    await page.getByRole('combobox', { name: 'When you can start' }).selectOption('other');
+    // Scoped to the row: the app behind the modal has its own "Saved" label.
+    const startRow = page.getByText('When you can start', { exact: true }).locator('xpath=ancestor::div[contains(@class,"min-h-[52px]")]');
+    await expect(startRow.getByText('Add details to use Other.')).toBeVisible();
+    await expect(startRow.getByText('Saved')).toHaveCount(0);
+    await page.getByRole('combobox', { name: 'When you can start' }).selectOption('1_month');
+    await expect(startRow.getByText('Saved')).toBeVisible();
+    await expect(startRow.getByText('Add details to use Other.')).toHaveCount(0);
+
+    // Clearing the salary leaves the start date alone, and the asked-at stamp stays set.
     await page.getByRole('button', { name: SALARY }).click();
     await page.getByPlaceholder('65,000 EUR gross a year').fill('');
     await page.getByPlaceholder('65,000 EUR gross a year').press('Enter');
-    await expect(page.getByRole('button', { name: 'Not set' })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Not set' })).toHaveCount(2);
     await expect.poll(() => profileRow(user.id).salary_expectation).toBeNull();
     const cleared = profileRow(user.id);
     expect(cleared.availability).toBe('1_month');
-    expect(cleared.availability_note).toBe(NOTE);
+    expect(cleared.availability_note).toBeNull();
     expect(cleared.availability_asked_at).toBeTruthy();
     await shoot(page, '6-settings-salary-cleared', { scrollTo: 'Salary expectation' });
   });
@@ -220,8 +239,9 @@ test.describe.serial('(k) start date and salary', () => {
     const prompt = (await fakeCalls()).find((call) => call.writer === 'coverLetter')?.user ?? '';
     expect(prompt).not.toContain(SALARY);
     expect(prompt).toMatch(/never mention salary/i);
-    // The regenerate read the profile fresh: the saved start date is still there.
-    expect(prompt).toContain(`<<${NOTE}>>`);
+    // The regenerate read the profile fresh: the new start date is there and the old details are gone.
+    expect(prompt).toContain('one month after accepting an offer');
+    expect(prompt).not.toContain(NOTE);
   });
 
   test('(k4) an existing user with empty fields: Skip is remembered and the next kit shows no card', async ({ browser, request }) => {
@@ -242,16 +262,19 @@ test.describe.serial('(k) start date and salary', () => {
     await expect(b.page.getByRole('button', { name: 'Save and write' })).toBeDisabled();
 
     await b.page.getByRole('button', { name: 'Skip for now' }).click();
-    await expect(b.page.getByText("No problem. I'll keep the timing general and leave salary out.")).toBeVisible({ timeout: 20_000 });
+    await expect(b.page.getByText("No problem. I'll keep the timing general and leave salary out.").first()).toBeVisible({ timeout: 20_000 });
     await expect(kitReady(b.page)).toBeVisible({ timeout: 120_000 });
     const skipped = profileRow(b.user.id);
     expect(skipped.availability).toBeNull();
     expect(skipped.salary_expectation).toBeNull();
     expect(skipped.availability_asked_at).toBeTruthy();
     await expect.poll(() => creditsOf(b.user.id).total, { timeout: 120_000 }).toBe(4);
+    // The skip kit's own letter prompt, taken before another kit adds a second call to the shared fake.
+    skipLetterPrompt = (await fakeCalls()).find((call) => call.writer === 'coverLetter')?.user ?? '';
     await shoot(b.page, '8-chat-after-skip', { chat: true });
 
     // The skip was remembered: a third kit goes straight through.
+    await fakeReset();
     await startKitThroughChat(b.page, SENIOR_JOB_DESCRIPTION);
     await expect(b.page.getByRole('heading', { name: CARD })).toHaveCount(0);
     await expect.poll(() => creditsOf(b.user.id).total, { timeout: 120_000 }).toBe(2);
@@ -259,9 +282,109 @@ test.describe.serial('(k) start date and salary', () => {
     await a.context.close();
   });
 
-  test('(k4b) after a skip the letter prompt carries the neutral notice-period wording and no salary', async () => {
-    const prompt = (await fakeCalls()).find((call) => call.writer === 'coverLetter')?.user ?? '';
-    expect(prompt).not.toContain('65');
-    expect(prompt).toMatch(/not stated|never mention salary/i);
+  test('(k4b) after a skip the letter prompt carries the exact neutral notice-period wording and no salary', async () => {
+    expect(skipLetterPrompt).not.toBe('');
+    // The fixed English wording for an applicant who gave no start date, and no saved-availability block.
+    expect(skipLetterPrompt).toContain('"after my notice period" (for a US job: "after giving notice to my current employer")');
+    expect(skipLetterPrompt).not.toContain('Saved availability:');
+    expect(skipLetterPrompt).not.toContain(SALARY);
+    expect(skipLetterPrompt).toContain('Never mention salary in any other way, not even to say it is open or negotiable.');
+  });
+
+  test.describe.serial('chat flows on one user', () => {
+    let c: Signedin;
+    const generateChip = () => c.page.getByRole('button', { name: /Generate the full kit/ });
+    const card = () => c.page.getByRole('heading', { name: CARD });
+
+    /** A user with a kit already, nothing asked yet, and six credits. */
+    const unasked = async () => {
+      resetProfileLogistics(c.user.id);
+      setBalance(c.user.id, { monthly: 6 });
+      await fakeReset();
+    };
+
+    test('(k5) after a fit check in chat, the card parks before the fit is cleared and the after-fit price is kept', async ({ browser, request }) => {
+      test.setTimeout(420_000);
+      c = await signedInPage(browser, request, 'avail-c');
+      await generateKitThroughUi(c.page);
+      await unasked();
+
+      await startKitThroughChat(c.page, SENIOR_JOB_DESCRIPTION, 'check-fit');
+      await expect(generateChip()).toBeVisible({ timeout: 60_000 });
+      expect(creditsOf(c.user.id).total).toBe(5.5);
+      await fakeReset();
+
+      // Generate parks: nothing moves, and the fit is still there.
+      await generateChip().click();
+      await expect(card()).toBeVisible({ timeout: 20_000 });
+      await c.page.waitForTimeout(1500);
+      expect(creditsOf(c.user.id).total).toBe(5.5);
+      expect(await fakeCalls()).toEqual([]);
+      expect(profileRow(c.user.id).availability_asked_at).toBeNull();
+
+      // A reload with the card open: the card is transient, the fit and its button are not.
+      await c.page.reload();
+      await expect(card()).toHaveCount(0);
+      await expect(generateChip()).toBeVisible({ timeout: 30_000 });
+      await generateChip().click();
+      await expect(card()).toBeVisible({ timeout: 20_000 });
+
+      await c.page.getByRole('button', { name: 'In 1 month' }).click();
+      await c.page.getByRole('button', { name: 'Save and write' }).click();
+      await expect(c.page.getByText('Got it. Writing your kit now.').last()).toBeVisible({ timeout: 20_000 });
+      // 0.5 for the fit, 1.5 for the kit after it: 6 - 2.0.
+      await expect.poll(() => creditsOf(c.user.id).total, { timeout: 120_000 }).toBe(4);
+      expect(profileRow(c.user.id)).toMatchObject({ availability: '1_month', availability_note: null });
+    });
+
+    test('(k6) a double click on Save runs one kit and charges once', async () => {
+      test.setTimeout(240_000);
+      await unasked();
+      await startKitThroughChat(c.page, SENIOR_JOB_DESCRIPTION);
+      await expect(card()).toBeVisible({ timeout: 20_000 });
+      await c.page.getByRole('button', { name: 'In 2 weeks' }).click();
+      await c.page.getByRole('button', { name: 'Save and write' }).dblclick();
+      // A direct kit is 2.0.
+      await expect.poll(() => creditsOf(c.user.id).total, { timeout: 120_000 }).toBe(4);
+      await c.page.waitForTimeout(3000);
+      expect(creditsOf(c.user.id).total).toBe(4);
+      expect((await fakeCalls()).filter((call) => call.writer === 'coverLetter')).toHaveLength(1);
+    });
+
+    test('(k7) a failed save keeps the error, and Skip still runs the kit', async ({ browser, request }) => {
+      test.setTimeout(420_000);
+      // A fresh user: the kits above already used this one's per-minute allowance.
+      await c.context.close();
+      c = await signedInPage(browser, request, 'avail-d');
+      await generateKitThroughUi(c.page);
+      await unasked();
+      await startKitThroughChat(c.page, SENIOR_JOB_DESCRIPTION);
+      await expect(card()).toBeVisible({ timeout: 20_000 });
+      await expect(c.page.getByRole('button', { name: 'Skip for now' })).toBeEnabled();
+
+      // Every profile write fails from here, which is what a dropped session or a D1 hiccup looks like.
+      // Other server actions (the kit's own) still work: only the update carrying the start date is cut.
+      const failActions = async (route: Route) => {
+        const request = route.request();
+        if (request.method() === 'POST' && request.headers()['next-action'] && (request.postData() ?? '').includes('"availability"')) return route.abort();
+        return route.fallback();
+      };
+      await c.page.route('**/*', failActions);
+      await c.page.getByRole('button', { name: 'In 1 month' }).click();
+      await c.page.getByRole('button', { name: 'Save and write' }).click();
+      await expect(c.page.getByText("We couldn't save that. Try again.")).toBeVisible({ timeout: 20_000 });
+      await expect(card()).toBeVisible();
+      expect(creditsOf(c.user.id).total).toBe(6);
+      expect(await fakeCalls()).toEqual([]);
+
+      // Skip never blocks the kit, even though its own write fails too.
+      await c.page.getByRole('button', { name: 'Skip for now' }).click();
+      await expect(c.page.getByText("No problem. I'll keep the timing general and leave salary out.").last()).toBeVisible({ timeout: 20_000 });
+      await c.page.unroute('**/*', failActions);
+      await expect.poll(() => creditsOf(c.user.id).total, { timeout: 120_000 }).toBe(4);
+      // The stamp didn't land, so the question comes back next time.
+      expect(profileRow(c.user.id).availability_asked_at).toBeNull();
+      await c.context.close();
+    });
   });
 });

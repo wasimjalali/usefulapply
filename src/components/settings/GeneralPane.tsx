@@ -37,6 +37,13 @@ const FIELD_MAX: Partial<Record<EditableField, number>> = {
   salary_expectation: SALARY_EXPECTATION_MAX,
 };
 
+/** "Other" with no Details, or Details with no start choice: the writers ignore both, so "Saved" would mislead. */
+function logisticsUnusable(row: { availability?: string | null; availability_note?: string | null } | null): boolean {
+  if (!row) return false;
+  const note = row.availability_note?.trim();
+  return (row.availability === 'other' && !note) || (!row.availability && Boolean(note));
+}
+
 const AVAILABILITY_OPTIONS = [
   { value: '', label: 'Not set' },
   ...AVAILABILITY_CHOICES.map((value) => ({ value, label: AVAILABILITY_LABELS[value] })),
@@ -79,6 +86,8 @@ export function GeneralPane() {
   const [draft, setDraft] = useState('');
   const cancelledEditRef = useRef(false);
   const [savedField, setSavedField] = useState<EditableField | null>(null);
+  // The row whose last save the writers can't use (see logisticsUnusable). Cleared by the next edit.
+  const [unusableField, setUnusableField] = useState<EditableField | null>(null);
   const [copied, setCopied] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -120,6 +129,7 @@ export function GeneralPane() {
     // Escape removes the input, and a removed node never fires blur, so the
     // cancel flag is cleared here rather than in commit alone.
     cancelledEditRef.current = false;
+    setUnusableField(null);
     setDraft(stored(field));
     setEditing(field);
   }, [stored]);
@@ -133,17 +143,30 @@ export function GeneralPane() {
     const next = draft.trim();
     if (next === stored(field)) return;
     const logisticsKey = LOGISTICS_UPDATE_KEYS[field];
-    const { error } = await updateProfile({ [logisticsKey ?? field]: next || null } as never);
+    const { error } = await updateProfile({ [logisticsKey ?? field]: next || null });
     if (error) return;
     // The update carries API names, so read the stored row back.
-    if (logisticsKey) await refreshProfile();
+    if (logisticsKey) {
+      const latest = await refreshProfile();
+      if (logisticsUnusable(latest)) {
+        setSavedField(null);
+        setUnusableField(field);
+        return;
+      }
+    }
     flashSaved(field);
   }, [draft, stored, updateProfile, refreshProfile, flashSaved]);
 
   const changeAvailability = useCallback(async (next: string) => {
-    const { error } = await updateProfile({ availability: next || null } as never);
+    setUnusableField(null);
+    setSavedField(null);
+    const { error } = await updateProfile({ availability: next || null });
     if (error) return;
-    await refreshProfile();
+    const latest = await refreshProfile();
+    if (logisticsUnusable(latest)) {
+      setUnusableField('availability');
+      return;
+    }
     flashSaved('availability');
   }, [updateProfile, refreshProfile, flashSaved]);
 
@@ -370,6 +393,7 @@ export function GeneralPane() {
         <button
           type="button"
           onClick={() => startEdit(field)}
+          title={stored(field) || undefined}
           className="max-w-[260px] truncate text-sm text-charcoal hover:text-navy-600 cursor-pointer"
         >
           {stored(field) || <span className="text-warm-gray">{emptyLabel ?? `Add ${label.toLowerCase()}`}</span>}
@@ -381,6 +405,7 @@ export function GeneralPane() {
           Saved
         </span>
       )}
+      {unusableField === field && <p role="alert" className="text-xs text-red-600">Add details to use Other.</p>}
     </Row>
   );
 
@@ -460,6 +485,7 @@ export function GeneralPane() {
               Saved
             </span>
           )}
+          {unusableField === 'availability' && <p role="alert" className="text-xs text-red-600">Add details to use Other.</p>}
         </Row>
         {editableRow('availability_note', 'Details', '3 months to the end of the quarter', 'Not set')}
         {editableRow('salary_expectation', 'Salary expectation', '65,000 EUR gross a year', 'Not set')}
@@ -522,7 +548,7 @@ export function GeneralPane() {
             label="Timezone"
             value={timezone}
             options={tzOptions}
-            onChange={(next) => { void updateProfile({ timezone: next } as never); }}
+            onChange={(next) => { void updateProfile({ timezone: next }); }}
           />
         </Row>
         <Row label="Date format">
@@ -530,7 +556,7 @@ export function GeneralPane() {
             label="Date format"
             value={dateFormat}
             options={DATE_FORMATS.map((f) => ({ value: f.value, label: f.sample(today) }))}
-            onChange={(next) => { void updateProfile({ date_format: next } as never); }}
+            onChange={(next) => { void updateProfile({ date_format: next }); }}
           />
         </Row>
       </RowGroup>

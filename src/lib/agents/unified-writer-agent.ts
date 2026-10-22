@@ -1665,7 +1665,7 @@ async function generateEmailWithValidationRetry<T>(
     console.warn(`[UnifiedAgent] Retrying ${responseLabel.toLowerCase()} after validation miss:`, error.message);
     const retry = await modelCall({
       ...options,
-      prompt: `${options.prompt}\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.message}. Rewrite the complete email once and return only valid JSON. ${correctionRequirements} Preserve every factuality rule. Do not add any applicant fact, skill, metric or claim that is absent from the Primary CV and Master CV.`,
+      prompt: `${options.prompt}\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.message}. Rewrite the complete email once and return only valid JSON. ${correctionRequirements} Preserve every factuality rule. Do not add any applicant fact, skill, metric or claim that is absent from the Primary CV and Master CV, apart from the saved profile values in APPLICANT LOGISTICS.`,
       generationContext: options.generationContext
         ? { ...options.generationContext, parentGenerationId: response.generationId }
         : undefined,
@@ -2659,7 +2659,7 @@ export const unifiedWriterAgent = {
       console.warn('[UnifiedAgent] Retrying cover letter after validation miss:', error.issues.join(', '));
       const retry = await callModel({
         task: 'write_cover_letter',
-        prompt: `${basePrompt}\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.issues.join('; ')}. Rewrite the complete letter once and return only the JSON object. Fix every named issue. Preserve every factuality rule. Do not add any applicant fact, skill, metric or claim that is absent from the Primary CV and Master CV.`,
+        prompt: `${basePrompt}\n\n=== REQUIRED CORRECTION ===\nThe previous draft failed validation for: ${error.issues.join('; ')}. Rewrite the complete letter once and return only the JSON object. Fix every named issue. Preserve every factuality rule. Do not add any applicant fact, skill, metric or claim that is absent from the Primary CV and Master CV, apart from the saved profile values in APPLICANT LOGISTICS.`,
         systemBlocks: coverLetterSystemBlocks,
         jsonMode: true,
         generationContext,

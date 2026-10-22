@@ -10,6 +10,7 @@ import {
   SALARY_EXPECTATION_MAX,
   isAvailabilityChoice,
   normalizeLogisticsUpdate,
+  type AvailabilityChoice,
   type LogisticsPatch,
 } from '@/lib/profile/logistics';
 import { deleteCvDocument, getCvDocument, parseAndSaveCv, type CvDocumentType } from '@/lib/services/documents';
@@ -19,6 +20,7 @@ import {
   StorageQuotaError,
   hasProfilePhoto,
   removeProfilePhoto as removePhoto,
+  prepareProfileWrite,
   replaceProfilePhoto,
   updateUserProfile,
   type UserEditableProfile,
@@ -261,6 +263,22 @@ const textField = (what: string, max: number) =>
 
 const PROFILE_FIELDS = ['full_name', 'phone', 'location', 'linkedin_url', 'github_url', 'portfolio_url', 'website_url', 'date_of_birth', 'nationality'] as const;
 
+/** [column, label used in the overwrite prompt] for the three start date and salary fields. */
+const LOGISTICS_LABELS = [
+  ['availability', 'start date'],
+  ['availability_note', 'start date details'],
+  ['salary_expectation', 'salary expectation'],
+] as const;
+
+/** Only the keys the caller gave, so a partial update leaves the others alone. */
+function logisticsInputFrom(args: { availability?: AvailabilityChoice | null; availabilityNote?: string | null; salaryExpectation?: string | null }) {
+  const given: { availability?: AvailabilityChoice | null; availabilityNote?: string | null; salaryExpectation?: string | null } = {};
+  if (args.availability !== undefined) given.availability = args.availability;
+  if (args.availabilityNote !== undefined) given.availabilityNote = args.availabilityNote;
+  if (args.salaryExpectation !== undefined) given.salaryExpectation = args.salaryExpectation;
+  return given;
+}
+
 const profileOutput = z.object({
   fullName: z.string().nullable(),
   phone: z.string().nullable(),
@@ -280,7 +298,7 @@ const updateProfile = defineTool({
   name: 'update_profile',
   title: 'Update profile',
   description:
-    "Updates contact details the user's CV header and cover letter letterhead use. Also saves when the user can start and their salary expectation. Saving availability, even as null, records that the user was asked. Only the fields given change. Returns the saved values.",
+    "Updates contact details the user's CV header and cover letter letterhead use. Also saves when the user can start and their salary expectation. Saving availability, even as null, records that the user was asked. A new start date (other than other) clears the old details unless new details are given. Only the fields given change. Returns the saved values.",
   hints: WRITE_DESTRUCTIVE_IDEMPOTENT,
   input: z.object({
     fullName: textField('Full name', 200),
@@ -317,7 +335,18 @@ const updateProfile = defineTool({
     };
     // Only a change to a value that is already saved overwrites anything.
     const overwritten = PROFILE_FIELDS.filter((key) => given[key] !== undefined && profile[key] && (given[key] || null) !== profile[key]);
-    return overwritten.length > 0 ? `Overwrite ${overwritten.length} saved contact detail${overwritten.length === 1 ? '' : 's'} on the profile?` : null;
+    // Start date, details and salary: the write the service would make (a new choice clears the old
+    // note), compared with what is saved. Clearing a saved value counts as overwriting it.
+    const logisticsWrite = prepareProfileWrite(userId, logisticsInputFrom(args));
+    const logisticsChanged = LOGISTICS_LABELS.filter(([column]) => {
+      const saved = profile[column] ?? null;
+      return column in logisticsWrite && saved !== null && (logisticsWrite[column] ?? null) !== saved;
+    }).map(([, label]) => label);
+    if (overwritten.length === 0 && logisticsChanged.length === 0) return null;
+    const parts: string[] = [];
+    if (overwritten.length > 0) parts.push(`${overwritten.length} saved contact detail${overwritten.length === 1 ? '' : 's'}`);
+    if (logisticsChanged.length > 0) parts.push(`the saved ${logisticsChanged.join(' and ')}`);
+    return `Overwrite ${parts.join(' and ')} on the profile?`;
   },
   async run(args, { userId }) {
     const updates: Partial<UserEditableProfile> & LogisticsPatch = {};
@@ -333,12 +362,7 @@ const updateProfile = defineTool({
     assign('website_url', args.websiteUrl);
     assign('date_of_birth', args.dateOfBirth);
     assign('nationality', args.nationality);
-    // Only the keys the caller gave reach the patch, so a partial update leaves the others alone.
-    const given: Record<string, unknown> = {};
-    if (args.availability !== undefined) given.availability = args.availability;
-    if (args.availabilityNote !== undefined) given.availabilityNote = args.availabilityNote;
-    if (args.salaryExpectation !== undefined) given.salaryExpectation = args.salaryExpectation;
-    Object.assign(updates, normalizeLogisticsUpdate(given));
+    Object.assign(updates, normalizeLogisticsUpdate(logisticsInputFrom(args)));
     if (Object.keys(updates).length === 0) throw new InvalidInputError('Give at least one field to update');
     const profile = await updateUserProfile(userId, updates);
     return ok({

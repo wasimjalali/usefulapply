@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import posthog from 'posthog-js';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   AVAILABILITY_CHOICES,
   AVAILABILITY_LABELS,
   AVAILABILITY_NOTE_MAX,
   SALARY_EXPECTATION_MAX,
+  needsAvailabilityPrompt,
   type AvailabilityChoice,
 } from '@/lib/profile/logistics';
 
@@ -15,8 +17,11 @@ interface LogisticsQuestionsProps {
   /** The guided line shows it as a full step, the chat as an inline card. */
   layout: 'line' | 'chat';
   saveLabel: string;
-  /** Called once the answer (or the skip) is stored, so the parked kit can run. */
-  onResolved: (outcome: 'saved' | 'skipped') => void;
+  /**
+   * Called once the answer (or the skip) is stored, so the parked kit can run. 'answered' means the
+   * profile already had an answer (saved in another tab or by an agent), so nothing was written.
+   */
+  onResolved: (outcome: 'saved' | 'skipped' | 'answered') => void;
 }
 
 const INPUT_CLASS =
@@ -35,6 +40,37 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
   const [salary, setSalary] = useState('');
   const [busy, setBusy] = useState<'save' | 'skip' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The profile is re-read when the card opens: a second tab or an agent may have answered since
+  // this tab loaded it, and a save from stale data would overwrite that answer.
+  const [fresh, setFresh] = useState(false);
+  // A ref, not the state above: two clicks in one tick both see the old state.
+  const busyRef = useRef(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const resolvedRef = useRef(onResolved);
+  resolvedRef.current = onResolved;
+
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void refreshProfile().then((latest) => {
+      if (cancelled) return;
+      if (latest && !needsAvailabilityPrompt(latest)) {
+        busyRef.current = true;
+        resolvedRef.current('answered');
+        return;
+      }
+      // A failed read (null) leaves the card usable: it only ever writes what the user typed.
+      setFresh(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Once, when the card opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const noteTrimmed = note.trim();
   const salaryTrimmed = salary.trim();
@@ -47,25 +83,34 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
     values: { availability: AvailabilityChoice | null; availabilityNote?: string | null; salaryExpectation?: string | null },
     outcome: 'saved' | 'skipped',
   ) => {
+    busyRef.current = true;
     setBusy(outcome === 'saved' ? 'save' : 'skip');
     setError(null);
     try {
-      const { error: saveError } = await updateProfile(values as never);
+      const { error: saveError } = await updateProfile(values);
       if (saveError) throw saveError;
       // The server stamps when the question was asked. Reading it back keeps
       // the next kit from asking again.
       await refreshProfile();
-    } catch {
+    } catch (cause) {
+      if (outcome === 'skipped') {
+        // A skip never blocks the kit. The stamp didn't land, so the user is asked again next time,
+        // which is acceptable. Loud in the console and PostHog (no values), quiet on screen.
+        console.error('[LogisticsQuestions] Skip could not be saved; running the kit anyway:', cause);
+        posthog.capture('availability_skip_save_failed');
+        resolvedRef.current('skipped');
+        return;
+      }
+      busyRef.current = false;
       setBusy(null);
       setError("We couldn't save that. Try again.");
       return;
     }
-    setBusy(null);
-    onResolved(outcome);
+    resolvedRef.current(outcome);
   };
 
   const save = () => {
-    if (!canSave || busy) return;
+    if (!canSave || busyRef.current || !fresh) return;
     void store(
       {
         availability: choice,
@@ -77,7 +122,7 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
   };
 
   const skip = () => {
-    if (busy) return;
+    if (busyRef.current || !fresh) return;
     // Availability alone: the server stamps that the question was asked, and nothing else is overwritten.
     void store({ availability: null }, 'skipped');
   };
@@ -91,24 +136,28 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
         ? 'mt-9 w-full max-w-[720px] rounded-2xl border border-cream-200 bg-white p-8 shadow-sm'
         : 'rounded-2xl border border-cream-200 bg-cream-50 p-5 shadow-sm'}
     >
-      <Heading className={isLine ? 'text-2xl font-semibold text-navy-800' : 'text-base font-semibold text-navy-800'}>
+      <Heading
+        ref={headingRef}
+        tabIndex={-1}
+        className={`${isLine ? 'text-2xl' : 'text-base'} font-semibold text-navy-800 focus:outline-none`}
+      >
         Two quick questions before I write
       </Heading>
 
       <div className="mt-5 flex flex-col gap-5">
         <div>
           <p id="logistics-start-label" className="text-sm font-medium text-navy-800">When can you start?</p>
-          <div role="radiogroup" aria-labelledby="logistics-start-label" className="mt-2 flex flex-wrap gap-2">
+          <div role="group" aria-labelledby="logistics-start-label" className="mt-2 flex flex-wrap gap-2">
             {AVAILABILITY_CHOICES.map((value) => {
               const selected = choice === value;
               return (
                 <button
                   key={value}
                   type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => setChoice(selected ? null : value)}
-                  className={`inline-flex items-center rounded-full border text-sm ${isLine ? 'h-9 px-4' : 'h-8 px-3'} font-medium shadow-sm transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/50 cursor-pointer ${
+                  aria-pressed={selected}
+                  disabled={busy !== null}
+                  onClick={() => setChoice(value)}
+                  className={`inline-flex items-center rounded-full border text-sm ${isLine ? 'h-9 px-4' : 'h-8 px-3'} font-medium shadow-sm transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/50 cursor-pointer disabled:cursor-not-allowed ${
                     selected
                       ? 'border-navy-600 bg-navy-600 text-white'
                       : 'border-cream-200 bg-cream-50 text-navy-800 hover:bg-white'
@@ -128,7 +177,8 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
           <input
             value={note}
             onChange={(event) => setNote(event.target.value)}
-            onKeyDown={(event) => { if (event.key === 'Enter') save(); }}
+            onKeyDown={(event) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) save(); }}
+            disabled={busy !== null}
             maxLength={AVAILABILITY_NOTE_MAX}
             placeholder="3 months to the end of the quarter"
             className={`mt-2 ${INPUT_CLASS}`}
@@ -140,7 +190,8 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
           <input
             value={salary}
             onChange={(event) => setSalary(event.target.value)}
-            onKeyDown={(event) => { if (event.key === 'Enter') save(); }}
+            onKeyDown={(event) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) save(); }}
+            disabled={busy !== null}
             maxLength={SALARY_EXPECTATION_MAX}
             placeholder="65,000 EUR gross a year"
             className={`mt-2 ${INPUT_CLASS}`}
@@ -155,7 +206,7 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
         <button
           type="button"
           onClick={save}
-          disabled={!canSave || busy !== null}
+          disabled={!canSave || busy !== null || !fresh}
           className="inline-flex h-11 items-center gap-2 rounded-full bg-gold-400 px-[22px] text-sm font-semibold text-white transition-colors duration-200 hover:bg-gold-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/50 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-warm-gray cursor-pointer"
         >
           {busy === 'save' && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -164,7 +215,7 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
         <button
           type="button"
           onClick={skip}
-          disabled={busy !== null}
+          disabled={busy !== null || !fresh}
           className="rounded-lg px-2 py-1 text-sm font-medium text-navy-600 transition-colors duration-200 hover:text-navy-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/50 disabled:cursor-not-allowed disabled:text-warm-gray cursor-pointer"
         >
           Skip for now

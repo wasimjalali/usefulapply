@@ -202,7 +202,7 @@ export function useAgentWorkflow(options?: {
    */
   logisticsHost?: 'guided' | 'chat';
 }) {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   // Read at call time: the guided line starts runs from timers and effects
   // that hold an older render's closure, and a stale profile would skip the
   // gate or ask twice.
@@ -710,6 +710,8 @@ export function useAgentWorkflow(options?: {
 
   const runFitAnalysisFlow = async (jobDescription: string) => {
     if (!currentCV) return;
+    // A fit run replaces a parked kit run (its card closes), so the two can't run side by side.
+    useUIStore.getState().setPendingLogistics(null);
     const fitWorkflowSessionId = useSessionStore.getState().currentSession?.id;
 
     setIsAgentWorking(true);
@@ -938,23 +940,30 @@ export function useAgentWorkflow(options?: {
     return true;
   };
 
-  /** The questions are answered or skipped: say so, then run the parked kit as it was asked for. */
-  const resumeAfterLogistics = (outcome: 'saved' | 'skipped') => {
+  /**
+   * The questions are answered or skipped: say so, then run the parked kit as it was asked for.
+   * `beforeRun` is the caller's own step that must happen only when the run really starts (the chat
+   * clears the fit there). Returns the sentence to announce, or null when nothing ran: the parked run
+   * belongs to another application now, or another run is already working, so credits can't be spent twice.
+   */
+  const resumeAfterLogistics = (outcome: 'saved' | 'skipped' | 'answered', beforeRun?: () => void): string | null => {
     const parked = useUIStore.getState().pendingLogistics;
-    if (!parked) return;
+    if (!parked) return null;
     useUIStore.getState().setPendingLogistics(null);
-    addChatMessage({
-      role: 'assistant',
-      content: outcome === 'saved'
-        ? 'Got it. Writing your kit now.'
-        : "No problem. I'll keep the timing general and leave salary out.",
-    });
+    const currentSessionId = useSessionStore.getState().currentSession?.id ?? null;
+    if (parked.sessionId !== currentSessionId || useUIStore.getState().isAgentWorking) return null;
+    const content = outcome === 'skipped'
+      ? "No problem. I'll keep the timing general and leave salary out."
+      : 'Got it. Writing your kit now.';
+    addChatMessage({ role: 'assistant', content });
+    beforeRun?.();
     void runAgentWorkflow(
       parked.jd,
       parked.contextId,
       parked.contextData as FitAnalysisContextData | undefined,
       { logisticsResolved: true },
     );
+    return content;
   };
 
   const runAgentWorkflow = async (
@@ -964,6 +973,14 @@ export function useAgentWorkflow(options?: {
     runOptions?: { logisticsResolved?: boolean },
   ) => {
     if (!currentCV) return;
+    // A new run replaces whatever was parked; this one parks again if it still needs the answers.
+    if (!runOptions?.logisticsResolved) useUIStore.getState().setPendingLogistics(null);
+    // A signed-in user whose profile hasn't loaded yet (a click right after the page opens) would skip the
+    // questions, so the profile is read first. A failed read leaves it null and the run goes on without them.
+    if (!runOptions?.logisticsResolved && user && !profileRef.current) {
+      const loaded = await refreshProfile();
+      if (loaded) profileRef.current = loaded;
+    }
     if (!runOptions?.logisticsResolved && parkForLogistics(jobDescription, contextId, _overrideContextData)) return;
     void _overrideContextData; // Legacy UI state only. Never send it as writer context.
     let workflowSessionId = useSessionStore.getState().currentSession?.id;

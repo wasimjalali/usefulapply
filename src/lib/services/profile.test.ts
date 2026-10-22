@@ -104,3 +104,33 @@ test('the existing checks still run: unknown timezone and date format', () => {
   assert.throws(() => write({ timezone: 'Mars/Olympus' }), /Unknown timezone/);
   assert.throws(() => write({ date_format: 'yyyy' }), /Unknown date format/);
 });
+
+test('changing the start-date choice clears the old note', () => {
+  for (const availability of ['immediately', '2_weeks', '1_month', '3_months'] as const) {
+    const out = write({ availability });
+    assert.equal(out.availability, availability);
+    assert.equal(out.availability_note, null);
+  }
+  assert.equal(write({ availability: null }).availability_note, null);
+});
+
+test('a note given with the choice is kept, and Other keeps the stored note', () => {
+  assert.equal(write({ availability: '1_month', availability_note: 'after the move' }).availability_note, 'after the move');
+  assert.equal(write({ availability: '1_month', availabilityNote: 'after the move' }).availability_note, 'after the move');
+  const other = write({ availability: 'other' });
+  assert.equal(other.availability, 'other');
+  assert.equal('availability_note' in other, false);
+});
+
+test('an update without availability never touches the note', () => {
+  assert.equal('availability_note' in write({ salary_expectation: '70k' }), false);
+  assert.equal(write({ availability_note: 'new details' }).availability_note, 'new details');
+});
+
+test('a note or salary with < > [ ] is refused, so no lookalike sign or bracket is ever stored', () => {
+  for (const bad of ['>60k', 'under <70k', '3 Monate [Quartalsende]', 'a]']) {
+    assert.throws(() => write({ salary_expectation: bad }), /can't contain < > \[ or \]/);
+    assert.throws(() => write({ availabilityNote: bad }), InvalidInputError);
+  }
+  assert.equal(write({ salary_expectation: 'over 60,000 EUR' }).salary_expectation, 'over 60,000 EUR');
+});

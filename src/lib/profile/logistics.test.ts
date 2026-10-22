@@ -79,3 +79,10 @@ test('gaps list only what is missing', () => {
   assert.deepEqual(profileGaps({ availability: '2_weeks' }), ['salaryExpectation']);
   assert.deepEqual(profileGaps(null), ['availability', 'salaryExpectation']);
 });
+
+test('< > [ ] in the note or salary are refused at the source', () => {
+  for (const bad of ['>60.000 EUR', '<70k', '3 Monate [Quartalsende]', 'x]']) {
+    assert.throws(() => normalizeLogisticsUpdate({ salaryExpectation: bad }), /can't contain < > \[ or \]/, bad);
+    assert.throws(() => normalizeLogisticsUpdate({ availabilityNote: bad }), InvalidInputError, bad);
+  }
+});
