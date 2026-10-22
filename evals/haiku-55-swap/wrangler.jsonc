@@ -1,0 +1,13 @@
+{
+	// Eval-only proxy: forwards a chat request to gpt-oss-120b on Workers AI (the baseline arm of the
+	// Haiku 5.5 swap evals). Workers AI has no local simulation, so the AI binding runs remotely under
+	// `wrangler dev` with wrangler's own login. Never deployed.
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "usefulapply-eval-haiku-55-swap-baseline",
+	"main": "worker.ts",
+	"compatibility_date": "2026-08-17",
+	"ai": {
+		"binding": "AI",
+		"remote": true
+	}
+}
