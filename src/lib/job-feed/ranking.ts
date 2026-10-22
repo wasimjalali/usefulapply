@@ -1,4 +1,4 @@
-import { rankWithWorkersAi } from '@/lib/job-feed/workers-ai-ranking';
+import { rankWithHaiku } from '@/lib/job-feed/llm-ranking';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import type {
   JobFeedRankingCandidate,
@@ -17,5 +17,5 @@ export async function rankJobFeedCandidates(params: {
   excludedTerms?: string[];
   generationContext?: LlmGenerationContext;
 }): Promise<JobFeedRankingExecutionResult> {
-  return rankWithWorkersAi(params);
+  return rankWithHaiku(params);
 }
