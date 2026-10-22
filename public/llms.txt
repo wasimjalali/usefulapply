@@ -52,7 +52,7 @@ The product UI is in English. Job descriptions can be processed in English, Germ
 
 **Does Useful Apply invent experience?** No. Every CV rewrite, cover letter, email, and screening answer is built from the CV you uploaded. Useful Apply will not invent job titles, skills, or experience you do not have. This is the one rule the product refuses to break.
 
-**What AI model powers Useful Apply?** Claude Sonnet 4.6 by Anthropic, served via Amazon Bedrock in production. Most competitors use cheaper open-source models. Useful Apply pays for the better model because the output has to survive both an ATS scan and a recruiter's read.
+**What AI model powers Useful Apply?** Claude Sonnet 5.5 by Anthropic, through the Anthropic API in production. Most competitors use cheaper open-source models. Useful Apply pays for the better model because the output has to survive both an ATS scan and a recruiter's read.
 
 **How long does a full application take?** Under 90 seconds end to end. That includes the tailored CV, cover letter, application email, follow-up email, and screening answers.
 
@@ -132,7 +132,7 @@ The full comparisons hub is at https://usefulapply.com/compare.
 ## Technical Details
 
 - Built with Next.js 16 (App Router) on Cloudflare Workers via `@opennextjs/cloudflare`
-- AI inference: Claude Sonnet 4.6 via Amazon Bedrock for kit writing, CV parsing and fit analysis; `@cf/openai/gpt-oss-120b` on Workers AI for chat, ranking and career profile
+- AI inference: Claude Sonnet 5.5 for kit writing, CV parsing and fit analysis, and Claude Haiku 5.5 for chat, ranking and career profile, through the Anthropic API
 - Authentication: Better Auth. Database: Cloudflare D1. Files: Cloudflare R2.
 - Payments: Stripe (subscriptions and add-on credit packs)
 - Anti-hallucination guardrails: every skill, metric, and claim is verified against the uploaded CV

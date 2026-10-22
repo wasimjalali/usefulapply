@@ -11,7 +11,9 @@
  *
  * `runWithFailover` is the single helper every call path uses. It tries the primary; on a failover error
  * (a network failure or a 5xx, after the SDK's own retries) it sends the SAME request to Bedrock once. It
- * is per call, never sticky: the next call starts on the primary again. The caller's `attempt` owns the
+ * is per call: the next call starts on the primary again, except that a caller can pin a call to one provider
+ * (the chat tool loop pins its later rounds to Bedrock once Bedrock answered, so Bedrock-signed thinking blocks
+ * never reach the direct API). The caller's `attempt` owns the
  * ledger row, so the failed primary attempt and the Bedrock attempt each get their own.
  *
  * Cost on Bedrock is priced at the direct-API list prices (the global endpoint). Regional endpoints carry a

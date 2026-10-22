@@ -19,8 +19,10 @@
 
 | Task | Model | Provider |
 |------|-------|----------|
-| Kit writing, CV parsing, fit analysis | Claude Sonnet 5.5 (Sonnet 4.6 as fallback) | Anthropic API (Amazon Bedrock as fallback, via `AI_PROVIDER`) |
-| Chat, tracker chat, career profile, search strategy, job-feed ranking | `@cf/openai/gpt-oss-120b` | Workers AI |
+| Kit writing, CV parsing, fit analysis | Claude Sonnet 5.5 | Anthropic API, with Claude in Amazon Bedrock (same model) as failover |
+| Chat, screening answers, tracker chat, language detection, career profile, search strategy, job-feed ranking | Claude Haiku 5.5 | Anthropic API, with Claude in Amazon Bedrock (same model) as failover |
+
+The failover runs only on a provider failure (network, 5xx, overload), never on a 4xx or a content problem, and is visible in the LLM ledger (provider `bedrock`) and PostHog (`llm_provider_failover`).
 
 The agent uses a **Unified Writer Agent** with two modes:
 - **Analyze First** - runs fit analysis (0.5 credits), then generates the full application on demand (2.0 credits)
@@ -64,7 +66,7 @@ All templates use Arial body + Georgia headers (ATS-compliant system fonts).
 - **Language:** TypeScript 5
 - **Styling:** Tailwind CSS v4
 - **State:** Zustand v5
-- **AI:** Claude Sonnet 5.5 via the Anthropic API (Sonnet 4.6 on Amazon Bedrock as fallback), `@cf/openai/gpt-oss-120b` via Workers AI
+- **AI:** Claude Sonnet 5.5 and Claude Haiku 5.5 via the Anthropic API (API version 2026-10-21), with Claude in Amazon Bedrock as the same-model failover
 - **Auth:** Better Auth (email + password, Google OAuth), session cookie `usefulapply.session`
 - **Database:** Cloudflare D1 (SQLite) with Drizzle, repos in `src/db/repos/`, migrations in `migrations/d1/`
 - **Storage:** Cloudflare R2 (`usefulapply-files`), served through `/api/files`
@@ -118,7 +120,7 @@ src/
 ├── lib/
 │   ├── agents/              # Unified Writer Agent + context builder
 │   │   └── prompts/         # Prompt builders (cv, cover letter, email, fit)
-│   ├── models/              # Model config (Anthropic API, Bedrock fallback, Workers AI)
+│   ├── models/              # Model layer (Anthropic API, Bedrock failover, Haiku budget guard)
 │   ├── cv-parser/           # CV section splitting + parsing
 │   ├── cv-templates/        # CVData types + parser
 │   ├── job-feed/            # Ingestion, prefilter, LLM ranker, reconcile
@@ -149,7 +151,7 @@ src/
 
 ### Environment Variables
 
-Copy `.dev.vars.example` to `.dev.vars` and fill in locally. Names only, the file stays in sync. Never commit `.dev.vars`. Bindings (D1, R2, EMAIL, KV, rate limits, AI) are defined in `wrangler.jsonc`, which is the source of truth for local dev and preview.
+Copy `.dev.vars.example` to `.dev.vars` and fill in locally. Names only, the file stays in sync. Never commit `.dev.vars`. Bindings (D1, R2, EMAIL, KV, rate limits, Browser Run) are defined in `wrangler.jsonc`, which is the source of truth for local dev and preview.
 
 Auth secrets (`BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) are set as Worker secrets in production, never in `wrangler.jsonc`.
 

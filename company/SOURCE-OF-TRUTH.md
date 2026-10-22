@@ -263,8 +263,8 @@ Migrated from Vercel + Supabase to Cloudflare. Source: README. [verified]
 
 | Task | Model | Provider |
 |---|---|---|
-| Kit writing (CV, cover letter, emails, screening answers), CV parsing, fit analysis | Claude Sonnet 5.5 | Anthropic API (Sonnet 4.6 on Amazon Bedrock kept as fallback) |
-| Chat, tracker chat, career profile, search strategy, job-feed ranking | `@cf/openai/gpt-oss-120b` | Cloudflare Workers AI |
+| Kit writing (CV, cover letter, emails), CV parsing, fit analysis | Claude Sonnet 5.5 | Anthropic API (the same model on Claude in Amazon Bedrock as failover) |
+| Chat, screening answers, tracker chat, language detection, career profile, search strategy, job-feed ranking | Claude Haiku 5.5 | Anthropic API (the same model on Claude in Amazon Bedrock as failover) |
 
 Job data comes from SerpAPI. [verified] `src/lib/job-feed/`
 

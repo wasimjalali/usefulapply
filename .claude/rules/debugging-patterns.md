@@ -26,7 +26,7 @@ Read this first when root-causing a runtime bug. Find the cause, name it in one 
 | **Concurrent `deductCredits` race** | `src/db/repos/credits.ts` (`deductCredits`) | Negative or double-spent credits; check the optimistic-concurrency `version` check |
 | **Zustand selector returning a stale ref** | components subscribing to derived objects | UI doesn't re-render despite a store update; the selector returns a new object each render or compares by ref |
 | **`userId` from the request body** | API routes | Auth bypass; `userId` must come from the Better Auth session (`getCurrentUser()`) |
-| **Bedrock vs direct Anthropic env mismatch** | `src/lib/models/anthropic.ts` (`AI_PROVIDER`, `AWS_BEARER_TOKEN_BEDROCK`) | Works in dev, fails in prod (or vice versa); check which provider the env selects |
+| **Unexpected Bedrock failover** | `src/lib/models/providers.ts` (`isFailoverError`, `AWS_BEARER_TOKEN_BEDROCK`, `BEDROCK_REGION`) | Ledger rows with provider `bedrock` or PostHog `llm_provider_failover`: the primary returned a 5xx or a network error. A Bedrock 403 or 404 means model access isn't enabled for that model in the AWS account |
 | **Em dash in agent prompts** | `src/lib/agents/prompts/**` | Output reads as AI slop; U+2014 is forbidden in user-facing strings |
 
 ## Hard prohibitions

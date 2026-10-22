@@ -117,7 +117,7 @@ A change tested only in "Apply Directly" but broken in "Analyze First" (or vice 
 | Add a new output field | Update CVData/output type → response mapping → Zustand → consuming panel. All four. |
 | Tweak fit-assessment criteria | Verify the score is still INT 0–100 and CHECK constraint in DB still allows the range. |
 | Change `cv-prompt.ts` rules | Run mental diff against all six anti-hallucination rules. |
-| Switch model in `src/lib/models/` | Check Bedrock vs direct-Anthropic env presence; cache-key may invalidate. |
+| Switch model in `src/lib/models/` | Add it to the Bedrock map in `providers.ts`; the cache is per model, so every prefix rewrites once. |
 | Add a new SSE event | Producer + consumer + retry-on-disconnect path all change. |
 | Adjust context-builder priorities | Master CV is dense — re-confirm token budget and which sections survive truncation. |
 

@@ -13,7 +13,7 @@ You are the specialist for Useful Apply's Daily Job Feed pipeline. The feature s
 User clicks run → getOrSynthesizeCareerProfileAdmin (synthesize if missing) →
   loadOrGenerateSearchStrategyAdmin (AI query plan, cached; legacy buildJobFeedSearchPlan as fallback) →
   SerpAPI fetch (paid per call) → normalize + dedupe canonical jobs → exclude blocked →
-  prefilter (HARD constraints ONLY) → LLM ranker (ALL survivors, Workers AI ranker in `src/lib/job-feed/workers-ai-ranking.ts`;
+  prefilter (HARD constraints ONLY) → LLM ranker (ALL survivors, Haiku 5.5 ranker in `src/lib/job-feed/llm-ranking.ts`;
   consumes clusters/seniority/targetDirection/negativeTerms/excludedTerms) →
   persist ranked_items → /api/job-feed/overview reads ranked_items (7-day inbox) → FeedCanvas renders
 ```
@@ -25,7 +25,7 @@ User clicks run → getOrSynthesizeCareerProfileAdmin (synthesize if missing) �
 | `src/lib/job-feed/ingestion.ts` | buildJobFeedSearchPlan, ingestJobFeedRunJobs, splitCompositeRole defence, pickQueryLanguage (returns null — country drives hl), indexLocationsByCountry (rotates cities) |
 | `src/lib/job-feed/serpapi.ts` | buildSerpApiSearchParams, fetchSerpApiJobs, normalizeSerpApiJob, inferWorkMode (multi-language keywords) |
 | `src/lib/job-feed/prefilter.ts` | getRejectReasons — ONLY employment_type_mismatch, salary_mismatch, work_authorization_mismatch. Everything soft is the LLM's job. |
-| `src/lib/job-feed/workers-ai-ranking.ts` | the Workers AI ranker (system prompt, profile and candidate messages, ranking request). Read the file for current exports. |
+| `src/lib/job-feed/llm-ranking.ts` | the Haiku 5.5 ranker (callHaiku, structured output) (system prompt, profile and candidate messages, ranking request). Read the file for current exports. |
 | `src/lib/job-feed/ranking.ts` | rankJobFeedCandidates thin wrapper |
 | `src/lib/job-feed/career-profile.ts` | CareerProfile type + schema version + isCurrentCareerProfile guard. NEVER imported by src/lib/agents/**. |
 | `src/lib/job-feed/career-profile-synthesis.ts` | generateCareerProfile — LLM reads StructuredCV, emits the matching profile (clusters, seniority, targetDirection, negativeSignals). |
