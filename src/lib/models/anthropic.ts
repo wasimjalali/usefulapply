@@ -62,7 +62,83 @@ function usageJson(value: unknown): Json | null {
   }
 }
 
-function normalizeProviderUsage(value: unknown): {
+/** Token counts of one usage record (a response's top level or one `usage.iterations` entry). */
+export interface UsageParts {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadInputTokens: number;
+  cacheCreationInputTokens: number;
+  /** 5-minute and 1-hour split of cacheCreationInputTokens; a total with no split counts as 5m. */
+  cacheCreation5mInputTokens: number;
+  cacheCreation1hInputTokens: number;
+}
+
+function usagePartsOfRecord(usage: Record<string, unknown>): UsageParts | null {
+  const inputTokens = exactTokenCount(usage.input_tokens);
+  const outputTokens = exactTokenCount(usage.output_tokens);
+  if (inputTokens === null || outputTokens === null) return null;
+  // Anthropic sends the cache fields on every record, as 0 when unused. An absent field is
+  // a record this code does not understand, so it is rejected, not read as 0.
+  const cacheReadInputTokens = exactTokenCount(usage.cache_read_input_tokens);
+  const cacheCreationInputTokens = exactTokenCount(usage.cache_creation_input_tokens);
+  if (cacheReadInputTokens === null || cacheCreationInputTokens === null) return null;
+  const split = usageRecord(usage.cache_creation);
+  const write1h = exactTokenCount(split?.ephemeral_1h_input_tokens) ?? 0;
+  const write5m = exactTokenCount(split?.ephemeral_5m_input_tokens) ?? 0;
+  const splitTotal = write1h + write5m;
+  return {
+    inputTokens,
+    outputTokens,
+    cacheReadInputTokens,
+    cacheCreationInputTokens,
+    cacheCreation1hInputTokens: write1h,
+    // Anything the split does not account for is the default 5-minute write.
+    cacheCreation5mInputTokens: write5m + Math.max(0, cacheCreationInputTokens - splitTotal),
+  };
+}
+
+/**
+ * Usage records that make up one response. With compaction, top-level counts are 0 (or only the final
+ * message) and the real counts are in `usage.iterations`, one entry per iteration (a normal response
+ * has one `message` entry equal to the top level). So iterations replace the top level, never add to
+ * it. Returns null when the shape is not understood, so callers record a coverage gap, not a zero.
+ */
+export function usageRecordsOf(value: unknown): UsageParts[] | null {
+  const usage = usageRecord(value);
+  if (!usage) return null;
+  if (Array.isArray(usage.iterations) && usage.iterations.length > 0) {
+    const parts: UsageParts[] = [];
+    for (const iteration of usage.iterations) {
+      const record = usageRecord(iteration);
+      const entry = record ? usagePartsOfRecord(record) : null;
+      if (!entry) return null;
+      parts.push(entry);
+    }
+    return parts;
+  }
+  const top = usagePartsOfRecord(usage);
+  return top ? [top] : null;
+}
+
+export function sumUsageParts(parts: UsageParts[]): UsageParts {
+  return parts.reduce<UsageParts>((sum, p) => ({
+    inputTokens: sum.inputTokens + p.inputTokens,
+    outputTokens: sum.outputTokens + p.outputTokens,
+    cacheReadInputTokens: sum.cacheReadInputTokens + p.cacheReadInputTokens,
+    cacheCreationInputTokens: sum.cacheCreationInputTokens + p.cacheCreationInputTokens,
+    cacheCreation5mInputTokens: sum.cacheCreation5mInputTokens + p.cacheCreation5mInputTokens,
+    cacheCreation1hInputTokens: sum.cacheCreation1hInputTokens + p.cacheCreation1hInputTokens,
+  }), {
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadInputTokens: 0,
+    cacheCreationInputTokens: 0,
+    cacheCreation5mInputTokens: 0,
+    cacheCreation1hInputTokens: 0,
+  });
+}
+
+export function normalizeProviderUsage(value: unknown): {
   usageReported: boolean;
   inputTokens: number | null;
   outputTokens: number | null;
@@ -72,6 +148,22 @@ function normalizeProviderUsage(value: unknown): {
   providerUsage: Json | null;
 } {
   const usage = usageRecord(value);
+  const hasIterations = Array.isArray(usage?.iterations) && usage.iterations.length > 0;
+  if (hasIterations) {
+    // Compaction billing lives only in iterations: sum them. A malformed entry leaves the counts
+    // null (usage_reported false) so the row shows as a coverage gap instead of a wrong number.
+    const parts = usageRecordsOf(value);
+    const total = parts ? sumUsageParts(parts) : null;
+    return {
+      usageReported: total !== null,
+      inputTokens: total?.inputTokens ?? null,
+      outputTokens: total?.outputTokens ?? null,
+      cacheReadInputTokens: total?.cacheReadInputTokens ?? null,
+      cacheWriteInputTokens: total?.cacheCreationInputTokens ?? null,
+      providerTotalTokens: null,
+      providerUsage: usageJson(value),
+    };
+  }
   const inputTokens = exactTokenCount(usage?.input_tokens ?? usage?.inputTokens ?? usage?.prompt_tokens);
   const outputTokens = exactTokenCount(usage?.output_tokens ?? usage?.outputTokens ?? usage?.completion_tokens);
   const cacheReadInputTokens = exactTokenCount(
@@ -103,7 +195,7 @@ function fallbackGenerationContext(operation: string): LlmGenerationContext {
   };
 }
 
-function providerHttpStatus(error: unknown): number | null {
+export function providerHttpStatus(error: unknown): number | null {
   if (error instanceof ProviderHttpError) return error.status;
   if (error && typeof error === 'object' && 'status' in error) {
     return exactTokenCount((error as { status?: unknown }).status);
@@ -111,11 +203,11 @@ function providerHttpStatus(error: unknown): number | null {
   return null;
 }
 
-function providerAttemptCount(error: unknown): number {
+export function providerAttemptCount(error: unknown): number {
   return error instanceof ProviderHttpError ? error.attemptCount : 1;
 }
 
-async function completeProviderGeneration(params: {
+export async function completeProviderGeneration(params: {
   id: string;
   startedAtMs: number;
   response: LedgerAwareResponse;
@@ -144,7 +236,7 @@ async function completeProviderGeneration(params: {
   }
 }
 
-async function recordProviderFailure(params: Parameters<typeof failLlmGeneration>[0]): Promise<void> {
+export async function recordProviderFailure(params: Parameters<typeof failLlmGeneration>[0]): Promise<void> {
   try {
     await failLlmGeneration(params);
   } catch (error) {
@@ -586,12 +678,53 @@ export interface ModelPricing {
   cacheWritePerM: number;
   /** Cache read: 0.1x input on Sonnet 4.x and Haiku 4.5, 0.05x on Sonnet 5.5 */
   cacheReadPerM: number;
+  /** 1-hour cache write, 2x input. Only the Haiku 5.5 table carries it. */
+  cacheWrite1hPerM?: number;
 }
 
 // Cache read is $0.10 (5% of input) per the Sonnet 5.5 model page on platform.claude.com.
 const SONNET_55_PRICING: ModelPricing = { inputPerM: 2, outputPerM: 10, cacheWritePerM: 2.5, cacheReadPerM: 0.1 };
 const SONNET_4X_PRICING: ModelPricing = { inputPerM: 3, outputPerM: 15, cacheWritePerM: 3.75, cacheReadPerM: 0.3 };
 const HAIKU_45_PRICING: ModelPricing = { inputPerM: 1, outputPerM: 5, cacheWritePerM: 1.25, cacheReadPerM: 0.1 };
+
+/**
+ * Claude Haiku 5.5 list price per million tokens (platform.claude.com Haiku 5.5 page, read 2026-10-22).
+ * Two tiers by the prompt length of one request or iteration (input + cache read + cache write):
+ * up to 100k tokens, and over 100k. The 1-hour write is 2x input; the page lists the 5-minute write
+ * for the over-100k tier, so its 1-hour write ($1.00) is derived the same way. We keep every request
+ * under 100k, so the upper tier should never fire, but cost stays right if it does.
+ */
+export const HAIKU_55_PRICING = {
+  tierThresholdTokens: 100_000,
+  upTo100k: { inputPerM: 0.1, outputPerM: 0.5, cacheWritePerM: 0.125, cacheWrite1hPerM: 0.2, cacheReadPerM: 0.01 },
+  over100k: { inputPerM: 0.5, outputPerM: 2.5, cacheWritePerM: 0.625, cacheWrite1hPerM: 1, cacheReadPerM: 0.05 },
+} as const satisfies { tierThresholdTokens: number; upTo100k: Required<ModelPricing>; over100k: Required<ModelPricing> };
+
+/** Rates for a request whose prompt is `promptTokens` long (input + cache read + cache write). */
+export function haiku55PricingFor(promptTokens: number): Required<ModelPricing> {
+  return promptTokens > HAIKU_55_PRICING.tierThresholdTokens ? HAIKU_55_PRICING.over100k : HAIKU_55_PRICING.upTo100k;
+}
+
+/**
+ * Cost in USD of one Haiku 5.5 response from its raw `usage`. Prices each `usage.iterations` entry
+ * at its own tier and sums them, so a compaction iteration is billed. Throws on a usage shape it
+ * does not understand: a missing cost must not read as $0.
+ */
+export function haiku55CostUsd(rawUsage: unknown): { inputCostUsd: number; outputCostUsd: number; totalCostUsd: number } {
+  const records = usageRecordsOf(rawUsage);
+  if (!records) throw new Error('Cannot price Haiku 5.5 usage: unrecognised usage shape');
+  let inputCostUsd = 0;
+  let outputCostUsd = 0;
+  for (const p of records) {
+    const rate = haiku55PricingFor(p.inputTokens + p.cacheReadInputTokens + p.cacheCreationInputTokens);
+    inputCostUsd += (p.inputTokens * rate.inputPerM
+      + p.cacheReadInputTokens * rate.cacheReadPerM
+      + p.cacheCreation5mInputTokens * rate.cacheWritePerM
+      + p.cacheCreation1hInputTokens * rate.cacheWrite1hPerM) / 1_000_000;
+    outputCostUsd += (p.outputTokens * rate.outputPerM) / 1_000_000;
+  }
+  return { inputCostUsd, outputCostUsd, totalCostUsd: inputCostUsd + outputCostUsd };
+}
 
 /** The model id every Claude call in this process uses (what the ledger and PostHog record). */
 export const ACTIVE_MODEL_ID = MODEL_ID;
@@ -652,10 +785,10 @@ async function sendSdkMessage(params: Record<string, unknown>): Promise<SdkMessa
 }
 
 /** A completed response that must not be treated as success (refusal or truncation). */
-class ModelStopError extends Error {
+export class ModelStopError extends Error {
   constructor(
     message: string,
-    readonly errorKind: 'provider_refusal' | 'provider_max_tokens',
+    readonly errorKind: 'provider_refusal' | 'provider_max_tokens' | 'provider_empty_content',
     /** The response was billed, so its usage and request id still go in the failed ledger row. */
     readonly billed: { usage: unknown; providerRequestId: string | null },
   ) {
@@ -670,11 +803,13 @@ class ModelStopError extends Error {
  * document. On Sonnet 5.5 a `max_tokens` stop means thinking plus answer ran out of budget, which
  * truncates the JSON or the letter.
  */
-function assertUsableStop(
+export function assertUsableStop(
   stopReason: string | null | undefined,
   stopDetails: unknown,
   maxTokens: number,
   billed: { usage: unknown; providerRequestId: string | null },
+  /** A `max_tokens` stop is an error. Defaults to the Sonnet 5.5 shape; callHaiku always passes true. */
+  enforceMaxTokens: boolean = USE_SONNET_55_SHAPE,
 ): void {
   if (stopReason === 'refusal') {
     const category = stopDetails && typeof stopDetails === 'object' && 'category' in stopDetails
@@ -682,7 +817,7 @@ function assertUsableStop(
       : 'unknown';
     throw new ModelStopError(`Model declined the request (stop_reason refusal, category ${category})`, 'provider_refusal', billed);
   }
-  if (stopReason === 'max_tokens' && USE_SONNET_55_SHAPE) {
+  if (stopReason === 'max_tokens' && enforceMaxTokens) {
     throw new ModelStopError(`Model output hit max_tokens (${maxTokens}) before finishing`, 'provider_max_tokens', billed);
   }
 }
@@ -698,7 +833,7 @@ function sdkMessageText(message: SdkMessage, params: Record<string, unknown>): s
   return message.content.map((block) => (block.type === 'text' ? block.text : '')).join('');
 }
 
-function providerErrorKind(error: unknown, fallback: string): string {
+export function providerErrorKind(error: unknown, fallback: string): string {
   if (error instanceof ProviderHttpError) return 'provider_http_error';
   if (error instanceof ModelStopError) return error.errorKind;
   return fallback;
@@ -708,7 +843,7 @@ function providerErrorKind(error: unknown, fallback: string): string {
  * Usage and request id of a billed response that still failed (refusal or truncation), for the
  * single failed ledger row. Empty for errors where no response came back.
  */
-function billedFailureUsage(error: unknown): Partial<Parameters<typeof failLlmGeneration>[0]> {
+export function billedFailureUsage(error: unknown): Partial<Parameters<typeof failLlmGeneration>[0]> {
   if (!(error instanceof ModelStopError)) return {};
   const normalized = normalizeProviderUsage(error.billed.usage);
   return {

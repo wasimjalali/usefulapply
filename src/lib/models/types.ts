@@ -33,13 +33,16 @@ export interface ModelConfig {
 
 export interface ModelResponse {
   content: string;
-  /** Tool calls the model asked for (Workers AI function calling only). */
+  /** Tool calls the model asked for (callHaiku, and Workers AI function calling until it is removed). */
   toolCalls?: Array<{ id: string; name: string; arguments: Record<string, unknown> }>;
   usage: {
     inputTokens: number;
     outputTokens: number;
     cacheCreationInputTokens?: number;
     cacheReadInputTokens?: number;
+    /** 5-minute and 1-hour split of cacheCreationInputTokens (callHaiku). */
+    cacheCreation5mInputTokens?: number;
+    cacheCreation1hInputTokens?: number;
   };
   model: string;
   provider: ModelProvider;

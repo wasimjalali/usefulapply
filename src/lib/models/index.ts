@@ -16,6 +16,28 @@ import {
 export * from './types';
 export { parseAnthropicJSON, ACTIVE_MODEL_ID, ACTIVE_MODEL_PRICING };
 export type { ModelPricing } from './anthropic';
+export { HAIKU_55_PRICING, haiku55CostUsd, haiku55PricingFor } from './anthropic';
+export {
+  callHaiku,
+  buildHaikuRequest,
+  HAIKU_MODEL_ID,
+  InputBudgetError,
+  type HaikuCallOptions,
+  type HaikuEffort,
+  type HaikuResponse,
+  type HaikuSite,
+  type HaikuToolDefinition,
+} from './haiku';
+export { HAIKU_EFFORTS, HAIKU_SITE_EFFORT, resolveHaikuEffort } from './haiku-effort';
+export {
+  CHARS_PER_TOKEN,
+  COUNT_TOKENS_ABOVE,
+  INPUT_HARD_LIMIT,
+  INPUT_REFUSE_ABOVE,
+  estimateInputTokens,
+  estimateTokens,
+  projectNextInputTokens,
+} from './token-budget';
 
 /**
  * Main function to call Claude (model resolved at runtime in anthropic.ts)
