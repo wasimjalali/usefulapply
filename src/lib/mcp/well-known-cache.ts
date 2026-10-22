@@ -38,6 +38,8 @@ const FILLED_AT_HEADER = 'x-ua-discovery-at';
 /** Carries Better Auth's Cache-Control through the store, whose own Cache-Control sets the store TTL. */
 const CLIENT_CC_HEADER = 'x-ua-discovery-cc';
 const MEMO_MAX_ENTRIES = 16;
+/** How far ahead of this isolate's clock an entry's timestamp may be before it counts as a miss. */
+const CLOCK_SKEW_MS = 60_000;
 
 function storeKey(url: string, deployVersion: string): Request {
   return new Request(`https://discovery-cache.invalid/${STORE_VERSION}/${encodeURIComponent(deployVersion)}/${encodeURIComponent(url)}`);
@@ -79,7 +81,11 @@ export function createDiscoveryHandler(deps: {
     }
   }
 
-  const fresh = (entry: Entry) => now() - entry.at < DISCOVERY_TTL_MS;
+  /** Not expired, and not stamped in the future beyond the allowed clock skew (a future stamp would never expire). */
+  const fresh = (entry: Entry) => {
+    const current = now();
+    return current - entry.at < DISCOVERY_TTL_MS && entry.at <= current + CLOCK_SKEW_MS;
+  };
 
   /** A clean GET for Better Auth. Only cf-connecting-ip is copied from the caller (for its rate limiter). */
   function fillRequest(key: string, caller: Request): Request {
@@ -129,7 +135,15 @@ export function createDiscoveryHandler(deps: {
     }
 
     // No known deploy version means no shared store (memo only).
-    const deployVersion = deps.store ? await deps.deployVersion?.() : undefined;
+    let deployVersion: string | undefined;
+    if (deps.store) {
+      try {
+        deployVersion = await deps.deployVersion?.();
+      } catch (error) {
+        // A failing version lookup is the same as an unknown version: memo only, store untouched.
+        console.error('[mcp] discovery deploy version lookup failed', error instanceof Error ? error.message : error);
+      }
+    }
     if (deps.store && deployVersion !== undefined) {
       try {
         const stored = await deps.store.match(storeKey(key, deployVersion));

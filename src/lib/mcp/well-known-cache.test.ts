@@ -248,6 +248,122 @@ test('a 200 non-JSON and a 500 JSON answer are passed through and never stored',
   }
 });
 
+test('HEAD passthrough cancels the upstream body and keeps its status and headers', async () => {
+  for (const opts of [{ status: 200, contentType: 'text/html' }, { status: 500, contentType: 'application/json' }]) {
+    let cancelled = false;
+    const serve = createDiscoveryHandler({
+      isEnabled: () => true,
+      fill: async () =>
+        new Response(
+          new ReadableStream({
+            pull(controller) {
+              controller.enqueue(new TextEncoder().encode('body'));
+            },
+            cancel() {
+              cancelled = true;
+            },
+          }),
+          { status: opts.status, headers: { 'Content-Type': opts.contentType, 'X-Upstream': 'kept' } },
+        ),
+      store: fakeStore().store,
+      deployVersion: DEPLOY,
+    });
+    const res = await serve(new Request(URL_AS, { method: 'HEAD' }));
+    assert.equal(res.status, opts.status);
+    assert.equal(res.headers.get('content-type'), opts.contentType);
+    assert.equal(res.headers.get('x-upstream'), 'kept');
+    assert.equal(await res.text(), '');
+    assert.equal(cancelled, true, `${opts.status} ${opts.contentType}`);
+  }
+});
+
+test('parallel cold requests each fill for themselves and all get the document', async () => {
+  // No sharing between requests is deliberate: a promise shared across requests never settles when its
+  // owner disconnects, and every waiter hung behind it. N cold requests must make N fills.
+  const N = 8;
+  const auth = fakeAuth();
+  const serve = createDiscoveryHandler({
+    isEnabled: () => true,
+    fill: async (request) => {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      return auth.fill(request);
+    },
+    store: fakeStore().store,
+    deployVersion: DEPLOY,
+  });
+  const responses = await Promise.all(Array.from({ length: N }, () => serve(new Request(URL_AS))));
+  assert.equal(auth.calls.length, N);
+  for (const res of responses) {
+    assert.equal(res.status, 200);
+    assert.equal(await res.text(), DOC);
+  }
+});
+
+test('an entry stamped in the future is a miss and gets refilled, in the memo and in the store', async () => {
+  // Store: stamp a stored entry far ahead of the clock.
+  const auth = fakeAuth();
+  const { map, store } = fakeStore();
+  const now = 10_000_000;
+  await createDiscoveryHandler({ isEnabled: () => true, fill: auth.fill, deployVersion: DEPLOY, store, now: () => now })(new Request(URL_AS));
+  for (const [url, res] of map) {
+    const headers = new Headers(res.headers);
+    headers.set('x-ua-discovery-at', String(now + 30 * DISCOVERY_TTL_MS));
+    map.set(url, new Response(await res.text(), { status: 200, headers }));
+  }
+  await createDiscoveryHandler({ isEnabled: () => true, fill: auth.fill, deployVersion: DEPLOY, store, now: () => now })(new Request(URL_AS));
+  assert.equal(auth.calls.length, 2);
+
+  // Memo: the clock jumps back, so the memo entry is now ahead of it. Within one minute of skew it still hits.
+  const memoAuth = fakeAuth();
+  let clock = 50_000_000;
+  const serve = createDiscoveryHandler({ isEnabled: () => true, fill: memoAuth.fill, now: () => clock });
+  await serve(new Request(URL_AS));
+  clock -= 60_000;
+  await serve(new Request(URL_AS));
+  assert.equal(memoAuth.calls.length, 1);
+  clock -= 1;
+  await serve(new Request(URL_AS));
+  assert.equal(memoAuth.calls.length, 2);
+});
+
+test('a deployVersion that rejects means memo only, store untouched, logged once', async () => {
+  const auth = fakeAuth();
+  let touched = 0;
+  const store: DiscoveryStore = {
+    async match() {
+      touched++;
+      return undefined;
+    },
+    async put() {
+      touched++;
+    },
+  };
+  const serve = createDiscoveryHandler({
+    isEnabled: () => true,
+    fill: auth.fill,
+    store,
+    deployVersion: async () => {
+      throw new Error('version lookup down');
+    },
+  });
+  const logged: unknown[][] = [];
+  const log = console.error;
+  console.error = (...args: unknown[]) => {
+    logged.push(args);
+  };
+  try {
+    assert.equal(await (await serve(new Request(URL_AS))).text(), DOC);
+  } finally {
+    console.error = log;
+  }
+  assert.equal(logged.length, 1);
+  assert.match(String(logged[0][1]), /version lookup down/);
+  assert.equal(touched, 0);
+  // The memo still works.
+  assert.equal(await (await serve(new Request(URL_AS))).text(), DOC);
+  assert.deepEqual(auth.calls, ['GET']);
+});
+
 test('store-only expiry: a new isolate past the TTL asks Better Auth again', async () => {
   const auth = fakeAuth();
   let now = 5_000_000;
