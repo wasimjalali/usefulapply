@@ -10,13 +10,17 @@
 --     clearing a chat deletes those rows, and the route treats a block whose message is gone as stale.
 --   - input_tokens: the compaction request's total input, for cost review.
 -- Date: 2026-10-22
--- Rollback: additive only. DROP TABLE chat_compactions; DROP INDEX chat_messages_session_role_idx; (chat then sends
+-- Rollback: additive only. DROP TABLE chat_compactions; DROP INDEX chat_messages_session_role_idx;
+--   ALTER TABLE chat_messages DROP COLUMN claimed_at; (chat then sends
 --   the full history again)
 -- Blast radius: low. A new table only the chat route reads and writes. Rows go with their application
 --   (ON DELETE CASCADE from application_sessions) and with the account (cascade from profiles, and
 --   deleteAllUserData deletes by user_id).
 --   Also an index on chat_messages (session_id, role): the route counts an application's user messages on every chat
 --   turn (the 50-message cap), and without it SQLite picks chat_messages_user_idx and walks all of the user's messages.
+--   And chat_messages.claimed_at (nullable): when the route claimed a user message for a model turn. A message is
+--   claimed once, so replaying an answered message's id cannot buy another turn past the cap.
+--   Apply BEFORE deploying the code that reads it (Drizzle selects every column by name).
 
 CREATE TABLE `chat_compactions` (
 	`session_id` text PRIMARY KEY NOT NULL,
@@ -33,3 +37,5 @@ CREATE TABLE `chat_compactions` (
 CREATE INDEX `chat_compactions_user_idx` ON `chat_compactions` (`user_id`);
 --> statement-breakpoint
 CREATE INDEX `chat_messages_session_role_idx` ON `chat_messages` (`session_id`,`role`);
+--> statement-breakpoint
+ALTER TABLE `chat_messages` ADD `claimed_at` text;

@@ -671,6 +671,9 @@ export const chatMessages = sqliteTable(
     content: text('content').notNull(),
     actions: text('actions', { mode: 'json' }).$type<Json>().notNull().$defaultFn(emptyArray),
     created_at: text('created_at').notNull().$defaultFn(isoNow),
+    // Migration 0013: when /api/chat claimed this user message for a model turn (claimUserChatTurn). Null for every
+    // other row. A message is claimed at most once.
+    claimed_at: text('claimed_at'),
   },
   (t) => [
     index('chat_messages_session_idx').on(t.session_id, t.created_at),

@@ -263,6 +263,8 @@ export async function POST(req: NextRequest) {
       const claim = await claimUserChatTurn(user.id, persistedSessionId, { id: messageId, content: message }, MAX_CHAT_MESSAGES_PER_SESSION);
       if (!claim.ok) {
         if (claim.reason === 'cap_reached') return chatLimitReached();
+        if (claim.reason === 'not_found') return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+        // An id that is someone else's, already answered, or names a different text: never a second turn.
         return NextResponse.json({ error: 'Invalid message id.' }, { status: 409 });
       }
     }
@@ -546,7 +548,9 @@ export async function POST(req: NextRequest) {
     let replyMessageId: string | undefined;
     if (storesTurn && persistedSessionId) {
       replyMessageId = newChatMessageId();
-      await storeChatReply(user.id, persistedSessionId, { id: replyMessageId, content: reply, actions });
+      const stored = await storeChatReply(user.id, persistedSessionId, { id: replyMessageId, content: reply, actions });
+      // The user still gets the reply; the next turn's history will miss it, so this is loud.
+      if (!stored) console.error(`[chat] the reply was not stored for ${persistedSessionId} (application gone or id taken)`);
     }
 
     return NextResponse.json({

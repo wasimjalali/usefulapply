@@ -407,13 +407,15 @@ async function upsertChatMessage(
 
 export type ChatTurnClaim =
   | { ok: true }
-  | { ok: false; reason: 'cap_reached' | 'id_taken' };
+  | { ok: false; reason: 'cap_reached' | 'id_taken' | 'not_found' };
 
 /**
  * The chat route stores the user's new message before it calls the model, and only while the application has
- * fewer than `cap` user messages besides this one. One statement, so two requests at once cannot both take the
- * last slot. The client's sync writes the same row under the same id (upsertChatMessage), so the row may already
- * be there: then it only counts the others. An id that belongs to someone else's row is refused.
+ * fewer than `cap` user messages besides this one. Each message is claimed for one model turn exactly once
+ * (`claimed_at`), so reusing the id of a message that was already answered cannot buy another turn, and two requests
+ * with the same id cannot both run. The client's sync writes the same row under the same id (upsertChatMessage), so
+ * the row may already be there unclaimed: then the same statement claims it, if it holds this exact text. One
+ * statement either way, so two requests at once cannot both take the last slot.
  */
 export async function claimUserChatTurn(
   userId: string,
@@ -423,58 +425,73 @@ export async function claimUserChatTurn(
 ): Promise<ChatTurnClaim> {
   if (!isChatMessageId(message.id)) return { ok: false, reason: 'id_taken' };
   const db = await getDb();
-  const inserted = await db.run(sql`
-    INSERT INTO chat_messages (id, session_id, user_id, role, content, actions, created_at)
-    SELECT ${message.id}, s.id, s.user_id, 'user', ${message.content}, '[]', ${nowIso()}
+  const now = nowIso();
+  const claimed = await db.run(sql`
+    INSERT INTO chat_messages (id, session_id, user_id, role, content, actions, created_at, claimed_at)
+    SELECT ${message.id}, s.id, s.user_id, 'user', ${message.content}, '[]', ${now}, ${now}
     FROM application_sessions s
     WHERE s.id = ${sessionId} AND s.user_id = ${userId}
       AND (
         SELECT count(*) FROM chat_messages m
         WHERE m.session_id = s.id AND m.user_id = s.user_id AND m.role = 'user' AND m.id != ${message.id}
       ) < ${cap}
-    ON CONFLICT(id) DO NOTHING
+    ON CONFLICT(id) DO UPDATE SET claimed_at = excluded.claimed_at
+    WHERE chat_messages.claimed_at IS NULL
+      AND chat_messages.user_id = excluded.user_id
+      AND chat_messages.session_id = excluded.session_id
+      AND chat_messages.role = 'user'
+      AND chat_messages.content = excluded.content
   `);
-  if (inserted.meta.changes === 1) return { ok: true };
+  if (claimed.meta.changes === 1) return { ok: true };
 
+  // Nothing written: say why, for the route's answer.
   const existing = await db
-    .select({ user_id: chatMessages.user_id, session_id: chatMessages.session_id, role: chatMessages.role })
+    .select({ user_id: chatMessages.user_id })
     .from(chatMessages)
     .where(eq(chatMessages.id, message.id))
     .limit(1);
-  const row = existing[0];
-  if (!row) return { ok: false, reason: 'cap_reached' };
-  if (row.user_id !== userId || row.session_id !== sessionId || row.role !== 'user') return { ok: false, reason: 'id_taken' };
-  const others = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(chatMessages)
-    .where(and(
-      eq(chatMessages.session_id, sessionId),
-      eq(chatMessages.user_id, userId),
-      eq(chatMessages.role, 'user'),
-      sql`${chatMessages.id} != ${message.id}`,
-    ));
-  return Number(others[0]?.count) < cap ? { ok: true } : { ok: false, reason: 'cap_reached' };
+  // Someone else's id, this user's message already claimed, or the id of a different text.
+  if (existing[0]) {
+    if (existing[0].user_id !== userId) return { ok: false, reason: 'id_taken' };
+    const mine = await db
+      .select({ claimed_at: chatMessages.claimed_at, session_id: chatMessages.session_id, role: chatMessages.role, content: chatMessages.content })
+      .from(chatMessages)
+      .where(and(eq(chatMessages.id, message.id), eq(chatMessages.user_id, userId)))
+      .limit(1);
+    const row = mine[0];
+    if (!row || row.claimed_at !== null || row.session_id !== sessionId || row.role !== 'user' || row.content !== message.content) {
+      return { ok: false, reason: 'id_taken' };
+    }
+  }
+  const owned = await db
+    .select({ id: applicationSessions.id })
+    .from(applicationSessions)
+    .where(and(eq(applicationSessions.id, sessionId), eq(applicationSessions.user_id, userId)))
+    .limit(1);
+  return { ok: false, reason: owned[0] ? 'cap_reached' : 'not_found' };
 }
 
 /**
  * The reply the chat route stores under the id it returns to the client, so the next turn's history has it even
- * when the user answers before the client's sync runs. Into an application the user owns, or nothing; a conflict
- * on the id (the sync got there first) leaves the client's copy.
+ * when the user answers before the client's sync runs. Into an application the user owns, or nothing. Returns false
+ * when nothing was written (the application is gone, or the id is taken): the client only learns the id from the
+ * response, so its sync can never have written it first.
  */
 export async function storeChatReply(
   userId: string,
   sessionId: string,
   message: { id: string; content: string; actions: unknown[] },
-): Promise<void> {
+): Promise<boolean> {
   if (!isChatMessageId(message.id)) throw new Error('storeChatReply: invalid chat message id');
   const db = await getDb();
-  await db.run(sql`
+  const stored = await db.run(sql`
     INSERT INTO chat_messages (id, session_id, user_id, role, content, actions, created_at)
     SELECT ${message.id}, s.id, s.user_id, 'assistant', ${message.content}, ${JSON.stringify(message.actions)}, ${nowIso()}
     FROM application_sessions s
     WHERE s.id = ${sessionId} AND s.user_id = ${userId}
     ON CONFLICT(id) DO NOTHING
   `);
+  return stored.meta.changes === 1;
 }
 
 export async function clearChatMessages(userId: string, sessionId: string): Promise<{ error: Error | null }> {

@@ -272,6 +272,15 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
     expect(screening[0].allUserText).toContain('Danke dir, das hilft.');
   });
 
+  test('the same message id sent twice at once runs one turn, the other is refused', async () => {
+    const id = nextMessageId();
+    const message = `Zweimal gesendet. [${TAG}]`;
+    const results = await Promise.all([turn(page.request, sessionId, message, { messageId: id }), turn(page.request, sessionId, message, { messageId: id })]);
+    expect(results.map((result) => result.status).sort()).toEqual([200, 409]);
+    const stored = chatMessagesOf(sessionId).filter((row) => row.id === id);
+    expect(stored).toHaveLength(1);
+  });
+
   test('ChatPanel shows the full transcript with one "Earlier messages summarized" divider', async () => {
     await openApplication(page);
     const input = page.getByPlaceholder(/Ask for a change|Paste a job ad or ask anything/);
@@ -302,7 +311,8 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
     } finally {
       db.close();
     }
-    const fiftieth = await turn(api, capSession, 'Frage 49');
+    const fiftiethId = nextMessageId();
+    const fiftieth = await turn(api, capSession, 'Frage 49', { messageId: fiftiethId });
     expect(fiftieth.status, JSON.stringify(fiftieth.body)).toBe(200);
     const fiftyFirstId = nextMessageId();
     const fiftyFirst = await turn(api, capSession, 'Frage 50', { messageId: fiftyFirstId });
@@ -311,6 +321,17 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
     // A client without ids is refused the same way.
     const legacy = await turn(api, capSession, 'Frage 50', { messageId: null });
     expect(legacy.status).toBe(429);
+    // Replaying an answered message's id buys no turn past the cap, with its text or another.
+    const replay = await turn(api, capSession, 'Frage 49', { messageId: fiftiethId });
+    expect(replay.status).toBe(409);
+    const replayOther = await turn(api, capSession, 'Noch eine Frage', { messageId: fiftiethId });
+    expect(replayOther.status).toBe(409);
+    // A stored message nobody claimed yet (the client wrote it, it never reached the model) can run once, with its
+    // own text only. Every claim needs fewer than 50 other user messages, so turns never pass 50 either way.
+    const seededId = `msg-seed-u-3-${capSession}`;
+    expect((await turn(api, capSession, 'Etwas anderes', { messageId: seededId })).status).toBe(409);
+    expect((await turn(api, capSession, 'Frage 3', { messageId: seededId })).status).toBe(200);
+    expect((await turn(api, capSession, 'Frage 3', { messageId: seededId })).status).toBe(409);
     const rows = chatMessagesOf(capSession);
     expect(rows.filter((row) => row.role === 'user')).toHaveLength(50);
     expect(rows.some((row) => row.id === fiftyFirstId)).toBe(false);
