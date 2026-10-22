@@ -396,6 +396,28 @@ function budgetErrorKind(error: unknown): string {
 // The call
 // -------------------------------------------------------------------------------------------------
 
+/**
+ * Measure a request exactly the way callHaiku will before sending it: the local estimate, and an exact
+ * count_tokens call only above COUNT_TOKENS_ABOVE. Call sites that shrink their input to fit the budget
+ * (job-feed ranking) use this so their numbers match callHaiku's own guard.
+ */
+export async function measureHaikuRequest(
+  options: HaikuCallOptions,
+  deps: HaikuDeps = defaultDeps,
+): Promise<InputBudgetCheck> {
+  const params = buildHaikuRequest(options, resolveHaikuEffort(options.site));
+  const client = deps.getClient();
+  return measureInputBudget(
+    { system: params.system, tools: params.tools, messages: params.messages },
+    () => client.countTokens({
+      model: HAIKU_MODEL_ID,
+      system: params.system,
+      ...(params.tools ? { tools: params.tools } : {}),
+      messages: params.messages,
+    }),
+  );
+}
+
 export async function callHaiku(options: HaikuCallOptions, deps: HaikuDeps = defaultDeps): Promise<HaikuResponse> {
   const effort = resolveHaikuEffort(options.site);
   const params = buildHaikuRequest(options, effort);

@@ -6,8 +6,7 @@ import type {
 } from '@/lib/job-feed/types';
 import type { JobFeedSettings } from '@/lib/supabase/types';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
-import { callHaiku, InputBudgetError, type HaikuResponse } from '@/lib/models/haiku';
-import { countInputTokens, estimateInputTokens, type BudgetRequest } from '@/lib/models/token-budget';
+import { callHaiku, InputBudgetError, measureHaikuRequest, type HaikuResponse } from '@/lib/models/haiku';
 import {
   RANKING_INPUT_BUDGET_TOKENS,
   RANKING_JSON_SCHEMA,
@@ -37,7 +36,6 @@ const RANKING_MAX_TOKENS = 12000;
 
 // Above this estimate the exact count_tokens call is worth its round trip.
 // Plus-tier runs estimate well under it; Max-tier runs usually land above.
-const RANKING_COUNT_THRESHOLD_TOKENS = 60_000;
 
 type RankingModelInfo = NonNullable<JobFeedRankingExecutionResult['model']>;
 
@@ -83,10 +81,9 @@ export async function rankWithHaiku(params: {
   }
 
   const stableContext = buildUserProfileMessage(settings, yearsExperience, careerProfile, negativeTerms, excludedTerms);
-  const buildRequest = (excerptChars: number): BudgetRequest => ({
+  const buildRequest = (excerptChars: number) => ({
     system: { static: RANKING_SYSTEM_PROMPT, stableContext },
-    messages: [{ role: 'user', content: buildCandidatesMessage(candidates, visibleCap, excerptChars) }],
-    jsonSchema: RANKING_JSON_SCHEMA,
+    messages: [{ role: 'user' as const, content: buildCandidatesMessage(candidates, visibleCap, excerptChars) }],
   });
 
   const rankingGenerationContext = generationContext ?? {
@@ -103,8 +100,16 @@ export async function rankWithHaiku(params: {
       candidates,
       countTokens: async (excerptChars) => {
         const request = buildRequest(excerptChars);
-        const estimate = estimateInputTokens(request);
-        return estimate > RANKING_COUNT_THRESHOLD_TOKENS ? countInputTokens(request) : estimate;
+        const measured = await measureHaikuRequest({
+          site: 'ranking',
+          system: request.system,
+          messages: request.messages,
+          jsonSchema: RANKING_JSON_SCHEMA,
+          maxTokens: RANKING_MAX_TOKENS,
+          cacheTtl: '5m',
+          generationContext: rankingGenerationContext,
+        });
+        return measured.totalTokens;
       },
     });
     if (!fit.fits) {
