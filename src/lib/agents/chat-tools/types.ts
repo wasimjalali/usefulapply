@@ -1,6 +1,6 @@
 /**
  * Chat tool registry types. One typed list of tools (name, JSON schema,
- * handler); the chat route passes the definitions to callWorkersAI and
+ * handler); the chat route passes the definitions to callHaiku and
  * executes handlers server-side when the model returns tool calls.
  *
  * Ownership: every handler re-derives the user from ChatToolContext.userId
@@ -103,8 +103,75 @@ export interface ChatToolContext {
   cvTemplateId: string | null;
 }
 
+/**
+ * The most a serialized tool result may weigh. Results are re-sent on every
+ * later round of the loop, and four of them a round has to fit the 100k input
+ * budget with the history beside them. Handlers that return lists shorten them
+ * with fitListsToBudget; executeChatTool refuses anything still over.
+ */
+export const MAX_TOOL_RESULT_CHARS = 15_000;
+
+/**
+ * Shorten the named list fields of a tool result until it serializes within
+ * the cap. Whole items drop from the end (every list here is newest or
+ * strongest first), so the JSON stays valid and nothing is cut mid-value. A
+ * result that had to shrink carries `truncated: true` and, per list, how many
+ * items are shown out of how many there are, so the model can say it's partial.
+ *
+ * A result whose lists are empty and is still over the cap comes back as it is:
+ * executeChatTool refuses it loudly rather than this guessing what else to cut.
+ */
+export function fitListsToBudget(
+  data: Record<string, unknown>,
+  listKeys: string[],
+  maxChars: number = MAX_TOOL_RESULT_CHARS,
+): Record<string, unknown> {
+  const size = (value: unknown) => JSON.stringify(value).length;
+  if (size(data) <= maxChars) return data;
+
+  const lists = new Map<string, unknown[]>();
+  const totals = new Map<string, number>();
+  for (const key of listKeys) {
+    const value = data[key];
+    if (!Array.isArray(value)) throw new Error(`fitListsToBudget: ${key} is not a list`);
+    lists.set(key, value);
+    totals.set(key, value.length);
+  }
+
+  const build = () => {
+    const truncatedLists: Record<string, { shown: number; total: number }> = {};
+    for (const [key, list] of lists) {
+      const total = totals.get(key) as number;
+      if (list.length < total) truncatedLists[key] = { shown: list.length, total };
+    }
+    return { ...data, ...Object.fromEntries(lists), truncated: true as const, truncated_lists: truncatedLists };
+  };
+
+  let out = build();
+  while (size(out) > maxChars) {
+    let longestKey: string | null = null;
+    let longestSize = 0;
+    for (const [key, list] of lists) {
+      if (list.length === 0) continue;
+      const listSize = size(list);
+      if (listSize > longestSize) {
+        longestKey = key;
+        longestSize = listSize;
+      }
+    }
+    if (longestKey === null) break;
+    const list = lists.get(longestKey) as unknown[];
+    // Drop roughly the overflow's share of the list in one step, at least one item.
+    const overflow = size(out) - maxChars;
+    const drop = Math.max(1, Math.ceil((list.length * overflow) / longestSize));
+    lists.set(longestKey, list.slice(0, Math.max(0, list.length - drop)));
+    out = build();
+  }
+  return out;
+}
+
 export interface ChatToolResult {
-  /** Fed back to the model as the tool result. Small, factual, JSON-serializable. */
+  /** Fed back to the model as the tool result. Small, factual, JSON-serializable, at most MAX_TOOL_RESULT_CHARS serialized. */
   data: unknown;
   /** The handler threw. The route must surface this rather than trust a generic model fallback. */
   failed?: true;
