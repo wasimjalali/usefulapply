@@ -34,9 +34,6 @@ import {
 // Thinking counts toward max_tokens. 40 items is ~3k output tokens, the rest is headroom.
 const RANKING_MAX_TOKENS = 12000;
 
-// Above this estimate the exact count_tokens call is worth its round trip.
-// Plus-tier runs estimate well under it; Max-tier runs usually land above.
-
 type RankingModelInfo = NonNullable<JobFeedRankingExecutionResult['model']>;
 
 function modelInfoFrom(response: HaikuResponse): RankingModelInfo {

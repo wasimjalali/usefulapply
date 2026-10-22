@@ -9,6 +9,9 @@
  * services: both accept `Authorization: Bearer <key>` (SDK 1.x no longer sends x-api-key; the Anthropic API
  * still accepts it too), Bedrock needs a Bearer token and a model id with the `anthropic.` prefix, and the
  * Anthropic API refuses that prefix. Both reject temperature, top_p and top_k with a 400 (API 2026-10-21).
+ * Structured output requests (`output_config.format` json_schema) get a 400 when any object in the schema lacks
+ * `additionalProperties: false`, as the real API does, and the fake's own scripted JSON reply is validated against
+ * the request's schema (a mismatch is a 500 that names the path), so a schema bug fails E2E instead of production.
  *
  * It answers both model families the app calls: the Sonnet 5.5 kit writers and CV parser, and every Claude
  * Haiku 5.5 site (chat, tracker, screening, language, ranking, search strategy, career profile). The site is
@@ -30,6 +33,11 @@
  *                (529 overloaded, 400 invalid_request, 503 and 500 api_error) to the next `count` messages requests, after letting `skip`
  *                requests through, for one writer or all. The SDK retries once, so one logical call is two requests:
  *                count 2 fails one call, count 4 fails two.
+ *   primaryStreamCut  { count, skip?, writer? } | null   the Anthropic endpoint (never Bedrock) answers the next `count`
+ *                STREAMING requests with a 200, message_start, the first half of the text, and then resets the socket
+ *                (a connection lost mid-body, after the headers). `skip` lets that many streaming requests through
+ *                first, `writer` limits it to one writer. The SDK does not retry after the headers, so count 1 cuts
+ *                one logical call.
  *   delayMs      delay every answer
  *   inputTokens  number | null   force the input size: count_tokens returns it, and so does the usage of a
  *                messages call (input + cache reads + cache writes), so the 100k budget paths can be driven
@@ -80,6 +88,8 @@ interface CallRecord {
   writer: string;
   at: string;
   stream: boolean;
+  /** primaryStreamCut hit this streaming request: the socket was reset after the first half of the text. */
+  streamCut: boolean;
   /** The first message of the request, as the kit writers' specs read it. */
   user: string;
   /** The newest user text, and every user text, so a spec can see the history the model was shown. */
@@ -111,6 +121,7 @@ const cacheEntries: Record<Provider, Set<string>> = { anthropic: new Set(), bedr
 let failWriters = new Set<string>();
 let delayMs = 0;
 let primaryFail: { status: number; remaining: number; skip: number; writer: string | null } | null = null;
+let primaryStreamCut: { remaining: number; skip: number; writer: string | null } | null = null;
 let override: { inputTokens: number; writer: string | null; skip: number } | null = null;
 let overrideSeen = 0;
 
@@ -317,7 +328,7 @@ function messageBody(model: string, content: FakeBlock[], stopReason: string, us
   };
 }
 
-function sse(response: ServerResponse, model: string, text: string, usage: Usage): void {
+function sse(response: ServerResponse, model: string, text: string, usage: Usage, cut = false): void {
   response.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
   const send = (event: string, data: unknown) => response.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   send('message_start', {
@@ -325,11 +336,125 @@ function sse(response: ServerResponse, model: string, text: string, usage: Usage
     message: { id: 'msg_stub', type: 'message', role: 'assistant', model, content: [], stop_reason: null, stop_sequence: null, usage: { ...usage, output_tokens: 1 } },
   });
   send('content_block_start', { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } });
+  if (cut) {
+    // A connection lost mid-body: half the text, then the socket is reset (no message_stop, no clean end).
+    send('content_block_delta', { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: text.slice(0, Math.floor(text.length / 2)) } });
+    setTimeout(() => response.socket?.destroy(), 20);
+    return;
+  }
   send('content_block_delta', { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text } });
   send('content_block_stop', { type: 'content_block_stop', index: 0 });
   send('message_delta', { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: usage.output_tokens } });
   send('message_stop', { type: 'message_stop' });
   response.end();
+}
+
+// ---------------------------------------------------------------------------
+// Structured outputs: the schema rules of the API, and a small JSON Schema check of the scripted reply
+// ---------------------------------------------------------------------------
+
+type Schema = Record<string, unknown>;
+
+function jsonSchemaOf(body: MessagesBody): Schema | null {
+  const format = body.output_config?.format as { type?: string; schema?: Schema } | undefined;
+  return format?.type === 'json_schema' && format.schema && typeof format.schema === 'object' ? format.schema : null;
+}
+
+/** The API refuses a structured-output schema with an object that does not say `additionalProperties: false`. */
+function schemaRuleError(schema: unknown, path = '$'): string | null {
+  if (Array.isArray(schema)) {
+    for (let i = 0; i < schema.length; i++) {
+      const error = schemaRuleError(schema[i], `${path}[${i}]`);
+      if (error) return error;
+    }
+    return null;
+  }
+  if (schema === null || typeof schema !== 'object') return null;
+  const node = schema as Schema;
+  const types = Array.isArray(node.type) ? node.type : [node.type];
+  if ((types.includes('object') || node.properties !== undefined) && node.additionalProperties !== false) {
+    return `output_config.format.schema: ${path} is an object without "additionalProperties": false`;
+  }
+  for (const [key, value] of Object.entries(node)) {
+    // Under `properties` and `$defs` every value is a schema; elsewhere recurse into sub-schemas and arrays.
+    if (key === 'properties' || key === '$defs' || key === 'definitions') {
+      for (const [name, sub] of Object.entries(value as Schema)) {
+        const error = schemaRuleError(sub, `${path}.${key}.${name}`);
+        if (error) return error;
+      }
+    } else if (typeof value === 'object' && value !== null && key !== 'enum' && key !== 'const' && key !== 'required' && key !== 'default') {
+      const error = schemaRuleError(value, `${path}.${key}`);
+      if (error) return error;
+    }
+  }
+  return null;
+}
+
+function typeMatches(type: unknown, value: unknown): boolean {
+  switch (type) {
+    case 'object': return value !== null && typeof value === 'object' && !Array.isArray(value);
+    case 'array': return Array.isArray(value);
+    case 'string': return typeof value === 'string';
+    case 'number': return typeof value === 'number' && Number.isFinite(value);
+    case 'integer': return typeof value === 'number' && Number.isInteger(value);
+    case 'boolean': return typeof value === 'boolean';
+    case 'null': return value === null;
+    default: return true;
+  }
+}
+
+/** The first way `value` breaks `schema` (type, enum, const, required, properties, additionalProperties, items, anyOf), or null. */
+function schemaMismatch(value: unknown, schema: unknown, path = '$'): string | null {
+  if (schema === null || typeof schema !== 'object') return null;
+  const node = schema as Schema;
+  if (Array.isArray(node.anyOf) || Array.isArray(node.oneOf)) {
+    const options = (node.anyOf ?? node.oneOf) as unknown[];
+    if (!options.some((option) => schemaMismatch(value, option, path) === null)) return `${path} matches none of the anyOf options`;
+  }
+  if (node.type !== undefined) {
+    const types = Array.isArray(node.type) ? node.type : [node.type];
+    if (!types.some((type) => typeMatches(type, value))) return `${path} should be ${types.join(' or ')}`;
+  }
+  if (Array.isArray(node.enum) && !node.enum.some((option) => JSON.stringify(option) === JSON.stringify(value))) return `${path} is not one of the allowed values`;
+  if ('const' in node && JSON.stringify(node.const) !== JSON.stringify(value)) return `${path} is not the constant value`;
+  if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    const properties = (node.properties ?? {}) as Record<string, unknown>;
+    for (const name of (Array.isArray(node.required) ? node.required : []) as string[]) {
+      if (!(name in record)) return `${path}.${name} is required`;
+    }
+    for (const [name, child] of Object.entries(record)) {
+      if (name in properties) {
+        const mismatch = schemaMismatch(child, properties[name], `${path}.${name}`);
+        if (mismatch) return mismatch;
+      } else if (node.additionalProperties === false) {
+        return `${path}.${name} is not allowed by additionalProperties: false`;
+      }
+    }
+  }
+  if (Array.isArray(value) && node.items !== undefined) {
+    for (let i = 0; i < value.length; i++) {
+      const mismatch = schemaMismatch(value[i], node.items, `${path}[${i}]`);
+      if (mismatch) return mismatch;
+    }
+  }
+  return null;
+}
+
+/** Null when the request has no structured-output schema, or when every text block of the reply fits it. */
+function replySchemaError(body: MessagesBody, content: FakeBlock[]): string | null {
+  const schema = jsonSchemaOf(body);
+  if (!schema) return null;
+  const text = content.filter((block) => block.type === 'text').map((block) => String(block.text ?? '')).join('');
+  if (!text) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return 'the fake scripted a reply that is not JSON for a structured-output request';
+  }
+  const mismatch = schemaMismatch(parsed, schema);
+  return mismatch ? `the fake's scripted reply does not match the request's output schema: ${mismatch}` : null;
 }
 
 function overrideApplies(writer: string): boolean {
@@ -355,6 +480,7 @@ function record(body: MessagesBody, kind: CallRecord['kind'], writer: string, ma
     writer,
     at: new Date().toISOString(),
     stream: Boolean(body.stream),
+    streamCut: false,
     user: firstMessageText(body).slice(0, 20_000),
     lastUser: lastUserText(body.messages).slice(0, 20_000),
     allUserText: userTexts.join('\n---\n').slice(0, 60_000),
@@ -392,6 +518,7 @@ createServer(async (request, response) => {
         inputTokensFor?: string | null;
         skipCalls?: number;
         primaryFail?: { status: number; count: number; skip?: number; writer?: string } | null;
+        primaryStreamCut?: { count: number; skip?: number; writer?: string } | null;
       };
       failWriters = new Set(Array.isArray(body.failWriter) ? body.failWriter : body.failWriter ? [body.failWriter] : []);
       delayMs = body.delayMs ?? 0;
@@ -400,7 +527,10 @@ createServer(async (request, response) => {
       primaryFail = body.primaryFail
         ? { status: body.primaryFail.status, remaining: body.primaryFail.count, skip: body.primaryFail.skip ?? 0, writer: body.primaryFail.writer ?? null }
         : null;
-      return json(response, 200, { ok: true, failWriters: [...failWriters], delayMs, override, primaryFail });
+      primaryStreamCut = body.primaryStreamCut
+        ? { remaining: body.primaryStreamCut.count, skip: body.primaryStreamCut.skip ?? 0, writer: body.primaryStreamCut.writer ?? null }
+        : null;
+      return json(response, 200, { ok: true, failWriters: [...failWriters], delayMs, override, primaryFail, primaryStreamCut });
     }
     if (url.pathname === '/__calls') return json(response, 200, calls);
     if (url.pathname === '/__health') return json(response, 200, { ok: true });
@@ -409,6 +539,7 @@ createServer(async (request, response) => {
       cacheEntries.anthropic.clear();
       cacheEntries.bedrock.clear();
       primaryFail = null;
+      primaryStreamCut = null;
       failWriters = new Set();
       delayMs = 0;
       override = null;
@@ -459,6 +590,8 @@ createServer(async (request, response) => {
       }
       const invalid = validate(body, writer, cache.markers, provider);
       if (invalid) return fail(400, 'invalid_request_error', invalid);
+      const schemaRule = schemaRuleError(jsonSchemaOf(body));
+      if (schemaRule) return fail(400, 'invalid_request_error', schemaRule);
       if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));
       if (failWriters.has(writer)) return fail(500, 'api_error', `scripted failure for ${writer}`);
       if (writer === 'screening' && lastUserText(body.messages).includes('FAKE-AI-FAIL')) return fail(500, 'api_error', 'scripted model failure');
@@ -507,9 +640,17 @@ createServer(async (request, response) => {
         input, output, cacheCreation: cache.creation, cacheRead: cache.read,
         creation5m: cache.creation5m, creation1h: cache.creation1h, total: input + cache.read + cache.creation,
       };
+      const replyError = replySchemaError(body, content);
+      if (replyError) return fail(500, 'api_error', replyError);
       if (body.stream) {
         const text = content.filter((block) => block.type === 'text').map((block) => String(block.text)).join('');
-        return sse(response, model, text, usage);
+        let cut = false;
+        if (provider === 'anthropic' && primaryStreamCut && (primaryStreamCut.writer === null || primaryStreamCut.writer === writer)) {
+          if (primaryStreamCut.skip > 0) primaryStreamCut.skip -= 1;
+          else if (primaryStreamCut.remaining > 0) { primaryStreamCut.remaining -= 1; cut = true; }
+        }
+        entry.streamCut = cut;
+        return sse(response, model, text, usage, cut);
       }
       return json(response, 200, messageBody(model, content, stopReason, usage));
     }

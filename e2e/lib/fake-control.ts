@@ -12,6 +12,8 @@ export interface FakeCall {
   writer: string;
   at: string;
   stream: boolean;
+  /** primaryStreamCut cut this streaming request: the socket was reset after half of the text. */
+  streamCut: boolean;
   /** The first message of the request. */
   user: string;
   /** The newest user text and every user text the model was shown. */
@@ -63,6 +65,12 @@ export interface FakeControl {
    * logical call is two requests: count 2 fails one call, count 4 fails two. null clears it.
    */
   primaryFail?: { status: 529 | 503 | 500 | 400; count: number; skip?: number; writer?: string } | null;
+  /**
+   * Cut the next `count` STREAMING requests to the Anthropic endpoint (never Bedrock) after the headers: 200,
+   * message_start, half of the text, then the socket is reset. `skip` lets that many streaming requests through first,
+   * `writer` limits it to one writer. The SDK does not retry after the headers, so count 1 cuts one logical call.
+   */
+  primaryStreamCut?: { count: number; skip?: number; writer?: string } | null;
 }
 
 export async function fakeControl(body: FakeControl, url: string = FAKE_ANTHROPIC_URL): Promise<void> {
