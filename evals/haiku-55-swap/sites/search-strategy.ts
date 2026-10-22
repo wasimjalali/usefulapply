@@ -30,7 +30,7 @@ const RUBRIC = `You grade a job search strategy: the list of web job-search quer
 
 You get the candidate's inferred career profile, their feed settings and the strategy. Score 1 to 5, whole numbers, on the strategy as a whole:
 - relevance: the queries target roles the candidate can realistically get, given their seniority, skills, target roles and direction; no query for a role they are clearly not suited for, and no query that drops the target roles
-- localisation: queries for a country use the language and job titles people use there (a German market query in German where the candidate works in German; English for English-speaking markets); city and country choices match the settings
+- localisation: queries for a country use the language and job titles people use there (a German market query in German where the candidate works in German; English for English-speaking markets); each query's country matches the settings. Cities never belong in a query: the search code sends the target city or country as a separate location parameter with every query, so a query without a city name is correct and is never a weakness
 - variety and recall: a sensible mix of short, long and localized queries that would surface different postings, not ten near-copies
 - hygiene: no quotes, boolean operators or filler words in the queries
 
