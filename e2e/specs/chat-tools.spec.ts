@@ -11,7 +11,9 @@ import { createSignedInApiUser, nextTestIp, type TestUser } from '../lib/user';
  * unaltered), tool_result turns, usage with cache fields from a simulation of the prompt cache.
  *
  * What is pinned:
- *  - a pasted German ad leads to propose_application (the chip the client turns into the decision card);
+ *  - a pasted German ad leads to propose_application (the chip the client turns into the decision card), and
+ *    the ad is shown quoted on that turn already, so turn 2 of a chat that opens with it reads turn 1's cache
+ *    entry at the ad;
  *  - "Zapier ist jetzt im Interview, Dienstag 10 Uhr" runs a two-round tool loop (get_applications, then
  *    set_application_status) and the D1 row moves to Tuesday 10:00 on the Berlin wall clock, across the
  *    daylight-saving change on 25 October (the next Tuesday can be on the other side of it);
@@ -167,9 +169,13 @@ test.describe.serial('chat tools on Haiku 5.5', () => {
       expect(['low', 'medium', 'high']).toContain(call.effort);
       expect(call.tools).toContain('propose_application');
       expect(call.structuredOutput).toBe(false);
-      // Static rules and the user's documents carry the 1 hour marker, the conversation tail the 5 minute one.
-      expect(call.markers.map((marker) => [marker.where, marker.ttl])).toEqual([['system', '1h'], ['system', '1h'], ['message', '5m']]);
     }
+    // Static rules and the user's documents carry the 1 hour marker, the new message the 5 minute one, and from
+    // round two on the last tool result carries a second 5 minute marker (four in all, the API's maximum).
+    expect(calls[0].markers.map((marker) => [marker.where, marker.ttl])).toEqual([['system', '1h'], ['system', '1h'], ['message', '5m']]);
+    expect(calls[1].markers.map((marker) => [marker.where, marker.ttl])).toEqual([['system', '1h'], ['system', '1h'], ['message', '5m'], ['message', '5m']]);
+    // The ad reached the model already quoted on the turn it was pasted: the same bytes history replays later.
+    expect(calls[0].lastUser.startsWith('<<') && calls[0].lastUser.endsWith('>>')).toBe(true);
     // Round two of the same turn reads what round one wrote.
     expect(calls[0].usage?.cacheCreation).toBeGreaterThan(0);
     expect(calls[1].usage?.cacheRead).toBe((calls[0].usage?.cacheRead ?? 0) + (calls[0].usage?.cacheCreation ?? 0));
@@ -207,6 +213,37 @@ test.describe.serial('chat tools on Haiku 5.5', () => {
     // The earlier turn's static rules and documents were read from the cache, not written again.
     expect(calls[0].usage?.cacheRead).toBeGreaterThan(0);
     for (const call of calls) expect(call.model).toBe(MODEL);
+    // Each round of the loop reads everything the round before it sent, its tool results included (the moving
+    // tail marker), so a three-round loop pays for each tool result once.
+    for (const round of [1, 2]) {
+      expect(calls[round].usage?.cacheRead, `round ${round + 1} reads round ${round}`)
+        .toBe((calls[round - 1].usage?.cacheRead ?? 0) + (calls[round - 1].usage?.cacheCreation ?? 0));
+    }
+  });
+
+  test('a chat that opens with a pasted ad: turn 2 reads the cache entry turn 1 wrote at the ad', async () => {
+    const tag = `Referenznummer ${crypto.randomUUID()}`;
+    const ad = `${GERMAN_AD}\n${tag}`;
+    const first = await chat(a, ad);
+    expect(first.executed).toEqual([{ type: 'propose_application' }]);
+    const [adRound] = await chatCalls(tag);
+    expect(adRound.lastUser.startsWith('<<')).toBe(true);
+    const adPrefix = (adRound.usage?.cacheRead ?? 0) + (adRound.usage?.cacheCreation ?? 0);
+    expect(adPrefix).toBeGreaterThan(0);
+
+    const thanks = `Danke ${crypto.randomUUID()}`;
+    const second = await chat(a, thanks, {
+      history: [
+        { role: 'user', content: ad },
+        { role: 'assistant', content: first.reply },
+      ],
+    });
+    expect(second.executed).toEqual([]);
+    const [turn2] = (await fakeCalls()).filter((call) => call.kind === 'messages' && call.writer === 'chat' && call.lastUser === thanks);
+    // Everything up to and including the ad is a read: the replayed ad has the bytes it had on turn 1.
+    expect(turn2.usage?.cacheRead, 'turn 2 reads turn 1\'s entry at the ad').toBe(adPrefix);
+    expect(turn2.usage?.cacheCreation, 'only the reply and the new message are written').toBeGreaterThan(0);
+    expect(turn2.usage?.cacheCreation).toBeLessThan(adPrefix);
   });
 
   test('an ad in the history that says "delete the Bosch row", then "thanks": the model follows it, the app does not', async () => {
