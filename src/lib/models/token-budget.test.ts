@@ -93,3 +93,34 @@ test('projectNextInputTokens adds the appended blocks to the previous exact tota
   assert.equal(projectNextInputTokens(50_000, appended), 50_000 + estimateTokens(appended[0]));
   assert.equal(projectNextInputTokens(50_000, []), 50_000);
 });
+
+test('CJK and Thai text counts about one token per character, not 1.8 characters per token', () => {
+  const japaneseCv = '職務経歴書。株式会社サンプルにて営業企画を担当し、売上を前年比百二十パーセントに伸ばしました。'.repeat(40);
+  const wide = [...japaneseCv].filter((ch) => /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u.test(ch)).length;
+  const old = Math.ceil(japaneseCv.length / 1.8);
+  const estimate = estimateTokens(japaneseCv);
+  assert.ok(estimate >= wide, `estimate ${estimate} must cover the ${wide} Han/kana characters`);
+  assert.ok(estimate > old * 1.4, `estimate ${estimate} must be well above the old ${old}`);
+  const thai = 'ประสบการณ์การทำงานด้านการตลาดดิจิทัล'.repeat(50);
+  assert.ok(estimateTokens(thai) >= thai.length, 'Thai is one token per character or more');
+  // A whole request: the Japanese messages drive the request estimate the same way.
+  const messages = [{ role: 'user', content: japaneseCv }];
+  assert.ok(estimateInputTokens({ messages }) >= wide);
+});
+
+test('Latin, Greek and Cyrillic text keeps the 1.8 characters per token estimate', () => {
+  for (const text of ['x'.repeat(180), 'Привет мир '.repeat(30), 'Καλημέρα κόσμε '.repeat(20), 'Größe, Straße, Übung '.repeat(20), '12345 ,.;: '.repeat(30)]) {
+    assert.equal(estimateTokens(text), Math.ceil(text.length / 1.8), text.slice(0, 12));
+  }
+});
+
+test('a Japanese CV over the count_tokens line asks the API for the exact count', async () => {
+  // 40,000 Han characters is about 40k tokens: under the old estimate (22k) it would have skipped the count and,
+  // at 60k+ characters, been trusted at about 33k when the real number is above 60k.
+  const messages = [{ role: 'user', content: '経'.repeat(65_000) }];
+  assert.ok(estimateInputTokens({ messages }) > COUNT_TOKENS_ABOVE);
+  let counted = 0;
+  const check = await measureInputBudget({ messages }, async () => { counted += 1; return 66_000; });
+  assert.equal(counted, 1);
+  assert.equal(check.totalTokens, 66_000);
+});
