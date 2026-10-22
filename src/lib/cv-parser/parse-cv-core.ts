@@ -155,10 +155,7 @@ export async function parseCvBuffer(params: {
     // fallback and prevent a mixed-language template.
     const classified = parsedDocumentLanguage
       ? { language: parsedDocumentLanguage, usedFallback: false }
-      : await detectLanguageResult(
-          rawText,
-          { ...generationContext, operation: 'parse_cv_language_classification' },
-        );
+      : await detectLanguageResult(rawText, generationContext);
     const headerLanguage = inferCvLanguageFromHeaders(originalHeaders);
     const detectedLang = classified.usedFallback && headerLanguage !== 'en'
       ? headerLanguage

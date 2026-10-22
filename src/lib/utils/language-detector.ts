@@ -101,6 +101,20 @@ async function reportLanguageFallback(
 }
 
 /**
+ * The ledger context of the classification call: its own operation, so it is never booked as the caller's
+ * (a kit run's full_optimization, say), with the caller's request, user and application ids kept so the row
+ * still groups under that request. callHaiku requires a context, so an unattributed call gets a labelled one.
+ */
+export function languageGenerationContext(callerContext: LlmGenerationContext | undefined): LlmGenerationContext {
+  const base = callerContext ?? {
+    requestExecutionId: crypto.randomUUID(),
+    route: 'unattributed',
+    feature: 'unattributed',
+  };
+  return { ...base, operation: 'language_detection' };
+}
+
+/**
  * Classify a job description or CV body with Claude Haiku 5.5. The model response is
  * never trusted beyond exact membership in the closed language-code allow-list.
  * Provider failures and invalid output fail safe to English so language
@@ -122,13 +136,7 @@ export async function detectLanguageResult(
       ...languageClassifierRequest(classifierText),
       // Thinking counts toward max_tokens; the visible answer is a few tokens.
       maxTokens: 2048,
-      // callHaiku requires a generation context; unattributed calls get a labelled one.
-      generationContext: generationContext ?? {
-        requestExecutionId: crypto.randomUUID(),
-        route: 'unattributed',
-        feature: 'unattributed',
-        operation: 'language_classification',
-      },
+      generationContext: languageGenerationContext(generationContext),
     });
     const language = parseLanguageResponse(response.content);
     if (language) return { language, usedFallback: false };
