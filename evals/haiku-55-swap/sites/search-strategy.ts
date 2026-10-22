@@ -39,7 +39,7 @@ You get the candidate's inferred career profile, their feed settings and the str
 const SCHEMA = {
   type: 'object',
   properties: {
-    score: { type: 'integer', minimum: 1, maximum: 5 },
+    score: { type: 'integer', enum: [1, 2, 3, 4, 5] },
     problems: { type: 'array', items: { type: 'string' } },
   },
   required: ['score', 'problems'],

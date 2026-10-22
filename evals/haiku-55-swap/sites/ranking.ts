@@ -202,7 +202,7 @@ Judge from the posting text and the stated fields, not the title alone. Two post
 const LABEL_SCHEMA = {
   type: 'object',
   properties: {
-    labels: { type: 'array', items: { type: 'object', properties: { jobId: { type: 'string' }, relevance: { type: 'integer', minimum: 0, maximum: 3 }, reason: { type: 'string' } }, required: ['jobId', 'relevance', 'reason'], additionalProperties: false } },
+    labels: { type: 'array', items: { type: 'object', properties: { jobId: { type: 'string' }, relevance: { type: 'integer', enum: [0, 1, 2, 3] }, reason: { type: 'string' } }, required: ['jobId', 'relevance', 'reason'], additionalProperties: false } },
   },
   required: ['labels'],
   additionalProperties: false,
