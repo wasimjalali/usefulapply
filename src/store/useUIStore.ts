@@ -31,6 +31,19 @@ export type PendingApplicationAction =
   | 'start-screening-flow'
   | 'skip-screening';
 
+/**
+ * A kit run parked before any request because the applicant was never asked
+ * when they can start. The host that parked it (the guided line or the chat)
+ * shows the two questions, then resumes the run with these same arguments.
+ */
+export interface PendingLogistics {
+  host: 'guided' | 'chat';
+  sessionId: string | null;
+  jd: string;
+  contextId?: string;
+  contextData?: unknown;
+}
+
 interface UIState {
   // Loading states
   isAnalyzing: boolean;
@@ -93,6 +106,10 @@ interface UIState {
   // consumes it and clears it. A timestamp rather than a flag, so a request
   // nothing picked up expires instead of firing an unasked-for run later.
   pendingFeedRunAt: number | null;
+
+  // A kit run waiting on the start date and salary questions. Transient like
+  // the rest of this store: nothing has been requested or charged while it is set.
+  pendingLogistics: PendingLogistics | null;
 }
 
 interface UIActions {
@@ -127,6 +144,8 @@ interface UIActions {
   // Chat-requested feed run (see pendingFeedRunAt)
   setPendingFeedRunAt: (value: number | null) => void;
 
+  setPendingLogistics: (value: PendingLogistics | null) => void;
+
   // Reset
   resetUI: () => void;
 }
@@ -152,6 +171,7 @@ const initialState: UIState = {
   jdFocusRequest: 0,
   newApplicationRequest: 0,
   pendingFeedRunAt: null,
+  pendingLogistics: null,
 };
 
 /**
@@ -190,6 +210,8 @@ export const useUIStore = create<UIState & UIActions>()((set) => ({
 
   // Chat-requested feed run
   setPendingFeedRunAt: (value) => set({ pendingFeedRunAt: value }),
+
+  setPendingLogistics: (value) => set({ pendingLogistics: value }),
 
   // Focus signal
   requestJdFocus: () => set((state) => ({ jdFocusRequest: state.jdFocusRequest + 1 })),

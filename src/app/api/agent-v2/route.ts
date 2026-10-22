@@ -54,6 +54,7 @@ import {
   reserveKitCredits,
   runKitPipeline,
 } from '@/lib/services/kit-generation';
+import { loadApplicantLogistics } from '@/lib/profile/logistics.server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -462,6 +463,10 @@ export async function POST(request: NextRequest) {
               }
             : undefined
         );
+        // The applicant's own start date and salary expectation, read fresh from D1 for every
+        // writer run (never from the client or the cached fit context). A failed read throws
+        // inside the run, so the catch below releases the reservation. Anonymous users have no profile.
+        const logisticsForRun = () => (user ? loadApplicantLogistics(user.id) : Promise.resolve(undefined));
         // One job description string for the whole run, so the recipient
         // lookup, the generation and the recipient save all compare the same
         // text: the stored JD when the submitted one is the same job (narrow
@@ -855,6 +860,7 @@ export async function POST(request: NextRequest) {
                 masterCV: serverMasterCV,
                 jobPreferences,
                 letterRecipient: letterRecipientFor(runJobDescription),
+                logistics: await logisticsForRun(),
                 emit: eventHandler,
                 generationContext,
               });
@@ -906,6 +912,7 @@ export async function POST(request: NextRequest) {
             jobPreferences,
             cachedContext,
             letterRecipient: letterRecipientFor(cachedContext.jobDescription),
+            logistics: await logisticsForRun(),
             emit: eventHandler,
             generationContext,
           });
@@ -999,6 +1006,7 @@ export async function POST(request: NextRequest) {
           masterCV: fullCvSources.masterCV,
           jobPreferences,
           letterRecipient: letterRecipientFor(runJobDescription),
+          logistics: await logisticsForRun(),
           emit: eventHandler,
           generationContext,
         });

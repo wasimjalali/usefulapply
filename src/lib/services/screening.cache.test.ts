@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  buildScreeningCvContext,
+  buildScreeningApplicantContext,
   buildScreeningPrompt,
   buildScreeningRequestContext,
   buildScreeningStaticPrompt,
@@ -10,7 +10,8 @@ import {
   type ScreeningPromptContext,
 } from './screening';
 
-// Cache layout (.claude/rules/prompt-caching.md): tools, static rules, per-user CVs, then the
+// Cache layout (.claude/rules/prompt-caching.md): tools, static rules, the per-user applicant block
+// (saved start date and salary rules, then the CVs), then the
 // per-request application block and the question. One byte of drift before a marker is a miss.
 
 const ENGLISH: ScreeningPromptContext = {
@@ -51,17 +52,30 @@ test('screening: the static block is byte-identical for every user and request',
   assert.ok(first.length / 1.8 > 512, `static block too short to cache: ${first.length} chars`);
 });
 
-test('screening: the CV block is the same for one user across applications and turns, and differs per user', () => {
-  const adaOnEnglishJob = buildScreeningCvContext({ ...ENGLISH, ...ADA_CVS });
-  const adaOnGermanJob = buildScreeningCvContext({ ...GERMAN, ...ADA_CVS });
+test('screening: the applicant block is the same for one user across applications and turns, and differs per user', () => {
+  const adaOnEnglishJob = buildScreeningApplicantContext({ ...ENGLISH, ...ADA_CVS });
+  const adaOnGermanJob = buildScreeningApplicantContext({ ...GERMAN, ...ADA_CVS });
   assert.equal(adaOnEnglishJob, adaOnGermanJob);
-  assert.notEqual(adaOnEnglishJob, buildScreeningCvContext({ ...ENGLISH, ...MAX_CVS }));
-  assert.equal(buildScreeningCvContext(ENGLISH), undefined, 'no CVs, no block');
+  assert.notEqual(adaOnEnglishJob, buildScreeningApplicantContext({ ...ENGLISH, ...MAX_CVS }));
+  const noCvs = buildScreeningApplicantContext(ENGLISH);
+  assert.doesNotMatch(noCvs, /<applicant_primary_cv>|<applicant_master_cv>/, 'no CVs, no CV tags');
+  assert.match(noCvs, /^# The applicant's start date and salary\n/);
   // Only CV text: nothing about the application.
   for (const text of [ENGLISH.jobTitle!, ENGLISH.company!, ENGLISH.jobDescription!, ENGLISH.generatedCVSummary!]) {
-    assert.ok(!adaOnEnglishJob!.includes(text));
+    assert.ok(!adaOnEnglishJob.includes(text));
   }
-  assert.match(adaOnEnglishJob!, /^The applicant's own uploaded CV and full master CV/);
+  assert.match(adaOnEnglishJob, /^# The applicant's start date and salary\n[\s\S]*\n\nThe applicant's own uploaded CV and full master CV/);
+});
+
+test('screening: a saved start date or salary changes only the applicant block, never the static rules', () => {
+  const logistics = { availability: '1_month' as const, availabilityNote: null, salaryExpectation: '65,000 EUR gross a year' };
+  const plain = buildScreeningPrompt({ ...ENGLISH, ...ADA_CVS });
+  const withSaved = buildScreeningPrompt({ ...ENGLISH, ...ADA_CVS, logistics });
+  assert.ok(withSaved.startsWith(buildScreeningStaticPrompt()));
+  assert.notEqual(buildScreeningApplicantContext({ ...ADA_CVS, logistics }), buildScreeningApplicantContext(ADA_CVS));
+  assert.ok(!buildScreeningStaticPrompt().includes('65,000'));
+  assert.ok(withSaved.includes('65,000 EUR gross a year'));
+  assert.notEqual(plain, withSaved);
 });
 
 test('screening: per-request data sits in the application block, after the cached parts', () => {

@@ -486,6 +486,13 @@ export const profiles = sqliteTable(
     hide_rejected: integer('hide_rejected', { mode: 'boolean' }).notNull().default(false),
     timezone: text('timezone'),
     date_format: text('date_format'),
+    // The applicant's own start date and salary expectation (migration 0012). The kit writers use these
+    // and never invent them; NULL availability falls back to a neutral notice-period line, NULL salary is
+    // never mentioned. availability_asked_at is stamped by the server so a skip is remembered.
+    availability: text('availability'),
+    availability_note: text('availability_note'),
+    salary_expectation: text('salary_expectation'),
+    availability_asked_at: text('availability_asked_at'),
     // Credits AI agents (MCP) may spend per UTC day on this account. Enforced
     // from the tool catalog PR on; the Connected apps pane edits it.
     mcp_daily_credit_limit: real('mcp_daily_credit_limit').notNull().default(10),
@@ -502,6 +509,10 @@ export const profiles = sqliteTable(
   (t) => [
     uniqueIndex('profiles_email_uidx').on(t.email),
     check('profiles_subscription_tier_supported_check', sql`${t.subscription_tier} in ('free', 'plus', 'max')`),
+    check(
+      'profiles_availability_check',
+      sql`${t.availability} is null or ${t.availability} in ('immediately', '2_weeks', '1_month', '3_months', 'other')`,
+    ),
     check(
       'profiles_subscription_status_check',
       sql`${t.subscription_status} in ('active', 'canceled', 'past_due', 'trialing')`,

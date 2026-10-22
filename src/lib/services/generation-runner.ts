@@ -61,6 +61,7 @@ import {
   ReservationConflictError,
   SpendLimitReachedError,
 } from './errors';
+import { loadApplicantLogistics } from '@/lib/profile/logistics.server';
 import { buildSessionUpdateStatement, kitColumnsFromResults, kitFromRow, type KitResults } from './kit';
 import {
   kitFailureRefund,
@@ -389,6 +390,8 @@ async function generateKit(operation: AgentOperation): Promise<GeneratedKit> {
     primaryCV: sources.primaryCV,
     masterCV: sources.masterCV,
     jobPreferences: await loadJobPreferences(operation.user_id),
+    // Fresh from D1, never swallowed: a failed read fails the run and the caller releases the reservation.
+    logistics: await loadApplicantLogistics(operation.user_id),
     cachedContext,
     letterRecipient: isSameStoredText(session.job_description, runJobDescription)
       ? {

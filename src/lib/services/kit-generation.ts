@@ -199,6 +199,8 @@ export async function runKitPipeline(params: {
   cachedContext?: MasterContext | null;
   /** Recipient details from the stored row (never from the ad or the model). */
   letterRecipient?: MasterContext['letterRecipient'];
+  /** The applicant's saved start date and salary expectation, read fresh from D1 by the caller (never from the client or the fit cache). */
+  logistics?: MasterContext['logistics'];
   emit: AgentEventHandler;
   generationContext: LlmGenerationContext;
 }): Promise<{ results: KitResults; documentErrors: KitDocumentErrors; jobDescription: string }> {
@@ -207,6 +209,7 @@ export async function runKitPipeline(params: {
     const context = params.cachedContext;
     if (params.jobPreferences) context.jobPreferences = params.jobPreferences;
     context.letterRecipient = params.letterRecipient;
+    context.logistics = params.logistics;
     result = await runWithContext(context, params.emit, params.generationContext);
   } else {
     result = await runJobCopilot({
@@ -216,6 +219,7 @@ export async function runKitPipeline(params: {
       masterCV: params.masterCV,
       jobPreferences: params.jobPreferences,
       letterRecipient: params.letterRecipient,
+      logistics: params.logistics,
       generationContext: params.generationContext,
     }, params.emit);
   }

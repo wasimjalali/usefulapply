@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useMemo, u
 import { consumeAnonymousCarryOver } from '@/lib/anonymous-generation';
 import { authClient } from '@/auth/client';
 import type { Profile } from '@/lib/supabase/types';
+import type { ProfileUpdateInput } from '@/lib/services/profile';
 import { getOrCreateProfileAction, getProfileAction, updateProfileAction } from '@/db/actions';
 import { detectTimezone } from '@/lib/utils/format-date';
 import { useCVStore } from '@/store/useCVStore';
@@ -99,8 +100,9 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signInWithGoogle: (next?: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
-  updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
-  refreshProfile: () => Promise<void>;
+  updateProfile: (updates: ProfileUpdateInput) => Promise<{ error: Error | null }>;
+  /** Re-reads the profile from the server and returns it (null when signed out or the read failed). */
+  refreshProfile: () => Promise<Profile | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -162,11 +164,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const refreshProfile = useCallback(async () => {
-    if (user) {
-      const profileData = await fetchProfile(user.id);
-      setProfile(profileData);
+  const refreshProfile = useCallback(async (): Promise<Profile | null> => {
+    if (!user) return null;
+    const profileData = await fetchProfile(user.id);
+    if (!profileData) {
+      // A failed read must not blank the app-wide profile: keep the last good one so Settings and the
+      // writers' gate don't lose it. Callers still see null and decide what to do.
+      console.error('[AuthContext] Profile refresh failed or returned nothing; keeping the previous profile.');
+      return null;
     }
+    setProfile(profileData);
+    return profileData;
   }, [user, fetchProfile]);
 
   useEffect(() => {
@@ -281,13 +289,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     posthog.reset();
   };
 
-  const updateProfile = async (updates: Partial<Profile>) => {
+  const updateProfile = async (updates: ProfileUpdateInput) => {
     if (!user) {
       return { error: new Error('No user logged in') };
     }
 
     if (profile) {
-      setProfile({ ...profile, ...updates } as Profile);
+      // The two camelCase aliases (the MCP tool's names) are columns on the row; the refresh the
+      // callers run afterwards replaces this guess with what the server stored.
+      const { availabilityNote, salaryExpectation, ...columns } = updates;
+      const optimistic: Partial<Profile> = { ...columns };
+      if (availabilityNote !== undefined) optimistic.availability_note = availabilityNote;
+      if (salaryExpectation !== undefined) optimistic.salary_expectation = salaryExpectation;
+      setProfile({ ...profile, ...optimistic } as Profile);
     }
 
     try {

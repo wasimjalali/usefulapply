@@ -8,8 +8,10 @@ import { Check, Loader2, Search, Sparkles, Upload } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 import { GuidedStepper } from '@/components/shell/GuidedStepper';
 import { NamedStages, type NamedStage } from '@/components/shell/NamedStages';
+import { LogisticsQuestions } from '@/components/chat/LogisticsQuestions';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAgentWorkflow } from '@/components/chat/useAgentWorkflow';
+import { PROFILE_UNAVAILABLE, useAgentWorkflow } from '@/components/chat/useAgentWorkflow';
+import { stepAfterDroppedResume } from '@/lib/profile/logistics-resume';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -155,14 +157,20 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
   const maxSizeBytes = getPrimaryCVUploadLimitBytes(Boolean(user));
 
   const isAgentWorking = useUIStore((s) => s.isAgentWorking);
+  // The kit is parked until the start date and salary questions are answered.
+  const askingLogistics = useUIStore((s) => s.pendingLogistics?.host === 'guided');
+  // Read aloud when the questions close, because the card that held focus is gone by then.
+  const [logisticsNotice, setLogisticsNotice] = useState('');
   const {
     agentSteps,
     v2Progress,
     fitAnalysisContextId,
     runFitAnalysisFlow,
     runAgentWorkflow,
+    resumeAfterLogistics,
     setApplicationMode,
   } = useAgentWorkflow({
+    logisticsHost: 'guided',
     onSessionExpired: () => {
       setIsCreditError(false);
       setLineError('Your session expired. Sign in again to continue. Nothing was charged.');
@@ -250,7 +258,14 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
       setLineError(null);
       setStep('kit-working');
       setApplicationMode(intent.action === 'direct' ? 'apply_directly' : 'analyze_first');
-      void runAgentWorkflow(intent.jd, ctx?.contextId, ctx?.contextData as never);
+      // The run reads the profile itself before deciding whether to ask the start date questions. A
+      // profile that can't be read comes back as an error, so the user isn't left on "Building".
+      void runAgentWorkflow(intent.jd, ctx?.contextId, ctx?.contextData as never).then((result) => {
+        if (result !== 'profile-unavailable') return;
+        kitStartedRef.current = false;
+        setLineError(PROFILE_UNAVAILABLE);
+        setStep(stepAfterDroppedResume(Boolean(livePendingFit)));
+      });
     }, 0);
     return () => window.clearTimeout(timer);
   }, [user, currentCV, step, pendingFit, createNewSession, runAgentWorkflow, setApplicationMode]);
@@ -1096,7 +1111,27 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
           </div>
         )}
 
-        {step === 'kit-working' && (
+        {step === 'kit-working' && askingLogistics && (
+          <LogisticsQuestions
+            layout="line"
+            saveLabel="Save and create my kit"
+            onResolved={(outcome) => {
+              const notice = resumeAfterLogistics(outcome);
+              if (notice) {
+                setLogisticsNotice(notice);
+                return;
+              }
+              // Nothing ran (the parked kit belongs to another application now, or another run is
+              // working), so "Building" would never end: go back to where the user came from.
+              kitStartedRef.current = false;
+              setLineError("We couldn't start your kit. Try again.");
+              setStep(stepAfterDroppedResume(Boolean(pendingFit)));
+            }}
+          />
+        )}
+        <p role="status" aria-live="polite" className="sr-only">{logisticsNotice}</p>
+
+        {step === 'kit-working' && !askingLogistics && (
           <div className="mt-9 w-full max-w-[720px] rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">
             <div className="mb-5 flex items-center gap-3">
               <h1 className="text-2xl font-semibold text-navy-800">
