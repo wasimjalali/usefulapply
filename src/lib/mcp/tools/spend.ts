@@ -8,6 +8,7 @@ import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { CV_REWRITE_SECTIONS } from '@/lib/cv-structure/apply-rewrite';
 import { defineTool, ok, type AnyToolDefinition } from '@/lib/mcp/tools/framework';
 import { PLANS_URL, ToolError } from '@/lib/mcp/tools/errors';
+import { InputBudgetError } from '@/lib/models/haiku';
 import { checkToolRateLimit, consumeDailyQuota, refundDailyQuota } from '@/lib/mcp/quotas';
 import {
   UNTRUSTED_NOTE,
@@ -736,16 +737,24 @@ const draftScreeningAnswers = defineTool({
           const claimedTurn = claim.turnsUsed;
           turn = claimedTurn;
           modelStarted = true;
-          const reply = await generateScreeningReply({
-            userId,
-            message,
-            history: [{ role: 'user', content: message }],
-            context,
-            applicantCvs,
-            route: 'mcp:draft_screening_answers',
-            clientRequestId: args.idempotencyKey,
-            applicationSessionId: args.applicationId,
-          });
+          let reply: string;
+          try {
+            reply = await generateScreeningReply({
+              userId,
+              message,
+              history: [{ role: 'user', content: message }],
+              context,
+              applicantCvs,
+              route: 'mcp:draft_screening_answers',
+              clientRequestId: args.idempotencyKey,
+              applicationSessionId: args.applicationId,
+            });
+          } catch (error) {
+            if (!(error instanceof InputBudgetError)) throw error;
+            // The budget guard refused before anything was sent: the quota unit and the turn both go back.
+            modelStarted = false;
+            throw new ToolError('input_too_long', 'That was too much to read in one go. Send fewer questions at a time. The turn was not used.');
+          }
           const parsed = parseScreeningAnswers(reply);
           if (!parsed) {
             throw new ToolError('screening_unformatted', 'The answers could not be put together. The turn was not used. Try again.');
