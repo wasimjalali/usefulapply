@@ -199,7 +199,7 @@ test.describe.serial('provider failover to Amazon Bedrock', () => {
     const calls = await chatRequests(message);
     expect(trail(calls)).toEqual(['anthropic:200', 'anthropic:529', 'anthropic:529', 'bedrock:200', 'anthropic:200']);
     // Round 3 carries the tool_result of the write that Bedrock's round asked for, exactly once.
-    const results = calls[4].toolResults.filter((text) => text.includes('"status":"interview"'));
+    const results = calls[4].toolResults.filter((text) => text.includes('"ok":true') && text.includes('<<Globex>>') && text.includes('"status":"interview"'));
     expect(results).toHaveLength(1);
     // And it was sent after Bedrock's answer, so Bedrock's thinking block went back unaltered (the fake rejects it otherwise).
     expect(calls[4].status).toBe(200);
