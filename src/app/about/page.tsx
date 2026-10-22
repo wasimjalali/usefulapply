@@ -241,10 +241,10 @@ export default function AboutPage() {
         <ScrollReveal>
         <div className="max-w-3xl mx-auto text-center relative">
           <h2 className="font-bold text-white text-[36px] md:text-[48px] leading-[1.1] mb-5">
-            Your next interview is <span className="text-gold-400">90 seconds away.</span>
+            Prepare your full application <span className="text-gold-400">from your real CV.</span>
           </h2>
           <p className="text-[17px] text-navy-100 mb-9 max-w-xl mx-auto leading-relaxed">
-            Upload your CV. Pick a role from your feed. Send your first full application before your coffee gets cold.
+            Choose a role, review your tailored CV, cover letter and emails, then send when you&apos;re ready.
           </p>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             <Link

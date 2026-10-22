@@ -612,12 +612,12 @@ export default function Home() {
           <div className="relative mx-auto max-w-3xl text-center">
             <div className="scroll-settle">
               <h2 className="text-[36px] font-bold leading-[1.1] text-white md:text-[48px]">
-                Your next interview is <span className="text-gold-400">90 seconds away.</span>
+                Prepare your full application <span className="text-gold-400">from your real CV.</span>
               </h2>
             </div>
             <ScrollReveal delay={150}>
               <p className="mx-auto mt-5 max-w-xl text-[17px] leading-relaxed text-navy-100">
-                Upload your CV. Pick a role from your feed. Send your first full application before your coffee gets cold.
+                Choose a role, review your tailored CV, cover letter and emails, then send when you&apos;re ready.
               </p>
               <div className="mt-9 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
                 <Link

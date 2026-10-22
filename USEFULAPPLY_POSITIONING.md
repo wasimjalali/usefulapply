@@ -256,7 +256,8 @@ This section exists so any future session can immediately see the drift and fix 
 - *See pricing*
 
 ### Final-section CTA copy
-- *Upload your CV. Pick a role from your feed. Send your first full application before your coffee gets cold.*
+- *Prepare your full application from your real CV.*
+- *Choose a role, review your tailored CV, cover letter and emails, then send when you're ready.*
 - *Ten hours of searching, gone. The screening wall, gone. Start free at usefulapply.com.*
 
 ---
