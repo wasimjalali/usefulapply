@@ -42,6 +42,15 @@ export interface FakeCall {
   stopReason: string | null;
   usage: { input: number; output: number; cacheCreation: number; cacheRead: number; creation5m: number; creation1h: number; total: number } | null;
   countedTokens: number | null;
+  /** The `anthropic-beta` header values. */
+  betas: string[];
+  /** The request asked for on-demand compaction, with these instructions. */
+  compaction: boolean;
+  compactionInstructions: string | null;
+  /** The type of every block of every message, in order (`compaction` for a carried block). */
+  blockTypes: string[][];
+  /** The summary text of the compaction blocks the request carries. */
+  carriedSummary: string;
 }
 
 /** `url` picks the scripted model: the data lane's by default, the MCP lane's when given MCP_FAKE_URL. */

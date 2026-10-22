@@ -20,6 +20,10 @@
  *     unaltered), and tool_result turns, checked the way the API checks them;
  *   - structured output requests (`output_config.format`), answered with schema-shaped JSON;
  *   - POST /v1/messages/count_tokens, a char-based count (3 chars per token, like English);
+ *   - on-demand compaction (`compaction: { type: 'summarize', instructions }`, beta compact-2026-09-04): one signed
+ *     `compaction` block, stop_reason compaction, usage only in `usage.iterations` (top level 0, as P0 measured), and a
+ *     400 for a `compaction` param or a carried block without the beta header, or a block the fake never issued;
+ *   - `usage.iterations` on every response (one `message` entry equal to the top level, as the API sends);
  *   - usage with cache_creation_input_tokens / cache_read_input_tokens and the 5m/1h split, from a
  *     simulation of the prompt cache: an entry is written at a cache_control marker (only by a request the fake
  *     answers; one it refuses writes nothing) and read by a later
@@ -56,6 +60,7 @@ import {
   answerFor,
   blocksOf,
   haikuAnswerFor,
+  issuedCompactionSignatures,
   issuedThinkingSignatures,
   lastUserText,
   writerFor,
@@ -118,6 +123,15 @@ interface CallRecord {
   usage: { input: number; output: number; cacheCreation: number; cacheRead: number; creation5m: number; creation1h: number; total: number } | null;
   /** count_tokens only: the number returned. */
   countedTokens: number | null;
+  /** The `anthropic-beta` header values. */
+  betas: string[];
+  /** The request asked for on-demand compaction, with these instructions. */
+  compaction: boolean;
+  compactionInstructions: string | null;
+  /** The type of every block of every message, in order (`compaction` for a carried block). */
+  blockTypes: string[][];
+  /** The summary text of the compaction blocks the request carries. */
+  carriedSummary: string;
 }
 
 const calls: CallRecord[] = [];
@@ -282,7 +296,19 @@ function simulateCache(units: Unit[], provider: Provider): CacheOutcome {
 // Request checks the API makes, so an app bug shows as the 400 it would be in production
 // ---------------------------------------------------------------------------
 
-function validate(body: MessagesBody, writer: Writer | null, markers: MarkerRecord[], provider: Provider): string | null {
+function validate(body: MessagesBody, writer: Writer | null, markers: MarkerRecord[], provider: Provider, betas: string[]): string | null {
+  // Compaction is a beta: the parameter and a carried block are both refused without its header (P0, a 400).
+  const carried = (body.messages ?? []).flatMap((message) => blocksOf(message.content)).filter((block) => block.type === 'compaction');
+  if ((body.compaction || carried.length > 0) && !betas.includes('compact-2026-09-04')) {
+    return body.compaction
+      ? 'compaction: Extra inputs are not permitted'
+      : "messages.0.content.0: Input tag 'compaction' found using 'type' does not match any of the expected tags";
+  }
+  // A block goes back exactly as it was issued: the signature covers it.
+  for (const block of carried) {
+    if (!issuedCompactionSignatures.has(String(block.signature))) return 'Invalid `signature` in `compaction` block';
+  }
+  if (body.compaction && body.compaction.type !== 'summarize') return 'compaction.type: Input should be \'summarize\'';
   // API 2026-10-21: any value of a sampling parameter is a 400, for every model.
   for (const name of ['temperature', 'top_p', 'top_k'] as const) {
     if ((body as Record<string, unknown>)[name] !== undefined) return `${name}: Extra inputs are not permitted (sampling parameters are removed in 2026-10-21)`;
@@ -326,12 +352,15 @@ function validate(body: MessagesBody, writer: Writer | null, markers: MarkerReco
 // Responses
 // ---------------------------------------------------------------------------
 
-interface Usage {
+interface UsageCounts {
   input_tokens: number;
   output_tokens: number;
   cache_creation_input_tokens: number;
   cache_read_input_tokens: number;
   cache_creation: { ephemeral_5m_input_tokens: number; ephemeral_1h_input_tokens: number };
+}
+interface Usage extends UsageCounts {
+  iterations?: Array<UsageCounts & { type: 'message' | 'compaction' }>;
 }
 
 function messageBody(model: string, content: FakeBlock[], stopReason: string, usage: Usage) {
@@ -532,9 +561,22 @@ function record(body: MessagesBody, kind: CallRecord['kind'], writer: string, ma
     stopReason: null,
     usage: null,
     countedTokens: null,
+    betas: [],
+    compaction: Boolean(body.compaction),
+    compactionInstructions: body.compaction?.instructions ?? null,
+    blockTypes: (body.messages ?? []).map((message) => blocksOf(message.content).map((block) => String(block.type))),
+    carriedSummary: (body.messages ?? [])
+      .flatMap((message) => blocksOf(message.content))
+      .filter((block) => block.type === 'compaction')
+      .map((block) => String(block.content ?? ''))
+      .join('\n'),
   };
   calls.push(entry);
   return entry;
+}
+
+function betasOf(request: IncomingMessage): string[] {
+  return String(request.headers['anthropic-beta'] ?? '').split(',').map((value) => value.trim()).filter(Boolean);
 }
 
 createServer(async (request, response) => {
@@ -590,6 +632,7 @@ createServer(async (request, response) => {
       const body = JSON.parse(await readBody(request)) as MessagesBody;
       const writer = writerFor(body.system) ?? 'unknown';
       const entry = record(body, 'count_tokens', writer, [], provider, auth);
+      entry.betas = betasOf(request);
       const modelError = modelIdError(provider, body.model);
       if (modelError) { entry.status = 400; return apiError(response, 400, 'invalid_request_error', modelError); }
       const counted = overrideApplies(writer) ? (override as NonNullable<typeof override>).inputTokens : totalTokens(body);
@@ -603,6 +646,7 @@ createServer(async (request, response) => {
       const units = unitsOf(body);
       const cache = simulateCache(units, provider);
       const entry = record(body, 'messages', writer ?? 'unknown', cache.markers, provider, auth);
+      entry.betas = betasOf(request);
       const fail = (status: number, type: string, message: string) => { entry.status = status; apiError(response, status, type, message); };
 
       if (!writer) return fail(500, 'api_error', 'unscripted writer');
@@ -618,7 +662,7 @@ createServer(async (request, response) => {
           return fail(primaryFail.status, 'api_error', `scripted ${primaryFail.status}`);
         }
       }
-      const invalid = validate(body, writer, cache.markers, provider);
+      const invalid = validate(body, writer, cache.markers, provider, entry.betas);
       if (invalid) return fail(400, 'invalid_request_error', invalid);
       const schemaRule = schemaRuleError(jsonSchemaOf(body));
       if (schemaRule) return fail(400, 'invalid_request_error', schemaRule);
@@ -658,13 +702,24 @@ createServer(async (request, response) => {
         }
       }
       const output = Math.max(1, tokensOf(JSON.stringify(content).length));
-      const usage: Usage = {
+      const counts = {
         input_tokens: input,
         output_tokens: output,
         cache_creation_input_tokens: cache.creation,
         cache_read_input_tokens: cache.read,
         cache_creation: { ephemeral_5m_input_tokens: cache.creation5m, ephemeral_1h_input_tokens: cache.creation1h },
       };
+      // A compaction's counts are only in its iteration; the top level reads 0, as the API sends it.
+      const usage: Usage = stopReason === 'compaction'
+        ? {
+            input_tokens: 0,
+            output_tokens: 0,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: 0,
+            cache_creation: { ephemeral_5m_input_tokens: 0, ephemeral_1h_input_tokens: 0 },
+            iterations: [{ ...counts, type: 'compaction' }],
+          }
+        : { ...counts, iterations: [{ ...counts, type: 'message' }] };
       entry.stopReason = stopReason;
       entry.usage = {
         input, output, cacheCreation: cache.creation, cacheRead: cache.read,

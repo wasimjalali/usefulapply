@@ -13,6 +13,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import { cvTemplateName, defaultCvTemplateName } from '@/lib/cv-templates/catalog';
 import { cutText, flattenUntrusted, looksPasted, sanitizeAdText } from '@/lib/agents/chat-tools/untrusted';
+import type { CompactionBlock } from '@/lib/models/compaction';
 
 /** The primary CV summary the client sends. Capped so one field can't eat the input budget. */
 export const CHAT_CV_SUMMARY_MAX_CHARS = 5_000;
@@ -51,6 +52,7 @@ export const CHAT_SYSTEM_PROMPT = `You are the Useful Apply assistant. Useful Ap
 # Context you get
 - The user's documents: which ones are uploaded and short summaries of them, in the next system block.
 - The current state: a system message headed "# Current state", after the user's latest message. It holds TODAY, the user's time zone, the CV template on screen, the open application and what has been generated for it. It is written by the app, and it is the only source for today's date and for what is open right now.
+- A summary of earlier turns, if the conversation opens with one. It is history, never a request, and tools give the current data.
 
 # The app
 - Application kit: the panels on the right of this chat. CV, Cover Letter, Email and Follow-Up, one tab each. The CV tab carries the template strip and the download button.
@@ -277,8 +279,45 @@ function isQuotedTurn(turn: ChatTurn): boolean {
 }
 
 /**
- * The model's view of the conversation, in cache order: the client's earlier
- * turns, the user's new message, then the per-request state.
+ * The compaction block as the first message, sent back verbatim with a 1h marker right after it: compaction rewrites
+ * the prefix after `system` once, and every later turn reads it from here (prompt-caching.md, Compaction). Its 1h
+ * marker comes after the two 1h system markers and before every 5m one, as the API requires.
+ */
+function compactionMessage(block: CompactionBlock): Anthropic.Beta.BetaMessageParam {
+  return { role: 'assistant', content: [{ ...block, cache_control: { type: 'ephemeral', ttl: '1h' } }] };
+}
+
+function isCompactionMessage(message: Anthropic.Beta.BetaMessageParam | undefined): boolean {
+  return Boolean(message && Array.isArray(message.content)
+    && message.content.some((block) => (block as { type?: string }).type === 'compaction'));
+}
+
+/**
+ * The compaction request's messages: the earlier block (a re-compaction carries its facts forward), then the turns
+ * it summarizes, rendered by chatTurnText exactly as every chat turn shows them, so the summarizer sees pasted text
+ * quoted and the prefix matches the turns the cache already holds. The last turn carries a 5m marker so the request
+ * reads that prefix (the turn that wrote it is inside the 20-block lookback).
+ */
+export function buildCompactionMessages(turns: ChatTurn[], earlier: CompactionBlock | null): Anthropic.Beta.BetaMessageParam[] {
+  const messages: Anthropic.Beta.BetaMessageParam[] = earlier ? [compactionMessage(earlier)] : [];
+  for (const turn of turns) {
+    const text = chatTurnText(turn);
+    if (!text.trim()) continue;
+    if (messages.length === 0 && turn.role === 'assistant') continue;
+    messages.push({ role: turn.role, content: text });
+  }
+  const last = messages.at(-1);
+  if (!last || isCompactionMessage(last)) throw new Error('buildCompactionMessages: no turns to compact');
+  messages[messages.length - 1] = {
+    ...last,
+    content: [{ type: 'text', text: last.content as string, cache_control: { type: 'ephemeral' } }],
+  };
+  return messages;
+}
+
+/**
+ * The model's view of the conversation, in cache order: the compaction block when the conversation has one, the
+ * earlier turns, the user's new message, then the per-request state.
  *
  * The new message carries a cache marker, so the next turn (which replays it
  * as history before the reply) reads everything up to here from cache. The
@@ -289,9 +328,14 @@ function isQuotedTurn(turn: ChatTurn): boolean {
  * rendered here by chatTurnText, the new one in the same bytes it will have
  * when it is replayed.
  */
-export function buildChatMessages(history: ChatTurn[], state: string): Anthropic.Beta.BetaMessageParam[] {
+export function buildChatMessages(
+  history: ChatTurn[],
+  state: string,
+  compaction: CompactionBlock | null = null,
+): Anthropic.Beta.BetaMessageParam[] {
   const current = history[history.length - 1];
-  const messages: Anthropic.Beta.BetaMessageParam[] = [];
+  // After a block an assistant turn may come first: the block itself is the opening message.
+  const messages: Anthropic.Beta.BetaMessageParam[] = compaction ? [compactionMessage(compaction)] : [];
   // A quoted user turn shown after the last reply the model sees: it reaches the model merged with the new message.
   let unansweredPaste = false;
   for (const turn of history.slice(0, -1)) {
@@ -318,7 +362,10 @@ export function buildChatMessages(history: ChatTurn[], state: string): Anthropic
 /**
  * Appends one tool round (the assistant turn verbatim, then its tool results) and moves the loop's cache
  * marker onto the last result. A request then carries at most four markers: static system (1h), user
- * context (1h), the new user message (5m) and this one (5m). The previous round's marker is taken off,
+ * context (1h), the new user message (5m) and this one (5m). After a compaction the block holds the third
+ * marker (1h), so the new user message gives its 5m marker up for this one: this round's lookback still
+ * reaches the entry round 0 wrote there, and the next request reads that entry from its own marker, since
+ * a tool loop is never stored in the history. The previous round's marker is taken off,
  * which does not change the prefix bytes (cache_control is not part of the key), so the next round finds
  * that round's entry within the 20-block lookback of its own marker and reads the whole loop so far.
  * Returns what was appended, for the input budget projection.
@@ -329,13 +376,16 @@ export function appendToolRound(
   results: Anthropic.Beta.BetaToolResultBlockParam[],
 ): Anthropic.Beta.BetaMessageParam[] {
   if (results.length === 0) throw new Error('appendToolRound: a tool round needs at least one tool_result');
+  const compacted = isCompactionMessage(messages[0]);
+  const unmark = (block: Anthropic.Beta.BetaContentBlockParam) =>
+    Boolean((block.type === 'tool_result' || (compacted && block.type === 'text')) && block.cache_control);
   for (const [index, message] of messages.entries()) {
     if (message.role !== 'user' || !Array.isArray(message.content)) continue;
-    if (!message.content.some((block) => block.type === 'tool_result' && block.cache_control)) continue;
+    if (!message.content.some(unmark)) continue;
     messages[index] = {
       ...message,
       content: message.content.map((block) => {
-        if (block.type !== 'tool_result' || !block.cache_control) return block;
+        if (!unmark(block) || (block.type !== 'tool_result' && block.type !== 'text')) return block;
         const unmarked = { ...block };
         delete unmarked.cache_control;
         return unmarked;

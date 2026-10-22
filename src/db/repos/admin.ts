@@ -7,6 +7,7 @@ import type { Json } from '@/lib/supabase/types';
 import { chunk, D1_MAX_PARAMS, isUniqueViolation, getDb, nowIso } from '../client';
 import {
   applicationSessions,
+  chatCompactions,
   chatMessages,
   connectedAccounts,
   creditReservations,
@@ -476,6 +477,7 @@ export async function compactOldRunMetadata(cutoff: string): Promise<number> {
 }
 
 const USER_ID_TABLES = [
+  chatCompactions,
   chatMessages,
   creditReservations,
   jobFeedApplicationGenerationEvents,

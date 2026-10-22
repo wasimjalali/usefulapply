@@ -133,7 +133,7 @@ export function useSupabaseSync() {
       .filter((session) => !session.id.startsWith('session-'))
       .sort((a, b) => a.id.localeCompare(b.id))
       .map((session) => `${session.id}:${session.chatMessages
-        .filter((message) => message.id.startsWith('msg-'))
+        .filter((message) => message.id.startsWith('msg-') && !message.stored)
         .map((message) => message.id)
         .join(',')}`)
       .join('|');
@@ -644,7 +644,10 @@ export function useSupabaseSync() {
             console.log('[SupabaseSync] Syncing', currentSession.chatMessages.length, 'chat messages to new session');
             for (const msg of currentSession.chatMessages) {
               try {
+                // Under the client's id, so the chat route's server-owned history and this transcript name the
+                // same rows (src/lib/chat-message-id.ts).
                 await addSupabaseChatMessage(newSession.id, user.id, {
+                  id: msg.id,
                   role: msg.role,
                   content: msg.content,
                   actions: msg.actions,
@@ -711,7 +714,7 @@ export function useSupabaseSync() {
       for (const session of sessionsById.values()) {
         if (session.id.startsWith('session-')) continue;
         const unsynced = session.chatMessages.filter(
-          (message) => message.id.startsWith('msg-') && !syncedMessageIdsRef.current.has(message.id),
+          (message) => message.id.startsWith('msg-') && !message.stored && !syncedMessageIdsRef.current.has(message.id),
         );
         if (unsynced.length === 0) continue;
 
@@ -722,6 +725,8 @@ export function useSupabaseSync() {
               session.id,
               user.id,
               {
+                // The chat route may have stored this row already under the same id; the write is idempotent.
+                id: message.id,
                 role: message.role,
                 content: message.content,
                 actions: message.actions,

@@ -5,6 +5,7 @@ import { applicationSessions, chatMessages } from '../schema';
 import { withRecipientReset } from '../session-recipient-reset';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
 import { RevisionConflict } from '@/lib/services/errors';
+import { isChatMessageId } from '@/lib/chat-message-id';
 
 export interface ApplicationSession {
   id: string;
@@ -324,7 +325,9 @@ export async function getChatMessages(userId: string, sessionId: string): Promis
     .select()
     .from(chatMessages)
     .where(and(eq(chatMessages.session_id, sessionId), eq(chatMessages.user_id, userId)))
-    .orderBy(asc(chatMessages.created_at));
+    // rowid breaks ties: the sync can insert several rows in the same millisecond, and the chat route's history
+    // (and its cache prefix) needs one fixed order.
+    .orderBy(asc(chatMessages.created_at), sql`rowid`);
   return rows as ChatMessage[];
 }
 
@@ -344,8 +347,9 @@ export async function countUserChatMessages(userId: string, sessionId: string): 
 export async function addChatMessage(
   userId: string,
   sessionId: string,
-  message: { role: 'user' | 'assistant' | 'system'; content: string; actions?: unknown[] },
+  message: { id?: string; role: 'user' | 'assistant' | 'system'; content: string; actions?: unknown[] },
 ): Promise<{ message: ChatMessage | null; error: Error | null }> {
+  if (message.id !== undefined) return upsertChatMessage(userId, sessionId, { ...message, id: message.id });
   const db = await getDb();
   const id = crypto.randomUUID();
   const now = nowIso();
@@ -361,6 +365,116 @@ export async function addChatMessage(
   const rows = await db.select().from(chatMessages).where(and(eq(chatMessages.id, id), eq(chatMessages.user_id, userId))).limit(1);
   const row = rows[0] as ChatMessage | undefined;
   return { message: row ?? null, error: row ? null : new Error('Failed to add chat message') };
+}
+
+/**
+ * The client's write of a message it named (src/lib/chat-message-id.ts). The chat route may have stored the same
+ * row already (the user's turn, or the reply under the id it returned), so a conflict on the id updates the text and
+ * the actions instead of failing: the client's copy is what the user saw (a reply can carry a note the client added).
+ * Only a row of this user, this application and the same role is ever updated, and only into an application the user
+ * owns; anything else comes back as an error.
+ */
+async function upsertChatMessage(
+  userId: string,
+  sessionId: string,
+  message: { id: string; role: 'user' | 'assistant' | 'system'; content: string; actions?: unknown[] },
+): Promise<{ message: ChatMessage | null; error: Error | null }> {
+  if (!isChatMessageId(message.id)) return { message: null, error: new Error('Invalid chat message id') };
+  const db = await getDb();
+  await db.run(sql`
+    INSERT INTO chat_messages (id, session_id, user_id, role, content, actions, created_at)
+    SELECT ${message.id}, s.id, s.user_id, ${message.role}, ${message.content}, ${JSON.stringify(message.actions ?? [])}, ${nowIso()}
+    FROM application_sessions s
+    WHERE s.id = ${sessionId} AND s.user_id = ${userId}
+    ON CONFLICT(id) DO UPDATE SET content = excluded.content, actions = excluded.actions
+    WHERE chat_messages.user_id = excluded.user_id
+      AND chat_messages.session_id = excluded.session_id
+      AND chat_messages.role = excluded.role
+  `);
+  const rows = await db
+    .select()
+    .from(chatMessages)
+    .where(and(
+      eq(chatMessages.id, message.id),
+      eq(chatMessages.user_id, userId),
+      eq(chatMessages.session_id, sessionId),
+      eq(chatMessages.role, message.role),
+    ))
+    .limit(1);
+  const row = rows[0] as ChatMessage | undefined;
+  return { message: row ?? null, error: row ? null : new Error('Failed to add chat message') };
+}
+
+export type ChatTurnClaim =
+  | { ok: true }
+  | { ok: false; reason: 'cap_reached' | 'id_taken' };
+
+/**
+ * The chat route stores the user's new message before it calls the model, and only while the application has
+ * fewer than `cap` user messages besides this one. One statement, so two requests at once cannot both take the
+ * last slot. The client's sync writes the same row under the same id (upsertChatMessage), so the row may already
+ * be there: then it only counts the others. An id that belongs to someone else's row is refused.
+ */
+export async function claimUserChatTurn(
+  userId: string,
+  sessionId: string,
+  message: { id: string; content: string },
+  cap: number,
+): Promise<ChatTurnClaim> {
+  if (!isChatMessageId(message.id)) return { ok: false, reason: 'id_taken' };
+  const db = await getDb();
+  const inserted = await db.run(sql`
+    INSERT INTO chat_messages (id, session_id, user_id, role, content, actions, created_at)
+    SELECT ${message.id}, s.id, s.user_id, 'user', ${message.content}, '[]', ${nowIso()}
+    FROM application_sessions s
+    WHERE s.id = ${sessionId} AND s.user_id = ${userId}
+      AND (
+        SELECT count(*) FROM chat_messages m
+        WHERE m.session_id = s.id AND m.user_id = s.user_id AND m.role = 'user' AND m.id != ${message.id}
+      ) < ${cap}
+    ON CONFLICT(id) DO NOTHING
+  `);
+  if (inserted.meta.changes === 1) return { ok: true };
+
+  const existing = await db
+    .select({ user_id: chatMessages.user_id, session_id: chatMessages.session_id, role: chatMessages.role })
+    .from(chatMessages)
+    .where(eq(chatMessages.id, message.id))
+    .limit(1);
+  const row = existing[0];
+  if (!row) return { ok: false, reason: 'cap_reached' };
+  if (row.user_id !== userId || row.session_id !== sessionId || row.role !== 'user') return { ok: false, reason: 'id_taken' };
+  const others = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(chatMessages)
+    .where(and(
+      eq(chatMessages.session_id, sessionId),
+      eq(chatMessages.user_id, userId),
+      eq(chatMessages.role, 'user'),
+      sql`${chatMessages.id} != ${message.id}`,
+    ));
+  return Number(others[0]?.count) < cap ? { ok: true } : { ok: false, reason: 'cap_reached' };
+}
+
+/**
+ * The reply the chat route stores under the id it returns to the client, so the next turn's history has it even
+ * when the user answers before the client's sync runs. Into an application the user owns, or nothing; a conflict
+ * on the id (the sync got there first) leaves the client's copy.
+ */
+export async function storeChatReply(
+  userId: string,
+  sessionId: string,
+  message: { id: string; content: string; actions: unknown[] },
+): Promise<void> {
+  if (!isChatMessageId(message.id)) throw new Error('storeChatReply: invalid chat message id');
+  const db = await getDb();
+  await db.run(sql`
+    INSERT INTO chat_messages (id, session_id, user_id, role, content, actions, created_at)
+    SELECT ${message.id}, s.id, s.user_id, 'assistant', ${message.content}, ${JSON.stringify(message.actions)}, ${nowIso()}
+    FROM application_sessions s
+    WHERE s.id = ${sessionId} AND s.user_id = ${userId}
+    ON CONFLICT(id) DO NOTHING
+  `);
 }
 
 export async function clearChatMessages(userId: string, sessionId: string): Promise<{ error: Error | null }> {

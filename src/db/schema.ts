@@ -679,6 +679,31 @@ export const chatMessages = sqliteTable(
   ],
 );
 
+/**
+ * The chat's compaction block for one application (migration 0013). Written and read only by /api/chat.
+ * `block` is the API's signed `compaction` block, sent back verbatim. `covers_through_message_id` is the last
+ * chat_messages row it summarizes, deliberately without a foreign key (see the migration).
+ */
+export const chatCompactions = sqliteTable(
+  'chat_compactions',
+  {
+    session_id: text('session_id')
+      .primaryKey()
+      .references(() => applicationSessions.id, { onDelete: 'cascade' }),
+    user_id: text('user_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    block: text('block', { mode: 'json' }).$type<Json>().notNull(),
+    covers_through_message_id: text('covers_through_message_id').notNull(),
+    input_tokens: integer('input_tokens').notNull(),
+    created_at: text('created_at').notNull().$defaultFn(isoNow),
+  },
+  (t) => [
+    index('chat_compactions_user_idx').on(t.user_id),
+    check('chat_compactions_input_tokens_check', sql`${t.input_tokens} >= 0`),
+  ],
+);
+
 export const subscriptions = sqliteTable(
   'subscriptions',
   {

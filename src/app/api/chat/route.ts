@@ -1,12 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Anthropic from '@anthropic-ai/sdk';
-import { callHaiku, InputBudgetError, type HaikuResponse } from '@/lib/models/haiku';
-import { isOverRefuseLimit, projectNextInputTokens } from '@/lib/models/token-budget';
+import { buildHaikuRequest, callHaiku, InputBudgetError, type HaikuCallOptions, type HaikuResponse } from '@/lib/models/haiku';
+import { estimateInputTokens, isOverRefuseLimit, projectNextInputTokens } from '@/lib/models/token-budget';
+import {
+  asCompactionBlock,
+  COMPACT_ABOVE_TOKENS,
+  COMPACTION_MAX_TOKENS,
+  COMPACTION_RESERVE_TOKENS,
+  splitForCompaction,
+  type CompactionBlock,
+} from '@/lib/models/compaction';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
 import { getProfile } from '@/db/repos/profiles';
-import { claimScreeningTurn, countUserChatMessages, getSession, releaseScreeningTurn } from '@/db/repos/sessions';
+import {
+  claimScreeningTurn,
+  claimUserChatTurn,
+  countUserChatMessages,
+  getChatMessages,
+  getSession,
+  releaseScreeningTurn,
+  storeChatReply,
+} from '@/db/repos/sessions';
+import { deleteChatCompaction, getChatCompaction, saveChatCompaction } from '@/db/repos/chatCompactions';
+import { isChatMessageId, newChatMessageId } from '@/lib/chat-message-id';
 import { SCREENING_TURN_CAP } from '@/lib/screening-answers';
 import { generateScreeningReply, screeningAllowedForTier, screeningBudgetReply } from '@/lib/services/screening';
 import {
@@ -21,9 +39,11 @@ import { knownTimeZone, looksPasted } from '@/lib/agents/chat-tools/untrusted';
 import {
   appendToolRound,
   buildChatMessages,
+  buildCompactionMessages,
   buildMainChatPrompt,
   type ChatTurn,
 } from '@/lib/agents/prompts/chat-prompt';
+import { CHAT_COMPACTION_INSTRUCTIONS } from '@/lib/agents/prompts/chat-compaction-prompt';
 import { isCvTemplateId } from '@/lib/cv-templates/catalog';
 import { validateCvShape } from '@/lib/cv-structure/validate';
 import type { TailoredCV } from '@/lib/cv-structure/types';
@@ -38,7 +58,9 @@ import { loadApplicantLogistics } from '@/lib/profile/logistics.server';
 // accepts.
 const MAX_MESSAGE_LENGTH = 30_000;
 const MAX_SCREENING_MESSAGE_LENGTH = 5_000;
-const MAX_CHAT_MESSAGES_PER_SESSION = 10;
+// User messages per saved application, counted in D1 (chat_messages). Compaction keeps the model's input under
+// the budget however long the conversation gets, so this caps cost per application, not context.
+const MAX_CHAT_MESSAGES_PER_SESSION = 50;
 
 // The model proposes tool calls, the route executes them and feeds the
 // results back. Three tool rounds cover every real flow (look up, act,
@@ -125,10 +147,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Request is too large.' }, { status: 413 });
     }
 
-    const { message, context } = await req.json() as {
+    const { message, context, messageId } = await req.json() as {
       message: string;
-      context: ChatContext
+      context: ChatContext;
+      // The id the client gave the new message (src/lib/chat-message-id.ts). With it, the route stores the turn and
+      // its reply in chat_messages under ids the client's sync writes too. A client from before Phase 2 sends none.
+      messageId?: unknown;
     };
+    if (messageId !== undefined && !isChatMessageId(messageId)) {
+      return NextResponse.json({ error: 'Invalid message id.' }, { status: 400 });
+    }
 
     const isScreeningMode = context.mode === 'screening_answers';
     const maxMessageLength = isScreeningMode ? MAX_SCREENING_MESSAGE_LENGTH : MAX_MESSAGE_LENGTH;
@@ -183,24 +211,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let userMessageCount: number;
-    if (chatSessionId && UUID_RE.test(chatSessionId)) {
-      const ownedSession = await getSession(user.id, chatSessionId);
+    // A saved application (UUID) has server-owned history: chat_messages in D1, never the client's copy. A local
+    // `session-` conversation has no row yet, so it keeps the client window and never compacts.
+    const persistedSessionId = chatSessionId && UUID_RE.test(chatSessionId) ? chatSessionId : null;
+    if (persistedSessionId) {
+      const ownedSession = await getSession(user.id, persistedSessionId);
       if (!ownedSession) {
         return NextResponse.json({ error: 'Application not found' }, { status: 404 });
       }
-      userMessageCount = await countUserChatMessages(user.id, chatSessionId);
-    } else {
-      userMessageCount = (context.chatHistory ?? []).filter((entry) => entry.role === 'user').length;
     }
 
-    // Persisted sessions use server-owned history. Local conversations keep
-    // the original client-history cap until they have a D1 row.
-    if (userMessageCount >= MAX_CHAT_MESSAGES_PER_SESSION) {
-      return NextResponse.json(
-        { error: 'Chat message limit reached for this application. Start a new application to continue chatting.', code: 'CHAT_LIMIT_REACHED' },
-        { status: 429 }
-      );
+    const chatLimitReached = () => NextResponse.json(
+      { error: 'Chat message limit reached for this application. Start a new application to continue chatting.', code: 'CHAT_LIMIT_REACHED' },
+      { status: 429 },
+    );
+    // With an id, a chat turn is stored here and the cap is spent by that write (one statement, so two requests at
+    // once cannot both take the last slot). Screening and a client without ids only count. A local conversation
+    // counts its client history until it has a D1 row.
+    const storesTurn = Boolean(persistedSessionId && !isScreeningMode && typeof messageId === 'string');
+    if (!storesTurn) {
+      const userMessageCount = persistedSessionId
+        ? await countUserChatMessages(user.id, persistedSessionId)
+        : (context.chatHistory ?? []).filter((entry) => entry.role === 'user').length;
+      if (userMessageCount >= MAX_CHAT_MESSAGES_PER_SESSION) return chatLimitReached();
     }
 
     // The turn is claimed last, after every gate that can refuse the request.
@@ -224,20 +257,50 @@ export async function POST(req: NextRequest) {
       }
       screeningTurnsUsed = claim.turnsUsed;
     }
+    if (storesTurn && persistedSessionId && typeof messageId === 'string') {
+      const claim = await claimUserChatTurn(user.id, persistedSessionId, { id: messageId, content: message }, MAX_CHAT_MESSAGES_PER_SESSION);
+      if (!claim.ok) {
+        if (claim.reason === 'cap_reached') return chatLimitReached();
+        return NextResponse.json({ error: 'Invalid message id.' }, { status: 409 });
+      }
+    }
 
-    // Build conversation history for the model. Roles are re-validated here:
-    // chatHistory is client JSON and could otherwise smuggle a system turn.
-    // The text stays raw: chatTurnText (chat-prompt.ts) cuts every turn to
-    // CHAT_TURN_MAX_CHARS (pair-safe, lone surrogates replaced) and quotes
-    // pasted ones, the new message included, so a turn has the same bytes on
-    // the turn it is sent and on every turn that replays it (the server decides
-    // the quoting, never the client). A long turn is cut, never rejected, so a
-    // long ad in the history can't fail a later turn. Screening renders the same
-    // raw turns its own way (screeningMessages in screening.ts).
-    const earlierTurns: ChatTurn[] = (context.chatHistory?.slice(-10) ?? [])
-      .filter((msg): msg is ChatMessage =>
-        Boolean(msg && (msg.role === 'user' || msg.role === 'assistant') && typeof msg.content === 'string'))
-      .map(msg => ({ role: msg.role, content: msg.content }));
+    // The model's history, raw: chatTurnText (chat-prompt.ts) cuts every turn to CHAT_TURN_MAX_CHARS (pair-safe, lone
+    // surrogates replaced) and quotes pasted ones, the new message included, so a turn has the same bytes on the turn
+    // it is sent and on every turn that replays it (the server decides the quoting, never the client). Screening
+    // renders the same raw turns its own way (screeningMessages in screening.ts).
+    //   Saved application: every message in D1 after the compaction block, if there is one. The new message is left
+    //   out by its id (the route just stored it, or the sync did).
+    //   Local conversation: the client's last ten turns, roles re-validated (client JSON could smuggle a system turn).
+    let earlierTurns: StoredTurn[];
+    let compaction: { block: CompactionBlock; coversThroughMessageId: string } | null = null;
+    if (persistedSessionId) {
+      const rows = (await getChatMessages(user.id, persistedSessionId))
+        .filter((row) => (row.role === 'user' || row.role === 'assistant') && row.id !== messageId)
+        .map((row) => ({ id: row.id, role: row.role as 'user' | 'assistant', content: row.content }));
+      earlierTurns = rows;
+      if (!isScreeningMode) {
+        const stored = await getChatCompaction(user.id, persistedSessionId);
+        if (stored) {
+          const block = asCompactionBlock(stored.block);
+          const covered = rows.findIndex((row) => row.id === stored.coversThroughMessageId);
+          if (block && covered !== -1) {
+            compaction = { block, coversThroughMessageId: stored.coversThroughMessageId };
+            earlierTurns = rows.slice(covered + 1);
+          } else {
+            // The messages it summarized are gone (the chat was cleared) or the row is unreadable: the full history
+            // goes instead, and the turn compacts again if it has to.
+            console.error(`[chat] dropping a stale compaction for ${persistedSessionId} (${block ? 'covered message gone' : 'unreadable block'})`);
+            await deleteChatCompaction(user.id, persistedSessionId);
+          }
+        }
+      }
+    } else {
+      earlierTurns = (context.chatHistory?.slice(-10) ?? [])
+        .filter((msg): msg is ChatMessage =>
+          Boolean(msg && (msg.role === 'user' || msg.role === 'assistant') && typeof msg.content === 'string'))
+        .map((msg) => ({ id: null, role: msg.role, content: msg.content }));
+    }
 
     if (isScreeningMode) {
       // Screening keeps its single-shot flow: one question in, answer blocks
@@ -251,7 +314,7 @@ export async function POST(req: NextRequest) {
           message,
           // Raw turns: screeningMessages (screening.ts) keeps the last ten, cuts each to its own cap and quotes
           // pasted ones, and leaves empty turns out (the API refuses empty text).
-          history: [...earlierTurns, { role: 'user' as const, content: message }],
+          history: [...earlierTurns.map(chatTurnOf), { role: 'user' as const, content: message }],
           context: screeningContext,
           route: '/api/chat',
         });
@@ -298,9 +361,34 @@ export async function POST(req: NextRequest) {
     };
     const prompt = buildMainChatPrompt(context, timeZone, new Date());
     const tools = chatToolDefinitions();
-    const messages = buildChatMessages([...earlierTurns, { role: 'user', content: message }], prompt.state);
-    // One execution id for the whole request, so the ledger groups the rounds.
+    // One execution id for the whole request, so the ledger groups the rounds (and the compaction, when it runs).
     const requestExecutionId = crypto.randomUUID();
+    const system = { static: prompt.static, stableContext: prompt.stableContext };
+    const newTurn: ChatTurn = { role: 'user', content: message };
+    let messages = buildChatMessages([...earlierTurns.map(chatTurnOf), newTurn], prompt.state, compaction?.block ?? null);
+    // A block Bedrock wrote is used for this turn only, on Bedrock (see compactChat).
+    let compactedOn: 'bedrock' | undefined;
+
+    // On-demand compaction (compaction.ts): over COMPACT_ABOVE_TOKENS projected, summarize everything before the
+    // last few messages first, then send the turn on the block. Saved applications only: their history is in D1,
+    // and the block is stored next to it.
+    if (persistedSessionId && projectChatInput({ system, tools, messages }) > COMPACT_ABOVE_TOKENS) {
+      const compacted = await compactChat({
+        userId: user.id,
+        sessionId: persistedSessionId,
+        requestExecutionId,
+        system,
+        tools,
+        turns: earlierTurns,
+        earlier: compaction?.block ?? null,
+      });
+      if (compacted) {
+        compaction = compacted.stored ? { block: compacted.block, coversThroughMessageId: compacted.coversThroughMessageId } : null;
+        compactedOn = compacted.provider === 'bedrock' ? 'bedrock' : undefined;
+        earlierTurns = earlierTurns.slice(compacted.cut);
+        messages = buildChatMessages([...earlierTurns.map(chatTurnOf), newTurn], prompt.state, compacted.block);
+      }
+    }
 
     const executed: ExecutedEffect[] = [];
     let confirmActions: ChatActionChip[] = [];
@@ -320,7 +408,7 @@ export async function POST(req: NextRequest) {
       // direct API answered can still fail over to Bedrock on the next round, and that request then carries thinking
       // signed by the direct API. Whether Bedrock accepts that is checked by evals/haiku-55-swap/bedrock-probe.ts (check 6).
       // The next request starts on the Anthropic API again; client history is plain text, nothing signed crosses it.
-      let pinnedProvider: 'bedrock' | undefined;
+      let pinnedProvider: 'bedrock' | undefined = compactedOn;
 
       for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
         const finalRound = round === MAX_TOOL_ROUNDS;
@@ -331,7 +419,7 @@ export async function POST(req: NextRequest) {
 
         const response = await callHaiku({
           site: 'chat',
-          system: { static: prompt.static, stableContext: prompt.stableContext },
+          system,
           messages,
           tools,
           // The final round has to answer in text. tool_choice none keeps the
@@ -446,11 +534,22 @@ export async function POST(req: NextRequest) {
       return true;
     });
 
+    // The reply goes into the history now, under the id the client will show it with, so a quick next turn has it
+    // even before the client's sync runs. The sync then writes the client's copy over it (a reply can gain a note).
+    let replyMessageId: string | undefined;
+    if (storesTurn && persistedSessionId) {
+      replyMessageId = newChatMessageId();
+      await storeChatReply(user.id, persistedSessionId, { id: replyMessageId, content: reply, actions });
+    }
+
     return NextResponse.json({
       success: true,
       reply,
       actions,
       executed,
+      ...(replyMessageId ? { replyMessageId } : {}),
+      // Where ChatPanel draws "Earlier messages summarized": the last message the model now sees only as a summary.
+      ...(persistedSessionId ? { compactedThroughMessageId: compaction?.coversThroughMessageId ?? null } : {}),
     });
   } catch (error) {
     const posthog = getPostHogServer();
@@ -483,7 +582,8 @@ const MAX_CV_JSON_CHARS = 200_000;
  * request carries none), so this is a cheap early exit and not the only cap.
  *
  * Sized off what a legitimate request holds: a 200,000 char CV, ten history
- * turns, a message, a master CV summary and a job description. The client sends
+ * turns (a local conversation; a saved application sends none, its history is
+ * in D1), a message, a master CV summary and a job description. The client sends
  * history turns whole (a pasted ad can be up to MAX_MESSAGE_LENGTH); the server
  * cuts each to CHAT_TURN_MAX_CHARS (chat-prompt.ts), never rejects one. Real ads
  * run to about 11,500 chars, so a window of them sits far below this.
@@ -545,4 +645,100 @@ function extractActions(reply: string, context: ChatContext): Array<{label: stri
   }
 
   return actions;
+}
+
+/** A history message: its D1 id when it came from chat_messages, null for a local conversation's client turn. */
+interface StoredTurn {
+  id: string | null;
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+function chatTurnOf(turn: StoredTurn): ChatTurn {
+  return { role: turn.role, content: turn.content };
+}
+
+type ChatSystem = HaikuCallOptions['system'];
+type ChatTools = NonNullable<HaikuCallOptions['tools']>;
+
+/**
+ * The turn's input as the budget estimates it (token-budget.ts, 1.8 chars/token), plus the reserve for the tool
+ * rounds it may run. Measured on the request callHaiku would build, so the system blocks and tools count in the
+ * bytes they are sent in.
+ */
+function projectChatInput(parts: { system: ChatSystem; tools: ChatTools; messages: HaikuCallOptions['messages'] }): number {
+  const request = buildHaikuRequest({
+    site: 'chat',
+    system: parts.system,
+    messages: parts.messages,
+    tools: parts.tools,
+    maxTokens: CHAT_MAX_TOKENS,
+    cacheTtl: '1h',
+    generationContext: { requestExecutionId: 'projection', route: '/api/chat', feature: 'chat', operation: 'projection' },
+  }, 'low');
+  return estimateInputTokens({ system: request.system, tools: request.tools, messages: request.messages }) + COMPACTION_RESERVE_TOKENS;
+}
+
+/**
+ * One compaction request: the same tools and system as a chat turn (so it reads their cached prefix), the earlier
+ * block, then every message before the kept ones, with the summary prompt in CHAT_COMPACTION_INSTRUCTIONS.
+ *
+ * Returns the block and how many of `turns` it covers, or null when there is nothing to compact or the request
+ * failed. A failure is not the turn's failure: callHaiku has already written the failed ledger row and the PostHog
+ * event, and the turn goes out uncompacted (the budget guard still stops one that no longer fits).
+ *
+ * A block written by Bedrock (a failover) is used for this turn only, with the turn pinned to Bedrock, and never
+ * stored: its signature is Bedrock's, and the next turn starts on the Anthropic API again.
+ */
+async function compactChat(params: {
+  userId: string;
+  sessionId: string;
+  requestExecutionId: string;
+  system: ChatSystem;
+  tools: ChatTools;
+  turns: StoredTurn[];
+  earlier: CompactionBlock | null;
+}): Promise<{ block: CompactionBlock; cut: number; coversThroughMessageId: string; provider: string; stored: boolean } | null> {
+  const cut = splitForCompaction(params.turns.map((turn) => turn.role));
+  if (cut === null) return null;
+  const coversThroughMessageId = params.turns[cut - 1].id;
+  if (!coversThroughMessageId) throw new Error('compactChat: a saved application turn has no id');
+
+  let response: HaikuResponse;
+  try {
+    response = await callHaiku({
+      site: 'chat',
+      system: params.system,
+      tools: params.tools,
+      messages: buildCompactionMessages(params.turns.slice(0, cut).map(chatTurnOf), params.earlier),
+      maxTokens: COMPACTION_MAX_TOKENS,
+      cacheTtl: '1h',
+      cacheConversation: false,
+      compaction: { instructions: CHAT_COMPACTION_INSTRUCTIONS },
+      generationContext: {
+        requestExecutionId: params.requestExecutionId,
+        userId: params.userId,
+        route: '/api/chat',
+        feature: 'chat',
+        operation: 'compaction',
+      },
+    });
+  } catch (error) {
+    console.error('[chat] compaction failed, sending the turn uncompacted:', error instanceof Error ? error.message : error);
+    return null;
+  }
+  const block = response.rawContent.map((item) => asCompactionBlock(item)).find((item) => item !== null);
+  // readHaikuContent already refused a response without one; this is the type narrowing, and a loud stop if not.
+  if (!block) throw new Error('compactChat: compaction response carried no block');
+
+  let stored = false;
+  if (response.provider !== 'bedrock') {
+    stored = await saveChatCompaction(params.userId, params.sessionId, {
+      block,
+      coversThroughMessageId,
+      inputTokens: response.inputTokensTotal,
+    });
+    if (!stored) throw new Error('compactChat: the compaction was not stored for an application the route already checked');
+  }
+  return { block, cut, coversThroughMessageId, provider: response.provider, stored };
 }

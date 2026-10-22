@@ -43,6 +43,11 @@ export interface ChatMessage {
   content: string;
   timestamp: string;
   actions?: ChatAction[];
+  /**
+   * Loaded from D1, so the row is there under this id and the chat sync skips it. Ids are shared between the
+   * client and D1 (src/lib/chat-message-id.ts), so without this every message loaded back would be written again.
+   */
+  stored?: true;
 }
 
 export interface ChatAction {

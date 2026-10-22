@@ -8,7 +8,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useAppStore } from '@/store/useAppStore';
-import { useSessionStore } from '@/store/useSessionStore';
+import { useSessionStore, type ChatAction } from '@/store/useSessionStore';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
 import { formatDate } from '@/lib/utils/format-date';
 import { findSentApplicationForJob } from '@/lib/utils/same-job';
@@ -36,6 +36,7 @@ import { needsAvailabilityPrompt } from '@/lib/profile/logistics';
 import { parkedRunStillValid } from '@/lib/profile/logistics-resume';
 import type { KitDocument, KitDocumentErrors } from '@/lib/agents/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
+import { useChatCompactionMarker } from './compaction-marker';
 import {
   createSession as createStoredSession,
   deleteSession as deleteStoredSession,
@@ -266,6 +267,48 @@ export function useAgentWorkflow(options?: {
         ? { ...session, chatMessages: [...session.chatMessages, newMessage], updatedAt: newMessage.timestamp }
         : session),
     }));
+  };
+
+  /**
+   * What /api/chat needs to know about the conversation. A saved application's history is read from D1 by the route,
+   * so only the new message's id goes (the route stores the turn under it). A local `session-` conversation has no
+   * row yet and still sends its last ten turns. `messages` is this render's transcript, which does not hold the new
+   * message yet.
+   */
+  const chatRequestHistory = (message: string) => {
+    const live = useSessionStore.getState().currentSession;
+    if (live && !live.id.startsWith('session-')) {
+      const own = live.chatMessages.findLast((entry) => entry.role === 'user' && entry.content === message);
+      return { chatHistory: [], messageId: own?.id };
+    }
+    return {
+      chatHistory: messages.slice(-10).map((msg) => ({ role: msg.role, content: msg.content })),
+      messageId: undefined,
+    };
+  };
+
+  /**
+   * The assistant's reply under the id the route stored it with, so the sync writes the same row (with any note added
+   * here) instead of a second one. Into the open application, as addChatMessage does.
+   */
+  const addReplyMessage = (message: { role: 'assistant'; content: string; actions: ChatAction[] }, id: string | undefined) => {
+    if (!id) {
+      addChatMessage(message);
+      return;
+    }
+    const newMessage = { ...message, id, timestamp: new Date().toISOString() };
+    useSessionStore.setState((state) => {
+      if (!state.currentSession) return state;
+      const updated = {
+        ...state.currentSession,
+        chatMessages: [...state.currentSession.chatMessages, newMessage],
+        updatedAt: newMessage.timestamp,
+      };
+      return {
+        currentSession: updated,
+        sessions: state.sessions.map((session) => (session.id === updated.id ? updated : session)),
+      };
+    });
   };
 
   const resolveJobFeedGenerationForSession = async (
@@ -527,16 +570,14 @@ export function useAgentWorkflow(options?: {
 
     try {
       const { masterCV, certifications } = useAppStore.getState();
-      const recentMessages = messages.slice(-10).map(msg => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      const { chatHistory: recentMessages, messageId } = chatRequestHistory(message);
 
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message,
+          ...(messageId ? { messageId } : {}),
           context: {
             hasCV: !!currentCV,
             cvSummary: currentCV?.sections?.summary?.substring(0, 500),
@@ -571,7 +612,10 @@ export function useAgentWorkflow(options?: {
       });
 
       if (response.ok) {
-        const { reply, actions, executed } = await response.json();
+        const { reply, actions, executed, replyMessageId, compactedThroughMessageId } = await response.json();
+        if (startedIn && compactedThroughMessageId !== undefined) {
+          useChatCompactionMarker.getState().setMarker(startedIn, typeof compactedThroughMessageId === 'string' ? compactedThroughMessageId : null);
+        }
         // Apply effects before committing the assistant turn. A CV effect can
         // be refused when the canvas changed during the request, and in that
         // case the transcript must contain the refusal instead of the model's
@@ -581,13 +625,13 @@ export function useAgentWorkflow(options?: {
           startedIn,
           suppressProposal: Boolean(opts?.suppressProposal),
         });
-        addChatMessage({
+        addReplyMessage({
           role: 'assistant',
           content: effectRefusal || (effectNote ? `${reply}\n\n${effectNote}` : reply),
           actions: effectRefusal
             ? (actions || []).filter((action: { action?: string }) => !action.action?.startsWith('undo-cv-edit:'))
             : actions || [],
-        });
+        }, typeof replyMessageId === 'string' ? replyMessageId : undefined);
         // A real ad the model read as a question would otherwise be a dead
         // end: no card, no run, no way back. The client offers a manual way
         // in when the text looked like an ad and no proposal came back.
@@ -649,15 +693,15 @@ export function useAgentWorkflow(options?: {
     try {
       // No master CV here: the route reads the applicant's own CVs on the server.
       const { certifications } = useAppStore.getState();
-      const recentMessages = messages.slice(-10).map(msg => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      // Screening runs on a saved application, so the route reads the history from D1; the id only keeps the question
+      // itself out of it when the transcript already holds it.
+      const { chatHistory: recentMessages, messageId } = chatRequestHistory(question);
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: question,
+          ...(messageId ? { messageId } : {}),
           context: {
             hasCV: !!currentCV,
             cvSummary: currentCV?.sections?.summary?.substring(0, 500),

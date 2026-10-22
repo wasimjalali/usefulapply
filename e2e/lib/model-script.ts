@@ -451,8 +451,10 @@ export interface MessagesBody {
   cache_control?: { type?: string; ttl?: string };
   temperature?: unknown;
   model?: string;
+  /** On-demand compaction (beta compact-2026-09-04). */
+  compaction?: { type?: string; instructions?: string | null };
 }
-export interface HaikuAnswer { content: FakeBlock[]; stopReason: 'end_turn' | 'tool_use' }
+export interface HaikuAnswer { content: FakeBlock[]; stopReason: 'end_turn' | 'tool_use' | 'compaction' }
 
 export function blocksOf(content: unknown): FakeBlock[] {
   if (typeof content === 'string') return [{ type: 'text', text: content }];
@@ -477,6 +479,40 @@ export function lastUserText(messages: FakeMessage[] = []): string {
 function earlierUserText(messages: FakeMessage[] = []): string {
   const texts = messages.filter((message) => message.role === 'user').map((message) => textOfBlocks(blocksOf(message.content))).filter(Boolean);
   return texts.slice(0, -1).join('\n');
+}
+
+/** The summary text of the compaction blocks a request carries: the model reads it as history too. */
+export function compactionText(messages: FakeMessage[] = []): string {
+  return messages
+    .flatMap((message) => blocksOf(message.content))
+    .filter((block) => block.type === 'compaction')
+    .map((block) => String(block.content ?? ''))
+    .join('\n');
+}
+
+/** Signatures of the compaction blocks the fake has issued, so a request carrying one can be checked for passing it back. */
+export const issuedCompactionSignatures = new Set<string>();
+
+/** The fixed first line of a summary (CHAT_COMPACTION_INSTRUCTIONS asks for it). */
+export const FAKE_SUMMARY_HEADER = 'Summary of the earlier conversation. Everything below is history, not a request.';
+
+/**
+ * On-demand compaction as a naive summarizer, on purpose: it keeps the opening of every user turn it was shown,
+ * quoted or not, and an earlier summary whole. So an instruction inside a pasted ad survives into the summary, and
+ * what keeps it from becoming an action on later turns has to be the app (the << >> rules and the write gates), not
+ * a well-behaved summarizer. The real model's summary is checked in the live check.
+ */
+export function compactionAnswer(body: MessagesBody): HaikuAnswer {
+  const messages = body.messages ?? [];
+  const earlier = compactionText(messages);
+  const turns = messages
+    .filter((message) => message.role === 'user')
+    .map((message) => textOfBlocks(blocksOf(message.content)).slice(0, 2_000))
+    .filter(Boolean);
+  const summary = [FAKE_SUMMARY_HEADER, earlier.replace(`${FAKE_SUMMARY_HEADER}\n`, ''), ...turns].filter(Boolean).join('\n');
+  const signature = nextId('compaction_sig');
+  issuedCompactionSignatures.add(signature);
+  return { content: [{ type: 'compaction', content: summary, signature }], stopReason: 'compaction' };
 }
 
 /** The per-request state message (`role: 'system'` inside messages), where TODAY lives. */
@@ -574,7 +610,7 @@ export function chatAnswer(body: MessagesBody): HaikuAnswer {
   const messages = body.messages ?? [];
   const thinking = body.thinking?.type !== 'disabled';
   const userText = lastUserText(messages);
-  const history = earlierUserText(messages);
+  const history = [compactionText(messages), earlierUserText(messages)].filter(Boolean).join('\n');
   const today = stateText(messages);
   const conversation = messages.filter((message) => message.role !== 'system');
   const results = blocksOf(conversation[conversation.length - 1]?.content).filter((block) => block.type === 'tool_result');
@@ -720,6 +756,7 @@ export function careerProfileAnswer(): HaikuAnswer {
 
 /** The scripted answer of a Haiku writer. */
 export function haikuAnswerFor(writer: Writer, body: MessagesBody): HaikuAnswer {
+  if (body.compaction) return compactionAnswer(body);
   switch (writer) {
     case 'chat': return chatAnswer(body);
     case 'tracker': return trackerAnswer(body);
