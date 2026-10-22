@@ -313,9 +313,11 @@ export async function POST(req: NextRequest) {
       // next round's projection is exact plus a small estimated delta.
       let previousInputTokens: number | null = null;
       let appendedSinceLastCall: Anthropic.Beta.BetaMessageParam[] = [];
-      // Once Bedrock answered a round of this request, the rest of the request stays on Bedrock: the assistant
-      // content passed back (thinking blocks) is signed by Bedrock and must not reach the Anthropic API. The
-      // next request starts on the Anthropic API again; client history is plain text, nothing signed crosses it.
+      // Once Bedrock answered a round of this request, the rest of the request stays on Bedrock, so a thinking block
+      // signed by Bedrock never reaches the direct API (the API rejects it). Only this direction is pinned: a round the
+      // direct API answered can still fail over to Bedrock on the next round, and that request then carries thinking
+      // signed by the direct API. Whether Bedrock accepts that is checked by evals/haiku-55-swap/bedrock-probe.ts (check 6).
+      // The next request starts on the Anthropic API again; client history is plain text, nothing signed crosses it.
       let pinnedProvider: 'bedrock' | undefined;
 
       for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
