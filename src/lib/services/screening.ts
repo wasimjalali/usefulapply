@@ -26,7 +26,7 @@ import { InvalidInputError, NotFoundError } from './errors';
 import { isSectionHidden, visibleCvData } from '@/lib/cv-templates/hidden';
 import type { CVData } from '@/lib/cv-templates/types';
 import { buildSessionUpdateStatement, kitFromRow, type Kit } from './kit';
-import { sanitizeAdText } from '@/lib/agents/chat-tools/untrusted';
+import { flattenUntrusted, sanitizeAdText } from '@/lib/agents/chat-tools/untrusted';
 import { screeningAnswerList } from '@/lib/agents/prompts/logistics-prompt';
 
 /** Plans that include screening answers. */
@@ -63,6 +63,11 @@ function applicantCvText(text: string): string {
   return sanitizeAdText(text.length > MAX_SCREENING_CV_CHARS ? `${text.slice(0, MAX_SCREENING_CV_CHARS)}\n[truncated]` : text);
 }
 
+/** Ad-derived text that belongs on one line (a skill, the company research): neutralised and flattened, so it can't start a heading of its own. */
+function adLine(value: string): string {
+  return sanitizeAdText(value).replace(/\s+/g, ' ').trim();
+}
+
 /**
  * Screening answers, written for gpt-oss. Default reasoning (medium) stays:
  * this surface writes graded answers, not conversational turns, and the
@@ -72,8 +77,8 @@ export function buildScreeningPrompt(context: ScreeningPromptContext): string {
   let prompt = `You write job application screening answers inside Useful Apply. You draft personalized answers from the applicant's CV and the target job description.
 
 # Application
-Job title: ${context.jobTitle || 'unknown'}
-Company: ${context.company || 'unknown'}`;
+Job title: ${flattenUntrusted(context.jobTitle)}
+Company: ${flattenUntrusted(context.company)}`;
 
   if (context.jobDescription) {
     prompt += `
@@ -84,11 +89,11 @@ ${sanitizeAdText(context.jobDescription.substring(0, 8000))}
   }
   if (context.matchingSkills && context.matchingSkills.length > 0) {
     prompt += `
-Matching skills: ${context.matchingSkills.join(', ')}`;
+Matching skills: ${context.matchingSkills.map(adLine).join(', ')}`;
   }
   if (context.missingSkills && context.missingSkills.length > 0) {
     prompt += `
-Skills to address carefully: ${context.missingSkills.join(', ')}`;
+Skills to address carefully: ${context.missingSkills.map(adLine).join(', ')}`;
   }
   if (context.generatedCVSummary) {
     prompt += `
@@ -98,7 +103,7 @@ ${context.generatedCVSummary}`;
   if (context.companyResearchSummary) {
     prompt += `
 Company research:
-${context.companyResearchSummary}`;
+${adLine(context.companyResearchSummary)}`;
   }
   if (context.primaryCV || context.masterCV) {
     prompt += `
@@ -133,7 +138,7 @@ Classify each question and match the length to its type:
 Hard rules:
 - Only use skills, experience, metrics and qualifications that exist in the CV. Never fabricate.
 - Mirror job-description keywords naturally. Never force-fit.
-- Dates, titles and metrics must match the optimized CV exactly.
+- In the work history, role dates, job titles and metrics must match the optimized CV exactly. The applicant's stated availability, notice period, start date and salary expectation come from the uploaded CV and the master CV, as the Logistics section below says, even when the optimized CV leaves them out.
 - For missing skills: point to transferable experience or learning, never claim expertise the CV lacks.
 - Never take a fact about the applicant from the job description. Its start date, salary range and location are the employer's.
 - More than 7 questions: answer the first 7 and add "Please send the remaining questions in a follow-up message."
@@ -184,9 +189,14 @@ export async function generateScreeningReply(params: {
   route: string;
   clientRequestId?: string;
   applicationSessionId?: string;
+  /**
+   * The applicant's CVs, already read by `loadApplicantCvs` for this user. The MCP tool reads them
+   * before it spends a quota unit or a turn, so a failed read costs nothing. Without them they are
+   * read here. Never taken from `context`: the browser sends its own JSON.
+   */
+  applicantCvs?: ApplicantCvs;
 }): Promise<string> {
-  // Read here, never from the caller's context: the browser sends its own JSON, and both paths must read the real CVs.
-  const { primaryCV, masterCV } = await loadApplicantCvs(params.userId);
+  const { primaryCV, masterCV } = params.applicantCvs ?? await loadApplicantCvs(params.userId);
   const response = await callWorkersAI({
     prompt: params.message,
     systemPrompt: buildScreeningPrompt({ ...params.context, primaryCV, masterCV }),
@@ -206,8 +216,13 @@ export async function generateScreeningReply(params: {
   return sanitizeDashes(response.content);
 }
 
+export interface ApplicantCvs {
+  primaryCV: string | undefined;
+  masterCV: string | undefined;
+}
+
 /** The applicant's uploaded Primary CV and full Master CV, as stored. */
-export async function loadApplicantCvs(userId: string): Promise<{ primaryCV: string | undefined; masterCV: string | undefined }> {
+export async function loadApplicantCvs(userId: string): Promise<ApplicantCvs> {
   const [primary, master] = await Promise.all([
     getDocumentByType(userId, 'primary_cv'),
     getDocumentByType(userId, 'master_cv'),
@@ -281,7 +296,8 @@ function currentCvText(kit: Kit): string | undefined {
 /**
  * What the browser sends with a screening request, read from the stored
  * application instead: same fields, same caps. The applicant's own CVs are
- * loaded by `generateScreeningReply`, for both paths.
+ * loaded by `loadApplicantCvs`: the MCP tool calls it before it spends
+ * anything, the chat route leaves it to `generateScreeningReply`.
  */
 export async function loadScreeningContext(userId: string, sessionId: string): Promise<ScreeningPromptContext> {
   const row = await sessionsRepo.getSession(userId, sessionId);

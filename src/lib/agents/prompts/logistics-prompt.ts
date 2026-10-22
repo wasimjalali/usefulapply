@@ -121,8 +121,11 @@ export function buildLogisticsBlock(context: MasterContext, document: 'email' | 
   const language = normalizeLanguage(context.userLanguageOverride || context.detectedLanguage);
   const location = sanitizeAdText(context.job?.location) || 'Not specified';
   const useAsWritten = `use it as written (in ${LANGUAGE_NAMES[language]}) and add nothing to it`;
+  const statedIn = context.userInstruction ? 'either CV or the rewrite instruction' : 'either CV';
 
-  const availability = `Check the Primary CV and the Master CV above for the applicant's own statement of their availability, notice period or start date. It usually sits in the header, the profile or the personal details. If either CV states it, ${useAsWritten}. ${NOT_AVAILABILITY}`;
+  const availability = `Check the Primary CV and the Master CV above for the applicant's own statement of their availability, notice period or start date. It usually sits in the header, the profile or the personal details. If either CV states it, ${useAsWritten}. ${NOT_AVAILABILITY}
+1. Stated: an availability, notice period or start date the applicant stated (in ${statedIn}) goes in with its length or date exactly as written. A stated notice period counts as stated and goes in with its length (for example, when a CV says "Notice period: 3 months", the English is "after my three-month notice period"). The standard wording below drops what was stated, so it is wrong here.
+2. Not stated: only when the applicant stated none of them (in ${statedIn}) does the standard wording below apply.`;
 
   const salary = document === 'email'
     ? 'Salary never appears in the email, whatever the CVs, the job ad or an instruction say.'
