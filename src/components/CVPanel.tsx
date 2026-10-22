@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { openSettings } from '@/store/useSettingsStore';
 import { Card } from './ui/Card';
@@ -136,6 +136,14 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   // Responsive CV scaling — JS-based because CSS transform: scale can't dynamically
   // compensate for the CV template's fixed width (8.5in / 210mm).
   const cvContainerRef = useRef<HTMLDivElement>(null);
+  // The view container mounts only once there is a CV to show, which on a
+  // fresh device is after the session loads. Held in state too, so the scale
+  // effect runs again when it appears instead of never observing it.
+  const [cvContainerNode, setCvContainerNode] = useState<HTMLDivElement | null>(null);
+  const attachCvContainer = useCallback((node: HTMLDivElement | null) => {
+    cvContainerRef.current = node;
+    setCvContainerNode(node);
+  }, []);
   const cvWrapperRef = useRef<HTMLDivElement>(null);
   const [cvScale, setCvScale] = useState(1);
   const [cvScaledHeight, setCvScaledHeight] = useState<number | null>(null);
@@ -184,8 +192,9 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
       roContainer.disconnect();
       roWrapper.disconnect();
     };
-  // selectedTemplateId triggers re-mount of CVTemplateRenderer; ResizeObserver handles rest
-  }, [selectedTemplateId]);
+  // selectedTemplateId triggers re-mount of CVTemplateRenderer, and the view
+  // container can mount late (see attachCvContainer); ResizeObserver handles rest
+  }, [selectedTemplateId, cvContainerNode]);
 
   // Refresh photo URL when a Supabase signed URL has expired (long sessions).
   // base64 data URLs are always valid; only re-check external URLs.
@@ -392,8 +401,9 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           Tailored
         </button>
       </div>
+      {/* Only where the row has room for it: squeezed, it shrank to a stray glyph. */}
       {currentSession?.company && (
-        <span className="truncate text-[13px] text-warm-gray">Tailored for {currentSession.company}.</span>
+        <span className="hidden truncate text-[13px] text-warm-gray @[35rem]:block">Tailored for {currentSession.company}.</span>
       )}
       <div className="flex-1" />
       {(atsScore !== null || hasAtsInsights) && onOpenAts && (
@@ -706,7 +716,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                 </div>
               ) : cvData ? (
                 /* View Mode - Template Preview */
-                <div ref={cvContainerRef} className="flex flex-col items-center">
+                <div ref={attachCvContainer} className="flex flex-col items-center">
                   {/* Size wrapper: reserves the correct visual space after scaling,
                       and clips the layout overflow that transform: scale doesn't affect */}
                   <div

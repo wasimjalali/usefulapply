@@ -14,16 +14,19 @@ import { REPO_ROOT } from '../lib/env';
  *
  *   l1  768 and 1024: the canvas opens on its own, Show the conversation switches to the chat (the canvas folds
  *       to its rail in the same step), Show the canvas switches back. Whichever column shows gets at least 480px.
- *   l2  Back up to 1280 both columns show again, the canvas keeps at least 480px, and Collapse/Expand canvas
- *       still work as before.
+ *       By keyboard, focus moves to the toggle that switches back. A remount of the shell at tablet width (a trip
+ *       through the phone layout and back) keeps the chat view the user chose.
+ *   l2  Back up to 1280 from either view both columns show again, the canvas keeps at least 480px and its header
+ *       on one line, and Collapse/Expand canvas still work as before.
  *       The chat stays mounted behind its rail, so a draft and the scroll offset survive the trip, and the canvas
  *       header never wraps.
  *   l3  A cold load at 768 opens straight on the canvas: sampled on every animation frame from the first, the canvas
  *       never drops under 480px and the CV page never spills past it (no squeezed row, no unscaled page). New
- *       application from there brings the chat forward, where its job ad field is.
+ *       application from there brings the chat forward, where its job ad field is. On a fresh device (nothing in
+ *       local storage) the CV arrives after the first render, and at 1280 it is still scaled on every frame.
  *
- * Screenshots of both states at each width, and per-paint CDP screencast frames of the toggles and the cold
- * load, go to `<main checkout>/verify/<branch>/layout/`.
+ * Screenshots of both states at each width, per-paint CDP screencast frames of the toggles and the cold load, and
+ * a Playwright video of the whole run (both pages) go to `<main checkout>/verify/<branch>/layout/`.
  */
 
 function mainCheckout(): string {
@@ -139,10 +142,49 @@ async function expectChatView(page: Page, viewport: number) {
   await expectNoSideScroll(page);
 }
 
+/**
+ * Sample the canvas on every animation frame from the first: its width, and how far the CV page spills past it
+ * (null on frames without the page). Read back with expectSampledFrames.
+ */
+async function sampleFrames(page: Page) {
+  await page.addInitScript(() => {
+    const frames: { canvas: number; spill: number | null }[] = [];
+    (window as unknown as { layoutFrames: typeof frames }).layoutFrames = frames;
+    const sample = () => {
+      const column = document.querySelector('section:has([role="tablist"])');
+      if (column) {
+        const bounds = column.getBoundingClientRect();
+        // The CV's size wrapper holds the Full Preview button; unscaled, it is the page's full 816px.
+        const page = Array.from(column.querySelectorAll('button'))
+          .find((button) => button.textContent?.includes('Full Preview'))
+          ?.parentElement?.getBoundingClientRect();
+        frames.push({
+          canvas: bounds.width,
+          spill: page ? Math.max(page.right - bounds.right, bounds.left - page.left) : null,
+        });
+      }
+      requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  });
+}
+
+/** No sampled frame had a canvas under `minCanvas` or a CV page spilling past it, and some frames did show the page. */
+async function expectSampledFrames(page: Page, minCanvas: number) {
+  await expect(page.getByRole('button', { name: 'Full Preview' })).toBeVisible({ timeout: 30_000 });
+  const frames = await page.evaluate(() => (window as unknown as { layoutFrames: { canvas: number; spill: number | null }[] }).layoutFrames);
+  expect(frames.length).toBeGreaterThan(5);
+  expect(Math.min(...frames.map((frame) => frame.canvas))).toBeGreaterThanOrEqual(minCanvas);
+  // Only frames that had the CV page on them say anything about its scale, so there must be some.
+  const spills = frames.map((frame) => frame.spill).filter((spill): spill is number => spill !== null);
+  expect(spills.length).toBeGreaterThan(5);
+  expect(Math.max(...spills)).toBeLessThanOrEqual(1);
+}
+
 test('(l1-l3) chat and canvas take turns below 1100px and sit side by side above it', async ({ browser, request }) => {
   test.setTimeout(240_000);
   mkdirSync(SHOTS, { recursive: true });
-  const { context, page } = await signedInPage(browser, request, 'tabletlayout');
+  const { context, page } = await signedInPage(browser, request, 'tabletlayout', { videoDir: join(SHOTS, 'video') });
   await generateKitThroughUi(page);
   await expect(canvas(page)).toBeVisible();
 
@@ -175,14 +217,38 @@ test('(l1-l3) chat and canvas take turns below 1100px and sit side by side above
     await expectCanvasView(page, viewport);
   }
 
-  // l2: back above the breakpoint from the chat view, both columns return.
+  // Keyboard: the toggle that was pressed leaves with the switch, and focus lands on the one that switches back.
+  await showChat(page).focus();
+  await page.keyboard.press('Enter');
+  await expectChatView(page, 768);
+  await expect(showCanvas(page)).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expectCanvasView(page, 768);
+  await expect(showChat(page)).toBeFocused();
+
+  // l2 from the canvas view: up past the breakpoint both columns return, and back down the canvas takes the row.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(canvas(page)).toBeVisible();
+  await expect(chat(page)).toBeVisible();
+  await page.setViewportSize({ width: 768, height: 900 });
+  await expectCanvasView(page, 768);
+
+  // Below 768 the shell unmounts for the phone layout. Coming back mounts it again, in the chat view the user chose.
   await showChat(page).click();
   await expectChatView(page, 768);
+  await page.setViewportSize({ width: 700, height: 900 });
+  await expect(page.getByRole('heading', { name: 'Best on desktop' })).toBeVisible();
+  await page.setViewportSize({ width: 768, height: 900 });
+  await expectChatView(page, 768);
+
+  // l2 from the chat view: both columns return.
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(canvas(page)).toBeVisible();
   await expect(chat(page)).toBeVisible();
   expect(await width(canvas(page))).toBeGreaterThanOrEqual(USABLE);
   expect(await width(chat(page))).toBeGreaterThanOrEqual(360);
+  const cvTab = await box(page.getByRole('tab', { name: 'CV', exact: true }));
+  expect((await box(page.getByRole('tab', { name: 'Cover letter' }))).height).toBe(cvTab.height);
   await expectNoSideScroll(page);
   await shot(page, '1280-both');
 
@@ -198,39 +264,13 @@ test('(l1-l3) chat and canvas take turns below 1100px and sit side by side above
   // l3: a cold load at tablet width, recorded from the first paint and sampled on every animation frame.
   const cold = await context.newPage();
   await cold.setViewportSize({ width: 768, height: 900 });
-  await cold.addInitScript(() => {
-    const frames: { canvas: number; spill: number | null }[] = [];
-    (window as unknown as { layoutFrames: typeof frames }).layoutFrames = frames;
-    const sample = () => {
-      const column = document.querySelector('section:has([role="tablist"])');
-      if (column) {
-        const bounds = column.getBoundingClientRect();
-        // The CV's size wrapper holds the Full Preview button; unscaled, it is the page's full 816px.
-        const page = Array.from(column.querySelectorAll('button'))
-          .find((button) => button.textContent?.includes('Full Preview'))
-          ?.parentElement?.getBoundingClientRect();
-        frames.push({
-          canvas: bounds.width,
-          spill: page ? Math.max(page.right - bounds.right, bounds.left - page.left) : null,
-        });
-      }
-      requestAnimationFrame(sample);
-    };
-    requestAnimationFrame(sample);
-  });
+  await sampleFrames(cold);
   await recordPaints(cold, '768-cold-start', async () => {
     await cold.goto('/dashboard');
     await expect(canvas(cold)).toBeVisible({ timeout: 30_000 });
   });
   await expectCanvasView(cold, 768);
-  await expect(cold.getByRole('button', { name: 'Full Preview' })).toBeVisible();
-  const frames = await cold.evaluate(() => (window as unknown as { layoutFrames: { canvas: number; spill: number | null }[] }).layoutFrames);
-  expect(frames.length).toBeGreaterThan(5);
-  expect(Math.min(...frames.map((frame) => frame.canvas))).toBeGreaterThanOrEqual(USABLE);
-  // Only frames that had the CV page on them say anything about its scale, so there must be some.
-  const spills = frames.map((frame) => frame.spill).filter((spill): spill is number => spill !== null);
-  expect(spills.length).toBeGreaterThan(5);
-  expect(Math.max(...spills)).toBeLessThanOrEqual(1);
+  await expectSampledFrames(cold, USABLE);
   await shot(cold, '768-cold-start');
 
   // New application from the canvas view: the reset lands in the chat, so the chat comes forward with its job ad field.
@@ -239,5 +279,18 @@ test('(l1-l3) chat and canvas take turns below 1100px and sit side by side above
   await expect(showCanvas(cold)).toBeVisible();
   expect(await width(chat(cold))).toBeGreaterThanOrEqual(USABLE);
   await shot(cold, '768-new-application');
+
+  // l3 on a fresh device: the same account with nothing in local storage, so the CV only arrives once the session
+  // loads from the server, after the first render. The page must still be scaled on every frame it shows.
+  const fresh = await browser.newContext({ viewport: { width: 1280, height: 900 }, storageState: { cookies: await context.cookies(), origins: [] } });
+  const device = await fresh.newPage();
+  await sampleFrames(device);
+  await recordPaints(device, '1280-fresh-device', async () => {
+    await device.goto('/dashboard');
+    await expect(device.getByRole('button', { name: 'Full Preview' })).toBeVisible({ timeout: 30_000 });
+  });
+  await expectSampledFrames(device, USABLE);
+  await shot(device, '1280-fresh-device');
+  await fresh.close();
   await context.close();
 });

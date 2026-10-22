@@ -22,6 +22,9 @@ interface CanvasColumnProps {
   setToolbarNode: (node: HTMLDivElement | null) => void;
 }
 
+/** The folded canvas's rail. The shell lays the folded chat out from it. */
+export const CANVAS_RAIL_WIDTH = 48;
+
 const TABS: { id: KitTab; label: string; icon: typeof FileText }[] = [
   { id: 'cv', label: 'CV', icon: FileText },
   { id: 'cover-letter', label: 'Cover letter', icon: Mail },
@@ -97,7 +100,8 @@ export function CanvasColumn({
       /* Otherwise the toggle lives at the bottom right in both states, so it
          never jumps when the canvas opens or closes. */
       <div
-        className={`flex h-full w-12 flex-shrink-0 flex-col items-center border-l border-cream-200 bg-cream-100 ${
+        style={{ width: CANVAS_RAIL_WIDTH }}
+        className={`flex h-full flex-shrink-0 flex-col items-center border-l border-cream-200 bg-cream-100 ${
           compact ? 'justify-start py-3' : 'justify-end py-4'
         }`}
       >
@@ -189,7 +193,7 @@ export function CanvasColumn({
           <div className={showAtsView ? 'hidden' : 'contents'}>
             {activeTab === 'cv' && currentSession?.generatedCV && (
               <div className="flex items-center gap-3 border-b border-cream-200 px-5 py-2.5">
-                <div ref={setHeaderNode} className="flex min-w-0 flex-1 items-center gap-3" />
+                <div ref={setHeaderNode} className="@container flex min-w-0 flex-1 items-center gap-3" />
               </div>
             )}
             <div className="flex items-center gap-2 border-b border-cream-200 px-5 py-2.5">

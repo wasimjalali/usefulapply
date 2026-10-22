@@ -4,6 +4,7 @@ import { flushSync } from 'react-dom';
 import { PanelLeftOpen } from 'lucide-react';
 import { ChatPanel } from '@/components/ChatPanel';
 import { SIDEBAR_WIDTH } from '@/components/shell/Sidebar';
+import { CANVAS_RAIL_WIDTH } from '@/components/shell/CanvasColumn';
 import { FeedConversation } from '@/components/job-feed/FeedConversation';
 import { TrackerConversation } from '@/components/tracker/TrackerConversation';
 import { useSessionStore } from '@/store/useSessionStore';
@@ -94,7 +95,7 @@ export function ConversationColumn({ onTabChange, columnRef, compact }: Conversa
       {rail}
       <div
         ref={columnRef}
-        style={collapsed ? { left: SIDEBAR_WIDTH } : useDraggedWidth ? { width: `${draggedWidth}px` } : undefined}
+        style={collapsed ? { left: SIDEBAR_WIDTH, right: CANVAS_RAIL_WIDTH } : useDraggedWidth ? { width: `${draggedWidth}px` } : undefined}
         // Behind its rail the column stays mounted and laid out, out of sight,
         // over the canvas at the exact width it will show at (the row less
         // the sidebar and the canvas rail). display:none would drop the
@@ -104,7 +105,7 @@ export function ConversationColumn({ onTabChange, columnRef, compact }: Conversa
         // canvas. inert keeps it out of the tab order and the a11y tree.
         inert={collapsed}
         className={`h-full min-h-0 ${
-          collapsed ? 'pointer-events-none absolute inset-y-0 right-12 flex opacity-0' : 'relative flex'
+          collapsed ? 'pointer-events-none absolute inset-y-0 flex opacity-0' : 'relative flex'
         } ${
           // The canvas only ever needs one CV page plus its margins (816 + 128
           // = 944), and the sidebar takes 225. Everything past that is surplus,
