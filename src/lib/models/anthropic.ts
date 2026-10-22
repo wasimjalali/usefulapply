@@ -29,7 +29,7 @@ import {
   type MessagesClient,
   type ProviderName,
 } from './providers';
-import { createStreamGuard } from './stream-guard';
+import { createStreamGuard, outputTokensPartial, partialStreamUsage, streamMaxGapOf } from './stream-guard';
 import type { ModelResponse, ConversationMessage, CacheableContentBlock, CacheTtl } from './types';
 
 type LedgerAwareResponse = {
@@ -466,20 +466,25 @@ export function buildSonnetRequest(options: AnthropicCallOptions, model: string 
 async function sendSdkMessage(
   client: MessagesClient,
   params: SonnetRequest,
-): Promise<{ message: Anthropic.Message; requestId: string | null }> {
+): Promise<{ message: Anthropic.Message; requestId: string | null; streamMaxGapMs: number | null }> {
   if (params.max_tokens > STREAM_ABOVE_MAX_TOKENS) {
     // The caller sees nothing until the final message, so a failure here is always safe to fail over.
     const guard = createStreamGuard(streamIdleTimeoutMs());
     try {
       const stream = client.messages.stream(params, { timeout: SONNET_STREAM_FIRST_BYTE_TIMEOUT_MS, ...guard.requestOptions });
-      const message = await guard.run(() => stream.finalMessage(), () => stream.currentMessage?.usage);
-      return { message, requestId: stream.request_id ?? null };
+      const message = await guard.finalMessage(stream);
+      return { message, requestId: stream.request_id ?? null, streamMaxGapMs: guard.maxGapMs };
     } finally {
       guard.dispose();
     }
   }
   const { data, request_id } = await client.messages.create(params, { timeout: SONNET_TIMEOUT_MS }).withResponse();
-  return { message: data, requestId: request_id ?? null };
+  return { message: data, requestId: request_id ?? null, streamMaxGapMs: null };
+}
+
+/** The console note for a streamed attempt: its largest gap between bytes against the idle limit. '' when not streamed. */
+export function streamGapNote(streamMaxGapMs: number | null): string {
+  return streamMaxGapMs === null ? '' : ` stream_max_gap_ms=${streamMaxGapMs} (idle limit ${streamIdleTimeoutMs()})`;
 }
 
 /** A completed response that must not be treated as success (refusal or truncation). */
@@ -647,6 +652,8 @@ export interface SonnetGenerationInput {
   cacheMarkers: CacheTtl[];
   errorKind: string | null;
   httpStatus: number | null;
+  /** Largest gap between received bytes of a streamed attempt (stream-guard.ts); null when not streamed. */
+  streamMaxGapMs?: number | null;
 }
 
 /**
@@ -700,6 +707,9 @@ export function buildSonnetGenerationProperties(input: SonnetGenerationInput): R
     cost_usd: cost?.totalCostUsd ?? null,
     latency_ms: input.latencyMs,
     error_kind: input.errorKind,
+    stream_max_gap_ms: input.streamMaxGapMs ?? null,
+    // A stream that broke before message_delta: input and cache counts are real, the output count is a floor.
+    output_tokens_partial: outputTokensPartial(input.rawUsage),
   };
 }
 
@@ -732,7 +742,7 @@ async function sdkTextAttempt(
   const cacheMarkers = cacheMarkerTtls(params);
   let providerResponseReceived = false;
   try {
-    const { message, requestId } = await sendSdkMessage(target.getClient(), params);
+    const { message, requestId, streamMaxGapMs } = await sendSdkMessage(target.getClient(), params);
     // Throws on a refusal or truncation before the ledger marks the call complete.
     const text = sdkMessageText(message, requestId, params.max_tokens);
     providerResponseReceived = true;
@@ -754,7 +764,9 @@ async function sdkTextAttempt(
       cacheMarkers,
       errorKind: null,
       httpStatus: null,
+      streamMaxGapMs,
     });
+    if (streamMaxGapMs !== null) console.log(`[anthropic] ${call.site} streamed on ${target.provider}${streamGapNote(streamMaxGapMs)}`);
     return { text, message, ledgerId: ledger.id, latencyMs };
   } catch (error) {
     if (!providerResponseReceived) {
@@ -783,7 +795,9 @@ async function sdkTextAttempt(
         cacheMarkers,
         errorKind,
         httpStatus,
+        streamMaxGapMs: streamMaxGapOf(error),
       });
+      if (streamMaxGapOf(error) !== null) console.error(`[anthropic] ${call.site} stream failed on ${target.provider} (${errorKind})${streamGapNote(streamMaxGapOf(error))}`);
     }
     throw error;
   }
@@ -882,10 +896,12 @@ export async function callAnthropicStream(
 
     const ledger = await sonnetDeps.startLedger({ context, provider: target.provider, model: target.model });
     let providerResponseReceived = false;
+    // message_delta carries the real output count; until it arrives the usage record's output is a floor.
+    let sawMessageDelta = false;
     const guard = createStreamGuard(streamIdleTimeoutMs());
     try {
       const stream = target.getClient().messages.stream(params, { timeout: SONNET_STREAM_FIRST_BYTE_TIMEOUT_MS, ...guard.requestOptions });
-      const usageSoFar = () => (Object.keys(finalUsage).length > 0 ? finalUsage : undefined);
+      const usageSoFar = () => (Object.keys(finalUsage).length > 0 ? partialStreamUsage(finalUsage, sawMessageDelta) : undefined);
 
       for await (const event of guard.events(stream, usageSoFar)) {
         // Text deltas only: thinking and signature deltas never reach the caller.
@@ -897,6 +913,7 @@ export async function callAnthropicStream(
         }
 
         if (event.type === 'message_delta') {
+          sawMessageDelta = true;
           stopReason = event.delta.stop_reason;
           stopDetails = event.delta.stop_details;
           const exactOutputTokens = exactTokenCount(event.usage.output_tokens);
@@ -924,8 +941,9 @@ export async function callAnthropicStream(
             cacheReadTokens = exactCacheReadTokens;
             finalUsage.cache_read_input_tokens = exactCacheReadTokens;
           }
-          // message_start carries the output so far (about 1); message_delta replaces it with the final count. Kept
-          // so a stream that breaks before message_delta still has a complete, priceable usage record.
+          // message_start carries the output so far (about 1); message_delta replaces it with the final count. Kept so a
+          // stream that breaks before message_delta still has a priceable record: its input and cache fields are
+          // complete, its output is a floor, and it is marked output_tokens_partial (usageSoFar, partialStreamUsage).
           const startOutputTokens = exactTokenCount(usage.output_tokens);
           if (startOutputTokens !== null && finalUsage.output_tokens === undefined) finalUsage.output_tokens = startOutputTokens;
           if (usage.cache_creation) finalUsage.cache_creation = { ...usage.cache_creation };
@@ -967,7 +985,9 @@ export async function callAnthropicStream(
         cacheMarkers,
         errorKind: null,
         httpStatus: null,
+        streamMaxGapMs: guard.maxGapMs,
       });
+      console.log(`[anthropic] ${site} streamed on ${target.provider}${streamGapNote(guard.maxGapMs)}`);
 
       const parts = usageRecordsOf(finalUsage);
       const split = parts ? sumUsageParts(parts) : null;
@@ -993,7 +1013,7 @@ export async function callAnthropicStream(
         const httpStatus = providerHttpStatus(error);
         // A refusal carries its own billed usage; a stream that broke part-way keeps what message_start and the
         // deltas reported, so the failed row and its event are not silently free.
-        const billed = billedUsageOf(error) ?? (Object.keys(finalUsage).length > 0 ? { usage: finalUsage, providerRequestId } : null);
+        const billed = billedUsageOf(error) ?? (Object.keys(finalUsage).length > 0 ? { usage: partialStreamUsage(finalUsage, sawMessageDelta), providerRequestId } : null);
         await sonnetDeps.failLedger({
           id: ledger.id,
           latencyMs,
@@ -1014,7 +1034,9 @@ export async function callAnthropicStream(
           cacheMarkers,
           errorKind,
           httpStatus,
+          streamMaxGapMs: guard.maxGapMs,
         });
+        console.error(`[anthropic] ${site} stream failed on ${target.provider} (${errorKind})${streamGapNote(guard.maxGapMs)}`);
       }
       throw error;
     } finally {

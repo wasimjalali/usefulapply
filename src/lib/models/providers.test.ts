@@ -20,7 +20,7 @@ import {
   type SonnetDeps,
 } from './anthropic';
 import { InputBudgetError } from './haiku';
-import { createStreamGuard } from './stream-guard';
+import { createStreamGuard, outputTokensPartial, partialStreamUsage, streamMaxGapOf } from './stream-guard';
 import {
   BEDROCK_MODEL_IDS,
   StreamIdleTimeoutError,
@@ -433,6 +433,41 @@ test('the stream guard names its errors: a plain SDK error becomes ours, a statu
   await assert.rejects(streamEvent.run(async () => { throw overloaded; }), (thrown: unknown) => thrown === overloaded);
 });
 
+test('the stream guard reports the largest gap between received bytes, the open gap at a failure included', async () => {
+  let now = 1_000;
+  const guard = createStreamGuard(60_000, undefined, () => now);
+  assert.equal(guard.maxGapMs, null, 'nothing measured before the headers');
+  guard.start();
+  now += 200; guard.touch();
+  now += 4_500; guard.touch();
+  now += 300; guard.touch();
+  assert.equal(guard.maxGapMs, 4_500);
+  await guard.run(async () => 'done');
+  assert.equal(guard.maxGapMs, 4_500, 'a clean end adds nothing');
+
+  // A failure while the stream is quiet counts the gap still open, and the converted error carries it.
+  let later = 0;
+  const failing = createStreamGuard(60_000, undefined, () => later);
+  failing.start();
+  later += 1_000; failing.touch();
+  later += 7_000;
+  const thrown = await failing.run(async () => { throw new TypeError('terminated'); }).catch((caught: unknown) => caught);
+  assert.ok(thrown instanceof StreamTransportError);
+  assert.equal(failing.maxGapMs, 7_000);
+  assert.equal(streamMaxGapOf(thrown), 7_000);
+  assert.equal(streamMaxGapOf(new Error('not a stream')), null);
+});
+
+test('usage a broken stream reported is marked partial unless message_delta came', () => {
+  const start = { input_tokens: 77, output_tokens: 1, cache_read_input_tokens: 5, cache_creation_input_tokens: 9 };
+  assert.deepEqual(partialStreamUsage(start, false), { ...start, output_tokens_partial: true });
+  assert.deepEqual(partialStreamUsage({ ...start, output_tokens: 12 }, true), { ...start, output_tokens: 12 });
+  assert.equal(partialStreamUsage(undefined, false), undefined);
+  assert.equal(outputTokensPartial({ ...start, output_tokens_partial: true }), true);
+  assert.equal(outputTokensPartial(start), false);
+  assert.equal(outputTokensPartial(null), false);
+});
+
 test('a real caller abort is not a failover error; our own idle abort is', async () => {
   const caller = new AbortController();
   const callerGuard = createStreamGuard(10_000, caller.signal);
@@ -548,7 +583,7 @@ async function withStreamApi(
   }
 }
 
-interface LedgerRow { id: string; provider: string; model: string; outcome: 'started' | 'completed' | 'failed'; errorKind?: string; inputTokens?: number | null; cacheReadInputTokens?: number | null }
+interface LedgerRow { id: string; provider: string; model: string; outcome: 'started' | 'completed' | 'failed'; errorKind?: string; inputTokens?: number | null; cacheReadInputTokens?: number | null; providerUsage?: Record<string, unknown> | null }
 
 /** Real SDK clients (both providers) against the local server, the ledger and PostHog replaced by recorders. */
 async function withLiveSonnet(
@@ -575,9 +610,9 @@ async function withLiveSonnet(
           const row = rows.find((r) => r.id === params.id);
           if (row) row.outcome = 'completed';
         }) as SonnetDeps['completeLedger'],
-        failLedger: (async (params: { id: string; errorKind: string; inputTokens?: number | null; cacheReadInputTokens?: number | null }) => {
+        failLedger: (async (params: { id: string; errorKind: string; inputTokens?: number | null; cacheReadInputTokens?: number | null; providerUsage?: Record<string, unknown> | null }) => {
           const row = rows.find((r) => r.id === params.id);
-          if (row) Object.assign(row, { outcome: 'failed', errorKind: params.errorKind, inputTokens: params.inputTokens, cacheReadInputTokens: params.cacheReadInputTokens });
+          if (row) Object.assign(row, { outcome: 'failed', errorKind: params.errorKind, inputTokens: params.inputTokens, cacheReadInputTokens: params.cacheReadInputTokens, providerUsage: params.providerUsage });
         }) as SonnetDeps['failLedger'],
         capture: async (event) => { events.push(event); },
       };
@@ -624,6 +659,12 @@ test('a streamed Sonnet call whose connection is reset after the headers fails o
     assert.ok(failedGeneration, 'the failed attempt has its $ai_generation event');
     assert.equal(failedGeneration.properties.input_tokens, 77);
     assert.ok((failedGeneration.properties.cost_usd as number) > 0, 'cost is not silently zero');
+    // The output count is message_start's 1, not the real one: the row and the event say so.
+    assert.equal(failedGeneration.properties.output_tokens_partial, true);
+    assert.equal(rows[0].providerUsage?.output_tokens_partial, true);
+    assert.equal(typeof failedGeneration.properties.stream_max_gap_ms, 'number');
+    const bedrockGeneration = events.find((event) => event.event === undefined && event.properties.error_kind === null);
+    assert.equal(bedrockGeneration?.properties.output_tokens_partial, false);
   });
 });
 
@@ -637,17 +678,24 @@ test('a streamed Sonnet call that goes quiet after a ping hits the idle timeout 
     assert.deepEqual(rows.map((r) => [r.provider, r.outcome]), [['anthropic', 'failed'], ['bedrock', 'completed']]);
     assert.equal(rows[0].errorKind, 'connection_timeout');
     assert.equal(events.filter((event) => event.event === 'llm_provider_failover')[0].properties.primary_error_kind, 'connection_timeout');
+    // The stall is the largest gap, and it reached the idle limit (150 ms here).
+    const failed = events.find((event) => event.event === undefined && event.properties.error_kind === 'connection_timeout');
+    assert.ok((failed?.properties.stream_max_gap_ms as number) >= 140, `gap ${failed?.properties.stream_max_gap_ms}`);
   });
 });
 
 test('pings keep a slow stream alive: nothing but pings for longer than the idle timeout is not idle', async () => {
-  await withLiveSonnet(async ({ mode, rows, hits }) => {
+  await withLiveSonnet(async ({ mode, rows, hits, events }) => {
     mode.current = 'slow-with-pings';
     const response = await callAnthropicStream(STREAM_CALL, () => {});
     assert.equal(response.provider, 'anthropic');
     assert.equal(response.content, 'from primary');
     assert.equal(hits.length, 1);
     assert.deepEqual(rows.map((r) => [r.provider, r.outcome]), [['anthropic', 'completed']]);
+    // Pings every 60 ms: the largest gap is about that, under the 150 ms idle limit, and it is on the event.
+    const generation = events.find((event) => event.event === undefined);
+    const gap = generation?.properties.stream_max_gap_ms as number;
+    assert.ok(gap >= 40 && gap < 150, `gap ${gap}`);
   });
 });
 
@@ -681,7 +729,7 @@ test('a stream that ends without message_stop is not a success: before any text 
 
 test('a Sonnet call big enough to stream (max_tokens over 16k) fails over when the connection is reset or goes idle', async () => {
   for (const how of ['reset-before-text', 'stall-after-ping'] as const) {
-    await withLiveSonnet(async ({ mode, rows, hits }) => {
+    await withLiveSonnet(async ({ mode, rows, hits, events }) => {
       mode.current = how;
       // maxTokens 5000 -> max_tokens 20000, above STREAM_ABOVE_MAX_TOKENS, so the SDK streams and waits for the final message.
       const response = await callAnthropic({ ...STREAM_CALL, maxTokens: 5000 });
@@ -690,6 +738,15 @@ test('a Sonnet call big enough to stream (max_tokens over 16k) fails over when t
       assert.equal(hits.every((hit) => hit.stream), true);
       assert.deepEqual(rows.map((r) => [r.provider, r.outcome]), [['anthropic', 'failed'], ['bedrock', 'completed']], how);
       assert.equal(rows[0].errorKind, how === 'stall-after-ping' ? 'connection_timeout' : 'connection_error', how);
+      // The finalMessage path marks the partial output count and reports its byte gap too.
+      assert.equal(rows[0].providerUsage?.output_tokens_partial, true, how);
+      const failed = events.find((event) => event.event === undefined && event.properties.error_kind !== null);
+      assert.equal(failed?.properties.output_tokens_partial, true, how);
+      const gap = failed?.properties.stream_max_gap_ms as number;
+      assert.equal(typeof gap, 'number', how);
+      if (how === 'stall-after-ping') assert.ok(gap >= 140, `gap ${gap}`);
+      const ok = events.find((event) => event.event === undefined && event.properties.error_kind === null);
+      assert.equal(typeof ok?.properties.stream_max_gap_ms, 'number', how);
     });
   }
 });

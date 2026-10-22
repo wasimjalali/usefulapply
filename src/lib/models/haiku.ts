@@ -43,6 +43,7 @@ import {
   providerErrorKind,
   providerHttpStatus,
   recordProviderFailure,
+  streamGapNote,
   streamIdleTimeoutMs,
   sumUsageParts,
   usageRecordsOf,
@@ -61,7 +62,7 @@ import {
   type ProviderName,
 } from './providers';
 import { resolveHaikuEffort } from './haiku-effort';
-import { createStreamGuard } from './stream-guard';
+import { createStreamGuard, outputTokensPartial, streamMaxGapOf } from './stream-guard';
 import {
   INPUT_HARD_LIMIT,
   INPUT_REFUSE_ABOVE,
@@ -304,6 +305,8 @@ export function buildHaikuRequest(options: HaikuCallOptions, effort: HaikuEffort
 export type HaikuMessage = Pick<Anthropic.Beta.BetaMessage, 'id' | 'content' | 'stop_reason' | 'usage'> & {
   stop_details?: Anthropic.Beta.BetaMessage['stop_details'];
   _request_id?: string | null;
+  /** Largest gap between received bytes when the call streamed (stream-guard.ts); absent or null when it didn't. */
+  _stream_max_gap_ms?: number | null;
 };
 
 /**
@@ -361,6 +364,10 @@ export interface AiGenerationInput {
   budget: InputBudgetCheck | null;
   errorKind: string | null;
   httpStatus: number | null;
+  /** Largest gap between received bytes of a streamed attempt; null when not streamed. */
+  streamMaxGapMs?: number | null;
+  /** The usage came from a stream that broke before message_delta: its output count is a floor. */
+  outputTokensPartial?: boolean;
 }
 
 /** Properties of the PostHog `$ai_generation` event. Counts and labels only: no prompt, no user data. */
@@ -411,6 +418,8 @@ export function buildAiGenerationProperties(input: AiGenerationInput): Record<st
     cost_usd: input.costUsd,
     latency_ms: input.latencyMs,
     error_kind: input.errorKind,
+    stream_max_gap_ms: input.streamMaxGapMs ?? null,
+    output_tokens_partial: input.outputTokensPartial === true,
   };
 }
 
@@ -443,8 +452,8 @@ function haikuClientFor(sdk: MessagesClient): HaikuClient {
         const guard = createStreamGuard(streamIdleTimeoutMs());
         try {
           const stream = sdk.beta.messages.stream(params, { ...options, ...guard.requestOptions });
-          const message = await guard.run(() => stream.finalMessage(), () => stream.currentMessage?.usage);
-          return { ...message, _request_id: stream.request_id ?? null };
+          const message = await guard.finalMessage(stream);
+          return { ...message, _request_id: stream.request_id ?? null, _stream_max_gap_ms: guard.maxGapMs };
         } finally {
           guard.dispose();
         }
@@ -672,7 +681,11 @@ export async function callHaiku(options: HaikuCallOptions, deps: HaikuDeps = def
         budget,
         errorKind: null,
         httpStatus: 200,
+        streamMaxGapMs: message._stream_max_gap_ms ?? null,
       }));
+      if (message._stream_max_gap_ms != null) {
+        console.log(`[haiku] ${options.site} streamed on ${target.provider}${streamGapNote(message._stream_max_gap_ms)}`);
+      }
 
       return {
         content,
@@ -730,8 +743,10 @@ export async function callHaiku(options: HaikuCallOptions, deps: HaikuDeps = def
         budget,
         errorKind,
         httpStatus,
+        streamMaxGapMs: streamMaxGapOf(error),
+        outputTokensPartial: outputTokensPartial(billedUsage),
       }));
-      console.error(`[haiku] ${options.site} failed on ${target.provider} (${errorKind})`, error instanceof Error ? error.message : error);
+      console.error(`[haiku] ${options.site} failed on ${target.provider} (${errorKind})${streamGapNote(streamMaxGapOf(error))}`, error instanceof Error ? error.message : error);
       throw error;
     }
   };

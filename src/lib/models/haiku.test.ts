@@ -439,6 +439,9 @@ test('a call records the ledger and one $ai_generation event with the per-site c
   assert.ok(Math.abs((e.cost_usd as number) - expectedCost) < 1e-12);
   assert.equal(e.$ai_is_error, false);
   assert.equal(e.over_hard_budget, false);
+  // Not streamed: no byte gap to report, and the output count is the response's own.
+  assert.equal(e.stream_max_gap_ms, null);
+  assert.equal(e.output_tokens_partial, false);
   // counts and labels only: nothing from the prompt or the answer
   assert.ok(!JSON.stringify(e).includes('answer'));
   assert.ok(!JSON.stringify(e).includes('hello'));
@@ -1019,6 +1022,19 @@ test('a streamed Haiku call (max_tokens over 16k) whose connection resets or goe
           assert.ok(failedEvent, how);
           assert.equal(failedEvent.input_tokens, 321, how);
           assert.ok((failedEvent.cost_usd as number) > 0, 'cost is not silently zero');
+          // message_start reports output_tokens 1; the real count only comes in message_delta, which never came.
+          assert.equal(failedEvent.output_tokens_partial, true, how);
+          assert.equal((h.failed[0].providerUsage as Record<string, unknown>).output_tokens_partial, true, how);
+          assert.equal(h.failed[0].inputTokens, 321, 'input and cache fields are kept as reported');
+          // The largest gap between bytes: a stall reaches the idle limit, a reset stays well under it.
+          const gap = failedEvent.stream_max_gap_ms as number;
+          assert.equal(typeof gap, 'number', how);
+          if (how === 'stall') assert.ok(gap >= 140, `stall gap ${gap}`);
+          else assert.ok(gap < 140, `reset gap ${gap}`);
+          const okEvent = h.events.find((event) => event.error_kind === null);
+          assert.ok(okEvent, how);
+          assert.equal(typeof okEvent.stream_max_gap_ms, 'number', 'the streamed success reports its gap too');
+          assert.equal(okEvent.output_tokens_partial, false, how);
           assert.equal(hits.filter((path) => path.startsWith('/bedrock/')).length, 1, how);
         } finally {
           setStreamIdleTimeoutForTests(null);
