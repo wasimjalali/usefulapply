@@ -16,10 +16,14 @@
  * Failover (providers.ts): after a network failure or a 5xx on the Anthropic API, the same request goes to
  * Claude in Amazon Bedrock (model `anthropic.claude-haiku-5-5`). The failed primary attempt and the Bedrock
  * attempt each have their own ledger row and `$ai_generation` event (`$ai_provider` 'anthropic' / 'bedrock');
- * the cache markers are byte-identical, Bedrock keeps its own cache. The count_tokens guard fails over too,
- * and if Bedrock cannot count either the guard fails loud (it never estimates past the cap).
+ * the cache markers are byte-identical, Bedrock keeps its own cache. The count_tokens guard fails over too:
+ * when the primary cannot count and Bedrock can, the message goes to Bedrock as well (the primary just failed),
+ * under one failover event; if Bedrock cannot count either the guard fails loud (it never estimates past the cap)
+ * and the primary's ledger row says `count_tokens_failed`. Streamed calls (max_tokens over 16k) fail over when the
+ * connection is lost or goes idle after the headers too (stream-guard.ts).
  * Beta types and `client.beta.messages` are used because `usage.iterations` and system-message fields exist
- * only there; no `betas` header is sent.
+ * only there. The messages calls send no `betas` header; the countTokens call adds the SDK's own
+ * `anthropic-beta: token-counting` header.
  */
 import type Anthropic from '@anthropic-ai/sdk';
 import {
@@ -30,21 +34,26 @@ import { getPostHogServer } from '@/lib/posthog-server';
 import {
   ModelStopError,
   STREAM_ABOVE_MAX_TOKENS,
+  assertMarkerTtlOrder,
   assertUsableStop,
   billedFailureUsage,
+  billedUsageOf,
   completeProviderGeneration,
   haiku55CostUsd,
   providerErrorKind,
   providerHttpStatus,
   recordProviderFailure,
+  streamIdleTimeoutMs,
   sumUsageParts,
   usageRecordsOf,
   type UsageParts,
 } from './anthropic';
 import {
+  bedrockModelId,
   captureFailoverEvent,
   getBedrockClient,
   getPrimaryClient,
+  isFailoverError,
   markNotFailoverEligible,
   runWithFailover,
   type FailoverTarget,
@@ -52,6 +61,7 @@ import {
   type ProviderName,
 } from './providers';
 import { resolveHaikuEffort } from './haiku-effort';
+import { createStreamGuard } from './stream-guard';
 import {
   INPUT_HARD_LIMIT,
   INPUT_REFUSE_ABOVE,
@@ -80,12 +90,14 @@ export type HaikuSite =
  * Per-call HTTP timeout. The SDK default is 10 minutes, so a hung primary would hold the user for up to
  * 20 minutes (one SDK retry) before the Bedrock failover runs. About 4x the slowest call measured in
  * production over 60 days (gpt-oss, slower than Haiku): interactive sites peaked at 24 s, the job feed at
- * 114 s. The SDK arms it around the fetch until response headers, which for a non-streamed call is the
- * whole generation. A timeout is a failover error (APIConnectionTimeoutError).
+ * 114 s. Screening is the exception, 90 s: it can write 8000 tokens at about 170 tokens/s with thinking, which
+ * is 47 s of generation alone, so 45 s would cut a healthy call. The SDK arms it around the fetch until response
+ * headers, which for a non-streamed call is the whole generation. A timeout is a failover error
+ * (APIConnectionTimeoutError). A streamed call (max_tokens over 16k) also has STREAM_IDLE_TIMEOUT_MS after its headers.
  */
 export const HAIKU_SITE_TIMEOUT_MS: Readonly<Record<HaikuSite, number>> = {
   chat: 45_000,
-  screening: 45_000,
+  screening: 90_000,
   tracker: 45_000,
   language: 45_000,
   ranking: 120_000,
@@ -209,15 +221,23 @@ function toolInputSchema(tool: HaikuToolDefinition): Anthropic.Beta.BetaTool.Inp
  * The Messages API body for a call. Exported so cache tests can build two requests and compare the
  * cached prefix byte for byte. Throws on options that cannot make a valid request.
  */
-function countMessageMarkers(messages: HaikuCallOptions['messages']): number {
-  let count = 0;
+function markerTtls(
+  systemBlocks: Anthropic.Beta.BetaTextBlockParam[],
+  messages: HaikuCallOptions['messages'],
+  automatic: boolean,
+): Array<'5m' | '1h'> {
+  const ttls: Array<'5m' | '1h'> = [];
+  const visit = (block: { cache_control?: CacheControl | null }) => {
+    if (block.cache_control) ttls.push(block.cache_control.ttl === '1h' ? '1h' : '5m');
+  };
+  systemBlocks.forEach(visit);
   for (const message of messages) {
     if (!Array.isArray(message.content)) continue;
-    for (const block of message.content) {
-      if ('cache_control' in block && block.cache_control) count += 1;
-    }
+    for (const block of message.content) visit(block as { cache_control?: CacheControl | null });
   }
-  return count;
+  // Automatic caching marks the last block of the conversation, always 5m, so it never breaks the order.
+  if (automatic) ttls.push('5m');
+  return ttls;
 }
 
 export function buildHaikuRequest(options: HaikuCallOptions, effort: HaikuEffort): HaikuRequest {
@@ -267,11 +287,11 @@ export function buildHaikuRequest(options: HaikuCallOptions, effort: HaikuEffort
   // Automatic caching marks the last block of the conversation (5m), after the 1h markers above.
   if (options.cacheConversation) params.cache_control = { type: 'ephemeral' };
 
-  const markerCount =
-    systemBlocks.length + (options.cacheConversation ? 1 : 0) + countMessageMarkers(messages);
-  if (markerCount > 4) {
-    throw new Error(`callHaiku(${site}): ${markerCount} cache markers, the API allows 4`);
+  const ttls = markerTtls(systemBlocks, messages, Boolean(options.cacheConversation));
+  if (ttls.length > 4) {
+    throw new Error(`callHaiku(${site}): ${ttls.length} cache markers, the API allows 4`);
   }
+  assertMarkerTtlOrder(ttls, `callHaiku(${site})`);
 
   return params;
 }
@@ -419,9 +439,15 @@ function haikuClientFor(sdk: MessagesClient): HaikuClient {
   return {
     async createMessage(params, options) {
       if (params.max_tokens > STREAM_ABOVE_MAX_TOKENS) {
-        const stream = sdk.beta.messages.stream(params, options);
-        const message = await stream.finalMessage();
-        return { ...message, _request_id: stream.request_id ?? null };
+        // The caller sees nothing until the final message, so a stream that breaks or goes idle is safe to fail over.
+        const guard = createStreamGuard(streamIdleTimeoutMs());
+        try {
+          const stream = sdk.beta.messages.stream(params, { ...options, ...guard.requestOptions });
+          const message = await guard.run(() => stream.finalMessage(), () => stream.currentMessage?.usage);
+          return { ...message, _request_id: stream.request_id ?? null };
+        } finally {
+          guard.dispose();
+        }
       }
       // The SDK already defines a read-only `_request_id` on the message at runtime, so it is copied, not assigned.
       const { data, request_id } = await sdk.beta.messages.create(params, options).withResponse();
@@ -493,9 +519,10 @@ function haikuFailover<T>(
 }
 
 /**
- * Measure a request: the local estimate, and an exact count_tokens call only above COUNT_TOKENS_ABOVE.
- * The count fails over to Bedrock like a message does. If that fails too, the guard fails loud with the
- * count's error and the call is not sent (a budget that could not be checked must not read as "fine").
+ * Measure a request outside any call: the local estimate, and an exact count_tokens call only above
+ * COUNT_TOKENS_ABOVE. The count fails over to Bedrock like a message does (callers that shrink their input
+ * use this). If that fails too, the guard fails loud with the count's error (a budget that could not be
+ * checked must not read as "fine"). callHaiku does its own count inside its attempts, see below.
  */
 async function measureBudget(deps: HaikuDeps, options: HaikuCallOptions, params: HaikuRequest): Promise<InputBudgetCheck> {
   return measureInputBudget(
@@ -536,18 +563,61 @@ export async function callHaiku(options: HaikuCallOptions, deps: HaikuDeps = def
   const params = buildHaikuRequest(options, effort);
   const context = options.generationContext;
   let budget: InputBudgetCheck | null = null;
+  // Set when the primary could not count but Bedrock could: the Bedrock attempt reuses that number.
+  let countedOnBedrock: number | null = null;
 
   // One attempt on one provider, with its own ledger row and its own $ai_generation event. It throws the
   // original error after recording it, so the failover helper can read it.
   const attempt = async (target: FailoverTarget<HaikuClient>): Promise<HaikuResponse> => {
     const startedAtMs = Date.now();
     const ledger = await deps.startLedger({ context, provider: target.provider, model: target.model });
+    let countFailed = false;
 
     try {
       const client = target.getClient();
 
       // Measured once per call, on the first attempt: Bedrock gets the same request, so the same budget.
-      budget ??= await measureBudget(deps, options, params);
+      if (budget === null) {
+        try {
+          budget = await measureInputBudget(
+            { system: params.system, tools: params.tools, messages: params.messages },
+            async () => {
+              if (countedOnBedrock !== null) return countedOnBedrock;
+              const countRequest = (model: string): CountTokensParams => ({
+                model,
+                system: params.system,
+                ...(params.tools ? { tools: params.tools } : {}),
+                messages: params.messages,
+              });
+              try {
+                return await client.countTokens(countRequest(target.model));
+              } catch (countError) {
+                // Only an unpinned call on the primary may try Bedrock for the count.
+                if (target.provider !== 'anthropic' || options.provider || !isFailoverError(countError)) throw countError;
+                let bedrock: HaikuClient | null = null;
+                try {
+                  bedrock = deps.getBedrockClient?.() ?? null;
+                } catch (clientError) {
+                  console.error('[haiku] Bedrock client unavailable for the count_tokens failover', clientError);
+                }
+                if (!bedrock) throw countError;
+                try {
+                  countedOnBedrock = await bedrock.countTokens(countRequest(bedrockModelId(HAIKU_MODEL_ID)));
+                } catch (bedrockError) {
+                  // Bedrock was tried for the count and failed too: the call must not fail over for the message.
+                  throw markNotFailoverEligible(bedrockError);
+                }
+                // The primary just failed to count, so the message is not sent there. Rethrowing its error lets
+                // runWithFailover move the call to Bedrock (one failover event), which reuses this count.
+                throw countError;
+              }
+            },
+          );
+        } catch (measureError) {
+          countFailed = true;
+          throw measureError;
+        }
+      }
       if (isOverRefuseLimit(budget.totalTokens)) {
         console.error(
           `[haiku] ${options.site}: refusing to send ${budget.totalTokens} input tokens (limit ${INPUT_REFUSE_ABOVE}, hard ${INPUT_HARD_LIMIT})`,
@@ -627,7 +697,7 @@ export async function callHaiku(options: HaikuCallOptions, deps: HaikuDeps = def
       };
     } catch (error) {
       const latencyMs = Date.now() - startedAtMs;
-      const errorKind = budgetErrorKind(error);
+      const errorKind = countFailed ? 'count_tokens_failed' : budgetErrorKind(error);
       const httpStatus = providerHttpStatus(error);
       const billed = billedFailureUsage(error);
       await deps.failLedger({
@@ -638,8 +708,9 @@ export async function callHaiku(options: HaikuCallOptions, deps: HaikuDeps = def
         httpStatus,
         ...billed,
       });
-      // A refusal, truncation or empty reply is billed: keep its usage and cost on the PostHog event.
-      const billedUsage = error instanceof ModelStopError ? error.billed.usage : null;
+      // A refusal, truncation, empty reply or a stream that broke after reporting usage is billed: keep its usage
+      // and cost on the PostHog event.
+      const billedUsage = billedUsageOf(error)?.usage ?? null;
       const billedRecords = billedUsage ? usageRecordsOf(billedUsage) : null;
       const billedCost = billedRecords ? haiku55CostUsd(billedUsage) : null;
       await captureGeneration(deps, context, buildAiGenerationProperties({

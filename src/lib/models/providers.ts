@@ -10,11 +10,18 @@
  * then us-east-1. `ANTHROPIC_BEDROCK_MANTLE_BASE_URL` overrides the endpoint (the SDK reads it; E2E uses it).
  *
  * `runWithFailover` is the single helper every call path uses. It tries the primary; on a failover error
- * (a network failure or a 5xx, after the SDK's own retries) it sends the SAME request to Bedrock once. It
- * is per call: the next call starts on the primary again, except that a caller can pin a call to one provider
- * (the chat tool loop pins its later rounds to Bedrock once Bedrock answered, so Bedrock-signed thinking blocks
- * never reach the direct API). The caller's `attempt` owns the
- * ledger row, so the failed primary attempt and the Bedrock attempt each get their own.
+ * (a network failure, a 5xx or a stream cut or gone idle, after the SDK's own retries) it sends the SAME
+ * request to Bedrock once. It is per call: the next call starts on the primary again, except that a caller can
+ * pin a call to one provider.
+ *
+ * Which way the pin points: the chat tool loop pins its later rounds to Bedrock once Bedrock answered a round,
+ * so a thinking block signed by Bedrock never reaches the direct API (the API rejects it). The reverse is not
+ * pinned: a round the direct API answered can still fail over to Bedrock on the next round, and that request then
+ * carries a thinking block signed by the direct API. Whether Bedrock accepts that is not known yet:
+ * evals/haiku-55-swap/bedrock-probe.ts has a check (PASS/FAIL) that has not been run live. If Bedrock rejects it,
+ * that round fails as a 400 and the turn fails like any other.
+ * The caller's `attempt` owns the ledger row, so the failed primary attempt and the Bedrock attempt each get
+ * their own.
  *
  * Cost on Bedrock is priced at the direct-API list prices (the global endpoint). Regional endpoints carry a
  * 10% premium over that, which is not modelled.
@@ -158,6 +165,31 @@ function statusOf(error: unknown): number | null {
   return typeof status === 'number' && Number.isInteger(status) ? status : null;
 }
 
+/**
+ * A stream that broke after the response headers: the connection was lost or reset while the body was being
+ * read, the body was cut before `message_stop`, or the server sent something that is not a stream. SDK 1.1.0
+ * surfaces these as a plain AnthropicError with no status (cause: a TypeError "terminated"), so on its own it
+ * is not recognisable as a route failure. stream-guard.ts wraps them in this class, keeping the original as
+ * `cause`. Failover-eligible; the caller's `canFailOver` still decides whether text already left.
+ */
+export class StreamTransportError extends Error {
+  /** Raw `usage` seen on the stream before it broke (message_start and deltas), when there was any. */
+  readonly partialUsage: unknown;
+  constructor(message: string, options?: { cause?: unknown; partialUsage?: unknown }) {
+    super(message, options?.cause === undefined ? undefined : { cause: options.cause });
+    this.name = 'StreamTransportError';
+    this.partialUsage = options?.partialUsage;
+  }
+}
+
+/** No byte (a ping counts) arrived on a stream for the idle timeout, so we aborted it. Failover-eligible. */
+export class StreamIdleTimeoutError extends StreamTransportError {
+  constructor(readonly idleMs: number, options?: { cause?: unknown; partialUsage?: unknown }) {
+    super(`The stream went idle: no data for ${idleMs} ms`, options);
+    this.name = 'StreamIdleTimeoutError';
+  }
+}
+
 function isStreamServerFault(error: unknown): boolean {
   // A stream `error` event arrives on a 200 response, so it has no status, only a type.
   if (!(error instanceof APIError) || error.status !== undefined) return false;
@@ -166,8 +198,9 @@ function isStreamServerFault(error: unknown): boolean {
 
 /**
  * True only for failures of the route to the model, after the SDK's own retries: network failures
- * (APIConnectionError, APIConnectionTimeoutError), any 5xx including 529 overloaded, and a stream error
- * event that says overloaded_error, api_error or timeout_error. False for every 4xx, refusals and other
+ * (APIConnectionError, APIConnectionTimeoutError), any 5xx including 529 overloaded, a stream error
+ * event that says overloaded_error, api_error or timeout_error, and a stream that was cut or went idle
+ * after its headers (StreamTransportError, StreamIdleTimeoutError). False for every 4xx, refusals and other
  * ModelStopErrors, the input budget guard, JSON or schema failures, and aborts. Unknown things are false.
  */
 export function isFailoverError(error: unknown): boolean {
@@ -175,6 +208,7 @@ export function isFailoverError(error: unknown): boolean {
   if (notEligible.has(error)) return false;
   if (error instanceof APIUserAbortError || (error as { name?: unknown }).name === 'AbortError') return false;
   if (error instanceof APIConnectionError) return true; // includes APIConnectionTimeoutError
+  if (error instanceof StreamTransportError) return true; // includes StreamIdleTimeoutError
   const status = statusOf(error);
   if (status !== null) return status >= 500;
   return isStreamServerFault(error);
@@ -183,6 +217,8 @@ export function isFailoverError(error: unknown): boolean {
 export type FailoverErrorKind = 'connection_timeout' | 'connection_error' | 'overloaded' | 'server_error';
 
 export function failoverErrorKind(error: unknown): FailoverErrorKind {
+  if (error instanceof StreamIdleTimeoutError) return 'connection_timeout';
+  if (error instanceof StreamTransportError) return 'connection_error';
   if (error instanceof APIConnectionError) {
     return error instanceof APIConnectionTimeoutError ? 'connection_timeout' : 'connection_error';
   }
@@ -229,7 +265,8 @@ export interface FailoverArgs<C, T> {
   /**
    * Skip the choice: 'bedrock' goes straight to Bedrock, 'anthropic' stays on the primary. Either way a failure
    * is a failure: no hop to the other provider. Used inside one request's multi-round loop so assistant content
-   * signed by one provider (thinking blocks) is never sent to the other.
+   * signed by Bedrock (thinking blocks) is never sent to the direct API. Only that direction is pinned (the chat
+   * loop sets 'bedrock' after Bedrock answered); a round the direct API answered can still fail over to Bedrock.
    */
   pin?: ProviderName;
   /** Return false once part of the answer reached the caller: a failure after that stays a failure. */
@@ -278,7 +315,18 @@ export async function runWithFailover<C, T>(args: FailoverArgs<C, T>): Promise<T
   } catch (error) {
     if (!isFailoverError(error)) throw error;
     if (args.canFailOver && !args.canFailOver()) throw error;
-    const bedrock = args.bedrock();
+    let bedrock: C | null;
+    try {
+      bedrock = args.bedrock();
+    } catch (clientError) {
+      // The primary error is the truth about what failed. A Bedrock client that cannot be built is context for it,
+      // never a replacement: log it, attach it to the primary error and rethrow that.
+      console.error('[providers] Bedrock client unavailable while failing over; keeping the primary error', clientError);
+      if (typeof error === 'object' && error !== null && Object.isExtensible(error)) {
+        Object.defineProperty(error, 'failoverClientError', { value: clientError, enumerable: false, configurable: true });
+      }
+      throw error;
+    }
     if (!bedrock) throw error; // failover is off: today's failure path
 
     let bedrockModel: string;

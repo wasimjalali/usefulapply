@@ -5,7 +5,7 @@ import test from 'node:test';
 
 import type Anthropic from '@anthropic-ai/sdk';
 import AnthropicSdk, { APIError } from '@anthropic-ai/sdk';
-import { ModelStopError } from './anthropic';
+import { ModelStopError, setStreamIdleTimeoutForTests } from './anthropic';
 import {
   HAIKU_SITE_TIMEOUT_MS,
   InputBudgetError,
@@ -14,6 +14,7 @@ import {
   defaultBedrockHaikuClient,
   defaultHaikuClient,
   measureHaikuRequest,
+  readHaikuContent,
   type HaikuCallOptions,
   type HaikuClient,
   type HaikuDeps,
@@ -152,7 +153,8 @@ test('a count_tokens failure fails the call loud and nothing is sent', async () 
   await assert.rejects(callHaiku(options({ messages: BIG }), h.deps), /count boom/);
   assert.equal(h.sent.length, 0);
   assert.equal(h.failed.length, 1);
-  assert.equal(h.failed[0].errorKind, 'provider_error');
+  // The row says the count failed, not that the message was sent and failed.
+  assert.equal(h.failed[0].errorKind, 'count_tokens_failed');
 });
 
 test('a small request never calls count_tokens', async () => {
@@ -225,7 +227,8 @@ test('a provider HTTP error is recorded with its status and rethrown unchanged',
   const h = harness({ createMessage: async () => { throw providerError; } });
   await assert.rejects(callHaiku(options(), h.deps), (error: unknown) => error === providerError);
   assert.equal(h.failed[0].httpStatus, 529);
-  assert.equal(h.failed[0].errorKind, 'provider_error');
+  // A failover-class error names its kind in the ledger instead of the generic provider_error.
+  assert.equal(h.failed[0].errorKind, 'overloaded');
 });
 
 test('a missing ANTHROPIC_API_KEY throws at call time and is recorded on the ledger', async () => {
@@ -681,13 +684,14 @@ test('HaikuResponse.provider says who answered, so a loop can pin the rest of it
   assert.equal((await callHaiku(options(), harness().deps)).provider, 'anthropic');
 });
 
-test('count_tokens fails over: a 503 on the primary count is counted on Bedrock, then the message goes to the primary', async () => {
+test('count_tokens fails over: a 503 on the primary count is counted on Bedrock, then the message goes to Bedrock too', async () => {
   const h = failoverHarness({ countTokens: async () => { throw APIError.generate(503, undefined, 'down', new Headers()); } });
   const response = await quiet(() => callHaiku(options({ messages: BIG }), h.deps));
   assert.equal(h.bedrockCounted.length, 1);
   assert.equal(h.bedrockCounted[0].model, 'anthropic.claude-haiku-5-5');
-  assert.equal(h.sent.length, 1);
-  assert.equal(response.provider, 'anthropic');
+  assert.equal(h.sent.length, 0);
+  assert.equal(h.bedrockSent.length, 1);
+  assert.equal(response.provider, 'bedrock');
 });
 
 test('count_tokens failing on Bedrock too fails the guard loud: nothing is sent, no second failover for the message', async () => {
@@ -871,5 +875,155 @@ test('the real SDK turns a hung response into a timeout that fails over', async 
   } finally {
     server.closeAllConnections();
     await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
+
+
+// --- review round: stop reasons, timeouts, count_tokens failover, TTL order, streams that break ---
+
+test('a missing or unhandled stop reason is provider_incomplete, with the billed usage kept', () => {
+  for (const stopReason of [null, 'pause_turn', 'model_context_window_exceeded'] as const) {
+    assert.throws(
+      () => readHaikuContent({ id: 'm', content: [{ type: 'text', text: 'partial', citations: null } as never], stop_reason: stopReason as never, usage: usage(10, 5) }, 500),
+      (error: unknown) => error instanceof ModelStopError && error.errorKind === 'provider_incomplete' && error.billed.usage !== null,
+      String(stopReason),
+    );
+  }
+  for (const stopReason of ['end_turn', 'tool_use', 'stop_sequence'] as const) {
+    assert.doesNotThrow(() => readHaikuContent({
+      id: 'm',
+      content: [{ type: 'text', text: 'x', citations: null } as never],
+      stop_reason: stopReason,
+      usage: usage(10, 5),
+    }, 500), stopReason);
+  }
+});
+
+test('screening gets 90 s: 8000 tokens at about 170 tokens/s with thinking runs past 45 s', () => {
+  assert.equal(HAIKU_SITE_TIMEOUT_MS.screening, 90_000);
+  assert.ok(HAIKU_SITE_TIMEOUT_MS.screening > 8000 / 170 * 1000);
+});
+
+test('a 1h cache marker after a 5m one throws before sending, like the Sonnet builder', () => {
+  const fiveThenOne = [{ role: 'user' as const, content: [
+    { type: 'text' as const, text: 'a', cache_control: { type: 'ephemeral' as const } },
+    { type: 'text' as const, text: 'b', cache_control: { type: 'ephemeral' as const, ttl: '1h' as const } },
+  ] }];
+  assert.throws(() => buildHaikuRequest(options({ messages: fiveThenOne }), 'low'), /1h cache marker after a 5m one/);
+  // cacheTtl 5m on the system blocks, then a 1h marker in the messages, is the same mistake.
+  const oneInMessages = [{ role: 'user' as const, content: [{ type: 'text' as const, text: 'a', cache_control: { type: 'ephemeral' as const, ttl: '1h' as const } }] }];
+  assert.throws(() => buildHaikuRequest(options({ cacheTtl: '5m', messages: oneInMessages }), 'low'), /1h cache marker after a 5m one/);
+  // 1h first, then 5m is the order the API wants, and the automatic 5m marker at the end is always fine.
+  assert.doesNotThrow(() => buildHaikuRequest(options({ cacheTtl: '1h', cacheConversation: true, messages: [{ role: 'user', content: [{ type: 'text', text: 'a', cache_control: { type: 'ephemeral' } }] }] }), 'low'));
+});
+
+test('count_tokens failed on the primary and counted on Bedrock: the message goes to Bedrock only, one failover event, the primary row says the count failed', async () => {
+  const h = failoverHarness({ countTokens: async () => { throw APIError.generate(503, undefined, 'count down', new Headers()); } });
+  const response = await quiet(() => callHaiku(options({ messages: BIG }), h.deps));
+  assert.equal(response.provider, 'bedrock');
+  assert.equal(h.sent.length, 0, 'the primary just failed; the message is not sent there');
+  assert.equal(h.bedrockSent.length, 1);
+  assert.equal(h.bedrockCounted.length, 1);
+  assert.deepEqual(h.started.map((row) => row.provider), ['anthropic', 'bedrock']);
+  assert.equal(h.failed.length, 1);
+  assert.equal(h.failed[0].errorKind, 'count_tokens_failed');
+  assert.equal(h.failed[0].httpStatus, 503);
+  assert.equal(h.captured.filter((event) => event.event === 'llm_provider_failover').length, 1);
+  // The Bedrock attempt reuses the Bedrock count: no second count.
+  assert.equal(h.bedrockCounted.length, 1);
+});
+
+test('count_tokens failing on both providers: the primary row says the count failed, nothing is sent, no failover event', async () => {
+  const h = failoverHarness(
+    { countTokens: async () => { throw overloaded(); } },
+    { countTokens: async () => { throw APIError.generate(503, undefined, 'bedrock count down', new Headers()); } },
+  );
+  await quiet(() => assert.rejects(callHaiku(options({ messages: BIG }), h.deps)));
+  assert.equal(h.failed[0].errorKind, 'count_tokens_failed');
+  assert.equal(h.sent.length + h.bedrockSent.length, 0);
+  assert.equal(h.captured.filter((event) => event.event === 'llm_provider_failover').length, 0);
+});
+
+interface BreakingApi { url: string; hits: string[] }
+
+async function withBreakingHaikuApi(
+  how: 'reset' | 'stall',
+  run: (api: BreakingApi) => Promise<void>,
+): Promise<void> {
+  const hits: string[] = [];
+  const open = new Set<ServerResponse>();
+  const server = createServer((request: IncomingMessage, response: ServerResponse) => {
+    const chunks: Buffer[] = [];
+    request.on('data', (chunk: Buffer) => chunks.push(chunk));
+    request.on('end', () => {
+      const body = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}') as { model?: string };
+      const path = request.url ?? '';
+      hits.push(path);
+      const bedrock = path.startsWith('/bedrock/');
+      open.add(response);
+      response.writeHead(200, { 'content-type': 'text/event-stream', 'request-id': bedrock ? 'req_bedrock' : 'req_primary' });
+      const send = (event: string, data: unknown) => response.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      const message = {
+        id: 'msg_local', type: 'message', role: 'assistant', model: String(body.model), stop_sequence: null, stop_reason: null, content: [],
+        usage: { input_tokens: 321, output_tokens: 1, cache_read_input_tokens: 40, cache_creation_input_tokens: 0, cache_creation: { ephemeral_5m_input_tokens: 0, ephemeral_1h_input_tokens: 0 } },
+      };
+      send('message_start', { type: 'message_start', message });
+      send('content_block_start', { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '', citations: null } });
+      if (!bedrock) {
+        if (how === 'reset') setTimeout(() => request.socket.destroy(), 30);
+        else response.write('event: ping\ndata: {"type":"ping"}\n\n');
+        return;
+      }
+      send('content_block_delta', { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'from bedrock' } });
+      send('content_block_stop', { type: 'content_block_stop', index: 0 });
+      send('message_delta', { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 9 } });
+      send('message_stop', { type: 'message_stop' });
+      response.end();
+    });
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  try {
+    await run({ url, hits });
+  } finally {
+    for (const response of open) response.destroy();
+    server.closeAllConnections();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+}
+
+test('a streamed Haiku call (max_tokens over 16k) whose connection resets or goes idle after the headers fails over, and the failed row keeps the usage it saw', async () => {
+  for (const how of ['reset', 'stall'] as const) {
+    await withBreakingHaikuApi(how, async ({ url, hits }) => {
+      await withClientEnv({
+        ANTHROPIC_API_KEY: 'sk-local',
+        ANTHROPIC_BASE_URL: url,
+        AWS_BEARER_TOKEN_BEDROCK: 'bedrock-token',
+        ANTHROPIC_BEDROCK_MANTLE_BASE_URL: `${url}/bedrock`,
+      }, async () => {
+        const h = failoverHarness({});
+        h.deps.getClient = defaultHaikuClient;
+        h.deps.getBedrockClient = defaultBedrockHaikuClient;
+        setStreamIdleTimeoutForTests(150);
+        try {
+          const response = await quiet(() => callHaiku(options({ maxTokens: 20_000 }), h.deps));
+          assert.equal(response.provider, 'bedrock', how);
+          assert.equal(response.content, 'from bedrock', how);
+          assert.deepEqual(h.started.map((row) => row.provider), ['anthropic', 'bedrock'], how);
+          assert.equal(h.failed.length, 1, how);
+          assert.equal(h.failed[0].errorKind, how === 'stall' ? 'connection_timeout' : 'connection_error', how);
+          assert.equal(h.failed[0].inputTokens, 321, how);
+          assert.equal(h.failed[0].cacheReadInputTokens, 40, how);
+          assert.equal(h.captured.filter((event) => event.event === 'llm_provider_failover').length, 1, how);
+          const failedEvent = h.events.find((event) => event.error_kind !== null);
+          assert.ok(failedEvent, how);
+          assert.equal(failedEvent.input_tokens, 321, how);
+          assert.ok((failedEvent.cost_usd as number) > 0, 'cost is not silently zero');
+          assert.equal(hits.filter((path) => path.startsWith('/bedrock/')).length, 1, how);
+        } finally {
+          setStreamIdleTimeoutForTests(null);
+        }
+      });
+    });
   }
 });

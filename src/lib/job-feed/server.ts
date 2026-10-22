@@ -2297,6 +2297,8 @@ function buildWorkflowOperationalTail(ingestion: {
 // cached reads are billed at a tenth of the input rate.
 const RANKING_MODEL_RATES: Record<string, [number, number]> = {
   'claude-haiku-5-5': [0.10, 0.50],
+  // The same model on Amazon Bedrock (failover runs store this id), at the same list prices.
+  'anthropic.claude-haiku-5-5': [0.10, 0.50],
   // Historical runs only (Workers AI, retired). Keeps their stored cost estimate readable.
   '@cf/openai/gpt-oss-120b': [0.35, 0.75],
   '@cf/deepseek-ai/deepseek-v4-flash-0731': [0.44, 1.32],

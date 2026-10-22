@@ -18,6 +18,12 @@
  *   4. Haiku 5.5 chat shape, round 2: round 1's content (thinking and tool_use blocks, signed by Bedrock) passed back
  *      unchanged with a tool_result carrying the 5m marker.
  *   5. count_tokens on the round 1 request (the input budget guard relies on it when the Anthropic API is down).
+ *   6. The pin direction the code does NOT cover. The chat loop pins a request to Bedrock once Bedrock answered, so
+ *      Bedrock-signed thinking never reaches the direct API. A round the direct API answered can still fail over to
+ *      Bedrock on the next round, and that request then carries thinking signed by the direct API. This check runs
+ *      round 1 on the direct API (needs ANTHROPIC_API_KEY), then round 2 on Bedrock with that content passed back,
+ *      and reports PASS or FAIL. A FAIL means such a round fails as a 400 (a turn error, not a data problem).
+ *      It runs once per invocation, after the Bedrock calls above.
  *
  * It also shows the request id and the cache fields (cache_creation_input_tokens on the first call,
  * cache_read_input_tokens on the second). Haiku goes through `client.beta.messages`, like callHaiku; Sonnet
@@ -26,7 +32,7 @@
  * The client is the production one (getBedrockClient): explicit credentials from the environment only
  * (AWS_BEARER_TOKEN_BEDROCK, or AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY), region BEDROCK_REGION, then
  * AWS_REGION, then us-east-1. Credentials are read from .env.local / .dev.vars in the cwd or the main checkout
- * and never printed. Cost: a few cents at most (about 3k input tokens and a short answer per call, six calls).
+ * and never printed. Cost: a few cents at most (about 3k input tokens and a short answer per call, eight calls).
  */
 import path from 'node:path';
 import type Anthropic from '@anthropic-ai/sdk';
@@ -178,7 +184,10 @@ async function buildRequests() {
     messages: round1.messages,
   };
 
-  return { sonnet, structured, round1, round2, count };
+  // 6. Round 1 for the direct API: the same request with the primary model id (the app's own failover-free path).
+  const directRound1: HaikuRequest = { ...round1, model: HAIKU_MODEL_ID };
+
+  return { sonnet, structured, round1, directRound1, round2, count };
 }
 
 type Check = { name: string; ok: boolean; detail: string };
@@ -201,6 +210,8 @@ async function main(): Promise<void> {
     ];
     show('4. Haiku 5.5 chat round 2 (round 1 content passed back, placeholders for the signed blocks)', requests.round2(placeholder));
     show('5. count_tokens via client.beta.messages.countTokens', requests.count);
+    show('6a. Haiku 5.5 chat round 1 on the DIRECT API (thinking signed by the direct API)', requests.directRound1);
+    show('6b. round 2 on BEDROCK carrying the direct-API-signed thinking (placeholders for the signed blocks)', requests.round2(placeholder));
     return;
   }
 
@@ -271,6 +282,27 @@ async function main(): Promise<void> {
     record({ name: 'count_tokens', ok: Number.isInteger(counted.input_tokens) && counted.input_tokens > 0, detail: `${counted.input_tokens} input tokens` });
   } catch (error) {
     record({ name: 'count_tokens', ok: false, detail: describeError(error) });
+  }
+
+  // 6. Direct API signs round 1, Bedrock gets round 2. The reverse of the pin; the code does not prevent it.
+  try {
+    const { getPrimaryClient } = await import('../../src/lib/models/providers');
+    const direct = getPrimaryClient();
+    const { data: first } = await direct.beta.messages.create(requests.directRound1).withResponse();
+    const types = first.content.map((block) => block.type);
+    if (!types.includes('tool_use')) {
+      record({ name: 'Direct-API-signed thinking passed to Bedrock', ok: false, detail: `the direct API's round 1 returned no tool_use block (blocks [${types.join(', ')}]), so the check could not run` });
+    } else {
+      const { data: second, request_id } = await client.beta.messages.create(requests.round2(first.content)).withResponse();
+      show('6. Bedrock round 2 with direct-API-signed round 1 content', { model: second.model, stop_reason: second.stop_reason, request_id, blocks: second.content.map((block) => block.type) });
+      record({
+        name: 'Direct-API-signed thinking passed to Bedrock (a round that fails over after the direct API answered)',
+        ok: second.stop_reason === 'end_turn' || second.stop_reason === 'tool_use',
+        detail: `${types.includes('thinking') ? 'round 1 returned a thinking block' : 'round 1 returned NO thinking block (the cross-provider pass-back is not exercised)'}; stop ${second.stop_reason}`,
+      });
+    }
+  } catch (error) {
+    record({ name: 'Direct-API-signed thinking passed to Bedrock (a round that fails over after the direct API answered)', ok: false, detail: describeError(error) });
   }
 
   const failed = checks.filter((check) => !check.ok);

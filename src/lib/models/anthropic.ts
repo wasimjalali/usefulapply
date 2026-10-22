@@ -20,13 +20,16 @@ import type { Json } from '@/db/schema';
 import { getPostHogServer } from '@/lib/posthog-server';
 import {
   captureFailoverEvent,
+  failoverErrorKind,
   getBedrockClient,
   getPrimaryClient,
+  isFailoverError,
   runWithFailover,
   type FailoverTarget,
   type MessagesClient,
   type ProviderName,
 } from './providers';
+import { createStreamGuard } from './stream-guard';
 import type { ModelResponse, ConversationMessage, CacheableContentBlock, CacheTtl } from './types';
 
 type LedgerAwareResponse = {
@@ -239,6 +242,22 @@ export const STREAM_ABOVE_MAX_TOKENS = 16_000;
  */
 export const SONNET_TIMEOUT_MS = 120_000;
 export const SONNET_STREAM_FIRST_BYTE_TIMEOUT_MS = 60_000;
+/**
+ * Idle timeout of a stream after its headers (Sonnet and Haiku): if no byte arrives for this long, ping events
+ * included, we abort it and the call fails over (StreamIdleTimeoutError). The SDK has no such timer, and its own
+ * `timeout` ends at the headers. Pings arrive during quiet thinking, so 60 s of nothing at all means a dead stream.
+ */
+export const STREAM_IDLE_TIMEOUT_MS = 60_000;
+
+let streamIdleTimeoutOverrideMs: number | null = null;
+/** The idle timeout in force: STREAM_IDLE_TIMEOUT_MS, or the test override. */
+export function streamIdleTimeoutMs(): number {
+  return streamIdleTimeoutOverrideMs ?? STREAM_IDLE_TIMEOUT_MS;
+}
+/** Shrink the idle timeout for a test. `null` restores the real one. */
+export function setStreamIdleTimeoutForTests(ms: number | null): void {
+  streamIdleTimeoutOverrideMs = ms;
+}
 
 /**
  * Thinking counts toward max_tokens and the Sonnet 5.5 tokenizer produces about 30% more
@@ -413,14 +432,19 @@ export function cacheMarkerTtls(params: Pick<SonnetRequest, 'system' | 'messages
   return ttls;
 }
 
-/** The API allows 4 markers, and a 1-hour marker after a 5-minute one is a 400. Fail here, before sending. */
-function assertCacheMarkers(params: SonnetRequest, label: string): void {
-  const ttls = cacheMarkerTtls(params);
-  if (ttls.length > 4) throw new Error(`${label}: ${ttls.length} cache markers, the API allows 4`);
+/** A 1-hour marker after a 5-minute one in prefix order is a 400. Fail here, before sending. */
+export function assertMarkerTtlOrder(ttls: CacheTtl[], label: string): void {
   const first5m = ttls.indexOf('5m');
   if (first5m !== -1 && ttls.indexOf('1h', first5m) !== -1) {
     throw new Error(`${label}: a 1h cache marker after a 5m one (${ttls.join(', ')}); longer TTLs come first`);
   }
+}
+
+/** The API allows 4 markers, and a 1-hour marker after a 5-minute one is a 400. Fail here, before sending. */
+function assertCacheMarkers(params: SonnetRequest, label: string): void {
+  const ttls = cacheMarkerTtls(params);
+  if (ttls.length > 4) throw new Error(`${label}: ${ttls.length} cache markers, the API allows 4`);
+  assertMarkerTtlOrder(ttls, label);
 }
 
 /**
@@ -444,9 +468,15 @@ async function sendSdkMessage(
   params: SonnetRequest,
 ): Promise<{ message: Anthropic.Message; requestId: string | null }> {
   if (params.max_tokens > STREAM_ABOVE_MAX_TOKENS) {
-    const stream = client.messages.stream(params, { timeout: SONNET_STREAM_FIRST_BYTE_TIMEOUT_MS });
-    const message = await stream.finalMessage();
-    return { message, requestId: stream.request_id ?? null };
+    // The caller sees nothing until the final message, so a failure here is always safe to fail over.
+    const guard = createStreamGuard(streamIdleTimeoutMs());
+    try {
+      const stream = client.messages.stream(params, { timeout: SONNET_STREAM_FIRST_BYTE_TIMEOUT_MS, ...guard.requestOptions });
+      const message = await guard.run(() => stream.finalMessage(), () => stream.currentMessage?.usage);
+      return { message, requestId: stream.request_id ?? null };
+    } finally {
+      guard.dispose();
+    }
   }
   const { data, request_id } = await client.messages.create(params, { timeout: SONNET_TIMEOUT_MS }).withResponse();
   return { message: data, requestId: request_id ?? null };
@@ -456,7 +486,7 @@ async function sendSdkMessage(
 export class ModelStopError extends Error {
   constructor(
     message: string,
-    readonly errorKind: 'provider_refusal' | 'provider_max_tokens' | 'provider_empty_content',
+    readonly errorKind: 'provider_refusal' | 'provider_max_tokens' | 'provider_empty_content' | 'provider_incomplete',
     /** The response was billed, so its usage and request id still go in the failed ledger row. */
     readonly billed: { usage: unknown; providerRequestId: string | null },
   ) {
@@ -465,11 +495,17 @@ export class ModelStopError extends Error {
   }
 }
 
+/** The stop reasons that end a finished answer. `pause_turn` (a server tool paused the turn) is not here: nothing resumes it. */
+const USABLE_STOP_REASONS: ReadonlySet<string> = new Set(['end_turn', 'tool_use', 'stop_sequence']);
+
 /**
  * Fail loud on a stop reason that leaves no usable answer. A refusal is an HTTP 200 with
  * `stop_reason: "refusal"`; returning its (empty or partial) text as success would ship an empty
  * document. A `max_tokens` stop means thinking plus answer ran out of budget, which truncates the
- * JSON or the letter.
+ * JSON or the letter. Anything that is not end_turn, tool_use or stop_sequence (a missing stop reason,
+ * pause_turn, a context-window stop) is `provider_incomplete`: a stream cut before `message_stop` never gets
+ * here (the stream guard throws a failover-eligible StreamTransportError first), so this is a response that
+ * completed with a stop reason nobody handles.
  */
 export function assertUsableStop(
   stopReason: string | null | undefined,
@@ -487,6 +523,13 @@ export function assertUsableStop(
   if (stopReason === 'max_tokens') {
     throw new ModelStopError(`Model output hit max_tokens (${maxTokens}) before finishing`, 'provider_max_tokens', billed);
   }
+  if (!stopReason || !USABLE_STOP_REASONS.has(stopReason)) {
+    throw new ModelStopError(
+      `Model stopped without a finished answer (stop_reason ${stopReason ?? 'missing'})`,
+      'provider_incomplete',
+      billed,
+    );
+  }
 }
 
 /** Read text by block type: thinking blocks come first (empty by default) and are skipped. */
@@ -498,20 +541,36 @@ function sdkMessageText(message: Anthropic.Message, requestId: string | null, ma
   return message.content.map((block) => (block.type === 'text' ? block.text : '')).join('');
 }
 
+/** The ledger's error kind: the stop kind, the failover kind (connection_timeout, overloaded, ...) or the fallback. */
 export function providerErrorKind(error: unknown, fallback: string): string {
   if (error instanceof ModelStopError) return error.errorKind;
+  if (isFailoverError(error)) return failoverErrorKind(error);
   return fallback;
 }
 
 /**
- * Usage and request id of a billed response that still failed (refusal or truncation), for the
- * single failed ledger row. Empty for errors where no response came back.
+ * Usage that was billed even though the call failed: a refusal or truncation (the response is complete), or a
+ * stream that broke after it reported usage (message_start and deltas, `partialUsage`). Null when none was seen.
+ */
+export function billedUsageOf(error: unknown): { usage: unknown; providerRequestId: string | null } | null {
+  if (error instanceof ModelStopError) return error.billed;
+  const partial = typeof error === 'object' && error !== null ? (error as { partialUsage?: unknown }).partialUsage : undefined;
+  return partial === undefined || partial === null ? null : { usage: partial, providerRequestId: null };
+}
+
+/**
+ * Usage and request id of a billed response that still failed (refusal, truncation, or a stream that broke after
+ * reporting usage), for the single failed ledger row. Empty for errors where nothing billed was seen.
  */
 export function billedFailureUsage(error: unknown): Partial<Parameters<typeof failLlmGeneration>[0]> {
-  if (!(error instanceof ModelStopError)) return {};
-  const normalized = normalizeProviderUsage(error.billed.usage);
+  return billedFailureFields(billedUsageOf(error));
+}
+
+function billedFailureFields(billed: { usage: unknown; providerRequestId: string | null } | null): Partial<Parameters<typeof failLlmGeneration>[0]> {
+  if (!billed) return {};
+  const normalized = normalizeProviderUsage(billed.usage);
   return {
-    providerRequestId: error.billed.providerRequestId,
+    ...(billed.providerRequestId !== null && { providerRequestId: billed.providerRequestId }),
     inputTokens: normalized.inputTokens,
     outputTokens: normalized.outputTokens,
     cacheReadInputTokens: normalized.cacheReadInputTokens,
@@ -710,7 +769,8 @@ async function sdkTextAttempt(
         httpStatus,
         ...billedFailureUsage(error),
       });
-      // A refusal or truncation was billed: its usage and cost stay on the event.
+      // A refusal, truncation or broken stream was billed: its usage and cost stay on the event.
+      const billed = billedUsageOf(error);
       await captureSonnetGeneration(call.context, {
         site: call.site,
         provider: target.provider,
@@ -718,8 +778,8 @@ async function sdkTextAttempt(
         generationId: ledger.id,
         latencyMs,
         stopReason: error instanceof ModelStopError ? error.errorKind : null,
-        providerRequestId: error instanceof ModelStopError ? error.billed.providerRequestId : null,
-        rawUsage: error instanceof ModelStopError ? error.billed.usage : null,
+        providerRequestId: billed?.providerRequestId ?? null,
+        rawUsage: billed?.usage ?? null,
         cacheMarkers,
         errorKind,
         httpStatus,
@@ -822,10 +882,12 @@ export async function callAnthropicStream(
 
     const ledger = await sonnetDeps.startLedger({ context, provider: target.provider, model: target.model });
     let providerResponseReceived = false;
+    const guard = createStreamGuard(streamIdleTimeoutMs());
     try {
-      const stream = target.getClient().messages.stream(params, { timeout: SONNET_STREAM_FIRST_BYTE_TIMEOUT_MS });
+      const stream = target.getClient().messages.stream(params, { timeout: SONNET_STREAM_FIRST_BYTE_TIMEOUT_MS, ...guard.requestOptions });
+      const usageSoFar = () => (Object.keys(finalUsage).length > 0 ? finalUsage : undefined);
 
-      for await (const event of stream) {
+      for await (const event of guard.events(stream, usageSoFar)) {
         // Text deltas only: thinking and signature deltas never reach the caller.
         if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
           const text = event.delta.text;
@@ -862,6 +924,10 @@ export async function callAnthropicStream(
             cacheReadTokens = exactCacheReadTokens;
             finalUsage.cache_read_input_tokens = exactCacheReadTokens;
           }
+          // message_start carries the output so far (about 1); message_delta replaces it with the final count. Kept
+          // so a stream that breaks before message_delta still has a complete, priceable usage record.
+          const startOutputTokens = exactTokenCount(usage.output_tokens);
+          if (startOutputTokens !== null && finalUsage.output_tokens === undefined) finalUsage.output_tokens = startOutputTokens;
           if (usage.cache_creation) finalUsage.cache_creation = { ...usage.cache_creation };
           if (cacheCreationTokens > 0 || cacheReadTokens > 0) {
             console.log(`[Anthropic Cache Stream] ${site} write=${cacheCreationTokens} read=${cacheReadTokens} input=${inputTokens}`);
@@ -925,13 +991,16 @@ export async function callAnthropicStream(
         const latencyMs = Date.now() - startTime;
         const errorKind = providerErrorKind(error, 'provider_stream_error');
         const httpStatus = providerHttpStatus(error);
+        // A refusal carries its own billed usage; a stream that broke part-way keeps what message_start and the
+        // deltas reported, so the failed row and its event are not silently free.
+        const billed = billedUsageOf(error) ?? (Object.keys(finalUsage).length > 0 ? { usage: finalUsage, providerRequestId } : null);
         await sonnetDeps.failLedger({
           id: ledger.id,
           latencyMs,
           attemptCount: 1,
           errorKind,
           httpStatus,
-          ...billedFailureUsage(error),
+          ...billedFailureFields(billed),
         });
         await captureSonnetGeneration(context, {
           site,
@@ -940,14 +1009,16 @@ export async function callAnthropicStream(
           generationId: ledger.id,
           latencyMs,
           stopReason: error instanceof ModelStopError ? error.errorKind : null,
-          providerRequestId,
-          rawUsage: error instanceof ModelStopError ? error.billed.usage : null,
+          providerRequestId: billed?.providerRequestId ?? providerRequestId,
+          rawUsage: billed?.usage ?? null,
           cacheMarkers,
           errorKind,
           httpStatus,
         });
       }
       throw error;
+    } finally {
+      guard.dispose();
     }
   };
 

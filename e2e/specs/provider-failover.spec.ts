@@ -26,7 +26,11 @@ import { callAgent, createSignedInApiUser, creditsOf, nextTestIp, type AgentEven
  *  - a 400 from the Anthropic API never reaches Bedrock: the turn fails like it does today, one failed row;
  *  - a kit generation whose CV writer gets a 529 (the writers run in parallel): that writer is answered by
  *    Bedrock (Sonnet 5.5, `anthropic.claude-sonnet-5-5`), the others never leave the Anthropic API, and the
- *    user is charged once, with no refund.
+ *    user is charged once, with no refund;
+ *  - a kit generation whose CV writer STREAMS (max_tokens over 16k) and has its connection reset after the
+ *    headers and half the text: the SDK sees a plain error with no status, our stream guard turns it into a
+ *    failover error, Bedrock writes the CV, the failed row keeps the usage the stream reported, and the user is
+ *    charged once.
  * "A 529 with no Bedrock credentials keeps today's failure path" needs a second preview without the
  * credentials; it is covered by the unit tests (providers.test.ts, haiku.test.ts) instead.
  */
@@ -94,13 +98,13 @@ function rowState(id: string): RowState {
   }
 }
 
-interface LedgerRow { provider: string; model: string; status: string; http_status: number | null; operation: string; error_kind: string | null }
+interface LedgerRow { provider: string; model: string; status: string; http_status: number | null; operation: string; error_kind: string | null; input_tokens: number | null }
 /** The user's ledger rows since `since`, in the order the calls started. */
 function ledger(userId: string, since: string): LedgerRow[] {
   const db = openLocalD1();
   try {
     return db.prepare(`
-      SELECT provider, model, status, http_status, operation, error_kind
+      SELECT provider, model, status, http_status, operation, error_kind, input_tokens
       FROM llm_generations WHERE user_id = ? AND started_at >= ? ORDER BY started_at, rowid
     `).all(userId, since) as LedgerRow[];
   } finally {
@@ -294,6 +298,39 @@ test.describe.serial('provider failover to Amazon Bedrock', () => {
       ['bedrock', 'anthropic.claude-sonnet-5-5', 'response_received', null],
     ]);
     expect(rows.filter((r) => r.operation !== 'optimize_cv' && r.provider === 'bedrock')).toEqual([]);
+    await kitUser.api.dispose();
+  });
+
+  test('(f5) a streamed CV writer whose connection is reset after the headers: Bedrock writes the CV, the failed row keeps its usage, one charge', async () => {
+    const kitUser = await apiUser('failover-stream');
+    const user = kitUser.user;
+    const start = creditsOf(user.id).total;
+    const created = await runTool<{ id: string }>('e2e/tools/ops.ts', ['create-application', JSON.stringify({ userId: user.id, jobDescription: JOB_DESCRIPTION })]);
+    const since = new Date().toISOString();
+    await fakeReset();
+    await fakeControl({ primaryStreamCut: { count: 1, writer: 'cv' } });
+
+    const events: AgentEvent[] = await callAgent(kitUser.api, { action: 'full_optimization', jobDescription: JOB_DESCRIPTION, sessionId: created.id }, `req-failover-stream-${Date.now()}`);
+    const done = events.find((event) => event.type === 'workflow_complete');
+    expect(done, JSON.stringify(events.slice(-3))).toBeTruthy();
+    expect(done?.creditsRefunded ?? 0).toBe(0);
+    expect(creditsOf(user.id).total).toBe(start - 2.0);
+
+    const stored = storedApplication(user.id, created.id);
+    expect(stored?.generation_status).toBe('succeeded');
+    expect(stored?.generated_cv?._optimizedCVData, 'the CV Bedrock wrote was stored').toBeTruthy();
+
+    const cv = (await fakeCalls()).filter((call) => call.kind === 'messages' && call.writer === 'cv');
+    // The first request streamed and was cut after its headers (it never got a 5xx); Bedrock answered the second.
+    expect(cv.map((call) => [call.provider, call.stream, call.streamCut])).toEqual([['anthropic', true, true], ['bedrock', true, false]]);
+    expect(cv[1].model).toBe('anthropic.claude-sonnet-5-5');
+
+    const cvRows = ledger(user.id, since).filter((r) => r.operation === 'optimize_cv');
+    expect(cvRows.map((r) => [r.provider, r.model, r.status, r.error_kind])).toEqual([
+      ['anthropic', 'claude-sonnet-5-5', 'failed', 'connection_error'],
+      ['bedrock', 'anthropic.claude-sonnet-5-5', 'response_received', null],
+    ]);
+    expect(cvRows[0].input_tokens, 'the cut stream reported its input usage in message_start').toBeGreaterThan(0);
     await kitUser.api.dispose();
   });
 });
