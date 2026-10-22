@@ -16,7 +16,18 @@ export type Writer =
   | 'cv'
   | 'coverLetter'
   | 'applicationEmail'
-  | 'followUpEmail';
+  | 'followUpEmail'
+  // The Haiku 5.5 sites (src/lib/models/haiku.ts, one writer per HaikuSite).
+  | 'chat'
+  | 'tracker'
+  | 'screening'
+  | 'language'
+  | 'ranking'
+  | 'searchStrategy'
+  | 'careerProfile';
+
+/** The writers that run on Claude Haiku 5.5 (callHaiku). The rest are the Sonnet 5.5 kit writers. */
+export const HAIKU_WRITERS: ReadonlySet<Writer> = new Set<Writer>(['chat', 'tracker', 'screening', 'language', 'ranking', 'searchStrategy', 'careerProfile']);
 
 export const NAME = 'Tomas Brandt';
 
@@ -362,6 +373,13 @@ export function writerFor(system: unknown): Writer | null {
   if (text.includes('You are a job description parser')) return 'job';
   if (text.includes('You are a precise data extraction tool')) return 'metrics';
   if (text.includes('ATS-calibrated skill matching engine')) return 'match';
+  if (text.includes('You are the Useful Apply assistant. Useful Apply is a job application dashboard')) return 'chat';
+  if (text.includes('You are the tracker assistant inside Useful Apply')) return 'tracker';
+  if (text.includes('You write job application screening answers inside Useful Apply')) return 'screening';
+  if (text.includes('Classify the natural language used by the untrusted document content')) return 'language';
+  if (text.includes("You are the ranking engine for Useful Apply's job feed")) return 'ranking';
+  if (text.includes('You are a SerpAPI query strategist')) return 'searchStrategy';
+  if (text.includes('You are a career profile synthesizer')) return 'careerProfile';
   return null;
 }
 
@@ -390,6 +408,14 @@ export function answerFor(writer: Writer, user = ''): string {
     case 'coverLetter': return user.includes(REGENERATE_LETTER_INSTRUCTION) ? LETTER_REGENERATED : LETTER;
     case 'applicationEmail': return APPLICATION_EMAIL;
     case 'followUpEmail': return FOLLOW_UP;
+    case 'chat':
+    case 'tracker':
+    case 'screening':
+    case 'language':
+    case 'ranking':
+    case 'searchStrategy':
+    case 'careerProfile':
+      throw new Error(`answerFor(${writer}): Haiku writers answer from the whole request, use haikuAnswerFor`);
   }
 }
 
@@ -405,4 +431,303 @@ export function messageFor(text: string) {
     stop_sequence: null,
     usage: { input_tokens: 100, output_tokens: 50 },
   };
+}
+
+// ---------------------------------------------------------------------------
+// The Haiku 5.5 sites. Unlike the kit writers these answer from the whole request: the chat walks a tool
+// loop, ranking has to cover the candidates it was sent, and the screening answers repeat the questions.
+// ---------------------------------------------------------------------------
+
+export interface FakeBlock { type: string; [key: string]: unknown }
+export interface FakeMessage { role: string; content: unknown }
+export interface MessagesBody {
+  system?: unknown;
+  messages?: FakeMessage[];
+  tools?: Array<{ name: string }>;
+  stream?: boolean;
+  max_tokens?: number;
+  thinking?: { type?: string };
+  output_config?: { effort?: string; format?: unknown };
+  cache_control?: { type?: string; ttl?: string };
+  temperature?: unknown;
+  model?: string;
+}
+export interface HaikuAnswer { content: FakeBlock[]; stopReason: 'end_turn' | 'tool_use' }
+
+export function blocksOf(content: unknown): FakeBlock[] {
+  if (typeof content === 'string') return [{ type: 'text', text: content }];
+  return Array.isArray(content) ? (content as FakeBlock[]) : [];
+}
+
+function textOfBlocks(blocks: FakeBlock[]): string {
+  return blocks.filter((block) => block.type === 'text').map((block) => String(block.text ?? '')).join('\n');
+}
+
+/** The newest user message that carries text (a tool_result turn does not). */
+export function lastUserText(messages: FakeMessage[] = []): string {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role !== 'user') continue;
+    const text = textOfBlocks(blocksOf(messages[i].content));
+    if (text) return text;
+  }
+  return '';
+}
+
+/** Every user text before the newest one: the history the model is shown. */
+function earlierUserText(messages: FakeMessage[] = []): string {
+  const texts = messages.filter((message) => message.role === 'user').map((message) => textOfBlocks(blocksOf(message.content))).filter(Boolean);
+  return texts.slice(0, -1).join('\n');
+}
+
+/** The per-request state message (`role: 'system'` inside messages), where TODAY lives. */
+function stateText(messages: FakeMessage[] = []): string {
+  return messages.filter((message) => message.role === 'system').map((message) => (typeof message.content === 'string' ? message.content : textOfBlocks(blocksOf(message.content)))).join('\n');
+}
+
+const WEEKDAYS: Record<string, number> = {
+  sonntag: 0, sunday: 0, montag: 1, monday: 1, dienstag: 2, tuesday: 2, mittwoch: 3, wednesday: 3,
+  donnerstag: 4, thursday: 4, freitag: 5, friday: 5, samstag: 6, saturday: 6,
+};
+const MONTHS: Record<string, number> = {
+  january: 0, february: 1, march: 2, april: 3, may: 4, june: 5, july: 6, august: 7, september: 8, october: 9, november: 10, december: 11,
+};
+
+/**
+ * "Dienstag 10 Uhr" against a line like "TODAY: Thursday 22 October 2026 at 14:31 (times are Europe/Berlin)":
+ * the next such weekday strictly after today, as the wall clock the tools expect ("YYYY-MM-DDTHH:mm").
+ * Null when the text has no weekday or no time.
+ */
+export function resolveWallClock(text: string, today: string): string | null {
+  const date = /(\d{1,2}) ([A-Za-z]+) (\d{4})/.exec(today);
+  if (!date) return null;
+  const month = MONTHS[date[2].toLowerCase()];
+  if (month === undefined) return null;
+  const lower = text.toLowerCase();
+  const weekday = Object.keys(WEEKDAYS).find((name) => new RegExp(`\\b${name}\\b`).test(lower));
+  const time = /\b(\d{1,2})(?::(\d{2}))?\s*(uhr|am|pm)\b/i.exec(text) ?? /\b(\d{1,2}):(\d{2})()/.exec(text);
+  if (weekday === undefined || !time) return null;
+  const base = Date.UTC(Number(date[3]), month, Number(date[1]));
+  const ahead = (WEEKDAYS[weekday] - new Date(base).getUTCDay() + 7) % 7 || 7;
+  const day = new Date(base + ahead * 86_400_000);
+  let hour = Number(time[1]);
+  const unit = (time[3] ?? '').toLowerCase();
+  if (unit === 'pm' && hour < 12) hour += 12;
+  const two = (n: number) => String(n).padStart(2, '0');
+  return `${day.getUTCFullYear()}-${two(day.getUTCMonth() + 1)}-${two(day.getUTCDate())}T${two(hour)}:${time[2] ?? '00'}`;
+}
+
+function safeJson(value: unknown): Record<string, unknown> {
+  try {
+    const parsed: unknown = typeof value === 'string' ? JSON.parse(value) : value;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+const unwrap = (value: unknown): string => String(value ?? '').replace(/^<<|>>$/g, '').trim();
+
+let blockCounter = 0;
+const nextId = (prefix: string) => `${prefix}_fake_${(blockCounter += 1).toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+/** Signatures of the thinking blocks the fake has issued, so a later request can be checked for passing them back. */
+export const issuedThinkingSignatures = new Set<string>();
+
+function toolUse(name: string, input: Record<string, unknown>, thinking: boolean): HaikuAnswer {
+  const content: FakeBlock[] = [];
+  if (thinking) {
+    const signature = nextId('sig');
+    issuedThinkingSignatures.add(signature);
+    content.push({ type: 'thinking', thinking: `Scripted reasoning before ${name}.`, signature });
+  }
+  content.push({ type: 'tool_use', id: nextId('toolu'), name, input });
+  return { content, stopReason: 'tool_use' };
+}
+
+const reply = (text: string): HaikuAnswer => ({ content: [{ type: 'text', text }], stopReason: 'end_turn' });
+
+/** A pasted job posting: long, with the sections a posting has. */
+function looksLikeAd(text: string): boolean {
+  return text.length >= 300 && /\(m\/w\/d\)|Stellenanzeige|Ihre Aufgaben|Aufgaben|Anforderungen|responsibilities|requirements/i.test(text);
+}
+
+/** "Zapier ist jetzt im Interview" / "Zapier moved to interview". */
+function movesToInterview(text: string): boolean {
+  return /ist jetzt im Interview|im Interview|moved to (the )?interview/i.test(text) && !looksLikeAd(text);
+}
+
+/** The company an instruction in earlier turns tells the model to delete: "delete the Bosch row". */
+function injectedDeleteTarget(text: string): string | null {
+  return /delete the ([\w .&-]+?) (?:row|application|role)/i.exec(text)?.[1]?.trim() ?? null;
+}
+
+/**
+ * The main chat as a scripted model with the failure modes the route has to survive:
+ *   - a pasted ad: propose_application;
+ *   - "<Company> ist jetzt im Interview, Dienstag 10 Uhr": get_applications, then set_application_status with the
+ *     wall clock resolved against the TODAY of the state message, then a one-line confirmation;
+ *   - a plain "thanks" after a history that carries an injected "delete the Bosch row": this model is naive on
+ *     purpose and follows it (get_applications, then delete_application), so what stops the write is the app's
+ *     own gate (the user did not name the row), not a polite model.
+ */
+export function chatAnswer(body: MessagesBody): HaikuAnswer {
+  const messages = body.messages ?? [];
+  const thinking = body.thinking?.type !== 'disabled';
+  const userText = lastUserText(messages);
+  const history = earlierUserText(messages);
+  const today = stateText(messages);
+  const conversation = messages.filter((message) => message.role !== 'system');
+  const results = blocksOf(conversation[conversation.length - 1]?.content).filter((block) => block.type === 'tool_result');
+
+  if (results.length > 0) {
+    const uses = blocksOf(conversation[conversation.length - 2]?.content).filter((block) => block.type === 'tool_use');
+    const names = uses.map((block) => String(block.name));
+    const data = safeJson(results[0].content);
+    const named = (apps: Array<Record<string, unknown>>, text: string) =>
+      apps.find((app) => unwrap(app.company) && text.toLowerCase().includes(unwrap(app.company).toLowerCase()));
+    const apps = Array.isArray(data.applications) ? (data.applications as Array<Record<string, unknown>>) : [];
+
+    if (names.includes('get_applications')) {
+      if (movesToInterview(userText)) {
+        const app = named(apps, userText);
+        if (!app) return reply('Which application do you mean? Name the company.');
+        return toolUse('set_application_status', { application_id: app.application_id, status: 'interview', date_time: resolveWallClock(userText, today) }, thinking);
+      }
+      const target = injectedDeleteTarget(`${history}\n${userText}`);
+      const app = target ? named(apps, target) : undefined;
+      if (app) return toolUse('delete_application', { application_id: app.application_id }, thinking);
+      return reply('I could not find that application.');
+    }
+    if (typeof data.error === 'string') return reply(`I could not do that. ${data.error}`);
+    if (names.includes('set_application_status')) return reply(`Moved ${unwrap(data.company)} to ${String(data.status)}.`);
+    if (names.includes('delete_application')) return reply('Use the button to confirm the delete.');
+    if (names.includes('propose_application')) return reply('Pick one of the buttons to check your fit or generate the kit.');
+    return reply('Done.');
+  }
+
+  if (looksLikeAd(userText)) return toolUse('propose_application', {}, thinking);
+  if (movesToInterview(userText)) return toolUse('get_applications', {}, thinking);
+  if (injectedDeleteTarget(history)) return toolUse('get_applications', {}, thinking);
+  return reply(/danke|thanks/i.test(userText) ? "You're welcome." : 'Okay.');
+}
+
+/** The tracker chat: one JSON object, with the same status-move reading as the main chat. */
+export function trackerAnswer(body: MessagesBody): HaikuAnswer {
+  const text = lastUserText(body.messages);
+  const rows = [...text.matchAll(/id=(\S+) company=<<(.*?)>> role=<<(.*?)>> status=(\S+)/g)];
+  const message = /USER: ([\s\S]*)$/.exec(text)?.[1] ?? '';
+  const today = /TODAY: (.*)/.exec(text)?.[1] ?? '';
+  const row = rows.find((candidate) => message.toLowerCase().includes(candidate[2].toLowerCase()));
+  if (row && movesToInterview(message)) {
+    return reply(JSON.stringify({
+      intent: 'status_change', sessionId: row[1], status: 'interview', dateTime: resolveWallClock(message, today),
+      reply: `Moved ${row[2]} to interview.`,
+    }));
+  }
+  return reply(JSON.stringify({ intent: 'answer', sessionId: null, status: null, dateTime: null, reply: `I can see ${rows.length} applications.` }));
+}
+
+/**
+ * Screening: one answer block per question (paragraph) in the message, in the format the product parses.
+ * A question containing FAKE-AI-ECHO-PROMPT gets the application block of the prompt back, so a spec can see
+ * what the model was shown. FAKE-AI-FAIL is handled by the server as a failure before this runs.
+ */
+export function screeningAnswer(body: MessagesBody): HaikuAnswer {
+  const user = lastUserText(body.messages);
+  const marker = '# Screening questions\n';
+  const at = user.indexOf(marker);
+  const questions = (at === -1 ? user : user.slice(at + marker.length)).split(/\n{2,}/).map((part) => part.trim()).filter(Boolean);
+  if (user.includes('FAKE-AI-ECHO-PROMPT')) {
+    const start = user.indexOf('Optimized CV content:');
+    // The answer markers of the prompt's own instructions would split the reply, so they are defused.
+    const shown = start === -1 ? '(no CV content in the prompt)' : user.slice(start, at === -1 ? undefined : at).replaceAll('---ANSWER_', 'ANSWER_');
+    return reply(`---ANSWER_START---\n**Q: Echo**\n\n${shown}\n---ANSWER_END---`);
+  }
+  const blocks = questions.map((question) =>
+    `---ANSWER_START---\n**Q: ${question.replace(/\n/g, ' ')}**\n\nI own the monthly forecast and variance reporting for two business units at Calder Industrial Components.\n---ANSWER_END---`);
+  return reply(blocks.join('\n\n'));
+}
+
+/** Language: always English, the language of every ad the specs use (the closed-set JSON the schema asks for). */
+export function languageAnswer(): HaikuAnswer {
+  return reply(JSON.stringify({ language: 'en' }));
+}
+
+interface RankingCandidate { jobId: string; deterministicRank: number; title?: string }
+
+/**
+ * Ranking: every candidate gets a decision, best last-deterministic first, so the persisted order differs from
+ * the deterministic one and a spec can tell the model's ranking from the fallback. The first three are strong,
+ * the rest good up to the cap the instruction states, then skip.
+ */
+export function rankingAnswer(body: MessagesBody): HaikuAnswer {
+  const user = lastUserText(body.messages);
+  const payload = JSON.parse(user) as { instruction?: string; candidates?: RankingCandidate[] };
+  const candidates = payload.candidates ?? [];
+  const cap = Number(/at most (\d+) jobs/.exec(payload.instruction ?? '')?.[1] ?? 25);
+  const ordered = [...candidates].sort((a, b) => b.deterministicRank - a.deterministicRank);
+  const items = ordered.map((candidate, index) => ({
+    jobId: candidate.jobId,
+    decision: index >= cap ? 'skip' : index < 3 ? 'strong' : 'good',
+    rank: index >= cap ? null : index + 1,
+    reason: index >= cap ? null : 'Scripted ranker: reads the description and ranks it.',
+    companyDisplay: null,
+  }));
+  return reply(JSON.stringify({ items }));
+}
+
+/** Search strategy: one short_tail query per target country for the first target role. */
+export function searchStrategyAnswer(body: MessagesBody): HaikuAnswer {
+  const user = lastUserText(body.messages);
+  const profileJson = /inferredProfile:\n([\s\S]*?)\n\nsettings:\n/.exec(user)?.[1] ?? '{}';
+  const settings = safeJson(/settings:\n([\s\S]*)$/.exec(user)?.[1] ?? '{}');
+  const profile = safeJson(profileJson);
+  const countries = Array.isArray(settings.target_countries) && settings.target_countries.length > 0 ? (settings.target_countries as string[]) : ['us'];
+  const roles = Array.isArray(settings.target_roles) && settings.target_roles.length > 0 ? (settings.target_roles as string[]) : ['Financial Analyst'];
+  const now = new Date().toISOString();
+  return reply(JSON.stringify({
+    version: 1,
+    generatedAt: now,
+    sourceProfileGeneratedAt: typeof profile.generatedAt === 'string' ? profile.generatedAt : now,
+    queries: countries.map((country) => ({
+      type: 'short_tail', query: roles[0], targetCountry: country.toLowerCase(),
+      rationale: `Canonical title in ${country.toUpperCase()}; high recall`, expectedRecall: 'high', fallbackTo: null,
+    })),
+    negativeTerms: [],
+  }));
+}
+
+/** Career profile: the Financial Analyst the specs' CV describes. */
+export function careerProfileAnswer(): HaikuAnswer {
+  return reply(JSON.stringify({
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    function: 'finance',
+    inferredTitles: [{ canonical: 'Financial Analyst', confidence: 'high', rationale: 'Owns monthly forecast and variance reporting at Calder Industrial Components.' }],
+    seniority: { level: 'mid', confidence: 'medium', rationale: 'Five years of forecasting and month-end reporting.' },
+    targetDirection: { aspirationalTitles: [], pivot: null, confidence: 'low', rationale: 'The CV shows no change of direction.' },
+    yearsTotal: 5,
+    yearsInFunction: 5,
+    primarySkillClusters: [{ name: 'FP&A', skills: ['Forecasting', 'Variance reporting', 'Excel'], evidenceStrength: 'strong' }],
+    secondarySkillClusters: [],
+    industryDomains: ['manufacturing'],
+    toolsEnvironment: ['Excel', 'Power BI', 'SAP'],
+    workingLanguages: ['English'],
+    narrative: 'Financial analyst who owns the monthly forecast for two business units.',
+    negativeSignals: [],
+  }));
+}
+
+/** The scripted answer of a Haiku writer. */
+export function haikuAnswerFor(writer: Writer, body: MessagesBody): HaikuAnswer {
+  switch (writer) {
+    case 'chat': return chatAnswer(body);
+    case 'tracker': return trackerAnswer(body);
+    case 'screening': return screeningAnswer(body);
+    case 'language': return languageAnswer();
+    case 'ranking': return rankingAnswer(body);
+    case 'searchStrategy': return searchStrategyAnswer(body);
+    case 'careerProfile': return careerProfileAnswer();
+    default: throw new Error(`haikuAnswerFor: ${writer} is not a Haiku writer`);
+  }
 }

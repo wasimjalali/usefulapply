@@ -1,14 +1,16 @@
 import { expect, test } from '../lib/worker-logs';
 import { McpSession, newAgent, uuid } from '../lib/mcp-client';
 import { netCharged, readQuota, setPlan } from '../lib/mcp-db';
+import { MCP_FAKE_URL } from '../lib/env';
+import { fakeCalls } from '../lib/fake-control';
 import { JOB_DESCRIPTION, PRIMARY_CV } from '../lib/model-script';
 import type { BrowserContext } from '@playwright/test';
 import type { TestUser } from '../lib/user';
 
 /**
- * draft_screening_answers end to end. The model behind it is Workers AI, which a local preview cannot reach, so
- * the lane binds `AI` to a stand-in Worker (e2e/fake-ai/worker.mjs, see playwright.config.ts) that answers each
- * question with one scripted answer in the format the product parses, and fails on request.
+ * draft_screening_answers end to end. The model behind it is Claude Haiku 5.5, answered by the lane's scripted
+ * Anthropic fake (e2e/fake-anthropic.ts): one scripted answer per question in the format the product parses,
+ * a failure on request, and a check of what the real call looked like (model, cached prefix).
  *
  * Rules under test: paid plans only, costs no credits, at most 5 turns per application (the cap is spent by an
  * atomic claim and handed back when the model fails), the same key is one turn, the daily quota counts a call
@@ -108,5 +110,52 @@ test.describe.serial('draft_screening_answers', () => {
     expect((await agent.call('draft_screening_answers', { idempotencyKey: uuid(), applicationId, questions: ['x'.repeat(1_501)] })).isError).toBe(true);
     expect((await agent.call('draft_screening_answers', { idempotencyKey: uuid(), applicationId, questions: ['  '] })).isError).toBe(true);
     expect(readQuota('draft_screening_answers', user.id)).toBe(quota);
+  });
+
+  test('the calls are Haiku 5.5 calls with a cached prefix: a second turn reads the CV block, a second user shares the static rules', async ({ browser, request }) => {
+    const screening = async () => (await fakeCalls(MCP_FAKE_URL)).filter((call) => call.kind === 'messages' && call.writer === 'screening' && call.status === 200);
+
+    // The first user's turns: every call is Haiku with an effort, static rules and CVs both marked for an hour.
+    const mine = await screening();
+    expect(mine.length, 'the turns of the tests above').toBeGreaterThanOrEqual(5);
+    for (const call of mine) {
+      expect(call.model).toBe('claude-haiku-5-5');
+      expect(['low', 'medium', 'high']).toContain(call.effort);
+      expect(call.markers.map((marker) => [marker.where, marker.ttl])).toEqual([['system', '1h'], ['system', '1h']]);
+    }
+    // The second turn reads everything the first one had in its prefix and writes nothing new (the application
+    // block and the questions come after the last marker).
+    const [first, second] = mine;
+    expect(first.usage?.cacheCreation).toBeGreaterThan(0);
+    expect(second.usage?.cacheRead).toBe((first.usage?.cacheRead ?? 0) + (first.usage?.cacheCreation ?? 0));
+    expect(second.usage?.cacheCreation).toBe(0);
+    expect(second.staticPrefixHash).toBe(first.staticPrefixHash);
+
+    // A second user with a CV of their own (the same person's facts, one more line): the same static prefix byte for byte, their own CV block.
+    const other = await newAgent(browser, request, 'screening-b');
+    try {
+      await other.session.ok('save_cv', { target: 'primary', text: `${PRIMARY_CV}\n- Prepared the annual budget for the regional team` });
+      const otherApplication = (await other.session.ok<{ applicationId: string }>('analyze_job_fit', { idempotencyKey: uuid(), jobDescription: JOB_DESCRIPTION, jobTitle: 'Senior FP&A Analyst', company: 'Northwind Foods' })).applicationId;
+      const kit = await other.session.ok<{ operationId: string }>('generate_application_kit', { idempotencyKey: uuid(), applicationId: otherApplication, waitSeconds: 20 });
+      await expect
+        .poll(async () => (await other.session.ok<{ status: string }>('get_operation', { operationId: kit.operationId })).status, { timeout: 90_000, intervals: [1_000, 2_000] })
+        .toBe('succeeded');
+      setPlan(other.user.id, 'plus');
+      const before = (await screening()).length;
+      await other.session.ok<Drafted>('draft_screening_answers', { idempotencyKey: uuid(), applicationId: otherApplication, questions: ['What is your notice period?'] });
+      const all = await screening();
+      expect(all.length).toBe(before + 1);
+      const theirs = all[all.length - 1];
+      expect(theirs.model).toBe('claude-haiku-5-5');
+      expect(theirs.staticPrefixHash, 'the static rules are byte-identical across users').toBe(first.staticPrefixHash);
+      expect(theirs.markers[1].prefixHash, 'the CV block is their own').not.toBe(first.markers[1].prefixHash);
+      // They read the rules the first user wrote and write only their own CV block.
+      expect(theirs.usage?.cacheRead).toBeGreaterThan(0);
+      expect(theirs.usage?.cacheRead).toBeLessThan((first.usage?.cacheRead ?? 0) + (first.usage?.cacheCreation ?? 0));
+      expect(theirs.usage?.cacheCreation).toBeGreaterThan(0);
+    } finally {
+      await other.session.close();
+      await other.context.close();
+    }
   });
 });
