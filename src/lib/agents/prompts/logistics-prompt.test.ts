@@ -229,7 +229,10 @@ test('screening: the job description and both applicant CVs are fenced, and each
   // No scan, no quoted lines, no claim that a CV is silent: the model reads the CVs, told where to look and what doesn't count.
   for (const text of [prompt, buildScreeningPrompt({})]) {
     assert.doesNotMatch(text, /applicant_logistics_lines|scan flagged|Master CV \(full career history\)/);
-    assert.match(text, /check both the uploaded CV and the master CV for the applicant's own statement\. It usually sits in the header, the profile or the personal details\. A project date, a product, feature or system being available, uptime or a contract clause is not the applicant's statement and doesn't count\./);
+    assert.match(text, /read the uploaded CV and the master CV themselves, not only the optimized CV, which leaves such lines out\. The applicant's statement usually sits at the top, in the lines right under the name and contact details, or in the profile or the personal details\. A project date, a product, feature or system being available, uptime or a contract clause is not the applicant's statement and doesn't count\./);
+    // A stated value is used as stated; the standard answers are only for when nothing is stated.
+    assert.match(text, /1\. If the applicant stated any of these, the answer gives what they stated, in the question's language, with its length or date exactly as stated and nothing added\./);
+    assert.match(text, /2\. Only when the applicant stated none of them, use this answer, in the question's language, with no date:/);
   }
   assert.doesNotMatch(buildScreeningPrompt({}), /<applicant_primary_cv>|<applicant_master_cv>/);
 });
