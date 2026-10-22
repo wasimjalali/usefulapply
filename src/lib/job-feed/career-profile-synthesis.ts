@@ -11,7 +11,7 @@
  * guarantees in user-facing artifacts.
  */
 
-import { callWorkersAI } from '@/lib/models/workers-ai';
+import { callHaiku } from '@/lib/models/haiku';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import type { StructuredCV } from '@/lib/types/cv-schema';
 import {
@@ -20,11 +20,97 @@ import {
   type CareerProfileTargetDirection,
 } from '@/lib/job-feed/career-profile';
 
-const SYNTHESIS_TEMPERATURE = 0.4;
-// gpt-oss spends part of this budget reasoning before the JSON.
-const SYNTHESIS_MAX_TOKENS = 6000;
+// Thinking counts toward max_tokens; the profile JSON itself is ~2k tokens.
+const SYNTHESIS_MAX_TOKENS = 10000;
 
-const SYSTEM_TEXT = `# Role
+// The serialized CV in the prompt never exceeds this (about 33k tokens at the
+// worst measured 1.8 chars/token, well under the 90k input budget).
+export const SLIM_CV_MAX_CHARS = 60_000;
+export const CV_TRUNCATED_MARKER = '[truncated]';
+
+const ENUM_CONFIDENCE = { type: 'string', enum: ['high', 'medium', 'low'] };
+const SKILL_CLUSTER_SCHEMA = {
+  type: 'object',
+  properties: {
+    name: { type: 'string' },
+    skills: { type: 'array', items: { type: 'string' } },
+    evidenceStrength: { type: 'string', enum: ['strong', 'moderate', 'mentioned'] },
+  },
+  required: ['name', 'skills', 'evidenceStrength'],
+  additionalProperties: false,
+};
+
+// Structured output (output_config.format). parseCareerProfileResponse still
+// enforces the semantic rules (yearsInFunction <= yearsTotal, non-empty titles).
+export const CAREER_PROFILE_JSON_SCHEMA: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    version: { type: 'integer' },
+    generatedAt: { type: 'string' },
+    function: { type: 'string' },
+    inferredTitles: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          canonical: { type: 'string' },
+          confidence: ENUM_CONFIDENCE,
+          rationale: { type: 'string' },
+        },
+        required: ['canonical', 'confidence', 'rationale'],
+        additionalProperties: false,
+      },
+    },
+    seniority: {
+      type: 'object',
+      properties: {
+        level: { type: 'string', enum: ['intern', 'junior', 'mid', 'senior', 'lead', 'staff', 'manager'] },
+        confidence: ENUM_CONFIDENCE,
+        rationale: { type: 'string' },
+      },
+      required: ['level', 'confidence', 'rationale'],
+      additionalProperties: false,
+    },
+    targetDirection: {
+      type: 'object',
+      properties: {
+        aspirationalTitles: { type: 'array', items: { type: 'string' } },
+        pivot: {
+          anyOf: [
+            {
+              type: 'object',
+              properties: { from: { type: 'string' }, to: { type: 'string' } },
+              required: ['from', 'to'],
+              additionalProperties: false,
+            },
+            { type: 'null' },
+          ],
+        },
+        confidence: ENUM_CONFIDENCE,
+        rationale: { type: 'string' },
+      },
+      required: ['aspirationalTitles', 'pivot', 'confidence', 'rationale'],
+      additionalProperties: false,
+    },
+    yearsTotal: { type: 'integer' },
+    yearsInFunction: { type: 'integer' },
+    primarySkillClusters: { type: 'array', items: SKILL_CLUSTER_SCHEMA },
+    secondarySkillClusters: { type: 'array', items: SKILL_CLUSTER_SCHEMA },
+    industryDomains: { type: 'array', items: { type: 'string' } },
+    toolsEnvironment: { type: 'array', items: { type: 'string' } },
+    workingLanguages: { type: 'array', items: { type: 'string' } },
+    narrative: { type: 'string' },
+    negativeSignals: { type: 'array', items: { type: 'string' } },
+  },
+  required: [
+    'version', 'generatedAt', 'function', 'inferredTitles', 'seniority', 'targetDirection',
+    'yearsTotal', 'yearsInFunction', 'primarySkillClusters', 'secondarySkillClusters',
+    'industryDomains', 'toolsEnvironment', 'workingLanguages', 'narrative', 'negativeSignals',
+  ],
+  additionalProperties: false,
+};
+
+export const SYSTEM_TEXT = `# Role
 You are a career profile synthesizer for an AI job-search assistant. You read a candidate's structured CV and produce a concise, structured semantic profile. Downstream systems will use the profile to (1) generate effective job-search keywords, (2) localize search queries per market, and (3) rank candidate jobs against this person.
 
 # Anti-hallucination rules (hard)
@@ -132,13 +218,21 @@ export async function generateCareerProfile(
   const startTime = Date.now();
   const userPrompt = buildSynthesisUserPrompt(cv);
 
-  const response = await callWorkersAI({
-    prompt: userPrompt,
-    systemPrompt: SYSTEM_TEXT,
-    temperature: SYNTHESIS_TEMPERATURE,
+  // SYSTEM_TEXT is the cached prefix (identical for every user); the CV and
+  // today's date are in the user turn, after the marker.
+  const response = await callHaiku({
+    site: 'career_profile',
+    system: { static: SYSTEM_TEXT },
+    messages: [{ role: 'user', content: userPrompt }],
+    jsonSchema: CAREER_PROFILE_JSON_SCHEMA,
     maxTokens: SYNTHESIS_MAX_TOKENS,
-    jsonMode: true,
-    generationContext,
+    cacheTtl: '5m',
+    generationContext: generationContext ?? {
+      requestExecutionId: crypto.randomUUID(),
+      route: 'job-feed/career-profile',
+      feature: 'job_feed',
+      operation: 'career_profile_synthesis',
+    },
   });
 
   const latencyMs = Date.now() - startTime;
@@ -146,16 +240,16 @@ export async function generateCareerProfile(
 
   return {
     profile,
-    modelProvider: response.provider ?? 'anthropic',
-    modelName: response.model ?? 'unknown',
-    inputTokens: response.usage?.inputTokens ?? 0,
-    outputTokens: response.usage?.outputTokens ?? 0,
+    modelProvider: response.provider,
+    modelName: response.model,
+    inputTokens: response.inputTokensTotal,
+    outputTokens: response.usage.outputTokens,
     latencyMs,
   };
 }
 
-function buildSynthesisUserPrompt(cv: StructuredCV): string {
-  const slimCV = slimStructuredCV(cv);
+export function buildSynthesisUserPrompt(cv: StructuredCV): string {
+  const slimCV = capSlimCvToChars(slimStructuredCV(cv), SLIM_CV_MAX_CHARS);
   return [
     'Synthesize a career profile from this candidate\'s structured CV.',
     'Today\'s date for date math:',
@@ -171,7 +265,7 @@ function buildSynthesisUserPrompt(cv: StructuredCV): string {
  * token cost stays bounded for very long CVs. Keeps everything that carries a
  * professional signal; drops UI metadata and template settings.
  */
-function slimStructuredCV(cv: StructuredCV): unknown {
+export function slimStructuredCV(cv: StructuredCV) {
   return {
     personal: {
       currentTitle: cv.personal?.currentTitle ?? null,
@@ -206,6 +300,40 @@ function slimStructuredCV(cv: StructuredCV): unknown {
       items: s.items ?? [],
     })),
   };
+}
+
+/**
+ * Keep the serialized CV under maxChars. Drops the oldest roles' bullets first
+ * (replaced by one "[truncated]" bullet so the model sees the role existed and
+ * lost detail), one role at a time, until it fits. Oldest = earliest startDate;
+ * roles without a parseable date come after the dated ones, bottom of the list
+ * first (reverse-chronological CVs end with their oldest roles). Throws when
+ * dropping every role's bullets still doesn't fit, rather than sending a
+ * request that blows the input budget.
+ */
+export function capSlimCvToChars<T extends { experience: Array<{ startDate: string | null; bullets: string[] }> }>(
+  slim: T,
+  maxChars: number,
+): T {
+  const serialize = (value: T) => JSON.stringify(value, null, 2);
+  if (serialize(slim).length <= maxChars) return slim;
+
+  const dated: number[] = [];
+  const undated: number[] = [];
+  slim.experience.forEach((role, index) => {
+    (role.startDate && /^\d{4}/.test(role.startDate) ? dated : undated).push(index);
+  });
+  dated.sort((a, b) => (slim.experience[a].startDate as string).localeCompare(slim.experience[b].startDate as string) || b - a);
+  undated.sort((a, b) => b - a);
+
+  const capped = { ...slim, experience: slim.experience.map((role) => ({ ...role })) } as T;
+  for (const index of [...dated, ...undated]) {
+    const role = capped.experience[index];
+    if (role.bullets.length === 1 && role.bullets[0] === CV_TRUNCATED_MARKER) continue;
+    role.bullets = [CV_TRUNCATED_MARKER];
+    if (serialize(capped).length <= maxChars) return capped;
+  }
+  throw new Error(`CV is too large for career profile synthesis: ${serialize(capped).length} chars after dropping all role bullets (cap ${maxChars}).`);
 }
 
 export class CareerProfileParseError extends Error {

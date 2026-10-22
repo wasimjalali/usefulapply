@@ -1,91 +1,17 @@
-import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { JOB_FEED_VISIBLE_MAX_COUNT } from '@/lib/job-feed/constants';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import type {
   JobFeedRankingCandidate,
-  JobFeedRankingExecutionResult,
   JobFeedRankedItemRecord,
 } from '@/lib/job-feed/types';
 import type { JobFeedSettings } from '@/lib/supabase/types';
-import {
-  completeLlmGeneration,
-  failLlmGeneration,
-  startLlmGeneration,
-  type LlmGenerationContext,
-} from '@/db/repos/adminMetrics';
-import type { Json } from '@/db/schema';
 
-// Ranking runs on Workers AI (Cloudflare-hosted, billed to the Cloudflare
-// account). JOB_FEED_RANKING_MODEL / JOB_FEED_RANKING_FALLBACK_MODEL in
-// wrangler.jsonc vars pick the models. A/B candidates: @cf/openai/gpt-oss-120b,
-// @cf/deepseek-ai/deepseek-v4-flash-0731, @cf/meta/llama-4-scout-17b-16e-instruct.
-type WorkersAiBinding = {
-  run(model: string, input: Record<string, unknown>): Promise<unknown>;
-};
-
-// Workers AI text models answer in the OpenAI chat.completion shape
-// (choices[0].message.content); some also mirror the text in `response`.
-type WorkersAiTextResponse = {
-  id?: string;
-  request_id?: string;
-  response?: string;
-  choices?: Array<{ message?: { content?: string | null } }>;
-  usage?: {
-    prompt_tokens?: number;
-    completion_tokens?: number;
-    prompt_tokens_details?: { cached_tokens?: number };
-    neurons?: number;
-    total_tokens?: number;
-  };
-};
-
-function exactUsageNumber(value: unknown): number | null {
-  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null;
-}
-
-function workersUsageJson(usage: WorkersAiTextResponse['usage']): Json | null {
-  return usage ? JSON.parse(JSON.stringify(usage)) as Json : null;
-}
-
-function workersAiText(raw: WorkersAiTextResponse): string {
-  const fromChoices = raw.choices?.[0]?.message?.content;
-  if (typeof fromChoices === 'string' && fromChoices.length > 0) return fromChoices;
-  return raw.response ?? '';
-}
-
-/**
- * Reasoning models sometimes wrap the JSON in fences or prose, and the prose
- * can contain braces of its own. Return the last balanced top-level object.
- */
-function extractJsonObject(text: string): string {
-  const trimmed = text.trim();
-  if (trimmed.startsWith('{') && trimmed.endsWith('}')) return trimmed;
-  let depth = 0;
-  let start = -1;
-  let inString = false;
-  let escaped = false;
-  let best = '';
-  for (let i = 0; i < trimmed.length; i++) {
-    const ch = trimmed[i];
-    if (inString) {
-      if (escaped) escaped = false;
-      else if (ch === '\\') escaped = true;
-      else if (ch === '"') inString = false;
-      continue;
-    }
-    if (ch === '"') { inString = true; continue; }
-    if (ch === '{') { if (depth === 0) start = i; depth++; continue; }
-    if (ch === '}' && depth > 0) {
-      depth--;
-      if (depth === 0 && start !== -1) best = trimmed.slice(start, i + 1);
-    }
-  }
-  return best || trimmed;
-}
+// Pure ranking pieces (prompt, message builders, schema, validator, budget shrink).
+// No model or database imports, so unit tests load this file without a runtime.
 
 type JobFeedRankingDecision = 'strong' | 'good' | 'skip';
 
-interface JobFeedRankingModelResponse {
+export interface JobFeedRankingModelResponse {
   items: Array<{
     jobId: string;
     decision: JobFeedRankingDecision;
@@ -96,11 +22,12 @@ interface JobFeedRankingModelResponse {
 }
 
 // Static system prompt, identical across every ranking request, every user,
-// every run. Models that cache prompt prefixes (DeepSeek V4 on Workers AI does)
-// get a hit on this block, so keep it long and stable. visibleCap deliberately
-// lives in the per-run user message (not here) so the prefix stays identical
-// across tiers too.
-const SYSTEM_PROMPT = `# Role
+// every run. It is the cached prefix (Anthropic prompt caching, 5 minute TTL),
+// so feed runs from different users within minutes of each other read it
+// instead of re-writing it. Keep it long and byte-stable. visibleCap
+// deliberately lives in the per-run user message (not here) so the prefix stays
+// identical across tiers too.
+export const RANKING_SYSTEM_PROMPT = `# Role
 You are the ranking engine for Useful Apply's job feed. The candidate starts the run themselves and waits while it happens, so you are reading job postings fetched for that candidate seconds ago and deciding which ones are worth putting in front of them now. Nothing here is a nightly batch. You are the final quality gate. Deterministic prefilters upstream only enforce hard user-stated constraints (explicit employment type mismatch, posting that explicitly states a salary below the candidate's declared minimum, explicit no-sponsorship language when the candidate needs sponsorship). Everything else is your responsibility: role fit, seniority fit, location fit, remote preference fit, skill fit, freshness, and deduplication.
 
 # Task
@@ -211,208 +138,8 @@ Return ONLY a valid JSON object. No markdown fences. No prose. Start with { and 
 
 Every candidate jobId must appear exactly once in the items array. The candidate count and your items count must match.`;
 
-const DEFAULT_RANKING_MODEL = '@cf/openai/gpt-oss-120b';
-const DEFAULT_FALLBACK_RANKING_MODEL = '@cf/deepseek-ai/deepseek-v4-flash-0731';
 
-async function getWorkersAiRanking(): Promise<{ ai: WorkersAiBinding; model: string; fallbackModel: string | null } | null> {
-  let env: { AI?: WorkersAiBinding; JOB_FEED_RANKING_MODEL?: string; JOB_FEED_RANKING_FALLBACK_MODEL?: string } = {};
-  try {
-    ({ env } = await getCloudflareContext({ async: true }) as { env: typeof env });
-  } catch {
-    // Outside the Worker (unit scripts, plain next dev) there is no binding.
-    return null;
-  }
-  if (!env.AI) return null;
-  // wrangler vars live on the Workers env only (OpenNext does not copy them to process.env).
-  const model = env.JOB_FEED_RANKING_MODEL ?? DEFAULT_RANKING_MODEL;
-  const fallbackRaw = env.JOB_FEED_RANKING_FALLBACK_MODEL ?? DEFAULT_FALLBACK_RANKING_MODEL;
-  const fallbackModel = fallbackRaw && fallbackRaw !== model ? fallbackRaw : null;
-  return { ai: env.AI, model, fallbackModel };
-}
-
-async function runWorkersAiRanking(params: {
-  ai: WorkersAiBinding;
-  model: string;
-  messages: Array<{ role: 'system' | 'user'; content: string }>;
-  candidates: JobFeedRankingCandidate[];
-  visibleCap: number;
-  generationContext: LlmGenerationContext;
-}): Promise<{
-  items: JobFeedRankedItemRecord[] | null;
-  model: JobFeedRankingExecutionResult['model'];
-  error: string | null;
-  generationId: string;
-}> {
-  const { ai, model, messages, candidates, visibleCap, generationContext } = params;
-  const startTime = Date.now();
-  const ledger = await startLlmGeneration({
-    context: generationContext,
-    provider: 'workers-ai',
-    model,
-  });
-  let raw: WorkersAiTextResponse;
-
-  try {
-    raw = (await ai.run(model, {
-      messages,
-      temperature: 0.2,
-      // Reasoning models spend part of this budget thinking before the JSON.
-      max_tokens: 12000,
-      response_format: { type: 'json_object' },
-    })) as WorkersAiTextResponse;
-  } catch (error) {
-    try {
-      await failLlmGeneration({
-        id: ledger.id,
-        latencyMs: Date.now() - startTime,
-        errorKind: 'workers_ai_provider_error',
-      });
-    } catch (ledgerError) {
-      console.error('[llm-ledger] Workers AI failure write failed', ledger.id, ledgerError);
-    }
-    console.error(`[JobFeedRanking] ${model} failed after ${Date.now() - startTime}ms`, error);
-    return {
-      items: null,
-      model: null,
-      error: error instanceof Error ? error.message : 'Unknown Workers AI ranking failure',
-      generationId: ledger.id,
-    };
-  }
-
-  const latencyMs = Date.now() - startTime;
-  const exactInputTokens = exactUsageNumber(raw.usage?.prompt_tokens);
-  const exactOutputTokens = exactUsageNumber(raw.usage?.completion_tokens);
-  const exactCachedTokens = exactUsageNumber(raw.usage?.prompt_tokens_details?.cached_tokens);
-  const exactTotalTokens = exactUsageNumber(raw.usage?.total_tokens);
-  try {
-    await completeLlmGeneration({
-      id: ledger.id,
-      latencyMs,
-      providerRequestId: raw.request_id ?? raw.id ?? null,
-      usageReported: exactTotalTokens !== null || (exactInputTokens !== null && exactOutputTokens !== null),
-      inputTokens: exactInputTokens,
-      outputTokens: exactOutputTokens,
-      cacheReadInputTokens: exactCachedTokens,
-      providerTotalTokens: exactTotalTokens,
-      providerUsage: workersUsageJson(raw.usage),
-    });
-  } catch (ledgerError) {
-    console.error('[llm-ledger] Workers AI completion write failed', ledger.id, ledgerError);
-  }
-
-  const inputTokens = exactInputTokens ?? 0;
-  const outputTokens = exactOutputTokens ?? 0;
-  const cachedTokens = exactCachedTokens ?? 0;
-  const neurons = raw.usage?.neurons ?? null;
-  try {
-    console.log(
-      `[JobFeedRanking] ${model} | ${inputTokens}in (${cachedTokens} cached) / ${outputTokens}out | ${latencyMs}ms | neurons=${neurons ?? 'n/a'} | candidates=${candidates.length}`
-    );
-    const modelInfo = { provider: 'workers-ai', name: model, inputTokens, outputTokens, latencyMs };
-    const parsed = JSON.parse(extractJsonObject(workersAiText(raw))) as JobFeedRankingModelResponse;
-    const items = validateModelRankingResponse(parsed, candidates, visibleCap);
-    return {
-      items,
-      model: modelInfo,
-      error: items ? null : 'The ranking model response was incomplete or invalid.',
-      generationId: ledger.id,
-    };
-  } catch (error) {
-    console.error(`[JobFeedRanking] ${model} returned an invalid response`, error);
-    return {
-      items: null,
-      model: { provider: 'workers-ai', name: model, inputTokens, outputTokens, latencyMs },
-      error: error instanceof Error ? error.message : 'Invalid Workers AI ranking response',
-      generationId: ledger.id,
-    };
-  }
-}
-
-export async function rankWithWorkersAi(params: {
-  settings: JobFeedSettings;
-  candidates: JobFeedRankingCandidate[];
-  visibleCap?: number;
-  yearsExperience?: number | null;
-  careerProfile?: CareerProfile | null;
-  negativeTerms?: string[];
-  excludedTerms?: string[];
-  generationContext?: LlmGenerationContext;
-}): Promise<JobFeedRankingExecutionResult> {
-  const {
-    settings,
-    candidates,
-    visibleCap = JOB_FEED_VISIBLE_MAX_COUNT,
-    yearsExperience = null,
-    careerProfile = null,
-    negativeTerms = [],
-    excludedTerms = [],
-    generationContext,
-  } = params;
-  const deterministicItems = buildDeterministicRankedItems(candidates, visibleCap);
-
-  if (candidates.length === 0) {
-    return { status: 'no_candidates', items: [], errorMessage: null, model: null };
-  }
-
-  const workersAi = await getWorkersAiRanking();
-  if (!workersAi) {
-    // No binding outside the Worker (plain next dev, scripts): expected, not a failure.
-    return { status: 'completed_deterministic', items: deterministicItems, errorMessage: null, model: null };
-  }
-
-  const messages = [
-    { role: 'system' as const, content: SYSTEM_PROMPT },
-    { role: 'user' as const, content: buildUserProfileMessage(settings, yearsExperience, careerProfile, negativeTerms, excludedTerms) },
-    { role: 'user' as const, content: buildCandidatesMessage(candidates, visibleCap) },
-  ];
-
-  const rankingGenerationContext = generationContext ?? {
-    requestExecutionId: crypto.randomUUID(),
-    route: 'job-feed/ranking',
-    feature: 'job_feed',
-    operation: 'job_feed_ranking',
-  };
-
-  const primary = await runWorkersAiRanking({
-    ai: workersAi.ai,
-    model: workersAi.model,
-    messages,
-    candidates,
-    visibleCap,
-    generationContext: rankingGenerationContext,
-  });
-  if (primary.items) {
-    return { status: 'completed_llm', items: primary.items, errorMessage: null, model: primary.model };
-  }
-
-  if (workersAi.fallbackModel) {
-    console.warn(`[JobFeedRanking] ${workersAi.model} failed (${primary.error}), retrying on ${workersAi.fallbackModel}`);
-    const fallback = await runWorkersAiRanking({
-      ai: workersAi.ai,
-      model: workersAi.fallbackModel,
-      messages,
-      candidates,
-      visibleCap,
-      generationContext: {
-        ...rankingGenerationContext,
-        parentGenerationId: primary.generationId,
-      },
-    });
-    if (fallback.items) {
-      return { status: 'completed_llm', items: fallback.items, errorMessage: null, model: fallback.model };
-    }
-    return {
-      status: 'llm_failed_fallback',
-      items: deterministicItems,
-      errorMessage: `${primary.error ?? 'primary failed'}; fallback ${workersAi.fallbackModel}: ${fallback.error ?? 'failed'}`,
-      model: fallback.model,
-    };
-  }
-
-  return { status: 'llm_failed_fallback', items: deterministicItems, errorMessage: primary.error, model: primary.model };
-}
-
-function buildUserProfileMessage(
+export function buildUserProfileMessage(
   settings: JobFeedSettings,
   yearsExperience: number | null = null,
   careerProfile: CareerProfile | null = null,
@@ -484,7 +211,16 @@ function buildUserProfileMessage(
 // Per-run dynamic content: the actual candidate jobs and the visibleCap.
 // This is the only message that changes every run and therefore the only
 // block we pay full input-token price on.
-function buildCandidatesMessage(candidates: JobFeedRankingCandidate[], visibleCap: number): string {
+//
+// RANKING_EXCERPT_CHARS is 3500 because requirements (must-have skills, years)
+// usually sit in the back half of a JD and skill match is 40% of the score, so
+// the ranker must see them. fitCandidatesToBudget shrinks it (floor 1500) only
+// when the exact input count would pass the 90k budget.
+export function buildCandidatesMessage(
+  candidates: JobFeedRankingCandidate[],
+  visibleCap: number,
+  excerptChars: number = RANKING_EXCERPT_CHARS,
+): string {
   return JSON.stringify({
     section: 'rank_now',
     instruction: `Rank these ${candidates.length} candidate job(s) against the candidate profile above. Return one decision per job ID (strong, good, or skip). Surface at most ${visibleCap} jobs as strong or good; if only 2 are truly strong fits, return 2 strongs and skip the rest rather than padding. Every candidate jobId must appear exactly once in your response.`,
@@ -501,16 +237,94 @@ function buildCandidatesMessage(candidates: JobFeedRankingCandidate[], visibleCa
       deterministicScore: candidate.deterministicScore,
       deterministicFitLabel: candidate.deterministicFitLabel,
       scoreBreakdown: candidate.scoreBreakdown,
-      // 3500 chars (was 1400): requirements (must-have skills, years) usually
-      // sit in the back half of a JD, and skill match is 40% of the score, so
-      // the ranker must see them. Only this uncached candidates message grows;
-      // system + profile caching is unaffected.
-      descriptionExcerpt: truncateText(candidate.description, 3500),
+      descriptionExcerpt: truncateText(candidate.description, excerptChars),
     })),
   }, null, 2);
 }
 
-function buildDeterministicRankedItems(candidates: JobFeedRankingCandidate[], visibleCap: number = JOB_FEED_VISIBLE_MAX_COUNT): JobFeedRankedItemRecord[] {
+// ---------------------------------------------------------------------------
+// Input budget (every request stays under the 100k price tier; we stop at 90k)
+// ---------------------------------------------------------------------------
+
+export const RANKING_EXCERPT_CHARS = 3500;
+export const RANKING_EXCERPT_FLOOR_CHARS = 1500;
+export const RANKING_INPUT_BUDGET_TOKENS = 90_000;
+// Worst measured ratio (German ads and CVs, P0 probe). Only used to split the
+// total into a fixed part and an excerpt part when shrinking.
+const RANKING_CHARS_PER_TOKEN = 1.8;
+
+export interface RankingBudgetFit {
+  excerptChars: number;
+  /** Input token count of the request that will be sent (exact when over the count threshold). */
+  tokens: number;
+  fits: boolean;
+  shrunk: boolean;
+}
+
+/**
+ * Pick the excerpt length for this run. Counts the request at the full excerpt
+ * length. When the count is over the budget, shrinks descriptionExcerpt
+ * proportionally to the part of the prompt the excerpts account for (floor
+ * 1,500 chars) and recounts once. The caller throws when it still doesn't fit.
+ */
+export async function fitCandidatesToBudget(params: {
+  candidates: JobFeedRankingCandidate[];
+  /** Input token count for a request built with this excerpt length. */
+  countTokens: (excerptChars: number) => Promise<number>;
+  budgetTokens?: number;
+}): Promise<RankingBudgetFit> {
+  const { candidates, countTokens, budgetTokens = RANKING_INPUT_BUDGET_TOKENS } = params;
+  const fullTokens = await countTokens(RANKING_EXCERPT_CHARS);
+  if (fullTokens <= budgetTokens) {
+    return { excerptChars: RANKING_EXCERPT_CHARS, tokens: fullTokens, fits: true, shrunk: false };
+  }
+
+  const excerptCharsTotal = candidates.reduce(
+    (sum, c) => sum + (truncateText(c.description, RANKING_EXCERPT_CHARS)?.length ?? 0),
+    0,
+  );
+  const excerptTokens = Math.min(fullTokens, excerptCharsTotal / RANKING_CHARS_PER_TOKEN);
+  const fixedTokens = fullTokens - excerptTokens;
+  // Aim 3% under the budget: the 1.8 split is conservative for English, so a
+  // plain proportional cut can land just over the line and waste the one recount.
+  const room = budgetTokens * 0.97 - fixedTokens;
+  const scaled = excerptTokens > 0
+    ? Math.floor(RANKING_EXCERPT_CHARS * (room / excerptTokens))
+    : RANKING_EXCERPT_FLOOR_CHARS;
+  const excerptChars = Math.min(
+    RANKING_EXCERPT_CHARS,
+    Math.max(RANKING_EXCERPT_FLOOR_CHARS, scaled),
+  );
+  const tokens = await countTokens(excerptChars);
+  return { excerptChars, tokens, fits: tokens <= budgetTokens, shrunk: true };
+}
+
+// Structured output (output_config.format). Keeps the model to the exact item
+// shape; validateModelRankingResponse still enforces coverage and rank rules.
+export const RANKING_JSON_SCHEMA: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          jobId: { type: 'string' },
+          decision: { type: 'string', enum: ['strong', 'good', 'skip'] },
+          rank: { anyOf: [{ type: 'integer' }, { type: 'null' }] },
+          reason: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+          companyDisplay: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+        },
+        required: ['jobId', 'decision', 'rank', 'reason', 'companyDisplay'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['items'],
+  additionalProperties: false,
+};
+
+export function buildDeterministicRankedItems(candidates: JobFeedRankingCandidate[], visibleCap: number = JOB_FEED_VISIBLE_MAX_COUNT): JobFeedRankedItemRecord[] {
   return [...candidates]
     .sort((left, right) => {
       if (right.deterministicScore !== left.deterministicScore) {
@@ -529,7 +343,7 @@ function buildDeterministicRankedItems(candidates: JobFeedRankingCandidate[], vi
     }));
 }
 
-function validateModelRankingResponse(
+export function validateModelRankingResponse(
   payload: JobFeedRankingModelResponse,
   candidates: JobFeedRankingCandidate[],
   visibleCap: number = JOB_FEED_VISIBLE_MAX_COUNT
