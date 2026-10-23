@@ -24,7 +24,7 @@ import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { saveLetterRecipientFromAd } from '@/lib/agents/persist-letter-recipient';
 import { isSameStoredText, storedTextOrEmpty } from '@/db/trim-text';
 import { claimAnonymousGeneration, releaseAnonymousGeneration } from '@/db/repos/anonymous';
-import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
+import { CREDIT_COSTS } from '@/lib/credit-costs';
 import {
   reserveCredits,
   captureReservation,

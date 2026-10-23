@@ -1,5 +1,5 @@
-import { deleteFileAction, deleteUserFilesAction, getProfileAction, listUserFilesAction, removeAvatarAction, setAvatarAction } from '@/db/actions';
-import { fileDisplayUrl, toR2Key } from '@/storage/paths';
+import { deleteUserFilesAction, getProfileAction, listUserFilesAction, removeAvatarAction, setAvatarAction } from '@/db/actions';
+import { fileDisplayUrl } from '@/storage/paths';
 
 type FileBucket = 'cv-files' | 'generated-pdfs' | 'avatars' | 'profile-photos';
 
@@ -96,52 +96,4 @@ export async function getProfilePhotoUrl(
 export async function deleteProfilePhoto(userId: string): Promise<{ error: Error | null }> {
   void userId;
   return deleteOwnedPrefix('profile-photos');
-}
-
-export async function uploadGeneratedPDF(
-  userId: string,
-  pdfBytes: Uint8Array,
-  fileName: string,
-): Promise<{ url: string | null; path: string | null; error: Error | null }> {
-  void userId;
-  const file = new File([pdfBytes as BlobPart], fileName, { type: 'application/pdf' });
-  const result = await postUpload(file, 'generated-pdfs');
-  if (result.error || !result.key) return { url: null, path: null, error: result.error };
-  return { url: fileDisplayUrl(result.key), path: result.key, error: null };
-}
-
-/** `filePath` is a full R2 key or a legacy `<userId>/<file>` path. */
-export async function getGeneratedPDFUrl(
-  filePath: string,
-): Promise<{ url: string | null; error: Error | null }> {
-  const key = toR2Key('generated-pdfs', filePath);
-  if (!key) return { url: null, error: new Error('Invalid file path') };
-  return { url: fileDisplayUrl(key), error: null };
-}
-
-/** `name` is the path under the bucket (`<userId>/<file>`), usable with getGeneratedPDFUrl / deleteGeneratedPDF. */
-export async function listGeneratedPDFs(
-  userId: string,
-): Promise<{ files: { name: string; created_at: string }[]; error: Error | null }> {
-  void userId;
-  try {
-    const keys = await listUserFilesAction('generated-pdfs');
-    return {
-      files: keys.map((key) => ({ name: key.replace(/^generated-pdfs\//, ''), created_at: '' })),
-      error: null,
-    };
-  } catch (err) {
-    return { files: [], error: asError(err, 'Failed to list files') };
-  }
-}
-
-export async function deleteGeneratedPDF(filePath: string): Promise<{ error: Error | null }> {
-  const key = toR2Key('generated-pdfs', filePath);
-  if (!key) return { error: new Error('Invalid file path') };
-  try {
-    await deleteFileAction(key);
-    return { error: null };
-  } catch (err) {
-    return { error: asError(err, 'Delete failed') };
-  }
 }

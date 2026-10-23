@@ -11,8 +11,6 @@ import {
 } from '@/db/actions';
 import { authClient } from '@/auth/client';
 
-export type { ApplicationSession, ChatMessage } from '@/db/repos/sessions';
-
 export async function getSessions(userId: string) {
   return getSessionsAction(userId);
 }

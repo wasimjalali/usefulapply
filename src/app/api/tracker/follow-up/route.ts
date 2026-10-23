@@ -3,7 +3,7 @@ import { randomUUID } from 'crypto';
 import { unifiedWriterAgent } from '@/lib/agents/unified-writer-agent';
 import { type MasterContext } from '@/lib/agents/types';
 import { getCurrentUser } from '@/auth/server';
-import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
+import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { reserveCredits, captureReservation, releaseReservation } from '@/lib/supabase/credit-reservations';
 import { detectLanguage, isSupportedLanguage, type SupportedLanguage } from '@/lib/utils/language-detector';
 import { getPostHogServer } from '@/lib/posthog-server';

@@ -1,10 +1,4 @@
-import {
-  submitMessageFeedbackAction,
-  getSessionFeedbackAction,
-  getMessageFeedbackAction,
-} from '@/db/actions';
-
-export type { MessageFeedback } from '@/db/repos/feedback';
+import { submitMessageFeedbackAction } from '@/db/actions';
 
 export async function submitMessageFeedback(
   userId: string,
@@ -17,12 +11,4 @@ export async function submitMessageFeedback(
   },
 ) {
   return submitMessageFeedbackAction(userId, messageId, feedbackType, options);
-}
-
-export async function getSessionFeedback(userId: string, sessionId: string) {
-  return getSessionFeedbackAction(userId, sessionId);
-}
-
-export async function getMessageFeedback(userId: string, messageId: string) {
-  return getMessageFeedbackAction(userId, messageId);
 }
