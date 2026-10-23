@@ -13,12 +13,11 @@
  * BEFORE AND AFTER. The comparison is two runs of this harness on two commits, run in parallel by the orchestrator:
  * before = main, after = the feature branch. Each commit needs this folder (merge the eval commit into the "before"
  * worktree first; it only adds evals/chat-ux and small additions to evals/haiku-55-swap). In each worktree (own
- * checkout, own node_modules, ANTHROPIC_API_KEY exported in that shell; the harness never reads env files and
- * never reads the local secrets file):
+ * checkout, own node_modules). The key comes from ANTHROPIC_API_KEY in the shell, or with --key-from-dev-vars from
+ * the main checkout's secrets file, that one key only, in-process and never printed (approved by Wasim 2026-10-23):
  *
- *   export ANTHROPIC_API_KEY=...          # from the shell, not from a file
- *   cd <worktree: main + eval commit>  && npx tsx evals/chat-ux/run.ts chat-ux --allow-anthropic-api --runs 3
- *   cd <worktree: feature + eval commit> && npx tsx evals/chat-ux/run.ts chat-ux --allow-anthropic-api --runs 3
+ *   cd <worktree: main + eval commit>  && npx tsx evals/chat-ux/run.ts chat-ux --allow-anthropic-api --key-from-dev-vars --runs 3
+ *   cd <worktree: feature + eval commit> && npx tsx evals/chat-ux/run.ts chat-ux --allow-anthropic-api --key-from-dev-vars --runs 3
  *
  * Arms: haiku-low only (the default here; the shared harness would run all five arms otherwise). Other flags:
  * --runs N (default 3), --cases g01,g02 (a subset), --max-cost USD (stop after this much, default 5), --salt off
@@ -34,13 +33,14 @@
  * cold start.
  */
 import { parseCli } from '../haiku-55-swap/lib/core';
+import { loadAnthropicKey } from '../haiku-55-swap/lib/key';
 
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   const cli = parseCli(argv);
   const target = (cli.positional[0] ?? '').replace(/-/g, '_');
   if (target !== 'chat_ux' && target !== 'check') throw new Error('usage: run.ts <chat-ux|check> [--dry] [--allow-anthropic-api] [--runs N] [--cases a,b] [--max-cost USD]');
-  if (cli.has('key-from-dev-vars')) throw new Error('chat-ux never reads the secrets file: export ANTHROPIC_API_KEY in the shell instead.');
+  if (cli.has('key-from-dev-vars')) loadAnthropicKey();
 
   const { installHarness } = await import('../haiku-55-swap/lib/intercept');
   installHarness();
