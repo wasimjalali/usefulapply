@@ -133,6 +133,9 @@ export async function POST(req: NextRequest) {
   // The stored block this turn was sent on, so a refusal of it drops that row and no other (null for a block that
   // was never stored, a Bedrock one).
   let failedBlockSession: { userId: string; sessionId: string; coversThroughMessageId: string } | null = null;
+  // A turn sent without an id and already stored under a server one: every answer returns it, failures included, so
+  // the transcript shows what D1 holds.
+  let mintedTurn: { id: string; content: string } | null = null;
   try {
     // Authentication: require logged-in user for chat (costs API money)
     const clientIP = getClientIP(req);
@@ -330,6 +333,7 @@ export async function POST(req: NextRequest) {
         // An id that is someone else's, already answered, or names a different text: never a second turn.
         return NextResponse.json({ error: 'Invalid message id.' }, { status: 409 });
       }
+      if (typeof messageId !== 'string') mintedTurn = { id: turnMessageId, content: storedUserText };
     }
 
     if (isScreeningMode) {
@@ -593,7 +597,7 @@ export async function POST(req: NextRequest) {
       ...(replyMessageId ? { replyMessageId } : {}),
       // A turn sent without an id was stored under one the client has never seen: it adds this message to its
       // transcript, so the two stay the same.
-      ...(storesTurn && typeof messageId !== 'string' ? { storedUserMessage: { id: turnMessageId, content: storedUserText } } : {}),
+      ...(mintedTurn ? { storedUserMessage: mintedTurn } : {}),
       // Where ChatPanel draws "Earlier messages summarized": the last message the model now sees only as a summary.
       ...(persistedSessionId ? { compactedThroughMessageId: compaction?.coversThroughMessageId ?? null } : {}),
     });
@@ -617,19 +621,24 @@ export async function POST(req: NextRequest) {
       let dropped = false;
       if (status === 400 && failedBlockSession) {
         try {
-          await deleteChatCompaction(failedBlockSession.userId, failedBlockSession.sessionId, failedBlockSession.coversThroughMessageId);
-          dropped = true;
+          // 0 when another tab replaced it with a newer block meanwhile: that one stays, and so does the divider.
+          dropped = await deleteChatCompaction(failedBlockSession.userId, failedBlockSession.sessionId, failedBlockSession.coversThroughMessageId) > 0;
         } catch (deleteError) {
           console.error('[chat] could not drop the refused compaction block:', deleteError instanceof Error ? deleteError.message : deleteError);
         }
       }
       return NextResponse.json(
-        { error: 'Chat is unavailable right now.', code: 'CHAT_PROVIDER_UNAVAILABLE', ...(dropped ? { compactedThroughMessageId: null } : {}) },
+        {
+          error: 'Chat is unavailable right now.',
+          code: 'CHAT_PROVIDER_UNAVAILABLE',
+          ...(dropped ? { compactedThroughMessageId: null } : {}),
+          ...(mintedTurn ? { storedUserMessage: mintedTurn } : {}),
+        },
         { status: 503 },
       );
     }
     return NextResponse.json(
-      { error: 'Chat request failed' },
+      { error: 'Chat request failed', ...(mintedTurn ? { storedUserMessage: mintedTurn } : {}) },
       { status: 500 }
     );
   }

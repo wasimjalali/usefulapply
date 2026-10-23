@@ -316,12 +316,15 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
       db.close();
     }
     const before = (await fakeCalls()).length;
+    // The newest stored chat message, which screening's last-ten window always holds.
+    const newest = chatMessagesOf(sessionId).filter((row) => row.role === 'user').at(-1)?.content ?? '';
+    expect(newest).not.toBe('');
     const result = await turn(page.request, sessionId, `Warum moechten Sie bei uns arbeiten? [${TAG}]`, { screening: true });
     expect(result.status, JSON.stringify(result.body)).toBe(200);
     const screening = (await fakeCalls()).slice(before).filter((call) => call.kind === 'messages' && call.writer === 'screening');
     expect(screening).toHaveLength(1);
     expect(screening[0].allUserText).not.toContain(FORGED);
-    expect(screening[0].allUserText).toContain('Danke dir, das hilft.');
+    expect(screening[0].allUserText).toContain(newest);
   });
 
   test('the same message id sent twice at once runs one turn, the other is refused', async () => {

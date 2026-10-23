@@ -681,6 +681,11 @@ export function useAgentWorkflow(options?: {
         else options?.onAnonymousLimitReached?.();
       } else {
         const errorData = await response.json().catch(() => null);
+        // A turn the route stored under its own id before it failed: shown before the failure reply, as on success.
+        const failedStored = errorData?.storedUserMessage;
+        if (startedIn && failedStored && typeof failedStored.id === 'string' && typeof failedStored.content === 'string') {
+          addStoredMessage(startedIn, { id: failedStored.id, role: 'user', content: failedStored.content });
+        }
         if (errorData?.code === 'CHAT_LIMIT_REACHED') {
           addFailureReply({
             role: 'assistant',
