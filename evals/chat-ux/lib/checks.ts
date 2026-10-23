@@ -103,7 +103,9 @@ export function checkGerman(reply: string): GermanVerdict {
 /**
  * English when: English function words beat the German evidence over the reply, and no sentence is German-dominant
  * (two or more German markers and more of them than English words, or German with no English at all). The mirror of
- * checkGerman, for a turn written in English after a German conversation.
+ * checkGerman, for a turn written in English after a German conversation. Known limit, shared with checkGerman: a reply
+ * with no function word at all ("Understood.", "Alles klar.", "21 open, 5 closed.") has no evidence either way and
+ * fails. That can only fail a correct short reply, never pass a wrong one; it did not fire in the recorded runs.
  */
 export function checkEnglish(reply: string): GermanVerdict {
   const total = languageScore(reply);

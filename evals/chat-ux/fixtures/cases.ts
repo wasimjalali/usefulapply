@@ -383,7 +383,7 @@ export const CASES: UxCase[] = [
     id: 'w10', group: 'switch-fallback', turn: 4, lang: 'en', languageRequested: true, category: 'switch', withCv: true,
     message: 'Wie viele Bewerbungen habe ich gerade offen?',
     expect: { tools: ['get_applications'], reply: { english: true, maxSentences: 3 } },
-    script: [call('get_applications')], finalReply: 'You have 25 applications in your tracker.',
+    script: [call('get_applications')], finalReply: 'You have 21 open applications.',
     badReply: 'Du hast 25 Bewerbungen in deinem Tracker.',
   },
   // Not a request for the chat's language: a document in English, or a recruiter's line quoted. The reply stays German.
