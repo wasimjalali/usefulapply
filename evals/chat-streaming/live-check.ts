@@ -2,7 +2,8 @@
  * Live check of streamed chat replies against the real Anthropic API, on a local production build.
  *
  *   npx opennextjs-cloudflare build
- *   npx opennextjs-cloudflare preview -- --port 8850 --var BETTER_AUTH_URL:http://localhost:8850   (real key from the Worker's own config)
+ *   npx opennextjs-cloudflare preview -c wrangler.e2e.generated.json -- --port 8850 --var BETTER_AUTH_URL:http://localhost:8850
+ *     (real key from the Worker's own config; the E2E config has no production route, which would rewrite the host)
  *   LIVE_BASE_URL=http://localhost:8850 npx tsx evals/chat-streaming/live-check.ts
  *
  * Three real turns on a seeded application with three tracker rows, read the way the browser reads them:
