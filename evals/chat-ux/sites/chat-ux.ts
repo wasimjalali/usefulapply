@@ -47,11 +47,10 @@ export interface ChatAnswer {
 /**
  * THE ONE PLACE THAT READS THE ROUTE'S ANSWER.
  *
- * Today /api/chat answers with one JSON body: { success, reply, actions, executed, replyMessageId, ... }.
- * A streaming version of the route is being built in another session. When it merges, change only this function:
- * read the stream to its end (for example the server-sent events, taking the text deltas for `reply` and the final
- * event for `actions`, `executed` and `replyMessageId`) and return the same ChatAnswer. Nothing else in this file
- * looks at the Response body.
+ * /api/chat streams server-sent events only when the request sends `Accept: text/event-stream` (PR #180, the web
+ * client); this harness doesn't, so the route answers with one JSON body: { success, reply, actions, executed,
+ * replyMessageId, ... }, the same reply the stream would store (every round's text joined). To grade the streamed
+ * path instead, change only this function (read the events to `done`). Nothing else in this file looks at the body.
  */
 async function readChatAnswer(res: Response): Promise<ChatAnswer> {
   return (await res.json()) as ChatAnswer;

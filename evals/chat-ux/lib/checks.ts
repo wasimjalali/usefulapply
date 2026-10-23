@@ -31,6 +31,7 @@ const EN = new Set(
   `the and or of on at is are were be been being you your yours i my we our they their them it its this that these those with for from to not
    can could would should shall may might have has had having do does did done if but by about what which when where how why there then than
    just more most some any each every all here your please thanks thank yes very much many into out up down over under after before while
+   both ready sounds looks great good done
    because which who whom whose let's it's don't can't won't isn't aren't doesn't didn't i'm i've i'd you're you've we're`.split(/\s+/).filter(Boolean),
 );
 // Words that mean something in both languages (in, an, so, was, war, man, hat, will, bin, die, also, am, no, me) are in neither list.
@@ -81,7 +82,8 @@ export interface GermanVerdict {
 /**
  * German when: German evidence beats English over the reply, there is enough evidence (two German words or an
  * umlaut, or one German word in a very short reply), and no single sentence is English-dominant (two or more
- * English function words and more of them than German evidence).
+ * English function words and more of them than German evidence, or a sentence of three or more words with English
+ * words and no German evidence at all, such as "Both are ready, sounds good.").
  */
 export function checkGerman(reply: string): GermanVerdict {
   const total = languageScore(reply);
@@ -93,6 +95,7 @@ export function checkGerman(reply: string): GermanVerdict {
   for (const s of pieces(reply)) {
     const score = languageScore(s);
     if (score.en >= 2 && score.en > score.de + score.umlauts) return { ok: false, reason: `English sentence: "${s.slice(0, 70)}"` };
+    if (score.en >= 1 && score.de + score.umlauts === 0 && words(s).length >= 3) return { ok: false, reason: `English sentence: "${s.slice(0, 70)}"` };
   }
   return { ok: true, reason: 'german' };
 }

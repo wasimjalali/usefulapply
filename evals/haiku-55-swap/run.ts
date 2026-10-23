@@ -118,6 +118,7 @@ async function main(): Promise<void> {
   }
 
   if (!(SITE_IDS as readonly string[]).includes(target)) throw new Error(`unknown site "${target}"`);
+  if (target === 'chat_ux') throw new Error('chat-ux has its own runner: npx tsx evals/chat-ux/run.ts chat-ux [flags]');
   const { site } = await LOADERS[target]();
   await runSite(site, optionsFromCli(cli, site));
 }

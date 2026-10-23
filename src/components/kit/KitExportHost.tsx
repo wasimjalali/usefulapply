@@ -20,7 +20,7 @@ import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback, typ
 
 /**
  * Always mounted in the shell. Runs "Download all" for whichever control asked
- * (the canvas button or the chat's "Download the kit" chip): tailored CV (PDF),
+ * (the canvas "Download all" button): tailored CV (PDF),
  * cover letter (PDF + DOCX), both emails (TXT) and the screening answers (PDF)
  * when present. The CV renders offscreen here so the PDF works from any tab,
  * a collapsed canvas included.

@@ -94,11 +94,15 @@ const call = (name: string, input: Record<string, unknown> = {}): Calls => [{ na
 // ---- claims patterns -----------------------------------------------------------------------------------------
 
 /** A count of documents the model has no source for: the overview tool returns yes/no per document, never a number of emails. */
-const KIT_COUNT_EN = /\b(?:two|three|four|five|2|3|4|5)\s+(?:(?:application|follow[- ]?up|different|separate)\s+)?(?:e-?mails?|documents?|letters?|files?|versions?|drafts?)\b|\b(?:all|both)\s+(?:four|three|two|4|3|2)\b/i;
-const KIT_COUNT_DE = /\b(?:zwei|drei|vier|fünf|2|3|4|5)\s+(?:\w+\s+)?(?:e-?mails?|dokumente?n?|anschreiben|dateien|versionen|entwürfe?)\b|\balle[n]?\s+(?:vier|drei|zwei|4|3|2)\b/i;
-/** A number near "ATS": no tool or context holds an ATS score (the match score is a different number). */
-const ATS_EN = /\bATS\b[^.!?\n]{0,50}\b\d{1,3}\b|\b\d{1,3}\s*(?:%|\/\s*100|out of 100|percent)[^.!?\n]{0,40}\bATS\b/i;
-const ATS_DE = /\bATS\b[^.!?\n]{0,50}\b\d{1,3}\b|\b\d{1,3}\s*(?:%|\/\s*100|von 100|Prozent)[^.!?\n]{0,40}\bATS\b/i;
+const KIT_COUNT_EN = /\b(?:two|three|four|five|2|3|4|5)\s+(?:(?:application|follow[- ]?up|different|separate)\s+)?(?:e-?mails?|documents?|letters?|files?|versions?|drafts?)\b|\b(?:all|both)\s+(?:four|three|two|4|3|2)\b|\bboth\s+(?:(?:application|follow[- ]?up)\s+)?(?:e-?mails?|documents?|letters?)\b/i;
+const KIT_COUNT_DE = /\b(?:zwei|drei|vier|fünf|2|3|4|5)\s+(?:\w+\s+)?(?:e-?mails?|dokumente?n?|anschreiben|dateien|versionen|entwürfe?)\b|\balle[n]?\s+(?:vier|drei|zwei|4|3|2)\b|\bbeide[n]?\s+(?:\w+\s+)?(?:e-?mails?|mails?|dokumente?n?|anschreiben)\b/i;
+/**
+ * A number given as the ATS score. The fixture's application has no saved score (get_application_overview returns
+ * ats_score null), so any ATS number is invented; the match score is a different number, so a number that follows
+ * "match" inside the window is not counted.
+ */
+const ATS_EN = /\bATS\b(?:(?!match)[^.!?\n]){0,50}\b\d{1,3}\b|\b\d{1,3}\s*(?:%|\/\s*100|out of 100|percent|points?)?\s*(?:on|in|for|from)?\s*(?:the\s+|an?\s+)?ATS\b/i;
+const ATS_DE = /\bATS\b(?:(?!Match|Passung)[^.!?\n]){0,50}\b\d{1,3}\b|\b\d{1,3}\s*(?:%|\/\s*100|von 100|Prozent|Punkte?n?)?\s*(?:im|beim|für den|für das)?\s*ATS\b/i;
 
 // ---- compaction seed -----------------------------------------------------------------------------------------
 
@@ -117,8 +121,8 @@ function notes(part: number): string {
 
 /**
  * About 108k characters of German history: the long ad, the user's constraints, one tool confirmation, then seven
- * 11k notes. The route cuts each turn to 11.3k characters, so the replayed history is about 88k characters, which
- * puts the projected input past the 75k-token line (the same shape as evals/chat-compaction/live-check.ts).
+ * 11k notes. The route cuts each turn to CHAT_TURN_MAX_CHARS (13k), so the replayed history is about 91k characters,
+ * which puts the projected input past the 75k-token line (the same shape as evals/chat-compaction/live-check.ts).
  */
 function compactionHistory(): SeedMessage[] {
   const turns: SeedMessage[] = [
