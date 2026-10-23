@@ -7,7 +7,7 @@ import { generateKitThroughUi, signedInPage } from '../lib/app';
  *
  * Browser Run's quickAction does not run in local dev (see wrangler.jsonc), so every PDF render on this preview
  * really fails: /api/exports answers 503 RENDER_UNAVAILABLE. That is the forced failure, unmocked. DOCX renders
- * without Browser Run, so it really succeeds. Where a spec needs a PDF render to succeed (the retry), the browser's
+ * without Browser Run (the data preview has a test signing secret for the links), so it really succeeds. Where a spec needs a PDF render to succeed (the retry), the browser's
  * request to /api/exports is answered with a served file, the way the deployed renderer answers it.
  */
 

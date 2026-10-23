@@ -204,6 +204,9 @@ const webServers = [
             // The Bedrock failover, pointed at the same fake under /bedrock. Fake values: they only authenticate to it.
             '--var AWS_BEARER_TOKEN_BEDROCK:e2e-stub-bedrock-token',
             `--var ANTHROPIC_BEDROCK_MANTLE_BASE_URL:${FAKE_ANTHROPIC_URL}/bedrock`,
+            // Signs export links, so the web downloads reach the renderer. PDFs still fail here (Browser Run
+            // does not run locally), which is the failure p-export-browser-run-only.spec.ts needs; DOCX and TXT render.
+            '--var EXPORT_SIGNING_SECRET:e2e-export-signing-secret',
           ].join(' '),
           url: BASE_URL,
           reuseExistingServer: false,
