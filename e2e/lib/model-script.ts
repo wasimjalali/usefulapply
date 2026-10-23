@@ -669,6 +669,8 @@ export function chatAnswer(body: MessagesBody): HaikuAnswer {
     return reply('Done.');
   }
 
+  // An ad-shaped message the model answers without propose_application (the app then offers "That was a job ad").
+  if (userText.includes('FAKE-NO-PROPOSE')) return reply('Okay.');
   if (looksLikeAd(userText)) return toolUse('propose_application', {}, thinking);
   // The chip specs: a form with questions leads to the screening chip; "Please delete the X row" leads to the
   // delete chip (get_applications first, then delete_application, whose confirm chip rides on the reply).
