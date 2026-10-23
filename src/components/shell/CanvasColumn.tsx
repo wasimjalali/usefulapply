@@ -12,6 +12,7 @@ import { ATSChangesView } from '@/components/kit/ATSChangesView';
 import { KitDownloadAll } from '@/components/kit/KitDownloadAll';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore, type KitTab } from '@/store/useUIStore';
+import { RAIL_WIDTH, SIDEBAR_WIDTH } from '@/components/shell/dimensions';
 
 interface CanvasColumnProps {
   collapsed: boolean;
@@ -21,9 +22,6 @@ interface CanvasColumnProps {
   toolbarNode: HTMLDivElement | null;
   setToolbarNode: (node: HTMLDivElement | null) => void;
 }
-
-/** The folded canvas's rail. The shell lays the folded chat out from it. */
-export const CANVAS_RAIL_WIDTH = 48;
 
 const TABS: { id: KitTab; label: string; icon: typeof FileText }[] = [
   { id: 'cv', label: 'CV', icon: FileText },
@@ -92,156 +90,173 @@ export function CanvasColumn({
     return 'Building your kit. The tailored CV will land in this tab.';
   })();
 
-  if (collapsed) {
-    // Compact, this rail is the only way back and it mirrors the
-    // conversation's rail, so its toggle sits at the top like that one.
-    const label = compact ? 'Show the canvas' : 'Expand canvas';
-    return (
-      /* Otherwise the toggle lives at the bottom right in both states, so it
-         never jumps when the canvas opens or closes. */
-      <div
-        style={{ width: CANVAS_RAIL_WIDTH }}
-        className={`flex h-full flex-shrink-0 flex-col items-center border-l border-cream-200 bg-cream-100 ${
-          compact ? 'justify-start py-3' : 'justify-end py-4'
-        }`}
+  // Compact, this rail is the only way back and it mirrors the
+  // conversation's rail, so its toggle sits at the top like that one.
+  const railLabel = compact ? 'Show the canvas' : 'Expand canvas';
+  const rail = collapsed && (
+    /* Otherwise the toggle lives at the bottom right in both states, so it
+       never jumps when the canvas opens or closes. */
+    <div
+      style={{ width: RAIL_WIDTH }}
+      className={`flex h-full flex-shrink-0 flex-col items-center border-l border-cream-200 bg-cream-100 ${
+        compact ? 'justify-start py-3' : 'justify-end py-4'
+      }`}
+    >
+      <button
+        type="button"
+        onClick={onToggleCollapsed}
+        className="rounded-full border border-cream-200 bg-cream-50 p-1.5 text-warm-gray shadow-sm hover:text-navy-700 cursor-pointer"
+        aria-label={railLabel}
+        title={railLabel}
+        data-shell-toggle="canvas"
       >
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          className="rounded-full border border-cream-200 bg-cream-50 p-1.5 text-warm-gray shadow-sm hover:text-navy-700 cursor-pointer"
-          aria-label={label}
-          title={label}
-          data-shell-toggle="canvas"
-        >
-          <PanelRightOpen className="h-4 w-4" />
-        </button>
-      </div>
-    );
-  }
+        <PanelRightOpen className="h-4 w-4" />
+      </button>
+    </div>
+  );
+
+  // Above 1100px the folded canvas unmounts as it always has: it would come
+  // back at a different width from the one it was laid out at, and the CV
+  // would rescale a frame late.
+  if (collapsed && !compact) return rail;
 
   return (
-    <section className="relative flex min-w-0 flex-1 flex-col bg-cream-100">
-      {/* Compact, the conversation's rail already switches the view, and a
-          second control for the same move is noise. */}
-      {!compact && (
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          className="absolute bottom-4 right-4 z-20 rounded-full border border-cream-200 bg-cream-50 p-1.5 text-warm-gray shadow-sm hover:text-navy-700 cursor-pointer"
-          aria-label="Collapse canvas"
-          data-shell-toggle="canvas"
-        >
-          <PanelRightClose className="h-4 w-4" />
-        </button>
-      )}
+    <>
+      {rail}
+      <section
+        // Compact, the folded canvas stays mounted behind its rail, out of
+        // sight and inert, at the width it shows at (the row less the sidebar
+        // and the conversation's rail), so an unsaved edit on it survives a
+        // trip to the chat, as the chat's own draft does the other way.
+        inert={collapsed}
+        data-shell-column="canvas"
+        style={collapsed ? { left: SIDEBAR_WIDTH + RAIL_WIDTH } : undefined}
+        className={`flex min-w-0 flex-col bg-cream-100 ${
+          collapsed ? 'pointer-events-none absolute inset-y-0 right-0 opacity-0' : 'relative flex-1'
+        }`}
+      >
+        {/* Compact, the conversation's rail already switches the view, and a
+            second control for the same move is noise. */}
+        {!compact && (
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            className="absolute bottom-4 right-4 z-20 rounded-full border border-cream-200 bg-cream-50 p-1.5 text-warm-gray shadow-sm hover:text-navy-700 cursor-pointer"
+            aria-label="Collapse canvas"
+            data-shell-toggle="canvas"
+          >
+            <PanelRightClose className="h-4 w-4" />
+          </button>
+        )}
 
-      {isKit && (
-        <>
-          {/* At tablet width the tabs and Download all only just fit, and an Answers tab tips them over: labels
-              never break, Download all wraps to its own line instead. */}
-          <div className="flex flex-wrap items-center gap-3 border-b border-cream-200 px-5 py-3">
-            <div className="inline-flex items-center rounded-full border border-cream-200 bg-cream-50 p-0.5" role="tablist">
-              {TABS.map((tab) => {
-                const Icon = tab.icon;
-                const on = activeTab === tab.id;
-                return (
+        {isKit && (
+          <>
+            {/* At tablet width the tabs and Download all only just fit, and an Answers tab tips them over: labels
+                never break, Download all wraps to its own line instead. */}
+            <div className="flex flex-wrap items-center gap-3 border-b border-cream-200 px-5 py-3">
+              <div className="inline-flex items-center rounded-full border border-cream-200 bg-cream-50 p-0.5" role="tablist">
+                {TABS.map((tab) => {
+                  const Icon = tab.icon;
+                  const on = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={on}
+                      onClick={() => selectTab(tab.id)}
+                      className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm cursor-pointer ${
+                        on
+                          ? 'bg-white font-semibold text-navy-800 shadow-sm'
+                          : 'font-medium text-warm-gray hover:text-navy-700'
+                      }`}
+                    >
+                      <Icon className={`h-4 w-4 ${on ? 'text-gold-500' : ''}`} />
+                      {tab.label}
+                    </button>
+                  );
+                })}
+                {answersCount > 0 && (
                   <button
-                    key={tab.id}
                     type="button"
                     role="tab"
-                    aria-selected={on}
-                    onClick={() => selectTab(tab.id)}
+                    aria-selected={activeTab === 'answers'}
+                    onClick={() => selectTab('answers')}
                     className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm cursor-pointer ${
-                      on
+                      activeTab === 'answers'
                         ? 'bg-white font-semibold text-navy-800 shadow-sm'
                         : 'font-medium text-warm-gray hover:text-navy-700'
                     }`}
                   >
-                    <Icon className={`h-4 w-4 ${on ? 'text-gold-500' : ''}`} />
-                    {tab.label}
+                    <Sparkles className={`h-4 w-4 ${activeTab === 'answers' ? 'text-gold-500' : ''}`} />
+                    Answers
+                    <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-gold-100 px-1.5 text-[10px] font-bold text-gold-700">
+                      {answersCount}
+                    </span>
                   </button>
-                );
-              })}
-              {answersCount > 0 && (
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === 'answers'}
-                  onClick={() => selectTab('answers')}
-                  className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm cursor-pointer ${
-                    activeTab === 'answers'
-                      ? 'bg-white font-semibold text-navy-800 shadow-sm'
-                      : 'font-medium text-warm-gray hover:text-navy-700'
-                  }`}
-                >
-                  <Sparkles className={`h-4 w-4 ${activeTab === 'answers' ? 'text-gold-500' : ''}`} />
-                  Answers
-                  <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-gold-100 px-1.5 text-[10px] font-bold text-gold-700">
-                    {answersCount}
-                  </span>
-                </button>
-              )}
-            </div>
-            {/* ml-auto rather than a spacer, so it keeps to the right on its own line too. */}
-            <div className="ml-auto">
-              <KitDownloadAll />
-            </div>
-          </div>
-
-          {/* Per-tab rows. Panels portal their controls in; hidden (not unmounted)
-              while the ATS view covers the CV so edit state survives. */}
-          <div className={showAtsView ? 'hidden' : 'contents'}>
-            {activeTab === 'cv' && currentSession?.generatedCV && (
-              <div className="flex items-center gap-3 border-b border-cream-200 px-5 py-2.5">
-                <div ref={setHeaderNode} className="@container flex min-w-0 flex-1 items-center gap-3" />
+                )}
               </div>
-            )}
-            <div className="flex items-center gap-2 border-b border-cream-200 px-5 py-2.5">
-              <div ref={setToolbarNode} className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto" />
+              {/* ml-auto rather than a spacer, so it keeps to the right on its own line too. */}
+              <div className="ml-auto">
+                <KitDownloadAll />
+              </div>
             </div>
-          </div>
-        </>
-      )}
 
-      {bannerText && (
-        <div className="border-b border-gold-200 bg-gold-50 px-5 py-2 text-[13px] font-medium text-gold-700">
-          {bannerText}
-        </div>
-      )}
-
-      {activeTab === 'jobs' ? (
-        /* The feed canvas owns its own header, pills and scrolling. */
-        <div className="min-h-0 flex-1">
-          <FeedCanvas />
-        </div>
-      ) : activeTab === 'tracker' ? (
-        /* The tracker table owns its own header, pills and scrolling. */
-        <div className="min-h-0 flex-1">
-          <TrackerCanvas />
-        </div>
-      ) : (
-      <div className="min-h-0 flex-1 overflow-auto">
-        {activeTab === 'cover-letter' ? (
-          <CoverLetterPanel toolbarPortal={toolbarNode} />
-        ) : activeTab === 'email' ? (
-          <EmailPanel toolbarPortal={toolbarNode} />
-        ) : activeTab === 'answers' ? (
-          <AnswersPanel toolbarPortal={toolbarNode} />
-        ) : (
-          <>
-            {showAtsView && <ATSChangesView onBack={() => setAtsViewSessionId(null)} />}
-            <div className={showAtsView ? 'hidden' : 'h-full'}>
-              <CVPanel
-                toolbarPortal={toolbarNode}
-                headerPortal={headerNode}
-                atsOpen={showAtsView}
-                onOpenAts={() => setAtsViewSessionId(currentSession?.id ?? null)}
-              />
+            {/* Per-tab rows. Panels portal their controls in; hidden (not unmounted)
+                while the ATS view covers the CV so edit state survives. */}
+            <div className={showAtsView ? 'hidden' : 'contents'}>
+              {activeTab === 'cv' && currentSession?.generatedCV && (
+                <div className="flex items-center gap-3 border-b border-cream-200 px-5 py-2.5">
+                  <div ref={setHeaderNode} className="@container flex min-w-0 flex-1 items-center gap-3" />
+                </div>
+              )}
+              <div className="flex items-center gap-2 border-b border-cream-200 px-5 py-2.5">
+                <div ref={setToolbarNode} className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto" />
+              </div>
             </div>
           </>
         )}
-      </div>
-      )}
-    </section>
+
+        {bannerText && (
+          <div className="border-b border-gold-200 bg-gold-50 px-5 py-2 text-[13px] font-medium text-gold-700">
+            {bannerText}
+          </div>
+        )}
+
+        {activeTab === 'jobs' ? (
+          /* The feed canvas owns its own header, pills and scrolling. */
+          <div className="min-h-0 flex-1">
+            <FeedCanvas />
+          </div>
+        ) : activeTab === 'tracker' ? (
+          /* The tracker table owns its own header, pills and scrolling. */
+          <div className="min-h-0 flex-1">
+            <TrackerCanvas />
+          </div>
+        ) : (
+        <div className="min-h-0 flex-1 overflow-auto">
+          {activeTab === 'cover-letter' ? (
+            <CoverLetterPanel toolbarPortal={toolbarNode} />
+          ) : activeTab === 'email' ? (
+            <EmailPanel toolbarPortal={toolbarNode} />
+          ) : activeTab === 'answers' ? (
+            <AnswersPanel toolbarPortal={toolbarNode} />
+          ) : (
+            <>
+              {showAtsView && <ATSChangesView onBack={() => setAtsViewSessionId(null)} />}
+              <div className={showAtsView ? 'hidden' : 'h-full'}>
+                <CVPanel
+                  toolbarPortal={toolbarNode}
+                  headerPortal={headerNode}
+                  atsOpen={showAtsView}
+                  onOpenAts={() => setAtsViewSessionId(currentSession?.id ?? null)}
+                />
+              </div>
+            </>
+          )}
+        </div>
+        )}
+      </section>
+    </>
   );
 }

@@ -14,6 +14,7 @@ import { REPO_ROOT } from '../lib/env';
  *
  *   l1  768 and 1024: the canvas opens on its own, Show the conversation switches to the chat (the canvas folds
  *       to its rail in the same step), Show the canvas switches back. Whichever column shows gets at least 480px.
+ *       An unsaved CV edit survives the same trip, and the job feed and the tracker take turns too.
  *       By keyboard, focus moves to the toggle that switches back. A remount of the shell at tablet width (a trip
  *       through the phone layout and back) keeps the chat view the user chose.
  *   l2  Back up to 1280 from either view both columns show again, the canvas keeps at least 480px and its header
@@ -43,7 +44,10 @@ const SHOTS = process.env.E2E_SHOTS ?? join(mainCheckout(), 'verify', branchSlug
 const RAIL = 48;
 const USABLE = 480;
 
-const canvas = (page: Page) => page.locator('section:has([role="tablist"])');
+// Compact, the folded canvas stays mounted, inert, behind its rail: only the one on screen counts.
+const canvas = (page: Page) => page.locator('section:not([inert]):has([role="tablist"])');
+// The canvas column whatever it holds: the kit, the job feed or the tracker.
+const canvasColumn = (page: Page) => page.locator('[data-shell-column="canvas"]:not([inert])');
 // The feed's conversation stays mounted, hidden, beside the application's, and the application's own stays
 // mounted, inert and transparent, behind its rail: only the one on screen counts.
 const chat = (page: Page) => page.locator('section:has(> header h2):visible:not([inert] *)');
@@ -151,7 +155,7 @@ async function sampleFrames(page: Page) {
     const frames: { canvas: number; spill: number | null }[] = [];
     (window as unknown as { layoutFrames: typeof frames }).layoutFrames = frames;
     const sample = () => {
-      const column = document.querySelector('section:has([role="tablist"])');
+      const column = document.querySelector('section:not([inert]):has([role="tablist"])');
       if (column) {
         const bounds = column.getBoundingClientRect();
         // The CV's size wrapper holds the Full Preview button; unscaled, it is the page's full 816px.
@@ -216,6 +220,40 @@ test('(l1-l3) chat and canvas take turns below 1100px and sit side by side above
     await showCanvas(page).click();
     await expectCanvasView(page, viewport);
   }
+
+  // An unsaved CV edit survives a trip to the chat: compact, the folded canvas stays mounted behind its rail.
+  const draftTitle = 'Draft title kept across the switch';
+  await page.getByRole('button', { name: 'Edit', exact: true }).click();
+  await page.getByText('Professional Title', { exact: true }).locator('xpath=..').click();
+  await page.locator('input[type="text"]').first().fill(draftTitle);
+  await page.locator('button[title="Save"]').first().click();
+  await expect(canvas(page).getByText(draftTitle)).toBeVisible();
+  await showChat(page).click();
+  await expectChatView(page, 768);
+  await showCanvas(page).click();
+  await expect(canvas(page).getByText(draftTitle)).toBeVisible();
+  await expect(page.getByRole('button', { name: /Save changes/ })).toBeVisible();
+  await shot(page, '768-cv-edit-kept');
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expectCanvasView(page, 768);
+
+  // The job feed and the tracker share the two columns, so they take turns the same way.
+  for (const [workspace, slug] of [[/^Job Board/, 'job-board'], [/^Application Tracker/, 'tracker']] as const) {
+    await page.getByRole('button', { name: workspace }).click();
+    await expect(showChat(page)).toBeVisible();
+    expect(Math.abs((await width(canvasColumn(page))) - (768 - (await sidebar(page)) - RAIL))).toBeLessThanOrEqual(1);
+    await expectNoSideScroll(page);
+    await shot(page, `768-${slug}-canvas`);
+    await showChat(page).click();
+    await expect(showCanvas(page)).toBeVisible();
+    await expect(canvasColumn(page)).toHaveCount(0);
+    await expectNoSideScroll(page);
+    await shot(page, `768-${slug}-chat`);
+    await showCanvas(page).click();
+    await expect(canvasColumn(page)).toBeVisible();
+  }
+  await page.getByRole('button', { name: /Northwind Foods/ }).first().click();
+  await expectCanvasView(page, 768);
 
   // Keyboard: the toggle that was pressed leaves with the switch, and focus lands on the one that switches back.
   await showChat(page).focus();

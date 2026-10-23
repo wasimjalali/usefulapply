@@ -3,8 +3,7 @@
 import { flushSync } from 'react-dom';
 import { PanelLeftOpen } from 'lucide-react';
 import { ChatPanel } from '@/components/ChatPanel';
-import { SIDEBAR_WIDTH } from '@/components/shell/Sidebar';
-import { CANVAS_RAIL_WIDTH } from '@/components/shell/CanvasColumn';
+import { RAIL_WIDTH, SIDEBAR_WIDTH } from '@/components/shell/dimensions';
 import { FeedConversation } from '@/components/job-feed/FeedConversation';
 import { TrackerConversation } from '@/components/tracker/TrackerConversation';
 import { useSessionStore } from '@/store/useSessionStore';
@@ -74,7 +73,7 @@ export function ConversationColumn({ onTabChange, columnRef, compact }: Conversa
   };
 
   const rail = collapsed && (
-    <div className="flex h-full w-12 flex-shrink-0 flex-col items-center border-r border-cream-200 bg-cream-100 py-3">
+    <div style={{ width: RAIL_WIDTH }} className="flex h-full flex-shrink-0 flex-col items-center border-r border-cream-200 bg-cream-100 py-3">
       <button
         type="button"
         onClick={showConversation}
@@ -95,7 +94,7 @@ export function ConversationColumn({ onTabChange, columnRef, compact }: Conversa
       {rail}
       <div
         ref={columnRef}
-        style={collapsed ? { left: SIDEBAR_WIDTH, right: CANVAS_RAIL_WIDTH } : useDraggedWidth ? { width: `${draggedWidth}px` } : undefined}
+        style={collapsed ? { left: SIDEBAR_WIDTH, right: RAIL_WIDTH } : useDraggedWidth ? { width: `${draggedWidth}px` } : undefined}
         // Behind its rail the column stays mounted and laid out, out of sight,
         // over the canvas at the exact width it will show at (the row less
         // the sidebar and the canvas rail). display:none would drop the

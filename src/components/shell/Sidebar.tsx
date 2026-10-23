@@ -23,6 +23,7 @@ import {
   deriveApplicationStatus,
   statusPillClass,
 } from '@/components/shell/application-status';
+import { SIDEBAR_WIDTH } from '@/components/shell/dimensions';
 
 interface SidebarProps {
   isWorking?: boolean;
@@ -30,9 +31,6 @@ interface SidebarProps {
 
 const SEARCH_DIALOG_FOCUSABLE =
   'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
-
-/** The sidebar's fixed width, border included. The shell lays the folded chat out from it. */
-export const SIDEBAR_WIDTH = 224;
 
 export function Sidebar({ isWorking = false }: SidebarProps) {
   const requestNewApplication = useUIStore((s) => s.requestNewApplication);

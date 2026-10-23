@@ -2,7 +2,8 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
-import { Sidebar, SIDEBAR_WIDTH } from '@/components/shell/Sidebar';
+import { Sidebar } from '@/components/shell/Sidebar';
+import { SIDEBAR_WIDTH } from '@/components/shell/dimensions';
 import { ConversationColumn } from '@/components/shell/ConversationColumn';
 import { ColumnSash } from '@/components/shell/ColumnSash';
 import { CanvasColumn } from '@/components/shell/CanvasColumn';
@@ -15,6 +16,13 @@ function CreditsProvider({ children }: { children: ReactNode }) {
   const value = useCreditsBalanceState();
   return <CreditsContext.Provider value={value}>{children}</CreditsContext.Provider>;
 }
+
+/**
+ * Whether the shell last saw a compact window. Module scope outlives a
+ * remount: below 768px the page swaps the shell for the phone layout, and a
+ * window that comes back wide from there has still left compact behind.
+ */
+let lastSawCompact = false;
 
 export function AppShell() {
   const isAgentWorking = useUIStore((s) => s.isAgentWorking);
@@ -61,8 +69,9 @@ export function AppShell() {
     const media = window.matchMedia('(max-width: 1100px)');
     const sync = () => {
       if (wasNarrowRef.current === media.matches) return;
-      const widening = wasNarrowRef.current === true;
+      const widening = (wasNarrowRef.current ?? lastSawCompact) === true;
       wasNarrowRef.current = media.matches;
+      lastSawCompact = media.matches;
       setCompact(media.matches);
       if (!media.matches) {
         setConversationCollapsed(false);
