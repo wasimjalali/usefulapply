@@ -23,11 +23,12 @@ export function geoMetadata(c: GeoContent): Metadata {
   });
 }
 
+// `<` is escaped so a `</script>` or `<!--` in page copy can never end the tag early.
 function jsonLdScript(data: object) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, '\\u003c') }}
     />
   );
 }

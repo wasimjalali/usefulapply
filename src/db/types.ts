@@ -1,9 +1,12 @@
 /**
  * Row types for the D1 tables, derived from `src/db/schema.ts`.
  *
- * Drizzle infers text columns as `string`. Columns whose values are a closed set
- * (guarded by a CHECK in SQL) are narrowed here to literal unions, so callers keep the
- * precise types the old Supabase `Database` type gave them. No SQL changes.
+ * Drizzle infers text columns as `string`. Columns whose values are a closed set are
+ * narrowed here to literal unions, so callers keep the precise types the old Supabase
+ * `Database` type gave them. Scalar columns are guarded by a CHECK in SQL; the array
+ * columns (remote_preferences, seniority_targets, employment_types) only have a
+ * non-empty CHECK, so their element unions are held by the settings normalisation in
+ * src/lib/job-feed/helpers.ts. No SQL changes.
  */
 import type {
   applicationSessions,

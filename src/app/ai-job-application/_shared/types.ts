@@ -1,5 +1,9 @@
 import type { ReactNode } from 'react';
 
+declare const geoBodyBrand: unique symbol;
+/** A section body. Only `body()` makes one, so an array literal (which would need keys) can't stand in for it. */
+export type GeoBody = ReactNode[] & { readonly [geoBodyBrand]: true };
+
 export interface GeoFaq {
   q: string;
   a: string;
@@ -14,7 +18,7 @@ export interface GeoSection {
   centered?: boolean;
   /** Wrap the body in a delayed ScrollReveal. */
   reveal?: boolean;
-  body: ReactNode[];
+  body: GeoBody;
 }
 
 export interface GeoContent {

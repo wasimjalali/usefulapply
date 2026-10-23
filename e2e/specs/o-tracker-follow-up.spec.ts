@@ -10,8 +10,9 @@ import { createSignedInApiUser, creditsOf, setBalance, type TestUser } from '../
 /**
  * The tracker's follow-up route (/api/tracker/follow-up) through the real preview, as a signed-in API client.
  * It writes the letter through the shared regenerate service and keeps its own reservation handling: a key scoped
- * to the application and request, a replay of the letter that key saved, a release on any failure before the
+ * to the application and request, a 409 for a key already in flight or spent, a release on any failure before the
  * save, and one capture after it. Every case reads the balance and the reservation rows straight from local D1.
+ * o1 to o6 pass on main's route too (before the shared service); o7 is the one refusal the shared service adds.
  */
 
 interface Reservation { idempotency_key: string; status: string; amount: number; action: string }
@@ -66,7 +67,7 @@ test('(o1) a follow-up costs 0.5, is written from the stored CV and job ad, and 
   expect(creditsOf(user.id).total).toBe(start - 0.5);
 
   const key = `follow_up_regen:${user.id}:${sessionId}:${id}`;
-  expect(reservationsOf(user.id)).toEqual([{ idempotency_key: key, status: 'captured', amount: 0.5, action: 'FOLLOW_UP_REGEN' }]);
+  expect(reservationsOf(user.id)).toEqual([{ idempotency_key: key, status: 'captured', amount: 0.5, action: 'follow_up_regen' }]);
   const stored = storedApplication(user.id, sessionId)?.follow_up_email as Record<string, unknown> | null;
   expect(stored?.subject).toBe(body.followUpEmail.subject);
   expect(stored?.reservationKey).toBe(key);
@@ -76,19 +77,16 @@ test('(o1) a follow-up costs 0.5, is written from the stored CV and job ad, and 
   expect(calls[0].user).toContain('Calder Industrial Components');
 });
 
-test('(o2) the same request id again replays the saved letter: no charge, no model call', async ({ request }) => {
+test('(o2) the same request id after it finished is REQUEST_ALREADY_COMPLETED: no charge, no model call', async ({ request }) => {
   const user = await createSignedInApiUser(request, 'fu2');
   const sessionId = await newApplication(user.id);
   const id = requestId();
-  const first = await (await followUp(request, user, sessionId, id)).json();
+  expect((await followUp(request, user, sessionId, id)).status()).toBe(200);
   const afterFirst = creditsOf(user.id).total;
 
   const again = await followUp(request, user, sessionId, id);
-  expect(again.status()).toBe(200);
-  const body = await again.json();
-  expect(body.replayed).toBe(true);
-  expect(body.creditsDeducted).toBe(0);
-  expect(body.followUpEmail.subject).toBe(first.followUpEmail.subject);
+  expect(again.status()).toBe(409);
+  expect((await again.json()).code).toBe('REQUEST_ALREADY_COMPLETED');
   expect(creditsOf(user.id).total).toBe(afterFirst);
   expect(reservationsOf(user.id)).toHaveLength(1);
   expect(await followUpCalls()).toHaveLength(1);
@@ -174,6 +172,25 @@ test('(o6) no CV or no job ad is NO_CONTEXT before anything is reserved', async 
   const missing = await followUp(request, user, 'no-such-application', requestId());
   expect(missing.status()).toBe(404);
 
+  expect(creditsOf(user.id).total).toBe(start);
+  expect(reservationsOf(user.id)).toHaveLength(0);
+  expect(await followUpCalls()).toHaveLength(0);
+});
+
+test('(o7) a CV with no applicant name is NO_CONTEXT before anything is reserved', async ({ request }) => {
+  const user = await createSignedInApiUser(request, 'fu7');
+  const sessionId = await newApplication(user.id);
+  const start = creditsOf(user.id).total;
+  const db = openLocalD1();
+  try {
+    db.prepare("UPDATE documents SET structured_data = '{}' WHERE user_id = ? AND type = 'primary_cv'").run(user.id);
+  } finally {
+    db.close();
+  }
+
+  const response = await followUp(request, user, sessionId, requestId());
+  expect(response.status()).toBe(400);
+  expect((await response.json()).code).toBe('NO_CONTEXT');
   expect(creditsOf(user.id).total).toBe(start);
   expect(reservationsOf(user.id)).toHaveLength(0);
   expect(await followUpCalls()).toHaveLength(0);

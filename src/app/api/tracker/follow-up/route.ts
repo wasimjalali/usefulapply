@@ -7,7 +7,7 @@ import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getSession, type ApplicationSession } from '@/db/repos/sessions';
 import { saveKitDocument } from '@/lib/services/kit';
-import { RegenerateRequestError, prepareRegeneration } from '@/lib/services/regenerate';
+import { EmptyGenerationError, RegenerateRequestError, prepareRegeneration } from '@/lib/services/regenerate';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
 export const runtime = 'nodejs';
@@ -123,8 +123,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to write the follow-up.' }, { status: 500 });
     }
 
-    // reserveCredits returns success for any existing key, including captured
-    // and released. Only a live reserved row with no saved letter may generate.
+    // reserveCredits refuses a key that is reserved or captured (409 above) and
+    // reserves a released key again. So the replay below runs only after a capture
+    // that never landed: the letter was saved, the reconciler released the
+    // reservation, and the client retried with the same request id. The other
+    // branches guard the same rule if reserveCredits ever changes: only a live
+    // reserved row with no letter for this key may generate.
     const reservationStatus = reserveResult.reservation.status;
     const existingLetter = storedFollowUp(session);
     // Only replay a letter this reservation wrote. An older follow-up on the
@@ -167,8 +171,18 @@ export async function POST(request: NextRequest) {
       feature: 'tracker_follow_up',
       operation: 'regen_follow_up_email',
     };
-    // An empty letter throws inside generate; the catch below releases the reservation.
-    const generated = await prepared.generate(generationContext);
+    let generated;
+    try {
+      generated = await prepared.generate(generationContext);
+    } catch (error) {
+      if (!(error instanceof EmptyGenerationError)) throw error;
+      await releaseReservation({
+        idempotencyKey: reservationKey,
+        userId: user.id,
+        reason: 'empty_follow_up',
+      });
+      return NextResponse.json({ error: 'Failed to write the follow-up.' }, { status: 500 });
+    }
     if (generated.kind !== 'document') throw new Error('Follow-up regeneration returned a CV section');
     const draft = generated.toResult(0);
     if (draft.type !== 'follow_up_email') throw new Error('Follow-up regeneration returned another document');

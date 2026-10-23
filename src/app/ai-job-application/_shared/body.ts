@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { GeoBody } from './types';
 
 /**
  * Collects a section's body elements into a plain array. Written as a call
@@ -6,4 +7,4 @@ import type { ReactNode } from 'react';
  * back out as static children, which keeps the rendered tree identical to the
  * hand-written pages it replaced.
  */
-export const body = (...nodes: ReactNode[]): ReactNode[] => nodes;
+export const body = (...nodes: ReactNode[]): GeoBody => nodes as GeoBody;
