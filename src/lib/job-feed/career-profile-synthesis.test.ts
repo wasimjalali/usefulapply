@@ -16,7 +16,7 @@ import { buildHaikuRequest } from '@/lib/models/haiku';
 import { resolveHaikuEffort } from '@/lib/models/haiku-effort';
 import type { StructuredCV } from '@/lib/types/cv-schema';
 import type { CareerProfile } from './career-profile';
-import type { JobFeedSettings } from '@/lib/supabase/types';
+import type { JobFeedSettings } from '@/db/types';
 import { PERSONAS, buildProfile, personaCv } from '../../../evals/haiku-55-swap/fixtures/personas';
 
 // The eval's fixture CVs, as of the eval run date. p01 has roles 2014-10 to present, p03 two short

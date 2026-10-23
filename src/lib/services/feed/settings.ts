@@ -29,7 +29,7 @@ import {
   validateConfirmedQueries,
   type ConfirmedSearchQuery,
 } from '@/lib/job-feed/search-plan';
-import type { JobFeedSettings } from '@/lib/supabase/types';
+import type { JobFeedSettings } from '@/db/types';
 import { FeedError } from './errors';
 
 // ---------------------------------------------------------------------------

@@ -8,7 +8,7 @@ import {
 } from '@/lib/job-feed/career-profile';
 import { generateCareerProfile } from '@/lib/job-feed/career-profile-synthesis';
 import type { StructuredCV } from '@/lib/types/cv-schema';
-import type { Json } from '@/lib/supabase/types';
+import type { Json } from '@/db/types';
 import { upsertCareerProfile } from '@/db/repos/jobFeed';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import {

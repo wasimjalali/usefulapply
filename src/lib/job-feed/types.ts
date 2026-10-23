@@ -6,7 +6,7 @@ import type {
   JobFeedRun,
   JobFeedSettings,
   Json,
-} from '@/lib/supabase/types';
+} from '@/db/types';
 
 export type JobFeedOverviewState =
   | 'upgrade_required'

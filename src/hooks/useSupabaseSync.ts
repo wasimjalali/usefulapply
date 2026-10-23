@@ -16,7 +16,7 @@ import {
   saveDocument,
   getProfilePhotoUrl,
 } from '@/lib/supabase';
-import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
+import type { JobFeedGenerationStatus } from '@/db/types';
 import { isSameJob } from '@/lib/utils/same-job';
 import { hydrateChatIfEmpty, isChatHydrated, type StoredSessionRow } from '@/lib/open-session';
 import { sessionHasKit } from '@/components/shell/application-status';

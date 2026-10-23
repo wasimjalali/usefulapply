@@ -1,7 +1,7 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { getDb, nowIso } from '../client';
 import { profiles } from '../schema';
-import type { Profile } from '@/lib/supabase/types';
+import type { Profile } from '@/db/types';
 
 export async function getProfile(userId: string): Promise<Profile | null> {
   const db = await getDb();

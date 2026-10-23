@@ -3,7 +3,7 @@ import { and, asc, desc, eq, gte, inArray, isNotNull, lt, lte, or, sql } from 'd
 import { getDb, nowIso, stripIdentity } from '../client';
 import { applicationSessions, chatCompactions, chatMessages } from '../schema';
 import { withRecipientReset } from '../session-recipient-reset';
-import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
+import type { JobFeedGenerationStatus } from '@/db/types';
 import { RevisionConflict } from '@/lib/services/errors';
 import { isChatMessageId } from '@/lib/chat-message-id';
 

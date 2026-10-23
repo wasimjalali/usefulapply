@@ -49,7 +49,7 @@ import {
 } from '@/lib/job-feed/server';
 import { isJobFeedConfigured } from '@/lib/job-feed/helpers';
 import type { JobFeedSettingsInput } from '@/lib/job-feed/types';
-import type { JobFeedSettings } from '@/lib/supabase/types';
+import type { JobFeedSettings } from '@/db/types';
 import { cutText, flattenUntrusted, userNamed } from './untrusted';
 import type { ChatTool, ChatToolContext, ChatToolResult } from './types';
 

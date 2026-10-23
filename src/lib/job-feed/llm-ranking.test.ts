@@ -11,7 +11,7 @@ import {
   validateModelRankingResponse,
 } from './llm-ranking-prompt';
 import type { JobFeedRankingCandidate } from './types';
-import type { JobFeedSettings } from '@/lib/supabase/types';
+import type { JobFeedSettings } from '@/db/types';
 
 function candidate(index: number, descriptionChars: number): JobFeedRankingCandidate {
   return {

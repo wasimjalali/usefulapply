@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { consumeAnonymousCarryOver } from '@/lib/anonymous-generation';
 import { authClient } from '@/auth/client';
-import type { Profile } from '@/lib/supabase/types';
+import type { Profile } from '@/db/types';
 import type { ProfileUpdateInput } from '@/lib/services/profile';
 import { getOrCreateProfileAction, getProfileAction, updateProfileAction } from '@/db/actions';
 import { detectTimezone } from '@/lib/utils/format-date';

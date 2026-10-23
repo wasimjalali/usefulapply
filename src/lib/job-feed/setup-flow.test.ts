@@ -19,7 +19,7 @@ import { serpApiLocationValue } from './serpapi';
 import { buildJobFeedSearchPlan, buildJobFeedSearchPlanFromStrategy } from './ingestion';
 import { getJobFeedOverviewState } from './helpers';
 import { formatSetupPlanSummary } from '../../components/job-feed/feed-format';
-import type { JobFeedSettings } from '@/lib/supabase/types';
+import type { JobFeedSettings } from '@/db/types';
 import type { CareerProfile } from './career-profile';
 import type { SearchStrategy } from './search-strategy';
 

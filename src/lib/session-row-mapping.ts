@@ -6,7 +6,7 @@
  * 'use client' cannot be called from server code.
  */
 
-import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
+import type { JobFeedGenerationStatus } from '@/db/types';
 import { KIT_DOCUMENTS, type KitDocumentErrors } from '@/lib/agents/types';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import type { ApplicationSession, ChatMessage } from '@/store/useSessionStore';

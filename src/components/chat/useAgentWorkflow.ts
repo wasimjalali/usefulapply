@@ -29,7 +29,7 @@ import { loadFeedOverview, loadSavedFeedJobs } from '@/components/job-feed/feed-
 import { useFeedStore } from '@/store/useFeedStore';
 import { cvStructureDigest } from '@/lib/cv-structure/validate';
 import { rememberUndo } from '@/lib/cv-structure/undo';
-import type { JobFeedApplicationGeneration } from '@/lib/supabase/types';
+import type { JobFeedApplicationGeneration } from '@/db/types';
 import { readKitDocumentErrors, type StoredSessionRow } from '@/lib/open-session';
 import { applyServerRow, forgetSession, refreshFromServer } from '@/lib/session-sync';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';

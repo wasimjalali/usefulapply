@@ -15,7 +15,7 @@ import { createHash } from 'node:crypto';
 import { callHaiku } from '@/lib/models/haiku';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
-import type { JobFeedSettings } from '@/lib/supabase/types';
+import type { JobFeedSettings } from '@/db/types';
 
 import { SEARCH_STRATEGY_SCHEMA_VERSION } from '@/lib/job-feed/search-strategy-types';
 import type {

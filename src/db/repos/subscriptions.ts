@@ -1,7 +1,7 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { getDb, nowIso } from '../client';
 import { connectedAccounts, subscriptions, userCredits } from '../schema';
-import type { SubscriptionTier } from '@/lib/supabase/types';
+import type { SubscriptionTier } from '@/db/types';
 import type { BillingSubscriptionLike } from '@/lib/subscription-billing';
 
 export interface ConnectedAccount {

@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/auth/server';
 import { extractJobFeedSuggestionsFromCV } from '@/lib/job-feed/cv-suggestions';
 import { canAccessJobFeed } from '@/lib/job-feed/helpers';
 import type { StructuredCV } from '@/lib/types/cv-schema';
-import type { Json } from '@/lib/supabase/types';
+import type { Json } from '@/db/types';
 import { getProfile } from '@/db/repos/profiles';
 import { upsertCvSuggestion } from '@/db/repos/jobFeed';
 

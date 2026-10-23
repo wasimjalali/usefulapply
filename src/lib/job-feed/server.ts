@@ -14,7 +14,7 @@ import type {
   JobFeedRun,
   JobFeedSettings,
   Json,
-} from '@/lib/supabase/types';
+} from '@/db/types';
 import { extractSalaryTextFromAd, getLocalDateKey, isJobFeedConfigured, isSafeExternalUrl, isValidTimeZone } from '@/lib/job-feed/helpers';
 import { getJobFeedTierLimits, JOB_FEED_DEFAULT_SETTINGS, JOB_FEED_INBOX_RETENTION_DAYS } from '@/lib/job-feed/constants';
 import type {

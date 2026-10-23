@@ -18,7 +18,7 @@ import {
 } from '@/db/repos/credits';
 import { upsertSubscriptionByUser } from '@/db/repos/subscriptions';
 import { hasWebhookEvent, insertWebhookEvent, setProfileSubscription } from '@/db/repos/admin';
-import type { SubscriptionTier } from '@/lib/supabase/types';
+import type { SubscriptionTier } from '@/db/types';
 
 class PermanentWebhookError extends Error {}
 

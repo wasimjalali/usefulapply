@@ -1,6 +1,6 @@
 import { JOB_FEED_PROVIDER } from '@/lib/job-feed/constants';
 import { captureJobFeedEvent } from '@/lib/job-feed/analytics';
-import type { JobFeedCanonicalJob, Json } from '@/lib/supabase/types';
+import type { JobFeedCanonicalJob, Json } from '@/db/types';
 
 export interface SerpApiJob {
   job_id: string;

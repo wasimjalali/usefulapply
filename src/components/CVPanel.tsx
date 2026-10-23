@@ -43,7 +43,7 @@ import { useToast } from './ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import { PdfPreviewModal } from './ui/PdfPreviewModal';
 import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback } from '@/lib/utils/server-export';
-import type { Profile } from '@/lib/supabase/types';
+import type { Profile } from '@/db/types';
 import { acknowledgedStart, acknowledgementFor, afterClosedEditorSave, commitEditorSave, discardedSinceSave, editorSaveSucceeded, getEditorStart, persistSessionEdits, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
 interface CVPanelProps {
