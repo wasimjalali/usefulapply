@@ -44,6 +44,8 @@ async function expectOneIcon(page: Page) {
   await expect
     .poll(() => row.evaluate((el) => el.querySelectorAll('svg[role="img"][aria-label="Useful Apply"]').length), { message: 'brand icons in the progress row' })
     .toBe(1);
+  // The one that stays is the row's own, in its icon column: the card beside it carries none.
+  expect(await row.evaluate((el) => el.querySelector(':scope > div.flex-1')?.querySelectorAll('svg[role="img"][aria-label="Useful Apply"]').length ?? -1)).toBe(0);
   await expect(row.getByText(/^\d+%$/)).toBeVisible();
 }
 
@@ -90,13 +92,20 @@ test('(l) the kit progress card in the chat carries one Useful Apply icon', asyn
   await expect(skip).toBeVisible();
 
   // Slow every model answer so the run stays on screen, then record the card coming in from the click.
-  await fakeControl({ delayMs: 2_500 });
+  await fakeControl({ delayMs: 4_000 });
   try {
     const stop = await startPaints(page, '1280-progress-appears');
-    await skip.click();
-    await expectOneIcon(page);
-    await page.waitForTimeout(800);
-    await stop();
+    try {
+      await skip.click();
+      await expectOneIcon(page);
+      await page.waitForTimeout(800);
+    } finally {
+      await stop();
+    }
+    // Real progress reaches the bar: the percent moves past the 0% it starts at.
+    await expect
+      .poll(async () => Number((await progressRow(page).getByText(/^\d+%$/).textContent())?.replace('%', '') ?? 0))
+      .toBeGreaterThan(0);
     await page.screenshot({ path: join(SHOTS, '1280-progress.png') });
 
     // Compact, the canvas takes the row; the chat, with the run in it, is one click away.
