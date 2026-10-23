@@ -44,6 +44,8 @@ interface ChatMessageProps {
   layout?: 'classic' | 'spine';
   /** True when this application's Answers tab holds the screening answers. */
   answersInDoc?: boolean;
+  /** A reply still being written: no feedback or copy yet, but their row keeps its space so nothing moves when it lands. */
+  streaming?: boolean;
 }
 
 export function ChatMessage({ 
@@ -54,6 +56,7 @@ export function ChatMessage({
   collapseLength = 300,
   layout = 'classic',
   answersInDoc = false,
+  streaming = false,
 }: ChatMessageProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -301,7 +304,7 @@ export function ChatMessage({
         {/* Feedback icons for assistant messages — visible on hover or when feedback given */}
         {message.role === 'assistant' && (
           <div className={`flex items-center gap-1 mt-2 ml-1 transition-opacity duration-200 ${
-            feedback ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'
+            streaming ? 'invisible' : feedback ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'
           }`}>
             <button
               onClick={() => onFeedback(message.id, message.content, 'positive')}

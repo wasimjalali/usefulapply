@@ -55,7 +55,7 @@ export async function signedInPage(
   browser: Browser,
   request: APIRequestContext,
   label: string,
-  options: { askedAvailability?: boolean } = {},
+  options: { askedAvailability?: boolean; videoDir?: string } = {},
 ): Promise<Signedin> {
   const user = await createTestUser(request, label);
   if (options.askedAvailability !== false) {
@@ -70,6 +70,8 @@ export async function signedInPage(
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     extraHTTPHeaders: { 'cf-connecting-ip': user.ip, 'x-forwarded-for': user.ip },
+    // A context made here is not the fixture's, so the config's video setting never reaches it.
+    ...(options.videoDir ? { recordVideo: { dir: options.videoDir, size: { width: 1440, height: 900 } } } : {}),
   });
   await signInContext(context, request, user);
   const page = await context.newPage();

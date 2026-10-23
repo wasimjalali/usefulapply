@@ -37,6 +37,8 @@ import {
   type ExecutedEffect,
 } from '@/lib/agents/chat-tools';
 import { settleChatReply } from '@/lib/agents/chat-tools/loop-reply';
+import { isFailoverError, StreamIdleTimeoutError } from '@/lib/models/providers';
+import { chatEventStream, joinReplyRounds, ReplyStream, wantsEventStream, type ChatStreamEvent } from './reply-stream';
 import { knownTimeZone, looksPasted } from '@/lib/agents/chat-tools/untrusted';
 import {
   appendToolRound,
@@ -128,14 +130,7 @@ interface ChatContext {
 }
 
 export async function POST(req: NextRequest) {
-  // Set once the turn goes out on a compaction block: a provider 4xx on such a turn gets its own answer below.
-  let sentOnBlock = false;
-  // The stored block this turn was sent on, so a refusal of it drops that row and no other (null for a block that
-  // was never stored, a Bedrock one).
-  let failedBlockSession: { userId: string; sessionId: string; coversThroughMessageId: string } | null = null;
-  // A turn sent without an id and already stored under a server one: every answer returns it, failures included, so
-  // the transcript shows what D1 holds.
-  let mintedTurn: { id: string; content: string } | null = null;
+  const failure: ChatFailureState = { sentOnBlock: false, failedBlockSession: null, mintedTurn: null };
   try {
     // Authentication: require logged-in user for chat (costs API money)
     const clientIP = getClientIP(req);
@@ -333,7 +328,7 @@ export async function POST(req: NextRequest) {
         // An id that is someone else's, already answered, or names a different text: never a second turn.
         return NextResponse.json({ error: 'Invalid message id.' }, { status: 409 });
       }
-      if (typeof messageId !== 'string') mintedTurn = { id: turnMessageId, content: storedUserText };
+      if (typeof messageId !== 'string') failure.mintedTurn = { id: turnMessageId, content: storedUserText };
     }
 
     if (isScreeningMode) {
@@ -375,273 +370,456 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Agentic chat: the model can read the tracker, credits, documents and
-    // feed, navigate, and apply tracker writes through the tool registry.
-    const timeZone = knownTimeZone(context.timeZone) ? context.timeZone : 'UTC';
-    const toolContext: ChatToolContext = {
+    // Agentic chat. A request that asks for the event stream (Accept: text/event-stream) gets the reply as it is
+    // written (reply-stream.ts); any other (a tab that loaded before streaming, a script) gets the JSON body it always
+    // got. The turn is the same either way, and so is what it stores.
+    const turn: ChatTurnInput = {
       userId: user.id,
-      userMessage: message,
-      userMessagePasted: looksPasted(message),
-      timeZone,
-      sessionId: chatSessionId && UUID_RE.test(chatSessionId) ? chatSessionId : null,
-      // Only ever the CV for the application this conversation is on. Without a
-      // validated session id there is nothing to write back to, so it is
-      // dropped rather than carried.
-      tailoredCV: chatSessionId && UUID_RE.test(chatSessionId) ? acceptTailoredCv(context.optimizedCVData) : null,
-      cvOutlineRead: false,
-      cvWorking: null,
-      // What the canvas is painting. An id outside the catalog is dropped.
-      cvTemplateId: isCvTemplateId(context.cvTemplateId) ? context.cvTemplateId : null,
+      message,
+      turnMessageId,
+      context,
+      chatSessionId,
+      persistedSessionId,
+      storesTurn,
+      earlierTurns,
+      compaction,
     };
-    const prompt = buildMainChatPrompt(context, timeZone, new Date());
-    const tools = chatToolDefinitions();
-    // One execution id for the whole request, so the ledger groups the rounds (and the compaction, when it runs).
-    const requestExecutionId = crypto.randomUUID();
-    const system = { static: prompt.static, stableContext: prompt.stableContext };
-    const newTurn: ChatTurn = { role: 'user', content: message };
-    let messages = buildChatMessages([...earlierTurns.map(chatTurnOf), newTurn], prompt.state, compaction?.block ?? null);
-    // A block Bedrock wrote is used for this turn only, on Bedrock (see compactChat).
-    let compactedOn: 'bedrock' | undefined;
-
-    // On-demand compaction (compaction.ts): over COMPACT_ABOVE_TOKENS projected, summarize everything before the
-    // last few messages first, then send the turn on the block. Saved applications only: their history is in D1,
-    // and the block is stored next to it. A history that grew a lot without a chat turn (ads the client answered
-    // with its buttons) may need a second pass: each pass is itself held under the line, so it compacts the oldest
-    // part, and the second folds that block and the next part together.
-    let turnBlock = compaction?.block ?? null;
-    for (let pass = 0; pass < MAX_COMPACTION_PASSES; pass += 1) {
-      if (!persistedSessionId || projectChatInput({ system, tools, messages }) <= COMPACT_ABOVE_TOKENS) break;
-      const compacted = await compactChat({
-        userId: user.id,
-        sessionId: persistedSessionId,
-        requestExecutionId,
-        system,
-        tools,
-        turns: earlierTurns,
-        earlier: turnBlock,
-        provider: compactedOn,
-      });
-      if (!compacted) break;
-      if (compacted.stored) compaction = { block: compacted.block, coversThroughMessageId: compacted.coversThroughMessageId };
-      compactedOn = compacted.provider === 'bedrock' ? 'bedrock' : compactedOn;
-      turnBlock = compacted.block;
-      earlierTurns = earlierTurns.slice(compacted.cut);
-      messages = buildChatMessages([...earlierTurns.map(chatTurnOf), newTurn], prompt.state, turnBlock);
+    if (!wantsEventStream(req.headers.get('accept'))) {
+      return NextResponse.json(await runChatTurn(turn, failure, null, req.signal));
     }
+    return chatEventStream(
+      (send) => runChatTurn(turn, failure, { send }, undefined),
+      (error) => chatFailure(error, failure),
+    );
+  } catch (error) {
+    const { status, body } = await chatFailure(error, failure);
+    return NextResponse.json(body, { status });
+  }
+}
 
-    const executed: ExecutedEffect[] = [];
-    let confirmActions: ChatActionChip[] = [];
-    const failedToolNames: string[] = [];
-    const oversizedToolNames: string[] = [];
-    let reply = '';
-    let lastToolNames = '';
-    let loopFailure: { error: unknown } | null = null;
+/** What a failed turn needs to answer with: set as the turn goes, read by chatFailure. */
+interface ChatFailureState {
+  // Set once the turn goes out on a compaction block: a provider 4xx on such a turn gets its own answer.
+  sentOnBlock: boolean;
+  // The stored block this turn was sent on, so a refusal of it drops that row and no other (null for a block that
+  // was never stored, a Bedrock one).
+  failedBlockSession: { userId: string; sessionId: string; coversThroughMessageId: string } | null;
+  // A turn sent without an id and already stored under a server one: every answer returns it, failures included, so
+  // the transcript shows what D1 holds.
+  mintedTurn: { id: string; content: string } | null;
+}
 
-    try {
-      // Measured input of the last call and what was appended after it: the
-      // next round's projection is exact plus a small estimated delta.
-      let previousInputTokens: number | null = null;
-      let appendedSinceLastCall: Anthropic.Beta.BetaMessageParam[] = [];
-      // Once Bedrock answered a round of this request, the rest of the request stays on Bedrock, so a thinking block
-      // signed by Bedrock never reaches the direct API (the API rejects it). Only this direction is pinned: a round the
-      // direct API answered can still fail over to Bedrock on the next round, and that request then carries thinking
-      // signed by the direct API. Whether Bedrock accepts that is checked by evals/haiku-55-swap/bedrock-probe.ts (check 6).
-      // The next request starts on the Anthropic API again; client history is plain text, nothing signed crosses it.
-      let pinnedProvider: 'bedrock' | undefined = compactedOn;
-      sentOnBlock = turnBlock !== null;
-      failedBlockSession = sentOnBlock && persistedSessionId && compaction && turnBlock === compaction.block
-        ? { userId: user.id, sessionId: persistedSessionId, coversThroughMessageId: compaction.coversThroughMessageId }
-        : null;
+/**
+ * A streamed reply whose route to the model broke after some of its text reached the client. That text cannot be taken
+ * back or continued by another provider, so the turn ends with an error event and the model's words are not stored.
+ * Effects a tool round already committed go back with it, so the client still applies them, and the fixed line that
+ * says so is stored under `replyMessageId` (when the store worked).
+ */
+class ReplyCutError extends Error {
+  constructor(
+    readonly cause: unknown,
+    readonly executed: ExecutedEffect[],
+    readonly fallbackReply: string | null,
+    readonly replyMessageId: string | null,
+  ) {
+    super(`Chat reply cut after its first text: ${cause instanceof Error ? cause.message : String(cause)}`);
+    this.name = 'ReplyCutError';
+  }
+}
 
-      for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
-        const finalRound = round === MAX_TOOL_ROUNDS;
-        if (previousInputTokens !== null) {
-          const projected = projectNextInputTokens(previousInputTokens, appendedSinceLastCall);
-          if (isOverRefuseLimit(projected)) throw new InputBudgetError('chat', projected);
-        }
+/** The status and body of a failed turn, for the JSON response and the stream's error event alike. */
+async function chatFailure(error: unknown, failure: ChatFailureState): Promise<{ status: number; body: Record<string, unknown> }> {
+  const { sentOnBlock, failedBlockSession, mintedTurn } = failure;
+  const posthog = getPostHogServer();
+  posthog.captureException((error instanceof ReplyCutError ? error.cause : error) as Error, 'server_error', {
+    endpoint: '/api/chat',
+    method: 'POST',
+    ...(error instanceof ReplyCutError ? { reply_cut: true } : {}),
+  });
+  await posthog.flush();
+  console.error('Chat error:', error);
+  const stored = mintedTurn ? { storedUserMessage: mintedTurn } : {};
+  if (error instanceof ReplyCutError) {
+    return {
+      status: 502,
+      body: {
+        error: 'The reply was cut off.',
+        // The 60 s idle limit (stream-guard.ts) has its own code, so the client can say what happened.
+        code: error.cause instanceof StreamIdleTimeoutError ? 'CHAT_STREAM_IDLE' : 'CHAT_STREAM_INTERRUPTED',
+        executed: error.executed,
+        ...(error.fallbackReply ? { reply: error.fallbackReply } : {}),
+        ...(error.replyMessageId ? { replyMessageId: error.replyMessageId } : {}),
+        ...stored,
+      },
+    };
+  }
+  // A 4xx on a turn that carried a compaction block (Bedrock refusing an Anthropic-signed block after a failover is
+  // the case evals/haiku-55-swap/bedrock-probe.ts check 7 probes). Said plainly, never answered as if it had been
+  // read: the history and the block stay as they are, and the next turn tries again.
+  const status = providerHttpStatus(error);
+  if (sentOnBlock && status !== null && status >= 400 && status < 500) {
+    // A 400 (the request itself refused) drops the stored block this turn was sent on, so the next turn compacts again
+    // from the full history: a block the API no longer accepts must not sink every later turn. If it was Bedrock
+    // refusing a valid block, that costs one compaction. A rate limit or an auth error keeps it. Only that row goes:
+    // a newer block another tab stored meanwhile has a different covered message and stays.
+    let dropped = false;
+    if (status === 400 && failedBlockSession) {
+      try {
+        // 0 when another tab replaced it with a newer block meanwhile: that one stays, and so does the divider.
+        dropped = await deleteChatCompaction(failedBlockSession.userId, failedBlockSession.sessionId, failedBlockSession.coversThroughMessageId) > 0;
+      } catch (deleteError) {
+        console.error('[chat] could not drop the refused compaction block:', deleteError instanceof Error ? deleteError.message : deleteError);
+      }
+    }
+    return {
+      status: 503,
+      body: {
+        error: 'Chat is unavailable right now.',
+        code: 'CHAT_PROVIDER_UNAVAILABLE',
+        ...(dropped ? { compactedThroughMessageId: null } : {}),
+        ...stored,
+      },
+    };
+  }
+  // The model stream sat idle past the limit before any text (and Bedrock could not take over): said as such.
+  if (error instanceof StreamIdleTimeoutError) {
+    return { status: 504, body: { error: 'The reply stalled.', code: 'CHAT_STREAM_IDLE', ...stored } };
+  }
+  return { status: 500, body: { error: 'Chat request failed', ...stored } };
+}
 
-        const response = await callHaiku({
-          site: 'chat',
-          system,
-          messages,
-          tools,
-          // The final round has to answer in text. tool_choice none keeps the
-          // cache (P0b) and the tool_use turns in history stay valid.
-          toolChoice: finalRound ? 'none' : 'auto',
-          maxTokens: CHAT_MAX_TOKENS,
-          cacheTtl: '1h',
-          // Its own 5m markers sit on the new user turn and on the last tool result (chat-prompt.ts).
-          cacheConversation: false,
-          provider: pinnedProvider,
-          generationContext: {
-            requestExecutionId,
-            userId: user.id,
-            route: '/api/chat',
-            feature: 'chat',
-            // Rounds that answer a tool result are attributed to that tool
-            // (one stable name, no joined cardinality), so the admin AI-costs
-            // page shows agentic usage separately.
-            operation: round === 0 ? 'general_chat' : `tool_call:${lastToolNames}`,
-          },
-        });
-        assertUsableChatStop(response);
-        if (response.provider === 'bedrock') pinnedProvider = 'bedrock';
+/** Everything the gates above settled for the turn. */
+interface ChatTurnInput {
+  userId: string;
+  message: string;
+  /** The stored user message this turn answers (its reply is stored right after it). */
+  turnMessageId: string;
+  context: ChatContext;
+  chatSessionId: string | undefined;
+  persistedSessionId: string | null;
+  storesTurn: boolean;
+  earlierTurns: StoredTurn[];
+  compaction: { block: CompactionBlock; coversThroughMessageId: string } | null;
+}
 
-        const toolUses = response.rawContent.filter(
-          (block): block is Anthropic.Beta.BetaToolUseBlock => block.type === 'tool_use',
-        );
-        if (finalRound || toolUses.length === 0) {
-          reply = responseText(response);
-          // Haiku can end a turn with no text at all (P0 saw it with tool_choice
-          // none). An empty reply is a failure, never a blank bubble.
-          if (!reply.trim()) throw new Error(`Chat model returned no text (round ${round})`);
-          break;
-        }
+/** A streamed turn's event sink. */
+interface ChatTurnStream {
+  send: (event: ChatStreamEvent) => void;
+}
 
-        // The assistant turn goes back verbatim (thinking and tool_use blocks
-        // unaltered), then ONE user turn with a tool_result for every tool_use.
-        // A tool_use without a result is a 400, so calls over the per-round cap
-        // are answered as not run rather than dropped.
-        const results: Anthropic.Beta.BetaToolResultBlockParam[] = [];
-        for (const [index, call] of toolUses.entries()) {
-          if (index >= MAX_TOOL_CALLS_PER_ROUND) {
-            results.push({
-              type: 'tool_result',
-              tool_use_id: call.id,
-              is_error: true,
-              content: `Not run: at most ${MAX_TOOL_CALLS_PER_ROUND} tool calls per turn. Tell the user what you did not get to.`,
-            });
-            continue;
-          }
-          const args = call.input && typeof call.input === 'object' && !Array.isArray(call.input)
-            ? call.input as Record<string, unknown>
-            : {};
-          const result = await executeChatTool(call.name, args, toolContext);
-          if (result.failed) failedToolNames.push(call.name);
-          if (result.oversized) oversizedToolNames.push(call.name);
-          if (result.executed) executed.push(...result.executed);
-          if (result.actions) confirmActions.push(...result.actions);
+/** The short line a streamed turn shows while a tool round runs, by the round's first tool. */
+const TOOL_STATUS: Readonly<Record<string, string>> = {
+  get_applications: 'Checking your applications',
+  get_application_overview: 'Checking your applications',
+  set_application_status: 'Updating your tracker',
+  delete_application: 'Checking your tracker',
+  explain_fit: 'Reading your fit analysis',
+  get_credits: 'Checking your credits',
+  get_documents: 'Checking your documents',
+  get_feed_digest: 'Checking your job feed',
+  morning_briefing: 'Checking your job search',
+  get_feed_settings: 'Checking your feed settings',
+  update_feed_settings: 'Updating your feed settings',
+  run_feed: 'Starting your job feed',
+  save_feed_job: 'Updating your job feed',
+  dismiss_feed_job: 'Updating your job feed',
+  propose_feed_application: 'Preparing the application',
+  propose_application: 'Reading the job ad',
+  propose_follow_up: 'Preparing the follow-up',
+  get_cv_outline: 'Reading your CV',
+  edit_cv_structure: 'Editing your CV',
+  delete_cv_item: 'Editing your CV',
+  propose_cv_rewrite: 'Preparing the CV rewrite',
+  set_cv_template: 'Changing the CV template',
+  navigate: 'Opening that for you',
+};
+
+/**
+ * One chat turn: compaction when it has to, the tool loop, the reply's guards, the reply stored. Returns the JSON
+ * body, which is also the stream's `done` event.
+ *
+ * A streamed turn whose client goes away (Stop, a closed tab) is finished, not aborted: the reply is stored once,
+ * whole, on completion, exactly as if the client had stayed, and the next turn and a reload show it. Only a failure
+ * stores no reply. Finishing is the one outcome that does not hang on the runtime noticing the disconnect (a local
+ * preview never reported it), so a reply can never be stored half, or stored or not depending on timing.
+ * reply-stream.ts keeps the Worker alive for it (waitUntil, at most 30 s after the client left; a turn cut there
+ * stores no reply). The reply is stored right after its own question, so one that finishes after the user already
+ * sent the next message still reads in order.
+ */
+async function runChatTurn(
+  turn: ChatTurnInput,
+  failure: ChatFailureState,
+  stream: ChatTurnStream | null,
+  requestSignal: AbortSignal | undefined,
+): Promise<Record<string, unknown>> {
+  const { userId, message, turnMessageId, context, chatSessionId, persistedSessionId, storesTurn } = turn;
+  let { earlierTurns, compaction } = turn;
+  // A message stored under a server id goes into the transcript before its reply starts, so the bubble never moves.
+  if (stream && failure.mintedTurn) stream.send({ type: 'turn', storedUserMessage: failure.mintedTurn });
+  // Agentic chat: the model can read the tracker, credits, documents and
+  // feed, navigate, and apply tracker writes through the tool registry.
+  const timeZone = knownTimeZone(context.timeZone) ? context.timeZone : 'UTC';
+  const toolContext: ChatToolContext = {
+    userId,
+    userMessage: message,
+    userMessagePasted: looksPasted(message),
+    timeZone,
+    sessionId: chatSessionId && UUID_RE.test(chatSessionId) ? chatSessionId : null,
+    // Only ever the CV for the application this conversation is on. Without a
+    // validated session id there is nothing to write back to, so it is
+    // dropped rather than carried.
+    tailoredCV: chatSessionId && UUID_RE.test(chatSessionId) ? acceptTailoredCv(context.optimizedCVData) : null,
+    cvOutlineRead: false,
+    cvWorking: null,
+    // What the canvas is painting. An id outside the catalog is dropped.
+    cvTemplateId: isCvTemplateId(context.cvTemplateId) ? context.cvTemplateId : null,
+  };
+  const prompt = buildMainChatPrompt(context, timeZone, new Date());
+  const tools = chatToolDefinitions();
+  // One execution id for the whole request, so the ledger groups the rounds (and the compaction, when it runs).
+  const requestExecutionId = crypto.randomUUID();
+  const system = { static: prompt.static, stableContext: prompt.stableContext };
+  const newTurn: ChatTurn = { role: 'user', content: message };
+  let messages = buildChatMessages([...earlierTurns.map(chatTurnOf), newTurn], prompt.state, compaction?.block ?? null);
+  // A block Bedrock wrote is used for this turn only, on Bedrock (see compactChat).
+  let compactedOn: 'bedrock' | undefined;
+
+  // On-demand compaction (compaction.ts): over COMPACT_ABOVE_TOKENS projected, summarize everything before the
+  // last few messages first, then send the turn on the block. Saved applications only: their history is in D1,
+  // and the block is stored next to it. A history that grew a lot without a chat turn (ads the client answered
+  // with its buttons) may need a second pass: each pass is itself held under the line, so it compacts the oldest
+  // part, and the second folds that block and the next part together.
+  let turnBlock = compaction?.block ?? null;
+  for (let pass = 0; pass < MAX_COMPACTION_PASSES; pass += 1) {
+    if (!persistedSessionId || projectChatInput({ system, tools, messages }) <= COMPACT_ABOVE_TOKENS) break;
+    const compacted = await compactChat({
+      userId,
+      sessionId: persistedSessionId,
+      requestExecutionId,
+      system,
+      tools,
+      turns: earlierTurns,
+      earlier: turnBlock,
+      provider: compactedOn,
+    });
+    if (!compacted) break;
+    if (compacted.stored) compaction = { block: compacted.block, coversThroughMessageId: compacted.coversThroughMessageId };
+    compactedOn = compacted.provider === 'bedrock' ? 'bedrock' : compactedOn;
+    turnBlock = compacted.block;
+    earlierTurns = earlierTurns.slice(compacted.cut);
+    messages = buildChatMessages([...earlierTurns.map(chatTurnOf), newTurn], prompt.state, turnBlock);
+  }
+
+  const executed: ExecutedEffect[] = [];
+  let confirmActions: ChatActionChip[] = [];
+  const failedToolNames: string[] = [];
+  const oversizedToolNames: string[] = [];
+  // The text of every model call, in order: a tool round's opening line is part of the reply the user reads.
+  const roundTexts: string[] = [];
+  let lastToolNames = '';
+  let loopFailure: { error: unknown } | null = null;
+  const replyStream = stream ? new ReplyStream(stream.send) : null;
+
+  try {
+    // Measured input of the last call and what was appended after it: the
+    // next round's projection is exact plus a small estimated delta.
+    let previousInputTokens: number | null = null;
+    let appendedSinceLastCall: Anthropic.Beta.BetaMessageParam[] = [];
+    // Once Bedrock answered a round of this request, the rest of the request stays on Bedrock, so a thinking block
+    // signed by Bedrock never reaches the direct API (the API rejects it). Only this direction is pinned: a round the
+    // direct API answered can still fail over to Bedrock on the next round, and that request then carries thinking
+    // signed by the direct API. Whether Bedrock accepts that is checked by evals/haiku-55-swap/bedrock-probe.ts (check 6).
+    // The next request starts on the Anthropic API again; client history is plain text, nothing signed crosses it.
+    let pinnedProvider: 'bedrock' | undefined = compactedOn;
+    failure.sentOnBlock = turnBlock !== null;
+    failure.failedBlockSession = failure.sentOnBlock && persistedSessionId && compaction && turnBlock === compaction.block
+      ? { userId, sessionId: persistedSessionId, coversThroughMessageId: compaction.coversThroughMessageId }
+      : null;
+
+    for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
+      const finalRound = round === MAX_TOOL_ROUNDS;
+      if (previousInputTokens !== null) {
+        const projected = projectNextInputTokens(previousInputTokens, appendedSinceLastCall);
+        if (isOverRefuseLimit(projected)) throw new InputBudgetError('chat', projected);
+      }
+      // settleChatReply replaces the reply with a fixed line after a failed handler, and after a too-large result
+      // when nothing ran: the model's words would only show and then vanish, so they are not streamed.
+      if (failedToolNames.length > 0 || (oversizedToolNames.length > 0 && executed.length === 0)) replyStream?.hold();
+
+      const response = await callHaiku({
+        site: 'chat',
+        system,
+        messages,
+        tools,
+        // The final round has to answer in text. tool_choice none keeps the
+        // cache (P0b) and the tool_use turns in history stay valid.
+        toolChoice: finalRound ? 'none' : 'auto',
+        maxTokens: CHAT_MAX_TOKENS,
+        cacheTtl: '1h',
+        // Its own 5m markers sit on the new user turn and on the last tool result (chat-prompt.ts).
+        cacheConversation: false,
+        provider: pinnedProvider,
+        ...(replyStream ? { stream: replyStream.forCall() } : {}),
+        generationContext: {
+          requestExecutionId,
+          userId,
+          route: '/api/chat',
+          feature: 'chat',
+          // Rounds that answer a tool result are attributed to that tool
+          // (one stable name, no joined cardinality), so the admin AI-costs
+          // page shows agentic usage separately.
+          operation: round === 0 ? 'general_chat' : `tool_call:${lastToolNames}`,
+        },
+      });
+      assertUsableChatStop(response);
+      if (response.provider === 'bedrock') pinnedProvider = 'bedrock';
+
+      const text = responseText(response);
+      const toolUses = response.rawContent.filter(
+        (block): block is Anthropic.Beta.BetaToolUseBlock => block.type === 'tool_use',
+      );
+      if (finalRound || toolUses.length === 0) {
+        // Haiku can end a turn with no text at all (P0 saw it with tool_choice
+        // none). An empty reply is a failure, never a blank bubble.
+        if (!text.trim()) throw new Error(`Chat model returned no text (round ${round})`);
+        roundTexts.push(text);
+        replyStream?.endRound(text);
+        break;
+      }
+      roundTexts.push(text);
+      replyStream?.endRound(text);
+      replyStream?.status(TOOL_STATUS[toolUses[0].name] ?? 'Working on it');
+
+      // The assistant turn goes back verbatim (thinking and tool_use blocks
+      // unaltered), then ONE user turn with a tool_result for every tool_use.
+      // A tool_use without a result is a 400, so calls over the per-round cap
+      // are answered as not run rather than dropped.
+      const results: Anthropic.Beta.BetaToolResultBlockParam[] = [];
+      for (const [index, call] of toolUses.entries()) {
+        if (index >= MAX_TOOL_CALLS_PER_ROUND) {
           results.push({
             type: 'tool_result',
             tool_use_id: call.id,
-            content: JSON.stringify(result.data),
-            ...(result.failed || result.oversized ? { is_error: true } : {}),
+            is_error: true,
+            content: `Not run: at most ${MAX_TOOL_CALLS_PER_ROUND} tool calls per turn. Tell the user what you did not get to.`,
           });
+          continue;
         }
-        // The last result carries the loop's 5m marker (moved each round), so the next round reads this one.
-        appendedSinceLastCall = appendToolRound(messages, response.rawContent, results);
-        previousInputTokens = response.inputTokensTotal;
-        lastToolNames = toolUses[0].name;
+        const args = call.input && typeof call.input === 'object' && !Array.isArray(call.input)
+          ? call.input as Record<string, unknown>
+          : {};
+        const result = await executeChatTool(call.name, args, toolContext);
+        if (result.failed) failedToolNames.push(call.name);
+        if (result.oversized) oversizedToolNames.push(call.name);
+        if (result.executed) executed.push(...result.executed);
+        if (result.actions) confirmActions.push(...result.actions);
+        results.push({
+          type: 'tool_result',
+          tool_use_id: call.id,
+          content: JSON.stringify(result.data),
+          ...(result.failed || result.oversized ? { is_error: true } : {}),
+        });
       }
-    } catch (error) {
-      loopFailure = { error };
+      // The last result carries the loop's 5m marker (moved each round), so the next round reads this one.
+      appendedSinceLastCall = appendToolRound(messages, response.rawContent, results);
+      previousInputTokens = response.inputTokensTotal;
+      lastToolNames = toolUses[0].name;
     }
-
-    // An early stop, a handler that threw or a result too large to read each
-    // end in a fixed reply; an outage (the first call failed) is rethrown to the
-    // 500 path below. loop-reply.ts has every case.
-    ({ reply, confirmActions } = settleChatReply(
-      { reply, executed, confirmActions, failedToolNames, oversizedToolNames, lastToolNames },
-      loopFailure,
-    ));
-
-    // The tools cannot add a new claim to the source CVs. If the model offers
-    // or promises that unsupported action anyway, replace it before it reaches
-    // the client and suppress the rewrite chip that would only refuse later.
-    const cvRewriteProposed = confirmActions.some((chip) =>
-      chip.action.startsWith('confirm-cv-rewrite:'),
-    );
-    const guardedReply = guardUnsupportedCvAdditionOffer(reply, { cvRewriteProposed });
-    const unsupportedCvAdditionBlocked = cvRewriteProposed && guardedReply !== reply;
-    reply = guardedReply;
-
-    // The prompt bans long dashes, but the live model has ignored that rule.
-    // All free-form chat copy gets the same deterministic safety net as the
-    // document writers before any text reaches the client.
-    reply = sanitizeDashes(reply);
-
-    // Each structure operation carries the digest of the object it produced,
-    // so composed edits return different Undo action strings. Only the last
-    // one targets the final composed CV. Earlier chips would either refuse or
-    // misrepresent which operation they undo.
-    const safeConfirmActions = unsupportedCvAdditionBlocked
-      ? confirmActions.filter((chip) => !chip.action.startsWith('confirm-cv-rewrite:'))
-      : confirmActions;
-    const rawActions = [...extractActions(reply, context), ...safeConfirmActions];
-    const lastCvUndo = rawActions.findLast((chip) => chip.action.startsWith('undo-cv-edit:'));
-    const seenActions = new Set<string>();
-    const actions = rawActions.filter((chip) => {
-      if (chip.action.startsWith('undo-cv-edit:') && chip !== lastCvUndo) return false;
-      if (seenActions.has(chip.action)) return false;
-      seenActions.add(chip.action);
-      return true;
-    });
-
-    // The reply goes into the history now, under the id the client will show it with, so a quick next turn has it
-    // even before the client's sync runs. The sync then writes the client's copy over it (a reply can gain a note).
-    let replyMessageId: string | undefined;
-    // A client that stopped waiting (the Stop button) never shows this reply, so it is not stored either, where the
-    // runtime reports the disconnect. Best effort: the user's own message is stored either way.
-    if (storesTurn && persistedSessionId && !req.signal?.aborted) {
-      replyMessageId = newChatMessageId();
-      const stored = await storeChatReply(user.id, persistedSessionId, { id: replyMessageId, content: reply, actions });
-      // The user still gets the reply; the next turn's history will miss it, so this is loud.
-      if (!stored) console.error(`[chat] the reply was not stored for ${persistedSessionId} (application gone or id taken)`);
-    }
-
-    return NextResponse.json({
-      success: true,
-      reply,
-      actions,
-      executed,
-      ...(replyMessageId ? { replyMessageId } : {}),
-      // A turn sent without an id was stored under one the client has never seen: it adds this message to its
-      // transcript, so the two stay the same.
-      ...(mintedTurn ? { storedUserMessage: mintedTurn } : {}),
-      // Where ChatPanel draws "Earlier messages summarized": the last message the model now sees only as a summary.
-      ...(persistedSessionId ? { compactedThroughMessageId: compaction?.coversThroughMessageId ?? null } : {}),
-    });
   } catch (error) {
-    const posthog = getPostHogServer();
-    posthog.captureException(error as Error, 'server_error', {
-      endpoint: '/api/chat',
-      method: 'POST',
-    });
-    await posthog.flush();
-    console.error('Chat error:', error);
-    // A 4xx on a turn that carried a compaction block (Bedrock refusing an Anthropic-signed block after a failover is
-    // the case evals/haiku-55-swap/bedrock-probe.ts check 7 probes). Said plainly, never answered as if it had been
-    // read: the history and the block stay as they are, and the next turn tries again.
-    const status = providerHttpStatus(error);
-    if (sentOnBlock && status !== null && status >= 400 && status < 500) {
-      // A 400 (the request itself refused) drops the stored block this turn was sent on, so the next turn compacts again
-      // from the full history: a block the API no longer accepts must not sink every later turn. If it was Bedrock
-      // refusing a valid block, that costs one compaction. A rate limit or an auth error keeps it. Only that row goes:
-      // a newer block another tab stored meanwhile has a different covered message and stays.
-      let dropped = false;
-      if (status === 400 && failedBlockSession) {
+    if (replyStream?.deliveredThisCall && isFailoverError(error)) {
+      // The route to the model broke (a cut, an idle stream, a 5xx) after text of that call was on the client's
+      // screen: no other provider can continue it, so the stream ends with an error. With effects committed, the fixed
+      // line that says so is stored and sent (settleChatReply's wording), as a JSON turn would store it. A model stop
+      // (a refusal, max_tokens) settles below like any other turn.
+      const fallback = executed.length > 0
+        ? sanitizeDashes(settleChatReply({ reply: '', executed, confirmActions, failedToolNames, oversizedToolNames, lastToolNames }, { error }).reply)
+        : null;
+      let fallbackId: string | null = null;
+      if (fallback && storesTurn && persistedSessionId) {
+        fallbackId = newChatMessageId();
+        let storedLine = false;
         try {
-          // 0 when another tab replaced it with a newer block meanwhile: that one stays, and so does the divider.
-          dropped = await deleteChatCompaction(failedBlockSession.userId, failedBlockSession.sessionId, failedBlockSession.coversThroughMessageId) > 0;
-        } catch (deleteError) {
-          console.error('[chat] could not drop the refused compaction block:', deleteError instanceof Error ? deleteError.message : deleteError);
+          storedLine = await storeChatReply(userId, persistedSessionId, { id: fallbackId, content: fallback, actions: [] }, turnMessageId);
+        } catch (storeError) {
+          // The cut and its committed effects still go back; the line just is not in the history.
+          console.error('[chat] the cut turn\'s fixed line could not be stored:', storeError instanceof Error ? storeError.message : storeError);
+        }
+        if (!storedLine) {
+          console.error(`[chat] the cut turn's fixed line was not stored for ${persistedSessionId}`);
+          fallbackId = null;
         }
       }
-      return NextResponse.json(
-        {
-          error: 'Chat is unavailable right now.',
-          code: 'CHAT_PROVIDER_UNAVAILABLE',
-          ...(dropped ? { compactedThroughMessageId: null } : {}),
-          ...(mintedTurn ? { storedUserMessage: mintedTurn } : {}),
-        },
-        { status: 503 },
-      );
+      throw new ReplyCutError(error, executed, fallback, fallbackId);
     }
-    return NextResponse.json(
-      { error: 'Chat request failed', ...(mintedTurn ? { storedUserMessage: mintedTurn } : {}) },
-      { status: 500 }
-    );
+    loopFailure = { error };
   }
+
+  // An early stop, a handler that threw or a result too large to read each
+  // end in a fixed reply; an outage (the first call failed) is rethrown to the
+  // 500 path below. loop-reply.ts has every case.
+  let reply: string;
+  ({ reply, confirmActions } = settleChatReply(
+    { reply: loopFailure ? '' : joinReplyRounds(roundTexts), executed, confirmActions, failedToolNames, oversizedToolNames, lastToolNames },
+    loopFailure,
+  ));
+
+  // The tools cannot add a new claim to the source CVs. If the model offers
+  // or promises that unsupported action anyway, replace it before it reaches
+  // the client and suppress the rewrite chip that would only refuse later.
+  const cvRewriteProposed = confirmActions.some((chip) =>
+    chip.action.startsWith('confirm-cv-rewrite:'),
+  );
+  const guardedReply = guardUnsupportedCvAdditionOffer(reply, { cvRewriteProposed });
+  const unsupportedCvAdditionBlocked = cvRewriteProposed && guardedReply !== reply;
+  reply = guardedReply;
+
+  // The prompt bans long dashes, but the live model has ignored that rule.
+  // All free-form chat copy gets the same deterministic safety net as the
+  // document writers before any text reaches the client.
+  reply = sanitizeDashes(reply);
+
+  // Each structure operation carries the digest of the object it produced,
+  // so composed edits return different Undo action strings. Only the last
+  // one targets the final composed CV. Earlier chips would either refuse or
+  // misrepresent which operation they undo.
+  const safeConfirmActions = unsupportedCvAdditionBlocked
+    ? confirmActions.filter((chip) => !chip.action.startsWith('confirm-cv-rewrite:'))
+    : confirmActions;
+  const rawActions = [...extractActions(reply, context), ...safeConfirmActions];
+  const lastCvUndo = rawActions.findLast((chip) => chip.action.startsWith('undo-cv-edit:'));
+  const seenActions = new Set<string>();
+  const actions = rawActions.filter((chip) => {
+    if (chip.action.startsWith('undo-cv-edit:') && chip !== lastCvUndo) return false;
+    if (seenActions.has(chip.action)) return false;
+    seenActions.add(chip.action);
+    return true;
+  });
+
+  // The reply goes into the history now, under the id the client will show it with, so a quick next turn has it
+  // even before the client's sync runs. The sync then writes the client's copy over it (a reply can gain a note).
+  let replyMessageId: string | undefined;
+  // A JSON client that stopped waiting never shows this reply, so it is not stored either, where the runtime reports
+  // the disconnect (as before streaming). A streamed turn passes no signal: it always finishes (see above). The user's
+  // own message is stored either way.
+  if (storesTurn && persistedSessionId && !requestSignal?.aborted) {
+    replyMessageId = newChatMessageId();
+    const stored = await storeChatReply(userId, persistedSessionId, { id: replyMessageId, content: reply, actions }, turnMessageId);
+    // The user still gets the reply; the next turn's history will miss it, so this is loud.
+    if (!stored) console.error(`[chat] the reply was not stored for ${persistedSessionId} (application gone or id taken)`);
+  }
+
+  return {
+    success: true,
+    reply,
+    actions,
+    executed,
+    ...(replyMessageId ? { replyMessageId } : {}),
+    // A turn sent without an id was stored under one the client has never seen: it adds this message to its
+    // transcript, so the two stay the same.
+    ...(failure.mintedTurn ? { storedUserMessage: failure.mintedTurn } : {}),
+    // Where ChatPanel draws "Earlier messages summarized": the last message the model now sees only as a summary.
+    ...(persistedSessionId ? { compactedThroughMessageId: compaction?.coversThroughMessageId ?? null } : {}),
+  };
 }
 
 /**

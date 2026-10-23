@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { Fragment, useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo } from 'react';
 import { Card } from './ui/Card';
 import { MarkdownText } from './MarkdownText';
 import { ChatMessage, type ChatMessageData } from './chat/ChatMessage';
@@ -11,6 +11,7 @@ import { FeedbackModal } from './chat/FeedbackModal';
 import { AgentProgressV2 } from './AgentProgressV2';
 import { PROFILE_UNAVAILABLE, useAgentWorkflow } from './chat/useAgentWorkflow';
 import { useChatCompactionMarker } from './chat/compaction-marker';
+import { useStreamingReply } from './chat/streaming-reply';
 import { useAppStore } from '@/store/useAppStore';
 import { isApplicationSession, useSessionStore } from '@/store/useSessionStore';
 import { hasTailoredCv, sessionHasKit } from '@/components/shell/application-status';
@@ -371,8 +372,21 @@ export function ChatPanel({
     setShowScrollButton((shown) => (shown ? distance > PILL_HIDE_DISTANCE : distance > PILL_SHOW_DISTANCE));
   }, []);
 
+  // Whether the view follows a reply as it streams. Scrolling up (scrollTop going down) lets go of the bottom and
+  // nothing pulls the reader back while a reply is written; coming back near the bottom follows again. Content that
+  // grows never fires a scroll event, so only the reader decides.
+  const stickToBottomRef = useRef(true);
+  const lastScrollTopRef = useRef(0);
+
   // Track scroll position to show/hide scroll-to-bottom button
   const handleScroll = () => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      const distance = container.scrollHeight - container.scrollTop - container.clientHeight;
+      if (container.scrollTop < lastScrollTopRef.current - 1) stickToBottomRef.current = distance < 8;
+      else if (distance < 40) stickToBottomRef.current = true;
+      lastScrollTopRef.current = container.scrollTop;
+    }
     updateScrollButton();
   };
 
@@ -391,16 +405,45 @@ export function ChatPanel({
     return () => ro.disconnect();
   }, [updateScrollButton, currentSession?.id]);
 
-  // Force-scroll to bottom when new messages arrive (user sent or AI responded)
+  // The reply being streamed into this application (streaming-reply.ts), drawn after the transcript.
+  const streamingReply = useStreamingReply((state) => state.reply);
+  // Shown in the application the turn started in. A local `session-` conversation that got its saved id while the reply
+  // was out is found by its createdAt, which the new id keeps (streaming-reply.ts).
+  const shownStream = streamingReply && (
+    streamingReply.sessionId === (currentSession?.id ?? null)
+    || (streamingReply.sessionId?.startsWith('session-')
+      && !sessions.some((session) => session.id === streamingReply.sessionId)
+      && currentSession?.createdAt === streamingReply.sessionCreatedAt)
+  ) ? streamingReply : null;
+  const streamActive = shownStream !== null;
+  // Read by the message effect below before it is updated for this render: was a reply streaming last time.
+  const streamWasActiveRef = useRef(false);
+
+  // Force-scroll to bottom when new messages arrive (user sent or AI responded). A message that lands while a reply
+  // was streaming (the finished reply, a failure line) follows the reader instead: it never yanks one who scrolled up.
   const prevMessageCount = useRef(0);
   useEffect(() => {
     const count = currentSession?.chatMessages?.length ?? 0;
     if (count > prevMessageCount.current) {
-      // New message added — force scroll so user sees it
-      scrollToBottom(true);
+      if (!streamWasActiveRef.current) scrollToBottom(true);
+      else if (stickToBottomRef.current) {
+        const container = messagesContainerRef.current;
+        if (container) container.scrollTop = container.scrollHeight;
+      }
     }
     prevMessageCount.current = count;
   }, [currentSession?.chatMessages, scrollToBottom]);
+  useEffect(() => {
+    streamWasActiveRef.current = streamActive;
+  }, [streamActive]);
+
+  // Follow the streamed text while the reader is at the bottom. Instant, before paint: a smooth scroll per delta
+  // would trail the text and fight a reader who starts scrolling up.
+  useLayoutEffect(() => {
+    if (!streamActive || !stickToBottomRef.current) return;
+    const container = messagesContainerRef.current;
+    if (container) container.scrollTop = container.scrollHeight;
+  }, [streamActive, shownStream?.text, shownStream?.status]);
 
   // Scroll when typing indicator appears (if near bottom)
   useEffect(() => {
@@ -2042,6 +2085,17 @@ export function ChatPanel({
             </Fragment>
           ))}
 
+          {/* The reply as it streams in. Same component and place as the message that replaces it, so nothing moves. */}
+          {shownStream && shownStream.text && (
+            <ChatMessage
+              message={{ id: `streaming-${shownStream.turnId}`, role: 'assistant', content: shownStream.text, timestamp: shownStream.startedAt }}
+              onAction={handleAction}
+              onFeedback={handleFeedbackClick}
+              layout={spine ? 'spine' : 'classic'}
+              streaming
+            />
+          )}
+
           {/* Immediate loading indicator */}
           {isAgentWorking && agentSteps.length === 0 && v2Progress && (
             <div className="flex gap-3">
@@ -2095,7 +2149,7 @@ export function ChatPanel({
           )}
           
           {/* Typing indicator */}
-          {(isTyping || isAnalyzing || isGenerating) && !isAgentWorking && (
+          {(isTyping || isAnalyzing || isGenerating) && !isAgentWorking && !(shownStream?.text && !shownStream.status) && (
             <div className="flex gap-3">
               <div className="flex-shrink-0 h-fit">
                 <BrandIcon size="xs" theme="light" />
@@ -2107,7 +2161,7 @@ export function ChatPanel({
                   <span className="w-2 h-2 bg-gold-400 rounded-full animate-bounce typing-dot-3" />
                 </div>
                 <span className="text-sm text-navy-600 ml-2 font-medium">
-                  {isAnalyzing ? 'Useful Apply is analyzing...' : isGenerating ? 'Useful Apply is generating...' : 'Useful Apply is thinking...'}
+                  {shownStream?.status ? `${shownStream.status}...` : isAnalyzing ? 'Useful Apply is analyzing...' : isGenerating ? 'Useful Apply is generating...' : 'Useful Apply is thinking...'}
                 </span>
               </div>
             </div>
