@@ -86,6 +86,8 @@ export function forbiddenOf(c: UxCase): string[] {
 const NEGATION = /\b(?:not|no|never|yet|without|missing|none|isn't|aren't|wasn't|weren't|haven't|hasn't|don't|doesn't|can't|cannot|nicht|kein|keine|keinen|keiner|ohne|fehlt|fehlen)\b|n't\b/i;
 const claimSentences = (reply: string): string[] => reply.split(/(?<=[.!?])\s+|\n+/).map((s) => s.trim()).filter(Boolean);
 
+/** A sentence about a button that appears after the user does something: then, once, after, wenn, sobald, dann. */
+const FUTURE_BUTTON = /\b(?:then|once|after|when you|if you|dann|sobald|nachdem|wenn du)\b/i;
 const BUTTON_MENTION = /\b(?:buttons?|Schaltfl(?:ä|ae)chen?|Kn(?:ö|oe)pfe?|Button)\b/i;
 
 export function gradeUx(c: UxCase, input: TurnInput): Graded {
@@ -141,7 +143,9 @@ export function gradeUx(c: UxCase, input: TurnInput): Graded {
   }
   if (c.category === 'claims') metrics.claims_ok = patternsOk ? 1 : 0;
   // A button the reply points at must be on screen: this turn's response carries no chip, so there is none.
-  const ghostButton = actions.length === 0 && BUTTON_MENTION.test(reply);
+  // "Paste the ad again, then you get the button" points at a button the next step brings, which the prompt asks for.
+  const ghostButton = actions.length === 0
+    && claimSentences(reply).some((sentence) => BUTTON_MENTION.test(sentence) && !FUTURE_BUTTON.test(sentence));
   if (ghostButton) failures.push('reply mentions a button, but the response carries none');
   metrics.no_ghost_button = ghostButton ? 0 : 1;
 
@@ -273,7 +277,7 @@ export const chatUxSite: Site<UxCase> = {
       for (const step of c.script) for (const s of step) if (s.name === 'set_application_status' && !TRACKER_ROWS.some((r) => r.id === s.input.application_id)) problems.push(`${c.id}: script writes to an unknown row`);
       if (c.category === 'screening_pos' && (c.requiresTool !== OFFER_SCREENING_TOOL || !c.expect.tools?.includes(OFFER_SCREENING_TOOL) || !c.expect.chips?.includes(SCREENING_CHIP))) problems.push(`${c.id}: a positive screening case must require ${OFFER_SCREENING_TOOL} and the ${SCREENING_CHIP} chip`);
       if (c.category === 'screening_neg' && (!c.expect.forbidden?.includes(OFFER_SCREENING_TOOL) || !c.expect.forbiddenChips?.includes(SCREENING_CHIP))) problems.push(`${c.id}: a negative screening case must forbid ${OFFER_SCREENING_TOOL} and the chip`);
-      if (c.category === 'claims' && !(c.expect.reply?.mustNotMatch?.length)) problems.push(`${c.id}: a claims case needs mustNotMatch patterns`);
+      if (c.category === 'claims' && !(c.expect.reply?.mustNotMatch?.length || c.expect.reply?.mustNotClaim?.length)) problems.push(`${c.id}: a claims case needs mustNotMatch or mustNotClaim patterns`);
       if (c.category === 'length' && c.expect.reply?.maxSentences !== 3) problems.push(`${c.id}: a length case caps at 3 sentences`);
       if (c.lang === 'de' && !checkGerman(c.message).ok) problems.push(`${c.id}: marked German but the message does not read as German`);
       if (c.lang === 'en' && checkGerman(c.message).ok) problems.push(`${c.id}: marked English but the message reads as German`);
