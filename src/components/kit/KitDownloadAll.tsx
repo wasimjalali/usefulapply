@@ -18,7 +18,7 @@ export function KitDownloadAll() {
       type="button"
       onClick={requestKitDownload}
       disabled={busy}
-      className="inline-flex h-10 items-center gap-2 rounded-full border border-cream-200 bg-cream-50 px-4 text-sm font-semibold text-navy-800 shadow-sm hover:bg-white transition-colors duration-200 cursor-pointer disabled:cursor-wait"
+      className="inline-flex h-10 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-cream-200 bg-cream-50 px-4 text-sm font-semibold text-navy-800 shadow-sm hover:bg-white transition-colors duration-200 cursor-pointer disabled:cursor-wait"
     >
       {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
       Download all

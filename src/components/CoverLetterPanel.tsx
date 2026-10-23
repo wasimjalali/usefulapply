@@ -79,6 +79,15 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const editedCoverLetterRef = useRef<GeneratedCoverLetter | null>(null);
   useEffect(() => { editedCoverLetterRef.current = editedCoverLetter; }, [editedCoverLetter]);
   const [showFullPreview, setShowFullPreview] = useState(false);
+  // Compact, the canvas folds with this panel still mounted behind its rail.
+  // The download menu and the full preview are portaled out of the canvas,
+  // where inert can't reach them, so they close with the fold.
+  const canvasCollapsed = useUIStore((state) => state.canvasCollapsed);
+  useEffect(() => {
+    if (!canvasCollapsed) return;
+    setShowDownloadMenu(false);
+    setShowFullPreview(false);
+  }, [canvasCollapsed]);
   // The rendered PDF the server would export, shown so people see the layout (US letter or DIN 5008) before they download.
   const [layoutPreview, setLayoutPreview] = useState<{ url: string } | null>(null);
   const [layoutPreviewLoading, setLayoutPreviewLoading] = useState(false);
@@ -155,8 +164,8 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     return () => window.clearInterval(id);
   }, []);
 
-  // Fixed to the viewport so the kit toolbar's overflow-x-auto and the
-  // document scroller below it cannot clip or paint over the menu.
+  // Fixed to the viewport so the canvas column and the document scroller
+  // below the kit toolbar cannot clip or paint over the menu.
   useLayoutEffect(() => {
     if (!showDownloadMenu) return;
     const place = () => {
