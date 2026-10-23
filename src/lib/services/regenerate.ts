@@ -42,6 +42,14 @@ import { buildSessionUpdateStatement, coverLetterShell, kitDocumentColumns, kitF
 
 export type RegenerateType = 'cover-letter' | 'email' | 'follow_up_email' | 'cv_section';
 
+/** The writer answered with an empty document. Nothing was saved; callers release the reservation. */
+export class EmptyGenerationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'EmptyGenerationError';
+  }
+}
+
 /** A request that can never succeed as sent. Raised before anything is reserved, so nothing was charged. */
 export class RegenerateRequestError extends Error {
   constructor(
@@ -297,7 +305,7 @@ export async function prepareRegeneration(userId: string, request: RegenerateReq
         const { result: letter, tokens } = await unifiedWriterAgent.generateCoverLetter(masterContext, generationContext, SESSION_REUSE);
         const coverLetter = letter.body;
         if (!coverLetter.trim()) {
-          throw new Error('Empty cover letter generation');
+          throw new EmptyGenerationError('Empty cover letter generation');
         }
         const existingCoverLetter = session.cover_letter && typeof session.cover_letter === 'object'
           ? session.cover_letter as Record<string, unknown>
@@ -336,7 +344,7 @@ export async function prepareRegeneration(userId: string, request: RegenerateReq
       if (request.type === 'email') {
         const { result: email, tokens } = await unifiedWriterAgent.generateApplicationEmail(masterContext, generationContext, SESSION_REUSE);
         if (!email?.subject?.trim() || !email?.body?.trim()) {
-          throw new Error('Empty application email generation');
+          throw new EmptyGenerationError('Empty application email generation');
         }
         return {
           kind: 'document',
@@ -363,7 +371,7 @@ export async function prepareRegeneration(userId: string, request: RegenerateReq
         }
         const { result: followUpEmail, tokens } = await unifiedWriterAgent.generateFollowUpEmail(masterContext, generationContext, SESSION_REUSE);
         if (!followUpEmail?.subject?.trim() || !followUpEmail?.body?.trim()) {
-          throw new Error('Empty follow-up email generation');
+          throw new EmptyGenerationError('Empty follow-up email generation');
         }
         return {
           kind: 'document',

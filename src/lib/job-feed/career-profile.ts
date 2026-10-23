@@ -11,7 +11,7 @@
  * when the source primary_cv document changes.
  */
 
-import type { JobFeedSettings } from '@/lib/supabase/types';
+import type { JobFeedSettings } from '@/db/types';
 
 export const CAREER_PROFILE_SCHEMA_VERSION = 2 as const;
 

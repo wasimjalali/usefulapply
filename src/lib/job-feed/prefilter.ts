@@ -9,7 +9,7 @@ import type {
   JobFeedPrefilterResult,
   JobFeedRankingPrepResult,
 } from '@/lib/job-feed/types';
-import type { JobFeedCanonicalJob, JobFeedSettings } from '@/lib/supabase/types';
+import type { JobFeedCanonicalJob, JobFeedSettings } from '@/db/types';
 import { collapseNearDuplicateJobs } from '@/lib/job-feed/helpers';
 
 const EMPTY_REJECTIONS: Record<JobFeedPrefilterRejectReason, number> = {

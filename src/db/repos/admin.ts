@@ -3,7 +3,7 @@
  * Stripe webhook. Everything else must go through a user-scoped repo.
  */
 import { and, desc, eq, gte, inArray, isNotNull, isNull, lt, lte, notExists, or, sql } from 'drizzle-orm';
-import type { Json } from '@/lib/supabase/types';
+import type { Json } from '@/db/types';
 import { chunk, D1_MAX_PARAMS, isUniqueViolation, getDb, nowIso } from '../client';
 import {
   anthropicUserProfiles,
@@ -36,7 +36,7 @@ import {
   user as authUsers,
   webhookEvents,
 } from '../schema';
-import type { JobFeedCanonicalJob, JobFeedApplicationGeneration, CreditReservation } from '@/lib/supabase/types';
+import type { JobFeedCanonicalJob, JobFeedApplicationGeneration, CreditReservation } from '@/db/types';
 
 export async function hasWebhookEvent(eventId: string): Promise<boolean> {
   const db = await getDb();
@@ -66,11 +66,6 @@ export async function insertWebhookEvent(eventId: string, eventType: string): Pr
   }
 }
 
-export async function deleteWebhookEvent(eventId: string): Promise<void> {
-  const db = await getDb();
-  await db.delete(webhookEvents).where(eq(webhookEvents.event_id, eventId));
-}
-
 /**
  * Stripe webhook only. Keeps profiles.subscription_tier/status in sync so
  * AuthContext and PostHog reflect the current plan.
@@ -83,12 +78,12 @@ export async function setProfileSubscription(userId: string, tier: string, statu
     .where(eq(profiles.id, userId));
 }
 
-export async function updateRunById(runId: string, updates: Partial<import('@/lib/supabase/types').JobFeedRun>) {
+export async function updateRunById(runId: string, updates: Partial<import('@/db/types').JobFeedRun>) {
   const db = await getDb();
   await db.update(jobFeedRuns).set({ ...updates, updated_at: nowIso() }).where(eq(jobFeedRuns.id, runId));
   const rows = await db.select().from(jobFeedRuns).where(eq(jobFeedRuns.id, runId)).limit(1);
   if (!rows[0]) throw new Error('Failed to update job feed run');
-  return rows[0] as import('@/lib/supabase/types').JobFeedRun;
+  return rows[0] as import('@/db/types').JobFeedRun;
 }
 
 export async function listRankedItemsByRunId(runId: string) {
@@ -98,11 +93,6 @@ export async function listRankedItemsByRunId(runId: string) {
     .from(jobFeedRankedItems)
     .where(eq(jobFeedRankedItems.run_id, runId))
     .orderBy(jobFeedRankedItems.rank_position);
-}
-
-export async function deleteRankedItemsByRunId(runId: string): Promise<void> {
-  const db = await getDb();
-  await db.delete(jobFeedRankedItems).where(eq(jobFeedRankedItems.run_id, runId));
 }
 
 export async function deleteRunArtifactsByRunId(runId: string): Promise<void> {

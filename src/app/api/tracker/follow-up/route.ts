@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
-import { unifiedWriterAgent } from '@/lib/agents/unified-writer-agent';
-import { type MasterContext } from '@/lib/agents/types';
 import { getCurrentUser } from '@/auth/server';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { reserveCredits, captureReservation, releaseReservation } from '@/lib/supabase/credit-reservations';
-import { detectLanguage, isSupportedLanguage, type SupportedLanguage } from '@/lib/utils/language-detector';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-import { clearKitDocumentError, getSession, updateSession, type ApplicationSession } from '@/db/repos/sessions';
+import { getSession, type ApplicationSession } from '@/db/repos/sessions';
 import { saveKitDocument } from '@/lib/services/kit';
-import { getDocumentByType, type Document } from '@/db/repos/documents';
+import { EmptyGenerationError, RegenerateRequestError, prepareRegeneration } from '@/lib/services/regenerate';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
-import { loadApplicantLogistics } from '@/lib/profile/logistics.server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -20,9 +16,12 @@ export const maxDuration = 60;
 const SESSION_ID_MAX = 64;
 
 /**
- * Session-scoped follow-up regenerate. Builds MasterContext on the server
- * from the D1 session and the user's CVs, so the tracker does not depend
- * on the client having that application and CV in memory.
+ * Session-scoped follow-up regenerate. The writer's context is built on the
+ * server from the D1 session and the user's CVs by the shared regenerate
+ * service, so the tracker does not depend on the client having that
+ * application and CV in memory. This route owns the reservation: its key is
+ * scoped to the application, and a saved letter carries the key so a retry
+ * replays it instead of paying again.
  */
 export async function POST(request: NextRequest) {
   let activeReservationKey: string | null = null;
@@ -59,16 +58,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const [primaryCv, masterCv] = await Promise.all([
-      getDocumentByType(user.id, 'primary_cv'),
-      getDocumentByType(user.id, 'master_cv'),
-    ]);
-    const rawCV = primaryCv?.raw_text?.trim() || '';
-    if (!rawCV) {
-      return NextResponse.json(
-        { error: 'I need your CV to write that.', code: 'NO_CONTEXT' },
-        { status: 400 },
-      );
+    // Every check that can refuse the request runs before anything is reserved.
+    let prepared;
+    try {
+      prepared = await prepareRegeneration(user.id, { sessionId: session.id, type: 'follow_up_email' });
+    } catch (error) {
+      if (error instanceof RegenerateRequestError) {
+        if (error.code === 'NO_SOURCE_CV' || error.code === 'NO_APPLICANT') {
+          return NextResponse.json(
+            { error: 'I need your CV to write that.', code: 'NO_CONTEXT' },
+            { status: 400 },
+          );
+        }
+        return NextResponse.json({ error: error.message }, { status: error.status });
+      }
+      throw error;
     }
 
     const requestIdHeader = request.headers.get('x-request-id');
@@ -119,8 +123,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to write the follow-up.' }, { status: 500 });
     }
 
-    // reserveCredits returns success for any existing key, including captured
-    // and released. Only a live reserved row with no saved letter may generate.
+    // reserveCredits refuses a key that is reserved or captured (409 above) and
+    // reserves a released key again. So the replay below runs only after a capture
+    // that never landed: the letter was saved, the reconciler released the
+    // reservation, and the client retried with the same request id. The other
+    // branches guard the same rule if reserveCredits ever changes: only a live
+    // reserved row with no letter for this key may generate.
     const reservationStatus = reserveResult.reservation.status;
     const existingLetter = storedFollowUp(session);
     // Only replay a letter this reservation wrote. An older follow-up on the
@@ -140,6 +148,17 @@ export async function POST(request: NextRequest) {
       });
     }
     if (reservationStatus === 'reserved' && existingLetter?.reservationKey === reservationKey) {
+      // The letter was delivered before, and this request just took a fresh hold
+      // for it. Hand the hold back so "nothing charged" is true now, not after
+      // the stale-reservation sweep. A release that fails is still freed by that sweep.
+      const release = await releaseReservation({
+        idempotencyKey: reservationKey,
+        userId: user.id,
+        reason: 'replayed_saved_letter',
+      });
+      if (!release.success) {
+        console.error('[Tracker follow-up] Replay release did not land; the stale-reservation sweep frees it:', release.error);
+      }
       return NextResponse.json({
         followUpEmail: {
           subject: existingLetter.subject,
@@ -163,35 +182,11 @@ export async function POST(request: NextRequest) {
       feature: 'tracker_follow_up',
       operation: 'regen_follow_up_email',
     };
-    const storedArtifacts = readRecord(session.generated_artifacts);
-    const storedRequirements = readRecord(session.requirements);
-    const storedLanguage = isSupportedLanguage(storedRequirements?.detectedLanguage)
-      ? storedRequirements.detectedLanguage
-      : storedDetectedLanguage(storedArtifacts);
-    const detectedLanguage = storedLanguage
-      ?? await detectLanguage(session.job_description, generationContext);
-    if (!storedLanguage) {
-      // `requirements` is a column the browser also writes, so the write bumps the revision (see the regenerate route).
-      const persistedLanguage = await updateSession(user.id, session.id, {
-        generated_artifacts: { ...(storedArtifacts ?? {}), detectedLanguage },
-        requirements: { ...(storedRequirements ?? {}), detectedLanguage },
-      });
-      if (persistedLanguage.error) throw persistedLanguage.error;
-    }
-    const masterContext = buildContextFromSession(
-      session,
-      rawCV,
-      masterCv?.raw_text || undefined,
-      primaryCv,
-      detectedLanguage,
-      storedArtifacts,
-    );
-    // The saved start date, read fresh from D1 like every other writer. Not swallowed: a failed read
-    // lands in the catch below, which releases the reservation.
-    masterContext.logistics = await loadApplicantLogistics(user.id);
-
-    const { result: followUpEmail, tokens } = await unifiedWriterAgent.generateFollowUpEmail(masterContext, generationContext);
-    if (!followUpEmail?.subject?.trim() || !followUpEmail?.body?.trim()) {
+    let generated;
+    try {
+      generated = await prepared.generate(generationContext);
+    } catch (error) {
+      if (!(error instanceof EmptyGenerationError)) throw error;
       await releaseReservation({
         idempotencyKey: reservationKey,
         userId: user.id,
@@ -199,13 +194,11 @@ export async function POST(request: NextRequest) {
       });
       return NextResponse.json({ error: 'Failed to write the follow-up.' }, { status: 500 });
     }
-
-    const written = {
-      subject: followUpEmail.subject,
-      body: followUpEmail.body,
-      recommendedDelay: followUpEmail.recommendedDelay || 5,
-      reservationKey,
-    };
+    if (generated.kind !== 'document') throw new Error('Follow-up regeneration returned a CV section');
+    const draft = generated.toResult(0);
+    if (draft.type !== 'follow_up_email') throw new Error('Follow-up regeneration returned another document');
+    const { tokens } = draft;
+    const written = { ...draft.followUpEmail, reservationKey };
     let writtenRevision: number | undefined;
     let persistError: unknown = null;
     try {
@@ -224,13 +217,10 @@ export async function POST(request: NextRequest) {
     }
     persisted = true;
     // A partial kit may have marked this follow-up as failed. Cosmetic once the
-    // letter exists (tabs only show the mark while the document is missing),
-    // so a miss here is logged and never turns a delivered follow-up into a 500.
-    try {
-      await clearKitDocumentError(user.id, session.id, 'followUpEmail');
-    } catch (clearError) {
-      console.error('[Tracker follow-up] Could not clear the follow-up failure mark:', clearError);
-    }
+    // letter exists (tabs only show the mark while the document is missing):
+    // afterSave logs a miss and never throws, so a delivered follow-up never
+    // turns into a 500.
+    if (writtenRevision !== undefined) await generated.afterSave(writtenRevision);
 
     // Past this point the letter is saved and durable, so the only truthful
     // response is success. A capture that fails must not turn a delivered
@@ -321,129 +311,4 @@ function storedFollowUp(session: ApplicationSession): {
 
 function readString(value: unknown): string {
   return typeof value === 'string' ? value : '';
-}
-
-function readRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null;
-}
-
-function readStringList(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
-    : [];
-}
-
-function uniqueStrings(values: string[]): string[] {
-  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
-}
-
-function storedDetectedLanguage(artifacts: Record<string, unknown> | null): SupportedLanguage | undefined {
-  if (isSupportedLanguage(artifacts?.detectedLanguage)) return artifacts.detectedLanguage;
-  const pending = readRecord(artifacts?.pendingFitAnalysis);
-  const contextData = readRecord(pending?.contextData);
-  return isSupportedLanguage(contextData?.detectedLanguage) ? contextData.detectedLanguage : undefined;
-}
-
-function persistedClaimableEvidence(artifacts: Record<string, unknown> | null): string[] {
-  const match = readRecord(artifacts?.match);
-  const details = Array.isArray(match?.details) ? match.details : [];
-  const detailEvidence = details.flatMap((value) => {
-    const detail = readRecord(value);
-    const evidence = readString(detail?.evidence);
-    return detail?.claimable === true && evidence ? [evidence] : [];
-  });
-  const canonical = readStringList(match?.claimableEvidence);
-  return uniqueStrings([...canonical, ...detailEvidence]);
-}
-
-function applicantFromDocument(doc: Document | null): MasterContext['applicant'] | undefined {
-  const structured = doc?.structured_data;
-  if (!structured || typeof structured !== 'object') return undefined;
-  const personal = (structured as Record<string, unknown>).personal;
-  if (!personal || typeof personal !== 'object') return undefined;
-  const fields = personal as Record<string, unknown>;
-  const name = readString(fields.fullName);
-  const email = readString(fields.email);
-  if (!name && !email) return undefined;
-  return {
-    name,
-    email,
-    phone: readString(fields.phone) || undefined,
-    address: [fields.address, fields.city, fields.country]
-      .filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))
-      .join(', ') || undefined,
-    skills: [],
-    tools: [],
-    languages: [],
-    experiences: [],
-    certifications: [],
-  };
-}
-
-function buildContextFromSession(
-  session: ApplicationSession,
-  rawCV: string,
-  masterCV: string | undefined,
-  primaryCv: Document | null,
-  detectedLanguage: SupportedLanguage,
-  storedArtifacts: Record<string, unknown> | null,
-): MasterContext {
-  const requirements = session.requirements && typeof session.requirements === 'object'
-    ? session.requirements as Record<string, unknown>
-    : null;
-  const email = session.email && typeof session.email === 'object'
-    ? session.email as Record<string, unknown>
-    : null;
-  const claimableEvidence = persistedClaimableEvidence(storedArtifacts)
-    .filter((evidence) => isExplicitlyInCv(evidence, rawCV, masterCV));
-
-  return {
-    sessionId: session.id,
-    jobDescription: session.job_description,
-    rawCV,
-    masterCV,
-    detectedLanguage,
-    applicant: applicantFromDocument(primaryCv),
-    job: {
-      title: readString(requirements?.title) || session.job_title || '',
-      companyName: readString(requirements?.company) || session.company || '',
-      location: readString(requirements?.location) || undefined,
-      workType: readString(requirements?.workType) || undefined,
-      requiredSkills: Array.isArray(requirements?.hardSkills)
-        ? requirements.hardSkills.filter((item): item is string => typeof item === 'string')
-        : [],
-      niceToHaveSkills: Array.isArray(requirements?.niceToHave)
-        ? requirements.niceToHave.filter((item): item is string => typeof item === 'string')
-        : [],
-      responsibilities: Array.isArray(requirements?.responsibilities)
-        ? requirements.responsibilities.filter((item): item is string => typeof item === 'string')
-        : [],
-      startDate: readString(requirements?.startDate) || undefined,
-      expectedSalary: readString(requirements?.expectedSalary) || undefined,
-    },
-    match: (session.matching_skills.length > 0 || session.missing_skills.length > 0 || claimableEvidence.length > 0)
-      ? {
-          score: session.match_score ?? 0,
-          matchedRequirements: session.matching_skills,
-          claimableEvidence,
-          missingSkills: session.missing_skills.filter((skill) => !isExplicitlyInCv(skill, rawCV, masterCV)),
-        }
-      : undefined,
-    applicationEmail: email?.subject && email?.body
-      ? { subject: readString(email.subject), body: readString(email.body) }
-      : undefined,
-    companyResearch: session.company_research && typeof session.company_research === 'object'
-      ? session.company_research as MasterContext['companyResearch']
-      : undefined,
-  };
-}
-
-function isExplicitlyInCv(value: string, ...sources: Array<string | undefined>): boolean {
-  const claim = value.trim().normalize('NFKC').replace(/\s+/g, ' ');
-  if (!claim) return false;
-  const escaped = claim.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?=$|[^\\p{L}\\p{N}])`, 'iu');
-  return sources.some((source) => pattern.test(source?.normalize('NFKC').replace(/\s+/g, ' ') ?? ''));
 }

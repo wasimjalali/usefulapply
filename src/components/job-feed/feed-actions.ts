@@ -15,7 +15,7 @@ import type {
   JobFeedOverviewResponse,
   JobFeedSettingsInput,
 } from '@/lib/job-feed/types';
-import type { JobFeedSettings } from '@/lib/supabase/types';
+import type { JobFeedSettings } from '@/db/types';
 import type { SearchStrategy } from '@/lib/job-feed/search-strategy-types';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import { useFeedStore } from '@/store/useFeedStore';

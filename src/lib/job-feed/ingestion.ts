@@ -36,7 +36,7 @@ import type {
   JobFeedSettings,
   Json,
   UpdateTables,
-} from '@/lib/supabase/types';
+} from '@/db/types';
 import { getRun, updateRun } from '@/db/repos/jobFeed';
 
 interface ObservedNormalizedJob {

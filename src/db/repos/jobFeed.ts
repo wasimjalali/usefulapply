@@ -24,7 +24,7 @@ import type {
   JobFeedRun,
   JobFeedSettings,
   Json,
-} from '@/lib/supabase/types';
+} from '@/db/types';
 
 export async function getSettings(userId: string): Promise<JobFeedSettings | null> {
   const db = await getDb();
@@ -246,12 +246,6 @@ export async function failQueuedRun(userId: string, runId: string, errorMessage:
   return rows.length > 0;
 }
 
-export async function deleteRunArtifacts(userId: string, runId: string): Promise<void> {
-  const db = await getDb();
-  await db.delete(jobFeedRawFetches).where(and(eq(jobFeedRawFetches.run_id, runId), eq(jobFeedRawFetches.user_id, userId)));
-  await db.delete(jobFeedRankedItems).where(and(eq(jobFeedRankedItems.run_id, runId), eq(jobFeedRankedItems.user_id, userId)));
-}
-
 export async function insertRawFetch(userId: string, insert: Omit<Partial<JobFeedRawFetch>, 'user_id'> & {
   run_id: string;
   query_text: string;
@@ -319,15 +313,6 @@ export async function listRankedItemsByJobIds(userId: string, jobIds: string[]):
     out.push(...rows);
   }
   return out;
-}
-
-export async function listRankedItemsForRun(userId: string, runId: string): Promise<JobFeedRankedItem[]> {
-  const db = await getDb();
-  return await db
-    .select()
-    .from(jobFeedRankedItems)
-    .where(and(eq(jobFeedRankedItems.user_id, userId), eq(jobFeedRankedItems.run_id, runId)))
-    .orderBy(jobFeedRankedItems.rank_position) as JobFeedRankedItem[];
 }
 
 // 11 bound values per ranked item row; keep each INSERT under D1's 100-param cap.
@@ -652,14 +637,6 @@ export async function listSavedFeedback(userId: string): Promise<JobFeedFeedback
     .from(jobFeedFeedback)
     .where(and(eq(jobFeedFeedback.user_id, userId), sql`${jobFeedFeedback.saved_at} is not null`))
     .orderBy(desc(jobFeedFeedback.saved_at)) as JobFeedFeedback[];
-}
-
-export type UserCvSuggestion = typeof userCvSuggestions.$inferSelect;
-
-export async function getCvSuggestion(userId: string): Promise<UserCvSuggestion | null> {
-  const db = await getDb();
-  const rows = await db.select().from(userCvSuggestions).where(eq(userCvSuggestions.user_id, userId)).limit(1);
-  return rows[0] ?? null;
 }
 
 export async function upsertCvSuggestion(userId: string, suggestion: Json): Promise<void> {

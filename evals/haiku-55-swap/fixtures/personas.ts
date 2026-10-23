@@ -5,7 +5,7 @@
  */
 import type { StructuredCV } from '@/lib/types/cv-schema';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
-import type { JobFeedSettings } from '@/lib/supabase/types';
+import type { JobFeedSettings } from '@/db/types';
 import { rng } from '../lib/util';
 
 type Level = 'intern' | 'junior' | 'mid' | 'senior' | 'lead' | 'staff' | 'manager';

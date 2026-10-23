@@ -5,7 +5,7 @@ import { updateJobFeedApplicationGenerationStatusAdmin } from '@/lib/job-feed/se
 import { getCurrentUser } from '@/auth/server';
 import { getProfile } from '@/db/repos/profiles';
 import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
-import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
+import type { JobFeedGenerationStatus } from '@/db/types';
 
 export const runtime = 'nodejs';
 

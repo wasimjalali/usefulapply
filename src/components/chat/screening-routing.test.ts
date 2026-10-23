@@ -4,6 +4,8 @@ import test from 'node:test';
 import vm from 'node:vm';
 import ts from 'typescript';
 import { parseScreeningAnswers, SCREENING_TURN_CAP } from '../../lib/screening-answers';
+import { CREDIT_COSTS } from '../../lib/credit-costs';
+import { hasTailoredCv, sessionHasKit } from '../shell/application-status';
 
 // Execute the actual component handlers with fake I/O, without mounting the
 // authenticated dashboard or making a paid model request.
@@ -49,7 +51,10 @@ for (const [spine, tier] of [[true, 'plus'], [false, 'max']] as const) {
       cvRewriteNoteRef: { current: null },
       useSessionStore: { getState: () => store },
       SCREENING_TURN_CAP,
+      CREDIT_COSTS,
       parseScreeningAnswers,
+      sessionHasKit,
+      hasTailoredCv,
       setPendingDecisionJd: noop,
       setAdFallbackJd: noop,
       setPendingRegen: noop,

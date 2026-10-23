@@ -232,14 +232,6 @@
 			}
 		},
 		{
-			"name": "RATE_LIMIT_JOB_FEED_DEV_RUN",
-			"namespace_id": "3116",
-			"simple": {
-				"limit": 3,
-				"period": 60
-			}
-		},
-		{
 			"name": "RATE_LIMIT_JOB_FEED_INBOX",
 			"namespace_id": "3117",
 			"simple": {
@@ -422,10 +414,11 @@
 	"limits": {
 		"cpu_ms": 300000
 	},
-	// Daily "0 3 * * *" is live for the free-tier credit reset sweep and
-	// job-feed cleanup. The other three stay off until Phase 9.
+	// Live: "0 3 * * *" (credit reset sweep, cleanup), "0 8 * * *" (tracker
+	// reminders) and "*/10 * * * *" (reconcile). The hourly confirmation resend
+	// and the weekday check-in stay off until Phase 9.
 	// Expressions must match src/cron/index.ts:
-	// "0 3 * * *", "*/10 * * * *", "0 * * * *", "0 9 * * 1-5".
+	// "0 3 * * *", "0 8 * * *", "*/10 * * * *", "0 * * * *", "0 9 * * 1-5".
 	// Weekday check-in stays off: staging D1 holds imported production users
 	// whose welcome_sent_at is already > 3 days old.
 	// Workers Logs: without this the cron console.error lines are not persisted anywhere.
@@ -436,7 +429,7 @@
 		"crons": [
 			"0 3 * * *",
 			"0 8 * * *",
-				"*/10 * * * *",
+			"*/10 * * * *",
 			// "0 * * * *",
 			// "0 9 * * 1-5"
 		]

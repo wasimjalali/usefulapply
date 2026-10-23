@@ -35,7 +35,7 @@ import {
   withdrawFeedConsent,
   type FeedSettingsPatch,
 } from '@/lib/services/feed/settings';
-import type { JobFeedSettings } from '@/lib/supabase/types';
+import type { JobFeedSettings } from '@/db/types';
 
 const READ_HINTS = { readOnly: true, destructive: false, idempotent: true, openWorld: false } as const;
 

@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
 import { isUniqueViolation, runBatch, getDb, nowIso } from '../client';
-import { addonCreditPacks, creditReservations, creditTransactions, subscriptionPlans, userCredits } from '../schema';
-import type { SubscriptionTier } from '@/lib/supabase/types';
+import { creditReservations, creditTransactions, subscriptionPlans, userCredits } from '../schema';
+import type { SubscriptionTier } from '@/db/types';
 import {
   CREDIT_ACTION_KIND,
   CREDIT_COSTS,
@@ -69,36 +69,13 @@ export interface SubscriptionPlan {
   display_order: number;
 }
 
-export interface AddonCreditPack {
-  id: string;
-  name: string;
-  credits: number;
-  price: number;
-  discount_percent: number;
-  stripe_product_id?: string | null;
-  stripe_price_id?: string | null;
-  active: boolean;
-  display_order: number;
-}
-
 export interface DeductionAllocation {
   monthly: number;
   rollover: number;
   addon: number;
 }
 
-const NO_DEDUCTION: DeductionAllocation = { monthly: 0, rollover: 0, addon: 0 };
 const MAX_OCC_RETRIES = 3;
-
-export async function getSubscriptionPlans(): Promise<{ plans: SubscriptionPlan[]; error: Error | null }> {
-  const db = await getDb();
-  const rows = await db
-    .select()
-    .from(subscriptionPlans)
-    .where(eq(subscriptionPlans.active, true))
-    .orderBy(subscriptionPlans.display_order);
-  return { plans: rows as SubscriptionPlan[], error: null };
-}
 
 export async function getSubscriptionPlan(tier: string): Promise<{ plan: SubscriptionPlan | null; error: Error | null }> {
   const db = await getDb();
@@ -108,16 +85,6 @@ export async function getSubscriptionPlan(tier: string): Promise<{ plan: Subscri
     .where(and(eq(subscriptionPlans.tier, tier), eq(subscriptionPlans.active, true)))
     .limit(1);
   return { plan: (rows[0] as SubscriptionPlan | undefined) ?? null, error: rows[0] ? null : new Error('Plan not found') };
-}
-
-export async function getAddonCreditPacks(): Promise<{ packs: AddonCreditPack[]; error: Error | null }> {
-  const db = await getDb();
-  const rows = await db
-    .select()
-    .from(addonCreditPacks)
-    .where(eq(addonCreditPacks.active, true))
-    .orderBy(addonCreditPacks.display_order);
-  return { packs: rows as AddonCreditPack[], error: null };
 }
 
 export async function getUserCredits(userId: string): Promise<{ credits: UserCredits | null; error: Error | null }> {
@@ -178,12 +145,6 @@ export async function initializeUserCredits(userId: string): Promise<{ credits: 
   return { credits, error: null };
 }
 
-export async function hasEnoughCredits(userId: string, action: CreditAction): Promise<boolean> {
-  const { credits, error } = await getUserCredits(userId);
-  if (error || !credits) return false;
-  return getTotalCredits(credits) >= CREDIT_COSTS[action];
-}
-
 export async function checkCreditBalance(
   userId: string,
   action: CreditAction,
@@ -233,154 +194,6 @@ function allocateDeduction(credits: UserCredits, amount: number): { next: Deduct
   };
 }
 
-/**
- * Optimistic-concurrency deduct. Conditional UPDATE on version + total
- * balance, batched with the ledger insert. Retries 3 times, then throws.
- */
-export async function deductCredits(
-  userId: string,
-  action: CreditAction,
-  options?: { sessionId?: string; description?: string },
-): Promise<{
-  success: boolean;
-  remainingCredits: number;
-  deductedFrom: DeductionAllocation;
-  error: Error | null;
-}> {
-  const amount = CREDIT_COSTS[action];
-  return deductAmount(userId, amount, action.toLowerCase(), CREDIT_ACTION_KIND[action], options);
-}
-
-export async function deductAmount(
-  userId: string,
-  amount: number,
-  reason: string,
-  kind: CreditTransactionKind,
-  options?: { sessionId?: string; description?: string },
-): Promise<{
-  success: boolean;
-  remainingCredits: number;
-  deductedFrom: DeductionAllocation;
-  error: Error | null;
-}> {
-  let lastError: Error | null = null;
-  for (let attempt = 0; attempt < MAX_OCC_RETRIES; attempt++) {
-    const { credits, error } = await getUserCredits(userId);
-    if (error || !credits) {
-      return { success: false, remainingCredits: 0, deductedFrom: NO_DEDUCTION, error: error || new Error('Credits not found') };
-    }
-    const totalBefore = getTotalCredits(credits);
-    if (totalBefore < amount) {
-      return {
-        success: false,
-        remainingCredits: totalBefore,
-        deductedFrom: NO_DEDUCTION,
-        error: new Error(`Insufficient credits. Required: ${amount}, Available: ${totalBefore}`),
-      };
-    }
-    const { next, remaining } = allocateDeduction(credits, amount);
-    const totalAfter = next.monthly + next.rollover + next.addon;
-    const now = nowIso();
-    const txId = crypto.randomUUID();
-
-    const [updateResult] = await runBatch([
-      sql`
-        UPDATE user_credits
-        SET monthly_credits = ${next.monthly},
-            rollover_credits = ${next.rollover},
-            addon_credits = ${next.addon},
-            version = version + 1,
-            updated_at = ${now}
-        WHERE user_id = ${userId}
-          AND version = ${credits.version}
-          AND (monthly_credits + rollover_credits + addon_credits) >= ${amount}
-      `,
-      sql`
-        INSERT INTO credit_transactions (
-          id, user_id, amount, transaction_type, transaction_kind, session_id, description, metadata, balance_before, balance_after, created_at
-        )
-        SELECT ${txId}, ${userId}, ${-amount}, ${reason}, ${kind}, ${options?.sessionId ?? null},
-               ${options?.description ?? `${reason} credit deduction`}, '{}', ${totalBefore}, ${totalAfter}, ${now}
-        WHERE (SELECT changes()) > 0
-      `,
-    ]);
-
-    const changes = updateResult.meta.changes;
-    if (changes > 0) {
-      return { success: true, remainingCredits: totalAfter, deductedFrom: remaining, error: null };
-    }
-    lastError = new Error('Credit deduction failed due to concurrent access. Please try again.');
-  }
-  throw lastError ?? new Error('Credit deduction failed due to concurrent access. Please try again.');
-}
-
-export async function addCredits(
-  userId: string,
-  amount: number,
-  creditType: 'monthly' | 'rollover' | 'addon',
-  transactionType: string,
-  kind: CreditTransactionKind,
-  description?: string,
-): Promise<{ success: boolean; newBalance: number; error: Error | null }> {
-  const column =
-    creditType === 'monthly' ? 'monthly_credits' : creditType === 'rollover' ? 'rollover_credits' : 'addon_credits';
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt < MAX_OCC_RETRIES; attempt++) {
-    const { credits, error } = await getUserCredits(userId);
-    if (error || !credits) {
-      return { success: false, newBalance: 0, error: error || new Error('Credits not found') };
-    }
-    const totalBefore = getTotalCredits(credits);
-    const current =
-      creditType === 'monthly' ? credits.monthly_credits : creditType === 'rollover' ? credits.rollover_credits : credits.addon_credits;
-    const now = nowIso();
-    const txId = crypto.randomUUID();
-
-    const [updateResult] = await runBatch([
-      sql`
-        UPDATE user_credits
-        SET ${sql.raw(column)} = ${current + amount},
-            version = version + 1,
-            updated_at = ${now}
-        WHERE user_id = ${userId}
-          AND version = ${credits.version}
-      `,
-      sql`
-        INSERT INTO credit_transactions (
-          id, user_id, amount, transaction_type, transaction_kind, session_id, description, metadata, balance_before, balance_after, created_at
-        )
-        SELECT ${txId}, ${userId}, ${amount}, ${transactionType}, ${kind}, NULL,
-               ${description ?? `${transactionType} credit addition`}, '{}', ${totalBefore}, ${totalBefore + amount}, ${now}
-        WHERE (SELECT changes()) > 0
-      `,
-    ]);
-
-    const changes = updateResult.meta.changes;
-    if (changes > 0) {
-      return { success: true, newBalance: totalBefore + amount, error: null };
-    }
-    lastError = new Error('Credit addition failed due to concurrent access');
-  }
-  return { success: false, newBalance: 0, error: lastError };
-}
-
-export async function logCreditTransaction(
-  userId: string,
-  amount: number,
-  transactionType: string,
-  kind: CreditTransactionKind,
-  options: {
-    sessionId?: string;
-    description?: string;
-    balanceBefore: number;
-    balanceAfter: number;
-    metadata?: Record<string, unknown>;
-  },
-): Promise<void> {
-  await insertTransaction(userId, amount, transactionType, kind, options);
-}
-
 async function insertTransaction(
   userId: string,
   amount: number,
@@ -423,43 +236,6 @@ export async function getCreditTransactions(
   return { transactions: rows as CreditTransaction[], error: null };
 }
 
-export async function upgradePlan(
-  userId: string,
-  newTier: 'plus' | 'max',
-): Promise<{ success: boolean; error: Error | null }> {
-  const { plan, error: planError } = await getSubscriptionPlan(newTier);
-  if (planError || !plan) {
-    return { success: false, error: planError || new Error('Plan not found') };
-  }
-  const { credits, error: creditsError } = await getUserCredits(userId);
-  if (creditsError || !credits) {
-    return { success: false, error: creditsError || new Error('Credits not found') };
-  }
-  const now = nowIso();
-  const [result] = await runBatch([
-    sql`
-      UPDATE user_credits
-      SET plan_tier = ${newTier},
-          monthly_credits = ${credits.monthly_credits + plan.credits_monthly},
-          version = version + 1,
-          updated_at = ${now}
-      WHERE user_id = ${userId}
-        AND version = ${credits.version}
-    `,
-  ]);
-  const changes = result.meta.changes;
-  if (changes === 0) {
-    return { success: false, error: new Error('Plan upgrade failed due to concurrent access') };
-  }
-  await insertTransaction(userId, plan.credits_monthly, 'plan_upgrade', 'grant', {
-    description: `Upgraded to ${plan.name} plan`,
-    balanceBefore: getTotalCredits(credits),
-    balanceAfter: getTotalCredits(credits) + plan.credits_monthly,
-    metadata: { newTier, planName: plan.name },
-  });
-  return { success: true, error: null };
-}
-
 export async function processMonthlyReset(
   userId: string,
   options?: { dueBefore: string },
@@ -490,7 +266,7 @@ export async function processMonthlyReset(
   const totalAfter = newMonthly + newRollover + credits.addon_credits;
   const txId = crypto.randomUUID();
   const metadata = JSON.stringify({ rolloverApplied: newRollover });
-  // Balance update and ledger row land in one batch, as deductCredits does,
+  // Balance update and ledger row land in one batch, as a reservation does,
   // so a reset can never exist without its transaction row.
   const [result] = await runBatch([
     sql`
@@ -577,41 +353,6 @@ export async function processOverdueMonthlyResets(options: {
   return { attempted: rows.length, succeeded, failed, errors };
 }
 
-export async function processAddonPurchase(
-  userId: string,
-  packId: string,
-): Promise<{ success: boolean; creditsAdded: number; error: Error | null }> {
-  const db = await getDb();
-  const packs = await db
-    .select()
-    .from(addonCreditPacks)
-    .where(and(eq(addonCreditPacks.id, packId), eq(addonCreditPacks.active, true)))
-    .limit(1);
-  const pack = packs[0];
-  if (!pack) {
-    return { success: false, creditsAdded: 0, error: new Error('Pack not found') };
-  }
-  const { credits, error: creditsError } = await getUserCredits(userId);
-  if (creditsError || !credits) {
-    return { success: false, creditsAdded: 0, error: creditsError || new Error('Credits not found') };
-  }
-  if (credits.plan_tier === 'free') {
-    return { success: false, creditsAdded: 0, error: new Error('Add-ons not available for Free plan') };
-  }
-  const { success, error } = await addCredits(
-    userId,
-    pack.credits,
-    'addon',
-    'addon_purchase',
-    'grant',
-    `Purchased ${pack.name} (${pack.credits} credits)`,
-  );
-  if (!success) {
-    return { success: false, creditsAdded: 0, error };
-  }
-  return { success: true, creditsAdded: pack.credits, error: null };
-}
-
 export async function updateUserCreditsRow(
   userId: string,
   patch: Partial<Pick<UserCredits,
@@ -638,12 +379,6 @@ export async function updateUserCreditsRow(
 export async function findCreditsByStripeCustomer(customerId: string): Promise<UserCredits | null> {
   const db = await getDb();
   const rows = await db.select().from(userCredits).where(eq(userCredits.stripe_customer_id, customerId)).limit(1);
-  return (rows[0] as UserCredits | undefined) ?? null;
-}
-
-export async function findCreditsByStripeSubscription(subscriptionId: string): Promise<UserCredits | null> {
-  const db = await getDb();
-  const rows = await db.select().from(userCredits).where(eq(userCredits.stripe_subscription_id, subscriptionId)).limit(1);
   return (rows[0] as UserCredits | undefined) ?? null;
 }
 
@@ -1137,21 +872,6 @@ export async function getReservationByKey(userId: string, idempotencyKey: string
     .where(and(eq(creditReservations.idempotency_key, idempotencyKey), eq(creditReservations.user_id, userId)))
     .limit(1);
   return (rows[0] as CreditReservation | undefined) ?? null;
-}
-
-export async function hasCapturedFitReservation(userId: string, contextId: string): Promise<boolean> {
-  const db = await getDb();
-  const rows = await db
-    .select({ id: creditReservations.id })
-    .from(creditReservations)
-    .where(and(
-      eq(creditReservations.user_id, userId),
-      eq(creditReservations.action, 'fit_analysis'),
-      eq(creditReservations.status, 'captured'),
-      sql`json_extract(${creditReservations.metadata}, '$.context_id') = ${contextId}`,
-    ))
-    .limit(1);
-  return rows.length > 0;
 }
 
 export async function canUseFitContinuation(
@@ -2004,44 +1724,6 @@ export async function reconcileCreditRefunds(options: { limit?: number } = {}): 
   }
 
   return result;
-}
-
-export async function findActiveReservation(params: {
-  userId: string;
-  generationId?: string | null;
-  sessionId?: string | null;
-  idempotencyKey?: string | null;
-}): Promise<CreditReservation | null> {
-  const db = await getDb();
-  if (params.idempotencyKey) {
-    return getReservationByKey(params.userId, params.idempotencyKey);
-  }
-  if (params.generationId) {
-    const rows = await db
-      .select()
-      .from(creditReservations)
-      .where(and(
-        eq(creditReservations.generation_id, params.generationId),
-        eq(creditReservations.user_id, params.userId),
-        eq(creditReservations.status, 'reserved'),
-      ))
-      .limit(1);
-    return (rows[0] as CreditReservation | undefined) ?? null;
-  }
-  if (params.sessionId) {
-    const rows = await db
-      .select()
-      .from(creditReservations)
-      .where(and(
-        eq(creditReservations.session_id, params.sessionId),
-        eq(creditReservations.user_id, params.userId),
-        eq(creditReservations.status, 'reserved'),
-      ))
-      .orderBy(desc(creditReservations.created_at))
-      .limit(1);
-    return (rows[0] as CreditReservation | undefined) ?? null;
-  }
-  return null;
 }
 
 export async function releaseStaleReservations(params?: {

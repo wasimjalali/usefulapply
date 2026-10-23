@@ -2,7 +2,7 @@
  * The once-a-day gate for feed runs, with no I/O: run.ts reads the rows and calls these.
  * Moved out of run.ts so tests reach it without the server module graph.
  */
-import type { JobFeedRun } from '@/lib/supabase/types';
+import type { JobFeedRun } from '@/db/types';
 import { getLocalDateKey, getStartOfNextLocalDay } from '@/lib/job-feed/helpers';
 
 const MIN_MANUAL_RUN_INTERVAL_MS = 20 * 60 * 60 * 1000;

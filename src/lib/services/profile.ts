@@ -20,7 +20,7 @@ import {
   userPrefix,
   type AllowedFileBucket,
 } from '@/storage/paths';
-import type { Profile } from '@/lib/supabase/types';
+import type { Profile } from '@/db/types';
 import { normalizeLogisticsUpdate, touchesLogistics, type LogisticsPatch } from '@/lib/profile/logistics';
 import { InvalidInputError } from './errors';
 

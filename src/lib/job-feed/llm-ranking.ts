@@ -4,7 +4,7 @@ import type {
   JobFeedRankingCandidate,
   JobFeedRankingExecutionResult,
 } from '@/lib/job-feed/types';
-import type { JobFeedSettings } from '@/lib/supabase/types';
+import type { JobFeedSettings } from '@/db/types';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import { callHaiku, InputBudgetError, measureHaikuRequest, type HaikuResponse } from '@/lib/models/haiku';
 import {

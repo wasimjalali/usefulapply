@@ -1,18 +1,8 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { getDb, nowIso } from '../client';
-import { connectedAccounts, subscriptions, userCredits } from '../schema';
-import type { SubscriptionTier } from '@/lib/supabase/types';
+import { subscriptions, userCredits } from '../schema';
+import type { SubscriptionTier } from '@/db/types';
 import type { BillingSubscriptionLike } from '@/lib/subscription-billing';
-
-export interface ConnectedAccount {
-  id: string;
-  user_id: string;
-  provider: 'google' | 'linkedin' | 'github';
-  provider_user_id: string;
-  provider_email?: string | null;
-  created_at: string;
-  updated_at: string;
-}
 
 export interface Subscription {
   id: string;
@@ -29,23 +19,6 @@ export interface Subscription {
   applications_limit: number;
   created_at: string;
   updated_at: string;
-}
-
-export async function getConnectedAccounts(userId: string): Promise<ConnectedAccount[]> {
-  const db = await getDb();
-  const rows = await db.select().from(connectedAccounts).where(eq(connectedAccounts.user_id, userId));
-  return rows as ConnectedAccount[];
-}
-
-export async function disconnectAccount(
-  userId: string,
-  provider: 'google' | 'linkedin' | 'github',
-): Promise<{ error: Error | null }> {
-  const db = await getDb();
-  await db
-    .delete(connectedAccounts)
-    .where(and(eq(connectedAccounts.user_id, userId), eq(connectedAccounts.provider, provider)));
-  return { error: null };
 }
 
 export async function getSubscription(userId: string): Promise<Subscription | null> {
@@ -99,52 +72,6 @@ export async function getBillingSubscription(userId: string): Promise<BillingSub
     stripe_subscription_id: creditsRow.stripeSubscriptionId,
     cancel_at_period_end: false,
   };
-}
-
-export async function createFreeSubscription(
-  userId: string,
-): Promise<{ subscription: Subscription | null; error: Error | null }> {
-  const db = await getDb();
-  const now = nowIso();
-  const id = crypto.randomUUID();
-  await db.insert(subscriptions).values({
-    id,
-    user_id: userId,
-    tier: 'free',
-    status: 'active',
-    applications_used: 0,
-    applications_limit: 5,
-    created_at: now,
-    updated_at: now,
-  });
-  const subscription = await getSubscription(userId);
-  return { subscription, error: subscription ? null : new Error('Failed to create subscription') };
-}
-
-export async function upsertSubscription(
-  userId: string,
-  values: Partial<Subscription> & { tier: SubscriptionTier },
-): Promise<Subscription | null> {
-  const db = await getDb();
-  const existing = await getSubscription(userId);
-  const now = nowIso();
-  if (existing) {
-    await db
-      .update(subscriptions)
-      .set({ ...values, updated_at: now })
-      .where(and(eq(subscriptions.id, existing.id), eq(subscriptions.user_id, userId)));
-    return getSubscription(userId);
-  }
-  const id = crypto.randomUUID();
-  await db.insert(subscriptions).values({
-    id,
-    user_id: userId,
-    status: values.status ?? 'active',
-    ...values,
-    created_at: now,
-    updated_at: now,
-  });
-  return getSubscription(userId);
 }
 
 /**
@@ -201,11 +128,4 @@ export async function upsertSubscriptionByUser(opts: {
     updated_at: now,
   });
   return { created: true };
-}
-
-export async function canCreateApplication(userId: string): Promise<boolean> {
-  const subscription = await getSubscription(userId);
-  if (!subscription) return true;
-  if (subscription.tier === 'plus' || subscription.tier === 'max') return true;
-  return subscription.applications_used < subscription.applications_limit;
 }

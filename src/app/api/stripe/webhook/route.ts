@@ -18,7 +18,7 @@ import {
 } from '@/db/repos/credits';
 import { upsertSubscriptionByUser } from '@/db/repos/subscriptions';
 import { hasWebhookEvent, insertWebhookEvent, setProfileSubscription } from '@/db/repos/admin';
-import type { SubscriptionTier } from '@/lib/supabase/types';
+import type { SubscriptionTier } from '@/db/types';
 
 class PermanentWebhookError extends Error {}
 
@@ -475,7 +475,7 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 
   // Get user by customer ID. plan_tier is read once to decide baseCredits;
   // monthly_credits and rollover_credits are re-read inside the version-
-  // guarded loop so a concurrent deductCredits between renewal trigger and
+  // guarded loop so a concurrent reservation between renewal trigger and
   // update doesn't get overwritten.
   const userRow = await findCreditsByStripeCustomer(customerId);
 
