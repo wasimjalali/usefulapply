@@ -22,8 +22,8 @@
  * and the primary's ledger row says `count_tokens_failed`. Streamed calls (max_tokens over 16k) fail over when the
  * connection is lost or goes idle after the headers too (stream-guard.ts).
  * Beta types and `client.beta.messages` are used because `usage.iterations` and system-message fields exist
- * only there. The messages calls send no `betas` header; the countTokens call adds the SDK's own
- * `anthropic-beta: token-counting` header.
+ * only there. The messages calls send no `betas` header, except compaction's (compaction.ts) on a request that
+ * compacts or carries a block; the countTokens call adds the SDK's own `anthropic-beta: token-counting` header.
  */
 import type Anthropic from '@anthropic-ai/sdk';
 import {
@@ -72,6 +72,7 @@ import {
   type InputBudgetCheck,
 } from './token-budget';
 import type { ModelResponse } from './types';
+import { COMPACTION_BETA, asCompactionBlock, carriesCompactionBlock } from './compaction';
 import { forgetRejectedUserProfile, resolveUserProfileId, userProfileRequestOptions } from './user-profiles';
 
 export const HAIKU_MODEL_ID = 'claude-haiku-5-5';
@@ -81,6 +82,7 @@ export type HaikuEffort = 'low-nothink' | 'low' | 'medium' | 'high';
 
 export type HaikuSite =
   | 'chat'
+  | 'chat_compaction'
   | 'screening'
   | 'tracker'
   | 'language'
@@ -99,6 +101,9 @@ export type HaikuSite =
  */
 export const HAIKU_SITE_TIMEOUT_MS: Readonly<Record<HaikuSite, number>> = {
   chat: 45_000,
+  // On-demand compaction of a long chat (compaction.ts): about 45k tokens in and up to 12k out, most of it thinking.
+  // The live check measured 25 s for 5.8k tokens out, so 90 s, like screening.
+  chat_compaction: 90_000,
   screening: 90_000,
   tracker: 45_000,
   language: 45_000,
@@ -149,6 +154,12 @@ export interface HaikuCallOptions {
    * (the default) tries the Anthropic API and fails over to Bedrock. Per request, never stored anywhere.
    */
   provider?: ProviderName;
+  /**
+   * On-demand compaction (compaction.ts): the response is one `compaction` block summarizing `messages`, read off
+   * `rawContent`; `content` is empty. The beta header is added for this and for any request whose messages carry a
+   * block.
+   */
+  compaction?: { instructions: string };
 }
 
 export interface HaikuResponse extends ModelResponse {
@@ -291,6 +302,9 @@ export function buildHaikuRequest(options: HaikuCallOptions, effort: HaikuEffort
   // Automatic caching marks the last block of the conversation (5m), after the 1h markers above.
   if (options.cacheConversation) params.cache_control = { type: 'ephemeral' };
 
+  if (options.compaction) params.compaction = { type: 'summarize', instructions: options.compaction.instructions };
+  if (options.compaction || carriesCompactionBlock(messages)) params.betas = [...(params.betas ?? []), COMPACTION_BETA];
+
   const ttls = markerTtls(systemBlocks, messages, Boolean(options.cacheConversation));
   if (ttls.length > 4) {
     throw new Error(`callHaiku(${site}): ${ttls.length} cache markers, the API allows 4`);
@@ -320,8 +334,20 @@ export type HaikuMessage = Pick<Anthropic.Beta.BetaMessage, 'id' | 'content' | '
 export function readHaikuContent(
   message: HaikuMessage,
   maxTokens: number,
+  compaction = false,
 ): { content: string; toolCalls: NonNullable<HaikuResponse['toolCalls']> } {
   const billed = { usage: message.usage, providerRequestId: message._request_id ?? message.id ?? null };
+  if (compaction) {
+    // A compaction request answers with stop_reason compaction and one block with text. Null content is the API's
+    // own failed compaction, and anything else is no summary either: both are billed failures, never a block to store.
+    if (message.stop_reason === 'max_tokens' || message.stop_reason === 'refusal') {
+      assertUsableStop(message.stop_reason, message.stop_details, maxTokens, billed);
+    }
+    if (message.stop_reason !== 'compaction' || !message.content.some((block) => asCompactionBlock(block))) {
+      throw new ModelStopError(`Compaction returned no summary (stop_reason ${message.stop_reason ?? 'null'})`, 'provider_incomplete', billed);
+    }
+    return { content: '', toolCalls: [] };
+  }
   assertUsableStop(message.stop_reason, message.stop_details, maxTokens, billed);
 
   let content = '';
@@ -537,7 +563,13 @@ async function haikuFailover<T>(
       bedrock: () => deps.getBedrockClient?.() ?? null,
       attempt,
       pin: options.provider,
-      onFailover: (info) => captureFailoverEvent(info, (event) => deps.capture(event)),
+      // A request that compacts or carries a compaction block says so on the event: Bedrock may refuse an
+      // Anthropic-signed block (bedrock-probe.ts check 7), and those failures have to be findable.
+      onFailover: (info) => captureFailoverEvent(info, (event) => deps.capture(
+        options.compaction || carriesCompactionBlock(options.messages)
+          ? { ...event, properties: { ...event.properties, compaction: true } }
+          : event,
+      )),
     });
   } catch (error) {
     await forgetRejectedUserProfile(options.generationContext.userId, userProfileId, error);
@@ -561,6 +593,7 @@ async function measureBudget(deps: HaikuDeps, options: HaikuCallOptions, params:
           system: params.system,
           ...(params.tools ? { tools: params.tools } : {}),
           messages: params.messages,
+          ...(params.betas ? { betas: params.betas } : {}),
         }, target.userProfileId));
       } catch (error) {
         // Bedrock was already tried for the count: do not try it again for the message.
@@ -615,6 +648,7 @@ export async function callHaiku(options: HaikuCallOptions, deps: HaikuDeps = def
                 system: params.system,
                 ...(params.tools ? { tools: params.tools } : {}),
                 messages: params.messages,
+                ...(params.betas ? { betas: params.betas } : {}),
               });
               try {
                 return await client.countTokens(countRequest(target.model), target.userProfileId);
@@ -664,7 +698,7 @@ export async function callHaiku(options: HaikuCallOptions, deps: HaikuDeps = def
 
       // Throws on a refusal, a max_tokens stop or an empty reply, after which the failure handler
       // below records the billed usage on the failed ledger row.
-      const { content, toolCalls } = readHaikuContent(message, options.maxTokens);
+      const { content, toolCalls } = readHaikuContent(message, options.maxTokens, Boolean(options.compaction));
 
       // List prices of the direct API on both providers. Bedrock's regional endpoints cost 10% more: not modelled.
       const cost = haiku55CostUsd(message.usage);

@@ -420,11 +420,19 @@ test.describe.serial('chat tools on Haiku 5.5', () => {
       expect(screeningTurnsUsed(sessionId), 'a blank question spends no turn').toBe(0);
 
       const marker = crypto.randomUUID();
+      // A saved application's history is read from D1 (chat Phase 2), so the earlier turns are stored rows, and the
+      // client history the request also sends is ignored.
+      const db = openLocalD1();
+      try {
+        const insert = db.prepare("INSERT INTO chat_messages (id, session_id, user_id, role, content, actions, created_at) VALUES (?, ?, ?, ?, ?, '[]', ?)");
+        const start = Date.now() - 60_000;
+        ([['user', 'Warum diese Stelle?'], ['assistant', '  \n '], ['user', ''], ['assistant', 'Antwort eins.']] as const)
+          .forEach(([role, content], i) => insert.run(`msg-screen-${i}-${sessionId}`, sessionId, a.user.id, role, content, new Date(start + i * 1_000).toISOString()));
+      } finally {
+        db.close();
+      }
       const answered = await post(`Wie lang ist Ihre Kuendigungsfrist? ${marker} \ud83d`, [
-        { role: 'user', content: 'Warum diese Stelle?' },
-        { role: 'assistant', content: '  \n ' },
-        { role: 'user', content: '' },
-        { role: 'assistant', content: 'Antwort eins.' },
+        { role: 'user', content: `client history ${marker} that must not reach the model` },
       ]);
       expect(answered.status(), await answered.text()).toBe(200);
       expect(screeningTurnsUsed(sessionId)).toBe(1);
@@ -432,6 +440,7 @@ test.describe.serial('chat tools on Haiku 5.5', () => {
       expect(call.status).toBe(200);
       expect(call.messageCount, 'question, the one real answer and the new question').toBe(3);
       expect(call.allUserText.isWellFormed()).toBe(true);
+      expect(call.allUserText).not.toContain('that must not reach the model');
       expect(call.lastUser).toContain('<application_context>');
     } finally {
       setTier(a.user.id, 'free');

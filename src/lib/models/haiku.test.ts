@@ -1043,3 +1043,27 @@ test('a streamed Haiku call (max_tokens over 16k) whose connection resets or goe
     });
   }
 });
+
+// A chat turn carrying a compaction block that fails over. Written down before the code: the failover event cannot be
+// told apart from any other (so a Bedrock refusal of an Anthropic-signed block is invisible), a plain request is
+// flagged too, Bedrock's 4xx is swallowed instead of reaching the route as that 4xx, or the block is dropped from the
+// request Bedrock gets (history lost quietly).
+test('a failed-over request with a compaction block is flagged on the failover event, and a Bedrock 400 reaches the caller as that 400', async () => {
+  const block = { type: 'compaction', content: 'Summary of the earlier conversation.', signature: 'sig_c1' };
+  const messages = [
+    { role: 'assistant' as const, content: [block as unknown as Anthropic.Beta.BetaContentBlockParam] },
+    { role: 'user' as const, content: 'Welche Kuendigungsfrist hatte ich?' },
+  ];
+  const refused = badRequest();
+  const h = failoverHarness({ createMessage: async () => { throw overloaded(); } }, { createMessage: async (params) => { h.bedrockSent.push(params); throw refused; } });
+  await quiet(() => assert.rejects(callHaiku(options({ site: 'chat', messages }), h.deps), (thrown: unknown) => thrown === refused));
+  const failover = h.captured.filter((e) => e.event === 'llm_provider_failover');
+  assert.equal(failover.length, 1);
+  assert.equal(failover[0].properties.compaction, true);
+  assert.deepEqual(h.bedrockSent[0].betas, ['compact-2026-09-04']);
+  assert.deepEqual((h.bedrockSent[0].messages[0].content as unknown[])[0], block);
+
+  const plain = failoverHarness({ createMessage: async () => { throw overloaded(); } });
+  await quiet(() => callHaiku(options({ site: 'chat' }), plain.deps));
+  assert.equal(plain.captured.filter((e) => e.event === 'llm_provider_failover')[0].properties.compaction, undefined);
+});

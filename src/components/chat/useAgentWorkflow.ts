@@ -8,7 +8,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useAppStore } from '@/store/useAppStore';
-import { useSessionStore } from '@/store/useSessionStore';
+import { useSessionStore, type ApplicationSession, type ChatAction, type ChatMessage } from '@/store/useSessionStore';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
 import { formatDate } from '@/lib/utils/format-date';
 import { findSentApplicationForJob } from '@/lib/utils/same-job';
@@ -36,6 +36,8 @@ import { needsAvailabilityPrompt } from '@/lib/profile/logistics';
 import { parkedRunStillValid } from '@/lib/profile/logistics-resume';
 import type { KitDocument, KitDocumentErrors } from '@/lib/agents/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
+import { useChatCompactionMarker } from './compaction-marker';
+import { flushChatSync } from '@/lib/chat-sync-flush';
 import {
   createSession as createStoredSession,
   deleteSession as deleteStoredSession,
@@ -266,6 +268,67 @@ export function useAgentWorkflow(options?: {
         ? { ...session, chatMessages: [...session.chatMessages, newMessage], updatedAt: newMessage.timestamp }
         : session),
     }));
+  };
+
+  /**
+   * What /api/chat needs to know about the conversation. A saved application's history is read from D1 by the route,
+   * so only the new message's id goes (the route stores the turn under it). A local `session-` conversation has no
+   * row yet and still sends its last ten turns. `messages` is this render's transcript, which does not hold the new
+   * message yet.
+   */
+  const chatRequestHistory = (message: string) => {
+    const live = useSessionStore.getState().currentSession;
+    if (live && !live.id.startsWith('session-')) {
+      // The message as the newest user turn with no reply after it. A message the chat already answered (an ad the
+      // "Not a job ad" button sends again) goes without an id, since the route claims each message for one turn only:
+      // the route stores the turn under its own id, with the button's words instead of a second copy of the ad, and
+      // returns it as storedUserMessage, which the transcript then shows.
+      const index = live.chatMessages.findLastIndex((entry) => entry.role === 'user' && entry.content === message);
+      const answered = index !== -1 && live.chatMessages.slice(index + 1).some((entry) => entry.role === 'assistant');
+      return { chatHistory: [], messageId: index === -1 || answered ? undefined : live.chatMessages[index].id };
+    }
+    return {
+      chatHistory: messages.slice(-10).map((msg) => ({ role: msg.role, content: msg.content })),
+      messageId: undefined,
+    };
+  };
+
+  /**
+   * The assistant's reply under the id the route stored it with, so the sync writes the same row (with any note added
+   * here) instead of a second one. Into the application the turn started in: the route stored it there, and a reply
+   * shown in another application would be a row the sync can never write.
+   */
+  const addReplyMessage = (
+    message: { role: 'assistant'; content: string; actions: ChatAction[] },
+    id: string | undefined,
+    sessionId: string | null,
+  ) => {
+    if (!id || !sessionId) {
+      addChatMessage(message);
+      return;
+    }
+    const newMessage: ChatMessage = { ...message, id, timestamp: new Date().toISOString() };
+    useSessionStore.setState((state) => {
+      const append = (session: ApplicationSession): ApplicationSession =>
+        (session.id === sessionId ? { ...session, chatMessages: [...session.chatMessages, newMessage], updatedAt: newMessage.timestamp } : session);
+      return {
+        currentSession: state.currentSession ? append(state.currentSession) : state.currentSession,
+        sessions: state.sessions.map(append),
+      };
+    });
+  };
+
+  /** A message D1 already holds, into the application it belongs to (`stored`, so the sync never writes it again). */
+  const addStoredMessage = (sessionId: string, message: { id: string; role: 'user'; content: string }) => {
+    const newMessage: ChatMessage = { ...message, timestamp: new Date().toISOString(), stored: true };
+    useSessionStore.setState((state) => {
+      const append = (session: ApplicationSession): ApplicationSession =>
+        (session.id === sessionId ? { ...session, chatMessages: [...session.chatMessages, newMessage] } : session);
+      return {
+        currentSession: state.currentSession ? append(state.currentSession) : state.currentSession,
+        sessions: state.sessions.map(append),
+      };
+    });
   };
 
   const resolveJobFeedGenerationForSession = async (
@@ -521,22 +584,34 @@ export function useAgentWorkflow(options?: {
     // synchronously, so the closure still holds the previous (null) session
     // and every effect in the reply would be dropped as "not still here".
     const startedIn = useSessionStore.getState().currentSession?.id ?? null;
+    // A failure answer goes to the application the turn started in, or to the open one when that id is gone (a local
+    // conversation that got its saved id while the request was out).
+    const addFailureReply = (message: { role: 'assistant'; content: string }) => {
+      const state = useSessionStore.getState();
+      const known = startedIn !== null
+        && (state.currentSession?.id === startedIn || state.sessions.some((session) => session.id === startedIn));
+      if (known) addWorkflowMessage(startedIn, message);
+      // A local conversation that got its saved id while the request was out: it is the open one.
+      else if (startedIn?.startsWith('session-')) addChatMessage(message);
+      // The application is gone: say nothing in an unrelated one.
+      else console.error(`[chat] the application ${startedIn ?? '(none)'} this turn started in is gone; its failure reply is dropped`);
+    };
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
     try {
       const { masterCV, certifications } = useAppStore.getState();
-      const recentMessages = messages.slice(-10).map(msg => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      const { chatHistory: recentMessages, messageId } = chatRequestHistory(message);
+      // Messages added just before this turn reach D1 first, so the route's history keeps the transcript's order.
+      if (startedIn && !startedIn.startsWith('session-')) await flushChatSync(startedIn, messageId);
 
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message,
+          ...(messageId ? { messageId } : {}),
           context: {
             hasCV: !!currentCV,
             cvSummary: currentCV?.sections?.summary?.substring(0, 500),
@@ -554,7 +629,7 @@ export function useAgentWorkflow(options?: {
             hasGeneratedEmail: !!currentSession?.email,
             // For the tool registry: the saved application this chat is on
             // (the route validates the id) and the user's clock for dates.
-            sessionId: currentSession?.id,
+            sessionId: startedIn ?? undefined,
             timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             cvTemplateId: useUIStore.getState().cvTemplateId,
             // The tailored CV the canvas is showing, for the structure tools.
@@ -571,7 +646,14 @@ export function useAgentWorkflow(options?: {
       });
 
       if (response.ok) {
-        const { reply, actions, executed } = await response.json();
+        const { reply, actions, executed, replyMessageId, compactedThroughMessageId, storedUserMessage } = await response.json();
+        // The turn the route stored under its own id (sent without one): shown before its reply, already in D1.
+        if (startedIn && storedUserMessage && typeof storedUserMessage.id === 'string' && typeof storedUserMessage.content === 'string') {
+          addStoredMessage(startedIn, { id: storedUserMessage.id, role: 'user', content: storedUserMessage.content });
+        }
+        if (startedIn && compactedThroughMessageId !== undefined) {
+          useChatCompactionMarker.getState().setMarker(startedIn, typeof compactedThroughMessageId === 'string' ? compactedThroughMessageId : null);
+        }
         // Apply effects before committing the assistant turn. A CV effect can
         // be refused when the canvas changed during the request, and in that
         // case the transcript must contain the refusal instead of the model's
@@ -581,13 +663,13 @@ export function useAgentWorkflow(options?: {
           startedIn,
           suppressProposal: Boolean(opts?.suppressProposal),
         });
-        addChatMessage({
+        addReplyMessage({
           role: 'assistant',
           content: effectRefusal || (effectNote ? `${reply}\n\n${effectNote}` : reply),
           actions: effectRefusal
             ? (actions || []).filter((action: { action?: string }) => !action.action?.startsWith('undo-cv-edit:'))
             : actions || [],
-        });
+        }, typeof replyMessageId === 'string' ? replyMessageId : undefined, startedIn);
         // A real ad the model read as a question would otherwise be a dead
         // end: no card, no run, no way back. The client offers a manual way
         // in when the text looked like an ad and no proposal came back.
@@ -599,18 +681,30 @@ export function useAgentWorkflow(options?: {
         else options?.onAnonymousLimitReached?.();
       } else {
         const errorData = await response.json().catch(() => null);
+        // A turn the route stored under its own id before it failed: shown before the failure reply, as on success.
+        const failedStored = errorData?.storedUserMessage;
+        if (startedIn && failedStored && typeof failedStored.id === 'string' && typeof failedStored.content === 'string') {
+          addStoredMessage(startedIn, { id: failedStored.id, role: 'user', content: failedStored.content });
+        }
         if (errorData?.code === 'CHAT_LIMIT_REACHED') {
-          addChatMessage({
+          addFailureReply({
             role: 'assistant',
             content: 'You\'ve reached the chat message limit for this application. Start a new application from the sidebar to keep going.',
           });
+        } else if (errorData?.code === 'CHAT_PROVIDER_UNAVAILABLE') {
+          // The route dropped the block it could not send (the next turn compacts again), so the divider goes too.
+          if (startedIn && errorData.compactedThroughMessageId === null) useChatCompactionMarker.getState().setMarker(startedIn, null);
+          addFailureReply({
+            role: 'assistant',
+            content: "I couldn't answer that just now. Your conversation is saved, so try again in a minute.",
+          });
         } else if (errorData?.code === 'MESSAGE_TOO_LONG') {
-          addChatMessage({
+          addFailureReply({
             role: 'assistant',
             content: 'That job ad is longer than I can read in one go. Paste the role, requirements and responsibilities and leave out the boilerplate.',
           });
         } else {
-          addChatMessage({
+          addFailureReply({
             role: 'assistant',
             content: getSmartFallbackResponse(message),
           });
@@ -621,7 +715,7 @@ export function useAgentWorkflow(options?: {
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
-      addChatMessage({
+      addFailureReply({
         role: 'assistant',
         content: getSmartFallbackResponse(message),
       });
@@ -649,15 +743,17 @@ export function useAgentWorkflow(options?: {
     try {
       // No master CV here: the route reads the applicant's own CVs on the server.
       const { certifications } = useAppStore.getState();
-      const recentMessages = messages.slice(-10).map(msg => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      // Screening runs on a saved application, so the route reads the history from D1; the id only keeps the question
+      // itself out of it when the transcript already holds it.
+      const { chatHistory: recentMessages, messageId } = chatRequestHistory(question);
+      const screeningSessionId = useSessionStore.getState().currentSession?.id;
+      if (messageId && screeningSessionId) await flushChatSync(screeningSessionId, messageId);
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: question,
+          ...(messageId ? { messageId } : {}),
           context: {
             hasCV: !!currentCV,
             cvSummary: currentCV?.sections?.summary?.substring(0, 500),
@@ -674,7 +770,7 @@ export function useAgentWorkflow(options?: {
             mode: 'screening_answers' as const,
             // The route spends the turn against this row, so it has to be the
             // saved application, not the local draft id.
-            sessionId: currentSession?.id,
+            sessionId: screeningSessionId,
             // The server cuts the ad at 20,000 chars (MAX_SCREENING_JOB_DESCRIPTION_CHARS); real ads run to about 11,500.
             jobDescription: currentSession?.jobDescription?.substring(0, 20_000),
             matchingSkills: currentSession?.matchingSkills,

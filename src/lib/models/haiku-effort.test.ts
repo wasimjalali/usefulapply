@@ -4,7 +4,7 @@ import test from 'node:test';
 import { HAIKU_SITE_EFFORT, haikuEffortEnvName, resolveHaikuEffort } from './haiku-effort';
 import type { HaikuSite } from './haiku';
 
-const SITES: HaikuSite[] = ['chat', 'screening', 'tracker', 'language', 'ranking', 'search_strategy', 'career_profile'];
+const SITES: HaikuSite[] = ['chat', 'chat_compaction', 'screening', 'tracker', 'language', 'ranking', 'search_strategy', 'career_profile'];
 
 // --- failure cases first ---
 
@@ -32,6 +32,8 @@ test('a site missing from the map throws', () => {
 test('every site runs the effort the 2026-10-22 eval picked, never with thinking disabled', () => {
   const picked = {
     chat: 'low',
+    // Not from the eval: the chat's own effort, so the compaction request shares the chat's cache (compaction.ts).
+    chat_compaction: 'low',
     screening: 'medium',
     tracker: 'medium',
     language: 'low',
@@ -57,4 +59,12 @@ test('each valid value works as an override and only affects its own site', () =
     assert.equal(resolveHaikuEffort('screening', { HAIKU_EFFORT_SCREENING: value }), value);
   }
   assert.equal(resolveHaikuEffort('chat', { HAIKU_EFFORT_SCREENING: 'high' }), 'low');
+});
+
+// The compaction request must read the chat's cached tools and system, so it runs the chat's own effort (and thinking),
+// and it gets its own longer timeout because it writes a summary over a long history.
+test('chat_compaction runs the chat effort, with its own 90 s timeout', async () => {
+  const { HAIKU_SITE_TIMEOUT_MS } = await import('./haiku');
+  assert.equal(HAIKU_SITE_EFFORT.chat_compaction, HAIKU_SITE_EFFORT.chat);
+  assert.equal(HAIKU_SITE_TIMEOUT_MS.chat_compaction, 90_000);
 });

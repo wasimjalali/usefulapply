@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCVStore } from '@/store/useCVStore';
-import { useSessionStore, type ApplicationSession } from '@/store/useSessionStore';
+import { useSessionStore, type ApplicationSession, type ChatMessage } from '@/store/useSessionStore';
+import { registerChatSyncFlush } from '@/lib/chat-sync-flush';
 import { updateDocumentStructuredDataAction } from '@/db/actions';
 import {
   getSessions,
@@ -133,7 +134,7 @@ export function useSupabaseSync() {
       .filter((session) => !session.id.startsWith('session-'))
       .sort((a, b) => a.id.localeCompare(b.id))
       .map((session) => `${session.id}:${session.chatMessages
-        .filter((message) => message.id.startsWith('msg-'))
+        .filter((message) => message.id.startsWith('msg-') && !message.stored)
         .map((message) => message.id)
         .join(',')}`)
       .join('|');
@@ -644,7 +645,10 @@ export function useSupabaseSync() {
             console.log('[SupabaseSync] Syncing', currentSession.chatMessages.length, 'chat messages to new session');
             for (const msg of currentSession.chatMessages) {
               try {
+                // Under the client's id, so the chat route's server-owned history and this transcript name the
+                // same rows (src/lib/chat-message-id.ts).
                 await addSupabaseChatMessage(newSession.id, user.id, {
+                  id: msg.id,
                   role: msg.role,
                   content: msg.content,
                   actions: msg.actions,
@@ -700,50 +704,72 @@ export function useSupabaseSync() {
     }
   }, [user]);
 
+  // Write one application's unsynced chat messages, optionally all but one (the chat route stores that one).
+  const syncSessionChat = useCallback(async (session: { id: string; chatMessages: ChatMessage[] }, exceptId?: string) => {
+    if (!user) return;
+    const unsynced = session.chatMessages.filter(
+      (message) => message.id.startsWith('msg-') && !message.stored && message.id !== exceptId
+        && !syncedMessageIdsRef.current.has(message.id),
+    );
+    if (unsynced.length === 0) return;
+
+    console.log('[SupabaseSync] Syncing', unsynced.length, 'new chat messages');
+    for (const message of unsynced) {
+      try {
+        const { message: savedMessage, error } = await addSupabaseChatMessage(
+          session.id,
+          user.id,
+          {
+            // The chat route may have stored this row already under the same id; the write is idempotent.
+            id: message.id,
+            role: message.role,
+            content: message.content,
+            actions: message.actions,
+          },
+        );
+
+        if (error) {
+          console.error('[SupabaseSync] Error saving chat message:', error);
+        } else if (savedMessage) {
+          syncedMessageIdsRef.current.add(message.id);
+        }
+      } catch (err) {
+        console.error('[SupabaseSync] Chat message sync error:', err);
+      }
+    }
+  }, [user]);
+
+  // The chat route orders a saved application's history by when each row was written. A message the client added a
+  // moment before a chat turn (a canned reply, a button's answer) would otherwise land after the turn the route
+  // stores at once, so the chat flushes the application's pending messages first (chat-sync-flush.ts).
+  useEffect(() => {
+    registerChatSyncFlush(async (sessionId, exceptId) => {
+      const state = useSessionStore.getState();
+      const session = state.currentSession?.id === sessionId
+        ? state.currentSession
+        : state.sessions.find((candidate) => candidate.id === sessionId);
+      if (session) await syncSessionChat(session, exceptId);
+    });
+    return () => registerChatSyncFlush(null);
+  }, [syncSessionChat]);
+
   // Sync chat messages to Supabase when new messages are added to any session.
   useEffect(() => {
     const syncChatMessages = async () => {
-      if (!user) return;
       const state = useSessionStore.getState();
       const sessionsById = new Map(state.sessions.map((session) => [session.id, session]));
       if (state.currentSession) sessionsById.set(state.currentSession.id, state.currentSession);
 
       for (const session of sessionsById.values()) {
         if (session.id.startsWith('session-')) continue;
-        const unsynced = session.chatMessages.filter(
-          (message) => message.id.startsWith('msg-') && !syncedMessageIdsRef.current.has(message.id),
-        );
-        if (unsynced.length === 0) continue;
-
-        console.log('[SupabaseSync] Syncing', unsynced.length, 'new chat messages');
-        for (const message of unsynced) {
-          try {
-            const { message: savedMessage, error } = await addSupabaseChatMessage(
-              session.id,
-              user.id,
-              {
-                role: message.role,
-                content: message.content,
-                actions: message.actions,
-              },
-            );
-
-            if (error) {
-              console.error('[SupabaseSync] Error saving chat message:', error);
-            } else if (savedMessage) {
-              syncedMessageIdsRef.current.add(message.id);
-            }
-          } catch (err) {
-            console.error('[SupabaseSync] Chat message sync error:', err);
-          }
-        }
+        await syncSessionChat(session);
       }
     };
     
     // Debounce chat sync
     const timeoutId = setTimeout(syncChatMessages, 1000);
     return () => clearTimeout(timeoutId);
-  }, [user, chatSyncFingerprint]);
+  }, [syncSessionChat, chatSyncFingerprint]);
 
   // Sync editedOriginalCVData to Supabase documents table
   const editedOriginalCVData = useCVStore(state => state.editedOriginalCVData);

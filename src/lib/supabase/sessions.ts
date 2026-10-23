@@ -6,6 +6,7 @@ import {
   getApplicationRevisionAction,
   deleteSessionAction,
   getChatMessagesAction,
+  getChatCompactionMarkerAction,
   addChatMessageAction,
 } from '@/db/actions';
 import { authClient } from '@/auth/client';
@@ -58,6 +59,12 @@ export async function getChatMessages(sessionId: string) {
   const id = await currentUserId();
   if (!id) return [];
   return getChatMessagesAction(id, sessionId);
+}
+
+export async function getChatCompactionMarker(sessionId: string): Promise<string | null> {
+  const id = await currentUserId();
+  if (!id) return null;
+  return getChatCompactionMarkerAction(id, sessionId);
 }
 
 export async function addChatMessage(
