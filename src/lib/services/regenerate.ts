@@ -42,7 +42,6 @@ import { buildSessionUpdateStatement, coverLetterShell, kitDocumentColumns, kitF
 
 export type RegenerateType = 'cover-letter' | 'email' | 'follow_up_email' | 'cv_section';
 
-/** A request that can never succeed as sent. Raised before anything is reserved, so nothing was charged. */
 /** The writer answered with an empty document. Nothing was saved; callers release the reservation. */
 export class EmptyGenerationError extends Error {
   constructor(message: string) {
@@ -51,6 +50,7 @@ export class EmptyGenerationError extends Error {
   }
 }
 
+/** A request that can never succeed as sent. Raised before anything is reserved, so nothing was charged. */
 export class RegenerateRequestError extends Error {
   constructor(
     readonly status: 400 | 404,

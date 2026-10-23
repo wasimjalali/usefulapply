@@ -148,6 +148,17 @@ export async function POST(request: NextRequest) {
       });
     }
     if (reservationStatus === 'reserved' && existingLetter?.reservationKey === reservationKey) {
+      // The letter was delivered before, and this request just took a fresh hold
+      // for it. Hand the hold back so "nothing charged" is true now, not after
+      // the stale-reservation sweep. A release that fails is still freed by that sweep.
+      const release = await releaseReservation({
+        idempotencyKey: reservationKey,
+        userId: user.id,
+        reason: 'replayed_saved_letter',
+      });
+      if (!release.success) {
+        console.error('[Tracker follow-up] Replay release did not land; the stale-reservation sweep frees it:', release.error);
+      }
       return NextResponse.json({
         followUpEmail: {
           subject: existingLetter.subject,
