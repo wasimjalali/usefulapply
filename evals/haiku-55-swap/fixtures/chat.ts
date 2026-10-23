@@ -2,8 +2,8 @@
  * Main chat fixtures: 36 messages in 9 conversations over the 25-row tracker from fixtures/tracker.ts,
  * with the same frozen clock (Thursday 2026-10-22, Berlin).
  *
- * Each conversation is one user's turns in order. The route gets the history the client sends (the last
- * 10 messages). The database is reset to the seeded state at the start of every conversation, never
+ * Each conversation is one user's turns in order. The route reads the conversation's history from D1, where it
+ * stores each turn itself (server-owned history since PR #179; the site sends none). The database is reset to the seeded state at the start of every conversation, never
  * between its turns, so a conversation can build on its own writes.
  *
  * `script` is what a perfect model would do, used only by the dry run (the shipped route, tools and

@@ -104,6 +104,13 @@ const KIT_COUNT_DE = /\b(?:zwei|drei|vier|fünf|2|3|4|5)\s+(?:\w+\s+)?(?:e-?mail
 const ATS_EN = /\bATS\b(?:(?!match)[^.!?\n]){0,50}\b\d{1,3}\b|\b\d{1,3}\s*(?:%|\/\s*100|out of 100|percent|points?)?\s*(?:on|in|for|from)?\s*(?:the\s+|an?\s+)?ATS\b/i;
 const ATS_DE = /\bATS\b(?:(?!Match|Passung)[^.!?\n]){0,50}\b\d{1,3}\b|\b\d{1,3}\s*(?:%|\/\s*100|von 100|Prozent|Punkte?n?)?\s*(?:im|beim|für den|für das)?\s*ATS\b/i;
 
+/**
+ * A kit document the claims cases' application doesn't have (only its CV is generated: no cover letter, no emails),
+ * stated as there. Hedged or negative wording ("aren't generated yet", "sind noch nicht erstellt") doesn't match.
+ */
+const CLAIMED_DOC_EN = /\b(?:cover letter|application email|follow[- ]?up(?: email)?|e-?mails?)\b[^.!?\n]{0,40}\b(?:is|are)\s+(?:ready|done|there|generated|written|included)\b|\b(?:has|have|with|includes?|contains?)\b[^.!?\n]{0,40}\b(?:a|an|the|your)\s+(?:cover letter|application email|follow[- ]?up)/i;
+const CLAIMED_DOC_DE = /\b(?:Anschreiben|Bewerbungs-?E-?Mail|Nachfass-?E-?Mail|Follow-?up(?:-E-?Mail)?|E-?Mails?)\b[^.!?\n]{0,40}\b(?:ist|sind)\s+(?:fertig|bereit|da|erstellt|geschrieben|dabei)\b|\b(?:enthält|hat|mit)\b[^.!?\n]{0,40}\b(?:ein|einem|das|dein|deinem|die|deine)\s+(?:Anschreiben|Bewerbungs-?E-?Mail|E-?Mail)/i;
+
 // ---- compaction seed -----------------------------------------------------------------------------------------
 
 function notes(part: number): string {
@@ -373,7 +380,7 @@ export const CASES: UxCase[] = [
   {
     id: 'k01', group: 'claims-en', turn: 1, lang: 'en', category: 'claims',
     message: "What's in my kit?",
-    expect: { reply: { maxSentences: 3, mustNotMatch: [KIT_COUNT_EN] } },
+    expect: { reply: { maxSentences: 3, mustNotMatch: [KIT_COUNT_EN, CLAIMED_DOC_EN] } },
     script: [call('get_application_overview')], finalReply: "Your CV is ready. The cover letter and emails aren't generated yet.",
     badReply: 'Your kit has the CV, a cover letter and two emails.',
   },
@@ -387,7 +394,7 @@ export const CASES: UxCase[] = [
   {
     id: 'k03', group: 'claims-de', turn: 1, lang: 'de', category: 'claims',
     message: 'Was ist alles in meinem Paket?',
-    expect: { reply: { german: true, maxSentences: 3, mustNotMatch: [KIT_COUNT_DE] } },
+    expect: { reply: { german: true, maxSentences: 3, mustNotMatch: [KIT_COUNT_DE, CLAIMED_DOC_DE] } },
     script: [call('get_application_overview')], finalReply: 'Dein Lebenslauf ist fertig. Anschreiben und E-Mails sind noch nicht erstellt.',
     badReply: 'Dein Paket enthält den Lebenslauf, ein Anschreiben und zwei E-Mails.',
   },

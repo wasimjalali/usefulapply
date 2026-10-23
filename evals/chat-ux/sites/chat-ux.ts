@@ -82,6 +82,8 @@ export function forbiddenOf(c: UxCase): string[] {
   return [...new Set([...(c.expect.forbidden ?? []), ...WRITE_TOOLS.filter((t) => !allowed.has(t))])];
 }
 
+const BUTTON_MENTION = /\b(?:buttons?|Schaltfl(?:ä|ae)chen?|Kn(?:ö|oe)pfe?|Button)\b/i;
+
 export function gradeUx(c: UxCase, input: TurnInput): Graded {
   const failures: string[] = [];
   const hard: string[] = [];
@@ -130,6 +132,10 @@ export function gradeUx(c: UxCase, input: TurnInput): Graded {
   for (const re of r?.mustMatch ?? []) if (!re.test(reply)) { failures.push(`reply does not match ${re}`); patternsOk = false; }
   for (const re of r?.mustNotMatch ?? []) if (re.test(reply)) { failures.push(`reply matches ${re}`); patternsOk = false; }
   if (c.category === 'claims') metrics.claims_ok = patternsOk ? 1 : 0;
+  // A button the reply points at must be on screen: this turn's response carries no chip, so there is none.
+  const ghostButton = actions.length === 0 && BUTTON_MENTION.test(reply);
+  if (ghostButton) failures.push('reply mentions a button, but the response carries none');
+  metrics.no_ghost_button = ghostButton ? 0 : 1;
 
   const offered = called.has(OFFER_SCREENING_TOOL);
   const chipped = actions.some((a) => a.action.startsWith(SCREENING_CHIP));

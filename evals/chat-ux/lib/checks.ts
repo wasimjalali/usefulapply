@@ -108,6 +108,8 @@ export function checkGerman(reply: string): GermanVerdict {
 export function countSentences(reply: string): number {
   const folded = reply
     .replace(/\b(e\.g|i\.e|etc|vs|approx|ca|bzw|Nr|Dr|Mr|Mrs|St)\.\s/gi, '$1 ')
+    // German ordinal dates ("27. Oktober", "3. 11.") are not sentence ends.
+    .replace(/\b(\d{1,2})\.\s+(?=(?:Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|\d))/g, '$1 ')
     .replace(/\b([a-z])\.\s?([a-z])\./gi, '$1$2 ');
   return folded
     .split(/\n+/)
@@ -141,7 +143,9 @@ export function checkGermanSummary(summary: string): SummaryVerdict {
   for (const line of lines) {
     const body = FIXED_LABELS.reduce((t, re) => t.replace(re, ' '), line.replace(/<<copied ad text:/i, ' ').replace(/>>/g, ' '));
     const score = languageScore(body);
-    if (score.en >= 2 && score.en > score.de + score.umlauts) problems.push(`copied ad line is English: "${body.trim().slice(0, 90)}"`);
+    const english = (score.en >= 2 && score.en > score.de + score.umlauts)
+      || (score.en >= 1 && score.de + score.umlauts === 0 && words(body).length >= 3);
+    if (english) problems.push(`copied ad line is English: "${body.trim().slice(0, 90)}"`);
   }
   const rest = FIXED_LABELS.reduce((t, re) => t.replace(re, ' '), summary);
   const whole = languageScore(rest);
