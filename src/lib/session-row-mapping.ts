@@ -202,5 +202,6 @@ export function mapChatRowsToStore(
     content: msg.content,
     timestamp: msg.created_at,
     actions: msg.actions || [],
+    stored: true as const,
   }));
 }

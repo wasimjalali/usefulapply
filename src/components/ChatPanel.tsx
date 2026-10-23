@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { Fragment, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Card } from './ui/Card';
 import { MarkdownText } from './MarkdownText';
 import { ChatMessage, type ChatMessageData } from './chat/ChatMessage';
@@ -10,6 +10,7 @@ import { ChatHistory } from './chat/ChatHistory';
 import { FeedbackModal } from './chat/FeedbackModal';
 import { AgentProgressV2 } from './AgentProgressV2';
 import { PROFILE_UNAVAILABLE, useAgentWorkflow } from './chat/useAgentWorkflow';
+import { useChatCompactionMarker } from './chat/compaction-marker';
 import { useAppStore } from '@/store/useAppStore';
 import { isApplicationSession, useSessionStore } from '@/store/useSessionStore';
 import { hasTailoredCv, sessionHasKit } from '@/components/shell/application-status';
@@ -466,6 +467,9 @@ export function ChatPanel({
   }, [currentSession?.id, currentSession?.generatedCV, onTabChange]);
 
   const messages = currentSession?.chatMessages || [];
+  // The last message the chat model sees only as a summary. The transcript stays complete; one divider marks it.
+  const compactedThroughMessageId = useChatCompactionMarker((state) =>
+    (currentSession?.id ? state.bySession[currentSession.id] ?? null : null));
   const hasFreshPendingFitAnalysis = Boolean(
     currentSession?.pendingFitAnalysis?.createdAt
     && nowMs < new Date(currentSession.pendingFitAnalysis.createdAt).getTime() + 30 * 60 * 1000
@@ -2019,15 +2023,23 @@ export function ChatPanel({
 
           {/* Chat messages */}
           {messages.map((message) => (
-            <ChatMessage
-              key={message.id}
-              message={message as ChatMessageData}
-              onAction={handleAction}
-              onFeedback={handleFeedbackClick}
-              feedback={messageFeedback[message.id]}
-              layout={spine ? 'spine' : 'classic'}
-              answersInDoc={(currentSession?.screeningAnswers?.length ?? 0) > 0}
-            />
+            <Fragment key={message.id}>
+              <ChatMessage
+                message={message as ChatMessageData}
+                onAction={handleAction}
+                onFeedback={handleFeedbackClick}
+                feedback={messageFeedback[message.id]}
+                layout={spine ? 'spine' : 'classic'}
+                answersInDoc={(currentSession?.screeningAnswers?.length ?? 0) > 0}
+              />
+              {message.id === compactedThroughMessageId && (
+                <div role="separator" aria-label="Earlier messages summarized" className="flex items-center gap-3">
+                  <span className="h-px flex-1 bg-cream-200" />
+                  <span className="text-xs text-warm-gray">Earlier messages summarized</span>
+                  <span className="h-px flex-1 bg-cream-200" />
+                </div>
+              )}
+            </Fragment>
           ))}
 
           {/* Immediate loading indicator */}

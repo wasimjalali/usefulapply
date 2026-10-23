@@ -671,11 +671,41 @@ export const chatMessages = sqliteTable(
     content: text('content').notNull(),
     actions: text('actions', { mode: 'json' }).$type<Json>().notNull().$defaultFn(emptyArray),
     created_at: text('created_at').notNull().$defaultFn(isoNow),
+    // Migration 0013: when /api/chat claimed this user message for a model turn (claimUserChatTurn). Null for every
+    // other row. A message is claimed at most once.
+    claimed_at: text('claimed_at'),
   },
   (t) => [
     index('chat_messages_session_idx').on(t.session_id, t.created_at),
     index('chat_messages_user_idx').on(t.user_id),
+    // Migration 0013: backs the per-application user-message count of the chat cap.
+    index('chat_messages_session_role_idx').on(t.session_id, t.role),
     check('chat_messages_role_check', sql`${t.role} in ('user', 'assistant', 'system')`),
+  ],
+);
+
+/**
+ * The chat's compaction block for one application (migration 0013). Written and read only by /api/chat.
+ * `block` is the API's signed `compaction` block, sent back verbatim. `covers_through_message_id` is the last
+ * chat_messages row it summarizes, deliberately without a foreign key (see the migration).
+ */
+export const chatCompactions = sqliteTable(
+  'chat_compactions',
+  {
+    session_id: text('session_id')
+      .primaryKey()
+      .references(() => applicationSessions.id, { onDelete: 'cascade' }),
+    user_id: text('user_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    block: text('block', { mode: 'json' }).$type<Json>().notNull(),
+    covers_through_message_id: text('covers_through_message_id').notNull(),
+    input_tokens: integer('input_tokens').notNull(),
+    created_at: text('created_at').notNull().$defaultFn(isoNow),
+  },
+  (t) => [
+    index('chat_compactions_user_idx').on(t.user_id),
+    check('chat_compactions_input_tokens_check', sql`${t.input_tokens} >= 0`),
   ],
 );
 

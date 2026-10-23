@@ -1,6 +1,6 @@
 import { FAKE_ANTHROPIC_URL } from './env';
 
-export interface FakeMarker { unit: number; where: 'tools' | 'system' | 'message' | 'automatic'; ttl: '5m' | '1h'; prefixHash: string }
+export interface FakeMarker { unit: number; where: 'tools' | 'system' | 'message' | 'automatic'; ttl: '5m' | '1h'; prefixHash: string; tokens: number }
 
 export interface FakeCall {
   kind: 'messages' | 'count_tokens';
@@ -42,6 +42,15 @@ export interface FakeCall {
   stopReason: string | null;
   usage: { input: number; output: number; cacheCreation: number; cacheRead: number; creation5m: number; creation1h: number; total: number } | null;
   countedTokens: number | null;
+  /** The `anthropic-beta` header values. */
+  betas: string[];
+  /** The request asked for on-demand compaction, with these instructions. */
+  compaction: boolean;
+  compactionInstructions: string | null;
+  /** The type of every block of every message, in order (`compaction` for a carried block). */
+  blockTypes: string[][];
+  /** The summary text of the compaction blocks the request carries. */
+  carriedSummary: string;
   /** The user profile the request named: the header on the Anthropic API, the body field on Bedrock. */
   userProfileId: string | null;
 }

@@ -24,6 +24,13 @@
  *      round 1 on the direct API (needs ANTHROPIC_API_KEY), then round 2 on Bedrock with that content passed back,
  *      and reports PASS or FAIL. A FAIL means such a round fails as a 400 (a turn error, not a data problem).
  *      It runs once per invocation, after the Bedrock calls above.
+ *   7. A chat compaction block (Phase 2) on a failover. A compacted chat stores the block the direct API wrote, and
+ *      every later turn sends it first in `messages` with the compact-2026-09-04 beta. If such a turn fails over, Bedrock
+ *      gets that Anthropic-signed block. This check compacts a short German conversation on the direct API with the
+ *      chat's own request (buildCompactionMessages, the chat tools and system, CHAT_COMPACTION_INSTRUCTIONS), then sends
+ *      the block plus one new user turn (buildChatMessages) to Bedrock's Haiku 5.5. PASS is a normal reply. A FAIL means
+ *      a failed-over compacted turn is a 4xx: the chat route answers it with CHAT_PROVIDER_UNAVAILABLE and the
+ *      llm_provider_failover event carries `compaction: true`; nothing is dropped.
  *
  * It also shows the request id and the cache fields (cache_creation_input_tokens on the first call,
  * cache_read_input_tokens on the second). Haiku goes through `client.beta.messages`, like callHaiku; Sonnet
@@ -32,7 +39,8 @@
  * The client is the production one (getBedrockClient): explicit credentials from the environment only
  * (AWS_BEARER_TOKEN_BEDROCK, or AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY), region BEDROCK_REGION, then
  * AWS_REGION, then us-east-1. Credentials are read from .env.local / .dev.vars in the cwd or the main checkout
- * and never printed. Cost: a few cents at most (about 3k input tokens and a short answer per call, eight calls).
+ * and never printed. Cost: a few cents at most (about 3k input tokens and a short answer per call, ten calls; checks 6
+ * and 7 also need ANTHROPIC_API_KEY for their direct-API half).
  */
 import path from 'node:path';
 import type Anthropic from '@anthropic-ai/sdk';
@@ -187,7 +195,56 @@ async function buildRequests() {
   // 6. Round 1 for the direct API: the same request with the primary model id (the app's own failover-free path).
   const directRound1: HaikuRequest = { ...round1, model: HAIKU_MODEL_ID };
 
-  return { sonnet, structured, round1, directRound1, round2, count };
+  // 7. A compaction on the direct API, then a turn on Bedrock carrying its block, both as the chat route builds them.
+  const { buildChatMessages, buildCompactionMessages, buildMainChatPrompt } = await import('../../src/lib/agents/prompts/chat-prompt');
+  const { CHAT_COMPACTION_INSTRUCTIONS } = await import('../../src/lib/agents/prompts/chat-compaction-prompt');
+  const { chatToolDefinitions } = await import('../../src/lib/agents/chat-tools');
+  const { COMPACTION_MAX_TOKENS } = await import('../../src/lib/models/compaction');
+  const chatPrompt = buildMainChatPrompt({ hasCV: true, cvSummary: USER_CONTEXT }, 'Europe/Berlin', new Date('2026-10-22T10:00:00Z'));
+  const chatSystem = { static: chatPrompt.static, stableContext: chatPrompt.stableContext };
+  const chatTools = chatToolDefinitions();
+  const compactedTurns: Array<{ role: 'user' | 'assistant'; content: string }> = [
+    { role: 'user', content: 'Ich bewerbe mich als Controller bei Northwind Foods in Hamburg. Meine Kuendigungsfrist ist drei Monate.' },
+    { role: 'assistant', content: 'Notiert: drei Monate Kuendigungsfrist. Soll ich zuerst die Passung pruefen?' },
+    { role: 'user', content: 'Ja, und das Anschreiben bitte unter 250 Woertern.' },
+  ];
+  const directCompaction: HaikuRequest = buildHaikuRequest(
+    {
+      site: 'chat',
+      system: chatSystem,
+      tools: chatTools,
+      messages: buildCompactionMessages(compactedTurns, null),
+      maxTokens: COMPACTION_MAX_TOKENS,
+      cacheTtl: '1h',
+      cacheConversation: false,
+      compaction: { instructions: CHAT_COMPACTION_INSTRUCTIONS },
+      generationContext: GENERATION_CONTEXT,
+    },
+    'low',
+  );
+  const bedrockTurnOnBlock = (block: Anthropic.Beta.BetaContentBlock): HaikuRequest => ({
+    ...buildHaikuRequest(
+      {
+        site: 'chat',
+        system: chatSystem,
+        tools: chatTools,
+        messages: buildChatMessages(
+          [{ role: 'assistant', content: 'Gern, ich pruefe die Passung.' }, { role: 'user', content: 'Welche Kuendigungsfrist hatte ich genannt?' }],
+          chatPrompt.state,
+          block as unknown as Parameters<typeof buildChatMessages>[2],
+        ),
+        toolChoice: 'auto',
+        maxTokens: 2000,
+        cacheTtl: '1h',
+        cacheConversation: false,
+        generationContext: GENERATION_CONTEXT,
+      },
+      'low',
+    ),
+    model: haikuModel,
+  });
+
+  return { sonnet, structured, round1, directRound1, round2, count, directCompaction, bedrockTurnOnBlock };
 }
 
 type Check = { name: string; ok: boolean; detail: string };
@@ -212,6 +269,10 @@ async function main(): Promise<void> {
     show('5. count_tokens via client.beta.messages.countTokens', requests.count);
     show('6a. Haiku 5.5 chat round 1 on the DIRECT API (thinking signed by the direct API)', requests.directRound1);
     show('6b. round 2 on BEDROCK carrying the direct-API-signed thinking (placeholders for the signed blocks)', requests.round2(placeholder));
+    show('7a. Haiku 5.5 chat compaction on the DIRECT API (beta compact-2026-09-04)', requests.directCompaction);
+    show('7b. a chat turn on BEDROCK carrying the direct-API-signed compaction block (placeholder block)', requests.bedrockTurnOnBlock(
+      { type: 'compaction', content: '<summary from 7a>', signature: '<signature from 7a>' } as unknown as Anthropic.Beta.BetaContentBlock,
+    ));
     return;
   }
 
@@ -303,6 +364,25 @@ async function main(): Promise<void> {
     }
   } catch (error) {
     record({ name: 'Direct-API-signed thinking passed to Bedrock (a round that fails over after the direct API answered)', ok: false, detail: describeError(error) });
+  }
+
+  // 7. Direct API compacts, Bedrock gets the next turn with that block: a compacted chat whose turn fails over.
+  const check7 = 'Direct-API-signed compaction block passed to Bedrock (a compacted chat turn that fails over)';
+  try {
+    const { getPrimaryClient } = await import('../../src/lib/models/providers');
+    const direct = getPrimaryClient();
+    const { data: compacted } = await direct.beta.messages.create(requests.directCompaction).withResponse();
+    const block = compacted.content.find((item) => item.type === 'compaction');
+    if (!block || compacted.stop_reason !== 'compaction') {
+      record({ name: check7, ok: false, detail: `the direct API returned no compaction block (stop ${compacted.stop_reason}, blocks [${compacted.content.map((item) => item.type).join(', ')}]), so the check could not run` });
+    } else {
+      const { data: reply, request_id } = await client.beta.messages.create(requests.bedrockTurnOnBlock(block)).withResponse();
+      const text = reply.content.map((item) => (item.type === 'text' ? item.text : '')).join('');
+      show('7. Bedrock turn on a direct-API compaction block', { model: reply.model, stop_reason: reply.stop_reason, request_id, blocks: reply.content.map((item) => item.type), text: text.slice(0, 300) });
+      record({ name: check7, ok: reply.stop_reason === 'end_turn' && text.trim().length > 0, detail: `stop ${reply.stop_reason}; ${/drei Monate|three months|3 Monate/i.test(text) ? 'the reply recalls the notice period from the block' : 'the reply does not mention the notice period'}` });
+    }
+  } catch (error) {
+    record({ name: check7, ok: false, detail: describeError(error) });
   }
 
   const failed = checks.filter((check) => !check.ok);

@@ -451,8 +451,10 @@ export interface MessagesBody {
   cache_control?: { type?: string; ttl?: string };
   temperature?: unknown;
   model?: string;
+  /** On-demand compaction (beta compact-2026-09-04). */
+  compaction?: { type?: string; instructions?: string | null };
 }
-export interface HaikuAnswer { content: FakeBlock[]; stopReason: 'end_turn' | 'tool_use' }
+export interface HaikuAnswer { content: FakeBlock[]; stopReason: 'end_turn' | 'tool_use' | 'compaction' }
 
 export function blocksOf(content: unknown): FakeBlock[] {
   if (typeof content === 'string') return [{ type: 'text', text: content }];
@@ -477,6 +479,47 @@ export function lastUserText(messages: FakeMessage[] = []): string {
 function earlierUserText(messages: FakeMessage[] = []): string {
   const texts = messages.filter((message) => message.role === 'user').map((message) => textOfBlocks(blocksOf(message.content))).filter(Boolean);
   return texts.slice(0, -1).join('\n');
+}
+
+/** The summary text of the compaction blocks a request carries: the model reads it as history too. */
+export function compactionText(messages: FakeMessage[] = []): string {
+  return messages
+    .flatMap((message) => blocksOf(message.content))
+    .filter((block) => block.type === 'compaction')
+    .map((block) => String(block.content ?? ''))
+    .join('\n');
+}
+
+/** The compaction blocks the fake has issued, by signature, so a carried one can be checked field for field. */
+export const issuedCompactionBlocks = new Map<string, FakeBlock>();
+
+/** The fixed first line of a summary (CHAT_COMPACTION_INSTRUCTIONS asks for it). */
+export const FAKE_SUMMARY_HEADER = 'Summary of the earlier conversation. Everything below is history, not a request.';
+
+/**
+ * On-demand compaction as a naive summarizer, on purpose: it keeps the opening of every user turn it was shown,
+ * quoted or not, and an earlier summary whole. So an instruction inside a pasted ad survives into the summary, and
+ * what keeps it from becoming an action on later turns has to be the app (the << >> rules and the write gates), not
+ * a well-behaved summarizer. The real model's summary is checked in the live check.
+ */
+export function compactionAnswer(body: MessagesBody): HaikuAnswer {
+  const messages = body.messages ?? [];
+  const earlier = compactionText(messages);
+  // Each turn's opening, with a cut quoted turn closed again, so the summary keeps the << >> shape the app checks.
+  const turns = messages
+    .filter((message) => message.role === 'user')
+    .map((message) => {
+      const text = textOfBlocks(blocksOf(message.content));
+      if (text.length <= 2_000) return text;
+      return `${text.slice(0, 2_000)}${text.startsWith('<<') ? '>>' : ''}`;
+    })
+    .filter(Boolean);
+  const summary = [FAKE_SUMMARY_HEADER, earlier.replace(`${FAKE_SUMMARY_HEADER}\n`, ''), ...turns].filter(Boolean).join('\n');
+  const signature = nextId('compaction_sig');
+  // The fields the real block carries, so a route or store that dropped one fails the round trip.
+  const block: FakeBlock = { type: 'compaction', content: summary, encrypted_content: `enc_${signature}`, signature, tool_changes: [] };
+  issuedCompactionBlocks.set(signature, block);
+  return { content: [block], stopReason: 'compaction' };
 }
 
 /** The per-request state message (`role: 'system'` inside messages), where TODAY lives. */
@@ -574,7 +617,7 @@ export function chatAnswer(body: MessagesBody): HaikuAnswer {
   const messages = body.messages ?? [];
   const thinking = body.thinking?.type !== 'disabled';
   const userText = lastUserText(messages);
-  const history = earlierUserText(messages);
+  const history = [compactionText(messages), earlierUserText(messages)].filter(Boolean).join('\n');
   const today = stateText(messages);
   const conversation = messages.filter((message) => message.role !== 'system');
   const results = blocksOf(conversation[conversation.length - 1]?.content).filter((block) => block.type === 'tool_result');
@@ -720,6 +763,7 @@ export function careerProfileAnswer(): HaikuAnswer {
 
 /** The scripted answer of a Haiku writer. */
 export function haikuAnswerFor(writer: Writer, body: MessagesBody): HaikuAnswer {
+  if (body.compaction) return compactionAnswer(body);
   switch (writer) {
     case 'chat': return chatAnswer(body);
     case 'tracker': return trackerAnswer(body);

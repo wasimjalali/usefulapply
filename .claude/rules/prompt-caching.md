@@ -71,11 +71,12 @@ Consequences for us:
 - The compaction block goes first in `messages`, so the prefix after `system` changes once at compaction. Put a marker right after the compaction block so the next turns read it.
 
 ## Our layout per site
-Read from the code on 2026-10-22. Change a site and this table in the same PR. "Shared" means the same bytes for every user, "per user" means the bytes depend on one user's data.
+Read from the code on 2026-10-23. Change a site and this table in the same PR. "Shared" means the same bytes for every user, "per user" means the bytes depend on one user's data.
 
 | Site | Cached blocks (marker TTL) | Shared or per user |
 |---|---|---|
-| Haiku `chat` | tools + static system (1h), stableContext: document flags, CV and master CV summaries (1h), new user turn (5m), last tool result (5m) | system shared; stableContext and turns per user |
+| Haiku `chat` | tools + static system (1h), stableContext: document flags, CV and master CV summaries (1h), the compaction block when there is one (1h), new user turn (5m), last tool result (5m) | system shared; stableContext, block and turns per user |
+| Haiku `chat_compaction` | same tools, system, effort and thinking as `chat` (1h each), the earlier block (1h), the last compacted turn (5m) | per user |
 | Haiku `screening` | static prompt (1h), applicant block as stableContext: saved start date and salary rules, then the CVs (1h); the fenced `<application_context>` block and the question are in the last user turn, uncached | static shared; applicant block per user |
 | Haiku `tracker` | static system (5m, about 545 tokens, close to the 512 minimum), APPLICATIONS block opening the user turn (5m, `buildTrackerMessages`); TODAY and the message follow it, uncached | system shared; applications per user |
 | Haiku `language` | static system (5m), far under 512 tokens so no entry is written | shared (uncached in practice) |
@@ -88,7 +89,8 @@ Read from the code on 2026-10-22. Change a site and this table in the same PR. "
 | Sonnet `extract_applicant`, `extract_metrics` | the whole user prompt (5m); depends on the CVs only, not the job | per user |
 | Sonnet CV parsing (`parse-cv-core.ts`, `parseDocumentAsCV`) | none: the document comes first and the system prompt is short | n/a |
 
-- Chat runs `cacheConversation: false` and places its own 5m markers (new user turn, last tool result), so a request carries at most 4 markers: two 1h system blocks, then two 5m.
+- Chat runs `cacheConversation: false` and places its own 5m markers (new user turn, last tool result), so a request carries at most 4 markers: two 1h system blocks, then two 5m. After a compaction the block takes the third (1h) marker, and on tool rounds the new user turn gives its 5m marker to the last tool result (round 0's entry at the turn is still inside the lookback, and the next request reads it from its own marker).
+- A saved application's history comes from D1 in a fixed order (`created_at`, `rowid`), every turn rendered by `chatTurnText`, so each turn's prefix replays the previous turn's byte for byte. Only a local `session-` conversation still slides a 10-message client window (and misses past it).
 - The per-turn state (time, the pasted-ad lines for the latest and an unanswered earlier message) goes after the marked user turn in a `role: system` message, so it never breaks the read.
 - The four writers do not share a prefix with each other (each opens with its own instructions), so a kit fan-out does not pre-warm anything. The 1h system blocks are warm from earlier kits instead.
 - `jsonMode` adds the JSON-only rule as an unmarked block after the marked system blocks, or inside the marked block when the system is a plain `systemPrompt`. Either way it is part of the prefix.

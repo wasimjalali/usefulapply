@@ -5,6 +5,7 @@ import { getAuth } from '@/auth/server';
 import * as profilesRepo from './repos/profiles';
 import * as documentsRepo from './repos/documents';
 import * as sessionsRepo from './repos/sessions';
+import { getChatCompaction } from './repos/chatCompactions';
 import * as applications from '@/lib/services/applications';
 import { InvalidInputError, NotFoundError, RevisionConflict } from '@/lib/services/errors';
 import * as creditsRepo from './repos/credits';
@@ -190,6 +191,12 @@ export async function setTrackerStatusAction(
 export async function getChatMessagesAction(userId: string, sessionId: string) {
   await requireUserId(userId);
   return sessionsRepo.getChatMessages(userId, sessionId);
+}
+
+/** The last message the chat model sees only as a summary, for ChatPanel's divider; null before any compaction. */
+export async function getChatCompactionMarkerAction(userId: string, sessionId: string): Promise<string | null> {
+  await requireUserId(userId);
+  return (await getChatCompaction(userId, sessionId))?.coversThroughMessageId ?? null;
 }
 
 export async function clearChatMessagesAction(userId: string, sessionId: string) {

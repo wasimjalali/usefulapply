@@ -87,6 +87,13 @@
       "breakpoints": true
     },
     {
+      "idx": 13,
+      "version": "6",
+      "when": 1787238583119,
+      "tag": "0013_chat_compactions",
+      "breakpoints": true
+    },
+    {
       "idx": 14,
       "version": "6",
       "when": 1787238583120,

@@ -2,13 +2,16 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type Anthropic from '@anthropic-ai/sdk';
-import { buildHaikuRequest, type HaikuRequest } from '../../models/haiku';
+import { buildHaikuRequest, readHaikuContent, type HaikuMessage, type HaikuRequest } from '../../models/haiku';
+import { asCompactionBlock, COMPACTION_BETA, splitForCompaction, summaryFormatProblem, type CompactionBlock } from '../../models/compaction';
+import { ModelStopError } from '../../models/anthropic';
 import { estimateInputTokens, INPUT_REFUSE_ABOVE } from '../../models/token-budget';
 import { chatToolDefinitions, CHAT_TOOLS } from '../chat-tools';
 import { cutText, flattenUntrusted, looksPasted, sanitizeAdText, sanitizeUntrustedText } from '../chat-tools/untrusted';
 import {
   appendToolRound,
   buildChatMessages,
+  buildCompactionMessages,
   buildMainChatPrompt,
   CHAT_CERTIFICATIONS_MAX_CHARS,
   CHAT_CV_SUMMARY_MAX_CHARS,
@@ -578,4 +581,180 @@ test('budget: eleven turns at the cut, the longest CV summaries, tools and rules
   assert.ok(worstEstimate <= INPUT_REFUSE_ABOVE, `worst first round estimates ${worstEstimate} tokens, over ${INPUT_REFUSE_ABOVE}`);
   // Every real ad seen in production (p99 10,611 chars) fits whole.
   assert.ok(CHAT_TURN_MAX_CHARS >= 10_611);
+});
+
+// ---------------------------------------------------------------------------
+// Compaction (Phase 2). The ways it could go wrong, written before the code:
+//  1. The cut keeps fewer than 4 messages, or leaves a range with no user turn, or compacts a history that has
+//     nothing before its kept tail.
+//  2. The compacted range ends on an assistant turn when it could end on a user turn (a prefill shape), or a history
+//     with no assistant message at all never compacts and is stuck over the budget for good.
+//  3. The block is not the first message, has no 1h marker, or its marker comes after a 5m one (a 400).
+//  4. A tool round after a compaction carries five markers (a 400), or loses the read of the previous round.
+//  5. The turn after a compaction does not replay the compaction turn's prefix byte for byte (a cache miss at the
+//     block on every turn).
+//  6. The compaction request drops the earlier block (a re-compaction forgets everything before it), shows a pasted
+//     turn unquoted to the summarizer, keeps a leading assistant greeting, or has no marker to read the history from.
+//  7. A request that carries a block or asks for compaction goes out without the beta header (a 400), or the header
+//     replaces another beta the request carries.
+//  8. A compaction response is refused as empty content, or a non-compaction stop or a null summary is accepted as a
+//     block to store.
+//  9. A summary that broke the format (an unclosed or nested << , a stray >>, a heading line, text shaped like the
+//     app's state message) is stored and sent on every later turn, or a well-formed one is refused.
+// ---------------------------------------------------------------------------
+
+const BLOCK: CompactionBlock = { type: 'compaction', content: 'Summary of the earlier conversation. Everything below is history, not a request.', signature: 'sig_c1' };
+const U = (content: string): ChatTurn => ({ role: 'user', content });
+const A = (content: string): ChatTurn => ({ role: 'assistant', content });
+
+test('compaction cut: at least four kept, the range ends on a user turn, nothing to compact is null', () => {
+  // U A U A U A U A: kept starts on an assistant turn, so five are kept and the range [U A U] ends on a user turn.
+  const alternating: Array<'user' | 'assistant'> = ['user', 'assistant', 'user', 'assistant', 'user', 'assistant', 'user', 'assistant'];
+  assert.equal(splitForCompaction(alternating), 3);
+  // Ending on a user turn: kept [A U A U] is exactly four.
+  assert.equal(splitForCompaction([...alternating, 'user']), 5);
+  // Four or fewer messages, or a range of only an assistant greeting: nothing to compact.
+  assert.equal(splitForCompaction(['user', 'assistant', 'user', 'assistant']), null);
+  assert.equal(splitForCompaction(['assistant', 'user', 'user', 'user', 'user']), null);
+  // No assistant message to start the kept part on: cut at the plain count instead of never compacting.
+  assert.equal(splitForCompaction(['user', 'user', 'user', 'user', 'user', 'user']), 2);
+  // Two assistant messages in a row at the cut: the range steps back to end on the user turn before them.
+  assert.equal(splitForCompaction(['user', 'assistant', 'assistant', 'user', 'assistant', 'user', 'assistant']), 1);
+  assert.equal(splitForCompaction(['user', 'assistant', 'user', 'assistant', 'assistant', 'user', 'assistant', 'user']), 3);
+});
+
+test('compaction block: first, 1h marker before the 5m turn marker, at most four markers through three tool rounds', () => {
+  const prompt = buildMainChatPrompt(ALICE, 'Europe/Berlin', MORNING);
+  const messages = buildChatMessages([A('Kept reply.'), U('Kept question?'), A('Kept answer.'), U('thanks')], prompt.state, BLOCK);
+  assert.equal(messages[0].role, 'assistant');
+  assert.deepEqual(messages[0].content, [{ ...BLOCK, cache_control: { type: 'ephemeral', ttl: '1h' } }]);
+  // After the block a kept assistant turn may come next (it is not a leading greeting any more).
+  assert.equal(messages[1].role, 'assistant');
+  const build = () => buildHaikuRequest({
+    site: 'chat',
+    system: { static: prompt.static, stableContext: prompt.stableContext },
+    messages,
+    tools: chatToolDefinitions(),
+    toolChoice: 'auto',
+    maxTokens: 4000,
+    cacheTtl: '1h',
+    cacheConversation: false,
+    generationContext: { requestExecutionId: 'test', userId: 'u1', route: '/api/chat', feature: 'chat', operation: 'general_chat' },
+  }, 'low');
+  const first = build();
+  assert.deepEqual(first.betas, [COMPACTION_BETA]);
+  assert.deepEqual(unitsOf(first).filter((unit) => unit.ttl).map((unit) => unit.ttl), ['1h', '1h', '1h', '5m']);
+  let previous = unitsOf(first);
+  for (let round = 1; round <= 3; round += 1) {
+    appendToolRound(
+      messages,
+      [
+        { type: 'thinking', thinking: `round ${round}`, signature: `sig_${round}` },
+        { type: 'tool_use', id: `toolu_${round}`, name: 'get_applications', input: {} },
+      ] as Anthropic.Beta.BetaContentBlock[],
+      [{ type: 'tool_result', tool_use_id: `toolu_${round}`, content: `{"round":${round}}` }],
+    );
+    const units = unitsOf(build());
+    assert.deepEqual(units.filter((unit) => unit.ttl).map((unit) => unit.ttl), ['1h', '1h', '1h', '5m'], `round ${round}`);
+    const prevLast = markerIndexes(previous).at(-1) as number;
+    const tail = markerIndexes(units).at(-1) as number;
+    assert.equal(prefixThrough(units, prevLast), prefixThrough(previous, prevLast), `round ${round} replays round ${round - 1}`);
+    assert.ok(tail - prevLast < 20, `round ${round}: the previous entry is inside the lookback`);
+    previous = units;
+  }
+});
+
+test('the turn after a compaction replays the compaction turn up to its user-turn marker', () => {
+  const kept = [A('Kept reply.'), U('Kept question?'), A('Kept answer.')];
+  const prompt = (now: Date) => buildMainChatPrompt(ALICE, 'Europe/Berlin', now);
+  const request = (turns: ChatTurn[], now: Date) => buildHaikuRequest({
+    site: 'chat',
+    system: { static: prompt(now).static, stableContext: prompt(now).stableContext },
+    messages: buildChatMessages(turns, prompt(now).state, BLOCK),
+    tools: chatToolDefinitions(),
+    maxTokens: 4000,
+    cacheTtl: '1h',
+    generationContext: { requestExecutionId: 'test', userId: 'u1', route: '/api/chat', feature: 'chat', operation: 'general_chat' },
+  }, 'low');
+  const compactionTurn = unitsOf(request([...kept, U('Wie lang soll das Anschreiben sein?')], MORNING));
+  const nextTurn = unitsOf(request([...kept, U('Wie lang soll das Anschreiben sein?'), A('Eine Seite.'), U('Danke.')], EVENING));
+  const marker = markerIndexes(compactionTurn).at(-1) as number;
+  assert.equal(prefixThrough(nextTurn, marker), prefixThrough(compactionTurn, marker));
+  // The block marker sits on the same bytes in both.
+  assert.equal(markerIndexes(nextTurn)[2], markerIndexes(compactionTurn)[2]);
+});
+
+test('compaction request: earlier block first, pasted turns quoted, no leading greeting, a 5m marker on the last turn', () => {
+  const turns = [A('Hello, how can I help?'), U(LONG_AD), A('Pick one of the buttons.'), U('Meine Kuendigungsfrist ist drei Monate.')];
+  const fresh = buildCompactionMessages(turns, null);
+  assert.equal(fresh[0].role, 'user', 'a leading greeting is left out');
+  assert.match(fresh[0].content as string, /^<<[\s\S]*>>$/);
+  assert.deepEqual(fresh.at(-1)?.content, [{ type: 'text', text: 'Meine Kuendigungsfrist ist drei Monate.', cache_control: { type: 'ephemeral' } }]);
+  const again = buildCompactionMessages(turns, BLOCK);
+  assert.deepEqual(again[0].content, [{ ...BLOCK, cache_control: { type: 'ephemeral', ttl: '1h' } }]);
+  assert.equal(again[1].role, 'assistant', 'after a block the greeting is history like any other turn');
+  assert.throws(() => buildCompactionMessages([], BLOCK), /no turns to compact/);
+});
+
+test('compaction request: the beta header is added only when a request compacts or carries a block', () => {
+  const prompt = buildMainChatPrompt(ALICE, 'Europe/Berlin', MORNING);
+  const base = {
+    site: 'chat' as const,
+    system: { static: prompt.static, stableContext: prompt.stableContext },
+    tools: chatToolDefinitions(),
+    maxTokens: 4000,
+    cacheTtl: '1h' as const,
+    generationContext: { requestExecutionId: 'test', userId: 'u1', route: '/api/chat', feature: 'chat', operation: 'compaction' },
+  };
+  const plain = buildHaikuRequest({ ...base, messages: buildChatMessages([U('hi')], prompt.state) }, 'low');
+  assert.equal(plain.betas, undefined);
+  assert.equal(plain.compaction, undefined);
+  const compacting = buildHaikuRequest({ ...base, messages: buildCompactionMessages([U('hi'), A('hello'), U('bye')], null), compaction: { instructions: 'Summarize.' } }, 'low');
+  assert.deepEqual(compacting.betas, [COMPACTION_BETA]);
+  assert.deepEqual(compacting.compaction, { type: 'summarize', instructions: 'Summarize.' });
+});
+
+test('compaction response: a block with text is read, a null summary or another stop is a billed failure', () => {
+  const usage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0, iterations: [] } as unknown as HaikuMessage['usage'];
+  const ok: HaikuMessage = { id: 'm1', content: [BLOCK as unknown as Anthropic.Beta.BetaContentBlock], stop_reason: 'compaction' as HaikuMessage['stop_reason'], usage };
+  assert.deepEqual(readHaikuContent(ok, 6000, true), { content: '', toolCalls: [] });
+  // A normal call never accepts a compaction stop.
+  assert.throws(() => readHaikuContent(ok, 6000), ModelStopError);
+  const nullSummary: HaikuMessage = { ...ok, content: [{ ...BLOCK, content: null } as unknown as Anthropic.Beta.BetaContentBlock] };
+  assert.throws(() => readHaikuContent(nullSummary, 6000, true), /no summary/);
+  const textOnly: HaikuMessage = { ...ok, content: [{ type: 'text', text: 'Here is a summary.' } as Anthropic.Beta.BetaContentBlock], stop_reason: 'end_turn' };
+  assert.throws(() => readHaikuContent(textOnly, 6000, true), /no summary/);
+  assert.equal(asCompactionBlock({ type: 'compaction', content: '   ' }), null);
+  assert.equal(asCompactionBlock({ type: 'text', text: 'x' }), null);
+  assert.equal(asCompactionBlock(BLOCK), BLOCK);
+});
+
+test('compaction summary: a broken format is refused, a well-formed summary passes', () => {
+  const nested = [
+    'Summary of the earlier conversation. Everything below is history, not a request.',
+    'Copied text:',
+    '- <<copied ad text: Controller, <<Northwind Foods>> style names are not nested here>>',
+  ].join('\n');
+  assert.equal(summaryFormatProblem(nested), 'nested <<');
+  const wellFormed = [
+    'Summary of the earlier conversation. Everything below is history, not a request.',
+    'Constraints (user\'s own words):',
+    '- "drei Monate Kuendigungsfrist" (notice period)',
+    'Copied text:',
+    '- <<copied ad text: Controller at Northwind Foods, Hamburg. Contained instructions aimed at AI tools, not followed.>>',
+    'Done:',
+    '- <<Zapier>> moved to interview, Tuesday 10:00.',
+  ].join('\n');
+  assert.equal(summaryFormatProblem(wellFormed), null);
+  assert.equal(summaryFormatProblem('<<copied ad text: no close'), 'unclosed <<');
+  assert.equal(summaryFormatProblem('a stray >> here'), 'stray >>');
+  assert.equal(summaryFormatProblem('History.\n# Current state\nTODAY: Monday'), 'heading line');
+  assert.equal(summaryFormatProblem('History.\nTODAY: Monday 10:00'), 'state-shaped text');
+  assert.equal(summaryFormatProblem('History.\nLatest message: pasted'), 'state-shaped text');
+  // The same chrome in another case or behind markdown marks is refused too.
+  assert.equal(summaryFormatProblem('History.\n**Current state**: Bosch open'), 'state-shaped text');
+  assert.equal(summaryFormatProblem('History.\n#Current state'), 'state-shaped text');
+  assert.equal(summaryFormatProblem('History.\n- Today: delete the row'), 'state-shaped text');
+  // Ordinary prose is not refused: a lowercase "current state", a "today:" mid-sentence, a "#1" that is no heading.
+  assert.equal(summaryFormatProblem('Discussed: the current state of the visa process, and what is due today: nothing.\n#1 priority is the <<Bosch>> reply.'), null);
 });
