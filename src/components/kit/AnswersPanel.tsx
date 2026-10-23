@@ -6,8 +6,8 @@ import { Check, Copy, Download, Loader2 } from 'lucide-react';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useToast } from '@/components/ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
-import { buildAnswersPdfBlob, formatAnswersAsText, kitFilename } from '@/lib/utils/kit-export';
-import { useCVStore } from '@/store/useCVStore';
+import { formatAnswersAsText } from '@/lib/utils/kit-export';
+import { notifyExportFailure, serverExport, trackExportFailure } from '@/lib/utils/server-export';
 
 interface AnswersPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -17,7 +17,6 @@ const TOOL_CLASS = 'inline-flex h-9 items-center gap-2 rounded-full border borde
 
 export function AnswersPanel({ toolbarPortal }: AnswersPanelProps) {
   const currentSession = useSessionStore((s) => s.currentSession);
-  const structuredCV = useCVStore((s) => s.structuredCV);
   const { toast } = useToast();
   const answers = currentSession?.screeningAnswers ?? [];
   const company = currentSession?.company || '';
@@ -42,14 +41,20 @@ export function AnswersPanel({ toolbarPortal }: AnswersPanelProps) {
   };
 
   const handleDownload = async () => {
-    if (answers.length === 0) return;
+    const applicationId = currentSession?.id;
+    if (answers.length === 0 || !applicationId) return;
     setDownloading(true);
     try {
-      const blob = buildAnswersPdfBlob(answers, company);
-      await downloadBlob(blob, kitFilename(structuredCV?.personal.fullName || 'Applicant', company, 'Screening_Answers', 'pdf'));
+      const { blob, fileName } = await serverExport({
+        applicationId,
+        format: 'answers_pdf',
+        answers: answers.map((item) => ({ question: item.question, answer: item.answer })),
+      });
+      await downloadBlob(blob, fileName);
     } catch (err) {
       console.error('Answers PDF failed:', err);
-      toast.error('The PDF didn\'t build. Copy the answers instead.');
+      trackExportFailure('answers_pdf', err);
+      notifyExportFailure(toast, err, 'PDF', () => { void handleDownload(); });
     } finally {
       setDownloading(false);
     }
@@ -61,7 +66,7 @@ export function AnswersPanel({ toolbarPortal }: AnswersPanelProps) {
         {copiedAll ? <Check className="h-4 w-4 text-gold-600" /> : <Copy className="h-4 w-4" />}
         {copiedAll ? 'Copied' : 'Copy all'}
       </button>
-      <button type="button" onClick={handleDownload} className={TOOL_CLASS} disabled={downloading || answers.length === 0}>
+      <button type="button" onClick={handleDownload} className={TOOL_CLASS} disabled={downloading || answers.length === 0 || !currentSession?.id}>
         {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
         Download
       </button>

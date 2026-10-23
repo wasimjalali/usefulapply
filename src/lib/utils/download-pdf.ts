@@ -105,13 +105,3 @@ export async function downloadBlob(blob: Blob, filename: string): Promise<void> 
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-
-/**
- * Returns the recommended html2canvas capture scale for the current device.
- * Mobile devices have less RAM, so we use a lower scale to prevent crashes.
- */
-export function getCaptureScale(): number {
-  return getIsMobileOrTablet() ? 2 : 3;
-}
-
-export { getIsIOS, getIsMobileOrTablet };

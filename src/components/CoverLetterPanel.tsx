@@ -15,14 +15,11 @@ import { PdfPreviewModal } from './ui/PdfPreviewModal';
 import { useToast } from './ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import {
-  buildCoverLetterDocxBlob,
-  buildCoverLetterPdfBlob,
   countWords,
   formatCoverLetterAsText,
   hasAddressPlaceholder as letterHasAddressPlaceholder,
 } from '@/lib/utils/cover-letter-export';
-import { kitFilename } from '@/lib/utils/kit-export';
-import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback } from '@/lib/utils/server-export';
+import { notifyExportFailure, serverExport, trackExportFailure } from '@/lib/utils/server-export';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { useSessionStore } from '@/store/useSessionStore';
 import { acknowledgedStart, acknowledgementFor, commitEditorSave, discardedSinceSave, editorShouldClose, getEditorStart, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
@@ -56,7 +53,7 @@ function stampOf(letter: GeneratedCoverLetter | null | undefined): number | null
 }
 
 export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) {
-  const { currentSession, isAgentWorking, agentWorkflowPhase, structuredCV } = useAppStore();
+  const { currentSession, isAgentWorking, agentWorkflowPhase } = useAppStore();
   const setPendingApplicationAction = useUIStore((state) => state.setPendingApplicationAction);
   const datePrefs = useDatePrefs();
   const coverLetter = currentSession?.coverLetter;
@@ -260,51 +257,23 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
 
   const exportLetter = async (format: 'pdf' | 'docx') => {
     const letterToDownload = editedCoverLetter || coverLetter;
-    if (!letterToDownload) return;
+    const applicationId = currentSession?.id;
+    if (!letterToDownload || !applicationId) return;
     const showAddressReminder = hasAddressPlaceholder();
     setShowDownloadMenu(false);
     setDownloadFormat(format);
+    const serverFormat = format === 'pdf' ? 'cover_letter_pdf' : 'cover_letter_docx';
     try {
-      let usedFallback = false;
-      let blob: Blob | null = null;
-      let fileName = '';
-      const applicationId = currentSession?.id;
-      if (applicationId) {
-        try {
-          const served = await serverExport({
-            applicationId,
-            format: format === 'pdf' ? 'cover_letter_pdf' : 'cover_letter_docx',
-            ...letterForServer(letterToDownload),
-          });
-          blob = served.blob;
-          fileName = served.fileName;
-        } catch (error) {
-          if (!shouldFallBack(error)) throw error;
-          trackExportFallback(format === 'pdf' ? 'cover_letter_pdf' : 'cover_letter_docx', error);
-        }
-      }
-      if (!blob) {
-        usedFallback = true;
-        const applicantName =
-          letterToDownload.applicantAddress.name ||
-          letterToDownload.signatureName ||
-          structuredCV?.personal.fullName ||
-          'Applicant';
-        const companyName = letterToDownload.companyAddress.companyName || currentSession?.company || 'Company';
-        blob = format === 'pdf'
-          ? buildCoverLetterPdfBlob(letterToDownload)
-          : await buildCoverLetterDocxBlob(letterToDownload);
-        fileName = kitFilename(applicantName, companyName, 'Cover_Letter', format);
-      }
+      const { blob, fileName } = await serverExport({ applicationId, format: serverFormat, ...letterForServer(letterToDownload) });
       await downloadBlob(blob, fileName);
-      if (usedFallback && format === 'pdf') toast.warning(FALLBACK_NOTICE, 7000);
-      else toast.success(`${format.toUpperCase()} downloaded.`);
+      toast.success(`${format.toUpperCase()} downloaded.`);
       if (showAddressReminder) {
         setTimeout(() => toast.warning('Add the company address before you send it.', 6000), 500);
       }
     } catch (error) {
-      console.error(`${format.toUpperCase()} generation error:`, error);
-      toast.error(`The ${format.toUpperCase()} didn't build. Copy the text instead.`);
+      console.error(`${format.toUpperCase()} export failed:`, error);
+      trackExportFailure(serverFormat, error);
+      notifyExportFailure(toast, error, format.toUpperCase(), () => { void exportLetter(format); });
     } finally {
       setDownloadFormat(null);
     }
@@ -541,7 +510,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
               ref={downloadButtonRef}
               type="button"
               onClick={() => setShowDownloadMenu((v) => !v)}
-              disabled={downloadFormat !== null}
+              disabled={downloadFormat !== null || !currentSession?.id}
               aria-haspopup="menu"
               aria-expanded={showDownloadMenu}
               className={`${TOOL_CLASS} disabled:cursor-wait`}

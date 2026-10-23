@@ -257,7 +257,7 @@ Migrated from Vercel + Supabase to Cloudflare. Source: README. [verified]
 | Email | **Cloudflare Email Service** (transactional) |
 | Payments | Stripe (subscriptions + credit packs) |
 | Analytics | PostHog |
-| Documents | pdfjs-dist (parsing), jsPDF + html2canvas + docx (export) |
+| Documents | pdfjs-dist (parsing), Cloudflare Browser Run (PDF export) + docx (Word export) |
 
 ### AI models in production
 

@@ -130,14 +130,14 @@ export async function POST(request: NextRequest) {
       }
       if (error instanceof ExportRateLimitedError) return bad('Too many requests. Please try again later.', 429, 'RATE_LIMITED');
       if (error instanceof ExportTooLargeError) return bad('The document is too large to export.', 413, 'EXPORT_TOO_LARGE');
-      // Renderer down, signing secret missing, storage error: the client falls back to its own export.
+      // Renderer down, signing secret missing, storage error: the client says so and offers a retry.
       const reason = error instanceof ExportRenderError ? 'render' : error instanceof SigningUnavailableError ? 'signing' : 'other';
       // Server logs only: the message never reaches the client.
       console.error(`[exports] ${format} failed (${reason}):`, error instanceof Error ? `${error.name}: ${error.message.slice(0, 200)}` : 'unknown');
       const posthog = getPostHogServer();
       posthog?.capture({ distinctId: user.id, event: 'server_export_failed', properties: { format, reason } });
       await posthog?.flush();
-      return bad('The full-quality export is unavailable right now.', 503, 'RENDER_UNAVAILABLE');
+      return bad('The export is unavailable right now.', 503, 'RENDER_UNAVAILABLE');
     }
   } catch (error) {
     console.error('[exports] unexpected error:', error instanceof Error ? error.name : 'unknown');

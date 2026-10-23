@@ -36,8 +36,9 @@ interface ToastContextValue {
   toasts: Toast[];
   toast: {
     success: (message: string, duration?: number) => void;
-    error: (message: string, duration?: number) => void;
-    warning: (message: string, duration?: number) => void;
+    /** `actions` render as small buttons under the message (a retry, say); clicking one closes the toast. */
+    error: (message: string, duration?: number, actions?: ToastAction[]) => void;
+    warning: (message: string, duration?: number, actions?: ToastAction[]) => void;
     /** `actions` render as small buttons under the message; clicking one closes the toast. */
     info: (message: string, duration?: number, actions?: ToastAction[]) => void;
     /**
@@ -113,8 +114,8 @@ export function ToastProvider({ children }: ToastProviderProps) {
     pin,
     unpin,
     success: (message: string, duration?: number) => addToast('success', message, duration),
-    error: (message: string, duration?: number) => addToast('error', message, duration),
-    warning: (message: string, duration?: number) => addToast('warning', message, duration),
+    error: (message: string, duration?: number, actions?: ToastAction[]) => addToast('error', message, duration, actions),
+    warning: (message: string, duration?: number, actions?: ToastAction[]) => addToast('warning', message, duration, actions),
     info: (message: string, duration?: number, actions?: ToastAction[]) => addToast('info', message, duration, actions),
   };
 
@@ -216,7 +217,9 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
               <button
                 key={action.label}
                 onClick={() => { action.onClick(); onClose(); }}
-                className="rounded border border-cream-200 px-2 py-1 text-xs text-cream-50 hover:bg-navy-600"
+                className={toast.type === 'success' || toast.type === 'info'
+                  ? 'rounded border border-cream-200 px-2 py-1 text-xs text-cream-50 hover:bg-navy-600'
+                  : 'rounded border border-charcoal/30 px-2 py-1 text-xs font-medium text-charcoal hover:bg-white/60'}
               >
                 {action.label}
               </button>

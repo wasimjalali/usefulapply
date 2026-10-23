@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useRef } from 'react';
-import { CVTemplateRenderer } from '@/components/cv-templates';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import { useCVStore } from '@/store/useCVStore';
@@ -10,20 +9,18 @@ import { sessionHasKit } from '@/components/shell/application-status';
 import { useUIStore } from '@/store/useUIStore';
 import { buildCvData } from '@/lib/cv-templates/build-cv-data';
 import { readDefaultTemplate } from '@/lib/cv-templates/default-template';
-import { generateCvPdfBlob } from '@/lib/utils/cv-pdf';
 import { downloadBlob } from '@/lib/utils/download-pdf';
-import { buildCoverLetterDocxBlob, buildCoverLetterPdfBlob } from '@/lib/utils/cover-letter-export';
-import { buildAnswersPdfBlob, buildTextBlob, formatEmailAsText, kitFilename } from '@/lib/utils/kit-export';
+import { buildTextBlob, formatEmailAsText, kitFilename } from '@/lib/utils/kit-export';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { formatCoverLetterAsText } from '@/lib/utils/cover-letter-export';
-import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback, type ServerExportFormat } from '@/lib/utils/server-export';
+import { serverExport, trackExportFailure, type ServerExportFormat } from '@/lib/utils/server-export';
 
 /**
  * Always mounted in the shell. Runs "Download all" for whichever control asked
  * (the canvas "Download all" button): tailored CV (PDF),
  * cover letter (PDF + DOCX), both emails (TXT) and the screening answers (PDF)
- * when present. The CV renders offscreen here so the PDF works from any tab,
- * a collapsed canvas included.
+ * when present. The server renders every PDF and DOCX, so this works from any
+ * tab, a collapsed canvas included. Nothing renders here.
  */
 export function KitExportHost() {
   const { profile } = useAuth();
@@ -35,7 +32,7 @@ export function KitExportHost() {
   const setCvTemplateId = useUIStore((s) => s.setCvTemplateId);
   const kitDownloadRequest = useUIStore((s) => s.kitDownloadRequest);
   const setKitDownloadBusy = useUIStore((s) => s.setKitDownloadBusy);
-  const cvRef = useRef<HTMLDivElement>(null);
+  const requestKitDownload = useUIStore((s) => s.requestKitDownload);
   const handledRequestRef = useRef(0);
   const busyRef = useRef(false);
 
@@ -75,21 +72,17 @@ export function KitExportHost() {
       const files: Array<{ blob: Blob; name: string }> = [];
       const failed: string[] = [];
       let delivered = 0;
-      let usedFallback = false;
 
-      // Server first (full quality), the browser export when the server cannot render.
       const fromServer = async (
         format: ServerExportFormat,
         extra: Record<string, unknown>,
-      ): Promise<{ blob: Blob; name: string } | null> => {
+      ): Promise<{ blob: Blob; name: string }> => {
         try {
           const { blob, fileName } = await serverExport({ applicationId: session.id, format, ...extra });
           return { blob, name: fileName };
         } catch (err) {
-          if (!shouldFallBack(err)) throw err;
-          trackExportFallback(format, err);
-          usedFallback = true;
-          return null;
+          trackExportFailure(format, err);
+          throw err;
         }
       };
       const letter = session.coverLetter;
@@ -104,15 +97,7 @@ export function KitExportHost() {
       try {
         if (cvData) {
           try {
-            const served = await fromServer('cv_pdf', { templateId: cvTemplateId, variant: 'tailored', cv: cvData });
-            if (served) {
-              files.push(served);
-            } else if (cvRef.current) {
-              const blob = await generateCvPdfBlob(cvRef.current, { templateId: cvTemplateId, photoUrl: cvData.personal.photoUrl });
-              files.push({ blob, name: kitFilename(applicant, company, 'CV', 'pdf') });
-            } else {
-              failed.push('CV');
-            }
+            files.push(await fromServer('cv_pdf', { templateId: cvTemplateId, variant: 'tailored', cv: cvData }));
           } catch (err) {
             console.error('[DownloadAll] CV PDF failed:', err);
             failed.push('CV');
@@ -124,14 +109,8 @@ export function KitExportHost() {
         }
         if (session.coverLetter) {
           try {
-            files.push(
-              (await fromServer('cover_letter_pdf', letterBody))
-                ?? { blob: buildCoverLetterPdfBlob(session.coverLetter), name: kitFilename(applicant, company, 'Cover_Letter', 'pdf') },
-            );
-            files.push(
-              (await fromServer('cover_letter_docx', letterBody))
-                ?? { blob: await buildCoverLetterDocxBlob(session.coverLetter), name: kitFilename(applicant, company, 'Cover_Letter', 'docx') },
-            );
+            files.push(await fromServer('cover_letter_pdf', letterBody));
+            files.push(await fromServer('cover_letter_docx', letterBody));
           } catch (err) {
             console.error('[DownloadAll] cover letter failed:', err);
             failed.push('cover letter');
@@ -150,10 +129,7 @@ export function KitExportHost() {
         }
         if (session.screeningAnswers && session.screeningAnswers.length > 0) {
           try {
-            files.push(
-              (await fromServer('answers_pdf', { answers: session.screeningAnswers.map((item) => ({ question: item.question, answer: item.answer })) }))
-                ?? { blob: buildAnswersPdfBlob(session.screeningAnswers, company), name: kitFilename(applicant, company, 'Screening_Answers', 'pdf') },
-            );
+            files.push(await fromServer('answers_pdf', { answers: session.screeningAnswers.map((item) => ({ question: item.question, answer: item.answer })) }));
           } catch (err) {
             console.error('[DownloadAll] answers PDF failed:', err);
             failed.push('answers');
@@ -172,15 +148,17 @@ export function KitExportHost() {
           ? " The CV wasn't tailored, so it was left out. Download your base CV from the CV tab."
           : '';
         if (delivered === 0) {
-          toast.error(failed.length > 0
-            ? `Nothing downloaded. The ${joinList(failed)} didn't build.${untailoredCvNote}`
-            : `Nothing to download yet.${untailoredCvNote}`, 8000);
+          if (failed.length > 0) {
+            toast.error(`Nothing downloaded. The ${joinList(failed)} didn't build.${untailoredCvNote}`, 10000, [
+              { label: 'Try again', onClick: requestKitDownload },
+            ]);
+          } else {
+            toast.error(`Nothing to download yet.${untailoredCvNote}`, 8000);
+          }
         } else if (failed.length > 0) {
           toast.warning(`Downloaded ${fileCount(delivered)}. The ${joinList(failed)} didn't build. ${fromTabsSentence(failed)}${untailoredCvNote}`, 8000);
         } else if (untailoredCvNote) {
           toast.warning(`Downloaded ${fileCount(delivered)}.${untailoredCvNote}`, 8000);
-        } else if (usedFallback) {
-          toast.warning(`Downloaded ${fileCount(delivered)}. ${FALLBACK_NOTICE}`, 8000);
         } else {
           toast.success(`Downloaded ${fileCount(delivered)}.`);
         }
@@ -199,19 +177,7 @@ export function KitExportHost() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kitDownloadRequest]);
 
-  if (!cvData) return null;
-
-  return (
-    // Fixed, not absolute. Absolute keeps this 1500px-tall CV inside the
-    // shell's scrollable overflow, so the first focus or scrollIntoView after
-    // a kit loads scrolled the overflow-hidden shell and pushed the whole app
-    // off the top of the screen. Fixed takes it out of that box entirely.
-    <div aria-hidden className="pointer-events-none fixed left-[-10000px] top-0 z-[-1]">
-      <div ref={cvRef} className="bg-white">
-        <CVTemplateRenderer data={cvData} templateId={cvTemplateId} />
-      </div>
-    </div>
-  );
+  return null;
 }
 
 /** Kit parts named in plural: "the emails", "the answers". */

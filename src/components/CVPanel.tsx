@@ -16,8 +16,6 @@ import { buildCvData } from '@/lib/cv-templates/build-cv-data';
 import { writeDefaultTemplate } from '@/lib/cv-templates/default-template';
 import type { CVData } from '@/lib/cv-templates/types';
 import { useUIStore } from '@/store/useUIStore';
-import { generateCvPdfBlob } from '@/lib/utils/cv-pdf';
-import { kitFilename } from '@/lib/utils/kit-export';
 import {
   FileText,
   FileType2,
@@ -42,7 +40,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from './ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import { PdfPreviewModal } from './ui/PdfPreviewModal';
-import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback } from '@/lib/utils/server-export';
+import { notifyExportFailure, serverExport, trackExportFailure } from '@/lib/utils/server-export';
 import type { Profile } from '@/db/types';
 import { acknowledgedStart, acknowledgementFor, afterClosedEditorSave, commitEditorSave, discardedSinceSave, editorSaveSucceeded, getEditorStart, persistSessionEdits, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
@@ -108,7 +106,6 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
     if (canvasCollapsed) setShowFullPreview(false);
   }, [canvasCollapsed]);
   const [editedCVData, setEditedCVData] = useState<CVData | null>(null);
-  const cvTemplateRef = useRef<HTMLDivElement>(null);
   const editableCVRef = useRef<EditableCVCanvasRef>(null);
   const editSessionIdRef = useRef<string | null>(null);
   // The revision the editor opened on; the draft lives outside the store (see commitEditorSave).
@@ -249,53 +246,25 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   };
 
   const handleDownloadPDF = async () => {
-    if (!cvData) return;
-
+    const applicationId = currentSession?.id;
+    if (!cvData || !applicationId) return;
     setIsDownloading(true);
-    // The step name lands in the error toast so a failure can be placed.
-    let step = 'init';
     try {
-      // Full-quality path: the server renders the same template to a text PDF.
-      // What the canvas shows goes along, so a download right after an edit
-      // matches the screen.
-      const applicationId = currentSession?.id;
-      if (applicationId) {
-        try {
-          const { blob, fileName } = await serverExport({
-            applicationId,
-            format: 'cv_pdf',
-            templateId: selectedTemplateId,
-            variant: showOptimized ? 'tailored' : 'original',
-            cv: cvData,
-          });
-          await downloadBlob(blob, fileName);
-          toast.success('PDF downloaded.');
-          return;
-        } catch (err) {
-          if (!shouldFallBack(err)) throw err;
-          trackExportFallback('cv_pdf', err);
-        }
-      }
-
-      // Fallback: the in-browser export, with a notice so the quality drop is not silent.
-      if (!cvTemplateRef.current) throw new Error('canvas not ready');
-      const filename = kitFilename(
-        cvData.personal.fullName || 'Applicant',
-        showOptimized ? (currentSession?.company || '') : '',
-        'CV',
-        'pdf',
-      );
-      const blob = await generateCvPdfBlob(cvTemplateRef.current, {
+      // The server renders the same template to a text PDF. What the canvas shows
+      // goes along, so a download right after an edit matches the screen.
+      const { blob, fileName } = await serverExport({
+        applicationId,
+        format: 'cv_pdf',
         templateId: selectedTemplateId,
-        photoUrl: cvData.personal.photoUrl,
-        onStep: (name) => { step = name; },
+        variant: showOptimized ? 'tailored' : 'original',
+        cv: cvData,
       });
-      await downloadBlob(blob, filename);
-      toast.warning(FALLBACK_NOTICE, 7000);
+      await downloadBlob(blob, fileName);
+      toast.success('PDF downloaded.');
     } catch (err) {
-      console.error('PDF generation failed:', err);
-      const errMsg = err instanceof Error ? err.message.slice(0, 80) : 'Unknown error';
-      toast.error(`PDF failed at [${step}]: ${errMsg}`);
+      console.error('PDF export failed:', err);
+      trackExportFailure('cv_pdf', err);
+      notifyExportFailure(toast, err, 'PDF', () => { void handleDownloadPDF(); });
     } finally {
       setIsDownloading(false);
     }
@@ -344,8 +313,8 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
       toast.success('Word file downloaded.');
     } catch (err) {
       console.error('Word export failed:', err);
-      trackExportFallback('cv_docx', err);
-      toast.error("The Word file didn't build. Try again in a moment, or download the PDF.");
+      trackExportFailure('cv_docx', err);
+      notifyExportFailure(toast, err, 'Word file', () => { void handleDownloadWord(); });
     } finally {
       setIsDownloadingWord(false);
     }
@@ -529,7 +498,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           <button
             type="button"
             onClick={handleDownloadPDF}
-            disabled={isDownloading || !cvData}
+            disabled={isDownloading || !cvData || !currentSession?.id}
             title="Download as PDF"
             className={`${TOOL_CLASS} disabled:opacity-60 disabled:cursor-wait`}
           >
@@ -753,7 +722,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                         willChange: 'transform',
                       } : undefined}
                     >
-                      <div ref={cvTemplateRef}>
+                      <div>
                         <CVTemplateRenderer data={cvData} templateId={selectedTemplateId} />
                       </div>
                     </div>

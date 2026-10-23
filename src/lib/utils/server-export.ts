@@ -3,10 +3,10 @@ import type { CVData } from '@/lib/cv-templates/types';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
 
 /**
- * Client side of the server export. The Download buttons ask POST /api/exports
- * for a file, fetch the signed link it returns and hand the blob to the usual
- * download helper. When the server cannot render, callers fall back to the
- * in-browser export and say so with FALLBACK_NOTICE.
+ * Client side of the export. Every Download button asks POST /api/exports for a
+ * file (Browser Run renders the PDFs), fetches the signed link it returns and
+ * hands the blob to the download helper. There is no in-browser export: when the
+ * server can't render, the user gets an error that says so and offers a retry.
  */
 
 export type ServerExportFormat =
@@ -27,6 +27,8 @@ export interface ServerExportArgs {
   cv?: CVData;
   structuredLetter?: StructuredCoverLetter;
   legacyLetterText?: string;
+  /** For answers_pdf / answers_txt: what the Answers tab shows. */
+  answers?: Array<{ question: string; answer: string }>;
 }
 
 export class ServerExportError extends Error {
@@ -35,8 +37,6 @@ export class ServerExportError extends Error {
     this.name = 'ServerExportError';
   }
 }
-
-export const FALLBACK_NOTICE = 'We used the quick download. The full-quality PDF will be back shortly.';
 
 /** Renders on the server and returns the file. Throws ServerExportError, never a message meant for the user. */
 export async function serverExport(args: ServerExportArgs): Promise<{ blob: Blob; fileName: string }> {
@@ -51,18 +51,38 @@ export async function serverExport(args: ServerExportArgs): Promise<{ blob: Blob
   }
   const file = await fetch(payload.file.url);
   if (!file.ok) throw new ServerExportError(file.status, 'DOWNLOAD_FAILED');
-  return { blob: await file.blob(), fileName: payload.file.fileName };
+  const blob = await file.blob();
+  // Never hand the user an empty file.
+  if (blob.size === 0) throw new ServerExportError(502, 'EMPTY_FILE');
+  return { blob, fileName: payload.file.fileName };
 }
 
-/** True when the failure means "use the browser export" rather than "this document cannot exist". */
-export function shouldFallBack(error: unknown): boolean {
-  if (!(error instanceof ServerExportError)) return true;
-  return error.status >= 500 || error.status === 404 || error.status === 429 || error.code === 'DOWNLOAD_FAILED';
+/** What the user reads when an export fails, and whether trying again can help. `label` names the file: "PDF", "Word file". */
+export function exportFailure(error: unknown, label: string): { message: string; retryable: boolean } {
+  if (error instanceof ServerExportError && error.code !== 'DOWNLOAD_FAILED' && error.code !== 'EMPTY_FILE') {
+    if (error.status === 429) return { message: 'Too many downloads at once. Try again in a minute.', retryable: true };
+    if (error.status === 401) return { message: 'Your session expired. Sign in again to download.', retryable: false };
+    if (error.status === 413) return { message: `The ${label} is too large to export.`, retryable: false };
+    if (error.status === 404) return { message: `We couldn't find this application. Reload the page and try again.`, retryable: false };
+    if (error.status >= 400 && error.status < 500) return { message: `The ${label} couldn't be exported as it is.`, retryable: false };
+  }
+  // Renderer down, storage error, an empty file or no network: the same request can work in a moment.
+  return { message: `The ${label} didn't build. Try again in a moment.`, retryable: true };
 }
 
-export function trackExportFallback(format: ServerExportFormat, error: unknown): void {
+interface ErrorToast {
+  error: (message: string, duration?: number, actions?: Array<{ label: string; onClick: () => void }>) => void;
+}
+
+/** Shows the failure, with a Try again button when trying again can help. */
+export function notifyExportFailure(toast: ErrorToast, error: unknown, label: string, retry: () => void): void {
+  const { message, retryable } = exportFailure(error, label);
+  toast.error(message, retryable ? 10000 : 7000, retryable ? [{ label: 'Try again', onClick: retry }] : undefined);
+}
+
+export function trackExportFailure(format: ServerExportFormat, error: unknown): void {
   try {
-    posthog.capture('export_fallback_used', {
+    posthog.capture('export_failed', {
       format,
       status: error instanceof ServerExportError ? error.status : null,
       code: error instanceof ServerExportError ? error.code : 'network',
