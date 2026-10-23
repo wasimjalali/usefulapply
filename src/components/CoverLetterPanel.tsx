@@ -164,8 +164,8 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     return () => window.clearInterval(id);
   }, []);
 
-  // Fixed to the viewport so the kit toolbar's overflow-x-auto and the
-  // document scroller below it cannot clip or paint over the menu.
+  // Fixed to the viewport so the canvas column and the document scroller
+  // below the kit toolbar cannot clip or paint over the menu.
   useLayoutEffect(() => {
     if (!showDownloadMenu) return;
     const place = () => {

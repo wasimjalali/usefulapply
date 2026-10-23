@@ -134,17 +134,18 @@ async function expectCanvasView(page: Page, viewport: number) {
 }
 
 /**
- * Every control in the canvas's header rows (the tabs, the CV header, the toolbar that `anchor` names a button of)
- * sits wholly inside its row and the canvas, and no row scrolls sideways to hide one.
+ * Every control in the canvas's header rows (the tab row with Download all, the CV header, the toolbar) sits wholly
+ * inside its row and the canvas, and no row scrolls sideways to hide one. `anchor` must be in the toolbar, so the
+ * check runs against a filled row.
  */
 async function expectToolbarFits(page: Page, anchor = 'Edit') {
-  const report = await canvas(page).getByRole('button', { name: anchor, exact: true }).evaluate((button) => {
-    const toolbar = button.parentElement as HTMLElement;
-    const column = (button.closest('[data-shell-column="canvas"]') as HTMLElement).getBoundingClientRect();
-    const rows = [
-      toolbar,
-      ...Array.from(document.querySelectorAll<HTMLElement>('[data-shell-column="canvas"]:not([inert]) [role="tablist"], [data-shell-column="canvas"]:not([inert]) .\\@container')),
-    ];
+  await expect(canvas(page).locator('[data-canvas-toolbar]').getByRole('button', { name: anchor, exact: true })).toBeVisible();
+  const report = await canvas(page).evaluate((section) => {
+    const column = section.getBoundingClientRect();
+    const toolbar = section.querySelector<HTMLElement>('[data-canvas-toolbar]');
+    const tabRow = section.querySelector<HTMLElement>('[role="tablist"]')?.parentElement;
+    if (!toolbar || !tabRow) throw new Error('the canvas has no toolbar or tab row');
+    const rows = [toolbar, tabRow, ...Array.from(section.querySelectorAll<HTMLElement>('.\\@container'))];
     const outside: string[] = [];
     for (const row of rows) {
       const bounds = row.getBoundingClientRect();
@@ -334,6 +335,8 @@ test('(l1-l3) chat and canvas take turns at 1104px and below and sit side by sid
   const cvTab = await box(page.getByRole('tab', { name: 'CV', exact: true }));
   expect((await box(page.getByRole('tab', { name: 'Cover letter' }))).height).toBe(cvTab.height);
   await expectNoSideScroll(page);
+  // Above the breakpoint the canvas can still be narrower than the full toolbar (about 655px here): it wraps too.
+  await expectToolbarFits(page);
   await shot(page, '1280-both');
 
   await recordPaints(page, '1280-collapse-canvas', () => collapseCanvas(page).click());

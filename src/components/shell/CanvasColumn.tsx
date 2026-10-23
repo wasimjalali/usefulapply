@@ -213,7 +213,7 @@ export function CanvasColumn({
               <div className="flex items-center gap-2 border-b border-cream-200 px-5 py-2.5">
                 {/* Wraps rather than scrolls, so every control stays in sight at any canvas width. A container,
                     so panels can tighten labels against the row's own width (CVPanel's downloads). */}
-                <div ref={setToolbarNode} className="@container flex min-w-0 flex-1 flex-wrap items-center gap-2" />
+                <div ref={setToolbarNode} data-canvas-toolbar className="@container flex min-w-0 flex-1 flex-wrap items-center gap-2" />
               </div>
             </div>
           </>
