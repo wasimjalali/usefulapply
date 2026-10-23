@@ -101,6 +101,24 @@ export function checkGerman(reply: string): GermanVerdict {
 }
 
 /**
+ * English when: English function words beat the German evidence over the reply, and no sentence is German-dominant
+ * (two or more German markers and more of them than English words, or German with no English at all). The mirror of
+ * checkGerman, for a turn written in English after a German conversation.
+ */
+export function checkEnglish(reply: string): GermanVerdict {
+  const total = languageScore(reply);
+  const german = total.de + total.umlauts;
+  if (total.en === 0) return { ok: false, reason: 'no English evidence' };
+  if (german >= total.en) return { ok: false, reason: `German evidence (${german}) matches or beats English function words (${total.en})` };
+  for (const s of pieces(reply)) {
+    const score = languageScore(s);
+    const de = score.de + score.umlauts;
+    if ((de >= 2 && de > score.en) || (de >= 1 && score.en === 0 && words(s).length >= 3)) return { ok: false, reason: `German sentence: "${s.slice(0, 70)}"` };
+  }
+  return { ok: true, reason: 'english' };
+}
+
+/**
  * Sentences in a reply. sentenceCount (the old grader's) counts "e.g. x" as two and "- a\n- b" as one, so first:
  * abbreviations are folded away, and every line counts on its own (a list item with no full stop is a sentence,
  * a heading is one too). Lines are the unit because the model writes paragraphs on one line.

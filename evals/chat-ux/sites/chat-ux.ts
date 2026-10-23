@@ -1,5 +1,5 @@
 /**
- * Site: chat UX pass (src/app/api/chat/route.ts, the shipped POST handler, with its real tools), 34 turns.
+ * Site: chat UX pass (src/app/api/chat/route.ts, the shipped POST handler, with its real tools), 40 turns.
  * Cases and what each checks: fixtures/cases.ts. The header of run.ts has the commands.
  *
  * Built on the 2026-10-22 chat site (haiku-55-swap/sites/chat.ts): it reuses that site's setup (local D1 built
@@ -30,7 +30,7 @@ import { FIXED_NOW, TRACKER_ROWS, rowId } from '../../haiku-55-swap/fixtures/tra
 import { OPEN_APPLICATION_ID, TAILORED_CV, TIME_ZONE, WRITE_TOOLS } from '../../haiku-55-swap/fixtures/chat';
 import type { Site } from '../../haiku-55-swap/lib/runner';
 import { REPO_ROOT } from '../../haiku-55-swap/lib/core';
-import { checkGerman, checkGermanSummary, countSentences, DASH_RE } from '../lib/checks';
+import { checkEnglish, checkGerman, checkGermanSummary, countSentences, DASH_RE } from '../lib/checks';
 import { CASES, EXPECTED, KNOWN_TOOLS, OFFER_SCREENING_TOOL, SCREENING_CHIP, type UxCase } from '../fixtures/cases';
 
 const RESULTS_ROOT_UX = join(REPO_ROOT, 'evals', 'results', '2026-10-23-chat-ux');
@@ -133,6 +133,13 @@ export function gradeUx(c: UxCase, input: TurnInput): Graded {
     const verdict = checkGerman(reply);
     if (!verdict.ok) failures.push(`reply is not German (${verdict.reason})`);
     metrics.german_ok = verdict.ok ? 1 : 0;
+    if (c.category === 'switch') metrics.switch_language_ok = verdict.ok ? 1 : 0;
+  }
+  if (r?.english) {
+    const verdict = checkEnglish(reply);
+    if (!verdict.ok) failures.push(`reply is not English (${verdict.reason})`);
+    metrics.english_ok = verdict.ok ? 1 : 0;
+    if (c.category === 'switch') metrics.switch_language_ok = verdict.ok ? 1 : 0;
   }
   let patternsOk = true;
   for (const re of r?.mustMatch ?? []) if (!re.test(reply)) { failures.push(`reply does not match ${re}`); patternsOk = false; }
@@ -233,7 +240,7 @@ function selfTestChecks(): string[] {
 
 export const chatUxSite: Site<UxCase> = {
   id: 'chat_ux',
-  title: 'Chat UX pass, 34 turns in 9 conversations through the real route and tools',
+  title: 'Chat UX pass, 40 turns in 11 conversations through the real route and tools',
   command: 'npx tsx evals/chat-ux/run.ts chat-ux --allow-anthropic-api',
   runsDefault: 3,
   passRule:
@@ -266,6 +273,7 @@ export const chatUxSite: Site<UxCase> = {
     must(n((c) => c.category === 'screening_neg') === EXPECTED.screeningNeg, `expected ${EXPECTED.screeningNeg} negative screening turns`);
     must(n((c) => c.category === 'claims') === EXPECTED.claims, `expected ${EXPECTED.claims} claims turns`);
     must(n((c) => c.category === 'compaction') === EXPECTED.compaction, `expected ${EXPECTED.compaction} compaction turn`);
+    must(n((c) => c.category === 'switch') === EXPECTED.switch, `expected ${EXPECTED.switch} language-switch turns`);
     const known = new Set(KNOWN_TOOLS);
     const turnsSeen = new Map<string, number>();
     for (const c of CASES) {

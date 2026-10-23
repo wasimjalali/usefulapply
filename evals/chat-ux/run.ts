@@ -1,6 +1,6 @@
 /**
  * Chat UX evals: German replies, reply length, the screening offer, unverified claims, and compaction in German.
- * 34 turns in 9 conversations through the real /api/chat route, its tools and a local D1. Haiku 5.5 at the shipped
+ * 40 turns in 11 conversations through the real /api/chat route, its tools and a local D1. Haiku 5.5 at the shipped
  * chat effort (low) only. Cases: evals/chat-ux/fixtures/cases.ts. Site and graders: sites/chat-ux.ts, lib/checks.ts.
  * The lib is the 2026-10-22 harness's (evals/haiku-55-swap/lib), imported, not copied.
  *
