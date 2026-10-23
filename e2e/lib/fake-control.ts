@@ -14,6 +14,10 @@ export interface FakeCall {
   stream: boolean;
   /** primaryStreamCut cut this streaming request: the socket was reset after half of the text. */
   streamCut: boolean;
+  /** streamFault hit this streamed answer ('error' or 'idle'), or null. */
+  streamFault: string | null;
+  /** The text chunks a streamed answer sent, in order. */
+  streamedText: string[];
   /** The first message of the request. */
   user: string;
   /** The newest user text and every user text the model was shown. */
@@ -86,6 +90,15 @@ export interface FakeControl {
    * `writer` limits it to one writer. The SDK does not retry after the headers, so count 1 cuts one logical call.
    */
   primaryStreamCut?: { count: number; skip?: number; writer?: string } | null;
+  /** A streamed Haiku answer sends its text a few words at a time, this many ms apart (default 15). */
+  streamChunkMs?: number;
+  /**
+   * Break the next `count` streamed Haiku answers (after `skip`), on the Anthropic API unless `provider` says Bedrock:
+   * 'error' sends a stream error event (api_error) and ends the body, 'idle' sends nothing for `idleMs` and then
+   * carries on. 'before_text' breaks after the thinking block, 'after_text' after `afterChunks` text chunks (default 1).
+   * null clears it.
+   */
+  streamFault?: { kind: 'error' | 'idle'; when: 'before_text' | 'after_text'; count: number; skip?: number; writer?: string; provider?: 'anthropic' | 'bedrock'; idleMs?: number; afterChunks?: number } | null;
   /** POST /v1/user_profiles answers `status` to the next `count` creates. null clears it. */
   profileCreateFail?: { status: 500 | 529 | 400; count: number } | null;
   /** Hold every profile create this long before answering. */

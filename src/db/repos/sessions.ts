@@ -481,12 +481,25 @@ export async function storeChatReply(
   userId: string,
   sessionId: string,
   message: { id: string; content: string; actions: unknown[] },
+  /**
+   * The user message this replies to. The reply sorts 1 ms after it, so a turn that finishes after the user already
+   * sent the next message (a streamed turn keeps running when its client leaves) still reads in order. Without it, or
+   * when that row is gone, the reply sorts at the time it is written.
+   */
+  afterMessageId?: string,
 ): Promise<boolean> {
   if (!isChatMessageId(message.id)) throw new Error('storeChatReply: invalid chat message id');
   const db = await getDb();
+  const createdAt = afterMessageId
+    ? sql`COALESCE((
+        SELECT strftime('%Y-%m-%dT%H:%M:%fZ', julianday(u.created_at) + 0.001 / 86400.0)
+        FROM chat_messages u
+        WHERE u.id = ${afterMessageId} AND u.session_id = s.id AND u.user_id = s.user_id
+      ), ${nowIso()})`
+    : sql`${nowIso()}`;
   const stored = await db.run(sql`
     INSERT INTO chat_messages (id, session_id, user_id, role, content, actions, created_at)
-    SELECT ${message.id}, s.id, s.user_id, 'assistant', ${message.content}, ${JSON.stringify(message.actions)}, ${nowIso()}
+    SELECT ${message.id}, s.id, s.user_id, 'assistant', ${message.content}, ${JSON.stringify(message.actions)}, ${createdAt}
     FROM application_sessions s
     WHERE s.id = ${sessionId} AND s.user_id = ${userId}
     ON CONFLICT(id) DO NOTHING
