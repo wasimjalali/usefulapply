@@ -23,6 +23,7 @@ import {
   deriveApplicationStatus,
   statusPillClass,
 } from '@/components/shell/application-status';
+import { SIDEBAR_WIDTH } from '@/components/shell/dimensions';
 
 interface SidebarProps {
   isWorking?: boolean;
@@ -148,7 +149,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
 
   return (
     <>
-    <aside className="flex h-full w-[224px] flex-shrink-0 flex-col border-r border-cream-200 bg-cream-100 px-2.5 pb-2.5 pt-3">
+    <aside style={{ width: SIDEBAR_WIDTH }} className="flex h-full flex-shrink-0 flex-col border-r border-cream-200 bg-cream-100 px-2.5 pb-2.5 pt-3">
       <div className="px-2 py-1">
         <button
           type="button"

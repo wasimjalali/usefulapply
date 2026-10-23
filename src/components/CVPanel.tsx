@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { openSettings } from '@/store/useSettingsStore';
 import { Card } from './ui/Card';
@@ -100,6 +100,13 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const isEditModeRef = useRef(false);
   useEffect(() => { isEditModeRef.current = isEditMode; }, [isEditMode]);
   const [showFullPreview, setShowFullPreview] = useState(false);
+  // Compact, the canvas folds with this panel still mounted behind its rail.
+  // The full preview is portaled out of the canvas, where inert can't reach
+  // it, so it closes with the fold.
+  const canvasCollapsed = useUIStore((s) => s.canvasCollapsed);
+  useEffect(() => {
+    if (canvasCollapsed) setShowFullPreview(false);
+  }, [canvasCollapsed]);
   const [editedCVData, setEditedCVData] = useState<CVData | null>(null);
   const cvTemplateRef = useRef<HTMLDivElement>(null);
   const editableCVRef = useRef<EditableCVCanvasRef>(null);
@@ -136,34 +143,49 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   // Responsive CV scaling — JS-based because CSS transform: scale can't dynamically
   // compensate for the CV template's fixed width (8.5in / 210mm).
   const cvContainerRef = useRef<HTMLDivElement>(null);
+  // The view container mounts only once there is a CV to show, which on a
+  // fresh device is after the session loads. Held in state too, so the scale
+  // effect runs again when it appears instead of never observing it.
+  const [cvContainerNode, setCvContainerNode] = useState<HTMLDivElement | null>(null);
+  const attachCvContainer = useCallback((node: HTMLDivElement | null) => {
+    cvContainerRef.current = node;
+    setCvContainerNode(node);
+  }, []);
   const cvWrapperRef = useRef<HTMLDivElement>(null);
   const [cvScale, setCvScale] = useState(1);
   const [cvScaledHeight, setCvScaledHeight] = useState<number | null>(null);
 
-  useEffect(() => {
+  // A layout effect, so the first paint already has the page scaled: measured
+  // only after paint, a canvas narrower than the page flashed it at full size.
+  useLayoutEffect(() => {
     let rafId: number | null = null;
+
+    const measure = () => {
+      if (!cvContainerRef.current || !cvWrapperRef.current) return;
+      const containerWidth = cvContainerRef.current.clientWidth;
+      // scrollWidth gives the actual rendered width, unaffected by transform: scale
+      const naturalWidth = cvWrapperRef.current.scrollWidth;
+      const naturalHeight = cvWrapperRef.current.scrollHeight;
+      if (containerWidth > 0 && naturalWidth > 0 && containerWidth < naturalWidth) {
+        const newScale = containerWidth / naturalWidth;
+        setCvScale(newScale);
+        setCvScaledHeight(naturalHeight > 0 ? Math.ceil(naturalHeight * newScale) : null);
+      } else {
+        setCvScale(1);
+        setCvScaledHeight(null);
+      }
+    };
 
     const updateScale = () => {
       if (rafId !== null) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
         rafId = null;
-        if (!cvContainerRef.current || !cvWrapperRef.current) return;
-        const containerWidth = cvContainerRef.current.clientWidth;
-        // scrollWidth gives the actual rendered width, unaffected by transform: scale
-        const naturalWidth = cvWrapperRef.current.scrollWidth;
-        const naturalHeight = cvWrapperRef.current.scrollHeight;
-        if (containerWidth > 0 && naturalWidth > 0 && containerWidth < naturalWidth) {
-          const newScale = containerWidth / naturalWidth;
-          setCvScale(newScale);
-          setCvScaledHeight(naturalHeight > 0 ? Math.ceil(naturalHeight * newScale) : null);
-        } else {
-          setCvScale(1);
-          setCvScaledHeight(null);
-        }
+        measure();
       });
     };
 
-    // Delay slightly so the CV template renders at its natural size first
+    measure();
+    // Measure again once fonts and the photo have settled the template's size
     const timer = setTimeout(updateScale, 50);
     // Watch container width changes (window resize, chat panel resize)
     const roContainer = new ResizeObserver(updateScale);
@@ -177,8 +199,9 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
       roContainer.disconnect();
       roWrapper.disconnect();
     };
-  // selectedTemplateId triggers re-mount of CVTemplateRenderer; ResizeObserver handles rest
-  }, [selectedTemplateId]);
+  // selectedTemplateId triggers re-mount of CVTemplateRenderer, and the view
+  // container can mount late (see attachCvContainer); ResizeObserver handles rest
+  }, [selectedTemplateId, cvContainerNode]);
 
   // Refresh photo URL when a Supabase signed URL has expired (long sessions).
   // base64 data URLs are always valid; only re-check external URLs.
@@ -385,8 +408,9 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           Tailored
         </button>
       </div>
+      {/* Only where the row has room for it: squeezed, it shrank to a stray glyph. */}
       {currentSession?.company && (
-        <span className="truncate text-[13px] text-warm-gray">Tailored for {currentSession.company}.</span>
+        <span className="hidden truncate text-[13px] text-warm-gray @[35rem]:block">Tailored for {currentSession.company}.</span>
       )}
       <div className="flex-1" />
       {(atsScore !== null || hasAtsInsights) && onOpenAts && (
@@ -514,7 +538,9 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
             ) : (
               <Download className="w-4 h-4" />
             )}
-            Download PDF
+            {/* A narrow toolbar drops the shared "Download" (the icon and the title carry it), so the row breaks
+                into two clean lines instead of orphaning a button. Screen readers still hear the whole name. */}
+            <span><span className="@max-[50rem]:sr-only">Download </span>PDF</span>
           </button>
           <button
             type="button"
@@ -528,7 +554,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
             ) : (
               <FileType2 className="w-4 h-4" />
             )}
-            Download Word
+            <span><span className="@max-[50rem]:sr-only">Download </span>Word</span>
           </button>
         </>
       )}
@@ -699,7 +725,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                 </div>
               ) : cvData ? (
                 /* View Mode - Template Preview */
-                <div ref={cvContainerRef} className="flex flex-col items-center">
+                <div ref={attachCvContainer} className="flex flex-col items-center">
                   {/* Size wrapper: reserves the correct visual space after scaling,
                       and clips the layout overflow that transform: scale doesn't affect */}
                   <div
