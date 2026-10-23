@@ -166,7 +166,7 @@ function seedLongHistory(userId: string, sessionId: string, notes: number): void
 const chatCallsSince = async (since: string): Promise<FakeCall[]> =>
   (await fakeCalls()).filter((call) => call.kind === 'messages' && call.writer === 'chat' && call.at >= since);
 
-interface FrameSample { t: number; count: number; len: number; top: number | null; scrollTop: number; stopped: number }
+interface FrameSample { t: number; count: number; len: number; top: number | null; scrollTop: number; stopped: number; thinking: boolean }
 
 /** Samples every animation frame of the chat scroller: the reply bubbles that contain `mark`, and where they sit. */
 async function startSampling(page: Page, mark: string): Promise<void> {
@@ -185,6 +185,7 @@ async function startSampling(page: Page, mark: string): Promise<void> {
         top: bubble ? Math.round(bubble.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop) : null,
         scrollTop: Math.round(scroller.scrollTop),
         stopped: bubbles.filter((el) => (el.textContent ?? '').includes('Stopped')).length,
+        thinking: (scroller.textContent ?? '').includes('Useful Apply is thinking...'),
       });
       if (w.__sampling) requestAnimationFrame(tick);
     };
@@ -388,6 +389,9 @@ test.describe.serial('chat replies stream as they are written', () => {
         const lengths = [...new Set(shown.map((sample) => sample.len))];
         expect(lengths.length).toBeGreaterThanOrEqual(5);
         for (let i = 1; i < shown.length; i += 1) expect(shown[i].len, `frame ${i}`).toBeGreaterThanOrEqual(shown[i - 1].len);
+        // Once the reply shows, the generic typing indicator never comes back (a frame of it under the landed reply).
+        const firstShown = samples.findIndex((sample) => sample.count > 0);
+        expect(samples.slice(firstShown).filter((sample) => sample.thinking)).toHaveLength(0);
         // The bubble sits at one place in the conversation from its first frame to the last: no jump at the swap.
         expect(new Set(shown.map((sample) => sample.top)).size, JSON.stringify([...new Set(shown.map((sample) => sample.top))])).toBe(1);
         const finalText = await recPage.locator('[data-chat-scroll] .group\\/msg', { hasText: MARK }).innerText();

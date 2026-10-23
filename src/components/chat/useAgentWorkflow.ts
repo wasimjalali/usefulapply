@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useState, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { useAppStore } from '@/store/useAppStore';
 import { useSessionStore, type ApplicationSession, type ChatAction, type ChatMessage } from '@/store/useSessionStore';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
@@ -775,8 +776,16 @@ export function useAgentWorkflow(options?: {
           onTurn: (event) => showStoredTurn(event.storedUserMessage),
           onDelta: (text) => useStreamingReply.getState().append(streamTurnId, text),
           onStatus: (status) => useStreamingReply.getState().setStatus(streamTurnId, status),
-          onDone: (event) => handleReply(event as unknown as Parameters<typeof handleReply>[0]),
-          onError: (event) => handleFailure(event),
+          // The bubble, the typing state and the landed message change in one commit: a render between them would
+          // flash the typing indicator under the finished reply, or show the reply twice.
+          onDone: (event) => flushSync(() => {
+            handleReply(event as unknown as Parameters<typeof handleReply>[0]);
+            setIsTyping(false);
+          }),
+          onError: (event) => flushSync(() => {
+            handleFailure(event);
+            setIsTyping(false);
+          }),
           // No byte for longer than the server's own idle limit plus its heartbeat: the connection is gone.
           onIdle: () => {
             idledOut = true;
@@ -784,7 +793,12 @@ export function useAgentWorkflow(options?: {
           },
         });
         // The server always ends a turn with done or error. A stream that just stopped was cut on the way.
-        if (!ended) handleFailure({ code: 'CHAT_STREAM_INTERRUPTED' });
+        if (!ended) {
+          flushSync(() => {
+            handleFailure({ code: 'CHAT_STREAM_INTERRUPTED' });
+            setIsTyping(false);
+          });
+        }
       } else if (response.ok) {
         handleReply(await response.json());
       } else {
@@ -794,10 +808,13 @@ export function useAgentWorkflow(options?: {
       if (error instanceof Error && error.name === 'AbortError') {
         // Stop keeps what was shown (handleStopGeneration). The idle watchdog says what happened.
         if (idledOut) {
-          useStreamingReply.getState().clearTurn(streamTurnId);
-          addFailureReply({
-            role: 'assistant',
-            content: "I lost the connection to the reply. Your message is saved, so try again.",
+          flushSync(() => {
+            useStreamingReply.getState().clearTurn(streamTurnId);
+            addFailureReply({
+              role: 'assistant',
+              content: "I lost the connection to the reply. Your message is saved, so try again.",
+            });
+            setIsTyping(false);
           });
         }
         return;
