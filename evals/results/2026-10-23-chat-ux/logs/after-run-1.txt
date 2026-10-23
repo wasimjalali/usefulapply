@@ -1,0 +1,111 @@
+chat tools registered: 24; offer_screening_answers present
+{"event":"anthropic_user_profile_created","user_id":"eval-chat-user","profile_id":"uprof_011CgKKQW5P19husCQ3tgFgV"}
+[providers] Bedrock failover is off: set AWS_BEARER_TOKEN_BEDROCK, or AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, to enable it
+chat_ux haiku-low r1 de-en-ad/g01 FAIL (reply mentions a button, but the response carries none) 5745ms
+chat_ux haiku-low r1 de-en-ad/g02 PASS 2865ms
+chat_ux haiku-low r1 de-en-ad/g03 FAIL (reply mentions a button, but the response carries none) 6236ms
+chat_ux haiku-low r1 de-en-ad/g04 PASS 4855ms
+chat_ux haiku-low r1 de-tracker/g05 PASS 4912ms
+chat_ux haiku-low r1 de-tracker/g06 FAIL (reply has 7 sentences, max 3) 6498ms
+chat_ux haiku-low r1 de-tracker/g07 PASS 5001ms
+chat_ux haiku-low r1 de-tracker/g08 FAIL (reply has 9 sentences, max 3) 12450ms
+chat_ux haiku-low r1 de-cv-en/g09 PASS 4508ms
+chat_ux haiku-low r1 de-cv-en/g10 PASS 1924ms
+chat_ux haiku-low r1 de-cv-en/g11 FAIL (reply has 5 sentences, max 3) 5225ms
+chat_ux haiku-low r1 de-cv-en/g12 PASS 4197ms
+chat_ux haiku-low r1 len-en/l01 FAIL (reply has 4 sentences, max 3) 3342ms
+chat_ux haiku-low r1 len-en/l02 PASS 3414ms
+chat_ux haiku-low r1 len-en/l03 FAIL (reply has 4 sentences, max 3) 4304ms
+chat_ux haiku-low r1 len-en/l04 PASS 4201ms
+chat_ux haiku-low r1 len-en/l05 PASS 8199ms
+chat_ux haiku-low r1 len-en/l06 PASS 4449ms
+chat_ux haiku-low r1 len-en/l07 FAIL (reply has 5 sentences, max 3) 3933ms
+chat_ux haiku-low r1 len-en/l08 PASS 5659ms
+chat_ux haiku-low r1 scr-en/s01 PASS 4992ms
+chat_ux haiku-low r1 scr-en/s02 PASS 3271ms
+chat_ux haiku-low r1 scr-en/s03 FAIL (called forbidden tool(s): offer_screening_answers; response carries a start-screening-flow chip) 3308ms
+chat_ux haiku-low r1 scr-en/s04 PASS 2624ms
+chat_ux haiku-low r1 scr-en/s05 PASS 6079ms
+chat_ux haiku-low r1 scr-en/s09 PASS 3480ms
+chat_ux haiku-low r1 scr-de/s06 PASS 4029ms
+chat_ux haiku-low r1 scr-de/s07 PASS 3874ms
+chat_ux haiku-low r1 scr-de/s08 PASS 3978ms
+chat_ux haiku-low r1 claims-en/k01 FAIL (reply matches /\b(?:two|three|four|five|2|3|4|5)\s+(?:(?:application|follow[- ]?up|different|separate)\s+)?(?:e-?mails?|documents?|letters?|) 1819ms
+chat_ux haiku-low r1 claims-en/k02 PASS 2522ms
+chat_ux haiku-low r1 claims-de/k03 PASS 3602ms
+chat_ux haiku-low r1 claims-de/k04 PASS 4131ms
+chat_ux haiku-low r1 compaction-de/x01 PASS 6248ms
+chat_ux haiku-low r2 de-en-ad/g01 PASS 6128ms
+chat_ux haiku-low r2 de-en-ad/g02 PASS 2578ms
+chat_ux haiku-low r2 de-en-ad/g03 PASS 3205ms
+chat_ux haiku-low r2 de-en-ad/g04 PASS 6775ms
+chat_ux haiku-low r2 de-tracker/g05 PASS 3417ms
+chat_ux haiku-low r2 de-tracker/g06 PASS 6010ms
+chat_ux haiku-low r2 de-tracker/g07 FAIL (did not call set_application_status; response lacks the tracker_updated effect; zapwerk status applied, expected rejected) 5555ms
+chat_ux haiku-low r2 de-tracker/g08 PASS 13546ms
+chat_ux haiku-low r2 de-cv-en/g09 PASS 4182ms
+chat_ux haiku-low r2 de-cv-en/g10 PASS 2837ms
+chat_ux haiku-low r2 de-cv-en/g11 FAIL (reply is not German (no German evidence)) 3874ms
+chat_ux haiku-low r2 de-cv-en/g12 PASS 3405ms
+chat_ux haiku-low r2 len-en/l01 PASS 5333ms
+chat_ux haiku-low r2 len-en/l02 PASS 2716ms
+chat_ux haiku-low r2 len-en/l03 FAIL (reply has 4 sentences, max 3) 5416ms
+chat_ux haiku-low r2 len-en/l04 FAIL (reply has 4 sentences, max 3) 2974ms
+chat_ux haiku-low r2 len-en/l05 FAIL (reply has 4 sentences, max 3) 13652ms
+chat_ux haiku-low r2 len-en/l06 FAIL (reply has 4 sentences, max 3) 4765ms
+chat_ux haiku-low r2 len-en/l07 PASS 5818ms
+chat_ux haiku-low r2 len-en/l08 PASS 5695ms
+chat_ux haiku-low r2 scr-en/s01 FAIL (reply has 8 sentences, max 3) 4633ms
+chat_ux haiku-low r2 scr-en/s02 PASS 2645ms
+chat_ux haiku-low r2 scr-en/s03 FAIL (called forbidden tool(s): offer_screening_answers; response carries a start-screening-flow chip) 4420ms
+chat_ux haiku-low r2 scr-en/s04 PASS 2978ms
+chat_ux haiku-low r2 scr-en/s05 FAIL (reply has 4 sentences, max 3) 3349ms
+chat_ux haiku-low r2 scr-en/s09 PASS 2785ms
+chat_ux haiku-low r2 scr-de/s06 FAIL (reply has 8 sentences, max 3) 4661ms
+chat_ux haiku-low r2 scr-de/s07 PASS 3457ms
+chat_ux haiku-low r2 scr-de/s08 PASS 3303ms
+chat_ux haiku-low r2 claims-en/k01 FAIL (reply matches /\b(?:two|three|four|five|2|3|4|5)\s+(?:(?:application|follow[- ]?up|different|separate)\s+)?(?:e-?mails?|documents?|letters?|) 2077ms
+chat_ux haiku-low r2 claims-en/k02 PASS 2532ms
+chat_ux haiku-low r2 claims-de/k03 PASS 5687ms
+chat_ux haiku-low r2 claims-de/k04 PASS 4766ms
+chat_ux haiku-low r2 compaction-de/x01 PASS 19383ms
+chat_ux haiku-low r3 de-en-ad/g01 FAIL (reply mentions a button, but the response carries none) 4277ms
+chat_ux haiku-low r3 de-en-ad/g02 PASS 3472ms
+chat_ux haiku-low r3 de-en-ad/g03 PASS 4031ms
+chat_ux haiku-low r3 de-en-ad/g04 PASS 4553ms
+chat_ux haiku-low r3 de-tracker/g05 PASS 3585ms
+chat_ux haiku-low r3 de-tracker/g06 FAIL (reply has 7 sentences, max 3) 7520ms
+chat_ux haiku-low r3 de-tracker/g07 PASS 5335ms
+chat_ux haiku-low r3 de-tracker/g08 FAIL (reply has 4 sentences, max 3) 9796ms
+chat_ux haiku-low r3 de-cv-en/g09 PASS 4344ms
+chat_ux haiku-low r3 de-cv-en/g10 PASS 3687ms
+chat_ux haiku-low r3 de-cv-en/g11 PASS 4279ms
+chat_ux haiku-low r3 de-cv-en/g12 FAIL (reply mentions a button, but the response carries none) 3423ms
+chat_ux haiku-low r3 len-en/l01 FAIL (reply has 4 sentences, max 3) 3363ms
+chat_ux haiku-low r3 len-en/l02 PASS 3535ms
+chat_ux haiku-low r3 len-en/l03 PASS 5474ms
+chat_ux haiku-low r3 len-en/l04 PASS 4214ms
+chat_ux haiku-low r3 len-en/l05 FAIL (reply has 4 sentences, max 3) 9159ms
+chat_ux haiku-low r3 len-en/l06 PASS 4157ms
+chat_ux haiku-low r3 len-en/l07 FAIL (reply has 4 sentences, max 3) 7475ms
+chat_ux haiku-low r3 len-en/l08 PASS 3831ms
+chat_ux haiku-low r3 scr-en/s01 PASS 6998ms
+chat_ux haiku-low r3 scr-en/s02 PASS 2369ms
+chat_ux haiku-low r3 scr-en/s03 FAIL (called forbidden tool(s): offer_screening_answers; response carries a start-screening-flow chip) 4497ms
+chat_ux haiku-low r3 scr-en/s04 FAIL (reply has 4 sentences, max 3) 5183ms
+chat_ux haiku-low r3 scr-en/s05 PASS 3578ms
+chat_ux haiku-low r3 scr-en/s09 PASS 5897ms
+chat_ux haiku-low r3 scr-de/s06 FAIL (reply has 5 sentences, max 3) 3636ms
+chat_ux haiku-low r3 scr-de/s07 PASS 3182ms
+chat_ux haiku-low r3 scr-de/s08 PASS 2870ms
+chat_ux haiku-low r3 claims-en/k01 FAIL (reply matches /\b(?:two|three|four|five|2|3|4|5)\s+(?:(?:application|follow[- ]?up|different|separate)\s+)?(?:e-?mails?|documents?|letters?|) 3300ms
+chat_ux haiku-low r3 claims-en/k02 PASS 2271ms
+chat_ux haiku-low r3 claims-de/k03 PASS 3799ms
+chat_ux haiku-low r3 claims-de/k04 PASS 3707ms
+chat_ux haiku-low r3 compaction-de/x01 PASS 19327ms
+wrote /Users/wasimjalali/Desktop/Useful_Apply/.claude/worktrees/chat-ux-pass-6f5301/evals/results/2026-10-23-chat-ux/chat_ux/run-1.json
+
+== chat_ux ==
+arm                 pass        hard                     p50/p95 call ms   $/call    hit%  warm%
+haiku-low           70/102      0                        2355/6498         0.00056   85   90
+decision (rule fixed before running): haiku-low

@@ -1,0 +1,75 @@
+chat tools registered: 24; offer_screening_answers present
+{"event":"anthropic_user_profile_created","user_id":"eval-chat-user","profile_id":"uprof_011CgKXM3gT8jwKYWyMHyAaw"}
+[providers] Bedrock failover is off: set AWS_BEARER_TOKEN_BEDROCK, or AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, to enable it
+chat_ux haiku-low r1 de-en-ad/g01 PASS 6296ms
+chat_ux haiku-low r1 de-en-ad/g02 PASS 3857ms
+chat_ux haiku-low r1 de-en-ad/g03 PASS 5271ms
+chat_ux haiku-low r1 de-en-ad/g04 PASS 6278ms
+chat_ux haiku-low r1 de-tracker/g05 PASS 3256ms
+chat_ux haiku-low r1 de-tracker/g06 PASS 5621ms
+chat_ux haiku-low r1 de-tracker/g07 PASS 5426ms
+chat_ux haiku-low r1 de-tracker/g08 PASS 12100ms
+chat_ux haiku-low r1 de-cv-en/g09 PASS 2902ms
+chat_ux haiku-low r1 de-cv-en/g10 PASS 1895ms
+chat_ux haiku-low r1 de-cv-en/g11 PASS 3645ms
+chat_ux haiku-low r1 de-cv-en/g12 PASS 1741ms
+chat_ux haiku-low r1 switch-en-de/w01 PASS 3266ms
+chat_ux haiku-low r1 switch-en-de/w02 PASS 3703ms
+chat_ux haiku-low r1 switch-en-de/w03 PASS 3937ms
+chat_ux haiku-low r1 switch-de-en/w04 FAIL (reply is not English (only 1 English marker(s) in 21 words)) 2501ms
+chat_ux haiku-low r1 switch-de-en/w05 PASS 2727ms
+chat_ux haiku-low r1 switch-de-en/w06 FAIL (reply is not English (no English evidence)) 4187ms
+chat_ux haiku-low r1 switch-fallback/w07 FAIL (reply is not German (no German evidence)) 2998ms
+chat_ux haiku-low r1 switch-fallback/w08 PASS 2749ms
+chat_ux haiku-low r1 switch-fallback/w09 PASS 1718ms
+chat_ux haiku-low r1 switch-fallback/w10 PASS 4937ms
+chat_ux haiku-low r2 de-en-ad/g01 PASS 3973ms
+chat_ux haiku-low r2 de-en-ad/g02 PASS 3050ms
+chat_ux haiku-low r2 de-en-ad/g03 PASS 3809ms
+chat_ux haiku-low r2 de-en-ad/g04 PASS 4231ms
+chat_ux haiku-low r2 de-tracker/g05 PASS 5083ms
+chat_ux haiku-low r2 de-tracker/g06 PASS 4921ms
+chat_ux haiku-low r2 de-tracker/g07 PASS 4518ms
+chat_ux haiku-low r2 de-tracker/g08 FAIL (reply has 4 sentences, max 3) 11870ms
+chat_ux haiku-low r2 de-cv-en/g09 PASS 3478ms
+chat_ux haiku-low r2 de-cv-en/g10 PASS 1932ms
+chat_ux haiku-low r2 de-cv-en/g11 PASS 3599ms
+chat_ux haiku-low r2 de-cv-en/g12 PASS 4045ms
+chat_ux haiku-low r2 switch-en-de/w01 FAIL (reply mentions a button, but the response carries none) 3225ms
+chat_ux haiku-low r2 switch-en-de/w02 FAIL (reply mentions a button, but the response carries none) 2967ms
+chat_ux haiku-low r2 switch-en-de/w03 FAIL (reply is not German (no German evidence)) 3983ms
+chat_ux haiku-low r2 switch-de-en/w04 FAIL (reply is not English (only 1 English marker(s) in 22 words)) 4053ms
+chat_ux haiku-low r2 switch-de-en/w05 PASS 4210ms
+chat_ux haiku-low r2 switch-de-en/w06 FAIL (reply is not English (no English evidence)) 5033ms
+chat_ux haiku-low r2 switch-fallback/w07 PASS 4741ms
+chat_ux haiku-low r2 switch-fallback/w08 PASS 2688ms
+chat_ux haiku-low r2 switch-fallback/w09 PASS 1925ms
+chat_ux haiku-low r2 switch-fallback/w10 PASS 6890ms
+chat_ux haiku-low r3 de-en-ad/g01 PASS 5169ms
+chat_ux haiku-low r3 de-en-ad/g02 PASS 3970ms
+chat_ux haiku-low r3 de-en-ad/g03 PASS 7520ms
+chat_ux haiku-low r3 de-en-ad/g04 PASS 3475ms
+chat_ux haiku-low r3 de-tracker/g05 PASS 2969ms
+chat_ux haiku-low r3 de-tracker/g06 PASS 6335ms
+chat_ux haiku-low r3 de-tracker/g07 PASS 7038ms
+chat_ux haiku-low r3 de-tracker/g08 PASS 9369ms
+chat_ux haiku-low r3 de-cv-en/g09 PASS 4820ms
+chat_ux haiku-low r3 de-cv-en/g10 PASS 2851ms
+chat_ux haiku-low r3 de-cv-en/g11 FAIL (reply is not German (no German evidence)) 6108ms
+chat_ux haiku-low r3 de-cv-en/g12 FAIL (reply mentions a button, but the response carries none) 4955ms
+chat_ux haiku-low r3 switch-en-de/w01 PASS 3271ms
+chat_ux haiku-low r3 switch-en-de/w02 PASS 4154ms
+chat_ux haiku-low r3 switch-en-de/w03 PASS 3913ms
+chat_ux haiku-low r3 switch-de-en/w04 PASS 2293ms
+chat_ux haiku-low r3 switch-de-en/w05 FAIL (reply is not English (no English evidence); reply mentions a button, but the response carries none) 2644ms
+chat_ux haiku-low r3 switch-de-en/w06 PASS 3749ms
+chat_ux haiku-low r3 switch-fallback/w07 PASS 2914ms
+chat_ux haiku-low r3 switch-fallback/w08 PASS 4199ms
+chat_ux haiku-low r3 switch-fallback/w09 PASS 2540ms
+chat_ux haiku-low r3 switch-fallback/w10 PASS 4040ms
+wrote /Users/wasimjalali/Desktop/Useful_Apply/.claude/worktrees/lang-before/evals/results/2026-10-23-chat-ux/chat_ux/run-1.json
+
+== chat_ux ==
+arm                 pass        hard                     p50/p95 call ms   $/call    hit%  warm%
+haiku-low           54/66       0                        2223/5851         0.00049   88   89
+decision (rule fixed before running): haiku-low

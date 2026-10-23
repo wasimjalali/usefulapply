@@ -31,7 +31,7 @@ const EN = new Set(
   `the and or of on at is are were be been being you your yours i my we our they their them it its this that these those with for from to not
    can could would should shall may might have has had having do does did done if but by about what which when where how why there then than
    just more most some any each every all here your please thanks thank yes very much many into out up down over under after before while
-   both ready sounds looks great good done
+   both ready sounds looks great good done a only nothing yet next
    because which who whom whose let's it's don't can't won't isn't aren't doesn't didn't i'm i've i'd you're you've we're`.split(/\s+/).filter(Boolean),
 );
 // Words that mean something in both languages (in, an, so, was, war, man, hat, will, bin, die, also, am, no, me) are in neither list.
@@ -98,6 +98,28 @@ export function checkGerman(reply: string): GermanVerdict {
     if (score.en >= 1 && score.de + score.umlauts === 0 && words(s).length >= 3) return { ok: false, reason: `English sentence: "${s.slice(0, 70)}"` };
   }
   return { ok: true, reason: 'german' };
+}
+
+/**
+ * English when: English function words beat the German evidence over the reply, and no sentence is German-dominant
+ * (two or more German markers and more of them than English words, or German with no English at all). The mirror of
+ * checkGerman, for a turn written in English after a German conversation. Known limit, shared with checkGerman: a reply
+ * with no function word at all ("Understood.", "Alles klar.", "21 open, 5 closed.") has no evidence either way and
+ * fails. That can only fail a correct short reply, never pass a wrong one; it did not fire in the recorded runs.
+ */
+export function checkEnglish(reply: string): GermanVerdict {
+  const total = languageScore(reply);
+  const german = total.de + total.umlauts;
+  const wordTotal = words(ownVoice(reply)).length;
+  if (total.en === 0) return { ok: false, reason: 'no English evidence' };
+  if (total.en < 2 && wordTotal > 3) return { ok: false, reason: `only ${total.en} English marker(s) in ${wordTotal} words` };
+  if (german >= total.en) return { ok: false, reason: `German evidence (${german}) matches or beats English function words (${total.en})` };
+  for (const s of pieces(reply)) {
+    const score = languageScore(s);
+    const de = score.de + score.umlauts;
+    if ((de >= 2 && de > score.en) || (de >= 1 && score.en === 0 && words(s).length >= 3)) return { ok: false, reason: `German sentence: "${s.slice(0, 70)}"` };
+  }
+  return { ok: true, reason: 'english' };
 }
 
 /**
