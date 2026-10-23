@@ -232,14 +232,6 @@
 			}
 		},
 		{
-			"name": "RATE_LIMIT_JOB_FEED_DEV_RUN",
-			"namespace_id": "3116",
-			"simple": {
-				"limit": 3,
-				"period": 60
-			}
-		},
-		{
 			"name": "RATE_LIMIT_JOB_FEED_INBOX",
 			"namespace_id": "3117",
 			"simple": {

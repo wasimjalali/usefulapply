@@ -70,7 +70,6 @@ const RATE_LIMIT_BINDING_NAMES = {
   'job-feed-feedback': 'RATE_LIMIT_JOB_FEED_FEEDBACK',
   'job-feed-apply': 'RATE_LIMIT_JOB_FEED_APPLY',
   'job-feed-run': 'RATE_LIMIT_JOB_FEED_RUN',
-  'job-feed-dev-run': 'RATE_LIMIT_JOB_FEED_DEV_RUN',
   'job-feed-inbox': 'RATE_LIMIT_JOB_FEED_INBOX',
   'credits-balance': 'RATE_LIMIT_CREDITS_BALANCE',
   'delete-account': 'RATE_LIMIT_DELETE_ACCOUNT',
@@ -115,7 +114,6 @@ declare global {
     RATE_LIMIT_JOB_FEED_FEEDBACK?: RateLimitBinding;
     RATE_LIMIT_JOB_FEED_APPLY?: RateLimitBinding;
     RATE_LIMIT_JOB_FEED_RUN?: RateLimitBinding;
-    RATE_LIMIT_JOB_FEED_DEV_RUN?: RateLimitBinding;
     RATE_LIMIT_JOB_FEED_INBOX?: RateLimitBinding;
     RATE_LIMIT_CREDITS_BALANCE?: RateLimitBinding;
     RATE_LIMIT_DELETE_ACCOUNT?: RateLimitBinding;
@@ -284,7 +282,6 @@ export const RATE_LIMITS = {
   'job-feed-feedback':  { name: 'job-feed-feedback', limit: 20, windowMs: 60_000 },
   'job-feed-apply':     { name: 'job-feed-apply', limit: 10, windowMs: 60_000 },
   'job-feed-run':       { name: 'job-feed-run', limit: 2,  windowMs: 60_000 },
-  'job-feed-dev-run':   { name: 'job-feed-dev-run', limit: 3,  windowMs: 60_000 },
   'job-feed-inbox':     { name: 'job-feed-inbox', limit: 30, windowMs: 60_000 },
   'credits-balance':    { name: 'credits-balance', limit: 30, windowMs: 60_000 },
   'delete-account':     { name: 'delete-account', limit: 3,  windowMs: 60_000 },
