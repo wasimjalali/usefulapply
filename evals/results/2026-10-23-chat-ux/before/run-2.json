@@ -1,0 +1,2154 @@
+{
+  "site": "chat_ux",
+  "title": "Chat UX pass, 34 turns in 9 conversations through the real route and tools",
+  "date": "2026-10-23T14:21:55.985Z",
+  "mode": "live",
+  "command": "npx tsx /Users/wasimjalali/Desktop/Useful_Apply/.claude/worktrees/chat-ux-before/evals/chat-ux/run.ts chat-ux --allow-anthropic-api --key-from-dev-vars --runs 3 --max-cost 0.5 --cases s01,s02,s03,s04,s05,s09",
+  "gitSha": "63343496d61ebb48a9973ebded49593f6b47c75d",
+  "node": "v22.23.1",
+  "settings": {
+    "arms": [
+      "haiku-low"
+    ],
+    "runs": 3,
+    "cases": 6,
+    "casesOrder": [
+      {
+        "group": "scr-en",
+        "cases": [
+          "s01",
+          "s02",
+          "s03",
+          "s04",
+          "s05",
+          "s09"
+        ]
+      }
+    ],
+    "cacheSalt": "per (arm, run)",
+    "maxCostUsd": 0.5,
+    "gapMs": 0,
+    "aborted": null
+  },
+  "passRule": "German replies stay German, replies stay within 3 sentences, offer_screening_answers is called with a start-screening-flow chip exactly when the form questions come up, no document count or score the model was not given, and the compaction summary keeps its copied ad lines in German.",
+  "decisionRule": "Per site, pick the lowest-effort Haiku arm (order: low-nothink, low, medium, high) that satisfies ALL of:\n1. Primary metric: its case failures are at most one more than the best Haiku arm (counting every case of every run). The 95% Wilson intervals are reported but do not qualify an arm (tightened before any paid run, 2026-10-22: at these sample sizes overlapping intervals admit several extra failures).\n2. Hard constraints: for every hard-constraint metric it has no more violations than the gpt-oss arm, and zero violations for the metrics a site lists as absolute (ranking: hard-constraint violations in the top 10 must be 0, and hard_in_surfaced (every surfaced item) is held to the gpt-oss count; language: any fallback to English fails the case and is a hard violation under 'fallback', on every document, English included, held to the gpt-oss count; every site: no call over the 100k input budget). Runs graded before that language change (2026-10-22, commit d5b829e5) counted only 'fallback_on_non_english' (a fallback on a non-English document), so their language hard counts are not comparable with later runs.\n3. It produced no errors (a thrown error, an empty reply, a budget stop) that the best Haiku arm did not also produce.\nTie-break between arms of the same effort rank: lower p50 per-call latency. If no arm qualifies the site is undecided and the orchestrator decides by hand.\nA run that aborted (the --max-cost stop) or whose arms ran unequal case counts is undecided, whatever the numbers (added 2026-10-22 after review: an arm cut short has fewer chances to fail).\ngpt-oss is a baseline only: it is never a candidate. A winner with more primary failures than gpt-oss is flagged for the orchestrator. Cache hit rate and cost are reported but do not enter the rule.",
+  "absoluteHard": [
+    "unrequested_write"
+  ],
+  "summary": [
+    {
+      "arm": "haiku-low",
+      "n": 18,
+      "pass": 3,
+      "failures": 15,
+      "passRate": 0.1667,
+      "ci95": [
+        0.0584,
+        0.3922
+      ],
+      "hard": {},
+      "metrics": {
+        "no_dash": 1,
+        "length_ok": 0.2667,
+        "sentences": 6.3333,
+        "no_ghost_button": 1,
+        "screening_false_positive": 0,
+        "pass_screening_neg": 0.3333,
+        "screening_called": 0,
+        "screening_chip": 0,
+        "pass_screening_pos": 0
+      },
+      "latencyMs": {
+        "callP50": 2607,
+        "callP95": 6211,
+        "caseP50": 4658,
+        "caseP95": 7203
+      },
+      "cost": {
+        "perCallUsd": 0.000536,
+        "perCaseUsd": 0.000863,
+        "totalUsd": 0.01553
+      },
+      "calls": 29,
+      "errors": 0,
+      "over100kCalls": 0,
+      "cache": {
+        "read": 256451,
+        "write5m": 13464,
+        "write1h": 29007,
+        "uncachedInput": 2068,
+        "hitRate": 0.852,
+        "warmHitRate": 0.945
+      }
+    }
+  ],
+  "decision": {
+    "winner": "haiku-low",
+    "rows": [
+      {
+        "arm": "haiku-low",
+        "eligible": true,
+        "reasons": []
+      }
+    ],
+    "winnerBelowBaseline": false,
+    "undecidedReason": null
+  },
+  "prefixDrift": [],
+  "judge": {
+    "model": null,
+    "calls": 0,
+    "costUsd": 0
+  },
+  "totalCostUsd": 0.01553,
+  "outcomes": [
+    {
+      "caseId": "s01",
+      "group": "scr-en",
+      "run": 1,
+      "arm": "haiku-low",
+      "pass": false,
+      "failures": [
+        "reply has 9 sentences, max 3"
+      ],
+      "hard": [],
+      "metrics": {
+        "no_dash": 1,
+        "length_ok": 0,
+        "sentences": 9,
+        "no_ghost_button": 1,
+        "screening_false_positive": 0,
+        "pass_screening_neg": 0
+      },
+      "output": {
+        "status": 200,
+        "category": "screening_neg",
+        "lang": "en",
+        "reply": "I don't have a written fit assessment for this role yet, so I can't tailor the questions to its gaps. For a Senior Data Analyst role, expect questions like these:\n\n- Walk me through a dashboard or analysis that changed a business decision.\n- How do you choose which metrics to track for a new product or team?\n- How do you handle conflicting numbers from two data sources?\n- Which SQL and BI tools have you used most, and how do you decide between them?\n- How have you explained a complex finding to a non-technical stakeholder?\n- Tell me about a time a project went wrong and what you did next.\n\nPull a specific example from your CV for each one, with the result in numbers where you can.",
+        "actions": [],
+        "executed": [],
+        "toolsCalled": [
+          "explain_fit"
+        ],
+        "rounds": 2,
+        "sentences": 9,
+        "german": null,
+        "summary": null,
+        "inputTotals": [
+          9868,
+          10080
+        ]
+      },
+      "latencyMs": 5263,
+      "calls": [
+        {
+          "seq": 1,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 1,
+          "caseId": "s01",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 2,
+            "jsonSchema": false,
+            "cacheMarkers": 3,
+            "prefixHash": "fd1c3baf13e1963b",
+            "stablePrefixHash": "f95d220510d2fa81",
+            "estInputTokens": 15671,
+            "salted": true
+          },
+          "response": {
+            "text": "",
+            "stopReason": "tool_use",
+            "requestId": "req_011CgKKQXK3oMcGVm4odi5ak",
+            "toolCalls": [
+              {
+                "name": "explain_fit",
+                "input": {}
+              }
+            ]
+          },
+          "usage": {
+            "input": 111,
+            "output": 128,
+            "cacheRead": 0,
+            "cacheWrite5m": 88,
+            "cacheWrite1h": 9669
+          },
+          "inputTotal": 9868,
+          "latencyMs": 1978,
+          "costUsd": 0.0020199000000000003,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        },
+        {
+          "seq": 2,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 1,
+          "caseId": "s01",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 4,
+            "jsonSchema": false,
+            "cacheMarkers": 4,
+            "prefixHash": "fd1c3baf13e1963b",
+            "stablePrefixHash": "f95d220510d2fa81",
+            "estInputTokens": 16679,
+            "salted": true
+          },
+          "response": {
+            "text": "I don't have a written fit assessment for this role yet, so I can't tailor the questions to its gaps. For a Senior Data Analyst role, expect questions like these:\n\n- Walk me through a dashboard or analysis that changed a business decision.\n- How do you choose which metrics to track for a new product or team?\n- How do you handle conflicting numbers from two data sources?\n- Which SQL and BI tools have you used most, and how do you decide between them?\n- How have you explained a complex finding to a non-technical stakeholder?\n- Tell me about a time a project went wrong and what you did next.\n\nPull a specific example from your CV for each one, with the result in numbers where you can.",
+            "stopReason": "end_turn",
+            "requestId": "req_011CgKKQfSC3nVwep2QzXiWK",
+            "toolCalls": []
+          },
+          "usage": {
+            "input": 2,
+            "output": 338,
+            "cacheRead": 9757,
+            "cacheWrite5m": 321,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10080,
+          "latencyMs": 2859,
+          "costUsd": 0.000306895,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "caseId": "s02",
+      "group": "scr-en",
+      "run": 1,
+      "arm": "haiku-low",
+      "pass": false,
+      "failures": [
+        "did not call offer_screening_answers",
+        "response lacks a start-screening-flow chip"
+      ],
+      "hard": [],
+      "metrics": {
+        "no_dash": 1,
+        "length_ok": 1,
+        "sentences": 3,
+        "no_ghost_button": 1,
+        "screening_called": 0,
+        "screening_chip": 0,
+        "pass_screening_pos": 0
+      },
+      "output": {
+        "status": 200,
+        "category": "screening_pos",
+        "lang": "en",
+        "reply": "I can help. Paste the form questions here and I'll draft answers from your CV. The application has no screening answers saved yet, so nothing has been written for these questions.",
+        "actions": [],
+        "executed": [],
+        "toolsCalled": [
+          "get_application_overview"
+        ],
+        "rounds": 2,
+        "sentences": 3,
+        "german": null,
+        "summary": null,
+        "inputTotals": [
+          10105,
+          10409
+        ]
+      },
+      "latencyMs": 3728,
+      "calls": [
+        {
+          "seq": 1,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 1,
+          "caseId": "s02",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 4,
+            "jsonSchema": false,
+            "cacheMarkers": 3,
+            "prefixHash": "fd1c3baf13e1963b",
+            "stablePrefixHash": "f95d220510d2fa81",
+            "estInputTokens": 16135,
+            "salted": true
+          },
+          "response": {
+            "text": "",
+            "stopReason": "tool_use",
+            "requestId": "req_011CgKKQsjsSMa5mCoLMrcAP",
+            "toolCalls": [
+              {
+                "name": "get_application_overview",
+                "input": {}
+              }
+            ]
+          },
+          "usage": {
+            "input": 111,
+            "output": 134,
+            "cacheRead": 9757,
+            "cacheWrite5m": 237,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10105,
+          "latencyMs": 1616,
+          "costUsd": 0.000205295,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        },
+        {
+          "seq": 2,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 1,
+          "caseId": "s02",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 6,
+            "jsonSchema": false,
+            "cacheMarkers": 4,
+            "prefixHash": "fd1c3baf13e1963b",
+            "stablePrefixHash": "f95d220510d2fa81",
+            "estInputTokens": 17300,
+            "salted": true
+          },
+          "response": {
+            "text": "I can help. Paste the form questions here and I'll draft answers from your CV. The application has no screening answers saved yet, so nothing has been written for these questions.",
+            "stopReason": "end_turn",
+            "requestId": "req_011CgKKQzccmEWLC8uymRC4c",
+            "toolCalls": []
+          },
+          "usage": {
+            "input": 2,
+            "output": 118,
+            "cacheRead": 9994,
+            "cacheWrite5m": 413,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10409,
+          "latencyMs": 2106,
+          "costUsd": 0.000210765,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "caseId": "s03",
+      "group": "scr-en",
+      "run": 1,
+      "arm": "haiku-low",
+      "pass": true,
+      "failures": [],
+      "hard": [],
+      "metrics": {
+        "no_dash": 1,
+        "no_ghost_button": 1,
+        "screening_false_positive": 0,
+        "pass_screening_neg": 1
+      },
+      "output": {
+        "status": 200,
+        "category": "screening_neg",
+        "lang": "en",
+        "reply": "I can't write a grounded answer yet. I don't have any details about Nordhafen Handels or the content of your CV in this chat, so anything I wrote would be guesswork. What specifically draws you to Nordhafen, such as their products, market, or a project you've read about? Send me that, plus one example from your CV, and I'll draft an answer under 600 characters.",
+        "actions": [],
+        "executed": [],
+        "toolsCalled": [
+          "explain_fit"
+        ],
+        "rounds": 2,
+        "sentences": 4,
+        "german": null,
+        "summary": null,
+        "inputTotals": [
+          10183,
+          10557
+        ]
+      },
+      "latencyMs": 4907,
+      "calls": [
+        {
+          "seq": 1,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 1,
+          "caseId": "s03",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 6,
+            "jsonSchema": false,
+            "cacheMarkers": 3,
+            "prefixHash": "fd1c3baf13e1963b",
+            "stablePrefixHash": "f95d220510d2fa81",
+            "estInputTokens": 16307,
+            "salted": true
+          },
+          "response": {
+            "text": "",
+            "stopReason": "tool_use",
+            "requestId": "req_011CgKKR9hog3t1YBJjZ8bF2",
+            "toolCalls": [
+              {
+                "name": "explain_fit",
+                "input": {}
+              }
+            ]
+          },
+          "usage": {
+            "input": 111,
+            "output": 290,
+            "cacheRead": 9757,
+            "cacheWrite5m": 315,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10183,
+          "latencyMs": 2496,
+          "costUsd": 0.000293045,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        },
+        {
+          "seq": 2,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 1,
+          "caseId": "s03",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 8,
+            "jsonSchema": false,
+            "cacheMarkers": 4,
+            "prefixHash": "fd1c3baf13e1963b",
+            "stablePrefixHash": "f95d220510d2fa81",
+            "estInputTokens": 17693,
+            "salted": true
+          },
+          "response": {
+            "text": "I can't write a grounded answer yet. I don't have any details about Nordhafen Handels or the content of your CV in this chat, so anything I wrote would be guesswork. What specifically draws you to Nordhafen, such as their products, market, or a project you've read about? Send me that, plus one example from your CV, and I'll draft an answer under 600 characters.",
+            "stopReason": "end_turn",
+            "requestId": "req_011CgKKRLUi3CVh4hXAQp39p",
+            "toolCalls": []
+          },
+          "usage": {
+            "input": 2,
+            "output": 219,
+            "cacheRead": 10072,
+            "cacheWrite5m": 483,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10557,
+          "latencyMs": 2404,
+          "costUsd": 0.00027079499999999994,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "caseId": "s04",
+      "group": "scr-en",
+      "run": 1,
+      "arm": "haiku-low",
+      "pass": false,
+      "failures": [
+        "did not call offer_screening_answers",
+        "response lacks a start-screening-flow chip",
+        "reply has 4 sentences, max 3"
+      ],
+      "hard": [],
+      "metrics": {
+        "no_dash": 1,
+        "length_ok": 0,
+        "sentences": 4,
+        "no_ghost_button": 1,
+        "screening_called": 0,
+        "screening_chip": 0,
+        "pass_screening_pos": 0
+      },
+      "output": {
+        "status": 200,
+        "category": "screening_pos",
+        "lang": "en",
+        "reply": "Paste the three questions here and I'll draft answers from your CV. I can answer the \"why this job\" question only with specifics about Nordhafen, like a product, a market move, or something from their site. For notice period, I'll need you to tell me the actual figure, since I can't find it in your documents.\n\nWhich of the three should we start with?",
+        "actions": [],
+        "executed": [],
+        "toolsCalled": [
+          "get_application_overview"
+        ],
+        "rounds": 2,
+        "sentences": 4,
+        "german": null,
+        "summary": null,
+        "inputTotals": [
+          10334,
+          10730
+        ]
+      },
+      "latencyMs": 5273,
+      "calls": [
+        {
+          "seq": 1,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 1,
+          "caseId": "s04",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 8,
+            "jsonSchema": false,
+            "cacheMarkers": 3,
+            "prefixHash": "fd1c3baf13e1963b",
+            "stablePrefixHash": "f95d220510d2fa81",
+            "estInputTokens": 16620,
+            "salted": true
+          },
+          "response": {
+            "text": "",
+            "stopReason": "tool_use",
+            "requestId": "req_011CgKKRWcuKsXtbGpgV16uc",
+            "toolCalls": [
+              {
+                "name": "get_application_overview",
+                "input": {}
+              }
+            ]
+          },
+          "usage": {
+            "input": 111,
+            "output": 226,
+            "cacheRead": 9757,
+            "cacheWrite5m": 466,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10334,
+          "latencyMs": 2607,
+          "costUsd": 0.00027992,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        },
+        {
+          "seq": 2,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 1,
+          "caseId": "s04",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 10,
+            "jsonSchema": false,
+            "cacheMarkers": 4,
+            "prefixHash": "fd1c3baf13e1963b",
+            "stablePrefixHash": "f95d220510d2fa81",
+            "estInputTokens": 18053,
+            "salted": true
+          },
+          "response": {
+            "text": "Paste the three questions here and I'll draft answers from your CV. I can answer the \"why this job\" question only with specifics about Nordhafen, like a product, a market move, or something from their site. For notice period, I'll need you to tell me the actual figure, since I can't find it in your documents.\n\nWhich of the three should we start with?",
+            "stopReason": "end_turn",
+            "requestId": "req_011CgKKRhk8RHUaBcz8bnKzH",
+            "toolCalls": []
+          },
+          "usage": {
+            "input": 2,
+            "output": 230,
+            "cacheRead": 10223,
+            "cacheWrite5m": 505,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10730,
+          "latencyMs": 2661,
+          "costUsd": 0.000280555,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "caseId": "s05",
+      "group": "scr-en",
+      "run": 1,
+      "arm": "haiku-low",
+      "pass": false,
+      "failures": [
+        "reply has 4 sentences, max 3"
+      ],
+      "hard": [],
+      "metrics": {
+        "no_dash": 1,
+        "length_ok": 0,
+        "sentences": 4,
+        "no_ghost_button": 1,
+        "screening_false_positive": 0,
+        "pass_screening_neg": 0
+      },
+      "output": {
+        "status": 200,
+        "category": "screening_neg",
+        "lang": "en",
+        "reply": "Keep the reason for leaving to one positive, forward-looking sentence, like \"I'm looking for a role with more ownership of decision-making,\" and never criticise your current employer. A cover letter should also answer why Nordhafen, why this role, and what you'd bring in the first 90 days.\n\nI can't see your CV text in this chat, so I can't check which of your experience to use. What's the real reason you're moving on?",
+        "actions": [],
+        "executed": [],
+        "toolsCalled": [],
+        "rounds": 1,
+        "sentences": 4,
+        "german": null,
+        "summary": null,
+        "inputTotals": [
+          10466
+        ]
+      },
+      "latencyMs": 4114,
+      "calls": [
+        {
+          "seq": 1,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 1,
+          "caseId": "s05",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 10,
+            "jsonSchema": false,
+            "cacheMarkers": 3,
+            "prefixHash": "fd1c3baf13e1963b",
+            "stablePrefixHash": "f95d220510d2fa81",
+            "estInputTokens": 16913,
+            "salted": true
+          },
+          "response": {
+            "text": "Keep the reason for leaving to one positive, forward-looking sentence, like \"I'm looking for a role with more ownership of decision-making,\" and never criticise your current employer. A cover letter should also answer why Nordhafen, why this role, and what you'd bring in the first 90 days.\n\nI can't see your CV text in this chat, so I can't check which of your experience to use. What's the real reason you're moving on?",
+            "stopReason": "end_turn",
+            "requestId": "req_011CgKKRuAxigwwmdSjacn7H",
+            "toolCalls": []
+          },
+          "usage": {
+            "input": 111,
+            "output": 497,
+            "cacheRead": 9757,
+            "cacheWrite5m": 598,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10466,
+          "latencyMs": 4109,
+          "costUsd": 0.00043192,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "caseId": "s09",
+      "group": "scr-en",
+      "run": 1,
+      "arm": "haiku-low",
+      "pass": false,
+      "failures": [
+        "did not call offer_screening_answers",
+        "response lacks a start-screening-flow chip",
+        "reply has 6 sentences, max 3"
+      ],
+      "hard": [],
+      "metrics": {
+        "no_dash": 1,
+        "length_ok": 0,
+        "sentences": 6,
+        "no_ghost_button": 1,
+        "screening_called": 0,
+        "screening_chip": 0,
+        "pass_screening_pos": 0
+      },
+      "output": {
+        "status": 200,
+        "category": "screening_pos",
+        "lang": "en",
+        "reply": "I can help with all six, but I need a few facts from you first. Questions 3, 4 and 6 depend on your own situation, so only you can answer them: your notice period and earliest start, your salary expectation, and whether three office days in Hamburg work for you. For question 1, tell me what draws you to Nordhafen, like a product, a market move, or something from their site. Note that the limit is 800 characters now, not 600. For questions 2 and 5, describe one report you automated and any SAP or ERP work you've done, and I'll draft from that.\n\nWhich do you want to start with?",
+        "actions": [],
+        "executed": [],
+        "toolsCalled": [],
+        "rounds": 1,
+        "sentences": 6,
+        "german": null,
+        "summary": null,
+        "inputTotals": [
+          10775
+        ]
+      },
+      "latencyMs": 5495,
+      "calls": [
+        {
+          "seq": 1,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 1,
+          "caseId": "s09",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 12,
+            "jsonSchema": false,
+            "cacheMarkers": 3,
+            "prefixHash": "fd1c3baf13e1963b",
+            "stablePrefixHash": "f95d220510d2fa81",
+            "estInputTokens": 17470,
+            "salted": true
+          },
+          "response": {
+            "text": "I can help with all six, but I need a few facts from you first. Questions 3, 4 and 6 depend on your own situation, so only you can answer them: your notice period and earliest start, your salary expectation, and whether three office days in Hamburg work for you. For question 1, tell me what draws you to Nordhafen, like a product, a market move, or something from their site. Note that the limit is 800 characters now, not 600. For questions 2 and 5, describe one report you automated and any SAP or ERP work you've done, and I'll draft from that.\n\nWhich do you want to start with?",
+            "stopReason": "end_turn",
+            "requestId": "req_011CgKKSCmNjhHiMfdZHtbxU",
+            "toolCalls": []
+          },
+          "usage": {
+            "input": 127,
+            "output": 977,
+            "cacheRead": 9757,
+            "cacheWrite5m": 891,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10775,
+          "latencyMs": 5487,
+          "costUsd": 0.0007101450000000001,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "caseId": "s01",
+      "group": "scr-en",
+      "run": 2,
+      "arm": "haiku-low",
+      "pass": false,
+      "failures": [
+        "reply has 8 sentences, max 3"
+      ],
+      "hard": [],
+      "metrics": {
+        "no_dash": 1,
+        "length_ok": 0,
+        "sentences": 8,
+        "no_ghost_button": 1,
+        "screening_false_positive": 0,
+        "pass_screening_neg": 0
+      },
+      "output": {
+        "status": 200,
+        "category": "screening_neg",
+        "lang": "en",
+        "reply": "I don't have the stored fit notes for this role, so I can't tailor the list to its specific requirements yet. For a Senior Data Analyst role, expect questions on:\n\n- **Technical depth:** how you write and optimise SQL, and which BI or stats tools you use day to day.\n- **Past impact:** a project where your analysis changed a business decision, with the numbers.\n- **Stakeholders:** how you explain findings to non-technical managers and handle pushback.\n- **Data quality:** how you check for errors and deal with messy or conflicting sources.\n- **Seniority:** how you mentor junior analysts or set priorities across several teams.\n\nIf you paste the job ad, I can pull out the requirements and point you to the questions most likely to come up.",
+        "actions": [],
+        "executed": [],
+        "toolsCalled": [
+          "explain_fit"
+        ],
+        "rounds": 2,
+        "sentences": 8,
+        "german": null,
+        "summary": null,
+        "inputTotals": [
+          9868,
+          10235
+        ]
+      },
+      "latencyMs": 6394,
+      "calls": [
+        {
+          "seq": 1,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 2,
+          "caseId": "s01",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 2,
+            "jsonSchema": false,
+            "cacheMarkers": 3,
+            "prefixHash": "ffee5968f2458782",
+            "stablePrefixHash": "9ffe0e21c13a2d70",
+            "estInputTokens": 15671,
+            "salted": true
+          },
+          "response": {
+            "text": "",
+            "stopReason": "tool_use",
+            "requestId": "req_011CgKKScWP68JxSDwKhtYiK",
+            "toolCalls": [
+              {
+                "name": "explain_fit",
+                "input": {}
+              }
+            ]
+          },
+          "usage": {
+            "input": 111,
+            "output": 283,
+            "cacheRead": 0,
+            "cacheWrite5m": 88,
+            "cacheWrite1h": 9669
+          },
+          "inputTotal": 9868,
+          "latencyMs": 2437,
+          "costUsd": 0.0020974,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        },
+        {
+          "seq": 2,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 2,
+          "caseId": "s01",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 4,
+            "jsonSchema": false,
+            "cacheMarkers": 4,
+            "prefixHash": "ffee5968f2458782",
+            "stablePrefixHash": "9ffe0e21c13a2d70",
+            "estInputTokens": 17048,
+            "salted": true
+          },
+          "response": {
+            "text": "I don't have the stored fit notes for this role, so I can't tailor the list to its specific requirements yet. For a Senior Data Analyst role, expect questions on:\n\n- **Technical depth:** how you write and optimise SQL, and which BI or stats tools you use day to day.\n- **Past impact:** a project where your analysis changed a business decision, with the numbers.\n- **Stakeholders:** how you explain findings to non-technical managers and handle pushback.\n- **Data quality:** how you check for errors and deal with messy or conflicting sources.\n- **Seniority:** how you mentor junior analysts or set priorities across several teams.\n\nIf you paste the job ad, I can pull out the requirements and point you to the questions most likely to come up.",
+            "stopReason": "end_turn",
+            "requestId": "req_011CgKKSqKKKvycPL9dh4iTt",
+            "toolCalls": []
+          },
+          "usage": {
+            "input": 2,
+            "output": 375,
+            "cacheRead": 9757,
+            "cacheWrite5m": 476,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10235,
+          "latencyMs": 3907,
+          "costUsd": 0.00034477,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "caseId": "s02",
+      "group": "scr-en",
+      "run": 2,
+      "arm": "haiku-low",
+      "pass": false,
+      "failures": [
+        "did not call offer_screening_answers",
+        "response lacks a start-screening-flow chip",
+        "reply has 4 sentences, max 3"
+      ],
+      "hard": [],
+      "metrics": {
+        "no_dash": 1,
+        "length_ok": 0,
+        "sentences": 4,
+        "no_ghost_button": 1,
+        "screening_called": 0,
+        "screening_chip": 0,
+        "pass_screening_pos": 0
+      },
+      "output": {
+        "status": 200,
+        "category": "screening_pos",
+        "lang": "en",
+        "reply": "Yes, I can help. The Nordhafen Handels Senior Data Analyst application has no screening answers written yet. Paste the questions here, along with any word limit, and I'll draft answers from your CV. You'll need to write them into the form yourself, and I'll make sure each one only uses experience your CV actually shows.",
+        "actions": [],
+        "executed": [],
+        "toolsCalled": [
+          "get_application_overview"
+        ],
+        "rounds": 2,
+        "sentences": 4,
+        "german": null,
+        "summary": null,
+        "inputTotals": [
+          10130,
+          10587
+        ]
+      },
+      "latencyMs": 4789,
+      "calls": [
+        {
+          "seq": 1,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 2,
+          "caseId": "s02",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 4,
+            "jsonSchema": false,
+            "cacheMarkers": 3,
+            "prefixHash": "ffee5968f2458782",
+            "stablePrefixHash": "9ffe0e21c13a2d70",
+            "estInputTokens": 16165,
+            "salted": true
+          },
+          "response": {
+            "text": "",
+            "stopReason": "tool_use",
+            "requestId": "req_011CgKKT5dHyWjEUCCJH7G67",
+            "toolCalls": [
+              {
+                "name": "get_application_overview",
+                "input": {}
+              }
+            ]
+          },
+          "usage": {
+            "input": 111,
+            "output": 287,
+            "cacheRead": 9757,
+            "cacheWrite5m": 262,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10130,
+          "latencyMs": 2914,
+          "costUsd": 0.00028492000000000003,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        },
+        {
+          "seq": 2,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 2,
+          "caseId": "s02",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 6,
+            "jsonSchema": false,
+            "cacheMarkers": 4,
+            "prefixHash": "ffee5968f2458782",
+            "stablePrefixHash": "9ffe0e21c13a2d70",
+            "estInputTokens": 17701,
+            "salted": true
+          },
+          "response": {
+            "text": "Yes, I can help. The Nordhafen Handels Senior Data Analyst application has no screening answers written yet. Paste the questions here, along with any word limit, and I'll draft answers from your CV. You'll need to write them into the form yourself, and I'll make sure each one only uses experience your CV actually shows.",
+            "stopReason": "end_turn",
+            "requestId": "req_011CgKKTJ6tLqc2kdxbyC2Dq",
+            "toolCalls": []
+          },
+          "usage": {
+            "input": 2,
+            "output": 104,
+            "cacheRead": 10019,
+            "cacheWrite5m": 566,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10587,
+          "latencyMs": 1861,
+          "costUsd": 0.00022313999999999998,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "caseId": "s03",
+      "group": "scr-en",
+      "run": 2,
+      "arm": "haiku-low",
+      "pass": true,
+      "failures": [],
+      "hard": [],
+      "metrics": {
+        "no_dash": 1,
+        "no_ghost_button": 1,
+        "screening_false_positive": 0,
+        "pass_screening_neg": 1
+      },
+      "output": {
+        "status": 200,
+        "category": "screening_neg",
+        "lang": "en",
+        "reply": "I can't draft this one yet. The fit notes for Nordhafen Handels are empty, so I don't have a record of what the company does or what draws you to it. Tell me what appeals to you about them (their products, market, data work or values), and I'll write an answer under 600 characters that uses only experience from your CV.",
+        "actions": [],
+        "executed": [],
+        "toolsCalled": [
+          "explain_fit"
+        ],
+        "rounds": 2,
+        "sentences": 3,
+        "german": null,
+        "summary": null,
+        "inputTotals": [
+          10260,
+          10653
+        ]
+      },
+      "latencyMs": 4206,
+      "calls": [
+        {
+          "seq": 1,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 2,
+          "caseId": "s03",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 6,
+            "jsonSchema": false,
+            "cacheMarkers": 3,
+            "prefixHash": "ffee5968f2458782",
+            "stablePrefixHash": "9ffe0e21c13a2d70",
+            "estInputTokens": 16415,
+            "salted": true
+          },
+          "response": {
+            "text": "",
+            "stopReason": "tool_use",
+            "requestId": "req_011CgKKTS5c9tvPZfy4VsUae",
+            "toolCalls": [
+              {
+                "name": "explain_fit",
+                "input": {}
+              }
+            ]
+          },
+          "usage": {
+            "input": 111,
+            "output": 309,
+            "cacheRead": 9757,
+            "cacheWrite5m": 392,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10260,
+          "latencyMs": 1999,
+          "costUsd": 0.00031217,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        },
+        {
+          "seq": 2,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 2,
+          "caseId": "s03",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 8,
+            "jsonSchema": false,
+            "cacheMarkers": 4,
+            "prefixHash": "ffee5968f2458782",
+            "stablePrefixHash": "9ffe0e21c13a2d70",
+            "estInputTokens": 17830,
+            "salted": true
+          },
+          "response": {
+            "text": "I can't draft this one yet. The fit notes for Nordhafen Handels are empty, so I don't have a record of what the company does or what draws you to it. Tell me what appeals to you about them (their products, market, data work or values), and I'll write an answer under 600 characters that uses only experience from your CV.",
+            "stopReason": "end_turn",
+            "requestId": "req_011CgKKTah2P5BugtYTrsMC9",
+            "toolCalls": []
+          },
+          "usage": {
+            "input": 2,
+            "output": 233,
+            "cacheRead": 10149,
+            "cacheWrite5m": 502,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10653,
+          "latencyMs": 2192,
+          "costUsd": 0.00028094,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "caseId": "s04",
+      "group": "scr-en",
+      "run": 2,
+      "arm": "haiku-low",
+      "pass": false,
+      "failures": [
+        "did not call offer_screening_answers",
+        "response lacks a start-screening-flow chip"
+      ],
+      "hard": [],
+      "metrics": {
+        "no_dash": 1,
+        "length_ok": 1,
+        "sentences": 3,
+        "no_ghost_button": 1,
+        "screening_called": 0,
+        "screening_chip": 0,
+        "pass_screening_pos": 0
+      },
+      "output": {
+        "status": 200,
+        "category": "screening_pos",
+        "lang": "en",
+        "reply": "Paste the three questions exactly as the portal shows them, with any character limits. I'll draft answers from your CV. If the notice period isn't on your CV, tell me your actual period and I'll use that.",
+        "actions": [],
+        "executed": [],
+        "toolsCalled": [],
+        "rounds": 1,
+        "sentences": 3,
+        "german": null,
+        "summary": null,
+        "inputTotals": [
+          10393
+        ]
+      },
+      "latencyMs": 2426,
+      "calls": [
+        {
+          "seq": 1,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 2,
+          "caseId": "s04",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 8,
+            "jsonSchema": false,
+            "cacheMarkers": 3,
+            "prefixHash": "ffee5968f2458782",
+            "stablePrefixHash": "9ffe0e21c13a2d70",
+            "estInputTokens": 16705,
+            "salted": true
+          },
+          "response": {
+            "text": "Paste the three questions exactly as the portal shows them, with any character limits. I'll draft answers from your CV. If the notice period isn't on your CV, tell me your actual period and I'll use that.",
+            "stopReason": "end_turn",
+            "requestId": "req_011CgKKTk8JkqMRdJJNSR1ze",
+            "toolCalls": []
+          },
+          "usage": {
+            "input": 111,
+            "output": 320,
+            "cacheRead": 9757,
+            "cacheWrite5m": 525,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10393,
+          "latencyMs": 2421,
+          "costUsd": 0.000334295,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "caseId": "s05",
+      "group": "scr-en",
+      "run": 2,
+      "arm": "haiku-low",
+      "pass": false,
+      "failures": [
+        "reply has 9 sentences, max 3"
+      ],
+      "hard": [],
+      "metrics": {
+        "no_dash": 1,
+        "length_ok": 0,
+        "sentences": 9,
+        "no_ghost_button": 1,
+        "screening_false_positive": 0,
+        "pass_screening_neg": 0
+      },
+      "output": {
+        "status": 200,
+        "category": "screening_neg",
+        "lang": "en",
+        "reply": "Keep the reason for leaving out of the letter, or mention it in one neutral line at most. Focus on what you want next, such as the scope, the data work, or the team. Don't criticise your current employer.\n\nThe letter should also answer:\n- **Why this company?** Name something specific about Nordhafen Handels.\n- **Why this role?** Connect your strongest CV achievements to what the job needs.\n- **What do you bring?** Give one or two concrete results from your CV.\n\nWhat's your main reason for moving on? I can tell you how to phrase it.",
+        "actions": [],
+        "executed": [],
+        "toolsCalled": [],
+        "rounds": 1,
+        "sentences": 9,
+        "german": null,
+        "summary": null,
+        "inputTotals": [
+          10487
+        ]
+      },
+      "latencyMs": 3635,
+      "calls": [
+        {
+          "seq": 1,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 2,
+          "caseId": "s05",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 10,
+            "jsonSchema": false,
+            "cacheMarkers": 3,
+            "prefixHash": "ffee5968f2458782",
+            "stablePrefixHash": "9ffe0e21c13a2d70",
+            "estInputTokens": 16914,
+            "salted": true
+          },
+          "response": {
+            "text": "Keep the reason for leaving out of the letter, or mention it in one neutral line at most. Focus on what you want next, such as the scope, the data work, or the team. Don't criticise your current employer.\n\nThe letter should also answer:\n- **Why this company?** Name something specific about Nordhafen Handels.\n- **Why this role?** Connect your strongest CV achievements to what the job needs.\n- **What do you bring?** Give one or two concrete results from your CV.\n\nWhat's your main reason for moving on? I can tell you how to phrase it.",
+            "stopReason": "end_turn",
+            "requestId": "req_011CgKKTvRg2HJ6hdkDfoiNd",
+            "toolCalls": []
+          },
+          "usage": {
+            "input": 111,
+            "output": 434,
+            "cacheRead": 9757,
+            "cacheWrite5m": 619,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10487,
+          "latencyMs": 3629,
+          "costUsd": 0.00040304500000000004,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "caseId": "s09",
+      "group": "scr-en",
+      "run": 2,
+      "arm": "haiku-low",
+      "pass": false,
+      "failures": [
+        "did not call offer_screening_answers",
+        "response lacks a start-screening-flow chip",
+        "reply has 6 sentences, max 3"
+      ],
+      "hard": [],
+      "metrics": {
+        "no_dash": 1,
+        "length_ok": 0,
+        "sentences": 6,
+        "no_ghost_button": 1,
+        "screening_called": 0,
+        "screening_chip": 0,
+        "pass_screening_pos": 0
+      },
+      "output": {
+        "status": 200,
+        "category": "screening_pos",
+        "lang": "en",
+        "reply": "I can draft questions 1, 2 and 5 from your CV. For question 2, tell me the report you automated and what changed. For question 5, I'll only describe ERP work your CV actually shows, so if it doesn't mention SAP or another ERP, the honest answer will say that.\n\nQuestions 3, 4 and 6 need your own facts: your notice period and earliest start, your gross salary expectation in EUR, and whether three days a week in Hamburg works for you.\n\nAlso, the portal limit for question 1 is 800 characters, not the 600 I mentioned earlier, so check the form before you write it.\n\nWhat draws you to Nordhafen: their products, their market, or the data work?",
+        "actions": [],
+        "executed": [],
+        "toolsCalled": [],
+        "rounds": 1,
+        "sentences": 6,
+        "german": null,
+        "summary": null,
+        "inputTotals": [
+          10839
+        ]
+      },
+      "latencyMs": 7203,
+      "calls": [
+        {
+          "seq": 1,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 2,
+          "caseId": "s09",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 12,
+            "jsonSchema": false,
+            "cacheMarkers": 3,
+            "prefixHash": "ffee5968f2458782",
+            "stablePrefixHash": "9ffe0e21c13a2d70",
+            "estInputTokens": 17537,
+            "salted": true
+          },
+          "response": {
+            "text": "I can draft questions 1, 2 and 5 from your CV. For question 2, tell me the report you automated and what changed. For question 5, I'll only describe ERP work your CV actually shows, so if it doesn't mention SAP or another ERP, the honest answer will say that.\n\nQuestions 3, 4 and 6 need your own facts: your notice period and earliest start, your gross salary expectation in EUR, and whether three days a week in Hamburg works for you.\n\nAlso, the portal limit for question 1 is 800 characters, not the 600 I mentioned earlier, so check the form before you write it.\n\nWhat draws you to Nordhafen: their products, their market, or the data work?",
+            "stopReason": "end_turn",
+            "requestId": "req_011CgKKUC13VN2qatabT9A9Y",
+            "toolCalls": []
+          },
+          "usage": {
+            "input": 127,
+            "output": 1219,
+            "cacheRead": 9757,
+            "cacheWrite5m": 955,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10839,
+          "latencyMs": 7192,
+          "costUsd": 0.0008391450000000001,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "caseId": "s01",
+      "group": "scr-en",
+      "run": 3,
+      "arm": "haiku-low",
+      "pass": false,
+      "failures": [
+        "reply has 9 sentences, max 3"
+      ],
+      "hard": [],
+      "metrics": {
+        "no_dash": 1,
+        "length_ok": 0,
+        "sentences": 9,
+        "no_ghost_button": 1,
+        "screening_false_positive": 0,
+        "pass_screening_neg": 0
+      },
+      "output": {
+        "status": 200,
+        "category": "screening_neg",
+        "lang": "en",
+        "reply": "I can't see a stored fit assessment for this role yet, so I can't tailor the questions to your gaps. For a Senior Data Analyst role, expect questions like these:\n\n- Walk me through a dashboard or analysis that changed a business decision.\n- How do you check data quality before you trust a result?\n- Tell me about a time a stakeholder pushed back on your findings.\n- How would you explain a complex model or metric to a non-technical manager?\n- Which SQL or BI tools have you used most, and how do you decide between them?\n- How do you prioritise when several teams want reports at once?\n\nIf you paste the job ad here, I can work out the likely questions from its requirements.",
+        "actions": [],
+        "executed": [],
+        "toolsCalled": [
+          "explain_fit"
+        ],
+        "rounds": 2,
+        "sentences": 9,
+        "german": null,
+        "summary": null,
+        "inputTotals": [
+          9868,
+          10132
+        ]
+      },
+      "latencyMs": 4578,
+      "calls": [
+        {
+          "seq": 1,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 3,
+          "caseId": "s01",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 2,
+            "jsonSchema": false,
+            "cacheMarkers": 3,
+            "prefixHash": "c6c7660d0f06644f",
+            "stablePrefixHash": "72ce8ba5f574f99c",
+            "estInputTokens": 15671,
+            "salted": true
+          },
+          "response": {
+            "text": "",
+            "stopReason": "tool_use",
+            "requestId": "req_011CgKKUirgXTa1oDyfw6Ssy",
+            "toolCalls": [
+              {
+                "name": "explain_fit",
+                "input": {}
+              }
+            ]
+          },
+          "usage": {
+            "input": 111,
+            "output": 180,
+            "cacheRead": 0,
+            "cacheWrite5m": 88,
+            "cacheWrite1h": 9669
+          },
+          "inputTotal": 9868,
+          "latencyMs": 1692,
+          "costUsd": 0.0020459000000000002,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        },
+        {
+          "seq": 2,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 3,
+          "caseId": "s01",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 4,
+            "jsonSchema": false,
+            "cacheMarkers": 4,
+            "prefixHash": "c6c7660d0f06644f",
+            "stablePrefixHash": "72ce8ba5f574f99c",
+            "estInputTokens": 16795,
+            "salted": true
+          },
+          "response": {
+            "text": "I can't see a stored fit assessment for this role yet, so I can't tailor the questions to your gaps. For a Senior Data Analyst role, expect questions like these:\n\n- Walk me through a dashboard or analysis that changed a business decision.\n- How do you check data quality before you trust a result?\n- Tell me about a time a stakeholder pushed back on your findings.\n- How would you explain a complex model or metric to a non-technical manager?\n- Which SQL or BI tools have you used most, and how do you decide between them?\n- How do you prioritise when several teams want reports at once?\n\nIf you paste the job ad here, I can work out the likely questions from its requirements.",
+            "stopReason": "end_turn",
+            "requestId": "req_011CgKKUr5mQKgy9hBcLZ2Ja",
+            "toolCalls": []
+          },
+          "usage": {
+            "input": 2,
+            "output": 356,
+            "cacheRead": 9757,
+            "cacheWrite5m": 373,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10132,
+          "latencyMs": 2856,
+          "costUsd": 0.000322395,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "caseId": "s02",
+      "group": "scr-en",
+      "run": 3,
+      "arm": "haiku-low",
+      "pass": false,
+      "failures": [
+        "did not call offer_screening_answers",
+        "response lacks a start-screening-flow chip"
+      ],
+      "hard": [],
+      "metrics": {
+        "no_dash": 1,
+        "length_ok": 1,
+        "sentences": 3,
+        "no_ghost_button": 1,
+        "screening_called": 0,
+        "screening_chip": 0,
+        "pass_screening_pos": 0
+      },
+      "output": {
+        "status": 200,
+        "category": "screening_pos",
+        "lang": "en",
+        "reply": "The form questions aren't in the app yet, since this application has no screening answers generated. Paste the exact questions here and I'll help you work out what each one is really asking and what to draw on from your CV. Then you can generate the answers from the application kit for this role.",
+        "actions": [],
+        "executed": [],
+        "toolsCalled": [
+          "get_application_overview"
+        ],
+        "rounds": 2,
+        "sentences": 3,
+        "german": null,
+        "summary": null,
+        "inputTotals": [
+          10102,
+          10448
+        ]
+      },
+      "latencyMs": 4577,
+      "calls": [
+        {
+          "seq": 1,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 3,
+          "caseId": "s02",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 4,
+            "jsonSchema": false,
+            "cacheMarkers": 3,
+            "prefixHash": "c6c7660d0f06644f",
+            "stablePrefixHash": "72ce8ba5f574f99c",
+            "estInputTokens": 16129,
+            "salted": true
+          },
+          "response": {
+            "text": "",
+            "stopReason": "tool_use",
+            "requestId": "req_011CgKKV4QAxPs6ER9hc8ftg",
+            "toolCalls": [
+              {
+                "name": "get_application_overview",
+                "input": {}
+              }
+            ]
+          },
+          "usage": {
+            "input": 111,
+            "output": 176,
+            "cacheRead": 9757,
+            "cacheWrite5m": 234,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10102,
+          "latencyMs": 1897,
+          "costUsd": 0.00022592,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        },
+        {
+          "seq": 2,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 3,
+          "caseId": "s02",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 6,
+            "jsonSchema": false,
+            "cacheMarkers": 4,
+            "prefixHash": "c6c7660d0f06644f",
+            "stablePrefixHash": "72ce8ba5f574f99c",
+            "estInputTokens": 17400,
+            "salted": true
+          },
+          "response": {
+            "text": "The form questions aren't in the app yet, since this application has no screening answers generated. Paste the exact questions here and I'll help you work out what each one is really asking and what to draw on from your CV. Then you can generate the answers from the application kit for this role.",
+            "stopReason": "end_turn",
+            "requestId": "req_011CgKKVCX5mS4qjsUMdgmP6",
+            "toolCalls": []
+          },
+          "usage": {
+            "input": 2,
+            "output": 283,
+            "cacheRead": 9991,
+            "cacheWrite5m": 455,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10448,
+          "latencyMs": 2667,
+          "costUsd": 0.000298485,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "caseId": "s03",
+      "group": "scr-en",
+      "run": 3,
+      "arm": "haiku-low",
+      "pass": true,
+      "failures": [],
+      "hard": [],
+      "metrics": {
+        "no_dash": 1,
+        "no_ghost_button": 1,
+        "screening_false_positive": 0,
+        "pass_screening_neg": 1
+      },
+      "output": {
+        "status": 200,
+        "category": "screening_neg",
+        "lang": "en",
+        "reply": "I can't draft this one well yet. The stored fit assessment for this role has no matching skills or written notes, and I don't have a summary of your CV here, so anything I wrote would be guesswork. The question is really asking why this company and this role, so you'll want a specific reason about Nordhafen's business and one or two real examples from your CV. If you tell me what Nordhafen does and one piece of work you're proud of, I'll help you shape a 600-character answer from that.",
+        "actions": [],
+        "executed": [],
+        "toolsCalled": [
+          "explain_fit"
+        ],
+        "rounds": 2,
+        "sentences": 4,
+        "german": null,
+        "summary": null,
+        "inputTotals": [
+          10208,
+          10796
+        ]
+      },
+      "latencyMs": 6000,
+      "calls": [
+        {
+          "seq": 1,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 3,
+          "caseId": "s03",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 6,
+            "jsonSchema": false,
+            "cacheMarkers": 3,
+            "prefixHash": "c6c7660d0f06644f",
+            "stablePrefixHash": "72ce8ba5f574f99c",
+            "estInputTokens": 16365,
+            "salted": true
+          },
+          "response": {
+            "text": "",
+            "stopReason": "tool_use",
+            "requestId": "req_011CgKKVPtwNTyoQGV5tMX58",
+            "toolCalls": [
+              {
+                "name": "explain_fit",
+                "input": {}
+              }
+            ]
+          },
+          "usage": {
+            "input": 111,
+            "output": 504,
+            "cacheRead": 9757,
+            "cacheWrite5m": 340,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10208,
+          "latencyMs": 3317,
+          "costUsd": 0.00040317,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        },
+        {
+          "seq": 2,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 3,
+          "caseId": "s03",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 8,
+            "jsonSchema": false,
+            "cacheMarkers": 4,
+            "prefixHash": "c6c7660d0f06644f",
+            "stablePrefixHash": "72ce8ba5f574f99c",
+            "estInputTokens": 18267,
+            "salted": true
+          },
+          "response": {
+            "text": "I can't draft this one well yet. The stored fit assessment for this role has no matching skills or written notes, and I don't have a summary of your CV here, so anything I wrote would be guesswork. The question is really asking why this company and this role, so you'll want a specific reason about Nordhafen's business and one or two real examples from your CV. If you tell me what Nordhafen does and one piece of work you're proud of, I'll help you shape a 600-character answer from that.",
+            "stopReason": "end_turn",
+            "requestId": "req_011CgKKVeDR1uEd4JhGdzYRa",
+            "toolCalls": []
+          },
+          "usage": {
+            "input": 2,
+            "output": 262,
+            "cacheRead": 10097,
+            "cacheWrite5m": 697,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10796,
+          "latencyMs": 2666,
+          "costUsd": 0.000319295,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "caseId": "s04",
+      "group": "scr-en",
+      "run": 3,
+      "arm": "haiku-low",
+      "pass": false,
+      "failures": [
+        "did not call offer_screening_answers",
+        "response lacks a start-screening-flow chip"
+      ],
+      "hard": [],
+      "metrics": {
+        "no_dash": 1,
+        "length_ok": 1,
+        "sentences": 3,
+        "no_ghost_button": 1,
+        "screening_called": 0,
+        "screening_chip": 0,
+        "pass_screening_pos": 0
+      },
+      "output": {
+        "status": 200,
+        "category": "screening_pos",
+        "lang": "en",
+        "reply": "Your application has no screening answers generated yet, so the portal questions haven't been drafted. Paste the three questions here and I'll help you work out what each one is asking. For the notice period, you'll need to give me your actual date, since I can't see it in your documents.",
+        "actions": [],
+        "executed": [],
+        "toolsCalled": [
+          "get_application_overview"
+        ],
+        "rounds": 2,
+        "sentences": 3,
+        "german": null,
+        "summary": null,
+        "inputTotals": [
+          10391,
+          10697
+        ]
+      },
+      "latencyMs": 4037,
+      "calls": [
+        {
+          "seq": 1,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 3,
+          "caseId": "s04",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 8,
+            "jsonSchema": false,
+            "cacheMarkers": 3,
+            "prefixHash": "c6c7660d0f06644f",
+            "stablePrefixHash": "72ce8ba5f574f99c",
+            "estInputTokens": 16749,
+            "salted": true
+          },
+          "response": {
+            "text": "",
+            "stopReason": "tool_use",
+            "requestId": "req_011CgKKVqbmdZm1TmmA1gs2r",
+            "toolCalls": [
+              {
+                "name": "get_application_overview",
+                "input": {}
+              }
+            ]
+          },
+          "usage": {
+            "input": 111,
+            "output": 136,
+            "cacheRead": 9757,
+            "cacheWrite5m": 523,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10391,
+          "latencyMs": 1655,
+          "costUsd": 0.000242045,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        },
+        {
+          "seq": 2,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 3,
+          "caseId": "s04",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 10,
+            "jsonSchema": false,
+            "cacheMarkers": 4,
+            "prefixHash": "c6c7660d0f06644f",
+            "stablePrefixHash": "72ce8ba5f574f99c",
+            "estInputTokens": 17945,
+            "salted": true
+          },
+          "response": {
+            "text": "Your application has no screening answers generated yet, so the portal questions haven't been drafted. Paste the three questions here and I'll help you work out what each one is asking. For the notice period, you'll need to give me your actual date, since I can't see it in your documents.",
+            "stopReason": "end_turn",
+            "requestId": "req_011CgKKVxkdRcwPzKcCjbZA1",
+            "toolCalls": []
+          },
+          "usage": {
+            "input": 2,
+            "output": 250,
+            "cacheRead": 10280,
+            "cacheWrite5m": 415,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10697,
+          "latencyMs": 2366,
+          "costUsd": 0.000279875,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "caseId": "s05",
+      "group": "scr-en",
+      "run": 3,
+      "arm": "haiku-low",
+      "pass": false,
+      "failures": [
+        "reply has 9 sentences, max 3"
+      ],
+      "hard": [],
+      "metrics": {
+        "no_dash": 1,
+        "length_ok": 0,
+        "sentences": 9,
+        "no_ghost_button": 1,
+        "screening_false_positive": 0,
+        "pass_screening_neg": 0
+      },
+      "output": {
+        "status": 200,
+        "category": "screening_neg",
+        "lang": "en",
+        "reply": "I can't see your current job or the reasons you're leaving it, so I can't write that part for you. Keep it short and forward-looking: say what you want next, not what's wrong with your current role. Never criticise your employer.\n\nThe letter should also answer:\n- Why Nordhafen and this role, with one specific reason about their work.\n- What you'd bring, with one or two real examples from your CV.\n- Your availability or notice period, if they'll want it.\n\nIf you tell me in a sentence or two why you're moving on, I'll help you turn it into a positive line for the letter. The cover letter hasn't been generated for this application yet, so you can create it from the application kit.",
+        "actions": [],
+        "executed": [],
+        "toolsCalled": [],
+        "rounds": 1,
+        "sentences": 9,
+        "german": null,
+        "summary": null,
+        "inputTotals": [
+          10502
+        ]
+      },
+      "latencyMs": 4658,
+      "calls": [
+        {
+          "seq": 1,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 3,
+          "caseId": "s05",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 10,
+            "jsonSchema": false,
+            "cacheMarkers": 3,
+            "prefixHash": "c6c7660d0f06644f",
+            "stablePrefixHash": "72ce8ba5f574f99c",
+            "estInputTokens": 17005,
+            "salted": true
+          },
+          "response": {
+            "text": "I can't see your current job or the reasons you're leaving it, so I can't write that part for you. Keep it short and forward-looking: say what you want next, not what's wrong with your current role. Never criticise your employer.\n\nThe letter should also answer:\n- Why Nordhafen and this role, with one specific reason about their work.\n- What you'd bring, with one or two real examples from your CV.\n- Your availability or notice period, if they'll want it.\n\nIf you tell me in a sentence or two why you're moving on, I'll help you turn it into a positive line for the letter. The cover letter hasn't been generated for this application yet, so you can create it from the application kit.",
+            "stopReason": "end_turn",
+            "requestId": "req_011CgKKW8p7bhF3U4nGfdvPL",
+            "toolCalls": []
+          },
+          "usage": {
+            "input": 111,
+            "output": 637,
+            "cacheRead": 9757,
+            "cacheWrite5m": 634,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10502,
+          "latencyMs": 4648,
+          "costUsd": 0.00050642,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "caseId": "s09",
+      "group": "scr-en",
+      "run": 3,
+      "arm": "haiku-low",
+      "pass": false,
+      "failures": [
+        "did not call offer_screening_answers",
+        "response lacks a start-screening-flow chip",
+        "reply has 15 sentences, max 3"
+      ],
+      "hard": [],
+      "metrics": {
+        "no_dash": 1,
+        "length_ok": 0,
+        "sentences": 15,
+        "no_ghost_button": 1,
+        "screening_called": 0,
+        "screening_chip": 0,
+        "pass_screening_pos": 0
+      },
+      "output": {
+        "status": 200,
+        "category": "screening_pos",
+        "lang": "en",
+        "reply": "This reads like form questions, so I'm answering them rather than assessing the role. I can't see the details of your CV from here, so I can only help with the parts that depend on your own answers.\n\n- **Why Nordhafen (800 characters):** Tell me what Nordhafen does and what draws you to it, and I'll help you shape a specific answer.\n- **Automated report:** Tell me which recurring report you automated, what tool you used, and what changed. I'll help you turn that into a short example.\n- **Notice period and start date:** Only you can give these. Tell me and I'll help you word them.\n- **Salary expectation:** This depends on your target and the market. Tell me your range and I'll help you phrase it.\n- **SAP S/4HANA or ERP:** Tell me if you've worked with SAP or another ERP, and what you did with it. If you haven't, the honest answer is that you haven't, and I'd keep it to that.\n- **Hamburg, three days a week:** Only you can answer this. If it's a yes, I'll help you phrase it. If it's a no or a maybe, tell me what the constraint is.\n\nStart with the Nordhafen question: what does the company do, and what attracts you to it?",
+        "actions": [],
+        "executed": [],
+        "toolsCalled": [],
+        "rounds": 1,
+        "sentences": 15,
+        "german": null,
+        "summary": null,
+        "inputTotals": [
+          10887
+        ]
+      },
+      "latencyMs": 6222,
+      "calls": [
+        {
+          "seq": 1,
+          "site": "chat_ux",
+          "arm": "haiku-low",
+          "run": 3,
+          "caseId": "s09",
+          "backend": "haiku-live",
+          "request": {
+            "model": "claude-haiku-5-5",
+            "effort": "low",
+            "thinking": "adaptive (omitted)",
+            "maxTokens": 4000,
+            "systemChars": 9094,
+            "stableChars": 0,
+            "tools": 23,
+            "messages": 12,
+            "jsonSchema": false,
+            "cacheMarkers": 3,
+            "prefixHash": "c6c7660d0f06644f",
+            "stablePrefixHash": "72ce8ba5f574f99c",
+            "estInputTokens": 17712,
+            "salted": true
+          },
+          "response": {
+            "text": "This reads like form questions, so I'm answering them rather than assessing the role. I can't see the details of your CV from here, so I can only help with the parts that depend on your own answers.\n\n- **Why Nordhafen (800 characters):** Tell me what Nordhafen does and what draws you to it, and I'll help you shape a specific answer.\n- **Automated report:** Tell me which recurring report you automated, what tool you used, and what changed. I'll help you turn that into a short example.\n- **Notice period and start date:** Only you can give these. Tell me and I'll help you word them.\n- **Salary expectation:** This depends on your target and the market. Tell me your range and I'll help you phrase it.\n- **SAP S/4HANA or ERP:** Tell me if you've worked with SAP or another ERP, and what you did with it. If you haven't, the honest answer is that you haven't, and I'd keep it to that.\n- **Hamburg, three days a week:** Only you can answer this. If it's a yes, I'll help you phrase it. If it's a no or a maybe, tell me what the constraint is.\n\nStart with the Nordhafen question: what does the company do, and what attracts you to it?",
+            "stopReason": "end_turn",
+            "requestId": "req_011CgKKWUjwBT9NbxSVmfbvH",
+            "toolCalls": []
+          },
+          "usage": {
+            "input": 127,
+            "output": 1044,
+            "cacheRead": 9757,
+            "cacheWrite5m": 1003,
+            "cacheWrite1h": 0
+          },
+          "inputTotal": 10887,
+          "latencyMs": 6211,
+          "costUsd": 0.000757645,
+          "over100k": false,
+          "countTokensCalls": 0,
+          "error": null
+        }
+      ],
+      "error": null
+    }
+  ]
+}

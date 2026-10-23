@@ -68,7 +68,7 @@ export interface ScreeningPromptContext {
 /** Each applicant CV is cut here, with a visible marker, so one huge upload can't crowd out the rest. */
 export const MAX_SCREENING_CV_CHARS = 20_000;
 
-/** The job description is cut here. Real ads run to about 11,500 chars (131 in production: p99 10,611), so they arrive whole. */
+/** The job description is cut here. Real ads run to about 11,400 chars (131 in production: p99 10,611, longest 11,421), so they arrive whole. */
 export const MAX_SCREENING_JOB_DESCRIPTION_CHARS = 20_000;
 
 /**
@@ -280,7 +280,7 @@ export interface ScreeningHistoryMessage {
  * One earlier turn as screening shows it: cut at MAX_SCREENING_HISTORY_TURN_CHARS with a visible marker, and a
  * user turn that looks pasted (the chat's own test, looksPasted) sanitized and quoted in << >>, which the static
  * rules bind as pasted text, never the applicant speaking. The test runs on the whole turn, before the cut: the
- * chat runs it on the turn cut at 11,300, and both agree (any turn past either cut is over 350 chars, so pasted).
+ * chat runs it on the turn cut at CHAT_TURN_MAX_CHARS (13,000), and both agree (any turn past either cut is over 350 chars, so pasted).
  * Screening sends no cache marker on its messages, so these bytes need not match the chat's.
  */
 function screeningHistoryTurnText(role: 'user' | 'assistant', content: string): string {

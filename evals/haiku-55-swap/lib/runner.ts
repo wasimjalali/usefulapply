@@ -10,9 +10,9 @@
  * quality and latency across arms in that mode).
  */
 import { execFileSync } from 'node:child_process';
-import { accessSync, constants, mkdirSync, writeFileSync } from 'node:fs';
+import { accessSync, constants, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import {
   ARMS,
   DECISION_RULE,
@@ -74,6 +74,8 @@ export interface Site<C extends SiteCase> {
   passRule: string;
   /** Hard-constraint metrics that must be zero for an arm to qualify, whatever gpt-oss did. */
   absoluteHard: string[];
+  /** Where run-N.json files go. Default: the 2026-10-22 haiku-55-swap results folder. */
+  resultsRoot?: string;
   cases(): C[];
   /** Fixture, grader and request-shape problems found without any model. Empty = fine. */
   selfTest(): Promise<string[]> | string[];
@@ -159,13 +161,14 @@ export async function runSite<C extends SiteCase>(site: Site<C>, options: RunOpt
   const caseById = new Map(cases.map((c) => [c.id, c]));
 
   // Output path check up front: a run that would fail to write must fail before it spends anything.
+  const root = site.resultsRoot ?? RESULTS_ROOT;
   if (options.dry) {
-    accessSync(RESULTS_ROOT, constants.W_OK);
+    accessSync(existsSync(root) ? root : dirname(root), constants.W_OK);
   } else {
-    mkdirSync(join(RESULTS_ROOT, site.id), { recursive: true });
-    accessSync(join(RESULTS_ROOT, site.id), constants.W_OK);
+    mkdirSync(join(root, site.id), { recursive: true });
+    accessSync(join(root, site.id), constants.W_OK);
   }
-  const wouldWrite = nextRunPath(site.id);
+  const wouldWrite = nextRunPath(site.id, root);
 
   await site.setup?.({ dry: options.dry });
   const started = new Date().toISOString();
@@ -301,7 +304,7 @@ export async function runSite<C extends SiteCase>(site: Site<C>, options: RunOpt
     writeFileSync(file, `${JSON.stringify(result, null, 2)}\n`);
     console.log(`[dry] would write ${wouldWrite.path} (run-${wouldWrite.n}); wrote the dry result to ${file}`);
   } else {
-    file = writeRun(site.id, result);
+    file = writeRun(site.id, result, root);
     console.log(`wrote ${file}`);
   }
   printSummary(site.id, summaries, decision.winner, aborted, decision.undecidedReason);

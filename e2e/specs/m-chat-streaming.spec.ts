@@ -542,7 +542,9 @@ test.describe.serial('chat replies stream as they are written', () => {
   });
 
   test('a long conversation compacts on the streamed turn: the divider appears and the reply still streams', async () => {
-    seedLongHistory(user.id, sessionId, 14);
+    // 12 notes: past 75k projected, and one compaction request covers everything before the kept turns. At 14 the
+    // request itself crosses the line and the route compacts in two passes (by design), which this test does not cover.
+    seedLongHistory(user.id, sessionId, 12);
     await fakeControl({ streamChunkMs: 40 });
     const since = new Date().toISOString();
     await page.reload();

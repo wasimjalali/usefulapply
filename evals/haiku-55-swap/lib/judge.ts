@@ -3,7 +3,7 @@
  * project context: a bare Messages API call with the rubric as the system prompt and the item as the
  * only user turn. The prompt never names the arm or the model under test.
  *
- * Needs ANTHROPIC_API_KEY in the environment. The harness never loads env files.
+ * Needs ANTHROPIC_API_KEY in the environment (the shell, or --key-from-dev-vars, which loads that one key: lib/key.ts).
  */
 import { costUsd as priceUsd } from '../../lib/pricing';
 import { JUDGE_MODEL } from '../../lib/judge-common';

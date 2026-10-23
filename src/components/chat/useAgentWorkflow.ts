@@ -35,12 +35,13 @@ import { applyServerRow, forgetSession, refreshFromServer } from '@/lib/session-
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { needsAvailabilityPrompt } from '@/lib/profile/logistics';
 import { parkedRunStillValid } from '@/lib/profile/logistics-resume';
-import type { KitDocument, KitDocumentErrors } from '@/lib/agents/types';
+import type { KitDocument } from '@/lib/agents/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
 import { useChatCompactionMarker } from './compaction-marker';
 import { readChatStream } from './read-chat-stream';
 import { useStreamingReply } from './streaming-reply';
 import { flushChatSync } from '@/lib/chat-sync-flush';
+import { CHAT_LOCAL_REPLAY_TURNS } from '@/lib/chat-limits';
 import {
   createSession as createStoredSession,
   deleteSession as deleteStoredSession,
@@ -117,10 +118,12 @@ function formatFitAnalysisMessage(
     fallbackGaps.length > 0 ? `**Main gaps**\n${fallbackGaps.join('\n')}` : '',
   ].filter(Boolean).join('\n\n');
 
+  // No pointer at "the button below": the fit's own chips are the next step, and a line in the transcript would still
+  // point at them after a kit replaced them (FIT_CLOSING_BEFORE_2026_10_23).
   const closing =
     fitLevel === 'weak'
       ? 'This one looks weak. I would skip it unless there is a strong strategic reason to apply.'
-      : 'If you want to move forward, generate the full application below.';
+      : '';
 
   return [
     `${fitEmoji} **${fitLabel}**`,
@@ -130,6 +133,9 @@ function formatFitAnalysisMessage(
     closing,
   ].filter(Boolean).join('\n\n');
 }
+
+/** The closing line fit messages carried before 2026-10-23. Stored transcripts still hold it; ChatPanel hides it once a kit exists. */
+export const FIT_CLOSING_BEFORE_2026_10_23 = 'If you want to move forward, generate the full application below.';
 
 const KIT_DOCUMENT_NAMES: Record<KitDocument, string> = {
   cv: 'tailored CV',
@@ -148,41 +154,45 @@ function formatCredits(amount: number): string {
 }
 
 /**
- * The chat line for a finished kit. A partial kit names what is ready, what
- * is not, where to retry it and what came back, and claims a refund only
- * when the server confirmed one.
+ * The chat line for a finished kit. It names only the documents the server
+ * actually returned: a document is ready when it came back and carries no
+ * error, the same test kit.ts uses before it saves it, so a document that
+ * was never written is never announced. What is missing is named with where
+ * to retry it, and a refund is claimed only when the server confirmed one.
  */
 function kitReadyMessage(opts: {
   company?: string;
   atsNote: string;
-  errors: KitDocumentErrors;
+  ready: Record<KitDocument, boolean>;
   creditsRefunded: number;
 }): string {
-  const { errors } = opts;
+  const { ready } = opts;
   const intro = `Your kit${opts.company ? ` for ${opts.company}` : ''} is ready`;
-  const failed = (Object.keys(KIT_DOCUMENT_NAMES) as KitDocument[]).filter((document) => errors[document]);
-  if (failed.length === 0) {
+  const missing = (Object.keys(KIT_DOCUMENT_NAMES) as KitDocument[]).filter((document) => !ready[document]);
+  if (missing.length === 0) {
     return `${intro}: a tailored CV${opts.atsNote}, a cover letter and two emails. Every claim comes from your CV. Review it before you send.`;
   }
-  const ready: string[] = [];
-  if (!errors.cv) ready.push(`a tailored CV${opts.atsNote}`);
-  if (!errors.coverLetter) ready.push('a cover letter');
-  if (!errors.applicationEmail && !errors.followUpEmail) ready.push('two emails');
-  else if (!errors.applicationEmail) ready.push('an application email');
-  else if (!errors.followUpEmail) ready.push('a follow-up email');
+  const names: string[] = [];
+  if (ready.cv) names.push(`a tailored CV${opts.atsNote}`);
+  if (ready.coverLetter) names.push('a cover letter');
+  if (ready.applicationEmail && ready.followUpEmail) names.push('two emails');
+  else if (ready.applicationEmail) names.push('an application email');
+  else if (ready.followUpEmail) names.push('a follow-up email');
   // Both emails live on one tab, so count tabs, not documents.
   const retryTabs = [
-    ...(errors.coverLetter ? ['Cover letter'] : []),
-    ...(errors.applicationEmail || errors.followUpEmail ? ['Emails'] : []),
+    ...(!ready.coverLetter ? ['Cover letter'] : []),
+    ...(!ready.applicationEmail || !ready.followUpEmail ? ['Emails'] : []),
   ];
   const lines = [
-    `${intro}: ${joinNames(ready)}. Every claim comes from your CV. Review it before you send.`,
-    `We couldn't write the ${joinNames(failed.map((document) => KIT_DOCUMENT_NAMES[document]))}.`,
+    names.length > 0
+      ? `${intro}: ${joinNames(names)}. Every claim comes from your CV. Review it before you send.`
+      : `Your kit${opts.company ? ` for ${opts.company}` : ''} didn't come through.`,
+    `We couldn't write the ${joinNames(missing.map((document) => KIT_DOCUMENT_NAMES[document]))}.`,
   ];
   if (retryTabs.length > 0) {
     lines.push(`Try again from the ${joinNames(retryTabs)} ${retryTabs.length === 1 ? 'tab' : 'tabs'}.`);
   }
-  if (errors.cv) lines.push('The CV tab shows your base CV. To tailor it, paste the job ad again for a new kit.');
+  if (!ready.cv) lines.push('The CV tab shows your base CV. To tailor it, paste the job ad again for a new kit.');
   if (opts.creditsRefunded > 0) lines.push(`We refunded ${formatCredits(opts.creditsRefunded)}.`);
   return `${lines[0]}\n\n${lines.slice(1).join(' ')}`;
 }
@@ -257,7 +267,7 @@ export function useAgentWorkflow(options?: {
 
   const addWorkflowMessage = (
     sessionId: string | undefined,
-    message: { role: 'assistant'; content: string },
+    message: { role: 'assistant'; content: string; actions?: ChatAction[] },
   ) => {
     if (!sessionId || useSessionStore.getState().currentSession?.id === sessionId) {
       addChatMessage(message);
@@ -278,7 +288,7 @@ export function useAgentWorkflow(options?: {
   /**
    * What /api/chat needs to know about the conversation. A saved application's history is read from D1 by the route,
    * so only the new message's id goes (the route stores the turn under it). A local `session-` conversation has no
-   * row yet and still sends its last ten turns. `messages` is this render's transcript, which does not hold the new
+   * row yet and still sends its last CHAT_LOCAL_REPLAY_TURNS (7) turns. `messages` is this render's transcript, which does not hold the new
    * message yet.
    */
   const chatRequestHistory = (message: string) => {
@@ -292,8 +302,12 @@ export function useAgentWorkflow(options?: {
       const answered = index !== -1 && live.chatMessages.slice(index + 1).some((entry) => entry.role === 'assistant');
       return { chatHistory: [], messageId: index === -1 || answered ? undefined : live.chatMessages[index].id };
     }
+    // The message itself goes as `message`. When it is already the newest turn on screen (a pasted ad the "Not a job
+    // ad" button sends again), it is not replayed as history too, or the model reads the same paste twice.
+    const last = messages.at(-1);
+    const earlier = last?.role === 'user' && last.content === message ? messages.slice(0, -1) : messages;
     return {
-      chatHistory: messages.slice(-10).map((msg) => ({ role: msg.role, content: msg.content })),
+      chatHistory: earlier.slice(-CHAT_LOCAL_REPLAY_TURNS).map((msg) => ({ role: msg.role, content: msg.content })),
       messageId: undefined,
     };
   };
@@ -668,7 +682,30 @@ export function useAgentWorkflow(options?: {
       const { masterCV, certifications } = useAppStore.getState();
       const { chatHistory: recentMessages, messageId } = chatRequestHistory(message);
       // Messages added just before this turn reach D1 first, so the route's history keeps the transcript's order.
-      if (startedIn && !startedIn.startsWith('session-')) await flushChatSync(startedIn, messageId);
+      // A message that could not be written in time (a pasted ad) would be missing from the route's history, and the
+      // model would answer without it. Hold the turn and say so, rather than answer as if it were not there. A slow
+      // write keeps going in the background, so sending again a moment later finds it saved.
+      // A timeout holds only when one of the pending messages is the user's own: a reply the route stored itself is
+      // already in D1 however slow its idempotent re-write is.
+      const live = useSessionStore.getState();
+      const turnSession = live.currentSession?.id === startedIn
+        ? live.currentSession
+        : live.sessions.find((session) => session.id === startedIn);
+      const pendingOwn = Boolean(turnSession?.chatMessages.some((entry) =>
+        entry.role === 'user' && entry.id.startsWith('msg-') && !entry.stored && entry.id !== messageId));
+      const flushed = startedIn && !startedIn.startsWith('session-') ? await flushChatSync(startedIn, messageId) : 'ok';
+      if (flushed === 'failed' || (flushed === 'timeout' && pendingOwn)) {
+        // On this screen only (a `notice-` id the sync never writes), so the model's history never holds it.
+        const target = resolveTurnSession(startedIn, startedCreatedAt);
+        if (target) {
+          addReplyMessage({
+            role: 'assistant',
+            content: "I couldn't save your earlier message, so I can't see it yet. Check your connection and send your question again.",
+            actions: [],
+          }, `notice-held-${streamTurnId}`, target);
+        }
+        return;
+      }
 
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -692,6 +729,14 @@ export function useAgentWorkflow(options?: {
             hasGeneratedCV: !!currentSession?.generatedCV,
             hasGeneratedCoverLetter: !!currentSession?.coverLetter,
             hasGeneratedEmail: !!currentSession?.email,
+            hasGeneratedFollowUp: !!currentSession?.followUpEmail,
+            // The same test the Cover letter and Emails panels use for their Generate Kit button.
+            generateKitButtonShown: Boolean(
+              currentSession?.pendingFitAnalysis?.createdAt
+              && Date.now() < new Date(currentSession.pendingFitAnalysis.createdAt).getTime() + 30 * 60 * 1000
+              && !currentSession?.coverLetter
+              && !currentSession?.email,
+            ),
             // For the tool registry: the saved application this chat is on
             // (the route validates the id) and the user's clock for dates.
             sessionId: startedIn ?? undefined,
@@ -746,10 +791,13 @@ export function useAgentWorkflow(options?: {
         }, typeof replyMessageId === 'string' ? replyMessageId : undefined, startedIn);
         // A real ad the model read as a question would otherwise be a dead
         // end: no card, no run, no way back. The client offers a manual way
-        // in when the text looked like an ad and no proposal came back.
+        // in when the text looked like an ad and no proposal came back. A reply
+        // that raised its own button (a rewrite, a delete) understood the
+        // message, and the way-in card would hide that button.
         const proposed = Array.isArray(executed)
           && (executed as ExecutedEffect[]).some((effect) => effect.type === 'propose_application');
-        if (!proposed) offerManualWayIn(message, startedIn, opts);
+        const raisedAction = !effectRefusal && Array.isArray(actions) && actions.length > 0;
+        if (!proposed && !raisedAction) offerManualWayIn(message, startedIn, opts);
       };
 
       const handleFailure = (errorData: Record<string, unknown> | null) => {
@@ -912,7 +960,7 @@ export function useAgentWorkflow(options?: {
             // The route spends the turn against this row, so it has to be the
             // saved application, not the local draft id.
             sessionId: screeningSessionId,
-            // The server cuts the ad at 20,000 chars (MAX_SCREENING_JOB_DESCRIPTION_CHARS); real ads run to about 11,500.
+            // The server cuts the ad at 20,000 chars (MAX_SCREENING_JOB_DESCRIPTION_CHARS); real ads run to about 11,400 (longest 11,421).
             jobDescription: currentSession?.jobDescription?.substring(0, 20_000),
             matchingSkills: currentSession?.matchingSkills,
             missingSkills: currentSession?.missingSkills,
@@ -955,10 +1003,14 @@ export function useAgentWorkflow(options?: {
     // A fit run replaces a parked kit run (its card closes), so the two can't run side by side.
     useUIStore.getState().setPendingLogistics(null);
     const fitWorkflowSessionId = useSessionStore.getState().currentSession?.id;
+    const fitWorkflowCreatedAt = useSessionStore.getState().currentSession?.createdAt;
 
     setIsAgentWorking(true);
     setAgentWorkflowPhase('fit_analysis');
     setAgentSteps([]);
+    // A finished kit's 100 would otherwise paint this run's stages done until its first progress event; 0 also keeps
+    // the chat's first loading card up until then.
+    setV2Progress({ percent: 0, message: 'Analyzing job fit...' });
     setV2Reflection(null);
     setV2Models(null);
     setV2TokenUsage(null);
@@ -1044,16 +1096,22 @@ export function useAgentWorkflow(options?: {
                 break;
               case 'fit_analysis_complete': {
                 const { contextId, fitAnalysis, job, match, applicant, verifiedMetrics, detectedLanguage } = data;
-                setFitAnalysisContextId(contextId);
-                // Keep parsed context for the fit UI and session resume only.
-                setFitAnalysisContextData({
-                  applicant,
-                  job,
-                  match,
-                  verifiedMetrics,
-                  detectedLanguage,
-                  fitAnalysis,
-                });
+                // The fit's chips live in this panel's state, which follows the open application. Opened elsewhere
+                // while it ran, the fit still lands on its own application (pendingFitAnalysis, below), and its
+                // chips come back from there; the open one never gets them.
+                const fitStillOpen = useSessionStore.getState().currentSession?.createdAt === fitWorkflowCreatedAt;
+                if (fitStillOpen) {
+                  setFitAnalysisContextId(contextId);
+                  // Keep parsed context for the fit UI and session resume only.
+                  setFitAnalysisContextData({
+                    applicant,
+                    job,
+                    match,
+                    verifiedMetrics,
+                    detectedLanguage,
+                    fitAnalysis,
+                  });
+                }
                 // For a stored application the server saved what the analysis found (agent-v2
                 // writes the fit columns with a revision bump), so it is loaded below instead of
                 // written from this response. An unsaved session has no row and takes it directly.
@@ -1246,6 +1304,9 @@ export function useAgentWorkflow(options?: {
     let eagerLocalSessionId: string | null = null;
     let eagerStoredSessionId: string | null = null;
     let didProduceArtifacts = false;
+    // The saved kit loading back from the server (refreshFromServer). The run counts as working until it has landed:
+    // GuidedLine reads "not working and no kit" as a failed run, and for that moment it showed "The kit didn't finish".
+    let kitRefresh: Promise<unknown> | null = null;
     let requestStarted = false;
     let terminalServerError = false;
 
@@ -1590,9 +1651,20 @@ export function useAgentWorkflow(options?: {
                 const repeatNote = alreadySent
                   ? `\n\nYou already applied to this one${sentOn ? ` on ${sentOn}` : ''}. This kit is saved separately, so the one you sent stays as it is.`
                   : '';
+                const kitReady: Record<KitDocument, boolean> = {
+                  cv: !kitErrors.cv && Boolean(ctx?.optimizedCV || ctx?.optimizedCVData),
+                  coverLetter: !kitErrors.coverLetter && Boolean(ctx?.coverLetter),
+                  applicationEmail: !kitErrors.applicationEmail && Boolean(ctx?.applicationEmail),
+                  followUpEmail: !kitErrors.followUpEmail && Boolean(ctx?.followUpEmail),
+                };
                 addWorkflowMessage(workflowSessionId, {
                   role: 'assistant',
-                  content: `${kitReadyMessage({ company: kitCompany, atsNote, errors: kitErrors, creditsRefunded })}${weakMatchNote}${repeatNote}`,
+                  content: `${kitReadyMessage({ company: kitCompany, atsNote: kitReady.cv ? atsNote : '', ready: kitReady, creditsRefunded })}${weakMatchNote}${repeatNote}`,
+                  // Screening is offered once, here, while this is the newest message (ChatPanel shows a message's
+                  // chips only under the newest reply). Answers are saved with the tailored CV, so it needs one.
+                  ...(kitReady.cv
+                    ? { actions: [{ label: 'Answer screening questions', action: 'start-screening-flow', icon: 'screening' as const }] }
+                    : {}),
                 });
                 if (originStillOpen && isDirectPath && isWeakMatch) {
                   toast.warning(
@@ -1605,7 +1677,7 @@ export function useAgentWorkflow(options?: {
                 // our copy back, so the screen and the database agree and the
                 // next edit starts from the right revision.
                 if (workflowSessionId && !workflowSessionId.startsWith('session-')) {
-                  void refreshFromServer(workflowSessionId);
+                  kitRefresh = refreshFromServer(workflowSessionId);
                 }
                 break;
                 
@@ -1687,6 +1759,11 @@ export function useAgentWorkflow(options?: {
         } catch (cleanupError) {
           console.error('[useAgentWorkflow] Failed to clean up empty eager session:', cleanupError);
         }
+      }
+      if (kitRefresh) {
+        await kitRefresh.catch((error: unknown) => {
+          console.error('[useAgentWorkflow] The saved kit did not load back:', error);
+        });
       }
       setIsAgentWorking(false);
       setAgentWorkflowPhase(null);

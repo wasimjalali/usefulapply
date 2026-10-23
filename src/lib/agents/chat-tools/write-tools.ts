@@ -15,7 +15,7 @@
 
 import { listTrackerOverview, setTrackerStatus } from '@/db/repos/sessions';
 import { addBusinessDays, isTrackerStatus, toIso, type TrackerStatus } from '@/components/tracker/tracker-status';
-import { flattenUntrusted, userNamed, wallClockToIso } from './untrusted';
+import { flattenUntrusted, isoToWallClock, userNamed, wallClockToIso } from './untrusted';
 import type { ChatTool, ChatToolContext, ChatToolResult } from './types';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -138,7 +138,9 @@ const setApplicationStatus: ChatTool = {
         company: `<<${flattenUntrusted(row.company)}>>`,
         status,
         interview_at: dates.interview_at,
+        interview_local: isoToWallClock(dates.interview_at, ctx.timeZone),
         follow_up_due_at: dates.follow_up_due_at,
+        follow_up_due_local: isoToWallClock(dates.follow_up_due_at, ctx.timeZone),
       },
       executed: [{ type: 'tracker_updated', sessionId: row.id, status }],
     };

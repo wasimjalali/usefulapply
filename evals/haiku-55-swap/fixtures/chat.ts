@@ -2,8 +2,8 @@
  * Main chat fixtures: 36 messages in 9 conversations over the 25-row tracker from fixtures/tracker.ts,
  * with the same frozen clock (Thursday 2026-10-22, Berlin).
  *
- * Each conversation is one user's turns in order. The route gets the history the client sends (the last
- * 10 messages). The database is reset to the seeded state at the start of every conversation, never
+ * Each conversation is one user's turns in order. The route reads the conversation's history from D1, where it
+ * stores each turn itself (server-owned history since PR #179; the site sends none). The database is reset to the seeded state at the start of every conversation, never
  * between its turns, so a conversation can build on its own writes.
  *
  * `script` is what a perfect model would do, used only by the dry run (the shipped route, tools and
@@ -36,7 +36,7 @@ export const TAILORED_CV = {
   certifications: [],
 } as unknown as TailoredCV;
 
-function ad(id: string, chars = 2800): string {
+export function ad(id: string, chars = 2800): string {
   const rows = readFileSync(join(__dirname, '..', '..', 'dataset', 'cases.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l) as { id: string; jd?: string });
   const jd = rows.find((r) => r.id === id)?.jd;
   if (!jd) throw new Error(`public ad ${id} missing from evals/dataset/cases.jsonl`);

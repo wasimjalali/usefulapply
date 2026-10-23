@@ -13,13 +13,14 @@ import { FEED_TOOLS } from './feed-tools';
 import { KIT_TOOLS } from './kit-tools';
 import { CV_TOOLS } from './cv-tools';
 import { NAVIGATE_TOOLS } from './navigate';
+import { SCREENING_TOOLS } from './screening-tools';
 import { cutText } from './untrusted';
 import { MAX_TOOL_RESULT_CHARS, type ChatTool, type ChatToolContext, type ChatToolResult } from './types';
 
 export type { ChatToolContext, ChatToolResult, ExecutedEffect, ChatActionChip, NavigateTarget } from './types';
 export { MAX_TOOL_RESULT_CHARS } from './types';
 
-export const CHAT_TOOLS: ChatTool[] = [...READ_TOOLS, ...APP_TOOLS, ...INTENT_TOOLS, ...NAVIGATE_TOOLS, ...WRITE_TOOLS, ...FEED_TOOLS, ...KIT_TOOLS, ...CV_TOOLS];
+export const CHAT_TOOLS: ChatTool[] = [...READ_TOOLS, ...APP_TOOLS, ...INTENT_TOOLS, ...NAVIGATE_TOOLS, ...WRITE_TOOLS, ...FEED_TOOLS, ...KIT_TOOLS, ...CV_TOOLS, ...SCREENING_TOOLS];
 
 const TOOLS_BY_NAME = new Map(CHAT_TOOLS.map((tool) => [tool.name, tool]));
 

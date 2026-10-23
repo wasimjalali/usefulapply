@@ -39,6 +39,8 @@ export interface NeutralRequest {
 
 export interface OracleReply {
   text: string;
+  /** Dry run of a compaction request (site chat_compaction): the summary the block carries. */
+  compactionSummary?: string;
   toolCalls?: Array<{ id: string; name: string; input: Record<string, unknown> }>;
 }
 export type Oracle = (req: NeutralRequest, callIndex: number) => OracleReply;
@@ -247,6 +249,7 @@ export function dryReplyFor(scope: Scope, req: NeutralRequest): OracleReply {
 /** Old production sampling and budgets per site, so the baseline arm sees what gpt-oss saw. */
 const GPTOSS_SETTINGS: Record<SiteId, { temperature: number; maxTokens: number }> = {
   chat: { temperature: 0.6, maxTokens: 4000 },
+  chat_ux: { temperature: 0.6, maxTokens: 4000 },
   screening: { temperature: 0.4, maxTokens: 8000 },
   tracker: { temperature: 0.3, maxTokens: 4000 },
   language: { temperature: 0, maxTokens: 2048 },
@@ -272,7 +275,7 @@ async function gptossCall(scope: Scope, req: NeutralRequest): Promise<{ reply: O
   const settings = GPTOSS_SETTINGS[scope.site];
   // Production sent gpt-oss a "Reasoning: low" line on chat and tracker chat (harmony). The swap removes it from the
   // shipped prompts, so the baseline gets it here, as it had it.
-  const legacyReasoning = (scope.site === 'chat' || scope.site === 'tracker') && !/Reasoning:/.test(req.systemStatic) ? '\n\nReasoning: low' : '';
+  const legacyReasoning = (scope.site === 'chat' || scope.site === 'chat_ux' || scope.site === 'tracker') && !/Reasoning:/.test(req.systemStatic) ? '\n\nReasoning: low' : '';
   const system = [req.systemStatic, req.systemStable].filter(Boolean).join('\n\n') + legacyReasoning + (req.jsonSchema ? `\n\n${JSON_ONLY}` : '');
   const messages: Array<Record<string, unknown>> = [];
   if (system.trim()) messages.push({ role: 'system', content: system });
@@ -340,6 +343,7 @@ async function answer(req: NeutralRequest, scope: Scope): Promise<{ reply: Oracl
 function haikuShaped(reply: OracleReply, rec: CallRecord, req: NeutralRequest) {
   const u = rec.usage!;
   const rawContent: unknown[] = [];
+  if (reply.compactionSummary !== undefined) rawContent.push({ type: 'compaction', content: reply.compactionSummary });
   if (reply.text) rawContent.push({ type: 'text', text: reply.text });
   for (const t of reply.toolCalls ?? []) rawContent.push({ type: 'tool_use', id: t.id, name: t.name, input: t.input });
   return {

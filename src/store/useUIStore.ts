@@ -72,8 +72,8 @@ interface UIState {
   // names the stage and the tab the result will land in.
   regenStage: { title: string; tab: KitTab } | null;
 
-  // "Download the kit" in the chat and "Download all" on the canvas both ask
-  // the always-mounted KitExportHost to run. Monotonic counter so repeat
+  // "Download all" on the canvas asks the always-mounted KitExportHost to
+  // run. Monotonic counter so repeat
   // clicks re-fire; kitDownloadBusy lets every control show the same state.
   kitDownloadRequest: number;
   kitDownloadBusy: boolean;

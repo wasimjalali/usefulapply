@@ -14,13 +14,37 @@
 
 import { getSession } from '@/db/repos/sessions';
 import { CV_TEMPLATE_IDS, cvTemplateCatalogForPrompt, cvTemplateName } from '@/lib/cv-templates/catalog';
-import { flattenUntrusted } from './untrusted';
+import { flattenUntrusted, isoToWallClock } from './untrusted';
 import type { ChatTool, ChatToolResult } from './types';
+
+/**
+ * The ATS score saved with the tailored CV (generated_cv._optimizedCVData.analysis.ats_compatibility). The kit writer
+ * sets it (kit.ts), the server's CV edits carry it (cv.ts, regenerate.ts), and the client's sync writes the same field
+ * back from the store, so it is the user's own saved value, not one the server alone vouches for. It is read from the
+ * D1 row rather than ctx.tailoredCV only because that is what the rest of this tool reports. Null when there is none
+ * (no tailored CV, or a kit from before the score existed). A value that is there but is not a number from 0 to 100
+ * is logged and reported as null, never coerced, so the chat cannot quote a made-up score.
+ */
+function storedAtsScore(sessionId: string, generatedCv: unknown): number | null {
+  const optimized = generatedCv && typeof generatedCv === 'object'
+    ? (generatedCv as Record<string, unknown>)._optimizedCVData
+    : undefined;
+  const analysis = optimized && typeof optimized === 'object'
+    ? (optimized as Record<string, unknown>).analysis
+    : undefined;
+  const score = analysis && typeof analysis === 'object'
+    ? (analysis as Record<string, unknown>).ats_compatibility
+    : undefined;
+  if (score === undefined || score === null) return null;
+  if (typeof score === 'number' && Number.isFinite(score) && score >= 0 && score <= 100) return score;
+  console.error(`[chat-tools] get_application_overview: ${sessionId} has an unusable ats_compatibility (${typeof score === 'number' ? score : typeof score})`);
+  return null;
+}
 
 const getApplicationOverview: ChatTool = {
   name: 'get_application_overview',
   description:
-    'Everything about the application open in this conversation: company, role, status, match score, which documents have been generated (CV, cover letter, application email, follow-up email), the CV template it uses and how many screening answers are left. Use for "what have I got for this one", "did I write the cover letter yet", "which template is this using".',
+    'Everything about the application open in this conversation: company, role, status, match score, ATS score, which documents have been generated (CV, cover letter, application email, follow-up email), the CV template it uses and how many screening answers are left. Use for "what have I got for this one", "did I write the cover letter yet", "which template is this using".',
   parameters: { type: 'object', properties: {}, additionalProperties: false },
   handler: async (_args, ctx): Promise<ChatToolResult> => {
     if (!ctx.sessionId) {
@@ -36,6 +60,7 @@ const getApplicationOverview: ChatTool = {
         role: `<<${flattenUntrusted(session.job_title)}>>`,
         status: session.status ?? 'drafted',
         match_score: session.match_score ?? null,
+        ats_score: storedAtsScore(session.id, session.generated_cv),
         has_cv: Boolean(session.generated_cv),
         has_cover_letter: Boolean(session.cover_letter),
         has_application_email: Boolean(session.email || session.email_body),
@@ -47,6 +72,7 @@ const getApplicationOverview: ChatTool = {
         selected_template: session.selected_template ?? null,
         screening_answers_used: session.screening_turns_used ?? 0,
         created_at: session.created_at,
+        created_local: isoToWallClock(session.created_at, ctx.timeZone),
       },
     };
   },

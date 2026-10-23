@@ -15,6 +15,7 @@ import {
   getChatMessages,
 } from '@/lib/supabase';
 import { useChatCompactionMarker } from '@/components/chat/compaction-marker';
+import { useChatHistoryLoad } from '@/components/chat/chat-history-load';
 import {
   useSessionStore,
   type ChatMessage,
@@ -30,10 +31,20 @@ export { mapChatRowsToStore, mapSessionRowToStore, readKitDocumentErrors, type S
 let openGeneration = 0;
 const hydratedChatIds = new Set<string>();
 
-function applyChat(sessionId: string, chatMessages: ChatMessage[]) {
+function applyChat(sessionId: string, serverMessages: ChatMessage[]) {
   // Do not go through updateCurrentSession: that stamps updatedAt and the
   // sync effect would write the whole row back to D1 just because chat loaded.
   const store = useSessionStore.getState();
+  // A message this browser added that has not reached D1 yet (its sync write is pending or failed) stays: replacing
+  // the transcript wholesale would drop it from the screen, and the sync would then never write it.
+  const local = (store.currentSession?.id === sessionId
+    ? store.currentSession
+    : store.sessions.find((session) => session.id === sessionId))?.chatMessages ?? [];
+  const serverIds = new Set(serverMessages.map((message) => message.id));
+  const pending = local.filter((message) => message.id.startsWith('msg-') && !message.stored && !serverIds.has(message.id));
+  const chatMessages = pending.length === 0
+    ? serverMessages
+    : [...serverMessages, ...pending].sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
   useSessionStore.setState({
     currentSession: store.currentSession?.id === sessionId
       ? { ...store.currentSession, chatMessages }
@@ -48,22 +59,42 @@ export async function hydrateChatIfEmpty(sessionId: string, generation = openGen
   if (sessionId.startsWith('session-')) return;
   if (hydratedChatIds.has(sessionId)) return;
 
-  // The divider marker is cosmetic: a failed read is logged and shows no divider, it never keeps the chat from loading.
-  const [messages, compactedThrough] = await Promise.all([
-    getChatMessages(sessionId),
-    getChatCompactionMarker(sessionId).catch((error: unknown) => {
-      console.error('[openStoredSession] Chat divider marker did not load:', error);
-      return undefined;
-    }),
-  ]);
+  // ChatPanel holds a loading state while this runs, instead of the empty conversation (chat-history-load.ts).
+  const { setLoading, setFailed } = useChatHistoryLoad.getState();
+  setLoading(sessionId, true);
+  setFailed(sessionId, false);
+  let messages: Awaited<ReturnType<typeof getChatMessages>>;
+  let compactedThrough: string | null | undefined;
+  try {
+    // The divider marker is cosmetic: a failed read is logged and shows no divider, it never keeps the chat from loading.
+    [messages, compactedThrough] = await Promise.all([
+      getChatMessages(sessionId),
+      getChatCompactionMarker(sessionId).catch((error: unknown) => {
+        console.error('[openStoredSession] Chat divider marker did not load:', error);
+        return undefined;
+      }),
+    ]);
+  } catch (error) {
+    // Only the newest load speaks for the application: an older one that fails after a newer one started does not.
+    if (generation === openGeneration) setFailed(sessionId, true);
+    throw error;
+  } finally {
+    setLoading(sessionId, false);
+  }
   if (generation !== openGeneration) return;
   if (useSessionStore.getState().currentSession?.id !== sessionId) return;
   hydratedChatIds.add(sessionId);
   // The chat divider on a device that never saw the turn that compacted (the route returns it with every reply too).
   // A failed read keeps the marker this browser already has.
   if (compactedThrough !== undefined) useChatCompactionMarker.getState().setMarker(sessionId, compactedThrough);
-  if (!messages || messages.length === 0) return;
-  applyChat(sessionId, mapChatRowsToStore(messages));
+  // Applied even when the server holds none: the transcript on screen may be this browser's cached copy, and the
+  // server's (empty) one replaces it, keeping only messages this browser has not written yet (applyChat).
+  applyChat(sessionId, mapChatRowsToStore(messages ?? []));
+}
+
+/** Whether this page load has the application's transcript from D1 (the background chat sync waits for it). */
+export function isChatHydrated(sessionId: string): boolean {
+  return hydratedChatIds.has(sessionId);
 }
 
 /**

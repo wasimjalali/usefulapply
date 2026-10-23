@@ -6,6 +6,7 @@ import { buildHaikuRequest, readHaikuContent, type HaikuMessage, type HaikuReque
 import { asCompactionBlock, COMPACTION_BETA, splitForCompaction, summaryFormatProblem, type CompactionBlock } from '../../models/compaction';
 import { ModelStopError } from '../../models/anthropic';
 import { estimateInputTokens, INPUT_REFUSE_ABOVE } from '../../models/token-budget';
+import { CHAT_LOCAL_REPLAY_TURNS } from '../../chat-limits';
 import { chatToolDefinitions, CHAT_TOOLS } from '../chat-tools';
 import { cutText, flattenUntrusted, looksPasted, sanitizeAdText, sanitizeUntrustedText } from '../chat-tools/untrusted';
 import {
@@ -554,9 +555,12 @@ test('lone surrogates the client sent (message, history, CV summaries, job title
   assert.equal(chatTurnText({ role: 'user', content: 'Thanks \ud83d' }), 'Thanks �');
 });
 
-test('budget: eleven turns at the cut, the longest CV summaries, tools and rules stay under the refuse line', () => {
-  // The route replays at most ten turns, then the new message. A turn at the cut is shown quoted (<< >>).
-  const german = (n: number) => 'Anforderungen: drei Jahre Erfahrung im Controlling, SAP. '.repeat(Math.ceil(n / 40)).slice(0, n);
+test('budget: eight turns at the cut, the longest CV summaries, tools and rules stay under the refuse line', () => {
+  // The route replays at most CHAT_LOCAL_REPLAY_TURNS turns, then the new message. A turn at the cut is shown quoted (<< >>).
+  // Shaped like a real German ad: a bulleted line about every 45 chars and some quotes. A line break and a quote each
+  // serialize to two chars in the request JSON, so a filler without them under-counts a real ad.
+  const line = '- Anforderungen: "drei Jahre" Controlling, SAP\n';
+  const german = (n: number) => line.repeat(Math.ceil(n / line.length)).slice(0, n);
   const context: MainChatPromptContext = {
     ...ALICE,
     cvSummary: german(CHAT_CV_SUMMARY_MAX_CHARS),
@@ -567,20 +571,21 @@ test('budget: eleven turns at the cut, the longest CV summaries, tools and rules
     hasGeneratedCoverLetter: true,
     hasGeneratedEmail: true,
   };
-  const turns: ChatTurn[] = Array.from({ length: 10 }, (_, i) => ({ role: i % 2 === 0 ? 'user' : 'assistant', content: german(CHAT_TURN_MAX_CHARS + 3_000) }));
+  const turns: ChatTurn[] = Array.from({ length: CHAT_LOCAL_REPLAY_TURNS }, (_, i) => ({ role: i % 2 === 0 ? 'user' : 'assistant', content: german(CHAT_TURN_MAX_CHARS + 3_000) }));
   const request = chatRequest(context, turns, german(CHAT_TURN_MAX_CHARS + 3_000), 'America/Argentina/ComodRivadavia', MORNING);
-  assert.equal(request.messages.filter((message) => message.role !== 'system').length, 11);
+  assert.equal(request.messages.filter((message) => message.role !== 'system').length, CHAT_LOCAL_REPLAY_TURNS + 1);
   const estimate = estimateInputTokens({ system: request.system, tools: request.tools, messages: request.messages });
   assert.ok(estimate <= INPUT_REFUSE_ABOVE, `worst first round estimates ${estimate} tokens, over ${INPUT_REFUSE_ABOVE}`);
-  // The same with the last replayed turn an unanswered paste, so the state carries the earlier-paste line too.
+  // The same with the last replayed turn an unanswered paste, so the state carries the earlier-paste line too. With an
+  // odd replay count the window already ends on a user turn, so both shapes estimate the same (83,889 on 2026-10-23).
   const unanswered = turns.map((turn, i) => (i === turns.length - 1 ? { ...turn, role: 'user' as const } : turn));
   const worst = chatRequest(context, unanswered, german(CHAT_TURN_MAX_CHARS + 3_000), 'America/Argentina/ComodRivadavia', MORNING);
-  assert.equal(worst.messages.filter((message) => message.role !== 'system').length, 11);
+  assert.equal(worst.messages.filter((message) => message.role !== 'system').length, CHAT_LOCAL_REPLAY_TURNS + 1);
   assert.ok(String(worst.messages.at(-1)?.content).includes(EARLIER_PASTE_STATE_LINE));
   const worstEstimate = estimateInputTokens({ system: worst.system, tools: worst.tools, messages: worst.messages });
   assert.ok(worstEstimate <= INPUT_REFUSE_ABOVE, `worst first round estimates ${worstEstimate} tokens, over ${INPUT_REFUSE_ABOVE}`);
-  // Every real ad seen in production (p99 10,611 chars) fits whole.
-  assert.ok(CHAT_TURN_MAX_CHARS >= 10_611);
+  // Every real ad seen in production (p99 10,611 chars, longest 11,421) fits whole.
+  assert.ok(CHAT_TURN_MAX_CHARS >= 11_421);
 });
 
 // ---------------------------------------------------------------------------
