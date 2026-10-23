@@ -36,7 +36,7 @@ export const TAILORED_CV = {
   certifications: [],
 } as unknown as TailoredCV;
 
-function ad(id: string, chars = 2800): string {
+export function ad(id: string, chars = 2800): string {
   const rows = readFileSync(join(__dirname, '..', '..', 'dataset', 'cases.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l) as { id: string; jd?: string });
   const jd = rows.find((r) => r.id === id)?.jd;
   if (!jd) throw new Error(`public ad ${id} missing from evals/dataset/cases.jsonl`);

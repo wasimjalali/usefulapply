@@ -11,7 +11,7 @@ import { gzipSync } from 'node:zlib';
 export const REPO_ROOT = resolve(__dirname, '..', '..', '..');
 export const RESULTS_ROOT = join(REPO_ROOT, 'evals', 'results', '2026-10-22-haiku-55-swap');
 
-export const SITE_IDS = ['screening', 'chat', 'tracker', 'language', 'ranking', 'search_strategy', 'career_profile'] as const;
+export const SITE_IDS = ['screening', 'chat', 'tracker', 'language', 'ranking', 'search_strategy', 'career_profile', 'chat_ux'] as const;
 export type SiteId = (typeof SITE_IDS)[number];
 
 // ---------------------------------------------------------------------------

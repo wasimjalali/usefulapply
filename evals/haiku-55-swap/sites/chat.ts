@@ -34,16 +34,31 @@ import { FIXED_NOW, TRACKER_ROWS } from '../fixtures/tracker';
 import { CHAT_CASES, EXPECTED_CHAT_CASES, OPEN_APPLICATION_ID, TAILORED_CV, TIME_ZONE, WRITE_TOOLS, type ChatCase } from '../fixtures/chat';
 import type { Site } from '../lib/runner';
 
-const USER_ID = 'eval-chat-user';
+export const USER_ID = 'eval-chat-user';
 const GERMAN_WORDS = /\b(ich|und|der|die|das|mit|nicht|bei|für|habe|hast|du|ist|sind|noch|jetzt|meine|dir|dein|deine|auf|steht|zum|zu|ein|eine|hier|unten)\b/gi;
 const ENGLISH_WORDS = /\b(the|and|is|are|you|your|have|has|was|with|for|now|it|this|that|to)\b/gi;
 
 let evalDb: EvalDb | null = null;
 let post: ((req: NextRequest) => Promise<Response>) | null = null;
 
+/** The open eval database and the route's POST, for sites built on this one (evals/chat-ux). Null until setup() ran. */
+export const chatRuntime = {
+  get db(): EvalDb | null {
+    return evalDb;
+  },
+  get post(): ((req: NextRequest) => Promise<Response>) | null {
+    return post;
+  },
+};
+
 async function seed(): Promise<void> {
   if (!evalDb) throw new Error('eval database not open');
-  const sqlite = evalDb.sqlite;
+  return seedChatUser(evalDb);
+}
+
+/** The signed-in eval user, the 25 tracker rows and the open application, reset to the seeded state. */
+export async function seedChatUser(open: EvalDb): Promise<void> {
+  const sqlite = open.sqlite;
   const db = await getDb();
   sqlite.prepare('DELETE FROM chat_messages WHERE user_id = ?').run(USER_ID);
   sqlite.prepare('DELETE FROM application_sessions WHERE user_id = ?').run(USER_ID);
