@@ -40,7 +40,6 @@ test.describe('web downloads use the server renderer', () => {
       fixture: 'us-one-page', templateId: 'premium-ats', source: { ...US_ONE_PAGE, personal: { ...US_ONE_PAGE.personal, ...E2E_PERSONAL } }, expectPhoto: false, expectedPages: 1,
     });
     expect(report.failures, 'the downloaded PDF passes every ATS check').toEqual([]);
-    await expect(page.getByText('We used the quick download')).toHaveCount(0);
 
     // Preview PDF: the server's PDF with its real page breaks, in a modal that traps focus, closes on Escape and gives focus back.
     const previewButton = page.getByRole('button', { name: 'Preview PDF' });
@@ -144,16 +143,23 @@ test.describe('web downloads use the server renderer', () => {
     expect(docxReport.failures, 'the DOCX carries the edit').toEqual([]);
   });
 
-  test('when the server cannot render, the browser export runs and says so', async ({ page }, info) => {
+  test('when the server cannot render, nothing downloads and the error offers a retry', async ({ page }, info) => {
+    // There is no in-browser export any more: a failed render is an error the user can retry, never a stand-in file.
     await page.route('**/api/exports', (route) => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'unavailable', code: 'RENDER_UNAVAILABLE' }) }));
     await openApplication(page);
-    const download = page.waitForEvent('download');
+    const downloads: string[] = [];
+    page.on('download', (download) => downloads.push(download.suggestedFilename()));
     await page.getByRole('button', { name: 'Download PDF' }).click();
-    const file = await download;
-    // The in-browser export names the file after the company as well.
-    expect(file.suggestedFilename()).toMatch(/^Jordan_Ellis_.*CV\.pdf$/);
-    await expect(page.getByText('We used the quick download. The full-quality PDF will be back shortly.')).toBeVisible();
-    await page.screenshot({ path: info.outputPath('fallback-notice.png') });
+    const toast = page.getByRole('alert').filter({ hasText: "The PDF didn't build. Try again in a moment." });
+    await expect(toast).toBeVisible();
+    await page.screenshot({ path: info.outputPath('render-failure-toast.png') });
+    expect(downloads).toEqual([]);
+
+    // Try again reaches the real renderer once it answers.
+    await page.unroute('**/api/exports');
+    const download = page.waitForEvent('download');
+    await toast.getByRole('button', { name: 'Try again' }).click();
+    expect((await download).suggestedFilename()).toBe('Jordan_Ellis_CV.pdf');
   });
 
   test('signed links: plain HTTP works, tampering and other users do not', async ({ page }) => {

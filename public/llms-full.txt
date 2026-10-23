@@ -202,7 +202,7 @@ The founder story is at https://usefulapply.com/about.
 - **Payments**: Stripe (subscriptions and add-on credit packs)
 - **Analytics**: PostHog
 - **Email**: Cloudflare Email Service
-- **PDF generation**: jsPDF + html2canvas + docx
+- **PDF generation**: Cloudflare Browser Run (PDF) + docx (Word), rendered on the server
 - **CV parsing**: LLM-only via Claude (pdfjs-dist for text extraction)
 
 Uploaded CVs, extracted CV content, and generated documents are stored on Cloudflare (D1 + R2) so the user can return to past applications. Data handling policy: https://usefulapply.com/privacy.

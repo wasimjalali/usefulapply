@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, Copy, Download, Loader2 } from 'lucide-react';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useToast } from '@/components/ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import { formatAnswersAsText } from '@/lib/utils/kit-export';
-import { notifyExportFailure, serverExport, trackExportFailure } from '@/lib/utils/server-export';
+import { isSavedApplicationId, notifyExportFailure, serverExport, trackExportFailure } from '@/lib/utils/server-export';
+import { useLatest } from '@/hooks/useLatest';
 
 interface AnswersPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -40,9 +41,12 @@ export function AnswersPanel({ toolbarPortal }: AnswersPanelProps) {
     }
   };
 
+  // An in-flight guard a toast's Try again can't bypass (the disabled button only stops clicks).
+  const downloadBusyRef = useRef(false);
   const handleDownload = async () => {
     const applicationId = currentSession?.id;
-    if (answers.length === 0 || !applicationId) return;
+    if (answers.length === 0 || !isSavedApplicationId(applicationId) || downloadBusyRef.current) return;
+    downloadBusyRef.current = true;
     setDownloading(true);
     try {
       const { blob, fileName } = await serverExport({
@@ -54,11 +58,13 @@ export function AnswersPanel({ toolbarPortal }: AnswersPanelProps) {
     } catch (err) {
       console.error('Answers PDF failed:', err);
       trackExportFailure('answers_pdf', err);
-      notifyExportFailure(toast, err, 'PDF', () => { void handleDownload(); });
+      notifyExportFailure(toast, err, 'PDF', () => { void latestDownload.current(); });
     } finally {
+      downloadBusyRef.current = false;
       setDownloading(false);
     }
   };
+  const latestDownload = useLatest(handleDownload);
 
   const toolbar = (
     <>
@@ -66,7 +72,7 @@ export function AnswersPanel({ toolbarPortal }: AnswersPanelProps) {
         {copiedAll ? <Check className="h-4 w-4 text-gold-600" /> : <Copy className="h-4 w-4" />}
         {copiedAll ? 'Copied' : 'Copy all'}
       </button>
-      <button type="button" onClick={handleDownload} className={TOOL_CLASS} disabled={downloading || answers.length === 0 || !currentSession?.id}>
+      <button type="button" onClick={handleDownload} className={TOOL_CLASS} disabled={downloading || answers.length === 0 || !isSavedApplicationId(currentSession?.id)}>
         {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
         Download
       </button>

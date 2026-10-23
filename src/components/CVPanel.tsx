@@ -40,7 +40,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from './ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import { PdfPreviewModal } from './ui/PdfPreviewModal';
-import { notifyExportFailure, serverExport, trackExportFailure } from '@/lib/utils/server-export';
+import { isSavedApplicationId, notifyExportFailure, serverExport, trackExportFailure } from '@/lib/utils/server-export';
+import { useLatest } from '@/hooks/useLatest';
 import type { Profile } from '@/db/types';
 import { acknowledgedStart, acknowledgementFor, afterClosedEditorSave, commitEditorSave, discardedSinceSave, editorSaveSucceeded, getEditorStart, persistSessionEdits, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
@@ -90,6 +91,9 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDownloadingWord, setIsDownloadingWord] = useState(false);
+  // In-flight guards that a toast's Try again can't bypass (the disabled button only stops clicks).
+  const pdfBusyRef = useRef(false);
+  const wordBusyRef = useRef(false);
   // The rendered PDF the server would export, shown with its real page breaks before anyone downloads.
   const [pdfPreview, setPdfPreview] = useState<{ url: string } | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
@@ -247,7 +251,8 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
 
   const handleDownloadPDF = async () => {
     const applicationId = currentSession?.id;
-    if (!cvData || !applicationId) return;
+    if (!cvData || !isSavedApplicationId(applicationId) || pdfBusyRef.current) return;
+    pdfBusyRef.current = true;
     setIsDownloading(true);
     try {
       // The server renders the same template to a text PDF. What the canvas shows
@@ -264,15 +269,16 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
     } catch (err) {
       console.error('PDF export failed:', err);
       trackExportFailure('cv_pdf', err);
-      notifyExportFailure(toast, err, 'PDF', () => { void handleDownloadPDF(); });
+      notifyExportFailure(toast, err, 'PDF', () => { void latestDownloadPDF.current(); });
     } finally {
+      pdfBusyRef.current = false;
       setIsDownloading(false);
     }
   };
 
   const handlePreviewPdf = async () => {
     const applicationId = currentSession?.id;
-    if (!cvData || !applicationId) return;
+    if (!cvData || !isSavedApplicationId(applicationId)) return;
     previewOpenerRef.current = document.activeElement as HTMLElement | null;
     setIsPreviewing(true);
     try {
@@ -299,7 +305,8 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
 
   const handleDownloadWord = async () => {
     const applicationId = currentSession?.id;
-    if (!cvData || !applicationId) return;
+    if (!cvData || !isSavedApplicationId(applicationId) || wordBusyRef.current) return;
+    wordBusyRef.current = true;
     setIsDownloadingWord(true);
     try {
       const { blob, fileName } = await serverExport({
@@ -314,11 +321,15 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
     } catch (err) {
       console.error('Word export failed:', err);
       trackExportFailure('cv_docx', err);
-      notifyExportFailure(toast, err, 'Word file', () => { void handleDownloadWord(); });
+      notifyExportFailure(toast, err, 'Word file', () => { void latestDownloadWord.current(); });
     } finally {
+      wordBusyRef.current = false;
       setIsDownloadingWord(false);
     }
   };
+  // A toast's Try again runs the handler as it is now (the current application, template and edits).
+  const latestDownloadPDF = useLatest(handleDownloadPDF);
+  const latestDownloadWord = useLatest(handleDownloadWord);
 
   if (!currentCV) {
     return (
@@ -488,7 +499,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           <button
             type="button"
             onClick={handlePreviewPdf}
-            disabled={isPreviewing || !cvData || !currentSession?.id}
+            disabled={isPreviewing || !cvData || !isSavedApplicationId(currentSession?.id)}
             title="Preview the PDF with its page breaks"
             className={`${TOOL_CLASS} disabled:opacity-60 disabled:cursor-wait`}
           >
@@ -498,7 +509,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           <button
             type="button"
             onClick={handleDownloadPDF}
-            disabled={isDownloading || !cvData || !currentSession?.id}
+            disabled={isDownloading || !cvData || !isSavedApplicationId(currentSession?.id)}
             title="Download as PDF"
             className={`${TOOL_CLASS} disabled:opacity-60 disabled:cursor-wait`}
           >
@@ -514,7 +525,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           <button
             type="button"
             onClick={handleDownloadWord}
-            disabled={isDownloadingWord || !cvData || !currentSession?.id}
+            disabled={isDownloadingWord || !cvData || !isSavedApplicationId(currentSession?.id)}
             title="Download as Word"
             className={`${TOOL_CLASS} disabled:opacity-60 disabled:cursor-wait`}
           >

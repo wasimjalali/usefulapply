@@ -31,6 +31,13 @@ export interface ServerExportArgs {
   answers?: Array<{ question: string; answer: string }>;
 }
 
+const SAVED_APPLICATION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** True for an application saved on the server. A local id (`session-…`, `fit-…`) has nothing the server can export yet. */
+export function isSavedApplicationId(id: string | null | undefined): id is string {
+  return typeof id === 'string' && SAVED_APPLICATION_ID.test(id);
+}
+
 export class ServerExportError extends Error {
   constructor(readonly status: number, readonly code: string) {
     super(`Server export failed (${code})`);

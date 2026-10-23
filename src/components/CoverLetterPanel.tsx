@@ -19,7 +19,8 @@ import {
   formatCoverLetterAsText,
   hasAddressPlaceholder as letterHasAddressPlaceholder,
 } from '@/lib/utils/cover-letter-export';
-import { notifyExportFailure, serverExport, trackExportFailure } from '@/lib/utils/server-export';
+import { isSavedApplicationId, notifyExportFailure, serverExport, trackExportFailure } from '@/lib/utils/server-export';
+import { useLatest } from '@/hooks/useLatest';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { useSessionStore } from '@/store/useSessionStore';
 import { acknowledgedStart, acknowledgementFor, commitEditorSave, discardedSinceSave, editorShouldClose, getEditorStart, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
@@ -66,6 +67,8 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   
   const [copied, setCopied] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<'pdf' | 'docx' | null>(null);
+  // An in-flight guard a toast's Try again can't bypass (the disabled button only stops clicks).
+  const exportBusyRef = useRef(false);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [downloadMenuPos, setDownloadMenuPos] = useState<{ top: number; left: number } | null>(null);
   const downloadButtonRef = useRef<HTMLButtonElement>(null);
@@ -236,7 +239,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const openLayoutPreview = async () => {
     const letter = editedCoverLetter || coverLetter;
     const applicationId = currentSession?.id;
-    if (!letter || !applicationId) return;
+    if (!letter || !isSavedApplicationId(applicationId)) return;
     layoutOpenerRef.current = document.activeElement as HTMLElement | null;
     setLayoutPreviewLoading(true);
     try {
@@ -258,7 +261,8 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const exportLetter = async (format: 'pdf' | 'docx') => {
     const letterToDownload = editedCoverLetter || coverLetter;
     const applicationId = currentSession?.id;
-    if (!letterToDownload || !applicationId) return;
+    if (!letterToDownload || !isSavedApplicationId(applicationId) || exportBusyRef.current) return;
+    exportBusyRef.current = true;
     const showAddressReminder = hasAddressPlaceholder();
     setShowDownloadMenu(false);
     setDownloadFormat(format);
@@ -273,11 +277,14 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     } catch (error) {
       console.error(`${format.toUpperCase()} export failed:`, error);
       trackExportFailure(serverFormat, error);
-      notifyExportFailure(toast, error, format.toUpperCase(), () => { void exportLetter(format); });
+      // Try again runs the handler as it is now, so it sends the letter as it stands then.
+      notifyExportFailure(toast, error, format.toUpperCase(), () => { void latestExportLetter.current(format); });
     } finally {
+      exportBusyRef.current = false;
       setDownloadFormat(null);
     }
   };
+  const latestExportLetter = useLatest(exportLetter);
 
   // Show loading indicator during agent workflow
   if (!coverLetter && isAgentWorking) {
@@ -499,7 +506,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
           <button
             type="button"
             onClick={openLayoutPreview}
-            disabled={layoutPreviewLoading || !currentSession?.id}
+            disabled={layoutPreviewLoading || !isSavedApplicationId(currentSession?.id)}
             className={`${TOOL_CLASS} disabled:opacity-60 disabled:cursor-wait`}
           >
             {layoutPreviewLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
@@ -510,7 +517,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
               ref={downloadButtonRef}
               type="button"
               onClick={() => setShowDownloadMenu((v) => !v)}
-              disabled={downloadFormat !== null || !currentSession?.id}
+              disabled={downloadFormat !== null || !isSavedApplicationId(currentSession?.id)}
               aria-haspopup="menu"
               aria-expanded={showDownloadMenu}
               className={`${TOOL_CLASS} disabled:cursor-wait`}

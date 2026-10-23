@@ -13,7 +13,7 @@ import { downloadBlob } from '@/lib/utils/download-pdf';
 import { buildTextBlob, formatEmailAsText, kitFilename } from '@/lib/utils/kit-export';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { formatCoverLetterAsText } from '@/lib/utils/cover-letter-export';
-import { serverExport, trackExportFailure, type ServerExportFormat } from '@/lib/utils/server-export';
+import { exportFailure, isSavedApplicationId, serverExport, trackExportFailure, type ServerExportFormat } from '@/lib/utils/server-export';
 
 /**
  * Always mounted in the shell. Runs "Download all" for whichever control asked
@@ -63,6 +63,10 @@ export function KitExportHost() {
       toast.error('Nothing to download yet.');
       return;
     }
+    if (!isSavedApplicationId(session.id)) {
+      toast.error("This application isn't saved yet, so it can't be downloaded.");
+      return;
+    }
 
     const run = async () => {
       busyRef.current = true;
@@ -72,6 +76,8 @@ export function KitExportHost() {
       const files: Array<{ blob: Blob; name: string }> = [];
       const failed: string[] = [];
       let delivered = 0;
+      // The first export error, so the message can say whether trying again can help.
+      let firstError: unknown = null;
 
       const fromServer = async (
         format: ServerExportFormat,
@@ -82,6 +88,7 @@ export function KitExportHost() {
           return { blob, name: fileName };
         } catch (err) {
           trackExportFailure(format, err);
+          firstError ??= err;
           throw err;
         }
       };
@@ -110,10 +117,15 @@ export function KitExportHost() {
         if (session.coverLetter) {
           try {
             files.push(await fromServer('cover_letter_pdf', letterBody));
+          } catch (err) {
+            console.error('[DownloadAll] cover letter PDF failed:', err);
+            failed.push('cover letter PDF');
+          }
+          try {
             files.push(await fromServer('cover_letter_docx', letterBody));
           } catch (err) {
-            console.error('[DownloadAll] cover letter failed:', err);
-            failed.push('cover letter');
+            console.error('[DownloadAll] cover letter DOCX failed:', err);
+            failed.push('cover letter Word file');
           }
         }
         try {
@@ -148,10 +160,13 @@ export function KitExportHost() {
           ? " The CV wasn't tailored, so it was left out. Download your base CV from the CV tab."
           : '';
         if (delivered === 0) {
-          if (failed.length > 0) {
-            toast.error(`Nothing downloaded. The ${joinList(failed)} didn't build.${untailoredCvNote}`, 10000, [
-              { label: 'Try again', onClick: requestKitDownload },
-            ]);
+          const failure = firstError === null ? null : exportFailure(firstError, 'kit');
+          if (failure && !failure.retryable) {
+            toast.error(`Nothing downloaded. ${failure.message}`, 8000);
+          } else if (failed.length > 0) {
+            toast.error(`Nothing downloaded. The ${joinList(failed)} didn't build.${untailoredCvNote}`, 10000, failure
+              ? [{ label: 'Try again', onClick: requestKitDownload }]
+              : undefined);
           } else {
             toast.error(`Nothing to download yet.${untailoredCvNote}`, 8000);
           }

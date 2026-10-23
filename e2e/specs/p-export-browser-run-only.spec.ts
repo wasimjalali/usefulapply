@@ -87,13 +87,14 @@ test('(p3) Download all delivers what rendered and names what did not', async ({
   const downloads: Download[] = [];
   page.on('download', (download) => downloads.push(download));
   await page.getByRole('button', { name: 'Download all' }).click();
-  // The CV PDF and the letter PDF need Browser Run; the letter's DOCX is in the same step, so the letter counts as failed.
+  // The CV PDF and the letter PDF need Browser Run and fail; the letter's DOCX renders on the server.
   // Both emails are plain text and always arrive.
-  const toast = page.getByRole('alert').filter({ hasText: 'Downloaded 2 files.' });
-  await expect(toast).toContainText("The CV and cover letter didn't build. Download them from their tabs.", { timeout: 30_000 });
+  const toast = page.getByRole('alert').filter({ hasText: 'Downloaded 3 files.' });
+  await expect(toast).toContainText("The CV and cover letter PDF didn't build. Download them from their tabs.", { timeout: 30_000 });
   await page.screenshot({ path: testInfo.outputPath('download-all-partial-toast.png') });
   const names = downloads.map((download) => download.suggestedFilename());
-  expect(names).toHaveLength(2);
+  expect(names).toHaveLength(3);
+  expect(names.some((name) => /Cover_Letter\.docx$/.test(name)), names.join(', ')).toBe(true);
   expect(names.some((name) => /Application_Email\.txt$/.test(name)), names.join(', ')).toBe(true);
   expect(names.some((name) => /Follow_Up_Email\.txt$/.test(name)), names.join(', ')).toBe(true);
   await context.close();
