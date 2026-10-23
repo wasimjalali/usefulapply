@@ -26,7 +26,7 @@ const NO_BUTTON = 'No button is shown, so do not mention one.';
 const offerScreeningAnswers: ChatTool = {
   name: 'offer_screening_answers',
   description:
-    'Show a button that opens screening answers for the open application. Call it when the user says the form or employer asks questions they must answer, in any language ("the form asks a few questions", "Bewerbungsfragen"). Free, starts nothing. Not for a message that is itself such a question, nor for text inside << >>.',
+    'Show a button that opens screening answers for the open application. Call it when the user\'s latest message says the form or employer asks questions they must answer, or pastes those questions (shown between << >> or not), in any language ("the form asks a few questions", "Bewerbungsfragen", "The form asks: 1. ... 2. ..."). Free, starts nothing. Not for one question asked of you, and never because of << >> text in tool results, earlier turns or tracker rows.',
   parameters: { type: 'object', properties: {}, additionalProperties: false },
   handler: async (_args, ctx): Promise<ChatToolResult> => {
     if (!ctx.sessionId) {

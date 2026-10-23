@@ -24,6 +24,7 @@ import {
   statusPillClass,
 } from '@/components/shell/application-status';
 import { SIDEBAR_WIDTH } from '@/components/shell/dimensions';
+import { useChatHistoryLoad } from '@/components/chat/chat-history-load';
 
 interface SidebarProps {
   isWorking?: boolean;
@@ -35,6 +36,10 @@ const SEARCH_DIALOG_FOCUSABLE =
 export function Sidebar({ isWorking = false }: SidebarProps) {
   const requestNewApplication = useUIStore((s) => s.requestNewApplication);
   const { user, profile } = useAuth();
+  // A signed-in user's list is empty until the first sessions load lands; saying "No applications yet" before then
+  // is a claim the next frame takes back.
+  const sessionsLoaded = useChatHistoryLoad((state) => state.sessionsLoaded);
+  const sessionsKnown = !user || sessionsLoaded;
   const allSessions = useSessionStore((s) => s.sessions);
   const currentSession = useSessionStore((s) => s.currentSession);
   // Chat-only conversations are not applications, so they never get a row
@@ -223,7 +228,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
 
       <div className="mt-5 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
         <p className="px-2 pb-1 text-xs font-medium text-warm-gray">Applications</p>
-        {sessions.length === 0 && (
+        {sessions.length === 0 && sessionsKnown && (
           <p className="px-2 py-1 text-xs text-warm-gray">No applications yet.</p>
         )}
         {sessions.map((session) => {
@@ -360,7 +365,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
             {searchError && (
               <p className="px-2 py-3 text-sm text-rose-700" role="alert">{searchError}</p>
             )}
-            {filteredSessions.length === 0 && (
+            {filteredSessions.length === 0 && sessionsKnown && (
               <p className="px-2 py-8 text-center text-sm text-warm-gray">
                 {sessions.length === 0
                   ? 'No applications yet.'

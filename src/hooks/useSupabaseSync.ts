@@ -478,7 +478,11 @@ export function useSupabaseSync() {
             if (freshFromSupabase) {
               console.log('[SupabaseSync] Replacing stale currentSession with fresh Supabase data:', freshCurrentSession.id.substring(0, 8));
               useSessionStore.setState({ 
-                currentSession: freshFromSupabase,
+                // The fresh row carries no chat (it loads next, hydrateChatIfEmpty). Keep the transcript already on
+                // screen until it does, so a reload never paints the history, then nothing, then the history again.
+                currentSession: freshFromSupabase.chatMessages.length === 0 && freshCurrentSession.chatMessages.length > 0
+                  ? { ...freshFromSupabase, chatMessages: freshCurrentSession.chatMessages }
+                  : freshFromSupabase,
                 // Also update legacy fields to match
                 jobDescription: freshFromSupabase.jobDescription,
                 requirements: freshFromSupabase.requirements,
@@ -710,15 +714,17 @@ export function useSupabaseSync() {
   }, [user]);
 
   // Write one application's unsynced chat messages, optionally all but one (the chat route stores that one).
-  const syncSessionChat = useCallback(async (session: { id: string; chatMessages: ChatMessage[] }, exceptId?: string) => {
-    if (!user) return;
+  // Resolves false when a write failed, so a chat turn that needs those rows can hold (chat-sync-flush.ts).
+  const syncSessionChat = useCallback(async (session: { id: string; chatMessages: ChatMessage[] }, exceptId?: string): Promise<boolean> => {
+    if (!user) return true;
     const unsynced = session.chatMessages.filter(
       (message) => message.id.startsWith('msg-') && !message.stored && message.id !== exceptId
         && !syncedMessageIdsRef.current.has(message.id),
     );
-    if (unsynced.length === 0) return;
+    if (unsynced.length === 0) return true;
 
     console.log('[SupabaseSync] Syncing', unsynced.length, 'new chat messages');
+    let allWritten = true;
     for (const message of unsynced) {
       try {
         const { message: savedMessage, error } = await addSupabaseChatMessage(
@@ -734,14 +740,17 @@ export function useSupabaseSync() {
         );
 
         if (error) {
+          allWritten = false;
           console.error('[SupabaseSync] Error saving chat message:', error);
         } else if (savedMessage) {
           syncedMessageIdsRef.current.add(message.id);
         }
       } catch (err) {
+        allWritten = false;
         console.error('[SupabaseSync] Chat message sync error:', err);
       }
     }
+    return allWritten;
   }, [user]);
 
   // The chat route orders a saved application's history by when each row was written. A message the client added a
@@ -753,7 +762,7 @@ export function useSupabaseSync() {
       const session = state.currentSession?.id === sessionId
         ? state.currentSession
         : state.sessions.find((candidate) => candidate.id === sessionId);
-      if (session) await syncSessionChat(session, exceptId);
+      return session ? syncSessionChat(session, exceptId) : true;
     });
     return () => registerChatSyncFlush(null);
   }, [syncSessionChat]);

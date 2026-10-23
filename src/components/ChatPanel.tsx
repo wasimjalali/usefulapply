@@ -9,7 +9,7 @@ import { ChatInput } from './chat/ChatInput';
 import { ChatHistory } from './chat/ChatHistory';
 import { FeedbackModal } from './chat/FeedbackModal';
 import { AgentProgressV2 } from './AgentProgressV2';
-import { PROFILE_UNAVAILABLE, useAgentWorkflow } from './chat/useAgentWorkflow';
+import { FIT_CLOSING_BEFORE_2026_10_23, PROFILE_UNAVAILABLE, useAgentWorkflow } from './chat/useAgentWorkflow';
 import { useChatCompactionMarker } from './chat/compaction-marker';
 import { useStreamingReply } from './chat/streaming-reply';
 import { useAppStore } from '@/store/useAppStore';
@@ -26,7 +26,7 @@ import ChatGreeting from './chat/ChatGreeting';
 import { openSettings } from '@/store/useSettingsStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { submitMessageFeedback } from '@/lib/supabase';
-import { openStoredSession } from '@/lib/open-session';
+import { hydrateChatIfEmpty, openStoredSession } from '@/lib/open-session';
 import { useChatHistoryLoad } from './chat/chat-history-load';
 import {
   Loader2,
@@ -427,12 +427,17 @@ export function ChatPanel({
   useLayoutEffect(() => {
     const count = currentSession?.chatMessages?.length ?? 0;
     const sessionId = currentSession?.id ?? null;
-    const arrivedWhole = sessionId !== prevMessagesSessionId.current || (prevMessageCount.current === 0 && count > 1);
+    const opened = sessionId !== prevMessagesSessionId.current || (prevMessageCount.current === 0 && count > 1);
+    // The server's transcript replacing a shorter cached one (a reload, another tab's replies): several messages at
+    // once. It jumps like an opened one, but only for a reader at the bottom; one who scrolled up stays put.
+    const grewAtOnce = !opened && count - prevMessageCount.current > 2;
     prevMessagesSessionId.current = sessionId;
-    if (count > 0 && arrivedWhole) {
+    if (count > 0 && (opened || grewAtOnce)) {
       const container = messagesContainerRef.current;
-      if (container) container.scrollTop = container.scrollHeight;
-      stickToBottomRef.current = true;
+      if (opened || stickToBottomRef.current) {
+        if (container) container.scrollTop = container.scrollHeight;
+        stickToBottomRef.current = true;
+      }
     } else if (count > prevMessageCount.current) {
       if (!streamWasActiveRef.current) scrollToBottom(true);
       else if (stickToBottomRef.current) {
@@ -767,17 +772,15 @@ export function ChatPanel({
   // conversation (the saved-job card) and swap the history in a beat later.
   const sessionsLoaded = useChatHistoryLoad((state) => state.sessionsLoaded);
   const historyLoadingFor = useChatHistoryLoad((state) => (currentSession ? Boolean(state.loading[currentSession.id]) : false));
-  const chatHistoryLoading = Boolean(
-    user
-    && currentSession
-    && !currentSession.id.startsWith('session-')
-    && messages.length === 0
-    && (!sessionsLoaded || historyLoadingFor),
-  );
+  const historyFailedFor = useChatHistoryLoad((state) => (currentSession ? Boolean(state.failed[currentSession.id]) : false));
+  const savedAndEmpty = Boolean(user && currentSession && !currentSession.id.startsWith('session-') && messages.length === 0);
+  const chatHistoryLoading = savedAndEmpty && (!sessionsLoaded || historyLoadingFor);
+  // The transcript did not load: say so and offer a retry, never the empty conversation's paid first step.
+  const chatHistoryFailed = savedAndEmpty && !chatHistoryLoading && historyFailedFor;
 
   const chatIsEmpty = Boolean(
     spine && user && !currentSession?.jobDescription && messages.length === 0
-    && !isAgentWorking && !pendingDecisionJd && !chatHistoryLoading,
+    && !isAgentWorking && !pendingDecisionJd && !chatHistoryLoading && !chatHistoryFailed,
   );
   const trackerRows = useTrackerStore((state) => state.rows);
   const trackerLoadedOnce = useTrackerStore((state) => state.loadedOnce);
@@ -848,13 +851,42 @@ export function ChatPanel({
     }
     setAdFallbackJd(null);
     setPendingDecisionJd(jd);
+    cardOwnerRef.current = useSessionStore.getState().currentSession?.createdAt ?? null;
     setShortCredits(null);
   };
 
   const offerAdFallback = (message: string) => {
     if (!looksAdShaped(message)) return;
     setAdFallbackJd(message);
+    cardOwnerRef.current = useSessionStore.getState().currentSession?.createdAt ?? null;
   };
+
+  // A job ad's card, the ad way-in card and the fit result belong to the application they were raised in. Opening
+  // another one drops them: clicked there, they would run that other ad's fit, kit or job description on it.
+  // Keyed on createdAt, which a local conversation keeps when it gets its saved id.
+  const cardOwnerRef = useRef<string | null>(null);
+  const fitOwnerRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (fitAnalysisContextId && fitOwnerRef.current === null) {
+      fitOwnerRef.current = useSessionStore.getState().currentSession?.createdAt ?? null;
+    }
+    if (!fitAnalysisContextId) fitOwnerRef.current = null;
+  }, [fitAnalysisContextId]);
+  const openSessionCreatedAt = currentSession?.createdAt ?? null;
+  useEffect(() => {
+    if ((pendingDecisionJd || adFallbackJd) && cardOwnerRef.current !== openSessionCreatedAt) {
+      setPendingDecisionJd(null);
+      setAdFallbackJd(null);
+      deferredReplaceJdRef.current = null;
+    }
+    if (fitAnalysisContextId && fitOwnerRef.current !== null && fitOwnerRef.current !== openSessionCreatedAt) {
+      setFitAnalysisContextId(null);
+      setFitAnalysisJD('');
+      setFitAnalysisContextData(null);
+    }
+    // Only an application switch decides this; the cards' own setters run with their owner already recorded.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openSessionCreatedAt]);
 
   useEffect(() => {
     presentJobAdDecisionRef.current = presentJobAdDecision;
@@ -1779,11 +1811,13 @@ export function ChatPanel({
     || (pendingRegen && !runningRegen),
   ));
   const newestMessage = messages.at(-1);
+  const hasKitNow = sessionHasKit(currentSession);
   const newestCarriesChips = Boolean(newestMessage?.actions?.some((action) => action.action !== 'none' && action.action !== 'stage-done'));
   const messageChipsShownFor = !isAgentWorking && !isTyping && !streamActive && !turnCardShown && newestCarriesChips
     ? newestMessage?.id
     : undefined;
-  const lastingCardsShown = !messageChipsShownFor;
+  // A card this turn raised also wins over a lasting one: one group at a time.
+  const lastingCardsShown = !messageChipsShownFor && !turnCardShown;
   const shortCreditsShown = spine && lastingCardsShown && Boolean(shortCredits) && !pendingDecisionJd && !isAgentWorking;
   // Credits short is the newer word on a fit that can't be paid for, so it replaces the fit's own chips.
   const fitChipsShown = lastingCardsShown
@@ -2026,7 +2060,24 @@ export function ChatPanel({
             </div>
           )}
 
-          {currentSession && messages.length === 0 && !showWelcomeHero && !pendingDecisionJd && !isAgentWorking && !chatHistoryLoading && (
+          {chatHistoryFailed && currentSession && (
+            <div role="alert" className="flex flex-wrap items-center gap-3 px-1 py-2 text-sm text-charcoal">
+              <span>We couldn&apos;t load this conversation.</span>
+              <button
+                type="button"
+                onClick={() => {
+                  void hydrateChatIfEmpty(currentSession.id).catch((error: unknown) => {
+                    console.error('[ChatPanel] Chat did not load on retry:', error);
+                  });
+                }}
+                className="rounded-full border border-cream-200 bg-cream-50 px-3.5 py-1.5 text-xs font-medium text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          {currentSession && messages.length === 0 && !showWelcomeHero && !pendingDecisionJd && !isAgentWorking && !chatHistoryLoading && !chatHistoryFailed && (
             <div className="flex gap-3">
               <div className="flex-shrink-0 h-fit">
                 <BrandIcon size="xs" theme="light" />
@@ -2123,7 +2174,9 @@ export function ChatPanel({
           {messages.map((message) => (
             <Fragment key={message.id}>
               <ChatMessage
-                message={message as ChatMessageData}
+                message={(hasKitNow && message.content.includes(FIT_CLOSING_BEFORE_2026_10_23)
+                  ? { ...message, content: message.content.replace(`\n\n${FIT_CLOSING_BEFORE_2026_10_23}`, '').replace(FIT_CLOSING_BEFORE_2026_10_23, '').trimEnd() }
+                  : message) as ChatMessageData}
                 onAction={handleAction}
                 onFeedback={handleFeedbackClick}
                 feedback={messageFeedback[message.id]}

@@ -31,10 +31,20 @@ export { mapChatRowsToStore, mapSessionRowToStore, readKitDocumentErrors, type S
 let openGeneration = 0;
 const hydratedChatIds = new Set<string>();
 
-function applyChat(sessionId: string, chatMessages: ChatMessage[]) {
+function applyChat(sessionId: string, serverMessages: ChatMessage[]) {
   // Do not go through updateCurrentSession: that stamps updatedAt and the
   // sync effect would write the whole row back to D1 just because chat loaded.
   const store = useSessionStore.getState();
+  // A message this browser added that has not reached D1 yet (its sync write is pending or failed) stays: replacing
+  // the transcript wholesale would drop it from the screen, and the sync would then never write it.
+  const local = (store.currentSession?.id === sessionId
+    ? store.currentSession
+    : store.sessions.find((session) => session.id === sessionId))?.chatMessages ?? [];
+  const serverIds = new Set(serverMessages.map((message) => message.id));
+  const pending = local.filter((message) => message.id.startsWith('msg-') && !message.stored && !serverIds.has(message.id));
+  const chatMessages = pending.length === 0
+    ? serverMessages
+    : [...serverMessages, ...pending].sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
   useSessionStore.setState({
     currentSession: store.currentSession?.id === sessionId
       ? { ...store.currentSession, chatMessages }
@@ -50,8 +60,9 @@ export async function hydrateChatIfEmpty(sessionId: string, generation = openGen
   if (hydratedChatIds.has(sessionId)) return;
 
   // ChatPanel holds a loading state while this runs, instead of the empty conversation (chat-history-load.ts).
-  const { setLoading } = useChatHistoryLoad.getState();
+  const { setLoading, setFailed } = useChatHistoryLoad.getState();
   setLoading(sessionId, true);
+  setFailed(sessionId, false);
   let messages: Awaited<ReturnType<typeof getChatMessages>>;
   let compactedThrough: string | null | undefined;
   try {
@@ -63,6 +74,9 @@ export async function hydrateChatIfEmpty(sessionId: string, generation = openGen
         return undefined;
       }),
     ]);
+  } catch (error) {
+    setFailed(sessionId, true);
+    throw error;
   } finally {
     setLoading(sessionId, false);
   }

@@ -118,10 +118,12 @@ function formatFitAnalysisMessage(
     fallbackGaps.length > 0 ? `**Main gaps**\n${fallbackGaps.join('\n')}` : '',
   ].filter(Boolean).join('\n\n');
 
+  // No pointer at "the button below": the fit's own chips are the next step, and a line in the transcript would still
+  // point at them after a kit replaced them (FIT_CLOSING_BEFORE_2026_10_23).
   const closing =
     fitLevel === 'weak'
       ? 'This one looks weak. I would skip it unless there is a strong strategic reason to apply.'
-      : 'If you want to move forward, generate the full application below.';
+      : '';
 
   return [
     `${fitEmoji} **${fitLabel}**`,
@@ -131,6 +133,9 @@ function formatFitAnalysisMessage(
     closing,
   ].filter(Boolean).join('\n\n');
 }
+
+/** The closing line fit messages carried before 2026-10-23. Stored transcripts still hold it; ChatPanel hides it once a kit exists. */
+export const FIT_CLOSING_BEFORE_2026_10_23 = 'If you want to move forward, generate the full application below.';
 
 const KIT_DOCUMENT_NAMES: Record<KitDocument, string> = {
   cv: 'tailored CV',
@@ -297,8 +302,12 @@ export function useAgentWorkflow(options?: {
       const answered = index !== -1 && live.chatMessages.slice(index + 1).some((entry) => entry.role === 'assistant');
       return { chatHistory: [], messageId: index === -1 || answered ? undefined : live.chatMessages[index].id };
     }
+    // The message itself goes as `message`. When it is already the newest turn on screen (a pasted ad the "Not a job
+    // ad" button sends again), it is not replayed as history too, or the model reads the same paste twice.
+    const last = messages.at(-1);
+    const earlier = last?.role === 'user' && last.content === message ? messages.slice(0, -1) : messages;
     return {
-      chatHistory: messages.slice(-CHAT_LOCAL_REPLAY_TURNS).map((msg) => ({ role: msg.role, content: msg.content })),
+      chatHistory: earlier.slice(-CHAT_LOCAL_REPLAY_TURNS).map((msg) => ({ role: msg.role, content: msg.content })),
       messageId: undefined,
     };
   };
@@ -673,7 +682,15 @@ export function useAgentWorkflow(options?: {
       const { masterCV, certifications } = useAppStore.getState();
       const { chatHistory: recentMessages, messageId } = chatRequestHistory(message);
       // Messages added just before this turn reach D1 first, so the route's history keeps the transcript's order.
-      if (startedIn && !startedIn.startsWith('session-')) await flushChatSync(startedIn, messageId);
+      // A message that could not be written (a pasted ad) would be missing from the route's history, and the model
+      // would answer without it. Hold the turn and say so, rather than answer as if it were not there.
+      if (startedIn && !startedIn.startsWith('session-') && await flushChatSync(startedIn, messageId) === 'failed') {
+        addFailureReply({
+          role: 'assistant',
+          content: "I couldn't save your earlier message, so I can't see it yet. Check your connection and send your question again.",
+        });
+        return;
+      }
 
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -921,7 +938,7 @@ export function useAgentWorkflow(options?: {
             // The route spends the turn against this row, so it has to be the
             // saved application, not the local draft id.
             sessionId: screeningSessionId,
-            // The server cuts the ad at 20,000 chars (MAX_SCREENING_JOB_DESCRIPTION_CHARS); real ads run to about 11,500.
+            // The server cuts the ad at 20,000 chars (MAX_SCREENING_JOB_DESCRIPTION_CHARS); real ads run to about 11,400 (longest 11,421).
             jobDescription: currentSession?.jobDescription?.substring(0, 20_000),
             matchingSkills: currentSession?.matchingSkills,
             missingSkills: currentSession?.missingSkills,
@@ -1255,6 +1272,9 @@ export function useAgentWorkflow(options?: {
     let eagerLocalSessionId: string | null = null;
     let eagerStoredSessionId: string | null = null;
     let didProduceArtifacts = false;
+    // The saved kit loading back from the server (refreshFromServer). The run counts as working until it has landed:
+    // GuidedLine reads "not working and no kit" as a failed run, and for that moment it showed "The kit didn't finish".
+    let kitRefresh: Promise<unknown> | null = null;
     let requestStarted = false;
     let terminalServerError = false;
 
@@ -1625,7 +1645,7 @@ export function useAgentWorkflow(options?: {
                 // our copy back, so the screen and the database agree and the
                 // next edit starts from the right revision.
                 if (workflowSessionId && !workflowSessionId.startsWith('session-')) {
-                  void refreshFromServer(workflowSessionId);
+                  kitRefresh = refreshFromServer(workflowSessionId);
                 }
                 break;
                 
@@ -1707,6 +1727,11 @@ export function useAgentWorkflow(options?: {
         } catch (cleanupError) {
           console.error('[useAgentWorkflow] Failed to clean up empty eager session:', cleanupError);
         }
+      }
+      if (kitRefresh) {
+        await kitRefresh.catch((error: unknown) => {
+          console.error('[useAgentWorkflow] The saved kit did not load back:', error);
+        });
       }
       setIsAgentWorking(false);
       setAgentWorkflowPhase(null);
