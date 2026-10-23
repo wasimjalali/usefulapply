@@ -14,6 +14,7 @@ import { REPO_ROOT } from '../lib/env';
  *
  *   l1  768 and 1024: the canvas opens on its own, Show the conversation switches to the chat (the canvas folds
  *       to its rail in the same step), Show the canvas switches back. Whichever column shows gets at least 480px.
+ *       Every toolbar fits (it wraps) at 768, 900, 1024 and 1104 on the CV, Cover letter and Emails tabs, editing included.
  *       An unsaved CV edit survives the same trip, and the job feed and the tracker take turns too.
  *       By keyboard, focus moves to the toggle that switches back. A remount of the shell at tablet width (a trip
  *       through the phone layout and back) keeps the chat view the user chose.
@@ -132,6 +133,35 @@ async function expectCanvasView(page: Page, viewport: number) {
   await expectNoSideScroll(page);
 }
 
+/**
+ * Every control in the canvas's header rows (the tabs, the CV header, the toolbar that `anchor` names a button of)
+ * sits wholly inside its row and the canvas, and no row scrolls sideways to hide one.
+ */
+async function expectToolbarFits(page: Page, anchor = 'Edit') {
+  const report = await canvas(page).getByRole('button', { name: anchor, exact: true }).evaluate((button) => {
+    const toolbar = button.parentElement as HTMLElement;
+    const column = (button.closest('[data-shell-column="canvas"]') as HTMLElement).getBoundingClientRect();
+    const rows = [
+      toolbar,
+      ...Array.from(document.querySelectorAll<HTMLElement>('[data-shell-column="canvas"]:not([inert]) [role="tablist"], [data-shell-column="canvas"]:not([inert]) .\\@container')),
+    ];
+    const outside: string[] = [];
+    for (const row of rows) {
+      const bounds = row.getBoundingClientRect();
+      for (const control of Array.from(row.querySelectorAll<HTMLElement>('button, a'))) {
+        const box = control.getBoundingClientRect();
+        if (box.width === 0) continue;
+        if (box.left < Math.max(bounds.left, column.left) - 1 || box.right > Math.min(bounds.right, column.right) + 1) {
+          outside.push(control.getAttribute('aria-label') ?? control.textContent?.trim() ?? '?');
+        }
+      }
+    }
+    return { outside, sideways: Math.max(...rows.map((row) => row.scrollWidth - row.clientWidth)) };
+  });
+  expect(report.outside).toEqual([]);
+  expect(report.sideways).toBeLessThanOrEqual(1);
+}
+
 /** Compact: the chat has the room, the canvas is a rail. */
 async function expectChatView(page: Page, viewport: number) {
   await expect(chat(page)).toBeVisible();
@@ -221,9 +251,25 @@ test('(l1-l3) chat and canvas take turns at 1104px and below and sit side by sid
     await expectCanvasView(page, viewport);
   }
 
+  // Every toolbar fits across the compact range, on each kit tab: the row wraps rather than scrolls.
+  for (const viewport of [768, 900, 1024, 1104]) {
+    await page.setViewportSize({ width: viewport, height: 900 });
+    await expectCanvasView(page, viewport);
+    for (const [tab, slug] of [['CV', 'cv'], ['Cover letter', 'cover-letter'], ['Emails', 'emails']] as const) {
+      await page.getByRole('tab', { name: tab, exact: true }).click();
+      await expectToolbarFits(page);
+      await shot(page, `${viewport}-toolbar-${slug}`);
+    }
+    await page.getByRole('tab', { name: 'CV', exact: true }).click();
+  }
+  await page.setViewportSize({ width: 768, height: 900 });
+  await expectCanvasView(page, 768);
+
   // An unsaved CV edit survives a trip to the chat: compact, the folded canvas stays mounted behind its rail.
   const draftTitle = 'Draft title kept across the switch';
   await page.getByRole('button', { name: 'Edit', exact: true }).click();
+  await expectToolbarFits(page, 'Cancel');
+  await shot(page, '768-toolbar-cv-editing');
   await page.getByText('Professional Title', { exact: true }).locator('xpath=..').click();
   await page.locator('input[type="text"]').first().fill(draftTitle);
   await page.locator('button[title="Save"]').first().click();

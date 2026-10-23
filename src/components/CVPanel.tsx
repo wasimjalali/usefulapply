@@ -538,7 +538,9 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
             ) : (
               <Download className="w-4 h-4" />
             )}
-            Download PDF
+            {/* A narrow toolbar drops the shared "Download" (the icon and the title carry it), so the row breaks
+                into two clean lines instead of orphaning a button. Screen readers still hear the whole name. */}
+            <span><span className="@max-[50rem]:sr-only">Download </span>PDF</span>
           </button>
           <button
             type="button"
@@ -552,7 +554,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
             ) : (
               <FileType2 className="w-4 h-4" />
             )}
-            Download Word
+            <span><span className="@max-[50rem]:sr-only">Download </span>Word</span>
           </button>
         </>
       )}
