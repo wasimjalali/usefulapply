@@ -357,7 +357,10 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
       const replied = page.waitForResponse((response) => response.url().endsWith('/api/chat') && response.request().method() === 'POST');
       await input.fill(text);
       await input.press('Enter');
-      expect((await replied).status()).toBe(200);
+      const response = await replied;
+      expect(response.status()).toBe(200);
+      // The reply streams: the route stores it before the last event, so the whole body has to be in.
+      await response.finished();
     };
     const first = `Erste Frage ueber die Oberflaeche [${TAG}]`;
     const second = `Zweite Frage ueber die Oberflaeche [${TAG}]`;

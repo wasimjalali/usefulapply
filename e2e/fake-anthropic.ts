@@ -48,10 +48,20 @@
  *                messages call (input + cache reads + cache writes), so the 100k budget paths can be driven
  *   inputTokensFor  writer name   limit the override to one writer
  *   skipCalls    n   answer the first n messages calls of that writer with their real size, then override
+ *   streamChunkMs  n   a streamed Haiku answer (the chat) sends its text a few words at a time, this many ms apart (default 15)
+ *   streamFault  { kind, when, count, skip?, writer?, provider?, idleMs? } | null   the next `count` streamed Haiku answers
+ *                (after `skip`) break: kind 'error' sends a stream `error` event (api_error, as a 500 mid-stream) and ends
+ *                the body, kind 'idle' stops sending anything for `idleMs` (no pings either) and then carries on; `when`
+ *                'before_text' breaks after the thinking block, 'after_text' after `afterChunks` text chunks (1). `provider`
+ *                limits it to one endpoint (default the Anthropic API).
  *   profileCreateFail  { status, count } | null   POST /v1/user_profiles answers `status` to the next `count` creates
  *   profileCreateHoldMs  n   hold every profile create this long before answering (a window for a spec to race it)
  *   profileDeleteFail  { status, count } | null   DELETE /v1/user_profiles/{id} answers `status` to the next `count` deletes
  * GET /__calls returns the call log, GET /__reset clears it, the cache and the control state.
+ *
+ * A streamed Haiku answer is real SSE: message_start, then each block as the API streams it (thinking with its
+ * signature delta, text in chunks a few words long with streamChunkMs between them, tool_use with its input as
+ * input_json_delta), then message_delta with the final usage (iterations included) and message_stop.
  *
  * User profiles (https://platform.claude.com/docs/en/manage-claude/user-profiles), on the Anthropic endpoint only:
  * POST /v1/user_profiles creates one (never idempotent), GET and DELETE /v1/user_profiles/{id} read and delete it.
@@ -110,6 +120,10 @@ interface CallRecord {
   stream: boolean;
   /** primaryStreamCut hit this streaming request: the socket was reset after the first half of the text. */
   streamCut: boolean;
+  /** streamFault hit this streamed answer ('error' or 'idle'), or null. */
+  streamFault: string | null;
+  /** The text chunks a streamed answer sent, in order (a cut or failed stream's are the ones sent before it broke). */
+  streamedText: string[];
   /** The first message of the request, as the kit writers' specs read it. */
   user: string;
   /** The newest user text, and every user text, so a spec can see the history the model was shown. */
@@ -168,6 +182,9 @@ let delayMs = 0;
 let primaryFail: { status: number; remaining: number; skip: number; writer: string | null } | null = null;
 let primaryStreamCut: { remaining: number; skip: number; writer: string | null } | null = null;
 let override: { inputTokens: number; writer: string | null; skip: number } | null = null;
+let streamChunkMs = 15;
+interface StreamFault { kind: 'error' | 'idle'; when: 'before_text' | 'after_text'; remaining: number; skip: number; writer: string | null; provider: Provider; idleMs: number; afterChunks: number }
+let streamFault: StreamFault | null = null;
 let overrideSeen = 0;
 
 function authOf(request: IncomingMessage): CallRecord['auth'] {
@@ -424,6 +441,86 @@ function sse(response: ServerResponse, model: string, text: string, usage: Usage
   response.end();
 }
 
+/** Text in chunks of a few words, each chunk keeping its trailing space, so the chunks join back to the text. */
+function textChunks(text: string): string[] {
+  const words = text.match(/\S+\s*/g) ?? [];
+  const chunks: string[] = [];
+  for (let i = 0; i < words.length; i += 3) chunks.push(words.slice(i, i + 3).join(''));
+  return chunks;
+}
+
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * A Haiku answer as the API streams it: every block, in order, the way the SDK accumulates it back into the message.
+ * `fault` breaks it (streamFault), `cut` resets the socket after half of the text (primaryStreamCut).
+ */
+async function streamBlocks(
+  response: ServerResponse,
+  model: string,
+  content: FakeBlock[],
+  stopReason: string,
+  usage: Usage,
+  options: { cut: boolean; fault: StreamFault | null; sent: string[] },
+): Promise<void> {
+  response.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
+  const send = (event: string, data: unknown) => {
+    if (!response.destroyed) response.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+  const { fault } = options;
+  send('message_start', {
+    type: 'message_start',
+    message: { id: `msg_stub_${Math.random().toString(36).slice(2)}`, type: 'message', role: 'assistant', model, content: [], stop_reason: null, stop_sequence: null, usage: { ...usage, output_tokens: 1 } },
+  });
+  const breakNow = async (): Promise<boolean> => {
+    if (!fault) return false;
+    if (fault.kind === 'error') {
+      send('error', { type: 'error', error: { type: 'api_error', message: 'Internal server error' } });
+      response.end();
+      return true;
+    }
+    await pause(fault.idleMs);
+    return response.destroyed;
+  };
+  let textSent = 0;
+  const totalText = content.filter((block) => block.type === 'text').reduce((sum, block) => sum + String(block.text).length, 0);
+  for (const [index, block] of content.entries()) {
+    if (block.type === 'thinking') {
+      send('content_block_start', { type: 'content_block_start', index, content_block: { type: 'thinking', thinking: '', signature: '' } });
+      send('content_block_delta', { type: 'content_block_delta', index, delta: { type: 'thinking_delta', thinking: String(block.thinking) } });
+      send('content_block_delta', { type: 'content_block_delta', index, delta: { type: 'signature_delta', signature: String(block.signature) } });
+      send('content_block_stop', { type: 'content_block_stop', index });
+    } else if (block.type === 'text') {
+      if (fault?.when === 'before_text' && (await breakNow())) return;
+      send('content_block_start', { type: 'content_block_start', index, content_block: { type: 'text', text: '' } });
+      for (const chunk of textChunks(String(block.text))) {
+        await pause(streamChunkMs);
+        if (response.destroyed) return;
+        send('content_block_delta', { type: 'content_block_delta', index, delta: { type: 'text_delta', text: chunk } });
+        options.sent.push(chunk);
+        textSent += chunk.length;
+        if (fault?.when === 'after_text' && options.sent.length === fault.afterChunks && (await breakNow())) return;
+        if (options.cut && textSent >= totalText / 2) {
+          // A connection lost mid-body: no message_stop, no clean end.
+          setTimeout(() => response.socket?.destroy(), 20);
+          return;
+        }
+      }
+      send('content_block_stop', { type: 'content_block_stop', index });
+    } else if (block.type === 'tool_use') {
+      send('content_block_start', { type: 'content_block_start', index, content_block: { type: 'tool_use', id: block.id, name: block.name, input: {} } });
+      send('content_block_delta', { type: 'content_block_delta', index, delta: { type: 'input_json_delta', partial_json: JSON.stringify(block.input ?? {}) } });
+      send('content_block_stop', { type: 'content_block_stop', index });
+    } else {
+      throw new Error(`the fake cannot stream a ${block.type} block`);
+    }
+  }
+  if (fault?.when === 'before_text' && totalText === 0 && (await breakNow())) return;
+  send('message_delta', { type: 'message_delta', delta: { stop_reason: stopReason, stop_sequence: null }, usage });
+  send('message_stop', { type: 'message_stop' });
+  response.end();
+}
+
 // ---------------------------------------------------------------------------
 // Structured outputs: the schema rules of the API, and a small JSON Schema check of the scripted reply
 // ---------------------------------------------------------------------------
@@ -560,6 +657,8 @@ function record(body: MessagesBody, kind: CallRecord['kind'], writer: string, ma
     at: new Date().toISOString(),
     stream: Boolean(body.stream),
     streamCut: false,
+    streamFault: null,
+    streamedText: [],
     user: firstMessageText(body).slice(0, 20_000),
     lastUser: lastUserText(body.messages).slice(0, 20_000),
     allUserText: userTexts.join('\n---\n').slice(0, 60_000),
@@ -642,6 +741,8 @@ createServer(async (request, response) => {
         skipCalls?: number;
         primaryFail?: { status: number; count: number; skip?: number; writer?: string } | null;
         primaryStreamCut?: { count: number; skip?: number; writer?: string } | null;
+        streamChunkMs?: number;
+        streamFault?: { kind: 'error' | 'idle'; when: 'before_text' | 'after_text'; count: number; skip?: number; writer?: string; provider?: Provider; idleMs?: number; afterChunks?: number } | null;
         profileCreateFail?: { status: number; count: number } | null;
         profileCreateHoldMs?: number;
         profileDeleteFail?: { status: number; count: number } | null;
@@ -656,10 +757,23 @@ createServer(async (request, response) => {
       primaryStreamCut = body.primaryStreamCut
         ? { remaining: body.primaryStreamCut.count, skip: body.primaryStreamCut.skip ?? 0, writer: body.primaryStreamCut.writer ?? null }
         : null;
+      streamChunkMs = body.streamChunkMs ?? 15;
+      streamFault = body.streamFault
+        ? {
+            kind: body.streamFault.kind,
+            when: body.streamFault.when,
+            remaining: body.streamFault.count,
+            skip: body.streamFault.skip ?? 0,
+            writer: body.streamFault.writer ?? null,
+            provider: body.streamFault.provider ?? 'anthropic',
+            idleMs: body.streamFault.idleMs ?? 0,
+            afterChunks: body.streamFault.afterChunks ?? 1,
+          }
+        : null;
       profileCreateFail = body.profileCreateFail ? { status: body.profileCreateFail.status, remaining: body.profileCreateFail.count } : null;
       profileCreateHoldMs = body.profileCreateHoldMs ?? 0;
       profileDeleteFail = body.profileDeleteFail ? { status: body.profileDeleteFail.status, remaining: body.profileDeleteFail.count } : null;
-      return json(response, 200, { ok: true, failWriters: [...failWriters], delayMs, override, primaryFail, primaryStreamCut, profileCreateFail, profileCreateHoldMs, profileDeleteFail });
+      return json(response, 200, { ok: true, failWriters: [...failWriters], delayMs, override, primaryFail, primaryStreamCut, streamChunkMs, streamFault, profileCreateFail, profileCreateHoldMs, profileDeleteFail });
     }
     if (url.pathname === '/__profiles' && request.method === 'GET') {
       return json(response, 200, { profiles: [...profiles.values()], events: profileEvents });
@@ -684,6 +798,8 @@ createServer(async (request, response) => {
       cacheEntries.bedrock.clear();
       primaryFail = null;
       primaryStreamCut = null;
+      streamChunkMs = 15;
+      streamFault = null;
       failWriters = new Set();
       delayMs = 0;
       override = null;
@@ -829,7 +945,6 @@ createServer(async (request, response) => {
         content = [];
         stopReason = 'max_tokens';
       } else if (haiku) {
-        if (body.stream) return fail(500, 'api_error', 'the fake does not script a streamed Haiku answer');
         const answer = haikuAnswerFor(writer, body);
         content = answer.content.map((block) => {
           if (provider !== 'bedrock' || block.type !== 'thinking') return block;
@@ -888,6 +1003,15 @@ createServer(async (request, response) => {
           else if (primaryStreamCut.remaining > 0) { primaryStreamCut.remaining -= 1; cut = true; }
         }
         entry.streamCut = cut;
+        if (haiku) {
+          let fault: StreamFault | null = null;
+          if (streamFault && streamFault.provider === provider && (streamFault.writer === null || streamFault.writer === writer)) {
+            if (streamFault.skip > 0) streamFault.skip -= 1;
+            else if (streamFault.remaining > 0) { streamFault.remaining -= 1; fault = streamFault; }
+          }
+          entry.streamFault = fault?.kind ?? null;
+          return void streamBlocks(response, model, content, stopReason, usage, { cut, fault, sent: entry.streamedText });
+        }
         return sse(response, model, text, usage, cut);
       }
       return json(response, 200, messageBody(model, content, stopReason, usage));

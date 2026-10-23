@@ -37,6 +37,8 @@ import { parkedRunStillValid } from '@/lib/profile/logistics-resume';
 import type { KitDocument, KitDocumentErrors } from '@/lib/agents/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
 import { useChatCompactionMarker } from './compaction-marker';
+import { readChatStream } from './read-chat-stream';
+import { useStreamingReply } from './streaming-reply';
 import { flushChatSync } from '@/lib/chat-sync-flush';
 import {
   createSession as createStoredSession,
@@ -247,6 +249,8 @@ export function useAgentWorkflow(options?: {
   const [awaitingJobDescription, setAwaitingJobDescription] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  // The streamed chat turn in flight (its streaming-reply id), so Stop knows it is stopping a reply, not a kit run.
+  const chatTurnRef = useRef<string | null>(null);
 
   const messages = currentSession?.chatMessages || [];
 
@@ -403,6 +407,26 @@ export function useAgentWorkflow(options?: {
   };
 
   const handleStopGeneration = () => {
+    // A chat reply, not a kit run: what was shown stays, marked stopped, and none of it is stored. The route sees the
+    // disconnect and stores no reply (the user's own message stays saved).
+    const chatTurn = chatTurnRef.current;
+    if (chatTurn) {
+      const streaming = useStreamingReply.getState().reply;
+      useStreamingReply.getState().clearTurn(chatTurn);
+      chatTurnRef.current = null;
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+      setIsTyping(false);
+      if (streaming?.turnId === chatTurn && streaming.sessionId && streaming.text.trim()) {
+        // Not a `msg-` id, so the chat sync never writes it (useSupabaseSync): it lives on this screen only.
+        addReplyMessage(
+          { role: 'assistant', content: streaming.text, actions: [{ label: 'Stopped', action: 'none' }] },
+          `stopped-${chatTurn}`,
+          streaming.sessionId,
+        );
+      }
+      return;
+    }
     const stoppedSessionId = currentSession?.id;
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -599,6 +623,10 @@ export function useAgentWorkflow(options?: {
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
+    // The streamed bubble for this turn (streaming-reply.ts), and whether the watchdog, not Stop, ended it.
+    const streamTurnId = useStreamingReply.getState().start(startedIn);
+    chatTurnRef.current = streamTurnId;
+    let idledOut = false;
 
     try {
       const { masterCV, certifications } = useAppStore.getState();
@@ -608,7 +636,8 @@ export function useAgentWorkflow(options?: {
 
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        // The reply as it is written (reply-stream.ts). A server from before streaming answers JSON, handled below too.
+        headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
         body: JSON.stringify({
           message,
           ...(messageId ? { messageId } : {}),
@@ -645,12 +674,19 @@ export function useAgentWorkflow(options?: {
         signal: controller.signal,
       });
 
-      if (response.ok) {
-        const { reply, actions, executed, replyMessageId, compactedThroughMessageId, storedUserMessage } = await response.json();
-        // The turn the route stored under its own id (sent without one): shown before its reply, already in D1.
-        if (startedIn && storedUserMessage && typeof storedUserMessage.id === 'string' && typeof storedUserMessage.content === 'string') {
-          addStoredMessage(startedIn, { id: storedUserMessage.id, role: 'user', content: storedUserMessage.content });
-        }
+      // The turn the route stored under its own id (sent without one): shown before its reply, already in D1. A streamed
+      // turn announces it first, and the final body repeats it.
+      let storedTurnShown = false;
+      const showStoredTurn = (stored: unknown) => {
+        const turn = stored as { id?: unknown; content?: unknown } | null | undefined;
+        if (storedTurnShown || !startedIn || !turn || typeof turn.id !== 'string' || typeof turn.content !== 'string') return;
+        storedTurnShown = true;
+        addStoredMessage(startedIn, { id: turn.id, role: 'user', content: turn.content });
+      };
+
+      const handleReply = (body: { reply: string; actions?: ChatAction[]; executed?: unknown; replyMessageId?: unknown; compactedThroughMessageId?: unknown; storedUserMessage?: unknown }) => {
+        const { reply, actions, executed, replyMessageId, compactedThroughMessageId, storedUserMessage } = body;
+        showStoredTurn(storedUserMessage);
         if (startedIn && compactedThroughMessageId !== undefined) {
           useChatCompactionMarker.getState().setMarker(startedIn, typeof compactedThroughMessageId === 'string' ? compactedThroughMessageId : null);
         }
@@ -659,10 +695,12 @@ export function useAgentWorkflow(options?: {
         // case the transcript must contain the refusal instead of the model's
         // stale success claim. The rejected edit cannot be undone because it
         // never landed, so its Undo action is removed too.
-        const { refusal: effectRefusal, note: effectNote } = applyExecutedEffects(executed, message, {
+        const { refusal: effectRefusal, note: effectNote } = applyExecutedEffects(executed as ExecutedEffect[] | undefined, message, {
           startedIn,
           suppressProposal: Boolean(opts?.suppressProposal),
         });
+        // The streamed bubble and the finished reply swap in the same render (streaming-reply.ts).
+        useStreamingReply.getState().clearTurn(streamTurnId);
         addReplyMessage({
           role: 'assistant',
           content: effectRefusal || (effectNote ? `${reply}\n\n${effectNote}` : reply),
@@ -676,16 +714,12 @@ export function useAgentWorkflow(options?: {
         const proposed = Array.isArray(executed)
           && (executed as ExecutedEffect[]).some((effect) => effect.type === 'propose_application');
         if (!proposed) offerManualWayIn(message, startedIn, opts);
-      } else if (response.status === 401) {
-        if (user) options?.onSessionExpired?.();
-        else options?.onAnonymousLimitReached?.();
-      } else {
-        const errorData = await response.json().catch(() => null);
+      };
+
+      const handleFailure = (errorData: Record<string, unknown> | null) => {
+        useStreamingReply.getState().clearTurn(streamTurnId);
         // A turn the route stored under its own id before it failed: shown before the failure reply, as on success.
-        const failedStored = errorData?.storedUserMessage;
-        if (startedIn && failedStored && typeof failedStored.id === 'string' && typeof failedStored.content === 'string') {
-          addStoredMessage(startedIn, { id: failedStored.id, role: 'user', content: failedStored.content });
-        }
+        showStoredTurn(errorData?.storedUserMessage);
         if (errorData?.code === 'CHAT_LIMIT_REACHED') {
           addFailureReply({
             role: 'assistant',
@@ -697,6 +731,21 @@ export function useAgentWorkflow(options?: {
           addFailureReply({
             role: 'assistant',
             content: "I couldn't answer that just now. Your conversation is saved, so try again in a minute.",
+          });
+        } else if (errorData?.code === 'CHAT_STREAM_IDLE' || errorData?.code === 'CHAT_STREAM_INTERRUPTED') {
+          // The reply broke off after some of it was on screen. Nothing of it was stored, so the bubble goes, and
+          // effects a tool round already committed still land. With such effects the route sends the line that says so.
+          applyExecutedEffects(Array.isArray(errorData.executed) ? errorData.executed as ExecutedEffect[] : undefined, message, {
+            startedIn,
+            suppressProposal: true,
+          });
+          addFailureReply({
+            role: 'assistant',
+            content: typeof errorData.reply === 'string'
+              ? errorData.reply
+              : errorData.code === 'CHAT_STREAM_IDLE'
+                ? "The reply stopped coming for a minute, so I ended it. Your message is saved, so try again."
+                : 'The reply was cut off. Your message is saved, so try again.',
           });
         } else if (errorData?.code === 'MESSAGE_TOO_LONG') {
           addFailureReply({
@@ -710,20 +759,55 @@ export function useAgentWorkflow(options?: {
           });
           offerManualWayIn(message, startedIn, opts);
         }
+      };
+
+      if (response.status === 401) {
+        if (user) options?.onSessionExpired?.();
+        else options?.onAnonymousLimitReached?.();
+      } else if (response.ok && (response.headers.get('content-type') ?? '').includes('text/event-stream')) {
+        const ended = await readChatStream(response, {
+          onTurn: (event) => showStoredTurn(event.storedUserMessage),
+          onDelta: (text) => useStreamingReply.getState().append(streamTurnId, text),
+          onStatus: (status) => useStreamingReply.getState().setStatus(streamTurnId, status),
+          onDone: (event) => handleReply(event as unknown as Parameters<typeof handleReply>[0]),
+          onError: (event) => handleFailure(event),
+          // No byte for longer than the server's own idle limit plus its heartbeat: the connection is gone.
+          onIdle: () => {
+            idledOut = true;
+            controller.abort();
+          },
+        });
+        // The server always ends a turn with done or error. A stream that just stopped was cut on the way.
+        if (!ended) handleFailure({ code: 'CHAT_STREAM_INTERRUPTED' });
+      } else if (response.ok) {
+        handleReply(await response.json());
+      } else {
+        handleFailure(await response.json().catch(() => null));
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
+        // Stop keeps what was shown (handleStopGeneration). The idle watchdog says what happened.
+        if (idledOut) {
+          useStreamingReply.getState().clearTurn(streamTurnId);
+          addFailureReply({
+            role: 'assistant',
+            content: "I lost the connection to the reply. Your message is saved, so try again.",
+          });
+        }
         return;
       }
+      useStreamingReply.getState().clearTurn(streamTurnId);
       addFailureReply({
         role: 'assistant',
         content: getSmartFallbackResponse(message),
       });
       offerManualWayIn(message, startedIn, opts);
     } finally {
+      useStreamingReply.getState().clearTurn(streamTurnId);
       setIsTyping(false);
       setIsScreeningMode(false);
-      abortControllerRef.current = null;
+      if (abortControllerRef.current === controller) abortControllerRef.current = null;
+      if (chatTurnRef.current === streamTurnId) chatTurnRef.current = null;
     }
   };
 
