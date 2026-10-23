@@ -75,7 +75,8 @@ export async function hydrateChatIfEmpty(sessionId: string, generation = openGen
       }),
     ]);
   } catch (error) {
-    setFailed(sessionId, true);
+    // Only the newest load speaks for the application: an older one that fails after a newer one started does not.
+    if (generation === openGeneration) setFailed(sessionId, true);
     throw error;
   } finally {
     setLoading(sessionId, false);
@@ -86,8 +87,14 @@ export async function hydrateChatIfEmpty(sessionId: string, generation = openGen
   // The chat divider on a device that never saw the turn that compacted (the route returns it with every reply too).
   // A failed read keeps the marker this browser already has.
   if (compactedThrough !== undefined) useChatCompactionMarker.getState().setMarker(sessionId, compactedThrough);
-  if (!messages || messages.length === 0) return;
-  applyChat(sessionId, mapChatRowsToStore(messages));
+  // Applied even when the server holds none: the transcript on screen may be this browser's cached copy, and the
+  // server's (empty) one replaces it, keeping only messages this browser has not written yet (applyChat).
+  applyChat(sessionId, mapChatRowsToStore(messages ?? []));
+}
+
+/** Whether this page load has the application's transcript from D1 (the background chat sync waits for it). */
+export function isChatHydrated(sessionId: string): boolean {
+  return hydratedChatIds.has(sessionId);
 }
 
 /**

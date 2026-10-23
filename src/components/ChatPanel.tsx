@@ -318,6 +318,20 @@ export function ChatPanel({
     });
     setNeedsAccount(true);
   }
+  // A message for one application, whichever is open when it lands (the same shape useAgentWorkflow's
+  // addWorkflowMessage writes): a slow result never lands in a conversation that did not ask for it.
+  function addMessageToSession(sessionId: string, message: { role: 'assistant'; content: string; actions?: ChatMessageData['actions'] }) {
+    if (useSessionStore.getState().currentSession?.id === sessionId) {
+      addChatMessage(message);
+      return;
+    }
+    const newMessage = { ...message, id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`, timestamp: new Date().toISOString() };
+    useSessionStore.setState((state) => ({
+      sessions: state.sessions.map((session) => (session.id === sessionId
+        ? { ...session, chatMessages: [...session.chatMessages, newMessage], updatedAt: newMessage.timestamp }
+        : session)),
+    }));
+  }
   const { credits, isLoading: creditsLoading, refresh: refreshCredits } = useCreditsBalance();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -775,8 +789,10 @@ export function ChatPanel({
   const historyFailedFor = useChatHistoryLoad((state) => (currentSession ? Boolean(state.failed[currentSession.id]) : false));
   const savedAndEmpty = Boolean(user && currentSession && !currentSession.id.startsWith('session-') && messages.length === 0);
   const chatHistoryLoading = savedAndEmpty && (!sessionsLoaded || historyLoadingFor);
-  // The transcript did not load: say so and offer a retry, never the empty conversation's paid first step.
-  const chatHistoryFailed = savedAndEmpty && !chatHistoryLoading && historyFailedFor;
+  // The transcript did not load: say so and offer a retry, never the empty conversation's paid first step. With this
+  // browser's cached copy on screen it says the same, since that copy may miss turns from another device.
+  const chatHistoryFailed = Boolean(user && currentSession && !currentSession.id.startsWith('session-'))
+    && !chatHistoryLoading && historyFailedFor;
 
   const chatIsEmpty = Boolean(
     spine && user && !currentSession?.jobDescription && messages.length === 0
@@ -1407,6 +1423,9 @@ export function ChatPanel({
       const note = isNewest && cvRewriteNoteRef.current?.sessionId === sessionId
         ? cvRewriteNoteRef.current.text
         : null;
+      // The result belongs to the application that asked, even if another one is open by the time it lands.
+      const sayInRewriteSession = (message: { role: 'assistant'; content: string; actions?: ChatMessageData['actions'] }) =>
+        addMessageToSession(sessionId, message);
       cvRewriteInFlightRef.current = true;
       regenInFlightRef.current = true;
       setRunningCvRewrite(true);
@@ -1423,7 +1442,7 @@ export function ChatPanel({
           // Reporting it as clean success is the silent narrowing the rules
           // forbid, so what was left out is said in the same breath.
           const left = result.omitted.join(', ');
-          addChatMessage({
+          sayInRewriteSession({
             role: 'assistant',
             content: left
               ? `${done} I left out ${left}, your CV doesn't mention it.`
@@ -1432,21 +1451,21 @@ export function ChatPanel({
         } else if (result.ok) {
           // The route already released the reservation on a refusal, and its
           // message says which words it could not support. Relay it as it is.
-          addChatMessage({ role: 'assistant', content: result.message });
+          sayInRewriteSession({ role: 'assistant', content: result.message });
         } else if (result.code === 'INSUFFICIENT_CREDITS') {
-          addChatMessage({
+          sayInRewriteSession({
             role: 'assistant',
             content: `That rewrite needs ${result.required} credits and you have ${result.available}. Nothing was charged.`,
             actions: [{ label: 'Upgrade to Plus · 50 credits a month', action: 'navigate-pricing', icon: 'new' }],
           });
         } else if (result.code === 'SIGNED_OUT') {
-          addChatMessage({
+          sayInRewriteSession({
             role: 'assistant',
             content: 'Your session expired. Sign in again and ask for the rewrite once more. Nothing was charged.',
             actions: [{ label: 'Sign in', action: 'navigate-login' }],
           });
         } else if (result.code === 'NO_CONTEXT') {
-          addChatMessage({
+          sayInRewriteSession({
             role: 'assistant',
             content: 'I can\'t rewrite that without the job ad and your CV. Open the application and check both are there. Nothing was charged.',
           });
@@ -1454,7 +1473,7 @@ export function ChatPanel({
           // No billing claim: the route captures before it answers, so a
           // dropped connection late in the call means the rewrite may have
           // landed and been paid for.
-          addChatMessage({
+          sayInRewriteSession({
             role: 'assistant',
             content: 'That rewrite didn\'t come back. Check the CV tab before asking again, in case it landed anyway.',
           });
@@ -1821,8 +1840,8 @@ export function ChatPanel({
   // A card this turn raised also wins over a lasting one: one group at a time.
   const lastingCardsShown = !messageChipsShownFor && !turnCardShown;
   const shortCreditsShown = spine && lastingCardsShown && Boolean(shortCredits) && !pendingDecisionJd && !isAgentWorking;
-  // Credits short is the newer word on a fit that can't be paid for, so it replaces the fit's own chips.
   const accountWallShown = spine && lastingCardsShown && needsAccount && !user && !isAgentWorking;
+  // Credits short is the newer word on a fit that can't be paid for, so it replaces the fit's own chips.
   const fitChipsShown = lastingCardsShown
     && !accountWallShown
     && !isAgentWorking

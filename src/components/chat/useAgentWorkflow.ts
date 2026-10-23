@@ -685,11 +685,25 @@ export function useAgentWorkflow(options?: {
       // A message that could not be written in time (a pasted ad) would be missing from the route's history, and the
       // model would answer without it. Hold the turn and say so, rather than answer as if it were not there. A slow
       // write keeps going in the background, so sending again a moment later finds it saved.
-      if (startedIn && !startedIn.startsWith('session-') && await flushChatSync(startedIn, messageId) !== 'ok') {
-        addFailureReply({
-          role: 'assistant',
-          content: "I couldn't save your earlier message, so I can't see it yet. Check your connection and send your question again.",
-        });
+      // A timeout holds only when one of the pending messages is the user's own: a reply the route stored itself is
+      // already in D1 however slow its idempotent re-write is.
+      const live = useSessionStore.getState();
+      const turnSession = live.currentSession?.id === startedIn
+        ? live.currentSession
+        : live.sessions.find((session) => session.id === startedIn);
+      const pendingOwn = Boolean(turnSession?.chatMessages.some((entry) =>
+        entry.role === 'user' && entry.id.startsWith('msg-') && !entry.stored && entry.id !== messageId));
+      const flushed = startedIn && !startedIn.startsWith('session-') ? await flushChatSync(startedIn, messageId) : 'ok';
+      if (flushed === 'failed' || (flushed === 'timeout' && pendingOwn)) {
+        // On this screen only (a `notice-` id the sync never writes), so the model's history never holds it.
+        const target = resolveTurnSession(startedIn, startedCreatedAt);
+        if (target) {
+          addReplyMessage({
+            role: 'assistant',
+            content: "I couldn't save your earlier message, so I can't see it yet. Check your connection and send your question again.",
+            actions: [],
+          }, `notice-held-${streamTurnId}`, target);
+        }
         return;
       }
 
@@ -994,8 +1008,9 @@ export function useAgentWorkflow(options?: {
     setIsAgentWorking(true);
     setAgentWorkflowPhase('fit_analysis');
     setAgentSteps([]);
-    // A finished kit's 100 would otherwise paint this run's stages done until its first progress event.
-    setV2Progress(null);
+    // A finished kit's 100 would otherwise paint this run's stages done until its first progress event; 0 also keeps
+    // the chat's first loading card up until then.
+    setV2Progress({ percent: 0, message: 'Analyzing job fit...' });
     setV2Reflection(null);
     setV2Models(null);
     setV2TokenUsage(null);

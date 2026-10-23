@@ -18,7 +18,7 @@ import {
 } from '@/lib/supabase';
 import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
 import { isSameJob } from '@/lib/utils/same-job';
-import { hydrateChatIfEmpty, type StoredSessionRow } from '@/lib/open-session';
+import { hydrateChatIfEmpty, isChatHydrated, type StoredSessionRow } from '@/lib/open-session';
 import { sessionHasKit } from '@/components/shell/application-status';
 import { useToast } from '@/components/ui/Toast';
 import { mapSessionRowToStore } from '@/lib/session-row-mapping';
@@ -148,6 +148,8 @@ export function useSupabaseSync() {
   const [documentsHydrated, setDocumentsHydrated] = useState(false);
   const [hydrationError, setHydrationError] = useState<string | null>(null);
   const [hydrationAttempt, setHydrationAttempt] = useState(0);
+  // The application whose transcript came from localStorage at mount (see the chat sync below).
+  const cachedAtMountRef = useRef<string | null>(null);
   // ChatPanel holds its loading state until this first load (which hydrates the open application's chat) is done.
   useEffect(() => {
     useChatHistoryLoad.getState().setSessionsLoaded(sessionsHydrated);
@@ -690,9 +692,11 @@ export function useSupabaseSync() {
     if (!user) return;
     const { sessions: currentSessions, currentSession: cachedSession } = useSessionStore.getState();
     
+    cachedAtMountRef.current = cachedSession && !cachedSession.id.startsWith('session-') ? cachedSession.id : null;
     // Mark messages from currentSession (localStorage) as already synced. A `msg-` message the server has not
     // confirmed (no `stored`) may never have been written (a reload inside the debounce, a failed write): it stays
-    // pending, so the sync writes it once the transcript has loaded. The write is idempotent by id.
+    // pending, so the background sync writes it once the transcript has loaded (isChatHydrated). The write is
+    // idempotent by id.
     if (cachedSession && !cachedSession.id.startsWith('session-')) {
       for (const msg of cachedSession.chatMessages) {
         if (msg.stored || !msg.id.startsWith('msg-')) syncedMessageIdsRef.current.add(msg.id);
@@ -774,6 +778,11 @@ export function useSupabaseSync() {
 
       for (const session of sessionsById.values()) {
         if (session.id.startsWith('session-')) continue;
+        // The transcript cached from the last page load: until it has loaded from D1, a cached message may be one the
+        // server already holds (or one another device cleared), and the load sorts that out (applyChat). So the
+        // background sync waits for it. Messages added during this page load, to any application, go at once, and a
+        // chat turn's own flush never waits: it needs the pending messages in D1 before the route reads them.
+        if (session.id === cachedAtMountRef.current && !isChatHydrated(session.id)) continue;
         await syncSessionChat(session);
       }
     };
