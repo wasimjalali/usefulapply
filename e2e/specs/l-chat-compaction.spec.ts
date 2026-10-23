@@ -196,7 +196,8 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
     expect(compaction.betas).toContain(COMPACTION_BETA);
     expect(compaction.compactionInstructions).toBe(CHAT_COMPACTION_INSTRUCTIONS);
     // The summarizer sees the ad the way every chat turn shows it: quoted, so it reads as copied text.
-    expect(compaction.allUserText.startsWith('<<')).toBe(true);
+    // (Its own turn: the kit's messages, synced before the conversation, come first in the history.)
+    expect(compaction.allUserText.split('\n---\n').find((text) => text.includes('Konzernfinanzen'))?.startsWith('<<')).toBe(true);
     expect(compaction.roles.at(-1)).toBe('user');
     expect(compaction.roles).not.toContain('system');
     expect(compaction.markers.length).toBeLessThanOrEqual(4);
