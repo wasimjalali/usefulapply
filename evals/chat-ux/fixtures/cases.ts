@@ -1,5 +1,5 @@
 /**
- * Chat UX cases: 44 turns in 12 conversations over the 25-row tracker and the open application from the
+ * Chat UX cases: 46 turns in 13 conversations over the 25-row tracker and the open application from the
  * 2026-10-22 harness (Thursday 2026-10-22, Berlin, signed-in user Lena Hoffmann).
  *
  *   German      12 turns, 3 conversations. The user writes German; the pasted ad, the CV, the tool results (the
@@ -10,9 +10,10 @@
  *               offer_screening_answers and return a start-screening-flow chip), and 3 that look close and are not.
  *   Claims       4 turns (kit contents, ATS score), EN and DE. No count of documents and no score that no tool
  *               result or context gave the model.
- *   Switch      10 turns, 3 conversations: four exchanges in one language, then three turns in the other
+ *   Switch      12 turns, 4 conversations: four exchanges in one language, then three turns in the other
  *               (English to German and back); and after a German conversation a bare English paste and a one-word
- *               reply (both keep German), then a request for English that holds while the user keeps writing German.
+ *               reply (both keep German), then a request for English that holds while the user keeps writing German; and a
+ *               request for an English letter and a quoted "Please reply in English" (neither changes the chat's language).
  *   Compaction   1 turn on a seeded German history of about 100k characters: the route compacts it, and the stored
  *               summary must keep its `<<copied ad text: ...>>` lines in German.
  *
@@ -385,6 +386,22 @@ export const CASES: UxCase[] = [
     script: [call('get_applications')], finalReply: 'You have 25 applications in your tracker.',
     badReply: 'Du hast 25 Bewerbungen in deinem Tracker.',
   },
+  // Not a request for the chat's language: a document in English, or a recruiter's line quoted. The reply stays German.
+  {
+    id: 'w11', group: 'switch-not-a-request', turn: 1, lang: 'de', category: 'switch', withCv: true,
+    seed: SWITCH_DE_HISTORY,
+    message: 'Kannst du das Anschreiben auf Englisch schreiben?',
+    expect: { reply: { german: true, maxSentences: 3 } },
+    script: [], finalReply: 'Das Anschreiben ist noch nicht erstellt. Ein englisches Anschreiben bekommst du, wenn du das Paket erzeugst und die Anzeige auf Englisch ist.',
+    badReply: 'The cover letter has not been generated yet. You get an English letter when you generate the kit for an English ad.',
+  },
+  {
+    id: 'w12', group: 'switch-not-a-request', turn: 2, lang: 'de', category: 'switch', withCv: true,
+    message: 'Der Recruiter schreibt: "Please reply in English." Was meint er damit?',
+    expect: { reply: { german: true, maxSentences: 3 } },
+    script: [], finalReply: 'Er bittet dich, ihm auf Englisch zu antworten. Deine Antwort an ihn schreibst du also besser auf Englisch.',
+    badReply: 'He is asking you to reply to him in English, so write your answer to him in English.',
+  },
 
   // Length: English turns that tempt a long answer. At most 3 sentences.
   {
@@ -563,7 +580,7 @@ export const CASES: UxCase[] = [
   },
 ];
 
-export const EXPECTED = { total: 44, german: 12, germanGroups: 3, length: 8, screeningPos: 6, screeningNeg: 3, claims: 4, compaction: 1, switch: 10, groups: 12 };
+export const EXPECTED = { total: 46, german: 12, germanGroups: 3, length: 8, screeningPos: 6, screeningNeg: 3, claims: 4, compaction: 1, switch: 12, groups: 13 };
 
 /** Tools the dry self-test accepts in a case: the chat's registry plus the one this pass adds. */
 export const KNOWN_TOOLS = [
