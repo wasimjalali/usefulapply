@@ -93,7 +93,6 @@ src/
 │   │   ├── tracker/         # Application tracker routes
 │   │   ├── credits/         # Credit balance
 │   │   ├── stripe/          # Checkout, portal, webhook
-│   │   ├── cron/            # Cron handler
 │   │   └── contact/         # Contact form (Cloudflare Email Service)
 │   ├── dashboard/           # Main app dashboard
 │   ├── applications/        # Application tracker page
