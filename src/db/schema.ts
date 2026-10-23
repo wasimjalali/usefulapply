@@ -1459,3 +1459,23 @@ export const mcpTokenGeneration = sqliteTable(
     index('mcp_token_generation_expires_idx').on(t.expires_at),
   ],
 );
+
+// ---------------------------------------------------------------------------
+// Anthropic user profiles (migration 0014): our user id -> the `uprof_` id sent in the
+// `anthropic-user-profile-id` header, so an enforcement action hits one user, not the org.
+// ---------------------------------------------------------------------------
+
+export const anthropicUserProfiles = sqliteTable(
+  'anthropic_user_profiles',
+  {
+    user_id: text('user_id')
+      .primaryKey()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    profile_id: text('profile_id').notNull(),
+    created_at: text('created_at').notNull().$defaultFn(isoNow),
+  },
+  (t) => [
+    uniqueIndex('anthropic_user_profiles_profile_id_unique').on(t.profile_id),
+    check('anthropic_user_profiles_profile_id_check', sql`substr(${t.profile_id}, 1, 6) = 'uprof_' AND length(${t.profile_id}) > 6`),
+  ],
+);

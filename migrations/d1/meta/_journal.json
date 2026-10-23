@@ -85,6 +85,13 @@
       "when": 1787238583118,
       "tag": "0012_profile_availability_salary",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1787238583120,
+      "tag": "0014_anthropic_user_profiles",
+      "breakpoints": true
     }
   ]
 }
