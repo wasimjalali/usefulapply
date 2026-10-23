@@ -1,5 +1,5 @@
 /**
- * Chat UX cases: 40 turns in 11 conversations over the 25-row tracker and the open application from the
+ * Chat UX cases: 44 turns in 12 conversations over the 25-row tracker and the open application from the
  * 2026-10-22 harness (Thursday 2026-10-22, Berlin, signed-in user Lena Hoffmann).
  *
  *   German      12 turns, 3 conversations. The user writes German; the pasted ad, the CV, the tool results (the
@@ -10,8 +10,9 @@
  *               offer_screening_answers and return a start-screening-flow chip), and 3 that look close and are not.
  *   Claims       4 turns (kit contents, ATS score), EN and DE. No count of documents and no score that no tool
  *               result or context gave the model.
- *   Switch       6 turns, 2 conversations: four exchanges in one language, then three turns in the other
- *               (English to German and back). The reply follows the latest message.
+ *   Switch      10 turns, 3 conversations: four exchanges in one language, then three turns in the other
+ *               (English to German and back); and after a German conversation a bare English paste and a one-word
+ *               reply (both keep German), then a request for English that holds while the user keeps writing German.
  *   Compaction   1 turn on a seeded German history of about 100k characters: the route compacts it, and the stored
  *               summary must keep its `<<copied ad text: ...>>` lines in German.
  *
@@ -61,7 +62,12 @@ export interface UxCase {
   id: string;
   group: string;
   turn: number;
+  /** The language the reply must be in (for every case but the ones below, also the language of the message). */
   lang: 'en' | 'de';
+  /** The message has none of the user's own words (a bare paste, one word): it says nothing about the reply language. */
+  noOwnWords?: true;
+  /** The user asked for this reply language earlier (or in this message), in the other language. */
+  languageRequested?: true;
   category: Category;
   message: string;
   withCv?: boolean;
@@ -316,8 +322,8 @@ export const CASES: UxCase[] = [
     id: 'w03', group: 'switch-en-de', turn: 3, lang: 'de', category: 'switch', withCv: true,
     message: 'Welche Bewerbungen haben diese Woche ein Interview?',
     expect: { tools: ['get_applications'], reply: { german: true, maxSentences: 3 } },
-    script: [call('get_applications')], finalReply: 'Diese Woche hast du Interviews bei Hellmann Systems und Fennel Labs.',
-    badReply: 'This week you have interviews with Hellmann Systems and Fennel Labs.',
+    script: [call('get_applications')], finalReply: 'Diese Woche hast du kein Interview. Die nächsten sind am Montag bei Hellmann Systems und am Mittwoch bei Fennel Labs.',
+    badReply: 'You have no interview this week. The next ones are Hellmann Systems on Monday and Fennel Labs on Wednesday.',
   },
   {
     id: 'w04', group: 'switch-de-en', turn: 1, lang: 'en', category: 'switch', withCv: true,
@@ -338,8 +344,46 @@ export const CASES: UxCase[] = [
     id: 'w06', group: 'switch-de-en', turn: 3, lang: 'en', category: 'switch', withCv: true,
     message: 'Which of my applications have an interview this week?',
     expect: { tools: ['get_applications'], reply: { english: true, maxSentences: 3 } },
-    script: [call('get_applications')], finalReply: 'This week you have interviews with Hellmann Systems and Fennel Labs.',
-    badReply: 'Diese Woche hast du Interviews bei Hellmann Systems und Fennel Labs.',
+    script: [call('get_applications')], finalReply: 'You have no interview this week. The next ones are Hellmann Systems on Monday and Fennel Labs on Wednesday.',
+    badReply: 'Diese Woche hast du kein Interview. Die nächsten sind am Montag bei Hellmann Systems und am Mittwoch bei Fennel Labs.',
+  },
+  // No own words after a German conversation: a bare English paste and a one-word reply keep the language the user
+  // types in. Then the user asks for English and keeps writing German: the request stands.
+  {
+    id: 'w07', group: 'switch-fallback', turn: 1, lang: 'de', noOwnWords: true, category: 'switch', withCv: true,
+    seed: SWITCH_DE_HISTORY,
+    message: [
+      '1. Why do you want to join Nordhafen Handels GmbH? (max 800 characters)',
+      '2. Describe a report you automated and what changed because of it.',
+      '3. What is your notice period and earliest start date?',
+      '4. What are your salary expectations (gross per year, EUR)?',
+      '5. Which ERP systems have you worked with?',
+      '6. Can you come to the Hamburg office three days a week?',
+    ].join('\n'),
+    expect: { reply: { german: true, maxSentences: 3 } },
+    script: [call(OFFER_SCREENING_TOOL)], finalReply: 'Das sind Fragen aus dem Bewerbungsformular. Tippe unten auf den Button, dann beantworte ich sie aus deinem Lebenslauf.',
+    badReply: 'Those are questions from the application form. Tap the button below and I will answer them from your CV.',
+  },
+  {
+    id: 'w08', group: 'switch-fallback', turn: 2, lang: 'de', noOwnWords: true, category: 'switch', withCv: true,
+    message: 'ok',
+    expect: { reply: { german: true, maxSentences: 3 } },
+    script: [], finalReply: 'Gut. Sag Bescheid, wenn du noch etwas brauchst.',
+    badReply: 'Okay. Let me know if you need anything else.',
+  },
+  {
+    id: 'w09', group: 'switch-fallback', turn: 3, lang: 'en', languageRequested: true, category: 'switch', withCv: true,
+    message: 'Bitte antworte mir ab jetzt auf Englisch.',
+    expect: { reply: { english: true, maxSentences: 3 } },
+    script: [], finalReply: "Sure, I'll answer in English from now on.",
+    badReply: 'Gern, ich antworte ab jetzt auf Englisch.',
+  },
+  {
+    id: 'w10', group: 'switch-fallback', turn: 4, lang: 'en', languageRequested: true, category: 'switch', withCv: true,
+    message: 'Wie viele Bewerbungen habe ich gerade offen?',
+    expect: { tools: ['get_applications'], reply: { english: true, maxSentences: 3 } },
+    script: [call('get_applications')], finalReply: 'You have 25 applications in your tracker.',
+    badReply: 'Du hast 25 Bewerbungen in deinem Tracker.',
   },
 
   // Length: English turns that tempt a long answer. At most 3 sentences.
@@ -519,7 +563,7 @@ export const CASES: UxCase[] = [
   },
 ];
 
-export const EXPECTED = { total: 40, german: 12, germanGroups: 3, length: 8, screeningPos: 6, screeningNeg: 3, claims: 4, compaction: 1, switch: 6, groups: 11 };
+export const EXPECTED = { total: 44, german: 12, germanGroups: 3, length: 8, screeningPos: 6, screeningNeg: 3, claims: 4, compaction: 1, switch: 10, groups: 12 };
 
 /** Tools the dry self-test accepts in a case: the chat's registry plus the one this pass adds. */
 export const KNOWN_TOOLS = [

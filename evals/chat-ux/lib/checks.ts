@@ -31,7 +31,7 @@ const EN = new Set(
   `the and or of on at is are were be been being you your yours i my we our they their them it its this that these those with for from to not
    can could would should shall may might have has had having do does did done if but by about what which when where how why there then than
    just more most some any each every all here your please thanks thank yes very much many into out up down over under after before while
-   both ready sounds looks great good done
+   both ready sounds looks great good done a only nothing yet next
    because which who whom whose let's it's don't can't won't isn't aren't doesn't didn't i'm i've i'd you're you've we're`.split(/\s+/).filter(Boolean),
 );
 // Words that mean something in both languages (in, an, so, was, war, man, hat, will, bin, die, also, am, no, me) are in neither list.
@@ -108,7 +108,9 @@ export function checkGerman(reply: string): GermanVerdict {
 export function checkEnglish(reply: string): GermanVerdict {
   const total = languageScore(reply);
   const german = total.de + total.umlauts;
+  const wordTotal = words(ownVoice(reply)).length;
   if (total.en === 0) return { ok: false, reason: 'no English evidence' };
+  if (total.en < 2 && wordTotal > 3) return { ok: false, reason: `only ${total.en} English marker(s) in ${wordTotal} words` };
   if (german >= total.en) return { ok: false, reason: `German evidence (${german}) matches or beats English function words (${total.en})` };
   for (const s of pieces(reply)) {
     const score = languageScore(s);

@@ -1,5 +1,5 @@
 /**
- * Site: chat UX pass (src/app/api/chat/route.ts, the shipped POST handler, with its real tools), 40 turns.
+ * Site: chat UX pass (src/app/api/chat/route.ts, the shipped POST handler, with its real tools), 44 turns.
  * Cases and what each checks: fixtures/cases.ts. The header of run.ts has the commands.
  *
  * Built on the 2026-10-22 chat site (haiku-55-swap/sites/chat.ts): it reuses that site's setup (local D1 built
@@ -31,6 +31,14 @@ import { OPEN_APPLICATION_ID, TAILORED_CV, TIME_ZONE, WRITE_TOOLS } from '../../
 import type { Site } from '../../haiku-55-swap/lib/runner';
 import { REPO_ROOT } from '../../haiku-55-swap/lib/core';
 import { checkEnglish, checkGerman, checkGermanSummary, countSentences, DASH_RE } from '../lib/checks';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+
+/**
+ * The chat prompt this run graded, by content: the result file's gitSha says nothing about uncommitted edits, so each
+ * outcome carries a hash of the prompt file it ran against.
+ */
+const PROMPT_HASH = createHash('sha256').update(readFileSync(join(process.cwd(), 'src/lib/agents/prompts/chat-prompt.ts'))).digest('hex').slice(0, 12);
 import { CASES, EXPECTED, KNOWN_TOOLS, OFFER_SCREENING_TOOL, SCREENING_CHIP, type UxCase } from '../fixtures/cases';
 
 const RESULTS_ROOT_UX = join(REPO_ROOT, 'evals', 'results', '2026-10-23-chat-ux');
@@ -227,6 +235,12 @@ function selfTestChecks(): string[] {
   for (const bad of ['You have 40 credits left.', 'Done.', 'Zapwerk is now rejected, the status was updated.', 'Das ist klar. But the rest of this reply is in English, which should fail the check.', 'The die is cast and the plan is set for you.']) {
     must(!checkGerman(bad).ok, `checkGerman accepts non-German: "${bad}"`);
   }
+  for (const ok of ['You have 40 credits left.', 'Nothing yet.', "Sure, I'll answer in English from now on.", 'Your CV is ready. The cover letter "Sehr geehrte Damen und Herren" is still a draft.']) {
+    must(checkEnglish(ok).ok, `checkEnglish rejects English: "${ok}"`);
+  }
+  for (const bad of ['Du hast noch 40 Credits.', 'Follow-up-Mail erstellt.', 'Your CV is ready. Das Anschreiben fehlt noch und die E-Mails auch.', 'Gern, ich antworte ab jetzt auf Englisch.']) {
+    must(!checkEnglish(bad).ok, `checkEnglish accepts non-English: "${bad}"`);
+  }
   // Length: abbreviations are not sentences, list items are.
   must(countSentences('Use plain headings, e.g. Experience and Skills. Keep it to one page.') === 2, 'countSentences splits at "e.g."');
   must(countSentences('- one\n- two\n- three\n- four') === 4, 'countSentences does not count list items without a full stop');
@@ -240,11 +254,11 @@ function selfTestChecks(): string[] {
 
 export const chatUxSite: Site<UxCase> = {
   id: 'chat_ux',
-  title: 'Chat UX pass, 40 turns in 11 conversations through the real route and tools',
+  title: 'Chat UX pass, 44 turns in 12 conversations through the real route and tools',
   command: 'npx tsx evals/chat-ux/run.ts chat-ux --allow-anthropic-api',
   runsDefault: 3,
   passRule:
-    'German replies stay German, replies stay within 3 sentences, offer_screening_answers is called with a start-screening-flow chip exactly when the form questions come up, no document count or score the model was not given, and the compaction summary keeps its copied ad lines in German.',
+    'German replies stay German, a reply follows the language of the latest message after a switch (a message with no own words keeps the language the user types in, a request for a language holds), replies stay within 3 sentences, offer_screening_answers is called with a start-screening-flow chip exactly when the form questions come up, no document count or score the model was not given, and the compaction summary keeps its copied ad lines in German.',
   absoluteHard: ['unrequested_write'],
   resultsRoot: RESULTS_ROOT_UX,
   cases: () => CASES,
@@ -287,8 +301,12 @@ export const chatUxSite: Site<UxCase> = {
       if (c.category === 'screening_neg' && (!c.expect.forbidden?.includes(OFFER_SCREENING_TOOL) || !c.expect.forbiddenChips?.includes(SCREENING_CHIP))) problems.push(`${c.id}: a negative screening case must forbid ${OFFER_SCREENING_TOOL} and the chip`);
       if (c.category === 'claims' && !(c.expect.reply?.mustNotMatch?.length || c.expect.reply?.mustNotClaim?.length)) problems.push(`${c.id}: a claims case needs mustNotMatch or mustNotClaim patterns`);
       if (c.category === 'length' && c.expect.reply?.maxSentences !== 3) problems.push(`${c.id}: a length case caps at 3 sentences`);
-      if (c.lang === 'de' && !checkGerman(c.message).ok) problems.push(`${c.id}: marked German but the message does not read as German`);
-      if (c.lang === 'en' && checkGerman(c.message).ok) problems.push(`${c.id}: marked English but the message reads as German`);
+      // The message reads as the reply language, except one with no own words and one after a request for a language.
+      if (!c.noOwnWords && !c.languageRequested) {
+        if (c.lang === 'de' && !checkGerman(c.message).ok) problems.push(`${c.id}: marked German but the message does not read as German`);
+        if (c.lang === 'en' && checkGerman(c.message).ok) problems.push(`${c.id}: marked English but the message reads as German`);
+      }
+      if (c.category === 'switch' && !c.expect.reply?.german && !c.expect.reply?.english) problems.push(`${c.id}: a switch case must check the reply language`);
       if (!c.message.trim() || c.message.length > 30_000) problems.push(`${c.id}: message empty or over the route's 30000 characters`);
 
       // The perfect script grades as a pass.
@@ -378,6 +396,7 @@ export const chatUxSite: Site<UxCase> = {
     const reply = answer.reply ?? '';
     return {
       output: {
+        promptHash: PROMPT_HASH,
         status: res.status, category: c.category, lang: c.lang, reply: answer.reply, actions: answer.actions, executed: answer.executed, toolsCalled,
         rounds: scope.calls.length, sentences: countSentences(reply), german: c.lang === 'de' ? checkGerman(reply) : null, summary, inputTotals: scope.calls.map((k) => k.inputTotal),
       },
