@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import BrandLogo from '@/components/marketing/BrandLogo';
+import BrandLogo from '@/components/BrandLogo';
 import TrustpilotLogo from '@/components/marketing/TrustpilotLogo';
 import { getComparisons } from '@/lib/comparisons';
 import { getAllPosts } from '@/lib/blog';

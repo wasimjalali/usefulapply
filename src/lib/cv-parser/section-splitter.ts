@@ -18,9 +18,6 @@ export const CV_HEADER_LANGUAGES: readonly CvHeaderLanguage[] = ['en', 'de', 'fr
  * Every section heading the parser recognises, grouped by the language it
  * belongs to.
  *
- * This list used to be inlined twice, verbatim, inside splitIntoSections and
- * extractOriginalHeaders. It is one constant now so the two cannot drift.
- *
  * The grouping by language is what headingOptions() reads: a rename offered on
  * a German CV has to be a German heading. The parser itself only ever uses the
  * flattened set below, and the header regex is anchored at both ends, so the
@@ -167,49 +164,6 @@ export type RenameableSectionKey = (typeof RENAMEABLE_SECTION_KEYS)[number];
 
 export function isRenameableSectionKey(value: unknown): value is RenameableSectionKey {
   return typeof value === 'string' && (RENAMEABLE_SECTION_KEYS as readonly string[]).includes(value);
-}
-
-/**
- * Split the CV text into named sections
- */
-export function splitIntoSections(text: string): Map<string, string> {
-  const sections = new Map<string, string>();
-
-  const headerPattern = sectionHeaderPattern();
-
-  // Find all section boundaries
-  const matches: { header: string; start: number; headerEnd: number }[] = [];
-  let match;
-  
-  while ((match = headerPattern.exec(text)) !== null) {
-    matches.push({
-      header: match[1].toUpperCase().trim(),
-      start: match.index,
-      headerEnd: match.index + match[0].length,
-    });
-  }
-  
-  // Extract content between headers
-  for (let i = 0; i < matches.length; i++) {
-    const current = matches[i];
-    const next = matches[i + 1];
-    
-    const contentStart = current.headerEnd;
-    const contentEnd = next ? next.start : text.length;
-    const content = text.slice(contentStart, contentEnd).trim();
-    
-    // Normalize header names
-    const normalizedHeader = normalizeHeader(current.header);
-    
-    // If we already have this section, append to it (for duplicates)
-    if (sections.has(normalizedHeader)) {
-      sections.set(normalizedHeader, sections.get(normalizedHeader) + '\n\n' + content);
-    } else {
-      sections.set(normalizedHeader, content);
-    }
-  }
-  
-  return sections;
 }
 
 // Map all variations to standard normalized names.

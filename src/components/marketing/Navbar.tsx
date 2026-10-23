@@ -4,7 +4,7 @@ import { useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X, ArrowUpRight } from 'lucide-react';
-import BrandLogo from '@/components/marketing/BrandLogo';
+import BrandLogo from '@/components/BrandLogo';
 import { hasStoredAuthHint, useAuth } from '@/contexts/AuthContext';
 
 // Only pages and anchors that exist. Contact and the legal pages stay in

@@ -16,7 +16,7 @@ paths:
 ## Credit Deduction
 
 - Use optimistic concurrency for `deductCredits()`: check balance, deduct, verify
-- Credit costs are defined in `src/lib/credit-costs.ts` (re-exported by `src/lib/supabase/credits.ts`), the single source of truth; deductions live in `src/db/repos/credits.ts`
+- Credit costs are defined in `src/lib/credit-costs.ts`, the single source of truth; deductions live in `src/db/repos/credits.ts`
 - Never modify credit amounts without explicit human confirmation
 
 ## Stripe Webhooks

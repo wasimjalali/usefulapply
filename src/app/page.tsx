@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { ArrowDown, Check } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
-import { BrandIcon } from '@/components/marketing/BrandLogo';
+import { BrandIcon } from '@/components/BrandLogo';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { JobBoardMark, JOB_BOARD_NAMES } from '@/components/marketing/JobBoardMarks';
 import { PricingAurora } from '@/components/marketing/PricingAurora';

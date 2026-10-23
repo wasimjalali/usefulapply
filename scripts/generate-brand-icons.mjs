@@ -15,7 +15,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const APP_DIR = path.join(ROOT, 'src', 'app');
 
-// The Page-U drawing, identical to BrandLogo.tsx / marketing/BrandLogo.tsx.
+// The Page-U drawing, identical to src/components/BrandLogo.tsx.
 // Sheet: x 7-25, y 3-28 in the 32x32 reference grid.
 const PAGE_PATH = 'M7 3 h12 l6 6 v10 c0 5 -4 9 -9 9 s-9 -4 -9 -9 Z';
 const FOLD_PATH = 'M19 3 l6 6 h-6 Z';

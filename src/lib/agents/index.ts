@@ -15,40 +15,4 @@
 export * from './types';
 
 // Export the unified agent
-export { 
-  unifiedWriterAgent,
-  runJobCopilot,
-  type OrchestrationResult,
-  type UnifiedAgentInput,
-  COVER_LETTER_BLACKLIST,
-  runFitAnalysis,
-  runWithContext,
-} from './unified-writer-agent';
-
-// Convenience function to run the full optimization workflow
-export async function optimizeCV(
-  jobDescription: string,
-  primaryCV: string,
-  masterCV?: string,
-  options?: {
-    onEvent?: import('./types').AgentEventHandler;
-  }
-): Promise<import('./unified-writer-agent').OrchestrationResult | null> {
-  const { runJobCopilot } = await import('./unified-writer-agent');
-  
-  const emit = options?.onEvent || (() => {});
-  
-  const result = await runJobCopilot({
-    sessionId: `session-${Date.now()}`,
-    jobDescription,
-    primaryCV,
-    masterCV,
-  }, emit);
-  
-  if (result.success && result.data) {
-    return result.data;
-  }
-  
-  console.error('CV optimization failed:', result.error);
-  return null;
-}
+export { runJobCopilot, runFitAnalysis, runWithContext } from './unified-writer-agent';
