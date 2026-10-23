@@ -116,15 +116,16 @@ export class ReplyStream {
  * The streamed response. `run` gets the event sink and the signal that fires when the client goes away (the Stop
  * button, a closed tab); it returns the `done` body, or null when the client left and nothing more is sent. A throw
  * becomes the `error` event `fail` builds.
+ *
+ * The client going away is read off this stream only: its cancel, or a write that fails. The request's own signal is
+ * no use here, since Next marks the request finished once the handler has returned this Response.
  */
 export function chatEventStream(
   run: (send: (event: ChatStreamEvent) => void, signal: AbortSignal) => Promise<Record<string, unknown> | null>,
   fail: (error: unknown) => Promise<{ status: number; body: Record<string, unknown> }>,
-  requestSignal: AbortSignal | undefined,
 ): Response {
   const encoder = new TextEncoder();
   const clientGone = new AbortController();
-  requestSignal?.addEventListener('abort', () => clientGone.abort(), { once: true });
   let closed = false;
 
   const body = new ReadableStream<Uint8Array>({

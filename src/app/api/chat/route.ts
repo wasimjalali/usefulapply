@@ -389,9 +389,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(body);
     }
     return chatEventStream(
-      (send, signal) => runChatTurn(turn, failure, { send, signal }, req.signal),
+      (send, signal) => runChatTurn(turn, failure, { send, signal }, undefined),
       (error) => chatFailure(error, failure),
-      req.signal,
     );
   } catch (error) {
     const { status, body } = await chatFailure(error, failure);
@@ -779,8 +778,8 @@ async function runChatTurn(
   });
 
   // A client that stopped waiting (the Stop button, a closed tab) never shows this reply, so it is not stored either.
-  // For a streamed turn that is the stream's cancel; for a JSON one, where the runtime reports the disconnect. The
-  // user's own message is stored either way.
+  // For a streamed turn that is the stream's cancel (`requestSignal` is unset there: reply-stream.ts says why); for a
+  // JSON one, the request's signal where the runtime reports the disconnect. The user's own message is stored either way.
   if (clientGone()) return null;
   // The reply goes into the history now, under the id the client will show it with, so a quick next turn has it
   // even before the client's sync runs. The sync then writes the client's copy over it (a reply can gain a note).

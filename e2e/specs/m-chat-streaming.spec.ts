@@ -58,6 +58,8 @@ async function streamTurn(
       'content-type': 'application/json',
       ...(accept ? { accept } : {}),
       cookie,
+      // Better Auth refuses a cookie-carrying request without the app's origin.
+      origin: BASE_URL,
       'cf-connecting-ip': ip,
       'x-forwarded-for': ip,
     },
