@@ -261,7 +261,12 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const exportLetter = async (format: 'pdf' | 'docx') => {
     const letterToDownload = editedCoverLetter || coverLetter;
     const applicationId = currentSession?.id;
-    if (!letterToDownload || !isSavedApplicationId(applicationId) || exportBusyRef.current) return;
+    if (!letterToDownload || !isSavedApplicationId(applicationId)) return;
+    // Only a toast's Try again gets here while a download runs (the button is disabled): say so instead of doing nothing.
+    if (exportBusyRef.current) {
+      toast.info('Another download is still running. Try again when it finishes.');
+      return;
+    }
     exportBusyRef.current = true;
     const showAddressReminder = hasAddressPlaceholder();
     setShowDownloadMenu(false);

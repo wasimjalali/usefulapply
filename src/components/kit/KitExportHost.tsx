@@ -13,7 +13,7 @@ import { downloadBlob } from '@/lib/utils/download-pdf';
 import { buildTextBlob, formatEmailAsText, kitFilename } from '@/lib/utils/kit-export';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { formatCoverLetterAsText } from '@/lib/utils/cover-letter-export';
-import { exportFailure, isSavedApplicationId, serverExport, trackExportFailure, type ServerExportFormat } from '@/lib/utils/server-export';
+import { exportFailure, isSavedApplicationId, serverExport, ServerExportError, trackExportFailure, type ServerExportFormat } from '@/lib/utils/server-export';
 
 /**
  * Always mounted in the shell. Runs "Download all" for whichever control asked
@@ -76,8 +76,8 @@ export function KitExportHost() {
       const files: Array<{ blob: Blob; name: string }> = [];
       const failed: string[] = [];
       let delivered = 0;
-      // The first export error, so the message can say whether trying again can help.
-      let firstError: unknown = null;
+      // Every export error, so the message can say whether trying again can help.
+      const errors: unknown[] = [];
 
       const fromServer = async (
         format: ServerExportFormat,
@@ -88,7 +88,7 @@ export function KitExportHost() {
           return { blob, name: fileName };
         } catch (err) {
           trackExportFailure(format, err);
-          firstError ??= err;
+          errors.push(err);
           throw err;
         }
       };
@@ -160,13 +160,19 @@ export function KitExportHost() {
           ? " The CV wasn't tailored, so it was left out. Download your base CV from the CV tab."
           : '';
         if (delivered === 0) {
-          const failure = firstError === null ? null : exportFailure(firstError, 'kit');
-          if (failure && !failure.retryable) {
-            toast.error(`Nothing downloaded. ${failure.message}`, 8000);
+          const hasStatus = (status: number) => errors.some((err) => err instanceof ServerExportError && err.status === status);
+          const canRetry = errors.some((err) => exportFailure(err, 'file').retryable);
+          const retry = [{ label: 'Try again', onClick: requestKitDownload }];
+          if (hasStatus(401)) {
+            toast.error('Nothing downloaded. Your session expired. Sign in again to download.', 8000);
+          } else if (hasStatus(429)) {
+            toast.error('Nothing downloaded. Too many downloads at once. Try again in a minute.', 10000, retry);
+          } else if (canRetry) {
+            toast.error(`Nothing downloaded. The ${joinList(failed)} didn't build.${untailoredCvNote}`, 10000, retry);
+          } else if (errors.length > 0) {
+            toast.error(`Nothing downloaded. The ${joinList(failed)} couldn't be exported.${untailoredCvNote}`, 8000);
           } else if (failed.length > 0) {
-            toast.error(`Nothing downloaded. The ${joinList(failed)} didn't build.${untailoredCvNote}`, 10000, failure
-              ? [{ label: 'Try again', onClick: requestKitDownload }]
-              : undefined);
+            toast.error(`Nothing downloaded. The ${joinList(failed)} didn't build.${untailoredCvNote}`, 8000);
           } else {
             toast.error(`Nothing to download yet.${untailoredCvNote}`, 8000);
           }
@@ -203,10 +209,15 @@ function joinList(items: string[]): string {
   return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
 }
 
-/** "Download it from its tab." for one singular part, "them" for a plural part or several. */
+/** The tab each kit part lives on: both cover letter files share one. */
+function tabOf(part: string): string {
+  return part.startsWith('cover letter') ? 'cover letter' : part;
+}
+
+/** "Download it from its tab." for one singular part, "them" for a plural part or several, "tabs" for several tabs. */
 function fromTabsSentence(failed: string[]): string {
-  if (failed.length > 1) return 'Download them from their tabs.';
-  return PLURAL_PARTS.has(failed[0]) ? 'Download them from their tab.' : 'Download it from its tab.';
+  if (new Set(failed.map(tabOf)).size > 1) return 'Download them from their tabs.';
+  return failed.length > 1 || PLURAL_PARTS.has(failed[0]) ? 'Download them from their tab.' : 'Download it from its tab.';
 }
 
 function fileCount(count: number): string {
