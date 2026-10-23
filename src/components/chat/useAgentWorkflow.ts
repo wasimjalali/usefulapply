@@ -752,10 +752,13 @@ export function useAgentWorkflow(options?: {
         }, typeof replyMessageId === 'string' ? replyMessageId : undefined, startedIn);
         // A real ad the model read as a question would otherwise be a dead
         // end: no card, no run, no way back. The client offers a manual way
-        // in when the text looked like an ad and no proposal came back.
+        // in when the text looked like an ad and no proposal came back. A reply
+        // that raised its own button (a rewrite, a delete) understood the
+        // message, and the way-in card would hide that button.
         const proposed = Array.isArray(executed)
           && (executed as ExecutedEffect[]).some((effect) => effect.type === 'propose_application');
-        if (!proposed) offerManualWayIn(message, startedIn, opts);
+        const raisedAction = !effectRefusal && Array.isArray(actions) && actions.length > 0;
+        if (!proposed && !raisedAction) offerManualWayIn(message, startedIn, opts);
       };
 
       const handleFailure = (errorData: Record<string, unknown> | null) => {

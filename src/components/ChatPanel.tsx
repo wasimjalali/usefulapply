@@ -1768,23 +1768,31 @@ export function ChatPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newApplicationRequest]);
 
-  // One chip group at a time, under the newest reply only (verify/chat-ux-pass/RULE-PROPOSAL.md). A card the panel
-  // draws itself (a job ad's choices, the fit result, a rewrite or credits prompt, the account wall, the start date
-  // questions) wins over the chips a message carries, and sending anything clears every chip above it.
-  const fitChipsShown = !isAgentWorking
+  // One chip group at a time, under the newest reply only (verify/chat-ux-pass/RULE-PROPOSAL.md). Sending anything
+  // clears every chip above it. Cards this turn raised (a job ad's choices, "that was a job ad", a rewrite's cost, the
+  // start date questions) win over the chips a message carries. Cards that outlive a turn (the fit result, credits
+  // short, the account wall) give way to chips the newest reply carries, so a confirm button the model just raised is
+  // never hidden behind an older next step, and come back once that reply is no longer the newest.
+  const turnCardShown = Boolean(chatLogistics) || (spine && !isAgentWorking && Boolean(
+    pendingDecisionJd
+    || adFallbackJd
+    || (pendingRegen && !runningRegen),
+  ));
+  const newestMessage = messages.at(-1);
+  const newestCarriesChips = Boolean(newestMessage?.actions?.some((action) => action.action !== 'none' && action.action !== 'stage-done'));
+  const messageChipsShownFor = !isAgentWorking && !isTyping && !streamActive && !turnCardShown && newestCarriesChips
+    ? newestMessage?.id
+    : undefined;
+  const lastingCardsShown = !messageChipsShownFor;
+  const shortCreditsShown = spine && lastingCardsShown && Boolean(shortCredits) && !pendingDecisionJd && !isAgentWorking;
+  // Credits short is the newer word on a fit that can't be paid for, so it replaces the fit's own chips.
+  const fitChipsShown = lastingCardsShown
+    && !isAgentWorking
     && !chatLogistics
     && !sessionHasKit(currentSession)
     && !pendingDecisionJd
+    && !shortCreditsShown
     && Boolean(fitAnalysisContextId || hasFreshPendingFitAnalysis);
-  const panelChipsShown = Boolean(chatLogistics) || fitChipsShown || (spine && !isAgentWorking && Boolean(
-    pendingDecisionJd
-    || adFallbackJd
-    || (needsAccount && !user)
-    || shortCredits
-    || (pendingRegen && !runningRegen),
-  ));
-  const newestMessageId = messages.at(-1)?.id;
-  const messageChipsShownFor = !isAgentWorking && !isTyping && !streamActive && !panelChipsShown ? newestMessageId : undefined;
   // Panel controls. "New Application" is the most-repeated action in the
   // product (job seekers apply 10-30 times), so it carries a label rather than
   // sitting as a bare icon in the global nav where it read as account chrome.
@@ -2364,7 +2372,7 @@ export function ChatPanel({
             />
           )}
 
-          {spine && needsAccount && !user && !isAgentWorking && (
+          {spine && lastingCardsShown && needsAccount && !user && !isAgentWorking && (
             <DecisionChips
               chips={[
                 {
@@ -2383,7 +2391,7 @@ export function ChatPanel({
             />
           )}
 
-          {spine && shortCredits && !pendingDecisionJd && !isAgentWorking && (
+          {shortCreditsShown && shortCredits && (
             <DecisionChips
               chips={[
                 ...(shortCredits.available >= CREDIT_COSTS.FIT_ANALYSIS && !currentSession?.pendingFitAnalysis
