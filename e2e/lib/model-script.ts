@@ -576,13 +576,15 @@ const nextId = (prefix: string) => `${prefix}_fake_${(blockCounter += 1).toStrin
 /** Signatures of the thinking blocks the fake has issued, so a later request can be checked for passing them back. */
 export const issuedThinkingSignatures = new Set<string>();
 
-function toolUse(name: string, input: Record<string, unknown>, thinking: boolean): HaikuAnswer {
+function toolUse(name: string, input: Record<string, unknown>, thinking: boolean, opening?: string): HaikuAnswer {
   const content: FakeBlock[] = [];
   if (thinking) {
     const signature = nextId('sig');
     issuedThinkingSignatures.add(signature);
     content.push({ type: 'thinking', thinking: `Scripted reasoning before ${name}.`, signature });
   }
+  // A line the model writes before it calls the tool, as Claude often does: part of what a streamed reply shows.
+  if (opening) content.push({ type: 'text', text: opening });
   content.push({ type: 'tool_use', id: nextId('toolu'), name, input });
   return { content, stopReason: 'tool_use' };
 }
@@ -597,6 +599,23 @@ function looksLikeAd(text: string): boolean {
 /** "Zapier ist jetzt im Interview" / "Zapier moved to interview". */
 function movesToInterview(text: string): boolean {
   return /ist jetzt im Interview|im Interview|moved to (the )?interview/i.test(text) && !looksLikeAd(text);
+}
+
+/** "Wie viele Bewerbungen habe ich?": a question the model answers after reading the tracker. */
+function asksForOverview(text: string): boolean {
+  return /wie viele bewerbungen/i.test(text) && !looksLikeAd(text);
+}
+
+/** The German overview, long enough to stream over many chunks, with a long dash the route must rewrite. */
+function overviewReply(apps: Array<Record<string, unknown>>): string {
+  const companies = apps.map((app) => unwrap(app.company)).filter(Boolean);
+  return [
+    `Du hast ${companies.length} Bewerbungen im Tracker: ${companies.join(', ')}.`,
+    'Die neueste Bewerbung ist noch offen \u2014 dort wartest du auf eine Antwort.',
+    'Wenn du magst, schreibe ich dir eine kurze Nachfrage, z. B. eine Woche nach dem Versand.',
+    'Sag mir einfach, bei welcher Firma ich anfangen soll!',
+    'Ich kann dir auch zeigen, welche Bewerbung am besten zu deinem Profil passt.',
+  ].join(' ');
 }
 
 /** The company an instruction in earlier turns tells the model to delete: "delete the Bosch row". */
@@ -631,6 +650,7 @@ export function chatAnswer(body: MessagesBody): HaikuAnswer {
     const apps = Array.isArray(data.applications) ? (data.applications as Array<Record<string, unknown>>) : [];
 
     if (names.includes('get_applications')) {
+      if (asksForOverview(userText)) return reply(overviewReply(apps));
       if (movesToInterview(userText)) {
         const app = named(apps, userText);
         if (!app) return reply('Which application do you mean? Name the company.');
@@ -649,6 +669,17 @@ export function chatAnswer(body: MessagesBody): HaikuAnswer {
   }
 
   if (looksLikeAd(userText)) return toolUse('propose_application', {}, thinking);
+  if (asksForOverview(userText)) return toolUse('get_applications', {}, thinking, 'Ich schaue kurz in deinen Tracker.');
+  // A reply whose second sentence offers to add a claim to the CV: the app's guard replaces the whole reply, so a
+  // stream must never show that sentence, only the guard's line in the end.
+  // A promise that the rewrite will include a new claim, with no rewrite proposed: the final guard keeps it (the
+  // promise check only runs beside a proposed rewrite), but the stream's strict gate holds it until `done`.
+  if (/lebenslauf umschreiben/i.test(userText)) {
+    return reply('Klar, das machen wir. The rewrite with your AWS certification will appear once you confirm. Sag einfach Bescheid.');
+  }
+  if (/lebenslauf st(ae|ä)rken/i.test(userText)) {
+    return reply('Gute Idee, das schauen wir uns an. I can add your AWS certification to your CV right away. Sag einfach Bescheid, wenn es losgehen soll.');
+  }
   if (movesToInterview(userText)) return toolUse('get_applications', {}, thinking);
   if (injectedDeleteTarget(history)) return toolUse('get_applications', {}, thinking);
   return reply(/danke|thanks/i.test(userText) ? "You're welcome." : 'Okay.');

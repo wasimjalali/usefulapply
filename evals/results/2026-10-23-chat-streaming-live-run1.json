@@ -1,0 +1,228 @@
+{
+  "ranAt": "2026-10-23T12:09:11.023Z",
+  "baseUrl": "http://localhost:8850",
+  "turns": [
+    {
+      "message": "Wie viele Bewerbungen habe ich gerade, und bei welcher bin ich am weitesten?",
+      "messageId": "msg-live-stream-1-1792757340104",
+      "status": 200,
+      "headersAtMs": 1902,
+      "firstDeltaAtMs": 2934,
+      "statusEvents": [
+        {
+          "text": "Checking your applications",
+          "atMs": 1903
+        }
+      ],
+      "deltaCount": 3,
+      "lastDeltaAtMs": 3257,
+      "endAtMs": 3260,
+      "final": "done",
+      "reply": "Du hast gerade keine Bewerbungen in deinem Tracker. Sobald du eine Stellenanzeige einfügst und ein Kit erstellst, taucht sie hier auf. Soll ich dir zeigen, wo du die Anzeige einfügen kannst?",
+      "replyMessageId": "msg-75eff670-641f-47bb-bdba-236dfc4a9e5a",
+      "deltasEqualReply": true,
+      "events": [
+        {
+          "type": "status",
+          "text": "Checking your applications",
+          "atMs": 1903
+        },
+        {
+          "type": "delta",
+          "text": "Du hast gerade keine Bewerbungen in deinem Tracker.",
+          "atMs": 2934
+        },
+        {
+          "type": "delta",
+          "text": " Sobald du eine Stellenanzeige einfügst und ein Kit erstellst, taucht sie hier auf.",
+          "atMs": 3117
+        },
+        {
+          "type": "delta",
+          "text": " Soll ich dir zeigen, wo du die Anzeige einfügen kannst?",
+          "atMs": 3257
+        },
+        {
+          "type": "done",
+          "success": true,
+          "reply": "Du hast gerade keine Bewerbungen in deinem Tracker. Sobald du eine Stellenanzeige einfügst und ein Kit erstellst, taucht sie hier auf. Soll ich dir zeigen, wo du die Anzeige einfügen kannst?",
+          "actions": [],
+          "executed": [],
+          "replyMessageId": "msg-75eff670-641f-47bb-bdba-236dfc4a9e5a",
+          "compactedThroughMessageId": null,
+          "atMs": 3260
+        }
+      ],
+      "storedReplyMatches": true
+    },
+    {
+      "message": "Wie formuliere ich eine freundliche Nachfrage bei Bosch, wenn ich seit neun Tagen nichts gehoert habe? Gib mir drei kurze Tipps.",
+      "messageId": "msg-live-stream-2-1792757343364",
+      "status": 200,
+      "headersAtMs": 2357,
+      "firstDeltaAtMs": 4742,
+      "statusEvents": [
+        {
+          "text": "Checking your applications",
+          "atMs": 2357
+        }
+      ],
+      "deltaCount": 7,
+      "lastDeltaAtMs": 6394,
+      "endAtMs": 6399,
+      "final": "done",
+      "reply": "Ich habe gerade im Tracker nachgesehen: Bosch taucht dort nicht auf, deshalb kann ich dir zur Bewerbung selbst nichts sagen. Hier sind drei Tipps für die Nachfrage:\n\n1. **Kurz und konkret:** Nenne die Stelle, dein Bewerbungsdatum und eine Bitte, etwa „Ich wollte kurz nachfragen, ob es schon Neuigkeiten zu meiner Bewerbung als [Rolle] gibt.“\n2. **Neutral und ohne Vorwurf:** Schreibe nicht „Ich habe seit neun Tagen nichts gehört“, sondern zeige Interesse: „Ich bin nach wie vor sehr interessiert an der Position.“\n3. **Eine Frage, ein Satz Dank:** Bedanke dich kurz für die Zeit und frage nach dem Stand oder dem voraussichtlichen Zeitplan, mehr nicht.\n\nSoll ich dir eine fertige Nachricht formulieren? Dafür bräuchte ich nur den Namen der Stelle und das Datum deiner Bewerbung.",
+      "replyMessageId": "msg-afb9cc29-87c6-415a-b45f-b3275c64871c",
+      "deltasEqualReply": true,
+      "events": [
+        {
+          "type": "status",
+          "text": "Checking your applications",
+          "atMs": 2357
+        },
+        {
+          "type": "delta",
+          "text": "Ich habe gerade im Tracker nachgesehen: Bosch taucht dort nicht auf, deshalb kann ich dir zur Bewerbung selbst nichts sagen.",
+          "atMs": 4742
+        },
+        {
+          "type": "delta",
+          "text": " Hier sind drei Tipps für die Nachfrage:\n\n1.",
+          "atMs": 4846
+        },
+        {
+          "type": "delta",
+          "text": " **Kurz und konkret:** Nenne die Stelle, dein Bewerbungsdatum und eine Bitte, etwa „Ich wollte kurz nachfragen, ob es schon Neuigkeiten zu meiner Bewerbung als [Rolle] gibt.“\n2.",
+          "atMs": 5416
+        },
+        {
+          "type": "delta",
+          "text": " **Neutral und ohne Vorwurf:** Schreibe nicht „Ich habe seit neun Tagen nichts gehört“, sondern zeige Interesse: „Ich bin nach wie vor sehr interessiert an der Position.“\n3.",
+          "atMs": 5763
+        },
+        {
+          "type": "delta",
+          "text": " **Eine Frage, ein Satz Dank:** Bedanke dich kurz für die Zeit und frage nach dem Stand oder dem voraussichtlichen Zeitplan, mehr nicht.",
+          "atMs": 6135
+        },
+        {
+          "type": "delta",
+          "text": "\n\nSoll ich dir eine fertige Nachricht formulieren?",
+          "atMs": 6232
+        },
+        {
+          "type": "delta",
+          "text": " Dafür bräuchte ich nur den Namen der Stelle und das Datum deiner Bewerbung.",
+          "atMs": 6394
+        },
+        {
+          "type": "done",
+          "success": true,
+          "reply": "Ich habe gerade im Tracker nachgesehen: Bosch taucht dort nicht auf, deshalb kann ich dir zur Bewerbung selbst nichts sagen. Hier sind drei Tipps für die Nachfrage:\n\n1. **Kurz und konkret:** Nenne die Stelle, dein Bewerbungsdatum und eine Bitte, etwa „Ich wollte kurz nachfragen, ob es schon Neuigkeiten zu meiner Bewerbung als [Rolle] gibt.“\n2. **Neutral und ohne Vorwurf:** Schreibe nicht „Ich habe seit neun Tagen nichts gehört“, sondern zeige Interesse: „Ich bin nach wie vor sehr interessiert an der Position.“\n3. **Eine Frage, ein Satz Dank:** Bedanke dich kurz für die Zeit und frage nach dem Stand oder dem voraussichtlichen Zeitplan, mehr nicht.\n\nSoll ich dir eine fertige Nachricht formulieren? Dafür bräuchte ich nur den Namen der Stelle und das Datum deiner Bewerbung.",
+          "actions": [],
+          "executed": [],
+          "replyMessageId": "msg-afb9cc29-87c6-415a-b45f-b3275c64871c",
+          "compactedThroughMessageId": null,
+          "atMs": 6399
+        }
+      ],
+      "storedReplyMatches": true
+    }
+  ],
+  "legacyJsonTurn": {
+    "status": 200,
+    "keys": [
+      "actions",
+      "compactedThroughMessageId",
+      "executed",
+      "reply",
+      "replyMessageId",
+      "success"
+    ],
+    "reply": "Gern geschehen! Wenn du mir Stellenname und Bewerbungsdatum für Bosch nennst, formuliere ich dir die Nachricht fertig aus.",
+    "stored": true
+  },
+  "ledger": [
+    {
+      "operation": "general_chat",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "status": "response_received",
+      "error_kind": null,
+      "usage_reported": 1,
+      "input_tokens": 58,
+      "output_tokens": 27,
+      "cache_read_input_tokens": 0,
+      "cache_write_input_tokens": 9745,
+      "latency_ms": 1515,
+      "request_execution_id": "29273307-5bd4-476c-8785-2d570e5c0fc9",
+      "iterations": null,
+      "costUsd": 0.0019602
+    },
+    {
+      "operation": "tool_call:get_applications",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "status": "response_received",
+      "error_kind": null,
+      "usage_reported": 1,
+      "input_tokens": 2,
+      "output_tokens": 96,
+      "cache_read_input_tokens": 9745,
+      "cache_write_input_tokens": 101,
+      "latency_ms": 1348,
+      "request_execution_id": "29273307-5bd4-476c-8785-2d570e5c0fc9",
+      "iterations": null,
+      "costUsd": 0.000158275
+    },
+    {
+      "operation": "general_chat",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "status": "response_received",
+      "error_kind": null,
+      "usage_reported": 1,
+      "input_tokens": 58,
+      "output_tokens": 288,
+      "cache_read_input_tokens": 9745,
+      "cache_write_input_tokens": 164,
+      "latency_ms": 2333,
+      "request_execution_id": "1ecd0fab-6b44-44ab-a957-94493e54826d",
+      "iterations": null,
+      "costUsd": 0.00026775
+    },
+    {
+      "operation": "tool_call:get_applications",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "status": "response_received",
+      "error_kind": null,
+      "usage_reported": 1,
+      "input_tokens": 2,
+      "output_tokens": 527,
+      "cache_read_input_tokens": 9909,
+      "cache_write_input_tokens": 362,
+      "latency_ms": 4032,
+      "request_execution_id": "1ecd0fab-6b44-44ab-a957-94493e54826d",
+      "iterations": null,
+      "costUsd": 0.00040804000000000003
+    },
+    {
+      "operation": "general_chat",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "status": "response_received",
+      "error_kind": null,
+      "usage_reported": 1,
+      "input_tokens": 58,
+      "output_tokens": 62,
+      "cache_read_input_tokens": 9909,
+      "cache_write_input_tokens": 411,
+      "latency_ms": 1217,
+      "request_execution_id": "b7724d47-520a-496c-8090-9bcb9b5bb0ee",
+      "iterations": null,
+      "costUsd": 0.000187265
+    }
+  ],
+  "totalCostUsd": 0.0029815299999999996
+}

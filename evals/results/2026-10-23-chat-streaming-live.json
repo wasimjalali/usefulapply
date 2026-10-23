@@ -1,0 +1,228 @@
+{
+  "ranAt": "2026-10-23T12:43:56.681Z",
+  "baseUrl": "http://localhost:8850",
+  "turns": [
+    {
+      "message": "Wie viele Bewerbungen habe ich gerade, und bei welcher bin ich am weitesten?",
+      "messageId": "msg-live-stream-1-1792759426643",
+      "status": 200,
+      "headersAtMs": 1754,
+      "firstDeltaAtMs": 3261,
+      "statusEvents": [
+        {
+          "text": "Checking your applications",
+          "atMs": 1755
+        }
+      ],
+      "deltaCount": 3,
+      "lastDeltaAtMs": 3709,
+      "endAtMs": 3714,
+      "final": "done",
+      "reply": "Du hast 3 Bewerbungen. Am weitesten bist du bei **Zapier** (Finance Lead), dort steht der Status auf Interview. Bei **Bosch** (Systems Analyst) ist heute eine Nachfassmail fällig, und **Northwind Foods** (Controller) ist vorbereitet, aber noch nicht versendet.",
+      "replyMessageId": "msg-09f91ece-8e7f-4272-8290-6da3deda356d",
+      "deltasEqualReply": true,
+      "events": [
+        {
+          "type": "status",
+          "text": "Checking your applications",
+          "atMs": 1755
+        },
+        {
+          "type": "delta",
+          "text": "Du hast 3 Bewerbungen.",
+          "atMs": 3261
+        },
+        {
+          "type": "delta",
+          "text": " Am weitesten bist du bei **Zapier** (Finance Lead), dort steht der Status auf Interview.",
+          "atMs": 3446
+        },
+        {
+          "type": "delta",
+          "text": " Bei **Bosch** (Systems Analyst) ist heute eine Nachfassmail fällig, und **Northwind Foods** (Controller) ist vorbereitet, aber noch nicht versendet.",
+          "atMs": 3709
+        },
+        {
+          "type": "done",
+          "success": true,
+          "reply": "Du hast 3 Bewerbungen. Am weitesten bist du bei **Zapier** (Finance Lead), dort steht der Status auf Interview. Bei **Bosch** (Systems Analyst) ist heute eine Nachfassmail fällig, und **Northwind Foods** (Controller) ist vorbereitet, aber noch nicht versendet.",
+          "actions": [],
+          "executed": [],
+          "replyMessageId": "msg-09f91ece-8e7f-4272-8290-6da3deda356d",
+          "compactedThroughMessageId": null,
+          "atMs": 3713
+        }
+      ],
+      "storedReplyMatches": true
+    },
+    {
+      "message": "Wie formuliere ich eine freundliche Nachfrage bei Bosch, wenn ich seit neun Tagen nichts gehoert habe? Gib mir drei kurze Tipps.",
+      "messageId": "msg-live-stream-2-1792759430358",
+      "status": 200,
+      "headersAtMs": 2199,
+      "firstDeltaAtMs": 3869,
+      "statusEvents": [
+        {
+          "text": "Checking your applications",
+          "atMs": 2200
+        }
+      ],
+      "deltaCount": 7,
+      "lastDeltaAtMs": 5301,
+      "endAtMs": 5304,
+      "final": "done",
+      "reply": "Die Nachfassmail bei Bosch ist laut Tracker heute fällig, der Status steht noch auf „beworben“.\n\n1. **Kurz und konkret bleiben:** Nenne die Stelle (Systems Analyst) und dein Bewerbungsdatum, und frag in zwei Sätzen nach dem aktuellen Stand.\n2. **Freundlich, nicht fordernd:** Formulierungen wie „Ich wollte mich kurz erkundigen, ob es schon Neuigkeiten gibt“ wirken entspannt. Vermeide Vorwürfe wie „Ich habe noch nichts gehört“.\n3. **Interesse bestätigen:** Ein Satz wie „Die Position passt sehr gut zu meinem Profil, und ich würde mich über ein Feedback freuen“ zeigt Motivation, ohne Druck aufzubauen.\n\nSoll ich dir die Nachfassmail direkt über den Follow-Up-Button im Tracker erstellen lassen?",
+      "replyMessageId": "msg-907a5b67-9af0-4c63-8bff-6d89107cf00c",
+      "deltasEqualReply": true,
+      "events": [
+        {
+          "type": "status",
+          "text": "Checking your applications",
+          "atMs": 2200
+        },
+        {
+          "type": "delta",
+          "text": "Die Nachfassmail bei Bosch ist laut Tracker heute fällig, der Status steht noch auf „beworben“.\n\n1.",
+          "atMs": 3869
+        },
+        {
+          "type": "delta",
+          "text": " **Kurz und konkret bleiben:** Nenne die Stelle (Systems Analyst) und dein Bewerbungsdatum, und frag in zwei Sätzen nach dem aktuellen Stand.\n2.",
+          "atMs": 4222
+        },
+        {
+          "type": "delta",
+          "text": " **Freundlich, nicht fordernd:** Formulierungen wie „Ich wollte mich kurz erkundigen, ob es schon Neuigkeiten gibt“ wirken entspannt.",
+          "atMs": 4624
+        },
+        {
+          "type": "delta",
+          "text": " Vermeide Vorwürfe wie „Ich habe noch nichts gehört“.",
+          "atMs": 4728
+        },
+        {
+          "type": "delta",
+          "text": "\n3.",
+          "atMs": 4748
+        },
+        {
+          "type": "delta",
+          "text": " **Interesse bestätigen:** Ein Satz wie „Die Position passt sehr gut zu meinem Profil, und ich würde mich über ein Feedback freuen“ zeigt Motivation, ohne Druck aufzubauen.",
+          "atMs": 5159
+        },
+        {
+          "type": "delta",
+          "text": "\n\nSoll ich dir die Nachfassmail direkt über den Follow-Up-Button im Tracker erstellen lassen?",
+          "atMs": 5301
+        },
+        {
+          "type": "done",
+          "success": true,
+          "reply": "Die Nachfassmail bei Bosch ist laut Tracker heute fällig, der Status steht noch auf „beworben“.\n\n1. **Kurz und konkret bleiben:** Nenne die Stelle (Systems Analyst) und dein Bewerbungsdatum, und frag in zwei Sätzen nach dem aktuellen Stand.\n2. **Freundlich, nicht fordernd:** Formulierungen wie „Ich wollte mich kurz erkundigen, ob es schon Neuigkeiten gibt“ wirken entspannt. Vermeide Vorwürfe wie „Ich habe noch nichts gehört“.\n3. **Interesse bestätigen:** Ein Satz wie „Die Position passt sehr gut zu meinem Profil, und ich würde mich über ein Feedback freuen“ zeigt Motivation, ohne Druck aufzubauen.\n\nSoll ich dir die Nachfassmail direkt über den Follow-Up-Button im Tracker erstellen lassen?",
+          "actions": [],
+          "executed": [],
+          "replyMessageId": "msg-907a5b67-9af0-4c63-8bff-6d89107cf00c",
+          "compactedThroughMessageId": null,
+          "atMs": 5304
+        }
+      ],
+      "storedReplyMatches": true
+    }
+  ],
+  "legacyJsonTurn": {
+    "status": 200,
+    "keys": [
+      "actions",
+      "compactedThroughMessageId",
+      "executed",
+      "reply",
+      "replyMessageId",
+      "success"
+    ],
+    "reply": "Gern geschehen! Viel Erfolg bei Bosch. Wenn du die Nachfassmail erstellen möchtest, sag einfach Bescheid.",
+    "stored": true
+  },
+  "ledger": [
+    {
+      "operation": "general_chat",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "status": "response_received",
+      "error_kind": null,
+      "usage_reported": 1,
+      "input_tokens": 58,
+      "output_tokens": 27,
+      "cache_read_input_tokens": 9637,
+      "cache_write_input_tokens": 108,
+      "latency_ms": 1357,
+      "request_execution_id": "f3827e08-c7e3-469c-ae5a-cc27ee169cee",
+      "iterations": null,
+      "costUsd": 0.00012916999999999998
+    },
+    {
+      "operation": "tool_call:get_applications",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "status": "response_received",
+      "error_kind": null,
+      "usage_reported": 1,
+      "input_tokens": 2,
+      "output_tokens": 211,
+      "cache_read_input_tokens": 9745,
+      "cache_write_input_tokens": 500,
+      "latency_ms": 1949,
+      "request_execution_id": "f3827e08-c7e3-469c-ae5a-cc27ee169cee",
+      "iterations": null,
+      "costUsd": 0.00026565000000000003
+    },
+    {
+      "operation": "general_chat",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "status": "response_received",
+      "error_kind": null,
+      "usage_reported": 1,
+      "input_tokens": 58,
+      "output_tokens": 283,
+      "cache_read_input_tokens": 9745,
+      "cache_write_input_tokens": 193,
+      "latency_ms": 2170,
+      "request_execution_id": "9979e75a-3afc-4232-8998-c16c432e23a4",
+      "iterations": null,
+      "costUsd": 0.000268875
+    },
+    {
+      "operation": "tool_call:get_applications",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "status": "response_received",
+      "error_kind": null,
+      "usage_reported": 1,
+      "input_tokens": 2,
+      "output_tokens": 471,
+      "cache_read_input_tokens": 9938,
+      "cache_write_input_tokens": 756,
+      "latency_ms": 3094,
+      "request_execution_id": "9979e75a-3afc-4232-8998-c16c432e23a4",
+      "iterations": null,
+      "costUsd": 0.00042958
+    },
+    {
+      "operation": "general_chat",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "status": "response_received",
+      "error_kind": null,
+      "usage_reported": 1,
+      "input_tokens": 58,
+      "output_tokens": 58,
+      "cache_read_input_tokens": 9938,
+      "cache_write_input_tokens": 358,
+      "latency_ms": 986,
+      "request_execution_id": "603ab84b-01ae-4f4f-9805-2e5002392596",
+      "iterations": null,
+      "costUsd": 0.00017893
+    }
+  ],
+  "totalCostUsd": 0.0012722050000000002
+}

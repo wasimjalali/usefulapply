@@ -153,6 +153,10 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
     const application = storedApplication(user.id);
     if (!application) throw new Error('the kit left no application row');
     sessionId = application.id;
+    // The kit's own messages reach D1 through the client's debounced sync. Wait for them, so they never land between
+    // a turn of this spec and its reply (or in a count of the user rows).
+    await expect.poll(() => chatMessagesOf(sessionId).some((row) => row.content.includes('Your kit for Northwind Foods is ready')), { timeout: 15_000 }).toBe(true);
+    await page.waitForTimeout(1_500);
     boschId = seedApplication(user.id, 'Bosch', 'Systems Analyst');
   });
 
@@ -192,7 +196,8 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
     expect(compaction.betas).toContain(COMPACTION_BETA);
     expect(compaction.compactionInstructions).toBe(CHAT_COMPACTION_INSTRUCTIONS);
     // The summarizer sees the ad the way every chat turn shows it: quoted, so it reads as copied text.
-    expect(compaction.allUserText.startsWith('<<')).toBe(true);
+    // (Its own turn: the kit's messages, synced before the conversation, come first in the history.)
+    expect(compaction.allUserText.split('\n---\n').find((text) => text.includes('Konzernfinanzen'))?.startsWith('<<')).toBe(true);
     expect(compaction.roles.at(-1)).toBe('user');
     expect(compaction.roles).not.toContain('system');
     expect(compaction.markers.length).toBeLessThanOrEqual(4);
@@ -357,7 +362,10 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
       const replied = page.waitForResponse((response) => response.url().endsWith('/api/chat') && response.request().method() === 'POST');
       await input.fill(text);
       await input.press('Enter');
-      expect((await replied).status()).toBe(200);
+      const response = await replied;
+      expect(response.status()).toBe(200);
+      // The reply streams: the route stores it before the last event, so the whole body has to be in.
+      await response.finished();
     };
     const first = `Erste Frage ueber die Oberflaeche [${TAG}]`;
     const second = `Zweite Frage ueber die Oberflaeche [${TAG}]`;
