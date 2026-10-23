@@ -18,10 +18,12 @@ import { flattenUntrusted } from './untrusted';
 import type { ChatTool, ChatToolResult } from './types';
 
 /**
- * The ATS score the kit writer stored with the tailored CV (generated_cv._optimizedCVData.analysis.ats_compatibility,
- * written by kit.ts, cv.ts and regenerate.ts). Read from the D1 row, not from ctx.tailoredCV, which the client sends.
- * Null when there is none (no tailored CV, or a kit from before the score existed). A value that is there but is not
- * a finite number is logged and reported as null, never coerced, so the chat cannot quote a made-up score.
+ * The ATS score saved with the tailored CV (generated_cv._optimizedCVData.analysis.ats_compatibility). The kit writer
+ * sets it (kit.ts), the server's CV edits carry it (cv.ts, regenerate.ts), and the client's sync writes the same field
+ * back from the store, so it is the user's own saved value, not one the server alone vouches for. It is read from the
+ * D1 row rather than ctx.tailoredCV only because that is what the rest of this tool reports. Null when there is none
+ * (no tailored CV, or a kit from before the score existed). A value that is there but is not a number from 0 to 100
+ * is logged and reported as null, never coerced, so the chat cannot quote a made-up score.
  */
 function storedAtsScore(sessionId: string, generatedCv: unknown): number | null {
   const optimized = generatedCv && typeof generatedCv === 'object'
@@ -34,8 +36,8 @@ function storedAtsScore(sessionId: string, generatedCv: unknown): number | null 
     ? (analysis as Record<string, unknown>).ats_compatibility
     : undefined;
   if (score === undefined || score === null) return null;
-  if (typeof score === 'number' && Number.isFinite(score)) return score;
-  console.error(`[chat-tools] get_application_overview: ${sessionId} has a non-numeric ats_compatibility (${typeof score})`);
+  if (typeof score === 'number' && Number.isFinite(score) && score >= 0 && score <= 100) return score;
+  console.error(`[chat-tools] get_application_overview: ${sessionId} has an unusable ats_compatibility (${typeof score === 'number' ? score : typeof score})`);
   return null;
 }
 

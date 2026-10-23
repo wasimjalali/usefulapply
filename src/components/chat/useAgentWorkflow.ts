@@ -283,7 +283,7 @@ export function useAgentWorkflow(options?: {
   /**
    * What /api/chat needs to know about the conversation. A saved application's history is read from D1 by the route,
    * so only the new message's id goes (the route stores the turn under it). A local `session-` conversation has no
-   * row yet and still sends its last CHAT_LOCAL_REPLAY_TURNS (8) turns. `messages` is this render's transcript, which does not hold the new
+   * row yet and still sends its last CHAT_LOCAL_REPLAY_TURNS (7) turns. `messages` is this render's transcript, which does not hold the new
    * message yet.
    */
   const chatRequestHistory = (message: string) => {
@@ -697,6 +697,7 @@ export function useAgentWorkflow(options?: {
             hasGeneratedCV: !!currentSession?.generatedCV,
             hasGeneratedCoverLetter: !!currentSession?.coverLetter,
             hasGeneratedEmail: !!currentSession?.email,
+            hasGeneratedFollowUp: !!currentSession?.followUpEmail,
             // For the tool registry: the saved application this chat is on
             // (the route validates the id) and the user's clock for dates.
             sessionId: startedIn ?? undefined,

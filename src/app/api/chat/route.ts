@@ -113,6 +113,7 @@ interface ChatContext {
   hasGeneratedCV?: boolean;
   hasGeneratedCoverLetter?: boolean;
   hasGeneratedEmail?: boolean;
+  hasGeneratedFollowUp?: boolean;
   // The user's IANA zone, so spoken dates resolve on their clock.
   timeZone?: string;
   // The CV template the canvas is showing (client state).
@@ -256,7 +257,7 @@ export async function POST(req: NextRequest) {
     // (screeningMessages in screening.ts).
     //   Saved application: every message in D1 after the compaction block, if there is one. The new message is left
     //   out by its id (the route stores it below, or the sync already did).
-    //   Local conversation: the client's last CHAT_LOCAL_REPLAY_TURNS (8) turns, roles re-validated (client JSON could smuggle a system turn).
+    //   Local conversation: the client's last CHAT_LOCAL_REPLAY_TURNS (7) turns, roles re-validated (client JSON could smuggle a system turn).
     let earlierTurns: StoredTurn[];
     let compaction: { block: CompactionBlock; coversThroughMessageId: string } | null = null;
     if (persistedSessionId) {
@@ -838,12 +839,12 @@ const MAX_CV_JSON_CHARS = 200_000;
  * told the CV inside it was too big. Content-length is advisory (a chunked
  * request carries none), so this is a cheap early exit and not the only cap.
  *
- * Sized off what a legitimate request holds: a 200,000 char CV, ten history
- * turns (a local conversation; a saved application sends none, its history is
+ * Sized off what a legitimate request holds: a 200,000 char CV, CHAT_LOCAL_REPLAY_TURNS
+ * history turns (a local conversation; a saved application sends none, its history is
  * in D1), a message, a master CV summary and a job description. The client sends
  * history turns whole (a pasted ad can be up to MAX_MESSAGE_LENGTH); the server
  * cuts each to CHAT_TURN_MAX_CHARS (chat-prompt.ts), never rejects one. Real ads
- * run to about 11,500 chars, so a window of them sits far below this.
+ * run to about 11,400 chars (longest seen 11,421), so a window of them sits far below this.
  */
 const MAX_REQUEST_BYTES = 512_000;
 

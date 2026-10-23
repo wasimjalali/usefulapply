@@ -555,9 +555,12 @@ test('lone surrogates the client sent (message, history, CV summaries, job title
   assert.equal(chatTurnText({ role: 'user', content: 'Thanks \ud83d' }), 'Thanks �');
 });
 
-test('budget: nine turns at the cut, the longest CV summaries, tools and rules stay under the refuse line', () => {
+test('budget: eight turns at the cut, the longest CV summaries, tools and rules stay under the refuse line', () => {
   // The route replays at most CHAT_LOCAL_REPLAY_TURNS turns, then the new message. A turn at the cut is shown quoted (<< >>).
-  const german = (n: number) => 'Anforderungen: drei Jahre Erfahrung im Controlling, SAP. '.repeat(Math.ceil(n / 40)).slice(0, n);
+  // Shaped like a real German ad: a bulleted line about every 45 chars and some quotes. A line break and a quote each
+  // serialize to two chars in the request JSON, so a filler without them under-counts a real ad.
+  const line = '- Anforderungen: "drei Jahre" Controlling, SAP\n';
+  const german = (n: number) => line.repeat(Math.ceil(n / line.length)).slice(0, n);
   const context: MainChatPromptContext = {
     ...ALICE,
     cvSummary: german(CHAT_CV_SUMMARY_MAX_CHARS),
@@ -573,7 +576,8 @@ test('budget: nine turns at the cut, the longest CV summaries, tools and rules s
   assert.equal(request.messages.filter((message) => message.role !== 'system').length, CHAT_LOCAL_REPLAY_TURNS + 1);
   const estimate = estimateInputTokens({ system: request.system, tools: request.tools, messages: request.messages });
   assert.ok(estimate <= INPUT_REFUSE_ABOVE, `worst first round estimates ${estimate} tokens, over ${INPUT_REFUSE_ABOVE}`);
-  // The same with the last replayed turn an unanswered paste, so the state carries the earlier-paste line too.
+  // The same with the last replayed turn an unanswered paste, so the state carries the earlier-paste line too. With an
+  // odd replay count the window already ends on a user turn, so both shapes estimate the same (83,889 on 2026-10-23).
   const unanswered = turns.map((turn, i) => (i === turns.length - 1 ? { ...turn, role: 'user' as const } : turn));
   const worst = chatRequest(context, unanswered, german(CHAT_TURN_MAX_CHARS + 3_000), 'America/Argentina/ComodRivadavia', MORNING);
   assert.equal(worst.messages.filter((message) => message.role !== 'system').length, CHAT_LOCAL_REPLAY_TURNS + 1);
