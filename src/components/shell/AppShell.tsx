@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { Sidebar } from '@/components/shell/Sidebar';
-import { SIDEBAR_WIDTH } from '@/components/shell/dimensions';
+import { COMPACT_MAX_WIDTH, SIDEBAR_WIDTH } from '@/components/shell/dimensions';
 import { ConversationColumn } from '@/components/shell/ConversationColumn';
 import { ColumnSash } from '@/components/shell/ColumnSash';
 import { CanvasColumn } from '@/components/shell/CanvasColumn';
@@ -58,15 +58,15 @@ export function AppShell() {
     return () => window.removeEventListener('resize', onResize);
   }, [conversationWidth, setConversationWidth]);
 
-  // Below this the 224px sidebar, the 400px conversation floor and the 480px
-  // canvas floor no longer fit side by side, so the two take turns: one gets
-  // the row and the other folds to its rail. Both come back on the way up.
+  // At COMPACT_MAX_WIDTH and below, the sidebar, the conversation floor and
+  // the canvas floor no longer fit side by side, so the two take turns: one
+  // gets the row and the other folds to its rail. Both come back on the way up.
   // A layout effect, so a first render at tablet width never paints the
   // squeezed row before the fold. The shell only ever renders on the client.
   const [compact, setCompact] = useState(false);
   const wasNarrowRef = useRef<boolean | null>(null);
   useLayoutEffect(() => {
-    const media = window.matchMedia('(max-width: 1100px)');
+    const media = window.matchMedia(`(max-width: ${COMPACT_MAX_WIDTH}px)`);
     const sync = () => {
       if (wasNarrowRef.current === media.matches) return;
       const widening = (wasNarrowRef.current ?? lastSawCompact) === true;

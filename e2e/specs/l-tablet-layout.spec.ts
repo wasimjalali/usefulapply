@@ -8,7 +8,7 @@ import { REPO_ROOT } from '../lib/env';
 /**
  * (l) The shell at tablet and laptop widths, with a kit on the canvas and a conversation that has messages.
  *
- * Below 1100px the 224px sidebar, a 400px conversation and a usable canvas don't fit side by side, so the
+ * At 1104px and below the 224px sidebar, a 400px conversation and a 480px canvas don't fit side by side, so the
  * conversation and the canvas take turns: one gets the room beside the sidebar, the other is a rail with the
  * toggle back. Above it both columns show.
  *
@@ -185,7 +185,7 @@ async function expectSampledFrames(page: Page, minCanvas: number) {
   expect(Math.max(...spills)).toBeLessThanOrEqual(1);
 }
 
-test('(l1-l3) chat and canvas take turns below 1100px and sit side by side above it', async ({ browser, request }) => {
+test('(l1-l3) chat and canvas take turns at 1104px and below and sit side by side above it', async ({ browser, request }) => {
   test.setTimeout(240_000);
   mkdirSync(SHOTS, { recursive: true });
   const { context, page } = await signedInPage(browser, request, 'tabletlayout', { videoDir: join(SHOTS, 'video') });
@@ -298,6 +298,14 @@ test('(l1-l3) chat and canvas take turns below 1100px and sit side by side above
   await expandCanvas(page).click();
   await expect(canvas(page)).toBeVisible();
   await expect(chat(page)).toBeVisible();
+
+  // The breakpoint follows the column floors (sidebar 224 + conversation 400 + sash 1 + canvas 480): at 1105 both
+  // fit with the canvas at its floor, at 1104 they take turns.
+  await page.setViewportSize({ width: 1105, height: 900 });
+  await expect(chat(page)).toBeVisible();
+  expect(await width(canvas(page))).toBeGreaterThanOrEqual(USABLE);
+  await page.setViewportSize({ width: 1104, height: 900 });
+  await expectCanvasView(page, 1104);
 
   // l3: a cold load at tablet width, recorded from the first paint and sampled on every animation frame.
   const cold = await context.newPage();

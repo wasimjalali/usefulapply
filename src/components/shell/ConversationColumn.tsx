@@ -3,7 +3,7 @@
 import { flushSync } from 'react-dom';
 import { PanelLeftOpen } from 'lucide-react';
 import { ChatPanel } from '@/components/ChatPanel';
-import { RAIL_WIDTH, SIDEBAR_WIDTH } from '@/components/shell/dimensions';
+import { CANVAS_PAGE_WIDTH, CONVERSATION_FLOOR, RAIL_WIDTH, SIDEBAR_WIDTH } from '@/components/shell/dimensions';
 import { FeedConversation } from '@/components/job-feed/FeedConversation';
 import { TrackerConversation } from '@/components/tracker/TrackerConversation';
 import { useSessionStore } from '@/store/useSessionStore';
@@ -13,7 +13,7 @@ import { deriveApplicationStatus } from '@/components/shell/application-status';
 interface ConversationColumnProps {
   /** Set by the shell so the sash can measure and drag this column. */
   columnRef?: React.RefObject<HTMLDivElement | null>;
-  /** Below 1100px the conversation and the canvas take turns for the row. */
+  /** Compact (see COMPACT_MAX_WIDTH), the conversation and the canvas take turns for the row. */
   compact: boolean;
   onTabChange: (tab: KitTab) => void;
 }
@@ -94,7 +94,21 @@ export function ConversationColumn({ onTabChange, columnRef, compact }: Conversa
       {rail}
       <div
         ref={columnRef}
-        style={collapsed ? { left: SIDEBAR_WIDTH, right: RAIL_WIDTH } : useDraggedWidth ? { width: `${draggedWidth}px` } : undefined}
+        style={
+          collapsed
+            ? { left: SIDEBAR_WIDTH, right: RAIL_WIDTH }
+            : canvasCollapsed
+              ? undefined
+              : useDraggedWidth
+                ? { width: `${draggedWidth}px` }
+                // The canvas only ever needs one CV page plus its margins, and
+                // the sidebar takes its own width. Everything past that is
+                // surplus, so the chat takes it instead of leaving it as dead
+                // cream either side of the page. calc goes negative on small
+                // screens, where the floor takes over and the canvas keeps
+                // every pixel it can get.
+                : { width: `clamp(${CONVERSATION_FLOOR}px, calc(100vw - ${CANVAS_PAGE_WIDTH + SIDEBAR_WIDTH}px), 1000px)` }
+        }
         // Behind its rail the column stays mounted and laid out, out of sight,
         // over the canvas at the exact width it will show at (the row less
         // the sidebar and the canvas rail). display:none would drop the
@@ -105,20 +119,7 @@ export function ConversationColumn({ onTabChange, columnRef, compact }: Conversa
         inert={collapsed}
         className={`h-full min-h-0 ${
           collapsed ? 'pointer-events-none absolute inset-y-0 flex opacity-0' : 'relative flex'
-        } ${
-          // The canvas only ever needs one CV page plus its margins (816 + 128
-          // = 944), and the sidebar takes 225. Everything past that is surplus,
-          // so the chat takes it instead of leaving it as dead cream either
-          // side of the page. calc goes negative on small screens, where the
-          // floor takes over and the canvas keeps every pixel it can get.
-          collapsed
-            ? ''
-            : canvasCollapsed
-            ? 'min-w-0 flex-1'
-            : useDraggedWidth
-              ? 'flex-shrink-0'
-              : 'w-[clamp(400px,calc(100vw_-_1169px),1000px)] flex-shrink-0'
-        }`}
+        } ${collapsed ? '' : canvasCollapsed ? 'min-w-0 flex-1' : 'flex-shrink-0'}`}
       >
         {/* Hidden rather than unmounted, like the application conversation below:
             unmounting tears down the feed's run poller and refires a full

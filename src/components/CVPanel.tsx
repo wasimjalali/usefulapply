@@ -100,6 +100,13 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const isEditModeRef = useRef(false);
   useEffect(() => { isEditModeRef.current = isEditMode; }, [isEditMode]);
   const [showFullPreview, setShowFullPreview] = useState(false);
+  // Compact, the canvas folds with this panel still mounted behind its rail.
+  // The full preview is portaled out of the canvas, where inert can't reach
+  // it, so it closes with the fold.
+  const canvasCollapsed = useUIStore((s) => s.canvasCollapsed);
+  useEffect(() => {
+    if (canvasCollapsed) setShowFullPreview(false);
+  }, [canvasCollapsed]);
   const [editedCVData, setEditedCVData] = useState<CVData | null>(null);
   const cvTemplateRef = useRef<HTMLDivElement>(null);
   const editableCVRef = useRef<EditableCVCanvasRef>(null);

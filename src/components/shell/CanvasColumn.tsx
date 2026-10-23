@@ -16,7 +16,7 @@ import { RAIL_WIDTH, SIDEBAR_WIDTH } from '@/components/shell/dimensions';
 
 interface CanvasColumnProps {
   collapsed: boolean;
-  /** Below 1100px the canvas and the conversation take turns for the row. */
+  /** Compact (see COMPACT_MAX_WIDTH), the canvas and the conversation take turns for the row. */
   compact: boolean;
   onToggleCollapsed: (event: MouseEvent<HTMLButtonElement>) => void;
   toolbarNode: HTMLDivElement | null;
@@ -115,7 +115,7 @@ export function CanvasColumn({
     </div>
   );
 
-  // Above 1100px the folded canvas unmounts as it always has: it would come
+  // Not compact, the folded canvas unmounts as it always has: it would come
   // back at a different width from the one it was laid out at, and the CV
   // would rescale a frame late.
   if (collapsed && !compact) return rail;
