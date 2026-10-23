@@ -5,7 +5,7 @@
  * at 1.8 chars/token (token-budget.ts), plus a reserve for the tool rounds the turn may run. Over
  * COMPACT_ABOVE_TOKENS it sends one compaction request first (`compaction: { type: 'summarize', instructions }`,
  * beta compact-2026-09-04), which returns one signed `compaction` block and nothing else. The turn then goes out as
- * [block, kept messages, new message]. 75k, not the 93k refuse line, because the compaction request itself carries everything
+ * [block, kept messages, new message]. 75k, not 90k, because the compaction request itself carries everything
  * before the kept messages and must stay under the 100k price tier too.
  *
  * Usage of a compaction response is only in `usage.iterations` (top-level counts are 0); usageRecordsOf

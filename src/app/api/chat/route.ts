@@ -54,6 +54,7 @@ import type { TailoredCV } from '@/lib/cv-structure/types';
 import { sanitizeDashes } from '@/lib/config/typo-corrections';
 import { guardUnsupportedCvAdditionOffer } from '@/lib/agents/chat-reply-guard';
 import { loadApplicantLogistics } from '@/lib/profile/logistics.server';
+import { CHAT_LOCAL_REPLAY_TURNS } from '@/lib/chat-limits';
 
 // Input/output limits. A pasted job ad is the main thing that arrives here:
 // the model reads it and calls propose_application, which is how a run starts.
@@ -255,7 +256,7 @@ export async function POST(req: NextRequest) {
     // (screeningMessages in screening.ts).
     //   Saved application: every message in D1 after the compaction block, if there is one. The new message is left
     //   out by its id (the route stores it below, or the sync already did).
-    //   Local conversation: the client's last ten turns, roles re-validated (client JSON could smuggle a system turn).
+    //   Local conversation: the client's last CHAT_LOCAL_REPLAY_TURNS (8) turns, roles re-validated (client JSON could smuggle a system turn).
     let earlierTurns: StoredTurn[];
     let compaction: { block: CompactionBlock; coversThroughMessageId: string } | null = null;
     if (persistedSessionId) {
@@ -283,7 +284,7 @@ export async function POST(req: NextRequest) {
         }
       }
     } else {
-      earlierTurns = (context.chatHistory?.slice(-10) ?? [])
+      earlierTurns = (context.chatHistory?.slice(-CHAT_LOCAL_REPLAY_TURNS) ?? [])
         .filter((msg): msg is ChatMessage =>
           Boolean(msg && (msg.role === 'user' || msg.role === 'assistant') && typeof msg.content === 'string'))
         .map((msg) => ({ id: null, role: msg.role, content: msg.content }));

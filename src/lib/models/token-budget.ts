@@ -18,12 +18,8 @@
 export const CHARS_PER_TOKEN = 1.8;
 /** Above this local estimate, ask the API for the exact count. */
 export const COUNT_TOKENS_ABOVE = 60_000;
-/**
- * callHaiku refuses to send a request whose total input is above this. Call sites target it too. 93k since
- * 2026-10-23 (was 90k): the chat's worst case, eleven German turns at CHAT_TURN_MAX_CHARS (11,500) with tools, rules
- * and the longest CV summaries, estimates 92,386 (chat-prompt.test.ts). Still 7k under the 100k price tier.
- */
-export const INPUT_REFUSE_ABOVE = 93_000;
+/** callHaiku refuses to send a request whose total input is above this. Call sites target it too. */
+export const INPUT_REFUSE_ABOVE = 90_000;
 /** Hard ceiling. An exact total at or above it is over budget whatever the call site did. */
 export const INPUT_HARD_LIMIT = 95_000;
 

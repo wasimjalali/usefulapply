@@ -85,7 +85,7 @@ const MAX_SCREENING_SKILL_CHARS = 100;
  * the ad (all whole up to their own caps); old turns matter only for a statement the applicant typed about
  * themselves, which is short. A user turn long enough to reach the cut is pasted text anyway (looksPasted: over
  * 350 chars), quoted as data, and the ad it usually is already sits in the application block. With these caps the
- * worst request a client can send stays under the refuse line (INPUT_REFUSE_ABOVE) (the budget test in screening.cache.test.ts).
+ * worst request a client can send stays under the 90k refuse line (the budget test in screening.cache.test.ts).
  */
 export const MAX_SCREENING_HISTORY_TURNS = 10;
 export const MAX_SCREENING_HISTORY_TURN_CHARS = 4_000;

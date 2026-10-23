@@ -41,6 +41,7 @@ import { useChatCompactionMarker } from './compaction-marker';
 import { readChatStream } from './read-chat-stream';
 import { useStreamingReply } from './streaming-reply';
 import { flushChatSync } from '@/lib/chat-sync-flush';
+import { CHAT_LOCAL_REPLAY_TURNS } from '@/lib/chat-limits';
 import {
   createSession as createStoredSession,
   deleteSession as deleteStoredSession,
@@ -278,7 +279,7 @@ export function useAgentWorkflow(options?: {
   /**
    * What /api/chat needs to know about the conversation. A saved application's history is read from D1 by the route,
    * so only the new message's id goes (the route stores the turn under it). A local `session-` conversation has no
-   * row yet and still sends its last ten turns. `messages` is this render's transcript, which does not hold the new
+   * row yet and still sends its last CHAT_LOCAL_REPLAY_TURNS (8) turns. `messages` is this render's transcript, which does not hold the new
    * message yet.
    */
   const chatRequestHistory = (message: string) => {
@@ -293,7 +294,7 @@ export function useAgentWorkflow(options?: {
       return { chatHistory: [], messageId: index === -1 || answered ? undefined : live.chatMessages[index].id };
     }
     return {
-      chatHistory: messages.slice(-10).map((msg) => ({ role: msg.role, content: msg.content })),
+      chatHistory: messages.slice(-CHAT_LOCAL_REPLAY_TURNS).map((msg) => ({ role: msg.role, content: msg.content })),
       messageId: undefined,
     };
   };

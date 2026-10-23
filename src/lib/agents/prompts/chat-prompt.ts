@@ -215,17 +215,16 @@ export interface ChatTurn {
  * shorter (past 350 chars it already counts as pasted), so the cut only ever lands on pasted text.
  *
  * Sized for real job ads (131 production job descriptions: p99 10,611 chars, longest 11,421) and held
- * down by the input budget. A local conversation sends up to eleven turns (ten replayed, then the new one); a
- * saved application sends its whole D1 history and compacts it before 75k (compaction.ts), usually keeping four
- * or five turns plus the new one verbatim; when compaction cannot run or fails, the input guard (InputBudgetError,
- * the fixed budget reply) holds the line instead. All eleven at the cut, with the tools, the static rules, the
- * longest CV summaries and the state, must stay under INPUT_REFUSE_ABOVE at the budget's 1.8 chars per token, with
- * a little headroom for the tool descriptions; chat-prompt.test.ts pins it. The longest ad seen fits whole; the client
- * keeps the full text either way. Raised from 11,300 on 2026-10-23, with INPUT_REFUSE_ABOVE moved from 90k to 93k to
- * pay for it and for the chat UX pass's rules and offer_screening_answers tool (worst case now estimates 92,386).
- * 13,000 would estimate about 101.4k, over the 100k price tier, so it needs fewer replayed turns first.
+ * down by the input budget. A local conversation sends up to CHAT_LOCAL_REPLAY_TURNS + 1 turns (eight replayed, then
+ * the new one); a saved application sends its whole D1 history and compacts it before 75k (compaction.ts), usually
+ * keeping four or five turns plus the new one verbatim; when compaction cannot run or fails, the input guard
+ * (InputBudgetError, the fixed budget reply) holds the line instead. All nine at the cut, with the tools, the static
+ * rules, the longest CV summaries and the state, must stay under INPUT_REFUSE_ABOVE at the budget's 1.8 chars per
+ * token, with a little headroom for the tool descriptions; chat-prompt.test.ts pins it. The longest ad seen fits whole
+ * with room to spare; the client keeps the full text either way. 13,000 since 2026-10-23 (was 11,300), paid for by
+ * replaying eight local turns instead of ten.
  */
-export const CHAT_TURN_MAX_CHARS = 11_500;
+export const CHAT_TURN_MAX_CHARS = 13_000;
 
 /** Appended to the state when the new message was shown quoted. The static prompt names this line. */
 export const PASTED_STATE_LINE = 'Latest message: pasted, shown between << >>';
