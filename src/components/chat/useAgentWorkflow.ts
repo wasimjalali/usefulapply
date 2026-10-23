@@ -417,12 +417,18 @@ export function useAgentWorkflow(options?: {
       abortControllerRef.current?.abort();
       abortControllerRef.current = null;
       setIsTyping(false);
-      if (streaming?.turnId === chatTurn && streaming.sessionId && streaming.text.trim()) {
+      const state = useSessionStore.getState();
+      // The application the turn started in, or the open one when that was a local conversation that got its saved
+      // id meanwhile (as ChatPanel draws the bubble).
+      const target = streaming?.sessionId && state.sessions.some((session) => session.id === streaming.sessionId)
+        ? streaming.sessionId
+        : streaming?.sessionId?.startsWith('session-') ? state.currentSession?.id ?? null : null;
+      if (streaming?.turnId === chatTurn && target && streaming.text.trim()) {
         // Not a `msg-` id, so the chat sync never writes it (useSupabaseSync): it lives on this screen only.
         addReplyMessage(
           { role: 'assistant', content: streaming.text, actions: [{ label: 'Stopped', action: 'none' }] },
           `stopped-${chatTurn}`,
-          streaming.sessionId,
+          target,
         );
       }
       return;

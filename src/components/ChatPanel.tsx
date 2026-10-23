@@ -407,7 +407,12 @@ export function ChatPanel({
 
   // The reply being streamed into this application (streaming-reply.ts), drawn after the transcript.
   const streamingReply = useStreamingReply((state) => state.reply);
-  const shownStream = streamingReply && streamingReply.sessionId === (currentSession?.id ?? null) ? streamingReply : null;
+  // Shown in the application the turn started in. A local `session-` conversation that got its saved id while the reply
+  // was out is the open one (its old id is gone), as for the reply that lands after it.
+  const shownStream = streamingReply && (
+    streamingReply.sessionId === (currentSession?.id ?? null)
+    || (streamingReply.sessionId?.startsWith('session-') && !sessions.some((session) => session.id === streamingReply.sessionId))
+  ) ? streamingReply : null;
   const streamActive = shownStream !== null;
   // Read by the message effect below before it is updated for this render: was a reply streaming last time.
   const streamWasActiveRef = useRef(false);

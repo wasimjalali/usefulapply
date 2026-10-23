@@ -20,7 +20,8 @@
  * when the primary cannot count and Bedrock can, the message goes to Bedrock as well (the primary just failed),
  * under one failover event; if Bedrock cannot count either the guard fails loud (it never estimates past the cap)
  * and the primary's ledger row says `count_tokens_failed`. Streamed calls (max_tokens over 16k) fail over when the
- * connection is lost or goes idle after the headers too (stream-guard.ts).
+ * connection is lost or goes idle after the headers too (stream-guard.ts). A call with `stream` (the chat route) hands
+ * its text deltas to the caller as they arrive, and fails over only until the caller says some reached the user.
  * Beta types and `client.beta.messages` are used because `usage.iterations` and system-message fields exist
  * only there. The messages calls send no `betas` header, except compaction's (compaction.ts) on a request that
  * compacts or carries a block; the countTokens call adds the SDK's own `anthropic-beta: token-counting` header.
