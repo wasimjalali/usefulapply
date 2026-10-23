@@ -166,7 +166,7 @@ function seedLongHistory(userId: string, sessionId: string, notes: number): void
 const chatCallsSince = async (since: string): Promise<FakeCall[]> =>
   (await fakeCalls()).filter((call) => call.kind === 'messages' && call.writer === 'chat' && call.at >= since);
 
-interface FrameSample { t: number; count: number; len: number; top: number | null; scrollTop: number; stopped: number; thinking: boolean }
+interface FrameSample { t: number; count: number; len: number; top: number | null; scrollTop: number; stopped: number; thinking: boolean; status: boolean }
 
 /** Samples every animation frame of the chat scroller: the reply bubbles that contain `mark`, and where they sit. */
 async function startSampling(page: Page, mark: string): Promise<void> {
@@ -186,6 +186,7 @@ async function startSampling(page: Page, mark: string): Promise<void> {
         scrollTop: Math.round(scroller.scrollTop),
         stopped: bubbles.filter((el) => (el.textContent ?? '').includes('Stopped')).length,
         thinking: (scroller.textContent ?? '').includes('Useful Apply is thinking...'),
+        status: (scroller.textContent ?? '').includes('Checking your applications...'),
       });
       if (w.__sampling) requestAnimationFrame(tick);
     };
@@ -376,13 +377,14 @@ test.describe.serial('chat replies stream as they are written', () => {
         await chatInput(recPage).press('Enter');
         const response = await replied;
         expect(response.headers()['content-type']).toContain('text/event-stream');
-        // The status line shows while the tool round runs.
-        await expect(recPage.getByText('Checking your applications...')).toBeVisible();
         await response.finished();
         await expect(recPage.getByText(`Du hast ${companies.length} Bewerbungen`).first()).toBeVisible();
         await recPage.waitForTimeout(800);
         const samples = await stopSampling(recPage);
         const shown = samples.filter((sample) => sample.count > 0);
+        // The status line showed under the opening line while the tool round ran, and was gone once the answer came.
+        expect(shown.some((sample) => sample.status)).toBe(true);
+        expect(samples.at(-1)?.status).toBe(false);
         // Every frame: at most one bubble with this reply, never two (the streamed bubble and the stored message).
         expect(Math.max(...samples.map((sample) => sample.count))).toBe(1);
         // The text grew over many frames before the reply landed, never shrinking.
