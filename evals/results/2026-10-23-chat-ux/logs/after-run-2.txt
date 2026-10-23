@@ -1,0 +1,112 @@
+chat tools registered: 24; offer_screening_answers present
+{"event":"anthropic_user_profile_created","user_id":"eval-chat-user","profile_id":"uprof_011CgKMg23LZwLFMg4zyAuEB"}
+[providers] Bedrock failover is off: set AWS_BEARER_TOKEN_BEDROCK, or AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, to enable it
+chat_ux haiku-low r1 de-en-ad/g01 PASS 6381ms
+chat_ux haiku-low r1 de-en-ad/g02 PASS 3184ms
+chat_ux haiku-low r1 de-en-ad/g03 PASS 6096ms
+chat_ux haiku-low r1 de-en-ad/g04 PASS 5380ms
+chat_ux haiku-low r1 de-tracker/g05 PASS 3695ms
+chat_ux haiku-low r1 de-tracker/g06 PASS 4811ms
+chat_ux haiku-low r1 de-tracker/g07 PASS 5425ms
+chat_ux haiku-low r1 de-tracker/g08 PASS 8936ms
+chat_ux haiku-low r1 de-cv-en/g09 PASS 3544ms
+chat_ux haiku-low r1 de-cv-en/g10 PASS 1795ms
+chat_ux haiku-low r1 de-cv-en/g11 PASS 4012ms
+chat_ux haiku-low r1 de-cv-en/g12 FAIL (reply mentions a button, but the response carries none) 2712ms
+chat_ux haiku-low r1 len-en/l01 PASS 3481ms
+chat_ux haiku-low r1 len-en/l02 PASS 4033ms
+chat_ux haiku-low r1 len-en/l03 PASS 2939ms
+chat_ux haiku-low r1 len-en/l04 PASS 3735ms
+chat_ux haiku-low r1 len-en/l05 FAIL (reply has 4 sentences, max 3) 8564ms
+chat_ux haiku-low r1 len-en/l06 PASS 2804ms
+chat_ux haiku-low r1 len-en/l07 FAIL (reply has 4 sentences, max 3) 4084ms
+chat_ux haiku-low r1 len-en/l08 PASS 4528ms
+chat_ux haiku-low r1 scr-en/s01 PASS 3660ms
+chat_ux haiku-low r1 scr-en/s02 PASS 3090ms
+chat_ux haiku-low r1 scr-en/s03 PASS 4429ms
+chat_ux haiku-low r1 scr-en/s04 PASS 5009ms
+chat_ux haiku-low r1 scr-en/s05 PASS 3399ms
+chat_ux haiku-low r1 scr-en/s09 PASS 3585ms
+chat_ux haiku-low r1 scr-de/s06 PASS 2916ms
+chat_ux haiku-low r1 scr-de/s07 PASS 3315ms
+chat_ux haiku-low r1 scr-de/s08 PASS 3164ms
+chat_ux haiku-low r1 claims-en/k01 PASS 1997ms
+chat_ux haiku-low r1 claims-en/k02 PASS 3334ms
+chat_ux haiku-low r1 claims-de/k03 PASS 3320ms
+chat_ux haiku-low r1 claims-de/k04 PASS 4498ms
+[chat] compaction summary refused (nested <<), sending the turn uncompacted
+chat_ux haiku-low r1 compaction-de/x01 FAIL (the route did not compact this turn (no summary stored)) 14069ms
+chat_ux haiku-low r2 de-en-ad/g01 PASS 4877ms
+chat_ux haiku-low r2 de-en-ad/g02 PASS 3144ms
+chat_ux haiku-low r2 de-en-ad/g03 PASS 4720ms
+chat_ux haiku-low r2 de-en-ad/g04 PASS 6462ms
+chat_ux haiku-low r2 de-tracker/g05 PASS 3981ms
+chat_ux haiku-low r2 de-tracker/g06 PASS 5044ms
+chat_ux haiku-low r2 de-tracker/g07 PASS 5000ms
+chat_ux haiku-low r2 de-tracker/g08 FAIL (reply has 4 sentences, max 3) 11691ms
+chat_ux haiku-low r2 de-cv-en/g09 PASS 2744ms
+chat_ux haiku-low r2 de-cv-en/g10 PASS 2309ms
+chat_ux haiku-low r2 de-cv-en/g11 PASS 5870ms
+chat_ux haiku-low r2 de-cv-en/g12 FAIL (reply mentions a button, but the response carries none) 5132ms
+chat_ux haiku-low r2 len-en/l01 PASS 3463ms
+chat_ux haiku-low r2 len-en/l02 PASS 3092ms
+chat_ux haiku-low r2 len-en/l03 PASS 4983ms
+chat_ux haiku-low r2 len-en/l04 PASS 4846ms
+chat_ux haiku-low r2 len-en/l05 PASS 7784ms
+chat_ux haiku-low r2 len-en/l06 PASS 2950ms
+chat_ux haiku-low r2 len-en/l07 PASS 4913ms
+chat_ux haiku-low r2 len-en/l08 FAIL (reply has 4 sentences, max 3) 4157ms
+chat_ux haiku-low r2 scr-en/s01 PASS 4994ms
+chat_ux haiku-low r2 scr-en/s02 PASS 3024ms
+chat_ux haiku-low r2 scr-en/s03 PASS 3791ms
+chat_ux haiku-low r2 scr-en/s04 PASS 3433ms
+chat_ux haiku-low r2 scr-en/s05 PASS 3864ms
+chat_ux haiku-low r2 scr-en/s09 PASS 2873ms
+chat_ux haiku-low r2 scr-de/s06 PASS 3109ms
+chat_ux haiku-low r2 scr-de/s07 PASS 4049ms
+chat_ux haiku-low r2 scr-de/s08 PASS 3386ms
+chat_ux haiku-low r2 claims-en/k01 PASS 2734ms
+chat_ux haiku-low r2 claims-en/k02 PASS 3568ms
+chat_ux haiku-low r2 claims-de/k03 PASS 3220ms
+chat_ux haiku-low r2 claims-de/k04 PASS 3974ms
+chat_ux haiku-low r2 compaction-de/x01 PASS 19625ms
+chat_ux haiku-low r3 de-en-ad/g01 PASS 4014ms
+chat_ux haiku-low r3 de-en-ad/g02 FAIL (reply has 4 sentences, max 3) 3404ms
+chat_ux haiku-low r3 de-en-ad/g03 PASS 4943ms
+chat_ux haiku-low r3 de-en-ad/g04 PASS 5998ms
+chat_ux haiku-low r3 de-tracker/g05 PASS 3134ms
+chat_ux haiku-low r3 de-tracker/g06 PASS 6449ms
+chat_ux haiku-low r3 de-tracker/g07 PASS 4263ms
+chat_ux haiku-low r3 de-tracker/g08 FAIL (reply has 4 sentences, max 3) 12904ms
+chat_ux haiku-low r3 de-cv-en/g09 PASS 3763ms
+chat_ux haiku-low r3 de-cv-en/g10 PASS 2501ms
+chat_ux haiku-low r3 de-cv-en/g11 PASS 4982ms
+chat_ux haiku-low r3 de-cv-en/g12 PASS 3029ms
+chat_ux haiku-low r3 len-en/l01 PASS 4228ms
+chat_ux haiku-low r3 len-en/l02 PASS 2595ms
+chat_ux haiku-low r3 len-en/l03 PASS 3536ms
+chat_ux haiku-low r3 len-en/l04 PASS 5860ms
+chat_ux haiku-low r3 len-en/l05 PASS 8188ms
+chat_ux haiku-low r3 len-en/l06 PASS 4737ms
+chat_ux haiku-low r3 len-en/l07 PASS 4290ms
+chat_ux haiku-low r3 len-en/l08 FAIL (reply has 4 sentences, max 3) 5667ms
+chat_ux haiku-low r3 scr-en/s01 PASS 4320ms
+chat_ux haiku-low r3 scr-en/s02 PASS 3128ms
+chat_ux haiku-low r3 scr-en/s03 PASS 3548ms
+chat_ux haiku-low r3 scr-en/s04 PASS 2952ms
+chat_ux haiku-low r3 scr-en/s05 FAIL (reply mentions a button, but the response carries none) 4002ms
+chat_ux haiku-low r3 scr-en/s09 PASS 3440ms
+chat_ux haiku-low r3 scr-de/s06 PASS 5740ms
+chat_ux haiku-low r3 scr-de/s07 PASS 5303ms
+chat_ux haiku-low r3 scr-de/s08 PASS 3329ms
+chat_ux haiku-low r3 claims-en/k01 PASS 2261ms
+chat_ux haiku-low r3 claims-en/k02 PASS 2409ms
+chat_ux haiku-low r3 claims-de/k03 PASS 3033ms
+chat_ux haiku-low r3 claims-de/k04 PASS 4327ms
+chat_ux haiku-low r3 compaction-de/x01 PASS 12493ms
+wrote /Users/wasimjalali/Desktop/Useful_Apply/.claude/worktrees/chat-ux-pass-6f5301/evals/results/2026-10-23-chat-ux/chat_ux/run-2.json
+
+== chat_ux ==
+arm                 pass        hard                     p50/p95 call ms   $/call    hit%  warm%
+haiku-low           91/102      0                        2168/6454         0.00057   86   91
+decision (rule fixed before running): haiku-low

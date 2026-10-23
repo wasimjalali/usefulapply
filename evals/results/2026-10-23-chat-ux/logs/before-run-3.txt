@@ -1,0 +1,111 @@
+chat tools registered: 23; offer_screening_answers NOT registered on this build
+{"event":"anthropic_user_profile_created","user_id":"eval-chat-user","profile_id":"uprof_011CgKMg1zbpp7y1bbKtN8Lo"}
+[providers] Bedrock failover is off: set AWS_BEARER_TOKEN_BEDROCK, or AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, to enable it
+chat_ux haiku-low r1 de-en-ad/g01 FAIL (reply has 5 sentences, max 3; reply mentions a button, but the response carries none) 4869ms
+chat_ux haiku-low r1 de-en-ad/g02 FAIL (reply has 4 sentences, max 3) 3393ms
+chat_ux haiku-low r1 de-en-ad/g03 FAIL (reply has 7 sentences, max 3) 6382ms
+chat_ux haiku-low r1 de-en-ad/g04 PASS 4947ms
+chat_ux haiku-low r1 de-tracker/g05 PASS 3008ms
+chat_ux haiku-low r1 de-tracker/g06 FAIL (reply has 7 sentences, max 3) 5830ms
+chat_ux haiku-low r1 de-tracker/g07 PASS 4448ms
+chat_ux haiku-low r1 de-tracker/g08 FAIL (reply has 13 sentences, max 3) 12892ms
+chat_ux haiku-low r1 de-cv-en/g09 PASS 4083ms
+chat_ux haiku-low r1 de-cv-en/g10 FAIL (reply has 5 sentences, max 3) 4252ms
+chat_ux haiku-low r1 de-cv-en/g11 FAIL (reply has 5 sentences, max 3; reply is not German (no German evidence)) 3467ms
+chat_ux haiku-low r1 de-cv-en/g12 FAIL (reply mentions a button, but the response carries none) 3570ms
+chat_ux haiku-low r1 len-en/l01 FAIL (reply has 6 sentences, max 3) 4639ms
+chat_ux haiku-low r1 len-en/l02 FAIL (reply has 4 sentences, max 3) 2850ms
+chat_ux haiku-low r1 len-en/l03 FAIL (reply has 4 sentences, max 3) 4166ms
+chat_ux haiku-low r1 len-en/l04 PASS 3479ms
+chat_ux haiku-low r1 len-en/l05 FAIL (reply has 6 sentences, max 3) 7715ms
+chat_ux haiku-low r1 len-en/l06 FAIL (reply has 10 sentences, max 3) 7376ms
+chat_ux haiku-low r1 len-en/l07 FAIL (reply has 15 sentences, max 3) 5947ms
+chat_ux haiku-low r1 len-en/l08 FAIL (reply has 13 sentences, max 3) 6943ms
+chat_ux haiku-low r1 scr-en/s01 FAIL (reply has 9 sentences, max 3) 4230ms
+chat_ux haiku-low r1 scr-en/s02 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip) 2883ms
+chat_ux haiku-low r1 scr-en/s03 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip) 3956ms
+chat_ux haiku-low r1 scr-en/s04 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip) 3241ms
+chat_ux haiku-low r1 scr-en/s05 FAIL (reply has 6 sentences, max 3) 3474ms
+chat_ux haiku-low r1 scr-en/s09 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip; reply has 6 sentences, max 3) 5761ms
+chat_ux haiku-low r1 scr-de/s06 FAIL (reply has 9 sentences, max 3) 3218ms
+chat_ux haiku-low r1 scr-de/s07 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip; reply has 4 sentences, max 3) 1958ms
+chat_ux haiku-low r1 scr-de/s08 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip; reply has 5 sentences, max 3) 4581ms
+chat_ux haiku-low r1 claims-en/k01 PASS 2222ms
+chat_ux haiku-low r1 claims-en/k02 PASS 3113ms
+chat_ux haiku-low r1 claims-de/k03 PASS 3737ms
+chat_ux haiku-low r1 claims-de/k04 FAIL (reply has 4 sentences, max 3) 5106ms
+chat_ux haiku-low r1 compaction-de/x01 FAIL (summary: copied line is English: "-   Key Account Manager/in, Maklerbetreuer/in Firmengeschäft für die Krankenversicherung ("; summary: copi) 16547ms
+chat_ux haiku-low r2 de-en-ad/g01 FAIL (reply mentions a button, but the response carries none) 3220ms
+chat_ux haiku-low r2 de-en-ad/g02 FAIL (reply has 5 sentences, max 3) 3941ms
+chat_ux haiku-low r2 de-en-ad/g03 FAIL (reply has 7 sentences, max 3; reply mentions a button, but the response carries none) 4623ms
+chat_ux haiku-low r2 de-en-ad/g04 PASS 4575ms
+chat_ux haiku-low r2 de-tracker/g05 FAIL (reply has 5 sentences, max 3) 4155ms
+chat_ux haiku-low r2 de-tracker/g06 FAIL (reply has 7 sentences, max 3) 10917ms
+chat_ux haiku-low r2 de-tracker/g07 PASS 4111ms
+chat_ux haiku-low r2 de-tracker/g08 FAIL (reply has 15 sentences, max 3) 14010ms
+chat_ux haiku-low r2 de-cv-en/g09 PASS 3560ms
+chat_ux haiku-low r2 de-cv-en/g10 FAIL (reply has 5 sentences, max 3) 4228ms
+chat_ux haiku-low r2 de-cv-en/g11 FAIL (reply has 5 sentences, max 3; reply is not German (no German evidence)) 4510ms
+chat_ux haiku-low r2 de-cv-en/g12 FAIL (reply mentions a button, but the response carries none) 3679ms
+chat_ux haiku-low r2 len-en/l01 FAIL (reply has 7 sentences, max 3) 3450ms
+chat_ux haiku-low r2 len-en/l02 FAIL (reply has 5 sentences, max 3) 2645ms
+chat_ux haiku-low r2 len-en/l03 FAIL (reply has 4 sentences, max 3) 4556ms
+chat_ux haiku-low r2 len-en/l04 FAIL (reply has 5 sentences, max 3) 5764ms
+chat_ux haiku-low r2 len-en/l05 FAIL (reply has 7 sentences, max 3) 9499ms
+chat_ux haiku-low r2 len-en/l06 FAIL (reply has 5 sentences, max 3) 4654ms
+chat_ux haiku-low r2 len-en/l07 FAIL (reply has 11 sentences, max 3) 5885ms
+chat_ux haiku-low r2 len-en/l08 FAIL (reply has 13 sentences, max 3) 6278ms
+chat_ux haiku-low r2 scr-en/s01 FAIL (reply has 7 sentences, max 3) 5090ms
+chat_ux haiku-low r2 scr-en/s02 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip) 2373ms
+chat_ux haiku-low r2 scr-en/s03 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip; reply has 4 sentences, max 3) 5125ms
+chat_ux haiku-low r2 scr-en/s04 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip; reply has 4 sentences, max 3) 4816ms
+chat_ux haiku-low r2 scr-en/s05 FAIL (reply has 8 sentences, max 3) 3883ms
+chat_ux haiku-low r2 scr-en/s09 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip; reply has 12 sentences, max 3) 7863ms
+chat_ux haiku-low r2 scr-de/s06 FAIL (reply has 9 sentences, max 3) 5785ms
+chat_ux haiku-low r2 scr-de/s07 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip) 2938ms
+chat_ux haiku-low r2 scr-de/s08 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip) 4045ms
+chat_ux haiku-low r2 claims-en/k01 PASS 2283ms
+chat_ux haiku-low r2 claims-en/k02 FAIL (reply has 4 sentences, max 3) 3794ms
+chat_ux haiku-low r2 claims-de/k03 FAIL (reply has 8 sentences, max 3; reply is not German (English sentence: "- Follow-up-E-Mail: 0,5 Credits")) 3832ms
+chat_ux haiku-low r2 claims-de/k04 PASS 3693ms
+chat_ux haiku-low r2 compaction-de/x01 FAIL (summary: copied line is English: "-   five pasted interview-note messages (Teil 1 to Teil 5), all describing work at Calder:"; summary: summ) 14845ms
+chat_ux haiku-low r3 de-en-ad/g01 FAIL (reply mentions a button, but the response carries none) 3846ms
+chat_ux haiku-low r3 de-en-ad/g02 FAIL (reply has 4 sentences, max 3) 4197ms
+chat_ux haiku-low r3 de-en-ad/g03 FAIL (reply has 5 sentences, max 3) 6454ms
+chat_ux haiku-low r3 de-en-ad/g04 FAIL (reply mentions a button, but the response carries none) 5146ms
+chat_ux haiku-low r3 de-tracker/g05 FAIL (reply is not German (only 1 German marker(s) in 23 words)) 3365ms
+chat_ux haiku-low r3 de-tracker/g06 FAIL (reply has 4 sentences, max 3) 8587ms
+chat_ux haiku-low r3 de-tracker/g07 PASS 5970ms
+chat_ux haiku-low r3 de-tracker/g08 FAIL (reply has 16 sentences, max 3) 11543ms
+chat_ux haiku-low r3 de-cv-en/g09 PASS 4042ms
+chat_ux haiku-low r3 de-cv-en/g10 PASS 4725ms
+chat_ux haiku-low r3 de-cv-en/g11 FAIL (reply has 4 sentences, max 3; reply is not German (no German evidence)) 4192ms
+chat_ux haiku-low r3 de-cv-en/g12 FAIL (reply mentions a button, but the response carries none) 4342ms
+chat_ux haiku-low r3 len-en/l01 FAIL (reply has 5 sentences, max 3) 4098ms
+chat_ux haiku-low r3 len-en/l02 FAIL (reply has 4 sentences, max 3) 3138ms
+chat_ux haiku-low r3 len-en/l03 FAIL (reply has 6 sentences, max 3) 3792ms
+chat_ux haiku-low r3 len-en/l04 FAIL (reply has 6 sentences, max 3) 4461ms
+chat_ux haiku-low r3 len-en/l05 FAIL (reply has 4 sentences, max 3) 9517ms
+chat_ux haiku-low r3 len-en/l06 FAIL (reply has 11 sentences, max 3) 6941ms
+chat_ux haiku-low r3 len-en/l07 FAIL (reply has 12 sentences, max 3) 5129ms
+chat_ux haiku-low r3 len-en/l08 FAIL (reply has 22 sentences, max 3) 10409ms
+chat_ux haiku-low r3 scr-en/s01 FAIL (reply has 9 sentences, max 3) 4115ms
+chat_ux haiku-low r3 scr-en/s02 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip) 2772ms
+chat_ux haiku-low r3 scr-en/s03 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip) 2574ms
+chat_ux haiku-low r3 scr-en/s04 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip) 1828ms
+chat_ux haiku-low r3 scr-en/s05 FAIL (reply has 6 sentences, max 3) 3304ms
+chat_ux haiku-low r3 scr-en/s09 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip; reply has 5 sentences, max 3) 5972ms
+chat_ux haiku-low r3 scr-de/s06 FAIL (reply has 9 sentences, max 3) 6285ms
+chat_ux haiku-low r3 scr-de/s07 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip) 3174ms
+chat_ux haiku-low r3 scr-de/s08 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip) 3337ms
+chat_ux haiku-low r3 claims-en/k01 FAIL (reply mentions a button, but the response carries none) 3938ms
+chat_ux haiku-low r3 claims-en/k02 PASS 3921ms
+chat_ux haiku-low r3 claims-de/k03 PASS 3882ms
+chat_ux haiku-low r3 claims-de/k04 FAIL (reply has 4 sentences, max 3) 7945ms
+chat_ux haiku-low r3 compaction-de/x01 FAIL (summary: copied line is English: "-   Interview notes, pasted in five parts with the same repeated text, on the Calder role:"; summary: summ) 20395ms
+wrote /Users/wasimjalali/Desktop/Useful_Apply/.claude/worktrees/chat-ux-before/evals/results/2026-10-23-chat-ux/chat_ux/run-3.json
+
+== chat_ux ==
+arm                 pass        hard                     p50/p95 call ms   $/call    hit%  warm%
+haiku-low           18/102      0                        2934/8877         0.00063   83   88
+decision (rule fixed before running): haiku-low

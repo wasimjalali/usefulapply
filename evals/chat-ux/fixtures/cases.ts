@@ -1,5 +1,5 @@
 /**
- * Chat UX cases: 34 turns in 9 conversations over the 25-row tracker and the open application from the
+ * Chat UX cases: 46 turns in 13 conversations over the 25-row tracker and the open application from the
  * 2026-10-22 harness (Thursday 2026-10-22, Berlin, signed-in user Lena Hoffmann).
  *
  *   German      12 turns, 3 conversations. The user writes German; the pasted ad, the CV, the tool results (the
@@ -10,6 +10,10 @@
  *               offer_screening_answers and return a start-screening-flow chip), and 3 that look close and are not.
  *   Claims       4 turns (kit contents, ATS score), EN and DE. No count of documents and no score that no tool
  *               result or context gave the model.
+ *   Switch      12 turns, 4 conversations: four exchanges in one language, then three turns in the other
+ *               (English to German and back); and after a German conversation a bare English paste and a one-word
+ *               reply (both keep German), then a request for English that holds while the user keeps writing German; and a
+ *               request for an English letter and a quoted "Please reply in English" (neither changes the chat's language).
  *   Compaction   1 turn on a seeded German history of about 100k characters: the route compacts it, and the stored
  *               summary must keep its `<<copied ad text: ...>>` lines in German.
  *
@@ -26,7 +30,7 @@ import { rowId } from '../../haiku-55-swap/fixtures/tracker';
 export const OFFER_SCREENING_TOOL = 'offer_screening_answers';
 export const SCREENING_CHIP = 'start-screening-flow';
 
-export type Category = 'german' | 'length' | 'screening_pos' | 'screening_neg' | 'claims' | 'compaction';
+export type Category = 'german' | 'length' | 'screening_pos' | 'screening_neg' | 'claims' | 'compaction' | 'switch';
 
 type Calls = Array<{ name: string; input: Record<string, unknown> }>;
 export type ScriptStep = Calls;
@@ -50,7 +54,7 @@ export interface UxExpect {
   mayChange?: string[];
   db?: (db: Database.Database) => string[];
   /** mustNotClaim: tested per sentence, and a sentence that negates (not, n't, yet, nicht, kein, ...) is exempt. */
-  reply?: { german?: boolean; maxSentences?: number; mustMatch?: RegExp[]; mustNotMatch?: RegExp[]; mustNotClaim?: RegExp[] };
+  reply?: { german?: boolean; english?: boolean; maxSentences?: number; mustMatch?: RegExp[]; mustNotMatch?: RegExp[]; mustNotClaim?: RegExp[] };
   /** The route must have compacted this turn, and the stored summary must keep its copied ad lines in German. */
   summaryGerman?: boolean;
 }
@@ -59,7 +63,12 @@ export interface UxCase {
   id: string;
   group: string;
   turn: number;
+  /** The language the reply must be in (for every case but the ones below, also the language of the message). */
   lang: 'en' | 'de';
+  /** The message has none of the user's own words (a bare paste, one word): it says nothing about the reply language. */
+  noOwnWords?: true;
+  /** The user asked for this reply language earlier (or in this message), in the other language. */
+  languageRequested?: true;
   category: Category;
   message: string;
   withCv?: boolean;
@@ -116,6 +125,32 @@ const DOC_EN = String.raw`(?:cover letter|application e-?mail|follow[- ]?up(?: e
 const DOC_DE = String.raw`(?:Anschreiben|Bewerbungs-?E-?Mail|Nachfass-?E-?Mails?|Follow-?up(?:-E-?Mail)?|E-?Mails?|Mails?)`;
 const CLAIMED_DOC_EN = new RegExp(String.raw`\b(?:includes?|contains?|has|have|got|with|ready:)\b[^.!?\n]{0,60}\b${DOC_EN}\b|\b${DOC_EN}\b[^.!?\n]{0,60}\b(?:is|are|was|were)\s+(?:all\s+)?(?:ready|done|there|generated|written|included|in place|finished)\b|\b${DOC_EN}\s+(?:is|are)\s+ready\b`, 'i');
 const CLAIMED_DOC_DE = new RegExp(String.raw`(?:enthält|hat|mit|umfasst|bereit:)[^.!?\n]{0,60}${DOC_DE}|${DOC_DE}[^.!?\n]{0,60}\b(?:ist|sind|wurde|wurden)\s+(?:alle\s+)?(?:fertig|bereit|da|erstellt|geschrieben|dabei)\b|\b(?:zwei|beide)\s+(?:\S+\s+)?${DOC_DE}`, 'i');
+
+// ---- language switch seeds ----------------------------------------------------------------------------------
+
+/** A whole conversation about the open application in English (four exchanges), before a German turn. */
+const SWITCH_EN_HISTORY: SeedMessage[] = [
+  { role: 'user', content: 'Can you check what my kit has so far?' },
+  { role: 'assistant', content: "You have a tailored CV for Nordhafen Handels GmbH. The cover letter and emails haven't been generated yet." },
+  { role: 'user', content: 'What does the job ask for most?' },
+  { role: 'assistant', content: 'SQL, Power BI and regular reporting for the logistics planners.' },
+  { role: 'user', content: 'Is a three month notice period a problem for them?' },
+  { role: 'assistant', content: "Three months is common in Germany, so it rarely rules you out. Say it plainly when they ask." },
+  { role: 'user', content: 'Should I mention Snowflake in the letter?' },
+  { role: 'assistant', content: "Yes, it's on your CV and the role mentions cloud data warehouses." },
+];
+
+/** The same conversation in German, before an English turn. */
+const SWITCH_DE_HISTORY: SeedMessage[] = [
+  { role: 'user', content: 'Kannst du prüfen, was mein Paket bisher enthält?' },
+  { role: 'assistant', content: 'Du hast einen angepassten Lebenslauf für Nordhafen Handels GmbH. Anschreiben und E-Mails sind noch nicht erstellt.' },
+  { role: 'user', content: 'Worauf legt die Stelle am meisten Wert?' },
+  { role: 'assistant', content: 'Auf SQL, Power BI und regelmäßige Berichte für die Logistikplanung.' },
+  { role: 'user', content: 'Ist meine Kündigungsfrist von drei Monaten ein Problem?' },
+  { role: 'assistant', content: 'Drei Monate sind in Deutschland üblich und schließen dich selten aus. Sag es offen, wenn sie fragen.' },
+  { role: 'user', content: 'Soll ich Snowflake im Anschreiben erwähnen?' },
+  { role: 'assistant', content: 'Ja, es steht in deinem Lebenslauf und die Stelle nennt Cloud-Data-Warehouses.' },
+];
 
 // ---- compaction seed -----------------------------------------------------------------------------------------
 
@@ -264,6 +299,124 @@ export const CASES: UxCase[] = [
     expect: { reply: { german: true } },
     script: [], finalReply: 'Ich kann den Lebenslauf anpassen, das Anschreiben schreiben, den Status im Tracker pflegen und deine Fragen zur Bewerbung beantworten.',
     badReply: 'I can tailor the CV, write the cover letter, keep the tracker status and answer your questions about the application.',
+  },
+
+  // Language switch: a whole conversation in one language, then the user writes in the other. The reply follows the
+  // latest message (production 2026-10-23: an English application, then "Wie viele Dokumente hast du für diese
+  // Bewerbung schon erstellt?", answered in English).
+  {
+    id: 'w01', group: 'switch-en-de', turn: 1, lang: 'de', category: 'switch', withCv: true,
+    seed: SWITCH_EN_HISTORY,
+    message: 'Wie viele Dokumente hast du für diese Bewerbung schon erstellt?',
+    expect: { reply: { german: true, maxSentences: 3 } },
+    script: [call('get_application_overview')], finalReply: 'Für diese Bewerbung gibt es bisher nur deinen angepassten Lebenslauf. Anschreiben und E-Mails sind noch nicht erstellt.',
+    badReply: 'So far there is only your tailored CV for this application. The cover letter and emails have not been generated yet.',
+  },
+  {
+    id: 'w02', group: 'switch-en-de', turn: 2, lang: 'de', category: 'switch', withCv: true,
+    message: 'Danke. Und was sollte ich als Nächstes tun?',
+    expect: { reply: { german: true, maxSentences: 3 } },
+    script: [], finalReply: 'Lass als Nächstes das Anschreiben erstellen und lies den Lebenslauf noch einmal durch, bevor du dich bewirbst.',
+    badReply: 'Next, generate the cover letter and read the CV once more before you apply.',
+  },
+  {
+    id: 'w03', group: 'switch-en-de', turn: 3, lang: 'de', category: 'switch', withCv: true,
+    message: 'Welche Bewerbungen haben diese Woche ein Interview?',
+    expect: { tools: ['get_applications'], reply: { german: true, maxSentences: 3 } },
+    script: [call('get_applications')], finalReply: 'Diese Woche hast du kein Interview. Die nächsten sind am Montag bei Hellmann Systems und am Mittwoch bei Fennel Labs.',
+    badReply: 'You have no interview this week. The next ones are Hellmann Systems on Monday and Fennel Labs on Wednesday.',
+  },
+  {
+    id: 'w04', group: 'switch-de-en', turn: 1, lang: 'en', category: 'switch', withCv: true,
+    seed: SWITCH_DE_HISTORY,
+    message: 'How many documents have you created for this application so far?',
+    expect: { reply: { english: true, maxSentences: 3 } },
+    script: [call('get_application_overview')], finalReply: "So far there's only your tailored CV for this application. The cover letter and emails haven't been generated yet.",
+    badReply: 'Für diese Bewerbung gibt es bisher nur deinen angepassten Lebenslauf. Anschreiben und E-Mails sind noch nicht erstellt.',
+  },
+  {
+    id: 'w05', group: 'switch-de-en', turn: 2, lang: 'en', category: 'switch', withCv: true,
+    message: 'Thanks. What should I do next?',
+    expect: { reply: { english: true, maxSentences: 3 } },
+    script: [], finalReply: 'Generate the cover letter next, then read the CV once more before you apply.',
+    badReply: 'Lass als Nächstes das Anschreiben erstellen und lies den Lebenslauf noch einmal durch.',
+  },
+  {
+    id: 'w06', group: 'switch-de-en', turn: 3, lang: 'en', category: 'switch', withCv: true,
+    message: 'Which of my applications have an interview this week?',
+    expect: { tools: ['get_applications'], reply: { english: true, maxSentences: 3 } },
+    script: [call('get_applications')], finalReply: 'You have no interview this week. The next ones are Hellmann Systems on Monday and Fennel Labs on Wednesday.',
+    badReply: 'Diese Woche hast du kein Interview. Die nächsten sind am Montag bei Hellmann Systems und am Mittwoch bei Fennel Labs.',
+  },
+  // No own words after a German conversation: a bare English paste and a one-word reply keep the language the user
+  // types in. Then the user asks for English and keeps writing German: the request stands.
+  {
+    id: 'w07', group: 'switch-fallback', turn: 1, lang: 'de', noOwnWords: true, category: 'switch', withCv: true,
+    seed: SWITCH_DE_HISTORY,
+    message: [
+      '1. Why do you want to join Nordhafen Handels GmbH? (max 800 characters)',
+      '2. Describe a report you automated and what changed because of it.',
+      '3. What is your notice period and earliest start date?',
+      '4. What are your salary expectations (gross per year, EUR)?',
+      '5. Which ERP systems have you worked with?',
+      '6. Can you come to the Hamburg office three days a week?',
+    ].join('\n'),
+    expect: { reply: { german: true, maxSentences: 3 } },
+    script: [call(OFFER_SCREENING_TOOL)], finalReply: 'Das sind Fragen aus dem Bewerbungsformular. Tippe unten auf den Button, dann beantworte ich sie aus deinem Lebenslauf.',
+    badReply: 'Those are questions from the application form. Tap the button below and I will answer them from your CV.',
+  },
+  {
+    id: 'w08', group: 'switch-fallback', turn: 2, lang: 'de', noOwnWords: true, category: 'switch', withCv: true,
+    message: 'ok',
+    expect: { reply: { german: true, maxSentences: 3 } },
+    script: [], finalReply: 'Gut. Sag Bescheid, wenn du noch etwas brauchst.',
+    badReply: 'Okay. Let me know if you need anything else.',
+  },
+  {
+    id: 'w09', group: 'switch-fallback', turn: 3, lang: 'en', languageRequested: true, category: 'switch', withCv: true,
+    message: 'Bitte antworte mir ab jetzt auf Englisch.',
+    expect: { reply: { english: true, maxSentences: 3 } },
+    script: [], finalReply: "Sure, I'll answer in English from now on.",
+    badReply: 'Gern, ich antworte ab jetzt auf Englisch.',
+  },
+  {
+    id: 'w10', group: 'switch-fallback', turn: 4, lang: 'en', languageRequested: true, category: 'switch', withCv: true,
+    message: 'Wie viele Bewerbungen habe ich gerade offen?',
+    expect: { tools: ['get_applications'], reply: { english: true, maxSentences: 3 } },
+    script: [call('get_applications')], finalReply: 'You have 21 open applications.',
+    badReply: 'Du hast 25 Bewerbungen in deinem Tracker.',
+  },
+  // Not a request for the chat's language: a document in English, or a recruiter's line quoted. The reply stays German.
+  {
+    id: 'w11', group: 'switch-not-a-request', turn: 1, lang: 'de', category: 'switch', withCv: true,
+    seed: SWITCH_DE_HISTORY,
+    message: 'Kannst du das Anschreiben auf Englisch schreiben?',
+    expect: { reply: { german: true, maxSentences: 3 } },
+    script: [], finalReply: 'Das Anschreiben ist noch nicht erstellt. Ein englisches Anschreiben bekommst du, wenn du das Paket erzeugst und die Anzeige auf Englisch ist.',
+    badReply: 'The cover letter has not been generated yet. You get an English letter when you generate the kit for an English ad.',
+  },
+  {
+    id: 'w12', group: 'switch-not-a-request', turn: 2, lang: 'de', category: 'switch', withCv: true,
+    message: 'Der Recruiter schreibt: "Please reply in English." Was meint er damit?',
+    expect: { reply: { german: true, maxSentences: 3 } },
+    script: [], finalReply: 'Er bittet dich, ihm auf Englisch zu antworten. Deine Antwort an ihn schreibst du also besser auf Englisch.',
+    badReply: 'He is asking you to reply to him in English, so write your answer to him in English.',
+  },
+  // A request for one answer in another language covers that answer only: the next German question gets German again.
+  {
+    id: 'w13', group: 'switch-one-off', turn: 1, lang: 'en', languageRequested: true, category: 'switch', withCv: true,
+    seed: SWITCH_DE_HISTORY,
+    message: 'Kannst du mir kurz auf Englisch sagen, was in meinem Paket noch fehlt?',
+    expect: { reply: { english: true, maxSentences: 3 } },
+    script: [], finalReply: 'Your kit has the tailored CV so far. The cover letter and the emails are not generated yet.',
+    badReply: 'Dein Paket hat bisher den angepassten Lebenslauf. Anschreiben und E-Mails fehlen noch.',
+  },
+  {
+    id: 'w14', group: 'switch-one-off', turn: 2, lang: 'de', category: 'switch', withCv: true,
+    message: 'Danke. Und wann ist mein nächstes Interview?',
+    expect: { tools: ['get_applications'], reply: { german: true, maxSentences: 3 } },
+    script: [call('get_applications')], finalReply: 'Dein nächstes Interview ist am Montag bei Hellmann Systems.',
+    badReply: 'Your next interview is on Monday with Hellmann Systems.',
   },
 
   // Length: English turns that tempt a long answer. At most 3 sentences.
@@ -443,7 +596,7 @@ export const CASES: UxCase[] = [
   },
 ];
 
-export const EXPECTED = { total: 34, german: 12, germanGroups: 3, length: 8, screeningPos: 6, screeningNeg: 3, claims: 4, compaction: 1, groups: 9 };
+export const EXPECTED = { total: 48, german: 12, germanGroups: 3, length: 8, screeningPos: 6, screeningNeg: 3, claims: 4, compaction: 1, switch: 14, groups: 14 };
 
 /** Tools the dry self-test accepts in a case: the chat's registry plus the one this pass adds. */
 export const KNOWN_TOOLS = [

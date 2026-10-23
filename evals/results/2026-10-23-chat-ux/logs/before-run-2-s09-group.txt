@@ -1,0 +1,27 @@
+chat tools registered: 23; offer_screening_answers NOT registered on this build
+{"event":"anthropic_user_profile_created","user_id":"eval-chat-user","profile_id":"uprof_011CgKKQW4P8D7oVuC6fLFCM"}
+[providers] Bedrock failover is off: set AWS_BEARER_TOKEN_BEDROCK, or AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, to enable it
+chat_ux haiku-low r1 scr-en/s01 FAIL (reply has 9 sentences, max 3) 5263ms
+chat_ux haiku-low r1 scr-en/s02 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip) 3728ms
+chat_ux haiku-low r1 scr-en/s03 PASS 4907ms
+chat_ux haiku-low r1 scr-en/s04 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip; reply has 4 sentences, max 3) 5273ms
+chat_ux haiku-low r1 scr-en/s05 FAIL (reply has 4 sentences, max 3) 4114ms
+chat_ux haiku-low r1 scr-en/s09 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip; reply has 6 sentences, max 3) 5495ms
+chat_ux haiku-low r2 scr-en/s01 FAIL (reply has 8 sentences, max 3) 6394ms
+chat_ux haiku-low r2 scr-en/s02 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip; reply has 4 sentences, max 3) 4789ms
+chat_ux haiku-low r2 scr-en/s03 PASS 4206ms
+chat_ux haiku-low r2 scr-en/s04 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip) 2426ms
+chat_ux haiku-low r2 scr-en/s05 FAIL (reply has 9 sentences, max 3) 3635ms
+chat_ux haiku-low r2 scr-en/s09 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip; reply has 6 sentences, max 3) 7203ms
+chat_ux haiku-low r3 scr-en/s01 FAIL (reply has 9 sentences, max 3) 4578ms
+chat_ux haiku-low r3 scr-en/s02 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip) 4577ms
+chat_ux haiku-low r3 scr-en/s03 PASS 6000ms
+chat_ux haiku-low r3 scr-en/s04 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip) 4037ms
+chat_ux haiku-low r3 scr-en/s05 FAIL (reply has 9 sentences, max 3) 4658ms
+chat_ux haiku-low r3 scr-en/s09 FAIL (did not call offer_screening_answers; response lacks a start-screening-flow chip; reply has 15 sentences, max 3) 6222ms
+wrote /Users/wasimjalali/Desktop/Useful_Apply/.claude/worktrees/chat-ux-before/evals/results/2026-10-23-chat-ux/chat_ux/run-2.json
+
+== chat_ux ==
+arm                 pass        hard                     p50/p95 call ms   $/call    hit%  warm%
+haiku-low           3/18        0                        2607/6211         0.00054   85   95
+decision (rule fixed before running): haiku-low
