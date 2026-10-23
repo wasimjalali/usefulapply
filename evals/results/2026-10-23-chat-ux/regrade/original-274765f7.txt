@@ -1,0 +1,36 @@
+evals/run-1.json (run at 63343496): 24/99 under graders at chat-ux-review
+   {
+  german: '13/36',
+  length: '2/24',
+  screening_neg: '3/12',
+  screening_pos: '0/12',
+  claims: '6/12',
+  compaction: '0/3'
+}
+evals/run-3.json (run at 63343496): 21/102 under graders at chat-ux-review
+   {
+  german: '10/36',
+  length: '1/24',
+  screening_neg: '3/12',
+  screening_pos: '0/15',
+  claims: '7/12',
+  compaction: '0/3'
+}
+evals/run-1.json (run at 274765f7): 70/102 under graders at chat-ux-review
+   {
+  german: '25/36',
+  length: '14/24',
+  screening_neg: '5/12',
+  screening_pos: '14/15',
+  claims: '9/12',
+  compaction: '3/3'
+}
+evals/run-2.json (run at ad85a19c): 87/102 under graders at chat-ux-review
+   {
+  german: '30/36',
+  length: '20/24',
+  screening_neg: '8/12',
+  screening_pos: '15/15',
+  claims: '12/12',
+  compaction: '2/3'
+}
