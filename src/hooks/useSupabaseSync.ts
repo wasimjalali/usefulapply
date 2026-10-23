@@ -478,11 +478,7 @@ export function useSupabaseSync() {
             if (freshFromSupabase) {
               console.log('[SupabaseSync] Replacing stale currentSession with fresh Supabase data:', freshCurrentSession.id.substring(0, 8));
               useSessionStore.setState({ 
-                // The fresh row carries no chat (it loads next, hydrateChatIfEmpty). Keep the transcript already on
-                // screen until it does, so a reload never paints the history, then nothing, then the history again.
-                currentSession: freshFromSupabase.chatMessages.length === 0 && freshCurrentSession.chatMessages.length > 0
-                  ? { ...freshFromSupabase, chatMessages: freshCurrentSession.chatMessages }
-                  : freshFromSupabase,
+                currentSession: freshFromSupabase,
                 // Also update legacy fields to match
                 jobDescription: freshFromSupabase.jobDescription,
                 requirements: freshFromSupabase.requirements,
@@ -694,10 +690,12 @@ export function useSupabaseSync() {
     if (!user) return;
     const { sessions: currentSessions, currentSession: cachedSession } = useSessionStore.getState();
     
-    // Mark messages from currentSession (localStorage) as already synced
+    // Mark messages from currentSession (localStorage) as already synced. A `msg-` message the server has not
+    // confirmed (no `stored`) may never have been written (a reload inside the debounce, a failed write): it stays
+    // pending, so the sync writes it once the transcript has loaded. The write is idempotent by id.
     if (cachedSession && !cachedSession.id.startsWith('session-')) {
       for (const msg of cachedSession.chatMessages) {
-        syncedMessageIdsRef.current.add(msg.id);
+        if (msg.stored || !msg.id.startsWith('msg-')) syncedMessageIdsRef.current.add(msg.id);
       }
     }
     

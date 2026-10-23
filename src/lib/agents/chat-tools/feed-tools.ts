@@ -577,7 +577,7 @@ const runFeed: ChatTool = {
           ok: false,
           already_ran_today: true,
           ranked_jobs_count: latestManualRun.ranked_jobs_count ?? null,
-          note: 'The feed already ran today, so the next one opens tomorrow. Say that, mention what today\'s run found, and offer to walk them through it.',
+          note: 'The feed already ran today, so the next one opens tomorrow. Say that and mention what today\'s run found.',
         },
       };
     }

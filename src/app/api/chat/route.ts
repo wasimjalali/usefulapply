@@ -114,6 +114,8 @@ interface ChatContext {
   hasGeneratedCoverLetter?: boolean;
   hasGeneratedEmail?: boolean;
   hasGeneratedFollowUp?: boolean;
+  // A fresh fit check and no kit yet: the Cover letter and Emails tabs show Generate Kit.
+  generateKitButtonShown?: boolean;
   // The user's IANA zone, so spoken dates resolve on their clock.
   timeZone?: string;
   // The CV template the canvas is showing (client state).

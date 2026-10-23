@@ -228,7 +228,7 @@ test.describe('chat round 2', () => {
           expect.soft(frames.filter((frame) => frame.noApps).length, `${run}: frames with "No applications yet."`).toBe(0);
           expect.soft(frames.filter((frame) => frame.emptyCard).length, `${run}: frames with the empty-conversation card`).toBe(0);
           // The count only ever grows: the server's transcript replaces a shorter cached one, never a blank in between.
-          for (let i = 1; i < after.length; i += 1) expect(after[i].bubbles, `${run}: frame ${i}`).toBeGreaterThanOrEqual(after[i - 1].bubbles);
+          for (let i = 1; i < after.length; i += 1) expect.soft(after[i].bubbles, `${run}: frame ${i}`).toBeGreaterThanOrEqual(after[i - 1].bubbles);
         }
         await rec.screenshot({ path: test.info().outputPath('r2-reload.png') });
       } finally {

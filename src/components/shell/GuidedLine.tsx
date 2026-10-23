@@ -708,7 +708,9 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
     ['PDF or Word', 'Roles, dates, tools, results', 'Clean, ATS-friendly, yours to edit'],
   );
 
-  const fitPercent = v2Progress?.percent ?? (isAgentWorking ? 20 : 100);
+  // These stages show only on the working steps. Between the step change and the run starting there is no progress
+  // yet, and reading that as 100 painted every stage done for a frame before the run reset it.
+  const fitPercent = v2Progress?.percent ?? (isAgentWorking ? 20 : 0);
   const fitStages: NamedStage[] = agentSteps.length > 0
     ? [
         {
@@ -733,7 +735,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
         ['Role, must-haves, nice-to-haves', 'Requirements covered', 'Strengths, gaps and a recommendation'],
       );
 
-  const kitPercent = v2Progress?.percent ?? (isAgentWorking ? 15 : 100);
+  const kitPercent = v2Progress?.percent ?? (isAgentWorking ? 15 : 0);
   const kitStages: NamedStage[] = parseStagesFromProgress(
     ['Tailoring your CV', 'Writing the cover letter', 'Drafting the application email', 'Drafting the follow-up email'],
     kitPercent,

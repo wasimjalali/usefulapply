@@ -14,7 +14,7 @@
 
 import { getSession } from '@/db/repos/sessions';
 import { CV_TEMPLATE_IDS, cvTemplateCatalogForPrompt, cvTemplateName } from '@/lib/cv-templates/catalog';
-import { flattenUntrusted } from './untrusted';
+import { flattenUntrusted, isoToWallClock } from './untrusted';
 import type { ChatTool, ChatToolResult } from './types';
 
 /**
@@ -72,6 +72,7 @@ const getApplicationOverview: ChatTool = {
         selected_template: session.selected_template ?? null,
         screening_answers_used: session.screening_turns_used ?? 0,
         created_at: session.created_at,
+        created_local: isoToWallClock(session.created_at, ctx.timeZone),
       },
     };
   },

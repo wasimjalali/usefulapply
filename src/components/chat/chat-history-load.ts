@@ -12,7 +12,8 @@ import { create } from 'zustand';
  */
 interface ChatHistoryLoadState {
   sessionsLoaded: boolean;
-  loading: Record<string, true>;
+  /** In-flight loads per application: two overlapping loads (the first load and a sidebar click) count separately. */
+  loading: Record<string, number>;
   failed: Record<string, true>;
   setSessionsLoaded: (loaded: boolean) => void;
   setLoading: (sessionId: string, loading: boolean) => void;
@@ -25,9 +26,9 @@ export const useChatHistoryLoad = create<ChatHistoryLoadState>()((set) => ({
   failed: {},
   setSessionsLoaded: (loaded) => set((state) => (state.sessionsLoaded === loaded ? state : { sessionsLoaded: loaded })),
   setLoading: (sessionId, loading) => set((state) => {
-    if (Boolean(state.loading[sessionId]) === loading) return state;
+    const count = (state.loading[sessionId] ?? 0) + (loading ? 1 : -1);
     const next = { ...state.loading };
-    if (loading) next[sessionId] = true;
+    if (count > 0) next[sessionId] = count;
     else delete next[sessionId];
     return { loading: next };
   }),

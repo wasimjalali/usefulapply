@@ -682,9 +682,10 @@ export function useAgentWorkflow(options?: {
       const { masterCV, certifications } = useAppStore.getState();
       const { chatHistory: recentMessages, messageId } = chatRequestHistory(message);
       // Messages added just before this turn reach D1 first, so the route's history keeps the transcript's order.
-      // A message that could not be written (a pasted ad) would be missing from the route's history, and the model
-      // would answer without it. Hold the turn and say so, rather than answer as if it were not there.
-      if (startedIn && !startedIn.startsWith('session-') && await flushChatSync(startedIn, messageId) === 'failed') {
+      // A message that could not be written in time (a pasted ad) would be missing from the route's history, and the
+      // model would answer without it. Hold the turn and say so, rather than answer as if it were not there. A slow
+      // write keeps going in the background, so sending again a moment later finds it saved.
+      if (startedIn && !startedIn.startsWith('session-') && await flushChatSync(startedIn, messageId) !== 'ok') {
         addFailureReply({
           role: 'assistant',
           content: "I couldn't save your earlier message, so I can't see it yet. Check your connection and send your question again.",
@@ -715,6 +716,13 @@ export function useAgentWorkflow(options?: {
             hasGeneratedCoverLetter: !!currentSession?.coverLetter,
             hasGeneratedEmail: !!currentSession?.email,
             hasGeneratedFollowUp: !!currentSession?.followUpEmail,
+            // The same test the Cover letter and Emails panels use for their Generate Kit button.
+            generateKitButtonShown: Boolean(
+              currentSession?.pendingFitAnalysis?.createdAt
+              && Date.now() < new Date(currentSession.pendingFitAnalysis.createdAt).getTime() + 30 * 60 * 1000
+              && !currentSession?.coverLetter
+              && !currentSession?.email,
+            ),
             // For the tool registry: the saved application this chat is on
             // (the route validates the id) and the user's clock for dates.
             sessionId: startedIn ?? undefined,
@@ -981,10 +989,13 @@ export function useAgentWorkflow(options?: {
     // A fit run replaces a parked kit run (its card closes), so the two can't run side by side.
     useUIStore.getState().setPendingLogistics(null);
     const fitWorkflowSessionId = useSessionStore.getState().currentSession?.id;
+    const fitWorkflowCreatedAt = useSessionStore.getState().currentSession?.createdAt;
 
     setIsAgentWorking(true);
     setAgentWorkflowPhase('fit_analysis');
     setAgentSteps([]);
+    // A finished kit's 100 would otherwise paint this run's stages done until its first progress event.
+    setV2Progress(null);
     setV2Reflection(null);
     setV2Models(null);
     setV2TokenUsage(null);
@@ -1070,16 +1081,22 @@ export function useAgentWorkflow(options?: {
                 break;
               case 'fit_analysis_complete': {
                 const { contextId, fitAnalysis, job, match, applicant, verifiedMetrics, detectedLanguage } = data;
-                setFitAnalysisContextId(contextId);
-                // Keep parsed context for the fit UI and session resume only.
-                setFitAnalysisContextData({
-                  applicant,
-                  job,
-                  match,
-                  verifiedMetrics,
-                  detectedLanguage,
-                  fitAnalysis,
-                });
+                // The fit's chips live in this panel's state, which follows the open application. Opened elsewhere
+                // while it ran, the fit still lands on its own application (pendingFitAnalysis, below), and its
+                // chips come back from there; the open one never gets them.
+                const fitStillOpen = useSessionStore.getState().currentSession?.createdAt === fitWorkflowCreatedAt;
+                if (fitStillOpen) {
+                  setFitAnalysisContextId(contextId);
+                  // Keep parsed context for the fit UI and session resume only.
+                  setFitAnalysisContextData({
+                    applicant,
+                    job,
+                    match,
+                    verifiedMetrics,
+                    detectedLanguage,
+                    fitAnalysis,
+                  });
+                }
                 // For a stored application the server saved what the analysis found (agent-v2
                 // writes the fit columns with a revision bump), so it is loaded below instead of
                 // written from this response. An unsaved session has no row and takes it directly.

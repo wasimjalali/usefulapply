@@ -296,6 +296,33 @@ export function wallClockToIso(wall: string, timeZone: string): string | null {
   return Number.isNaN(result.getTime()) ? null : result.toISOString();
 }
 
+/**
+ * An instant as the user's wall clock, "2026-10-28 14:00 Wed", in their zone. The inverse of wallClockToIso. Tool
+ * results carry it next to every ISO instant the chat may state, so the model never converts UTC itself: it got the
+ * hour wrong across the October DST change and then "corrected" itself in later turns. Intl does the zone and DST
+ * math. Null for a missing or unparseable value.
+ */
+export function isoToWallClock(value: string | null | undefined, timeZone: string): string | null {
+  if (!value) return null;
+  const at = new Date(value);
+  if (Number.isNaN(at.getTime())) return null;
+  const read: Record<string, string> = {};
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hourCycle: 'h23',
+    weekday: 'short',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  for (const part of formatter.formatToParts(at)) {
+    if (part.type !== 'literal') read[part.type] = part.value;
+  }
+  return `${read.year}-${read.month}-${read.day} ${read.hour}:${read.minute} ${read.weekday}`;
+}
+
 /** How far the named zone runs ahead of UTC at this instant. */
 function zoneOffsetMs(at: Date, timeZone: string): number {
   const formatter = new Intl.DateTimeFormat('en-GB', {

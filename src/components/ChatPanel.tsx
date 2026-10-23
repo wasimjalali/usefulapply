@@ -1787,6 +1787,8 @@ export function ChatPanel({
     setPendingRegen(null);
     setRunningRegen(null);
     setRunningScreening(false);
+    // The rewrite keeps running (its in-flight guard stays), but its stage belongs to the conversation that asked.
+    setRunningCvRewrite(false);
     setRegenStage(null);
     autostartedApplySessionRef.current = null;
     setShowHistory(false);
@@ -1820,7 +1822,9 @@ export function ChatPanel({
   const lastingCardsShown = !messageChipsShownFor && !turnCardShown;
   const shortCreditsShown = spine && lastingCardsShown && Boolean(shortCredits) && !pendingDecisionJd && !isAgentWorking;
   // Credits short is the newer word on a fit that can't be paid for, so it replaces the fit's own chips.
+  const accountWallShown = spine && lastingCardsShown && needsAccount && !user && !isAgentWorking;
   const fitChipsShown = lastingCardsShown
+    && !accountWallShown
     && !isAgentWorking
     && !chatLogistics
     && !sessionHasKit(currentSession)
@@ -2425,7 +2429,7 @@ export function ChatPanel({
             />
           )}
 
-          {spine && lastingCardsShown && needsAccount && !user && !isAgentWorking && (
+          {accountWallShown && (
             <DecisionChips
               chips={[
                 {

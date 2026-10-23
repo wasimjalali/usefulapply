@@ -659,9 +659,11 @@ export function createSyncEngine(deps: SyncDeps) {
     const serverFp = fingerprints(mapped);
     const nextBaseline: Baseline = { revision: incoming, fields: serverFp };
 
-    // Nothing local to preserve: never loaded, or not in the store.
+    // Nothing local to preserve but the chat: never loaded (a reload's persisted copy), or not in the store. The row
+    // carries no chat (it loads through hydrateChatIfEmpty), so the transcript on screen stays until it does.
     if (!base || !local) {
-      const installed = options.decorate ? options.decorate(mapped, local) : mapped;
+      const seeded = local ? { ...mapped, chatMessages: local.chatMessages } : mapped;
+      const installed = options.decorate ? options.decorate(seeded, local) : seeded;
       baselines.set(sessionId, nextBaseline);
       serverSessions.set(sessionId, mapped);
       rejected.delete(sessionId);

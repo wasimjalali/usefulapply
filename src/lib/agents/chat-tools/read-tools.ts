@@ -16,7 +16,7 @@ import { listLatestJobFeedItemsAdmin } from '@/lib/job-feed/server';
 import { CREDIT_COSTS, getTotalCredits } from '@/lib/credit-costs';
 import { defaultFollowUpDue, parseDate } from '@/components/tracker/tracker-status';
 import { dayKey } from '@/lib/utils/format-date';
-import { flattenUntrusted, sanitizeUntrustedText } from './untrusted';
+import { flattenUntrusted, isoToWallClock, sanitizeUntrustedText } from './untrusted';
 import { fitListsToBudget, type ChatTool } from './types';
 
 function wrapped(value: string | null | undefined): string {
@@ -38,7 +38,10 @@ function applicationLine(row: TrackerApplicationRow, todayKey: string, timeZone:
     status: row.status,
     match_score: row.match_score,
     interview_at: row.interview_at,
+    // The user's wall clock for the two instants above. The reply states these, never a UTC conversion of its own.
+    interview_local: isoToWallClock(row.interview_at, timeZone),
     follow_up_due_at: followUpDue ? followUpDue.toISOString() : null,
+    follow_up_due_local: followUpDue ? isoToWallClock(followUpDue.toISOString(), timeZone) : null,
     follow_up_overdue: Boolean(chase && followUpKey && followUpKey < todayKey),
     follow_up_due_today: Boolean(chase && followUpKey && followUpKey === todayKey),
     interview_upcoming: Boolean(interviewAt && dayKey(interviewAt, timeZone) >= todayKey),
@@ -54,7 +57,7 @@ async function trackerSnapshot(userId: string, timeZone: string) {
 const getApplications: ChatTool = {
   name: 'get_applications',
   description:
-    'The user\'s tracked job applications: company, role, status, match score, interview date, follow-up due date. Use for any question about where they stand, interviews, follow-ups or a specific company.',
+    'The user\'s tracked job applications: company, role, status, match score, interview date, follow-up due date. Use for any question about where they stand, interviews, follow-ups or a specific company. Take times from interview_local and follow_up_due_local (the user\'s own clock), never from the UTC fields; for a follow-up, state the day only.',
   parameters: { type: 'object', properties: {}, additionalProperties: false },
   handler: async (_args, ctx) => {
     const applications = await trackerSnapshot(ctx.userId, ctx.timeZone);
@@ -148,6 +151,7 @@ const getDocumentsTool: ChatTool = {
           type: doc.type,
           file_name: flattenUntrusted(doc.file_name),
           uploaded_at: doc.created_at,
+          uploaded_local: isoToWallClock(doc.created_at, ctx.timeZone),
         })),
         has_primary_cv: documents.some((doc) => doc.type === 'primary_cv'),
         has_master_cv: documents.some((doc) => doc.type === 'master_cv'),
@@ -156,11 +160,12 @@ const getDocumentsTool: ChatTool = {
   },
 };
 
-async function feedSnapshot(userId: string, limit: number) {
+async function feedSnapshot(userId: string, limit: number, timeZone: string) {
   const { run, items } = await listLatestJobFeedItemsAdmin({ userId });
-  if (!run) return { run_completed_at: null, items: [] };
+  if (!run) return { run_completed_at: null, run_completed_local: null, items: [] };
   return {
     run_completed_at: run.completed_at ?? null,
+    run_completed_local: isoToWallClock(run.completed_at, timeZone),
     items: items.slice(0, limit).map((item) => ({
       // The stable id the feed write tools address a role by. An ordinal the
       // model inferred would drift the moment the list changes.
@@ -184,7 +189,7 @@ const getFeedDigest: ChatTool = {
     'The latest job feed results: the strongest open matches with fit labels, why they match and a job_id for each. Use when the user asks what is in their feed or whether anything strong came in, and always before saving, dismissing or applying to a feed role.',
   parameters: { type: 'object', properties: {}, additionalProperties: false },
   handler: async (_args, ctx) => {
-    const digest = await feedSnapshot(ctx.userId, 8);
+    const digest = await feedSnapshot(ctx.userId, 8, ctx.timeZone);
     return { data: fitListsToBudget(digest, ['items']) };
   },
 };
@@ -192,12 +197,12 @@ const getFeedDigest: ChatTool = {
 const morningBriefing: ChatTool = {
   name: 'morning_briefing',
   description:
-    'One composed snapshot for "what should I do today": overdue and due follow-ups, upcoming interviews, strong new feed matches and the credit balance. Prefer this over separate calls when the user asks for a plan or overview of the day.',
+    'One composed snapshot for "what should I do today": overdue and due follow-ups, upcoming interviews, strong new feed matches and the credit balance. Prefer this over separate calls when the user asks for a plan or overview of the day. State times from the _local fields, never from the UTC ones.',
   parameters: { type: 'object', properties: {}, additionalProperties: false },
   handler: async (_args, ctx) => {
     const [applications, feed, creditsResult] = await Promise.all([
       trackerSnapshot(ctx.userId, ctx.timeZone),
-      feedSnapshot(ctx.userId, 3),
+      feedSnapshot(ctx.userId, 3, ctx.timeZone),
       getUserCredits(ctx.userId),
     ]);
     const inSevenDays = Date.now() + 7 * 24 * 60 * 60 * 1000;
