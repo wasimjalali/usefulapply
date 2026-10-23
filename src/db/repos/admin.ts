@@ -6,6 +6,7 @@ import { and, desc, eq, gte, inArray, isNotNull, isNull, lt, lte, notExists, or,
 import type { Json } from '@/lib/supabase/types';
 import { chunk, D1_MAX_PARAMS, isUniqueViolation, getDb, nowIso } from '../client';
 import {
+  anthropicUserProfiles,
   applicationSessions,
   chatCompactions,
   chatMessages,
@@ -767,10 +768,17 @@ export async function listUnverifiedAuthUsers(
     .limit(CRON_BATCH_LIMIT);
 }
 
-export async function deleteAllUserData(userId: string): Promise<void> {
+/** Returns the Anthropic user profile ids it removed with the user's rows, for the caller to delete at Anthropic. */
+export async function deleteAllUserData(userId: string): Promise<{ anthropicProfileIds: string[] }> {
   const db = await getDb();
   for (const table of USER_ID_TABLES) {
     await db.delete(table).where(eq(table.user_id, userId));
   }
-  await db.delete(profiles).where(eq(profiles.id, userId));
+  // One atomic batch: a profile a model call stores before it is returned here, and once `profiles` is gone the FK
+  // refuses any later one (that caller deletes its own profile).
+  const [anthropicRows] = await db.batch([
+    db.delete(anthropicUserProfiles).where(eq(anthropicUserProfiles.user_id, userId)).returning({ profileId: anthropicUserProfiles.profile_id }),
+    db.delete(profiles).where(eq(profiles.id, userId)),
+  ]);
+  return { anthropicProfileIds: anthropicRows.map((row) => row.profileId) };
 }

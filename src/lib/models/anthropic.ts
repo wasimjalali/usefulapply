@@ -30,6 +30,7 @@ import {
   type ProviderName,
 } from './providers';
 import { createStreamGuard, outputTokensPartial, partialStreamUsage, streamMaxGapOf } from './stream-guard';
+import { forgetRejectedUserProfile, resolveUserProfileId, userProfileRequestOptions } from './user-profiles';
 import type { ModelResponse, ConversationMessage, CacheableContentBlock, CacheTtl } from './types';
 
 type LedgerAwareResponse = {
@@ -466,19 +467,21 @@ export function buildSonnetRequest(options: AnthropicCallOptions, model: string 
 async function sendSdkMessage(
   client: MessagesClient,
   params: SonnetRequest,
+  userProfileId: string | null,
 ): Promise<{ message: Anthropic.Message; requestId: string | null; streamMaxGapMs: number | null }> {
+  const profile = userProfileRequestOptions(userProfileId);
   if (params.max_tokens > STREAM_ABOVE_MAX_TOKENS) {
     // The caller sees nothing until the final message, so a failure here is always safe to fail over.
     const guard = createStreamGuard(streamIdleTimeoutMs());
     try {
-      const stream = client.messages.stream(params, { timeout: SONNET_STREAM_FIRST_BYTE_TIMEOUT_MS, ...guard.requestOptions });
+      const stream = client.messages.stream(params, { timeout: SONNET_STREAM_FIRST_BYTE_TIMEOUT_MS, ...guard.requestOptions, ...profile });
       const message = await guard.finalMessage(stream);
       return { message, requestId: stream.request_id ?? null, streamMaxGapMs: guard.maxGapMs };
     } finally {
       guard.dispose();
     }
   }
-  const { data, request_id } = await client.messages.create(params, { timeout: SONNET_TIMEOUT_MS }).withResponse();
+  const { data, request_id } = await client.messages.create(params, { timeout: SONNET_TIMEOUT_MS, ...profile }).withResponse();
   return { message: data, requestId: request_id ?? null, streamMaxGapMs: null };
 }
 
@@ -615,11 +618,14 @@ export interface SonnetDeps {
   failLedger: typeof recordProviderFailure;
   /** `event` defaults to `$ai_generation`. */
   capture(event: { distinctId: string; event?: string; properties: Record<string, unknown> }): Promise<void>;
+  /** The user's Anthropic profile id (user-profiles.ts). Absent: no profile header. */
+  userProfileId?(userId: string | null | undefined): Promise<string | null>;
 }
 
 const defaultSonnetDeps: SonnetDeps = {
   getClient: getPrimaryClient,
   getBedrockClient,
+  userProfileId: resolveUserProfileId,
   startLedger: startLlmGeneration,
   completeLedger: completeProviderGeneration,
   failLedger: recordProviderFailure,
@@ -632,9 +638,12 @@ const defaultSonnetDeps: SonnetDeps = {
 
 let sonnetDeps: SonnetDeps = defaultSonnetDeps;
 
-/** Swap the clients, ledger and PostHog capture for a test. `null` restores the real ones. */
+/**
+ * Swap the clients, ledger and PostHog capture for a test. `null` restores the real ones. A test gets no user
+ * profile unless it passes `userProfileId` (the real one reads D1 and calls the API).
+ */
 export function setSonnetDepsForTests(deps: Partial<SonnetDeps> | null): void {
-  sonnetDeps = deps ? { ...defaultSonnetDeps, ...deps } : defaultSonnetDeps;
+  sonnetDeps = deps ? { ...defaultSonnetDeps, userProfileId: undefined, ...deps } : defaultSonnetDeps;
 }
 
 export interface SonnetGenerationInput {
@@ -742,7 +751,7 @@ async function sdkTextAttempt(
   const cacheMarkers = cacheMarkerTtls(params);
   let providerResponseReceived = false;
   try {
-    const { message, requestId, streamMaxGapMs } = await sendSdkMessage(target.getClient(), params);
+    const { message, requestId, streamMaxGapMs } = await sendSdkMessage(target.getClient(), params, target.userProfileId);
     // Throws on a refusal or truncation before the ledger marks the call complete.
     const text = sdkMessageText(message, requestId, params.max_tokens);
     providerResponseReceived = true;
@@ -803,22 +812,30 @@ async function sdkTextAttempt(
   }
 }
 
-function sonnetFailover<T>(
+async function sonnetFailover<T>(
   context: LlmGenerationContext,
   site: string,
   attempt: (target: FailoverTarget<MessagesClient>) => Promise<T>,
   canFailOver?: () => boolean,
 ): Promise<T> {
-  return runWithFailover<MessagesClient, T>({
-    site,
-    model: SONNET_MODEL_ID,
-    context,
-    primary: () => sonnetDeps.getClient(),
-    bedrock: () => sonnetDeps.getBedrockClient(),
-    attempt,
-    canFailOver,
-    onFailover: (info) => captureFailoverEvent(info, (event) => sonnetDeps.capture(event)),
-  });
+  // Resolved once per call, never throws: a profile that cannot be resolved means no header, logged where it failed.
+  const userProfileId = (await sonnetDeps.userProfileId?.(context.userId)) ?? null;
+  try {
+    return await runWithFailover<MessagesClient, T>({
+      site,
+      model: SONNET_MODEL_ID,
+      context,
+      userProfileId,
+      primary: () => sonnetDeps.getClient(),
+      bedrock: () => sonnetDeps.getBedrockClient(),
+      attempt,
+      canFailOver,
+      onFailover: (info) => captureFailoverEvent(info, (event) => sonnetDeps.capture(event)),
+    });
+  } catch (error) {
+    await forgetRejectedUserProfile(context.userId, userProfileId, error);
+    throw error;
+  }
 }
 
 /**
@@ -900,7 +917,11 @@ export async function callAnthropicStream(
     let sawMessageDelta = false;
     const guard = createStreamGuard(streamIdleTimeoutMs());
     try {
-      const stream = target.getClient().messages.stream(params, { timeout: SONNET_STREAM_FIRST_BYTE_TIMEOUT_MS, ...guard.requestOptions });
+      const stream = target.getClient().messages.stream(params, {
+        timeout: SONNET_STREAM_FIRST_BYTE_TIMEOUT_MS,
+        ...guard.requestOptions,
+        ...userProfileRequestOptions(target.userProfileId),
+      });
       const usageSoFar = () => (Object.keys(finalUsage).length > 0 ? partialStreamUsage(finalUsage, sawMessageDelta) : undefined);
 
       for await (const event of guard.events(stream, usageSoFar)) {

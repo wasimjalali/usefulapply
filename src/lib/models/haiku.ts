@@ -73,6 +73,7 @@ import {
 } from './token-budget';
 import type { ModelResponse } from './types';
 import { COMPACTION_BETA, asCompactionBlock, carriesCompactionBlock } from './compaction';
+import { forgetRejectedUserProfile, resolveUserProfileId, userProfileRequestOptions } from './user-profiles';
 
 export const HAIKU_MODEL_ID = 'claude-haiku-5-5';
 
@@ -115,6 +116,8 @@ export const HAIKU_COUNT_TOKENS_TIMEOUT_MS = 15_000;
 
 export interface HaikuRequestOptions {
   timeout: number;
+  /** The user's Anthropic profile id, sent as the `anthropic-user-profile-id` header (user-profiles.ts). */
+  userProfileId?: string | null;
 }
 
 export interface HaikuToolDefinition {
@@ -456,7 +459,7 @@ export function buildAiGenerationProperties(input: AiGenerationInput): Record<st
 export interface HaikuClient {
   createMessage(params: HaikuRequest, options?: HaikuRequestOptions): Promise<HaikuMessage>;
   /** Exact input tokens for system + tools + messages. Free. */
-  countTokens(params: CountTokensParams): Promise<number>;
+  countTokens(params: CountTokensParams, userProfileId?: string | null): Promise<number>;
 }
 
 export interface HaikuDeps {
@@ -468,16 +471,19 @@ export interface HaikuDeps {
   failLedger: typeof recordProviderFailure;
   /** `event` defaults to `$ai_generation`. */
   capture(event: { distinctId: string; event?: string; properties: Record<string, unknown> }): Promise<void>;
+  /** The user's Anthropic profile id (user-profiles.ts). Absent: no profile header. */
+  userProfileId?(userId: string | null | undefined): Promise<string | null>;
 }
 
 function haikuClientFor(sdk: MessagesClient): HaikuClient {
   return {
     async createMessage(params, options) {
+      const requestOptions = options ? { timeout: options.timeout, ...userProfileRequestOptions(options.userProfileId ?? null) } : undefined;
       if (params.max_tokens > STREAM_ABOVE_MAX_TOKENS) {
         // The caller sees nothing until the final message, so a stream that breaks or goes idle is safe to fail over.
         const guard = createStreamGuard(streamIdleTimeoutMs());
         try {
-          const stream = sdk.beta.messages.stream(params, { ...options, ...guard.requestOptions });
+          const stream = sdk.beta.messages.stream(params, { ...requestOptions, ...guard.requestOptions });
           const message = await guard.finalMessage(stream);
           return { ...message, _request_id: stream.request_id ?? null, _stream_max_gap_ms: guard.maxGapMs };
         } finally {
@@ -485,11 +491,14 @@ function haikuClientFor(sdk: MessagesClient): HaikuClient {
         }
       }
       // The SDK already defines a read-only `_request_id` on the message at runtime, so it is copied, not assigned.
-      const { data, request_id } = await sdk.beta.messages.create(params, options).withResponse();
+      const { data, request_id } = await sdk.beta.messages.create(params, requestOptions).withResponse();
       return { ...data, _request_id: request_id ?? null };
     },
-    async countTokens(params) {
-      const result = await sdk.beta.messages.countTokens(params, { timeout: HAIKU_COUNT_TOKENS_TIMEOUT_MS });
+    async countTokens(params, userProfileId) {
+      const result = await sdk.beta.messages.countTokens(params, {
+        timeout: HAIKU_COUNT_TOKENS_TIMEOUT_MS,
+        ...userProfileRequestOptions(userProfileId ?? null),
+      });
       return result.input_tokens;
     },
   };
@@ -509,6 +518,7 @@ export function defaultBedrockHaikuClient(): HaikuClient | null {
 const defaultDeps: HaikuDeps = {
   getClient: defaultHaikuClient,
   getBedrockClient: defaultBedrockHaikuClient,
+  userProfileId: resolveUserProfileId,
   startLedger: startLlmGeneration,
   completeLedger: completeProviderGeneration,
   failLedger: recordProviderFailure,
@@ -536,27 +546,35 @@ function budgetErrorKind(error: unknown): string {
 }
 
 /** The one failover helper, wired to this call's deps, site and context. */
-function haikuFailover<T>(
+async function haikuFailover<T>(
   deps: HaikuDeps,
   options: HaikuCallOptions,
   attempt: (target: FailoverTarget<HaikuClient>) => Promise<T>,
 ): Promise<T> {
-  return runWithFailover<HaikuClient, T>({
-    site: options.site,
-    model: HAIKU_MODEL_ID,
-    context: options.generationContext,
-    primary: () => deps.getClient(),
-    bedrock: () => deps.getBedrockClient?.() ?? null,
-    attempt,
-    pin: options.provider,
-    // A request that compacts or carries a compaction block says so on the event: Bedrock may refuse an Anthropic-signed
-    // block (bedrock-probe.ts check 7), and those failures have to be findable.
-    onFailover: (info) => captureFailoverEvent(info, (event) => deps.capture(
-      options.compaction || carriesCompactionBlock(options.messages)
-        ? { ...event, properties: { ...event.properties, compaction: true } }
-        : event,
-    )),
-  });
+  // Resolved once per call, never throws: a profile that cannot be resolved means no header, logged where it failed.
+  const userProfileId = (await deps.userProfileId?.(options.generationContext.userId)) ?? null;
+  try {
+    return await runWithFailover<HaikuClient, T>({
+      site: options.site,
+      model: HAIKU_MODEL_ID,
+      context: options.generationContext,
+      userProfileId,
+      primary: () => deps.getClient(),
+      bedrock: () => deps.getBedrockClient?.() ?? null,
+      attempt,
+      pin: options.provider,
+      // A request that compacts or carries a compaction block says so on the event: Bedrock may refuse an
+      // Anthropic-signed block (bedrock-probe.ts check 7), and those failures have to be findable.
+      onFailover: (info) => captureFailoverEvent(info, (event) => deps.capture(
+        options.compaction || carriesCompactionBlock(options.messages)
+          ? { ...event, properties: { ...event.properties, compaction: true } }
+          : event,
+      )),
+    });
+  } catch (error) {
+    await forgetRejectedUserProfile(options.generationContext.userId, userProfileId, error);
+    throw error;
+  }
 }
 
 /**
@@ -576,7 +594,7 @@ async function measureBudget(deps: HaikuDeps, options: HaikuCallOptions, params:
           ...(params.tools ? { tools: params.tools } : {}),
           messages: params.messages,
           ...(params.betas ? { betas: params.betas } : {}),
-        }));
+        }, target.userProfileId));
       } catch (error) {
         // Bedrock was already tried for the count: do not try it again for the message.
         throw markNotFailoverEligible(error);
@@ -633,7 +651,7 @@ export async function callHaiku(options: HaikuCallOptions, deps: HaikuDeps = def
                 ...(params.betas ? { betas: params.betas } : {}),
               });
               try {
-                return await client.countTokens(countRequest(target.model));
+                return await client.countTokens(countRequest(target.model), target.userProfileId);
               } catch (countError) {
                 // Only an unpinned call on the primary may try Bedrock for the count.
                 if (target.provider !== 'anthropic' || options.provider || !isFailoverError(countError)) throw countError;
@@ -645,7 +663,7 @@ export async function callHaiku(options: HaikuCallOptions, deps: HaikuDeps = def
                 }
                 if (!bedrock) throw countError;
                 try {
-                  countedOnBedrock = await bedrock.countTokens(countRequest(bedrockModelId(HAIKU_MODEL_ID)));
+                  countedOnBedrock = await bedrock.countTokens(countRequest(bedrockModelId(HAIKU_MODEL_ID)), target.userProfileId);
                 } catch (bedrockError) {
                   // Bedrock was tried for the count and failed too: the call must not fail over for the message.
                   throw markNotFailoverEligible(bedrockError);
@@ -670,7 +688,7 @@ export async function callHaiku(options: HaikuCallOptions, deps: HaikuDeps = def
 
       const message = await client.createMessage(
         target.model === params.model ? params : { ...params, model: target.model },
-        { timeout: HAIKU_SITE_TIMEOUT_MS[options.site] },
+        { timeout: HAIKU_SITE_TIMEOUT_MS[options.site], userProfileId: target.userProfileId },
       );
       const providerRequestId = message._request_id ?? message.id ?? null;
 

@@ -51,6 +51,8 @@ export interface FakeCall {
   blockTypes: string[][];
   /** The summary text of the compaction blocks the request carries. */
   carriedSummary: string;
+  /** The user profile the request named: the header on the Anthropic API, the body field on Bedrock. */
+  userProfileId: string | null;
 }
 
 /** `url` picks the scripted model: the data lane's by default, the MCP lane's when given MCP_FAKE_URL. */
@@ -84,9 +86,36 @@ export interface FakeControl {
    * `writer` limits it to one writer. The SDK does not retry after the headers, so count 1 cuts one logical call.
    */
   primaryStreamCut?: { count: number; skip?: number; writer?: string } | null;
+  /** POST /v1/user_profiles answers `status` to the next `count` creates. null clears it. */
+  profileCreateFail?: { status: 500 | 529 | 400; count: number } | null;
+  /** Hold every profile create this long before answering. */
+  profileCreateHoldMs?: number;
+  /** DELETE /v1/user_profiles/{id} answers `status` to the next `count` deletes. null clears it. */
+  profileDeleteFail?: { status: 500 | 503; count: number } | null;
 }
 
 export async function fakeControl(body: FakeControl, url: string = FAKE_ANTHROPIC_URL): Promise<void> {
   const response = await fetch(`${url}/__control`, { method: 'POST', body: JSON.stringify(body) });
   if (!response.ok) throw new Error('fake model control call failed');
+}
+
+export interface FakeProfile { id: string; referenceId: string | null; accessType: string; createdAt: string; deletedAt: string | null; enforcement: 'unrestricted' | 'banned' }
+export interface FakeProfileEvent { kind: 'create' | 'delete' | 'retrieve'; id: string | null; referenceId: string | null; status: number; at: string }
+
+/** Every user profile the fake holds (they outlive /__reset) and every create, delete and retrieve it answered. */
+export async function fakeProfiles(url: string = FAKE_ANTHROPIC_URL): Promise<{ profiles: FakeProfile[]; events: FakeProfileEvent[] }> {
+  const response = await fetch(`${url}/__profiles`);
+  return (await response.json()) as { profiles: FakeProfile[]; events: FakeProfileEvent[] };
+}
+
+/** Add a profile created elsewhere, so the fake accepts its id (a race's winner from another isolate). */
+export async function fakeAddProfile(id: string, referenceId: string, url: string = FAKE_ANTHROPIC_URL): Promise<void> {
+  const response = await fetch(`${url}/__profiles`, { method: 'POST', body: JSON.stringify({ id, referenceId }) });
+  if (!response.ok) throw new Error(`fake profile add failed: ${await response.text()}`);
+}
+
+/** Ban a profile the fake holds: a request naming it then gets a 400 that names the id, and a retrieve shows the ban. */
+export async function fakeBanProfile(id: string, url: string = FAKE_ANTHROPIC_URL): Promise<void> {
+  const response = await fetch(`${url}/__profiles`, { method: 'POST', body: JSON.stringify({ id, enforcement: 'banned' }) });
+  if (!response.ok) throw new Error(`fake profile ban failed: ${await response.text()}`);
 }

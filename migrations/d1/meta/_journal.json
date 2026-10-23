@@ -92,6 +92,13 @@
       "when": 1787238583119,
       "tag": "0013_chat_compactions",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1787238583120,
+      "tag": "0014_anthropic_user_profiles",
+      "breakpoints": true
     }
   ]
 }
