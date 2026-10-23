@@ -408,8 +408,9 @@ export function useAgentWorkflow(options?: {
   };
 
   const handleStopGeneration = () => {
-    // A chat reply, not a kit run: what was shown stays, marked stopped, and none of it is stored. The route sees the
-    // disconnect and stores no reply (the user's own message stays saved).
+    // A chat reply, not a kit run: this tab stops reading it, and what was shown stays, marked stopped, on this screen
+    // only. The route finishes the turn and stores the whole reply (route.ts, runChatTurn), so the next turn and a
+    // reload have it.
     const chatTurn = chatTurnRef.current;
     if (chatTurn) {
       const streaming = useStreamingReply.getState().reply;

@@ -607,7 +607,7 @@ function asksForOverview(text: string): boolean {
 }
 
 /** The German overview, long enough to stream over many chunks, with a long dash the route must rewrite. */
-export function overviewReply(apps: Array<Record<string, unknown>>): string {
+function overviewReply(apps: Array<Record<string, unknown>>): string {
   const companies = apps.map((app) => unwrap(app.company)).filter(Boolean);
   return [
     `Du hast ${companies.length} Bewerbungen im Tracker: ${companies.join(', ')}.`,

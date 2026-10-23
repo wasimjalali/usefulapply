@@ -17,6 +17,7 @@
 import { guardUnsupportedCvAdditionOffer } from '@/lib/agents/chat-reply-guard';
 import { sanitizeDashes } from '@/lib/config/typo-corrections';
 import type { HaikuTextStream } from '@/lib/models/haiku';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 export type ChatStreamEvent =
   | { type: 'delta'; text: string }
@@ -54,7 +55,7 @@ export class ReplyStream {
   ) {}
 
   /** callHaiku's stream option for one model call: text from it goes through the gate. */
-  forCall(signal: AbortSignal): HaikuTextStream {
+  forCall(): HaikuTextStream {
     return {
       // A new attempt: whatever a failed one held back is dropped (failover only happens before anything was sent).
       attempt: () => {
@@ -67,7 +68,6 @@ export class ReplyStream {
         if (end > 0) this.offer(this.raw.slice(0, end));
       },
       delivered: () => this.deliveredInCall,
-      signal,
     };
   }
 
@@ -113,20 +113,24 @@ export class ReplyStream {
 }
 
 /**
- * The streamed response. `run` gets the event sink and the signal that fires when the client goes away (the Stop
- * button, a closed tab); it returns the `done` body, or null when the client left and nothing more is sent. A throw
- * becomes the `error` event `fail` builds.
+ * The streamed response. `run` gets the event sink and returns the `done` body; a throw becomes the `error` event
+ * `fail` builds.
  *
- * The client going away is read off this stream only: its cancel, or a write that fails. The request's own signal is
- * no use here, since Next marks the request finished once the handler has returned this Response.
+ * The turn does not depend on the client staying: once the client goes away (the Stop button, a closed tab, read
+ * off this stream's cancel or a write that fails) the events stop, and the turn runs to its end and stores its reply
+ * (route.ts, runChatTurn). waitUntil keeps the Worker alive for that.
  */
 export function chatEventStream(
-  run: (send: (event: ChatStreamEvent) => void, signal: AbortSignal) => Promise<Record<string, unknown> | null>,
+  run: (send: (event: ChatStreamEvent) => void) => Promise<Record<string, unknown>>,
   fail: (error: unknown) => Promise<{ status: number; body: Record<string, unknown> }>,
 ): Response {
   const encoder = new TextEncoder();
-  const clientGone = new AbortController();
   let closed = false;
+  let finish: () => void = () => undefined;
+  const finished = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  void keepAliveUntil(finished);
 
   const body = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -135,32 +139,30 @@ export function chatEventStream(
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
         } catch (error) {
-          // The stream is gone (the client cancelled it): the turn stops where it is.
+          // The client cancelled the stream: the turn carries on without it.
           console.error('[chat] the reply stream closed under a write:', error instanceof Error ? error.message : error);
           closed = true;
-          clientGone.abort();
         }
       };
       const heartbeat = setInterval(() => send({ type: 'ping' }), HEARTBEAT_MS);
       void (async () => {
         try {
-          const done = await run(send, clientGone.signal);
-          if (done) send({ type: 'done', ...done });
+          send({ type: 'done', ...(await run(send)) });
         } catch (error) {
           const { status, body: failure } = await fail(error);
-          if (!clientGone.signal.aborted) send({ type: 'error', status, ...failure });
+          send({ type: 'error', status, ...failure });
         } finally {
           clearInterval(heartbeat);
           if (!closed) {
             closed = true;
             controller.close();
           }
+          finish();
         }
       })();
     },
     cancel() {
       closed = true;
-      clientGone.abort();
     },
   });
 
@@ -171,6 +173,16 @@ export function chatEventStream(
       'x-accel-buffering': 'no',
     },
   });
+}
+
+/** Keeps the Worker running until the turn is over, also after the client left. Loud when there is no context. */
+async function keepAliveUntil(done: Promise<void>): Promise<void> {
+  try {
+    const { ctx } = await getCloudflareContext({ async: true });
+    ctx.waitUntil(done);
+  } catch (error) {
+    console.error('[chat] no Workers context to keep a streamed turn alive after its client leaves:', error instanceof Error ? error.message : error);
+  }
 }
 
 /** True when the request asked for the streamed reply. Anything else (a tab from before streaming) gets JSON. */

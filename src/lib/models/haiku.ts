@@ -27,7 +27,6 @@
  * compacts or carries a block; the countTokens call adds the SDK's own `anthropic-beta: token-counting` header.
  */
 import type Anthropic from '@anthropic-ai/sdk';
-import { APIUserAbortError } from '@anthropic-ai/sdk';
 import {
   startLlmGeneration,
   type LlmGenerationContext,
@@ -122,7 +121,6 @@ export interface HaikuRequestOptions {
   userProfileId?: string | null;
   /** Streams the call and hands each text delta here (HaikuCallOptions.stream). */
   onText?: (delta: string) => void;
-  signal?: AbortSignal;
 }
 
 export interface HaikuToolDefinition {
@@ -169,7 +167,6 @@ export interface HaikuCallOptions {
    * Stream the answer's text as it arrives (the chat route). The call still resolves with the whole response, read
    * exactly as an unstreamed one. `attempt` runs before each provider attempt, so text held from a failed one can be
    * dropped; failover to Bedrock happens only while `delivered()` is false (no text of this call reached the user).
-   * `signal` aborts the call (the client went away); an abort never fails over.
    */
   stream?: HaikuTextStream;
 }
@@ -178,7 +175,6 @@ export interface HaikuTextStream {
   attempt(provider: ProviderName): void;
   text(delta: string): void;
   delivered(): boolean;
-  signal?: AbortSignal;
 }
 
 export interface HaikuResponse extends ModelResponse {
@@ -502,7 +498,7 @@ function haikuClientFor(sdk: MessagesClient): HaikuClient {
         // Text goes to the caller as it arrives, so this stream fails over only while the caller says nothing of it
         // was delivered (HaikuCallOptions.stream). The guard converts a cut or idle stream as for the case below.
         const onText = options.onText;
-        const guard = createStreamGuard(streamIdleTimeoutMs(), options.signal);
+        const guard = createStreamGuard(streamIdleTimeoutMs());
         try {
           const stream = sdk.beta.messages.stream(params, { ...requestOptions, ...guard.requestOptions });
           let sawMessageDelta = false;
@@ -581,10 +577,7 @@ async function captureGeneration(deps: HaikuDeps, context: LlmGenerationContext,
 }
 
 function budgetErrorKind(error: unknown): string {
-  if (error instanceof InputBudgetError) return 'input_budget';
-  // The caller aborted (the chat's client went away): not a provider failure.
-  if (error instanceof APIUserAbortError) return 'client_aborted';
-  return providerErrorKind(error, 'provider_error');
+  return error instanceof InputBudgetError ? 'input_budget' : providerErrorKind(error, 'provider_error');
 }
 
 /** The one failover helper, wired to this call's deps, site and context. */
@@ -737,7 +730,7 @@ export async function callHaiku(options: HaikuCallOptions, deps: HaikuDeps = def
         {
           timeout: HAIKU_SITE_TIMEOUT_MS[options.site],
           userProfileId: target.userProfileId,
-          ...(options.stream ? { onText: options.stream.text, signal: options.stream.signal } : {}),
+          ...(options.stream ? { onText: options.stream.text } : {}),
         },
       );
       const providerRequestId = message._request_id ?? message.id ?? null;

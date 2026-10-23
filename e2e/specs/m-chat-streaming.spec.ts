@@ -2,7 +2,6 @@ import { mkdirSync } from 'node:fs';
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { BASE_URL } from '../lib/env';
 import { fakeCalls, fakeControl, fakeReset, type FakeCall } from '../lib/fake-control';
-import { overviewReply } from '../lib/model-script';
 import { openLocalD1 } from '../lib/sqlite';
 import { generateKitThroughUi, openApplication, signedInPage, storedApplication } from '../lib/app';
 import { nextTestIp, type TestUser } from '../lib/user';
@@ -170,15 +169,18 @@ const chatCallsSince = async (since: string): Promise<FakeCall[]> =>
 
 interface FrameSample { t: number; count: number; len: number; top: number | null; scrollTop: number; stopped: number; thinking: boolean; status: boolean }
 
-/** Samples every animation frame of the chat scroller: the reply bubbles that contain `mark`, and where they sit. */
+/** Samples every animation frame of the chat scroller: the new reply bubbles that contain `mark`, and where they sit. */
 async function startSampling(page: Page, mark: string): Promise<void> {
   await page.evaluate((needle) => {
     const w = window as unknown as { __samples: FrameSample[]; __sampling: boolean };
     w.__samples = [];
     w.__sampling = true;
     const scroller = document.querySelector('[data-chat-scroll]') as HTMLElement;
+    const matching = () => Array.from(scroller.querySelectorAll<HTMLElement>('.group\\/msg')).filter((el) => (el.textContent ?? '').includes(needle));
+    // Replies already in the transcript (earlier turns) are not this turn's: only bubbles after them count.
+    const before = matching().length;
     const tick = () => {
-      const bubbles = Array.from(scroller.querySelectorAll<HTMLElement>('.group\\/msg')).filter((el) => (el.textContent ?? '').includes(needle));
+      const bubbles = matching().slice(before);
       const bubble = bubbles[0];
       w.__samples.push({
         t: performance.now(),
@@ -218,6 +220,8 @@ async function recordingPage(browser: Browser, signedIn: BrowserContext, user: T
 }
 
 const chatInput = (page: Page) => page.getByPlaceholder(/Ask for a change|Paste a job ad or ask anything/);
+/** The chat bubbles that contain `text` (earlier turns' replies included: compare counts, never `.last()` alone). */
+const bubblesWith = (page: Page, text: string) => page.locator('[data-chat-scroll] .group\\/msg', { hasText: text });
 
 test.describe.serial('chat replies stream as they are written', () => {
   let browser: Browser;
@@ -235,6 +239,10 @@ test.describe.serial('chat replies stream as they are written', () => {
     const application = storedApplication(user.id);
     if (!application) throw new Error('the kit left no application row');
     sessionId = application.id;
+    // The kit's own messages reach D1 through the client's debounced sync. Wait for them, so they never land between
+    // a turn of this spec and its reply.
+    await expect.poll(() => chatMessagesOf(sessionId).some((row) => row.content.includes('Your kit for Northwind Foods is ready')), { timeout: 15_000 }).toBe(true);
+    await page.waitForTimeout(1_500);
     seedApplication(user.id, 'Bosch', 'Systems Analyst');
     seedApplication(user.id, 'Zapier', 'Finance Lead');
     companies = ['Northwind Foods', 'Bosch', 'Zapier'];
@@ -284,8 +292,12 @@ test.describe.serial('chat replies stream as they are written', () => {
     const calls = await chatCallsSince(since);
     expect(calls.map((call) => [call.provider, call.stream, call.status])).toEqual([['anthropic', true, 200], ['anthropic', true, 200]]);
     expect(calls[1].toolResults.length).toBe(1);
-    // The cache layout is the one the non-streamed chat sends: two 1h system markers, then the 5m turn markers.
-    for (const call of calls) expect(call.markers.map((marker) => marker.ttl)).toEqual(['1h', '1h', '5m']);
+    // The cache layout is the one the non-streamed chat sends (appendToolRound, unchanged): two 1h system markers, the
+    // 5m marker on the new turn, and on the tool round one more on the last tool result.
+    expect(calls.map((call) => call.markers.map((marker) => `${marker.where}:${marker.ttl}`))).toEqual([
+      ['system:1h', 'system:1h', 'message:5m'],
+      ['system:1h', 'system:1h', 'message:5m', 'message:5m'],
+    ]);
     expect(calls[1].usage?.cacheRead ?? 0).toBeGreaterThan(0);
     // Ledger: one completed row per call, with the usage the stream reported (iterations included).
     const rows = ledgerRows(user.id, since);
@@ -398,7 +410,7 @@ test.describe.serial('chat replies stream as they are written', () => {
         expect(samples.slice(firstShown).filter((sample) => sample.thinking)).toHaveLength(0);
         // The bubble sits at one place in the conversation from its first frame to the last: no jump at the swap.
         expect(new Set(shown.map((sample) => sample.top)).size, JSON.stringify([...new Set(shown.map((sample) => sample.top))])).toBe(1);
-        const finalText = await recPage.locator('[data-chat-scroll] .group\\/msg', { hasText: MARK }).innerText();
+        const finalText = await recPage.locator('[data-chat-scroll] .group\\/msg', { hasText: MARK }).last().innerText();
         expect(finalText).toContain('noch offen, dort wartest du');
         await recPage.screenshot({ path: test.info().outputPath(`after-${run}.png`) });
       } finally {
@@ -411,55 +423,79 @@ test.describe.serial('chat replies stream as they are written', () => {
     await fakeControl({ streamChunkMs: 150 });
     await openApplication(page);
     const scroller = page.locator('[data-chat-scroll]');
+    const answers = bubblesWith(page, `Du hast ${companies.length} Bewerbungen im Tracker`);
+    const shownBefore = await answers.count();
+    await startSampling(page, MARK);
     const replied = page.waitForResponse((response) => response.url().endsWith('/api/chat') && response.request().method() === 'POST');
     await chatInput(page).fill(QUESTION);
     await chatInput(page).press('Enter');
-    await expect(page.getByText(`Du hast ${companies.length} Bewerbungen im Tracker`).last()).toBeVisible({ timeout: 30_000 });
+    // Mid-stream: this turn's bubble has its first answer sentence, and the rest is still coming (150 ms a chunk).
+    await expect(answers).toHaveCount(shownBefore + 1, { timeout: 30_000 });
     await scroller.hover();
     await page.mouse.wheel(0, -400);
     await page.waitForTimeout(300);
     const held = await scroller.evaluate((el) => el.scrollTop);
+    const scrolledAt = await page.evaluate(() => performance.now());
     expect(held, 'the reader is above the bottom').toBeLessThan(await scroller.evaluate((el) => el.scrollHeight - el.clientHeight - 100));
-    await startSampling(page, MARK);
     await (await replied).finished();
-    await expect(page.getByText('Ich kann dir auch zeigen').last()).toBeAttached({ timeout: 30_000 });
     await page.waitForTimeout(500);
-    const samples = await stopSampling(page);
+    const samples = (await stopSampling(page)).filter((sample) => sample.t > scrolledAt);
     expect(samples.length).toBeGreaterThan(10);
+    // Text kept arriving after the reader scrolled up, then the reply landed: the sampler saw both.
+    expect(new Set(samples.map((sample) => sample.len)).size).toBeGreaterThan(3);
     for (const sample of samples) expect(sample.scrollTop).toBe(held);
   });
 
-  test('Stop mid-stream keeps what was shown, stores nothing for it, and the next message works', async () => {
+  test('Stop mid-stream keeps what was shown on screen; the route finishes the turn and stores the whole reply once', async () => {
     await fakeControl({ streamChunkMs: 250 });
     await openApplication(page);
-    const since = new Date().toISOString();
     const before = chatMessagesOf(sessionId).length;
+    const answers = bubblesWith(page, `Du hast ${companies.length} Bewerbungen im Tracker`);
+    const shownBefore = await answers.count();
     await chatInput(page).fill(QUESTION);
     await chatInput(page).press('Enter');
-    await expect(page.getByText(`Du hast ${companies.length} Bewerbungen im Tracker`).last()).toBeVisible({ timeout: 30_000 });
+    // This turn's bubble, with the answer's first sentence on it, mid-stream.
+    await expect(answers).toHaveCount(shownBefore + 1, { timeout: 30_000 });
     await page.getByRole('button', { name: 'Stop generation' }).click();
-    const stopped = page.locator('[data-chat-scroll] .group\\/msg', { hasText: 'Stopped' }).last();
+    const stopped = bubblesWith(page, 'Stopped').last();
     await expect(stopped).toContainText(MARK);
+    const shownText = await stopped.innerText();
+    expect(shownText).not.toContain('Ich kann dir auch zeigen');
     await expect(page.getByText(/Generation stopped/)).toHaveCount(0);
+    // The input is free again right away.
+    await expect(page.getByRole('button', { name: 'Stop generation' })).toHaveCount(0);
     await page.screenshot({ path: test.info().outputPath('stopped.png') });
-    // The route saw the client leave: the call out was aborted and no reply was stored.
-    await expect.poll(() => ledgerRows(user.id, since).map((row) => row.error_kind).includes('client_aborted'), { timeout: 15_000 }).toBe(true);
+
+    // The route finished the turn without the client: the whole reply, once, after the question. Nothing of the
+    // stopped bubble was written (its text is a prefix of the stored reply, and it never syncs).
+    const full = () => {
+      const rows = chatMessagesOf(sessionId).slice(before);
+      const asked = rows.findIndex((row) => row.role === 'user' && row.content === QUESTION);
+      return { rows, asked, replies: rows.slice(asked + 1).filter((row) => row.role === 'assistant') };
+    };
+    await expect.poll(() => full().replies.length, { timeout: 20_000 }).toBe(1);
     await page.waitForTimeout(2_500);
-    const rows = chatMessagesOf(sessionId).slice(before);
-    const asked = rows.filter((row) => row.role === 'user' && row.content === QUESTION);
-    expect(asked).toHaveLength(1);
-    expect(asked[0].claimed_at).not.toBeNull();
-    expect(rows.filter((row) => row.role === 'assistant'), 'no reply stored, the stopped text included').toHaveLength(0);
-    const calls = await chatCallsSince(since);
-    expect(calls.at(-1)?.streamedText.join('').length ?? 0).toBeLessThan(overviewReply([{}, {}, {}]).length);
+    const { rows, asked, replies } = full();
+    expect(rows[asked].claimed_at).not.toBeNull();
+    expect(replies).toHaveLength(1);
+    expect(replies[0].content.endsWith('welche Bewerbung am besten zu deinem Profil passt.')).toBe(true);
+    expect(replies[0].id.startsWith('msg-')).toBe(true);
+    expect(rows.some((row) => row.id.startsWith('stopped-') || row.content.includes('Stopped'))).toBe(false);
+
+    // A reload shows the stored reply in full where the stopped one was.
+    await page.reload();
+    await openApplication(page);
+    await expect(bubblesWith(page, 'Stopped')).toHaveCount(0);
+    await expect(bubblesWith(page, MARK).last()).toContainText('welche Bewerbung am besten zu deinem Profil passt.');
 
     await fakeControl({});
     await chatInput(page).fill('Okay, danke!');
     await chatInput(page).press('Enter');
-    await expect(page.getByText("You're welcome.").last()).toBeVisible({ timeout: 30_000 });
+    await expect(bubblesWith(page, "You're welcome.").last()).toBeVisible({ timeout: 30_000 });
     await page.waitForTimeout(2_500);
     const after = chatMessagesOf(sessionId).slice(before);
-    expect(after.filter((row) => row.role === 'assistant').map((row) => row.content)).toEqual(["You're welcome."]);
+    const assistant = after.filter((row) => row.role === 'assistant');
+    expect(assistant.map((row) => row.content)).toEqual([replies[0].content, "You're welcome."]);
   });
 
   test('a model stream idle past 60 s after text ends with the idle message, and nothing is stored', async () => {
@@ -467,13 +503,15 @@ test.describe.serial('chat replies stream as they are written', () => {
     await fakeControl({ streamChunkMs: 30, streamFault: { kind: 'idle', when: 'after_text', afterChunks: 6, skip: 1, count: 1, writer: 'chat', idleMs: 70_000 } });
     await openApplication(page);
     const before = chatMessagesOf(sessionId).length;
+    const answers = bubblesWith(page, `Du hast ${companies.length} Bewerbungen im Tracker`);
+    const shownBefore = await answers.count();
     await chatInput(page).fill(QUESTION);
     await chatInput(page).press('Enter');
-    await expect(page.getByText(`Du hast ${companies.length} Bewerbungen im Tracker`).last()).toBeVisible({ timeout: 30_000 });
+    await expect(answers).toHaveCount(shownBefore + 1, { timeout: 30_000 });
     await expect(page.getByText('The reply stopped coming for a minute, so I ended it. Your message is saved, so try again.'))
       .toBeVisible({ timeout: 90_000 });
     // The half-written bubble went with it.
-    await expect(page.locator('[data-chat-scroll] .group\\/msg', { hasText: 'Du hast' })).toHaveCount(0);
+    await expect(answers).toHaveCount(shownBefore);
     await page.screenshot({ path: test.info().outputPath('idle.png') });
     await page.waitForTimeout(2_500);
     const rows = chatMessagesOf(sessionId).slice(before);

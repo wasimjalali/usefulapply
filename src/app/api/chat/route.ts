@@ -384,12 +384,10 @@ export async function POST(req: NextRequest) {
       compaction,
     };
     if (!wantsEventStream(req.headers.get('accept'))) {
-      const body = await runChatTurn(turn, failure, null, req.signal);
-      if (!body) throw new Error('chat: an unstreamed turn ended without a reply');
-      return NextResponse.json(body);
+      return NextResponse.json(await runChatTurn(turn, failure, null, req.signal));
     }
     return chatEventStream(
-      (send, signal) => runChatTurn(turn, failure, { send, signal }, undefined),
+      (send) => runChatTurn(turn, failure, { send }, undefined),
       (error) => chatFailure(error, failure),
     );
   } catch (error) {
@@ -498,10 +496,9 @@ interface ChatTurnInput {
   compaction: { block: CompactionBlock; coversThroughMessageId: string } | null;
 }
 
-/** A streamed turn's event sink, and the signal that fires when its client goes away. */
+/** A streamed turn's event sink. */
 interface ChatTurnStream {
   send: (event: ChatStreamEvent) => void;
-  signal: AbortSignal;
 }
 
 /** The short line a streamed turn shows while a tool round runs, by the round's first tool. */
@@ -533,19 +530,22 @@ const TOOL_STATUS: Readonly<Record<string, string>> = {
 
 /**
  * One chat turn: compaction when it has to, the tool loop, the reply's guards, the reply stored. Returns the JSON
- * body (also the stream's `done` event), or null when a streamed turn's client went away: then nothing is stored as
- * the reply (the user's own message stays stored and its claim spent) and nothing more is sent. A client that leaves
- * mid-tool lets that tool finish; the loop stops before the next model call, and a call already out is aborted.
+ * body, which is also the stream's `done` event.
+ *
+ * A streamed turn whose client goes away (Stop, a closed tab) is finished, not aborted: the reply is stored once,
+ * whole, on completion, exactly as if the client had stayed, and the next turn and a reload show it. Only a failure
+ * stores no reply. Finishing is the one outcome that does not hang on the runtime noticing the disconnect (a local
+ * preview never reported it), so a reply can never be stored half, or stored or not depending on timing.
+ * reply-stream.ts keeps the Worker alive for it (waitUntil).
  */
 async function runChatTurn(
   turn: ChatTurnInput,
   failure: ChatFailureState,
   stream: ChatTurnStream | null,
   requestSignal: AbortSignal | undefined,
-): Promise<Record<string, unknown> | null> {
+): Promise<Record<string, unknown>> {
   const { userId, message, context, chatSessionId, persistedSessionId, storesTurn } = turn;
   let { earlierTurns, compaction } = turn;
-  const clientGone = () => Boolean(stream?.signal.aborted);
   // A message stored under a server id goes into the transcript before its reply starts, so the bubble never moves.
   if (stream && failure.mintedTurn) stream.send({ type: 'turn', storedUserMessage: failure.mintedTurn });
   // Agentic chat: the model can read the tracker, credits, documents and
@@ -584,7 +584,6 @@ async function runChatTurn(
   let turnBlock = compaction?.block ?? null;
   for (let pass = 0; pass < MAX_COMPACTION_PASSES; pass += 1) {
     if (!persistedSessionId || projectChatInput({ system, tools, messages }) <= COMPACT_ABOVE_TOKENS) break;
-    if (clientGone()) return null;
     const compacted = await compactChat({
       userId,
       sessionId: persistedSessionId,
@@ -637,7 +636,6 @@ async function runChatTurn(
         const projected = projectNextInputTokens(previousInputTokens, appendedSinceLastCall);
         if (isOverRefuseLimit(projected)) throw new InputBudgetError('chat', projected);
       }
-      if (clientGone()) return null;
       // settleChatReply replaces the reply with a fixed line after a failed handler, and after a too-large result
       // when nothing ran: the model's words would only show and then vanish, so they are not streamed.
       if (failedToolNames.length > 0 || (oversizedToolNames.length > 0 && executed.length === 0)) replyStream?.hold();
@@ -655,7 +653,7 @@ async function runChatTurn(
         // Its own 5m markers sit on the new user turn and on the last tool result (chat-prompt.ts).
         cacheConversation: false,
         provider: pinnedProvider,
-        ...(replyStream && stream ? { stream: replyStream.forCall(stream.signal) } : {}),
+        ...(replyStream ? { stream: replyStream.forCall() } : {}),
         generationContext: {
           requestExecutionId,
           userId,
@@ -722,8 +720,6 @@ async function runChatTurn(
       lastToolNames = toolUses[0].name;
     }
   } catch (error) {
-    // The client left (Stop, a closed tab) and the call out was aborted: nothing more to say or store.
-    if (clientGone()) return null;
     if (replyStream?.deliveredThisCall) {
       // Text of the failed call is on the client's screen: no fixed line can stand in for it without the user seeing
       // the swap, and no other provider can continue it. The stream ends with an error. With effects committed, the
@@ -777,13 +773,12 @@ async function runChatTurn(
     return true;
   });
 
-  // A client that stopped waiting (the Stop button, a closed tab) never shows this reply, so it is not stored either.
-  // For a streamed turn that is the stream's cancel (`requestSignal` is unset there: reply-stream.ts says why); for a
-  // JSON one, the request's signal where the runtime reports the disconnect. The user's own message is stored either way.
-  if (clientGone()) return null;
   // The reply goes into the history now, under the id the client will show it with, so a quick next turn has it
   // even before the client's sync runs. The sync then writes the client's copy over it (a reply can gain a note).
   let replyMessageId: string | undefined;
+  // A JSON client that stopped waiting never shows this reply, so it is not stored either, where the runtime reports
+  // the disconnect (as before streaming). A streamed turn passes no signal: it always finishes (see above). The user's
+  // own message is stored either way.
   if (storesTurn && persistedSessionId && !requestSignal?.aborted) {
     replyMessageId = newChatMessageId();
     const stored = await storeChatReply(userId, persistedSessionId, { id: replyMessageId, content: reply, actions });
