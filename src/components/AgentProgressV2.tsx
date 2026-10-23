@@ -14,7 +14,6 @@ import {
   Award,
   Building2,
 } from 'lucide-react';
-import { BrandIcon } from '@/components/BrandLogo';
 import type { AgentV2Step, AgentV2Progress, AgentV2Reflection, CompanyResearchData } from '@/hooks/useAgentV2';
 
 interface AgentProgressV2Props {
@@ -54,21 +53,19 @@ export function AgentProgressV2({
 
   return (
     <div className="mb-4">
-      {/* Useful Apply header */}
+      {/* Progress header. The chat row already carries the Useful Apply icon
+          beside this card, so the header is the bar alone: full width, and at
+          0% until the first progress event, so the card never shifts when it
+          arrives. */}
       {isWorking && (
         <div className="flex items-center gap-2.5 mb-3 pb-2 border-b border-gold-200/60">
-          <BrandIcon size="xs" theme="light" />
-          {progress && (
-            <div className="ml-auto flex items-center gap-2">
-              <div className="w-16 h-1 rounded-full bg-cream-200 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-gold-400 to-gold-500 transition-all duration-500 ease-out"
-                  style={{ width: `${progress.percent}%` }}
-                />
-              </div>
-              <span className="text-[11px] text-warm-gray font-medium tabular-nums">{progress.percent}%</span>
-            </div>
-          )}
+          <div className="h-1 flex-1 rounded-full bg-cream-200 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-gold-400 to-gold-500 transition-all duration-500 ease-out"
+              style={{ width: `${progress?.percent ?? 0}%` }}
+            />
+          </div>
+          <span className="text-[11px] text-warm-gray font-medium tabular-nums">{progress?.percent ?? 0}%</span>
         </div>
       )}
 
