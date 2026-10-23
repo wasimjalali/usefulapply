@@ -5,8 +5,9 @@
  *   German      12 turns, 3 conversations. The user writes German; the pasted ad, the CV, the tool results (the
  *               tracker comes back as English JSON) and the history are English. The reply must be German.
  *   Length       8 turns, English, each one tempts a long answer. At most 3 sentences.
- *   Screening    8 turns, EN and DE: 4 that bring up the application form's questions (the chat must call
- *               offer_screening_answers and return a start-screening-flow chip) and 4 that look close and are not.
+ *   Screening    9 turns, EN and DE: 5 that bring up the application form's questions, one of them the questions
+ *               pasted as a list (the chat must call offer_screening_answers and return a start-screening-flow chip),
+ *               and 4 that look close and are not (one of them a single form question, which the chat drafts itself).
  *   Claims       4 turns (kit contents, ATS score), EN and DE. No count of documents and no score that no tool
  *               result or context gave the model.
  *   Compaction   1 turn on a seeded German history of about 100k characters: the route compacts it, and the stored
@@ -48,7 +49,8 @@ export interface UxExpect {
   /** Row keys (tracker fixture) this turn may change. Empty: no row may change. */
   mayChange?: string[];
   db?: (db: Database.Database) => string[];
-  reply?: { german?: boolean; maxSentences?: number; mustMatch?: RegExp[]; mustNotMatch?: RegExp[] };
+  /** mustNotClaim: tested per sentence, and a sentence that negates (not, n't, yet, nicht, kein, ...) is exempt. */
+  reply?: { german?: boolean; maxSentences?: number; mustMatch?: RegExp[]; mustNotMatch?: RegExp[]; mustNotClaim?: RegExp[] };
   /** The route must have compacted this turn, and the stored summary must keep its copied ad lines in German. */
   summaryGerman?: boolean;
 }
@@ -106,10 +108,14 @@ const ATS_DE = /\bATS\b(?:(?!Match|Passung)[^.!?\n]){0,50}\b\d{1,3}\b|\b\d{1,3}\
 
 /**
  * A kit document the claims cases' application doesn't have (only its CV is generated: no cover letter, no emails),
- * stated as there. Hedged or negative wording ("aren't generated yet", "sind noch nicht erstellt") doesn't match.
+ * stated as there. Used as mustNotClaim: each sentence is tested on its own, and one that negates ("aren't generated
+ * yet", "sind noch nicht erstellt", "kein Anschreiben") is exempt, so lists ("the CV, cover letter and emails") and
+ * past tense ("was written") are caught without failing an honest answer.
  */
-const CLAIMED_DOC_EN = /\b(?:cover letter|application email|follow[- ]?up(?: email)?|e-?mails?)\b[^.!?\n]{0,40}\b(?:is|are)\s+(?:ready|done|there|generated|written|included)\b|\b(?:has|have|with|includes?|contains?)\b[^.!?\n]{0,40}\b(?:a|an|the|your)\s+(?:cover letter|application email|follow[- ]?up)/i;
-const CLAIMED_DOC_DE = /\b(?:Anschreiben|Bewerbungs-?E-?Mail|Nachfass-?E-?Mail|Follow-?up(?:-E-?Mail)?|E-?Mails?)\b[^.!?\n]{0,40}\b(?:ist|sind)\s+(?:fertig|bereit|da|erstellt|geschrieben|dabei)\b|\b(?:enthält|hat|mit)\b[^.!?\n]{0,40}\b(?:ein|einem|das|dein|deinem|die|deine)\s+(?:Anschreiben|Bewerbungs-?E-?Mail|E-?Mail)/i;
+const DOC_EN = String.raw`(?:cover letter|application e-?mail|follow[- ]?up(?: e-?mail)?|e-?mails?)`;
+const DOC_DE = String.raw`(?:Anschreiben|Bewerbungs-?E-?Mail|Nachfass-?E-?Mails?|Follow-?up(?:-E-?Mail)?|E-?Mails?|Mails?)`;
+const CLAIMED_DOC_EN = new RegExp(String.raw`\b(?:includes?|contains?|has|have|got|with|ready:)\b[^.!?\n]{0,60}\b${DOC_EN}\b|\b${DOC_EN}\b[^.!?\n]{0,60}\b(?:is|are|was|were)\s+(?:all\s+)?(?:ready|done|there|generated|written|included|in place|finished)\b|\b${DOC_EN}\s+(?:is|are)\s+ready\b`, 'i');
+const CLAIMED_DOC_DE = new RegExp(String.raw`(?:enthält|hat|mit|umfasst|bereit:)[^.!?\n]{0,60}${DOC_DE}|${DOC_DE}[^.!?\n]{0,60}\b(?:ist|sind|wurde|wurden)\s+(?:alle\s+)?(?:fertig|bereit|da|erstellt|geschrieben|dabei)\b|\b(?:zwei|beide)\s+(?:\S+\s+)?${DOC_DE}`, 'i');
 
 // ---- compaction seed -----------------------------------------------------------------------------------------
 
@@ -396,7 +402,7 @@ export const CASES: UxCase[] = [
   {
     id: 'k01', group: 'claims-en', turn: 1, lang: 'en', category: 'claims',
     message: "What's in my kit?",
-    expect: { reply: { maxSentences: 3, mustNotMatch: [KIT_COUNT_EN, CLAIMED_DOC_EN] } },
+    expect: { reply: { maxSentences: 3, mustNotMatch: [KIT_COUNT_EN], mustNotClaim: [CLAIMED_DOC_EN] } },
     script: [call('get_application_overview')], finalReply: "Your CV is ready. The cover letter and emails aren't generated yet.",
     badReply: 'Your kit has the CV, a cover letter and two emails.',
   },
@@ -410,7 +416,7 @@ export const CASES: UxCase[] = [
   {
     id: 'k03', group: 'claims-de', turn: 1, lang: 'de', category: 'claims',
     message: 'Was ist alles in meinem Paket?',
-    expect: { reply: { german: true, maxSentences: 3, mustNotMatch: [KIT_COUNT_DE, CLAIMED_DOC_DE] } },
+    expect: { reply: { german: true, maxSentences: 3, mustNotMatch: [KIT_COUNT_DE], mustNotClaim: [CLAIMED_DOC_DE] } },
     script: [call('get_application_overview')], finalReply: 'Dein Lebenslauf ist fertig. Anschreiben und E-Mails sind noch nicht erstellt.',
     badReply: 'Dein Paket enthält den Lebenslauf, ein Anschreiben und zwei E-Mails.',
   },

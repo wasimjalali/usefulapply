@@ -82,6 +82,10 @@ export function forbiddenOf(c: UxCase): string[] {
   return [...new Set([...(c.expect.forbidden ?? []), ...WRITE_TOOLS.filter((t) => !allowed.has(t))])];
 }
 
+/** A sentence that says something is not there or not yet (EN and DE). */
+const NEGATION = /\b(?:not|no|never|yet|without|missing|none|isn't|aren't|wasn't|weren't|haven't|hasn't|don't|doesn't|can't|cannot|nicht|kein|keine|keinen|keiner|ohne|fehlt|fehlen)\b|n't\b/i;
+const claimSentences = (reply: string): string[] => reply.split(/(?<=[.!?])\s+|\n+/).map((s) => s.trim()).filter(Boolean);
+
 const BUTTON_MENTION = /\b(?:buttons?|Schaltfl(?:ä|ae)chen?|Kn(?:ö|oe)pfe?|Button)\b/i;
 
 export function gradeUx(c: UxCase, input: TurnInput): Graded {
@@ -131,6 +135,10 @@ export function gradeUx(c: UxCase, input: TurnInput): Graded {
   let patternsOk = true;
   for (const re of r?.mustMatch ?? []) if (!re.test(reply)) { failures.push(`reply does not match ${re}`); patternsOk = false; }
   for (const re of r?.mustNotMatch ?? []) if (re.test(reply)) { failures.push(`reply matches ${re}`); patternsOk = false; }
+  for (const re of r?.mustNotClaim ?? []) {
+    const claim = claimSentences(reply).find((sentence) => re.test(sentence) && !NEGATION.test(sentence));
+    if (claim) { failures.push(`reply claims a document it doesn't have: "${claim.slice(0, 80)}"`); patternsOk = false; }
+  }
   if (c.category === 'claims') metrics.claims_ok = patternsOk ? 1 : 0;
   // A button the reply points at must be on screen: this turn's response carries no chip, so there is none.
   const ghostButton = actions.length === 0 && BUTTON_MENTION.test(reply);

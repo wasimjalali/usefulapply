@@ -110,6 +110,7 @@ export function countSentences(reply: string): number {
     .replace(/\b(e\.g|i\.e|etc|vs|approx|ca|bzw|Nr|Dr|Mr|Mrs|St)\.\s/gi, '$1 ')
     // German ordinal dates ("27. Oktober", "3. 11.") are not sentence ends.
     .replace(/\b(\d{1,2})\.\s+(?=(?:Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|\d))/g, '$1 ')
+    .replace(/\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})?/g, '$1/$2/$3')
     .replace(/\b([a-z])\.\s?([a-z])\./gi, '$1$2 ');
   return folded
     .split(/\n+/)
@@ -129,6 +130,18 @@ export function copiedAdLines(summary: string): string[] {
   return summary.split('\n').filter((line) => /<<copied ad text:/i.test(line));
 }
 
+/** Every copied line, ad or other pasted text: the content after either label is in the conversation's language. */
+function copiedLines(summary: string): string[] {
+  return summary.split('\n').filter((line) => /<<copied (?:ad )?text:/i.test(line));
+}
+
+/** A line of three or more words that reads English: two English words outnumbering the German, or English with none. */
+function englishLine(text: string): boolean {
+  const score = languageScore(text);
+  return (score.en >= 2 && score.en > score.de + score.umlauts)
+    || (score.en >= 1 && score.de + score.umlauts === 0 && words(ownVoice(text)).length >= 3);
+}
+
 export interface SummaryVerdict {
   ok: boolean;
   problems: string[];
@@ -140,14 +153,16 @@ export function checkGermanSummary(summary: string): SummaryVerdict {
   const problems: string[] = [];
   const lines = copiedAdLines(summary);
   if (lines.length === 0) problems.push('no <<copied ad text: ...>> line in the summary');
-  for (const line of lines) {
-    const body = FIXED_LABELS.reduce((t, re) => t.replace(re, ' '), line.replace(/<<copied ad text:/i, ' ').replace(/>>/g, ' '));
-    const score = languageScore(body);
-    const english = (score.en >= 2 && score.en > score.de + score.umlauts)
-      || (score.en >= 1 && score.de + score.umlauts === 0 && words(body).length >= 3);
-    if (english) problems.push(`copied ad line is English: "${body.trim().slice(0, 90)}"`);
+  for (const line of copiedLines(summary)) {
+    const body = FIXED_LABELS.reduce((t, re) => t.replace(re, ' '), line.replace(/<<copied (?:ad )?text:/i, ' ').replace(/>>/g, ' '));
+    if (englishLine(body)) problems.push(`copied line is English: "${body.trim().slice(0, 90)}"`);
   }
   const rest = FIXED_LABELS.reduce((t, re) => t.replace(re, ' '), summary);
+  // Every Done, Offered and Discussed line too, not only the majority: one English paragraph in a German summary fails.
+  for (const line of rest.split('\n')) {
+    if (/<<copied (?:ad )?text:/i.test(line)) continue;
+    if (englishLine(line)) problems.push(`summary line is English: "${line.trim().slice(0, 90)}"`);
+  }
   const whole = languageScore(rest);
   if (whole.de + whole.umlauts <= whole.en) problems.push(`summary is not German (German ${whole.de + whole.umlauts}, English ${whole.en})`);
   return { ok: problems.length === 0, problems, copiedAdLines: lines.length };
