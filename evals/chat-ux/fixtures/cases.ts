@@ -402,6 +402,22 @@ export const CASES: UxCase[] = [
     script: [], finalReply: 'Er bittet dich, ihm auf Englisch zu antworten. Deine Antwort an ihn schreibst du also besser auf Englisch.',
     badReply: 'He is asking you to reply to him in English, so write your answer to him in English.',
   },
+  // A request for one answer in another language covers that answer only: the next German question gets German again.
+  {
+    id: 'w13', group: 'switch-one-off', turn: 1, lang: 'en', languageRequested: true, category: 'switch', withCv: true,
+    seed: SWITCH_DE_HISTORY,
+    message: 'Kannst du mir kurz auf Englisch sagen, was in meinem Paket noch fehlt?',
+    expect: { reply: { english: true, maxSentences: 3 } },
+    script: [], finalReply: 'Your kit has the tailored CV so far. The cover letter and the emails are not generated yet.',
+    badReply: 'Dein Paket hat bisher den angepassten Lebenslauf. Anschreiben und E-Mails fehlen noch.',
+  },
+  {
+    id: 'w14', group: 'switch-one-off', turn: 2, lang: 'de', category: 'switch', withCv: true,
+    message: 'Danke. Und wann ist mein nächstes Interview?',
+    expect: { tools: ['get_applications'], reply: { german: true, maxSentences: 3 } },
+    script: [call('get_applications')], finalReply: 'Dein nächstes Interview ist am Montag bei Hellmann Systems.',
+    badReply: 'Your next interview is on Monday with Hellmann Systems.',
+  },
 
   // Length: English turns that tempt a long answer. At most 3 sentences.
   {
@@ -580,7 +596,7 @@ export const CASES: UxCase[] = [
   },
 ];
 
-export const EXPECTED = { total: 46, german: 12, germanGroups: 3, length: 8, screeningPos: 6, screeningNeg: 3, claims: 4, compaction: 1, switch: 12, groups: 13 };
+export const EXPECTED = { total: 48, german: 12, germanGroups: 3, length: 8, screeningPos: 6, screeningNeg: 3, claims: 4, compaction: 1, switch: 14, groups: 14 };
 
 /** Tools the dry self-test accepts in a case: the chat's registry plus the one this pass adds. */
 export const KNOWN_TOOLS = [

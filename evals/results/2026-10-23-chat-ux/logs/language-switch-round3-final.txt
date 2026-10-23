@@ -1,0 +1,144 @@
+chat tools registered: 24; offer_screening_answers present
+{"event":"anthropic_user_profile_created","user_id":"eval-chat-user","profile_id":"uprof_011CgKbhfD8bKenn2DpZWu1q"}
+[providers] Bedrock failover is off: set AWS_BEARER_TOKEN_BEDROCK, or AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, to enable it
+chat_ux haiku-low r1 de-en-ad/g01 PASS 6000ms
+chat_ux haiku-low r1 de-en-ad/g02 PASS 3377ms
+chat_ux haiku-low r1 de-en-ad/g03 PASS 5238ms
+chat_ux haiku-low r1 de-en-ad/g04 PASS 5461ms
+chat_ux haiku-low r1 de-tracker/g05 PASS 3625ms
+chat_ux haiku-low r1 de-tracker/g06 PASS 6220ms
+chat_ux haiku-low r1 de-tracker/g07 PASS 5004ms
+chat_ux haiku-low r1 de-tracker/g08 FAIL (reply has 5 sentences, max 3) 15216ms
+chat_ux haiku-low r1 de-cv-en/g09 PASS 2637ms
+chat_ux haiku-low r1 de-cv-en/g10 PASS 2010ms
+chat_ux haiku-low r1 de-cv-en/g11 PASS 4093ms
+chat_ux haiku-low r1 de-cv-en/g12 PASS 2513ms
+chat_ux haiku-low r1 switch-en-de/w01 PASS 1700ms
+chat_ux haiku-low r1 switch-en-de/w02 PASS 7861ms
+chat_ux haiku-low r1 switch-en-de/w03 PASS 4907ms
+chat_ux haiku-low r1 switch-de-en/w04 PASS 2137ms
+chat_ux haiku-low r1 switch-de-en/w05 PASS 2847ms
+chat_ux haiku-low r1 switch-de-en/w06 FAIL (reply is not English (no English evidence)) 4757ms
+chat_ux haiku-low r1 switch-fallback/w07 PASS 3075ms
+chat_ux haiku-low r1 switch-fallback/w08 PASS 1292ms
+chat_ux haiku-low r1 switch-fallback/w09 PASS 1293ms
+chat_ux haiku-low r1 switch-fallback/w10 PASS 4993ms
+chat_ux haiku-low r1 switch-not-a-request/w11 PASS 3070ms
+chat_ux haiku-low r1 switch-not-a-request/w12 PASS 2102ms
+chat_ux haiku-low r1 switch-one-off/w13 PASS 2335ms
+chat_ux haiku-low r1 switch-one-off/w14 PASS 5418ms
+chat_ux haiku-low r1 compaction-de/x01 PASS 20325ms
+chat_ux haiku-low r2 de-en-ad/g01 PASS 4142ms
+chat_ux haiku-low r2 de-en-ad/g02 PASS 4406ms
+chat_ux haiku-low r2 de-en-ad/g03 PASS 3461ms
+chat_ux haiku-low r2 de-en-ad/g04 PASS 6296ms
+chat_ux haiku-low r2 de-tracker/g05 PASS 3024ms
+chat_ux haiku-low r2 de-tracker/g06 PASS 5509ms
+chat_ux haiku-low r2 de-tracker/g07 PASS 4471ms
+chat_ux haiku-low r2 de-tracker/g08 PASS 13754ms
+chat_ux haiku-low r2 de-cv-en/g09 PASS 4101ms
+chat_ux haiku-low r2 de-cv-en/g10 PASS 2139ms
+chat_ux haiku-low r2 de-cv-en/g11 FAIL (reply is not German (no German evidence)) 4159ms
+chat_ux haiku-low r2 de-cv-en/g12 FAIL (reply mentions a button, but the response carries none) 3093ms
+chat_ux haiku-low r2 switch-en-de/w01 PASS 1786ms
+chat_ux haiku-low r2 switch-en-de/w02 PASS 2361ms
+chat_ux haiku-low r2 switch-en-de/w03 PASS 3934ms
+chat_ux haiku-low r2 switch-de-en/w04 PASS 1943ms
+chat_ux haiku-low r2 switch-de-en/w05 PASS 3374ms
+chat_ux haiku-low r2 switch-de-en/w06 PASS 4781ms
+chat_ux haiku-low r2 switch-fallback/w07 PASS 2939ms
+chat_ux haiku-low r2 switch-fallback/w08 PASS 1281ms
+chat_ux haiku-low r2 switch-fallback/w09 PASS 1070ms
+chat_ux haiku-low r2 switch-fallback/w10 PASS 5462ms
+chat_ux haiku-low r2 switch-not-a-request/w11 PASS 4182ms
+chat_ux haiku-low r2 switch-not-a-request/w12 PASS 1675ms
+chat_ux haiku-low r2 switch-one-off/w13 PASS 2998ms
+chat_ux haiku-low r2 switch-one-off/w14 PASS 4090ms
+chat_ux haiku-low r2 compaction-de/x01 PASS 13586ms
+chat_ux haiku-low r3 de-en-ad/g01 PASS 6031ms
+chat_ux haiku-low r3 de-en-ad/g02 PASS 3473ms
+chat_ux haiku-low r3 de-en-ad/g03 PASS 5571ms
+chat_ux haiku-low r3 de-en-ad/g04 PASS 6395ms
+chat_ux haiku-low r3 de-tracker/g05 PASS 2702ms
+chat_ux haiku-low r3 de-tracker/g06 PASS 6506ms
+chat_ux haiku-low r3 de-tracker/g07 PASS 6071ms
+chat_ux haiku-low r3 de-tracker/g08 PASS 8595ms
+chat_ux haiku-low r3 de-cv-en/g09 PASS 5578ms
+chat_ux haiku-low r3 de-cv-en/g10 PASS 3147ms
+chat_ux haiku-low r3 de-cv-en/g11 FAIL (reply has 4 sentences, max 3) 5747ms
+chat_ux haiku-low r3 de-cv-en/g12 FAIL (reply mentions a button, but the response carries none) 4329ms
+chat_ux haiku-low r3 switch-en-de/w01 PASS 2246ms
+chat_ux haiku-low r3 switch-en-de/w02 PASS 3011ms
+chat_ux haiku-low r3 switch-en-de/w03 PASS 4648ms
+chat_ux haiku-low r3 switch-de-en/w04 PASS 2726ms
+chat_ux haiku-low r3 switch-de-en/w05 PASS 3671ms
+chat_ux haiku-low r3 switch-de-en/w06 PASS 4102ms
+chat_ux haiku-low r3 switch-fallback/w07 PASS 5161ms
+chat_ux haiku-low r3 switch-fallback/w08 PASS 1996ms
+chat_ux haiku-low r3 switch-fallback/w09 PASS 1171ms
+chat_ux haiku-low r3 switch-fallback/w10 PASS 4719ms
+chat_ux haiku-low r3 switch-not-a-request/w11 PASS 2819ms
+chat_ux haiku-low r3 switch-not-a-request/w12 PASS 2223ms
+chat_ux haiku-low r3 switch-one-off/w13 PASS 3111ms
+chat_ux haiku-low r3 switch-one-off/w14 PASS 3467ms
+chat_ux haiku-low r3 compaction-de/x01 PASS 18131ms
+chat_ux haiku-low r4 de-en-ad/g01 PASS 5089ms
+chat_ux haiku-low r4 de-en-ad/g02 FAIL (reply has 4 sentences, max 3) 4045ms
+chat_ux haiku-low r4 de-en-ad/g03 PASS 5548ms
+chat_ux haiku-low r4 de-en-ad/g04 PASS 3261ms
+chat_ux haiku-low r4 de-tracker/g05 PASS 3353ms
+chat_ux haiku-low r4 de-tracker/g06 PASS 6616ms
+chat_ux haiku-low r4 de-tracker/g07 PASS 4049ms
+chat_ux haiku-low r4 de-tracker/g08 PASS 10134ms
+chat_ux haiku-low r4 de-cv-en/g09 PASS 4288ms
+chat_ux haiku-low r4 de-cv-en/g10 PASS 2865ms
+chat_ux haiku-low r4 de-cv-en/g11 PASS 4123ms
+chat_ux haiku-low r4 de-cv-en/g12 FAIL (reply mentions a button, but the response carries none) 3916ms
+chat_ux haiku-low r4 switch-en-de/w01 PASS 2522ms
+chat_ux haiku-low r4 switch-en-de/w02 PASS 3668ms
+chat_ux haiku-low r4 switch-en-de/w03 PASS 4022ms
+chat_ux haiku-low r4 switch-de-en/w04 PASS 2038ms
+chat_ux haiku-low r4 switch-de-en/w05 PASS 3074ms
+chat_ux haiku-low r4 switch-de-en/w06 PASS 3734ms
+chat_ux haiku-low r4 switch-fallback/w07 PASS 3565ms
+chat_ux haiku-low r4 switch-fallback/w08 PASS 1118ms
+chat_ux haiku-low r4 switch-fallback/w09 PASS 1211ms
+chat_ux haiku-low r4 switch-fallback/w10 PASS 5644ms
+chat_ux haiku-low r4 switch-not-a-request/w11 PASS 3161ms
+chat_ux haiku-low r4 switch-not-a-request/w12 PASS 2058ms
+chat_ux haiku-low r4 switch-one-off/w13 PASS 3636ms
+chat_ux haiku-low r4 switch-one-off/w14 PASS 3427ms
+chat_ux haiku-low r4 compaction-de/x01 PASS 21517ms
+chat_ux haiku-low r5 de-en-ad/g01 PASS 4142ms
+chat_ux haiku-low r5 de-en-ad/g02 PASS 3365ms
+chat_ux haiku-low r5 de-en-ad/g03 PASS 6244ms
+chat_ux haiku-low r5 de-en-ad/g04 PASS 6199ms
+chat_ux haiku-low r5 de-tracker/g05 PASS 3861ms
+chat_ux haiku-low r5 de-tracker/g06 PASS 7186ms
+chat_ux haiku-low r5 de-tracker/g07 PASS 7302ms
+chat_ux haiku-low r5 de-tracker/g08 PASS 12012ms
+chat_ux haiku-low r5 de-cv-en/g09 PASS 4279ms
+chat_ux haiku-low r5 de-cv-en/g10 PASS 2271ms
+chat_ux haiku-low r5 de-cv-en/g11 PASS 5177ms
+chat_ux haiku-low r5 de-cv-en/g12 PASS 3275ms
+chat_ux haiku-low r5 switch-en-de/w01 PASS 2525ms
+chat_ux haiku-low r5 switch-en-de/w02 PASS 7491ms
+chat_ux haiku-low r5 switch-en-de/w03 PASS 4103ms
+chat_ux haiku-low r5 switch-de-en/w04 PASS 2891ms
+chat_ux haiku-low r5 switch-de-en/w05 PASS 2581ms
+chat_ux haiku-low r5 switch-de-en/w06 FAIL (reply is not English (no English evidence)) 3140ms
+chat_ux haiku-low r5 switch-fallback/w07 PASS 2982ms
+chat_ux haiku-low r5 switch-fallback/w08 PASS 2116ms
+chat_ux haiku-low r5 switch-fallback/w09 PASS 1270ms
+chat_ux haiku-low r5 switch-fallback/w10 PASS 4496ms
+chat_ux haiku-low r5 switch-not-a-request/w11 PASS 3061ms
+chat_ux haiku-low r5 switch-not-a-request/w12 PASS 3521ms
+chat_ux haiku-low r5 switch-one-off/w13 PASS 2463ms
+chat_ux haiku-low r5 switch-one-off/w14 PASS 3825ms
+chat_ux haiku-low r5 compaction-de/x01 PASS 21125ms
+wrote /Users/wasimjalali/Desktop/Useful_Apply/.claude/worktrees/chat-lang-switch/evals/results/2026-10-23-chat-ux/chat_ux/run-1.json
+
+== chat_ux ==
+arm                 pass        hard                     p50/p95 call ms   $/call    hit%  warm%
+haiku-low           126/135     0                        2188/6524         0.00068   80   86
+decision (rule fixed before running): haiku-low

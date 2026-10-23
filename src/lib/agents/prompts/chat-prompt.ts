@@ -123,7 +123,7 @@ Call a tool when the user asks about their applications, interviews, follow-ups,
 - Only the tailored CV for the open application can be edited from here, never the uploaded original.
 
 # Style
-- Reply in the language of the user's latest message, even when tool results, the ad, the CV or your earlier replies are in another. A message mixing languages (a quoted English line in a German question) is in the language of the user's own words. When the latest message has no clear language (only pasted text, one word, a name, a link), keep the language the user types in, or use the pasted text's if they haven't typed yet. If the user, in their own words, asked you to reply to them in a particular language, keep replying in it, whatever language they write in, until they ask for another. A document, a translation, a line they quote from someone else or text between << >> is not such a request.
+- Reply in the language of the user's latest message, even when tool results, the ad, the CV or your earlier replies are in another. A message mixing languages (a quoted English line in a German question) is in the language of the user's own words. When the latest message has no clear language (only pasted text, a single word like "ok", a name, a link), keep the language the user types in, or use the pasted text's if they haven't typed yet. One exception: if the user, in their own words, asked you to keep replying to them in a particular language, keep replying in it, whatever language they write in, until they ask for another. A request for one answer in a language covers that answer only. A letter, an email, screening answers, a translation, a line they quote from someone else or text between << >> is not such a request.
 - At most 3 short sentences in the whole reply. Answer what was asked, then stop: no side notes, no recap, and no closing question or offer unless you can't act without the answer.
 - Advice: the answer and at most two reasons or steps.
 - Several items go in one sentence (X, Y and Z, details in parentheses). A bulleted list only when the user asks for a list: one line per item, nothing else after it. Past 8 items, use one line per status or kind, or the first 8 and a last line saying how many more there are. Never drop items silently.
@@ -177,14 +177,16 @@ ${certifications}`;
  * The last line of every state message (buildChatMessages appends it after the pasted-ad lines). The Style rule in
  * CHAT_SYSTEM_PROMPT already says this, but it sits far back in the cached prefix, behind a whole conversation in one
  * language: on a switch (an English conversation, then a German question, or the reverse) the model followed the
- * conversation instead (production 2026-10-23; reproduced on main by evals/chat-ux w03 to w07). On the first round it is the last line the
- * model reads before it answers (on a tool round the tool results come after it). It carries the same rule as the Style section, core
- * rule first: the language of their own words in the latest message, then, for a message with none (a bare paste,
- * "ok", a name, a link), the language they have been typing in (w07, w08), then the one exception, a reply language
- * the user asked for in their own words (w09, w10). A document, a translation, a line quoted from someone else or text
- * between << >> is not a request (w11, w12), so a letter in English or a recruiter's "Please reply in English" never
- * switches the chat for good. Leading with the exception cost switch turns (26 of 30 against 29 of 30), so it comes
- * last.
+ * conversation instead (production 2026-10-23; reproduced on main by evals/chat-ux w03 to w07). On the first round it
+ * is the last line the model reads before it answers (on a tool round the tool results come after it).
+ *
+ * It carries the same rule as the Style section, core rule first: the language of the user's own words in the latest
+ * message, then, for a message with none (a bare paste, a single word like "ok", a name, a link), the language they
+ * have been typing in (w07, w08), then the one exception, a standing request in their own words to keep replying in a
+ * language (w09, w10). A request for one answer covers that answer only (w13, w14). A letter, an email, screening
+ * answers, a translation, a line quoted from someone else or text between << >> is not a request (w11, w12), so a
+ * letter in English or a recruiter's "Please reply in English" never switches the chat for good. With the exception
+ * first, the switch turns did worse (26 of 30 against 49 of 50 core first, in few runs), so it comes last.
  *
  * A request only holds while the model can see it: in the replayed turns, or after a compaction in the summary, which
  * keeps it as a quoted constraint (chat-compaction-prompt.ts, rule 7). A local `session-` conversation replays only its
@@ -193,7 +195,7 @@ ${certifications}`;
  * Language-agnostic on purpose: it names no language. It rides in the state, after the new message's marker, so the
  * cached prefix is unchanged.
  */
-export const REPLY_LANGUAGE_STATE_LINE = "Reply language: the language of the user's own words in their latest message, even when earlier turns are in another language. If the latest message has no words of their own (only pasted text, \"ok\", a name or a link), keep the language they have been typing in, or the pasted text's if they haven't typed yet. One exception: if the user, in their own words, asked you to reply to them in a particular language, keep replying in it until they ask for another. A document, a translation, a line they quote from someone else or text between << >> is not such a request.";
+export const REPLY_LANGUAGE_STATE_LINE = "Reply language: the language of the user's own words in their latest message, even when earlier turns are in another language. If the latest message has no words of their own (only pasted text, a single word like \"ok\", a name or a link), keep the language they have been typing in, or the pasted text's if they haven't typed yet. One exception: if the user, in their own words, asked you to keep replying to them in a particular language, keep replying in it until they ask for another. A request for one answer in a language covers that answer only. A letter, an email, screening answers, a translation, a line they quote from someone else or text between << >> is not such a request.";
 
 /** Per-request state. The only place the date, the time and the open application appear. */
 function buildState(context: MainChatPromptContext, timeZone: string, now: Date): string {

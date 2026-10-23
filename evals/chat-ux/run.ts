@@ -29,7 +29,7 @@
  *
  * COST. Measured 2026-10-23: about $0.00053 per call at Haiku 5.5 low, 1 to 3 calls a turn (tool rounds); the
  * compaction turn sends about 80k input tokens twice (the compaction, then the answer). A full --runs 3 cost $0.112
- * for 44 cases; a subset costs in proportion (22 cases, $0.05). The cache is salted per (arm, run), so every run pays
+ * for 44 cases; a subset costs in proportion (22 cases, $0.05; --runs 5 on the 14 switch, 12 German and the compaction case, $0.141). The cache is salted per (arm, run), so every run pays
  * its own cold start.
  */
 import { parseCli } from '../haiku-55-swap/lib/core';

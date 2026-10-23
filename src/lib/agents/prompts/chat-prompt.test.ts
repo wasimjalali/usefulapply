@@ -579,7 +579,7 @@ test('budget: eight turns at the cut, the longest CV summaries, tools and rules 
   const estimate = estimateInputTokens({ system: request.system, tools: request.tools, messages: request.messages });
   assert.ok(estimate <= INPUT_REFUSE_ABOVE, `worst first round estimates ${estimate} tokens, over ${INPUT_REFUSE_ABOVE}`);
   // The same with the last replayed turn an unanswered paste, so the state carries the earlier-paste line too. With an
-  // odd replay count the window already ends on a user turn, so both shapes estimate the same (85,255 on 2026-10-23).
+  // odd replay count the window already ends on a user turn, so both shapes estimate the same (85,640 on 2026-10-23).
   const unanswered = turns.map((turn, i) => (i === turns.length - 1 ? { ...turn, role: 'user' as const } : turn));
   const worst = chatRequest(context, unanswered, german(CHAT_TURN_MAX_CHARS + 3_000), 'America/Argentina/ComodRivadavia', MORNING);
   assert.equal(worst.messages.filter((message) => message.role !== 'system').length, CHAT_LOCAL_REPLAY_TURNS + 1);
