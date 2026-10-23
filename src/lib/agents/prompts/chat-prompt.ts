@@ -173,6 +173,16 @@ ${certifications}`;
   return block;
 }
 
+/**
+ * The last line of every state. The Style rule in CHAT_SYSTEM_PROMPT already says this, but it sits far back in the
+ * cached prefix, behind a whole conversation in one language: on a switch (an English conversation, then a German
+ * question, or the reverse) the model followed the conversation instead (production 2026-10-23, evals/chat-ux w01 to
+ * w06). Repeated here, in the state right after the new message, it is among the last things the model reads. Language-agnostic on
+ * purpose: it names no language, and it defers to the Style rule's "own words" reading for mixed or pasted messages.
+ * It rides in the state, after the new message's marker, so the cached prefix is unchanged.
+ */
+export const REPLY_LANGUAGE_STATE_LINE = "Reply language: the language of the user's own words in their latest message, even when the earlier turns and your earlier replies are in another language.";
+
 /** Per-request state. The only place the date, the time and the open application appear. */
 function buildState(context: MainChatPromptContext, timeZone: string, now: Date): string {
   let state = `# Current state
@@ -200,6 +210,8 @@ Generated for this application: ${parts.join(', ')}`;
     state += `
 Generate Kit button: shown on the Cover letter and Emails tabs (fit check done, kit not generated yet)`;
   }
+  state += `
+${REPLY_LANGUAGE_STATE_LINE}`;
   return state;
 }
 

@@ -1,0 +1,63 @@
+chat tools registered: 24; offer_screening_answers present
+{"event":"anthropic_user_profile_created","user_id":"eval-chat-user","profile_id":"uprof_011CgKVokhznKbNYqPdg9urj"}
+[providers] Bedrock failover is off: set AWS_BEARER_TOKEN_BEDROCK, or AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, to enable it
+chat_ux haiku-low r1 de-en-ad/g01 PASS 5904ms
+chat_ux haiku-low r1 de-en-ad/g02 PASS 3831ms
+chat_ux haiku-low r1 de-en-ad/g03 PASS 5300ms
+chat_ux haiku-low r1 de-en-ad/g04 PASS 6287ms
+chat_ux haiku-low r1 de-tracker/g05 PASS 3195ms
+chat_ux haiku-low r1 de-tracker/g06 PASS 6115ms
+chat_ux haiku-low r1 de-tracker/g07 PASS 7676ms
+chat_ux haiku-low r1 de-tracker/g08 PASS 11427ms
+chat_ux haiku-low r1 de-cv-en/g09 PASS 9547ms
+chat_ux haiku-low r1 de-cv-en/g10 PASS 2048ms
+chat_ux haiku-low r1 de-cv-en/g11 FAIL (reply has 4 sentences, max 3) 5745ms
+chat_ux haiku-low r1 de-cv-en/g12 FAIL (reply mentions a button, but the response carries none) 4745ms
+chat_ux haiku-low r1 switch-en-de/w01 PASS 2613ms
+chat_ux haiku-low r1 switch-en-de/w02 FAIL (reply mentions a button, but the response carries none) 3497ms
+chat_ux haiku-low r1 switch-en-de/w03 PASS 3582ms
+chat_ux haiku-low r1 switch-de-en/w04 PASS 2799ms
+chat_ux haiku-low r1 switch-de-en/w05 PASS 3511ms
+chat_ux haiku-low r1 switch-de-en/w06 PASS 3946ms
+chat_ux haiku-low r2 de-en-ad/g01 PASS 6616ms
+chat_ux haiku-low r2 de-en-ad/g02 PASS 3229ms
+chat_ux haiku-low r2 de-en-ad/g03 FAIL (reply has 4 sentences, max 3) 7527ms
+chat_ux haiku-low r2 de-en-ad/g04 PASS 5808ms
+chat_ux haiku-low r2 de-tracker/g05 PASS 3591ms
+chat_ux haiku-low r2 de-tracker/g06 PASS 8646ms
+chat_ux haiku-low r2 de-tracker/g07 PASS 4335ms
+chat_ux haiku-low r2 de-tracker/g08 PASS 11293ms
+chat_ux haiku-low r2 de-cv-en/g09 PASS 3599ms
+chat_ux haiku-low r2 de-cv-en/g10 PASS 2300ms
+chat_ux haiku-low r2 de-cv-en/g11 PASS 3428ms
+chat_ux haiku-low r2 de-cv-en/g12 FAIL (reply mentions a button, but the response carries none) 4760ms
+chat_ux haiku-low r2 switch-en-de/w01 FAIL (reply mentions a button, but the response carries none) 3910ms
+chat_ux haiku-low r2 switch-en-de/w02 PASS 4456ms
+chat_ux haiku-low r2 switch-en-de/w03 PASS 4410ms
+chat_ux haiku-low r2 switch-de-en/w04 PASS 3459ms
+chat_ux haiku-low r2 switch-de-en/w05 PASS 3391ms
+chat_ux haiku-low r2 switch-de-en/w06 PASS 5355ms
+chat_ux haiku-low r3 de-en-ad/g01 PASS 5356ms
+chat_ux haiku-low r3 de-en-ad/g02 PASS 2925ms
+chat_ux haiku-low r3 de-en-ad/g03 PASS 4727ms
+chat_ux haiku-low r3 de-en-ad/g04 PASS 5670ms
+chat_ux haiku-low r3 de-tracker/g05 PASS 4063ms
+chat_ux haiku-low r3 de-tracker/g06 PASS 5192ms
+chat_ux haiku-low r3 de-tracker/g07 PASS 5643ms
+chat_ux haiku-low r3 de-tracker/g08 PASS 11744ms
+chat_ux haiku-low r3 de-cv-en/g09 PASS 7183ms
+chat_ux haiku-low r3 de-cv-en/g10 PASS 4627ms
+chat_ux haiku-low r3 de-cv-en/g11 PASS 7172ms
+chat_ux haiku-low r3 de-cv-en/g12 FAIL (reply mentions a button, but the response carries none) 2672ms
+chat_ux haiku-low r3 switch-en-de/w01 PASS 3155ms
+chat_ux haiku-low r3 switch-en-de/w02 PASS 2999ms
+chat_ux haiku-low r3 switch-en-de/w03 PASS 4583ms
+chat_ux haiku-low r3 switch-de-en/w04 PASS 2463ms
+chat_ux haiku-low r3 switch-de-en/w05 FAIL (reply mentions a button, but the response carries none) 3476ms
+chat_ux haiku-low r3 switch-de-en/w06 PASS 5220ms
+wrote /Users/wasimjalali/Desktop/Useful_Apply/.claude/worktrees/chat-lang-switch/evals/results/2026-10-23-chat-ux/chat_ux/run-2.json
+
+== chat_ux ==
+arm                 pass        hard                     p50/p95 call ms   $/call    hit%  warm%
+haiku-low           46/54       0                        2223/7154         0.00054   87   89
+decision (rule fixed before running): haiku-low
