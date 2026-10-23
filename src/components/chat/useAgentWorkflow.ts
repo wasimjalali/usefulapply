@@ -35,7 +35,7 @@ import { applyServerRow, forgetSession, refreshFromServer } from '@/lib/session-
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { needsAvailabilityPrompt } from '@/lib/profile/logistics';
 import { parkedRunStillValid } from '@/lib/profile/logistics-resume';
-import type { KitDocument, KitDocumentErrors } from '@/lib/agents/types';
+import type { KitDocument } from '@/lib/agents/types';
 import type { ExecutedEffect } from '@/lib/agents/chat-tools/types';
 import { useChatCompactionMarker } from './compaction-marker';
 import { readChatStream } from './read-chat-stream';
@@ -149,41 +149,45 @@ function formatCredits(amount: number): string {
 }
 
 /**
- * The chat line for a finished kit. A partial kit names what is ready, what
- * is not, where to retry it and what came back, and claims a refund only
- * when the server confirmed one.
+ * The chat line for a finished kit. It names only the documents the server
+ * actually returned: a document is ready when it came back and carries no
+ * error, the same test kit.ts uses before it saves it, so a document that
+ * was never written is never announced. What is missing is named with where
+ * to retry it, and a refund is claimed only when the server confirmed one.
  */
 function kitReadyMessage(opts: {
   company?: string;
   atsNote: string;
-  errors: KitDocumentErrors;
+  ready: Record<KitDocument, boolean>;
   creditsRefunded: number;
 }): string {
-  const { errors } = opts;
+  const { ready } = opts;
   const intro = `Your kit${opts.company ? ` for ${opts.company}` : ''} is ready`;
-  const failed = (Object.keys(KIT_DOCUMENT_NAMES) as KitDocument[]).filter((document) => errors[document]);
-  if (failed.length === 0) {
+  const missing = (Object.keys(KIT_DOCUMENT_NAMES) as KitDocument[]).filter((document) => !ready[document]);
+  if (missing.length === 0) {
     return `${intro}: a tailored CV${opts.atsNote}, a cover letter and two emails. Every claim comes from your CV. Review it before you send.`;
   }
-  const ready: string[] = [];
-  if (!errors.cv) ready.push(`a tailored CV${opts.atsNote}`);
-  if (!errors.coverLetter) ready.push('a cover letter');
-  if (!errors.applicationEmail && !errors.followUpEmail) ready.push('two emails');
-  else if (!errors.applicationEmail) ready.push('an application email');
-  else if (!errors.followUpEmail) ready.push('a follow-up email');
+  const names: string[] = [];
+  if (ready.cv) names.push(`a tailored CV${opts.atsNote}`);
+  if (ready.coverLetter) names.push('a cover letter');
+  if (ready.applicationEmail && ready.followUpEmail) names.push('two emails');
+  else if (ready.applicationEmail) names.push('an application email');
+  else if (ready.followUpEmail) names.push('a follow-up email');
   // Both emails live on one tab, so count tabs, not documents.
   const retryTabs = [
-    ...(errors.coverLetter ? ['Cover letter'] : []),
-    ...(errors.applicationEmail || errors.followUpEmail ? ['Emails'] : []),
+    ...(!ready.coverLetter ? ['Cover letter'] : []),
+    ...(!ready.applicationEmail || !ready.followUpEmail ? ['Emails'] : []),
   ];
   const lines = [
-    `${intro}: ${joinNames(ready)}. Every claim comes from your CV. Review it before you send.`,
-    `We couldn't write the ${joinNames(failed.map((document) => KIT_DOCUMENT_NAMES[document]))}.`,
+    names.length > 0
+      ? `${intro}: ${joinNames(names)}. Every claim comes from your CV. Review it before you send.`
+      : `Your kit${opts.company ? ` for ${opts.company}` : ''} didn't come through.`,
+    `We couldn't write the ${joinNames(missing.map((document) => KIT_DOCUMENT_NAMES[document]))}.`,
   ];
   if (retryTabs.length > 0) {
     lines.push(`Try again from the ${joinNames(retryTabs)} ${retryTabs.length === 1 ? 'tab' : 'tabs'}.`);
   }
-  if (errors.cv) lines.push('The CV tab shows your base CV. To tailor it, paste the job ad again for a new kit.');
+  if (!ready.cv) lines.push('The CV tab shows your base CV. To tailor it, paste the job ad again for a new kit.');
   if (opts.creditsRefunded > 0) lines.push(`We refunded ${formatCredits(opts.creditsRefunded)}.`);
   return `${lines[0]}\n\n${lines.slice(1).join(' ')}`;
 }
@@ -258,7 +262,7 @@ export function useAgentWorkflow(options?: {
 
   const addWorkflowMessage = (
     sessionId: string | undefined,
-    message: { role: 'assistant'; content: string },
+    message: { role: 'assistant'; content: string; actions?: ChatAction[] },
   ) => {
     if (!sessionId || useSessionStore.getState().currentSession?.id === sessionId) {
       addChatMessage(message);
@@ -1591,9 +1595,20 @@ export function useAgentWorkflow(options?: {
                 const repeatNote = alreadySent
                   ? `\n\nYou already applied to this one${sentOn ? ` on ${sentOn}` : ''}. This kit is saved separately, so the one you sent stays as it is.`
                   : '';
+                const kitReady: Record<KitDocument, boolean> = {
+                  cv: !kitErrors.cv && Boolean(ctx?.optimizedCV || ctx?.optimizedCVData),
+                  coverLetter: !kitErrors.coverLetter && Boolean(ctx?.coverLetter),
+                  applicationEmail: !kitErrors.applicationEmail && Boolean(ctx?.applicationEmail),
+                  followUpEmail: !kitErrors.followUpEmail && Boolean(ctx?.followUpEmail),
+                };
                 addWorkflowMessage(workflowSessionId, {
                   role: 'assistant',
-                  content: `${kitReadyMessage({ company: kitCompany, atsNote, errors: kitErrors, creditsRefunded })}${weakMatchNote}${repeatNote}`,
+                  content: `${kitReadyMessage({ company: kitCompany, atsNote: kitReady.cv ? atsNote : '', ready: kitReady, creditsRefunded })}${weakMatchNote}${repeatNote}`,
+                  // Screening is offered once, here, while this is the newest message (ChatPanel shows a message's
+                  // chips only under the newest reply). Answers are saved with the tailored CV, so it needs one.
+                  ...(kitReady.cv
+                    ? { actions: [{ label: 'Answer screening questions', action: 'start-screening-flow', icon: 'screening' as const }] }
+                    : {}),
                 });
                 if (originStillOpen && isDirectPath && isWeakMatch) {
                   toast.warning(

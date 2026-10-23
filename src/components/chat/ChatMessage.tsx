@@ -46,6 +46,11 @@ interface ChatMessageProps {
   answersInDoc?: boolean;
   /** A reply still being written: no feedback or copy yet, but their row keeps its space so nothing moves when it lands. */
   streaming?: boolean;
+  /**
+   * Whether this message's action chips show. ChatPanel shows them only under the newest reply, and only while no
+   * other chip group is on screen: one group at a time, and sending a message clears every chip above it.
+   */
+  showActions?: boolean;
 }
 
 export function ChatMessage({ 
@@ -57,6 +62,7 @@ export function ChatMessage({
   layout = 'classic',
   answersInDoc = false,
   streaming = false,
+  showActions = true,
 }: ChatMessageProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -117,7 +123,9 @@ export function ChatMessage({
   }
 
   const isLongMessage = message.role === 'user' && message.content.length > collapseLength;
-  const actionItems = (message.actions || []).filter(a => a.action !== 'none' && a.action !== 'stage-done');
+  const actionItems = showActions
+    ? (message.actions || []).filter(a => a.action !== 'none' && a.action !== 'stage-done')
+    : [];
   const hintAction = message.actions?.find(a => a.action === 'none');
   // A finished named stage travels with the message so it survives reloads.
   const stageDone = message.actions?.find(a => a.action === 'stage-done');

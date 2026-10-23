@@ -32,6 +32,7 @@ import {
   startRevisionPolling,
   subscribeSyncNotices,
 } from '@/lib/session-sync';
+import { useChatHistoryLoad } from '@/components/chat/chat-history-load';
 
 // Type for Supabase application_sessions row
 interface SupabaseSessionRow {
@@ -147,6 +148,10 @@ export function useSupabaseSync() {
   const [documentsHydrated, setDocumentsHydrated] = useState(false);
   const [hydrationError, setHydrationError] = useState<string | null>(null);
   const [hydrationAttempt, setHydrationAttempt] = useState(0);
+  // ChatPanel holds its loading state until this first load (which hydrates the open application's chat) is done.
+  useEffect(() => {
+    useChatHistoryLoad.getState().setSessionsLoaded(sessionsHydrated);
+  }, [sessionsHydrated]);
   const isInitialLoadRef = useRef(true);
   const initialLoadCompleteRef = useRef(false);
   const docsLoadedRef = useRef(false);

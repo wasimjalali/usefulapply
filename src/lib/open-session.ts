@@ -15,6 +15,7 @@ import {
   getChatMessages,
 } from '@/lib/supabase';
 import { useChatCompactionMarker } from '@/components/chat/compaction-marker';
+import { useChatHistoryLoad } from '@/components/chat/chat-history-load';
 import {
   useSessionStore,
   type ChatMessage,
@@ -48,14 +49,23 @@ export async function hydrateChatIfEmpty(sessionId: string, generation = openGen
   if (sessionId.startsWith('session-')) return;
   if (hydratedChatIds.has(sessionId)) return;
 
-  // The divider marker is cosmetic: a failed read is logged and shows no divider, it never keeps the chat from loading.
-  const [messages, compactedThrough] = await Promise.all([
-    getChatMessages(sessionId),
-    getChatCompactionMarker(sessionId).catch((error: unknown) => {
-      console.error('[openStoredSession] Chat divider marker did not load:', error);
-      return undefined;
-    }),
-  ]);
+  // ChatPanel holds a loading state while this runs, instead of the empty conversation (chat-history-load.ts).
+  const { setLoading } = useChatHistoryLoad.getState();
+  setLoading(sessionId, true);
+  let messages: Awaited<ReturnType<typeof getChatMessages>>;
+  let compactedThrough: string | null | undefined;
+  try {
+    // The divider marker is cosmetic: a failed read is logged and shows no divider, it never keeps the chat from loading.
+    [messages, compactedThrough] = await Promise.all([
+      getChatMessages(sessionId),
+      getChatCompactionMarker(sessionId).catch((error: unknown) => {
+        console.error('[openStoredSession] Chat divider marker did not load:', error);
+        return undefined;
+      }),
+    ]);
+  } finally {
+    setLoading(sessionId, false);
+  }
   if (generation !== openGeneration) return;
   if (useSessionStore.getState().currentSession?.id !== sessionId) return;
   hydratedChatIds.add(sessionId);

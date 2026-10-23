@@ -27,6 +27,7 @@ import { openSettings } from '@/store/useSettingsStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { submitMessageFeedback } from '@/lib/supabase';
 import { openStoredSession } from '@/lib/open-session';
+import { useChatHistoryLoad } from './chat/chat-history-load';
 import {
   Loader2,
   Plus,
@@ -37,7 +38,6 @@ import {
   ArrowUpRight,
   Zap,
   Search,
-  Download,
   Edit3,
 } from 'lucide-react';
 import { BrandIcon } from './BrandLogo';
@@ -308,7 +308,6 @@ export function ChatPanel({
   const cvRewriteNoteRef = useRef<{ text: string; sessionId: string | null } | null>(null);
   const screeningInFlightRef = useRef(false);
   const setRegenStage = useUIStore((state) => state.setRegenStage);
-  const requestKitDownload = useUIStore((state) => state.requestKitDownload);
 
   // Anonymous visitor hit something that needs an account. One line in the
   // conversation plus a chip to act on; the old modal wall is gone.
@@ -421,10 +420,20 @@ export function ChatPanel({
 
   // Force-scroll to bottom when new messages arrive (user sent or AI responded). A message that lands while a reply
   // was streaming (the finished reply, a failure line) follows the reader instead: it never yanks one who scrolled up.
+  // A transcript that arrives whole (an application opened, its history loaded after a reload) jumps to the end before
+  // paint: a smooth scroll would visibly travel through the whole history.
   const prevMessageCount = useRef(0);
-  useEffect(() => {
+  const prevMessagesSessionId = useRef<string | null>(null);
+  useLayoutEffect(() => {
     const count = currentSession?.chatMessages?.length ?? 0;
-    if (count > prevMessageCount.current) {
+    const sessionId = currentSession?.id ?? null;
+    const arrivedWhole = sessionId !== prevMessagesSessionId.current || (prevMessageCount.current === 0 && count > 1);
+    prevMessagesSessionId.current = sessionId;
+    if (count > 0 && arrivedWhole) {
+      const container = messagesContainerRef.current;
+      if (container) container.scrollTop = container.scrollHeight;
+      stickToBottomRef.current = true;
+    } else if (count > prevMessageCount.current) {
       if (!streamWasActiveRef.current) scrollToBottom(true);
       else if (stickToBottomRef.current) {
         const container = messagesContainerRef.current;
@@ -432,7 +441,7 @@ export function ChatPanel({
       }
     }
     prevMessageCount.current = count;
-  }, [currentSession?.chatMessages, scrollToBottom]);
+  }, [currentSession?.id, currentSession?.chatMessages, scrollToBottom]);
   useEffect(() => {
     streamWasActiveRef.current = streamActive;
   }, [streamActive]);
@@ -754,9 +763,21 @@ export function ChatPanel({
 
   // ---- Adaptive empty-state chips -------------------------------------
 
+  // A saved application whose transcript is still loading from D1: hold a loading line rather than paint the empty
+  // conversation (the saved-job card) and swap the history in a beat later.
+  const sessionsLoaded = useChatHistoryLoad((state) => state.sessionsLoaded);
+  const historyLoadingFor = useChatHistoryLoad((state) => (currentSession ? Boolean(state.loading[currentSession.id]) : false));
+  const chatHistoryLoading = Boolean(
+    user
+    && currentSession
+    && !currentSession.id.startsWith('session-')
+    && messages.length === 0
+    && (!sessionsLoaded || historyLoadingFor),
+  );
+
   const chatIsEmpty = Boolean(
     spine && user && !currentSession?.jobDescription && messages.length === 0
-    && !isAgentWorking && !pendingDecisionJd,
+    && !isAgentWorking && !pendingDecisionJd && !chatHistoryLoading,
   );
   const trackerRows = useTrackerStore((state) => state.rows);
   const trackerLoadedOnce = useTrackerStore((state) => state.loadedOnce);
@@ -1167,8 +1188,10 @@ export function ChatPanel({
       }
       // With a kit on screen the new application only starts when a chip is
       // picked (see beginJobRun), so a misread edit request costs nothing.
-      addChatMessage({ role: 'user', content: text });
+      // The card first: with no application open it creates the conversation, and a message added before that has
+      // nowhere to go, so the ad vanished and the next question reached the chat without it.
       presentJobAdDecision(text);
+      addChatMessage({ role: 'user', content: text });
       setInputValue('');
       return;
     }
@@ -1745,6 +1768,23 @@ export function ChatPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newApplicationRequest]);
 
+  // One chip group at a time, under the newest reply only (verify/chat-ux-pass/RULE-PROPOSAL.md). A card the panel
+  // draws itself (a job ad's choices, the fit result, a rewrite or credits prompt, the account wall, the start date
+  // questions) wins over the chips a message carries, and sending anything clears every chip above it.
+  const fitChipsShown = !isAgentWorking
+    && !chatLogistics
+    && !sessionHasKit(currentSession)
+    && !pendingDecisionJd
+    && Boolean(fitAnalysisContextId || hasFreshPendingFitAnalysis);
+  const panelChipsShown = Boolean(chatLogistics) || fitChipsShown || (spine && !isAgentWorking && Boolean(
+    pendingDecisionJd
+    || adFallbackJd
+    || (needsAccount && !user)
+    || shortCredits
+    || (pendingRegen && !runningRegen),
+  ));
+  const newestMessageId = messages.at(-1)?.id;
+  const messageChipsShownFor = !isAgentWorking && !isTyping && !streamActive && !panelChipsShown ? newestMessageId : undefined;
   // Panel controls. "New Application" is the most-repeated action in the
   // product (job seekers apply 10-30 times), so it carries a label rather than
   // sitting as a bare icon in the global nav where it read as account chrome.
@@ -1971,7 +2011,14 @@ export function ChatPanel({
           {/* Only for sessions that arrive with a saved job (Job Board). A
               fresh paste is mid-decision, and this bubble would double the
               decision UI below with contradictory copy. */}
-          {currentSession && messages.length === 0 && !showWelcomeHero && !pendingDecisionJd && !isAgentWorking && (
+          {chatHistoryLoading && (
+            <div role="status" aria-live="polite" className="flex items-center gap-2 px-1 py-2 text-sm text-warm-gray">
+              <Loader2 className="h-4 w-4 animate-spin text-gold-500" />
+              Loading the conversation
+            </div>
+          )}
+
+          {currentSession && messages.length === 0 && !showWelcomeHero && !pendingDecisionJd && !isAgentWorking && !chatHistoryLoading && (
             <div className="flex gap-3">
               <div className="flex-shrink-0 h-fit">
                 <BrandIcon size="xs" theme="light" />
@@ -2074,6 +2121,7 @@ export function ChatPanel({
                 feedback={messageFeedback[message.id]}
                 layout={spine ? 'spine' : 'classic'}
                 answersInDoc={(currentSession?.screeningAnswers?.length ?? 0) > 0}
+                showActions={message.id === messageChipsShownFor}
               />
               {message.id === compactedThroughMessageId && (
                 <div role="separator" aria-label="Earlier messages summarized" className="flex items-center gap-3">
@@ -2184,11 +2232,7 @@ export function ChatPanel({
           )}
 
           {/* Inline follow-up: Fit analysis actions */}
-          {!isAgentWorking &&
-            !chatLogistics &&
-            !sessionHasKit(currentSession) &&
-            !pendingDecisionJd &&
-            !!(fitAnalysisContextId || hasFreshPendingFitAnalysis) && (
+          {fitChipsShown && (
             <DecisionChips
               chips={
                 (credits?.total ?? CREDIT_COSTS.GENERATION_AFTER_FIT) >= CREDIT_COSTS.GENERATION_AFTER_FIT
@@ -2435,40 +2479,6 @@ export function ChatPanel({
                 />
               </div>
             </div>
-          )}
-
-          {/* Kit ready: download it, or move on to screening questions */}
-          {spine &&
-            !isAgentWorking &&
-            !isScreeningMode &&
-            !pendingRegen &&
-            !runningRegen &&
-            !runningCvRewrite &&
-            !runningScreening &&
-            sessionHasKit(currentSession) &&
-            !(fitAnalysisContextId || hasFreshPendingFitAnalysis) && (
-            <DecisionChips
-              chips={[
-                {
-                  id: 'download-kit',
-                  label: 'Download the kit',
-                  variant: 'primary',
-                  icon: <Download className="h-4 w-4" />,
-                  onSelect: () => requestKitDownload(),
-                },
-                // Screening answers persist inside generated_cv, so they
-                // need the tailored CV. A kit whose CV failed offers download only.
-                ...(hasTailoredCv(currentSession) && (currentSession?.screeningUsageCount ?? 0) < 2
-                  ? [{
-                      id: 'screening',
-                      label: 'Answer screening questions',
-                      variant: 'secondary' as const,
-                      icon: <Sparkles className="h-4 w-4" />,
-                      onSelect: () => { void handleAction('start-screening-flow'); },
-                    }]
-                  : []),
-              ]}
-            />
           )}
 
           <div ref={messagesEndRef} />
