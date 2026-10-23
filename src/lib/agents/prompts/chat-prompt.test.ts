@@ -22,6 +22,7 @@ import {
   chatTurnText,
   EARLIER_PASTE_STATE_LINE,
   PASTED_STATE_LINE,
+  REPLY_LANGUAGE_STATE_LINE,
   type ChatTurn,
   type MainChatPromptContext,
 } from './chat-prompt';
@@ -163,7 +164,7 @@ test('messages: history first, the new turn carries the marker, state goes last'
     role: 'user',
     content: [{ type: 'text', text: 'Move Zapier to interview Tuesday 10', cache_control: { type: 'ephemeral' } }],
   });
-  assert.deepEqual(messages[3], { role: 'system', content: '# Current state\nTODAY: x' });
+  assert.deepEqual(messages[3], { role: 'system', content: `# Current state\nTODAY: x\n${REPLY_LANGUAGE_STATE_LINE}` });
 });
 
 test('messages: the next turn replays the same prefix up to the previous marker', () => {
@@ -332,7 +333,7 @@ test('the new message is quoted exactly when the write gate calls it pasted, and
   const short = 'Which interviews do I have?';
   const typed = buildChatMessages([{ role: 'user', content: short }], '# Current state\nTODAY: x');
   assert.deepEqual(typed[0], { role: 'user', content: [{ type: 'text', text: short, cache_control: { type: 'ephemeral' } }] });
-  assert.equal(typed[1].content, '# Current state\nTODAY: x');
+  assert.equal(typed[1].content, `# Current state\nTODAY: x\n${REPLY_LANGUAGE_STATE_LINE}`);
 
   for (const message of [LONG_AD, LONG_AD.slice(0, 400), 'a\nb\nc\nd\ne\nf', 'Requirements and benefits for this position']) {
     assert.equal(looksPasted(message), true);
@@ -340,7 +341,7 @@ test('the new message is quoted exactly when the write gate calls it pasted, and
     const block = (messages[0].content as Anthropic.Beta.BetaTextBlockParam[])[0];
     assert.ok(block.text.startsWith('<<') && block.text.endsWith('>>'), message.slice(0, 40));
     assert.equal(messages[1].role as string, 'system');
-    assert.equal(messages[1].content, `# Current state\nTODAY: x\n${PASTED_STATE_LINE}`);
+    assert.equal(messages[1].content, `# Current state\nTODAY: x\n${PASTED_STATE_LINE}\n${REPLY_LANGUAGE_STATE_LINE}`);
   }
   // The static prompt names the state line it relies on.
   assert.ok(CHAT_SYSTEM_PROMPT.includes('"Latest message: pasted"'));
@@ -399,21 +400,22 @@ test('an ad the app answered with its buttons, then a typed question: the state 
 test('the earlier-paste line: only for pasted user turns the model sees with no reply after them', () => {
   const state = '# Current state\nTODAY: x';
   const lastState = (history: ChatTurn[]) => buildChatMessages(history, state).at(-1)!.content as string;
+  const lang = `\n${REPLY_LANGUAGE_STATE_LINE}`;
   const ad: ChatTurn = { role: 'user', content: LONG_AD };
   const question: ChatTurn = { role: 'user', content: 'What tools does this role need?' };
 
   // Answered: no line.
-  assert.equal(lastState([ad, { role: 'assistant', content: 'Pick a button.' }, question]), state);
+  assert.equal(lastState([ad, { role: 'assistant', content: 'Pick a button.' }, question]), `${state}${lang}`);
   // An empty reply is left out of the request, so the model sees the two user turns together: the line is due.
-  assert.equal(lastState([ad, { role: 'assistant', content: '  ' }, question]), `${state}\n${EARLIER_PASTE_STATE_LINE}`);
+  assert.equal(lastState([ad, { role: 'assistant', content: '  ' }, question]), `${state}\n${EARLIER_PASTE_STATE_LINE}${lang}`);
   // A typed earlier turn with no reply is not a paste: no line.
-  assert.equal(lastState([{ role: 'user', content: 'Hi there' }, question]), state);
+  assert.equal(lastState([{ role: 'user', content: 'Hi there' }, question]), `${state}${lang}`);
   // Any pasted turn in the unanswered run counts, not only the one right before.
-  assert.equal(lastState([ad, { role: 'user', content: 'Hi there' }, question]), `${state}\n${EARLIER_PASTE_STATE_LINE}`);
+  assert.equal(lastState([ad, { role: 'user', content: 'Hi there' }, question]), `${state}\n${EARLIER_PASTE_STATE_LINE}${lang}`);
   // A pasted turn before the last reply is ordinary history.
-  assert.equal(lastState([ad, { role: 'assistant', content: 'Pick a button.' }, { role: 'user', content: 'Hi there' }, question]), state);
+  assert.equal(lastState([ad, { role: 'assistant', content: 'Pick a button.' }, { role: 'user', content: 'Hi there' }, question]), `${state}${lang}`);
   // A second ad pasted after an unanswered one: both lines, oldest first, and the new one is still the latest.
-  assert.equal(lastState([ad, ad]), `${state}\n${EARLIER_PASTE_STATE_LINE}\n${PASTED_STATE_LINE}`);
+  assert.equal(lastState([ad, ad]), `${state}\n${EARLIER_PASTE_STATE_LINE}\n${PASTED_STATE_LINE}${lang}`);
 });
 
 test('tool loop: the tail marker moves each round, at most 4 markers, and each round reads the last', () => {
@@ -577,7 +579,7 @@ test('budget: eight turns at the cut, the longest CV summaries, tools and rules 
   const estimate = estimateInputTokens({ system: request.system, tools: request.tools, messages: request.messages });
   assert.ok(estimate <= INPUT_REFUSE_ABOVE, `worst first round estimates ${estimate} tokens, over ${INPUT_REFUSE_ABOVE}`);
   // The same with the last replayed turn an unanswered paste, so the state carries the earlier-paste line too. With an
-  // odd replay count the window already ends on a user turn, so both shapes estimate the same (83,889 on 2026-10-23).
+  // odd replay count the window already ends on a user turn, so both shapes estimate the same (85,255 on 2026-10-23).
   const unanswered = turns.map((turn, i) => (i === turns.length - 1 ? { ...turn, role: 'user' as const } : turn));
   const worst = chatRequest(context, unanswered, german(CHAT_TURN_MAX_CHARS + 3_000), 'America/Argentina/ComodRivadavia', MORNING);
   assert.equal(worst.messages.filter((message) => message.role !== 'system').length, CHAT_LOCAL_REPLAY_TURNS + 1);

@@ -174,14 +174,16 @@ ${certifications}`;
 }
 
 /**
- * The last line of every state. The Style rule in CHAT_SYSTEM_PROMPT already says this, but it sits far back in the
- * cached prefix, behind a whole conversation in one language: on a switch (an English conversation, then a German
- * question, or the reverse) the model followed the conversation instead (production 2026-10-23, evals/chat-ux w01 to
- * w06). Repeated here, in the state right after the new message, it is among the last things the model reads. Language-agnostic on
- * purpose: it names no language, and it defers to the Style rule's "own words" reading for mixed or pasted messages.
- * It rides in the state, after the new message's marker, so the cached prefix is unchanged.
+ * The last line of every state message (buildChatMessages appends it after the pasted-ad lines). The Style rule in
+ * CHAT_SYSTEM_PROMPT already says this, but it sits far back in the cached prefix, behind a whole conversation in one
+ * language: on a switch (an English conversation, then a German question, or the reverse) the model followed the
+ * conversation instead (production 2026-10-23, evals/chat-ux w01 to w06). Repeated as the last line the model reads
+ * before it answers, it carries the whole rule in order of precedence: a reply language the user asked for, then the
+ * language of their own words in the latest message, then, for a message with none (a bare paste, "ok", a name, a
+ * link), the language they have been typing in (w07 to w10). Language-agnostic on purpose: it names no language. It
+ * rides in the state, after the new message's marker, so the cached prefix is unchanged.
  */
-export const REPLY_LANGUAGE_STATE_LINE = "Reply language: the language of the user's own words in their latest message, even when the earlier turns and your earlier replies are in another language.";
+export const REPLY_LANGUAGE_STATE_LINE = "Reply language: if the user asked for a reply language, keep using it until they ask for another. Otherwise use the language of their own words in the latest message, even when earlier turns are in another language. If the latest message has no words of their own (only pasted text, \"ok\", a name or a link), keep the language they have been typing in, or the pasted text's if they haven't typed yet.";
 
 /** Per-request state. The only place the date, the time and the open application appear. */
 function buildState(context: MainChatPromptContext, timeZone: string, now: Date): string {
@@ -210,8 +212,6 @@ Generated for this application: ${parts.join(', ')}`;
     state += `
 Generate Kit button: shown on the Cover letter and Emails tabs (fit check done, kit not generated yet)`;
   }
-  state += `
-${REPLY_LANGUAGE_STATE_LINE}`;
   return state;
 }
 
@@ -391,6 +391,7 @@ export function buildChatMessages(
   const lines = [state];
   if (unansweredPaste) lines.push(EARLIER_PASTE_STATE_LINE);
   if (isQuotedTurn(current)) lines.push(PASTED_STATE_LINE);
+  lines.push(REPLY_LANGUAGE_STATE_LINE);
   messages.push(stateMessage(lines.join('\n')));
   return messages;
 }
