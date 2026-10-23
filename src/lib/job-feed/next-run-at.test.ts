@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import { getStartOfNextLocalDay } from './helpers';
 import { nextRunAfter } from '../services/feed/cooldown';
-import type { JobFeedRun } from '@/lib/supabase/types';
+import type { JobFeedRun } from '@/db/types';
 
 // The live calls of 2026-10-21: one queued run polled every ~17 seconds returned a different
 // "next run" each time (22:00:54.149Z, 22:00:11.928Z, ...), the seconds of each call carried over.

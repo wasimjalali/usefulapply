@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
 import { isUniqueViolation, runBatch, getDb, nowIso } from '../client';
 import { addonCreditPacks, creditReservations, creditTransactions, subscriptionPlans, userCredits } from '../schema';
-import type { SubscriptionTier } from '@/lib/supabase/types';
+import type { SubscriptionTier } from '@/db/types';
 import {
   CREDIT_ACTION_KIND,
   CREDIT_COSTS,

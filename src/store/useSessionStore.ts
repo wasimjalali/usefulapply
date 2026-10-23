@@ -14,7 +14,7 @@ import type {
   GeneratedCoverLetter,
   GeneratedEmail,
 } from '@/lib/types';
-import type { JobFeedGenerationStatus } from '@/lib/supabase/types';
+import type { JobFeedGenerationStatus } from '@/db/types';
 import type { KitDocumentErrors } from '@/lib/agents/types';
 
 export interface CVEdit {

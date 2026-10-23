@@ -10,7 +10,7 @@
 
 import * as jobFeedRepo from '@/db/repos/jobFeed';
 import { getProfile } from '@/db/repos/profiles';
-import type { JobFeedRun } from '@/lib/supabase/types';
+import type { JobFeedRun } from '@/db/types';
 import { canViewJobFeed, getLocalDateKey, isJobFeedConfigured, isValidTimeZone } from '@/lib/job-feed/helpers';
 import {
   getJobFeedSettingsAdmin,

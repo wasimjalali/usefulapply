@@ -13,7 +13,7 @@ import {
 import { countryForCity } from '@/lib/job-feed/constants';
 import { splitCompositeRole } from '@/lib/job-feed/cv-suggestions';
 import type { JobFeedOverviewState, JobFeedSettingsInput } from '@/lib/job-feed/types';
-import type { JobFeedRun, JobFeedSettings } from '@/lib/supabase/types';
+import type { JobFeedRun, JobFeedSettings } from '@/db/types';
 
 const MAX_LIST_ITEMS = 8;
 const MAX_SKILLS_ITEMS = 50;

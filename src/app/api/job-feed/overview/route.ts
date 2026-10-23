@@ -11,7 +11,7 @@ import {
 import { JOB_FEED_INBOX_PAGE_SIZE } from '@/lib/job-feed/constants';
 import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { isCurrentCareerProfile, type CareerProfile } from '@/lib/job-feed/career-profile';
-import type { JobFeedRun } from '@/lib/supabase/types';
+import type { JobFeedRun } from '@/db/types';
 import { getProfile } from '@/db/repos/profiles';
 import { getDocumentByType } from '@/db/repos/documents';
 import { getCareerProfileRow, getLatestRun, getSettings } from '@/db/repos/jobFeed';

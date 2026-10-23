@@ -4,7 +4,7 @@ import type {
   JobFeedRankingCandidate,
   JobFeedRankedItemRecord,
 } from '@/lib/job-feed/types';
-import type { JobFeedSettings } from '@/lib/supabase/types';
+import type { JobFeedSettings } from '@/db/types';
 
 // Pure ranking pieces (prompt, message builders, schema, validator, budget shrink).
 // No model or database imports, so unit tests load this file without a runtime.

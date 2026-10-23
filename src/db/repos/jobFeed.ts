@@ -24,7 +24,7 @@ import type {
   JobFeedRun,
   JobFeedSettings,
   Json,
-} from '@/lib/supabase/types';
+} from '@/db/types';
 
 export async function getSettings(userId: string): Promise<JobFeedSettings | null> {
   const db = await getDb();

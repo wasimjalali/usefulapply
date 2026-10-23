@@ -1,5 +1,5 @@
 import { authClient } from '@/auth/client';
-import type { SubscriptionTier } from './types';
+import type { SubscriptionTier } from '@/db/types';
 import { getSubscriptionAction } from '@/db/actions';
 
 export interface Subscription {
