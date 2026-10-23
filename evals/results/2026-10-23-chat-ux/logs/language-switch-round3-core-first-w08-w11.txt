@@ -1,0 +1,29 @@
+chat tools registered: 24; offer_screening_answers present
+chat_ux haiku-low r1 switch-fallback/w08 FAIL (HTTP 404: Application not found) 9ms
+chat_ux haiku-low r1 switch-fallback/w09 FAIL (HTTP 404: Application not found) 1ms
+chat_ux haiku-low r1 switch-fallback/w10 FAIL (HTTP 404: Application not found) 3ms
+{"event":"anthropic_user_profile_created","user_id":"eval-chat-user","profile_id":"uprof_011CgKazpP9R5zZKcCzYLdHH"}
+[providers] Bedrock failover is off: set AWS_BEARER_TOKEN_BEDROCK, or AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, to enable it
+chat_ux haiku-low r1 switch-not-a-request/w11 PASS 4571ms
+chat_ux haiku-low r2 switch-fallback/w08 PASS 1175ms
+chat_ux haiku-low r2 switch-fallback/w09 PASS 973ms
+chat_ux haiku-low r2 switch-fallback/w10 PASS 3557ms
+chat_ux haiku-low r2 switch-not-a-request/w11 PASS 3622ms
+chat_ux haiku-low r3 switch-fallback/w08 PASS 1699ms
+chat_ux haiku-low r3 switch-fallback/w09 PASS 2510ms
+chat_ux haiku-low r3 switch-fallback/w10 PASS 7248ms
+chat_ux haiku-low r3 switch-not-a-request/w11 PASS 3877ms
+chat_ux haiku-low r4 switch-fallback/w08 PASS 1325ms
+chat_ux haiku-low r4 switch-fallback/w09 PASS 1016ms
+chat_ux haiku-low r4 switch-fallback/w10 PASS 4292ms
+chat_ux haiku-low r4 switch-not-a-request/w11 PASS 2946ms
+chat_ux haiku-low r5 switch-fallback/w08 PASS 2115ms
+chat_ux haiku-low r5 switch-fallback/w09 PASS 1431ms
+chat_ux haiku-low r5 switch-fallback/w10 PASS 6767ms
+chat_ux haiku-low r5 switch-not-a-request/w11 PASS 4569ms
+wrote /Users/wasimjalali/Desktop/Useful_Apply/.claude/worktrees/chat-lang-switch/evals/results/2026-10-23-chat-ux/chat_ux/run-1.json
+
+== chat_ux ==
+arm                 pass        hard                     p50/p95 call ms   $/call    hit%  warm%
+haiku-low           17/20       0                        2502/4500         0.00094   67   84
+decision (rule fixed before running): haiku-low
