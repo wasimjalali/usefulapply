@@ -16,17 +16,9 @@ import { useChatCompactionMarker } from '@/components/chat/compaction-marker';
 import posthog from 'posthog-js';
 
 const AUTH_USER_ID_STORAGE_KEY = 'usefulapply-auth-user-id';
-const AUTH_USER_ID_STORAGE_KEY_OLD = 'karko-auth-user-id';
 
 function readAuthUserId(): string | null {
-  const next = localStorage.getItem(AUTH_USER_ID_STORAGE_KEY);
-  if (next) return next;
-  const prev = localStorage.getItem(AUTH_USER_ID_STORAGE_KEY_OLD);
-  if (prev) {
-    localStorage.setItem(AUTH_USER_ID_STORAGE_KEY, prev);
-    return prev;
-  }
-  return null;
+  return localStorage.getItem(AUTH_USER_ID_STORAGE_KEY);
 }
 
 function writeAuthUserId(userId: string) {
@@ -49,7 +41,6 @@ export function hasStoredAuthHint(): boolean {
 
 function clearAuthUserId() {
   localStorage.removeItem(AUTH_USER_ID_STORAGE_KEY);
-  localStorage.removeItem(AUTH_USER_ID_STORAGE_KEY_OLD);
 }
 
 /**
@@ -68,7 +59,6 @@ function clearPersistedStores() {
     localStorage.removeItem('cv-store');
     localStorage.removeItem('usefulapply_resume_intent');
     localStorage.removeItem('usefulapply-default-template');
-    localStorage.removeItem('karko-default-template');
     useChatCompactionMarker.setState({ bySession: {} });
     localStorage.removeItem('chat-compaction-marker');
   } catch (e) {

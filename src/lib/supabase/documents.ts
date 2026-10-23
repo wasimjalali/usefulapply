@@ -1,5 +1,4 @@
 import {
-  getDocumentsAction,
   getDocumentByTypeAction,
   saveDocumentAction,
   deleteDocumentAction,
@@ -8,10 +7,6 @@ import {
 import { toR2Key } from '@/storage/paths';
 
 export type { Document } from '@/db/repos/documents';
-
-export async function getDocuments(userId: string) {
-  return getDocumentsAction(userId);
-}
 
 export async function getDocumentByType(userId: string, type: 'primary_cv' | 'master_cv') {
   return getDocumentByTypeAction(userId, type);

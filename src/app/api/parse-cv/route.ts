@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { checkRateLimit, getClientIP, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
@@ -253,7 +252,7 @@ export async function POST(request: NextRequest) {
       success: true,
       structuredCV,
       originalPdf: {
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         url: undefined,
         fileName: originalFileName,
         size: buffer.length,

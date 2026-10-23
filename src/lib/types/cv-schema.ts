@@ -1,5 +1,3 @@
-import { v4 as uuidv4 } from 'uuid';
-
 /**
  * Production-ready CV Schema
  * - Stable UUIDs (not index-based)
@@ -138,7 +136,7 @@ export interface AdditionalSection {
 
 export function createEmptyCV(region: 'US' | 'EU' = 'EU'): StructuredCV {
   return {
-    id: uuidv4(),
+    id: crypto.randomUUID(),
     version: 1,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -212,7 +210,7 @@ export function parseDate(raw: string): CVDate {
 }
 
 export function withId<T>(item: Omit<T, 'id'>): T {
-  return { ...item, id: uuidv4() } as T;
+  return { ...item, id: crypto.randomUUID() } as T;
 }
 
 export const CV_TEMPLATES = [

@@ -4,8 +4,8 @@
  * PricingAurora
  *
  * Premium ambient background for the pricing hero + cards region.
- * Distinct from HeroAurora: different orb placements (gold-top, navy-bottom)
- * so the pricing page has its own signature while staying on-brand.
+ * Orb placements (gold-top, navy-bottom) give the pricing page its own
+ * signature while staying on-brand.
  *
  * Layers:
  *   1. Gold aurora — top-right, the "premium" tint.

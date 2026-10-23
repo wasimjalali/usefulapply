@@ -64,11 +64,6 @@ export async function removeAvatarAction(userId: string): Promise<boolean> {
   return removeProfilePhoto(userId);
 }
 
-export async function getDocumentsAction(userId: string) {
-  await requireUserId(userId);
-  return documentsRepo.getDocuments(userId);
-}
-
 export async function getDocumentByTypeAction(userId: string, type: 'primary_cv' | 'master_cv') {
   await requireUserId(userId);
   return documentsRepo.getDocumentByType(userId, type);
@@ -223,24 +218,6 @@ export async function getCreditTransactionsAction(userId: string, limit?: number
   return creditsRepo.getCreditTransactions(userId, limit);
 }
 
-export async function getSubscriptionPlansAction() {
-  return creditsRepo.getSubscriptionPlans();
-}
-
-export async function getAddonCreditPacksAction() {
-  return creditsRepo.getAddonCreditPacks();
-}
-
-export async function getConnectedAccountsAction(userId: string) {
-  await requireUserId(userId);
-  return subscriptionsRepo.getConnectedAccounts(userId);
-}
-
-export async function disconnectAccountAction(userId: string, provider: 'google' | 'linkedin' | 'github') {
-  await requireUserId(userId);
-  return subscriptionsRepo.disconnectAccount(userId, provider);
-}
-
 export async function getSubscriptionAction(userId: string) {
   await requireUserId(userId);
   return subscriptionsRepo.getSubscription(userId);
@@ -259,16 +236,6 @@ export async function submitMessageFeedbackAction(
 ) {
   await requireUserId(userId);
   return feedbackRepo.submitMessageFeedback(userId, messageId, feedbackType, options);
-}
-
-export async function getSessionFeedbackAction(userId: string, sessionId: string) {
-  await requireUserId(userId);
-  return feedbackRepo.getSessionFeedback(userId, sessionId);
-}
-
-export async function getMessageFeedbackAction(userId: string, messageId: string) {
-  await requireUserId(userId);
-  return feedbackRepo.getMessageFeedback(userId, messageId);
 }
 
 type FileBucket = 'cv-files' | 'generated-pdfs' | 'avatars' | 'profile-photos';

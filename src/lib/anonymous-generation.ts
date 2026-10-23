@@ -1,5 +1,4 @@
 const ANON_GENERATION_KEY = 'usefulapply_anonymous_generation_used';
-const ANON_GENERATION_KEY_OLD = 'karko_anonymous_generation_used';
 const ANON_GENERATION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** Check if anonymous user has already used their free generation */
@@ -12,9 +11,8 @@ export function hasUsedFreeGeneration(): boolean {
       if (Date.now() - usedAt < ANON_GENERATION_TTL_MS) return true;
       localStorage.removeItem(ANON_GENERATION_KEY);
     }
-    if (stored === 'true' || localStorage.getItem(ANON_GENERATION_KEY_OLD) === 'true') {
+    if (stored === 'true') {
       localStorage.setItem(ANON_GENERATION_KEY, String(Date.now()));
-      localStorage.removeItem(ANON_GENERATION_KEY_OLD);
       return true;
     }
   } catch {
@@ -33,7 +31,6 @@ export function markFreeGenerationUsed(): void {
 export function clearFreeGenerationFlag(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(ANON_GENERATION_KEY);
-  localStorage.removeItem(ANON_GENERATION_KEY_OLD);
 }
 
 // Set by the guided line's sign-up card right before auth starts. It tells

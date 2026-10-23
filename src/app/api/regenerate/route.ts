@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { EmailValidationError } from '@/lib/agents/unified-writer-agent';
 import { getCurrentUser } from '@/auth/server';
-import { CREDIT_COSTS } from '@/lib/middleware/creditCheck';
+import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { reserveCredits, captureReservation, releaseReservation } from '@/lib/supabase/credit-reservations';
 import { getPostHogServer } from '@/lib/posthog-server';
 import { randomUUID } from 'crypto';

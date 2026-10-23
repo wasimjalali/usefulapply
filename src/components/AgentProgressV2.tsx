@@ -14,7 +14,38 @@ import {
   Award,
   Building2,
 } from 'lucide-react';
-import type { AgentV2Step, AgentV2Progress, AgentV2Reflection, CompanyResearchData } from '@/hooks/useAgentV2';
+
+interface AgentV2Step {
+  id: string;
+  description: string;
+  status: 'pending' | 'running' | 'completed' | 'error';
+  agent?: string;
+  result?: unknown;
+  error?: string;
+  tokens?: { input: number; output: number };
+}
+
+interface AgentV2Progress {
+  percent: number;
+  message: string;
+}
+
+interface AgentV2Reflection {
+  iteration: number;
+  status: 'started' | 'completed';
+  improved?: boolean;
+}
+
+// Company research data from tool_usage event
+interface CompanyResearchData {
+  name: string;
+  description: string;
+  address: string;
+  culture: string[];
+  values: string[];
+  techStack: string[];
+  recentNews: string[];
+}
 
 interface AgentProgressV2Props {
   steps: AgentV2Step[];
