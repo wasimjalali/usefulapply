@@ -662,6 +662,7 @@ export function chatAnswer(body: MessagesBody): HaikuAnswer {
       return reply('I could not find that application.');
     }
     if (typeof data.error === 'string') return reply(`I could not do that. ${data.error}`);
+    if (names.includes('offer_screening_answers')) return reply('Use the button below to open screening answers.');
     if (names.includes('set_application_status')) return reply(`Moved ${unwrap(data.company)} to ${String(data.status)}.`);
     if (names.includes('delete_application')) return reply('Use the button to confirm the delete.');
     if (names.includes('propose_application')) return reply('Pick one of the buttons to check your fit or generate the kit.');
@@ -669,6 +670,10 @@ export function chatAnswer(body: MessagesBody): HaikuAnswer {
   }
 
   if (looksLikeAd(userText)) return toolUse('propose_application', {}, thinking);
+  // The chip specs: a form with questions leads to the screening chip; "Please delete the X row" leads to the
+  // delete chip (get_applications first, then delete_application, whose confirm chip rides on the reply).
+  if (userText.includes('FAKE-OFFER-SCREENING')) return toolUse('offer_screening_answers', {}, thinking);
+  if (/^please delete the [\w .&-]+ row/i.test(userText)) return toolUse('get_applications', {}, thinking);
   if (asksForOverview(userText)) return toolUse('get_applications', {}, thinking, 'Ich schaue kurz in deinen Tracker.');
   // A reply whose second sentence offers to add a claim to the CV: the app's guard replaces the whole reply, so a
   // stream must never show that sentence, only the guard's line in the end.
