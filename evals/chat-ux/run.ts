@@ -1,6 +1,6 @@
 /**
  * Chat UX evals: German replies, reply length, the screening offer, unverified claims, and compaction in German.
- * 33 turns in 9 conversations through the real /api/chat route, its tools and a local D1. Haiku 5.5 at the shipped
+ * 34 turns in 9 conversations through the real /api/chat route, its tools and a local D1. Haiku 5.5 at the shipped
  * chat effort (low) only. Cases: evals/chat-ux/fixtures/cases.ts. Site and graders: sites/chat-ux.ts, lib/checks.ts.
  * The lib is the 2026-10-22 harness's (evals/haiku-55-swap/lib), imported, not copied.
  *
@@ -27,7 +27,7 @@
  * 5 MB). The file records the git sha. Copy the two folders next to each other afterwards and name them before/after.
  *
  * COST. About $0.00036 per call at Haiku 5.5 low (2026-10-22 chat run). A turn is 1 to 3 calls (tool rounds), so the
- * 32 ordinary turns are about 32 x 1.6 x $0.00036 = $0.02 per run. The compaction turn sends about 80k input tokens
+ * 33 ordinary turns are about 33 x 1.6 x $0.00036 = $0.02 per run. The compaction turn sends about 80k input tokens
  * twice (the compaction, then the answer) at $0.10 per million, about $0.02. Total about $0.04 per run, $0.12 for
  * --runs 3 on one commit, about $0.25 for both commits. The cache is salted per (arm, run), so every run pays its own
  * cold start.

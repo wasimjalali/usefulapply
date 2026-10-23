@@ -1,5 +1,5 @@
 /**
- * Chat UX cases: 33 turns in 9 conversations over the 25-row tracker and the open application from the
+ * Chat UX cases: 34 turns in 9 conversations over the 25-row tracker and the open application from the
  * 2026-10-22 harness (Thursday 2026-10-22, Berlin, signed-in user Lena Hoffmann).
  *
  *   German      12 turns, 3 conversations. The user writes German; the pasted ad, the CV, the tool results (the
@@ -355,6 +355,22 @@ export const CASES: UxCase[] = [
     badReply: 'Tap the button below to start the screening questions.',
   },
   {
+    // The most common way users bring them up: the form's questions pasted as a list (wrapped in << >> by the route).
+    id: 's09', group: 'scr-en', turn: 6, lang: 'en', category: 'screening_pos', withCv: true, requiresTool: OFFER_SCREENING_TOOL,
+    message: [
+      'The application form asks these:',
+      '1. Why do you want to work at Nordhafen Handels GmbH? (max 800 characters)',
+      '2. Describe a time you automated a recurring report and what changed because of it.',
+      '3. What is your notice period and earliest start date?',
+      '4. What are your salary expectations (gross per year, EUR)?',
+      '5. Do you have experience with SAP S/4HANA or another ERP system? Please describe it.',
+      '6. Are you willing to come to the Hamburg office three days a week?',
+    ].join('\n'),
+    expect: { tools: [OFFER_SCREENING_TOOL], chips: [SCREENING_CHIP], reply: { maxSentences: 3 } },
+    script: [call(OFFER_SCREENING_TOOL)], finalReply: 'Those are screening questions. Tap the button below and I will answer each one from your CV.',
+    badReply: 'Here are your answers: 1. I want to work at Nordhafen because the role fits my analytics background.',
+  },
+  {
     id: 's06', group: 'scr-de', turn: 1, lang: 'de', category: 'screening_neg', withCv: true,
     message: 'Welche Fragen kommen im Vorstellungsgespräch bei einer Controller-Stelle normalerweise dran?',
     expect: { forbidden: [OFFER_SCREENING_TOOL], forbiddenChips: [SCREENING_CHIP], reply: { german: true, maxSentences: 3 } },
@@ -418,7 +434,7 @@ export const CASES: UxCase[] = [
   },
 ];
 
-export const EXPECTED = { total: 33, german: 12, germanGroups: 3, length: 8, screeningPos: 4, screeningNeg: 4, claims: 4, compaction: 1, groups: 9 };
+export const EXPECTED = { total: 34, german: 12, germanGroups: 3, length: 8, screeningPos: 5, screeningNeg: 4, claims: 4, compaction: 1, groups: 9 };
 
 /** Tools the dry self-test accepts in a case: the chat's registry plus the one this pass adds. */
 export const KNOWN_TOOLS = [

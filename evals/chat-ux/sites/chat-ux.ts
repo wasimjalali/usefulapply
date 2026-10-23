@@ -1,5 +1,5 @@
 /**
- * Site: chat UX pass (src/app/api/chat/route.ts, the shipped POST handler, with its real tools), 33 turns.
+ * Site: chat UX pass (src/app/api/chat/route.ts, the shipped POST handler, with its real tools), 34 turns.
  * Cases and what each checks: fixtures/cases.ts. The header of run.ts has the commands.
  *
  * Built on the 2026-10-22 chat site (haiku-55-swap/sites/chat.ts): it reuses that site's setup (local D1 built
@@ -221,7 +221,7 @@ function selfTestChecks(): string[] {
 
 export const chatUxSite: Site<UxCase> = {
   id: 'chat_ux',
-  title: 'Chat UX pass, 33 turns in 9 conversations through the real route and tools',
+  title: 'Chat UX pass, 34 turns in 9 conversations through the real route and tools',
   command: 'npx tsx evals/chat-ux/run.ts chat-ux --allow-anthropic-api',
   runsDefault: 3,
   passRule:
