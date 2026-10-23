@@ -17,10 +17,32 @@ import { CV_TEMPLATE_IDS, cvTemplateCatalogForPrompt, cvTemplateName } from '@/l
 import { flattenUntrusted } from './untrusted';
 import type { ChatTool, ChatToolResult } from './types';
 
+/**
+ * The ATS score the kit writer stored with the tailored CV (generated_cv._optimizedCVData.analysis.ats_compatibility,
+ * written by kit.ts, cv.ts and regenerate.ts). Read from the D1 row, not from ctx.tailoredCV, which the client sends.
+ * Null when there is none (no tailored CV, or a kit from before the score existed). A value that is there but is not
+ * a finite number is logged and reported as null, never coerced, so the chat cannot quote a made-up score.
+ */
+function storedAtsScore(sessionId: string, generatedCv: unknown): number | null {
+  const optimized = generatedCv && typeof generatedCv === 'object'
+    ? (generatedCv as Record<string, unknown>)._optimizedCVData
+    : undefined;
+  const analysis = optimized && typeof optimized === 'object'
+    ? (optimized as Record<string, unknown>).analysis
+    : undefined;
+  const score = analysis && typeof analysis === 'object'
+    ? (analysis as Record<string, unknown>).ats_compatibility
+    : undefined;
+  if (score === undefined || score === null) return null;
+  if (typeof score === 'number' && Number.isFinite(score)) return score;
+  console.error(`[chat-tools] get_application_overview: ${sessionId} has a non-numeric ats_compatibility (${typeof score})`);
+  return null;
+}
+
 const getApplicationOverview: ChatTool = {
   name: 'get_application_overview',
   description:
-    'Everything about the application open in this conversation: company, role, status, match score, which documents have been generated (CV, cover letter, application email, follow-up email), the CV template it uses and how many screening answers are left. Use for "what have I got for this one", "did I write the cover letter yet", "which template is this using".',
+    'Everything about the application open in this conversation: company, role, status, match score, ATS score, which documents have been generated (CV, cover letter, application email, follow-up email), the CV template it uses and how many screening answers are left. Use for "what have I got for this one", "did I write the cover letter yet", "which template is this using".',
   parameters: { type: 'object', properties: {}, additionalProperties: false },
   handler: async (_args, ctx): Promise<ChatToolResult> => {
     if (!ctx.sessionId) {
@@ -36,6 +58,7 @@ const getApplicationOverview: ChatTool = {
         role: `<<${flattenUntrusted(session.job_title)}>>`,
         status: session.status ?? 'drafted',
         match_score: session.match_score ?? null,
+        ats_score: storedAtsScore(session.id, session.generated_cv),
         has_cv: Boolean(session.generated_cv),
         has_cover_letter: Boolean(session.cover_letter),
         has_application_email: Boolean(session.email || session.email_body),

@@ -118,11 +118,11 @@ const BIG = [{ role: 'user' as const, content: 'x'.repeat(130_000) }];
 
 // --- failure cases first ---
 
-test('over 90,000 counted tokens: refused before sending, ledger error_kind input_budget', async () => {
-  const h = harness({ countTokens: async () => 90_001 });
+test('over 93,000 counted tokens: refused before sending, ledger error_kind input_budget', async () => {
+  const h = harness({ countTokens: async () => 93_001 });
   await assert.rejects(
     callHaiku(options({ messages: BIG }), h.deps),
-    (error: unknown) => error instanceof InputBudgetError && error.site === 'tracker' && error.projectedTokens === 90_001,
+    (error: unknown) => error instanceof InputBudgetError && error.site === 'tracker' && error.projectedTokens === 93_001,
   );
   assert.equal(h.sent.length, 0);
   assert.equal(h.failed.length, 1);
@@ -131,11 +131,11 @@ test('over 90,000 counted tokens: refused before sending, ledger error_kind inpu
   assert.equal(h.events.length, 1);
   assert.equal(h.events[0].error_kind, 'input_budget');
   assert.equal(h.events[0].$ai_is_error, true);
-  assert.equal(h.events[0].counted_input_tokens, 90_001);
+  assert.equal(h.events[0].counted_input_tokens, 93_001);
 });
 
-test('exactly 90,000 counted tokens is sent', async () => {
-  const h = harness({ countTokens: async () => 90_000 });
+test('exactly 93,000 counted tokens is sent', async () => {
+  const h = harness({ countTokens: async () => 93_000 });
   const response = await callHaiku(options({ messages: BIG }), h.deps);
   assert.equal(h.sent.length, 1);
   assert.equal(response.content, 'ok');

@@ -25,7 +25,7 @@ import {
 const SYNTHESIS_MAX_TOKENS = 10000;
 
 // The serialized CV in the prompt never exceeds this (about 33k tokens at the
-// worst measured 1.8 chars/token, well under the 90k input budget).
+// worst measured 1.8 chars/token, well under the 93k input budget).
 export const SLIM_CV_MAX_CHARS = 60_000;
 export const CV_TRUNCATED_MARKER = '[truncated]';
 

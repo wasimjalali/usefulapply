@@ -37,10 +37,10 @@ test('invalid lengths and previous totals throw', () => {
   assert.throws(() => projectNextInputTokens(1.5, []), /invalid previous total/);
 });
 
-test('refuse limit: 90,000 passes, 90,001 is over', () => {
-  assert.equal(INPUT_REFUSE_ABOVE, 90_000);
-  assert.equal(isOverRefuseLimit(90_000), false);
-  assert.equal(isOverRefuseLimit(90_001), true);
+test('refuse limit: 93,000 passes, 93,001 is over', () => {
+  assert.equal(INPUT_REFUSE_ABOVE, 93_000);
+  assert.equal(isOverRefuseLimit(93_000), false);
+  assert.equal(isOverRefuseLimit(93_001), true);
 });
 
 test('hard limit: 94,999 passes, 95,000 is over', () => {
