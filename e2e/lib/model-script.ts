@@ -672,6 +672,11 @@ export function chatAnswer(body: MessagesBody): HaikuAnswer {
   if (asksForOverview(userText)) return toolUse('get_applications', {}, thinking, 'Ich schaue kurz in deinen Tracker.');
   // A reply whose second sentence offers to add a claim to the CV: the app's guard replaces the whole reply, so a
   // stream must never show that sentence, only the guard's line in the end.
+  // A promise that the rewrite will include a new claim, with no rewrite proposed: the final guard keeps it (the
+  // promise check only runs beside a proposed rewrite), but the stream's strict gate holds it until `done`.
+  if (/lebenslauf umschreiben/i.test(userText)) {
+    return reply('Klar, das machen wir. The rewrite with your AWS certification will appear once you confirm. Sag einfach Bescheid.');
+  }
   if (/lebenslauf st(ae|ä)rken/i.test(userText)) {
     return reply('Gute Idee, das schauen wir uns an. I can add your AWS certification to your CV right away. Sag einfach Bescheid, wenn es losgehen soll.');
   }

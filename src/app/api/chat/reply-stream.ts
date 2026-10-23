@@ -8,7 +8,8 @@
  *   { type: 'ping' }            every 10 s, so the client's own idle limit only trips when the connection is gone
  *   { type: 'done', ... }       the JSON body a non-streamed request gets: `reply` is the whole reply and replaces
  *                               whatever the deltas showed (a guard or a failed tool can still change it at the end)
- *   { type: 'error', status, code?, error, ... }   the turn failed; nothing was stored as its reply
+ *   { type: 'error', status, code?, error, ... }   the turn failed; the model's words were not stored (a cut after
+ *                               committed tool effects stores its fixed line and names it in `replyMessageId`)
  *
  * The deltas pass the same checks the finished reply passes: text goes out a sentence at a time, and only when the
  * whole reply so far passes the CV-addition guard (chat-reply-guard.ts) and comes out of sanitizeDashes with what was

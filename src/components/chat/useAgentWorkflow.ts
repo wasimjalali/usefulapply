@@ -324,14 +324,16 @@ export function useAgentWorkflow(options?: {
   };
 
   /**
-   * Where a chat turn's late answer goes: the application it started in while that is still open or listed, else the
-   * open one when the turn started in a local conversation that got its saved id meanwhile. Null when it is gone.
+   * Where a chat turn's late answer goes: the application it started in while that is still open or listed, else, for
+   * a local conversation that got its saved id meanwhile, the application with its createdAt (the new id keeps it).
+   * Null when it is gone.
    */
-  const resolveTurnSession = (startedIn: string | null): string | null => {
+  const resolveTurnSession = (startedIn: string | null, startedCreatedAt: string | null): string | null => {
     const state = useSessionStore.getState();
     if (startedIn && (state.currentSession?.id === startedIn || state.sessions.some((session) => session.id === startedIn))) return startedIn;
-    if (startedIn?.startsWith('session-')) return state.currentSession?.id ?? null;
-    return null;
+    if (!startedIn?.startsWith('session-') || !startedCreatedAt) return null;
+    const renamed = [state.currentSession, ...state.sessions].find((session) => session?.createdAt === startedCreatedAt && !session.id.startsWith('session-'));
+    return renamed?.id ?? null;
   };
 
   /** A message D1 already holds, into the application it belongs to (`stored`, so the sync never writes it again). */
@@ -430,7 +432,7 @@ export function useAgentWorkflow(options?: {
       abortControllerRef.current?.abort();
       abortControllerRef.current = null;
       setIsTyping(false);
-      const target = resolveTurnSession(streaming?.sessionId ?? null);
+      const target = resolveTurnSession(streaming?.sessionId ?? null, streaming?.sessionCreatedAt ?? null);
       if (streaming?.turnId === chatTurn && target && streaming.text.trim()) {
         // Not a `msg-` id, so the chat sync never writes it (useSupabaseSync): it lives on this screen only.
         addReplyMessage(
@@ -638,20 +640,24 @@ export function useAgentWorkflow(options?: {
     const controller = new AbortController();
     abortControllerRef.current = controller;
     // The streamed bubble for this turn (streaming-reply.ts), and whether the watchdog, not Stop, ended it.
-    const streamTurnId = useStreamingReply.getState().start(startedIn);
+    const startedCreatedAt = useSessionStore.getState().currentSession?.createdAt ?? null;
+    const streamTurnId = useStreamingReply.getState().start(startedIn, startedCreatedAt);
     chatTurnRef.current = streamTurnId;
     let idledOut = false;
     let streamOpened = false;
-    // This tab lost the reply (the stream broke, or no byte came for the watchdog's limit). The route finishes a turn
-    // whose client left and stores the reply, so the notice says so and lives on this screen only: a `notice-` id the
-    // sync never writes, so D1 never holds a failure line next to the real reply.
+    // This tab lost the reply (the stream broke, or no byte came for the watchdog's limit). On a saved application the
+    // route finishes a turn whose client left and stores the reply, so the notice says a reload may show it; a local
+    // conversation stores nothing, so there it asks to send again. Either way it lives on this screen only: a `notice-`
+    // id the sync never writes, so D1 never holds a failure line next to the real reply.
     const showConnectionLost = () => flushSync(() => {
       useStreamingReply.getState().clearTurn(streamTurnId);
-      const target = resolveTurnSession(startedIn);
+      const target = resolveTurnSession(startedIn, startedCreatedAt);
       if (target) {
         addReplyMessage({
           role: 'assistant',
-          content: 'I lost the connection while the reply was coming in. If it finished, it shows after a reload.',
+          content: startedIn && !startedIn.startsWith('session-')
+            ? 'I lost the connection while the reply was coming in. If it finished, it shows after a reload.'
+            : 'I lost the connection while the reply was coming in. Send your message again.',
           actions: [],
         }, `notice-${streamTurnId}`, target);
       }
@@ -772,7 +778,7 @@ export function useAgentWorkflow(options?: {
           const storedLine = typeof errorData.reply === 'string' && typeof errorData.replyMessageId === 'string'
             ? { content: errorData.reply, id: errorData.replyMessageId }
             : null;
-          const target = resolveTurnSession(startedIn);
+          const target = resolveTurnSession(startedIn, startedCreatedAt);
           if (storedLine && target) {
             // The route stored that line under this id: the transcript keeps the same row, so the sync never adds one.
             addReplyMessage({ role: 'assistant', content: storedLine.content, actions: [] }, storedLine.id, target);

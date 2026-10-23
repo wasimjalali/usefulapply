@@ -107,7 +107,7 @@ async function main(): Promise<void> {
       INSERT INTO application_sessions
         (id, user_id, job_title, company, job_description, matching_skills, missing_skills, suggestions, cv_edits,
          generated_cv, status, generation_status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 'Seeded posting', '[]', '[]', '[]', '[]', NULL, ?, 'none', ?, ?)
+      VALUES (?, ?, ?, ?, 'Seeded posting', '[]', '[]', '[]', '[]', '{"content":"cv"}', ?, 'succeeded', ?, ?)
     `);
     const day = 86_400_000;
     const at = (daysAgo: number) => new Date(Date.now() - daysAgo * day).toISOString();

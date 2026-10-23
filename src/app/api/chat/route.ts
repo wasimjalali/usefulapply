@@ -410,9 +410,10 @@ interface ChatFailureState {
 }
 
 /**
- * A streamed reply that failed after some of its text reached the client. That text cannot be taken back or
- * continued by another provider, so the turn ends with an error event, and nothing is stored as its reply. Effects a
- * tool round already committed go back with it, so the client still applies them.
+ * A streamed reply whose route to the model broke after some of its text reached the client. That text cannot be taken
+ * back or continued by another provider, so the turn ends with an error event and the model's words are not stored.
+ * Effects a tool round already committed go back with it, so the client still applies them, and the fixed line that
+ * says so is stored under `replyMessageId` (when the store worked).
  */
 class ReplyCutError extends Error {
   constructor(
@@ -736,7 +737,14 @@ async function runChatTurn(
       let fallbackId: string | null = null;
       if (fallback && storesTurn && persistedSessionId) {
         fallbackId = newChatMessageId();
-        if (!await storeChatReply(userId, persistedSessionId, { id: fallbackId, content: fallback, actions: [] }, turnMessageId)) {
+        let storedLine = false;
+        try {
+          storedLine = await storeChatReply(userId, persistedSessionId, { id: fallbackId, content: fallback, actions: [] }, turnMessageId);
+        } catch (storeError) {
+          // The cut and its committed effects still go back; the line just is not in the history.
+          console.error('[chat] the cut turn\'s fixed line could not be stored:', storeError instanceof Error ? storeError.message : storeError);
+        }
+        if (!storedLine) {
           console.error(`[chat] the cut turn's fixed line was not stored for ${persistedSessionId}`);
           fallbackId = null;
         }

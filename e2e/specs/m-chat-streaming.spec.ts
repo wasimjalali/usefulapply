@@ -378,6 +378,14 @@ test.describe.serial('chat replies stream as they are written', () => {
     expect(streamedText(result.events)).toBe('Gute Idee, das schauen wir uns an.');
     expect(streamedText(result.events)).not.toContain('AWS');
     expect(repliesAfter(sessionId, result.messageId)?.replies.map((row) => row.content)).toEqual([UNSUPPORTED_CV_ADDITION_REPLY]);
+
+    // The strict-only case: a promise the final guard keeps here (no rewrite was proposed) is still held from the
+    // stream, since the gate cannot know whether a rewrite will be proposed after the text. It arrives with `done`.
+    const promise = await streamTurn(context, sessionId, 'Kannst du meinen Lebenslauf umschreiben?');
+    const promiseDone = finalOf(promise.events);
+    expect(promiseDone.type).toBe('done');
+    expect(String(promiseDone.reply)).toContain('The rewrite with your AWS certification will appear');
+    expect(streamedText(promise.events)).toBe('Klar, das machen wir.');
   });
 
   test('a request without the event-stream Accept header (a tab from before streaming) gets the JSON body', async () => {
@@ -478,7 +486,9 @@ test.describe.serial('chat replies stream as they are written', () => {
     await expect(page.getByRole('button', { name: 'Stop generation' })).toHaveCount(0);
     await page.screenshot({ path: test.info().outputPath('stopped.png') });
 
-    // The next message at once, while the route is still writing the stopped turn (250 ms a chunk).
+    // The next message at once, while the route is still writing the stopped turn (250 ms a chunk): its reply is not
+    // stored yet when the next turn starts.
+    expect(chatMessagesOf(sessionId).slice(before).filter((row) => row.role === 'assistant'), 'the stopped turn is still running').toHaveLength(0);
     const welcomes = bubblesWith(page, "You're welcome.");
     const welcomesBefore = await welcomes.count();
     await chatInput(page).fill('Okay, danke!');
