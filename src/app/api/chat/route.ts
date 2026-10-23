@@ -69,6 +69,8 @@ const MAX_CHAT_MESSAGES_PER_SESSION = 50;
 // wrap up); the final round runs with tool_choice none so it must answer.
 const MAX_TOOL_ROUNDS = 3;
 const MAX_TOOL_CALLS_PER_ROUND = 4;
+// What a turn stores when it repeats an answered message: the words of the ChatPanel button that sends it.
+const REASKED_AS_QUESTION_TEXT = 'Not a job ad, just a question';
 // Compaction requests one turn may send before it goes out as it is (the budget guard then decides).
 const MAX_COMPACTION_PASSES = 2;
 
@@ -128,7 +130,9 @@ interface ChatContext {
 export async function POST(req: NextRequest) {
   // Set once the turn goes out on a compaction block: a provider 4xx on such a turn gets its own answer below.
   let sentOnBlock = false;
-  let failedBlockSession: { userId: string; sessionId: string } | null = null;
+  // The stored block this turn was sent on, so a refusal of it drops that row and no other (null for a block that
+  // was never stored, a Bedrock one).
+  let failedBlockSession: { userId: string; sessionId: string; coversThroughMessageId: string } | null = null;
   try {
     // Authentication: require logged-in user for chat (costs API money)
     const clientIP = getClientIP(req);
@@ -308,8 +312,18 @@ export async function POST(req: NextRequest) {
       }
       screeningTurnsUsed = claim.turnsUsed;
     }
+    // The text stored for the turn: the message, except when it repeats the newest user message after it was already
+    // answered (the "Not a job ad" button sends an ad the chat proposed an application for). The model reads the whole
+    // text on this turn; the history keeps the button's words instead of a second copy of the ad, and so does the
+    // client's transcript (storedUserMessage below).
+    let storedUserText = message;
+    if (storesTurn && persistedSessionId && typeof messageId !== 'string') {
+      const newestUser = earlierTurns.findLastIndex((turn) => turn.role === 'user');
+      const answered = newestUser !== -1 && earlierTurns.slice(newestUser + 1).some((turn) => turn.role === 'assistant');
+      if (answered && earlierTurns[newestUser].content === message) storedUserText = REASKED_AS_QUESTION_TEXT;
+    }
     if (storesTurn && persistedSessionId) {
-      const claim = await claimUserChatTurn(user.id, persistedSessionId, { id: turnMessageId, content: message }, MAX_CHAT_MESSAGES_PER_SESSION);
+      const claim = await claimUserChatTurn(user.id, persistedSessionId, { id: turnMessageId, content: storedUserText }, MAX_CHAT_MESSAGES_PER_SESSION);
       if (!claim.ok) {
         if (claim.reason === 'cap_reached') return chatLimitReached();
         if (claim.reason === 'not_found') return NextResponse.json({ error: 'Application not found' }, { status: 404 });
@@ -431,7 +445,9 @@ export async function POST(req: NextRequest) {
       // The next request starts on the Anthropic API again; client history is plain text, nothing signed crosses it.
       let pinnedProvider: 'bedrock' | undefined = compactedOn;
       sentOnBlock = turnBlock !== null;
-      failedBlockSession = sentOnBlock && persistedSessionId ? { userId: user.id, sessionId: persistedSessionId } : null;
+      failedBlockSession = sentOnBlock && persistedSessionId && compaction && turnBlock === compaction.block
+        ? { userId: user.id, sessionId: persistedSessionId, coversThroughMessageId: compaction.coversThroughMessageId }
+        : null;
 
       for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
         const finalRound = round === MAX_TOOL_ROUNDS;
@@ -575,6 +591,9 @@ export async function POST(req: NextRequest) {
       actions,
       executed,
       ...(replyMessageId ? { replyMessageId } : {}),
+      // A turn sent without an id was stored under one the client has never seen: it adds this message to its
+      // transcript, so the two stay the same.
+      ...(storesTurn && typeof messageId !== 'string' ? { storedUserMessage: { id: turnMessageId, content: storedUserText } } : {}),
       // Where ChatPanel draws "Earlier messages summarized": the last message the model now sees only as a summary.
       ...(persistedSessionId ? { compactedThroughMessageId: compaction?.coversThroughMessageId ?? null } : {}),
     });
@@ -591,15 +610,21 @@ export async function POST(req: NextRequest) {
     // read: the history and the block stay as they are, and the next turn tries again.
     const status = providerHttpStatus(error);
     if (sentOnBlock && status !== null && status >= 400 && status < 500) {
-      // The block is dropped, so the next turn compacts again from the full history: a block the API itself no longer
-      // accepts must not sink every later turn. If it was Bedrock refusing a valid block, that costs one compaction.
-      if (failedBlockSession) {
-        await deleteChatCompaction(failedBlockSession.userId, failedBlockSession.sessionId).catch((deleteError) => {
+      // A 400 (the request itself refused) drops the stored block this turn was sent on, so the next turn compacts again
+      // from the full history: a block the API no longer accepts must not sink every later turn. If it was Bedrock
+      // refusing a valid block, that costs one compaction. A rate limit or an auth error keeps it. Only that row goes:
+      // a newer block another tab stored meanwhile has a different covered message and stays.
+      let dropped = false;
+      if (status === 400 && failedBlockSession) {
+        try {
+          await deleteChatCompaction(failedBlockSession.userId, failedBlockSession.sessionId, failedBlockSession.coversThroughMessageId);
+          dropped = true;
+        } catch (deleteError) {
           console.error('[chat] could not drop the refused compaction block:', deleteError instanceof Error ? deleteError.message : deleteError);
-        });
+        }
       }
       return NextResponse.json(
-        { error: 'Chat is unavailable right now.', code: 'CHAT_PROVIDER_UNAVAILABLE' },
+        { error: 'Chat is unavailable right now.', code: 'CHAT_PROVIDER_UNAVAILABLE', ...(dropped ? { compactedThroughMessageId: null } : {}) },
         { status: 503 },
       );
     }

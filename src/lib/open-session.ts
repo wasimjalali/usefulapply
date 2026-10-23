@@ -53,14 +53,15 @@ export async function hydrateChatIfEmpty(sessionId: string, generation = openGen
     getChatMessages(sessionId),
     getChatCompactionMarker(sessionId).catch((error: unknown) => {
       console.error('[openStoredSession] Chat divider marker did not load:', error);
-      return null;
+      return undefined;
     }),
   ]);
   if (generation !== openGeneration) return;
   if (useSessionStore.getState().currentSession?.id !== sessionId) return;
   hydratedChatIds.add(sessionId);
   // The chat divider on a device that never saw the turn that compacted (the route returns it with every reply too).
-  useChatCompactionMarker.getState().setMarker(sessionId, compactedThrough);
+  // A failed read keeps the marker this browser already has.
+  if (compactedThrough !== undefined) useChatCompactionMarker.getState().setMarker(sessionId, compactedThrough);
   if (!messages || messages.length === 0) return;
   applyChat(sessionId, mapChatRowsToStore(messages));
 }

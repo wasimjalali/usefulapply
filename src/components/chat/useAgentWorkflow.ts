@@ -280,8 +280,9 @@ export function useAgentWorkflow(options?: {
     const live = useSessionStore.getState().currentSession;
     if (live && !live.id.startsWith('session-')) {
       // The message as the newest user turn with no reply after it. A message the chat already answered (an ad the
-      // "Not a job ad" button sends again) goes without an id: the route claims each message for one turn only, so it
-      // reads the history without storing anything, and the reply syncs like any client message.
+      // "Not a job ad" button sends again) goes without an id, since the route claims each message for one turn only:
+      // the route stores the turn under its own id, with the button's words instead of a second copy of the ad, and
+      // returns it as storedUserMessage, which the transcript then shows.
       const index = live.chatMessages.findLastIndex((entry) => entry.role === 'user' && entry.content === message);
       const answered = index !== -1 && live.chatMessages.slice(index + 1).some((entry) => entry.role === 'assistant');
       return { chatHistory: [], messageId: index === -1 || answered ? undefined : live.chatMessages[index].id };
@@ -310,6 +311,19 @@ export function useAgentWorkflow(options?: {
     useSessionStore.setState((state) => {
       const append = (session: ApplicationSession): ApplicationSession =>
         (session.id === sessionId ? { ...session, chatMessages: [...session.chatMessages, newMessage], updatedAt: newMessage.timestamp } : session);
+      return {
+        currentSession: state.currentSession ? append(state.currentSession) : state.currentSession,
+        sessions: state.sessions.map(append),
+      };
+    });
+  };
+
+  /** A message D1 already holds, into the application it belongs to (`stored`, so the sync never writes it again). */
+  const addStoredMessage = (sessionId: string, message: { id: string; role: 'user'; content: string }) => {
+    const newMessage: ChatMessage = { ...message, timestamp: new Date().toISOString(), stored: true };
+    useSessionStore.setState((state) => {
+      const append = (session: ApplicationSession): ApplicationSession =>
+        (session.id === sessionId ? { ...session, chatMessages: [...session.chatMessages, newMessage] } : session);
       return {
         currentSession: state.currentSession ? append(state.currentSession) : state.currentSession,
         sessions: state.sessions.map(append),
@@ -577,7 +591,10 @@ export function useAgentWorkflow(options?: {
       const known = startedIn !== null
         && (state.currentSession?.id === startedIn || state.sessions.some((session) => session.id === startedIn));
       if (known) addWorkflowMessage(startedIn, message);
-      else addChatMessage(message);
+      // A local conversation that got its saved id while the request was out: it is the open one.
+      else if (startedIn?.startsWith('session-')) addChatMessage(message);
+      // The application is gone: say nothing in an unrelated one.
+      else console.error(`[chat] the application ${startedIn ?? '(none)'} this turn started in is gone; its failure reply is dropped`);
     };
 
     const controller = new AbortController();
@@ -587,7 +604,7 @@ export function useAgentWorkflow(options?: {
       const { masterCV, certifications } = useAppStore.getState();
       const { chatHistory: recentMessages, messageId } = chatRequestHistory(message);
       // Messages added just before this turn reach D1 first, so the route's history keeps the transcript's order.
-      if (messageId && startedIn) await flushChatSync(startedIn, messageId);
+      if (startedIn && !startedIn.startsWith('session-')) await flushChatSync(startedIn, messageId);
 
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -629,7 +646,11 @@ export function useAgentWorkflow(options?: {
       });
 
       if (response.ok) {
-        const { reply, actions, executed, replyMessageId, compactedThroughMessageId } = await response.json();
+        const { reply, actions, executed, replyMessageId, compactedThroughMessageId, storedUserMessage } = await response.json();
+        // The turn the route stored under its own id (sent without one): shown before its reply, already in D1.
+        if (startedIn && storedUserMessage && typeof storedUserMessage.id === 'string' && typeof storedUserMessage.content === 'string') {
+          addStoredMessage(startedIn, { id: storedUserMessage.id, role: 'user', content: storedUserMessage.content });
+        }
         if (startedIn && compactedThroughMessageId !== undefined) {
           useChatCompactionMarker.getState().setMarker(startedIn, typeof compactedThroughMessageId === 'string' ? compactedThroughMessageId : null);
         }
@@ -666,6 +687,8 @@ export function useAgentWorkflow(options?: {
             content: 'You\'ve reached the chat message limit for this application. Start a new application from the sidebar to keep going.',
           });
         } else if (errorData?.code === 'CHAT_PROVIDER_UNAVAILABLE') {
+          // The route dropped the block it could not send (the next turn compacts again), so the divider goes too.
+          if (startedIn && errorData.compactedThroughMessageId === null) useChatCompactionMarker.getState().setMarker(startedIn, null);
           addFailureReply({
             role: 'assistant',
             content: "I couldn't answer that just now. Your conversation is saved, so try again in a minute.",

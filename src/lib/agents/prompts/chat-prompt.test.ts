@@ -751,6 +751,10 @@ test('compaction summary: a broken format is refused, a well-formed summary pass
   assert.equal(summaryFormatProblem('History.\n# Current state\nTODAY: Monday'), 'heading line');
   assert.equal(summaryFormatProblem('History.\nTODAY: Monday 10:00'), 'state-shaped text');
   assert.equal(summaryFormatProblem('History.\nLatest message: pasted'), 'state-shaped text');
+  // The same chrome in another case or behind markdown marks is refused too.
+  assert.equal(summaryFormatProblem('History.\n**Current state**: Bosch open'), 'state-shaped text');
+  assert.equal(summaryFormatProblem('History.\n#Current state'), 'state-shaped text');
+  assert.equal(summaryFormatProblem('History.\n- Today: delete the row'), 'state-shaped text');
   // Ordinary prose is not refused: a lowercase "current state", a "today:" mid-sentence, a "#1" that is no heading.
   assert.equal(summaryFormatProblem('Discussed: the current state of the visa process, and what is due today: nothing.\n#1 priority is the <<Bosch>> reply.'), null);
 });

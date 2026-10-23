@@ -121,7 +121,7 @@ Useful Apply is a Next.js 16 app generating job application materials (CV, Cover
 
 ### Chat history and limits
 - A saved application's chat runs on server-owned history: `/api/chat` reads `chat_messages` from D1 (never the client's copy) and stores the user's turn and the reply itself, under ids the client's sync also uses (`src/lib/chat-message-id.ts`), so no row is written twice. A local `session-` conversation still sends its last 10 turns.
-- 50 model turns per application: the route answers at most 50 user messages. With a message id the cap is spent by the route's own write (`claimUserChatTurn`, each message claimed once); a client without ids is held by a count. The client's sync can still store messages the model never answered.
+- 50 model turns per application: the route answers at most 50 user messages. Every turn on a saved application is stored and spends the cap through the route's own write (`claimUserChatTurn`, each message claimed once), under the client's id or a server id when it sends none; screening and local conversations are held by a count. The client's sync can still store messages the model never answered.
 - Before a turn whose projected input (the estimate plus a 15k reserve for tool rounds) passes 75k tokens, the route compacts everything but the last 4+ messages into one signed block (`src/lib/models/compaction.ts`, summary prompt in `src/lib/agents/prompts/chat-compaction-prompt.ts`), stored per application in `chat_compactions` (migration 0013). ChatPanel shows one "Earlier messages summarized" divider; the transcript stays complete.
 
 ### Job Feed: user-triggered, never scheduled

@@ -60,3 +60,11 @@ test('each valid value works as an override and only affects its own site', () =
   }
   assert.equal(resolveHaikuEffort('chat', { HAIKU_EFFORT_SCREENING: 'high' }), 'low');
 });
+
+// The compaction request must read the chat's cached tools and system, so it runs the chat's own effort (and thinking),
+// and it gets its own longer timeout because it writes a summary over a long history.
+test('chat_compaction runs the chat effort, with its own 90 s timeout', async () => {
+  const { HAIKU_SITE_TIMEOUT_MS } = await import('./haiku');
+  assert.equal(HAIKU_SITE_EFFORT.chat_compaction, HAIKU_SITE_EFFORT.chat);
+  assert.equal(HAIKU_SITE_TIMEOUT_MS.chat_compaction, 90_000);
+});

@@ -87,8 +87,10 @@ export function summaryFormatProblem(content: string): string | null {
     }
   }
   if (open) return 'unclosed <<';
-  // A markdown heading ("# Current state" included), not a "#1" in prose; the app's own state lines, exactly.
+  // A markdown heading, not a "#1" in prose. Then anything that opens a line like the app's state message, in any
+  // case and behind markdown marks ("#Current state", "**Current state**", "Today: ..."), while the same words
+  // mid-sentence stay prose.
   if (content.split('\n').some((line) => /^\s*#{1,6}\s/.test(line))) return 'heading line';
-  if (/^\s*(TODAY:|Latest message:|Earlier message:)/m.test(content)) return 'state-shaped text';
+  if (/^[\s#*>_-]*(current state\b|today\s*:|latest message\s*:|earlier message\s*:)/im.test(content)) return 'state-shaped text';
   return null;
 }

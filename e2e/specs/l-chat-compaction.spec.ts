@@ -280,7 +280,23 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
     coveredId = next.body.compactedThroughMessageId as string;
   });
 
-  test('a turn sent without an id (a message the chat already answered) still runs and is stored under a server id', async () => {
+  test('an answered message sent again without an id (the "Not a job ad" button) runs once more and stores the button words, not a second copy', async () => {
+    const message = `Eine Frage, die schon beantwortet wurde. [${TAG}]`;
+    const first = await turn(page.request, sessionId, message);
+    expect(first.status, JSON.stringify(first.body)).toBe(200);
+    const again = await turn(page.request, sessionId, message, { messageId: null });
+    expect(again.status, JSON.stringify(again.body)).toBe(200);
+    const rows = chatMessagesOf(sessionId);
+    expect(rows.filter((row) => row.content === message), 'the text is stored once').toHaveLength(1);
+    const stored = (again.body as { storedUserMessage?: { id: string; content: string } }).storedUserMessage;
+    expect(stored?.content).toBe('Not a job ad, just a question');
+    expect(rows.find((row) => row.id === stored?.id)?.content).toBe('Not a job ad, just a question');
+    // The model still read the whole text on that turn.
+    const calls = (await chatCallsTagged()).filter((call) => !call.compaction && call.lastUser.includes(message));
+    expect(calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  test('a turn sent without an id (a client from before Phase 2) still runs and is stored under a server id', async () => {
     const before = chatMessagesOf(sessionId).filter((row) => row.role === 'user').length;
     const message = `Ohne Kennung gesendet. [${TAG}]`;
     const result = await turn(page.request, sessionId, message, { messageId: null });
@@ -289,6 +305,7 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
     expect(users).toHaveLength(before + 1);
     expect(users.find((row) => row.content === message)?.id).toMatch(/^msg-[0-9a-f-]{36}$/);
     expect(typeof result.body.replyMessageId).toBe('string');
+    expect((result.body as { storedUserMessage?: { content: string } }).storedUserMessage?.content).toBe(message);
   });
 
   test('screening reads the same D1 history, never the client\'s', async () => {

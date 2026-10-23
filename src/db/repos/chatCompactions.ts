@@ -58,10 +58,17 @@ export async function saveChatCompaction(
   return result.meta.changes === 1;
 }
 
-/** Drop a block whose last message is gone (the chat was cleared). */
-export async function deleteChatCompaction(userId: string, sessionId: string): Promise<void> {
+/**
+ * Drop a block whose last message is gone (the chat was cleared), or one the API refused. With
+ * `coversThroughMessageId`, only that block: a newer one stored meanwhile covers a different message and stays.
+ */
+export async function deleteChatCompaction(userId: string, sessionId: string, coversThroughMessageId?: string): Promise<void> {
   const db = await getDb();
   await db
     .delete(chatCompactions)
-    .where(and(eq(chatCompactions.session_id, sessionId), eq(chatCompactions.user_id, userId)));
+    .where(and(
+      eq(chatCompactions.session_id, sessionId),
+      eq(chatCompactions.user_id, userId),
+      ...(coversThroughMessageId ? [eq(chatCompactions.covers_through_message_id, coversThroughMessageId)] : []),
+    ));
 }
