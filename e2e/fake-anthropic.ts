@@ -468,9 +468,13 @@ async function streamBlocks(
     if (!response.destroyed) response.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   };
   const { fault } = options;
+  // message_start carries the input side and output_tokens 1; the final usage, iterations included, only comes with
+  // message_delta, as the API sends it (so a stream that breaks before it has partial usage only).
+  const { iterations: _finalIterations, ...startUsage } = usage;
+  void _finalIterations;
   send('message_start', {
     type: 'message_start',
-    message: { id: `msg_stub_${Math.random().toString(36).slice(2)}`, type: 'message', role: 'assistant', model, content: [], stop_reason: null, stop_sequence: null, usage: { ...usage, output_tokens: 1 } },
+    message: { id: `msg_stub_${Math.random().toString(36).slice(2)}`, type: 'message', role: 'assistant', model, content: [], stop_reason: null, stop_sequence: null, usage: { ...startUsage, output_tokens: 1 } },
   });
   const breakNow = async (): Promise<boolean> => {
     if (!fault) return false;

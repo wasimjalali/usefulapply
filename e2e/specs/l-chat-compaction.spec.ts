@@ -153,6 +153,10 @@ test.describe.serial('chat Phase 2: server-owned history, the cap and compaction
     const application = storedApplication(user.id);
     if (!application) throw new Error('the kit left no application row');
     sessionId = application.id;
+    // The kit's own messages reach D1 through the client's debounced sync. Wait for them, so they never land between
+    // a turn of this spec and its reply (or in a count of the user rows).
+    await expect.poll(() => chatMessagesOf(sessionId).some((row) => row.content.includes('Your kit for Northwind Foods is ready')), { timeout: 15_000 }).toBe(true);
+    await page.waitForTimeout(1_500);
     boschId = seedApplication(user.id, 'Bosch', 'Systems Analyst');
   });
 

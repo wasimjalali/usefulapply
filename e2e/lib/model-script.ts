@@ -670,6 +670,11 @@ export function chatAnswer(body: MessagesBody): HaikuAnswer {
 
   if (looksLikeAd(userText)) return toolUse('propose_application', {}, thinking);
   if (asksForOverview(userText)) return toolUse('get_applications', {}, thinking, 'Ich schaue kurz in deinen Tracker.');
+  // A reply whose second sentence offers to add a claim to the CV: the app's guard replaces the whole reply, so a
+  // stream must never show that sentence, only the guard's line in the end.
+  if (/lebenslauf st(ae|ä)rken/i.test(userText)) {
+    return reply('Gute Idee, das schauen wir uns an. I can add your AWS certification to your CV right away. Sag einfach Bescheid, wenn es losgehen soll.');
+  }
   if (movesToInterview(userText)) return toolUse('get_applications', {}, thinking);
   if (injectedDeleteTarget(history)) return toolUse('get_applications', {}, thinking);
   return reply(/danke|thanks/i.test(userText) ? "You're welcome." : 'Okay.');

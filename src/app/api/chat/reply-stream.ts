@@ -12,7 +12,9 @@
  *
  * The deltas pass the same checks the finished reply passes: text goes out a sentence at a time, and only when the
  * whole reply so far passes the CV-addition guard (chat-reply-guard.ts) and comes out of sanitizeDashes with what was
- * already sent as its prefix. A reply the guard would replace stops streaming there and arrives whole in `done`.
+ * already sent as its prefix. The guard runs in its strict form (as if a CV rewrite were proposed), since a tool round
+ * that proposes one may still come after the text. A reply the guard would replace stops streaming there and arrives
+ * whole in `done`.
  */
 import { guardUnsupportedCvAdditionOffer } from '@/lib/agents/chat-reply-guard';
 import { sanitizeDashes } from '@/lib/config/typo-corrections';
@@ -34,10 +36,13 @@ export function joinReplyRounds(rounds: string[]): string {
   return rounds.map((text) => text.trim()).filter(Boolean).join('\n\n');
 }
 
-/** Where a sentence ends: the index after the last `.`, `!`, `?` or `…` followed by whitespace, or after a newline. */
+/**
+ * Where a sentence ends: the index after the last `.`, `!` or `?` followed by whitespace, or after a newline. The same
+ * marks the guard splits sentences on, so a piece that passes the gate is a whole guard sentence.
+ */
 function sentenceEnd(text: string): number {
   let end = 0;
-  for (const match of text.matchAll(/[.!?…](?=\s)|\n/g)) end = match.index + 1;
+  for (const match of text.matchAll(/[.!?](?=\s)|\n/g)) end = match.index + 1;
   return end;
 }
 
@@ -49,10 +54,7 @@ export class ReplyStream {
   private deliveredInCall = false;
   private held = false;
 
-  constructor(
-    private readonly send: (event: ChatStreamEvent) => void,
-    private readonly cvRewriteProposed: () => boolean,
-  ) {}
+  constructor(private readonly send: (event: ChatStreamEvent) => void) {}
 
   /** callHaiku's stream option for one model call: text from it goes through the gate. */
   forCall(): HaikuTextStream {
@@ -99,7 +101,8 @@ export class ReplyStream {
   private offer(current: string): void {
     if (this.held) return;
     const full = joinReplyRounds([...this.rounds, current]);
-    if (guardUnsupportedCvAdditionOffer(full, { cvRewriteProposed: this.cvRewriteProposed() }) !== full) {
+    // Strict form: whether a CV rewrite gets proposed is only known once its tool round ran, after this text.
+    if (guardUnsupportedCvAdditionOffer(full, { cvRewriteProposed: true }) !== full) {
       this.held = true;
       return;
     }
@@ -118,7 +121,8 @@ export class ReplyStream {
  *
  * The turn does not depend on the client staying: once the client goes away (the Stop button, a closed tab, read
  * off this stream's cancel or a write that fails) the events stop, and the turn runs to its end and stores its reply
- * (route.ts, runChatTurn). waitUntil keeps the Worker alive for that.
+ * (route.ts, runChatTurn). waitUntil keeps the Worker alive for that, for at most 30 s after the client left (the
+ * Workers limit): a turn that needs longer is cut there and stores no reply, as a failure would.
  */
 export function chatEventStream(
   run: (send: (event: ChatStreamEvent) => void) => Promise<Record<string, unknown>>,
@@ -149,8 +153,14 @@ export function chatEventStream(
         try {
           send({ type: 'done', ...(await run(send)) });
         } catch (error) {
-          const { status, body: failure } = await fail(error);
-          send({ type: 'error', status, ...failure });
+          try {
+            const { status, body: failure } = await fail(error);
+            send({ type: 'error', status, ...failure });
+          } catch (failError) {
+            // Building the answer failed too: still a clear end, never a silent one.
+            console.error('[chat] the failure answer could not be built:', failError instanceof Error ? failError.message : failError);
+            send({ type: 'error', status: 500, error: 'Chat request failed' });
+          }
         } finally {
           clearInterval(heartbeat);
           if (!closed) {

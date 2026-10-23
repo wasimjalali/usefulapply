@@ -37,7 +37,7 @@ import {
   type ExecutedEffect,
 } from '@/lib/agents/chat-tools';
 import { settleChatReply } from '@/lib/agents/chat-tools/loop-reply';
-import { StreamIdleTimeoutError } from '@/lib/models/providers';
+import { isFailoverError, StreamIdleTimeoutError } from '@/lib/models/providers';
 import { chatEventStream, joinReplyRounds, ReplyStream, wantsEventStream, type ChatStreamEvent } from './reply-stream';
 import { knownTimeZone, looksPasted } from '@/lib/agents/chat-tools/untrusted';
 import {
@@ -376,6 +376,7 @@ export async function POST(req: NextRequest) {
     const turn: ChatTurnInput = {
       userId: user.id,
       message,
+      turnMessageId,
       context,
       chatSessionId,
       persistedSessionId,
@@ -418,6 +419,7 @@ class ReplyCutError extends Error {
     readonly cause: unknown,
     readonly executed: ExecutedEffect[],
     readonly fallbackReply: string | null,
+    readonly replyMessageId: string | null,
   ) {
     super(`Chat reply cut after its first text: ${cause instanceof Error ? cause.message : String(cause)}`);
     this.name = 'ReplyCutError';
@@ -445,6 +447,7 @@ async function chatFailure(error: unknown, failure: ChatFailureState): Promise<{
         code: error.cause instanceof StreamIdleTimeoutError ? 'CHAT_STREAM_IDLE' : 'CHAT_STREAM_INTERRUPTED',
         executed: error.executed,
         ...(error.fallbackReply ? { reply: error.fallbackReply } : {}),
+        ...(error.replyMessageId ? { replyMessageId: error.replyMessageId } : {}),
         ...stored,
       },
     };
@@ -488,6 +491,8 @@ async function chatFailure(error: unknown, failure: ChatFailureState): Promise<{
 interface ChatTurnInput {
   userId: string;
   message: string;
+  /** The stored user message this turn answers (its reply is stored right after it). */
+  turnMessageId: string;
   context: ChatContext;
   chatSessionId: string | undefined;
   persistedSessionId: string | null;
@@ -536,7 +541,9 @@ const TOOL_STATUS: Readonly<Record<string, string>> = {
  * whole, on completion, exactly as if the client had stayed, and the next turn and a reload show it. Only a failure
  * stores no reply. Finishing is the one outcome that does not hang on the runtime noticing the disconnect (a local
  * preview never reported it), so a reply can never be stored half, or stored or not depending on timing.
- * reply-stream.ts keeps the Worker alive for it (waitUntil).
+ * reply-stream.ts keeps the Worker alive for it (waitUntil, at most 30 s after the client left; a turn cut there
+ * stores no reply). The reply is stored right after its own question, so one that finishes after the user already
+ * sent the next message still reads in order.
  */
 async function runChatTurn(
   turn: ChatTurnInput,
@@ -544,7 +551,7 @@ async function runChatTurn(
   stream: ChatTurnStream | null,
   requestSignal: AbortSignal | undefined,
 ): Promise<Record<string, unknown>> {
-  const { userId, message, context, chatSessionId, persistedSessionId, storesTurn } = turn;
+  const { userId, message, turnMessageId, context, chatSessionId, persistedSessionId, storesTurn } = turn;
   let { earlierTurns, compaction } = turn;
   // A message stored under a server id goes into the transcript before its reply starts, so the bubble never moves.
   if (stream && failure.mintedTurn) stream.send({ type: 'turn', storedUserMessage: failure.mintedTurn });
@@ -610,9 +617,7 @@ async function runChatTurn(
   const roundTexts: string[] = [];
   let lastToolNames = '';
   let loopFailure: { error: unknown } | null = null;
-  const replyStream = stream
-    ? new ReplyStream(stream.send, () => confirmActions.some((chip) => chip.action.startsWith('confirm-cv-rewrite:')))
-    : null;
+  const replyStream = stream ? new ReplyStream(stream.send) : null;
 
   try {
     // Measured input of the last call and what was appended after it: the
@@ -720,14 +725,23 @@ async function runChatTurn(
       lastToolNames = toolUses[0].name;
     }
   } catch (error) {
-    if (replyStream?.deliveredThisCall) {
-      // Text of the failed call is on the client's screen: no fixed line can stand in for it without the user seeing
-      // the swap, and no other provider can continue it. The stream ends with an error. With effects committed, the
-      // fixed line that says so goes with it (settleChatReply's wording).
+    if (replyStream?.deliveredThisCall && isFailoverError(error)) {
+      // The route to the model broke (a cut, an idle stream, a 5xx) after text of that call was on the client's
+      // screen: no other provider can continue it, so the stream ends with an error. With effects committed, the fixed
+      // line that says so is stored and sent (settleChatReply's wording), as a JSON turn would store it. A model stop
+      // (a refusal, max_tokens) settles below like any other turn.
       const fallback = executed.length > 0
-        ? settleChatReply({ reply: '', executed, confirmActions, failedToolNames, oversizedToolNames, lastToolNames }, { error }).reply
+        ? sanitizeDashes(settleChatReply({ reply: '', executed, confirmActions, failedToolNames, oversizedToolNames, lastToolNames }, { error }).reply)
         : null;
-      throw new ReplyCutError(error, executed, fallback);
+      let fallbackId: string | null = null;
+      if (fallback && storesTurn && persistedSessionId) {
+        fallbackId = newChatMessageId();
+        if (!await storeChatReply(userId, persistedSessionId, { id: fallbackId, content: fallback, actions: [] }, turnMessageId)) {
+          console.error(`[chat] the cut turn's fixed line was not stored for ${persistedSessionId}`);
+          fallbackId = null;
+        }
+      }
+      throw new ReplyCutError(error, executed, fallback, fallbackId);
     }
     loopFailure = { error };
   }
@@ -781,7 +795,7 @@ async function runChatTurn(
   // own message is stored either way.
   if (storesTurn && persistedSessionId && !requestSignal?.aborted) {
     replyMessageId = newChatMessageId();
-    const stored = await storeChatReply(userId, persistedSessionId, { id: replyMessageId, content: reply, actions });
+    const stored = await storeChatReply(userId, persistedSessionId, { id: replyMessageId, content: reply, actions }, turnMessageId);
     // The user still gets the reply; the next turn's history will miss it, so this is loud.
     if (!stored) console.error(`[chat] the reply was not stored for ${persistedSessionId} (application gone or id taken)`);
   }

@@ -33,11 +33,12 @@ export async function readChatStream(response: Response, handlers: ChatStreamHan
   try {
     while (true) {
       const { done, value } = await reader.read();
-      if (done) return false;
-      arm();
-      buffer += decoder.decode(value, { stream: true });
-      const frames = buffer.split('\n\n');
-      buffer = frames.pop() ?? '';
+      if (!done) arm();
+      buffer += done ? decoder.decode() : decoder.decode(value, { stream: true });
+      // Frames end on a blank line, LF or CRLF (an intermediary may rewrite line ends). At the end of the body a last
+      // frame without one still counts.
+      const frames = buffer.split(/\r?\n\r?\n/);
+      buffer = done ? '' : frames.pop() ?? '';
       for (const frame of frames) {
         if (!frame.startsWith('data: ')) continue;
         // A frame that is not JSON is a server bug: it throws to the caller's failure path, never skipped quietly.
@@ -63,6 +64,7 @@ export async function readChatStream(response: Response, handlers: ChatStreamHan
             break;
         }
       }
+      if (done) return false;
     }
   } finally {
     if (timer !== null) clearTimeout(timer);

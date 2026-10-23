@@ -5,6 +5,7 @@ import { fakeCalls, fakeControl, fakeReset, type FakeCall } from '../lib/fake-co
 import { openLocalD1 } from '../lib/sqlite';
 import { generateKitThroughUi, openApplication, signedInPage, storedApplication } from '../lib/app';
 import { nextTestIp, type TestUser } from '../lib/user';
+import { UNSUPPORTED_CV_ADDITION_REPLY } from '../../src/lib/agents/chat-reply-guard';
 
 /**
  * Streamed chat replies end to end: the real /api/chat route, the real SDK reading real SSE from the scripted model
@@ -367,6 +368,18 @@ test.describe.serial('chat replies stream as they are written', () => {
     expect(repliesAfter(sessionId, next.messageId)?.replies).toHaveLength(1);
   });
 
+  test('a sentence the CV guard would replace never streams: the reply stops before it, and done carries the guard line', async () => {
+    await fakeControl({ streamChunkMs: 30 });
+    const result = await streamTurn(context, sessionId, 'Kannst du meinen Lebenslauf staerken?');
+    const done = finalOf(result.events);
+    expect(done.type).toBe('done');
+    expect(done.reply).toBe(UNSUPPORTED_CV_ADDITION_REPLY);
+    // The first sentence went out, the offer never did.
+    expect(streamedText(result.events)).toBe('Gute Idee, das schauen wir uns an.');
+    expect(streamedText(result.events)).not.toContain('AWS');
+    expect(repliesAfter(sessionId, result.messageId)?.replies.map((row) => row.content)).toEqual([UNSUPPORTED_CV_ADDITION_REPLY]);
+  });
+
   test('a request without the event-stream Accept header (a tab from before streaming) gets the JSON body', async () => {
     for (const accept of [null, 'application/json', '*/*']) {
       const result = await streamTurn(context, sessionId, 'Danke!', { accept });
@@ -446,7 +459,7 @@ test.describe.serial('chat replies stream as they are written', () => {
     for (const sample of samples) expect(sample.scrollTop).toBe(held);
   });
 
-  test('Stop mid-stream keeps what was shown on screen; the route finishes the turn and stores the whole reply once', async () => {
+  test('Stop mid-stream keeps what was shown on screen; the route finishes the turn, and its reply stays before a next message sent at once', async () => {
     await fakeControl({ streamChunkMs: 250 });
     await openApplication(page);
     const before = chatMessagesOf(sessionId).length;
@@ -459,43 +472,42 @@ test.describe.serial('chat replies stream as they are written', () => {
     await page.getByRole('button', { name: 'Stop generation' }).click();
     const stopped = bubblesWith(page, 'Stopped').last();
     await expect(stopped).toContainText(MARK);
-    const shownText = await stopped.innerText();
-    expect(shownText).not.toContain('Ich kann dir auch zeigen');
+    expect(await stopped.innerText()).not.toContain('Ich kann dir auch zeigen');
     await expect(page.getByText(/Generation stopped/)).toHaveCount(0);
     // The input is free again right away.
     await expect(page.getByRole('button', { name: 'Stop generation' })).toHaveCount(0);
     await page.screenshot({ path: test.info().outputPath('stopped.png') });
 
-    // The route finished the turn without the client: the whole reply, once, after the question. Nothing of the
-    // stopped bubble was written (its text is a prefix of the stored reply, and it never syncs).
-    const full = () => {
-      const rows = chatMessagesOf(sessionId).slice(before);
-      const asked = rows.findIndex((row) => row.role === 'user' && row.content === QUESTION);
-      return { rows, asked, replies: rows.slice(asked + 1).filter((row) => row.role === 'assistant') };
-    };
-    await expect.poll(() => full().replies.length, { timeout: 20_000 }).toBe(1);
+    // The next message at once, while the route is still writing the stopped turn (250 ms a chunk).
+    const welcomes = bubblesWith(page, "You're welcome.");
+    const welcomesBefore = await welcomes.count();
+    await chatInput(page).fill('Okay, danke!');
+    await chatInput(page).press('Enter');
+    await expect(welcomes).toHaveCount(welcomesBefore + 1, { timeout: 30_000 });
+
+    // D1, once both turns are done: question, its whole reply (written after the next turn started, sorted right after
+    // its question), then the next message and its reply. Nothing of the stopped bubble was written.
+    const turns = () => chatMessagesOf(sessionId).slice(before);
+    await expect.poll(() => turns().filter((row) => row.role === 'assistant').length, { timeout: 20_000 }).toBe(2);
     await page.waitForTimeout(2_500);
-    const { rows, asked, replies } = full();
-    expect(rows[asked].claimed_at).not.toBeNull();
-    expect(replies).toHaveLength(1);
-    expect(replies[0].content.endsWith('welche Bewerbung am besten zu deinem Profil passt.')).toBe(true);
-    expect(replies[0].id.startsWith('msg-')).toBe(true);
+    const rows = turns();
+    expect(rows.map((row) => row.role)).toEqual(['user', 'assistant', 'user', 'assistant']);
+    expect(rows[0].content).toBe(QUESTION);
+    expect(rows[0].claimed_at).not.toBeNull();
+    expect(rows[1].content.startsWith(`${MARK}\n\nDu hast`)).toBe(true);
+    expect(rows[1].content.endsWith('welche Bewerbung am besten zu deinem Profil passt.')).toBe(true);
+    expect(rows[2].content).toBe('Okay, danke!');
+    expect(rows[3].content).toBe("You're welcome.");
     expect(rows.some((row) => row.id.startsWith('stopped-') || row.content.includes('Stopped'))).toBe(false);
 
-    // A reload shows the stored reply in full where the stopped one was.
+    // A reload shows the stored reply in full where the stopped one was, in order.
     await page.reload();
     await openApplication(page);
     await expect(bubblesWith(page, 'Stopped')).toHaveCount(0);
-    await expect(bubblesWith(page, MARK).last()).toContainText('welche Bewerbung am besten zu deinem Profil passt.');
-
-    await fakeControl({});
-    await chatInput(page).fill('Okay, danke!');
-    await chatInput(page).press('Enter');
-    await expect(bubblesWith(page, "You're welcome.").last()).toBeVisible({ timeout: 30_000 });
-    await page.waitForTimeout(2_500);
-    const after = chatMessagesOf(sessionId).slice(before);
-    const assistant = after.filter((row) => row.role === 'assistant');
-    expect(assistant.map((row) => row.content)).toEqual([replies[0].content, "You're welcome."]);
+    const transcript = await page.locator('[data-chat-scroll]').innerText();
+    const at = (text: string) => transcript.lastIndexOf(text);
+    expect(at('welche Bewerbung am besten zu deinem Profil passt.')).toBeGreaterThan(at(QUESTION));
+    expect(at('Okay, danke!')).toBeGreaterThan(at('welche Bewerbung am besten zu deinem Profil passt.'));
   });
 
   test('a model stream idle past 60 s after text ends with the idle message, and nothing is stored', async () => {
@@ -515,7 +527,7 @@ test.describe.serial('chat replies stream as they are written', () => {
     await page.screenshot({ path: test.info().outputPath('idle.png') });
     await page.waitForTimeout(2_500);
     const rows = chatMessagesOf(sessionId).slice(before);
-    expect(rows.filter((row) => row.role === 'assistant').map((row) => row.content)).not.toContain(expect.stringContaining('Du hast'));
+    expect(rows.filter((row) => row.role === 'assistant' && row.content.includes('Du hast')), 'no part of the stalled answer stored').toHaveLength(0);
     expect(rows.filter((row) => row.role === 'user' && row.content === QUESTION)[0]?.claimed_at).not.toBeNull();
   });
 
