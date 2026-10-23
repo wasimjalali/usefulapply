@@ -278,7 +278,7 @@ The folder name is historical. Those files are D1 and R2 wrappers (`credits.ts`,
 
 `supabase/migrations/` is the frozen Postgres history that D1 was ported from. Keep until decommission, then delete with `scripts/migrate/**`.
 
-`@supabase/supabase-js` is only for `scripts/migrate/*` (one-shot cutover). `@supabase/ssr` is unused.
+`@supabase/supabase-js` is only for `scripts/migrate/*` (one-shot cutover).
 
 ### When to delete the Supabase project and Vercel
 

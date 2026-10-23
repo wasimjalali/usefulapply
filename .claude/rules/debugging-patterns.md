@@ -21,7 +21,7 @@ Read this first when root-causing a runtime bug. Find the cause, name it in one 
 | **Context cache TTL expired mid-flow** | `src/app/api/agent-v2/route.ts` (30-minute TTL, `CONTEXT_CACHE` KV with an in-memory `Map` fallback) | Phase 2 generation falls back to `full_optimization` with no client-visible reason |
 | **`useSessionStore` persist-rehydrate vs sync fetch** | `src/store/useSessionStore.ts` + `src/hooks/useSupabaseSync.ts` | Refresh shows old session content; race between persist-rehydrate and the sync fetch |
 | **Anonymous to authed CV migration loss** | `src/app/api/parse-cv/route.ts`, `src/hooks/useSupabaseSync.ts` | Anonymous upload disappears after sign-in; check session_id reassignment |
-| **SSE event ordering** | `src/app/api/agent-v2/route.ts`, `useAgentV2`, `src/components/chat/useAgentWorkflow.ts` | `fit_analysis_complete` arrives after generation starts; client-side buffering or out-of-order parse |
+| **SSE event ordering** | `src/app/api/agent-v2/route.ts`, `src/components/chat/useAgentWorkflow.ts` | `fit_analysis_complete` arrives after generation starts; client-side buffering or out-of-order parse |
 | **Stripe webhook idempotency** | `src/app/api/stripe/webhook/route.ts` | Credits granted twice or zero times; check `event.id` dedupe (`hasWebhookEvent`) and signature verification |
 | **Concurrent `deductCredits` race** | `src/db/repos/credits.ts` (`deductCredits`) | Negative or double-spent credits; check the optimistic-concurrency `version` check |
 | **Zustand selector returning a stale ref** | components subscribing to derived objects | UI doesn't re-render despite a store update; the selector returns a new object each render or compares by ref |

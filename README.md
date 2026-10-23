@@ -128,8 +128,7 @@ src/
 │   ├── email/               # Cloudflare Email Service helpers
 │   ├── middleware/          # In-memory rate limiter
 │   └── stripe.ts            # Stripe client + price IDs
-├── hooks/                   # React hooks
-│   └── useAgentV2.ts        # SSE streaming for agent workflow
+├── hooks/                   # React hooks (useSupabaseSync: D1 sync)
 ├── store/                   # Zustand stores
 │   ├── useSessionStore.ts
 │   ├── useCVStore.ts

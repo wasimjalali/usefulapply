@@ -10,7 +10,7 @@ Specialist agents are the **preferred** way to handle bug investigations, extern
 
 ### Project-scope agents (this repo)
 - **`debugger`** (global agent; read `.claude/rules/debugging-patterns.md` first) — Whenever a runtime bug, regression, stack trace, or "X is broken but I don't know why" appears. Also for intermittent SSE/streaming failures, wrong state on screen, credit/billing anomalies, and any failed request without an obvious cause. Read-only by default; proposes patches with file:line, refuses to paper over symptoms.
-- **`agent-expert`** — When editing anything in `src/lib/agents/`, `src/lib/agents/prompts/`, `src/lib/models/`, `src/app/api/agent-v2/`, or the `useAgentV2` / `useAgentWorkflow` hooks. Also for anti-hallucination rule changes, SSE event semantics, context-builder work, CV pipeline, fit-assessment prompts. Powered by Opus.
+- **`agent-expert`** — When editing anything in `src/lib/agents/`, `src/lib/agents/prompts/`, `src/lib/models/`, `src/app/api/agent-v2/`, or the `useAgentWorkflow` hook. Also for anti-hallucination rule changes, SSE event semantics, context-builder work, CV pipeline, fit-assessment prompts. Powered by Opus.
 - **`ui-tester`** — After any UI change to `/dashboard`, `/applications`, `/documents`, `/` (landing), or shared components (ChatPanel, CVPanel, CoverLetterPanel, EmailPanel, FeedConversation, FeedCanvas). Uses Playwright MCP. Run before calling a UI task done.
 - **`karko-architect`** — For cross-cutting design decisions, refactors, and "where should this state live" questions. Use for anything that spans 3+ files or has non-obvious tradeoffs. Returns a plan with ordered steps; does not modify code itself. Powered by Opus.
 - **`d1-dba`** — When writing or reviewing D1 migrations in `migrations/d1/`, touching schema, or when a query looks suspicious. Will not run migrations itself. (Legacy `supabase/migrations/` is frozen until decommission.)
@@ -103,11 +103,11 @@ Useful Apply is a Next.js 16 app generating job application materials (CV, Cover
 - `src/lib/models/` — Model configurations and task types
 - `src/lib/cv-parser/` — `section-splitter` (language detection + localized headers). CV parsing itself is LLM-only via `src/app/api/parse-cv/route.ts` (Claude reads the document and emits a `StructuredCV`); there are no per-section regex parser modules.
 - `src/app/api/` — API routes (agent-v2, regenerate, auth/*, stripe/*, job-feed/*, tracker/*, contact, chat, credits/balance, files/*, parse-cv)
-- `src/hooks/` — React hooks (`useAgentV2` for SSE streaming)
+- `src/hooks/` — React hooks. The agent SSE client is `src/components/chat/useAgentWorkflow.ts`
 - `src/store/` — Zustand stores (useSessionStore, useCVStore, useUIStore, useFeedStore, useTrackerStore, useSettingsStore; `useAppStore` is a deprecated facade over the first three)
 - `src/components/` — React components (EmailPanel, ChatPanel, CVPanel, CoverLetterPanel, etc.)
 - `src/lib/middleware/rateLimiter.ts` — In-memory sliding window rate limiter
-- `src/lib/supabase/` — legacy-named D1/R2 wrappers (credits, sessions, accounts, admin); data access is in `src/db/repos/*`
+- `src/lib/supabase/` — legacy-named D1/R2 wrappers (documents, sessions, storage, accounts, feedback, credits); data access is in `src/db/repos/*`
 
 ### Agent Flow — Analyze First Mode
 1. **Phase 1:** `runFitAnalysis()` → context cached server-side (30-min TTL in the `CONTEXT_CACHE` KV, with an in-memory Map fallback)

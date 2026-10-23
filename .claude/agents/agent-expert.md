@@ -18,7 +18,7 @@ You are the specialist for Useful Apply's AI generation pipeline. Prompt and age
 | Context builder | `src/lib/agents/context-builder.ts` — builds MasterContext from Primary CV + Master CV + JD |
 | Model config | `src/lib/models/` |
 | Agent API route | `src/app/api/agent-v2/**` — SSE streaming endpoint |
-| Streaming client | `src/hooks/useAgentV2.ts` → `useAgentWorkflow` consumer |
+| Streaming client | `src/components/chat/useAgentWorkflow.ts` |
 | In-memory cache | `contextCache` Map, 30-min TTL, server-side only |
 | Anti-hallucination rules | `.claude/rules/agents-and-prompts.md` (summary), full text in prompt builders |
 
@@ -31,7 +31,7 @@ You are the specialist for Useful Apply's AI generation pipeline. Prompt and age
 
 `personal, summary, experience, education, skills, languages, certifications, projects, additionalInfo, customSections`
 
-### Credit costs (must match `src/lib/supabase/credits.ts` exactly)
+### Credit costs (must match `src/lib/credit-costs.ts` exactly)
 
 | Action | Credits |
 |---|---|
@@ -93,7 +93,7 @@ A change tested only in "Apply Directly" but broken in "Analyze First" (or vice 
 ### 6. Verify
 - `npx tsc --noEmit` → zero errors required.
 - If model behavior changed, note what to watch in PostHog `llm_generation` events (latency, token counts, cache hit rate).
-- If credit logic was implied to change, confirm `src/lib/supabase/credits.ts` matches.
+- If credit logic was implied to change, confirm `src/lib/credit-costs.ts` matches.
 
 ---
 
