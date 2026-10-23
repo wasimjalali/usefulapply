@@ -53,28 +53,3 @@ export async function submitMessageFeedback(
   const rows = await db.select().from(messageFeedback).where(and(eq(messageFeedback.id, id), eq(messageFeedback.user_id, userId))).limit(1);
   return { feedback: (rows[0] as MessageFeedback | undefined) ?? null, error: null };
 }
-
-export async function getSessionFeedback(
-  userId: string,
-  sessionId: string,
-): Promise<{ feedbacks: MessageFeedback[]; error: Error | null }> {
-  const db = await getDb();
-  const rows = await db
-    .select()
-    .from(messageFeedback)
-    .where(and(eq(messageFeedback.user_id, userId), eq(messageFeedback.session_id, sessionId)));
-  return { feedbacks: rows as MessageFeedback[], error: null };
-}
-
-export async function getMessageFeedback(
-  userId: string,
-  messageId: string,
-): Promise<{ feedback: MessageFeedback | null; error: Error | null }> {
-  const db = await getDb();
-  const rows = await db
-    .select()
-    .from(messageFeedback)
-    .where(and(eq(messageFeedback.user_id, userId), eq(messageFeedback.message_id, messageId)))
-    .limit(1);
-  return { feedback: (rows[0] as MessageFeedback | undefined) ?? null, error: null };
-}

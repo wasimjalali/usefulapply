@@ -23,7 +23,7 @@ Read this first when root-causing a runtime bug. Find the cause, name it in one 
 | **Anonymous to authed CV migration loss** | `src/app/api/parse-cv/route.ts`, `src/hooks/useSupabaseSync.ts` | Anonymous upload disappears after sign-in; check session_id reassignment |
 | **SSE event ordering** | `src/app/api/agent-v2/route.ts`, `src/components/chat/useAgentWorkflow.ts` | `fit_analysis_complete` arrives after generation starts; client-side buffering or out-of-order parse |
 | **Stripe webhook idempotency** | `src/app/api/stripe/webhook/route.ts` | Credits granted twice or zero times; check `event.id` dedupe (`hasWebhookEvent`) and signature verification |
-| **Concurrent `deductCredits` race** | `src/db/repos/credits.ts` (`deductCredits`) | Negative or double-spent credits; check the optimistic-concurrency `version` check |
+| **Concurrent reservation race** | `src/db/repos/credits.ts` (`reserveCredits`, `buildReserveStatements`) | Negative or double-spent credits; check the optimistic-concurrency `version` check |
 | **Zustand selector returning a stale ref** | components subscribing to derived objects | UI doesn't re-render despite a store update; the selector returns a new object each render or compares by ref |
 | **`userId` from the request body** | API routes | Auth bypass; `userId` must come from the Better Auth session (`getCurrentUser()`) |
 | **Unexpected Bedrock failover** | `src/lib/models/providers.ts` (`isFailoverError`, `AWS_BEARER_TOKEN_BEDROCK`, `BEDROCK_REGION`) | Ledger rows with provider `bedrock` or PostHog `llm_provider_failover`: the primary returned a 5xx or a network error. A Bedrock 403 or 404 means model access isn't enabled for that model in the AWS account |

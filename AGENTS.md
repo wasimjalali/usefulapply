@@ -157,7 +157,7 @@ Every skill, metric, and claim must trace to the Primary CV or Master CV. The JD
 Every API route must: (1) authenticate via the Better Auth session, (2) check rate limit, (3) validate input lengths, (4) return generic error messages (never `error.message`). See `.claude/rules/security.md`.
 
 ### Stripe / Credits Pattern
-`userId` always comes from the authenticated session — never from the request body. Use optimistic concurrency for `deductCredits()`. See `.claude/rules/stripe-and-credits.md`.
+`userId` always comes from the authenticated session — never from the request body. Credits are spent only through version-guarded reservations (`reserveCredits`, then capture or release). See `.claude/rules/stripe-and-credits.md`.
 
 ### D1 Migrations
 Before writing any migration, read `migrations/d1/` to check for conflicts. Apply with `npx wrangler d1 migrations apply usefulapply-db` (add `--remote` for production).

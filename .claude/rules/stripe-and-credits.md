@@ -15,8 +15,8 @@ paths:
 
 ## Credit Deduction
 
-- Use optimistic concurrency for `deductCredits()`: check balance, deduct, verify
-- Credit costs are defined in `src/lib/credit-costs.ts`, the single source of truth; deductions live in `src/db/repos/credits.ts`
+- Credits are spent only through reservations in `src/db/repos/credits.ts`: `reserveCredits` (a version-guarded `UPDATE user_credits` batched with its ledger row), then `captureReservation` or `releaseReservation`
+- Credit costs are defined in `src/lib/credit-costs.ts`, the single source of truth
 - Never modify credit amounts without explicit human confirmation
 
 ## Stripe Webhooks

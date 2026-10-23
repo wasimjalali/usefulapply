@@ -66,11 +66,6 @@ export async function insertWebhookEvent(eventId: string, eventType: string): Pr
   }
 }
 
-export async function deleteWebhookEvent(eventId: string): Promise<void> {
-  const db = await getDb();
-  await db.delete(webhookEvents).where(eq(webhookEvents.event_id, eventId));
-}
-
 /**
  * Stripe webhook only. Keeps profiles.subscription_tier/status in sync so
  * AuthContext and PostHog reflect the current plan.
@@ -98,11 +93,6 @@ export async function listRankedItemsByRunId(runId: string) {
     .from(jobFeedRankedItems)
     .where(eq(jobFeedRankedItems.run_id, runId))
     .orderBy(jobFeedRankedItems.rank_position);
-}
-
-export async function deleteRankedItemsByRunId(runId: string): Promise<void> {
-  const db = await getDb();
-  await db.delete(jobFeedRankedItems).where(eq(jobFeedRankedItems.run_id, runId));
 }
 
 export async function deleteRunArtifactsByRunId(runId: string): Promise<void> {
