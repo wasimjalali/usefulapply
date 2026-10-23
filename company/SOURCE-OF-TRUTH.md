@@ -276,9 +276,7 @@ Internal context, not for public copy: grounding, speed and cost drove the choic
 
 The folder name is historical. Those files are D1 and R2 wrappers (`credits.ts`, `sessions.ts`, `documents.ts`, `storage.ts`, `useSupabaseSync`). They are not a live Supabase client. Keep them until a dedicated rename. Do not delete the folder: the app imports it.
 
-`supabase/migrations/` is the frozen Postgres history that D1 was ported from. Keep until decommission, then delete with `scripts/migrate/**`.
-
-`@supabase/supabase-js` is only for `scripts/migrate/*` (one-shot cutover).
+`supabase/migrations/` is the frozen Postgres history that D1 was ported from. Keep until the Supabase project is deleted. The one-shot cutover scripts (`scripts/migrate/**`), `supabase/diagnostics/` and `@supabase/supabase-js` were deleted on 2026-10-23.
 
 ### When to delete the Supabase project and Vercel
 
@@ -288,7 +286,7 @@ Cutover to Cloudflare: **2026-08-23** (PR #87 merged, usefulapply.com live).
 |---|---|
 | **Now (2026-08-25)** | Do not delete either project. Production no longer reads them. Keep as rollback and as the source for a final export. |
 | **2026-09-22** (30 clean days) | Pause the Supabase project. Take a final encrypted export (DB + Storage) and store it offline. Delete the Vercel project and cancel Vercel Pro. Disable any leftover Vercel Stripe webhook. |
-| **2026-11-21** (90 days after pause) | Delete the paused Supabase project. Then delete `scripts/migrate/**`, `supabase/migrations/` and the unused npm packages from this repo. |
+| **2026-11-21** (90 days after pause) | Delete the paused Supabase project. Then delete `supabase/migrations/` from this repo (the cutover scripts and the Supabase client package are already gone). |
 
 Do not pause earlier than 30 days unless a live incident forces it. karkoai.com should keep redirecting to usefulapply.com for at least 12 months.
 
@@ -427,6 +425,7 @@ Status: not running a raise. Focus is activation and product.
 
 | Date | Change |
 |---|---|
+| 2026-10-23 | Codebase cleanup (three PRs): dead code, the Supabase cutover scripts and client package, and the browser PDF export are gone. Downloads render only through Browser Run; a failed export says so and offers a retry. |
 | 2026-08-26 | Product-locked job-feed caps. Free has a feed: visibleCount 5, no wizard, one main search. Plus/Max visibleCount 25 (Plus 2 searches, Max 4). README no longer lists the feed as Plus/Max only. |
 | 2026-08-25 | Recorded leftover `src/lib/supabase/` as D1/R2 wrappers, not a live client. Decommission calendar: pause Supabase and delete Vercel on 2026-09-22; delete the paused Supabase project on 2026-11-21. |
 | 2026-08-25 | Synced with the live codebase. Free has a top-5 daily feed (not "no job feed"). The feed is user-triggered once a day, not a morning batch. Plus and Max visible cap is 25 roles. Dropped "arrives each morning" language. |
