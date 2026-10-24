@@ -42,7 +42,7 @@
   "src/components/CVPanel.tsx": { "color-class": 71, "gradient": 1, "radius": 11 },
   "src/components/CoverLetterPanel.tsx": { "color-class": 75, "radius": 12 },
   "src/components/EditableCVCanvas.tsx": { "color-class": 126, "radius": 28 },
-  "src/components/EmailPanel.tsx": { "color-class": 46, "radius": 10 },
+  "src/components/EmailPanel.tsx": { "color-class": 44, "radius": 10 },
   "src/components/FileUpload.tsx": { "color-class": 18, "radius": 5 },
   "src/components/KitDocumentError.tsx": { "color-class": 13, "radius": 4 },
   "src/components/MarkdownText.tsx": { "radius": 1 },

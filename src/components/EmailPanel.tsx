@@ -334,10 +334,10 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
     copyEvent: string;
   }) => (
     <div className="box-border w-full rounded-2xl border border-cream-200 bg-white p-5 shadow-sm">
-      <div className="flex items-center gap-2.5">
-        <h3 className="text-sm font-semibold text-navy-800">{opts.title}</h3>
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
+        <h3 className="whitespace-nowrap text-sm font-semibold text-navy-800">{opts.title}</h3>
         {opts.chip && (
-          <span className="inline-flex h-[22px] items-center rounded-full bg-gold-100 px-2.5 text-[11px] font-semibold text-gold-700">
+          <span className="inline-flex h-[22px] items-center whitespace-nowrap rounded-full bg-accent-soft-strong px-2.5 text-[11px] font-semibold text-accent-soft-ink">
             {opts.chip}
           </span>
         )}
