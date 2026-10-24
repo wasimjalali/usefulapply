@@ -839,7 +839,7 @@ export function FeedConversation() {
         {messages.map((message) => (
           message.role === 'user' ? (
             <div key={message.id} className="flex justify-end">
-              <div className="max-w-[86%] rounded-card rounded-br-sm border border-border bg-surface-raised px-3.5 py-3 shadow-resting">
+              <div className="max-w-[86%] rounded-card rounded-br-none border border-border bg-surface-raised px-3.5 py-3 shadow-resting">
                 <MarkdownText content={message.content} className="text-sm text-ink-body" />
               </div>
             </div>

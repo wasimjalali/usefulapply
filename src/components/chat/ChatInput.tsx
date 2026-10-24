@@ -89,10 +89,10 @@ export function ChatInput({
           ? 'border-accent shadow-resting'
           : 'border-border shadow-resting focus-within:border-border-accent'
       }`
-    : `relative glass-input rounded-card border-2 shadow-md overflow-hidden transition-all duration-(--duration-base) ${
+    : `relative rounded-card border bg-surface-raised shadow-resting overflow-hidden transition-all duration-(--duration-base) ${
         isWorking
-          ? 'border-accent shadow-gold-200/50'
-          : 'border-border-accent/60 shadow-gold-100/40 focus-within:border-accent focus-within:shadow-gold-200/50'
+          ? 'border-accent'
+          : 'border-border-accent focus-within:border-accent'
       }`;
 
   return (

@@ -2247,7 +2247,7 @@ export function ChatPanel({
                   {v2Progress.percent > 0 && (
                     <div className="mt-3 h-1.5 bg-sunken rounded-pill overflow-hidden">
                       <div
-                        className="h-full bg-accent transition-all duration-300"
+                        className="h-full bg-accent transition-all duration-(--duration-base)"
                         style={{ width: `${v2Progress.percent}%` }}
                       />
                     </div>

@@ -253,7 +253,7 @@ export function UsageBillingPane() {
 
       {checkoutStatus !== 'idle' && (
         <div
-          className="mb-5 flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm text-ink"
+          className="mb-5 flex items-center gap-3 rounded-card border border-border bg-surface px-4 py-3 text-sm text-ink"
           role="status"
         >
           {checkoutStatus === 'processing' && <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-ink-accent" />}

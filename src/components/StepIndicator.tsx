@@ -59,14 +59,14 @@ export function StepIndicator({
         </div>
 
         {/* Step indicator card */}
-        <div className={`p-5 rounded-card transition-all duration-300 ${
+        <div className={`p-5 rounded-card transition-all duration-(--duration-base) ${
           isComplete
             ? 'bg-accent-soft border border-border-accent-soft step-complete-pulse'
-            : 'bg-gradient-to-br from-cream-50 to-cream-100 border border-border-strong/80'
+            : 'bg-surface border border-border'
         }`}>
           <div className="flex items-center gap-4">
             {/* Icon circle */}
-            <div className={`flex-shrink-0 w-11 h-11 rounded-pill flex items-center justify-center transition-all duration-300 ${
+            <div className={`flex-shrink-0 w-11 h-11 rounded-pill flex items-center justify-center transition-all duration-(--duration-base) ${
               isComplete ? 'bg-accent-soft-strong' : 'bg-surface-raised shadow-resting'
             }`}>
               {isLoading ? (

@@ -595,8 +595,6 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
             {headerContent}
             {toolbarContent}
           </div>
-          {/* Right-fade hint that toolbar is scrollable on mobile */}
-          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-cream-100/80 to-transparent pointer-events-none sm:hidden" />
         </div>
       )}
 
@@ -761,7 +759,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                     <button
                       type="button"
                       onClick={() => setShowFullPreview(true)}
-                      className="absolute right-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-brand-strong shadow-resting transition-all hover:-translate-y-0.5 hover:border-border-accent-soft hover:shadow-elevated cursor-pointer"
+                      className="absolute right-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-brand-strong shadow-resting transition-shadow duration-(--duration-base) ease-standard hover:border-border-accent-soft hover:shadow-elevated cursor-pointer"
                     >
                       <Maximize2 className="w-3.5 h-3.5" />
                       Full Preview
@@ -795,7 +793,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
 
       {/* Sign Up Wall Modal */}
       {showFullPreview && previewCVData && createPortal(
-        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">
+        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-surface-inverse-strong/45 p-4">
           <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-modal border border-border bg-canvas shadow-floating">
             <div className="flex items-center justify-between border-b border-border bg-surface px-5 py-3">
               <div>

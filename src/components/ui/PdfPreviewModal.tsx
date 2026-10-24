@@ -68,7 +68,7 @@ export function PdfPreviewModal({ url, title, onClose, returnFocusTo }: PdfPrevi
 
   if (typeof document === 'undefined') return null;
   return createPortal(
-    <div ref={overlayRef} className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]" onKeyDown={onKeyDown}>
+    <div ref={overlayRef} className="fixed inset-0 z-[220] flex items-center justify-center bg-surface-inverse-strong/45 p-4" onKeyDown={onKeyDown}>
       <div
         ref={dialogRef}
         role="dialog"

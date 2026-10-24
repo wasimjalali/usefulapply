@@ -42,7 +42,7 @@ export function MarkdownText({ content, className = '' }: MarkdownTextProps) {
             <li className="text-sm">{children}</li>
           ),
           code: ({ children }) => (
-            <code className="px-1 py-0.5 bg-sunken rounded text-xs font-mono">
+            <code className="px-1 py-0.5 bg-sunken rounded-control text-xs font-mono">
               {children}
             </code>
           ),
