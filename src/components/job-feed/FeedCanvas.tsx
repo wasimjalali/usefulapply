@@ -58,10 +58,14 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
 
   // The card the user was on is gone, so focus would fall to the page. Hand it
   // to the next card's X, then the previous one, then the list heading.
-  const dismissAndMoveFocus = async (job: JobFeedFeedItem, toNeighbour: boolean) => {
+  const dismissAndMoveFocus = async (
+    job: JobFeedFeedItem,
+    toNeighbour: boolean,
+    leave: (job: JobFeedFeedItem) => Promise<boolean> = actions.dismiss,
+  ) => {
     const index = jobs.findIndex((item) => item.id === job.id);
     const neighbours = toNeighbour ? [jobs[index + 1], jobs[index - 1]].filter(Boolean) : [];
-    const gone = await actions.dismiss(job);
+    const gone = await leave(job);
     if (!gone) return;
     requestAnimationFrame(() => requestAnimationFrame(() => {
       // Only if focus is still lost or still in the feed: the user may have moved on.
@@ -151,6 +155,8 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         }}
         onSave={(job) => { void actions.save(job); }}
         onDismiss={canDismiss ? (job) => { void dismissAndMoveFocus(job, false); } : undefined}
+        onRateHelpful={canDismiss ? (job) => { void actions.rateHelpful(job); } : undefined}
+        onRateNotRelevant={canDismiss ? (job) => { void dismissAndMoveFocus(job, false, actions.rateNotRelevant); } : undefined}
         onOpenEmployerSite={actions.openEmployerSite}
         onUpgrade={() => openSettings('usage')}
         showCheckFit={!readOnly}
