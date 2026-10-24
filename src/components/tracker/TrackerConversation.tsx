@@ -453,8 +453,9 @@ function nameList(names: string[], shown = 2): string {
   return `${names.slice(0, shown).join(', ')} and ${names.length - shown} more`;
 }
 
+// Lowercase: joinClauses capitalises the first clause, so later ones stay lowercase mid-sentence.
 function countWord(count: number): string {
-  const words = ['No', 'One', 'Two', 'Three', 'Four', 'Five'];
+  const words = ['no', 'one', 'two', 'three', 'four', 'five'];
   return words[count] ?? String(count);
 }
 

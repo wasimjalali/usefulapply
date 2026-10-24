@@ -837,9 +837,11 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                 {pasteMode ? 'Have a file? Upload it instead' : 'No file handy? Paste the text instead'}
               </button>
             </div>
-            <p className="text-[13px] text-ink-muted">
-              Free to try. Your first fit check is on us, no account needed.
-            </p>
+            {!user && (
+              <p className="text-[13px] text-ink-muted">
+                Free to try. Your first fit check is on us, no account needed.
+              </p>
+            )}
           </div>
         )}
 
@@ -920,9 +922,11 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                   Change
                 </button>
               </div>
-              <p className="text-ink-muted">
-                Your first fit check is free. The full kit needs a free account, 4 credits included.
-              </p>
+              {!user && (
+                <p className="text-ink-muted">
+                  Your first fit check is free. The full kit needs a free account, 4 credits included.
+                </p>
+              )}
             </div>
           </div>
         )}
