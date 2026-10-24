@@ -17,7 +17,7 @@ import type { TestUser } from '../lib/user';
  *   r4  A plain /dashboard load changes: it must still show the guided line, not a tracker or feed pane.
  *   r5  The guided line shows anonymous-only copy ("needs a free account", "no account needed") to a signed-in user.
  *   r6  The spec passes because the page shows the text elsewhere (the sidebar also says "Application Tracker"),
- *       so assert on the pane's own level 2 heading and the job board's Today/Saved tabs, not loose text, and
+ *       so assert on the pane's own level 2 heading and the Job Board header, not loose text, and
  *       check again after the page has settled so a late reset can't hide behind a first-paint pass.
  *   r7  Readiness latches: a tab that settled anonymous on the link, then signs in without a reload, is "ready"
  *       before the new user's reset runs, the link is already marked handled, and the reset sends it to the CV.
@@ -42,10 +42,11 @@ test('(r2) ?workspace=job-feed opens the Job Board for a signed-in user with no 
   const { context, page } = await signedInPage(browser, request, 'deeplinkfeed');
   try {
     await page.goto('/dashboard?workspace=job-feed');
-    await expect(page.getByRole('tab', { name: 'Today' })).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByRole('tab', { name: 'Saved' })).toBeVisible();
+    // A user with no feed has no Today/Saved tabs: the Job Board's own header and empty canvas show instead.
+    await expect(page.getByRole('heading', { level: 2, name: 'Job Board' })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText('Your feed lands here')).toBeVisible();
     await page.waitForLoadState('networkidle');
-    await expect(page.getByRole('tab', { name: 'Today' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 2, name: 'Job Board' })).toBeVisible();
   } finally {
     await context.close();
   }
@@ -75,8 +76,13 @@ test('(r3) a plain /dashboard load shows the guided line without anonymous-only 
     await page.getByRole('button', { name: 'Use this text' }).click();
     const adBox = page.getByPlaceholder(/Paste the whole ad/).first();
     await expect(adBox).toBeVisible({ timeout: 60_000 });
-    await adBox.fill(JOB_DESCRIPTION);
+    // Job step, before the ad is filled: where the copy lived.
     await expect(page.getByRole('button', { name: /Check my fit/ })).toBeVisible();
+    await expect(page.getByText('needs a free account')).toHaveCount(0);
+    await expect(page.getByText('Your first fit check is free')).toHaveCount(0);
+    // Filling the ad goes straight to the fit step: absent there too.
+    await adBox.fill(JOB_DESCRIPTION);
+    await expect(page.getByRole('button', { name: /Generate the full kit/ })).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText('needs a free account')).toHaveCount(0);
     await expect(page.getByText('Your first fit check is free')).toHaveCount(0);
   } finally {
