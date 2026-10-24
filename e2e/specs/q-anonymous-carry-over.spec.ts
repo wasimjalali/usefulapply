@@ -201,9 +201,22 @@ test('(q5) an anonymous tab left open hands nothing to someone who logs in from 
   const { context, page: anonymousTab } = await anonymousContext(browser);
   await anonymousCvAndFit(anonymousTab);
 
+  // The risky order, forced: the anonymous tab learns of the new session only after the other tab has written the
+  // shared auth id, so that id can't tell this tab apart from the account's own. (Left to itself, the anonymous
+  // tab usually refetches first and clears for the plain reason that no id was stored yet.)
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  await anonymousTab.route('**/api/auth/get-session**', async (route) => {
+    await gate;
+    await route.continue();
+  });
+
   // Someone else logs in, plainly, in a second tab of the same browser.
   const loginTab = await context.newPage();
   await logInOnPage(loginTab, '/auth/login', other.email);
+  // The tab may still be navigating to /dashboard, so a read that lands mid-navigation just counts as not yet.
+  await expect.poll(() => loginTab.evaluate(() => localStorage.getItem('usefulapply-auth-user-id')).catch(() => null)).toBe(other.id);
+  release();
 
   // The first tab comes back into focus: Better Auth refetches the session there and finds the new user. That tab
   // was anonymous and consumed no marker, so its CV and fit check go, not into this account.
