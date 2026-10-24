@@ -1,0 +1,32 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "useful-apply",
+  "version": "1.0.0",
+  "description": "Useful Apply helps you apply for a job from your AI assistant. Check how well you fit a role, then generate a CV, cover letter, application email and follow-up that follow US or German (DIN 5008) conventions. You review everything, edit it, export it and track the application.",
+  "author": {
+    "name": "Useful Apply",
+    "email": "support@usefulapply.com",
+    "url": "https://usefulapply.com"
+  },
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Useful Apply",
+        "shortDescription": "Tailored job applications",
+        "longDescription": "Useful Apply turns a job ad and your CV into a complete application, without leaving your AI assistant.\n\nPaste a job ad and ask for a fit check. You get a score, the skills you match, the gaps and a plain explanation. If the role is worth it, ask for the full kit: a CV tailored to the ad, a cover letter, an application email and a follow-up email. The kit is written in the ad's language and laid out the way recruiters in that market expect. US letters use block format. German letters follow DIN 5008 with the recipient taken from the ad.\n\nThe writer is built to draw every claim in a CV or letter from the CV you provide, and you review everything before it goes anywhere.\n\nBeyond generating, the connector lets your assistant:\n- track applications: create, edit, delete, set status and interview or follow-up dates and give a morning briefing\n- edit a tailored CV: change text, add or delete entries, hide or show items, reorder lists, rename headings, pick a template and undo the last edit\n- rewrite one CV section, redo a letter or email with your instruction, or save your own wording\n- draft answers to an employer's screening questions\n- export PDF, Word and text files with signed download links\n- run your daily job feed, read your career profile, change feed settings, save, dismiss or rate jobs, start an application from one and withdraw consent\n- save or delete your CV, set your profile photo and contact details and manage email notifications\n- cancel a generation that's running\n- show your account, credit balance and recent use\n\nGeneration uses the credits already on your Useful Apply account, with a daily limit you control in Settings, Connected apps. You can revoke access there at any time. The connector never buys anything for you.\n\nYou need a Useful Apply account to connect. Sign in with OAuth when your assistant asks.",
+        "developerName": "Useful Apply",
+        "category": "Productivity",
+        "websiteURL": "https://usefulapply.com",
+        "supportURL": "https://usefulapply.com/integrations",
+        "privacyPolicyURL": "https://usefulapply.com/privacy",
+        "termsOfServiceURL": "https://usefulapply.com/terms",
+        "defaultPrompt": [
+          "Check my fit for this job ad and tell me what to fix first.",
+          "What needs my attention today on my applications?",
+          "Zeig mir meine Bewerbungen und was heute ansteht."
+        ],
+        "logo": "./assets/logo.png"
+      }
+    }
+  }
+}
