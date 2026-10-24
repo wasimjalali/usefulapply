@@ -49,7 +49,7 @@ export default function Dashboard() {
     currentSession,
     sessions,
   } = useAppStore();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, storesReady } = useAuth();
   const { sessionsHydrated, documentsHydrated, hydrationError, retryHydration } = useSupabaseSync();
   const jobFeedBadge = useJobFeedBadge(Boolean(user), user?.id ?? null);
 
@@ -102,16 +102,13 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    // Hold the deep link until the session has resolved. AuthContext resets
-    // the UI store (workspace back to the CV) when a signed-in user loads a
-    // browser with no stored user id, and that reset would undo the link.
-    if (isLoading && !previewingFeed) return;
+    // Hold the deep link until AuthContext has settled the session and run
+    // its store reset. That reset puts the workspace back to the CV when a
+    // signed-in user loads a browser with no stored user id, and would undo
+    // the link if it ran after it.
+    if (!storesReady && !previewingFeed) return;
     let cancelled = false;
     const run = async () => {
-      // AuthContext's reset runs in its own effect, after this one, in the
-      // same commit that resolves the session. Yield so it lands first.
-      await Promise.resolve();
-      if (cancelled) return;
       const {
         workspace: requestedWorkspace,
         session: requestedSessionId,
@@ -167,7 +164,7 @@ export default function Dashboard() {
     currentSession?.id,
     sessions.length,
     setActiveTab,
-    isLoading,
+    storesReady,
     previewingFeed,
   ]);
 

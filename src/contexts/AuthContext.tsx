@@ -94,6 +94,8 @@ interface AuthContextType {
   profile: Profile | null;
   session: AuthSession | null;
   isLoading: boolean;
+  /** True once the session has settled and the store reset for it (if one was needed) has run. */
+  storesReady: boolean;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signInWithGoogle: (next?: string) => Promise<{ error: AuthError | null }>;
@@ -116,6 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // loading; a refocus refetch must not unmount the app into a spinner
   // (it wipes component-local state like the guided line's step and job).
   const [sessionResolved, setSessionResolved] = useState(false);
+  const [storesReady, setStoresReady] = useState(false);
   if (!isPending && !sessionResolved) setSessionResolved(true);
 
   // Memoised on scalar fields, not on the session objects: Better Auth's
@@ -230,6 +233,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         })
         .catch((err) => console.error('Profile fetch error:', err));
+      // Deferred: the lint rule bars a synchronous setState in an effect, and the reset above has already run.
+      queueMicrotask(() => setStoresReady(true));
     } else {
       const storedUserId = readAuthUserId();
       if (storedUserId || prevUserIdRef.current) {
@@ -240,6 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       prevUserIdRef.current = null;
       anonymousSeenRef.current = true;
+      queueMicrotask(() => setStoresReady(true));
     }
   }, [user, isPending, fetchProfile]);
 
@@ -330,6 +336,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     profile: user ? profile : null,
     session,
     isLoading: isPending && !sessionResolved,
+    storesReady,
     signUp,
     signIn,
     signInWithGoogle,
