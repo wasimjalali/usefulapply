@@ -49,7 +49,7 @@ export default function Dashboard() {
     currentSession,
     sessions,
   } = useAppStore();
-  const { user, isLoading, storesReady } = useAuth();
+  const { user, isLoading, storesReadyFor } = useAuth();
   const { sessionsHydrated, documentsHydrated, hydrationError, retryHydration } = useSupabaseSync();
   const jobFeedBadge = useJobFeedBadge(Boolean(user), user?.id ?? null);
 
@@ -106,7 +106,11 @@ export default function Dashboard() {
     // its store reset. That reset puts the workspace back to the CV when a
     // signed-in user loads a browser with no stored user id, and would undo
     // the link if it ran after it.
-    if (!storesReady && !previewingFeed) return;
+    // Readiness belongs to the current identity: after an anonymous load
+    // then a sign-in, the flag still names 'anon' until the new user's reset
+    // has run.
+    const identity = user?.id ?? 'anon';
+    if (storesReadyFor !== identity && !previewingFeed) return;
     let cancelled = false;
     const run = async () => {
       const {
@@ -131,7 +135,7 @@ export default function Dashboard() {
 
       if (cancelled) return;
 
-      const navKey = `${requestedWorkspace ?? ''}|${requestedSessionId ?? ''}|${requestedTab ?? ''}|${autostart ?? ''}`;
+      const navKey = `${identity}|${requestedWorkspace ?? ''}|${requestedSessionId ?? ''}|${requestedTab ?? ''}|${autostart ?? ''}`;
       if (processedWorkspaceRef.current === navKey) {
         return;
       }
@@ -164,7 +168,8 @@ export default function Dashboard() {
     currentSession?.id,
     sessions.length,
     setActiveTab,
-    storesReady,
+    storesReadyFor,
+    user?.id,
     previewingFeed,
   ]);
 
