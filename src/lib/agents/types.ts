@@ -69,7 +69,7 @@ export interface MasterContext {
   
   // Language detection (auto-detected or user override)
   detectedLanguage?: string; // ISO 639-1 codes (e.g., 'en', 'de', 'fr', 'es')
-  // Nothing sets this since the /api/regenerate override was removed; it stays because the frozen evals/prompt-variants copies still assign it and are type-checked.
+  // Nothing sets this since the /api/regenerate override was removed. It stays because the writer agent and the cover letter, email and logistics prompt builders in src still read it and logistics-prompt.test.ts sets it.
   userLanguageOverride?: string; // ISO 639-1 codes
 
   /** A rewrite instruction typed by the applicant in the chat composer. User-authored, already length-capped and flattened by the route. Never ad-authored. */

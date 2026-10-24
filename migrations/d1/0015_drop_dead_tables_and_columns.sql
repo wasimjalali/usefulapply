@@ -25,9 +25,11 @@
 --   selects every schema column by name, so applying this before the deploy breaks every profiles / subscriptions /
 --   application_sessions / addon_credit_packs query.
 --   Before applying, make sure no old-code worker is still mid-job: the agent-generation queue consumer can run up to
---   15 minutes on the old code. Check
---   `SELECT count(*) FROM application_sessions WHERE generation_status IN ('pending', 'running')` returns 0 and the
---   queue is drained (Cloudflare dashboard, Queues, agent-generation: no messages in flight), then apply.
+--   15 minutes on the old code, and it carries kit generations, feed runs and agent operations (a feed run reads whole
+--   profiles rows). Check that this returns 0, and that the queue is drained (Cloudflare dashboard, Queues,
+--   agent-generation: no messages in flight). Each count only looks at rows updated in the last 30 minutes (updated_at
+--   is ISO 8601 text, hence strftime, not datetime), so a stale crashed row cannot block the apply forever:
+--   SELECT (SELECT count(*) FROM application_sessions WHERE generation_status IN ('pending', 'running') AND updated_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-30 minutes')) + (SELECT count(*) FROM job_feed_runs WHERE status IN ('queued', 'running') AND updated_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-30 minutes')) + (SELECT count(*) FROM agent_operations WHERE status IN ('pending', 'running') AND updated_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-30 minutes')) AS in_flight;
 
 DROP TABLE IF EXISTS `connected_accounts`;
 --> statement-breakpoint
