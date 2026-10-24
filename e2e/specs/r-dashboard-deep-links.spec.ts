@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { signedInPage } from '../lib/app';
 import { JOB_DESCRIPTION, PRIMARY_CV } from '../lib/model-script';
 import { createTestUser, nextTestIp, signInContext } from '../lib/user';
+import type { TestUser } from '../lib/user';
 
 /**
  * (r) Dashboard deep links for a signed-in user on a fresh browser (no localStorage) with no kit.
@@ -20,6 +21,8 @@ import { createTestUser, nextTestIp, signInContext } from '../lib/user';
  *       check again after the page has settled so a late reset can't hide behind a first-paint pass.
  *   r7  Readiness latches: a tab that settled anonymous on the link, then signs in without a reload, is "ready"
  *       before the new user's reset runs, the link is already marked handled, and the reset sends it to the CV.
+ *   r9  The users from signedInPage already hold a primary CV (the guided line starts at the job step), so r3 builds a
+ *       user with `primaryCv: false`. r1, r2 and r4 don't depend on the guided line's step.
  *   r8  r3 passes on a blank page or a stuck spinner because it only asserts absence, so it also asserts the
  *       guided line's own heading and, after the CV is in, the job step where the account line used to sit.
  */
@@ -49,7 +52,14 @@ test('(r2) ?workspace=job-feed opens the Job Board for a signed-in user with no 
 });
 
 test('(r3) a plain /dashboard load shows the guided line without anonymous-only copy', async ({ browser, request }) => {
-  const { context, page } = await signedInPage(browser, request, 'deeplinkplain');
+  // signedInPage's user has a stored primary CV, so its guided line opens at the job step. This one has none.
+  const user: TestUser = await createTestUser(request, 'deeplinkplain', { primaryCv: false });
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    extraHTTPHeaders: { 'cf-connecting-ip': user.ip, 'x-forwarded-for': user.ip },
+  });
+  await signInContext(context, request, user);
+  const page = await context.newPage();
   try {
     await page.goto('/dashboard');
     await expect(page.getByRole('heading', { level: 1, name: 'Start with your CV' })).toBeVisible({ timeout: 20_000 });
