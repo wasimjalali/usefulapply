@@ -167,7 +167,7 @@ export const content: GeoContent = {
       eyebrow: "Real Example",
       heading: "What an AI-Generated Follow-Up Email Looks Like",
       body: body(
-        <div className="bg-surface-raised border-l-4 border-accent-strong rounded-xl p-8 shadow-resting">
+        <div className="bg-document border-l-4 border-accent-strong rounded-xl p-8 shadow-resting">
               <p className="text-sm font-semibold text-ink-body mb-2">Subject:</p>
               <p className="text-ink-body mb-6">Following up: Senior Data Analyst application submitted March 15</p>
 

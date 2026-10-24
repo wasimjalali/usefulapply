@@ -77,7 +77,7 @@ export const content: GeoContent = {
           ].map((card, i) => (
             <ScrollReveal key={i} delay={i * 150}>
               <div className="bg-surface rounded-card border border-border p-6">
-                <span className="text-3xl font-bold text-border-strong">{card.step}</span>
+                <span className="text-3xl font-bold text-ink-ghost-soft">{card.step}</span>
                 <h3 className="text-lg font-bold text-brand mt-3 mb-2">{card.title}</h3>
                 <p className="text-ink-muted text-sm leading-relaxed">{card.description}</p>
               </div>

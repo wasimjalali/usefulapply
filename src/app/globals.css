@@ -228,6 +228,7 @@
   --focus-halo: var(--color-navy-100);
   --border-danger-strong: var(--color-red-300);
   --sunken-strong: var(--color-cream-300);
+  --ink-ghost-soft: var(--color-cream-300);
   --status-bad: var(--color-rose-600);
   --chart-line: var(--color-navy-300);
 }
@@ -358,6 +359,7 @@
   --color-focus-halo: var(--focus-halo);
   --color-border-danger-strong: var(--border-danger-strong);
   --color-sunken-strong: var(--sunken-strong);
+  --color-ink-ghost-soft: var(--ink-ghost-soft);
   --color-status-bad: var(--status-bad);
   --color-chart-line: var(--chart-line);
 }

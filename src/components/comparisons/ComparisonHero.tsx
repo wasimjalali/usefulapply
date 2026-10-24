@@ -32,7 +32,7 @@ export function ComparisonHero({ h1, description, summaryTable, competitorName }
               </thead>
               <tbody>
                 {summaryTable.map((row, i) => (
-                  <tr key={i} className="border-b border-subtle last:border-b-0">
+                  <tr key={i} className="border-b border-border-subtle last:border-b-0">
                     <td className="px-6 py-4 text-sm text-ink-body font-medium">{row.feature}</td>
                     <td className="px-6 py-4 text-center">
                       {typeof row.brandValue === 'boolean' ? (

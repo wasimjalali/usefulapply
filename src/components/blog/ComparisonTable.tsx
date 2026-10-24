@@ -60,7 +60,7 @@ export default function ComparisonTable({ tools, features }: ComparisonTableProp
               <tr>
                 <th
                   scope="col"
-                  className="sticky left-0 z-10 bg-brand px-6 py-4 text-left text-sm font-semibold text-brand-ink border-r border-on-brand"
+                  className="sticky left-0 z-10 bg-brand px-6 py-4 text-left text-sm font-semibold text-brand-ink border-r border-border-inverse-mid"
                 >
                   Feature
                 </th>
@@ -69,7 +69,7 @@ export default function ComparisonTable({ tools, features }: ComparisonTableProp
                     key={tool.name}
                     scope="col"
                     className={`px-6 py-4 text-center text-sm font-semibold text-brand-ink whitespace-nowrap ${
-                      idx === 0 ? 'bg-ink-accent' : ''
+                      idx === 0 ? 'bg-accent-deep' : ''
                     }`}
                   >
                     {tool.name}

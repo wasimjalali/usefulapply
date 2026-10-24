@@ -157,7 +157,7 @@ export default function Footer() {
             </a>
             <Link
               href="/contact"
-              className="inline-flex items-center justify-center h-9 px-3.5 text-sm text-canvas/90 border border-ink-inverse/20 rounded-control hover:border-ink-inverse/40 hover:text-ink-inverse transition-colors duration-(--duration-base)"
+              className="inline-flex items-center justify-center h-9 px-3.5 text-sm text-ink-inverse-warm/90 border border-ink-inverse/20 rounded-control hover:border-ink-inverse/40 hover:text-ink-inverse transition-colors duration-(--duration-base)"
             >
               Contact
             </Link>
@@ -180,7 +180,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom */}
-        <div className="border-t border-on-brand/30 mt-8 md:mt-10 pt-6">
+        <div className="border-t border-border-inverse-mid/30 mt-8 md:mt-10 pt-6">
           <p className="text-ink-inverse-faint text-sm">
             © {new Date().getFullYear()} Useful Apply. All rights reserved.
           </p>

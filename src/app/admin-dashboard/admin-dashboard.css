@@ -238,7 +238,7 @@
   border: 1px solid var(--admin-border);
   border-radius: 16px;
   background: var(--admin-surface);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--depth-resting);
 }
 
 .admin-section {

@@ -204,7 +204,7 @@ export default function BlogPage() {
                 {restPosts.length > 0 && (
                   <div className="flex items-center gap-4 pt-2">
                     <h2 className="font-semibold text-brand-strong text-2xl">All articles</h2>
-                    <div className="flex-1 h-px bg-sunken" />
+                    <div className="flex-1 h-px bg-border" />
                     <span className="text-sm text-ink-muted">{restPosts.length} posts</span>
                   </div>
                 )}

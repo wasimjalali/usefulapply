@@ -40,7 +40,7 @@ export function ComparisonDeepDive({ tool, isBrand = false }: ComparisonDeepDive
       )}
 
       {/* Pricing */}
-      <div className="mb-6 pb-6 border-b border-subtle">
+      <div className="mb-6 pb-6 border-b border-border-subtle">
         <h4 className="text-sm font-semibold text-brand-strong uppercase tracking-wide mb-2">Pricing</h4>
         <p className="text-ink-body font-medium">{tool.pricing}</p>
       </div>

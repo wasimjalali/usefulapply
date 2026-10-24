@@ -449,7 +449,7 @@ export default function PricingPage() {
                 <div className="text-3xl md:text-5xl font-bold text-accent-strong mb-2">40<span className="text-2xl md:text-3xl">x</span></div>
                 <div className="text-sm text-ink-muted">faster than by hand</div>
               </div>
-              <div className="text-center p-4 md:p-6 bg-brand rounded-xl">
+              <div className="text-center p-4 md:p-6 bg-surface-inverse-soft rounded-xl">
                 <div className="text-3xl md:text-5xl font-bold text-accent mb-2">~{animatedHours}</div>
                 <div className="text-sm text-ink-accent-on-inverse font-medium">hours saved each month</div>
               </div>

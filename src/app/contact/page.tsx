@@ -141,7 +141,7 @@ export default function ContactPage() {
                       maxLength={200}
                       value={formState.name}
                       onChange={(e) => setFormState({ ...formState, name: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-border-strong focus:border-brand-muted focus:ring-2 focus:ring-focus-halo outline-none transition-all"
+                      className="w-full px-4 py-3 rounded-xl border border-border-strong focus:border-focus-ring-soft focus:ring-2 focus:ring-focus-halo outline-none transition-all"
                       placeholder="John Doe"
                     />
                   </div>
@@ -155,7 +155,7 @@ export default function ContactPage() {
                       required
                       value={formState.email}
                       onChange={(e) => setFormState({ ...formState, email: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-border-strong focus:border-brand-muted focus:ring-2 focus:ring-focus-halo outline-none transition-all"
+                      className="w-full px-4 py-3 rounded-xl border border-border-strong focus:border-focus-ring-soft focus:ring-2 focus:ring-focus-halo outline-none transition-all"
                       placeholder="john@example.com"
                     />
                   </div>
@@ -170,7 +170,7 @@ export default function ContactPage() {
                     required
                     value={formState.subject}
                     onChange={(e) => setFormState({ ...formState, subject: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-border-strong focus:border-brand-muted focus:ring-2 focus:ring-focus-halo outline-none transition-all bg-surface-raised"
+                    className="w-full px-4 py-3 rounded-xl border border-border-strong focus:border-focus-ring-soft focus:ring-2 focus:ring-focus-halo outline-none transition-all bg-surface-raised"
                   >
                     <option value="">Select a topic</option>
                     <option value="general">General Inquiry</option>
@@ -192,7 +192,7 @@ export default function ContactPage() {
                     rows={5}
                     value={formState.message}
                     onChange={(e) => setFormState({ ...formState, message: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-border-strong focus:border-brand-muted focus:ring-2 focus:ring-focus-halo outline-none transition-all resize-none"
+                    className="w-full px-4 py-3 rounded-xl border border-border-strong focus:border-focus-ring-soft focus:ring-2 focus:ring-focus-halo outline-none transition-all resize-none"
                     placeholder="How can we help you?"
                   />
                 </div>
