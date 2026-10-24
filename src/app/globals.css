@@ -50,12 +50,9 @@
   --font-sans: var(--font-inter), 'Inter', system-ui, sans-serif;
 
   /* ─── Premium motion + depth tokens (UI premium pass) ───
-     Central language for easing, shadow depth and accent glow. Every
+     Central language for easing and shadow depth. Every
      shadow-sm/md/lg/xl utility in the app reads these, so depth stays
      consistent and a future dark mode is a token remap, not a rewrite. */
-
-  /* Easing: one calm decelerating curve for structure, one springy curve
-     reserved for pop moments (dialogs, ticks, badges). */
 
   /* Brand-tinted shadow scale — overrides Tailwind's black-based defaults so
      every card, panel and modal picks up the warm navy tint at once. Kept
@@ -76,6 +73,10 @@
   /* Motion roles (ease-standard, ease-pop). Durations are on :root below. */
   --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Defaults for bare transition utilities. */
+  --default-transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  --default-transition-duration: 150ms;
 }
 
 /* ─── Role tokens ───
@@ -519,11 +520,6 @@ select:focus-visible {
 }
 
 /* Agent Progress Animations */
-.agent-progress-bar {
-  width: var(--progress-width, 0%);
-  transition: width var(--duration-slow) var(--ease-standard);
-}
-
 .agent-step-enter {
   animation: slideIn var(--duration-slow) var(--ease-standard);
 }
@@ -583,11 +579,6 @@ select:focus-visible {
   50% { transform: translateY(-8px) rotate(1deg); }
 }
 
-@keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }
@@ -602,20 +593,11 @@ select:focus-visible {
 /* Floating dots - slow drift */
 /* Light streaks - subtle pulse */
 /* Lightbox fade-in */
-/* Glassmorphism utility classes */
-.glass {
-  /* Solid, not translucent white: a tint over cream reads as a stain (design-system.md). */
-  background: var(--surface);
-  border: 1px solid var(--border);
-}
-
-
-
 
 /* ─── Premium primitives (UI premium pass) ─── */
 
-/* Primary gold CTA: warms to a gold glow on hover and dips slightly on press.
-   Layered on top of existing bg-gold-400 / hover:bg-gold-500 utilities. */
+/* Primary CTA: lifts 1px with an elevated shadow on hover and dips on press.
+   Layered on top of bg-accent / hover:bg-accent-strong. */
 .cta-gold {
   transition: background-color var(--duration-base) var(--ease-standard),
     box-shadow var(--duration-base) var(--ease-standard),
@@ -651,13 +633,6 @@ select:focus-visible {
   vertical-align: 1.5px;
 }
 
-/* Smooth FAQ expand/collapse */
-.faq-answer {
-  overflow: hidden;
-  transition: max-height var(--duration-slow) var(--ease-standard), opacity var(--duration-slow) var(--ease-standard),
-    padding var(--duration-slow) var(--ease-standard);
-}
-
 /* CV scaling is handled dynamically in CVPanel.tsx via ResizeObserver */
 
 /* Hide scrollbar utility */
@@ -669,31 +644,12 @@ select:focus-visible {
   display: none;
 }
 
-
-/* Logo bar scroll animation — infinite marquee */
-
-/* CTA pulse glow */
-
-
-
-
-
-/* Section divider — angled */
-.section-divider-angle {
-  position: relative;
-}
-
-
-
 /* Floating badge animation */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    ETHEREAL CLOUD BACKGROUND ANIMATIONS
    Soft 3D clouds with golden light streams — inspired by premium SaaS aesthetics
    ═══════════════════════════════════════════════════════════════════════════ */
-
-/* ─── Radial Gradient Utility ─── */
-
 
 /* ─── Floating Cloud Shapes ─── */
 /* ─── Floating Platform Shapes (oval discs) ─── */
@@ -703,7 +659,6 @@ select:focus-visible {
 /* ─── Gentle Breathing Effect ─── */
 /* ─── Ribbon Flow (SVG path) ─── */
 /* ─── Natural Cloud Drift Animations ─── */
-/* ─── Premium Aurora (hero background) ─── */
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -857,7 +812,6 @@ select:focus-visible {
   .animate-float-slow,
   .animate-float-delayed,
   .animate-pulse-soft,
-  .animate-shimmer,
   .animate-scroll-logos,
   .animate-badge-float,
   .cta-glow,

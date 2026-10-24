@@ -253,8 +253,7 @@ export default function Home() {
       />
       <Navbar />
       <main>
-        {/* Aurora-backed first fold: the hero sits on the pricing-page
-            backdrop. Everything below the fold is flat cream. */}
+        {/* First fold: the hero on the flat cream page background. */}
         <div className="relative overflow-hidden">
         {/* Hero: copy stacked over the demo, so the reel gets the full column width. */}
         <section className="relative px-4 pb-14 pt-16 sm:px-6 lg:px-8 lg:pt-24">

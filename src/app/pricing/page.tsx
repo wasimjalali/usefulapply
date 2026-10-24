@@ -186,7 +186,7 @@ export default function PricingPage() {
     <div className="min-h-screen bg-canvas">
       <Navbar />
       <main>
-      {/* Aurora-backed first-fold: hero + pricing cards share one premium backdrop */}
+      {/* First fold: hero + pricing cards on the flat cream page background */}
       <div className="relative overflow-hidden">
       {/* Hero Section */}
       <section className="pt-16 pb-8 px-4 sm:px-6 lg:px-8 relative">
@@ -417,7 +417,7 @@ export default function PricingPage() {
           <div className="bg-surface-raised rounded-card border border-border shadow-floating p-8 md:p-10">
             {/* Tier Selector — pill buttons */}
             <div className="flex items-center justify-center mb-10">
-              <div className="inline-flex bg-canvas rounded-control p-1.5 gap-1 border border-border">
+              <div className="inline-flex bg-canvas rounded-card p-1.5 gap-1 border border-border">
                 {savingsTiers.map((tier, i) => (
                   <button
                     key={tier.plan}

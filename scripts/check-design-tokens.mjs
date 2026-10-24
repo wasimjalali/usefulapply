@@ -19,8 +19,7 @@
  * logos, the web manifest, route handlers, the root error page, blog post content and globals.css
  * itself, which defines the tokens. Comments are ignored.
  *
- * Every hit fails the check. (PRs 1 to 4 of the design-system plan carried a baseline of code
- * that predated the roles; PR 5 emptied it and removed it.)
+ * Every hit fails the check.
  *
  *   node scripts/check-design-tokens.mjs
  */
@@ -128,23 +127,17 @@ function scan() {
   const files = SCAN_DIRS.flatMap((dir) => walk(join(ROOT, dir), []))
     .filter((file) => !SKIP.some((pattern) => pattern.test(file)))
     .sort();
-  const counts = {};
   const hitsByFile = {};
   for (const file of files) {
     const hits = findHits(file);
     if (hits.length === 0) continue;
     hitsByFile[file] = hits;
-    counts[file] = {};
-    for (const rule of RULE_NAMES) {
-      const n = hits.filter((hit) => hit.rule === rule).length;
-      if (n > 0) counts[file][rule] = n;
-    }
   }
-  return { counts, hitsByFile };
+  return hitsByFile;
 }
 
-const { counts, hitsByFile } = scan();
-const files = Object.keys(counts);
+const hitsByFile = scan();
+const files = Object.keys(hitsByFile);
 if (files.length === 0) {
   console.log('design tokens: no hits.');
   process.exit(0);
@@ -152,5 +145,5 @@ if (files.length === 0) {
 for (const file of files) {
   for (const hit of hitsByFile[file]) console.error(`${file}:${hit.line}  ${hit.rule}  ${hit.text}`);
 }
-console.error(`design tokens: ${Object.values(counts).reduce((sum, rules) => sum + Object.values(rules).reduce((a, b) => a + b, 0), 0)} hit(s) in ${files.length} file(s). Use the role tokens in src/app/globals.css (.claude/rules/design-system.md).`);
+console.error(`design tokens: ${files.reduce((sum, file) => sum + hitsByFile[file].length, 0)} hit(s) in ${files.length} file(s). Use the role tokens in src/app/globals.css (.claude/rules/design-system.md).`);
 process.exit(1);

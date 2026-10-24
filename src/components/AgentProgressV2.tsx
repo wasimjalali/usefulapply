@@ -92,7 +92,7 @@ export function AgentProgressV2({
         <div className="flex items-center gap-2.5 mb-3 pb-2 border-b border-border-accent-soft/60">
           <div className="h-1 flex-1 rounded-pill bg-sunken overflow-hidden">
             <div
-              className="h-full rounded-pill bg-accent transition-all duration-500 ease-out"
+              className="h-full rounded-pill bg-accent transition-all duration-(--duration-slow) ease-standard"
               style={{ width: `${progress?.percent ?? 0}%` }}
             />
           </div>
@@ -117,7 +117,7 @@ export function AgentProgressV2({
                     ? 'bg-surface-raised border border-border-strong shadow-resting'
                     : step.status === 'error'
                       ? 'bg-surface border border-border'
-                      : 'bg-surface/60 border border-border/60'
+                      : 'bg-surface border border-border'
               }`}
             >
               <div className="flex items-center gap-3 text-sm py-2.5 px-3">

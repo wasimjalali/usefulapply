@@ -156,7 +156,7 @@ export function ChatMessage({
       <div className="group/msg flex justify-end">
         <div className={`max-w-[86%] ${surfaceClassName}`}>
           {isLongMessage ? (
-            <div className="relative">
+            <div>
               <div className={`text-sm text-ink-body overflow-hidden ${isExpanded ? '' : 'max-h-24'}`}>
                 <MarkdownText content={message.content} className="text-sm text-ink-body" />
               </div>

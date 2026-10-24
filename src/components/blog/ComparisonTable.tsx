@@ -56,7 +56,7 @@ export default function ComparisonTable({ tools, features }: ComparisonTableProp
         <div className="overflow-hidden border border-border rounded-card shadow-resting">
           <table className="min-w-full divide-y divide-border">
             {/* Header */}
-            <thead className="bg-surface-inverse">
+            <thead className="bg-brand">
               <tr>
                 <th
                   scope="col"

@@ -597,7 +597,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
                 <button
                   type="button"
                   onClick={() => setShowFullPreview(true)}
-                  className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-brand-strong shadow-resting transition-shadow duration-(--duration-base) ease-standard hover:border-border-accent-soft hover:shadow-elevated cursor-pointer"
+                  className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-brand-strong shadow-resting transition-[box-shadow,border-color] duration-(--duration-base) ease-standard hover:border-border-accent-soft hover:shadow-elevated cursor-pointer"
                 >
                   <Maximize2 className="w-3.5 h-3.5" />
                   Full Preview

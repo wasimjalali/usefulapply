@@ -92,7 +92,7 @@ export function ChatInput({
     : `relative rounded-card border bg-surface-raised shadow-resting overflow-hidden transition-all duration-(--duration-base) ${
         isWorking
           ? 'border-accent'
-          : 'border-border-accent focus-within:border-accent'
+          : 'border-border-accent focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20'
       }`;
 
   return (
