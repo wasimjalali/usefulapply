@@ -179,6 +179,14 @@ export async function loadMoreFeedJobs(): Promise<FeedResult<JobFeedFeedItem[]>>
     }
     const items = (payload.items ?? []) as JobFeedFeedItem[];
     useFeedStore.getState().appendExtraJobs(items);
+    if (items.length < JOB_FEED_INBOX_PAGE_SIZE) {
+      // A short page is the end of the list. A total that still says more (an
+      // overview fetched before a dismiss) must not keep offering it.
+      const current = useFeedStore.getState().overview;
+      if (current && current.jobsTotalCount !== already + items.length) {
+        useFeedStore.getState().setOverview({ ...current, jobsTotalCount: already + items.length });
+      }
+    }
     return { ok: true, data: items };
   } catch {
     return { ok: false, error: 'More roles did not load.' };
@@ -379,7 +387,7 @@ export async function recordFeedFeedback(
     const payload = await readJson(response);
     if (isStale(generation)) return { ok: false, error: 'Feed was reset.' };
     if (!response.ok) {
-      return { ok: false, error: humanError(response.status, 'That did not save.') };
+      return { ok: false, error: humanError(response.status, 'That did not save.'), status: response.status };
     }
     const typed = payload as unknown as JobFeedFeedbackResponse;
     useFeedStore.getState().patchJobFeedback(job.id, typed.feedback);

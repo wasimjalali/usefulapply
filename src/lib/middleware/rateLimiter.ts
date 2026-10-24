@@ -71,6 +71,7 @@ const RATE_LIMIT_BINDING_NAMES = {
   'job-feed-apply': 'RATE_LIMIT_JOB_FEED_APPLY',
   'job-feed-run': 'RATE_LIMIT_JOB_FEED_RUN',
   'job-feed-inbox': 'RATE_LIMIT_JOB_FEED_INBOX',
+  'job-feed-summary': 'RATE_LIMIT_JOB_FEED_SUMMARY',
   'credits-balance': 'RATE_LIMIT_CREDITS_BALANCE',
   'delete-account': 'RATE_LIMIT_DELETE_ACCOUNT',
   'create-checkout': 'RATE_LIMIT_CREATE_CHECKOUT',
@@ -114,6 +115,7 @@ declare global {
     RATE_LIMIT_JOB_FEED_APPLY?: RateLimitBinding;
     RATE_LIMIT_JOB_FEED_RUN?: RateLimitBinding;
     RATE_LIMIT_JOB_FEED_INBOX?: RateLimitBinding;
+    RATE_LIMIT_JOB_FEED_SUMMARY?: RateLimitBinding;
     RATE_LIMIT_CREDITS_BALANCE?: RateLimitBinding;
     RATE_LIMIT_DELETE_ACCOUNT?: RateLimitBinding;
     RATE_LIMIT_CREATE_CHECKOUT?: RateLimitBinding;
@@ -281,6 +283,9 @@ export const RATE_LIMITS = {
   'job-feed-apply':     { name: 'job-feed-apply', limit: 10, windowMs: 60_000 },
   'job-feed-run':       { name: 'job-feed-run', limit: 2,  windowMs: 60_000 },
   'job-feed-inbox':     { name: 'job-feed-inbox', limit: 30, windowMs: 60_000 },
+  // The sidebar badge's cheap read and its last-seen write. Its own bucket, so badge refreshes after a save or
+  // dismiss can't spend the feed list's allowance.
+  'job-feed-summary':   { name: 'job-feed-summary', limit: 60, windowMs: 60_000 },
   'credits-balance':    { name: 'credits-balance', limit: 30, windowMs: 60_000 },
   'delete-account':     { name: 'delete-account', limit: 3,  windowMs: 60_000 },
   'create-checkout':         { name: 'create-checkout', limit: 5,  windowMs: 60_000 },
