@@ -109,7 +109,7 @@ export function FeedJobDetail({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-shrink-0 items-center gap-3 border-b border-border px-5 py-3">
+      <div className="flex flex-shrink-0 flex-wrap items-center gap-2 border-b border-border px-5 py-3">
         <button
           type="button"
           onClick={onBack}
@@ -118,7 +118,6 @@ export function FeedJobDetail({
           <ArrowLeft className="h-4 w-4" />
           Back to feed
         </button>
-        <div className="flex-1" />
         <button
           ref={saveRef}
           type="button"
@@ -126,7 +125,7 @@ export function FeedJobDetail({
           onClick={() => onSave(job)}
           aria-label={isSaved ? 'Remove from saved' : 'Save this role'}
           aria-pressed={isSaved}
-          className={`inline-flex h-9 items-center gap-2 rounded-pill px-3 text-sm font-medium transition-colors duration-(--duration-base) hover:bg-surface cursor-pointer ${
+          className={`ml-auto inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-3 text-sm font-medium transition-colors duration-(--duration-base) hover:bg-surface cursor-pointer ${
             isSaved ? 'text-ink-accent' : 'text-ink-muted hover:text-ink'
           }`}
         >
@@ -139,22 +138,24 @@ export function FeedJobDetail({
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => onOpenEmployerSite(job)}
-            className="inline-flex h-9 items-center gap-2 rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-(--duration-base) hover:bg-surface hover:text-ink cursor-pointer"
+            className="inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-(--duration-base) hover:bg-surface hover:text-ink cursor-pointer"
           >
             <ExternalLink className="h-4 w-4" />
             Employer site
           </a>
         )}
+        {/* One unit: the rating and dismiss controls (or the question that replaces them) wrap together onto a second row. */}
+        <div className="flex max-w-full flex-shrink-0 flex-wrap items-center gap-2">
         {asking && (
           <div
             role="group"
             aria-label={asking === 'dismiss' ? 'Dismiss this job?' : 'Not a fit?'}
-            className="flex items-center gap-2"
+            className="flex max-w-full flex-wrap items-center gap-2"
             onKeyDown={(event) => {
               if (event.key === 'Escape' && !busy) cancelConfirm();
             }}
           >
-            <span className="text-sm font-semibold text-ink">
+            <span className="whitespace-nowrap text-sm font-semibold text-ink">
               {asking === 'dismiss' ? 'Dismiss this job?' : "Not a fit? It won't come back."}
             </span>
             <button
@@ -162,7 +163,7 @@ export function FeedJobDetail({
               type="button"
               disabled={busy}
               onClick={cancelConfirm}
-              className="inline-flex h-9 items-center rounded-pill border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-resting transition-colors duration-200 hover:bg-surface-raised disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
+              className="inline-flex h-9 flex-shrink-0 items-center whitespace-nowrap rounded-pill border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-resting transition-colors duration-200 hover:bg-surface-raised disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
             >
               Keep
             </button>
@@ -170,7 +171,7 @@ export function FeedJobDetail({
               type="button"
               disabled={busy}
               onClick={() => (asking === 'dismiss' ? onDismiss : onRateNotRelevant)?.(job)}
-              className="inline-flex h-9 items-center rounded-pill px-3.5 text-sm font-semibold text-danger transition-colors duration-200 hover:bg-danger-soft disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
+              className="inline-flex h-9 flex-shrink-0 items-center whitespace-nowrap rounded-pill px-3.5 text-sm font-semibold text-danger transition-colors duration-200 hover:bg-danger-soft disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
             >
               {asking === 'dismiss'
                 ? (dismissing ? 'Dismissing' : 'Dismiss')
@@ -186,7 +187,7 @@ export function FeedJobDetail({
             onClick={() => {
               if (!busy && rating !== 'helpful') onRateHelpful(job);
             }}
-            className={`inline-flex h-9 items-center gap-2 rounded-pill px-3 text-sm font-medium transition-colors duration-(--duration-base) ${
+            className={`inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-3 text-sm font-medium transition-colors duration-(--duration-base) ${
               rating === 'helpful'
                 ? 'cursor-default text-success-strong'
                 : 'text-ink-muted hover:bg-surface hover:text-ink cursor-pointer'
@@ -202,7 +203,7 @@ export function FeedJobDetail({
             type="button"
             disabled={busy}
             onClick={() => ask('not_relevant')}
-            className="inline-flex h-9 items-center gap-2 rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-(--duration-base) hover:bg-surface hover:text-ink cursor-pointer"
+            className="inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-(--duration-base) hover:bg-surface hover:text-ink cursor-pointer"
           >
             <ThumbsDown className="h-4 w-4" />
             Not relevant
@@ -214,12 +215,13 @@ export function FeedJobDetail({
             type="button"
             disabled={busy}
             onClick={() => ask('dismiss')}
-            className="inline-flex h-9 items-center gap-2 rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-200 hover:bg-surface hover:text-ink cursor-pointer"
+            className="inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-200 hover:bg-surface hover:text-ink cursor-pointer"
           >
             <X className="h-4 w-4" />
             Dismiss
           </button>
         )}
+        </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto px-5 py-5">

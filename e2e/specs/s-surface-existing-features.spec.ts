@@ -137,6 +137,26 @@ async function openUsage(page: Page) {
   await expect(page.getByText('left this month')).toBeVisible({ timeout: 30_000 });
 }
 
+/**
+ * Every action button of the job detail sits fully inside the detail column and renders its label on one line: its
+ * height is the single-line height of Save's. `names` are the buttons to check (the default row, or a question's).
+ */
+async function expectActionsFit(page: Page, names: string[] = ['Back to feed', 'Save this role', 'Employer site', 'Good match', 'Not relevant', 'Dismiss']) {
+  const column = await canvas(page).boundingBox();
+  const saveBox = await canvas(page).getByRole('button', { name: 'Save this role' }).boundingBox();
+  expect(column && saveBox, 'the column and Save are on screen').toBeTruthy();
+  for (const name of names) {
+    const control = name === 'Employer site'
+      ? canvas(page).getByRole('link', { name })
+      : canvas(page).getByRole('button', { name, exact: name === 'Dismiss' || name === 'Keep' || name === 'Save this role' || name === 'Back to feed' });
+    const box = await control.first().boundingBox();
+    expect(box, `${name} is on screen`).toBeTruthy();
+    expect(box!.x, `${name} starts inside the column`).toBeGreaterThanOrEqual(column!.x - 0.5);
+    expect(box!.x + box!.width, `${name} ends inside the column`).toBeLessThanOrEqual(column!.x + column!.width + 0.5);
+    expect(box!.height, `${name} is one line high`).toBeCloseTo(saveBox!.height, 0);
+  }
+}
+
 const NOTICE = "Your last payment didn't go through. Update your card to keep your plan.";
 
 test('(s1) a Plus user rates a match: Good match sticks across a reload, Not relevant asks first, then the role is gone for good', async ({ browser, request }) => {
@@ -160,6 +180,19 @@ test('(s1) a Plus user rates a match: Good match sticks across a reload, Not rel
     await expect(good).toHaveAttribute('aria-disabled', 'false');
     await expect(notRelevant).toBeVisible();
     await expect(canvas(page).getByRole('button', { name: 'Dismiss', exact: true })).toBeVisible();
+
+    // The action row never clips or breaks a label: at a 1300px window (a canvas of about 830px) and narrower, every
+    // control sits inside the detail column on one line, and what doesn't fit wraps onto a second row. Also with a
+    // confirm question open in place of the rating and dismiss controls.
+    for (const width of [1300, 1110]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expectActionsFit(page);
+      await canvas(page).getByRole('button', { name: 'Not relevant' }).click();
+      await expectActionsFit(page, ['Keep', 'Not relevant']);
+      await canvas(page).getByRole('button', { name: 'Keep' }).click();
+      await expect(canvas(page).getByRole('button', { name: 'Not relevant' })).toBeFocused();
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
 
     // Good match: the button shows it, the row holds it.
     await good.click();
