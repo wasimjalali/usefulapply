@@ -56,8 +56,8 @@ export default function PrivacyPage() {
           <li>
             <strong className="text-ink-body">Personal details for CVs:</strong> your date of
             birth and nationality, if you add them to your profile or your CV includes them. Some
-            markets, such as Germany, expect them on a CV. We use them only to show them on your
-            CV, and we delete them with your account.
+            markets, such as Germany, expect them on a CV. We use them only for your CV, including
+            when our AI providers read and write it, and we delete them with your account.
           </li>
           <li>
             <strong className="text-ink-body">Generated content:</strong> tailored CVs, cover
