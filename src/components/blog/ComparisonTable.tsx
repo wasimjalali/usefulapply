@@ -44,9 +44,9 @@ export default function ComparisonTable({ tools, features }: ComparisonTableProp
   };
 
   const getStatusBgColor = (status: 'yes' | 'no' | 'warning' | 'text') => {
-    if (status === 'yes') return 'bg-positive-soft/50';
-    if (status === 'no') return 'bg-danger-soft/50';
-    if (status === 'warning') return 'bg-warning-soft/50';
+    if (status === 'yes') return 'bg-positive-soft';
+    if (status === 'no') return 'bg-danger-soft';
+    if (status === 'warning') return 'bg-warning-soft';
     return 'bg-surface-raised';
   };
 

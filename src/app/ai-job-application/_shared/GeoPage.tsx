@@ -278,7 +278,6 @@ export function GeoPage({ content: c }: { content: GeoContent }) {
 
   const cta = (
     <section className="py-20 px-4 sm:px-6 lg:px-8 bg-surface-inverse-raised relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-96 h-96 bg-accent/10 rounded-pill -translate-y-1/2 translate-x-1/2 animate-float-slow" />
       <ScrollReveal>
         <div className="max-w-4xl mx-auto text-center relative">
           <h2 className="text-3xl md:text-4xl font-bold text-ink-inverse mb-4">{c.cta.heading}</h2>

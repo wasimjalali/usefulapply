@@ -537,7 +537,7 @@ select:focus-visible {
 /* Premium shimmer bar — indeterminate progress indicator */
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
+  100% { transform: translateX(250%); }
 }
 
 .shimmer-bar {
@@ -564,25 +564,6 @@ select:focus-visible {
 
 .step-complete-pulse {
   animation: completePulse var(--duration-slow) var(--ease-pop);
-}
-
-/* Marketing page animations */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
-}
-
-@keyframes floatSlow {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-8px) rotate(1deg); }
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-.animate-float-slow {
-  animation: floatSlow 8s ease-in-out infinite;
 }
 
 /* ─── Premium primitives (UI premium pass) ─── */
@@ -796,9 +777,8 @@ select:focus-visible {
     scroll-behavior: auto !important;
   }
 
-  /* Kill the ambient, infinitely-looping background decoration outright. */
-  .animate-float,
-  .animate-float-slow { animation: none !important; }
+  /* The indeterminate bar holds still at full width instead of parking a 40% pill at the left. */
+  .shimmer-bar::after { animation: none !important; width: 100%; }
 }
 
 /* CV and cover letter fonts: Arimo and Gelasio (SIL OFL 1.1, metric twins of Arial and Georgia).

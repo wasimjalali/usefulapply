@@ -613,7 +613,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
                   <textarea
                     value={activeCoverLetter?.body || ''}
                     onChange={(e) => updateField('body', e.target.value)}
-                    className="w-full text-sm text-ink-body leading-relaxed bg-surface border border-border-strong rounded-control px-3 py-3 focus:border-focus-ring-soft focus:outline-none resize-none"
+                    className="w-full text-sm text-ink-body leading-relaxed bg-surface border border-border rounded-control px-3 py-3 focus:border-focus-ring-soft focus:outline-none resize-none"
                     rows={20}
                     placeholder="Cover letter content..."
                   />

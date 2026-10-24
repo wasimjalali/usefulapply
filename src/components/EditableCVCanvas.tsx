@@ -71,7 +71,7 @@ function EditableField({ value, onChange, placeholder, multiline, className = ''
             value={tempValue}
             onChange={(e) => setTempValue(e.target.value)}
             placeholder={placeholder}
-            className={`w-full p-2 border border-border-brand rounded-control focus:border-border-focus focus:outline-none resize-none ${className}`}
+            className={`w-full p-2 border border-border-brand rounded-control focus:border-border-focus focus:ring-2 focus:ring-focus-ring-soft/40 focus:outline-none resize-none ${className}`}
             rows={4}
             autoFocus
           />
@@ -81,7 +81,7 @@ function EditableField({ value, onChange, placeholder, multiline, className = ''
             value={tempValue}
             onChange={(e) => setTempValue(e.target.value)}
             placeholder={placeholder}
-            className={`w-full p-2 border border-border-brand rounded-control focus:border-border-focus focus:outline-none ${className}`}
+            className={`w-full p-2 border border-border-brand rounded-control focus:border-border-focus focus:ring-2 focus:ring-focus-ring-soft/40 focus:outline-none ${className}`}
             autoFocus
           />
         )}
@@ -394,7 +394,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                 setData(prev => ({ ...prev, signature: newSignature }));
                 setHasChanges(true);
               }}
-              className="rounded-control border-border-strong"
+              className="rounded-control border-border"
             />
             <span className="text-ink-muted">Include signature line</span>
           </label>

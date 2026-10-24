@@ -61,12 +61,12 @@
   min-height: 42px;
   align-items: center;
   gap: 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   padding: 0 12px;
   color: var(--admin-muted);
   font-size: 14px;
   font-weight: 500;
-  transition: background-color 200ms ease, color 200ms ease;
+  transition: background-color var(--duration-base) var(--ease-standard), color var(--duration-base) var(--ease-standard);
 }
 
 .admin-sidebar__link svg {
@@ -112,7 +112,7 @@
   display: inline-flex;
   overflow: hidden;
   border: 1px solid var(--admin-border);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: var(--admin-surface);
 }
 
@@ -216,7 +216,7 @@
 .admin-source-status::after {
   width: 7px;
   height: 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   content: '';
 }
 
@@ -236,7 +236,7 @@
 .admin-metrics,
 .admin-state {
   border: 1px solid var(--admin-border);
-  border-radius: 16px;
+  border-radius: var(--radius-card);
   background: var(--admin-surface);
   box-shadow: var(--depth-resting);
 }
@@ -342,7 +342,7 @@
   height: 12px;
   margin-top: 2px;
   border: 3px solid var(--admin-surface);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--admin-brand);
   outline: 1px solid var(--border-brand-soft);
 }
@@ -410,7 +410,7 @@
   display: block;
   height: 8px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--admin-border);
 }
 
@@ -549,7 +549,7 @@
 }
 
 .admin-table tbody tr {
-  transition: background-color 150ms ease;
+  transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .admin-table tbody tr:hover td {

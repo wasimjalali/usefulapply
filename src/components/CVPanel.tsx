@@ -768,7 +768,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                     </button>
                     <div
                       ref={cvWrapperRef}
-                      className="relative bg-document shadow-elevated"
+                      className="relative bg-document shadow-resting"
                       style={cvScale < 1 ? {
                         transform: `scale(${cvScale})`,
                         transformOrigin: 'top left',
@@ -812,7 +812,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
             </div>
 
             <div className="flex-1 overflow-auto bg-canvas p-4 sm:p-6">
-              <div className="mx-auto w-fit bg-document shadow-elevated">
+              <div className="mx-auto w-fit bg-document shadow-resting">
                 <CVTemplateRenderer data={previewCVData} templateId={selectedTemplateId} />
               </div>
             </div>

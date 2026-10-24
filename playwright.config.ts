@@ -31,6 +31,7 @@ import {
  *   visual e2e/visual/**           Every screen of the design-system plan at 1280x900 and 768x1024, compared pixel for
  *                                  pixel with the committed Linux snapshots in e2e/visual/__screenshots__/. Runs on the
  *                                  data lane's preview and fake; skipped on macOS (the snapshots are Linux renders).
+ *                                  e2e/visual/motion.spec.ts records motion frames for review, only with E2E_MOTION=1.
  *   mcp    e2e/mcp/**              The MCP tool catalog end to end (PLAN section 7), over OAuth, on the local D1.
  *                                  Only with E2E_MCP=1 (npm run test:e2e sets it). Preview on 8798 (E2E_MCP_PORT, inspector
  *                                  E2E_MCP_INSPECTOR_PORT 19398) with MCP_ENABLED and MCP_TEST_MODE, and the model pointed at

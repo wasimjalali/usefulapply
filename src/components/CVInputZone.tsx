@@ -121,7 +121,7 @@ export function CVInputZone({
         <div
           className={`border border-dashed rounded-card overflow-hidden transition-colors ${
             isLoading
-              ? 'border-border-strong opacity-50'
+              ? 'border-border opacity-50'
               : 'border-border-stronger focus-within:border-border-brand'
           }`}
         >

@@ -112,12 +112,10 @@ export function AgentProgressV2({
               key={step.id}
               className={`rounded-control transition-all duration-(--duration-base) agent-step-enter ${
                 step.status === 'completed'
-                  ? 'bg-accent-soft/80 border border-border-accent-soft/80 step-complete-pulse'
+                  ? 'bg-accent-soft border border-border-accent-soft step-complete-pulse'
                   : step.status === 'running'
-                    ? 'bg-surface-raised border border-border-strong shadow-resting'
-                    : step.status === 'error'
-                      ? 'bg-surface border border-border'
-                      : 'bg-surface border border-border'
+                    ? 'bg-surface-raised border border-border shadow-resting'
+                    : 'bg-surface border border-border'
               }`}
             >
               <div className="flex items-center gap-3 text-sm py-2.5 px-3">

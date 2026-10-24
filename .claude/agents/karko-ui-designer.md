@@ -156,7 +156,7 @@ Mobile is deprioritized per product priorities. Don't spend cycles on responsive
 - **Card:** `rounded-card border border-border bg-surface p-6 shadow-resting`
 - **Interactive card (opens, selects, navigates):** add `hover:shadow-elevated transition-shadow duration-(--duration-base) ease-standard`, no translate. Static cards don't change on hover.
 - **Document surface (CV/letter/email body):** `rounded-card border border-border bg-document shadow-resting`
-- **Modal:** `rounded-modal bg-document shadow-floating` with `bg-canvas/90` backdrop
+- **Modal:** `rounded-modal bg-document shadow-floating` over a `bg-surface-inverse-strong/45` scrim
 - **Primary CTA, Gold:** `bg-accent hover:bg-accent-strong text-accent-ink rounded-control font-semibold`
 - **Primary CTA, Navy:** `bg-brand hover:bg-brand-strong text-brand-ink rounded-control font-semibold`
 - **Ghost / text link:** `text-brand hover:text-brand-strong hover:underline`

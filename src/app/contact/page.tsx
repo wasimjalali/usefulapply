@@ -103,7 +103,7 @@ export default function ContactPage() {
       <section className="py-8 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
           <ScrollReveal>
-          <div className="bg-surface-raised rounded-card p-8 md:p-10 border border-border shadow-elevated">
+          <div className="bg-surface-raised rounded-card p-8 md:p-10 border border-border shadow-resting">
             <h2 className="font-bold text-brand text-[22px] md:text-[28px] leading-[1.15] mb-6 text-center">
               Send us a message.
             </h2>

@@ -49,7 +49,7 @@ export function StepIndicator({
 
   return (
     <div className="flex flex-col items-center justify-center h-full bg-surface p-8">
-      <div className="bg-surface-raised rounded-card shadow-elevated border border-border-brand-faint/60 p-8 max-w-md w-full">
+      <div className="bg-surface-raised rounded-card shadow-resting border border-border-brand-faint/60 p-8 max-w-md w-full">
         {/* Header with Useful Apply branding */}
         <div className="flex items-center gap-2.5 mb-6 pb-3 border-b border-border-accent-soft/60">
           <BrandIcon size="xs" theme="light" />

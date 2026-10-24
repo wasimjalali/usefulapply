@@ -344,7 +344,7 @@ export default function PricingPage() {
       <section className="scroll-mt-24 pb-20 px-4 sm:px-6 lg:px-8" id="addons">
         <div className="max-w-4xl mx-auto">
           <ScrollReveal>
-          <div className="bg-surface-inverse border border-border-inverse rounded-card p-6 md:p-8 shadow-elevated">
+          <div className="bg-surface-inverse border border-border-inverse rounded-card p-6 md:p-8 shadow-resting">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
               {/* Left: label + headline + note */}
               <div className="flex-1">
@@ -414,7 +414,7 @@ export default function PricingPage() {
           </ScrollReveal>
 
           <ScrollReveal delay={150}>
-          <div className="bg-surface-raised rounded-card border border-border shadow-floating p-8 md:p-10">
+          <div className="bg-surface-raised rounded-card border border-border shadow-resting p-8 md:p-10">
             {/* Tier Selector — pill buttons */}
             <div className="flex items-center justify-center mb-10">
               <div className="inline-flex bg-canvas rounded-card p-1.5 gap-1 border border-border">

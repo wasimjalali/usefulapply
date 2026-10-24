@@ -157,7 +157,7 @@ export function ChatMessage({
         <div className={`max-w-[86%] ${surfaceClassName}`}>
           {isLongMessage ? (
             <div>
-              <div className={`text-sm text-ink-body overflow-hidden ${isExpanded ? '' : 'max-h-24'}`}>
+              <div className={`text-sm text-ink-body overflow-hidden ${isExpanded ? '' : 'max-h-[5lh]'}`}>
                 <MarkdownText content={message.content} className="text-sm text-ink-body" />
               </div>
               <button
@@ -241,7 +241,7 @@ export function ChatMessage({
             /* Collapsible content for long user messages */
             <div>
               <div className={`text-sm text-ink-body overflow-hidden transition-all duration-(--duration-base) ${
-                isExpanded ? '' : 'max-h-24'
+                isExpanded ? '' : 'max-h-[5lh]'
               }`}>
                 <MarkdownText
                   content={message.content}

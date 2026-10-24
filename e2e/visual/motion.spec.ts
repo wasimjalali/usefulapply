@@ -13,6 +13,7 @@ import { pinUser, rewriteTimes, seedFeedInbox, signIn, visualUser, waitForSavedC
  * output folder as frames/frame-NNNN.png with their times in frames/frames.json; tile them into a sheet to review.
  *
  * Unlike the screenshots, motion is on (no reduced motion) and the clock is real. Run it with E2E_MOTION=1.
+ * The only assertion is that frames were captured: the spec records motion for review, it doesn't judge it.
  */
 
 test.skip(process.platform !== 'linux' || !process.env.E2E_MOTION, 'Records motion frames on demand: E2E_MOTION=1 on Linux.');
@@ -98,11 +99,14 @@ async function recordFrames(page: Page, testInfo: TestInfo, action: () => Promis
     cdp.send('Page.screencastFrameAck', { sessionId: frame.sessionId }).catch(() => undefined);
   });
   await cdp.send('Page.startScreencast', { format: 'png', everyNthFrame: 1 });
-  await page.waitForTimeout(200);
-  await action();
-  await page.waitForTimeout(settleMs);
-  await cdp.send('Page.stopScreencast');
-  await cdp.detach();
+  try {
+    await page.waitForTimeout(200);
+    await action();
+    await page.waitForTimeout(settleMs);
+  } finally {
+    await cdp.send('Page.stopScreencast');
+    await cdp.detach();
+  }
   frames.forEach((frame, i) => writeFileSync(join(dir, `frame-${String(i).padStart(4, '0')}.png`), Buffer.from(frame.data, 'base64')));
   const start = frames[0]?.timestamp ?? 0;
   writeFileSync(join(dir, 'frames.json'), JSON.stringify(frames.map((frame, i) => ({ frame: i, ms: Math.round((frame.timestamp - start) * 1000) })), null, 2));
