@@ -1,6 +1,6 @@
 {
   "src/app/about/page.tsx": { "color-class": 44, "radius": 6 },
-  "src/app/admin-dashboard/admin-dashboard.css": { "palette-var": 25 },
+  "src/app/admin-dashboard/admin-dashboard.css": { "palette-var": 29 },
   "src/app/ai-job-application/90-second-application-package/content.tsx": { "color-class": 20 },
   "src/app/ai-job-application/_shared/GeoPage.tsx": { "color-class": 35, "gradient": 3, "radius": 4 },
   "src/app/ai-job-application/application-tracker/content.tsx": { "color-class": 58, "gradient": 1, "radius": 8 },
@@ -27,7 +27,6 @@
   "src/app/cookies/page.tsx": { "color-class": 16 },
   "src/app/dashboard/page.tsx": { "color-class": 27, "radius": 6 },
   "src/app/error.tsx": { "color-class": 6, "radius": 1 },
-  "src/app/global-error.tsx": { "color-literal": 4 },
   "src/app/imprint/page.tsx": { "color-class": 5 },
   "src/app/integrations/page.tsx": { "color-class": 32, "radius": 4 },
   "src/app/master-cv-template/page.tsx": { "color-class": 61, "gradient": 2, "radius": 3 },
@@ -40,7 +39,6 @@
   "src/app/privacy/page.tsx": { "color-class": 55 },
   "src/app/terms/page.tsx": { "color-class": 5 },
   "src/components/AgentProgressV2.tsx": { "color-class": 52, "gradient": 2, "radius": 10 },
-  "src/components/BrandLogo.tsx": { "color-literal": 10 },
   "src/components/CVInputZone.tsx": { "color-class": 20, "radius": 5 },
   "src/components/CVPanel.tsx": { "color-class": 71, "gradient": 1, "radius": 11 },
   "src/components/ChatPanel.tsx": { "color-class": 98, "radius": 18 },
@@ -95,7 +93,7 @@
   "src/components/shell/ColumnSash.tsx": { "color-class": 4, "radius": 1 },
   "src/components/shell/ConversationColumn.tsx": { "color-class": 11, "radius": 1 },
   "src/components/shell/DecisionChips.tsx": { "color-class": 11, "radius": 1 },
-  "src/components/shell/GuidedLine.tsx": { "color-class": 135, "color-literal": 9, "radius": 27 },
+  "src/components/shell/GuidedLine.tsx": { "color-class": 135, "color-literal": 10, "radius": 27 },
   "src/components/shell/GuidedStepper.tsx": { "color-class": 11, "radius": 3 },
   "src/components/shell/NamedStages.tsx": { "color-class": 17, "color-literal": 1, "radius": 4 },
   "src/components/shell/Sidebar.tsx": { "color-class": 58, "radius": 15 },
@@ -109,6 +107,5 @@
   "src/components/ui/Card.tsx": { "color-class": 2, "radius": 1 },
   "src/components/ui/PdfPreviewModal.tsx": { "color-class": 12, "radius": 2 },
   "src/components/ui/Toast.tsx": { "color-class": 40, "radius": 8 },
-  "src/lib/blog/posts.ts": { "color-literal": 3, "radius": 1 },
   "src/lib/blog/types.ts": { "color-class": 21 }
 }
