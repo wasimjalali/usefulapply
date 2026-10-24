@@ -66,7 +66,7 @@ export function FeedJobCard({
           onOpenDetail(job);
         }
       }}
-      className={`w-full cursor-pointer rounded-card border bg-surface px-5 py-4 text-left shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 ${
+      className={`w-full cursor-pointer rounded-card border bg-surface px-5 py-4 text-left shadow-resting transition-shadow duration-(--duration-base) ease-standard hover:shadow-elevated focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 ${
         isStrong ? 'border-border-accent-soft' : 'border-border'
       }`}
     >
