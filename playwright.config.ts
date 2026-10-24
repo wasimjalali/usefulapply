@@ -19,7 +19,7 @@ import {
 } from './e2e/lib/env';
 
 /**
- * One Playwright config, up to four projects.
+ * One Playwright config, up to five projects.
  *
  *   oauth  e2e/mcp-oauth.spec.ts   MCP OAuth server, real MCP client. Preview on 8791 with
  *                                  MCP_ENABLED / MCP_TEST_MODE / MCP_CIMD_ENABLED. The spec starts
@@ -28,6 +28,9 @@ import {
  *                                  Preview on 8794 (E2E_PREVIEW_PORT) with the model pointed at
  *                                  e2e/fake-anthropic.ts on 18793, and the Bedrock failover pointed at the
  *                                  same fake under /bedrock. The mcp lane has no Bedrock credentials.
+ *   visual e2e/visual/**           Every screen of the design-system plan at 1280x900 and 768x1024, compared pixel for
+ *                                  pixel with the committed Linux snapshots in e2e/visual/__screenshots__/. Runs on the
+ *                                  data lane's preview and fake; skipped on macOS (the snapshots are Linux renders).
  *   mcp    e2e/mcp/**              The MCP tool catalog end to end (PLAN section 7), over OAuth, on the local D1.
  *                                  Only with E2E_MCP=1 (npm run test:e2e sets it). Preview on 8798 (E2E_MCP_PORT, inspector
  *                                  E2E_MCP_INSPECTOR_PORT 19398) with MCP_ENABLED and MCP_TEST_MODE, and the model pointed at
@@ -186,7 +189,7 @@ const webServers = [
         },
       ]
     : []),
-  ...(needs('data')
+  ...(needs('data', 'visual')
     ? [
         {
           command: `npx tsx e2e/fake-anthropic.ts ${FAKE_ANTHROPIC_PORT}`,
@@ -328,6 +331,22 @@ export default defineConfig({
       timeout: 180_000,
       expect: { timeout: 20_000 },
       use: { baseURL: BASE_URL, viewport: { width: 1440, height: 900 } },
+    },
+    {
+      name: 'visual',
+      testDir: './e2e/visual',
+      timeout: 180_000,
+      // Linux renders only: the spec skips itself on other platforms, and {platform} keeps the names apart.
+      snapshotPathTemplate: '{testDir}/__screenshots__/{arg}-{platform}{ext}',
+      expect: {
+        timeout: 20_000,
+        // threshold 0.005 (Playwright's default is 0.2): pixelmatch ignores a pixel whose YIQ distance is under 0.88. One
+        // rounded corner in the canvas tabs renders one colour level apart between identical runs (0.51). The closest
+        // role pairs, cream-100/gold-50 (1.28) and cream-50/white (2.37), still fail it when opaque; a translucent mix
+        // of them may not, and Playwright never counts pixels it takes for anti-aliasing. Check those swaps by eye.
+        toHaveScreenshot: { maxDiffPixels: 0, threshold: 0.005, animations: 'disabled', caret: 'hide', scale: 'css' },
+      },
+      use: { baseURL: BASE_URL },
     },
   ],
   webServer: webServers,

@@ -69,6 +69,153 @@
 
   /* Accent glow (gold) — for primary-CTA hover and active emphasis only. */
   --shadow-glow-gold: 0 0 0 1px rgb(212 168 83 / 0.18), 0 12px 30px -10px rgb(212 168 83 / 0.42);
+
+  /* Radius roles (rounded-pill, rounded-control, rounded-card, rounded-modal). The same in
+     every theme, so they are plain theme values. */
+  --radius-pill: calc(infinity * 1px);
+  --radius-control: 0.5rem;
+  --radius-card: 1rem;
+  --radius-modal: 24px;
+
+  /* Motion roles (ease-standard, ease-pop). Durations are on :root below. */
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ─── Role tokens ───
+   UI code names what a color does, not which palette step it is: bg-surface, text-ink,
+   border-border, rounded-card, shadow-resting. Each role is a variable here, mapped to
+   today's palette value, and exposed to Tailwind by the @theme inline block below. A theme
+   (dark mode) overrides these variables only. The palette above stays as the values.
+   scripts/check-design-tokens.mjs (in npm run lint) flags palette names and literals in UI code. */
+:root {
+  /* Ground: the layers things sit on. Document is the printable page, white in every theme. */
+  --canvas: var(--color-cream-100);
+  --surface: var(--color-cream-50);
+  --document: #FFFFFF;
+  --sunken: var(--color-cream-200);
+  /* White controls that sit on a surface: active tabs and pills, raised buttons, inputs. Not a document. */
+  --surface-raised: #FFFFFF;
+
+  /* Ink: text and icons. */
+  --ink: var(--color-navy-800);
+  --ink-body: var(--color-charcoal);
+  --ink-muted: var(--color-warm-gray);
+  --ink-faint: color-mix(in oklab, var(--color-warm-gray) 70%, transparent);
+  --ink-inverse: #FFFFFF;
+  --ink-inverse-muted: var(--color-navy-200);
+  --ink-accent: var(--color-gold-600);
+
+  /* Brand: the navy fill (secondary primary CTA, highlights) and what sits on it. */
+  --brand: var(--color-navy-600);
+  --brand-strong: var(--color-navy-700);
+  --brand-soft: var(--color-navy-50);
+  --brand-ink: #FFFFFF;
+
+  /* Accent: the gold fill (primary CTA) and its light tints. Labels on the fill are white
+     (design-system.md); the tints keep dark text. */
+  --accent: var(--color-gold-400);
+  --accent-strong: var(--color-gold-500);
+  --accent-soft: var(--color-gold-50);
+  --accent-soft-strong: var(--color-gold-100);
+  --accent-soft-ink: var(--color-gold-700);
+  --accent-ink: #FFFFFF;
+
+  /* Lines. border-strong is for dividers only. */
+  --border: var(--color-cream-200);
+  --border-strong: var(--color-cream-300);
+  --border-accent: var(--color-gold-300);
+  --border-accent-soft: var(--color-gold-200);
+  --border-brand-soft: var(--color-navy-200);
+  --border-focus: var(--color-navy-500);
+
+  /* Status. */
+  --success: var(--color-sage-600);
+  --success-strong: var(--color-sage-700);
+  --success-soft: var(--color-sage-50);
+  --warning: var(--color-yellow-600);
+  --warning-soft: var(--color-yellow-50);
+  --danger: var(--color-red-600);
+  --danger-strong: var(--color-red-700);
+  --danger-muted: var(--color-red-400);
+  --danger-soft: var(--color-red-50);
+  --border-danger: var(--color-red-200);
+
+  --focus-ring: var(--color-navy-600);
+
+  /* Dark navy panels (pricing card, landing band, toasts) and their hairlines. */
+  --surface-inverse: var(--color-navy-800);
+  --surface-inverse-strong: var(--color-navy-900);
+  --surface-inverse-raised: var(--color-navy-700);
+  --border-inverse: var(--color-navy-700);
+  --border-inverse-raised: var(--color-navy-600);
+
+  /* Shadow roles. A theme can swap depth for tone steps here. */
+  --depth-resting: var(--shadow-sm);
+  --depth-elevated: var(--shadow-md);
+  --depth-floating: var(--shadow-lg);
+
+  /* Durations, used as duration-(--duration-fast) and duration-(--duration-base). */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-document: var(--document);
+  --color-sunken: var(--sunken);
+  --color-surface-raised: var(--surface-raised);
+
+  --color-ink: var(--ink);
+  --color-ink-body: var(--ink-body);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-ink-inverse: var(--ink-inverse);
+  --color-ink-inverse-muted: var(--ink-inverse-muted);
+  --color-ink-accent: var(--ink-accent);
+
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-ink: var(--brand-ink);
+
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-strong: var(--accent-soft-strong);
+  --color-accent-soft-ink: var(--accent-soft-ink);
+  --color-accent-ink: var(--accent-ink);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-border-accent: var(--border-accent);
+  --color-border-accent-soft: var(--border-accent-soft);
+  --color-border-brand-soft: var(--border-brand-soft);
+  --color-border-focus: var(--border-focus);
+
+  --color-success: var(--success);
+  --color-success-strong: var(--success-strong);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-strong: var(--danger-strong);
+  --color-danger-muted: var(--danger-muted);
+  --color-danger-soft: var(--danger-soft);
+  --color-border-danger: var(--border-danger);
+
+  --color-focus-ring: var(--focus-ring);
+
+  --color-surface-inverse: var(--surface-inverse);
+  --color-surface-inverse-strong: var(--surface-inverse-strong);
+  --color-surface-inverse-raised: var(--surface-inverse-raised);
+  --color-border-inverse: var(--border-inverse);
+  --color-border-inverse-raised: var(--border-inverse-raised);
+
+  --shadow-resting: var(--depth-resting);
+  --shadow-elevated: var(--depth-elevated);
+  --shadow-floating: var(--depth-floating);
 }
 
 :root {
