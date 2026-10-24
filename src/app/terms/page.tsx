@@ -31,11 +31,11 @@ export default function TermsPage() {
         </LegalP>
         <LegalP>
           Your use is also covered by our{' '}
-          <Link href="/privacy" className="text-navy-600 hover:underline">
+          <Link href="/privacy" className="text-brand hover:underline">
             Privacy Policy
           </Link>
           {' and '}
-          <Link href="/cookies" className="text-navy-600 hover:underline">
+          <Link href="/cookies" className="text-brand hover:underline">
             Cookie Notice
           </Link>
           . If those documents conflict with these Terms on personal-data processing, the
@@ -256,7 +256,7 @@ export default function TermsPage() {
         <LegalH2>14. AI assistant integrations</LegalH2>
         <LegalP>
           You can connect an AI assistant to your account through a secure sign-in (OAuth). See the{' '}
-          <Link href="/integrations" className="text-navy-600 hover:underline">
+          <Link href="/integrations" className="text-brand hover:underline">
             integrations page
           </Link>
           . These rules apply when you do.
@@ -286,14 +286,14 @@ export default function TermsPage() {
         <LegalH2>15. Contact</LegalH2>
         <LegalP>
           Email:{' '}
-          <a href={mailHref} className="text-navy-600 hover:underline">
+          <a href={mailHref} className="text-brand hover:underline">
             {LEGAL.email}
           </a>
         </LegalP>
         <LegalP>Mail: {LEGAL.addressOneLine}</LegalP>
       </section>
 
-      <p className="text-sm text-warm-gray">{BRAND.legalLine}.</p>
+      <p className="text-sm text-ink-muted">{BRAND.legalLine}.</p>
     </LegalShell>
   );
 }

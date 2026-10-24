@@ -44,10 +44,10 @@ export function GoogleSignInButton({ label, onError, next, keepAnonymous = false
         type="button"
         onClick={handleClick}
         disabled={isLoading}
-        className="flex h-12 w-full items-center justify-center gap-2.5 rounded-full border border-cream-200 bg-cream-50 text-[15px] font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
+        className="flex h-12 w-full items-center justify-center gap-2.5 rounded-pill border border-border bg-surface text-[15px] font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
       >
         {isLoading ? (
-          <Loader2 className="h-[18px] w-[18px] animate-spin text-warm-gray" />
+          <Loader2 className="h-[18px] w-[18px] animate-spin text-ink-muted" />
         ) : (
           <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" aria-hidden="true">
             <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47a5.55 5.55 0 0 1-2.4 3.63v3h3.87c2.27-2.09 3.55-5.17 3.55-8.87z" />
@@ -60,9 +60,9 @@ export function GoogleSignInButton({ label, onError, next, keepAnonymous = false
       </button>
 
       <div className="my-5 flex items-center gap-3">
-        <span className="h-px flex-1 bg-cream-200" />
-        <span className="text-xs text-warm-gray">or</span>
-        <span className="h-px flex-1 bg-cream-200" />
+        <span className="h-px flex-1 bg-sunken" />
+        <span className="text-xs text-ink-muted">or</span>
+        <span className="h-px flex-1 bg-sunken" />
       </div>
     </>
   );

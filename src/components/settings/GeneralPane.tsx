@@ -411,7 +411,7 @@ export function GeneralPane() {
 
   // A refused or failed save is long, so it sits under the label instead of widening the row.
   const saveErrorHint = (field: EditableField) => (
-    saveError?.field === field ? <span role="alert" className="text-red-600">{saveError.message}</span> : undefined
+    saveError?.field === field ? <span role="alert" className="text-danger">{saveError.message}</span> : undefined
   );
 
   const editableRow = (field: EditableField, label: string, placeholder: string, emptyLabel?: string) => (
@@ -431,25 +431,25 @@ export function GeneralPane() {
               setEditing(null);
             }
           }}
-          className="h-9 w-[240px] rounded-lg border border-cream-200 bg-white px-3 text-right text-sm text-charcoal focus:border-navy-500 focus:outline-none"
+          className="h-9 w-[240px] rounded-control border border-border bg-surface-raised px-3 text-right text-sm text-ink-body focus:border-border-focus focus:outline-none"
         />
       ) : (
         <button
           type="button"
           onClick={() => startEdit(field)}
           title={stored(field) || undefined}
-          className="max-w-[260px] truncate text-sm text-charcoal hover:text-navy-600 cursor-pointer"
+          className="max-w-[260px] truncate text-sm text-ink-body hover:text-brand cursor-pointer"
         >
-          {stored(field) || <span className="text-warm-gray">{emptyLabel ?? `Add ${label.toLowerCase()}`}</span>}
+          {stored(field) || <span className="text-ink-muted">{emptyLabel ?? `Add ${label.toLowerCase()}`}</span>}
         </button>
       )}
       {savedField === field && (
-        <span className="inline-flex items-center gap-1 text-xs font-medium text-sage-600">
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
           <Check className="h-3.5 w-3.5" />
           Saved
         </span>
       )}
-      {unusable?.field === field && <p role="alert" className="text-xs text-red-600">{unusable.message}</p>}
+      {unusable?.field === field && <p role="alert" className="text-xs text-danger">{unusable.message}</p>}
     </Row>
   );
 
@@ -460,7 +460,7 @@ export function GeneralPane() {
       <Caption>ACCOUNT</Caption>
       <RowGroup>
         <div className="flex items-center gap-4 px-5 py-4">
-          <span className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-navy-600 text-sm font-semibold text-white">
+          <span className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-pill bg-brand text-sm font-semibold text-brand-ink">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -469,16 +469,16 @@ export function GeneralPane() {
             )}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-navy-800">{displayName}</p>
-            <span className="mt-0.5 flex items-center gap-1.5 text-xs text-warm-gray">
+            <p className="truncate text-sm font-semibold text-ink">{displayName}</p>
+            <span className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-muted">
               <span className="truncate">{user?.email}</span>
               <button
                 type="button"
                 onClick={handleCopyEmail}
                 aria-label="Copy email address"
-                className="text-warm-gray hover:text-navy-600 cursor-pointer"
+                className="text-ink-muted hover:text-brand cursor-pointer"
               >
-                {copied ? <Check className="h-3.5 w-3.5 text-sage-600" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
               </button>
             </span>
           </div>
@@ -524,12 +524,12 @@ export function GeneralPane() {
             onChange={(next) => { void changeAvailability(next); }}
           />
           {savedField === 'availability' && (
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-sage-600">
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
               <Check className="h-3.5 w-3.5" />
               Saved
             </span>
           )}
-          {unusable?.field === 'availability' && <p role="alert" className="text-xs text-red-600">{unusable.message}</p>}
+          {unusable?.field === 'availability' && <p role="alert" className="text-xs text-danger">{unusable.message}</p>}
         </Row>
         {editableRow('availability_note', 'Details', '3 months to the end of the quarter', 'Not set')}
         {editableRow('salary_expectation', 'Salary expectation', '65,000 EUR gross a year', 'Not set')}
@@ -552,27 +552,27 @@ export function GeneralPane() {
               type="password"
               autoComplete="current-password"
               placeholder="Current password"
-              className="h-9 w-full rounded-lg border border-cream-200 bg-white px-3 text-sm text-charcoal focus:border-navy-500 focus:outline-none"
+              className="h-9 w-full rounded-control border border-border bg-surface-raised px-3 text-sm text-ink-body focus:border-border-focus focus:outline-none"
             />
             <input
               name="next"
               type="password"
               autoComplete="new-password"
               placeholder="New password, at least 8 characters"
-              className="h-9 w-full rounded-lg border border-cream-200 bg-white px-3 text-sm text-charcoal focus:border-navy-500 focus:outline-none"
+              className="h-9 w-full rounded-control border border-border bg-surface-raised px-3 text-sm text-ink-body focus:border-border-focus focus:outline-none"
             />
             <input
               name="confirm"
               type="password"
               autoComplete="new-password"
               placeholder="Repeat the new password"
-              className="h-9 w-full rounded-lg border border-cream-200 bg-white px-3 text-sm text-charcoal focus:border-navy-500 focus:outline-none"
+              className="h-9 w-full rounded-control border border-border bg-surface-raised px-3 text-sm text-ink-body focus:border-border-focus focus:outline-none"
             />
-            {passwordError && <p className="text-xs text-red-600">{passwordError}</p>}
+            {passwordError && <p className="text-xs text-danger">{passwordError}</p>}
             <button
               type="submit"
               disabled={passwordBusy}
-              className="inline-flex h-9 items-center rounded-full border border-cream-200 bg-cream-50 px-4 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white disabled:text-warm-gray cursor-pointer"
+              className="inline-flex h-9 items-center rounded-pill border border-border bg-surface px-4 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised disabled:text-ink-muted cursor-pointer"
             >
               {passwordBusy ? 'Saving' : 'Save password'}
             </button>
@@ -617,8 +617,8 @@ export function GeneralPane() {
           )}
         </Row>
         {confirmingDelete && subscriptionBlocksDelete && (
-          <div className="border-t border-cream-200 px-5 py-3">
-            <p className="text-xs text-warm-gray">
+          <div className="border-t border-border px-5 py-3">
+            <p className="text-xs text-ink-muted">
               Your plan is still billing. Cancel it first, otherwise the card keeps being charged after the account is gone.
             </p>
             <div className="mt-2">
@@ -627,31 +627,31 @@ export function GeneralPane() {
           </div>
         )}
         {confirmingDelete && !subscriptionBlocksDelete && (
-          <div className="flex items-center gap-2 border-t border-cream-200 px-5 py-3">
+          <div className="flex items-center gap-2 border-t border-border px-5 py-3">
             <input
               value={deleteTyped}
               onChange={(event) => setDeleteTyped(event.target.value)}
               placeholder="Type DELETE"
               aria-label="Type DELETE to confirm"
               autoFocus
-              className="h-9 flex-1 rounded-lg border border-cream-200 bg-white px-3 text-sm text-navy-800 placeholder:text-warm-gray focus:outline-none"
+              className="h-9 flex-1 rounded-control border border-border bg-surface-raised px-3 text-sm text-ink placeholder:text-ink-muted focus:outline-none"
             />
             <button
               type="button"
               disabled={deleteTyped !== 'DELETE' || deleteBusy}
               onClick={() => { void handleDelete(); }}
-              className="h-9 rounded-lg px-3 text-sm font-semibold text-red-600 hover:bg-cream-100 disabled:cursor-not-allowed disabled:text-warm-gray cursor-pointer"
+              className="h-9 rounded-control px-3 text-sm font-semibold text-danger hover:bg-canvas disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
             >
               {deleteBusy ? 'Sending' : 'Send the link'}
             </button>
           </div>
         )}
         {deleteSentTo && (
-          <p className="border-t border-cream-200 px-5 py-3 text-xs text-warm-gray">
+          <p className="border-t border-border px-5 py-3 text-xs text-ink-muted">
             Check {deleteSentTo}. The link deletes everything and works for 30 minutes. Open it in this browser.
           </p>
         )}
-        {deleteError && <p className="px-5 pb-3 text-xs text-red-600">{deleteError}</p>}
+        {deleteError && <p className="px-5 pb-3 text-xs text-danger">{deleteError}</p>}
       </RowGroup>
     </div>
   );

@@ -17,15 +17,15 @@ interface AuthShellProps {
  */
 export function AuthShell({ linkLabel, linkHref, children }: AuthShellProps) {
   return (
-    <div className="flex min-h-screen flex-col bg-cream-100">
-      <header className="flex h-[52px] flex-shrink-0 items-center border-b border-cream-200 bg-cream-50 px-5">
+    <div className="flex min-h-screen flex-col bg-canvas">
+      <header className="flex h-[52px] flex-shrink-0 items-center border-b border-border bg-surface px-5">
         <Link href="/" aria-label="Useful Apply home" className="cursor-pointer">
           <BrandLogo variant="full" size="xs" theme="light" />
         </Link>
         <div className="flex-1" />
         <Link
           href={linkHref}
-          className="px-2.5 text-sm font-medium text-navy-600 transition-colors duration-200 hover:text-navy-800 cursor-pointer"
+          className="px-2.5 text-sm font-medium text-brand transition-colors duration-(--duration-base) hover:text-ink cursor-pointer"
         >
           {linkLabel}
         </Link>

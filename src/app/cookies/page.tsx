@@ -22,7 +22,7 @@ export default function CookiesPage() {
           &quot;us&quot; or &quot;our&quot;) uses cookies and similar technologies on
           usefulapply.com and in the logged-in product (the &quot;Sites&quot;). It supplements
           our{' '}
-          <Link href="/privacy" className="text-navy-600 hover:underline">
+          <Link href="/privacy" className="text-brand hover:underline">
             Privacy Policy
           </Link>
           .
@@ -46,39 +46,39 @@ export default function CookiesPage() {
       <section>
         <LegalH2>What we use</LegalH2>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left border-collapse text-warm-gray">
+          <table className="w-full text-sm text-left border-collapse text-ink-muted">
             <thead>
-              <tr className="border-b border-cream-200">
-                <th className="py-2 pr-3 font-semibold text-charcoal">Type</th>
-                <th className="py-2 pr-3 font-semibold text-charcoal">Why</th>
-                <th className="py-2 font-semibold text-charcoal">Who</th>
+              <tr className="border-b border-border">
+                <th className="py-2 pr-3 font-semibold text-ink-body">Type</th>
+                <th className="py-2 pr-3 font-semibold text-ink-body">Why</th>
+                <th className="py-2 font-semibold text-ink-body">Who</th>
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-cream-200 align-top">
+              <tr className="border-b border-border align-top">
                 <td className="py-2 pr-3">Essential</td>
                 <td className="py-2 pr-3">
                   Keep you signed in (Better Auth session cookie{' '}
-                  <code className="text-charcoal">usefulapply.session</code>), CSRF and security
+                  <code className="text-ink-body">usefulapply.session</code>), CSRF and security
                   checks. The Sites cannot log you in without these.
                 </td>
                 <td className="py-2">Useful Apply</td>
               </tr>
-              <tr className="border-b border-cream-200 align-top">
+              <tr className="border-b border-border align-top">
                 <td className="py-2 pr-3">Analytics</td>
                 <td className="py-2 pr-3">
                   Understand how the Sites are used, capture errors and record session replays
                   (clicks, scrolling and on-screen content, with form inputs masked). Served
-                  through our <code className="text-charcoal">/ingest</code> proxy to PostHog in
+                  through our <code className="text-ink-body">/ingest</code> proxy to PostHog in
                   the United States.
                 </td>
                 <td className="py-2">
-                  <a href="https://posthog.com/privacy" className="text-navy-600 hover:underline">
+                  <a href="https://posthog.com/privacy" className="text-brand hover:underline">
                     PostHog
                   </a>
                 </td>
               </tr>
-              <tr className="border-b border-cream-200 align-top">
+              <tr className="border-b border-border align-top">
                 <td className="py-2 pr-3">Functionality</td>
                 <td className="py-2 pr-3">
                   Browser local storage holds drafts and UI state (for example CV editor and
@@ -94,11 +94,11 @@ export default function CookiesPage() {
                   an ad network.
                 </td>
                 <td className="py-2">
-                  <a href="https://policies.google.com/privacy" className="text-navy-600 hover:underline">
+                  <a href="https://policies.google.com/privacy" className="text-brand hover:underline">
                     Google
                   </a>
                   {', '}
-                  <a href="https://stripe.com/privacy" className="text-navy-600 hover:underline">
+                  <a href="https://stripe.com/privacy" className="text-brand hover:underline">
                     Stripe
                   </a>
                 </td>
@@ -145,7 +145,7 @@ export default function CookiesPage() {
           </li>
           <li>
             To object to analytics or session replay, email{' '}
-            <a href={mailHref} className="text-navy-600 hover:underline">
+            <a href={mailHref} className="text-brand hover:underline">
               {LEGAL.email}
             </a>
             {' '}or use your browser&apos;s tracking protections. We do not currently ship a
@@ -171,7 +171,7 @@ export default function CookiesPage() {
         <LegalH2>Questions</LegalH2>
         <LegalP>
           Email{' '}
-          <a href={mailHref} className="text-navy-600 hover:underline">
+          <a href={mailHref} className="text-brand hover:underline">
             {LEGAL.email}
           </a>
           .

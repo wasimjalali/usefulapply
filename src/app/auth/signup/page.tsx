@@ -113,10 +113,10 @@ function SignUpForm() {
   return (
     <AuthShell linkLabel="Log in" linkHref={loginHref}>
       <div className={AUTH_CARD}>
-        <h1 className="text-2xl font-semibold text-navy-800">Create your free account</h1>
-        <p className="mt-1.5 text-sm text-warm-gray">4 credits a month, no card.</p>
+        <h1 className="text-2xl font-semibold text-ink">Create your free account</h1>
+        <p className="mt-1.5 text-sm text-ink-muted">4 credits a month, no card.</p>
 
-        {formError && <p className="mt-3 text-sm text-red-600">{formError}</p>}
+        {formError && <p className="mt-3 text-sm text-danger">{formError}</p>}
 
         <div className="mt-6">
           <GoogleSignInButton label="Continue with Google" onError={setFormError} next={next} keepAnonymous={keepAnonymous} />
@@ -157,24 +157,24 @@ function SignUpForm() {
           </button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-warm-gray">
+        <p className="mt-4 text-center text-xs text-ink-muted">
           By continuing you agree to the{' '}
-          <Link href="/terms" className="font-semibold text-navy-800 hover:text-navy-600 cursor-pointer">
+          <Link href="/terms" className="font-semibold text-ink hover:text-brand cursor-pointer">
             Terms
           </Link>{' '}
           and{' '}
-          <Link href="/privacy" className="font-semibold text-navy-800 hover:text-navy-600 cursor-pointer">
+          <Link href="/privacy" className="font-semibold text-ink hover:text-brand cursor-pointer">
             Privacy policy
           </Link>
           .
         </p>
       </div>
 
-      <p className="mt-5 text-center text-sm text-warm-gray">
+      <p className="mt-5 text-center text-sm text-ink-muted">
         Already have an account?{' '}
         <Link
           href={loginHref}
-          className="font-semibold text-navy-800 transition-colors duration-200 hover:text-navy-600 cursor-pointer"
+          className="font-semibold text-ink transition-colors duration-(--duration-base) hover:text-brand cursor-pointer"
         >
           Log in
         </Link>
@@ -185,7 +185,7 @@ function SignUpForm() {
 
 export default function SignUpPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-cream-100" />}>
+    <Suspense fallback={<div className="min-h-screen bg-canvas" />}>
       <SignUpForm />
     </Suspense>
   );

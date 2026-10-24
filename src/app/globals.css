@@ -215,6 +215,11 @@
   --tag-green-soft: var(--color-green-50);
   --tag-green-ink: var(--color-green-700);
   --tag-green-line: var(--color-green-200);
+  /* PR 4 roles (app pages) */
+  --ink-inverse-warm: var(--color-cream-100);
+  --focus-halo: var(--color-navy-100);
+  --border-danger-strong: var(--color-red-300);
+  --sunken-strong: var(--color-cream-300);
 }
 
 @theme inline {
@@ -330,6 +335,11 @@
   --color-tag-green-soft: var(--tag-green-soft);
   --color-tag-green-ink: var(--tag-green-ink);
   --color-tag-green-line: var(--tag-green-line);
+  /* PR 4 roles (app pages) */
+  --color-ink-inverse-warm: var(--ink-inverse-warm);
+  --color-focus-halo: var(--focus-halo);
+  --color-border-danger-strong: var(--border-danger-strong);
+  --color-sunken-strong: var(--sunken-strong);
 }
 
 :root {

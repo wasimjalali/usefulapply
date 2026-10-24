@@ -83,6 +83,11 @@ Values are today's light theme.
 | | `danger-on-inverse` | red-300 | Error text on dark navy |
 | | `link-inverse`, `link-inverse-hover` | teal-400, teal-300 | Links on the dark footer |
 | | `tag-blue-*`, `tag-purple-*`, `tag-rose-*`, `tag-orange-*`, `tag-green-*` (`-soft`, `-ink`, `-line`) | 50, 700, 200 of that hue | Blog category chips and comparison winner tiles |
+| App pages | `ink-strong` | navy-900 | Page and pane titles that need the darkest ink |
+| | `ink-inverse-warm` | cream-100 | Text in code blocks on `surface-inverse` |
+| | `focus-halo` | navy-100 | Soft focus halo around inputs |
+| | `border-danger-strong` | red-300 | Border of an input in error |
+| | `sunken-strong` | cream-300 | Off state of a toggle track |
 
 Utilities follow Tailwind's naming: `bg-surface`, `text-ink-muted`, `border-border`, `border-border-strong`, `ring-focus-ring`, `bg-accent/10`. Opacity modifiers work on every role.
 
