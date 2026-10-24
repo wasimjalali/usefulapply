@@ -152,7 +152,7 @@ interface ToastItemProps {
 const toastStyles: Record<ToastType, { bg: string; icon: typeof CheckCircle; iconColor: string }> = {
   success: { bg: 'bg-surface-inverse-raised border-border-inverse-raised text-ink-inverse-soft', icon: CheckCircle, iconColor: 'text-accent' },
   error: { bg: 'bg-danger-soft border-border-danger', icon: XCircle, iconColor: 'text-danger-bright' },
-  warning: { bg: 'bg-canvas border-border-accent', icon: AlertTriangle, iconColor: 'text-accent-strong' },
+  warning: { bg: 'bg-surface-notice border-border-accent', icon: AlertTriangle, iconColor: 'text-accent-strong' },
   info: { bg: 'bg-surface-inverse-raised border-border-inverse-raised text-ink-inverse-soft', icon: Info, iconColor: 'text-ink-inverse-dim' },
 };
 
@@ -179,13 +179,13 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
                 <span className="text-xs text-ink-inverse-soft">Discard your text?</span>
                 <button
                   onClick={() => { toast.pin?.onDiscard(); onClose(); }}
-                  className="rounded border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-brand"
+                  className="rounded border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-surface-inverse-soft"
                 >
                   Discard
                 </button>
                 <button
                   onClick={() => setConfirming(false)}
-                  className="rounded border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-brand"
+                  className="rounded border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-surface-inverse-soft"
                 >
                   Keep
                 </button>
@@ -196,7 +196,7 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
                   <button
                     key={action.label}
                     onClick={() => { action.onClick(); onClose(); }}
-                    className="rounded border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-brand"
+                    className="rounded border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-surface-inverse-soft"
                   >
                     {action.label}
                   </button>
@@ -218,7 +218,7 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
                 key={action.label}
                 onClick={() => { action.onClick(); onClose(); }}
                 className={toast.type === 'success' || toast.type === 'info'
-                  ? 'rounded border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-brand'
+                  ? 'rounded border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-surface-inverse-soft'
                   : 'rounded border border-ink-body/30 px-2 py-1 text-xs font-medium text-ink-body hover:bg-surface-raised/60'}
               >
                 {action.label}
