@@ -224,7 +224,7 @@ export function AgentProgressV2({
       {reflection && (
         <div className={`px-4 py-2 border-t flex items-center gap-2 text-xs ${
           reflection.status === 'started' 
-            ? 'bg-violet-50 border-violet-100 text-violet-700' 
+            ? 'bg-info-soft border-border-info-soft text-info-ink' 
             : 'bg-done-soft border-border-done-soft text-done-ink'
         }`}>
           <RefreshCw className={`w-3 h-3 ${

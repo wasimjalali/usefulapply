@@ -178,6 +178,10 @@
   --border-done-soft: var(--color-emerald-100);
   --done-ink: var(--color-emerald-700);
   --scrim: #000000;
+  --info-soft: var(--color-violet-50);
+  --border-info-soft: var(--color-violet-100);
+  --info-ink: var(--color-violet-700);
+  --ink-error: var(--color-rose-700);
 }
 
 @theme inline {
@@ -256,6 +260,10 @@
   --color-border-done-soft: var(--border-done-soft);
   --color-done-ink: var(--done-ink);
   --color-scrim: var(--scrim);
+  --color-info-soft: var(--info-soft);
+  --color-border-info-soft: var(--border-info-soft);
+  --color-info-ink: var(--info-ink);
+  --color-ink-error: var(--ink-error);
 }
 
 :root {

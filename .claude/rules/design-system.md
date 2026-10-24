@@ -67,6 +67,8 @@ Values are today's light theme.
 | | `status-done`, `status-partial`, `status-draft` | emerald-400, amber-400, gray-300 | Status dots in chat history |
 | | `done-soft`, `border-done-soft`, `done-ink` | emerald-50, emerald-100, emerald-700 | "Done" banner in agent progress |
 | | `scrim` | black | Modal backdrops (use with an opacity) |
+| | `info-soft`, `border-info-soft`, `info-ink` | violet-50, violet-100, violet-700 | In-progress notes (agent "reflecting" banner) |
+| | `ink-error` | rose-700 | Inline error text in lists and search |
 
 Utilities follow Tailwind's naming, utility then role: `bg-surface`, `text-ink-muted`, `border-border`, `border-border-strong`, `ring-focus-ring`, `bg-accent/10`. Roles whose names start with `border-` take a second `border-` as a border class, so `border-gold-300` becomes `border-border-accent`, while `border-accent` is gold-400. Opacity modifiers work on every role.
 
