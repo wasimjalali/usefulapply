@@ -74,16 +74,16 @@ export function PdfPreviewModal({ url, title, onClose, returnFocusTo }: PdfPrevi
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative flex h-[92vh] w-full max-w-[900px] flex-col overflow-hidden rounded-[24px] border border-cream-200 bg-cream-100 shadow-lg"
+        className="relative flex h-[92vh] w-full max-w-[900px] flex-col overflow-hidden rounded-modal border border-border bg-canvas shadow-floating"
       >
-        <div className="flex items-center justify-between border-b border-cream-200 bg-cream-50 px-5 py-3">
-          <h2 className="text-sm font-semibold tracking-tight text-charcoal">{title}</h2>
+        <div className="flex items-center justify-between border-b border-border bg-surface px-5 py-3">
+          <h2 className="text-sm font-semibold tracking-tight text-ink-body">{title}</h2>
           <button
             ref={closeRef}
             type="button"
             onClick={onClose}
             aria-label="Close preview"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-cream-200 bg-white text-warm-gray transition-colors duration-200 hover:border-navy-200 hover:text-navy-700 cursor-pointer"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-pill border border-border bg-surface-raised text-ink-muted transition-colors duration-(--duration-base) hover:border-border-brand-soft hover:text-brand-strong cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -91,7 +91,7 @@ export function PdfPreviewModal({ url, title, onClose, returnFocusTo }: PdfPrevi
         <iframe
           src={url}
           title={title}
-          className="h-full w-full flex-1 bg-white"
+          className="h-full w-full flex-1 bg-document"
           onLoad={(event) => {
             // The PDF is a same-origin blob, so its window is reachable and a key press inside it can close the dialog.
             // Chrome's own PDF viewer runs in a separate process and does not hand its key presses to the page, so

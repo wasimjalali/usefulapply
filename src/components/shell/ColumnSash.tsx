@@ -91,14 +91,14 @@ export function ColumnSash({ getConversationWidth, sidebarWidth }: ColumnSashPro
       onDoubleClick={reset}
       onKeyDown={handleKeyDown}
       title="Drag to resize. Double-click to reset."
-      className="group relative z-20 w-px flex-shrink-0 cursor-col-resize bg-cream-200 focus:outline-none"
+      className="group relative z-20 w-px flex-shrink-0 cursor-col-resize bg-sunken focus:outline-none"
     >
       {/* The grab area is wider than the line, and sits over the gap rather
           than in the layout, so hovering it never nudges either column. */}
       <span className="absolute inset-y-0 -left-2 -right-2 block" />
       <span
-        className={`pointer-events-none absolute inset-y-0 left-1/2 block w-0.5 -translate-x-1/2 rounded-full transition-colors duration-200 ${
-          dragging ? 'bg-gold-400' : 'bg-transparent group-hover:bg-gold-300 group-focus-visible:bg-gold-400'
+        className={`pointer-events-none absolute inset-y-0 left-1/2 block w-0.5 -translate-x-1/2 rounded-pill transition-colors duration-(--duration-base) ${
+          dragging ? 'bg-accent' : 'bg-transparent group-hover:bg-accent-muted group-focus-visible:bg-accent'
         }`}
       />
     </div>

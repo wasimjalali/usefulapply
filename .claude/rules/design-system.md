@@ -57,6 +57,16 @@ Values are today's light theme.
 | | `surface-inverse-strong` | navy-900 | The darkest band (landing), scrims |
 | | `surface-inverse-raised` | navy-700 | Navy toasts and raised dark tiles |
 | | `border-inverse`, `border-inverse-raised` | navy-700, navy-600 | Hairlines on those panels |
+| Shell, dashboard and chat extras | `brand-soft-strong`, `border-brand-faint` | navy-100, navy-100 | Stronger navy tint fill, faint navy hairline |
+| | `brand-deep` | navy-900 | Brand text on hover, one step past `brand-strong` |
+| | `focus-ring-soft` | navy-400 | Soft focus ring (use with an opacity) |
+| | `accent-muted` | gold-300 | Gold fill lighter than `accent` (drag-handle hover) |
+| | `ink-muted-strong` | gray-600 | Hover of an `ink-muted` fill |
+| | `ink-inverse-soft`, `ink-inverse-dim`, `border-inverse-soft` | cream-50, cream-200, cream-200 | Text and hairlines on navy toasts |
+| | `danger-bright`, `danger-soft-strong` | red-500, red-100 | Error icons, stronger red tint |
+| | `status-done`, `status-partial`, `status-draft` | emerald-400, amber-400, gray-300 | Status dots in chat history |
+| | `done-soft`, `border-done-soft`, `done-ink` | emerald-50, emerald-100, emerald-700 | "Done" banner in agent progress |
+| | `scrim` | black | Modal backdrops (use with an opacity) |
 
 Utilities follow Tailwind's naming: `bg-surface`, `text-ink-muted`, `border-border`, `border-border-strong`, `ring-focus-ring`, `bg-accent/10`. Opacity modifiers work on every role.
 

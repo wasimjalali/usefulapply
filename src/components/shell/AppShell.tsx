@@ -126,7 +126,7 @@ export function AppShell() {
 
   return (
     <CreditsProvider>
-      <div className="relative flex h-full w-full min-w-0 min-h-0 bg-cream-100">
+      <div className="relative flex h-full w-full min-w-0 min-h-0 bg-canvas">
         <KitExportHost />
         <Sidebar isWorking={isAgentWorking} />
         <ConversationColumn onTabChange={handleTabChange} columnRef={conversationRef} compact={compact} />

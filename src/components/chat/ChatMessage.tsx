@@ -116,7 +116,7 @@ export function ChatMessage({
 
   if (message.role === 'system') {
     return (
-      <div className="flex items-center gap-2 text-sm text-warm-gray w-full justify-center py-2">
+      <div className="flex items-center gap-2 text-sm text-ink-muted w-full justify-center py-2">
         {message.content}
       </div>
     );
@@ -145,10 +145,10 @@ export function ChatMessage({
   const compactScreening = isSpine && !!screeningAnswers && answersInDoc;
   const surfaceClassName = message.role === 'user'
     ? isSpine
-      ? 'rounded-2xl rounded-br-sm border border-cream-200 bg-white px-3.5 py-3 shadow-sm'
-      : 'rounded-2xl border border-cream-200 bg-cream-100 px-4 py-3 shadow-sm'
+      ? 'rounded-card rounded-br-sm border border-border bg-surface-raised px-3.5 py-3 shadow-resting'
+      : 'rounded-card border border-border bg-canvas px-4 py-3 shadow-resting'
     : useElevatedSurface
-      ? 'rounded-2xl border border-cream-200 bg-white px-4 py-3 shadow-sm'
+      ? 'rounded-card border border-border bg-surface-raised px-4 py-3 shadow-resting'
       : 'px-1 py-1.5';
 
   if (isSpine && message.role === 'user') {
@@ -157,18 +157,18 @@ export function ChatMessage({
         <div className={`max-w-[86%] ${surfaceClassName}`}>
           {isLongMessage ? (
             <div className="relative">
-              <div className={`text-sm text-charcoal overflow-hidden ${isExpanded ? '' : 'max-h-24'}`}>
-                <MarkdownText content={message.content} className="text-sm text-charcoal" />
+              <div className={`text-sm text-ink-body overflow-hidden ${isExpanded ? '' : 'max-h-24'}`}>
+                <MarkdownText content={message.content} className="text-sm text-ink-body" />
               </div>
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="mt-2 text-xs font-medium text-navy-600 cursor-pointer"
+                className="mt-2 text-xs font-medium text-brand cursor-pointer"
               >
                 {isExpanded ? 'Show less' : 'Show more'}
               </button>
             </div>
           ) : (
-            <MarkdownText content={message.content} className="text-sm text-charcoal" />
+            <MarkdownText content={message.content} className="text-sm text-ink-body" />
           )}
         </div>
       </div>
@@ -178,8 +178,8 @@ export function ChatMessage({
   return (
     <div className="group/msg flex gap-3">
       {message.role === 'user' ? (
-        <div className="p-2 rounded-lg h-fit flex-shrink-0 bg-cream-200">
-          <User className="w-4 h-4 text-charcoal" />
+        <div className="p-2 rounded-control h-fit flex-shrink-0 bg-sunken">
+          <User className="w-4 h-4 text-ink-body" />
         </div>
       ) : (
         <div className="flex-shrink-0 h-fit">
@@ -189,46 +189,46 @@ export function ChatMessage({
 
       <div className="flex-1 min-w-0">
         {stageDone && (
-          <div className="mb-3 rounded-2xl border border-cream-200 bg-white p-3 shadow-sm">
+          <div className="mb-3 rounded-card border border-border bg-surface-raised p-3 shadow-resting">
             <NamedStages stages={[{ title: stageDone.label, state: 'done' }]} />
           </div>
         )}
         <div className={`relative ${compactScreening ? 'px-1 py-1.5' : surfaceClassName}`}>
           {compactScreening ? (
-            <p className="text-sm text-charcoal">
+            <p className="text-sm text-ink-body">
               Your answer&apos;s on the right. Copy it from there, or tell me to make it shorter or more formal.
             </p>
           ) : screeningAnswers ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <ClipboardList className="w-4 h-4 text-navy-600" />
-                  <span className="text-sm font-semibold text-navy-700">Screening Question Answers</span>
+                  <ClipboardList className="w-4 h-4 text-brand" />
+                  <span className="text-sm font-semibold text-brand-strong">Screening Question Answers</span>
                 </div>
                 <button
                   onClick={handleCopyAll}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-navy-600 bg-cream-100 hover:bg-cream-200 rounded-lg transition-colors cursor-pointer"
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-brand bg-canvas hover:bg-sunken rounded-control transition-colors cursor-pointer"
                 >
-                  {copiedAll ? <Check className="w-3 h-3 text-gold-600" /> : <Copy className="w-3 h-3" />}
+                  {copiedAll ? <Check className="w-3 h-3 text-ink-accent" /> : <Copy className="w-3 h-3" />}
                   {copiedAll ? 'Copied!' : 'Copy All'}
                 </button>
               </div>
               {screeningAnswers.map((qa, idx) => (
-                <div key={idx} className="bg-cream-50 border border-cream-200 rounded-2xl p-3 space-y-2">
+                <div key={idx} className="bg-surface border border-border rounded-card p-3 space-y-2">
                   {qa.question && (
-                    <p className="text-xs font-medium text-warm-gray">{qa.question}</p>
+                    <p className="text-xs font-medium text-ink-muted">{qa.question}</p>
                   )}
                   <MarkdownText
                     content={qa.answer}
-                    className="text-sm text-charcoal"
+                    className="text-sm text-ink-body"
                   />
                   <div className="flex justify-end">
                     <button
                       onClick={() => handleCopyAnswer(idx, qa.answer)}
-                      className="flex items-center gap-1 px-2 py-1 text-xs text-warm-gray hover:text-navy-600 hover:bg-cream-100 rounded-lg transition-colors cursor-pointer"
+                      className="flex items-center gap-1 px-2 py-1 text-xs text-ink-muted hover:text-brand hover:bg-canvas rounded-control transition-colors cursor-pointer"
                     >
                       {copiedAnswerIdx === idx ? (
-                        <><Check className="w-3 h-3 text-gold-600" /> Copied!</>
+                        <><Check className="w-3 h-3 text-ink-accent" /> Copied!</>
                       ) : (
                         <><Copy className="w-3 h-3" /> Copy</>
                       )}
@@ -240,12 +240,12 @@ export function ChatMessage({
           ) : isLongMessage ? (
             /* Collapsible content for long user messages */
             <div className="relative">
-              <div className={`text-sm text-charcoal overflow-hidden transition-all duration-300 ${
+              <div className={`text-sm text-ink-body overflow-hidden transition-all duration-300 ${
                 isExpanded ? '' : 'max-h-24'
               }`}>
                 <MarkdownText
                   content={message.content}
-                  className="text-sm text-charcoal"
+                  className="text-sm text-ink-body"
                 />
               </div>
               {!isExpanded && (
@@ -253,7 +253,7 @@ export function ChatMessage({
               )}
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="flex items-center gap-1 mt-2 text-xs font-medium text-navy-600 hover:text-navy-700 transition-colors cursor-pointer"
+                className="flex items-center gap-1 mt-2 text-xs font-medium text-brand hover:text-brand-strong transition-colors cursor-pointer"
               >
                 {isExpanded ? (
                   <>
@@ -271,7 +271,7 @@ export function ChatMessage({
           ) : (
             <MarkdownText
               content={message.content}
-              className="text-sm text-charcoal"
+              className="text-sm text-ink-body"
             />
           )}
           
@@ -284,17 +284,17 @@ export function ChatMessage({
                   <button
                     key={index}
                     onClick={() => onAction(action.action)}
-                    className={`flex items-center gap-2 rounded-full border px-[18px] py-2.5 text-sm font-semibold transition-colors duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/50 ${
+                    className={`flex items-center gap-2 rounded-pill border px-[18px] py-2.5 text-sm font-semibold transition-colors duration-(--duration-base) cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 ${
                       isPrimaryAction
-                        ? 'border-gold-400 bg-gold-400 text-white shadow-sm hover:bg-gold-500 hover:border-gold-500'
-                        : 'border-cream-200 bg-cream-50 text-navy-800 hover:bg-white'
+                        ? 'border-accent bg-accent text-accent-ink shadow-resting hover:bg-accent-strong hover:border-accent-strong'
+                        : 'border-border bg-surface text-ink hover:bg-surface-raised'
                     }`}
                   >
-                    {action.icon === 'cv' && <FileText className={`w-4 h-4 ${isPrimaryAction ? 'text-white' : 'text-navy-600'}`} />}
-                    {action.icon === 'cover-letter' && <Mail className={`w-4 h-4 ${isPrimaryAction ? 'text-white' : 'text-gold-600'}`} />}
-                    {action.icon === 'email' && <Send className={`w-4 h-4 ${isPrimaryAction ? 'text-white' : 'text-gold-600'}`} />}
-                    {action.icon === 'new' && <Plus className={`w-4 h-4 ${isPrimaryAction ? 'text-white' : 'text-gold-500'}`} />}
-                    {action.icon === 'screening' && <ClipboardList className={`w-4 h-4 ${isPrimaryAction ? 'text-white' : 'text-navy-600'}`} />}
+                    {action.icon === 'cv' && <FileText className={`w-4 h-4 ${isPrimaryAction ? 'text-accent-ink' : 'text-brand'}`} />}
+                    {action.icon === 'cover-letter' && <Mail className={`w-4 h-4 ${isPrimaryAction ? 'text-accent-ink' : 'text-ink-accent'}`} />}
+                    {action.icon === 'email' && <Send className={`w-4 h-4 ${isPrimaryAction ? 'text-accent-ink' : 'text-ink-accent'}`} />}
+                    {action.icon === 'new' && <Plus className={`w-4 h-4 ${isPrimaryAction ? 'text-accent-ink' : 'text-accent-strong'}`} />}
+                    {action.icon === 'screening' && <ClipboardList className={`w-4 h-4 ${isPrimaryAction ? 'text-accent-ink' : 'text-brand'}`} />}
                     {action.label}
                   </button>
                 );
@@ -303,7 +303,7 @@ export function ChatMessage({
           )}
 
           {hintAction && (
-            <p className="mt-3 text-xs italic text-warm-gray">
+            <p className="mt-3 text-xs italic text-ink-muted">
               {hintAction.label.replace(/^💡\s*/, '')}
             </p>
           )}
@@ -311,15 +311,15 @@ export function ChatMessage({
         
         {/* Feedback icons for assistant messages — visible on hover or when feedback given */}
         {message.role === 'assistant' && (
-          <div className={`flex items-center gap-1 mt-2 ml-1 transition-opacity duration-200 ${
+          <div className={`flex items-center gap-1 mt-2 ml-1 transition-opacity duration-(--duration-base) ${
             streaming ? 'invisible' : feedback ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'
           }`}>
             <button
               onClick={() => onFeedback(message.id, message.content, 'positive')}
               className={`p-1.5 rounded transition-colors cursor-pointer ${
                 feedback === 'positive'
-                  ? 'text-gold-600 bg-gold-100'
-                  : 'text-warm-gray hover:text-charcoal hover:bg-cream-200'
+                  ? 'text-ink-accent bg-accent-soft-strong'
+                  : 'text-ink-muted hover:text-ink-body hover:bg-sunken'
               }`}
               title="Good response"
               aria-label="Good response"
@@ -330,8 +330,8 @@ export function ChatMessage({
               onClick={() => onFeedback(message.id, message.content, 'negative')}
               className={`p-1.5 rounded transition-colors cursor-pointer ${
                 feedback === 'negative'
-                  ? 'text-red-500 bg-red-50'
-                  : 'text-warm-gray hover:text-charcoal hover:bg-cream-200'
+                  ? 'text-danger-bright bg-danger-soft'
+                  : 'text-ink-muted hover:text-ink-body hover:bg-sunken'
               }`}
               title="Bad response"
               aria-label="Bad response"
@@ -340,12 +340,12 @@ export function ChatMessage({
             </button>
             <button
               onClick={handleCopy}
-              className="p-1.5 text-warm-gray hover:text-charcoal hover:bg-cream-200 rounded transition-colors cursor-pointer"
+              className="p-1.5 text-ink-muted hover:text-ink-body hover:bg-sunken rounded transition-colors cursor-pointer"
               title="Copy message"
               aria-label="Copy message"
             >
               {copied ? (
-                <Check className="w-3.5 h-3.5 text-gold-600" />
+                <Check className="w-3.5 h-3.5 text-ink-accent" />
               ) : (
                 <Copy className="w-3.5 h-3.5" />
               )}
@@ -354,7 +354,7 @@ export function ChatMessage({
         )}
 
         {/* Timestamp — visible on hover */}
-        <p className="text-xs text-warm-gray mt-1.5 ml-1 opacity-0 group-hover/msg:opacity-100 transition-opacity duration-200">
+        <p className="text-xs text-ink-muted mt-1.5 ml-1 opacity-0 group-hover/msg:opacity-100 transition-opacity duration-(--duration-base)">
           {formatTime(message.timestamp)}
         </p>
       </div>

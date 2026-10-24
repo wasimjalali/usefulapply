@@ -41,7 +41,7 @@ export function ConversationColumn({ onTabChange, columnRef, compact }: Conversa
   // folded there is nothing to divide, and it reads as a stray rule.
   // Behind its rail the column has nothing beside it either, and it has to
   // lay out at the width it will show at.
-  const readingWidth = canvasCollapsed || collapsed ? 'w-full' : 'w-full border-r border-cream-200';
+  const readingWidth = canvasCollapsed || collapsed ? 'w-full' : 'w-full border-r border-border';
 
   const title = currentSession
     ? [currentSession.company, currentSession.jobTitle].filter(Boolean).join(', ') || 'New application'
@@ -73,12 +73,12 @@ export function ConversationColumn({ onTabChange, columnRef, compact }: Conversa
   };
 
   const rail = collapsed && (
-    <div style={{ width: RAIL_WIDTH }} className="flex h-full flex-shrink-0 flex-col items-center border-r border-cream-200 bg-cream-100 py-3">
+    <div style={{ width: RAIL_WIDTH }} className="flex h-full flex-shrink-0 flex-col items-center border-r border-border bg-canvas py-3">
       <button
         type="button"
         onClick={showConversation}
         data-shell-toggle="conversation"
-        className="rounded-full border border-cream-200 bg-cream-50 p-1.5 text-warm-gray shadow-sm hover:text-navy-700 cursor-pointer"
+        className="rounded-pill border border-border bg-surface p-1.5 text-ink-muted shadow-resting hover:text-brand-strong cursor-pointer"
         aria-label="Show the conversation"
         title="Show the conversation"
       >
@@ -134,14 +134,14 @@ export function ConversationColumn({ onTabChange, columnRef, compact }: Conversa
           </div>
         )}
         <section
-          className={`h-full min-w-0 flex-col bg-cream-50 ${readingWidth} ${
+          className={`h-full min-w-0 flex-col bg-surface ${readingWidth} ${
             showFeed || showTracker ? 'hidden' : 'flex'
           }`}
         >
-          <header className="flex flex-shrink-0 items-center gap-3 border-b border-cream-200 px-4 py-2">
+          <header className="flex flex-shrink-0 items-center gap-3 border-b border-border px-4 py-2">
             <div className="min-w-0 flex-1">
-              <h2 className="truncate text-sm font-semibold text-navy-800">{title}</h2>
-              <p className="text-[11px] text-warm-gray">{statusLabel}</p>
+              <h2 className="truncate text-sm font-semibold text-ink">{title}</h2>
+              <p className="text-[11px] text-ink-muted">{statusLabel}</p>
             </div>
           </header>
           <div className="min-h-0 flex-1">

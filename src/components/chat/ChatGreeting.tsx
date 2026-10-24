@@ -30,8 +30,8 @@ export default function ChatGreeting({ name }: { name?: string | null }) {
   if (!line) return null;
   return (
     <div className="flex flex-col items-center gap-1 text-center">
-      <p className="text-[22px] font-semibold text-navy-800">{line}</p>
-      <p className="text-sm text-warm-gray">What should we work on?</p>
+      <p className="text-[22px] font-semibold text-ink">{line}</p>
+      <p className="text-sm text-ink-muted">What should we work on?</p>
     </div>
   );
 }

@@ -1858,8 +1858,8 @@ export function ChatPanel({
     <div className="flex items-center gap-1">
       <button
         onClick={() => setShowHistory(!showHistory)}
-        className={`p-1.5 rounded-lg transition-colors duration-200 cursor-pointer ${
-          showHistory ? 'bg-navy-50 text-navy-600' : 'text-warm-gray hover:bg-cream-100 hover:text-navy-600'
+        className={`p-1.5 rounded-control transition-colors duration-(--duration-base) cursor-pointer ${
+          showHistory ? 'bg-brand-soft text-brand' : 'text-ink-muted hover:bg-canvas hover:text-brand'
         }`}
         title="Application history"
         aria-label="Application history"
@@ -1868,7 +1868,7 @@ export function ChatPanel({
       </button>
       <button
         onClick={handleNewApplication}
-        className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-navy-600 hover:bg-cream-100 transition-colors duration-200 cursor-pointer"
+        className="inline-flex items-center gap-1.5 rounded-control px-2.5 py-1.5 text-sm font-medium text-brand hover:bg-canvas transition-colors duration-(--duration-base) cursor-pointer"
         title="Start a new application"
       >
         <Plus className="w-4 h-4" />
@@ -1888,15 +1888,15 @@ export function ChatPanel({
         />
       )}
 
-      <div className={`h-full flex flex-col bg-cream-50 ${isMobileDrawer || isDesktopDocked || spine ? '' : 'border-l border-cream-200'}`}>
+      <div className={`h-full flex flex-col bg-surface ${isMobileDrawer || isDesktopDocked || spine ? '' : 'border-l border-border'}`}>
         {!spine && (
         <div
           ref={historyAnchorRef}
-          className="flex-shrink-0 flex items-center justify-between gap-2 border-b border-cream-200 bg-cream-50 px-4 py-2"
+          className="flex-shrink-0 flex items-center justify-between gap-2 border-b border-border bg-surface px-4 py-2"
         >
           <div className="flex items-center gap-2 min-w-0">
-            <Sparkles className="w-4 h-4 text-gold-500 flex-shrink-0" />
-            <span className="text-sm font-semibold text-navy-700 truncate">
+            <Sparkles className="w-4 h-4 text-accent-strong flex-shrink-0" />
+            <span className="text-sm font-semibold text-brand-strong truncate">
               {currentSession?.jobTitle || 'New Application'}
             </span>
           </div>
@@ -1947,7 +1947,7 @@ export function ChatPanel({
               <div className="px-1 pt-1">
                 {currentCV ? (
                   <>
-                    <p className="text-sm text-warm-gray leading-relaxed mb-3">
+                    <p className="text-sm text-ink-muted leading-relaxed mb-3">
                       Paste a job ad and Useful Apply tailors your CV, cover letter and emails to it.
                     </p>
 
@@ -1964,10 +1964,10 @@ export function ChatPanel({
                       }}
                       rows={8}
                       placeholder="Paste the job ad here. Title, requirements, the whole posting is fine."
-                      className={`w-full resize-none rounded-lg border bg-white px-3.5 py-3 text-sm text-charcoal placeholder:text-warm-gray/70 focus:outline-none transition-colors duration-200 ${
+                      className={`w-full resize-none rounded-control border bg-surface-raised px-3.5 py-3 text-sm text-ink-body placeholder:text-ink-muted/70 focus:outline-none transition-colors duration-(--duration-base) ${
                         heroFocusRing
-                          ? 'border-gold-400 ring-2 ring-gold-300'
-                          : 'border-cream-200 focus:border-gold-300 focus:ring-2 focus:ring-gold-300/50'
+                          ? 'border-accent ring-2 ring-border-accent'
+                          : 'border-border focus:border-border-accent focus:ring-2 focus:ring-border-accent/50'
                       }`}
                     />
 
@@ -1977,7 +1977,7 @@ export function ChatPanel({
                     <p
                       aria-live="polite"
                       className={`mt-1.5 text-[11px] leading-relaxed ${
-                        heroJdTooShort ? 'text-navy-600' : 'text-warm-gray/80'
+                        heroJdTooShort ? 'text-brand' : 'text-ink-muted/80'
                       }`}
                     >
                       {heroJdValid
@@ -1991,11 +1991,11 @@ export function ChatPanel({
                       <button
                         onClick={() => heroSubmit('apply_directly')}
                         disabled={!heroJdValid}
-                        className={`w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold rounded-lg shadow-sm transition-colors duration-200 cursor-pointer ${
+                        className={`w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold rounded-control shadow-resting transition-colors duration-(--duration-base) cursor-pointer ${
                           heroJdValid
-                            ? 'bg-gold-400 text-white hover:bg-gold-500'
-                            : 'bg-cream-200 text-warm-gray cursor-not-allowed'
-                        } ${heroJustActivated ? 'ring-2 ring-gold-300' : ''}`}
+                            ? 'bg-accent text-accent-ink hover:bg-accent-strong'
+                            : 'bg-sunken text-ink-muted cursor-not-allowed'
+                        } ${heroJustActivated ? 'ring-2 ring-border-accent' : ''}`}
                       >
                         <Zap className="w-4 h-4" />
                         Generate application kit
@@ -2003,10 +2003,10 @@ export function ChatPanel({
                       <button
                         onClick={() => heroSubmit('analyze_first')}
                         disabled={!heroJdValid}
-                        className={`w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium rounded-lg border transition-colors duration-200 cursor-pointer ${
+                        className={`w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium rounded-control border transition-colors duration-(--duration-base) cursor-pointer ${
                           heroJdValid
-                            ? 'border-cream-200 bg-white text-navy-600 hover:bg-cream-100'
-                            : 'border-cream-200 bg-cream-50 text-warm-gray cursor-not-allowed'
+                            ? 'border-border bg-surface-raised text-brand hover:bg-canvas'
+                            : 'border-border bg-surface text-ink-muted cursor-not-allowed'
                         }`}
                       >
                         <Search className="w-4 h-4" />
@@ -2017,7 +2017,7 @@ export function ChatPanel({
                           a month, so a loud "2 credits" on the primary button
                           reads as "half your month" and suppresses the action
                           we most want new users to take. */}
-                      <p className="mt-0.5 text-[11px] leading-relaxed text-warm-gray/80">
+                      <p className="mt-0.5 text-[11px] leading-relaxed text-ink-muted/80">
                         Full kit costs 2 credits. Checking fit first costs 0.5 and shows your match before you commit.
                       </p>
                     </div>
@@ -2026,7 +2026,7 @@ export function ChatPanel({
                         here. One text line, not a competing card. */}
                     <button
                       onClick={() => useUIStore.getState().setActiveTab('jobs')}
-                      className="mt-5 inline-flex items-center gap-1.5 text-xs text-warm-gray hover:text-navy-600 transition-colors duration-200 cursor-pointer"
+                      className="mt-5 inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-brand transition-colors duration-(--duration-base) cursor-pointer"
                     >
                       No job in mind? Pick one from your Job Feed
                       <ArrowRight className="w-3 h-3" />
@@ -2037,11 +2037,11 @@ export function ChatPanel({
                   <div className="text-center px-5 py-8">
                     <div className="flex items-center justify-center gap-3 mb-3">
                       <BrandIcon size="md" theme="light" />
-                      <h2 className="text-lg font-semibold tracking-tight text-navy-800">
+                      <h2 className="text-lg font-semibold tracking-tight text-ink">
                         {user ? 'Upload your CV to get started' : 'Your AI job application assistant'}
                       </h2>
                     </div>
-                    <p className="text-sm text-warm-gray leading-relaxed">
+                    <p className="text-sm text-ink-muted leading-relaxed">
                       {user
                         ? 'Upload your CV from the left panel, then come back here to apply for jobs.'
                         : 'Upload your CV, paste a job ad, and Useful Apply creates a tailored CV, cover letter and application emails.'}
@@ -2049,23 +2049,23 @@ export function ChatPanel({
                   </div>
                 )}
                 {!user && (
-                  <div className="mt-6 pt-5 border-t border-cream-200 text-center">
+                  <div className="mt-6 pt-5 border-t border-border text-center">
                     <button
                       onClick={() => router.push('/auth/signup')}
-                      className="cta-gold w-full px-4 py-2.5 text-sm font-semibold bg-gold-400 text-white rounded-lg hover:bg-gold-500 shadow-sm cursor-pointer"
+                      className="cta-gold w-full px-4 py-2.5 text-sm font-semibold bg-accent text-accent-ink rounded-control hover:bg-accent-strong shadow-resting cursor-pointer"
                     >
                       Sign up free
                     </button>
-                    <p className="text-xs text-warm-gray mt-3">
+                    <p className="text-xs text-ink-muted mt-3">
                       Already have an account?{' '}
                       <button
                         onClick={() => router.push('/auth/login')}
-                        className="text-navy-600 hover:text-navy-700 font-medium cursor-pointer"
+                        className="text-brand hover:text-brand-strong font-medium cursor-pointer"
                       >
                         Sign in
                       </button>
                     </p>
-                    <p className="text-[11px] text-warm-gray/70 mt-2">
+                    <p className="text-[11px] text-ink-muted/70 mt-2">
                       Try one application free, no account needed.
                     </p>
                   </div>
@@ -2078,14 +2078,14 @@ export function ChatPanel({
               fresh paste is mid-decision, and this bubble would double the
               decision UI below with contradictory copy. */}
           {chatHistoryLoading && (
-            <div role="status" aria-live="polite" className="flex items-center gap-2 px-1 py-2 text-sm text-warm-gray">
-              <Loader2 className="h-4 w-4 animate-spin text-gold-500" />
+            <div role="status" aria-live="polite" className="flex items-center gap-2 px-1 py-2 text-sm text-ink-muted">
+              <Loader2 className="h-4 w-4 animate-spin text-accent-strong" />
               Loading the conversation
             </div>
           )}
 
           {chatHistoryFailed && currentSession && (
-            <div role="alert" className="flex flex-wrap items-center gap-3 px-1 py-2 text-sm text-charcoal">
+            <div role="alert" className="flex flex-wrap items-center gap-3 px-1 py-2 text-sm text-ink-body">
               <span>We couldn&apos;t load this conversation.</span>
               <button
                 type="button"
@@ -2094,7 +2094,7 @@ export function ChatPanel({
                     console.error('[ChatPanel] Chat did not load on retry:', error);
                   });
                 }}
-                className="rounded-full border border-cream-200 bg-cream-50 px-3.5 py-1.5 text-xs font-medium text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
+                className="rounded-pill border border-border bg-surface px-3.5 py-1.5 text-xs font-medium text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised cursor-pointer"
               >
                 Try again
               </button>
@@ -2107,14 +2107,14 @@ export function ChatPanel({
                 <BrandIcon size="xs" theme="light" />
               </div>
               <div className="flex-1">
-                <Card padding="sm" className="bg-white border-cream-200 shadow-sm">
+                <Card padding="sm" className="bg-surface-raised border-border shadow-resting">
                   <MarkdownText
                     content={
                       currentCV
                         ? `**${currentSession.jobTitle || 'This application'}** is ready. Useful Apply already has the saved job description, so we can start generating from here.`
                         : `**${currentSession.jobTitle || 'This application'}** is ready from Job Feed. Upload your CV to continue the application workflow.`
                     }
-                    className="text-sm text-charcoal"
+                    className="text-sm text-ink-body"
                   />
                 </Card>
                 {/* A fresh job ad is present: lead with the fit prompts. The
@@ -2129,7 +2129,7 @@ export function ChatPanel({
                         addChatMessage({ role: 'user', content: 'Analyze this job description' });
                         void runFitAnalysisFlow(currentSession.jobDescription);
                       }}
-                      className="inline-flex items-center rounded-full border border-cream-200 bg-cream-50 px-3.5 py-1.5 text-xs font-medium text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                      className="inline-flex items-center rounded-pill border border-border bg-surface px-3.5 py-1.5 text-xs font-medium text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
                     >
                       Analyze this job description · {CREDIT_COSTS.FIT_ANALYSIS} credits
                     </button>
@@ -2140,13 +2140,13 @@ export function ChatPanel({
                         addChatMessage({ role: 'user', content: 'How well do I fit this role?' });
                         void handleGeneralChat('How well do I fit this role?');
                       }}
-                      className="inline-flex items-center rounded-full border border-cream-200 bg-cream-50 px-3.5 py-1.5 text-xs font-medium text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                      className="inline-flex items-center rounded-pill border border-border bg-surface px-3.5 py-1.5 text-xs font-medium text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
                     >
                       How well do I fit this role?
                     </button>
                   </div>
                 )}
-                <p className="text-xs text-warm-gray mt-1.5 ml-1">Just now</p>
+                <p className="text-xs text-ink-muted mt-1.5 ml-1">Just now</p>
               </div>
             </div>
           )}
@@ -2185,7 +2185,7 @@ export function ChatPanel({
                     }
                     void handleGeneralChat(suggestion);
                   }}
-                  className="inline-flex items-center rounded-full border border-cream-200 bg-cream-50 px-3.5 py-1.5 text-xs font-medium text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
+                  className="inline-flex items-center rounded-pill border border-border bg-surface px-3.5 py-1.5 text-xs font-medium text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised cursor-pointer"
                 >
                   {suggestion}
                 </button>
@@ -2210,9 +2210,9 @@ export function ChatPanel({
               />
               {message.id === compactedThroughMessageId && (
                 <div role="separator" aria-label="Earlier messages summarized" className="flex items-center gap-3">
-                  <span className="h-px flex-1 bg-cream-200" />
-                  <span className="text-xs text-warm-gray">Earlier messages summarized</span>
-                  <span className="h-px flex-1 bg-cream-200" />
+                  <span className="h-px flex-1 bg-sunken" />
+                  <span className="text-xs text-ink-muted">Earlier messages summarized</span>
+                  <span className="h-px flex-1 bg-sunken" />
                 </div>
               )}
             </Fragment>
@@ -2236,18 +2236,18 @@ export function ChatPanel({
                 <BrandIcon size="xs" theme="light" />
               </div>
               <div className="flex-1">
-                <div className="bg-white rounded-lg border border-cream-200 p-4">
+                <div className="bg-surface-raised rounded-control border border-border p-4">
                   <div className="flex items-center gap-3">
-                    <Loader2 className="w-5 h-5 text-gold-500 animate-spin" />
+                    <Loader2 className="w-5 h-5 text-accent-strong animate-spin" />
                     <div>
-                      <p className="text-sm font-medium text-navy-800">{v2Progress.message}</p>
-                      <p className="text-xs text-warm-gray mt-1">Useful Apply is preparing your application...</p>
+                      <p className="text-sm font-medium text-ink">{v2Progress.message}</p>
+                      <p className="text-xs text-ink-muted mt-1">Useful Apply is preparing your application...</p>
                     </div>
                   </div>
                   {v2Progress.percent > 0 && (
-                    <div className="mt-3 h-1.5 bg-cream-200 rounded-full overflow-hidden">
+                    <div className="mt-3 h-1.5 bg-sunken rounded-pill overflow-hidden">
                       <div
-                        className="h-full bg-gold-400 transition-all duration-300"
+                        className="h-full bg-accent transition-all duration-300"
                         style={{ width: `${v2Progress.percent}%` }}
                       />
                     </div>
@@ -2287,13 +2287,13 @@ export function ChatPanel({
               <div className="flex-shrink-0 h-fit">
                 <BrandIcon size="xs" theme="light" />
               </div>
-              <div className="flex items-center gap-2 px-4 py-3 bg-white rounded-2xl border border-cream-200 shadow-sm">
+              <div className="flex items-center gap-2 px-4 py-3 bg-surface-raised rounded-card border border-border shadow-resting">
                 <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-gold-400 rounded-full animate-bounce typing-dot-1" />
-                  <span className="w-2 h-2 bg-gold-500 rounded-full animate-bounce typing-dot-2" />
-                  <span className="w-2 h-2 bg-gold-400 rounded-full animate-bounce typing-dot-3" />
+                  <span className="w-2 h-2 bg-accent rounded-pill animate-bounce typing-dot-1" />
+                  <span className="w-2 h-2 bg-accent-strong rounded-pill animate-bounce typing-dot-2" />
+                  <span className="w-2 h-2 bg-accent rounded-pill animate-bounce typing-dot-3" />
                 </div>
-                <span className="text-sm text-navy-600 ml-2 font-medium">
+                <span className="text-sm text-brand ml-2 font-medium">
                   {shownStream?.status ? `${shownStream.status}...` : isAnalyzing ? 'Useful Apply is analyzing...' : isGenerating ? 'Useful Apply is generating...' : 'Useful Apply is thinking...'}
                 </span>
               </div>
@@ -2423,7 +2423,7 @@ export function ChatPanel({
                       beginJobRun(jd);
                       void runAgentWorkflow(jd);
                     }}
-                    className="self-start text-[13px] font-medium text-navy-600 hover:text-navy-800 cursor-pointer"
+                    className="self-start text-[13px] font-medium text-brand hover:text-ink cursor-pointer"
                   >
                     Skip the check, generate the full kit now
                   </button>
@@ -2552,7 +2552,7 @@ export function ChatPanel({
               <div className="flex-shrink-0 h-fit">
                 <BrandIcon size="xs" theme="light" />
               </div>
-              <div className="flex-1 rounded-2xl border border-cream-200 bg-white p-3 shadow-sm">
+              <div className="flex-1 rounded-card border border-border bg-surface-raised p-3 shadow-resting">
                 <NamedStages
                   stages={[{
                     title: runningRegen
@@ -2579,7 +2579,7 @@ export function ChatPanel({
             <div className="pointer-events-none absolute inset-x-0 -top-11 flex justify-center">
             <button
               onClick={() => scrollToBottom(true)}
-              className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white text-navy-600 rounded-full shadow-lg border border-cream-200 hover:bg-cream-50 hover:shadow-lg transition-all cursor-pointer"
+              className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-surface-raised text-brand rounded-pill shadow-floating border border-border hover:bg-surface hover:shadow-floating transition-all cursor-pointer"
             >
               <ArrowDown className="w-3 h-3" />
               New messages
@@ -2590,7 +2590,7 @@ export function ChatPanel({
 
         {/* Input Area — hidden while the launchpad owns the JD input */}
         {(spine || !isLaunchpadState) && (
-        <div className={isDesktopDocked || spine ? 'bg-cream-50 px-4 pt-2.5 pb-4 [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[820px]' : ''}>
+        <div className={isDesktopDocked || spine ? 'bg-surface px-4 pt-2.5 pb-4 [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[820px]' : ''}>
           <ChatInput
             value={inputValue}
             onChange={setInputValue}

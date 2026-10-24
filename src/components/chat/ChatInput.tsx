@@ -84,19 +84,19 @@ export function ChatInput({
 
   const isEmbedded = surface === 'embedded';
   const inputShellClassName = isEmbedded
-    ? `relative rounded-2xl border bg-white transition-all duration-200 ${
+    ? `relative rounded-card border bg-surface-raised transition-all duration-(--duration-base) ${
         isWorking
-          ? 'border-gold-400 shadow-sm'
-          : 'border-cream-200 shadow-sm focus-within:border-gold-300'
+          ? 'border-accent shadow-resting'
+          : 'border-border shadow-resting focus-within:border-border-accent'
       }`
-    : `relative glass-input rounded-2xl border-2 shadow-md overflow-hidden transition-all duration-200 ${
+    : `relative glass-input rounded-card border-2 shadow-elevated overflow-hidden transition-all duration-(--duration-base) ${
         isWorking
-          ? 'border-gold-400 shadow-gold-200/50'
-          : 'border-gold-300/60 shadow-gold-100/40 focus-within:border-gold-400 focus-within:shadow-gold-200/50'
+          ? 'border-accent shadow-gold-200/50'
+          : 'border-border-accent/60 shadow-gold-100/40 focus-within:border-accent focus-within:shadow-gold-200/50'
       }`;
 
   return (
-    <div className={`${isEmbedded ? 'p-0 bg-transparent' : `${compact ? 'p-2' : 'p-4'} bg-cream-50`}`}>
+    <div className={`${isEmbedded ? 'p-0 bg-transparent' : `${compact ? 'p-2' : 'p-4'} bg-surface`}`}>
       <div className="relative">
         <div id="tour-mode-selector" className={isEmbedded ? 'space-y-2' : ''}>
           <div className={inputShellClassName}>
@@ -109,7 +109,7 @@ export function ChatInput({
                   onKeyDown={handleKeyDown}
                   placeholder={placeholder}
                   disabled={disabled || isWorking}
-                  className="chat-input-textarea w-full px-1 py-1 text-sm bg-transparent focus:outline-none focus:ring-0 border-none resize-none disabled:opacity-50 placeholder:text-warm-gray min-h-[24px] max-h-[150px]"
+                  className="chat-input-textarea w-full px-1 py-1 text-sm bg-transparent focus:outline-none focus:ring-0 border-none resize-none disabled:opacity-50 placeholder:text-ink-muted min-h-[24px] max-h-[150px]"
                   rows={1}
                 />
               </div>
@@ -119,9 +119,9 @@ export function ChatInput({
                   onClick={onStop}
                   title="Stop generation"
                   aria-label="Stop generation"
-                  className="flex-shrink-0 w-9 h-9 rounded-full bg-gold-400 hover:bg-gold-500 flex items-center justify-center shadow-sm transition-colors duration-200 animate-pulse cursor-pointer"
+                  className="flex-shrink-0 w-9 h-9 rounded-pill bg-accent hover:bg-accent-strong flex items-center justify-center shadow-resting transition-colors duration-(--duration-base) animate-pulse cursor-pointer"
                 >
-                  <Square className="w-3.5 h-3.5 text-white fill-current" />
+                  <Square className="w-3.5 h-3.5 text-accent-ink fill-current" />
                 </button>
               ) : (
                 <button
@@ -129,9 +129,9 @@ export function ChatInput({
                   disabled={!value.trim() || disabled}
                   title="Send message"
                   aria-label="Send message"
-                  className="flex-shrink-0 w-9 h-9 rounded-full bg-gold-400 hover:bg-gold-500 disabled:bg-cream-200 disabled:text-warm-gray disabled:cursor-not-allowed flex items-center justify-center shadow-sm transition-colors duration-200 cursor-pointer"
+                  className="flex-shrink-0 w-9 h-9 rounded-pill bg-accent hover:bg-accent-strong disabled:bg-sunken disabled:text-ink-muted disabled:cursor-not-allowed flex items-center justify-center shadow-resting transition-colors duration-(--duration-base) cursor-pointer"
                 >
-                  <Send className={`w-4 h-4 ${!value.trim() || disabled ? 'text-warm-gray' : 'text-white'}`} />
+                  <Send className={`w-4 h-4 ${!value.trim() || disabled ? 'text-ink-muted' : 'text-accent-ink'}`} />
                 </button>
               )}
             </div>
@@ -139,7 +139,7 @@ export function ChatInput({
         </div>
 
         {!compact && !isEmbedded && (
-          <p className="text-[10px] text-warm-gray/60 text-center mt-2">
+          <p className="text-[10px] text-ink-muted/60 text-center mt-2">
             Shift + Enter for new line
           </p>
         )}

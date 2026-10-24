@@ -48,44 +48,44 @@ export function StepIndicator({
   if (!isLoading && !isComplete) return null;
 
   return (
-    <div className="flex flex-col items-center justify-center h-full bg-cream-50 p-8">
-      <div className="bg-white rounded-2xl shadow-md border border-navy-100/60 p-8 max-w-md w-full">
+    <div className="flex flex-col items-center justify-center h-full bg-surface p-8">
+      <div className="bg-surface-raised rounded-card shadow-elevated border border-border-brand-faint/60 p-8 max-w-md w-full">
         {/* Header with Useful Apply branding */}
-        <div className="flex items-center gap-2.5 mb-6 pb-3 border-b border-gold-200/60">
+        <div className="flex items-center gap-2.5 mb-6 pb-3 border-b border-border-accent-soft/60">
           <BrandIcon size="xs" theme="light" />
           {isLoading && (
-            <span className="ml-auto text-[11px] text-gold-600 font-medium">{statusLabel || 'Processing...'}</span>
+            <span className="ml-auto text-[11px] text-ink-accent font-medium">{statusLabel || 'Processing...'}</span>
           )}
         </div>
 
         {/* Step indicator card */}
-        <div className={`p-5 rounded-2xl transition-all duration-300 ${
+        <div className={`p-5 rounded-card transition-all duration-300 ${
           isComplete
-            ? 'bg-gold-50 border border-gold-200 step-complete-pulse'
-            : 'bg-gradient-to-br from-cream-50 to-cream-100 border border-cream-300/80'
+            ? 'bg-accent-soft border border-border-accent-soft step-complete-pulse'
+            : 'bg-gradient-to-br from-cream-50 to-cream-100 border border-border-strong/80'
         }`}>
           <div className="flex items-center gap-4">
             {/* Icon circle */}
-            <div className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 ${
-              isComplete ? 'bg-gold-100' : 'bg-white shadow-sm'
+            <div className={`flex-shrink-0 w-11 h-11 rounded-pill flex items-center justify-center transition-all duration-300 ${
+              isComplete ? 'bg-accent-soft-strong' : 'bg-surface-raised shadow-resting'
             }`}>
               {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin text-gold-500" />
+                <Loader2 className="w-5 h-5 animate-spin text-accent-strong" />
               ) : isComplete ? (
-                <CheckCircle2 className="w-5 h-5 text-gold-600" />
+                <CheckCircle2 className="w-5 h-5 text-ink-accent" />
               ) : (
-                <Loader2 className="w-5 h-5 text-warm-gray" />
+                <Loader2 className="w-5 h-5 text-ink-muted" />
               )}
             </div>
 
             {/* Text */}
             <div className="flex-grow min-w-0">
               <h3 className={`text-[15px] font-semibold tracking-tight ${
-                isComplete ? 'text-gold-700' : 'text-navy-800'
+                isComplete ? 'text-accent-soft-ink' : 'text-ink'
               }`}>
                 {title || config.title}
               </h3>
-              <p className="text-[13px] text-warm-gray mt-0.5 leading-snug">
+              <p className="text-[13px] text-ink-muted mt-0.5 leading-snug">
                 {message || (isComplete ? config.completeMessage : config.loadingMessage)}
               </p>
             </div>
@@ -95,14 +95,14 @@ export function StepIndicator({
         {/* Premium shimmer progress bar */}
         {isLoading && (
           <div className="mt-5">
-            <div className="h-[3px] w-full rounded-full bg-cream-200 shimmer-bar" />
+            <div className="h-[3px] w-full rounded-pill bg-sunken shimmer-bar" />
           </div>
         )}
 
         {/* Completion checkmark */}
         {isComplete && (
           <div className="flex items-center justify-center mt-5">
-            <span className="text-xs text-gold-600 font-semibold tracking-wide uppercase">Complete</span>
+            <span className="text-xs text-ink-accent font-semibold tracking-wide uppercase">Complete</span>
           </div>
         )}
       </div>

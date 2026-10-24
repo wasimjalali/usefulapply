@@ -27,7 +27,7 @@ interface LogisticsQuestionsProps {
 }
 
 const INPUT_CLASS =
-  'h-10 w-full rounded-lg border border-cream-200 bg-cream-50 px-3 text-sm text-charcoal placeholder:text-warm-gray focus:border-navy-500 focus:outline-none';
+  'h-10 w-full rounded-control border border-border bg-surface px-3 text-sm text-ink-body placeholder:text-ink-muted focus:border-border-focus focus:outline-none';
 
 /**
  * The two questions asked once before the first kit: when the applicant can
@@ -140,20 +140,20 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
   return (
     <div
       className={isLine
-        ? 'mt-9 w-full max-w-[720px] rounded-2xl border border-cream-200 bg-white p-8 shadow-sm'
-        : 'rounded-2xl border border-cream-200 bg-cream-50 p-5 shadow-sm'}
+        ? 'mt-9 w-full max-w-[720px] rounded-card border border-border bg-surface-raised p-8 shadow-resting'
+        : 'rounded-card border border-border bg-surface p-5 shadow-resting'}
     >
       <Heading
         ref={headingRef}
         tabIndex={-1}
-        className={`${isLine ? 'text-2xl' : 'text-base'} font-semibold text-navy-800 focus:outline-none`}
+        className={`${isLine ? 'text-2xl' : 'text-base'} font-semibold text-ink focus:outline-none`}
       >
         Two quick questions before I write
       </Heading>
 
       <div className="mt-5 flex flex-col gap-5">
         <div>
-          <p id="logistics-start-label" className="text-sm font-medium text-navy-800">When can you start?</p>
+          <p id="logistics-start-label" className="text-sm font-medium text-ink">When can you start?</p>
           <div role="group" aria-labelledby="logistics-start-label" className="mt-2 flex flex-wrap gap-2">
             {AVAILABILITY_CHOICES.map((value) => {
               const selected = choice === value;
@@ -164,10 +164,10 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
                   aria-pressed={selected}
                   disabled={busy !== null}
                   onClick={() => setChoice(value)}
-                  className={`inline-flex items-center rounded-full border text-sm ${isLine ? 'h-9 px-4' : 'h-8 px-3'} font-medium shadow-sm transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/50 cursor-pointer disabled:cursor-not-allowed ${
+                  className={`inline-flex items-center rounded-pill border text-sm ${isLine ? 'h-9 px-4' : 'h-8 px-3'} font-medium shadow-resting transition-colors duration-(--duration-base) focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 cursor-pointer disabled:cursor-not-allowed ${
                     selected
-                      ? 'border-navy-600 bg-navy-600 text-white'
-                      : 'border-cream-200 bg-cream-50 text-navy-800 hover:bg-white'
+                      ? 'border-brand bg-brand text-brand-ink'
+                      : 'border-border bg-surface text-ink hover:bg-surface-raised'
                   }`}
                 >
                   {AVAILABILITY_LABELS[value]}
@@ -178,7 +178,7 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
         </div>
 
         <label className="block">
-          <span className="text-sm font-medium text-navy-800">
+          <span className="text-sm font-medium text-ink">
             {choice === 'other' ? 'Details' : 'Details (optional)'}
           </span>
           <input
@@ -193,7 +193,7 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
         </label>
 
         <label className="block">
-          <span className="text-sm font-medium text-navy-800">Salary expectation (optional)</span>
+          <span className="text-sm font-medium text-ink">Salary expectation (optional)</span>
           <input
             value={salary}
             onChange={(event) => { setSalary(event.target.value); setError(null); }}
@@ -203,18 +203,18 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
             placeholder="65,000 EUR gross a year"
             className={`mt-2 ${INPUT_CLASS}`}
           />
-          <span className="mt-1.5 block text-xs text-warm-gray">Leave it empty and it won&apos;t be mentioned.</span>
+          <span className="mt-1.5 block text-xs text-ink-muted">Leave it empty and it won&apos;t be mentioned.</span>
         </label>
       </div>
 
-      {error && <p role="alert" className="mt-4 text-sm text-red-600">{error}</p>}
+      {error && <p role="alert" className="mt-4 text-sm text-danger">{error}</p>}
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={save}
           disabled={!canSave || busy !== null || !fresh}
-          className="inline-flex h-11 items-center gap-2 rounded-full bg-gold-400 px-[22px] text-sm font-semibold text-white transition-colors duration-200 hover:bg-gold-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/50 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-warm-gray cursor-pointer"
+          className="inline-flex h-11 items-center gap-2 rounded-pill bg-accent px-[22px] text-sm font-semibold text-accent-ink transition-colors duration-(--duration-base) hover:bg-accent-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 disabled:cursor-not-allowed disabled:bg-sunken disabled:text-ink-muted cursor-pointer"
         >
           {busy === 'save' && <Loader2 className="h-4 w-4 animate-spin" />}
           {saveLabel}
@@ -223,7 +223,7 @@ export function LogisticsQuestions({ layout, saveLabel, onResolved }: LogisticsQ
           type="button"
           onClick={skip}
           disabled={busy !== null || !fresh}
-          className="rounded-lg px-2 py-1 text-sm font-medium text-navy-600 transition-colors duration-200 hover:text-navy-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/50 disabled:cursor-not-allowed disabled:text-warm-gray cursor-pointer"
+          className="rounded-control px-2 py-1 text-sm font-medium text-brand transition-colors duration-(--duration-base) hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
         >
           Skip for now
         </button>

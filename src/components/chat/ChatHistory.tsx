@@ -36,12 +36,12 @@ function sessionLabel(session: SessionSummary): string {
 
 function StatusDot({ hasGeneratedCV, hasFitAnalysis }: { hasGeneratedCV?: boolean; hasFitAnalysis?: boolean }) {
   if (hasGeneratedCV) {
-    return <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" title="Completed" />;
+    return <span className="w-2 h-2 rounded-pill bg-status-done flex-shrink-0" title="Completed" />;
   }
   if (hasFitAnalysis) {
-    return <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" title="Analysis only" />;
+    return <span className="w-2 h-2 rounded-pill bg-status-partial flex-shrink-0" title="Analysis only" />;
   }
-  return <span className="w-2 h-2 rounded-full bg-gray-300 flex-shrink-0" title="Draft" />;
+  return <span className="w-2 h-2 rounded-pill bg-status-draft flex-shrink-0" title="Draft" />;
 }
 
 export function ChatHistory({ sessions, currentSessionId, onSelectSession, onClose, anchor }: ChatHistoryProps) {
@@ -77,29 +77,29 @@ export function ChatHistory({ sessions, currentSessionId, onSelectSession, onClo
         left: box?.left ?? 0,
         width: box?.width ?? 0,
       }}
-      className="z-50 max-h-72 overflow-auto rounded-b-2xl border border-cream-200 border-t-0 bg-white shadow-lg"
+      className="z-50 max-h-72 overflow-auto rounded-b-card border border-border border-t-0 bg-surface-raised shadow-floating"
     >
       <div className="p-3">
-        <p className="text-xs font-medium text-warm-gray mb-2">Recent Applications</p>
+        <p className="text-xs font-medium text-ink-muted mb-2">Recent Applications</p>
         {sessions.length === 0 ? (
-          <p className="text-xs text-warm-gray py-2">No applications yet</p>
+          <p className="text-xs text-ink-muted py-2">No applications yet</p>
         ) : (
           <div className="space-y-0.5">
             {sessions.slice(0, 10).map((session) => (
               <button
                 key={session.id}
                 onClick={() => onSelectSession(session.id)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-cream-100 transition-colors cursor-pointer ${
-                  currentSessionId === session.id ? 'bg-cream-100 ring-1 ring-cream-300' : ''
+                className={`w-full text-left px-3 py-2 rounded-control text-sm hover:bg-canvas transition-colors cursor-pointer ${
+                  currentSessionId === session.id ? 'bg-canvas ring-1 ring-border-strong' : ''
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <StatusDot hasGeneratedCV={session.hasGeneratedCV} hasFitAnalysis={session.hasFitAnalysis} />
-                  <p className="font-medium text-charcoal truncate flex-1">
+                  <p className="font-medium text-ink-body truncate flex-1">
                     {sessionLabel(session)}
                   </p>
                 </div>
-                <p className="text-xs text-warm-gray flex items-center gap-1 ml-4">
+                <p className="text-xs text-ink-muted flex items-center gap-1 ml-4">
                   <MessageSquare className="w-3 h-3" />
                   {formatDate(new Date(session.updatedAt), datePrefs)}
                 </p>
@@ -113,7 +113,7 @@ export function ChatHistory({ sessions, currentSessionId, onSelectSession, onClo
             useUIStore.getState().setActiveTab('tracker');
             onClose();
           }}
-          className="w-full flex items-center justify-center gap-1 mt-2 px-3 py-2 text-xs font-medium text-navy-600 hover:text-navy-800 hover:bg-cream-100 rounded-lg transition-colors cursor-pointer"
+          className="w-full flex items-center justify-center gap-1 mt-2 px-3 py-2 text-xs font-medium text-brand hover:text-ink hover:bg-canvas rounded-control transition-colors cursor-pointer"
         >
           View All Applications
           <ArrowRight className="w-3 h-3" />
