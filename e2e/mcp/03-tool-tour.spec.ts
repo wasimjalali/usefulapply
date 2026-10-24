@@ -337,9 +337,9 @@ test.describe.serial('tool tour: every read and free write tool once', () => {
     expect(await agent.fails('update_profile', { githubUrl: 'javascript:alert(1)' })).toMatch(/Not a web address/);
     expect(profileRow(userId).github_url, 'the refused link was not saved').toBeNull();
 
-    const notifications = await agent.ok<{ marketing: boolean; creditsLow: boolean }>('update_notification_settings', { marketing: false, creditsLow: true });
-    expect(notifications).toMatchObject({ marketing: false, creditsLow: true });
-    expect(profileRow(userId)).toMatchObject({ notify_marketing: 0 });
+    const notifications = await agent.ok<{ followUpDue: boolean; interviewTomorrow: boolean }>('update_notification_settings', { followUpDue: false, interviewTomorrow: true });
+    expect(notifications).toMatchObject({ followUpDue: false, interviewTomorrow: true });
+    expect(profileRow(userId)).toMatchObject({ notify_follow_up_due: 0 });
 
     const none = await agent.ok<{ removed: boolean; hadPhoto: boolean }>('remove_profile_photo');
     expect(none).toMatchObject({ removed: true, hadPhoto: false });

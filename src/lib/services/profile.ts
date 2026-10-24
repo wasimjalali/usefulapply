@@ -25,7 +25,7 @@ import { normalizeLogisticsUpdate, touchesLogistics, type LogisticsPatch } from 
 import { InvalidInputError } from './errors';
 
 // Columns a signed-in user may edit about themselves. Entitlement and
-// bookkeeping columns (subscription_tier, subscription_status, job_searches_*,
+// bookkeeping columns (subscription_tier, subscription_status, job_searches_reset_at,
 // welcome_sent_at, check_in_sent_at, confirmation resend fields, email) are written only by
 // trusted server paths (Stripe webhook, cron, auth routes), never from here.
 export const USER_EDITABLE_PROFILE_FIELDS = [
@@ -39,11 +39,9 @@ export const USER_EDITABLE_PROFILE_FIELDS = [
   'website_url',
   'date_of_birth',
   'nationality',
-  'notify_marketing',
   'notify_feed_ready',
   'notify_follow_up_due',
   'notify_interview_tomorrow',
-  'notify_credits_low',
   'hide_rejected',
   'timezone',
   'date_format',

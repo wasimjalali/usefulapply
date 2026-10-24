@@ -312,14 +312,6 @@
 			}
 		},
 		{
-			"name": "RATE_LIMIT_SEARCH_STRATEGY_GENERATE",
-			"namespace_id": "3127",
-			"simple": {
-				"limit": 3,
-				"period": 60
-			}
-		},
-		{
 			"name": "RATE_LIMIT_FILES_UPLOAD",
 			"namespace_id": "3129",
 			"simple": {

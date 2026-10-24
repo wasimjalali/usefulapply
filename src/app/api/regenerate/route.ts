@@ -61,7 +61,6 @@ export async function POST(request: NextRequest) {
         type: type as RegenerateType,
         instruction,
         section,
-        userLanguageOverride: context.userLanguageOverride,
       });
     } catch (error) {
       if (error instanceof RegenerateRequestError) {
