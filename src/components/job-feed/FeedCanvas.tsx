@@ -64,7 +64,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
   // a promise the normal day does not keep.
   const queryBudget = getJobFeedTierLimits(tier ?? 'free').maxMainQueries;
   // The server allows a dismiss on Plus and Max only, so Free never sees the button.
-  const canDismiss = tier === 'plus' || tier === 'max';
+  const canDismiss = (tier === 'plus' || tier === 'max') && !readOnly;
   const canAffordFit = credits === null || credits.total >= CREDIT_COSTS.FIT_ANALYSIS;
   const canAffordKit = credits === null || credits.total >= CREDIT_COSTS.FULL_APPLICATION;
   const selectedJob = useMemo(
@@ -117,7 +117,8 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
     return (
       <FeedJobDetail
         job={selectedJob}
-        busy={detailBusy || actions.busyJobId === selectedJob.id}
+        busy={detailBusy || actions.busyJobIds.has(selectedJob.id)}
+        dismissing={actions.dismissingJobIds.has(selectedJob.id)}
         onBack={() => useFeedStore.getState().backToList()}
         onCheckFit={(job) => { void actions.checkFit(job, 'analyze'); }}
         onGenerateKit={(job) => {
@@ -272,7 +273,8 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
           <FeedJobCard
             key={job.id}
             job={job}
-            busy={actions.busyJobId === job.id}
+            busy={actions.busyJobIds.has(job.id)}
+            dismissing={actions.dismissingJobIds.has(job.id)}
             onOpenDetail={actions.openDetail}
             onCheckFit={(item) => { void actions.checkFit(item, 'analyze'); }}
             onSave={(item) => { void actions.save(item); }}

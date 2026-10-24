@@ -17,12 +17,18 @@ import { feedFeedbackRows, seedFeedInbox, seedFeedSettings } from '../lib/mcp-fe
  *  7. Keyboard: Enter on "Keep"/"Dismiss" bubbles to the card and opens the detail instead.
  *  8. The detail view's Dismiss leaves the user on a dead detail page.
  *  9. A Free user who posts the action by hand gets through.
+ * 10. Enter on the X opens the detail instead of the question (the card's own key handler), or focus is lost after
+ *     Keep/Escape.
+ * 11. Dismissing one job while another job's save is in flight re-enables or double-submits either (one shared lock),
+ *     or the same job's X stays live while its own save is pending.
+ * 12. The list keeps a phantom "Show more roles" after the total drops.
  */
 
 const JOBS = [
   { title: 'Senior FP&A Analyst', company: 'Northwind Foods', fitLabel: 'strong' as const },
   { title: 'Financial Controller', company: 'Fabrikam', fitLabel: 'good' as const },
   { title: 'Head of Planning', company: 'Contoso', fitLabel: 'good' as const },
+  { title: 'Treasury Lead', company: 'Adventure Works', fitLabel: 'good' as const },
 ];
 
 const canvas = (page: Page) => page.locator('[data-shell-column="canvas"]:not([inert])');
@@ -36,12 +42,12 @@ async function openJobBoard(page: Page) {
 }
 
 test('(r1) a Plus user dismisses a saved job: asked first, gone from Today and Saved, still gone after a reload, row stamped', async ({ browser, request }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(150_000);
   const { user, context, page } = await signedInPage(browser, request, 'feeddismiss');
   try {
     setPlan(user.id, 'plus');
     seedFeedSettings(user.id);
-    const [keep, target, other] = seedFeedInbox(user.id, JOBS);
+    const [keep, target, other, fourth] = seedFeedInbox(user.id, JOBS);
 
     await openJobBoard(page);
     for (const job of JOBS) await expect(cardOf(page, job.title)).toBeVisible();
@@ -53,42 +59,81 @@ test('(r1) a Plus user dismisses a saved job: asked first, gone from Today and S
     await expect(cardOf(page, target.title)).toBeVisible();
     await canvas(page).getByRole('tab', { name: 'Today' }).click();
 
-    // Asked in place. Keep sends nothing and closes the question.
-    const card = cardOf(page, target.title);
-    await card.getByRole('button', { name: 'Dismiss this role' }).click();
-    await expect(card.getByText('Dismiss this job?')).toBeVisible();
-    await expect(card.getByRole('button', { name: 'Save this role' })).toHaveCount(0);
-    await card.getByRole('button', { name: 'Keep' }).click();
-    await expect(card.getByText('Dismiss this job?')).toHaveCount(0);
-    await expect(card.getByRole('button', { name: 'Dismiss this role' })).toBeVisible();
-    expect(feedFeedbackRows(user.id).filter((row) => row.dismissed_at)).toHaveLength(0);
-
-    // Escape closes it too, and Enter on Keep doesn't open the detail behind it.
-    await card.getByRole('button', { name: 'Dismiss this role' }).click();
-    await expect(card.getByRole('button', { name: 'Keep' })).toBeFocused();
-    await page.keyboard.press('Enter');
-    await expect(card.getByText('Dismiss this job?')).toHaveCount(0);
-    await expect(canvas(page).getByRole('button', { name: 'Back to feed' })).toHaveCount(0);
-    await card.getByRole('button', { name: 'Dismiss this role' }).click();
-    await page.keyboard.press('Escape');
-    await expect(card.getByText('Dismiss this job?')).toHaveCount(0);
-
-    // Confirm, with a double click: one request.
+    // Asked in place, by keyboard: Enter on the X opens the question, not the detail behind the card.
     const requests: string[] = [];
     page.on('request', (req) => {
       if (req.url().endsWith('/api/job-feed/feedback') && req.method() === 'POST') requests.push(req.postData() ?? '');
     });
-    await card.getByRole('button', { name: 'Dismiss this role' }).click();
-    await card.getByRole('button', { name: 'Dismiss', exact: true }).dblclick();
-    await expect(page.getByText("Job dismissed. It won't come back.")).toBeVisible();
+    const dismissRequests = () => requests.filter((body) => body.includes('"dismissed"'));
+    const card = cardOf(page, target.title);
+    const trigger = card.getByRole('button', { name: 'Dismiss this role' });
+    await trigger.focus();
+    await page.keyboard.press('Enter');
+    await expect(card.getByText('Dismiss this job?')).toBeVisible();
+    await expect(canvas(page).getByRole('button', { name: 'Back to feed' })).toHaveCount(0);
+    await expect(card.getByRole('button', { name: 'Save this role' })).toHaveCount(0);
+
+    // Keep sends nothing, closes the question and puts focus back on the X.
+    await card.getByRole('button', { name: 'Keep' }).click();
+    await expect(card.getByText('Dismiss this job?')).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await page.waitForTimeout(500);
+    expect(dismissRequests()).toHaveLength(0);
+    expect(feedFeedbackRows(user.id).filter((row) => row.dismissed_at)).toHaveLength(0);
+
+    // Escape closes it too, and Enter on Keep doesn't open the detail behind it.
+    await trigger.click();
+    await expect(card.getByRole('button', { name: 'Keep' })).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(card.getByText('Dismiss this job?')).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await expect(canvas(page).getByRole('button', { name: 'Back to feed' })).toHaveCount(0);
+    await trigger.click();
+    await page.keyboard.press('Escape');
+    await expect(card.getByText('Dismiss this job?')).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    expect(dismissRequests()).toHaveLength(0);
+
+    // A save in flight on one job doesn't block, or get cleared by, a dismiss on another. The same job's X waits.
+    await page.route('**/api/job-feed/feedback', async (route) => {
+      if (route.request().postData()?.includes('"saved"')) await new Promise((resolve) => setTimeout(resolve, 1500));
+      await route.continue();
+    });
+    const keepCard = cardOf(page, keep.title);
+    await keepCard.getByRole('button', { name: 'Save this role' }).click();
+    await expect(keepCard.getByRole('button', { name: 'Dismiss this role' })).toBeDisabled();
+    const fourthCard = cardOf(page, fourth.title);
+    await fourthCard.getByRole('button', { name: 'Dismiss this role' }).click();
+    await fourthCard.getByRole('button', { name: 'Dismiss', exact: true }).click();
+    await expect(cardOf(page, fourth.title)).toHaveCount(0);
+    await expect(keepCard.getByRole('button', { name: 'Remove from saved' })).toBeVisible();
+    await expect(keepCard.getByRole('button', { name: 'Dismiss this role' })).toBeEnabled();
+    await page.unroute('**/api/job-feed/feedback');
+    expect(dismissRequests()).toHaveLength(1);
+
+    // Confirm: the button locks while the request runs (slowed so it can be seen) and one request goes out.
+    await page.route('**/api/job-feed/feedback', async (route) => {
+      if (route.request().postData()?.includes('"dismissed"')) await new Promise((resolve) => setTimeout(resolve, 800));
+      await route.continue();
+    });
+    await trigger.click();
+    await card.getByRole('button', { name: 'Dismiss', exact: true }).click();
+    await expect(card.getByRole('button', { name: 'Dismissing' })).toBeDisabled();
+    await card.getByRole('button', { name: 'Dismissing' }).click({ force: true, timeout: 500 }).catch(() => undefined);
+    await expect(page.getByText("That role won't come back.").first()).toBeVisible();
     await expect(cardOf(page, target.title)).toHaveCount(0);
-    expect(requests.filter((body) => body.includes('"dismissed"'))).toHaveLength(1);
+    await page.unroute('**/api/job-feed/feedback');
+    // One for the fourth job above, one for the target.
+    expect(dismissRequests()).toHaveLength(2);
+
+    // Nothing left to page through: the list must not offer more.
+    await expect(canvas(page).getByRole('button', { name: 'Show more roles' })).toHaveCount(0);
 
     // Neighbours stay, and the job is gone from Saved too.
     await expect(cardOf(page, keep.title)).toBeVisible();
     await expect(cardOf(page, other.title)).toBeVisible();
     await canvas(page).getByRole('tab', { name: 'Saved' }).click();
-    await expect(canvas(page).getByText('Nothing saved yet', { exact: false })).toBeVisible();
+    await expect(cardOf(page, keep.title)).toBeVisible();
     await expect(cardOf(page, target.title)).toHaveCount(0);
 
     // The row: dismissed, and no longer saved.
@@ -103,14 +148,29 @@ test('(r1) a Plus user dismisses a saved job: asked first, gone from Today and S
     await expect(cardOf(page, keep.title)).toBeVisible();
     await expect(cardOf(page, other.title)).toBeVisible();
     await expect(cardOf(page, target.title)).toHaveCount(0);
+    await expect(cardOf(page, fourth.title)).toHaveCount(0);
+    await expect(canvas(page).getByRole('button', { name: 'Show more roles' })).toHaveCount(0);
     await canvas(page).getByRole('tab', { name: 'Saved' }).click();
-    await expect(canvas(page).getByText('Nothing saved yet', { exact: false })).toBeVisible();
+    await expect(cardOf(page, keep.title)).toBeVisible();
+    await expect(cardOf(page, target.title)).toHaveCount(0);
 
-    // From the detail view: the same question, and the user lands back on the list.
+    // From the detail view: the same question (Escape and Enter on Keep close it, focus returns), and the user
+    // lands back on the list.
     await canvas(page).getByRole('tab', { name: 'Today' }).click();
     await cardOf(page, other.title).click();
-    await canvas(page).getByRole('button', { name: 'Dismiss', exact: true }).click();
+    const detailTrigger = canvas(page).getByRole('button', { name: 'Dismiss', exact: true });
+    await detailTrigger.click();
     await expect(canvas(page).getByText('Dismiss this job?')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(canvas(page).getByText('Dismiss this job?')).toHaveCount(0);
+    await expect(detailTrigger).toBeFocused();
+    await detailTrigger.click();
+    await expect(canvas(page).getByRole('button', { name: 'Keep' })).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(canvas(page).getByText('Dismiss this job?')).toHaveCount(0);
+    await expect(detailTrigger).toBeFocused();
+    await expect(canvas(page).getByRole('heading', { name: other.title })).toBeVisible();
+    await detailTrigger.click();
     await canvas(page).getByRole('button', { name: 'Dismiss', exact: true }).click();
     await expect(canvas(page).getByRole('tab', { name: 'Today' })).toBeVisible();
     await expect(cardOf(page, other.title)).toHaveCount(0);

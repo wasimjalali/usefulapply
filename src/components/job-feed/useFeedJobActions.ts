@@ -17,8 +17,10 @@ import { startFeedHandoff, type FeedHandoffMode } from './feed-handoff';
 import { getJobFeedPreviewMode } from './preview-utils';
 
 export interface FeedJobActions {
-  /** Job id with an action in flight, so its card can show it. */
-  busyJobId: string | null;
+  /** Job ids with an action in flight, so their cards can show it. */
+  busyJobIds: ReadonlySet<string>;
+  /** Job ids whose dismiss specifically is in flight. */
+  dismissingJobIds: ReadonlySet<string>;
   openDetail: (job: JobFeedFeedItem) => void;
   save: (job: JobFeedFeedItem) => Promise<void>;
   dismiss: (job: JobFeedFeedItem) => Promise<void>;
@@ -48,8 +50,29 @@ function actionRunId(): string | null {
 export function useFeedJobActions(): FeedJobActions {
   const posthog = usePostHog();
   const { toast } = useToast();
-  const [busyJobId, setBusyJobId] = useState<string | null>(null);
-  const busyJobIdRef = useRef<string | null>(null);
+  const [busyJobIds, setBusyJobIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [dismissingJobIds, setDismissingJobIds] = useState<ReadonlySet<string>>(() => new Set());
+  // The lock is per job: one action on a job at a time, any number of jobs at once.
+  const lockedRef = useRef<Set<string>>(new Set());
+
+  const begin = useCallback((jobId: string, dismissing = false): boolean => {
+    if (lockedRef.current.has(jobId)) return false;
+    lockedRef.current.add(jobId);
+    setBusyJobIds((prev) => new Set(prev).add(jobId));
+    if (dismissing) setDismissingJobIds((prev) => new Set(prev).add(jobId));
+    return true;
+  }, []);
+
+  const end = useCallback((jobId: string) => {
+    lockedRef.current.delete(jobId);
+    const without = (prev: ReadonlySet<string>) => {
+      const next = new Set(prev);
+      next.delete(jobId);
+      return next;
+    };
+    setBusyJobIds(without);
+    setDismissingJobIds(without);
+  }, []);
 
   const openDetail = useCallback((job: JobFeedFeedItem) => {
     const store = useFeedStore.getState();
@@ -59,9 +82,7 @@ export function useFeedJobActions(): FeedJobActions {
   }, [posthog]);
 
   const save = useCallback(async (job: JobFeedFeedItem) => {
-    if (busyJobIdRef.current === job.id) return;
-    busyJobIdRef.current = job.id;
-    setBusyJobId(job.id);
+    if (!begin(job.id)) return;
     const action = job.feedback.savedAt ? 'unsaved' : 'saved';
     try {
       const result = await recordFeedFeedback(job, action, actionRunId());
@@ -86,18 +107,18 @@ export function useFeedJobActions(): FeedJobActions {
         }
       }
     } finally {
-      busyJobIdRef.current = null;
-      setBusyJobId(null);
+      end(job.id);
     }
-  }, [posthog]);
+  }, [posthog, begin, end]);
 
   const dismiss = useCallback(async (job: JobFeedFeedItem) => {
-    if (busyJobIdRef.current === job.id) return;
-    busyJobIdRef.current = job.id;
-    setBusyJobId(job.id);
+    if (!begin(job.id, true)) return;
     try {
       const result = await recordFeedFeedback(job, 'dismissed', actionRunId());
-      if (!result.ok) {
+      // 409 is a role the chat already dismissed (or one that moved on), 404 one
+      // that's already gone. Either way the card should leave, not show an error.
+      const alreadyGone = !result.ok && (result.status === 409 || result.status === 404);
+      if (!result.ok && !alreadyGone) {
         toast.error(result.error);
         return;
       }
@@ -105,19 +126,18 @@ export function useFeedJobActions(): FeedJobActions {
       // Leaves Today and Saved, and closes the detail if it was open. Also what
       // a preview needs, since it never refetches.
       useFeedStore.getState().removeJob(job.id);
-      toast.success("Job dismissed. It won't come back.");
+      toast.success("That role won't come back.");
     } finally {
-      busyJobIdRef.current = null;
-      setBusyJobId(null);
+      end(job.id);
     }
-  }, [posthog, toast]);
+  }, [posthog, toast, begin, end]);
 
   const openEmployerSite = useCallback((job: JobFeedFeedItem) => {
     posthog?.capture('job_feed_external_apply_clicked', { job_id: job.id, company: job.company });
   }, [posthog]);
 
   const checkFit = useCallback(async (job: JobFeedFeedItem, mode: FeedHandoffMode = 'analyze') => {
-    setBusyJobId(job.id);
+    const began = begin(job.id);
     try {
       const hasCV = Boolean(useCVStore.getState().currentCV);
       const result = await startFeedHandoff(job, mode, { hasCV });
@@ -127,9 +147,9 @@ export function useFeedJobActions(): FeedJobActions {
       }
       posthog?.capture('job_feed_item_applied', { job_id: job.id, company: job.company, mode });
     } finally {
-      setBusyJobId(null);
+      if (began) end(job.id);
     }
-  }, [posthog]);
+  }, [posthog, begin, end]);
 
   const loadMore = useCallback(async () => {
     const result = await loadMoreFeedJobs();
@@ -158,5 +178,5 @@ export function useFeedJobActions(): FeedJobActions {
     store.backToList();
   }, []);
 
-  return { busyJobId, openDetail, save, dismiss, openEmployerSite, checkFit, loadMore, showSaved, showToday };
+  return { busyJobIds, dismissingJobIds, openDetail, save, dismiss, openEmployerSite, checkFit, loadMore, showSaved, showToday };
 }

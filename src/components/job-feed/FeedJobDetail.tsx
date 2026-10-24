@@ -18,6 +18,8 @@ interface FeedJobDetailProps {
   onOpenEmployerSite: (job: JobFeedFeedItem) => void;
   onUpgrade?: () => void;
   busy?: boolean;
+  /** True only while this job's own dismiss is in flight. */
+  dismissing?: boolean;
   /** False on the mobile read-only feed, where the kit cannot be generated. */
   showCheckFit?: boolean;
   canAffordFit?: boolean;
@@ -53,6 +55,7 @@ export function FeedJobDetail({
   onOpenEmployerSite,
   onUpgrade,
   busy = false,
+  dismissing = false,
   showCheckFit = true,
   canAffordFit = true,
   canAffordKit = true,
@@ -63,10 +66,21 @@ export function FeedJobDetail({
   const isSaved = Boolean(job.feedback.savedAt);
   const [confirmingDismiss, setConfirmingDismiss] = useState(false);
   const keepRef = useRef<HTMLButtonElement>(null);
+  const dismissRef = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef(false);
 
   useEffect(() => {
     if (confirmingDismiss) keepRef.current?.focus();
+    else if (returnFocus.current) {
+      returnFocus.current = false;
+      dismissRef.current?.focus();
+    }
   }, [confirmingDismiss]);
+
+  const cancelDismiss = () => {
+    returnFocus.current = true;
+    setConfirmingDismiss(false);
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -111,7 +125,7 @@ export function FeedJobDetail({
             aria-label="Dismiss this job?"
             className="flex items-center gap-2"
             onKeyDown={(event) => {
-              if (event.key === 'Escape' && !busy) setConfirmingDismiss(false);
+              if (event.key === 'Escape' && !busy) cancelDismiss();
             }}
           >
             <span className="text-sm font-semibold text-ink">Dismiss this job?</span>
@@ -119,7 +133,7 @@ export function FeedJobDetail({
               ref={keepRef}
               type="button"
               disabled={busy}
-              onClick={() => setConfirmingDismiss(false)}
+              onClick={cancelDismiss}
               className="inline-flex h-9 items-center rounded-pill border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-resting transition-colors duration-200 hover:bg-surface-raised disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
             >
               Keep
@@ -128,13 +142,14 @@ export function FeedJobDetail({
               type="button"
               disabled={busy}
               onClick={() => onDismiss(job)}
-              className="inline-flex h-9 items-center rounded-pill px-3.5 text-sm font-semibold text-danger transition-colors duration-200 hover:bg-canvas disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
+              className="inline-flex h-9 items-center rounded-pill px-3.5 text-sm font-semibold text-danger transition-colors duration-200 hover:bg-danger-soft disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
             >
-              {busy ? 'Dismissing' : 'Dismiss'}
+              {dismissing ? 'Dismissing' : 'Dismiss'}
             </button>
           </div>
         ) : (
           <button
+            ref={dismissRef}
             type="button"
             disabled={busy}
             onClick={() => setConfirmingDismiss(true)}

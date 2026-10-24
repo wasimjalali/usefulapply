@@ -383,7 +383,7 @@ export async function recordFeedFeedback(
     const payload = await readJson(response);
     if (isStale(generation)) return { ok: false, error: 'Feed was reset.' };
     if (!response.ok) {
-      return { ok: false, error: humanError(response.status, 'That did not save.') };
+      return { ok: false, error: humanError(response.status, 'That did not save.'), status: response.status };
     }
     const typed = payload as unknown as JobFeedFeedbackResponse;
     useFeedStore.getState().patchJobFeedback(job.id, typed.feedback);
