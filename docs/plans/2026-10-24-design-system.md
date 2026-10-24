@@ -53,10 +53,17 @@ PR 5 merges, PR 6.
   - **Snapshots are committed** under `e2e/visual/__screenshots__/` and are Linux-only (Playwright
     names them per platform). On macOS the `visual` project is skipped, so the Mac never compares
     against Linux renders.
-  - **PR 1 makes the baseline:** check out its base commit in a second worktree, `npm ci`, build,
-    run `npx playwright test --project=visual --update-snapshots` there, and copy the snapshots
-    into the PR. Then run the head against them. Run the two one after the other, never at once,
-    because they use the same ports.
+  - **PR 1 makes the baseline:**
+    1. `git worktree add ../base <merge-base>`, then `npm ci` and `npx opennextjs-cloudflare build`
+       there.
+    2. Copy PR 1's `e2e/visual/`, its `playwright.config.ts` and any new `e2e/lib/` helper into
+       that worktree, uncommitted. The base commit doesn't have them yet.
+    3. Run `PW_CHANNEL=chromium npx playwright test --project=visual --update-snapshots` there,
+       then copy `e2e/visual/__screenshots__/` back into the PR.
+    4. Run the head against them in the PR worktree. Run the two one after the other, never at
+       once, because they use the same ports. Remove the base worktree afterwards.
+  - A diff on a screen your PR didn't touch means the VM renders differently (fonts, Chromium):
+    report it in the PR body, and don't change code to hide it.
   - **PRs 2 to 4 compare** against the committed snapshots. They never update them.
   - **Report:** paste the result into the PR body. Any difference is a bug, unless you name it in
     the PR body with a before and after crop.
@@ -85,8 +92,9 @@ PR 5 merges, PR 6.
 
 ## PR 0 (local, by the orchestrator): this plan and E2E without local secrets
 
-This file, plus `playwright.config.ts` test-only fallbacks for the secrets the preview servers need
-when the local secrets file is missing. Small-PR review row. Lands on main before PR 1.
+This file, plus a test-only auth secret fallback (`FALLBACK_SECRET_VARS` in `e2e/lib/env.ts`,
+used by `playwright.config.ts` and `e2e/mcp-oauth.spec.ts`) for when the local secrets file is
+missing. Small-PR review row. Lands on main before PR 1.
 
 ## PR 1: token foundation, no visible change
 
@@ -111,15 +119,20 @@ when the local secrets file is missing. Small-PR review row. Lands on main befor
    roles, so PRs 2 to 4 find a role for every use. Add a role only when it's used.
 2. **Radius roles:** `--radius-pill`, `--radius-control`, `--radius-card`, `--radius-modal`. Map
    them to today's `rounded-full`, `rounded-lg`, `rounded-2xl` and `rounded-[24px]`.
-3. **Shadow roles:** `resting`, `elevated`, `floating` (the current sm, md, lg), plus `lift` for
-   the one-step card lift.
+3. **Shadow roles:** `resting`, `elevated`, `floating` (the current sm, md, lg). The one-step card
+   lift in PR 5 is `resting` to `elevated`, so there's no separate lift role.
 4. **Motion roles:** `--ease-standard` (the current out-quart), `--ease-pop` (spring, for pop
    moments only), and `--duration-fast` and `--duration-base`.
 5. **Token check:** `scripts/check-design-tokens.mjs`, run inside `npm run lint`. It flags:
    - palette-named color classes (`navy-*`, `cream-*`, `gold-*`, `sage-*`, `charcoal`,
      `warm-gray`, `white`, `black`, `gray-*`, `slate-*`);
    - hex and `rgb()` colors in `.tsx` and inline styles;
-   - radius classes outside the roles.
+   - radius classes outside the roles;
+   - gradient utilities and `*-gradient(` values (PR 5 removes them; until then they're in the
+     baseline).
+
+   It scans `src/components/**`, `src/app/**` and `src/lib/blog/**` only, the same paths PRs 2
+   to 4 own, so every baseline entry has an owner.
 
    Out-of-scope paths are skipped. Today's hits go in a committed baseline file
    (`scripts/design-token-baseline.json`), so lint passes now. Its format: one key per file path,
@@ -130,6 +143,9 @@ when the local secrets file is missing. Small-PR review row. Lands on main befor
 6. **The visual spec** and its fixtures (see Shared rules).
 7. **Docs:** update `.claude/rules/design-system.md` (roles first, palette names only as their
    values) and `.claude/agents/karko-ui-designer.md`.
+
+**Config:** the `visual` project needs the data lane's servers, so change the server gate to
+`needs('data', 'visual')` for the fake model and the data preview.
 
 **Owns:** `src/app/globals.css`, `scripts/check-design-tokens.mjs`,
 `scripts/design-token-baseline.json`, `package.json` (the lint script only), `e2e/visual/**`, the
@@ -208,7 +224,8 @@ Wasim chose to adopt these from the Useful brand system, so this PR also updates
   - shadows replaced by tone steps and hairlines, since dark shadows don't read.
 - **Documents stay white:** the CV page, the cover letter and email bodies, and exports. In dark
   mode they sit as a white sheet on a dark desk.
-- **Owns:** the same files as PR 5, plus `package.json` and the lockfile for
+- **Owns:** the same files as PR 5, plus `playwright.config.ts` (the themed visual and axe runs),
+  `package.json` and the lockfile for
   `@axe-core/playwright` (dev only), and `src/app/layout.tsx`.
 - **A theme setting:** System, Light or Dark, in `/settings` (Appearance).
   - Stored in a cookie plus localStorage. No database change.
