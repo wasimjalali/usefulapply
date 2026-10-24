@@ -363,7 +363,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
               {filteredSessions.length} application{filteredSessions.length === 1 ? '' : 's'} found
             </p>
             {searchError && (
-              <p className="px-2 py-3 text-sm text-rose-700" role="alert">{searchError}</p>
+              <p className="px-2 py-3 text-sm text-ink-error" role="alert">{searchError}</p>
             )}
             {filteredSessions.length === 0 && sessionsKnown && (
               <p className="px-2 py-8 text-center text-sm text-ink-muted">

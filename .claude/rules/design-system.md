@@ -67,6 +67,8 @@ Values are today's light theme.
 | | `status-done`, `status-partial`, `status-draft` | emerald-400, amber-400, gray-300 | Status dots in chat history |
 | | `done-soft`, `border-done-soft`, `done-ink` | emerald-50, emerald-100, emerald-700 | "Done" banner in agent progress |
 | | `scrim` | black | Modal backdrops (use with an opacity) |
+| | `info-soft`, `border-info-soft`, `info-ink` | violet-50, violet-100, violet-700 | In-progress notes (agent "reflecting" banner) |
+| | `ink-error` | rose-700 | Inline error text in lists and search |
 | Canvas and workspace extras | `brand-mid`, `brand-muted` | navy-500, navy-400 | Brand-colored icons and bullets, input hover and focus borders |
 | | `border-brand` | navy-300 | Dashed add buttons and edit-field outlines |
 | | `border-inverse-mid` | navy-500 | Hairline on a dark panel |
