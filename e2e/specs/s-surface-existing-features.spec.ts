@@ -1,5 +1,6 @@
-import { expect, test, type APIRequestContext, type Browser, type Locator, type Page } from '@playwright/test';
+import { expect, request as playwrightRequest, test, type APIRequestContext, type Browser, type Locator, type Page } from '@playwright/test';
 import { generateKitThroughUi, signedInPage, storedApplication, waitForStored } from '../lib/app';
+import { BASE_URL } from '../lib/env';
 import { fakeReset } from '../lib/fake-control';
 import { setPlan } from '../lib/mcp-db';
 import { seedFeedInbox, seedFeedSettings } from '../lib/mcp-feed-seed';
@@ -168,7 +169,13 @@ test('(s1) a Plus user rates a match: Good match sticks across a reload, Not rel
     await expect(rated).toHaveAttribute('aria-disabled', 'true');
     await expect(rated).not.toHaveAttribute('aria-pressed', /.*/);
     await expect(rated).toBeFocused();
-    await rated.click();
+    // A repeat press sends nothing. A disabled-looking button never becomes "enabled" for click(), so it is forced.
+    const helpfulSent = () => ratingRequests.filter((body) => body.includes('"rated_helpful"')).length;
+    const sentBefore = helpfulSent();
+    expect(sentBefore).toBe(1);
+    await rated.click({ force: true });
+    await page.waitForTimeout(500);
+    expect(helpfulSent()).toBe(sentBefore);
     await waitForRating(user.id, target.id, 'helpful');
 
     // Still chosen after a reload: the state comes from the server, not the client's copy.
@@ -354,12 +361,20 @@ test('(s4) employment types: saved, kept after a reload, and the last one cannot
   }
 });
 
-test('(s5) a past-due plan shows the failed payment notice with a working Manage billing, an active one shows none', async ({ browser, request }) => {
+test('(s5) a past-due plan shows the failed payment notice with a working Manage billing, an active one shows none', async ({ browser }) => {
   test.setTimeout(150_000);
   // Past due is a feed user with a kit, so the sidebar is there to show the plan name.
-  const past = await feedUser(browser, request, 'surfacepastdue');
-  const creditsOnly = await signedInPage(browser, request, 'surfacepastduecredits');
-  const active = await signedInPage(browser, request, 'surfaceactive');
+  // Each user signs up on a request context of their own: Better Auth treats a sign-up that already carries another
+  // user's session cookie as browser-style and then demands an Origin header.
+  const contexts: APIRequestContext[] = [];
+  const fresh = async () => {
+    const created = await playwrightRequest.newContext({ baseURL: BASE_URL });
+    contexts.push(created);
+    return created;
+  };
+  const past = await feedUser(browser, await fresh(), 'surfacepastdue');
+  const creditsOnly = await signedInPage(browser, await fresh(), 'surfacepastduecredits');
+  const active = await signedInPage(browser, await fresh(), 'surfaceactive');
   try {
     seedBilling(past.user.id, { creditsStatus: 'past_due', rowStatus: 'past_due' });
     // The webhook writes user_credits first and the subscriptions row after, so one can lead the other.
@@ -401,6 +416,7 @@ test('(s5) a past-due plan shows the failed payment notice with a working Manage
     await past.context.close();
     await creditsOnly.context.close();
     await active.context.close();
+    await Promise.all(contexts.map((context) => context.dispose()));
   }
 });
 
