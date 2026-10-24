@@ -90,6 +90,8 @@ Values are today's light theme.
 | | `focus-halo` | navy-100 | Soft focus halo around inputs |
 | | `border-danger-strong` | red-300 | Border of an input in error |
 | | `sunken-strong` | cream-300 | Off state of a toggle track |
+| | `status-bad` | rose-600 | Failing status dot (admin) |
+| | `chart-line` | navy-300 | Chart series line (admin) |
 
 Utilities follow Tailwind's naming, utility then role: `bg-surface`, `text-ink-muted`, `border-border`, `border-border-strong`, `ring-focus-ring`, `bg-accent/10`. Roles whose names start with `border-` take a second `border-` as a border class, so `border-gold-300` becomes `border-border-accent`, while `border-accent` is gold-400. Opacity modifiers work on every role.
 

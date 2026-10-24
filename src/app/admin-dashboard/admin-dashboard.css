@@ -157,7 +157,7 @@
 }
 
 .admin-status[data-tone='good']::before {
-  background: var(--color-sage-500);
+  background: var(--success-muted);
 }
 
 .admin-status[data-tone='warning']::before {
@@ -165,7 +165,7 @@
 }
 
 .admin-status[data-tone='bad']::before {
-  background: var(--color-rose-600);
+  background: var(--status-bad);
 }
 
 .admin-mono {
@@ -221,7 +221,7 @@
 }
 
 .admin-source-status--available::after {
-  background: var(--color-sage-500);
+  background: var(--success-muted);
 }
 
 .admin-source-status--partial::after {
@@ -229,7 +229,7 @@
 }
 
 .admin-source-status--unavailable::after {
-  background: var(--color-rose-600);
+  background: var(--status-bad);
 }
 
 .admin-section,
@@ -315,7 +315,7 @@
 }
 
 .admin-metric__detail--negative {
-  color: var(--color-rose-700);
+  color: var(--ink-error);
 }
 
 .admin-journey {
@@ -451,7 +451,7 @@
 }
 
 .admin-line-chart__series {
-  stroke: var(--color-navy-300);
+  stroke: var(--chart-line);
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.5;
@@ -496,7 +496,7 @@
 }
 
 .admin-state--error .admin-state__icon {
-  color: var(--color-rose-700);
+  color: var(--ink-error);
 }
 
 .admin-state h2 {
