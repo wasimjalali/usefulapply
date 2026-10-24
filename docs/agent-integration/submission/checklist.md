@@ -35,7 +35,7 @@ Status as of 2026-10-25, checked against production (Worker version `7121506b`, 
 | Credentials entered in the matching portal only, files kept outside git | open | Wasim |
 | Accounts and data kept available for later reviews | ongoing | Wasim |
 
-### Production seed (run only after Wasim says yes)
+### Production seed (done 2026-10-25; re-run only after Wasim says yes)
 
 From the main checkout on an up-to-date `main`, with a Cloudflare login that can write to the production database. One run per portal:
 
