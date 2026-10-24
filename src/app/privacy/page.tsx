@@ -16,7 +16,7 @@ const mailHref = `mailto:${LEGAL.email}`;
 
 export default function PrivacyPage() {
   return (
-    <LegalShell title="Privacy Policy">
+    <LegalShell title="Privacy Policy" updated="October 25, 2026">
       <section>
         <LegalP>
           Karko AI Inc. (&quot;{LEGAL.dba}&quot;, &quot;we&quot;, &quot;us&quot; or &quot;our&quot;)
@@ -52,6 +52,12 @@ export default function PrivacyPage() {
             if you give one, application tracker entries, chat messages and any
             screening-question answers you submit. We use your availability and salary expectation
             only to write your documents, and we delete them with your account.
+          </li>
+          <li>
+            <strong className="text-ink-body">Personal details for CVs:</strong> your date of
+            birth and nationality, if you add them to your profile or your CV includes them. Some
+            markets, such as Germany, expect them on a CV. We use them only for your CV, including
+            when our AI providers read and write it, and we delete them with your account.
           </li>
           <li>
             <strong className="text-ink-body">Generated content:</strong> tailored CVs, cover
@@ -218,6 +224,10 @@ export default function PrivacyPage() {
           </li>
           <li>Backups and logs: purged within 90 days where reasonably practicable.</li>
           <li>
+            Product analytics (PostHog): usage events kept for 12 months, session recordings for
+            30 days.
+          </li>
+          <li>
             Billing records: kept as long as tax and accounting rules require.
           </li>
           <li>
@@ -383,6 +393,13 @@ export default function PrivacyPage() {
                 </td>
                 <td className="py-2">AI providers, Cloudflare storage</td>
               </tr>
+              <tr className="border-b border-border align-top">
+                <td className="py-2 pr-3">Characteristics of protected classifications</td>
+                <td className="py-2 pr-3">
+                  Date of birth and nationality (if you add them or your CV includes them)
+                </td>
+                <td className="py-2">AI providers, Cloudflare storage</td>
+              </tr>
               <tr className="align-top">
                 <td className="py-2 pr-3">Inferences</td>
                 <td className="py-2 pr-3">Career profile, fit notes, ranked roles</td>
@@ -490,8 +507,9 @@ export default function PrivacyPage() {
         <LegalP>
           What your assistant can do depends on the scopes you grant: read, write and spend. It
           can read, change and delete your account details, profile and photo, CVs,
-          applications, kit documents, job feed and settings. That includes the availability and
-          salary expectation in your profile, if you have given them. It can see your credit
+          applications, kit documents, job feed and settings. That includes the availability,
+          salary expectation, date of birth and nationality in your profile, if you have given
+          them. It can see your credit
           balance and history. With the spend scope, it can use your credits.
         </LegalP>
 

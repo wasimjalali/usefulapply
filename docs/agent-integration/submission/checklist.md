@@ -20,8 +20,8 @@ Status as of 2026-10-25, checked against production (Worker version `7121506b`, 
 | Tested in ChatGPT developer mode | desktop done on 2026-10-21. Mobile open | Wasim |
 | MCP Inspector run | done on 2026-10-21 (43 tools, schema 0 errors). On 2026-10-25 the CLI reached production and stopped at OAuth, which needs a person at the keyboard (`MCP_AUTO_OPEN_ENABLED=true`); the authenticated list came from the live plugin connection instead | done |
 | MCP E2E (`--project=mcp`) green on main after #194 | done on 2026-10-25: 125 passed (`../STATUS.md`, session 5) | done |
-| Privacy policy names every field the tools collect | **open:** `update_profile` saves date of birth and nationality, which the policy doesn't name. OpenAI compares tools to the policy | Wasim decides the wording |
-| Privacy policy retention for PostHog product analytics | **open:** MCP analytics say 12 months, PostHog product analytics and session replay have no period | Wasim |
+| Privacy policy names every field the tools collect | done on 2026-10-25: date of birth and nationality (`update_profile`, web profile) named in section 1, the US data table and section 15 | done |
+| Privacy policy retention for PostHog product analytics | done on 2026-10-25: usage events 12 months, session recordings 30 days (section 5, Wasim's call). PostHog's project retention must match | done |
 
 ## Reviewer account
 
@@ -56,7 +56,7 @@ Create `~/Documents/usefulapply-reviewers/` first. It's outside every repo, and 
 | Name, one-liner, short and long description | done, `listing.md` | done |
 | 3+ example prompts that exercise different tools | 5 drafted, each checked against the seeded reviewer account | done |
 | Documentation URL | `https://usefulapply.com/integrations`, live | done |
-| Privacy policy URL, with retention | live. See the two privacy rows above | Wasim |
+| Privacy policy URL, with retention | live. See the two privacy rows above | done |
 | Terms URL | `https://usefulapply.com/terms`, live | done |
 | Support contact | support@usefulapply.com. Confirm the mailbox exists and is read | Wasim |
 | Icon / logo, square, 48 px or larger | `public/useful-apply-logo.png` (512 x 512 PNG, the mark on cream), also in the OpenAI package as `assets/logo.png` | done |
@@ -113,7 +113,6 @@ After submitting, Anthropic scans it and by default lists it as a Community conn
 
 - OpenAI identity verification and a Claude paid plan for submitting.
 - The OpenAI domain challenge token, set as `OPENAI_APPS_CHALLENGE`.
-- Privacy policy wording for date of birth and nationality, and the PostHog analytics retention period.
 - Company details, review contact and categories.
 - A yes to run the seed on production, then entering the credentials in the portals.
 - The demo recording and the screenshots.
