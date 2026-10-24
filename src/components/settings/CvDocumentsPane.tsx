@@ -117,7 +117,7 @@ function parseDocumentFile(
 
 function InlineError({ message }: { message: string }) {
   return (
-    <div className="flex items-center gap-2 px-5 pb-3 text-sm text-red-600">
+    <div className="flex items-center gap-2 px-5 pb-3 text-sm text-danger">
       <AlertCircle className="h-4 w-4 flex-shrink-0" />
       {message}
     </div>
@@ -127,8 +127,8 @@ function InlineError({ message }: { message: string }) {
 function UploadingNote({ children }: { children: string }) {
   return (
     <div className="flex items-center gap-3 px-5 pb-4">
-      <div className="h-4 w-4 animate-spin rounded-full border-2 border-gold-500 border-t-transparent" />
-      <p className="text-sm text-warm-gray">{children}</p>
+      <div className="h-4 w-4 animate-spin rounded-pill border-2 border-accent-strong border-t-transparent" />
+      <p className="text-sm text-ink-muted">{children}</p>
     </div>
   );
 }

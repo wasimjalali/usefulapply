@@ -47,7 +47,7 @@ export function NotificationsPane() {
           </Row>
         ))}
       </RowGroup>
-      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-xs text-danger">{error}</p>}
 
       <Caption>SEND TO</Caption>
       <RowGroup>

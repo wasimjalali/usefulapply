@@ -34,15 +34,15 @@ export function CheckEmailCard({
   return (
     <>
       <div className={`${AUTH_CARD} text-center`}>
-        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gold-100">
-          <Mail className="h-6 w-6 text-gold-600" />
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-pill bg-accent-soft-strong">
+          <Mail className="h-6 w-6 text-ink-accent" />
         </span>
-        <h1 className="mt-5 text-2xl font-semibold text-navy-800">Check your email</h1>
-        <p className="mt-3 text-sm text-charcoal">
-          We sent a link to <strong className="font-semibold text-navy-800">{email}</strong>. Open it on this
+        <h1 className="mt-5 text-2xl font-semibold text-ink">Check your email</h1>
+        <p className="mt-3 text-sm text-ink-body">
+          We sent a link to <strong className="font-semibold text-ink">{email}</strong>. Open it on this
           device and you&apos;re back in.
         </p>
-        <p className="mt-4 text-sm text-warm-gray">
+        <p className="mt-4 text-sm text-ink-muted">
           {hasResent ? (
             'Sent again. It can take a minute to land.'
           ) : (
@@ -52,7 +52,7 @@ export function CheckEmailCard({
                 type="button"
                 onClick={onResend}
                 disabled={isResending}
-                className="font-semibold text-navy-600 transition-colors duration-200 hover:text-navy-800 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
+                className="font-semibold text-brand transition-colors duration-(--duration-base) hover:text-ink disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
               >
                 {isResending ? 'sending it again' : 'send it again'}
               </button>
@@ -60,15 +60,15 @@ export function CheckEmailCard({
             </>
           )}
         </p>
-        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-3 text-sm text-danger">{error}</p>}
       </div>
 
-      <p className="mt-5 text-center text-sm text-warm-gray">
+      <p className="mt-5 text-center text-sm text-ink-muted">
         Wrong address?{' '}
         <button
           type="button"
           onClick={onStartOver}
-          className="font-semibold text-navy-800 transition-colors duration-200 hover:text-navy-600 cursor-pointer"
+          className="font-semibold text-ink transition-colors duration-(--duration-base) hover:text-brand cursor-pointer"
         >
           Start over
         </button>

@@ -54,28 +54,28 @@ export function ConsentForm({ clientName, scopes, email, destination }: ConsentF
 
   return (
     <div className={AUTH_CARD}>
-      <h1 className="text-2xl font-semibold text-navy-800">Allow {clientName} to use Useful Apply?</h1>
-      <p className="mt-2 text-sm text-warm-gray">Signed in as {email}</p>
-      <p className="mt-1 text-sm text-warm-gray">
+      <h1 className="text-2xl font-semibold text-ink">Allow {clientName} to use Useful Apply?</h1>
+      <p className="mt-2 text-sm text-ink-muted">Signed in as {email}</p>
+      <p className="mt-1 text-sm text-ink-muted">
         The app chose its own name. Approving sends you to {destination}.
       </p>
 
-      <ul className="mt-6 divide-y divide-cream-200 overflow-hidden rounded-2xl border border-cream-200 bg-cream-50">
+      <ul className="mt-6 divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
         {scopes.map((scope) => {
           const Icon = SCOPE_ICONS[scope];
           return (
             <li key={scope} className="flex items-start gap-3 px-4 py-3.5">
-              <Icon className="mt-0.5 h-5 w-5 flex-shrink-0 text-gold-500" aria-hidden="true" />
+              <Icon className="mt-0.5 h-5 w-5 flex-shrink-0 text-accent-strong" aria-hidden="true" />
               <div>
-                <p className="text-sm font-semibold text-charcoal">{SCOPE_LABELS[scope].title}</p>
-                <p className="mt-0.5 text-xs text-warm-gray">{SCOPE_LABELS[scope].detail}</p>
+                <p className="text-sm font-semibold text-ink-body">{SCOPE_LABELS[scope].title}</p>
+                <p className="mt-0.5 text-xs text-ink-muted">{SCOPE_LABELS[scope].detail}</p>
               </div>
             </li>
           );
         })}
       </ul>
 
-      {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-4 text-sm text-danger">{error}</p>}
 
       <div className="mt-6 flex flex-col gap-3">
         <button
@@ -90,7 +90,7 @@ export function ConsentForm({ clientName, scopes, email, destination }: ConsentF
           type="button"
           onClick={() => void answer(false)}
           disabled={pending !== null}
-          className="flex h-12 w-full items-center justify-center rounded-full border border-cream-200 bg-cream-50 text-[15px] font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+          className="flex h-12 w-full items-center justify-center rounded-pill border border-border bg-surface text-[15px] font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
         >
           {pending === 'deny' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Deny'}
         </button>

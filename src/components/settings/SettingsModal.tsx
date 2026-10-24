@@ -133,16 +133,16 @@ export function SettingsModal() {
         aria-label="Close settings"
         tabIndex={-1}
         onClick={handleClose}
-        className="absolute inset-0 h-full w-full cursor-default bg-navy-900/35"
+        className="absolute inset-0 h-full w-full cursor-default bg-surface-inverse-strong/35"
       />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-pane-heading"
-        className="relative flex h-[660px] max-h-full w-[980px] max-w-full overflow-hidden rounded-[24px] bg-white shadow-lg"
+        className="relative flex h-[660px] max-h-full w-[980px] max-w-full overflow-hidden rounded-modal bg-surface-raised shadow-floating"
       >
-        <nav className="hidden w-[220px] flex-shrink-0 flex-col gap-1 bg-cream-100 p-3 md:flex">
+        <nav className="hidden w-[220px] flex-shrink-0 flex-col gap-1 bg-canvas p-3 md:flex">
           {NAV.map((item) => {
             const active = item.pane === pane;
             return (
@@ -151,13 +151,13 @@ export function SettingsModal() {
                 type="button"
                 onClick={() => open(item.pane)}
                 aria-current={active ? 'page' : undefined}
-                className={`flex items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-left text-sm font-medium transition-colors duration-200 cursor-pointer ${
+                className={`flex items-center gap-2.5 rounded-control px-3.5 py-2.5 text-left text-sm font-medium transition-colors duration-(--duration-base) cursor-pointer ${
                   active
-                    ? 'bg-white text-navy-800 shadow-sm'
-                    : 'text-warm-gray hover:text-navy-700'
+                    ? 'bg-surface-raised text-ink shadow-resting'
+                    : 'text-ink-muted hover:text-brand-strong'
                 }`}
               >
-                <item.icon className={`h-4 w-4 ${active ? 'text-gold-500' : ''}`} />
+                <item.icon className={`h-4 w-4 ${active ? 'text-accent-strong' : ''}`} />
                 {item.label}
               </button>
             );
@@ -169,7 +169,7 @@ export function SettingsModal() {
             type="button"
             onClick={handleClose}
             aria-label="Close settings"
-            className="absolute right-6 top-7 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-warm-gray ring-4 ring-white hover:bg-cream-100 hover:text-navy-800 md:right-8 cursor-pointer"
+            className="absolute right-6 top-7 z-10 inline-flex h-8 w-8 items-center justify-center rounded-pill bg-surface-raised text-ink-muted ring-4 ring-surface-raised hover:bg-canvas hover:text-ink md:right-8 cursor-pointer"
           >
             <X className="h-6 w-6" />
           </button>
@@ -180,8 +180,8 @@ export function SettingsModal() {
                 key={item.pane}
                 type="button"
                 onClick={() => open(item.pane)}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors duration-200 cursor-pointer ${
-                  item.pane === pane ? 'bg-white text-navy-800 shadow-sm' : 'text-warm-gray'
+                className={`rounded-pill px-3 py-1.5 text-xs font-semibold transition-colors duration-(--duration-base) cursor-pointer ${
+                  item.pane === pane ? 'bg-surface-raised text-ink shadow-resting' : 'text-ink-muted'
                 }`}
               >
                 {item.label}

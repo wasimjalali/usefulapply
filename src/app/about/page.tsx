@@ -46,7 +46,7 @@ const aboutBreadcrumbJsonLd = {
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-cream-100">
+    <div className="min-h-screen bg-canvas">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(founderPersonJsonLd) }}
@@ -61,15 +61,15 @@ export default function AboutPage() {
       <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <ScrollReveal delay={0} direction="down" distance={20}>
-          <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-4">About Useful Apply</p>
+          <p className="text-xs font-semibold text-ink-accent uppercase tracking-[0.12em] mb-4">About Useful Apply</p>
           </ScrollReveal>
           <ScrollReveal delay={150}>
-          <h1 className="font-bold text-navy-600 text-[44px] sm:text-[52px] lg:text-[56px] leading-[1.05] tracking-tight mb-6">
-            We built the tool <span className="text-gold-500">we wished we had.</span>
+          <h1 className="font-bold text-brand text-[44px] sm:text-[52px] lg:text-[56px] leading-[1.05] tracking-tight mb-6">
+            We built the tool <span className="text-accent-strong">we wished we had.</span>
           </h1>
           </ScrollReveal>
           <ScrollReveal delay={300}>
-          <p className="text-xl text-warm-gray max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xl text-ink-muted max-w-2xl mx-auto leading-relaxed">
             Useful Apply is the AI job application agent that replaces the seven tools job seekers stitch together. Find the role, check the fit, write the full application, track everything. One app, one loop. Every word traces back to your real CV.
           </p>
           </ScrollReveal>
@@ -77,13 +77,13 @@ export default function AboutPage() {
       </section>
 
       {/* What Makes Us Different */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-surface">
         <div className="max-w-6xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-14">
-            <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Our Difference</p>
-            <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-4">Why Useful Apply exists.</h2>
-            <p className="text-lg text-warm-gray max-w-2xl mx-auto">
+            <p className="text-xs font-semibold text-ink-accent uppercase tracking-[0.12em] mb-3">Our Difference</p>
+            <h2 className="font-bold text-brand text-[32px] md:text-[40px] leading-[1.1] mb-4">Why Useful Apply exists.</h2>
+            <p className="text-lg text-ink-muted max-w-2xl mx-auto">
               Most job tools solve one piece of the puzzle. Useful Apply collapses the seven tools you use today (job board, resume builder, ATS checker, cover letter AI, email drafter, screening helper, tracker) into one loop.
             </p>
           </div>
@@ -114,12 +114,12 @@ export default function AboutPage() {
               const Icon = value.icon;
               return (
                 <ScrollReveal key={i} delay={i * 150}>
-                <div className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm card-hover-lift">
-                  <div className="w-14 h-14 bg-gold-100 rounded-xl flex items-center justify-center mb-5">
-                    <Icon className="w-7 h-7 text-gold-500" />
+                <div className="bg-surface-raised rounded-card p-8 border border-border shadow-resting card-hover-lift">
+                  <div className="w-14 h-14 bg-accent-soft-strong rounded-xl flex items-center justify-center mb-5">
+                    <Icon className="w-7 h-7 text-accent-strong" />
                   </div>
-                  <h3 className="text-xl font-semibold text-charcoal mb-3">{value.title}</h3>
-                  <p className="text-warm-gray leading-relaxed">{value.description}</p>
+                  <h3 className="text-xl font-semibold text-ink-body mb-3">{value.title}</h3>
+                  <p className="text-ink-muted leading-relaxed">{value.description}</p>
                 </div>
                 </ScrollReveal>
               );
@@ -129,12 +129,12 @@ export default function AboutPage() {
       </section>
 
       {/* Our Values */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-surface-raised">
         <div className="max-w-6xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-14">
-            <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Our Values</p>
-            <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1]">What we stand for.</h2>
+            <p className="text-xs font-semibold text-ink-accent uppercase tracking-[0.12em] mb-3">Our Values</p>
+            <h2 className="font-bold text-brand text-[32px] md:text-[40px] leading-[1.1]">What we stand for.</h2>
           </div>
           </ScrollReveal>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -164,11 +164,11 @@ export default function AboutPage() {
               return (
                 <ScrollReveal key={i} delay={i * 120}>
                 <div className="text-center p-6">
-                  <div className="w-14 h-14 bg-navy-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                    <Icon className="w-7 h-7 text-navy-600" />
+                  <div className="w-14 h-14 bg-brand-soft-strong rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <Icon className="w-7 h-7 text-brand" />
                   </div>
-                  <h3 className="text-lg font-semibold text-charcoal mb-2">{value.title}</h3>
-                  <p className="text-warm-gray text-sm leading-relaxed">{value.description}</p>
+                  <h3 className="text-lg font-semibold text-ink-body mb-2">{value.title}</h3>
+                  <p className="text-ink-muted text-sm leading-relaxed">{value.description}</p>
                 </div>
                 </ScrollReveal>
               );
@@ -178,12 +178,12 @@ export default function AboutPage() {
       </section>
 
       {/* Founder Story */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-cream-50">
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-surface">
         <div className="max-w-5xl mx-auto">
           <ScrollReveal>
           <div className="grid md:grid-cols-[240px_1fr] gap-10 md:gap-14 items-start">
             <div className="flex flex-col items-center md:items-start">
-              <div className="w-[200px] h-[200px] md:w-[240px] md:h-[240px] rounded-2xl overflow-hidden border border-cream-200 shadow-sm">
+              <div className="w-[200px] h-[200px] md:w-[240px] md:h-[240px] rounded-card overflow-hidden border border-border shadow-resting">
                 <Image
                   src="/wasim-founder.jpg"
                   alt="Wasim Jalali, Founder of Useful Apply"
@@ -192,19 +192,19 @@ export default function AboutPage() {
                   className="w-full h-full object-cover"
                 />
               </div>
-              <p className="mt-5 italic text-charcoal text-2xl leading-none">Wasim Jalali</p>
-              <p className="mt-1 text-sm text-warm-gray">Founder, Useful Apply</p>
+              <p className="mt-5 italic text-ink-body text-2xl leading-none">Wasim Jalali</p>
+              <p className="mt-1 text-sm text-ink-muted">Founder, Useful Apply</p>
             </div>
 
             <div>
-              <p className="text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">
+              <p className="text-xs font-semibold text-ink-accent uppercase tracking-[0.12em] mb-3">
                 Founder&apos;s story
               </p>
-              <h2 className="font-bold text-navy-600 text-[28px] md:text-[32px] leading-[1.15] mb-6">
+              <h2 className="font-bold text-brand text-[28px] md:text-[32px] leading-[1.15] mb-6">
                 The tool I built got me hired.
               </h2>
-              <div className="border-l-2 border-gold-400 pl-6">
-                <p className="text-[17px] md:text-[18px] text-charcoal leading-relaxed">
+              <div className="border-l-2 border-accent pl-6">
+                <p className="text-[17px] md:text-[18px] text-ink-body leading-relaxed">
                   I built Useful Apply for my own search. Sixty-plus applications, every one written by the product. Five interviews. Then I was hired as an AI Specialist through an application Useful Apply wrote. If it can do that for a first-time job seeker with no degree, it can do it for you.
                 </p>
               </div>
@@ -215,7 +215,7 @@ export default function AboutPage() {
       </section>
 
       {/* Stats */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-navy-600">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-brand">
         <div className="max-w-6xl mx-auto">
           <div className="grid sm:grid-cols-4 gap-8 text-center">
             {[
@@ -226,8 +226,8 @@ export default function AboutPage() {
             ].map((stat, i) => (
               <ScrollReveal key={i} delay={i * 150}>
               <div>
-                <CountUp value={stat.value} className="text-3xl md:text-4xl font-bold text-gold-400 mb-2 block" />
-                <div className="text-navy-200 text-sm font-medium">{stat.label}</div>
+                <CountUp value={stat.value} className="text-3xl md:text-4xl font-bold text-accent mb-2 block" />
+                <div className="text-ink-inverse-muted text-sm font-medium">{stat.label}</div>
               </div>
               </ScrollReveal>
             ))}
@@ -236,31 +236,31 @@ export default function AboutPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-navy-700 relative overflow-hidden">
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-surface-inverse-raised relative overflow-hidden">
         <div className="absolute inset-0 dot-grid opacity-[0.04]" />
         <ScrollReveal>
         <div className="max-w-3xl mx-auto text-center relative">
-          <h2 className="font-bold text-white text-[36px] md:text-[48px] leading-[1.1] mb-5">
-            Your next interview is <span className="text-gold-400">90 seconds away.</span>
+          <h2 className="font-bold text-ink-inverse text-[36px] md:text-[48px] leading-[1.1] mb-5">
+            Your next interview is <span className="text-accent">90 seconds away.</span>
           </h2>
-          <p className="text-[17px] text-navy-100 mb-9 max-w-xl mx-auto leading-relaxed">
+          <p className="text-[17px] text-ink-inverse-tint mb-9 max-w-xl mx-auto leading-relaxed">
             Upload your CV. Pick a role from your feed. Send your first full application before your coffee gets cold.
           </p>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             <Link
               href="/dashboard"
-              className="px-8 py-3.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center text-base"
+              className="px-8 py-3.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting transition-colors flex items-center justify-center text-base"
             >
               Start free
             </Link>
             <Link
               href="/pricing"
-              className="px-8 py-3.5 border border-white/30 text-white font-semibold rounded-lg hover:bg-white/10 transition-colors flex items-center justify-center text-base"
+              className="px-8 py-3.5 border border-ink-inverse/30 text-ink-inverse font-semibold rounded-control hover:bg-ink-inverse/10 transition-colors flex items-center justify-center text-base"
             >
               View pricing
             </Link>
           </div>
-          <p className="mt-4 text-sm text-navy-200">No credit card needed.</p>
+          <p className="mt-4 text-sm text-ink-inverse-muted">No credit card needed.</p>
         </div>
         </ScrollReveal>
       </section>

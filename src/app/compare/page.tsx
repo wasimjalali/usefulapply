@@ -45,7 +45,7 @@ export default function CompareHubPage() {
   };
 
   return (
-    <div className="min-h-screen bg-cream-100">
+    <div className="min-h-screen bg-canvas">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
@@ -60,18 +60,18 @@ export default function CompareHubPage() {
         <section className="pt-20 pb-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-5xl mx-auto text-center">
             <ScrollReveal delay={0} direction="down" distance={20}>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-cream-50 rounded-full text-sm text-charcoal mb-6 shadow-sm border border-cream-200">
-                <GitCompare className="w-4 h-4 text-gold-500" />
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-surface rounded-pill text-sm text-ink-body mb-6 shadow-resting border border-border">
+                <GitCompare className="w-4 h-4 text-accent-strong" />
                 <span className="font-medium">Compare</span>
               </div>
             </ScrollReveal>
             <ScrollReveal delay={150}>
-              <h1 className="font-semibold text-navy-600 text-[44px] sm:text-[52px] lg:text-[56px] leading-[1.05] tracking-tight mb-5">
-                Useful Apply vs <span className="text-gold-500">the alternatives.</span>
+              <h1 className="font-semibold text-brand text-[44px] sm:text-[52px] lg:text-[56px] leading-[1.05] tracking-tight mb-5">
+                Useful Apply vs <span className="text-accent-strong">the alternatives.</span>
               </h1>
             </ScrollReveal>
             <ScrollReveal delay={300}>
-              <p className="text-lg lg:text-xl text-warm-gray max-w-2xl mx-auto leading-relaxed">
+              <p className="text-lg lg:text-xl text-ink-muted max-w-2xl mx-auto leading-relaxed">
                 Most tools format a resume. Useful Apply runs the full job search loop. See how Useful Apply stacks up against the resume builders, ATS scanners, and trackers you might already use.
               </p>
             </ScrollReveal>
@@ -85,37 +85,37 @@ export default function CompareHubPage() {
                 <ScrollReveal key={comparison.slug} delay={i * 80}>
                   <Link
                     href={`/compare/${comparison.slug}`}
-                    className="group block h-full bg-cream-50 border border-cream-200 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-gold-300 transition-all duration-200"
+                    className="group block h-full bg-surface border border-border rounded-card p-6 shadow-resting hover:shadow-elevated hover:border-border-accent transition-all duration-(--duration-base)"
                   >
                     <div className="flex items-center gap-2 mb-4">
-                      <span className="font-semibold text-navy-600 text-base">Useful Apply</span>
-                      <span className="text-warm-gray text-xs uppercase tracking-widest">vs</span>
-                      <span className="font-semibold text-charcoal text-base">
+                      <span className="font-semibold text-brand text-base">Useful Apply</span>
+                      <span className="text-ink-muted text-xs uppercase tracking-widest">vs</span>
+                      <span className="font-semibold text-ink-body text-base">
                         {comparison.competitorName}
                       </span>
                     </div>
-                    <p className="text-warm-gray text-sm leading-relaxed mb-5 line-clamp-4">
+                    <p className="text-ink-muted text-sm leading-relaxed mb-5 line-clamp-4">
                       {comparison.description}
                     </p>
-                    <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-gold-600 group-hover:text-gold-700 transition-colors">
+                    <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-accent group-hover:text-accent-soft-ink transition-colors">
                       Read the comparison
-                      <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
+                      <ArrowRight className="w-4 h-4 transition-transform duration-(--duration-base) group-hover:translate-x-1" />
                     </span>
                   </Link>
                 </ScrollReveal>
               ))}
             </div>
 
-            <div className="mt-16 bg-cream-50 border border-cream-200 rounded-2xl p-8 sm:p-10 text-center shadow-sm">
-              <h2 className="font-semibold text-navy-600 text-[28px] md:text-[32px] leading-[1.15] mb-3">
+            <div className="mt-16 bg-surface border border-border rounded-card p-8 sm:p-10 text-center shadow-resting">
+              <h2 className="font-semibold text-brand text-[28px] md:text-[32px] leading-[1.15] mb-3">
                 Not sure which one fits?
               </h2>
-              <p className="text-warm-gray max-w-xl mx-auto mb-6">
+              <p className="text-ink-muted max-w-xl mx-auto mb-6">
                 Try Useful Apply free for 2 applications. No credit card, no commitment. If a resume builder fits your workflow better, you can tell in 90 seconds.
               </p>
               <Link
                 href="/dashboard"
-                className="inline-flex items-center px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+                className="inline-flex items-center px-6 py-3 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting hover:shadow-elevated transition-all duration-(--duration-base) hover:-translate-y-0.5"
               >
                 Start free
               </Link>

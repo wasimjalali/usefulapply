@@ -27,10 +27,10 @@ export default function OAuthResumePage() {
   }, []);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-cream-100 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-canvas p-4">
       <div className="text-center">
-        <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-navy-600" />
-        <p className="text-warm-gray">Continuing...</p>
+        <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-brand" />
+        <p className="text-ink-muted">Continuing...</p>
       </div>
     </div>
   );

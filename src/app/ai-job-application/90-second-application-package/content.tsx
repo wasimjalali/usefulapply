@@ -19,8 +19,8 @@ export const content: GeoContent = {
     lead:
       "Useful Apply generates a full application, tailored CV, cover letter, application email, and follow-up email, from a single job description in under 90 seconds. Paste the job posting, see the fit, click apply. Four ready-to-send documents, every word traced back to your real CV.",
     leadMb4: true,
-    extra: <p className="text-base text-navy-600 max-w-3xl mx-auto">
-      <Link href="/blog/how-long-to-apply-for-job-2026" className="hover:text-gold-600 font-medium underline">
+    extra: <p className="text-base text-brand max-w-3xl mx-auto">
+      <Link href="/blog/how-long-to-apply-for-job-2026" className="hover:text-ink-accent font-medium underline">
         How this returns hours of manual work every week →
       </Link>
     </p>,
@@ -67,36 +67,36 @@ export const content: GeoContent = {
   ],
   sections: [
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "What You Get",
       heading: "What the 90-Second Package Includes",
       reveal: true,
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
+        <p className="text-ink-body leading-relaxed mb-4 max-w-3xl">
           Four document types every time: tailored CV, cover letter, application email,
           follow-up email. All four reference the same job description and draw from the same
           source data (your Master CV), so they are internally consistent with the same role
           framing, same highlighted skills, and same professional tone.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
+        <p className="text-ink-body leading-relaxed mb-4 max-w-3xl">
           The package eliminates the inconsistency problem where your CV emphasizes different
           things than your cover letter.
         </p>,
       ),
     },
     {
-      bg: "bg-white",
+      bg: "bg-surface-raised",
       eyebrow: "The Workflow",
       heading: "How the Workflow Works: Job Description In, Four Documents Out",
       reveal: true,
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
+        <p className="text-ink-body leading-relaxed mb-4 max-w-3xl">
           Step 1: Paste the job description. Step 2: Useful Apply runs a fit analysis. It compares
           your CV against the job requirements and produces a fit score before generating
           anything. Step 3: Review the fit score. If the match is strong, proceed; if there are
           gaps, you see them honestly before spending time on the application.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
+        <p className="text-ink-body leading-relaxed mb-4 max-w-3xl">
           Step 4: Generate the package. The tailored CV prioritizes relevant experience, the
           cover letter addresses motivation and match, and both emails handle the communication
           layer.
@@ -104,22 +104,22 @@ export const content: GeoContent = {
       ),
     },
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "Document Details",
       heading: "The Documents Explained: What Each One Does",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           The <strong>tailored CV</strong> reorders and emphasizes your experience to match the
           specific role&apos;s requirements. Skills, job titles, and relevant projects move to
           prominence; less relevant items stay but don&apos;t dominate.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           The <strong>cover letter</strong> follows a problem-solution structure, explaining why
           you&apos;re applying and what specifically makes you a fit. The{' '}
           <strong>application email</strong> provides context for the CV and cover letter when
           applying via email or filling a text field in an ATS.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           The <strong>follow-up email</strong> is designed to be sent 7 to 10 days after the
           application, highlighting a different achievement than the primary email, adding
           visibility without repetition.
@@ -127,33 +127,33 @@ export const content: GeoContent = {
       ),
     },
     {
-      bg: "bg-white",
+      bg: "bg-surface-raised",
       eyebrow: "Fit Score",
       heading: "What the Fit Score Tells You Before You Apply",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           The fit score is generated before any documents are created. It shows matching skills,
           identified skill gaps, and an honest overall assessment. The purpose is to save time:
           if your match to a role is genuinely weak, you see that before investing in an
           application.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           If the match is strong, you have confidence before sending. This is different from
           competitors who generate documents first and hope the match is good enough.
         </p>,
       ),
     },
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "Accuracy",
       heading: "Anti-Hallucination: Why Every Claim Is Verified",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Every skill, metric, and achievement in the generated documents is traced back to your
           uploaded CV. The system cannot write that you &quot;managed a team of 50&quot; if that
           figure doesn&apos;t appear in your source documents.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           This matters for credibility: fabricated claims collapse under interview scrutiny or
           background checks. The anti-hallucination safeguard is a structural constraint. It is
           enforced at the system level, not just a guideline.
@@ -190,7 +190,7 @@ export const content: GeoContent = {
       a: 'Yes. Useful Apply supports US, UK, Canada, and Germany with region-appropriate formatting and tone, including US-style resumes and German Lebenslauf format with the correct header structure for the German market.',
     },
   ],
-  faqSection: { bg: "bg-cream-50", cardBg: "bg-white" },
+  faqSection: { bg: "bg-surface", cardBg: "bg-surface-raised" },
   cta: {
     heading: "Start free",
     body:

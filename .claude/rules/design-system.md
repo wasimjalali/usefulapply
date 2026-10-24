@@ -74,12 +74,27 @@ Values are today's light theme.
 | Canvas and workspace extras | `brand-mid`, `brand-muted` | navy-500, navy-400 | Brand-colored icons and bullets, empty-state icons. Focus borders use `focus-ring-soft` |
 | | `border-brand` | navy-300 | Dashed add buttons and edit-field outlines |
 | | `border-inverse-mid` | navy-500 | Hairline on a dark panel |
-| | `ink-inverse-tint` | navy-100 | Mono text on a dark panel |
+| | `ink-inverse-tint` | navy-100 | Softer text on a dark panel: mono text, secondary lines on navy bands |
 | | `ink-ghost` | cream-400 | Empty-state icons, strikethrough decoration |
 | | `border-stronger` | cream-400 | Dashed and drop-zone borders |
 | | `accent-deep` | gold-600 | Gold save button hover |
 | | `success-muted`, `border-success`, `border-success-soft` | sage-500, sage-300, sage-200 | Strong-match dot, ATS ring, match pill border |
 | | `danger-ink` | `#FFFFFF` | Text and icons on a red fill |
+| Marketing | `ink-inverse-faint` | navy-300 | Fainter text on dark navy bands |
+| | `ink-strong` | navy-900 | The darkest ink: display figures, page and pane titles |
+| | `ink-accent-on-inverse` | gold-300 | Gold text on dark navy |
+| | `border-subtle` | cream-100 | Faint row dividers |
+| | `positive`, `positive-soft` | green-600, green-50 | Check marks and matched-cell tint in comparison tables |
+| | `danger-on-inverse` | red-300 | Error text on dark navy |
+| | `link-inverse`, `link-inverse-hover` | teal-400, teal-300 | Links on the dark footer |
+| | `tag-blue-*`, `tag-purple-*`, `tag-rose-*`, `tag-orange-*`, `tag-green-*` (`-soft`, `-ink`, `-line`) | 50, 700, 200 of that hue | Blog category chips and comparison winner tiles |
+| App pages | `ink-inverse-warm` | cream-100 | Warm text on dark navy: code blocks, footer copy |
+| | `focus-halo` | navy-100 | Soft focus halo around inputs |
+| | `border-danger-strong` | red-300 | Border of an input in error |
+| | `sunken-strong` | cream-300 | Off state of a toggle track |
+| | `ink-ghost-soft` | cream-300 | Large ghost numerals |
+| | `status-bad` | rose-600 | Failing status dot (admin) |
+| | `chart-line` | navy-300 | Chart series line (admin) |
 
 Utilities follow Tailwind's naming, utility then role: `bg-surface`, `text-ink-muted`, `border-border`, `border-border-strong`, `ring-focus-ring`, `bg-accent/10`. Roles whose names start with `border-` take a second `border-` as a border class, so `border-gold-300` becomes `border-border-accent`, while `border-accent` is gold-400. Opacity modifiers work on every role.
 

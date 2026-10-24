@@ -11,15 +11,15 @@ export function LegalShell({
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-cream-100">
+    <div className="min-h-screen bg-canvas">
       <Navbar />
       <main>
         <section className="py-16 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-4xl font-semibold text-navy-600 mb-4">{title}</h1>
-            <p className="text-warm-gray mb-2">Last updated: {LEGAL.updated}</p>
-            <p className="text-warm-gray mb-8">{LEGAL.entityLine}</p>
-            <div className="prose prose-lg max-w-none text-charcoal space-y-8">{children}</div>
+            <h1 className="text-4xl font-semibold text-brand mb-4">{title}</h1>
+            <p className="text-ink-muted mb-2">Last updated: {LEGAL.updated}</p>
+            <p className="text-ink-muted mb-8">{LEGAL.entityLine}</p>
+            <div className="prose prose-lg max-w-none text-ink-body space-y-8">{children}</div>
           </div>
         </section>
       </main>
@@ -29,17 +29,17 @@ export function LegalShell({
 }
 
 export function LegalH2({ children }: { children: ReactNode }) {
-  return <h2 className="text-2xl font-semibold text-navy-600 mb-4">{children}</h2>;
+  return <h2 className="text-2xl font-semibold text-brand mb-4">{children}</h2>;
 }
 
 export function LegalH3({ children }: { children: ReactNode }) {
-  return <h3 className="text-xl font-medium text-charcoal mb-3 mt-6">{children}</h3>;
+  return <h3 className="text-xl font-medium text-ink-body mb-3 mt-6">{children}</h3>;
 }
 
 export function LegalP({ children }: { children: ReactNode }) {
-  return <p className="text-warm-gray mb-4 last:mb-0">{children}</p>;
+  return <p className="text-ink-muted mb-4 last:mb-0">{children}</p>;
 }
 
 export function LegalList({ children }: { children: ReactNode }) {
-  return <ul className="list-disc pl-6 text-warm-gray space-y-2 mb-4 last:mb-0">{children}</ul>;
+  return <ul className="list-disc pl-6 text-ink-muted space-y-2 mb-4 last:mb-0">{children}</ul>;
 }

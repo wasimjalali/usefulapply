@@ -21,17 +21,17 @@ export const content: GeoContent = {
   },
   sections: [
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "How ATS Works",
       heading: "What ATS Systems Actually Check",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           ATS (Applicant Tracking Systems) don&apos;t evaluate quality. They evaluate
           parseability and relevance. Parseability: can the system extract work history, job
           titles, education, and skills from the document without the content getting lost in
           tables, text boxes, or multi-column layouts?
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Relevance: do the keywords and skills in the CV align with what the job description
           requires? Both must pass before a human reviewer sees the file. Useful Apply generates
           outputs optimized for both dimensions by default.
@@ -39,16 +39,16 @@ export const content: GeoContent = {
       ),
     },
     {
-      bg: "bg-white",
+      bg: "bg-surface-raised",
       eyebrow: "Formatting",
       heading: "Why Formatting Matters as Much as Keywords",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Single-column layouts parse more reliably than multi-column designs. Standard section
           headings (&quot;Work Experience&quot;, &quot;Education&quot;, &quot;Skills&quot;) are
           recognized by ATS parsers; creative headings risk being missed.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Tables and text boxes frequently cause parsing failures where content either
           disappears entirely or appears in the wrong field. Useful Apply uses ATS-safe templates:
           Arial and Georgia system fonts, single-column structure, standard bullet points, and
@@ -57,51 +57,51 @@ export const content: GeoContent = {
       ),
     },
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "Keywords",
       heading: "Keyword Matching: How Useful Apply Aligns to Your Target Role",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           The AI extracts the top required skills, key responsibilities, and must-have keywords
           from the job description, then maps them against your verified CV content. If a skill
           you have is called &quot;Python&quot; on your CV and &quot;Python development&quot; in
           the job description, the tailored CV uses the job description&apos;s phrasing to
           maximize ATS match.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           The system only uses keywords that correspond to actual skills in your source documents
           and it does not pad the CV with keywords you don&apos;t have.
         </p>,
       ),
     },
     {
-      bg: "bg-white",
+      bg: "bg-surface-raised",
       eyebrow: "Platforms",
       heading: "ATS Systems Useful Apply Is Optimized For",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           The generated documents are designed for use in: Workday, Greenhouse, Lever, SAP
           SuccessFactors, iCIMS, and Taleo. These cover the majority of enterprise recruiting
           workflows in the US, UK, and EU.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           &quot;Optimized for&quot; means: clean upload parsing, text that copies stably into
           form fields, and structure that ATS routing systems can categorize correctly.
         </p>,
       ),
     },
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "Quick Check",
       heading: "The Quick Compatibility Check (2 Minutes)",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           After generating your package, run this check before submitting: upload the CV to the
           ATS form and verify that work history, job titles, and dates are correctly populated.
           Copy a skills section into a text field. If formatting breaks, the source document is
           too complex.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Confirm that a plain-text version of your cover letter is available for portals that
           require text fields instead of file uploads.
         </p>,
@@ -137,7 +137,7 @@ export const content: GeoContent = {
       a: "Industry guidance suggests 60 to 85% keyword overlap between the job description requirements and your CV as a target range for competitive ATS performance. Useful Apply's tailoring aims for this range based on your verified skills. It will not fabricate keywords to artificially inflate the score.",
     },
   ],
-  faqSection: { bg: "bg-cream-50", cardBg: "bg-white" },
+  faqSection: { bg: "bg-surface", cardBg: "bg-surface-raised" },
   cta: {
     heading: "Generate Your ATS-Optimized Application",
     body:

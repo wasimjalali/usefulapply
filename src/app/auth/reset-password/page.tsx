@@ -78,8 +78,8 @@ function ResetPasswordForm() {
     return (
       <AuthShell linkLabel="Log in" linkHref="/auth/login">
         <div className={AUTH_CARD}>
-          <h1 className="text-2xl font-semibold text-navy-800">This link has expired</h1>
-          <p className="mt-3 text-sm text-charcoal">
+          <h1 className="text-2xl font-semibold text-ink">This link has expired</h1>
+          <p className="mt-3 text-sm text-ink-body">
             Reset links work for 30 minutes. Ask for a new one and open it on this device.
           </p>
           <Link href="/auth/forgot-password" className={`mt-6 ${AUTH_SUBMIT}`}>
@@ -90,7 +90,7 @@ function ResetPasswordForm() {
         <p className="mt-5 text-center text-sm">
           <Link
             href="/auth/login"
-            className="font-semibold text-navy-800 transition-colors duration-200 hover:text-navy-600 cursor-pointer"
+            className="font-semibold text-ink transition-colors duration-(--duration-base) hover:text-brand cursor-pointer"
           >
             Back to log in
           </Link>
@@ -103,8 +103,8 @@ function ResetPasswordForm() {
     return (
       <AuthShell linkLabel="Log in" linkHref="/auth/login">
         <div className={`${AUTH_CARD} text-center`}>
-          <h1 className="text-2xl font-semibold text-navy-800">Password updated</h1>
-          <p className="mt-3 text-sm text-charcoal">Taking you to the log in page.</p>
+          <h1 className="text-2xl font-semibold text-ink">Password updated</h1>
+          <p className="mt-3 text-sm text-ink-body">Taking you to the log in page.</p>
         </div>
       </AuthShell>
     );
@@ -113,9 +113,9 @@ function ResetPasswordForm() {
   return (
     <AuthShell linkLabel="Log in" linkHref="/auth/login">
       <div className={AUTH_CARD}>
-        <h1 className="text-2xl font-semibold text-navy-800">Set a new password</h1>
+        <h1 className="text-2xl font-semibold text-ink">Set a new password</h1>
 
-        {formError && <p className="mt-3 text-sm text-red-600">{formError}</p>}
+        {formError && <p className="mt-3 text-sm text-danger">{formError}</p>}
 
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
           <AuthField
@@ -147,7 +147,7 @@ function ResetPasswordForm() {
       <p className="mt-5 text-center text-sm">
         <Link
           href="/auth/login"
-          className="font-semibold text-navy-800 transition-colors duration-200 hover:text-navy-600 cursor-pointer"
+          className="font-semibold text-ink transition-colors duration-(--duration-base) hover:text-brand cursor-pointer"
         >
           Back to log in
         </Link>
@@ -158,7 +158,7 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-cream-100" />}>
+    <Suspense fallback={<div className="min-h-screen bg-canvas" />}>
       <ResetPasswordForm />
     </Suspense>
   );

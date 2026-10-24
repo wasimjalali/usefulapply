@@ -22,11 +22,11 @@ function Problem({ message }: { message: string }) {
   return (
     <AuthShell linkLabel="Dashboard" linkHref="/dashboard">
       <div className={AUTH_CARD}>
-        <h1 className="text-2xl font-semibold text-navy-800">This request can&apos;t continue</h1>
-        <p className="mt-3 text-sm text-warm-gray">{message}</p>
+        <h1 className="text-2xl font-semibold text-ink">This request can&apos;t continue</h1>
+        <p className="mt-3 text-sm text-ink-muted">{message}</p>
         <Link
           href="/dashboard"
-          className="mt-6 inline-block text-sm font-semibold text-navy-800 hover:text-navy-600 cursor-pointer"
+          className="mt-6 inline-block text-sm font-semibold text-ink hover:text-brand cursor-pointer"
         >
           Go to the dashboard
         </Link>

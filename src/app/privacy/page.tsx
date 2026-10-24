@@ -38,15 +38,15 @@ export default function PrivacyPage() {
         <LegalH3>Information you provide</LegalH3>
         <LegalList>
           <li>
-            <strong className="text-charcoal">Account data:</strong> name, email address and a
+            <strong className="text-ink-body">Account data:</strong> name, email address and a
             hashed password if you sign up with email.
           </li>
           <li>
-            <strong className="text-charcoal">Google account data:</strong> if you continue with
+            <strong className="text-ink-body">Google account data:</strong> if you continue with
             Google, we receive the name, email and profile image Google makes available to us.
           </li>
           <li>
-            <strong className="text-charcoal">Career and application data:</strong> CVs and
+            <strong className="text-ink-body">Career and application data:</strong> CVs and
             resumes you upload or paste, profile photos you add to a CV, job descriptions, job
             search preferences, career-profile answers, your availability and salary expectation
             if you give one, application tracker entries, chat messages and any
@@ -54,15 +54,15 @@ export default function PrivacyPage() {
             only to write your documents, and we delete them with your account.
           </li>
           <li>
-            <strong className="text-charcoal">Generated content:</strong> tailored CVs, cover
+            <strong className="text-ink-body">Generated content:</strong> tailored CVs, cover
             letters, application emails, follow-up emails and related drafts we create for you.
           </li>
           <li>
-            <strong className="text-charcoal">Communications:</strong> messages you send through
+            <strong className="text-ink-body">Communications:</strong> messages you send through
             the contact form or to {LEGAL.email}.
           </li>
           <li>
-            <strong className="text-charcoal">Transactional data:</strong> plan, credit balance
+            <strong className="text-ink-body">Transactional data:</strong> plan, credit balance
             and purchase history. We do not store full payment-card numbers. Stripe collects
             those directly.
           </li>
@@ -108,7 +108,7 @@ export default function PrivacyPage() {
         <LegalH2>2. Cookies, analytics and AI processing</LegalH2>
         <LegalP>
           Cookies and similar technologies are described in our{' '}
-          <Link href="/cookies" className="text-navy-600 hover:underline">
+          <Link href="/cookies" className="text-brand hover:underline">
             Cookie Notice
           </Link>
           .
@@ -170,33 +170,33 @@ export default function PrivacyPage() {
         </LegalP>
         <LegalList>
           <li>
-            <strong className="text-charcoal">Cloudflare</strong> (hosting, database, file
+            <strong className="text-ink-body">Cloudflare</strong> (hosting, database, file
             storage, cache and email delivery).
           </li>
           <li>
-            <strong className="text-charcoal">Anthropic</strong> (Claude via the Anthropic API, for
+            <strong className="text-ink-body">Anthropic</strong> (Claude via the Anthropic API, for
             writing, parsing and fit analysis).
           </li>
           <li>
-            <strong className="text-charcoal">Amazon Web Services / Amazon Bedrock</strong> (Claude
+            <strong className="text-ink-body">Amazon Web Services / Amazon Bedrock</strong> (Claude
             as a fallback when the Anthropic API is unavailable).
           </li>
           <li>
-            <strong className="text-charcoal">Stripe</strong> (payments). See{' '}
-            <a href="https://stripe.com/privacy" className="text-navy-600 hover:underline">
+            <strong className="text-ink-body">Stripe</strong> (payments). See{' '}
+            <a href="https://stripe.com/privacy" className="text-brand hover:underline">
               Stripe&apos;s privacy policy
             </a>
             .
           </li>
           <li>
-            <strong className="text-charcoal">PostHog</strong> (analytics, errors and session
+            <strong className="text-ink-body">PostHog</strong> (analytics, errors and session
             replay).
           </li>
           <li>
-            <strong className="text-charcoal">Google</strong> (optional sign-in).
+            <strong className="text-ink-body">Google</strong> (optional sign-in).
           </li>
           <li>
-            <strong className="text-charcoal">SerpAPI</strong> (job-search queries derived from
+            <strong className="text-ink-body">SerpAPI</strong> (job-search queries derived from
             your search settings, not your full CV file).
           </li>
         </LegalList>
@@ -235,7 +235,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             You can request access, correction, a copy of your data or deletion by emailing{' '}
-            <a href={mailHref} className="text-navy-600 hover:underline">
+            <a href={mailHref} className="text-brand hover:underline">
               {LEGAL.email}
             </a>
             . You can also start account deletion in Settings. If a subscription would keep
@@ -248,7 +248,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             Cookie and recording controls are described in the{' '}
-            <Link href="/cookies" className="text-navy-600 hover:underline">
+            <Link href="/cookies" className="text-brand hover:underline">
               Cookie Notice
             </Link>
             .
@@ -312,7 +312,7 @@ export default function PrivacyPage() {
         <LegalH2>12. Contact</LegalH2>
         <LegalP>
           Email:{' '}
-          <a href={mailHref} className="text-navy-600 hover:underline">
+          <a href={mailHref} className="text-brand hover:underline">
             {LEGAL.email}
           </a>
         </LegalP>
@@ -341,41 +341,41 @@ export default function PrivacyPage() {
           share the personal information of consumers under 16.
         </LegalP>
         <div className="overflow-x-auto mt-4">
-          <table className="w-full text-sm text-left border-collapse text-warm-gray">
+          <table className="w-full text-sm text-left border-collapse text-ink-muted">
             <thead>
-              <tr className="border-b border-cream-200">
-                <th className="py-2 pr-3 font-semibold text-charcoal">Category</th>
-                <th className="py-2 pr-3 font-semibold text-charcoal">Examples</th>
-                <th className="py-2 font-semibold text-charcoal">Disclosed to</th>
+              <tr className="border-b border-border">
+                <th className="py-2 pr-3 font-semibold text-ink-body">Category</th>
+                <th className="py-2 pr-3 font-semibold text-ink-body">Examples</th>
+                <th className="py-2 font-semibold text-ink-body">Disclosed to</th>
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-cream-200 align-top">
+              <tr className="border-b border-border align-top">
                 <td className="py-2 pr-3">Identifiers</td>
                 <td className="py-2 pr-3">Name, email, IP, cookie IDs, Google account ID</td>
                 <td className="py-2">Service providers listed above</td>
               </tr>
-              <tr className="border-b border-cream-200 align-top">
+              <tr className="border-b border-border align-top">
                 <td className="py-2 pr-3">Customer records</td>
                 <td className="py-2 pr-3">Account profile, support messages</td>
                 <td className="py-2">Cloudflare, email delivery</td>
               </tr>
-              <tr className="border-b border-cream-200 align-top">
+              <tr className="border-b border-border align-top">
                 <td className="py-2 pr-3">Commercial information</td>
                 <td className="py-2 pr-3">Plan, credits, purchase history</td>
                 <td className="py-2">Stripe, Cloudflare</td>
               </tr>
-              <tr className="border-b border-cream-200 align-top">
+              <tr className="border-b border-border align-top">
                 <td className="py-2 pr-3">Internet activity</td>
                 <td className="py-2 pr-3">Pages viewed, feature use, session replay</td>
                 <td className="py-2">PostHog, Cloudflare</td>
               </tr>
-              <tr className="border-b border-cream-200 align-top">
+              <tr className="border-b border-border align-top">
                 <td className="py-2 pr-3">Approximate geolocation</td>
                 <td className="py-2 pr-3">IP-based region; job-search locations you enter</td>
                 <td className="py-2">Cloudflare, PostHog, SerpAPI (search location only)</td>
               </tr>
-              <tr className="border-b border-cream-200 align-top">
+              <tr className="border-b border-border align-top">
                 <td className="py-2 pr-3">Professional information</td>
                 <td className="py-2 pr-3">
                   CV content, work history, job preferences, availability and salary expectation (if
@@ -394,7 +394,7 @@ export default function PrivacyPage() {
         <LegalP>
           We do not sell or share any of the categories above for advertising. To exercise
           state privacy rights, email{' '}
-          <a href={mailHref} className="text-navy-600 hover:underline">
+          <a href={mailHref} className="text-brand hover:underline">
             {LEGAL.email}
           </a>
           . Nevada residents may use the same address to opt out of any future sale of covered
@@ -415,34 +415,34 @@ export default function PrivacyPage() {
 
         <LegalH3>Legal bases</LegalH3>
         <div className="overflow-x-auto mt-4">
-          <table className="w-full text-sm text-left border-collapse text-warm-gray">
+          <table className="w-full text-sm text-left border-collapse text-ink-muted">
             <thead>
-              <tr className="border-b border-cream-200">
-                <th className="py-2 pr-3 font-semibold text-charcoal">Purpose</th>
-                <th className="py-2 font-semibold text-charcoal">Legal basis</th>
+              <tr className="border-b border-border">
+                <th className="py-2 pr-3 font-semibold text-ink-body">Purpose</th>
+                <th className="py-2 font-semibold text-ink-body">Legal basis</th>
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-cream-200 align-top">
+              <tr className="border-b border-border align-top">
                 <td className="py-2 pr-3">Account, generations, job feed, tracker, credits</td>
                 <td className="py-2">Contract (our Terms)</td>
               </tr>
-              <tr className="border-b border-cream-200 align-top">
+              <tr className="border-b border-border align-top">
                 <td className="py-2 pr-3">Payments via Stripe</td>
                 <td className="py-2">Contract</td>
               </tr>
-              <tr className="border-b border-cream-200 align-top">
+              <tr className="border-b border-border align-top">
                 <td className="py-2 pr-3">Security, fraud and abuse prevention</td>
                 <td className="py-2">Legitimate interests and, where required, legal obligation</td>
               </tr>
-              <tr className="border-b border-cream-200 align-top">
+              <tr className="border-b border-border align-top">
                 <td className="py-2 pr-3">Product analytics and session replay</td>
                 <td className="py-2">
                   Legitimate interests in running a reliable product. Where consent is required
                   for non-essential cookies, we rely on consent.
                 </td>
               </tr>
-              <tr className="border-b border-cream-200 align-top">
+              <tr className="border-b border-border align-top">
                 <td className="py-2 pr-3">Welcome and check-in emails</td>
                 <td className="py-2">
                   Legitimate interests in onboarding new users, or consent where the law requires
@@ -536,39 +536,39 @@ export default function PrivacyPage() {
 
         <LegalH3>Summary</LegalH3>
         <div className="overflow-x-auto mt-4">
-          <table className="w-full text-sm text-left border-collapse text-warm-gray">
+          <table className="w-full text-sm text-left border-collapse text-ink-muted">
             <thead>
-              <tr className="border-b border-cream-200">
-                <th className="py-2 pr-3 font-semibold text-charcoal">Data</th>
-                <th className="py-2 pr-3 font-semibold text-charcoal">Purpose</th>
-                <th className="py-2 pr-3 font-semibold text-charcoal">Recipients</th>
-                <th className="py-2 pr-3 font-semibold text-charcoal">Retention</th>
-                <th className="py-2 font-semibold text-charcoal">Your controls</th>
+              <tr className="border-b border-border">
+                <th className="py-2 pr-3 font-semibold text-ink-body">Data</th>
+                <th className="py-2 pr-3 font-semibold text-ink-body">Purpose</th>
+                <th className="py-2 pr-3 font-semibold text-ink-body">Recipients</th>
+                <th className="py-2 pr-3 font-semibold text-ink-body">Retention</th>
+                <th className="py-2 font-semibold text-ink-body">Your controls</th>
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-cream-200 align-top">
+              <tr className="border-b border-border align-top">
                 <td className="py-2 pr-3">Account, credits and settings</td>
                 <td className="py-2 pr-3">Let your assistant act on your account</td>
                 <td className="py-2 pr-3">Your assistant&apos;s provider, Cloudflare</td>
                 <td className="py-2 pr-3">While your account is open</td>
                 <td className="py-2">Scopes, daily credit limit, revoke in Connected apps</td>
               </tr>
-              <tr className="border-b border-cream-200 align-top">
+              <tr className="border-b border-border align-top">
                 <td className="py-2 pr-3">CVs, applications and kit documents</td>
                 <td className="py-2 pr-3">Read, edit and generate application materials</td>
                 <td className="py-2 pr-3">Your assistant&apos;s provider, AI providers listed above, Cloudflare</td>
                 <td className="py-2 pr-3">While your account is open. Edit history keeps up to 10 earlier versions for 30 days, so replaced text isn&apos;t removed straight away.</td>
                 <td className="py-2">Grant read only, revoke, delete items or your account</td>
               </tr>
-              <tr className="border-b border-cream-200 align-top">
+              <tr className="border-b border-border align-top">
                 <td className="py-2 pr-3">Job feed and career profile</td>
                 <td className="py-2 pr-3">Show and manage your feed</td>
                 <td className="py-2 pr-3">Your assistant&apos;s provider, Cloudflare</td>
                 <td className="py-2 pr-3">While your account is open</td>
                 <td className="py-2">Feed settings, withdraw feed consent, revoke</td>
               </tr>
-              <tr className="border-b border-cream-200 align-top">
+              <tr className="border-b border-border align-top">
                 <td className="py-2 pr-3">Export files</td>
                 <td className="py-2 pr-3">Give you PDF, Word and text files</td>
                 <td className="py-2 pr-3">Cloudflare (R2 and Browser Run)</td>
@@ -587,24 +587,24 @@ export default function PrivacyPage() {
         </div>
         <LegalP>
           More on how to connect an assistant is on our{' '}
-          <Link href="/integrations" className="text-navy-600 hover:underline">
+          <Link href="/integrations" className="text-brand hover:underline">
             integrations page
           </Link>
           .
         </LegalP>
       </section>
 
-      <p className="text-sm text-warm-gray">
+      <p className="text-sm text-ink-muted">
         Related: {' '}
-        <Link href="/terms" className="text-navy-600 hover:underline">
+        <Link href="/terms" className="text-brand hover:underline">
           Terms of Service
         </Link>
         {', '}
-        <Link href="/cookies" className="text-navy-600 hover:underline">
+        <Link href="/cookies" className="text-brand hover:underline">
           Cookie Notice
         </Link>
         {' and '}
-        <Link href="/imprint" className="text-navy-600 hover:underline">
+        <Link href="/imprint" className="text-brand hover:underline">
           Imprint
         </Link>
         . {BRAND.legalLine}.

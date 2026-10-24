@@ -10,9 +10,9 @@ import { Card } from '@/components/ui/Card';
 export default function AuthCodeErrorPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-cream-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-canvas flex items-center justify-center p-4">
         <Card className="w-full max-w-md p-8 text-center">
-          <p className="text-warm-gray">Loading...</p>
+          <p className="text-ink-muted">Loading...</p>
         </Card>
       </div>
     }>
@@ -77,34 +77,34 @@ function AuthCodeErrorContent() {
   };
 
   return (
-    <div className="min-h-screen bg-cream-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-canvas flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-8">
         <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertTriangle className="w-8 h-8 text-red-600" />
+          <div className="w-16 h-16 bg-danger-soft-strong rounded-pill flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-8 h-8 text-danger" />
           </div>
-          <h1 className="text-2xl font-bold text-navy-600 mb-2">
+          <h1 className="text-2xl font-bold text-brand mb-2">
             {getErrorTitle()}
           </h1>
-          <p className="text-warm-gray">
+          <p className="text-ink-muted">
             {getErrorExplanation()}
           </p>
         </div>
 
         {errorMessage && (
-          <div className="mb-6 p-3 bg-cream-200 rounded-lg">
-            <p className="text-xs text-warm-gray font-mono">
+          <div className="mb-6 p-3 bg-sunken rounded-control">
+            <p className="text-xs text-ink-muted font-mono">
               Error Code: {errorMessage}
             </p>
           </div>
         )}
 
         <div className="mb-6">
-          <h2 className="text-sm font-semibold text-charcoal mb-3">What you can try:</h2>
+          <h2 className="text-sm font-semibold text-ink-body mb-3">What you can try:</h2>
           <ul className="space-y-2">
             {getSuggestions().map((suggestion, index) => (
-              <li key={index} className="flex items-start gap-2 text-sm text-warm-gray">
-                <span className="text-navy-600 mt-0.5">•</span>
+              <li key={index} className="flex items-start gap-2 text-sm text-ink-muted">
+                <span className="text-brand mt-0.5">•</span>
                 <span>{suggestion}</span>
               </li>
             ))}
@@ -127,9 +127,9 @@ function AuthCodeErrorContent() {
         </div>
 
         <div className="mt-6 text-center">
-          <p className="text-sm text-warm-gray">
+          <p className="text-sm text-ink-muted">
             Still having issues?{' '}
-            <Link href="/contact" className="text-navy-600 font-medium hover:text-navy-700">
+            <Link href="/contact" className="text-brand font-medium hover:text-brand-strong">
               Contact Support
             </Link>
           </p>

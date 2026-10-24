@@ -71,8 +71,8 @@ export default function ForgotPasswordPage() {
   return (
     <AuthShell linkLabel="Log in" linkHref="/auth/login">
       <div className={AUTH_CARD}>
-        <h1 className="text-2xl font-semibold text-navy-800">Reset your password</h1>
-        <p className="mt-1.5 text-sm text-warm-gray">We&apos;ll email you a link. It works for 30 minutes.</p>
+        <h1 className="text-2xl font-semibold text-ink">Reset your password</h1>
+        <p className="mt-1.5 text-sm text-ink-muted">We&apos;ll email you a link. It works for 30 minutes.</p>
 
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
           <AuthField
@@ -94,7 +94,7 @@ export default function ForgotPasswordPage() {
       <p className="mt-5 text-center text-sm">
         <Link
           href="/auth/login"
-          className="font-semibold text-navy-800 transition-colors duration-200 hover:text-navy-600 cursor-pointer"
+          className="font-semibold text-ink transition-colors duration-(--duration-base) hover:text-brand cursor-pointer"
         >
           Back to log in
         </Link>

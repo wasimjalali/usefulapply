@@ -18,8 +18,8 @@ export default function ImprintPage() {
     <LegalShell title="Imprint (Impressum)">
       <section>
         <LegalH2>Company</LegalH2>
-        <div className="text-warm-gray">
-          <p className="font-semibold text-charcoal text-lg">{LEGAL.entity}</p>
+        <div className="text-ink-muted">
+          <p className="font-semibold text-ink-body text-lg">{LEGAL.entity}</p>
           <p>Doing business as {LEGAL.dba}</p>
           <p>Delaware C-Corporation, United States</p>
           <p className="mt-4">
@@ -46,14 +46,14 @@ export default function ImprintPage() {
 
       <section>
         <LegalH2>Contact</LegalH2>
-        <p className="text-warm-gray">
+        <p className="text-ink-muted">
           Email:{' '}
-          <a href={mailHref} className="text-navy-600 hover:underline">
+          <a href={mailHref} className="text-brand hover:underline">
             {LEGAL.email}
           </a>
           <br />
           Website:{' '}
-          <a href={BRAND.url} className="text-navy-600 hover:underline">
+          <a href={BRAND.url} className="text-brand hover:underline">
             {BRAND.domain}
           </a>
         </p>
