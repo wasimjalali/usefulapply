@@ -61,7 +61,9 @@ Values are today's light theme.
 | | `brand-deep` | navy-900 | Brand text on hover, one step past `brand-strong` |
 | | `focus-ring-soft` | navy-400 | Soft focus ring (use with an opacity) |
 | | `accent-muted` | gold-300 | Gold fill lighter than `accent` (drag-handle hover) |
-| | `ink-muted-strong` | gray-600 | Hover of an `ink-muted` fill |
+| | `surface-neutral`, `surface-neutral-strong` | warm-gray, gray-600 | Neutral gray button fill and its hover |
+| | `surface-notice` | cream-100 | Light notice fill (warning toast) |
+| | `surface-inverse-soft` | navy-600 | Lighter tile or hover on a dark navy panel |
 | | `ink-inverse-soft`, `ink-inverse-dim`, `border-inverse-soft` | cream-50, cream-200, cream-200 | Text and hairlines on navy toasts |
 | | `danger-bright`, `danger-soft-strong` | red-500, red-100 | Error icons, stronger red tint |
 | | `status-done`, `status-partial`, `status-draft` | emerald-400, amber-400, gray-300 | Status dots in chat history |

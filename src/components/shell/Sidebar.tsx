@@ -269,7 +269,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
         })}
       </div>
 
-      <div className="my-2 h-px bg-sunken" />
+      <div className="my-2 h-px bg-border" />
 
       <div className="flex items-center gap-2 px-1 py-1">
         <span className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center overflow-hidden rounded-pill bg-brand text-[11px] font-semibold text-brand-ink">

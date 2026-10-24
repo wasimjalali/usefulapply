@@ -964,7 +964,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                   </div>
                 )}
               </div>
-              <div className="my-6 h-px bg-sunken" />
+              <div className="my-6 h-px bg-border" />
               <div className="grid grid-cols-2 gap-6">
                 <div className="flex flex-col gap-2.5">
                   <span className="text-xs font-semibold tracking-[0.08em] text-success-strong">STRONG</span>
@@ -993,7 +993,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                   ))}
                 </div>
               </div>
-              <div className="my-6 h-px bg-sunken" />
+              <div className="my-6 h-px bg-border" />
               {lineErrorFeedback}
               <div className="flex flex-wrap items-center gap-4">
                 <button
@@ -1049,9 +1049,9 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
               Continue with Google
             </button>
             <div className="my-5 flex items-center gap-3">
-              <span className="h-px flex-1 bg-sunken" />
+              <span className="h-px flex-1 bg-border" />
               <span className="text-xs text-ink-muted">or</span>
-              <span className="h-px flex-1 bg-sunken" />
+              <span className="h-px flex-1 bg-border" />
             </div>
             <form onSubmit={handleAuthSubmit} className="flex flex-col gap-2.5">
               <input
@@ -1148,7 +1148,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
               <span className="text-[13px] text-ink-muted">About 30 seconds left</span>
             </div>
             <NamedStages stages={kitStages} percent={kitPercent} />
-            <div className="mt-6 h-px bg-sunken" />
+            <div className="mt-6 h-px bg-border" />
             <p className="mt-5 text-sm text-ink-muted">
               When this finishes your workspace opens with everything in it.
             </p>
