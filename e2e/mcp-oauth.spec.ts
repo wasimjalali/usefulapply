@@ -10,7 +10,7 @@ import {
   type StoredOAuthClientInformation,
   type StoredOAuthTokens,
 } from '@modelcontextprotocol/client';
-import { OAUTH_PORT } from './lib/env';
+import { FALLBACK_SECRET_VARS, OAUTH_PORT, REPO_ROOT } from './lib/env';
 import { TOOL_SCOPES } from '../src/lib/mcp/scopes';
 
 /**
@@ -1238,10 +1238,11 @@ test.describe('Test mode is never honoured off localhost', () => {
         'MCP_CIMD_ENABLED:true',
         '--var',
         'BETTER_AUTH_URL:https://usefulapply.example',
+        ...FALLBACK_SECRET_VARS,
         '--persist-to',
         '.wrangler/e2e-test-mode-guard',
       ],
-      { stdio: 'ignore', detached: true },
+      { cwd: REPO_ROOT, stdio: 'ignore', detached: true },
     );
     const deadline = Date.now() + 120_000;
     for (;;) {
@@ -1318,10 +1319,11 @@ test.describe('MCP flag off', () => {
         'MCP_ENABLED:false',
         '--var',
         `BETTER_AUTH_URL:http://localhost:${OFF_PORT}`,
+        ...FALLBACK_SECRET_VARS,
         '--persist-to',
         '.wrangler/e2e-flag-off',
       ],
-      { stdio: 'ignore', detached: true },
+      { cwd: REPO_ROOT, stdio: 'ignore', detached: true },
     );
     const deadline = Date.now() + 120_000;
     for (;;) {

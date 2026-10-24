@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 /**
@@ -37,3 +38,16 @@ export const LOCAL_STATE_V3 = join(REPO_ROOT, '.wrangler', 'state', 'v3');
 export const D1_DATABASE_ID = '8cd7059e-4f0b-429b-aace-e379756707e1';
 
 export const TEST_PASSWORD = 'E2e-Passw0rd!x';
+
+/**
+ * Wrangler `--var` args for the secrets a preview can't start without, used only when the repo has no
+ * local secrets file, `.dev.vars` or the `.env` wrangler falls back to (a cloud session or a fresh
+ * clone). The file is never read, only checked for. When it exists, its values stay in use, because the
+ * local D1 state holds keys encrypted with that auth secret. Other env files (`.env.local` and the
+ * like) aren't checked.
+ * Test-only values: they sign nothing outside this run's local state.
+ */
+export const FALLBACK_SECRET_VARS: string[] =
+  existsSync(join(REPO_ROOT, '.dev.vars')) || existsSync(join(REPO_ROOT, '.env'))
+  ? []
+  : ['--var', 'BETTER_AUTH_SECRET:e2e-only-better-auth-secret-not-for-production-use'];

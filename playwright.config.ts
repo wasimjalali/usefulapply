@@ -7,6 +7,7 @@ import {
   BASE_URL,
   FAKE_ANTHROPIC_PORT,
   FAKE_ANTHROPIC_URL,
+  FALLBACK_SECRET_VARS,
   MCP_BASE_URL,
   MCP_FAKE_PORT,
   MCP_FAKE_URL,
@@ -175,6 +176,7 @@ const webServers = [
             '--var MCP_TEST_MODE:true',
             '--var MCP_CIMD_ENABLED:true',
             `--var BETTER_AUTH_URL:http://localhost:${OAUTH_PORT}`,
+            ...FALLBACK_SECRET_VARS,
           ].join(' '),
           url: `http://localhost:${OAUTH_PORT}/.well-known/oauth-protected-resource/mcp`,
           reuseExistingServer: false,
@@ -207,6 +209,7 @@ const webServers = [
             // Signs export links, so the web downloads reach the renderer. PDFs still fail here (Browser Run
             // does not run locally), which is the failure p-export-browser-run-only.spec.ts needs; DOCX and TXT render.
             '--var EXPORT_SIGNING_SECRET:e2e-export-signing-secret',
+            ...FALLBACK_SECRET_VARS,
           ].join(' '),
           url: BASE_URL,
           reuseExistingServer: false,
@@ -236,6 +239,7 @@ const webServers = [
             `--var ANTHROPIC_BASE_URL:${MCP_FAKE_URL}`,
             // Test value that only signs the download links of this run.
             '--var EXPORT_SIGNING_SECRET:e2e-mcp-export-signing-secret',
+            ...FALLBACK_SECRET_VARS,
           ].join(' '),
           url: `${MCP_BASE_URL}/.well-known/oauth-protected-resource/mcp`,
           reuseExistingServer: false,
