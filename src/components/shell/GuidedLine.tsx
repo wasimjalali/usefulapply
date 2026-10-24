@@ -792,7 +792,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                     value={pastedCv}
                     onChange={(e) => setPastedCv(e.target.value)}
                     placeholder="Paste your full CV. Name, experience, skills, the lot."
-                    className="h-52 w-full resize-none rounded-control border border-border bg-surface-raised p-4 text-sm text-ink-body placeholder:text-ink-muted focus:border-border-accent focus:outline-none"
+                    className="h-52 w-full resize-none rounded-control border border-border bg-surface-raised p-4 text-sm text-ink-body placeholder:text-ink-muted focus:border-border-focus focus:ring-2 focus:ring-focus-ring-soft/40 focus:outline-none"
                   />
                   <button
                     type="button"

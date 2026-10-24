@@ -101,7 +101,7 @@ Utilities follow Tailwind's naming, utility then role: `bg-surface`, `text-ink-m
 Rules:
 - **No gradients anywhere.** Not on canvas or surface layers, not on CTAs, not as text or border decoration. Every fill is a flat role.
 - **No translucent whites over cream.** `bg-document/85`, `bg-white/90` and the like on the canvas create subtle tint shifts the eye can feel but not name. Use solid `bg-surface` or solid `bg-document`: decide which role the surface is playing.
-- **Hairline borders only.** Borders are 1px and use `border-border`. `border-border-strong` is for dividers only. A thicker border is only ever a focus or selected-state indicator, a spinner, or a quote rule. Quote rules (blockquotes, pull quotes, quoted examples) keep a 2-4px accent left border.
+- **Hairline borders only.** Borders are 1px and use `border-border`. `border-border-strong` is for dividers only. A thicker border is only ever a focus or selected-state indicator, a spinner, or a quote rule. Quote rules (blockquotes, pull quotes, quoted examples) keep a 2-4px accent left border. The one other exception: the marketing footer's top edge is a flat 1px gold hairline (`border-t border-accent/40`).
 - **Avoid `border-strong` and darker creams on large fills.** They read as aged paper / dingy.
 - **Scrollbars are overlay-style: invisible at rest, white when revealed, never navy and never gold.** The thumb is transparent until the pointer is over the scroller or the scroller is scrolling (`ScrollbarReveal` stamps `data-scrolling`), then soft white `rgba(255,255,255,0.75)` with a faint navy inset hairline so it stays findable on white documents, and solid `#FFFFFF` when the thumb itself is hovered or grabbed. Transparent track, 12px wide with a 2px transparent border so the thumb reads as 8px (`globals.css`). Dark surfaces take `.scrollbar-on-dark`: same behavior, no hairline, `rgba(255,255,255,0.45)` reveal. Firefox has no per-state scrollbar colors, so it keeps an always-visible soft white thin bar.
 
@@ -134,6 +134,8 @@ Known tradeoff: white on `accent` (gold-400, `#D4A853`) measures ~2.2:1, below t
 
 The light gold tints (`bg-accent-soft`, `bg-accent-soft-strong`) are a different role: they are badges, chips and status tiles, not CTAs, and they keep dark text (`text-accent-soft-ink`, `text-ink-body`). White on a light tint is unreadable.
 
+CTAs on inverse (navy) surfaces carry no shadow and no `.cta-gold`: a shadow doesn't read on navy. They change color on hover only.
+
 Do NOT use: gradient CTAs, `bg-accent-strong` / `bg-brand-strong` as default base. Gradients read as AI-slop; flat brand colors read as confident.
 
 ### Shadow roles (3 values)
@@ -146,6 +148,9 @@ Do NOT use: gradient CTAs, `bg-accent-strong` / `bg-brand-strong` as default bas
 **The one-step lift.** Static cards rest on `shadow-resting` and don't change on hover. Interactive cards (they open, select or navigate) rise one step to `shadow-elevated` on hover (`hover:shadow-elevated transition-shadow duration-(--duration-base) ease-standard`), with no translate. The `.cta-gold` 1px lift stays reserved for elevated CTAs.
 
 Do NOT invent bespoke drop-shadow strings like `shadow-[0_24px_60px_-20px_rgba(30,58,95,0.35)]`. If `shadow-floating` isn't dramatic enough for a modal, use `shadow-xl` (last resort). Never `shadow-2xl`. Shadow color modifiers (`shadow-gold-200`) don't apply to the role shadows.
+
+### Focus
+- Text inputs and composers show focus with `border-border-focus` plus `ring-2 ring-focus-ring-soft/40` (`focus:` on a bare field, `focus-within:` on a shell that wraps one), as in the chat composer, the guided line's text boxes and the CV canvas fields. Everything else keeps the global 2px `focus-ring` outline.
 
 ### Motion
 - Durations come from tokens only: `duration-(--duration-fast)` (150ms) for small state changes, `duration-(--duration-base)` (200ms) for most transitions, `duration-(--duration-slow)` (400ms) for entrances and progress. A bare `transition-*` with no duration runs `--duration-fast` on `ease-standard` (set in `@theme`). Page-level scroll reveals (`ScrollReveal`, 600-700ms) are the one exception.
