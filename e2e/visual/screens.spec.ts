@@ -126,10 +126,13 @@ async function onScreen(
   }
 }
 
-/** Stop the page's timers, so a toast that closes itself after a few seconds stays for the screenshot. */
+/**
+ * Stop the page's timers, so a toast that closes itself after a few seconds stays for the screenshot. The target is
+ * a second ahead: pauseAt refuses a time the clock has already passed, and no timer on these screens is due sooner.
+ */
 async function pauseClock(page: Page): Promise<void> {
   const now = await page.evaluate(() => Date.now());
-  await page.clock.pauseAt(now + 100);
+  await page.clock.pauseAt(now + 1_000);
 }
 
 /**
