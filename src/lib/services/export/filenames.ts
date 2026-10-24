@@ -3,7 +3,8 @@ import { exportText } from './export-text';
 
 /**
  * File names a recruiter's inbox and an ATS both handle: ASCII, no spaces, the
- * applicant's name in it. `First_Last_CV.pdf`, `Lebenslauf_First_Last.pdf`.
+ * applicant's name in it, and for a CV or cover letter the company too.
+ * `First_Last_Acme_CV.pdf`, `Lebenslauf_First_Last_Acme.pdf`.
  */
 
 /** Letters that NFKD does not split into a base letter and a mark, and the scripts that are written another way. */
@@ -62,15 +63,36 @@ export function nameForFile(fullName: string): string {
   return parts.length > 0 ? parts.join('_') : 'Applicant';
 }
 
-/** The applicant's name as written, made safe for a file name: no separators or control characters, spaces as underscores. */
-export function unicodeNameForFile(fullName: string): string {
-  const cleaned = fullName
+function unicodePart(value: string): string {
+  return value
     .replace(/[\u0000-\u001f\u007f/\\:*?"<>|]+/g, ' ')
     .trim()
     .split(/\s+/)
     .filter(Boolean)
     .join('_');
-  return cleaned || 'Applicant';
+}
+
+/** The applicant's name as written, made safe for a file name: no separators or control characters, spaces as underscores. */
+export function unicodeNameForFile(fullName: string): string {
+  return unicodePart(fullName) || 'Applicant';
+}
+
+/**
+ * The company for the ASCII file name, the same way as the name: "Müller & Söhne GmbH" becomes
+ * "Mueller_Soehne_GmbH". Empty when nothing is transliterable, and then the file carries the name only.
+ */
+export function companyForFile(company: string): string {
+  return company
+    .trim()
+    .split(/\s+/)
+    .map(asciiPart)
+    .filter(Boolean)
+    .join('_');
+}
+
+/** The company as written, made safe for a file name like the unicode name. Empty when there is none. */
+export function unicodeCompanyForFile(company: string): string {
+  return unicodePart(company);
 }
 
 export type ExportFormat =
@@ -116,7 +138,14 @@ export const CONTENT_TYPES: Record<string, string> = {
   txt: 'text/plain; charset=utf-8',
 };
 
-function build(format: ExportFormat, name: string, locale: CvLocale | 'other'): string {
+/** Cut by code point, not UTF-16 unit, so an emoji or a rare letter is never split in half, then make the result well formed (a lone surrogate would break the header it ends up in). */
+function cutParts(value: string, max: number): string {
+  const cut = Array.from(value).slice(0, Math.max(0, max)).join('');
+  const wellFormed = typeof cut.toWellFormed === 'function' ? cut.toWellFormed() : cut.replace(/[\uD800-\uDFFF]/g, '�');
+  return wellFormed.replace(/^[_-]+|[_-]+$/g, '');
+}
+
+function build(format: ExportFormat, name: string, company: string, locale: CvLocale | 'other'): string {
   const words = exportText(locale);
   const ext = EXTENSION[format];
   const [prefix, suffix] = (() => {
@@ -135,21 +164,21 @@ function build(format: ExportFormat, name: string, locale: CvLocale | 'other'): 
     }
   })();
   const room = MAX_FILE_NAME - prefix.length - suffix.length - ext.length - 1;
-  // Cut by code point, not UTF-16 unit, so an emoji or a rare letter is never split in half, then
-  // make the result well formed (a lone surrogate would break the header it ends up in).
-  const cut = Array.from(name).slice(0, Math.max(8, room)).join('');
-  const wellFormed = typeof cut.toWellFormed === 'function' ? cut.toWellFormed() : cut.replace(/[\uD800-\uDFFF]/g, '\uFFFD');
-  return `${prefix}${wellFormed.replace(/[_-]+$/, '')}${suffix}.${ext}`;
+  const cutName = cutParts(name, Math.max(8, room));
+  // The company takes what the name leaves, so a tight name keeps all its letters and the company is cut first.
+  const withCompany = format === 'cv_pdf' || format === 'cv_docx' || format === 'cover_letter_pdf' || format === 'cover_letter_docx';
+  const cutCompany = withCompany && company ? cutParts(company, room - Array.from(cutName).length - 1) : '';
+  return `${prefix}${cutCompany ? `${cutName}_${cutCompany}` : cutName}${suffix}.${ext}`;
 }
 
-/** The ASCII file name an ATS, a mail client and a file system all accept, 80 characters at most. */
-export function exportFileName(format: ExportFormat, fullName: string, locale: CvLocale | 'other'): string {
-  return build(format, nameForFile(fullName), locale);
+/** The ASCII file name an ATS, a mail client and a file system all accept, 80 characters at most. CVs and letters carry the company too. */
+export function exportFileName(format: ExportFormat, fullName: string, locale: CvLocale | 'other', company = ''): string {
+  return build(format, nameForFile(fullName), companyForFile(company), locale);
 }
 
 /** The same name with the applicant's own letters, for the `filename*` of the download. */
-export function exportDisplayFileName(format: ExportFormat, fullName: string, locale: CvLocale | 'other'): string {
-  return build(format, unicodeNameForFile(fullName), locale);
+export function exportDisplayFileName(format: ExportFormat, fullName: string, locale: CvLocale | 'other', company = ''): string {
+  return build(format, unicodeNameForFile(fullName), unicodeCompanyForFile(company), locale);
 }
 
 /** RFC 5987 `filename*` value: encodeURIComponent leaves ' ( ) * alone, and the standard allows them only encoded. */
