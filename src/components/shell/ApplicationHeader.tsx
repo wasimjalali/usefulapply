@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ExternalLink, Loader2, Pencil } from 'lucide-react';
 import { isSafeExternalUrl } from '@/lib/job-feed/helpers';
-import { commitEditorSave, editorSaveSucceeded, getEditorStart, type EditorStart } from '@/lib/session-sync';
+import { commitEditorSave, editorSaveSucceeded, getEditorStart, type EditorOutcome, type EditorStart } from '@/lib/session-sync';
 import { useSessionStore, type ApplicationSession } from '@/store/useSessionStore';
 import { useTrackerStore } from '@/store/useTrackerStore';
 
@@ -32,6 +32,28 @@ interface ApplicationHeaderProps {
 
 type DetailFields = { jobTitle: string; company: string; jobUrl: string };
 const FIELD_KEYS: (keyof DetailFields)[] = ['jobTitle', 'company', 'jobUrl'];
+const FIELD_LABELS: Record<keyof DetailFields, string> = { jobTitle: 'Job title', company: 'Company', jobUrl: 'Job link' };
+
+function storedSession(id: string): ApplicationSession | null {
+  const state = useSessionStore.getState();
+  return state.sessions.find((item) => item.id === id) ?? (state.currentSession?.id === id ? state.currentSession : null);
+}
+
+/**
+ * A save that did not land must not leave the draft in the store: the autosync would save it later, behind a form that
+ * said it failed. The fields go back to what the store held before the save, but only where the store still holds what
+ * the save wrote (a value that changed since is somebody else's).
+ */
+function restoreStore(id: string, written: Partial<DetailFields>, previous: Partial<ApplicationSession>): void {
+  const stored = storedSession(id);
+  if (!stored) return;
+  const back: Partial<ApplicationSession> = {};
+  for (const key of FIELD_KEYS) {
+    if (key in written && (stored[key] ?? '') === written[key]) (back as Record<string, unknown>)[key] = previous[key];
+  }
+  if (Object.keys(back).length > 0) useSessionStore.getState().updateSessionById(id, back);
+}
+
 export function ApplicationHeader({ session, title, statusLabel }: ApplicationHeaderProps) {
   const [editing, setEditing] = useState(false);
   const [jobTitle, setJobTitle] = useState('');
@@ -39,43 +61,31 @@ export function ApplicationHeader({ session, title, statusLabel }: ApplicationHe
   const [jobUrl, setJobUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // What the form opened on, the editor's base revision, and what a save has put in the store that the server may not hold.
+  // What the form opened on (or was last rebased to after a conflict) and the editor's base revision.
   const openedRef = useRef<DetailFields | null>(null);
   const startRef = useRef<EditorStart | undefined>(undefined);
-  const appliedRef = useRef<Partial<DetailFields>>({});
-  const savingRef = useRef(false);
   const titleRef = useRef<HTMLInputElement>(null);
   const editRef = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef(false);
 
   const sessionId = session?.id ?? null;
+  // The application the header shows now, for a save that finishes after the user moved to another one.
+  const shownIdRef = useRef(sessionId);
   // A local draft has no stored row yet, so there is nothing to save an edit to.
   const canEdit = Boolean(sessionId) && !sessionId?.startsWith('session-');
   const adLink = session?.jobUrl && isSafeExternalUrl(session.jobUrl) ? session.jobUrl : null;
 
-  // A failed save leaves the draft in the store as an unsaved edit. Cancelling, or leaving the application,
-  // puts the opened values back so the autosync cannot save a change the user walked away from.
-  const revertUnsaved = (id: string | null) => {
-    const opened = openedRef.current;
-    const applied = appliedRef.current;
-    appliedRef.current = {};
-    if (!id || !opened || savingRef.current) return;
-    const stored = useSessionStore.getState().sessions.find((item) => item.id === id)
-      ?? (useSessionStore.getState().currentSession?.id === id ? useSessionStore.getState().currentSession : null);
-    if (!stored) return;
-    const back: Partial<DetailFields> = {};
-    for (const key of FIELD_KEYS) {
-      // Only what this form wrote: a value that changed since is somebody else's.
-      if (key in applied && (stored[key] ?? '') === applied[key]) back[key] = opened[key];
-    }
-    if (Object.keys(back).length > 0) useSessionStore.getState().updateSessionById(id, back);
-  };
-
-  // Another application opened while the form was up: the form was about the old one.
-  useEffect(() => {
+  // Another application opened while the form was up: the form was about the old one. A save still running for it
+  // finishes on its own and touches no state here (see save).
+  const [formFor, setFormFor] = useState(sessionId);
+  if (formFor !== sessionId) {
+    setFormFor(sessionId);
     setEditing(false);
     setError(null);
-    return () => revertUnsaved(sessionId);
+    setSaving(false);
+  }
+  useEffect(() => {
+    shownIdRef.current = sessionId;
   }, [sessionId]);
 
   useEffect(() => {
@@ -90,7 +100,6 @@ export function ApplicationHeader({ session, title, statusLabel }: ApplicationHe
     if (!session) return;
     openedRef.current = { jobTitle: session.jobTitle ?? '', company: session.company ?? '', jobUrl: session.jobUrl ?? '' };
     startRef.current = getEditorStart(session.id);
-    appliedRef.current = {};
     setJobTitle(openedRef.current.jobTitle);
     setCompany(openedRef.current.company);
     setJobUrl(openedRef.current.jobUrl);
@@ -99,7 +108,6 @@ export function ApplicationHeader({ session, title, statusLabel }: ApplicationHe
   };
 
   const close = () => {
-    revertUnsaved(sessionId);
     returnFocus.current = true;
     setEditing(false);
     setError(null);
@@ -113,36 +121,38 @@ export function ApplicationHeader({ session, title, statusLabel }: ApplicationHe
       setError('The link needs to start with http:// or https://.');
       return;
     }
-    // Only what the user changed goes to the store: a field left alone keeps whatever the server holds now. A field an
-    // earlier failed try of this form wrote is included even if it was changed back, so the store gets the opened value.
-    const touched = FIELD_KEYS.filter((key) => draft[key] !== opened[key] || key in appliedRef.current);
+    // Only what the user changed goes to the store: a field left alone keeps whatever the server holds now.
+    const touched = FIELD_KEYS.filter((key) => draft[key] !== opened[key]);
     if (touched.length === 0) {
       close();
       return;
     }
     const id = session.id;
+    const start = startRef.current;
     const changes: Partial<DetailFields> = {};
     for (const key of touched) changes[key] = draft[key];
+    const before: { value: Partial<ApplicationSession> | null } = { value: null };
     setSaving(true);
-    savingRef.current = true;
     setError(null);
+    let outcome: EditorOutcome;
     try {
-      const outcome = await commitEditorSave(id, startRef.current, () => {
+      outcome = await commitEditorSave(id, start, () => {
+        const stored = storedSession(id);
+        if (stored) {
+          const previous: Partial<ApplicationSession> = {};
+          for (const key of touched) (previous as Record<string, unknown>)[key] = stored[key];
+          before.value = previous;
+        }
         useSessionStore.getState().updateSessionById(id, changes);
-        appliedRef.current = { ...appliedRef.current, ...changes };
       });
-      savingRef.current = false;
-      if (!editorSaveSucceeded(outcome)) {
-        setError(outcome === 'conflict'
-          ? 'This application was changed elsewhere. Your text is still here.'
-          : outcome === 'gone'
-            ? 'This application no longer exists.'
-            : "That didn't save. Try again.");
-        return;
-      }
-      appliedRef.current = {};
+    } catch {
+      outcome = 'error';
+    }
+    const shown = shownIdRef.current === id;
+
+    if (editorSaveSucceeded(outcome)) {
       // The tracker keeps its own copy of the row and the revision its status changes are checked against.
-      const saved = useSessionStore.getState().sessions.find((item) => item.id === id);
+      const saved = storedSession(id);
       useTrackerStore.setState((state) => ({
         rows: state.rows.map((row) => (row.id === id
           ? {
@@ -153,14 +163,31 @@ export function ApplicationHeader({ session, title, statusLabel }: ApplicationHe
             }
           : row)),
       }));
-      close();
-    } catch {
-      savingRef.current = false;
-      setError("That didn't save. Try again.");
-    } finally {
-      savingRef.current = false;
-      setSaving(false);
+      if (shown) {
+        setSaving(false);
+        close();
+      }
+      return;
     }
+
+    // Not saved, for any reason: the draft lives in the form only, and a Save tries again.
+    if (before.value) restoreStore(id, changes, before.value);
+    if (!shown) return;
+    setSaving(false);
+    if (outcome === 'conflict') {
+      // The engine put the server's version back and kept the draft aside. Show what the server holds now, and make
+      // the next Save a deliberate overwrite of values the user has seen: the form rebases onto them.
+      const now = storedSession(id);
+      const current: DetailFields = { jobTitle: now?.jobTitle ?? '', company: now?.company ?? '', jobUrl: now?.jobUrl ?? '' };
+      const changedElsewhere = touched.filter((key) => current[key] !== opened[key]);
+      openedRef.current = { ...opened, ...Object.fromEntries(touched.map((key) => [key, current[key]])) };
+      startRef.current = getEditorStart(id);
+      setError(changedElsewhere.length > 0
+        ? `Changed elsewhere. ${changedElsewhere.map((key) => `${FIELD_LABELS[key]} is now ${current[key] ? `"${current[key]}"` : 'empty'}`).join('. ')}. Save again to replace it.`
+        : 'This application was changed elsewhere. Check your changes and save again.');
+      return;
+    }
+    setError(outcome === 'gone' ? 'This application no longer exists.' : "That didn't save. Try again.");
   };
 
   if (editing) {

@@ -183,7 +183,8 @@ async function persistFeedSettings(params: {
   const seniorityTarget = seniorityTargets[0] ?? normalized.data.seniority_target ?? existingSettings?.seniority_target ?? null;
 
   // Employment types is a setting of its own in the editor and the MCP tool. A body that leaves the key out
-  // (the first-run wizard) gets ['full_time']; a body that sends an empty list was refused above.
+  // gets ['full_time'] (the web app always sends a list, ['full_time'] from the first-run wizard); a body that
+  // sends an empty list was refused above.
   const employmentTypes = normalized.data.employment_types.length > 0
     ? normalized.data.employment_types
     : (['full_time'] as JobFeedSettingsInput['employment_types']);

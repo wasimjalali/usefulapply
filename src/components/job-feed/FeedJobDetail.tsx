@@ -73,6 +73,8 @@ export function FeedJobDetail({
   // each asks in place first. Only one asks at a time.
   const [confirming, setConfirming] = useState<'dismiss' | 'not_relevant' | null>(null);
   const keepRef = useRef<HTMLButtonElement>(null);
+  const saveRef = useRef<HTMLButtonElement>(null);
+  const hadQuestion = useRef(false);
   const dismissRef = useRef<HTMLButtonElement>(null);
   const notRelevantRef = useRef<HTMLButtonElement>(null);
   const lastAsked = useRef<'dismiss' | 'not_relevant' | null>(null);
@@ -81,13 +83,18 @@ export function FeedJobDetail({
   const canChange = canDismissJob(job);
   // A refresh can make the role final (applied elsewhere, rated in another tab) while its question is up: then it closes.
   const asking = canChange ? confirming : null;
+  if (!canChange && confirming !== null) setConfirming(null);
 
   useEffect(() => {
     if (confirming) keepRef.current?.focus();
     else if (returnFocus.current) {
       returnFocus.current = false;
       (lastAsked.current === 'not_relevant' ? notRelevantRef : dismissRef).current?.focus();
+    } else if (hadQuestion.current) {
+      // The question closed because the role became final: its buttons are gone, so focus goes to what is left.
+      saveRef.current?.focus();
     }
+    hadQuestion.current = confirming !== null;
   }, [confirming]);
 
   const ask = (which: 'dismiss' | 'not_relevant') => {
@@ -113,6 +120,7 @@ export function FeedJobDetail({
         </button>
         <div className="flex-1" />
         <button
+          ref={saveRef}
           type="button"
           disabled={busy}
           onClick={() => onSave(job)}

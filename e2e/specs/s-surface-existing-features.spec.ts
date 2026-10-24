@@ -35,7 +35,8 @@ import { cloneApplications } from '../lib/visual';
  * 15. "Open the ad" shows for an application with no link, shows a non-web link, opens in the same tab, or lacks
  *     rel="noopener noreferrer". Clearing the link leaves the old link in the row.
  * 16. A title-only save writes the form's stale link over one added elsewhere while the form was open, or sends a link at all.
- * 17. A save that fails leaves the draft in the store: Cancel doesn't revert it and the autosync saves it later.
+ * 17. A save that fails leaves the draft in the store, and the autosync saves it later behind a form that said it failed.
+ * 18. After a conflict the form can never save: it keeps comparing against the values it opened on.
  */
 
 const JOBS = [
@@ -534,8 +535,8 @@ test('(s7) a title-only edit leaves a link that was added elsewhere while the fo
   }
 });
 
-test('(s8) a save that fails keeps the form open, and Cancel puts the old values back so nothing is saved later', async ({ browser, request }) => {
-  test.setTimeout(150_000);
+test('(s8) a save that fails once keeps the form open and the draft out of the store, a retry saves it, and a cancelled edit sends nothing', async ({ browser, request }) => {
+  test.setTimeout(180_000);
   const { user, context, page } = await feedUser(browser, request, 'surfacefail');
   try {
     await page.goto('/dashboard');
@@ -548,30 +549,84 @@ test('(s8) a save that fails keeps the form open, and Cancel puts the old values
       .getByRole('heading', { level: 2 });
     await expect(header).toHaveText(original);
 
-    // Every save that carries the edited title fails on the server.
-    await page.route('**/dashboard**', (route) => (
-      route.request().method() === 'POST' && route.request().headers()['next-action'] && (route.request().postData() ?? '').includes('Failing Title')
-        ? route.fulfill({ status: 500, contentType: 'text/plain', body: 'Internal Server Error' })
-        : route.continue()
-    ));
-    await page.getByRole('button', { name: 'Edit details' }).click();
-    await page.locator('#application-job-title').fill('Failing Title');
+    // The first save that carries the edited title fails on the server; every later one goes through.
+    let failed = 0;
+    await page.route('**/dashboard**', (route) => {
+      const carriesTitle = route.request().method() === 'POST' && route.request().headers()['next-action']
+        && (route.request().postData() ?? '').includes('Retried Title');
+      if (carriesTitle && failed === 0) {
+        failed += 1;
+        return route.fulfill({ status: 500, contentType: 'text/plain', body: 'Internal Server Error' });
+      }
+      return route.continue();
+    });
     const form = page.locator('form').filter({ has: page.locator('#application-job-title') });
+    await page.getByRole('button', { name: 'Edit details' }).click();
+    await page.locator('#application-job-title').fill('Retried Title');
     await form.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(form.getByRole('alert')).toContainText("didn't save");
-    await expect(page.locator('#application-job-title')).toHaveValue('Failing Title');
+    await expect(page.locator('#application-job-title')).toHaveValue('Retried Title');
+    expect(failed).toBe(1);
 
-    // Cancel: the header, the sidebar and the store read as before, and nothing is saved afterwards (the autosync
-    // waits two seconds, so this waits longer, with the route lifted so a stray save could land).
+    // The failed draft is not in the store, so the autosync (two seconds after a change) has nothing to save: wait
+    // longer than that with the form still open, and the row has not moved.
+    await page.waitForTimeout(4_000);
+    const afterFailure = storedApplication(user.id)!;
+    expect(afterFailure.job_title).toBe(before.job_title);
+    expect(afterFailure.revision).toBe(before.revision);
+    expect(failed).toBe(1);
+
+    // The same form saves it on a retry.
+    await form.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(form).toHaveCount(0);
+    await expect.poll(() => storedApplication(user.id)?.job_title, { timeout: 20_000 }).toBe('Retried Title');
+    await expect(header).toHaveText(`${before.company}, Retried Title`);
+
+    // A cancelled edit sends nothing and changes nothing.
+    const saved = storedApplication(user.id)!;
+    let cancelledSent = 0;
+    page.on('request', (req) => {
+      if (req.method() === 'POST' && req.headers()['next-action'] && (req.postData() ?? '').includes('Cancelled Title')) cancelledSent += 1;
+    });
+    await page.getByRole('button', { name: 'Edit details' }).click();
+    await page.locator('#application-job-title').fill('Cancelled Title');
     await form.getByRole('button', { name: 'Cancel' }).click();
-    await expect(header).toHaveText(original);
-    await expect(page.getByRole('button', { name: /Northwind Foods/ }).first()).not.toContainText('Failing Title');
-    await page.unroute('**/dashboard**');
-    await page.waitForTimeout(5_000);
-    const after = storedApplication(user.id)!;
-    expect(after.job_title).toBe(before.job_title);
-    expect(after.revision).toBe(before.revision);
-    await expect(header).toHaveText(original);
+    await page.waitForTimeout(4_000);
+    expect(cancelledSent).toBe(0);
+    expect(storedApplication(user.id)!.revision).toBe(saved.revision);
+    await expect(header).toHaveText(`${before.company}, Retried Title`);
+  } finally {
+    await context.close();
+  }
+});
+
+test('(s9) a conflicting save shows what the server holds now, and the next Save is the user\'s deliberate overwrite', async ({ browser, request }) => {
+  test.setTimeout(150_000);
+  const { user, context, page } = await feedUser(browser, request, 'surfaceconflict');
+  try {
+    await page.goto('/dashboard');
+    await page.getByRole('button', { name: /Northwind Foods/ }).first().click();
+    await expect(page.getByRole('tab', { name: 'CV' })).toBeVisible({ timeout: 30_000 });
+    const form = page.locator('form').filter({ has: page.locator('#application-job-title') });
+
+    await page.getByRole('button', { name: 'Edit details' }).click();
+    // Another writer changes the same field while the form is open, and the page learns of it.
+    withDb((db) => db.prepare("UPDATE application_sessions SET job_title = 'Title From Elsewhere', revision = revision + 1 WHERE user_id = ?").run(user.id));
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await page.waitForTimeout(3_000);
+
+    await page.locator('#application-job-title').fill('My Own Title');
+    await form.getByRole('button', { name: 'Save', exact: true }).click();
+    // The server's value stays, the form says what it is, and the draft stays in the input.
+    await expect(form.getByRole('alert')).toContainText('Job title is now "Title From Elsewhere"');
+    await expect(page.locator('#application-job-title')).toHaveValue('My Own Title');
+    await page.waitForTimeout(500);
+    expect(storedApplication(user.id)!.job_title).toBe('Title From Elsewhere');
+
+    // Not a dead end: the user has seen the other value, so the next Save replaces it.
+    await form.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(form).toHaveCount(0);
+    await expect.poll(() => storedApplication(user.id)?.job_title, { timeout: 20_000 }).toBe('My Own Title');
   } finally {
     await context.close();
   }

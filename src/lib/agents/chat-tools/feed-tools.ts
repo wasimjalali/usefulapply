@@ -450,8 +450,9 @@ Work authorization: ${WORK_AUTH_VALUES.join(', ')}.`,
     // display defaults for nullable columns, and writing those back would
     // invent a seniority or a work authorization the user never chose.
     const saved_row = loaded.settings;
-    // The one column the normalizer can hand back empty. The settings route
-    // heals it the same way, and the table refuses an empty array.
+    // The one column the normalizer can hand back empty, and the table refuses an
+    // empty array. The settings route refuses a sent empty list; here the list
+    // is built from a parse, so an empty one falls back to full-time.
     const employmentTypes = validated.employment_types.length > 0
       ? validated.employment_types
       : (['full_time'] as JobFeedSettingsInput['employment_types']);
