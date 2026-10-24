@@ -1,6 +1,7 @@
 'use client';
 
-import { Bookmark, Clock, DollarSign, ExternalLink, Globe, MapPin, Search } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Bookmark, Clock, DollarSign, ExternalLink, Globe, MapPin, Search, X } from 'lucide-react';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { workModeLabel } from './job-ad-text';
 import { buildCardSummary, formatJobAge, safeEmployerUrl } from './feed-format';
@@ -11,6 +12,8 @@ interface FeedJobCardProps {
   onOpenDetail: (job: JobFeedFeedItem) => void;
   onCheckFit: (job: JobFeedFeedItem) => void;
   onSave: (job: JobFeedFeedItem) => void;
+  /** Left out where dismissing isn't allowed (the Free plan), so the icon doesn't show. */
+  onDismiss?: (job: JobFeedFeedItem) => void;
   onOpenEmployerSite: (job: JobFeedFeedItem) => void;
   onUpgrade?: () => void;
   busy?: boolean;
@@ -43,6 +46,7 @@ export function FeedJobCard({
   onOpenDetail,
   onCheckFit,
   onSave,
+  onDismiss,
   onOpenEmployerSite,
   onUpgrade,
   busy = false,
@@ -54,6 +58,12 @@ export function FeedJobCard({
   const isStrong = job.fitLabel === 'strong';
   const employerLink = safeEmployerUrl(job);
   const isSaved = Boolean(job.feedback.savedAt);
+  const [confirmingDismiss, setConfirmingDismiss] = useState(false);
+  const keepRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (confirmingDismiss) keepRef.current?.focus();
+  }, [confirmingDismiss]);
 
   return (
     <div
@@ -111,38 +121,85 @@ export function FeedJobCard({
               </button>
             )
           )}
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={(event) => {
+          {confirmingDismiss ? (
+            <div
+              role="group"
+              aria-label="Dismiss this job?"
+              className="flex flex-wrap items-center justify-end gap-2"
+              onClick={(event) => event.stopPropagation()}
+              onKeyDown={(event) => {
                 event.stopPropagation();
-                onSave(job);
+                if (event.key === 'Escape' && !busy) setConfirmingDismiss(false);
               }}
-              aria-label={isSaved ? 'Remove from saved' : 'Save this role'}
-              aria-pressed={isSaved}
-              className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-200 hover:bg-cream-100 cursor-pointer ${
-                isSaved ? 'text-gold-600' : 'text-warm-gray hover:text-navy-700'
-              }`}
             >
-              <Bookmark className="h-4 w-4" fill={isSaved ? 'currentColor' : 'none'} />
-            </button>
-            {employerLink && (
-              <a
-                href={employerLink}
-                target="_blank"
-                rel="noopener noreferrer"
+              <span className="text-xs font-semibold text-ink">Dismiss this job?</span>
+              <button
+                ref={keepRef}
+                type="button"
+                disabled={busy}
+                onClick={() => setConfirmingDismiss(false)}
+                className="inline-flex h-8 items-center rounded-pill border border-border bg-surface px-3 text-xs font-semibold text-ink shadow-resting transition-colors duration-200 hover:bg-surface-raised disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
+              >
+                Keep
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => onDismiss?.(job)}
+                className="inline-flex h-8 items-center rounded-pill px-3 text-xs font-semibold text-danger transition-colors duration-200 hover:bg-canvas disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
+              >
+                {busy ? 'Dismissing' : 'Dismiss'}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                disabled={busy}
                 onClick={(event) => {
                   event.stopPropagation();
-                  onOpenEmployerSite(job);
+                  onSave(job);
                 }}
-                aria-label="Open the employer site"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-warm-gray transition-colors duration-200 hover:bg-cream-100 hover:text-navy-700 cursor-pointer"
+                aria-label={isSaved ? 'Remove from saved' : 'Save this role'}
+                aria-pressed={isSaved}
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-200 hover:bg-cream-100 cursor-pointer ${
+                  isSaved ? 'text-gold-600' : 'text-warm-gray hover:text-navy-700'
+                }`}
               >
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            )}
-          </div>
+                <Bookmark className="h-4 w-4" fill={isSaved ? 'currentColor' : 'none'} />
+              </button>
+              {employerLink && (
+                <a
+                  href={employerLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onOpenEmployerSite(job);
+                  }}
+                  aria-label="Open the employer site"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-warm-gray transition-colors duration-200 hover:bg-cream-100 hover:text-navy-700 cursor-pointer"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              )}
+              {onDismiss && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setConfirmingDismiss(true);
+                  }}
+                  aria-label="Dismiss this role"
+                  title="Dismiss"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-pill text-ink-muted transition-colors duration-200 hover:bg-canvas hover:text-brand-strong cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

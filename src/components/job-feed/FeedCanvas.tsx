@@ -63,6 +63,8 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
   // for an empty day, and telling the user "2 searches" when one runs would be
   // a promise the normal day does not keep.
   const queryBudget = getJobFeedTierLimits(tier ?? 'free').maxMainQueries;
+  // The server allows a dismiss on Plus and Max only, so Free never sees the button.
+  const canDismiss = tier === 'plus' || tier === 'max';
   const canAffordFit = credits === null || credits.total >= CREDIT_COSTS.FIT_ANALYSIS;
   const canAffordKit = credits === null || credits.total >= CREDIT_COSTS.FULL_APPLICATION;
   const selectedJob = useMemo(
@@ -123,6 +125,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
           void actions.checkFit(job, 'apply').finally(() => setDetailBusy(false));
         }}
         onSave={(job) => { void actions.save(job); }}
+        onDismiss={canDismiss ? (job) => { void actions.dismiss(job); } : undefined}
         onOpenEmployerSite={actions.openEmployerSite}
         onUpgrade={() => openSettings('usage')}
         showCheckFit={!readOnly}
@@ -273,6 +276,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
             onOpenDetail={actions.openDetail}
             onCheckFit={(item) => { void actions.checkFit(item, 'analyze'); }}
             onSave={(item) => { void actions.save(item); }}
+            onDismiss={canDismiss ? (item) => { void actions.dismiss(item); } : undefined}
             onOpenEmployerSite={actions.openEmployerSite}
             onUpgrade={() => openSettings('usage')}
             showCheckFit={!readOnly}

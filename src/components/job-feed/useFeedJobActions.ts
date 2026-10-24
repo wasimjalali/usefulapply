@@ -8,6 +8,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { usePostHog } from 'posthog-js/react';
+import { useToast } from '@/components/ui/Toast';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { useCVStore } from '@/store/useCVStore';
 import { selectFeedThreadKey, useFeedStore } from '@/store/useFeedStore';
@@ -20,6 +21,7 @@ export interface FeedJobActions {
   busyJobId: string | null;
   openDetail: (job: JobFeedFeedItem) => void;
   save: (job: JobFeedFeedItem) => Promise<void>;
+  dismiss: (job: JobFeedFeedItem) => Promise<void>;
   openEmployerSite: (job: JobFeedFeedItem) => void;
   checkFit: (job: JobFeedFeedItem, mode?: FeedHandoffMode) => Promise<void>;
   loadMore: () => Promise<void>;
@@ -45,6 +47,7 @@ function actionRunId(): string | null {
 
 export function useFeedJobActions(): FeedJobActions {
   const posthog = usePostHog();
+  const { toast } = useToast();
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
   const busyJobIdRef = useRef<string | null>(null);
 
@@ -87,6 +90,27 @@ export function useFeedJobActions(): FeedJobActions {
       setBusyJobId(null);
     }
   }, [posthog]);
+
+  const dismiss = useCallback(async (job: JobFeedFeedItem) => {
+    if (busyJobIdRef.current === job.id) return;
+    busyJobIdRef.current = job.id;
+    setBusyJobId(job.id);
+    try {
+      const result = await recordFeedFeedback(job, 'dismissed', actionRunId());
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      posthog?.capture('job_feed_item_dismissed', { job_id: job.id, company: job.company });
+      // Leaves Today and Saved, and closes the detail if it was open. Also what
+      // a preview needs, since it never refetches.
+      useFeedStore.getState().removeJob(job.id);
+      toast.success("Job dismissed. It won't come back.");
+    } finally {
+      busyJobIdRef.current = null;
+      setBusyJobId(null);
+    }
+  }, [posthog, toast]);
 
   const openEmployerSite = useCallback((job: JobFeedFeedItem) => {
     posthog?.capture('job_feed_external_apply_clicked', { job_id: job.id, company: job.company });
@@ -134,5 +158,5 @@ export function useFeedJobActions(): FeedJobActions {
     store.backToList();
   }, []);
 
-  return { busyJobId, openDetail, save, openEmployerSite, checkFit, loadMore, showSaved, showToday };
+  return { busyJobId, openDetail, save, dismiss, openEmployerSite, checkFit, loadMore, showSaved, showToday };
 }

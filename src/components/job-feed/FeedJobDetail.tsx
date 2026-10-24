@@ -1,6 +1,7 @@
 'use client';
 
-import { ArrowLeft, Bookmark, Clock, DollarSign, ExternalLink, Globe, MapPin, Search } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, Bookmark, Clock, DollarSign, ExternalLink, Globe, MapPin, Search, X } from 'lucide-react';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { JobFeedDescription, workModeLabel } from './job-ad-text';
 import { formatJobAge, safeEmployerUrl } from './feed-format';
@@ -12,6 +13,8 @@ interface FeedJobDetailProps {
   onCheckFit: (job: JobFeedFeedItem) => void;
   onGenerateKit: (job: JobFeedFeedItem) => void;
   onSave: (job: JobFeedFeedItem) => void;
+  /** Left out where dismissing isn't allowed (the Free plan). */
+  onDismiss?: (job: JobFeedFeedItem) => void;
   onOpenEmployerSite: (job: JobFeedFeedItem) => void;
   onUpgrade?: () => void;
   busy?: boolean;
@@ -46,6 +49,7 @@ export function FeedJobDetail({
   onCheckFit,
   onGenerateKit,
   onSave,
+  onDismiss,
   onOpenEmployerSite,
   onUpgrade,
   busy = false,
@@ -57,6 +61,12 @@ export function FeedJobDetail({
   const isStrong = job.fitLabel === 'strong';
   const employerLink = safeEmployerUrl(job);
   const isSaved = Boolean(job.feedback.savedAt);
+  const [confirmingDismiss, setConfirmingDismiss] = useState(false);
+  const keepRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (confirmingDismiss) keepRef.current?.focus();
+  }, [confirmingDismiss]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -95,6 +105,45 @@ export function FeedJobDetail({
             Employer site
           </a>
         )}
+        {onDismiss && (confirmingDismiss ? (
+          <div
+            role="group"
+            aria-label="Dismiss this job?"
+            className="flex items-center gap-2"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape' && !busy) setConfirmingDismiss(false);
+            }}
+          >
+            <span className="text-sm font-semibold text-ink">Dismiss this job?</span>
+            <button
+              ref={keepRef}
+              type="button"
+              disabled={busy}
+              onClick={() => setConfirmingDismiss(false)}
+              className="inline-flex h-9 items-center rounded-pill border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-resting transition-colors duration-200 hover:bg-surface-raised disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
+            >
+              Keep
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onDismiss(job)}
+              className="inline-flex h-9 items-center rounded-pill px-3.5 text-sm font-semibold text-danger transition-colors duration-200 hover:bg-canvas disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
+            >
+              {busy ? 'Dismissing' : 'Dismiss'}
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setConfirmingDismiss(true)}
+            className="inline-flex h-9 items-center gap-2 rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-200 hover:bg-surface hover:text-ink cursor-pointer"
+          >
+            <X className="h-4 w-4" />
+            Dismiss
+          </button>
+        ))}
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto px-5 py-5">
