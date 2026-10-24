@@ -2,7 +2,7 @@
 
 The seeded applications (Halcyon and Fjordwerk) already have full kits, so shot 3 and the demo use a pasted ad instead. Re-run the seed script after the captures (see `checklist.md`).
 
-Capture these after launch (`MCP_ENABLED=true`, deployed), on the reviewer account, so nothing real shows. Wasim does the captures. They need the live connector in real clients.
+Capture these on a production reviewer account once it's seeded (the connector is live since 2026-10-21), so nothing real shows. Wasim does the captures. They need the live connector in real clients.
 
 Specs:
 

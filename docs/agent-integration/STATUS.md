@@ -1,15 +1,26 @@
 # MCP integration: status tracker
 
-Last updated 2026-10-21, session 4 (in progress). The plan is `PLAN.md` (v3) in this folder; this file says what's done, what's in flight and what's left. A new session starts here.
+Last updated 2026-10-25, session 5. The plan is `PLAN.md` (v3) in this folder; this file says what's done, what's in flight and what's left. A new session starts here.
 
-## Resume here (session 4)
+## Resume here (session 5)
 
-1. **Shipped in session 3:** #162 (refund reconciler, D1 LIKE limit), #159 (Discard data-safety fix), #163 (PR 5, the 43-tool MCP catalog; migration 0011 applied remote), #161 (submission pack, reviewer seed), #156 (/integrations, privacy and terms; MCP analytics kept 12 months) and the launch PR (`MCP_ENABLED=true`, footer link always shown, plugin install commands on /integrations). MCP is live at https://usefulapply.com/mcp.
-2. **Live tests** after launch: every tool in MCP Inspector, Claude Code (plugin), the Claude.ai custom connector and ChatGPT developer mode, through Aside on Wasim's accounts. Artifacts in `verify/feature-mcp-launch/`.
-3. **Wasim, when ready to submit:** run the reviewer seed against production (`scripts/seed-reviewer-account.ts`, full command in `submission/checklist.md`), then submit at claude.ai/directory/manage (connector and plugin) and in the OpenAI app directory (identity verification and `OPENAI_APPS_CHALLENGE` first).
-4. **Follow-ups** as in "Left to do", plus: `rewrite_cv_section` returns its before/after text unwrapped while the other CV edit tools wrap it; no spec asserts the top-level `language` code in `get_cv` stays unwrapped; AGENTS.md still lists `/applications`, removed long ago.
+1. **Live since 2026-10-21:** 43 tools at https://usefulapply.com/mcp, the Claude Code plugin ([wasimjalali/usefulapply-plugin](https://github.com/wasimjalali/usefulapply-plugin)) and /integrations. Production on 2026-10-25: Worker version `7121506b`, migrations through 0015 applied.
+2. **Submission pack is current** (session 5): `submission/` and `openai/` match the live catalog, the submission docs as read on 2026-10-25, and OpenAI's new ZIP flow (`openai/package/`).
+3. **Wasim, to submit:** say yes in a session to the production reviewer seed (commands in `submission/checklist.md`, "Production seed"), then the connector and plugin at claude.ai/directory/manage, then the OpenAI app at platform.openai.com/plugins (identity verification and `OPENAI_APPS_CHALLENGE` first).
+4. **Before the OpenAI submission:** the privacy policy doesn't name date of birth or nationality (`update_profile` saves both) and gives no PostHog analytics retention period.
+5. **Follow-ups** as in "Follow-ups", plus: `rewrite_cv_section` returns its before/after text unwrapped while the other CV edit tools wrap it; no spec asserts the top-level `language` code in `get_cv` stays unwrapped.
 
 **Kill switch:** set `MCP_ENABLED` to `"false"` in `wrangler.jsonc` and deploy. /mcp, the OAuth server and /integrations return 404. The footer "AI integrations" link stays (it can't read the var), so it would 404 too: drop it from `Footer.tsx` in the same change.
+
+## Session 5 progress (2026-10-25): submission prep
+
+- **Catalog drift check.** Production `tools/list` (over the plugin's live OAuth connection) returned the same 43 names as `TOOL_SCOPES`: 13 read, 24 free writes, 6 spend. Hints rechecked in code: 19 destructive, `run_job_feed` the only open-world tool. `update_notification_settings` takes only `followUpDue` and `interviewTomorrow` (#194 removed `marketing` and `creditsLow`); none of the pack named the removed fields. #197 (`employmentTypes` on `update_feed_settings`, a job URL on create and update must be http or https) was still open and not deployed; nothing in the pack names those fields, so nothing changes when it ships.
+- **Drift fixed in the pack:** the authorization server metadata URL (`/.well-known/oauth-authorization-server/api/auth`; the bare path is 404, correct for an issuer with a path), the OpenAI flow (now a ZIP upload, package in `openai/package/`), the Anthropic plugin flow (portal "Plugin bundle", GitHub connection, data handling, four acknowledgements), the icon (`public/useful-apply-logo.png`), and every "open until launch" status.
+- **Plugin repo:** matches the live catalog, `claude plugin validate` passes. No PR needed.
+- **Production, read-only:** `/mcp` 401 with `WWW-Authenticate` (resource metadata and scopes), protected resource and authorization server metadata 200, `/integrations`, `/privacy`, `/terms`, `/auth/login` 200, `/.well-known/openai-apps-challenge` 404 (secret not set yet). MCP Inspector CLI reached production and stopped at OAuth, which needs a person at the keyboard; the authenticated list came from the plugin connection.
+- **Reviewer seed after 0015:** fresh local D1 (all 15 migrations), preview on 8797, two runs as `reviewer+local@usefulapply.com`, both exit 0 (the second reused the account). Rows: verified email, Max, 200 credits, `subscription_status` NULL, 1 subscription, Halcyon applied and Fjordwerk interview (both kits succeeded), 1 CV, 8 chat messages, 5 ranked feed items, a career profile. Not run on production.
+- **MCP E2E:** `E2E_MCP=1 npx playwright test --project=mcp` on main at `a757d2c1` (after #194), through the heavy lock: 125 passed in 10.8 minutes, including `01-catalog` (tools/list equals `TOOL_SCOPES`) and `98-every-tool-is-called`. Report: `verify/fix-mcp-submission-pack/playwright-report/` in the main checkout. A first attempt was stopped by the lock at 18% free memory while another session's suite ran; the rerun waited for it.
+- **Privacy gaps found:** see Resume here, item 4.
 
 ## Session 4 progress (2026-10-21)
 
@@ -58,15 +69,15 @@ Last updated 2026-10-21, session 4 (in progress). The plan is `PLAN.md` (v3) in 
 | #149, #150 | Plan v1 to v3; three-model plan review (Fable 5.1, GPT-6.1 Sol, DeepSeek Flash) in `evals/results/2026-10-20-mcp-plan-review.md` | docs |
 | #151 | tsc excludes the frozen Devin eval harness | n/a |
 | #152 | Structured cover letter: verified recipient (verbatim from the ad), no guessed titles in 7 languages, DACH and US rules, `cover_letter_language` saved | live |
-| #153 | OAuth server (Better Auth 1.7.11 `mcp` + `cimd` + `jwt`), consent page, Connected apps (revoke, daily agent credit limit), scopes `read`/`write`/`spend`, consent-generation token binding, `/mcp` with `get_account` | live, **`MCP_ENABLED=false`** (all OAuth and MCP paths return 404) |
+| #153 | OAuth server (Better Auth 1.7.11 `mcp` + `cimd` + `jwt`), consent page, Connected apps (revoke, daily agent credit limit), scopes `read`/`write`/`spend`, consent-generation token binding, `/mcp` with `get_account` | live, `MCP_ENABLED=true` since 2026-10-21 |
 | #154 | Server-side export via Cloudflare Browser Run: ATS-readable PDF (tagged, embedded fonts, real text), new CV Word, US and DIN 5008 letters, 7 languages, all 6 templates single-column, fit pass, signed R2 links, web downloads switched | live |
 | #157 | Hotfix: localized letter dates ("20. Oktober 2026") | live |
 | #155 | Data integrity: revisioned writes, new client sync engine with sticky conflict notices, server-side `persistKit`, `agent_operations` with idempotency and single-flight, `agent-generation` queue plus DLQ, atomic reserve, refund and reconcile | live |
 
-**Production version:** `0d6ac237` (recorded at deploy time).
+**Production version:** `7121506b` (2026-10-24).
 
 **Production state:**
-- **Migrations applied:** 0009, 0010 and 0011.
+- **Migrations applied:** all, through 0015 (checked 2026-10-25).
 - **Restore bookmarks:**
   - before 0009: `00002253-00000000-0000510a-3d0903b46b16d2719196570752add4b2`
   - before 0010: `00002277-00000000-0000510a-8009d4a7e5b3e2de94c26df59b2e0315`
@@ -86,69 +97,13 @@ Last updated 2026-10-21, session 4 (in progress). The plan is `PLAN.md` (v3) in 
 - `evals/results/2026-10-20-sync-fuzz.md`
 - `verify/<branch>/` in the main checkout.
 
-## In flight (branches pushed, not merged)
-
-### PR 5: tool catalog, branch `feature/mcp-tool-catalog` (no GitHub PR opened yet)
-- **State:** pushed at `2c9e4770`. Foundations only. **No catalog tools exist yet.** Nothing new is tested, and the web regenerate change has to pass the `data` project. `tsc` is clean.
-- **Built:**
-  - Migration `0011_application_edit_history.sql` adds `application_edit_history` and `agent_operations.result`. It's in the schema and journal but hasn't been applied anywhere.
-  - `src/lib/services/edit-history.ts` keeps the last 10 prior versions with undo, with `cv.ts` writing through it, plus a 30-day cron cleanup.
-  - `inline-operations.ts` and `fit-analysis.ts` provide idempotent paid in-call tools (fit, regenerate, section rewrite, screening). The sweeper knows about them.
-  - The daily MCP spend cap is enforced in `reserveCredits`, and `enqueueKitGeneration` takes `input.spendLimit`.
-  - **`/api/regenerate` now calls `src/lib/services/regenerate.ts`.** That changes the web route, so the `data` Playwright project must pass before merge.
-  - The tool framework is in `src/lib/mcp/tools/{framework,errors,shared}.ts`, plus quotas and analytics modules.
-  - Rate-limit namespaces 3150-3152 are added to `wrangler.jsonc`.
-- **Next:**
-  1. Apply 0011 locally and run the `data` project.
-  2. Write the tool modules for the full catalog in PLAN.md section 4. That's 43 tools if `set_profile_photo` and `remove_profile_photo` count as one row, 44 if they count as two. Register them in `server.ts` and `TOOL_SCOPES`.
-  3. Use the `list_applications` query already added to `sessions.ts`.
-  4. Remove `test_write_stub` and update `e2e/mcp-oauth.spec.ts`, which asserts the tool list.
-  5. Build a feed-settings service.
-  6. Add the `mcp` Playwright project on ports 8798/18798, plus the fake-model additions (section rewrite, German parse) and the negative paths from PLAN.md section 7.
-  - **Elicitation** only applies to clients on the 2026-07-28 protocol; legacy clients run the tool directly.
-  - **Open question:** `update_notification_settings` says it covers the default CV template, but there's no backing store for that. Either add a `profiles` column in 0011 or drop it from the tool.
-
-### Bug fixes, branch `fix/discard-and-short-jd` (no GitHub PR opened yet)
-- **State:** pushed at `f7c359a6`. Both bugs are fixed. `tsc` is clean, eslint has 0 errors and `test:sync` passes.
-  - The new fuzz case for bug 2 failed 59 of 2,000 seeds before the fix and 0 after; the seeds are logged in the sync-fuzz write-up.
-  - Spec `b-stale-tab` (b3) and the new `e2e/specs/i-short-job-ad.spec.ts` pass.
-  - Short ads on an application without a kit no longer replace its job description until the user picks a button.
-- **Next:**
-  1. Run the full `data` project, e.g. `E2E_PREVIEW_PORT=8814 FAKE_ANTHROPIC_PORT=18813 E2E_INSPECTOR_PORT=19377 npx playwright test --project=data`.
-  2. Open the PR, review with Sonnet + Codex, merge and deploy.
-  - Note: the test ad is 166 characters (the brief said 176).
-
-- **Bug 2 (data safety, came in with #155):** on a conflict notice, Dismiss then Discard leaves the discarded text in the open editor with its base rebased, so Save overwrites the newer server version without a conflict.
-  - Cause: `session-sync-engine.ts` `discardConflict` reuses `acknowledgeConflict(sessionId)`, and the panels only rebase.
-  - Fix: pass a `discarded` flag; panels reset the draft like Cancel.
-- **Bug 1 (predates today, since b4972e41):** a 176-character job ad gets "Pick a button" but no buttons.
-  - Cause: `ChatPanel.tsx` `MIN_JOB_AD_CHARS = 200` silently drops the proposal.
-  - Fix: an 80-character floor, a "this looks short" hint from 80 to 199, and a plain "too short" message below 80.
-
-### PR 6a: `/integrations` page, privacy and terms, branch `feature/mcp-distribution-docs`, PR #156 (open)
-- Round 1 review done and fixed. The page is gated behind `MCP_ENABLED`.
-- **Merge only after PR 5**, so everything the page and legal text describe exists. Run round 2 (Sonnet + Codex, medium) right before merging.
-
 ## Left to do, in order
 
-1. **Ship the bug fixes** on `fix/discard-and-short-jd`. Review: Sonnet + Codex. Then merge and deploy.
-2. **Finish PR 5,** the tool catalog in PLAN.md section 4 (see its state above).
-   - Review: Sonnet + Codex + Opus at high (it touches credits and spend), up to 3 rounds, then an Opus arbiter for any high left.
-   - Migration `0011_application_edit_history.sql` is reserved for it.
-   - Merge, apply 0011, deploy (tools stay off behind `MCP_ENABLED`).
-3. **PR 6b, distribution:**
-   - **Public plugin repo `wasimjalali/usefulapply-plugin`:** `.claude-plugin/plugin.json`, `marketplace.json`, `.mcp.json` pointing at `https://usefulapply.com/mcp`, and one `apply-to-job` skill. Run `claude plugin validate`.
-   - **OpenAI app package:** manifest; the domain challenge route already exists in #156 (`/.well-known/openai-apps-challenge`, env `OPENAI_APPS_CHALLENGE`).
-   - **Reviewer account seed:** verified email, credits, primary CV, one US and one German application with kits, feed consent, no MFA.
-   - **Submission pack:** listing text (name, one-liner, description), 3+ example prompts, screenshots, privacy, terms and support URLs, reviewer credentials file (never in git).
-4. **Merge PR 6a (#156)** after its round 2.
-5. **Launch:**
-   - set `MCP_ENABLED=true` in `wrangler.jsonc`;
-   - make the footer "AI integrations" link unconditional (client-bundled footers can't read the flag);
-   - add the `/plugin marketplace add` line on `/integrations`;
-   - deploy;
-   - live checks with the Claude.ai custom connector (every tool), Claude Code, MCP Inspector and ChatGPT developer mode.
-6. **Wasim submits** at claude.ai/directory/manage (connector and plugin) and in the OpenAI app directory (identity verification first).
+Everything from the old "In flight" and "Left to do" lists (the Discard and short-ad fixes, PR 5, PR 6a and 6b, the launch) has shipped; git history has the old text.
+
+1. **Wasim says yes** to the production reviewer seed, one run per portal (`submission/checklist.md`, "Production seed").
+2. **Privacy policy:** name date of birth and nationality, and state the PostHog analytics retention period.
+3. **Wasim submits** at claude.ai/directory/manage (connector, then plugin) and at platform.openai.com/plugins (identity verification and `OPENAI_APPS_CHALLENGE` first).
 
 ## Follow-ups (smaller, any time)
 
@@ -169,8 +124,10 @@ Last updated 2026-10-21, session 4 (in progress). The plan is `PLAN.md` (v3) in 
 
 ## Needs Wasim (ask once, at the end)
 
-- **PostHog analytics retention period:** the privacy policy and OpenAI's review need a number.
-- **Marketplace submissions:** Anthropic and OpenAI accounts, plus OpenAI identity verification.
+- **PostHog analytics retention period:** the privacy policy and OpenAI's review need a number (MCP analytics already say 12 months).
+- **Privacy wording** for date of birth and nationality.
+- **Production reviewer seed:** a yes in session before anyone runs it.
+- **Marketplace submissions:** Anthropic and OpenAI accounts, OpenAI identity verification, a GitHub connection on claude.ai for the plugin.
 - **Uninstall CodeRabbit:** github.com/settings/installations, then CodeRabbit, Configure, Uninstall.
 - **Optional:** add `MCP_ENABLED=true` and `EXPORT_SIGNING_SECRET=` to `.dev.vars.example` (hooks block agents from that file).
 

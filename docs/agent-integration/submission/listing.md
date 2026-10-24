@@ -2,7 +2,7 @@
 
 One source for every directory. Copy from here, trim to each field's limit. No prices, trials or promotions anywhere (OpenAI forbids them, and Anthropic's reviewers read the same text).
 
-Sources for the field list: Anthropic's "Submit a connector to the directory" (https://claude.com/docs/connectors/building/submission, read 2026-10-20) and OpenAI's plugin submission page (https://developers.openai.com/plugins/deploy/submission). The Anthropic plugin directory page (https://claude.com/docs/plugins/submit) wasn't read for this pack. Check it before submitting the plugin.
+Sources for the field list, all read 2026-10-25: Anthropic's "Submit a connector to the directory" (https://claude.com/docs/connectors/building/submission), Anthropic's "Submit your plugin" (https://claude.com/docs/plugins/submit) and OpenAI's plugin submission page (https://developers.openai.com/plugins/deploy/submission).
 
 ## Core text
 
@@ -19,9 +19,9 @@ Sources for the field list: Anthropic's "Submit a connector to the directory" (h
 | Privacy policy | https://usefulapply.com/privacy |
 | Terms | https://usefulapply.com/terms |
 | MCP server URL | https://usefulapply.com/mcp |
-| Icon | Useful Apply mark, square PNG. Wasim supplies the file. |
+| Icon | `public/useful-apply-logo.png`, the Useful Apply mark on cream, 512 x 512 PNG. |
 
-### Short description (about 300 characters)
+### Short description (277 characters)
 
 Useful Apply helps you apply for a job from your AI assistant. Check how well you fit a role, then generate a CV, cover letter, application email and follow-up that follow US or German (DIN 5008) conventions. You review everything, edit it, export it and track the application.
 
@@ -73,7 +73,7 @@ Steps and fields as the portal lists them:
 | 3. Listing | Name `Useful Apply`. One-liner (200). Description (2,000, use the long description). 1 to 5 categories. Documentation URL, privacy policy URL, support contact, icon, slug `useful-apply`. |
 | 4. Use cases | Primary: check fit for a job, generate and edit an application kit, track applications. Users need a Useful Apply account first and a CV on file. The connector reads and writes data. |
 | 5. Company | Company name, website `https://usefulapply.com`, a primary contact for review updates. Wasim supplies. |
-| 6. Authentication | OAuth with dynamic client registration. CIMD isn't offered yet. |
+| 6. Authentication | Authentication requirement: required. Method: OAuth, with dynamic client registration (`https://usefulapply.com/api/auth/oauth2/register`), so leave the Anthropic-held client ID and secret empty. CIMD isn't offered yet. |
 | 7. Data handling | The API is our own. No partner or third-party proxying. No personal health data. No sponsored content. |
 | 8. Test and launch | Reviewer credentials and the instructions from `reviewer-guide.md`. Confirm every tool was run as a custom connector in Claude or in MCP Inspector. |
 | 9. Compliance | Seven acknowledgments: directory guidelines, first-party API use, financial transactions, AI media generation, prompt injection, conversation data collection, public documentation. All are required. Wasim reads and ticks each. Our truthful positions: no financial transactions through the connector, no AI media generation, untrusted job text is wrapped as data, no conversation data collected, documentation is public at `/integrations`. |
@@ -86,28 +86,38 @@ Other Anthropic items:
 - **Terms to accept:** Anthropic Software Directory Terms and Policy.
 - Escalations: mcp-review@anthropic.com.
 - Submitting needs any paid Claude plan. Wasim submits.
+- After submitting, Anthropic scans it and by default lists it as a Community connector. Some submissions also get a human review. Status and feedback show in the portal.
 
-### Anthropic plugin directory (Claude Code plugin)
+### Anthropic plugin directory (claude.ai/directory/manage, choose "Plugin bundle")
 
-- Repo `wasimjalali/usefulapply-plugin` (separate PR 6b piece): `.claude-plugin/plugin.json`, `marketplace.json`, `.mcp.json` pointing at `https://usefulapply.com/mcp`, one `apply-to-job` skill.
-- Run `claude plugin validate` before submitting.
-- Anthropic says to submit the MCP server as a connector too, even when a plugin points at it, so the listing can be paired with the plugin. Do both.
-- Plugin submission page: https://claude.com/docs/plugins/submit (not read yet).
-- Plugin description: reuse the short description. Skill description: "Apply to a job end to end: check fit, generate the kit, review, export and track."
+The plugin is the public repo `wasimjalali/usefulapply-plugin` at its root: `.claude-plugin/plugin.json` (version 1.1.0), `.claude-plugin/marketplace.json`, `.mcp.json` pointing at `https://usefulapply.com/mcp`, the `apply-to-job` skill, a README and an MIT license. `claude plugin validate` passes (2026-10-25). Anthropic asks for the MCP server as a connector too, so the two listings can be paired. Do both.
+
+Before the portal: connect GitHub on claude.ai in the organization you submit from. The portal checks that the connected account can push to the repo.
+
+| Portal step | What to enter |
+|---|---|
+| 1. Submit new | "Plugin bundle" |
+| 2. Source | Repository `wasimjalali/usefulapply-plugin`. Plugin path empty (the plugin is at the root). Branch or tag empty (follows `main`). Then Validate, and fix any blocking finding in the repo before going on. |
+| 3. Listing details | Read from `plugin.json` and the README. Nothing to type here; to change a field, change the repo and validate again. |
+| 4. Data handling | Reads or stores personal data: yes, through the Useful Apply connector (CV, applications, profile), stored in the user's Useful Apply account. Sends data to services other than its declared connector: no. How long it keeps data: the plugin keeps none itself; Useful Apply keeps account data while the account is open and deletes it within 30 days of account deletion (https://usefulapply.com/privacy). Intended for people under 18: no. |
+| 5. Compliance | Contact email Wasim reads (support@usefulapply.com or his own). Tick all four acknowledgements. |
+| 6. Review and submit | Keep "GitHub push webhook" (the default), Submit for review, then Set up push updates (needs admin on the repo). Leave auto-publish off for now. |
+
+After a version passes the scan, select Publish on the plugin's page; an Anthropic reviewer then publishes it. Raise `version` in `plugin.json` with every later release.
 
 ### OpenAI app directory (ChatGPT)
 
-Full field sheet in `../openai/app-submission.md`. Mapping:
+OpenAI now starts every submission with a ZIP upload at https://platform.openai.com/plugins. The package is `../openai/package/` (built from the text in this file) and the full field sheet is `../openai/app-submission.md`. Mapping:
 
 | OpenAI field | Value |
 |---|---|
 | `displayName` | Useful Apply |
 | `shortDescription` (30) | Tailored job applications |
 | `longDescription` (4000) | Long description above |
-| `developerName` | Verified name. Wasim confirms. |
+| `developerName` | Must match the verified identity. The package says `Useful Apply`. Wasim confirms. |
 | `websiteURL`, `supportURL`, `privacyPolicyURL`, `termsOfServiceURL` | As in the core table |
 | `defaultPrompt` | 3 prompts in the OpenAI sheet |
-| `logo` | Icon file |
+| `logo` | `./assets/logo.png` in the package (the icon above) |
 | Review cases | 5 positive, 3 negative in the OpenAI sheet |
 | `demo_recording_url` | Wasim records, see `screenshots.md` |
 
