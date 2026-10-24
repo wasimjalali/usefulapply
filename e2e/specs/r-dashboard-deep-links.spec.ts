@@ -94,6 +94,10 @@ test('(r4) a tab that loaded the link anonymously and then signs in lands on the
   try {
     const page = await context.newPage();
     await page.goto('/dashboard?workspace=tracker');
+    // The first anonymous load applies the link as it always has.
+    await expect(page.getByRole('heading', { level: 2, name: 'Application Tracker' })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText('Your account', { exact: true })).toBeVisible();
+    await expect(page.getByText('DI deeplinkswitch', { exact: true })).toHaveCount(0);
     await page.waitForLoadState('networkidle');
     // Sign in without a reload: the cookie lands, then the app's session refetch (a window refocus) picks it up.
     await signInContext(context, request, user);
