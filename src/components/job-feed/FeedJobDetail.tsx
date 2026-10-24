@@ -118,109 +118,111 @@ export function FeedJobDetail({
           <ArrowLeft className="h-4 w-4" />
           Back to feed
         </button>
-        <button
-          ref={saveRef}
-          type="button"
-          disabled={busy}
-          onClick={() => onSave(job)}
-          aria-label={isSaved ? 'Remove from saved' : 'Save this role'}
-          aria-pressed={isSaved}
-          className={`ml-auto inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-3 text-sm font-medium transition-colors duration-(--duration-base) hover:bg-surface cursor-pointer ${
-            isSaved ? 'text-ink-accent' : 'text-ink-muted hover:text-ink'
-          }`}
-        >
-          <Bookmark className="h-4 w-4" fill={isSaved ? 'currentColor' : 'none'} />
-          {isSaved ? 'Saved' : 'Save'}
-        </button>
-        {employerLink && (
-          <a
-            href={employerLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => onOpenEmployerSite(job)}
-            className="inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-(--duration-base) hover:bg-surface hover:text-ink cursor-pointer"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Employer site
-          </a>
-        )}
-        {/* One unit: the rating and dismiss controls (or the question that replaces them) wrap together onto a second row. */}
-        <div className="flex max-w-full flex-shrink-0 flex-wrap items-center gap-2">
-        {asking && (
-          <div
-            role="group"
-            aria-label={asking === 'dismiss' ? 'Dismiss this job?' : 'Not a fit?'}
-            className="flex max-w-full flex-wrap items-center gap-2"
-            onKeyDown={(event) => {
-              if (event.key === 'Escape' && !busy) cancelConfirm();
-            }}
-          >
-            <span className="whitespace-nowrap text-sm font-semibold text-ink">
-              {asking === 'dismiss' ? 'Dismiss this job?' : "Not a fit? It won't come back."}
-            </span>
-            <button
-              ref={keepRef}
-              type="button"
-              disabled={busy}
-              onClick={cancelConfirm}
-              className="inline-flex h-9 flex-shrink-0 items-center whitespace-nowrap rounded-pill border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-resting transition-colors duration-200 hover:bg-surface-raised disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
-            >
-              Keep
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => (asking === 'dismiss' ? onDismiss : onRateNotRelevant)?.(job)}
-              className="inline-flex h-9 flex-shrink-0 items-center whitespace-nowrap rounded-pill px-3.5 text-sm font-semibold text-danger transition-colors duration-200 hover:bg-danger-soft disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
-            >
-              {asking === 'dismiss'
-                ? (dismissing ? 'Dismissing' : 'Dismiss')
-                : (dismissing ? 'Removing' : 'Not relevant')}
-            </button>
-          </div>
-        )}
-        {!asking && onRateHelpful && canChange && (
-          // aria-disabled, not disabled, while it runs or once rated: a disabled button drops the focus the user just put on it.
+        <div className="ml-auto flex max-w-full flex-shrink-0 flex-wrap items-center justify-end gap-2">
           <button
+            ref={saveRef}
             type="button"
-            aria-disabled={busy || rating === 'helpful'}
-            onClick={() => {
-              if (!busy && rating !== 'helpful') onRateHelpful(job);
-            }}
-            className={`inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-3 text-sm font-medium transition-colors duration-(--duration-base) ${
-              rating === 'helpful'
-                ? 'cursor-default text-success-strong'
-                : 'text-ink-muted hover:bg-surface hover:text-ink cursor-pointer'
+            disabled={busy}
+            onClick={() => onSave(job)}
+            aria-label={isSaved ? 'Remove from saved' : 'Save this role'}
+            aria-pressed={isSaved}
+            className={`inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-3 text-sm font-medium transition-colors duration-(--duration-base) hover:bg-surface cursor-pointer ${
+              isSaved ? 'text-ink-accent' : 'text-ink-muted hover:text-ink'
             }`}
           >
-            {rating === 'helpful' ? <Check className="h-4 w-4" /> : <ThumbsUp className="h-4 w-4" />}
-            {rating === 'helpful' ? 'Rated a good match' : 'Good match'}
+            <Bookmark className="h-4 w-4" fill={isSaved ? 'currentColor' : 'none'} />
+            {isSaved ? 'Saved' : 'Save'}
           </button>
-        )}
-        {!asking && onRateNotRelevant && canChange && (
-          <button
-            ref={notRelevantRef}
-            type="button"
-            disabled={busy}
-            onClick={() => ask('not_relevant')}
-            className="inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-(--duration-base) hover:bg-surface hover:text-ink cursor-pointer"
-          >
-            <ThumbsDown className="h-4 w-4" />
-            Not relevant
-          </button>
-        )}
-        {!asking && onDismiss && canChange && (
-          <button
-            ref={dismissRef}
-            type="button"
-            disabled={busy}
-            onClick={() => ask('dismiss')}
-            className="inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-200 hover:bg-surface hover:text-ink cursor-pointer"
-          >
-            <X className="h-4 w-4" />
-            Dismiss
-          </button>
-        )}
+          {employerLink && (
+            <a
+              href={employerLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => onOpenEmployerSite(job)}
+              className="inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-(--duration-base) hover:bg-surface hover:text-ink cursor-pointer"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Employer site
+            </a>
+          )}
+          {/* One unit: the rating and dismiss controls (or the question that replaces them) wrap together. */}
+          <div className="flex max-w-full flex-shrink-0 flex-wrap items-center justify-end gap-2">
+            {asking && (
+              <div
+                role="group"
+                aria-label={asking === 'dismiss' ? 'Dismiss this job?' : 'Not a fit?'}
+                className="flex max-w-full flex-wrap items-center gap-2"
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape' && !busy) cancelConfirm();
+                }}
+              >
+                <span className="whitespace-nowrap text-sm font-semibold text-ink">
+                  {asking === 'dismiss' ? 'Dismiss this job?' : "Not a fit? It won't come back."}
+                </span>
+                <button
+                  ref={keepRef}
+                  type="button"
+                  disabled={busy}
+                  onClick={cancelConfirm}
+                  className="inline-flex h-9 flex-shrink-0 items-center whitespace-nowrap rounded-pill border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-resting transition-colors duration-200 hover:bg-surface-raised disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
+                >
+                  Keep
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => (asking === 'dismiss' ? onDismiss : onRateNotRelevant)?.(job)}
+                  className="inline-flex h-9 flex-shrink-0 items-center whitespace-nowrap rounded-pill px-3.5 text-sm font-semibold text-danger transition-colors duration-200 hover:bg-danger-soft disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
+                >
+                  {asking === 'dismiss'
+                    ? (dismissing ? 'Dismissing' : 'Dismiss')
+                    : (dismissing ? 'Removing' : 'Not relevant')}
+                </button>
+              </div>
+            )}
+            {!asking && onRateHelpful && canChange && (
+              // aria-disabled, not disabled, while it runs or once rated: a disabled button drops the focus the user just put on it.
+              <button
+                type="button"
+                aria-disabled={busy || rating === 'helpful'}
+                onClick={() => {
+                  if (!busy && rating !== 'helpful') onRateHelpful(job);
+                }}
+                className={`inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-3 text-sm font-medium transition-colors duration-(--duration-base) ${
+                  rating === 'helpful'
+                    ? 'cursor-default text-success-strong'
+                    : 'text-ink-muted hover:bg-surface hover:text-ink cursor-pointer'
+                }`}
+              >
+                {rating === 'helpful' ? <Check className="h-4 w-4" /> : <ThumbsUp className="h-4 w-4" />}
+                {rating === 'helpful' ? 'Rated a good match' : 'Good match'}
+              </button>
+            )}
+            {!asking && onRateNotRelevant && canChange && (
+              <button
+                ref={notRelevantRef}
+                type="button"
+                disabled={busy}
+                onClick={() => ask('not_relevant')}
+                className="inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-(--duration-base) hover:bg-surface hover:text-ink cursor-pointer"
+              >
+                <ThumbsDown className="h-4 w-4" />
+                Not relevant
+              </button>
+            )}
+            {!asking && onDismiss && canChange && (
+              <button
+                ref={dismissRef}
+                type="button"
+                disabled={busy}
+                onClick={() => ask('dismiss')}
+                className="inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-200 hover:bg-surface hover:text-ink cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+                Dismiss
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

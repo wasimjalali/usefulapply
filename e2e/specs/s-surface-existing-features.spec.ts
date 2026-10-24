@@ -138,8 +138,8 @@ async function openUsage(page: Page) {
 }
 
 /**
- * Every action button of the job detail sits fully inside the detail column and renders its label on one line: its
- * height is the single-line height of Save's. `names` are the buttons to check (the default row, or a question's).
+ * Every action button of the job detail sits fully inside the detail column and renders its label on one line (the
+ * label's text boxes share one top). `names` are the buttons to check (the default row, or a question's).
  */
 async function expectActionsFit(page: Page, names: string[] = ['Back to feed', 'Save this role', 'Employer site', 'Good match', 'Not relevant', 'Dismiss']) {
   const column = await canvas(page).boundingBox();
@@ -153,7 +153,20 @@ async function expectActionsFit(page: Page, names: string[] = ['Back to feed', '
     expect(box, `${name} is on screen`).toBeTruthy();
     expect(box!.x, `${name} starts inside the column`).toBeGreaterThanOrEqual(column!.x - 0.5);
     expect(box!.x + box!.width, `${name} ends inside the column`).toBeLessThanOrEqual(column!.x + column!.width + 0.5);
-    expect(box!.height, `${name} is one line high`).toBeCloseTo(saveBox!.height, 0);
+    // Every control is as high as Save whether or not its label wrapped, so count the label's own line boxes.
+    const lines = await control.first().evaluate((element) => {
+      const tops = new Set<number>();
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (!node.textContent?.trim()) continue;
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        for (const rect of Array.from(range.getClientRects())) tops.add(Math.round(rect.top));
+      }
+      return tops.size;
+    });
+    expect(lines, `${name} renders on one line`).toBe(1);
+    expect(box!.height, `${name} is as high as Save`).toBeCloseTo(saveBox!.height, 0);
   }
 }
 
@@ -209,6 +222,13 @@ test('(s1) a Plus user rates a match: Good match sticks across a reload, Not rel
     await rated.click({ force: true });
     await page.waitForTimeout(500);
     expect(helpfulSent()).toBe(sentBefore);
+
+    // The longer label ("Rated a good match") fits as well.
+    for (const width of [1300, 1110]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expectActionsFit(page);
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
     await waitForRating(user.id, target.id, 'helpful');
 
     // Still chosen after a reload: the state comes from the server, not the client's copy.
