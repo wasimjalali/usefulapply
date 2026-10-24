@@ -73,7 +73,10 @@ export function UsageBillingPane() {
         getCreditTransactions(user.id, 200),
         getSubscription(user.id),
         // The notice is extra: a failed read must not take the pane down.
-        getBillingSubscriptionAction(user.id).catch(() => null),
+        getBillingSubscriptionAction(user.id).catch((billingError: unknown) => {
+          console.error('[usage-billing] billing status read failed:', billingError);
+          return null;
+        }),
       ]);
       if (creditsResult.credits) setCredits(creditsResult.credits);
       setSubscription(subscriptionResult);

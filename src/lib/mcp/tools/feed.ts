@@ -269,7 +269,7 @@ const updateFeedSettings = defineTool({
     workModes: z.array(z.enum(WORK_MODES)).min(1).max(5).optional()
       .describe(`Work arrangements to include: ${WORK_MODES.join(', ')}.`),
     employmentTypes: z.array(z.enum(EMPLOYMENT_TYPES)).min(1).max(5).optional()
-      .describe(`Employment types to include: ${EMPLOYMENT_TYPES.join(', ')}. Other types are filtered out of the feed.`),
+      .describe(`Employment types to include: ${EMPLOYMENT_TYPES.join(', ')}. Roles of other types are filtered out of future feed runs.`),
     salaryFloor: z.number().int().min(0).max(10_000_000).nullable().optional()
       .describe('Minimum salary as a whole number in the local currency. null removes the floor.'),
     automationEnabled: z.boolean().optional()

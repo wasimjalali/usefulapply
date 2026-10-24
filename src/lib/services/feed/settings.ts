@@ -106,6 +106,13 @@ async function persistFeedSettings(params: {
   const { userId, subscriptionTier, body } = params;
   const normalized = normalizeJobFeedSettingsInput(body);
 
+  // A list that is sent and empty is a request for no employment type at all, which the table refuses and the feed
+  // cannot honour. It is refused here rather than quietly turned into full-time; a body without the key keeps the default.
+  const sentEmploymentTypes = (body as { employment_types?: unknown } | null)?.employment_types;
+  if (Array.isArray(sentEmploymentTypes) && sentEmploymentTypes.length === 0) {
+    throw new FeedError(400, 'Choose at least one employment type.', 'invalid_input');
+  }
+
   if (!normalized.data) {
     throw new FeedError(400, normalized.error || 'Invalid settings payload.', 'invalid_input');
   }
@@ -175,9 +182,8 @@ async function persistFeedSettings(params: {
     ?? (existingSettings?.seniority_targets?.length ? existingSettings.seniority_targets : normalized.data.seniority_targets);
   const seniorityTarget = seniorityTargets[0] ?? normalized.data.seniority_target ?? existingSettings?.seniority_target ?? null;
 
-  // Employment types stays user-controlled in DB but the new wizard
-  // doesn't expose it. Default to ['full_time'] when the client did not
-  // send a value.
+  // Employment types is a setting of its own in the editor and the MCP tool. A body that leaves the key out
+  // (the first-run wizard) gets ['full_time']; a body that sends an empty list was refused above.
   const employmentTypes = normalized.data.employment_types.length > 0
     ? normalized.data.employment_types
     : (['full_time'] as JobFeedSettingsInput['employment_types']);

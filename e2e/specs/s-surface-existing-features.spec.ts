@@ -34,6 +34,8 @@ import { cloneApplications } from '../lib/visual';
  * 14. Cancel or Escape saves anyway, or Save with nothing changed bumps the revision.
  * 15. "Open the ad" shows for an application with no link, shows a non-web link, opens in the same tab, or lacks
  *     rel="noopener noreferrer". Clearing the link leaves the old link in the row.
+ * 16. A title-only save writes the form's stale link over one added elsewhere while the form was open, or sends a link at all.
+ * 17. A save that fails leaves the draft in the store: Cancel doesn't revert it and the autosync saves it later.
  */
 
 const JOBS = [
@@ -153,20 +155,26 @@ test('(s1) a Plus user rates a match: Good match sticks across a reload, Not rel
     await cardOf(page, target.title).click();
     const good = canvas(page).getByRole('button', { name: 'Good match' });
     const notRelevant = canvas(page).getByRole('button', { name: 'Not relevant' });
-    await expect(good).toHaveAttribute('aria-pressed', 'false');
+    await expect(good).toHaveAttribute('aria-disabled', 'false');
     await expect(notRelevant).toBeVisible();
     await expect(canvas(page).getByRole('button', { name: 'Dismiss', exact: true })).toBeVisible();
 
     // Good match: the button shows it, the row holds it.
     await good.click();
-    await expect(good).toHaveAttribute('aria-pressed', 'true');
+    // Once rated it reads as a status, not a toggle (the server has no way to take a rating back), and the button
+    // the user just pressed keeps the focus.
+    const rated = canvas(page).getByRole('button', { name: 'Rated a good match' });
+    await expect(rated).toHaveAttribute('aria-disabled', 'true');
+    await expect(rated).not.toHaveAttribute('aria-pressed', /.*/);
+    await expect(rated).toBeFocused();
+    await rated.click();
     await waitForRating(user.id, target.id, 'helpful');
 
     // Still chosen after a reload: the state comes from the server, not the client's copy.
     await page.reload();
     await openJobBoard(page);
     await cardOf(page, target.title).click();
-    await expect(canvas(page).getByRole('button', { name: 'Good match' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(canvas(page).getByRole('button', { name: 'Rated a good match' })).toHaveAttribute('aria-disabled', 'true');
 
     // Not relevant is terminal, so it asks first. Keep sends nothing and hands focus back.
     await canvas(page).getByRole('button', { name: 'Not relevant' }).click();
@@ -298,9 +306,19 @@ test('(s4) employment types: saved, kept after a reload, and the last one cannot
       await expect(chip(group, name)).toHaveAttribute('aria-pressed', 'false');
     }
 
-    // Switching the last one off is refused in the form: a message, and Save stays off.
     const save = canvas(page).getByRole('button', { name: 'Save preferences' });
+    await expect(save).toBeDisabled();
+
+    // A set, not a list: after saving two types, switching one off and on again (it moves to the end) is no change.
     await chip(group, 'Part-time').click();
+    await save.click();
+    await expect(canvas(page).getByText('Saved.')).toBeVisible({ timeout: 30_000 });
+    expect(employmentTypesOf(user.id)).toEqual(['full_time', 'part_time']);
+    await chip(group, 'Full-time').click();
+    await chip(group, 'Full-time').click();
+    await expect(save).toBeDisabled();
+
+    // Switching the last one off is refused in the form: a message, and Save stays off.
     await chip(group, 'Full-time').click();
     await chip(group, 'Part-time').click();
     await expect(group.getByText('Choose at least one employment type.')).toBeVisible();
@@ -311,8 +329,16 @@ test('(s4) employment types: saved, kept after a reload, and the last one cannot
     await chip(group, 'Temporary').click();
     await expect(group.getByText('Choose at least one employment type.')).toHaveCount(0);
     await expect(save).toBeEnabled();
+    const saveRequest = page.waitForRequest((req) => req.url().endsWith('/api/job-feed/settings') && req.method() === 'PUT');
     await save.click();
+    const sent = await saveRequest;
     await expect(canvas(page).getByText('Saved.')).toBeVisible({ timeout: 30_000 });
+    expect(employmentTypesOf(user.id)).toEqual(['contract', 'temporary']);
+
+    // The server refuses an empty list sent by hand, instead of turning it into full-time.
+    const empty = await page.request.put('/api/job-feed/settings', { data: { ...(sent.postDataJSON() as Record<string, unknown>), employment_types: [] } });
+    expect(empty.status()).toBe(400);
+    expect(JSON.stringify(await empty.json())).toContain('at least one employment type');
     expect(employmentTypesOf(user.id)).toEqual(['contract', 'temporary']);
 
     // The editor reads the stored value back after a reload.
@@ -463,6 +489,89 @@ test('(s6) editing an application: title, company and link persist, show in the 
     await expect(adLink()).toHaveCount(0);
     await expect.poll(() => (storedApplication(user.id) as unknown as Record<string, unknown>).job_url, { timeout: 15_000 }).toBeNull();
     expect(storedApplication(user.id)!.company).toBe('Contoso Labs');
+  } finally {
+    await context.close();
+  }
+});
+
+test('(s7) a title-only edit leaves a link that was added elsewhere while the form was open, and sends no link at all', async ({ browser, request }) => {
+  test.setTimeout(150_000);
+  const { user, context, page } = await feedUser(browser, request, 'surfacestale');
+  try {
+    // An application with no link, as a pasted ad leaves it.
+    withDb((db) => db.prepare('UPDATE application_sessions SET job_url = NULL WHERE user_id = ?').run(user.id));
+    const saves: string[] = [];
+    page.on('request', (req) => {
+      const body = req.postData() ?? '';
+      if (req.method() === 'POST' && req.headers()['next-action'] && body.includes('Title Only Change')) saves.push(body);
+    });
+
+    await page.goto('/dashboard');
+    await page.getByRole('button', { name: /Northwind Foods/ }).first().click();
+    await expect(page.getByRole('tab', { name: 'CV' })).toBeVisible({ timeout: 30_000 });
+    const before = storedApplication(user.id)!;
+    expect((before as unknown as Record<string, unknown>).job_url).toBeNull();
+
+    await page.getByRole('button', { name: 'Edit details' }).click();
+    await expect(page.locator('#application-job-url')).toHaveValue('');
+
+    // Another writer (the MCP tool, another tab) adds the link while the form is open, and the page learns of it.
+    withDb((db) => db.prepare("UPDATE application_sessions SET job_url = 'https://other.example.test/added-elsewhere', revision = revision + 1 WHERE user_id = ?").run(user.id));
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await page.waitForTimeout(3_000);
+
+    // The user changes the title only and saves: the form must not write its stale, empty link over the new one.
+    await page.locator('#application-job-title').fill('Title Only Change');
+    await page.locator('form').filter({ has: page.locator('#application-job-title') }).getByRole('button', { name: 'Save', exact: true }).click();
+    await expect.poll(() => storedApplication(user.id)?.job_title, { timeout: 20_000 }).toBe('Title Only Change');
+    expect((storedApplication(user.id) as unknown as Record<string, unknown>).job_url).toBe('https://other.example.test/added-elsewhere');
+    await expect(page.getByRole('link', { name: 'Open the ad' })).toHaveAttribute('href', 'https://other.example.test/added-elsewhere');
+    // Not even a null: the request carried the title and nothing else of the form.
+    expect(saves.length).toBeGreaterThan(0);
+    for (const body of saves) expect(body).not.toContain('job_url');
+  } finally {
+    await context.close();
+  }
+});
+
+test('(s8) a save that fails keeps the form open, and Cancel puts the old values back so nothing is saved later', async ({ browser, request }) => {
+  test.setTimeout(150_000);
+  const { user, context, page } = await feedUser(browser, request, 'surfacefail');
+  try {
+    await page.goto('/dashboard');
+    await page.getByRole('button', { name: /Northwind Foods/ }).first().click();
+    await expect(page.getByRole('tab', { name: 'CV' })).toBeVisible({ timeout: 30_000 });
+    const before = storedApplication(user.id)!;
+    const original = `${before.company}, ${before.job_title}`;
+    const header = page
+      .locator('header', { has: page.getByRole('button', { name: 'Edit details' }) })
+      .getByRole('heading', { level: 2 });
+    await expect(header).toHaveText(original);
+
+    // Every save that carries the edited title fails on the server.
+    await page.route('**/dashboard**', (route) => (
+      route.request().method() === 'POST' && route.request().headers()['next-action'] && (route.request().postData() ?? '').includes('Failing Title')
+        ? route.fulfill({ status: 500, contentType: 'text/plain', body: 'Internal Server Error' })
+        : route.continue()
+    ));
+    await page.getByRole('button', { name: 'Edit details' }).click();
+    await page.locator('#application-job-title').fill('Failing Title');
+    const form = page.locator('form').filter({ has: page.locator('#application-job-title') });
+    await form.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(form.getByRole('alert')).toContainText("didn't save");
+    await expect(page.locator('#application-job-title')).toHaveValue('Failing Title');
+
+    // Cancel: the header, the sidebar and the store read as before, and nothing is saved afterwards (the autosync
+    // waits two seconds, so this waits longer, with the route lifted so a stray save could land).
+    await form.getByRole('button', { name: 'Cancel' }).click();
+    await expect(header).toHaveText(original);
+    await expect(page.getByRole('button', { name: /Northwind Foods/ }).first()).not.toContainText('Failing Title');
+    await page.unroute('**/dashboard**');
+    await page.waitForTimeout(5_000);
+    const after = storedApplication(user.id)!;
+    expect(after.job_title).toBe(before.job_title);
+    expect(after.revision).toBe(before.revision);
+    await expect(header).toHaveText(original);
   } finally {
     await context.close();
   }

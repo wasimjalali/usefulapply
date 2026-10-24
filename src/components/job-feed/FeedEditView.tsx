@@ -112,8 +112,10 @@ export function FeedEditView({
   const plannedQueries = strategy?.queries ?? [];
   const todaysQueries = plannedQueries.slice(0, queryBudget);
   const laterQueries = plannedQueries.slice(queryBudget);
+  // Employment types are a set: the same types in another order are no change.
+  const sortedTypes = (value: PreferenceDraft) => ({ ...value, employmentTypes: [...value.employmentTypes].sort() });
   const dirty = draft !== null && savedDraft !== null
-    && JSON.stringify(draft) !== JSON.stringify(savedDraft);
+    && JSON.stringify(sortedTypes(draft)) !== JSON.stringify(sortedTypes(savedDraft));
   const salaryValue = draft?.salaryFloor.trim() ?? '';
   const salaryValid = salaryValue === ''
     || (/^\d+$/.test(salaryValue) && Number(salaryValue) >= 0);

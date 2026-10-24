@@ -239,7 +239,8 @@ export async function createJobFeedApplicationSessionAdmin(params: {
   const { session, error } = await sessionsRepo.createSession(userId, job.description ?? buildFallbackJobDescription(job), {
     job_title: job.title,
     company: job.company,
-    job_url: job.apply_url ?? job.source_url,
+    // Stored for the application header's link, so only a web link goes in.
+    job_url: [job.apply_url, job.source_url].find((url) => url && isSafeExternalUrl(url)) ?? null,
   });
   if (error || !session) {
     throw new Error(`Failed to create application session from feed item: ${error?.message ?? 'unknown error'}`);

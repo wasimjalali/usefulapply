@@ -212,4 +212,18 @@ test.describe.serial('edit tools refuse what they cannot do safely, and change n
     expect(seen).toContain(draft.applicationId);
     await refused('get_application', { applicationId: 'not-a-uuid' }, /Invalid UUID/);
   });
+
+  test('the job link takes web addresses only: other schemes and protocol-relative links are refused, an upper-case https link is stored', async () => {
+    const draft = await agent.ok<{ applicationId: string; revision: number }>('create_application', { jobDescription: JOB_DESCRIPTION, title: 'Planner', company: 'Contoso' });
+    const storedUrl = () => applicationRows(user.id).find((row) => row.id === draft.applicationId)?.job_url;
+    // The link is rendered as an href in the web app, so an address that runs script or leaves the site's scheme never reaches the row.
+    for (const url of ['javascript:alert(1)', 'data:text/html,x', '//evil.com']) {
+      await refused('update_application', { applicationId: draft.applicationId, revision: draft.revision, url }, /web link|url/i);
+      expect(storedUrl(), url).toBeNull();
+      await refused('create_application', { jobDescription: JOB_DESCRIPTION, title: 'Planner', company: 'Contoso', url }, /web link|url/i);
+    }
+    const accepted = await agent.ok<{ revision: number }>('update_application', { applicationId: draft.applicationId, revision: draft.revision, url: 'HTTPS://example.com/job' });
+    expect(accepted.revision).toBeGreaterThan(draft.revision);
+    expect(storedUrl()).toBe('HTTPS://example.com/job');
+  });
 });

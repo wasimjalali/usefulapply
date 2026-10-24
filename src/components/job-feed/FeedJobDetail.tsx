@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Bookmark, Clock, DollarSign, ExternalLink, Globe, MapPin, Search, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import { ArrowLeft, Bookmark, Check, Clock, DollarSign, ExternalLink, Globe, MapPin, Search, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { JobFeedDescription, workModeLabel } from './job-ad-text';
 import { canDismissJob, formatJobAge, safeEmployerUrl } from './feed-format';
@@ -79,6 +79,8 @@ export function FeedJobDetail({
   const returnFocus = useRef(false);
   const rating = job.feedback.matchRating;
   const canChange = canDismissJob(job);
+  // A refresh can make the role final (applied elsewhere, rated in another tab) while its question is up: then it closes.
+  const asking = canChange ? confirming : null;
 
   useEffect(() => {
     if (confirming) keepRef.current?.focus();
@@ -135,17 +137,17 @@ export function FeedJobDetail({
             Employer site
           </a>
         )}
-        {confirming && (
+        {asking && (
           <div
             role="group"
-            aria-label={confirming === 'dismiss' ? 'Dismiss this job?' : 'Not a fit?'}
+            aria-label={asking === 'dismiss' ? 'Dismiss this job?' : 'Not a fit?'}
             className="flex items-center gap-2"
             onKeyDown={(event) => {
               if (event.key === 'Escape' && !busy) cancelConfirm();
             }}
           >
             <span className="text-sm font-semibold text-ink">
-              {confirming === 'dismiss' ? 'Dismiss this job?' : "Not a fit? It won't come back."}
+              {asking === 'dismiss' ? 'Dismiss this job?' : "Not a fit? It won't come back."}
             </span>
             <button
               ref={keepRef}
@@ -159,30 +161,34 @@ export function FeedJobDetail({
             <button
               type="button"
               disabled={busy}
-              onClick={() => (confirming === 'dismiss' ? onDismiss : onRateNotRelevant)?.(job)}
+              onClick={() => (asking === 'dismiss' ? onDismiss : onRateNotRelevant)?.(job)}
               className="inline-flex h-9 items-center rounded-pill px-3.5 text-sm font-semibold text-danger transition-colors duration-200 hover:bg-danger-soft disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
             >
-              {confirming === 'dismiss'
+              {asking === 'dismiss'
                 ? (dismissing ? 'Dismissing' : 'Dismiss')
                 : (dismissing ? 'Removing' : 'Not relevant')}
             </button>
           </div>
         )}
-        {!confirming && onRateHelpful && canChange && (
+        {!asking && onRateHelpful && canChange && (
+          // aria-disabled, not disabled, while it runs or once rated: a disabled button drops the focus the user just put on it.
           <button
             type="button"
-            disabled={busy}
-            onClick={() => onRateHelpful(job)}
-            aria-pressed={rating === 'helpful'}
-            className={`inline-flex h-9 items-center gap-2 rounded-pill px-3 text-sm font-medium transition-colors duration-(--duration-base) hover:bg-surface cursor-pointer ${
-              rating === 'helpful' ? 'text-success-strong' : 'text-ink-muted hover:text-ink'
+            aria-disabled={busy || rating === 'helpful'}
+            onClick={() => {
+              if (!busy && rating !== 'helpful') onRateHelpful(job);
+            }}
+            className={`inline-flex h-9 items-center gap-2 rounded-pill px-3 text-sm font-medium transition-colors duration-(--duration-base) ${
+              rating === 'helpful'
+                ? 'cursor-default text-success-strong'
+                : 'text-ink-muted hover:bg-surface hover:text-ink cursor-pointer'
             }`}
           >
-            <ThumbsUp className="h-4 w-4" fill={rating === 'helpful' ? 'currentColor' : 'none'} />
-            Good match
+            {rating === 'helpful' ? <Check className="h-4 w-4" /> : <ThumbsUp className="h-4 w-4" />}
+            {rating === 'helpful' ? 'Rated a good match' : 'Good match'}
           </button>
         )}
-        {!confirming && onRateNotRelevant && canChange && (
+        {!asking && onRateNotRelevant && canChange && (
           <button
             ref={notRelevantRef}
             type="button"
@@ -194,7 +200,7 @@ export function FeedJobDetail({
             Not relevant
           </button>
         )}
-        {!confirming && onDismiss && canChange && (
+        {!asking && onDismiss && canChange && (
           <button
             ref={dismissRef}
             type="button"

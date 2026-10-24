@@ -17,6 +17,7 @@ import { getDb, nowIso } from '@/db/client';
 import { recipientFillCondition } from '@/db/recipient-fill';
 import { applicationSessions } from '@/db/schema';
 import type { StructuredCoverLetter } from '@/lib/cover-letter/contract';
+import { isSafeExternalUrl } from '@/lib/job-feed/helpers';
 import * as sessionsRepo from '@/db/repos/sessions';
 import type { ApplicationSession, TrackerApplicationRow } from '@/db/repos/sessions';
 import { InvalidInputError, NotFoundError, RevisionConflict } from './errors';
@@ -102,15 +103,6 @@ const RECIPIENT_FIELDS: Record<RecipientField, { kind: FieldKind; max?: number }
 /** One patch may not carry more than this many serialized characters in total. */
 const MAX_PATCH_CHARS = 3_000_000;
 
-function isWebUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
-
 function validatePatch(patch: Record<string, unknown>, allowRecipient: boolean): Record<string, unknown> {
   const clean: Record<string, unknown> = {};
   let total = 0;
@@ -129,7 +121,7 @@ function validatePatch(patch: Record<string, unknown>, allowRecipient: boolean):
         if (rule.kind === 'text-required' && !value.trim()) throw new InvalidInputError(`Field "${key}" cannot be empty`, key);
         if (rule.max !== undefined && value.length > rule.max) throw new InvalidInputError(`Field "${key}" is too long`, key);
         // The link is rendered as an href, so only web links are stored.
-        if (key === 'job_url' && value !== '' && !isWebUrl(value)) throw new InvalidInputError('Field "job_url" must be a web link', key);
+        if (key === 'job_url' && value !== '' && !isSafeExternalUrl(value)) throw new InvalidInputError('Field "job_url" must be a web link', key);
         total += value.length;
         break;
       }
@@ -181,6 +173,8 @@ export async function createApplication(
   input: { jobDescription: string; jobTitle?: string | null; company?: string | null; jobUrl?: string | null },
 ): Promise<ApplicationSession> {
   if (!input.jobDescription?.trim()) throw new InvalidInputError('A job description is required');
+  // The link is rendered as an href, so only web links are stored (updateApplicationFields checks the same).
+  if (input.jobUrl && !isSafeExternalUrl(input.jobUrl)) throw new InvalidInputError('Field "job_url" must be a web link', 'job_url');
   const { session, error } = await sessionsRepo.createSession(userId, input.jobDescription, {
     job_title: input.jobTitle ?? null,
     company: input.company ?? null,
