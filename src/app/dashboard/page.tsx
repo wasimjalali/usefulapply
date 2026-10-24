@@ -142,7 +142,7 @@ export default function Dashboard() {
       // Identity is in the key so a link re-applies for a new user. A visitor
       // who just signed out must not get it back: only the first anonymous
       // load applies it, as before.
-      if (!user && processedWorkspaceRef.current !== null) return;
+      if (identity === 'anon' && processedWorkspaceRef.current !== null) return;
       processedWorkspaceRef.current = navKey;
 
       const resolvedTab: ApplicationTab = requestedTab === 'cover-letter' || requestedTab === 'email'
