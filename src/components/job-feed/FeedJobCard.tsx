@@ -26,13 +26,13 @@ function MetaChip({ icon: Icon, label, tone = 'default' }: {
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${
+      className={`inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-xs ${
         tone === 'sage'
-          ? 'border-sage-200 bg-sage-50 text-sage-700'
-          : 'border-cream-200 bg-white text-charcoal'
+          ? 'border-border-success-soft bg-success-soft text-success-strong'
+          : 'border-border bg-surface-raised text-ink-body'
       }`}
     >
-      <Icon className={`h-3.5 w-3.5 ${tone === 'sage' ? 'text-sage-600' : 'text-warm-gray'}`} />
+      <Icon className={`h-3.5 w-3.5 ${tone === 'sage' ? 'text-success' : 'text-ink-muted'}`} />
       {label}
     </span>
   );
@@ -66,20 +66,20 @@ export function FeedJobCard({
           onOpenDetail(job);
         }
       }}
-      className={`w-full cursor-pointer rounded-2xl border bg-cream-50 px-5 py-4 text-left shadow-sm transition-colors duration-200 hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/50 ${
-        isStrong ? 'border-gold-200' : 'border-cream-200'
+      className={`w-full cursor-pointer rounded-card border bg-surface px-5 py-4 text-left shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 ${
+        isStrong ? 'border-border-accent-soft' : 'border-border'
       }`}
     >
       <div className="flex items-start gap-4">
         <div className="min-w-0 flex-1">
           {job.fitLabel && (
-            <p className={`flex items-center gap-2 text-xs font-semibold ${isStrong ? 'text-sage-600' : 'text-gold-600'}`}>
-              <span className={`inline-block h-1.5 w-1.5 rounded-full ${isStrong ? 'bg-sage-500' : 'bg-gold-400'}`} />
+            <p className={`flex items-center gap-2 text-xs font-semibold ${isStrong ? 'text-success' : 'text-ink-accent'}`}>
+              <span className={`inline-block h-1.5 w-1.5 rounded-pill ${isStrong ? 'bg-success-muted' : 'bg-accent'}`} />
               {isStrong ? 'Strong match' : 'Good match'}
             </p>
           )}
-          <h3 className="mt-1.5 truncate text-lg font-semibold text-navy-800">{job.title}</h3>
-          <p className="text-sm text-warm-gray">{job.company}</p>
+          <h3 className="mt-1.5 truncate text-lg font-semibold text-ink">{job.title}</h3>
+          <p className="text-sm text-ink-muted">{job.company}</p>
         </div>
 
         <div className="flex flex-shrink-0 flex-col items-end gap-2">
@@ -92,7 +92,7 @@ export function FeedJobCard({
                   event.stopPropagation();
                   onCheckFit(job);
                 }}
-                className="inline-flex h-10 items-center gap-2 rounded-full bg-gold-400 px-4 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-warm-gray cursor-pointer"
+                className="inline-flex h-10 items-center gap-2 rounded-pill bg-accent px-4 text-sm font-semibold text-accent-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-sunken disabled:text-ink-muted cursor-pointer"
               >
                 <Search className="h-4 w-4" />
                 Check fit
@@ -105,7 +105,7 @@ export function FeedJobCard({
                   event.stopPropagation();
                   onUpgrade?.();
                 }}
-                className="inline-flex h-10 items-center gap-2 rounded-full bg-gold-400 px-4 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer"
+                className="inline-flex h-10 items-center gap-2 rounded-pill bg-accent px-4 text-sm font-semibold text-accent-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-accent-strong cursor-pointer"
               >
                 See Plus
               </button>
@@ -121,8 +121,8 @@ export function FeedJobCard({
               }}
               aria-label={isSaved ? 'Remove from saved' : 'Save this role'}
               aria-pressed={isSaved}
-              className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-200 hover:bg-cream-100 cursor-pointer ${
-                isSaved ? 'text-gold-600' : 'text-warm-gray hover:text-navy-700'
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-pill transition-colors duration-(--duration-base) hover:bg-canvas cursor-pointer ${
+                isSaved ? 'text-ink-accent' : 'text-ink-muted hover:text-brand-strong'
               }`}
             >
               <Bookmark className="h-4 w-4" fill={isSaved ? 'currentColor' : 'none'} />
@@ -137,7 +137,7 @@ export function FeedJobCard({
                   onOpenEmployerSite(job);
                 }}
                 aria-label="Open the employer site"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-warm-gray transition-colors duration-200 hover:bg-cream-100 hover:text-navy-700 cursor-pointer"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-pill text-ink-muted transition-colors duration-(--duration-base) hover:bg-canvas hover:text-brand-strong cursor-pointer"
               >
                 <ExternalLink className="h-4 w-4" />
               </a>
@@ -154,9 +154,9 @@ export function FeedJobCard({
       </div>
 
       {summary && (
-        <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-charcoal">{summary}</p>
+        <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-ink-body">{summary}</p>
       )}
-      <span className="mt-1.5 inline-flex items-center gap-1 text-[13px] font-semibold text-navy-700">
+      <span className="mt-1.5 inline-flex items-center gap-1 text-[13px] font-semibold text-brand-strong">
         Details
         <span aria-hidden="true">→</span>
       </span>

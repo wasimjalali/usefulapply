@@ -827,11 +827,11 @@ export function FeedConversation() {
     : null;
 
   return (
-    <section className="flex h-full w-full min-w-0 flex-col border-r border-cream-200 bg-cream-50">
-      <header className="flex flex-shrink-0 items-center gap-3 border-b border-cream-200 px-5 py-3.5">
+    <section className="flex h-full w-full min-w-0 flex-col border-r border-border bg-surface">
+      <header className="flex flex-shrink-0 items-center gap-3 border-b border-border px-5 py-3.5">
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-base font-semibold text-navy-800">Job Board</h2>
-          <p className="text-xs text-warm-gray">{headerSubtitle}</p>
+          <h2 className="truncate text-base font-semibold text-ink">Job Board</h2>
+          <p className="text-xs text-ink-muted">{headerSubtitle}</p>
         </div>
       </header>
 
@@ -839,8 +839,8 @@ export function FeedConversation() {
         {messages.map((message) => (
           message.role === 'user' ? (
             <div key={message.id} className="flex justify-end">
-              <div className="max-w-[86%] rounded-2xl rounded-br-sm border border-cream-200 bg-white px-3.5 py-3 shadow-sm">
-                <MarkdownText content={message.content} className="text-sm text-charcoal" />
+              <div className="max-w-[86%] rounded-card rounded-br-sm border border-border bg-surface-raised px-3.5 py-3 shadow-resting">
+                <MarkdownText content={message.content} className="text-sm text-ink-body" />
               </div>
             </div>
           ) : (
@@ -849,7 +849,7 @@ export function FeedConversation() {
                 <BrandIcon size="xs" theme="light" />
               </div>
               <div className="min-w-0 flex-1 space-y-3">
-                <MarkdownText content={message.content} className="text-sm leading-relaxed text-charcoal" />
+                <MarkdownText content={message.content} className="text-sm leading-relaxed text-ink-body" />
                 {message.chips && message.chips.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {message.chips.map((chip) => (
@@ -859,12 +859,12 @@ export function FeedConversation() {
                         disabled={busy || isSavingSettings}
                         aria-pressed={chip.pressed ?? false}
                         onClick={() => { void handleChip(chip); }}
-                        className={`inline-flex h-10 max-w-full items-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer ${
+                        className={`inline-flex h-10 max-w-full items-center gap-2 rounded-pill px-4 text-sm font-semibold transition-colors duration-(--duration-base) disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer ${
                           chip.variant === 'primary'
-                            ? 'bg-gold-400 text-white hover:bg-gold-500'
+                            ? 'bg-accent text-accent-ink hover:bg-accent-strong'
                             : chip.pressed
-                              ? 'border border-navy-700 bg-white font-semibold text-navy-800'
-                              : 'border border-cream-200 bg-cream-50 text-navy-800 shadow-sm hover:bg-white'
+                              ? 'border border-brand-strong bg-surface-raised font-semibold text-ink'
+                              : 'border border-border bg-surface text-ink shadow-resting hover:bg-surface-raised'
                         }`}
                       >
                         {chip.label}
@@ -872,7 +872,7 @@ export function FeedConversation() {
                     ))}
                   </div>
                 )}
-                {message.note && <p className="text-sm text-warm-gray">{message.note}</p>}
+                {message.note && <p className="text-sm text-ink-muted">{message.note}</p>}
               </div>
             </div>
           )
@@ -892,7 +892,7 @@ export function FeedConversation() {
               type="button"
               disabled={busy || isSavingSettings}
               onClick={() => { void handleChip({ id: 'plan:confirm', label: 'Looks good', variant: 'primary' }); }}
-              className="inline-flex h-10 max-w-full items-center gap-2 rounded-full bg-gold-400 px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-gold-500 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+              className="inline-flex h-10 max-w-full items-center gap-2 rounded-pill bg-accent px-4 text-sm font-semibold text-accent-ink transition-colors duration-(--duration-base) hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
             >
               Looks good
             </button>
@@ -901,14 +901,14 @@ export function FeedConversation() {
 
         {stages && (
           <div className="pl-9">
-            <div className="rounded-2xl border border-cream-200 bg-white p-3 shadow-sm">
+            <div className="rounded-card border border-border bg-surface-raised p-3 shadow-resting">
               <NamedStages stages={stages.list} percent={stages.percent} />
             </div>
           </div>
         )}
 
         {phase === 'feed' && knownFree && (
-          <p className="pl-9 text-sm text-warm-gray">
+          <p className="pl-9 text-sm text-ink-muted">
             Plus searches more sources and shows every role that matched.
           </p>
         )}
@@ -917,8 +917,8 @@ export function FeedConversation() {
       </div>
 
       {!(phase === 'setup' && setupStep >= 2) && (
-      <div className="flex-shrink-0 bg-cream-50 px-5 pb-4 pt-2.5">
-        <div className="flex items-end gap-2 rounded-2xl border border-cream-200 bg-white px-3.5 py-2.5 shadow-sm">
+      <div className="flex-shrink-0 bg-surface px-5 pb-4 pt-2.5">
+        <div className="flex items-end gap-2 rounded-card border border-border bg-surface-raised px-3.5 py-2.5 shadow-resting">
           <textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
@@ -939,14 +939,14 @@ export function FeedConversation() {
                     ? "You can keep typing, I'll answer after this"
                     : 'Tell me what to change, e.g. "more remote, no agencies"'
             }
-            className="max-h-32 min-h-[24px] flex-1 resize-none bg-transparent text-sm text-charcoal placeholder:text-warm-gray/70 focus:outline-none disabled:cursor-not-allowed"
+            className="max-h-32 min-h-[24px] flex-1 resize-none bg-transparent text-sm text-ink-body placeholder:text-ink-faint focus:outline-none disabled:cursor-not-allowed"
           />
           <button
             type="button"
             onClick={() => { void handleSend(); }}
             disabled={!input.trim() || busy || isSavingSettings}
             aria-label="Send"
-            className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gold-400 text-white transition-colors duration-200 hover:bg-gold-500 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-warm-gray cursor-pointer"
+            className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-pill bg-accent text-accent-ink transition-colors duration-(--duration-base) hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-sunken disabled:text-ink-muted cursor-pointer"
           >
             <Send className="h-4 w-4" />
           </button>

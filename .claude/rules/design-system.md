@@ -67,6 +67,14 @@ Values are today's light theme.
 | | `status-done`, `status-partial`, `status-draft` | emerald-400, amber-400, gray-300 | Status dots in chat history |
 | | `done-soft`, `border-done-soft`, `done-ink` | emerald-50, emerald-100, emerald-700 | "Done" banner in agent progress |
 | | `scrim` | black | Modal backdrops (use with an opacity) |
+| Canvas and workspace extras | `brand-mid`, `brand-muted` | navy-500, navy-400 | Brand-colored icons and bullets, input hover and focus borders |
+| | `border-brand` | navy-300 | Dashed add buttons and edit-field outlines |
+| | `border-inverse-mid` | navy-500 | Hairline on a dark panel |
+| | `ink-inverse-tint` | navy-100 | Mono text on a dark panel |
+| | `ink-ghost` | cream-400 | Empty-state icons, strikethrough decoration |
+| | `border-stronger` | cream-400 | Dashed and drop-zone borders |
+| | `accent-deep` | gold-600 | Gold save button hover |
+| | `success-muted`, `border-success`, `border-success-soft` | sage-500, sage-300, sage-200 | Strong-match dot, ATS ring, match pill border |
 
 Utilities follow Tailwind's naming: `bg-surface`, `text-ink-muted`, `border-border`, `border-border-strong`, `ring-focus-ring`, `bg-accent/10`. Opacity modifiers work on every role.
 

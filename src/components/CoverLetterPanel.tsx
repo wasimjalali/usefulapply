@@ -32,7 +32,7 @@ interface CoverLetterPanelProps {
   toolbarPortal?: HTMLDivElement | null;
 }
 
-const TOOL_CLASS = 'inline-flex h-9 items-center gap-2 rounded-full border border-cream-200 bg-cream-50 px-3.5 text-sm font-medium text-charcoal shadow-sm hover:bg-white transition-colors duration-200 cursor-pointer flex-shrink-0';
+const TOOL_CLASS = 'inline-flex h-9 items-center gap-2 rounded-pill border border-border bg-surface px-3.5 text-sm font-medium text-ink-body shadow-resting hover:bg-surface-raised transition-colors duration-(--duration-base) cursor-pointer flex-shrink-0';
 const DOWNLOAD_MENU_WIDTH = 144;
 const DOWNLOAD_MENU_HEIGHT = 96;
 
@@ -324,26 +324,26 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
 
   if (!coverLetter && hasFreshPendingFitAnalysis) {
     return (
-      <div className="h-full flex items-center justify-center bg-cream-50 p-8">
+      <div className="h-full flex items-center justify-center bg-surface p-8">
         <div className="text-center max-w-md">
-          <div className="w-16 h-16 rounded-2xl bg-navy-50 flex items-center justify-center mx-auto mb-5">
-            <Mail className="w-8 h-8 text-navy-400" />
+          <div className="w-16 h-16 rounded-card bg-brand-soft flex items-center justify-center mx-auto mb-5">
+            <Mail className="w-8 h-8 text-brand-muted" />
           </div>
-          <h3 className="text-lg font-bold tracking-tight text-charcoal mb-2">Ready to apply?</h3>
-          <p className="text-sm text-warm-gray mb-6 leading-relaxed">
+          <h3 className="text-lg font-bold tracking-tight text-ink-body mb-2">Ready to apply?</h3>
+          <p className="text-sm text-ink-muted mb-6 leading-relaxed">
             Your fit analysis is ready. Generate the full application to unlock your tailored cover letter.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <button
               onClick={() => setPendingApplicationAction('generate-full-application')}
-              className="flex items-center gap-2 rounded-full bg-gold-400 text-white px-5 py-3 text-sm font-semibold shadow-sm hover:bg-gold-500 transition-all cursor-pointer"
+              className="flex items-center gap-2 rounded-pill bg-accent text-accent-ink px-5 py-3 text-sm font-semibold shadow-resting hover:bg-accent-strong transition-all cursor-pointer"
             >
               <Zap className="w-4 h-4" />
               Generate Kit
             </button>
             <button
               onClick={() => setPendingApplicationAction('skip-job')}
-              className="flex items-center gap-2 rounded-full border border-cream-200 bg-white text-charcoal px-5 py-3 text-sm font-semibold hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer"
+              className="flex items-center gap-2 rounded-pill border border-border bg-surface-raised text-ink-body px-5 py-3 text-sm font-semibold hover:bg-surface hover:border-border-accent transition-all cursor-pointer"
             >
               New Search
             </button>
@@ -371,13 +371,13 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   // description + generation context).
   if (!coverLetter) {
     return (
-      <div className="h-full flex items-center justify-center bg-cream-50 p-8">
+      <div className="h-full flex items-center justify-center bg-surface p-8">
         <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-cream-100 flex items-center justify-center mx-auto mb-5">
-            <Mail className="w-8 h-8 text-cream-400" />
+          <div className="w-16 h-16 rounded-card bg-canvas flex items-center justify-center mx-auto mb-5">
+            <Mail className="w-8 h-8 text-ink-ghost" />
           </div>
-          <h3 className="text-lg font-bold tracking-tight text-charcoal mb-2">No cover letter yet</h3>
-          <p className="text-sm text-warm-gray leading-relaxed">
+          <h3 className="text-lg font-bold tracking-tight text-ink-body mb-2">No cover letter yet</h3>
+          <p className="text-sm text-ink-muted leading-relaxed">
             Paste a job description in the chat to generate your full application kit.
           </p>
         </div>
@@ -448,7 +448,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     if (letter.applicantAddress.name) {
       return (
         <>
-          <div className="text-sm text-charcoal mb-6">
+          <div className="text-sm text-ink-body mb-6">
             <p className="font-medium">{letter.applicantAddress.name}</p>
             {letter.applicantAddress.street && <p>{letter.applicantAddress.street}</p>}
             {letter.applicantAddress.city && <p>{letter.applicantAddress.city}</p>}
@@ -456,27 +456,27 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
             {letter.applicantAddress.phone && <p className="mt-2">{letter.applicantAddress.phone}</p>}
             {letter.applicantAddress.email && <p>{letter.applicantAddress.email}</p>}
           </div>
-          {letter.date && <p className="text-sm text-charcoal mb-6">{letter.date}</p>}
+          {letter.date && <p className="text-sm text-ink-body mb-6">{letter.date}</p>}
           {letter.companyAddress.companyName && (
-            <div className="text-sm text-charcoal mb-6">
+            <div className="text-sm text-ink-body mb-6">
               <p className="font-medium">{letter.companyAddress.companyName}</p>
               {letter.companyAddress.department && <p>{letter.companyAddress.department}</p>}
               {letter.companyAddress.street && <p>{letter.companyAddress.street}</p>}
               {letter.companyAddress.city && <p>{letter.companyAddress.city}</p>}
             </div>
           )}
-          {letter.salutation && <p className="text-sm text-charcoal mb-4">{letter.salutation}</p>}
-          <div className="text-sm text-charcoal whitespace-pre-wrap mb-6 leading-relaxed">
+          {letter.salutation && <p className="text-sm text-ink-body mb-4">{letter.salutation}</p>}
+          <div className="text-sm text-ink-body whitespace-pre-wrap mb-6 leading-relaxed">
             {letter.body}
           </div>
-          {letter.closing && <p className="text-sm text-charcoal mb-8">{letter.closing}</p>}
-          {letter.signatureName && <p className="text-sm text-charcoal font-medium">{letter.signatureName}</p>}
+          {letter.closing && <p className="text-sm text-ink-body mb-8">{letter.closing}</p>}
+          {letter.signatureName && <p className="text-sm text-ink-body font-medium">{letter.signatureName}</p>}
         </>
       );
     }
 
     return (
-      <div className="text-sm text-charcoal whitespace-pre-wrap leading-relaxed">
+      <div className="text-sm text-ink-body whitespace-pre-wrap leading-relaxed">
         {letter.body}
       </div>
     );
@@ -492,11 +492,11 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     <>
       {isEditMode ? (
         <>
-          <span className="text-sm font-semibold text-navy-600 flex-shrink-0">Editing</span>
+          <span className="text-sm font-semibold text-brand flex-shrink-0">Editing</span>
           <button
             type="button"
             onClick={handleSaveEdits}
-            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-navy-600 px-3.5 text-sm font-semibold text-white shadow-sm hover:bg-navy-700 transition-colors duration-200 cursor-pointer flex-shrink-0"
+            className="inline-flex h-9 items-center gap-1.5 rounded-pill bg-brand px-3.5 text-sm font-semibold text-brand-ink shadow-resting hover:bg-brand-strong transition-colors duration-(--duration-base) cursor-pointer flex-shrink-0"
           >
             <Check className="w-4 h-4" />
             Save
@@ -504,7 +504,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
           <button
             type="button"
             onClick={() => { setIsEditMode(false); setEditedCoverLetter(coverLetter); }}
-            className="h-9 px-3.5 text-sm font-medium text-warm-gray hover:text-charcoal rounded-full hover:bg-cream-100 transition-colors duration-200 cursor-pointer flex-shrink-0"
+            className="h-9 px-3.5 text-sm font-medium text-ink-muted hover:text-ink-body rounded-pill hover:bg-canvas transition-colors duration-(--duration-base) cursor-pointer flex-shrink-0"
           >
             Cancel
           </button>
@@ -516,11 +516,11 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
             editStartRef.current = currentSession ? getEditorStart(currentSession.id) : undefined;
             setIsEditMode(true);
           }} className={TOOL_CLASS}>
-            <Edit3 className="w-4 h-4 text-navy-500" />
+            <Edit3 className="w-4 h-4 text-brand-mid" />
             Edit
           </button>
           <button type="button" onClick={handleCopy} className={TOOL_CLASS}>
-            {copied ? <Check className="w-4 h-4 text-gold-600" /> : <Copy className="w-4 h-4" />}
+            {copied ? <Check className="w-4 h-4 text-ink-accent" /> : <Copy className="w-4 h-4" />}
             {copied ? 'Copied' : 'Copy'}
           </button>
           <button
@@ -556,21 +556,21 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
                   left: downloadMenuPos?.left ?? -9999,
                   width: DOWNLOAD_MENU_WIDTH,
                 }}
-                className="z-[60] overflow-hidden rounded-lg border border-cream-200 bg-cream-50 py-1 shadow-md"
+                className="z-[60] overflow-hidden rounded-control border border-border bg-surface py-1 shadow-elevated"
               >
-                <button type="button" role="menuitem" onClick={() => exportLetter('pdf')} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-charcoal hover:bg-white cursor-pointer">
-                  <FileText className="w-4 h-4 text-navy-500" />
+                <button type="button" role="menuitem" onClick={() => exportLetter('pdf')} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink-body hover:bg-surface-raised cursor-pointer">
+                  <FileText className="w-4 h-4 text-brand-mid" />
                   PDF
                 </button>
-                <button type="button" role="menuitem" onClick={() => exportLetter('docx')} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-charcoal hover:bg-white cursor-pointer">
-                  <FileText className="w-4 h-4 text-navy-500" />
+                <button type="button" role="menuitem" onClick={() => exportLetter('docx')} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink-body hover:bg-surface-raised cursor-pointer">
+                  <FileText className="w-4 h-4 text-brand-mid" />
                   DOCX
                 </button>
               </div>,
               document.body,
             )}
           </div>
-          <span className="ml-auto flex-shrink-0 pl-2 text-[13px] text-warm-gray">{statusLabel}</span>
+          <span className="ml-auto flex-shrink-0 pl-2 text-[13px] text-ink-muted">{statusLabel}</span>
         </>
       )}
     </>
@@ -581,39 +581,39 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     {/* Toolbar: portal to tab bar on desktop, inline on mobile */}
     {toolbarPortal && createPortal(toolbarContent, toolbarPortal)}
 
-    <div className="h-full flex flex-col bg-cream-50">
+    <div className="h-full flex flex-col bg-surface">
       {/* Inline toolbar for mobile only (no portal) */}
       {!toolbarPortal && (
-        <div className="px-3 sm:px-5 py-2.5 bg-cream-100 border-b border-gold-300/60 flex-shrink-0">
+        <div className="px-3 sm:px-5 py-2.5 bg-canvas border-b border-border-accent/60 flex-shrink-0">
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
             {toolbarContent}
           </div>
         </div>
       )}
 
-      <div className="flex-1 overflow-auto bg-cream-100 px-3 pb-4 pt-1 sm:px-6 sm:pb-6 sm:pt-3">
+      <div className="flex-1 overflow-auto bg-canvas px-3 pb-4 pt-1 sm:px-6 sm:pb-6 sm:pt-3">
             <div className="relative mx-auto w-full max-w-2xl">
               {!isEditMode && activeCoverLetter && (
                 <button
                   type="button"
                   onClick={() => setShowFullPreview(true)}
-                  className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-cream-200 bg-cream-50 px-3 py-1.5 text-xs font-semibold text-navy-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md cursor-pointer"
+                  className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-brand-strong shadow-resting transition-all hover:-translate-y-0.5 hover:border-border-accent-soft hover:shadow-elevated cursor-pointer"
                 >
                   <Maximize2 className="w-3.5 h-3.5" />
                   Full Preview
                 </button>
               )}
-              <Card className="border-cream-200 bg-white p-8 shadow-md">
+              <Card className="border-border bg-document p-8 shadow-elevated">
               {isEditMode ? (
                 /* Edit Mode */
                 <div className="space-y-2">
-                  <p className="text-xs text-warm-gray mb-2">
+                  <p className="text-xs text-ink-muted mb-2">
                     Edit your cover letter content below. The full letter including salutation and closing is included.
                   </p>
                   <textarea
                     value={activeCoverLetter?.body || ''}
                     onChange={(e) => updateField('body', e.target.value)}
-                    className="w-full text-sm text-charcoal leading-relaxed bg-cream-50 border border-cream-300 rounded px-3 py-3 focus:border-navy-400 focus:outline-none resize-none"
+                    className="w-full text-sm text-ink-body leading-relaxed bg-surface border border-border-strong rounded px-3 py-3 focus:border-brand-muted focus:outline-none resize-none"
                     rows={20}
                     placeholder="Cover letter content..."
                   />
@@ -632,23 +632,23 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
 
       {showFullPreview && activeCoverLetter && createPortal(
         <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">
-          <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-[24px] border border-cream-200 bg-cream-100 shadow-lg">
-            <div className="flex items-center justify-between border-b border-cream-200 bg-cream-50 px-5 py-3">
+          <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-modal border border-border bg-canvas shadow-floating">
+            <div className="flex items-center justify-between border-b border-border bg-surface px-5 py-3">
               <div>
-                <h2 className="text-sm font-bold tracking-tight text-charcoal">Cover Letter Full Preview</h2>
-                <p className="text-xs text-warm-gray">Focused reading mode with the surrounding dashboard hidden.</p>
+                <h2 className="text-sm font-bold tracking-tight text-ink-body">Cover Letter Full Preview</h2>
+                <p className="text-xs text-ink-muted">Focused reading mode with the surrounding dashboard hidden.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowFullPreview(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-cream-200 bg-white text-warm-gray transition-colors hover:border-navy-200 hover:text-navy-700 cursor-pointer"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-pill border border-border bg-surface-raised text-ink-muted transition-colors hover:border-border-brand-soft hover:text-brand-strong cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-auto bg-cream-100 p-4 sm:p-6">
-              <Card className="mx-auto w-full max-w-3xl p-8 sm:p-10 shadow-md">
+            <div className="flex-1 overflow-auto bg-canvas p-4 sm:p-6">
+              <Card className="mx-auto w-full max-w-3xl p-8 sm:p-10 shadow-elevated">
                 {renderCoverLetterContent(activeCoverLetter)}
               </Card>
             </div>

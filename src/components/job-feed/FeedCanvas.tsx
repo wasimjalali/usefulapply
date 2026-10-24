@@ -201,19 +201,19 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex flex-shrink-0 items-start gap-3 border-b border-cream-200 px-5 py-3">
+      <header className="flex flex-shrink-0 items-start gap-3 border-b border-border px-5 py-3">
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-xl font-semibold text-navy-800">{headline}</h2>
-          {rankedFor && <p className="truncate text-xs text-warm-gray">{rankedFor}</p>}
+          <h2 className="truncate text-xl font-semibold text-ink">{headline}</h2>
+          {rankedFor && <p className="truncate text-xs text-ink-muted">{rankedFor}</p>}
         </div>
-        <div className="inline-flex flex-shrink-0 items-center rounded-full border border-cream-200 bg-cream-50 p-0.5" role="tablist">
+        <div className="inline-flex flex-shrink-0 items-center rounded-pill border border-border bg-surface p-0.5" role="tablist">
           <button
             type="button"
             role="tab"
             aria-selected={!showingSaved}
             onClick={actions.showToday}
-            className={`rounded-full px-3.5 py-1.5 text-sm transition-colors duration-200 cursor-pointer ${
-              !showingSaved ? 'bg-white font-semibold text-navy-800 shadow-sm' : 'font-medium text-warm-gray hover:text-navy-700'
+            className={`rounded-pill px-3.5 py-1.5 text-sm transition-colors duration-(--duration-base) cursor-pointer ${
+              !showingSaved ? 'bg-surface-raised font-semibold text-ink shadow-resting' : 'font-medium text-ink-muted hover:text-brand-strong'
             }`}
           >
             Today
@@ -223,8 +223,8 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
             role="tab"
             aria-selected={showingSaved}
             onClick={actions.showSaved}
-            className={`rounded-full px-3.5 py-1.5 text-sm transition-colors duration-200 cursor-pointer ${
-              showingSaved ? 'bg-white font-semibold text-navy-800 shadow-sm' : 'font-medium text-warm-gray hover:text-navy-700'
+            className={`rounded-pill px-3.5 py-1.5 text-sm transition-colors duration-(--duration-base) cursor-pointer ${
+              showingSaved ? 'bg-surface-raised font-semibold text-ink shadow-resting' : 'font-medium text-ink-muted hover:text-brand-strong'
             }`}
           >
             Saved
@@ -238,7 +238,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
               store.setEditPill('profile');
               store.setView('edit');
             }}
-            className="inline-flex h-9 flex-shrink-0 items-center gap-2 rounded-full border border-cream-200 bg-cream-50 px-3.5 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
+            className="inline-flex h-9 flex-shrink-0 items-center gap-2 rounded-pill border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised cursor-pointer"
           >
             <SlidersHorizontal className="h-4 w-4" />
             Edit feed
@@ -248,15 +248,15 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
 
       <div className="min-h-0 flex-1 space-y-3 overflow-auto px-5 py-4">
         {loadingSaved && showingSaved && (
-          <p className="text-sm text-warm-gray">Loading your saved roles.</p>
+          <p className="text-sm text-ink-muted">Loading your saved roles.</p>
         )}
 
         {showingSaved && savedError && (
-          <p className="text-sm text-warm-gray">{savedError}</p>
+          <p className="text-sm text-ink-muted">{savedError}</p>
         )}
 
         {jobs.length === 0 && !loadingSaved && !(showingSaved && savedError) && (
-          <p className="text-sm text-warm-gray">
+          <p className="text-sm text-ink-muted">
             {showingSaved
               ? 'Nothing saved yet. The bookmark on a card keeps it here.'
               : narrowed
@@ -285,15 +285,15 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
             type="button"
             disabled={loadingMore}
             onClick={() => { void actions.loadMore(); }}
-            className="w-full rounded-2xl border border-cream-200 bg-cream-50 px-5 py-3 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white disabled:cursor-not-allowed disabled:text-warm-gray cursor-pointer"
+            className="w-full rounded-card border border-border bg-surface px-5 py-3 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
           >
             {loadingMore ? 'Loading' : 'Show more roles'}
           </button>
         )}
 
         {knownFree && !readOnly && !showingSaved && jobs.length > 0 && (
-          <div className="flex items-center gap-4 rounded-2xl border border-gold-200 bg-gold-50 px-5 py-4">
-            <p className="min-w-0 flex-1 text-sm leading-relaxed text-charcoal">
+          <div className="flex items-center gap-4 rounded-card border border-border-accent-soft bg-accent-soft px-5 py-4">
+            <p className="min-w-0 flex-1 text-sm leading-relaxed text-ink-body">
               <strong className="font-semibold">You&apos;re seeing your top {feedCap} today.</strong>
               {hiddenMatched > 0
                 ? ` ${hiddenMatched} more ${plural(hiddenMatched, 'role', 'roles')} matched today.`
@@ -303,7 +303,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
             <button
               type="button"
               onClick={() => openSettings('usage')}
-              className="inline-flex h-10 flex-shrink-0 items-center gap-2 rounded-full border border-gold-400 bg-cream-50 px-4 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
+              className="inline-flex h-10 flex-shrink-0 items-center gap-2 rounded-pill border border-accent bg-surface px-4 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised cursor-pointer"
             >
               See Plus
               <ArrowUpRight className="h-4 w-4" />
@@ -319,11 +319,11 @@ function EmptyCanvas({ icon, title, body }: { icon: React.ReactNode; title: stri
   return (
     <div className="flex h-full items-center justify-center px-10">
       <div className="max-w-md text-center">
-        <span className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-full bg-gold-100 text-gold-600">
+        <span className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-pill bg-accent-soft-strong text-ink-accent">
           {icon}
         </span>
-        <h2 className="text-2xl font-semibold text-navy-800">{title}</h2>
-        {body && <p className="mt-2 text-sm leading-relaxed text-warm-gray">{body}</p>}
+        <h2 className="text-2xl font-semibold text-ink">{title}</h2>
+        {body && <p className="mt-2 text-sm leading-relaxed text-ink-muted">{body}</p>}
       </div>
     </div>
   );
@@ -351,9 +351,9 @@ function BuildingCanvas({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex-shrink-0 border-b border-cream-200 px-5 py-3">
-        <h2 className="text-xl font-semibold text-navy-800">Searching for you</h2>
-        <p className="text-xs text-warm-gray">
+      <header className="flex-shrink-0 border-b border-border px-5 py-3">
+        <h2 className="text-xl font-semibold text-ink">Searching for you</h2>
+        <p className="text-xs text-ink-muted">
           {queries.length > 0
             ? `${queries.length} ${plural(queries.length, 'search', 'searches')} today, in priority order.`
             : `${queryBudget} ${plural(queryBudget, 'search', 'searches')} run on your plan each time you build the feed.`}
@@ -370,30 +370,30 @@ function BuildingCanvas({
           return (
           <div
             key={`${query.query}-${index}`}
-            className={`flex items-start gap-3 rounded-2xl border px-4 py-3 ${
-              done ? 'border-gold-200 bg-gold-50' : 'border-cream-200 bg-cream-50'
+            className={`flex items-start gap-3 rounded-card border px-4 py-3 ${
+              done ? 'border-border-accent-soft bg-accent-soft' : 'border-border bg-surface'
             }`}
           >
-            <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full">
+            <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-pill">
               {done ? (
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gold-400 text-white">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-pill bg-accent text-accent-ink">
                   <Check className="h-3 w-3" strokeWidth={2.5} />
                 </span>
               ) : (
-                <Loader2 className="h-4 w-4 animate-spin text-gold-500" />
+                <Loader2 className="h-4 w-4 animate-spin text-accent-strong" />
               )}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-navy-800">{query.query}</p>
-              <p className="mt-0.5 text-xs text-warm-gray">{query.rationale}</p>
-              {foundLine && <p className="mt-1 text-[11px] text-warm-gray">{foundLine}</p>}
+              <p className="text-sm font-semibold text-ink">{query.query}</p>
+              <p className="mt-0.5 text-xs text-ink-muted">{query.rationale}</p>
+              {foundLine && <p className="mt-1 text-[11px] text-ink-muted">{foundLine}</p>}
             </div>
           </div>
           );
         })}
 
         {queries.length === 0 && (
-          <p className="text-sm text-warm-gray">
+          <p className="text-sm text-ink-muted">
             {canSteer
               ? "I'm planning the searches now. They show up here as soon as they're set."
               : 'Plus shows you every query it runs and why.'}

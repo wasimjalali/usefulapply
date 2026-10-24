@@ -29,8 +29,8 @@ function HideToggle({ hidden, onToggle, label }: { hidden: boolean; onToggle: ()
       onClick={onToggle}
       aria-pressed={hidden}
       title={hidden ? `Show ${label} on the CV` : `Hide ${label} from the CV`}
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-colors duration-200 cursor-pointer ${
-        hidden ? 'bg-cream-100 text-navy-700 hover:bg-cream-200' : 'text-warm-gray hover:text-navy-700'
+      className={`inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-xs font-medium transition-colors duration-(--duration-base) cursor-pointer ${
+        hidden ? 'bg-canvas text-brand-strong hover:bg-sunken' : 'text-ink-muted hover:text-brand-strong'
       }`}
     >
       {hidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -65,13 +65,13 @@ function EditableField({ value, onChange, placeholder, multiline, className = ''
   if (isEditing) {
     return (
       <div className="relative group">
-        {label && <span className="text-xs text-warm-gray mb-1 block">{label}</span>}
+        {label && <span className="text-xs text-ink-muted mb-1 block">{label}</span>}
         {multiline ? (
           <textarea
             value={tempValue}
             onChange={(e) => setTempValue(e.target.value)}
             placeholder={placeholder}
-            className={`w-full p-2 border-2 border-navy-300 rounded focus:border-navy-500 focus:outline-none resize-none ${className}`}
+            className={`w-full p-2 border-2 border-border-brand rounded focus:border-border-focus focus:outline-none resize-none ${className}`}
             rows={4}
             autoFocus
           />
@@ -81,15 +81,15 @@ function EditableField({ value, onChange, placeholder, multiline, className = ''
             value={tempValue}
             onChange={(e) => setTempValue(e.target.value)}
             placeholder={placeholder}
-            className={`w-full p-2 border-2 border-navy-300 rounded focus:border-navy-500 focus:outline-none ${className}`}
+            className={`w-full p-2 border-2 border-border-brand rounded focus:border-border-focus focus:outline-none ${className}`}
             autoFocus
           />
         )}
         <div className="flex gap-1 mt-1">
-          <button onClick={handleSave} className="p-1 bg-gold-500 text-white rounded hover:bg-gold-600 cursor-pointer" title="Save">
+          <button onClick={handleSave} className="p-1 bg-accent-strong text-accent-ink rounded hover:bg-accent-deep cursor-pointer" title="Save">
             <Check className="w-3 h-3" />
           </button>
-          <button onClick={handleCancel} className="p-1 bg-red-500 text-white rounded hover:bg-red-600 cursor-pointer" title="Cancel">
+          <button onClick={handleCancel} className="p-1 bg-danger-bright text-ink-inverse rounded hover:bg-danger cursor-pointer" title="Cancel">
             <X className="w-3 h-3" />
           </button>
         </div>
@@ -99,11 +99,11 @@ function EditableField({ value, onChange, placeholder, multiline, className = ''
 
   return (
     <div 
-      className={`group cursor-pointer hover:bg-navy-50 rounded px-1 -mx-1 transition-colors ${className}`}
+      className={`group cursor-pointer hover:bg-brand-soft rounded px-1 -mx-1 transition-colors ${className}`}
       onClick={() => setIsEditing(true)}
     >
-      {label && <span className="text-xs text-warm-gray mb-1 block">{label}</span>}
-      <span className={value ? '' : 'text-warm-gray italic'}>
+      {label && <span className="text-xs text-ink-muted mb-1 block">{label}</span>}
+      <span className={value ? '' : 'text-ink-muted italic'}>
         {value || placeholder || 'Click to edit'}
       </span>
       <Edit3 className="w-3 h-3 inline-block ml-1 opacity-0 group-hover:opacity-50 transition-opacity" />
@@ -268,13 +268,13 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 max-w-4xl mx-auto">
+    <div className="bg-document rounded-control shadow-floating p-6 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-6 pb-4 border-b border-cream-300">
-        <Edit3 className="w-5 h-5 text-navy-600" />
-        <h2 className="text-lg font-semibold text-charcoal">Edit Your CV</h2>
+      <div className="flex items-center gap-2 mb-6 pb-4 border-b border-border-strong">
+        <Edit3 className="w-5 h-5 text-brand" />
+        <h2 className="text-lg font-semibold text-ink-body">Edit Your CV</h2>
         {hasChanges && (
-          <span className="px-2 py-0.5 text-xs bg-gold-100 text-gold-700 rounded-full">
+          <span className="px-2 py-0.5 text-xs bg-accent-soft-strong text-accent-soft-ink rounded-pill">
             Unsaved changes
           </span>
         )}
@@ -282,7 +282,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
 
       {/* Personal Information */}
       <section className="mb-6">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600 mb-3">
+        <h3 className="text-sm font-bold uppercase tracking-wider text-brand mb-3">
           Personal Information
         </h3>
         <div className="grid grid-cols-2 gap-4">
@@ -355,8 +355,8 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
         </div>
         
         {/* EU/German CV Optional Fields */}
-        <div className="mt-4 pt-4 border-t border-cream-200">
-          <p className="text-xs text-warm-gray mb-3">Optional fields for EU/German CVs:</p>
+        <div className="mt-4 pt-4 border-t border-border">
+          <p className="text-xs text-ink-muted mb-3">Optional fields for EU/German CVs:</p>
           <div className="grid grid-cols-2 gap-4">
             <EditableField
               label="Date of Birth"
@@ -375,9 +375,9 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
       </section>
       
       {/* Signature Section for German CVs */}
-      <section className="mb-6 p-4 bg-cream-50 rounded-lg border border-cream-200">
+      <section className="mb-6 p-4 bg-surface rounded-control border border-border">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-brand">
             Signature (German CV)
           </h3>
           <label className="flex items-center gap-2 text-sm">
@@ -394,9 +394,9 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                 setData(prev => ({ ...prev, signature: newSignature }));
                 setHasChanges(true);
               }}
-              className="rounded border-cream-300"
+              className="rounded border-border-strong"
             />
-            <span className="text-warm-gray">Include signature line</span>
+            <span className="text-ink-muted">Include signature line</span>
           </label>
         </div>
         {data.signature?.includeSignature && (
@@ -427,7 +427,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
             />
           </div>
         )}
-        <p className="text-xs text-warm-gray mt-2">
+        <p className="text-xs text-ink-muted mt-2">
           German CVs require a signature with city and date per 2026 standards.
         </p>
       </section>
@@ -435,7 +435,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
       {/* Professional Summary */}
       <section className={`mb-6 ${dim(sectionHidden('summary'))}`}>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-brand">
             Professional Summary
           </h3>
           <HideToggle hidden={sectionHidden('summary')} onToggle={() => toggleSectionHidden('summary')} label="the summary" />
@@ -443,10 +443,10 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
             <button
               onClick={() => handleAIImprove('summary', data.summary || '')}
               disabled={isAIProcessing === 'summary'}
-              className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+              className="flex items-center gap-1 text-xs text-brand hover:text-ink disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
               {isAIProcessing === 'summary' ? (
-                <div className="w-3 h-3 border-2 border-navy-300 border-t-navy-600 rounded-full animate-spin" />
+                <div className="w-3 h-3 border-2 border-border-brand border-t-brand rounded-pill animate-spin" />
               ) : (
                 <Sparkles className="w-3 h-3" />
               )}
@@ -466,18 +466,18 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
       {/* Experience */}
       <section className={`mb-6 ${dim(sectionHidden('experience'))}`}>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-brand">
             Professional Experience
           </h3>
           <HideToggle hidden={sectionHidden('experience')} onToggle={() => toggleSectionHidden('experience')} label="this section" />
         </div>
         {data.experience.map((exp, expIndex) => (
-          <div key={exp.id} className={`mb-4 p-4 bg-cream-50 rounded-lg border border-cream-200 ${dim(exp.hidden)}`}>
+          <div key={exp.id} className={`mb-4 p-4 bg-surface rounded-control border border-border ${dim(exp.hidden)}`}>
             <div className="flex justify-end mb-1">
               <HideToggle hidden={Boolean(exp.hidden)} onToggle={() => toggleEntryHidden('experience', expIndex)} label="this role" />
             </div>
             <div className="flex items-start gap-2">
-              <GripVertical className="w-4 h-4 text-warm-gray mt-1 cursor-grab" />
+              <GripVertical className="w-4 h-4 text-ink-muted mt-1 cursor-grab" />
               <div className="flex-1">
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <EditableField
@@ -545,10 +545,10 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                 
                 {/* Bullets */}
                 <div className="space-y-1">
-                  <span className="text-xs text-warm-gray">Achievements & Responsibilities</span>
+                  <span className="text-xs text-ink-muted">Achievements & Responsibilities</span>
                   {exp.bullets.map((bullet, bulletIndex) => (
                     <div key={bulletIndex} className="flex items-start gap-2 group">
-                      <span className="text-warm-gray mt-2">•</span>
+                      <span className="text-ink-muted mt-2">•</span>
                       <EditableField
                         value={bullet}
                         onChange={(v) => updateExperienceBullet(expIndex, bulletIndex, v)}
@@ -557,7 +557,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                       />
                       <button
                         onClick={() => removeExperienceBullet(expIndex, bulletIndex)}
-                        className="p-1 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        className="p-1 text-danger-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                         title="Remove bullet point"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -566,7 +566,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                   ))}
                   <button
                     onClick={() => addExperienceBullet(expIndex)}
-                    className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 mt-2 cursor-pointer"
+                    className="flex items-center gap-1 text-xs text-brand hover:text-ink mt-2 cursor-pointer"
                   >
                     <Plus className="w-3 h-3" />
                     Add bullet point
@@ -579,7 +579,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                   setData(prev => ({ ...prev, experience: newExp }));
                   setHasChanges(true);
                 }}
-                className="p-1 text-red-400 hover:text-red-600 transition-colors cursor-pointer"
+                className="p-1 text-danger-muted hover:text-danger transition-colors cursor-pointer"
                 title="Remove experience"
               >
                 <Trash2 className="w-4 h-4" />
@@ -601,7 +601,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
             setData(prev => ({ ...prev, experience: [...prev.experience, newExperience] }));
             setHasChanges(true);
           }}
-          className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 px-2 py-1 border border-dashed border-navy-300 rounded cursor-pointer"
+          className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer"
         >
           <Plus className="w-3 h-3" />
           Add experience
@@ -611,7 +611,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
       {/* Skills */}
       <section className={`mb-6 ${dim(sectionHidden('skills'))}`}>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-brand">
             Skills
           </h3>
           <HideToggle hidden={sectionHidden('skills')} onToggle={() => toggleSectionHidden('skills')} label="this section" />
@@ -637,7 +637,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                   setData(prev => ({ ...prev, skills: newSkills }));
                   setHasChanges(true);
                 }}
-                className="p-1 text-red-400 hover:text-red-600 transition-colors cursor-pointer"
+                className="p-1 text-danger-muted hover:text-danger transition-colors cursor-pointer"
                 title="Remove skill category"
               >
                 <Trash2 className="w-4 h-4" />
@@ -645,7 +645,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
             </div>
             <div className="flex flex-wrap gap-2">
               {skillGroup.items.map((skill, skillIndex) => (
-                <div key={skillIndex} className={`flex items-center gap-1 bg-cream-100 rounded px-2 py-1 group ${dim(skillGroup.hiddenItems?.includes(skill))}`}>
+                <div key={skillIndex} className={`flex items-center gap-1 bg-canvas rounded px-2 py-1 group ${dim(skillGroup.hiddenItems?.includes(skill))}`}>
                   <EditableField
                     value={skill}
                     onChange={(v) => updateSkill(catIndex, skillIndex, v)}
@@ -655,7 +655,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                   <HideToggle hidden={Boolean(skillGroup.hiddenItems?.includes(skill))} onToggle={() => toggleSkillItemHidden(catIndex, skill)} label="this skill" />
                   <button
                     onClick={() => removeSkill(catIndex, skillIndex)}
-                    className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    className="text-danger-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                     title="Remove skill"
                   >
                     <X className="w-3 h-3" />
@@ -664,7 +664,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
               ))}
               <button
                 onClick={() => addSkill(catIndex)}
-                className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 px-2 py-1 border border-dashed border-navy-300 rounded cursor-pointer"
+                className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer"
               >
                 <Plus className="w-3 h-3" />
                 Add skill
@@ -681,7 +681,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
             setData(prev => ({ ...prev, skills: [...prev.skills, newCategory] }));
             setHasChanges(true);
           }}
-          className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 px-2 py-1 border border-dashed border-navy-300 rounded cursor-pointer"
+          className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer"
         >
           <Plus className="w-3 h-3" />
           Add skill category
@@ -691,13 +691,13 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
       {/* Projects */}
       <section className={`mb-6 ${dim(sectionHidden('projects'))}`}>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-brand">
             Projects
           </h3>
           <HideToggle hidden={sectionHidden('projects')} onToggle={() => toggleSectionHidden('projects')} label="this section" />
         </div>
         {(data.projects || []).map((proj, projIndex) => (
-          <div key={proj.id || `proj-${projIndex}`} className={`mb-4 p-4 bg-cream-50 rounded-lg border border-cream-200 ${dim(proj.hidden)}`}>
+          <div key={proj.id || `proj-${projIndex}`} className={`mb-4 p-4 bg-surface rounded-control border border-border ${dim(proj.hidden)}`}>
             <div className="flex justify-end mb-1">
               <HideToggle hidden={Boolean(proj.hidden)} onToggle={() => toggleEntryHidden('projects', projIndex)} label="this project" />
             </div>
@@ -743,9 +743,9 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                   className="text-sm mb-2"
                 />
                 <div className="flex flex-wrap gap-2 mt-2">
-                  <span className="text-xs text-warm-gray">Technologies:</span>
+                  <span className="text-xs text-ink-muted">Technologies:</span>
                   {(proj.technologies || []).map((tech, techIndex) => (
-                    <div key={techIndex} className="flex items-center gap-1 bg-cream-100 rounded px-2 py-1 group">
+                    <div key={techIndex} className="flex items-center gap-1 bg-canvas rounded px-2 py-1 group">
                       <EditableField
                         value={tech}
                         onChange={(v) => {
@@ -767,7 +767,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                           setData(prev => ({ ...prev, projects: newProjects }));
                           setHasChanges(true);
                         }}
-                        className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        className="text-danger-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                         title="Remove technology"
                       >
                         <X className="w-3 h-3" />
@@ -782,7 +782,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                       setData(prev => ({ ...prev, projects: newProjects }));
                       setHasChanges(true);
                     }}
-                    className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 px-2 py-1 border border-dashed border-navy-300 rounded cursor-pointer"
+                    className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer"
                   >
                     <Plus className="w-3 h-3" />
                     Add tech
@@ -795,7 +795,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                   setData(prev => ({ ...prev, projects: newProjects.length > 0 ? newProjects : undefined }));
                   setHasChanges(true);
                 }}
-                className="p-1 text-red-400 hover:text-red-600 transition-colors cursor-pointer"
+                className="p-1 text-danger-muted hover:text-danger transition-colors cursor-pointer"
                 title="Remove project"
               >
                 <Trash2 className="w-4 h-4" />
@@ -814,7 +814,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
             setData(prev => ({ ...prev, projects: [...(prev.projects || []), newProject] }));
             setHasChanges(true);
           }}
-          className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 px-2 py-1 border border-dashed border-navy-300 rounded cursor-pointer"
+          className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer"
         >
           <Plus className="w-3 h-3" />
           Add project
@@ -824,13 +824,13 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
       {/* Education */}
       <section className={`mb-6 ${dim(sectionHidden('education'))}`}>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-brand">
             Education
           </h3>
           <HideToggle hidden={sectionHidden('education')} onToggle={() => toggleSectionHidden('education')} label="this section" />
         </div>
         {data.education.map((edu, eduIndex) => (
-          <div key={edu.id} className={`mb-3 p-3 bg-cream-50 rounded-lg border border-cream-200 ${dim(edu.hidden)}`}>
+          <div key={edu.id} className={`mb-3 p-3 bg-surface rounded-control border border-border ${dim(edu.hidden)}`}>
             <div className="flex justify-end mb-1">
               <HideToggle hidden={Boolean(edu.hidden)} onToggle={() => toggleEntryHidden('education', eduIndex)} label="this entry" />
             </div>
@@ -890,7 +890,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                   setData(prev => ({ ...prev, education: newEdu }));
                   setHasChanges(true);
                 }}
-                className="p-1 text-red-400 hover:text-red-600 transition-colors cursor-pointer"
+                className="p-1 text-danger-muted hover:text-danger transition-colors cursor-pointer"
                 title="Remove education"
               >
                 <Trash2 className="w-4 h-4" />
@@ -910,7 +910,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
             setData(prev => ({ ...prev, education: [...prev.education, newEducation] }));
             setHasChanges(true);
           }}
-          className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 px-2 py-1 border border-dashed border-navy-300 rounded cursor-pointer"
+          className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer"
         >
           <Plus className="w-3 h-3" />
           Add education
@@ -920,14 +920,14 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
       {/* Certifications */}
       <section className={`mb-6 ${dim(sectionHidden('certifications'))}`}>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-brand">
             Certifications
           </h3>
           <HideToggle hidden={sectionHidden('certifications')} onToggle={() => toggleSectionHidden('certifications')} label="this section" />
         </div>
         <div className="space-y-2">
           {data.certifications.map((cert, certIndex) => (
-            <div key={cert.id || `cert-${certIndex}`} className={`flex items-center gap-2 p-2 bg-cream-50 rounded border border-cream-200 group ${dim(cert.hidden)}`}>
+            <div key={cert.id || `cert-${certIndex}`} className={`flex items-center gap-2 p-2 bg-surface rounded border border-border group ${dim(cert.hidden)}`}>
               <HideToggle hidden={Boolean(cert.hidden)} onToggle={() => toggleEntryHidden('certifications', certIndex)} label="this certification" />
               <EditableField
                 value={cert.name}
@@ -949,7 +949,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                   setHasChanges(true);
                 }}
                 placeholder="Issuer"
-                className="text-sm text-warm-gray"
+                className="text-sm text-ink-muted"
               />
               <EditableField
                 value={cert.date || ''}
@@ -960,7 +960,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                   setHasChanges(true);
                 }}
                 placeholder="Date"
-                className="text-sm text-warm-gray"
+                className="text-sm text-ink-muted"
               />
               <button
                 onClick={() => {
@@ -968,7 +968,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                   setData(prev => ({ ...prev, certifications: newCerts }));
                   setHasChanges(true);
                 }}
-                className="p-1 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                className="p-1 text-danger-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                 title="Remove certification"
               >
                 <Trash2 className="w-3 h-3" />
@@ -986,7 +986,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
               setData(prev => ({ ...prev, certifications: [...prev.certifications, newCert] }));
               setHasChanges(true);
             }}
-            className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 px-2 py-1 border border-dashed border-navy-300 rounded cursor-pointer"
+            className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer"
           >
             <Plus className="w-3 h-3" />
             Add certification
@@ -997,7 +997,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
       {/* Additional Information */}
       <section className={`mb-6 ${dim(sectionHidden('additionalInfo'))}`}>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-brand">
             Additional Information
           </h3>
           <HideToggle hidden={sectionHidden('additionalInfo')} onToggle={() => toggleSectionHidden('additionalInfo')} label="this section" />
@@ -1005,7 +1005,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
         <div className="space-y-2">
           {(data.additionalInfo || []).map((item, itemIndex) => (
             <div key={`addl-${itemIndex}`} className="flex items-start gap-2 group">
-              <span className="text-warm-gray mt-2">•</span>
+              <span className="text-ink-muted mt-2">•</span>
               <EditableField
                 value={item}
                 onChange={(v) => {
@@ -1023,7 +1023,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                   setData(prev => ({ ...prev, additionalInfo: newInfo.length > 0 ? newInfo : undefined }));
                   setHasChanges(true);
                 }}
-                className="p-1 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                className="p-1 text-danger-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                 title="Remove item"
               >
                 <Trash2 className="w-3 h-3" />
@@ -1035,7 +1035,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
               setData(prev => ({ ...prev, additionalInfo: [...(prev.additionalInfo || []), ''] }));
               setHasChanges(true);
             }}
-            className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 px-2 py-1 border border-dashed border-navy-300 rounded cursor-pointer"
+            className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer"
           >
             <Plus className="w-3 h-3" />
             Add item
@@ -1056,7 +1056,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                 setHasChanges(true);
               }}
               placeholder="Section title"
-              className="text-sm font-bold uppercase tracking-wider text-navy-600"
+              className="text-sm font-bold uppercase tracking-wider text-brand"
             />
             <HideToggle hidden={Boolean(section.hidden)} onToggle={() => toggleEntryHidden('customSections', secIndex)} label="this section" />
             <button
@@ -1065,7 +1065,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                 setData(prev => ({ ...prev, customSections: newSections.length > 0 ? newSections : undefined }));
                 setHasChanges(true);
               }}
-              className="p-1 text-red-400 hover:text-red-600 cursor-pointer"
+              className="p-1 text-danger-muted hover:text-danger cursor-pointer"
               title="Remove section"
             >
               <Trash2 className="w-4 h-4" />
@@ -1074,7 +1074,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
           <div className="space-y-1">
             {section.items.map((item, itemIndex) => (
               <div key={itemIndex} className="flex items-start gap-2 group">
-                <span className="text-warm-gray mt-2">•</span>
+                <span className="text-ink-muted mt-2">•</span>
                 <EditableField
                   value={item}
                   onChange={(v) => {
@@ -1098,7 +1098,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                     setData(prev => ({ ...prev, customSections: newSections }));
                     setHasChanges(true);
                   }}
-                  className="p-1 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  className="p-1 text-danger-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                   title="Remove item"
                 >
                   <Trash2 className="w-3 h-3" />
@@ -1115,7 +1115,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                 setData(prev => ({ ...prev, customSections: newSections }));
                 setHasChanges(true);
               }}
-              className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 mt-2 cursor-pointer"
+              className="flex items-center gap-1 text-xs text-brand hover:text-ink mt-2 cursor-pointer"
             >
               <Plus className="w-3 h-3" />
               Add item
@@ -1133,7 +1133,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
           setData(prev => ({ ...prev, customSections: [...(prev.customSections || []), newSection] }));
           setHasChanges(true);
         }}
-        className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 px-2 py-1 border border-dashed border-navy-300 rounded cursor-pointer mb-6"
+        className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer mb-6"
       >
         <Plus className="w-3 h-3" />
         Add custom section
@@ -1142,14 +1142,14 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
       {/* Languages */}
       <section className={` ${dim(sectionHidden('languages'))}`}>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-navy-600">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-brand">
             Languages
           </h3>
           <HideToggle hidden={sectionHidden('languages')} onToggle={() => toggleSectionHidden('languages')} label="this section" />
         </div>
         <div className="flex flex-wrap gap-2">
           {data.languages.map((lang, langIndex) => (
-            <div key={`lang-${langIndex}`} className={`flex items-center gap-2 bg-cream-100 rounded px-3 py-1 group ${dim(lang.hidden)}`}>
+            <div key={`lang-${langIndex}`} className={`flex items-center gap-2 bg-canvas rounded px-3 py-1 group ${dim(lang.hidden)}`}>
               <HideToggle hidden={Boolean(lang.hidden)} onToggle={() => toggleEntryHidden('languages', langIndex)} label="this language" />
               <EditableField
                 value={lang.language}
@@ -1161,7 +1161,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                 }}
                 className="font-medium text-sm"
               />
-              <span className="text-warm-gray">-</span>
+              <span className="text-ink-muted">-</span>
               <EditableField
                 value={lang.proficiency}
                 onChange={(v) => {
@@ -1170,7 +1170,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                   setData(prev => ({ ...prev, languages: newLangs }));
                   setHasChanges(true);
                 }}
-                className="text-sm text-warm-gray"
+                className="text-sm text-ink-muted"
               />
               <button
                 onClick={() => {
@@ -1178,7 +1178,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                   setData(prev => ({ ...prev, languages: newLangs }));
                   setHasChanges(true);
                 }}
-                className="p-1 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                className="p-1 text-danger-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                 title="Remove language"
               >
                 <X className="w-3 h-3" />
@@ -1191,7 +1191,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
               setData(prev => ({ ...prev, languages: [...prev.languages, newLang] }));
               setHasChanges(true);
             }}
-            className="flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 px-2 py-1 border border-dashed border-navy-300 rounded cursor-pointer"
+            className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer"
           >
             <Plus className="w-3 h-3" />
             Add language

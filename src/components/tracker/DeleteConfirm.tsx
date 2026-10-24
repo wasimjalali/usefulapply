@@ -75,16 +75,16 @@ export function DeleteConfirm({
           left: position?.left ?? -9999,
           width: PANEL_WIDTH,
         }}
-        className="z-50 rounded-2xl border border-cream-200 bg-cream-50 p-3 shadow-md focus:outline-none"
+        className="z-50 rounded-card border border-border bg-surface p-3 shadow-elevated focus:outline-none"
       >
-        <p className="text-[13px] font-semibold text-navy-800">{label}</p>
-        {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+        <p className="text-[13px] font-semibold text-ink">{label}</p>
+        {error && <p className="mt-2 text-xs text-danger">{error}</p>}
         <div className="mt-3 flex items-center justify-end gap-2">
           <button
             type="button"
             disabled={busy}
             onClick={onClose}
-            className="inline-flex h-9 items-center rounded-full border border-cream-200 bg-cream-50 px-3.5 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
+            className="inline-flex h-9 items-center rounded-pill border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised cursor-pointer"
           >
             Keep
           </button>
@@ -92,7 +92,7 @@ export function DeleteConfirm({
             type="button"
             disabled={busy}
             onClick={onConfirm}
-            className="inline-flex h-9 items-center rounded-full px-3.5 text-sm font-semibold text-red-600 transition-colors duration-200 hover:bg-cream-100 disabled:cursor-not-allowed disabled:text-warm-gray cursor-pointer"
+            className="inline-flex h-9 items-center rounded-pill px-3.5 text-sm font-semibold text-danger transition-colors duration-(--duration-base) hover:bg-canvas disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
           >
             {busy ? 'Deleting' : 'Delete'}
           </button>

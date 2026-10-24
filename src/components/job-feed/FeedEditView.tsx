@@ -59,15 +59,15 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold tracking-[0.08em] text-warm-gray">{label}</p>
-      <p className="mt-1 text-sm text-charcoal">{value}</p>
+      <p className="text-[11px] font-semibold tracking-[0.08em] text-ink-muted">{label}</p>
+      <p className="mt-1 text-sm text-ink-body">{value}</p>
     </div>
   );
 }
 
 function Tag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-cream-200 bg-white px-3 py-1.5 text-sm text-charcoal">
+    <span className="inline-flex items-center rounded-pill border border-border bg-surface-raised px-3 py-1.5 text-sm text-ink-body">
       {children}
     </span>
   );
@@ -161,18 +161,18 @@ export function FeedEditView({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-shrink-0 items-center gap-3 border-b border-cream-200 px-5 py-3">
+      <div className="flex flex-shrink-0 items-center gap-3 border-b border-border px-5 py-3">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-cream-200 bg-cream-50 px-3.5 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
+          className="inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised cursor-pointer"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to feed
         </button>
-        <h2 className="truncate text-lg font-semibold text-navy-800">How I search for you</h2>
+        <h2 className="truncate text-lg font-semibold text-ink">How I search for you</h2>
         <div className="flex-1" />
-        <div className="inline-flex flex-shrink-0 items-center rounded-full border border-cream-200 bg-cream-50 p-0.5" role="tablist">
+        <div className="inline-flex flex-shrink-0 items-center rounded-pill border border-border bg-surface p-0.5" role="tablist">
           {PILLS.map((item) => {
             const on = pill === item.id;
             return (
@@ -182,8 +182,8 @@ export function FeedEditView({
                 role="tab"
                 aria-selected={on}
                 onClick={() => onPillChange(item.id)}
-                className={`rounded-full px-3.5 py-1.5 text-sm transition-colors duration-200 cursor-pointer ${
-                  on ? 'bg-white font-semibold text-navy-800 shadow-sm' : 'font-medium text-warm-gray hover:text-navy-700'
+                className={`rounded-pill px-3.5 py-1.5 text-sm transition-colors duration-(--duration-base) cursor-pointer ${
+                  on ? 'bg-surface-raised font-semibold text-ink shadow-resting' : 'font-medium text-ink-muted hover:text-brand-strong'
                 }`}
               >
                 {item.label}
@@ -196,8 +196,8 @@ export function FeedEditView({
       <div className="min-h-0 flex-1 overflow-auto px-5 py-5">
         {pill === 'profile' && (
           <div className="space-y-4">
-            <section className="rounded-2xl border border-cream-200 bg-cream-50 px-5 py-5 shadow-sm">
-              <h3 className="text-base font-semibold text-navy-800">Preferences</h3>
+            <section className="rounded-card border border-border bg-surface px-5 py-5 shadow-resting">
+              <h3 className="text-base font-semibold text-ink">Preferences</h3>
               {draft ? (
                 <form
                   className="mt-4"
@@ -208,7 +208,7 @@ export function FeedEditView({
                 >
                   <div className="grid grid-cols-1 gap-x-5 gap-y-4 xl:grid-cols-2">
                     <div>
-                      <label htmlFor="feed-country" className="text-sm font-medium text-charcoal">Countries</label>
+                      <label htmlFor="feed-country" className="text-sm font-medium text-ink-body">Countries</label>
                       <select
                         id="feed-country"
                         value=""
@@ -218,7 +218,7 @@ export function FeedEditView({
                             updateDraft({ countries: [...draft.countries, country] });
                           }
                         }}
-                        className="mt-1.5 h-10 w-full rounded-lg border border-cream-200 bg-white px-3 text-sm text-charcoal outline-none transition-colors duration-150 focus:border-navy-700 focus:ring-2 focus:ring-navy-700/15"
+                        className="mt-1.5 h-10 w-full rounded-control border border-border bg-surface-raised px-3 text-sm text-ink-body outline-none transition-colors duration-(--duration-fast) focus:border-brand-strong focus:ring-2 focus:ring-brand-strong/15"
                       >
                         <option value="">Add a country</option>
                         {JOB_FEED_COUNTRY_OPTIONS.filter((option) => !draft.countries.includes(option.value)).map((option) => (
@@ -227,13 +227,13 @@ export function FeedEditView({
                       </select>
                       <div className="mt-2 flex min-h-8 flex-wrap gap-2">
                         {draft.countries.map((country) => (
-                          <span key={country} className="inline-flex items-center gap-1 rounded-full border border-cream-200 bg-white py-1 pl-3 pr-1 text-sm text-charcoal">
+                          <span key={country} className="inline-flex items-center gap-1 rounded-pill border border-border bg-surface-raised py-1 pl-3 pr-1 text-sm text-ink-body">
                             {countryLabel(country)}
                             <button
                               type="button"
                               onClick={() => updateDraft({ countries: draft.countries.filter((item) => item !== country) })}
                               aria-label={`Remove ${countryLabel(country)}`}
-                              className="inline-flex h-7 w-7 items-center justify-center rounded-full text-warm-gray transition-colors duration-150 hover:bg-cream-100 hover:text-navy-800"
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-pill text-ink-muted transition-colors duration-(--duration-fast) hover:bg-canvas hover:text-ink"
                             >
                               <X className="h-3.5 w-3.5" />
                             </button>
@@ -241,24 +241,24 @@ export function FeedEditView({
                         ))}
                       </div>
                       {draft.countries.length === 0 && (
-                        <p className="mt-1 text-xs text-red-700">Choose at least one country.</p>
+                        <p className="mt-1 text-xs text-danger-strong">Choose at least one country.</p>
                       )}
                     </div>
 
                     <div>
-                      <label htmlFor="feed-cities" className="text-sm font-medium text-charcoal">Cities</label>
+                      <label htmlFor="feed-cities" className="text-sm font-medium text-ink-body">Cities</label>
                       <input
                         id="feed-cities"
                         type="text"
                         value={draft.cities}
                         onChange={(event) => updateDraft({ cities: event.target.value })}
                         placeholder="Berlin, Amsterdam"
-                        className="mt-1.5 h-10 w-full rounded-lg border border-cream-200 bg-white px-3 text-sm text-charcoal outline-none transition-colors duration-150 placeholder:text-warm-gray focus:border-navy-700 focus:ring-2 focus:ring-navy-700/15"
+                        className="mt-1.5 h-10 w-full rounded-control border border-border bg-surface-raised px-3 text-sm text-ink-body outline-none transition-colors duration-(--duration-fast) placeholder:text-ink-muted focus:border-brand-strong focus:ring-2 focus:ring-brand-strong/15"
                       />
                     </div>
 
                     <fieldset>
-                      <legend className="text-sm font-medium text-charcoal">Work mode</legend>
+                      <legend className="text-sm font-medium text-ink-body">Work mode</legend>
                       <div className="mt-1.5 flex flex-wrap gap-2">
                         {JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => {
                           const selected = draft.workModes.includes(option.value);
@@ -272,10 +272,10 @@ export function FeedEditView({
                                   ? draft.workModes.filter((item) => item !== option.value)
                                   : [...draft.workModes, option.value],
                               })}
-                              className={`inline-flex h-10 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors duration-150 ${
+                              className={`inline-flex h-10 items-center gap-1.5 rounded-pill border px-3 text-sm transition-colors duration-(--duration-fast) ${
                                 selected
-                                  ? 'border-navy-700 bg-white font-semibold text-navy-800'
-                                  : 'border-cream-200 bg-white text-charcoal hover:border-cream-300'
+                                  ? 'border-brand-strong bg-surface-raised font-semibold text-ink'
+                                  : 'border-border bg-surface-raised text-ink-body hover:border-border-strong'
                               }`}
                             >
                               {selected && <Check className="h-3.5 w-3.5" />}
@@ -285,14 +285,14 @@ export function FeedEditView({
                         })}
                       </div>
                       {draft.workModes.length === 0 && (
-                        <p className="mt-1 text-xs text-red-700">Choose at least one work mode.</p>
+                        <p className="mt-1 text-xs text-danger-strong">Choose at least one work mode.</p>
                       )}
                     </fieldset>
 
                     <div>
-                      <label htmlFor="feed-salary-floor" className="text-sm font-medium text-charcoal">Salary floor</label>
+                      <label htmlFor="feed-salary-floor" className="text-sm font-medium text-ink-body">Salary floor</label>
                       <div className="relative mt-1.5">
-                        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-warm-gray">$</span>
+                        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-ink-muted">$</span>
                         <input
                           id="feed-salary-floor"
                           type="number"
@@ -301,16 +301,16 @@ export function FeedEditView({
                           inputMode="numeric"
                           value={draft.salaryFloor}
                           onChange={(event) => updateDraft({ salaryFloor: event.target.value })}
-                          className="h-10 w-full rounded-lg border border-cream-200 bg-white py-2 pl-7 pr-3 text-sm tabular-nums text-charcoal outline-none transition-colors duration-150 focus:border-navy-700 focus:ring-2 focus:ring-navy-700/15"
+                          className="h-10 w-full rounded-control border border-border bg-surface-raised py-2 pl-7 pr-3 text-sm tabular-nums text-ink-body outline-none transition-colors duration-(--duration-fast) focus:border-brand-strong focus:ring-2 focus:ring-brand-strong/15"
                         />
                       </div>
                       {!salaryValid && (
-                        <p className="mt-1 text-xs text-red-700">Enter a whole number or leave it blank.</p>
+                        <p className="mt-1 text-xs text-danger-strong">Enter a whole number or leave it blank.</p>
                       )}
                     </div>
 
                     <div className="xl:col-span-2">
-                      <p className="text-sm font-medium text-charcoal">Searches</p>
+                      <p className="text-sm font-medium text-ink-body">Searches</p>
                       <div className="mt-2">
                         {draft && (
                           <SearchPlanEditor
@@ -323,22 +323,22 @@ export function FeedEditView({
                         )}
                       </div>
                       {draft.searchRows.length === 0 && (
-                        <p className="mt-1 text-xs text-red-700">Keep at least one search.</p>
+                        <p className="mt-1 text-xs text-danger-strong">Keep at least one search.</p>
                       )}
                       {draft.searchRows.some((row) => row.query.trim().length === 0) && (
-                        <p className="mt-1 text-xs text-red-700">Every search needs a role keyword.</p>
+                        <p className="mt-1 text-xs text-danger-strong">Every search needs a role keyword.</p>
                       )}
                     </div>
 
                     <div>
-                      <label htmlFor="feed-work-authorization" className="text-sm font-medium text-charcoal">Work authorization</label>
+                      <label htmlFor="feed-work-authorization" className="text-sm font-medium text-ink-body">Work authorization</label>
                       <select
                         id="feed-work-authorization"
                         value={draft.workAuthorization ?? ''}
                         onChange={(event) => updateDraft({
                           workAuthorization: event.target.value as JobFeedSettingsInput['work_authorization_status'],
                         })}
-                        className="mt-1.5 h-10 w-full rounded-lg border border-cream-200 bg-white px-3 text-sm text-charcoal outline-none transition-colors duration-150 focus:border-navy-700 focus:ring-2 focus:ring-navy-700/15"
+                        className="mt-1.5 h-10 w-full rounded-control border border-border bg-surface-raised px-3 text-sm text-ink-body outline-none transition-colors duration-(--duration-fast) focus:border-brand-strong focus:ring-2 focus:ring-brand-strong/15"
                       >
                         {JOB_FEED_WORK_AUTH_OPTIONS.map((option) => (
                           <option key={option.value} value={option.value}>{option.label}</option>
@@ -347,27 +347,27 @@ export function FeedEditView({
                     </div>
 
                     <div>
-                      <label htmlFor="feed-excluded-terms" className="text-sm font-medium text-charcoal">Words to avoid</label>
+                      <label htmlFor="feed-excluded-terms" className="text-sm font-medium text-ink-body">Words to avoid</label>
                       <input
                         id="feed-excluded-terms"
                         type="text"
                         value={draft.excludedTerms}
                         onChange={(event) => updateDraft({ excludedTerms: event.target.value })}
                         placeholder="Sales, staffing agencies"
-                        className="mt-1.5 h-10 w-full rounded-lg border border-cream-200 bg-white px-3 text-sm text-charcoal outline-none transition-colors duration-150 placeholder:text-warm-gray focus:border-navy-700 focus:ring-2 focus:ring-navy-700/15"
+                        className="mt-1.5 h-10 w-full rounded-control border border-border bg-surface-raised px-3 text-sm text-ink-body outline-none transition-colors duration-(--duration-fast) placeholder:text-ink-muted focus:border-brand-strong focus:ring-2 focus:ring-brand-strong/15"
                       />
                     </div>
                   </div>
 
-                  <div className="mt-5 flex min-h-10 items-center justify-end gap-3 border-t border-cream-200 pt-4">
+                  <div className="mt-5 flex min-h-10 items-center justify-end gap-3 border-t border-border pt-4">
                     <div className="min-w-0 flex-1" aria-live="polite">
-                      {saveState === 'saved' && <p className="text-sm text-charcoal">Saved.</p>}
-                      {saveState === 'error' && <p className="text-sm text-red-700">{saveError}</p>}
+                      {saveState === 'saved' && <p className="text-sm text-ink-body">Saved.</p>}
+                      {saveState === 'error' && <p className="text-sm text-danger-strong">{saveError}</p>}
                     </div>
                     <button
                       type="submit"
                       disabled={!dirty || !formValid || saveState === 'saving'}
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-gold-400 px-5 text-sm font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-gold-500 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-warm-gray"
+                      className="inline-flex h-10 items-center justify-center gap-2 rounded-pill bg-accent px-5 text-sm font-semibold text-accent-ink shadow-resting transition-colors duration-(--duration-fast) hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-sunken disabled:text-ink-muted"
                     >
                       {saveState === 'saving' && <Loader2 className="h-4 w-4 animate-spin" />}
                       {saveState === 'saving' ? 'Saving' : 'Save preferences'}
@@ -375,15 +375,15 @@ export function FeedEditView({
                   </div>
                 </form>
               ) : (
-                <p className="mt-4 text-sm text-warm-gray">Your preferences get saved with the first feed.</p>
+                <p className="mt-4 text-sm text-ink-muted">Your preferences get saved with the first feed.</p>
               )}
             </section>
 
-            <section className="rounded-2xl border border-cream-200 bg-cream-50 px-5 py-5 shadow-sm">
-              <h3 className="text-base font-semibold text-navy-800">
+            <section className="rounded-card border border-border bg-surface px-5 py-5 shadow-resting">
+              <h3 className="text-base font-semibold text-ink">
                 What I read from your CV
                 {profile?.generatedAt && (
-                  <span className="ml-2 text-xs font-normal text-warm-gray">
+                  <span className="ml-2 text-xs font-normal text-ink-muted">
                     refreshed {formatDayMonth(new Date(profile.generatedAt), datePrefs)}
                   </span>
                 )}
@@ -397,25 +397,25 @@ export function FeedEditView({
                       value={`${capitalise(profile.function)} · ${capitalise(profile.seniority.level)} · ${profile.yearsTotal} years`}
                     />
                     <div>
-                      <p className="text-[11px] font-semibold tracking-[0.08em] text-warm-gray">INDUSTRIES</p>
+                      <p className="text-[11px] font-semibold tracking-[0.08em] text-ink-muted">INDUSTRIES</p>
                       <div className="mt-1.5 flex flex-wrap gap-2">
                         {profile.industryDomains.length > 0
                           ? profile.industryDomains.slice(0, 4).map((item) => <Tag key={item}>{item}</Tag>)
-                          : <p className="text-sm text-warm-gray">Not enough in the CV to name one.</p>}
+                          : <p className="text-sm text-ink-muted">Not enough in the CV to name one.</p>}
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <p className="text-[11px] font-semibold tracking-[0.08em] text-warm-gray">BEST-FIT TITLES</p>
+                    <p className="text-[11px] font-semibold tracking-[0.08em] text-ink-muted">BEST-FIT TITLES</p>
                     <div className="mt-1.5 flex flex-wrap gap-2">
                       {profile.inferredTitles.map((title) => <Tag key={title.canonical}>{title.canonical}</Tag>)}
                     </div>
                   </div>
 
                   <div>
-                    <p className="text-[11px] font-semibold tracking-[0.08em] text-warm-gray">STRONGEST SKILL AREAS</p>
-                    <p className="mt-1.5 text-sm leading-relaxed text-charcoal">
+                    <p className="text-[11px] font-semibold tracking-[0.08em] text-ink-muted">STRONGEST SKILL AREAS</p>
+                    <p className="mt-1.5 text-sm leading-relaxed text-ink-body">
                       {profile.primarySkillClusters.map((cluster) => (
                         <span key={cluster.name}>
                           <strong className="font-semibold">{capitalise(cluster.name)}:</strong>{' '}
@@ -426,12 +426,12 @@ export function FeedEditView({
                   </div>
 
                   <div>
-                    <p className="text-[11px] font-semibold tracking-[0.08em] text-warm-gray">IN ONE PARAGRAPH</p>
-                    <p className="mt-1.5 text-sm leading-relaxed text-charcoal">{profile.narrative}</p>
+                    <p className="text-[11px] font-semibold tracking-[0.08em] text-ink-muted">IN ONE PARAGRAPH</p>
+                    <p className="mt-1.5 text-sm leading-relaxed text-ink-body">{profile.narrative}</p>
                   </div>
                 </div>
               ) : (
-                <p className="mt-4 text-sm text-warm-gray">
+                <p className="mt-4 text-sm text-ink-muted">
                   I haven&apos;t read your CV into a profile yet. It gets built with your first feed.
                 </p>
               )}
@@ -441,21 +441,21 @@ export function FeedEditView({
 
         {pill === 'searches' && (
           <div className="space-y-3">
-            <p className="text-sm text-warm-gray">
+            <p className="text-sm text-ink-muted">
               {todaysQueries.length > 0
                 ? `${todaysQueries.length} ${todaysQueries.length === 1 ? 'search runs' : 'searches run'} each time you build the feed, in this order.`
                 : 'Your searches get planned with the first feed.'}
             </p>
             {todaysQueries.map((query, index) => (
-              <div key={`${query.query}-${index}`} className="rounded-2xl border border-cream-200 bg-cream-50 px-4 py-3 shadow-sm">
-                <p className="text-sm font-semibold text-navy-800">{query.query}</p>
-                <p className="mt-0.5 text-xs text-warm-gray">{query.rationale}</p>
-                <p className="mt-1.5 text-[11px] text-warm-gray">{countryLabel(query.targetCountry)}</p>
+              <div key={`${query.query}-${index}`} className="rounded-card border border-border bg-surface px-4 py-3 shadow-resting">
+                <p className="text-sm font-semibold text-ink">{query.query}</p>
+                <p className="mt-0.5 text-xs text-ink-muted">{query.rationale}</p>
+                <p className="mt-1.5 text-[11px] text-ink-muted">{countryLabel(query.targetCountry)}</p>
               </div>
             ))}
             {laterQueries.length > 0 && (
-              <div className="rounded-2xl border border-cream-200 bg-cream-50 px-4 py-3">
-                <p className="text-sm text-charcoal">
+              <div className="rounded-card border border-border bg-surface px-4 py-3">
+                <p className="text-sm text-ink-body">
                   {laterQueries.length} more {laterQueries.length === 1 ? 'query is' : 'queries are'} in the plan. Later runs
                   work down the list, so they come round on other days.
                 </p>

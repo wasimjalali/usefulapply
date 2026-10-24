@@ -46,7 +46,7 @@ export function SearchPlanEditor({
         <div
           key={`${row.targetCountry}-${index}`}
           className={`flex flex-wrap items-center gap-2 ${
-            compact ? '' : 'rounded-2xl border border-cream-200 bg-white px-3 py-2.5 shadow-sm'
+            compact ? '' : 'rounded-card border border-border bg-surface-raised px-3 py-2.5 shadow-resting'
           }`}
         >
           <input
@@ -56,28 +56,28 @@ export function SearchPlanEditor({
             onChange={(event) => updateRow(index, { query: event.target.value })}
             placeholder="Role keyword"
             aria-label={`Search ${index + 1} role`}
-            className="h-10 min-w-[12rem] flex-1 rounded-lg border border-cream-200 bg-white px-3 text-sm text-charcoal outline-none transition-colors duration-150 placeholder:text-warm-gray focus:border-navy-700 focus:ring-2 focus:ring-navy-700/15 disabled:cursor-not-allowed"
+            className="h-10 min-w-[12rem] flex-1 rounded-control border border-border bg-surface-raised px-3 text-sm text-ink-body outline-none transition-colors duration-(--duration-fast) placeholder:text-ink-muted focus:border-brand-strong focus:ring-2 focus:ring-brand-strong/15 disabled:cursor-not-allowed"
           />
           <select
             value={row.targetCountry}
             disabled={disabled}
             onChange={(event) => updateRow(index, { targetCountry: event.target.value })}
             aria-label={`Search ${index + 1} country`}
-            className="h-10 rounded-lg border border-cream-200 bg-white px-3 text-sm text-charcoal outline-none transition-colors duration-150 focus:border-navy-700 focus:ring-2 focus:ring-navy-700/15 disabled:cursor-not-allowed"
+            className="h-10 rounded-control border border-border bg-surface-raised px-3 text-sm text-ink-body outline-none transition-colors duration-(--duration-fast) focus:border-brand-strong focus:ring-2 focus:ring-brand-strong/15 disabled:cursor-not-allowed"
           >
             {countryChoices.map((code) => (
               <option key={code} value={code}>{countryLabel(code)}</option>
             ))}
           </select>
           {row.cityHint ? (
-            <p className="text-xs text-warm-gray">{row.cityHint}</p>
+            <p className="text-xs text-ink-muted">{row.cityHint}</p>
           ) : null}
           <button
             type="button"
             disabled={disabled || rows.length <= 1}
             onClick={() => onChange(rows.filter((_, i) => i !== index))}
             aria-label={`Remove search ${index + 1}`}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-warm-gray transition-colors duration-150 hover:bg-cream-100 hover:text-navy-800 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-pill text-ink-muted transition-colors duration-(--duration-fast) hover:bg-canvas hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -88,7 +88,7 @@ export function SearchPlanEditor({
           type="button"
           disabled={disabled}
           onClick={addRow}
-          className="inline-flex h-10 items-center gap-1.5 rounded-full border border-cream-200 bg-cream-50 px-3.5 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+          className="inline-flex h-10 items-center gap-1.5 rounded-pill border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
         >
           <Plus className="h-3.5 w-3.5" />
           Add a search

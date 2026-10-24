@@ -375,20 +375,20 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
 
   if (!currentCV) {
     return (
-      <div className="h-full flex items-center justify-center bg-cream-50 p-8">
+      <div className="h-full flex items-center justify-center bg-surface p-8">
         <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-cream-100 flex items-center justify-center mx-auto mb-5">
-            <FileText className="w-8 h-8 text-cream-400" />
+          <div className="w-16 h-16 rounded-card bg-canvas flex items-center justify-center mx-auto mb-5">
+            <FileText className="w-8 h-8 text-ink-ghost" />
           </div>
-          <h3 className="text-lg font-bold tracking-tight text-charcoal mb-2">No CV uploaded</h3>
-          <p className="text-sm text-warm-gray mb-6 leading-relaxed">
+          <h3 className="text-lg font-bold tracking-tight text-ink-body mb-2">No CV uploaded</h3>
+          <p className="text-sm text-ink-muted mb-6 leading-relaxed">
             Upload your CV in Settings to get started.
           </p>
           <Button variant="gold" onClick={() => openSettings('cv')}>
             Upload your CV
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
-          <p className="text-xs text-warm-gray/80 mt-4 leading-relaxed">
+          <p className="text-xs text-ink-muted/80 mt-4 leading-relaxed">
             Then paste a job description and Useful Apply tailors your CV, cover letter and emails.
           </p>
         </div>
@@ -404,18 +404,18 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const previewCVData = isEditMode ? (editedCVData || cvData) : cvData;
   const atsScore = optimizedCVData?.analysis?.ats_compatibility ?? null;
   const hasAtsInsights = Boolean(optimizedCVData?.analysis || generatedCV?.changes?.length);
-  const TOOL_CLASS = 'flex items-center gap-2 h-9 px-3.5 text-sm font-medium bg-cream-50 border border-cream-200 rounded-full hover:bg-white transition-colors duration-200 cursor-pointer flex-shrink-0 shadow-sm text-charcoal';
+  const TOOL_CLASS = 'flex items-center gap-2 h-9 px-3.5 text-sm font-medium bg-surface border border-border rounded-pill hover:bg-surface-raised transition-colors duration-(--duration-base) cursor-pointer flex-shrink-0 shadow-resting text-ink-body';
 
   // Row under the kit tabs: which version, whose job, and the way into the
   // ATS view. Only meaningful once a tailored CV exists.
   const headerContent = generatedCV ? (
     <>
-      <div className="flex items-center bg-cream-50 border border-cream-200 rounded-full p-0.5 shadow-sm flex-shrink-0">
+      <div className="flex items-center bg-surface border border-border rounded-pill p-0.5 shadow-resting flex-shrink-0">
         <button
           type="button"
           onClick={() => { setShowOptimized(false); setEditedCVData(null); }}
-          className={`px-3.5 py-1.5 text-sm rounded-full transition-colors duration-200 cursor-pointer ${
-            !showOptimized ? 'bg-white text-navy-800 shadow-sm font-semibold' : 'font-medium text-warm-gray hover:text-charcoal'
+          className={`px-3.5 py-1.5 text-sm rounded-pill transition-colors duration-(--duration-base) cursor-pointer ${
+            !showOptimized ? 'bg-surface-raised text-ink shadow-resting font-semibold' : 'font-medium text-ink-muted hover:text-ink-body'
           }`}
         >
           Original
@@ -423,8 +423,8 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
         <button
           type="button"
           onClick={() => { setShowOptimized(true); setEditedCVData(null); }}
-          className={`px-3.5 py-1.5 text-sm rounded-full transition-colors duration-200 cursor-pointer ${
-            showOptimized ? 'bg-white text-navy-800 shadow-sm font-semibold' : 'font-medium text-warm-gray hover:text-charcoal'
+          className={`px-3.5 py-1.5 text-sm rounded-pill transition-colors duration-(--duration-base) cursor-pointer ${
+            showOptimized ? 'bg-surface-raised text-ink shadow-resting font-semibold' : 'font-medium text-ink-muted hover:text-ink-body'
           }`}
         >
           Tailored
@@ -432,15 +432,15 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
       </div>
       {/* Only where the row has room for it: squeezed, it shrank to a stray glyph. */}
       {currentSession?.company && (
-        <span className="hidden truncate text-[13px] text-warm-gray @[35rem]:block">Tailored for {currentSession.company}.</span>
+        <span className="hidden truncate text-[13px] text-ink-muted @[35rem]:block">Tailored for {currentSession.company}.</span>
       )}
       <div className="flex-1" />
       {(atsScore !== null || hasAtsInsights) && onOpenAts && (
         <button
           type="button"
           onClick={onOpenAts}
-          className={`inline-flex h-9 flex-shrink-0 items-center gap-2 rounded-full bg-sage-50 px-3 text-[13px] font-semibold text-sage-700 cursor-pointer ${
-            atsOpen ? 'ring-[1.5px] ring-inset ring-sage-300' : ''
+          className={`inline-flex h-9 flex-shrink-0 items-center gap-2 rounded-pill bg-success-soft px-3 text-[13px] font-semibold text-success-strong cursor-pointer ${
+            atsOpen ? 'ring-[1.5px] ring-inset ring-border-success' : ''
           }`}
         >
           <Shield className="h-3.5 w-3.5" />
@@ -460,9 +460,9 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           type="button"
           onClick={() => setShowTemplates((v) => !v)}
           aria-expanded={showTemplates}
-          className={`${TOOL_CLASS} ${showTemplates ? 'bg-white border-gold-200 text-navy-800' : ''}`}
+          className={`${TOOL_CLASS} ${showTemplates ? 'bg-surface-raised border-border-accent-soft text-ink' : ''}`}
         >
-          <Layout className="w-4 h-4 text-navy-500" />
+          <Layout className="w-4 h-4 text-brand-mid" />
           <span>Templates</span>
           {showTemplates ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
@@ -481,7 +481,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           }}
           className={TOOL_CLASS}
         >
-          <Edit3 className="w-4 h-4 text-navy-500" />
+          <Edit3 className="w-4 h-4 text-brand-mid" />
           <span>Edit</span>
         </button>
       )}
@@ -489,11 +489,11 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
       {/* Edit mode indicators */}
       {isEditMode && (
         <>
-          <span className="text-sm font-semibold text-navy-600 flex-shrink-0">Editing</span>
+          <span className="text-sm font-semibold text-brand flex-shrink-0">Editing</span>
           <button
             type="button"
             onClick={() => { setIsEditMode(false); setEditedCVData(null); }}
-            className="h-9 px-3.5 text-sm font-medium text-warm-gray hover:text-charcoal rounded-full hover:bg-cream-100 transition-colors duration-200 cursor-pointer flex-shrink-0"
+            className="h-9 px-3.5 text-sm font-medium text-ink-muted hover:text-ink-body rounded-pill hover:bg-canvas transition-colors duration-(--duration-base) cursor-pointer flex-shrink-0"
           >
             Cancel
           </button>
@@ -505,7 +505,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
               setEditedCVData(null);
               setIsEditMode(false);
             }}
-            className="h-9 px-3.5 text-sm font-semibold text-white bg-navy-600 hover:bg-navy-700 rounded-full transition-colors duration-200 cursor-pointer flex-shrink-0 shadow-sm"
+            className="h-9 px-3.5 text-sm font-semibold text-brand-ink bg-brand hover:bg-brand-strong rounded-pill transition-colors duration-(--duration-base) cursor-pointer flex-shrink-0 shadow-resting"
           >
             <Check className="w-4 h-4 inline mr-1.5" />
             Save changes
@@ -522,7 +522,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
             title="Copy to clipboard"
             className={TOOL_CLASS}
           >
-            {copied ? <Check className="w-4 h-4 text-gold-600" /> : <Copy className="w-4 h-4" />}
+            {copied ? <Check className="w-4 h-4 text-ink-accent" /> : <Copy className="w-4 h-4" />}
             Copy
           </button>
           {/* A template with a photo slot and no photo yet: the way to add one lives here, so the page itself never
@@ -584,13 +584,13 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   );
 
   return (
-    <div className="h-full flex flex-col bg-cream-50">
+    <div className="h-full flex flex-col bg-surface">
       {pdfPreview && <PdfPreviewModal url={pdfPreview.url} title="CV preview" onClose={closePdfPreview} returnFocusTo={previewOpenerRef.current} />}
       {/* Header row + toolbar: portal to the canvas chrome on desktop, inline on mobile */}
       {headerContent && headerPortal && createPortal(headerContent, headerPortal)}
       {toolbarContent && toolbarPortal && createPortal(toolbarContent, toolbarPortal)}
       {toolbarContent && !toolbarPortal && (
-        <div className="px-3 sm:px-5 py-2.5 bg-cream-100 border-b border-gold-300/60 flex-shrink-0 relative">
+        <div className="px-3 sm:px-5 py-2.5 bg-canvas border-b border-border-accent/60 flex-shrink-0 relative">
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pr-6">
             {headerContent}
             {toolbarContent}
@@ -633,9 +633,9 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
               && !isEditMode
               && !currentSession?.jobDescription
               && !currentSession?.chatMessages?.length && (
-              <div className="flex-shrink-0 border-b border-cream-200 bg-cream-50 px-4 py-2.5 sm:px-6">
-                <p className="text-sm text-warm-gray">
-                  <span className="font-semibold text-navy-800">Base CV.</span>{' '}
+              <div className="flex-shrink-0 border-b border-border bg-surface px-4 py-2.5 sm:px-6">
+                <p className="text-sm text-ink-muted">
+                  <span className="font-semibold text-ink">Base CV.</span>{' '}
                   Not tailored to this job yet.
                 </p>
               </div>
@@ -646,9 +646,9 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                 there is no retry here: the base CV stays usable and the
                 chat names what happened. */}
             {!generatedCV && !isEditMode && currentSession?.kitDocumentErrors?.cv && (
-              <div role="alert" className="flex-shrink-0 border-b border-cream-200 bg-cream-50 px-4 py-2.5 sm:px-6">
-                <p className="text-sm text-warm-gray">
-                  <span className="font-semibold text-navy-800">We couldn&apos;t tailor your CV for this job.</span>{' '}
+              <div role="alert" className="flex-shrink-0 border-b border-border bg-surface px-4 py-2.5 sm:px-6">
+                <p className="text-sm text-ink-muted">
+                  <span className="font-semibold text-ink">We couldn&apos;t tailor your CV for this job.</span>{' '}
                   This is your base CV. To try again, paste the job ad in the chat for a new kit.
                 </p>
               </div>
@@ -663,7 +663,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
             )}
 
             {/* CV Content - View Mode or Edit Mode */}
-            <div className="flex-1 overflow-auto bg-cream-100 p-2 sm:p-6">
+            <div className="flex-1 overflow-auto bg-canvas p-2 sm:p-6">
               {isEditMode && cvData ? (
                 /* Edit Mode - Editable Canvas */
                 <div className="flex flex-col h-full">
@@ -761,14 +761,14 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                     <button
                       type="button"
                       onClick={() => setShowFullPreview(true)}
-                      className="absolute right-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-full border border-cream-200 bg-cream-50 px-3 py-1.5 text-xs font-semibold text-navy-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold-200 hover:shadow-md cursor-pointer"
+                      className="absolute right-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-brand-strong shadow-resting transition-all hover:-translate-y-0.5 hover:border-border-accent-soft hover:shadow-elevated cursor-pointer"
                     >
                       <Maximize2 className="w-3.5 h-3.5" />
                       Full Preview
                     </button>
                     <div
                       ref={cvWrapperRef}
-                      className="relative bg-white shadow-md"
+                      className="relative bg-document shadow-elevated"
                       style={cvScale < 1 ? {
                         transform: `scale(${cvScale})`,
                         transformOrigin: 'top left',
@@ -782,8 +782,8 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                   </div>
                 </div>
               ) : (
-                <Card className="bg-white">
-                  <pre className="whitespace-pre-wrap font-sans text-sm text-charcoal leading-relaxed">
+                <Card className="bg-document">
+                  <pre className="whitespace-pre-wrap font-sans text-sm text-ink-body leading-relaxed">
                     {displayContent}
                   </pre>
                 </Card>
@@ -796,23 +796,23 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
       {/* Sign Up Wall Modal */}
       {showFullPreview && previewCVData && createPortal(
         <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">
-          <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-[24px] border border-cream-200 bg-cream-100 shadow-lg">
-            <div className="flex items-center justify-between border-b border-cream-200 bg-cream-50 px-5 py-3">
+          <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-modal border border-border bg-canvas shadow-floating">
+            <div className="flex items-center justify-between border-b border-border bg-surface px-5 py-3">
               <div>
-                <h2 className="text-sm font-bold tracking-tight text-charcoal">CV Full Preview</h2>
-                <p className="text-xs text-warm-gray">Focused reading mode with the surrounding dashboard hidden.</p>
+                <h2 className="text-sm font-bold tracking-tight text-ink-body">CV Full Preview</h2>
+                <p className="text-xs text-ink-muted">Focused reading mode with the surrounding dashboard hidden.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowFullPreview(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-cream-200 bg-white text-warm-gray transition-colors hover:border-navy-200 hover:text-navy-700 cursor-pointer"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-pill border border-border bg-surface-raised text-ink-muted transition-colors hover:border-border-brand-soft hover:text-brand-strong cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-auto bg-cream-100 p-4 sm:p-6">
-              <div className="mx-auto w-fit bg-white shadow-md">
+            <div className="flex-1 overflow-auto bg-canvas p-4 sm:p-6">
+              <div className="mx-auto w-fit bg-document shadow-elevated">
                 <CVTemplateRenderer data={previewCVData} templateId={selectedTemplateId} />
               </div>
             </div>
