@@ -233,9 +233,14 @@ test('(r3) Enter on Check fit starts the fit and does not also open the detail',
     await page.route('**/api/job-feed/apply', (route) => route.abort());
     const checkFit = cardOf(page, job.title).getByRole('button', { name: /Check fit/ });
     await checkFit.focus();
+    // The click ran if either the handoff reached the server or, with no CV loaded in the page yet, the feed
+    // answered that it needs one. Both come from the button's own click; neither opens the detail.
     const sent = page.waitForRequest((req) => req.url().endsWith('/api/job-feed/apply'), { timeout: 15_000 });
+    const refused = page.getByText('I need your CV before I can check a fit').first().waitFor({ timeout: 15_000 });
     await page.keyboard.press('Enter');
-    await sent;
+    sent.catch(() => undefined);
+    refused.catch(() => undefined);
+    await Promise.race([sent, refused]);
     await expect(canvas(page).getByRole('button', { name: 'Back to feed' })).toHaveCount(0);
   } finally {
     await context.close();
@@ -256,13 +261,18 @@ test('(r4) a list fetched before the dismiss cannot bring the job back, and a 40
     // The Saved list is asked for while the job is still saved, and answers only after the dismiss.
     let release!: () => void;
     const gate = new Promise<void>((resolve) => { release = resolve; });
+    let captured!: () => void;
+    const savedCaptured = new Promise<void>((resolve) => { captured = resolve; });
     await page.route('**/api/job-feed/saved', async (route) => {
       const response = await route.fetch();
+      expect(await response.text(), 'the held response still holds the job').toContain(first.title);
+      captured();
       await gate;
       await route.fulfill({ response });
     });
     await canvas(page).getByRole('tab', { name: 'Saved' }).click();
     await canvas(page).getByRole('tab', { name: 'Today' }).click();
+    await savedCaptured;
     await cardOf(page, first.title).getByRole('button', { name: 'Dismiss this role' }).click();
     await cardOf(page, first.title).getByRole('button', { name: 'Dismiss', exact: true }).click();
     await expect(cardOf(page, first.title)).toHaveCount(0);
@@ -316,6 +326,31 @@ test('(r5) a saved role that was already applied to offers no dismiss', async ({
     await expect(cardOf(page, applied.title).getByRole('button', { name: 'Save this role' })).toHaveCount(0);
     await expect(cardOf(page, applied.title).getByRole('button', { name: 'Remove from saved' })).toBeVisible();
     await expect(cardOf(page, applied.title).getByRole('button', { name: 'Dismiss this role' })).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+});
+
+test('(r6) a 409 from the server keeps the card, says why and reloads the list', async ({ browser, request }) => {
+  test.setTimeout(90_000);
+  const { user, context, page } = await signedInPage(browser, request, 'feeddismiss409');
+  try {
+    setPlan(user.id, 'plus');
+    seedFeedSettings(user.id);
+    const [job] = seedFeedInbox(user.id, JOBS.slice(0, 1));
+    await openJobBoard(page);
+    await page.route('**/api/job-feed/feedback', (route) => (
+      route.request().postData()?.includes('"dismissed"')
+        ? route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ error: 'terminal' }) })
+        : route.continue()
+    ));
+    const reloaded = page.waitForRequest((req) => req.url().includes('/api/job-feed/overview') && req.method() === 'GET');
+    await cardOf(page, job.title).getByRole('button', { name: 'Dismiss this role' }).click();
+    await cardOf(page, job.title).getByRole('button', { name: 'Dismiss', exact: true }).click();
+    await reloaded;
+    await expect(page.getByText("That role can't be dismissed now.")).toBeVisible();
+    await expect(page.getByText("That role won't come back.")).toHaveCount(0);
+    await expect(cardOf(page, job.title)).toBeVisible();
   } finally {
     await context.close();
   }

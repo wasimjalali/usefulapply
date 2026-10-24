@@ -13,7 +13,6 @@ import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { useCVStore } from '@/store/useCVStore';
 import { selectFeedThreadKey, useFeedStore } from '@/store/useFeedStore';
 import { loadFeedOverview, loadMoreFeedJobs, loadSavedFeedJobs, recordFeedFeedback } from './feed-actions';
-import { canDismissJob } from './feed-format';
 import { startFeedHandoff, type FeedHandoffMode } from './feed-handoff';
 import { getJobFeedPreviewMode } from './preview-utils';
 
@@ -123,7 +122,17 @@ export function useFeedJobActions(): FeedJobActions {
         // The server won't dismiss it (applied, kit built, rated not relevant).
         // Nothing was dismissed, so don't tombstone or remove: say so and
         // reload so the screen matches the server.
-        toast.error(canDismissJob(job) ? "That role can't be dismissed now." : "You've already applied to this role, so it stays in your list.");
+        // Read the live item: the card in hand may predate the change.
+        const state = useFeedStore.getState();
+        const live = [...(state.overview?.jobs ?? []), ...state.extraJobs, ...(state.savedJobs ?? [])]
+          .find((item) => item.id === job.id) ?? job;
+        const rated = live.feedback.matchRating === 'not_relevant';
+        // A not-relevant role leaves the list on the reload, so there's nothing to explain.
+        if (!rated) {
+          toast.error(live.feedback.appliedAt || live.feedback.generationStatus === 'succeeded'
+            ? "You've already applied to this role, so it stays in your list."
+            : "That role can't be dismissed now.");
+        }
         void loadFeedOverview({ quiet: true });
         if (useFeedStore.getState().savedJobs !== null) void loadSavedFeedJobs();
         return false;
@@ -132,7 +141,7 @@ export function useFeedJobActions(): FeedJobActions {
         toast.error(result.error);
         return false;
       }
-      posthog?.capture('job_feed_item_dismissed', { job_id: job.id, company: job.company });
+      posthog?.capture(alreadyGone ? 'job_feed_item_dismiss_gone' : 'job_feed_item_dismissed', { job_id: job.id, company: job.company });
       // Leaves Today and Saved, and closes the detail if it was open. Also what
       // a preview needs, since it never refetches.
       useFeedStore.getState().removeJob(job.id);

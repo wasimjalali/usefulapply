@@ -64,6 +64,9 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
     const gone = await actions.dismiss(job);
     if (!gone) return;
     requestAnimationFrame(() => requestAnimationFrame(() => {
+      // Only if focus is still lost or still in the feed: the user may have moved on.
+      const active = document.activeElement;
+      if (active && active !== document.body && !active.closest('[data-shell-column="canvas"]')) return;
       for (const neighbour of neighbours) {
         const target = document.querySelector<HTMLElement>(`[data-job-dismiss="${CSS.escape(neighbour.id)}"]`);
         if (target) {

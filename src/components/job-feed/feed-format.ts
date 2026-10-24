@@ -334,6 +334,7 @@ function formatRunStamp(overview: JobFeedOverviewResponse, prefs?: DatePrefs): s
 export function canDismissJob(job: JobFeedFeedItem): boolean {
   const feedback = job.feedback;
   return !feedback.appliedAt
+    && !feedback.dismissedAt
     && feedback.generationStatus !== 'succeeded'
     && feedback.matchRating !== 'not_relevant';
 }
