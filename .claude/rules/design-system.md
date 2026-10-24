@@ -12,7 +12,7 @@ The product has three visual layers. Every panel, card, and document must pick a
 ### Tokens: roles first
 UI code names the job a value does, never the palette step behind it: `bg-surface`, `text-ink`, `border-border`, `rounded-card`, `shadow-resting`, `ease-standard`. The roles live on `:root` in `src/app/globals.css` and reach Tailwind through `@theme inline`; a theme (dark mode) overrides the role variables only. The palette (`navy-*`, `cream-*`, `gold-*`, `sage-*`, `charcoal`, `warm-gray`) stays in `globals.css` as the values behind the roles. Don't use it in components.
 
-`npm run lint` runs `scripts/check-design-tokens.mjs`. It fails on palette-named color classes (Tailwind's default palettes, `white` and `black` included), palette variables (`var(--color-navy-600)`), hex and `rgb()`/`hsl()` colors, radius classes outside the roles, and gradients, in `src/components`, `src/app` and `src/lib/blog`. CV templates, exports, email templates, icons and third-party logos keep their own colors. Code that predates the roles is listed in `scripts/design-token-baseline.json` (a count per file and rule) while it migrates. The baseline only shrinks: after removing hits, run `node scripts/check-design-tokens.mjs --update`.
+`npm run lint` runs `scripts/check-design-tokens.mjs`. It fails on palette-named color classes (Tailwind's default palettes, `white` and `black` included), palette variables (`var(--color-navy-600)`), hex and `rgb()`/`hsl()`/`oklch()` colors (arbitrary values included), radius classes outside the roles, and gradients, in `src/components`, `src/app` and `src/lib/blog`. CV templates, exports, email templates, icons and logos, route handlers, the root error page and blog post bodies keep their own colors. Code that predates the roles is listed in `scripts/design-token-baseline.json` (a count per file and rule) while it migrates. The baseline only shrinks: after removing hits, run `node scripts/check-design-tokens.mjs --update`.
 
 No role fits? Add one: a variable on `:root`, its `--color-*` line in `@theme inline`, and a row below. Don't reach for the palette.
 
@@ -43,15 +43,15 @@ Values are today's light theme.
 | | `accent-soft-strong` | gold-100 | The stronger tint |
 | | `accent-soft-ink` | gold-700 | Dark text on the gold tints |
 | | `accent-ink` | `#FFFFFF` | Text and icons on `accent` |
-| Lines | `border` | cream-200 | Borders on surfaces |
-| | `border-strong` | cream-300 | Dividers only |
-| | `border-accent` | gold-300 | Gold outlines |
-| | `border-accent-soft` | gold-200 | Faint gold outlines |
-| | `border-brand-soft` | navy-200 | Navy outlines, hover borders |
-| | `border-focus` | navy-500 | Input borders on focus |
+| Lines | `border` (class `border-border`) | cream-200 | Borders on surfaces |
+| | `border-strong` (`border-border-strong`) | cream-300 | Dividers only |
+| | `border-accent` (`border-border-accent`) | gold-300 | Gold outlines. `border-accent` the class is the `accent` role, gold-400 |
+| | `border-accent-soft` (`border-border-accent-soft`) | gold-200 | Faint gold outlines |
+| | `border-brand-soft` (`border-border-brand-soft`) | navy-200 | Navy outlines, hover borders |
+| | `border-focus` (`border-border-focus`) | navy-500 | Input borders on focus |
 | Status | `success`, `success-strong`, `success-soft` | sage-600, sage-700, sage-50 | Done, saved, matched |
 | | `warning`, `warning-soft` | yellow-600, yellow-50 | Partial, needs a look |
-| | `danger`, `danger-strong`, `danger-muted`, `danger-soft`, `border-danger` | red-600, red-700, red-400, red-50, red-200 | Errors and destructive actions |
+| | `danger`, `danger-strong`, `danger-muted`, `danger-soft`, `border-danger` (`border-border-danger`) | red-600, red-700, red-400, red-50, red-200 | Errors and destructive actions |
 | Focus | `focus-ring` | navy-600 | Focus outlines and rings |
 | Inverse | `surface-inverse` | navy-800 | Dark navy panels (pricing card, code blocks) |
 | | `surface-inverse-strong` | navy-900 | The darkest band (landing), scrims |
@@ -89,7 +89,7 @@ Values are today's light theme.
 | | `border-danger-strong` | red-300 | Border of an input in error |
 | | `sunken-strong` | cream-300 | Off state of a toggle track |
 
-Utilities follow Tailwind's naming: `bg-surface`, `text-ink-muted`, `border-border`, `border-border-strong`, `ring-focus-ring`, `bg-accent/10`. Opacity modifiers work on every role.
+Utilities follow Tailwind's naming, utility then role: `bg-surface`, `text-ink-muted`, `border-border`, `border-border-strong`, `ring-focus-ring`, `bg-accent/10`. Roles whose names start with `border-` take a second `border-` as a border class, so `border-gold-300` becomes `border-border-accent`, while `border-accent` is gold-400. Opacity modifiers work on every role.
 
 Rules:
 - **No gradients on canvas or surface layers.** No `bg-gradient-to-b` shells, no custom `bg-[radial-gradient(...)]` canvases. Gradients are reserved for CTAs (gold/navy buttons), nothing else.
@@ -123,7 +123,7 @@ Do NOT use: `rounded-md`, `rounded-xl`, `rounded-3xl`, `rounded-[14px]`, `rounde
 
 **Button label colour is always white** (`text-accent-ink`, `text-brand-ink`) on any solid brand fill, gold or navy. This is a deliberate brand-consistency decision: a screen mixing white-on-navy with dark-on-gold reads as inconsistent. Never put `text-ink`, `text-ink-body` or any dark role on `bg-accent` / `bg-accent-strong`. The same applies to icons inside those buttons.
 
-Known tradeoff: white on `accent` (gold-400, `#D4A853`) measures ~2.2:1, below the WCAG AA 4.5:1 threshold for normal text. Consistency was chosen over the contrast ratio here. If we ever want white labels that also pass AA, the fill has to darken to roughly gold-700 (`#825E1C`, ~5.9:1) — that's a brand decision, not something to change per-component. Do not "fix" individual buttons back to dark text.
+Known tradeoff: white on `accent` (gold-400, `#D4A853`) measures ~2.2:1, below the WCAG AA 4.5:1 threshold for normal text. Consistency was chosen over the contrast ratio here. If we ever want white labels that also pass AA, the fill has to darken to roughly gold-700 (`#825E1C`, ~5.9:1). That's a brand decision, not something to change per-component. Do not "fix" individual buttons back to dark text.
 
 The light gold tints (`bg-accent-soft`, `bg-accent-soft-strong`) are a different role: they are badges, chips and status tiles, not CTAs, and they keep dark text (`text-accent-soft-ink`, `text-ink-body`). White on a light tint is unreadable.
 
@@ -132,7 +132,7 @@ Do NOT use: gradient CTAs (`bg-gradient-to-r` from gold or navy), `bg-accent-str
 ### Shadow roles (3 values)
 | Depth | Class | Value | Use |
 |-------|-------|-------|-----|
-| **Resting** | `shadow-resting` | `--shadow-sm` | Cards, pills, tab tracks — everything that sits on the canvas |
+| **Resting** | `shadow-resting` | `--shadow-sm` | Cards, pills, tab tracks: everything that sits on the canvas |
 | **Elevated** | `shadow-elevated` | `--shadow-md` | Hover state on cards, dropdowns, popovers |
 | **Floating** | `shadow-floating` | `--shadow-lg` | Modals, full-preview overlays, toasts |
 
@@ -141,7 +141,7 @@ Do NOT invent bespoke drop-shadow strings like `shadow-[0_24px_60px_-20px_rgba(3
 ### Motion
 - `transition-colors duration-(--duration-base)` default (200ms). `--duration-fast` is 150ms.
 - `ease-standard` (decelerating out-quart) for structure; `ease-pop` (spring) for pop moments only: dialogs, ticks, badges.
-- Elevation lift (`-translate-y-0.5 hover:shadow-elevated`) reserved for elevated CTAs only — not on every card.
+- Elevation lift (`-translate-y-0.5 hover:shadow-elevated`) reserved for elevated CTAs only, not on every card.
 
 ### Iconography
 - Lucide-react only. Sizes: `w-3.5` (chrome), `w-4` (inline text), `w-5` (headers), `w-6` (modal close, empty-state tiles).

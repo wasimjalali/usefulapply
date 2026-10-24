@@ -1,6 +1,6 @@
 {
   "src/app/about/page.tsx": { "radius": 2 },
-  "src/app/admin-dashboard/admin-dashboard.css": { "palette-var": 3 },
+  "src/app/admin-dashboard/admin-dashboard.css": { "palette-var": 7 },
   "src/app/ai-job-application/_shared/GeoPage.tsx": { "color-class": 11, "gradient": 3, "radius": 3 },
   "src/app/ai-job-application/application-tracker/content.tsx": { "color-class": 4, "gradient": 1, "radius": 8 },
   "src/app/ai-job-application/content.tsx": { "color-class": 4, "gradient": 1, "radius": 2 },
@@ -10,14 +10,12 @@
   "src/app/blog/[slug]/page.tsx": { "radius": 2 },
   "src/app/contact/page.tsx": { "color-class": 4, "gradient": 1, "radius": 7 },
   "src/app/error.tsx": { "color-class": 4 },
-  "src/app/global-error.tsx": { "color-literal": 4 },
   "src/app/integrations/page.tsx": { "radius": 1 },
   "src/app/master-cv-template/page.tsx": { "color-class": 7, "gradient": 2, "radius": 2 },
   "src/app/master-cv/page.tsx": { "radius": 2 },
   "src/app/not-found.tsx": { "radius": 5 },
   "src/app/pricing/page.tsx": { "radius": 7 },
   "src/components/AgentProgressV2.tsx": { "color-class": 7, "gradient": 2 },
-  "src/components/BrandLogo.tsx": { "color-literal": 10 },
   "src/components/CVInputZone.tsx": { "radius": 2 },
   "src/components/CVPanel.tsx": { "color-class": 2, "gradient": 1 },
   "src/components/CoverLetterPanel.tsx": { "color-class": 1, "radius": 1 },
@@ -37,10 +35,9 @@
   "src/components/marketing/Footer.tsx": { "color-class": 5, "gradient": 2 },
   "src/components/marketing/PricingAurora.tsx": { "color-literal": 10, "gradient": 9 },
   "src/components/settings/UsageBillingPane.tsx": { "radius": 1 },
-  "src/components/shell/GuidedLine.tsx": { "color-literal": 4, "radius": 1 },
+  "src/components/shell/GuidedLine.tsx": { "color-literal": 5, "radius": 1 },
   "src/components/shell/Sidebar.tsx": { "color-class": 1 },
   "src/components/tracker/TrackerConversation.tsx": { "radius": 1 },
   "src/components/ui/PdfPreviewModal.tsx": { "color-class": 1 },
-  "src/components/ui/Toast.tsx": { "radius": 7 },
-  "src/lib/blog/posts.ts": { "color-literal": 3, "radius": 1 }
+  "src/components/ui/Toast.tsx": { "radius": 7 }
 }
