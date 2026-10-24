@@ -19,12 +19,16 @@ import { getJobFeedPreviewMode } from './preview-utils';
 export interface FeedJobActions {
   /** Job ids with an action in flight, so their cards can show it. */
   busyJobIds: ReadonlySet<string>;
-  /** Job ids whose dismiss specifically is in flight. */
+  /** Job ids whose dismiss or "not relevant" (both take the role out of the feed) is in flight. */
   dismissingJobIds: ReadonlySet<string>;
   openDetail: (job: JobFeedFeedItem) => void;
   save: (job: JobFeedFeedItem) => Promise<void>;
   /** True when the role left the feed. */
   dismiss: (job: JobFeedFeedItem) => Promise<boolean>;
+  /** Records "Good match". Nothing leaves the list. */
+  rateHelpful: (job: JobFeedFeedItem) => Promise<void>;
+  /** Terminal like dismiss. True when the role left the feed. */
+  rateNotRelevant: (job: JobFeedFeedItem) => Promise<boolean>;
   openEmployerSite: (job: JobFeedFeedItem) => void;
   checkFit: (job: JobFeedFeedItem, mode?: FeedHandoffMode) => Promise<void>;
   loadMore: () => Promise<void>;
@@ -112,15 +116,20 @@ export function useFeedJobActions(): FeedJobActions {
     }
   }, [posthog, begin, end]);
 
-  const dismiss = useCallback(async (job: JobFeedFeedItem): Promise<boolean> => {
+  // Dismiss and "Not relevant" both end the role for good: the server blocks the
+  // row, so the card leaves every list the same way.
+  const removeFromFeed = useCallback(async (
+    job: JobFeedFeedItem,
+    action: 'dismissed' | 'rated_not_relevant',
+  ): Promise<boolean> => {
     if (!begin(job.id, true)) return false;
     try {
-      const result = await recordFeedFeedback(job, 'dismissed', actionRunId());
+      const result = await recordFeedFeedback(job, action, actionRunId());
       // 404 is a role that's already gone, so the card should leave quietly.
       const alreadyGone = !result.ok && result.status === 404;
       if (!result.ok && result.status === 409) {
-        // The server won't dismiss it (applied, kit built, rated not relevant).
-        // Nothing was dismissed, so don't tombstone or remove: say so and
+        // The server won't do it (applied, kit built, rated not relevant).
+        // Nothing changed, so don't tombstone or remove: say so and
         // reload so the screen matches the server.
         // Read the live item: the card in hand may predate the change.
         const state = useFeedStore.getState();
@@ -131,7 +140,9 @@ export function useFeedJobActions(): FeedJobActions {
         if (!rated) {
           toast.error(live.feedback.appliedAt || live.feedback.generationStatus === 'succeeded'
             ? "You've already applied to this role, so it stays in your list."
-            : "That role can't be dismissed now.");
+            : action === 'dismissed'
+              ? "That role can't be dismissed now."
+              : "That role can't be rated now.");
         }
         void loadFeedOverview({ quiet: true });
         if (useFeedStore.getState().savedJobs !== null) void loadSavedFeedJobs();
@@ -141,12 +152,42 @@ export function useFeedJobActions(): FeedJobActions {
         toast.error(result.error);
         return false;
       }
-      posthog?.capture(alreadyGone ? 'job_feed_item_dismiss_gone' : 'job_feed_item_dismissed', { job_id: job.id, company: job.company });
+      const event = action === 'dismissed' ? 'job_feed_item_dismissed' : 'job_feed_item_rated_not_relevant';
+      posthog?.capture(alreadyGone ? 'job_feed_item_dismiss_gone' : event, { job_id: job.id, company: job.company });
       // Leaves Today and Saved, and closes the detail if it was open. Also what
       // a preview needs, since it never refetches.
       useFeedStore.getState().removeJob(job.id);
       if (!alreadyGone) toast.success("That role won't come back.");
       return true;
+    } finally {
+      end(job.id);
+    }
+  }, [posthog, toast, begin, end]);
+
+  const dismiss = useCallback((job: JobFeedFeedItem) => removeFromFeed(job, 'dismissed'), [removeFromFeed]);
+  const rateNotRelevant = useCallback((job: JobFeedFeedItem) => removeFromFeed(job, 'rated_not_relevant'), [removeFromFeed]);
+
+  const rateHelpful = useCallback(async (job: JobFeedFeedItem) => {
+    if (job.feedback.matchRating === 'helpful') return;
+    if (!begin(job.id)) return;
+    try {
+      const result = await recordFeedFeedback(job, 'rated_helpful', actionRunId());
+      if (!result.ok && result.status === 404) {
+        // The role left the feed since this screen loaded.
+        useFeedStore.getState().removeJob(job.id);
+        return;
+      }
+      if (!result.ok && result.status === 409) {
+        toast.error("That role can't be rated now.");
+        void loadFeedOverview({ quiet: true });
+        if (useFeedStore.getState().savedJobs !== null) void loadSavedFeedJobs();
+        return;
+      }
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      posthog?.capture('job_feed_item_rated_helpful', { job_id: job.id, company: job.company });
     } finally {
       end(job.id);
     }
@@ -198,5 +239,5 @@ export function useFeedJobActions(): FeedJobActions {
     store.backToList();
   }, []);
 
-  return { busyJobIds, dismissingJobIds, openDetail, save, dismiss, openEmployerSite, checkFit, loadMore, showSaved, showToday };
+  return { busyJobIds, dismissingJobIds, openDetail, save, dismiss, rateHelpful, rateNotRelevant, openEmployerSite, checkFit, loadMore, showSaved, showToday };
 }

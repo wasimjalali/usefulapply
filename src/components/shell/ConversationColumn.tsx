@@ -5,6 +5,7 @@ import { PanelLeftOpen } from 'lucide-react';
 import { ChatPanel } from '@/components/ChatPanel';
 import { CANVAS_PAGE_WIDTH, CONVERSATION_FLOOR, RAIL_WIDTH, SIDEBAR_WIDTH } from '@/components/shell/dimensions';
 import { FeedConversation } from '@/components/job-feed/FeedConversation';
+import { ApplicationHeader } from '@/components/shell/ApplicationHeader';
 import { TrackerConversation } from '@/components/tracker/TrackerConversation';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useUIStore, type KitTab } from '@/store/useUIStore';
@@ -138,12 +139,7 @@ export function ConversationColumn({ onTabChange, columnRef, compact }: Conversa
             showFeed || showTracker ? 'hidden' : 'flex'
           }`}
         >
-          <header className="flex flex-shrink-0 items-center gap-3 border-b border-border px-4 py-2">
-            <div className="min-w-0 flex-1">
-              <h2 className="truncate text-sm font-semibold text-ink">{title}</h2>
-              <p className="text-[11px] text-ink-muted">{statusLabel}</p>
-            </div>
-          </header>
+          <ApplicationHeader session={currentSession} title={title} statusLabel={statusLabel} />
           <div className="min-h-0 flex-1">
             <ChatPanel
               onTabChange={onTabChange}

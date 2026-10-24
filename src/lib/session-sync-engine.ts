@@ -154,6 +154,8 @@ export function persistedColumns(session: ApplicationSession): Record<string, un
   };
   // A session without a template keeps the stored one.
   if (session.selectedTemplate) columns.selected_template = session.selectedTemplate;
+  // Same for the link: a session that never loaded it must not write null over a stored one.
+  if (session.jobUrl !== undefined) columns.job_url = session.jobUrl.trim() || null;
   return columns;
 }
 
@@ -171,6 +173,7 @@ interface FieldGroup {
 export const FIELD_GROUPS: FieldGroup[] = [
   { key: 'jobTitle', label: 'job title', columns: ['job_title'], props: ['jobTitle'] },
   { key: 'company', label: 'company', columns: ['company'], props: ['company'] },
+  { key: 'jobUrl', label: 'job link', columns: ['job_url'], props: ['jobUrl'] },
   { key: 'jobDescription', label: 'job description', columns: ['job_description'], props: ['jobDescription'] },
   { key: 'matchScore', label: 'match score', columns: ['match_score'], props: ['matchScore'] },
   { key: 'matchingSkills', label: 'matching skills', columns: ['matching_skills'], props: ['matchingSkills'] },

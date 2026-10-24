@@ -373,6 +373,11 @@ export async function recordFeedFeedback(
         : action === 'unsaved' || action === 'dismissed'
           ? null
           : job.feedback.savedAt,
+      matchRating: action === 'rated_helpful'
+        ? 'helpful' as const
+        : action === 'rated_not_relevant'
+          ? 'not_relevant' as const
+          : job.feedback.matchRating,
     };
     useFeedStore.getState().patchJobFeedback(job.id, feedback);
     return { ok: true, data: feedback };

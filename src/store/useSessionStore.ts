@@ -68,6 +68,8 @@ export interface ApplicationSession {
   id: string;
   jobTitle: string;
   company: string;
+  /** The ad's link, when the application came with one (the feed stores it). Undefined for a session that never loaded the column. */
+  jobUrl?: string;
   createdAt: string;
   updatedAt: string;
   jobDescription: string;
