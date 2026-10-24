@@ -1,6 +1,6 @@
 {
   "src/app/about/page.tsx": { "color-class": 44, "radius": 6 },
-  "src/app/admin-dashboard/admin-dashboard.css": { "palette-var": 25 },
+  "src/app/admin-dashboard/admin-dashboard.css": { "palette-var": 29 },
   "src/app/ai-job-application/90-second-application-package/content.tsx": { "color-class": 20 },
   "src/app/ai-job-application/_shared/GeoPage.tsx": { "color-class": 35, "gradient": 3, "radius": 4 },
   "src/app/ai-job-application/application-tracker/content.tsx": { "color-class": 58, "gradient": 1, "radius": 8 },
@@ -26,7 +26,6 @@
   "src/app/contact/page.tsx": { "color-class": 57, "gradient": 1, "radius": 12 },
   "src/app/cookies/page.tsx": { "color-class": 16 },
   "src/app/error.tsx": { "color-class": 6, "radius": 1 },
-  "src/app/global-error.tsx": { "color-literal": 4 },
   "src/app/imprint/page.tsx": { "color-class": 5 },
   "src/app/integrations/page.tsx": { "color-class": 32, "radius": 4 },
   "src/app/master-cv-template/page.tsx": { "color-class": 61, "gradient": 2, "radius": 3 },
@@ -39,7 +38,6 @@
   "src/app/privacy/page.tsx": { "color-class": 55 },
   "src/app/terms/page.tsx": { "color-class": 5 },
   "src/components/AgentProgressV2.tsx": { "color-class": 7, "gradient": 2 },
-  "src/components/BrandLogo.tsx": { "color-literal": 10 },
   "src/components/CVInputZone.tsx": { "color-class": 20, "radius": 5 },
   "src/components/CVPanel.tsx": { "color-class": 71, "gradient": 1, "radius": 11 },
   "src/components/CoverLetterPanel.tsx": { "color-class": 76, "radius": 12 },
@@ -84,7 +82,7 @@
   "src/components/settings/SettingsModal.tsx": { "color-class": 16, "radius": 4 },
   "src/components/settings/UsageBillingPane.tsx": { "color-class": 50, "radius": 10 },
   "src/components/settings/parts.tsx": { "color-class": 23, "radius": 5 },
-  "src/components/shell/GuidedLine.tsx": { "color-literal": 4, "radius": 1 },
+  "src/components/shell/GuidedLine.tsx": { "color-literal": 5, "radius": 1 },
   "src/components/shell/Sidebar.tsx": { "color-class": 1 },
   "src/components/tracker/DeleteConfirm.tsx": { "color-class": 11, "radius": 3 },
   "src/components/tracker/StatusPopover.tsx": { "color-class": 28, "radius": 8 },
@@ -93,6 +91,5 @@
   "src/components/tracker/tracker-status.ts": { "color-class": 15 },
   "src/components/ui/PdfPreviewModal.tsx": { "color-class": 1 },
   "src/components/ui/Toast.tsx": { "radius": 7 },
-  "src/lib/blog/posts.ts": { "color-literal": 3, "radius": 1 },
   "src/lib/blog/types.ts": { "color-class": 21 }
 }

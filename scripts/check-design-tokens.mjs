@@ -8,14 +8,16 @@
  *
  *   color-class    palette-named color utilities: navy, cream, gold, sage, charcoal, warm-gray,
  *                  white, black, and every Tailwind default palette (gray, slate, red...).
- *   palette-var    palette variables read directly, such as var(--color-navy-600).
- *   color-literal  hex, rgb(), rgba(), hsl() and hsla() colors.
+ *   palette-var    palette variables read directly, such as var(--color-navy-600) or var(--color-red-500).
+ *   color-literal  hex, rgb(), rgba(), hsl(), hsla(), oklch(), oklab(), lab(), lch() and hwb() colors,
+ *                  arbitrary values included (`shadow-[0_0_0_1px_#fff]`).
  *   radius         rounded-* classes other than the roles (pill, control, card, modal) and none.
  *   gradient       gradient utilities and *-gradient( values.
  *
  * It scans src/components, src/app and src/lib/blog (.ts, .tsx, .css), minus the paths that
- * keep their own colors: CV templates, exports, email templates, the Open Graph image, icons,
- * the web manifest and globals.css itself, which defines the tokens. Comments are ignored.
+ * keep their own colors: CV templates, exports, email templates, the Open Graph image, icons and
+ * logos, the web manifest, route handlers, the root error page, blog post content and globals.css
+ * itself, which defines the tokens. Comments are ignored.
  *
  * Today's hits live in scripts/design-token-baseline.json as a count per file and rule. The
  * check fails on any hit over the baseline, and on any baseline count the code no longer
@@ -44,8 +46,14 @@ const SKIP = [
   /^src\/app\/manifest\.ts$/,
   // Server code: route handlers render no UI, only email bodies, which keep inline colors.
   /^src\/app\/api\//,
-  // Third-party logos keep their owners' colors in every theme.
+  // Logos keep their owners' colors in every theme: third-party marks and the product logo (which has
+  // its own light and dark variants).
   /^src\/components\/marketing\/(JobBoardMarks|TrustpilotLogo)\.tsx$/,
+  /^src\/components\/BrandLogo\.tsx$/,
+  // It replaces the root layout when that crashes, so no app CSS and no role variables load there.
+  /^src\/app\/global-error\.tsx$/,
+  // Blog post bodies: markdown prose in strings ("numbers get rounded"), not UI code.
+  /^src\/lib\/blog\/posts\.ts$/,
   /^src\/app\/globals\.css$/,
 ];
 
@@ -57,7 +65,7 @@ const PALETTES = [
 ].join('|');
 const COLOR_UTILITIES = [
   'bg', 'text', 'border(?:-[xytrblse])?', 'ring(?:-offset)?', 'inset-ring', 'outline', 'divide',
-  'placeholder', 'from', 'via', 'to', 'fill', 'stroke', 'shadow', 'inset-shadow', 'drop-shadow',
+  'placeholder', 'from', 'via', 'to', 'fill', 'stroke', 'shadow', 'inset-shadow', 'drop-shadow', 'text-shadow',
   'decoration', 'caret', 'accent',
 ].join('|');
 const RADIUS_ROLES = new Set(['pill', 'control', 'card', 'modal', 'none']);
@@ -65,10 +73,11 @@ const RADIUS_ROLES = new Set(['pill', 'control', 'card', 'modal', 'none']);
 /** Rule name to a global regex. `radius` is filtered further in countHits. */
 const RULES = {
   'color-class': new RegExp(`(?<![\\w-])(?:${COLOR_UTILITIES})-(?:(?:${PALETTES})-\\d{2,3}|charcoal|warm-gray|white|black)(?![\\w-])`, 'g'),
-  'palette-var': /--color-(?:navy|cream|gold|sage|charcoal|warm-gray)[\w-]*/g,
-  'color-literal': /(?<![&\w#])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})(?![\w-])|(?<![\w-])(?:rgba?|hsla?)\(/g,
-  radius: /(?<![\w-])rounded(?:-(?:[trblse]|tl|tr|bl|br|ss|se|es|ee))?(?:-(\[[^\]\s]+\]|[a-z0-9]+))?(?![\w-])/g,
-  gradient: /(?<![\w-])(?:bg-gradient-[\w-]+|bg-linear-[\w-]+|bg-radial(?:-[\w-]+)?|bg-conic(?:-[\w-]+)?)(?![\w-])|(?:repeating-)?(?:linear|radial|conic)-gradient\(/g,
+  'palette-var': new RegExp(`--color-(?:(?:${PALETTES})-\\d{2,3}|charcoal|warm-gray|white|black)(?![\\w-])`, 'g'),
+  // `_` may precede a literal: Tailwind writes spaces in arbitrary values as underscores.
+  'color-literal': /(?<![&A-Za-z0-9#])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})(?![\w-])|(?<![A-Za-z0-9-])(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb)\(/g,
+  radius: /(?<![\w-])rounded(?:-(?:[trblse]|tl|tr|bl|br|ss|se|es|ee))?(?:-(\[[^\]\s]+\]|\([^)\s]+\)|[a-z0-9]+))?(?![\w-])/g,
+  gradient: /(?<![\w-])(?:bg-gradient-[\w-]+|bg-linear-(?:\[[^\]\s]+\]|\([^)\s]+\)|[\w-]+)|bg-(?:radial|conic)(?:-(?:\[[^\]\s]+\]|\([^)\s]+\)|[\w-]+))?)(?![\w-])|(?:repeating-)?(?:linear|radial|conic)-gradient\(/g,
 };
 const RULE_NAMES = Object.keys(RULES);
 
@@ -92,13 +101,14 @@ function stripComments(text, isCss) {
 }
 
 /**
- * `#412` in "Delaware Ave #412" is a number. A digits-only short hex counts as a color only where a color
- * value starts: after a quote, a bracket, a parenthesis, a comma, a colon or `=`.
+ * Hex-looking text that isn't a color: a URL fragment (`/#fff`), or a number after a capitalized word
+ * ("Delaware Ave #412", "PR #154"). `solid #000` still counts.
  */
 function isNumberNotColor(line, match) {
-  if (!/^#\d{3,4}$/.test(match[0])) return false;
-  const before = line.slice(0, match.index).trimEnd();
-  return !/['"`\[(,:=]$/.test(before);
+  if (!match[0].startsWith('#')) return false;
+  const before = line.slice(0, match.index);
+  if (before.endsWith('/')) return true;
+  return /^#\d{3,4}$/.test(match[0]) && /(?:^|[^A-Za-z])[A-Z][A-Za-z]*\.?\s+$/.test(before);
 }
 
 /** Every hit in one file: { rule, line, text }. */
