@@ -197,6 +197,7 @@
   --success-muted: var(--color-sage-500);
   --border-success: var(--color-sage-300);
   --border-success-soft: var(--color-sage-200);
+  --danger-ink: #FFFFFF;
 }
 
 @theme inline {
@@ -294,6 +295,7 @@
   --color-success-muted: var(--success-muted);
   --color-border-success: var(--border-success);
   --color-border-success-soft: var(--border-success-soft);
+  --color-danger-ink: var(--danger-ink);
 }
 
 :root {

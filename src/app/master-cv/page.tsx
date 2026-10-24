@@ -446,7 +446,7 @@ export default function MasterCVPage() {
           <ScrollReveal delay={200}>
           {/* Prompt Box */}
           <div className="bg-surface-inverse-raised rounded-card border border-border-inverse-mid overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border-focus">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border-inverse-mid">
               <span className="text-sm font-medium text-ink-inverse-muted">Master CV Creation Prompt</span>
               <button
                 onClick={handleCopyPrompt}

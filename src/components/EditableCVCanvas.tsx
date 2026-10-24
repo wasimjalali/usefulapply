@@ -89,7 +89,7 @@ function EditableField({ value, onChange, placeholder, multiline, className = ''
           <button onClick={handleSave} className="p-1 bg-accent-strong text-accent-ink rounded hover:bg-accent-deep cursor-pointer" title="Save">
             <Check className="w-3 h-3" />
           </button>
-          <button onClick={handleCancel} className="p-1 bg-danger-bright text-ink-inverse rounded hover:bg-danger cursor-pointer" title="Cancel">
+          <button onClick={handleCancel} className="p-1 bg-danger-bright text-danger-ink rounded hover:bg-danger cursor-pointer" title="Cancel">
             <X className="w-3 h-3" />
           </button>
         </div>
@@ -268,7 +268,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
   };
 
   return (
-    <div className="bg-document rounded-control shadow-floating p-6 max-w-4xl mx-auto">
+    <div className="bg-surface-raised rounded-control shadow-floating p-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-2 mb-6 pb-4 border-b border-border-strong">
         <Edit3 className="w-5 h-5 text-brand" />
