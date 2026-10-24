@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
 import { formatDayMonth, type DatePrefs } from '@/lib/utils/format-date';
@@ -16,6 +16,7 @@ import {
 import { creditTransactionKind } from '@/lib/credit-costs';
 import { triggerCreditUpdate } from '@/lib/utils/creditEvents';
 import { getSubscription, type Subscription } from '@/lib/supabase/accounts';
+import { getBillingSubscriptionAction } from '@/db/actions';
 import { Caption, PaneHeading, RowGroup } from '@/components/settings/parts';
 
 // All four derive from PLANS so a repricing in one file moves every surface.
@@ -55,6 +56,8 @@ export function UsageBillingPane() {
   const [credits, setCredits] = useState<UserCredits | null>(null);
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+  // getSubscription only sees an active row, so a past-due plan needs this one.
+  const [billingStatus, setBillingStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [checkoutStatus, setCheckoutStatus] = useState<'idle' | 'processing' | 'complete' | 'delayed'>('idle');
@@ -65,13 +68,16 @@ export function UsageBillingPane() {
   const load = useCallback(async () => {
     if (!user) return null;
     try {
-      const [creditsResult, txResult, subscriptionResult] = await Promise.all([
+      const [creditsResult, txResult, subscriptionResult, billingResult] = await Promise.all([
         getUserCredits(user.id),
         getCreditTransactions(user.id, 200),
         getSubscription(user.id),
+        // The notice is extra: a failed read must not take the pane down.
+        getBillingSubscriptionAction(user.id).catch(() => null),
       ]);
       if (creditsResult.credits) setCredits(creditsResult.credits);
       setSubscription(subscriptionResult);
+      setBillingStatus(billingResult?.status ?? null);
       const nextTransactions = txResult.transactions ?? [];
       setTransactions(nextTransactions);
       return { credits: creditsResult.credits, transactions: nextTransactions };
@@ -232,6 +238,7 @@ export function UsageBillingPane() {
     }
   };
 
+  const pastDue = !isFree && billingStatus === 'past_due';
   const upgradeTarget = isFree ? 'plus' : tier === 'plus' ? 'max' : null;
   // The bar fills with what the month has used, so it grows as credits go.
   const percent = allowance > 0 ? Math.min(100, Math.max(0, ((allowance - total) / allowance) * 100)) : 0;
@@ -291,6 +298,25 @@ export function UsageBillingPane() {
           </div>
         ) : (
           <>
+            {pastDue && (
+              <div
+                role="alert"
+                className="flex items-center justify-between gap-4 bg-danger-soft px-5 py-3"
+              >
+                <p className="flex min-w-0 items-center gap-2 text-sm font-medium text-danger-strong">
+                  <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                  Your last payment didn&apos;t go through. Update your card to keep your plan.
+                </p>
+                <button
+                  type="button"
+                  disabled={busy === 'portal'}
+                  onClick={() => { void handlePortal(); }}
+                  className="inline-flex h-9 flex-shrink-0 items-center rounded-pill bg-danger px-4 text-sm font-semibold text-danger-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-danger-strong disabled:opacity-60 cursor-pointer"
+                >
+                  Manage billing
+                </button>
+              </div>
+            )}
             <div className="flex items-center justify-between gap-4 px-5 py-4">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-ink">{PLAN_LABEL[tier]}</p>
@@ -302,14 +328,17 @@ export function UsageBillingPane() {
                   {' · invoices and card in Manage billing'}
                 </p>
               </div>
-              <button
-                type="button"
-                disabled={busy === 'portal'}
-                onClick={() => { void handlePortal(); }}
-                className="inline-flex h-9 flex-shrink-0 items-center rounded-pill border border-border bg-surface px-4 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised disabled:text-ink-muted cursor-pointer"
-              >
-                Manage billing
-              </button>
+              {/* Past due, the banner above carries this action. */}
+              {!pastDue && (
+                <button
+                  type="button"
+                  disabled={busy === 'portal'}
+                  onClick={() => { void handlePortal(); }}
+                  className="inline-flex h-9 flex-shrink-0 items-center rounded-pill border border-border bg-surface px-4 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised disabled:text-ink-muted cursor-pointer"
+                >
+                  Manage billing
+                </button>
+              )}
             </div>
             <div className="flex items-center justify-between gap-4 px-5 py-4">
               <div className="min-w-0">
