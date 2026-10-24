@@ -21,7 +21,7 @@ Sources for the field list, all read 2026-10-25: Anthropic's "Submit a connector
 | MCP server URL | https://usefulapply.com/mcp |
 | Icon | `public/useful-apply-logo.png`, the Useful Apply mark on cream, 512 x 512 PNG. |
 
-### Short description (about 300 characters)
+### Short description (277 characters)
 
 Useful Apply helps you apply for a job from your AI assistant. Check how well you fit a role, then generate a CV, cover letter, application email and follow-up that follow US or German (DIN 5008) conventions. You review everything, edit it, export it and track the application.
 
