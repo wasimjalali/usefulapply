@@ -106,7 +106,7 @@ function RasterMark({ name, src }: { name: string; src: string }) {
         width={40}
         height={40}
         unoptimized
-        className="h-5 w-5 flex-shrink-0 rounded-control"
+        className="h-5 w-5 flex-shrink-0 rounded-[4px]"
       />
       <span className="text-[15px] font-semibold text-navy-800 sm:text-[16px]">{name}</span>
     </span>

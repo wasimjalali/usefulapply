@@ -25,9 +25,9 @@ export default function TrustpilotLogo() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Read and leave reviews on Trustpilot"
-      className="group inline-flex items-center gap-2 h-9 px-3.5 rounded-control bg-surface text-brand-strong shadow-resting hover:bg-surface-raised transition-colors duration-(--duration-fast) ease-standard"
+      className="group inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-cream-50 text-navy-900 shadow-sm hover:bg-white transition-colors duration-200"
     >
-      <span className="flex items-center justify-center w-5 h-5 rounded-control bg-[#00B67A] text-white shrink-0">
+      <span className="flex items-center justify-center w-5 h-5 rounded-[3px] bg-[#00B67A] text-white shrink-0">
         <TrustpilotStar className="w-3 h-3" />
       </span>
       <span className="text-sm font-semibold tracking-tight leading-none">

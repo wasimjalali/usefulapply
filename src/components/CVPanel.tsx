@@ -404,7 +404,9 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const previewCVData = isEditMode ? (editedCVData || cvData) : cvData;
   const atsScore = optimizedCVData?.analysis?.ats_compatibility ?? null;
   const hasAtsInsights = Boolean(optimizedCVData?.analysis || generatedCV?.changes?.length);
-  const TOOL_CLASS = 'flex items-center gap-2 h-9 px-3.5 text-sm font-medium bg-surface border border-border rounded-pill hover:bg-surface-raised transition-colors duration-(--duration-base) cursor-pointer flex-shrink-0 shadow-resting text-ink-body';
+  // Text colour stays off the base so the open Templates button's text-ink can't lose to it on class order.
+  const TOOL_CLASS_BASE = 'flex items-center gap-2 h-9 px-3.5 text-sm font-medium bg-surface border border-border rounded-pill hover:bg-surface-raised transition-colors duration-(--duration-base) cursor-pointer flex-shrink-0 shadow-resting';
+  const TOOL_CLASS = `${TOOL_CLASS_BASE} text-ink-body`;
 
   // Row under the kit tabs: which version, whose job, and the way into the
   // ATS view. Only meaningful once a tailored CV exists.
@@ -460,7 +462,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           type="button"
           onClick={() => setShowTemplates((v) => !v)}
           aria-expanded={showTemplates}
-          className={`${TOOL_CLASS} ${showTemplates ? 'bg-surface-raised border-border-accent-soft text-ink' : ''}`}
+          className={`${TOOL_CLASS_BASE} ${showTemplates ? 'bg-surface-raised border-border-accent-soft text-ink' : 'text-ink-body'}`}
         >
           <Layout className="w-4 h-4 text-brand-mid" />
           <span>Templates</span>
@@ -759,7 +761,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                     <button
                       type="button"
                       onClick={() => setShowFullPreview(true)}
-                      className="absolute right-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-brand-strong shadow-resting transition-shadow duration-(--duration-base) ease-standard hover:border-border-accent-soft hover:shadow-elevated cursor-pointer"
+                      className="absolute right-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-brand-strong shadow-resting transition-[box-shadow,border-color] duration-(--duration-base) ease-standard hover:border-border-accent-soft hover:shadow-elevated cursor-pointer"
                     >
                       <Maximize2 className="w-3.5 h-3.5" />
                       Full Preview

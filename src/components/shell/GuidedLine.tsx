@@ -986,7 +986,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                   ) : gaps.map((item) => (
                     <div key={item} className="flex items-start gap-2.5 text-sm leading-relaxed text-ink-body">
                       <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-pill bg-accent-soft-strong text-accent-soft-ink">
-                        <span className="block h-0.5 w-2 rounded-control bg-current" />
+                        <span className="block h-0.5 w-2 rounded-pill bg-current" />
                       </span>
                       <span>{item}</span>
                     </div>

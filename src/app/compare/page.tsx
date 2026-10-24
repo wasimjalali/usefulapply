@@ -85,7 +85,7 @@ export default function CompareHubPage() {
                 <ScrollReveal key={comparison.slug} delay={i * 80}>
                   <Link
                     href={`/compare/${comparison.slug}`}
-                    className="group block h-full bg-surface border border-border rounded-card p-6 shadow-resting hover:shadow-elevated hover:border-border-accent transition-all duration-(--duration-base)"
+                    className="group block h-full bg-surface border border-border rounded-card p-6 shadow-resting hover:shadow-elevated transition-shadow duration-(--duration-base) ease-standard"
                   >
                     <div className="flex items-center gap-2 mb-4">
                       <span className="font-semibold text-brand text-base">Useful Apply</span>
@@ -115,7 +115,7 @@ export default function CompareHubPage() {
               </p>
               <Link
                 href="/dashboard"
-                className="inline-flex items-center px-6 py-3 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting hover:shadow-elevated transition-all duration-(--duration-base)"
+                className="inline-flex items-center px-6 py-3 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting hover:shadow-elevated transition-shadow duration-(--duration-base) ease-standard"
               >
                 Start free
               </Link>

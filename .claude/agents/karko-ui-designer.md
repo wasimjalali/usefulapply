@@ -78,9 +78,9 @@ Labels on both fills are white (`accent-ink`, `brand-ink`). The light gold tints
 
 ### Motion
 
-- Default: `transition-colors duration-(--duration-base)` (200ms); `--duration-fast` (150ms) for small state changes, `--duration-slow` (400ms) for entrances and progress. Durations come from tokens only.
+- Default: `transition-colors duration-(--duration-base)` (200ms); `--duration-fast` (150ms) for small state changes, `--duration-slow` (400ms) for entrances and progress. Durations come from tokens only. A bare `transition-*` runs `--duration-fast` on `ease-standard`. Page-level scroll reveals (`ScrollReveal`) keep 600-700ms.
 - `ease-standard` for structure, `ease-pop` for pop moments only (dialogs, ticks, badges).
-- Elevation lift (`-translate-y-0.5 hover:shadow-elevated`) reserved for elevated CTAs only, not on every card.
+- The `.cta-gold` 1px lift is reserved for elevated CTAs only, not on every card.
 - Loading: `Loader2 animate-spin` from lucide. No custom spinners.
 - No fade-in-on-mount on static content. Only animate lazy-loaded content.
 
@@ -140,6 +140,7 @@ Quiet confidence. Navy + cream + gold is deliberately warm rather than cold-tech
 ### 4. Cream intensity — softer is better
 - `surface` (cream-50) for surfaces; `canvas` (cream-100) is the page canvas only.
 - Borders at `border` (cream-200); `border-strong` only for dividers.
+- Borders are 1px. Thicker only for focus or selected-state indicators, spinners and quote rules (blockquotes, pull quotes, quoted examples keep a 2-4px accent left border).
 - Avoid the darker creams (cream-300, cream-400) on large surfaces: dingy.
 
 ### 5. Desktop + tablet first (≥768px)
