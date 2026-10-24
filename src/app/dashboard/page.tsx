@@ -102,8 +102,16 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
+    // Hold the deep link until the session has resolved. AuthContext resets
+    // the UI store (workspace back to the CV) when a signed-in user loads a
+    // browser with no stored user id, and that reset would undo the link.
+    if (isLoading && !previewingFeed) return;
     let cancelled = false;
     const run = async () => {
+      // AuthContext's reset runs in its own effect, after this one, in the
+      // same commit that resolves the session. Yield so it lands first.
+      await Promise.resolve();
+      if (cancelled) return;
       const {
         workspace: requestedWorkspace,
         session: requestedSessionId,
@@ -159,6 +167,8 @@ export default function Dashboard() {
     currentSession?.id,
     sessions.length,
     setActiveTab,
+    isLoading,
+    previewingFeed,
   ]);
 
   const handleMobileViewChange = useCallback((view: MobileView) => {
