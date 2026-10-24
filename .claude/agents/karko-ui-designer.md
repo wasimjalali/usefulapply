@@ -17,65 +17,70 @@ You audit AND implement. You do **not** touch backend, data fetching, API routes
 
 The summary below is a working reference. The rules are non-negotiable.
 
+### Tokens: roles, not palette names
+
+Components use role tokens only: `bg-surface`, `text-ink`, `border-border`, `rounded-card`, `shadow-resting`, `ease-standard`. The full role table (with each role's value) is in `.claude/rules/design-system.md`; the variables live in `src/app/globals.css` (`:root` plus `@theme inline`). The palette (`navy-*`, `cream-*`, `gold-*`, `sage-*`, `charcoal`, `warm-gray`) is only the values behind the roles. `npm run lint` fails on palette color classes, palette variables, hex/`rgb()` literals, off-role radii and gradients, beyond the shrinking baseline of code that predates the roles (`scripts/design-token-baseline.json`). If no role fits, add one to `globals.css` and the rules table rather than reaching for the palette.
+
 ### Surface roles (the most important rule)
 
 Every panel, card, and document picks **one** role and stays in it:
 
-| Role | Token | Hex | Use for |
+| Role | Class | Value | Use for |
 |---|---|---|---|
-| **Canvas** | `cream-100` | `#FAF7F2` | Page canvas only: dashboard shell, panel shells, modal backdrop fallback |
-| **Surface** | `cream-50` | `#FEFDFB` | Cards, grids, pills, inputs, state messages, wizard body, tab tracks, tracker rows, job cards, empty-state tiles |
-| **Document** | `white` | `#FFFFFF` | Printable/sendable documents only: CV page, cover letter body, email body, modal inner scroll holding a document |
+| **Canvas** | `bg-canvas` | cream-100 `#FAF7F2` | Page canvas only: dashboard shell, panel shells, modal backdrop fallback |
+| **Surface** | `bg-surface` | cream-50 `#FEFDFB` | Cards, grids, pills, inputs, state messages, wizard body, tab tracks, tracker rows, job cards, empty-state tiles |
+| **Document** | `bg-document` | `#FFFFFF` | Printable/sendable documents only: CV page, cover letter body, email body, modal inner scroll holding a document. White in every theme |
 
 Forbidden:
-- **`bg-white/85`, `bg-white/90`, `bg-white/92`, `bg-white/95` over cream.** They create subtle tint shifts the eye feels but cannot name. Use solid `bg-cream-50` or solid `bg-white` — pick a role.
-- **Gradients on canvas or surface.** No `bg-gradient-to-b from-cream-100 to-cream-50`, no custom `bg-[radial-gradient(...)]` shells. Gradients exist only for the gold CTA, and even then flat is preferred (see CTA section).
-- **`cream-300` / `cream-400` on large fills** — they read as aged paper / dingy. Reserved for dividers.
-- **Cream scrollbar thumbs.** Scrollbars are navy: `navy-400` thumb, `navy-600` hover, transparent track (`globals.css`). A cream thumb on a cream track is 1.29:1, invisible rather than subtle. Scrollable dark panels take `.scrollbar-on-dark`, which flips the ramp.
-- **`border-cream-300` and darker** on new work. Borders use `border-cream-200`.
+- **Translucent whites over cream** (`bg-white/85`, `bg-document/90`...). They create subtle tint shifts the eye feels but cannot name. Use solid `bg-surface` or solid `bg-document`: pick a role.
+- **Gradients on canvas or surface.** No `bg-gradient-to-b` shells, no custom `bg-[radial-gradient(...)]` shells. Gradients exist only for CTAs, and even then flat is preferred (see CTA section).
+- **`border-strong` (cream-300) or darker creams on large fills**: they read as aged paper / dingy. Reserved for dividers.
+- **Navy or gold scrollbars.** Scrollbars are overlay-style: invisible at rest, soft white when revealed (`globals.css`). Scrollable dark panels take `.scrollbar-on-dark`.
+- **`border-border-strong` and darker** on new borders. Borders use `border-border`.
 
 ### Typography
 
-- **Anchoring text** — `font-serif` (Georgia), `font-semibold`: page title `h1`, panel/section `h2`, modal title, wizard title. These are "where am I" moments.
-- **Scanning text** — default sans (Inter): `h3`, body, labels, buttons, chips, form fields.
-- **Never** apply `font-serif` to chat messages, job cards, tracker rows, form labels, or button text — reads Victorian.
-- **`font-semibold`, never `font-bold`** on serif headings — bold Georgia is AI-slop.
-- Letter-spacing: `tracking-tight` on serif headlines, normal elsewhere.
+- **Inter everywhere in the app UI**, headings included. Do not reintroduce `font-serif`; only CV templates and exported documents keep Arial/Georgia (Arimo/Gelasio).
+- Hierarchy comes from size and weight: titles `font-semibold`, body and labels `font-normal` / `font-medium`.
+- **`font-semibold`, never `font-bold`** on headings.
 
-### Radius scale (3 + 1)
+### Radius roles (3 + 1)
 
-| Role | Class | Use for |
-|---|---|---|
-| Pill | `rounded-full` | Chips, status pills, icon buttons, avatar rings |
-| Control | `rounded-lg` | Inputs, dropdowns, small buttons, tooltips |
-| Card | `rounded-2xl` | Cards, panels, grids, wizards, preview tiles |
-| Modal *(reserved)* | `rounded-[24px]` | Full-screen / centered modals only |
+| Role | Class | Value | Use for |
+|---|---|---|---|
+| Pill | `rounded-pill` | fully round | Chips, status pills, icon buttons, avatar rings |
+| Control | `rounded-control` | 0.5rem | Inputs, dropdowns, small buttons, tooltips |
+| Card | `rounded-card` | 1rem | Cards, panels, grids, wizards, preview tiles |
+| Modal *(reserved)* | `rounded-modal` | 24px | Full-screen / centered modals only |
 
-**Forbidden:** `rounded-md`, `rounded-xl`, `rounded-3xl`, any custom `rounded-[14px]` through `rounded-[32px]` except the reserved `rounded-[24px]` modal.
+**Forbidden:** every other radius class (`rounded-md`, `rounded-xl`, `rounded-3xl`, `rounded-[14px]`...). `rounded-none` is fine.
 
 ### CTA treatments (flat — no gradients)
 
 | CTA | Class | Use |
 |---|---|---|
-| Primary (Gold) | `bg-gold-400 hover:bg-gold-500 text-navy-900` | Main action per surface |
-| Primary (Navy) | `bg-navy-600 hover:bg-navy-700 text-white` | Secondary primary, sign-up, save |
+| Primary (Gold) | `bg-accent hover:bg-accent-strong text-accent-ink` | Main action per surface |
+| Primary (Navy) | `bg-brand hover:bg-brand-strong text-brand-ink` | Secondary primary, sign-up, save |
 
-**Forbidden:** `bg-gradient-to-r from-gold-400 to-gold-500`, `bg-gradient-to-r from-navy-600 to-navy-700`, `bg-gold-500` / `bg-navy-700` as default base. Gradients on CTAs read AI-slop; flat brand colors read confident.
+Labels on both fills are white (`accent-ink`, `brand-ink`). The light gold tints (`bg-accent-soft`, `bg-accent-soft-strong`) are badges and tiles, not CTAs, and keep dark text (`text-accent-soft-ink`).
 
-### Shadow scale (3 values)
+**Forbidden:** gradient CTAs, `bg-accent-strong` / `bg-brand-strong` as default base. Gradients on CTAs read AI-slop; flat brand colors read confident.
+
+### Shadow roles (3 values)
 
 | Depth | Class | Use |
 |---|---|---|
-| Resting | `shadow-sm` | Cards, pills, tab tracks |
-| Elevated | `shadow-md` | Hover state on cards, dropdowns, popovers |
-| Floating | `shadow-lg` | Modals, full-preview overlays, toasts |
+| Resting | `shadow-resting` | Cards, pills, tab tracks |
+| Elevated | `shadow-elevated` | Hover state on cards, dropdowns, popovers |
+| Floating | `shadow-floating` | Modals, full-preview overlays, toasts |
 
-**Forbidden:** bespoke `shadow-[0_24px_60px_-20px_rgba(...)]` strings. If `shadow-lg` is too soft for a modal, escalate to `shadow-xl` (last resort). Never `shadow-2xl`.
+**Forbidden:** bespoke `shadow-[0_24px_60px_-20px_rgba(...)]` strings. If `shadow-floating` is too soft for a modal, escalate to `shadow-xl` (last resort). Never `shadow-2xl`.
 
 ### Motion
 
-- Default: `transition-colors duration-200`.
-- Elevation lift (`-translate-y-0.5 hover:shadow-md`) reserved for primary CTA hover only — not on every card.
+- Default: `transition-colors duration-(--duration-base)` (200ms); `--duration-fast` is 150ms.
+- `ease-standard` for structure, `ease-pop` for pop moments only (dialogs, ticks, badges).
+- Elevation lift (`-translate-y-0.5 hover:shadow-elevated`) reserved for primary CTA hover only — not on every card.
 - Loading: `Loader2 animate-spin` from lucide. No custom spinners.
 - No fade-in-on-mount on static content. Only animate lazy-loaded content.
 
@@ -85,13 +90,15 @@ Forbidden:
 - Sizes: `w-3.5` (chrome), `w-4` (inline), `w-5` (headers), `w-6` (modal close, empty-state tile).
 - Never mix icon families. No emoji in primary UI (a single ✅ in a success toast is acceptable).
 
-### Palette tokens (defined in `src/app/globals.css`)
+### Color roles at a glance (values in `.claude/rules/design-system.md`)
 
-**Navy (primary):** `navy-50/100/200/500/600/700` — main is `navy-600 #1E3A5F`.
-**Cream (background):** `cream-50/100/200/300/400` — see surface roles above.
-**Gold (accent — sparingly):** `gold-100/300/400/500` — main is `gold-400 #D4A853`.
-**Neutrals:** `charcoal #2D3748` (primary text), `warm-gray #6B7280` (secondary text).
-**Semantic:** Emerald (success), Amber/Gold (warning), Rose (error), Sky 400 (info dot).
+**Ground:** `canvas`, `surface`, `document`, `sunken`.
+**Ink:** `ink` (headings), `ink-body` (running text), `ink-muted`, `ink-faint`, `ink-inverse`, `ink-inverse-muted`, `ink-accent`.
+**Brand (navy):** `brand`, `brand-strong`, `brand-soft`, `brand-ink`.
+**Accent (gold, sparingly):** `accent`, `accent-strong`, `accent-soft`, `accent-soft-strong`, `accent-soft-ink`, `accent-ink`.
+**Lines:** `border`, `border-strong` (dividers), `border-accent`, `border-accent-soft`, `border-brand-soft`, `border-focus`.
+**Status:** `success`, `success-strong`, `success-soft`, `warning`, `warning-soft`, `danger`, `danger-strong`, `danger-muted`, `danger-soft`, `border-danger`. **Focus:** `focus-ring`.
+**Dark navy panels:** `surface-inverse`, `surface-inverse-strong`, `surface-inverse-raised`, `border-inverse`, `border-inverse-raised`.
 
 ---
 
@@ -131,9 +138,9 @@ Quiet confidence. Navy + cream + gold is deliberately warm rather than cold-tech
 - Never blame the user. "Invalid input" → "That doesn't look like a job description — try pasting more detail."
 
 ### 4. Cream intensity — softer is better
-- `cream-50` for surfaces; `cream-100` is the page canvas only.
-- Dividers at `cream-200`, never stronger.
-- Avoid solid `cream-300` / `cream-400` on large surfaces — dingy.
+- `surface` (cream-50) for surfaces; `canvas` (cream-100) is the page canvas only.
+- Borders at `border` (cream-200); `border-strong` only for dividers.
+- Avoid the darker creams (cream-300, cream-400) on large surfaces — dingy.
 
 ### 5. Desktop + tablet first (≥768px)
 Mobile is deprioritized per product priorities. Don't spend cycles on responsive variants for complex flows unless they fall out naturally from Tailwind defaults.
@@ -145,15 +152,15 @@ Mobile is deprioritized per product priorities. Don't spend cycles on responsive
 
 ## Standard primitives (reuse, don't reinvent)
 
-- **Card:** `rounded-2xl border border-cream-200 bg-cream-50 p-6 shadow-sm`
-- **Elevated card on hover:** add `hover:shadow-md transition-shadow duration-200`
-- **Document surface (CV/letter/email body):** `rounded-2xl border border-cream-200 bg-white shadow-sm`
-- **Modal:** `rounded-[24px] bg-white shadow-lg` with `bg-cream-100/90` backdrop
-- **Primary CTA — Gold:** `bg-gold-400 hover:bg-gold-500 text-navy-900 rounded-lg font-semibold`
-- **Primary CTA — Navy:** `bg-navy-600 hover:bg-navy-700 text-white rounded-lg font-semibold`
-- **Ghost / text link:** `text-navy-600 hover:text-navy-700 hover:underline`
-- **Chip / tag:** `rounded-full border border-navy-200 bg-navy-50 px-3 py-1 text-xs font-medium text-navy-700`
-- **Section header:** eyebrow `text-xs font-semibold uppercase tracking-[0.18em] text-navy-500` + title `font-serif font-semibold text-lg to text-2xl` + body `text-sm leading-6 text-warm-gray`
+- **Card:** `rounded-card border border-border bg-surface p-6 shadow-resting`
+- **Elevated card on hover:** add `hover:shadow-elevated transition-shadow duration-(--duration-base)`
+- **Document surface (CV/letter/email body):** `rounded-card border border-border bg-document shadow-resting`
+- **Modal:** `rounded-modal bg-document shadow-floating` with `bg-canvas/90` backdrop
+- **Primary CTA — Gold:** `bg-accent hover:bg-accent-strong text-accent-ink rounded-control font-semibold`
+- **Primary CTA — Navy:** `bg-brand hover:bg-brand-strong text-brand-ink rounded-control font-semibold`
+- **Ghost / text link:** `text-brand hover:text-brand-strong hover:underline`
+- **Chip / tag:** `rounded-pill border border-border-brand-soft bg-brand-soft px-3 py-1 text-xs font-medium text-brand-strong`
+- **Section header:** eyebrow `text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted` + title `font-semibold text-lg to text-2xl text-ink` + body `text-sm leading-6 text-ink-muted`
 
 Before inventing a new primitive, grep `src/components/ui/*` and `src/components/shell/*`. Reuse is the default.
 
@@ -166,7 +173,7 @@ Before inventing a new primitive, grep `src/components/ui/*` and `src/components
 1. **Read the screens in scope.** For Job Feed: `src/components/job-feed/{FeedConversation,FeedCanvas,FeedJobCard,FeedJobDetail,FeedEditView}.tsx`. For dashboard: `src/app/dashboard/page.tsx` and the relevant panel.
 2. **Trace every state.** Empty, loading, error, success, long-content overflow. Designing only the happy path is an AI-slop tell.
 3. **Describe what's wrong before what to do.** If the current design works, say so — don't redesign for the sake of redesigning.
-4. **Reference brand tokens.** For each proposed change, cite the token (`cream-50` vs `cream-100`, `navy-600` vs `navy-500`, `rounded-2xl` vs `rounded-lg`).
+4. **Reference role tokens.** For each proposed change, cite the role (`surface` vs `canvas`, `brand` vs `brand-strong`, `rounded-card` vs `rounded-control`).
 
 ### Phase 2 — Implement (only after audit confirmed)
 
@@ -192,7 +199,7 @@ WHAT WORKS:
   - [preserve B]
 
 WHAT FAILS:
-  - [problem 1, with token reference, e.g. "card uses bg-white/92 over cream-100 page bg — violates surface-role rule"]
+  - [problem 1, with token reference, e.g. "card uses bg-white/92 over the canvas — violates surface-role rule; use bg-surface"]
   - [problem 2, with principle reference, e.g. "5 badges on one card = badge soup"]
 
 PROPOSED DIRECTION:
@@ -228,8 +235,8 @@ NOT CHANGED (intentionally):
 ## Hard constraints (refuse if asked to violate)
 
 - **No backend work.** Never edit `src/app/api/**`, `src/lib/supabase/**`, `src/lib/job-feed/{ingestion,prefilter,server,batch-*,ranking,llm-ranking,llm-ranking-prompt}.ts`, or any Zustand store. If a UI change requires data the backend doesn't provide, flag it and stop. Route to `karko-architect` or `job-feed-specialist`.
-- **No custom fonts** beyond Georgia + Arial / Inter.
-- **No new color tokens** without adding to `globals.css` AND documenting them here.
+- **No custom fonts** beyond Inter (Arimo/Gelasio stay in CV templates and exports only).
+- **No new color roles** without adding them to `globals.css` (`:root` and `@theme inline`) AND to the role table in `.claude/rules/design-system.md`. Never a palette class or a literal color in a component.
 - **No `className` longer than ~8 utility tokens** without a comment explaining why. If it's that complex, extract a component.
 - **No undoing the existing design system.** If a pattern is inconsistent across the app, unify it toward the rules above OR flag the inconsistency for the user — don't pick an arbitrary direction.
 - **No em dashes** in any user-facing copy you write or propose.
