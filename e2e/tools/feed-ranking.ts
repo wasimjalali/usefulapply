@@ -124,7 +124,7 @@ async function main(): Promise<void> {
   async function seedMaxUser(label: string): Promise<string> {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
-    await run("INSERT INTO profiles (id, email, subscription_tier, job_searches_reset_at, created_at, updated_at) VALUES (?, ?, 'max', ?, ?, ?)", id, `${label}@test.local`, now, now, now);
+    await run("INSERT INTO profiles (id, email, subscription_tier, created_at, updated_at) VALUES (?, ?, 'max', ?, ?)", id, `${label}@test.local`, now, now);
     await run(
       "INSERT INTO user_credits (id, user_id, monthly_credits, rollover_credits, addon_credits, plan_tier, version, created_at, updated_at) VALUES (?, ?, 200, 0, 0, 'max', 0, ?, ?)",
       crypto.randomUUID(), id, now, now,

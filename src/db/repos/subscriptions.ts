@@ -15,8 +15,6 @@ export interface Subscription {
   current_period_start?: string | null;
   current_period_end?: string | null;
   cancel_at_period_end: boolean;
-  applications_used: number;
-  applications_limit: number;
   created_at: string;
   updated_at: string;
 }

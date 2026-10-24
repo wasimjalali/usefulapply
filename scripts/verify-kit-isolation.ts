@@ -419,8 +419,8 @@ async function main() {
   const userId = '00000000-0000-4000-8000-00000000c0de';
   const now = new Date().toISOString();
   const db = proxy.env.DB;
-  await db.prepare('INSERT INTO profiles (id, email, job_searches_reset_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
-    .bind(userId, 'kit-isolation@test.local', now, now, now).run();
+  await db.prepare('INSERT INTO profiles (id, email, created_at, updated_at) VALUES (?, ?, ?, ?)')
+    .bind(userId, 'kit-isolation@test.local', now, now).run();
   await db.prepare('INSERT INTO user_credits (id, user_id, monthly_credits, rollover_credits, addon_credits, plan_tier, version, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)')
     .bind('00000000-0000-4000-8000-00000000c0df', userId, 1, 0, 6, 'free', now, now).run();
   const balance = async () => {

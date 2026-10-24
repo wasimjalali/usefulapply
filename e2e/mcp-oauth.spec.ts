@@ -531,9 +531,9 @@ test.describe.serial('MCP OAuth', () => {
     const result = await client.callTool({ name: 'get_account', arguments: {} });
     expect(result.isError).toBeFalsy();
     // Positive control for the read-only test below: with the write scope a real, harmless write tool is callable.
-    const write = await client.callTool({ name: 'update_notification_settings', arguments: { marketing: false } });
+    const write = await client.callTool({ name: 'update_notification_settings', arguments: { followUpDue: false } });
     expect(write.isError).toBeFalsy();
-    expect(write.structuredContent).toMatchObject({ marketing: false });
+    expect(write.structuredContent).toMatchObject({ followUpDue: false });
     await client.close();
 
     // Keep the rotated pair for the revocation test.
@@ -577,7 +577,7 @@ test.describe.serial('MCP OAuth', () => {
     await client.connect(transport);
     const read = await client.callTool({ name: 'get_account', arguments: {} });
     expect(read.isError).toBeFalsy();
-    await expect(client.callTool({ name: 'update_notification_settings', arguments: { marketing: false } })).rejects.toThrow(/403|insufficient/i);
+    await expect(client.callTool({ name: 'update_notification_settings', arguments: { followUpDue: false } })).rejects.toThrow(/403|insufficient/i);
     await client.close();
 
     // The raw wire shape: 403 with an insufficient_scope challenge naming the scope.
@@ -587,7 +587,7 @@ test.describe.serial('MCP OAuth', () => {
         accept: 'application/json, text/event-stream',
         authorization: `Bearer ${token}`,
       },
-      data: { jsonrpc: '2.0', id: 7, method: 'tools/call', params: { name: 'update_notification_settings', arguments: { marketing: false } } },
+      data: { jsonrpc: '2.0', id: 7, method: 'tools/call', params: { name: 'update_notification_settings', arguments: { followUpDue: false } } },
     });
     expect(raw.status()).toBe(403);
     expect(raw.headers()['www-authenticate']).toMatch(/insufficient_scope/);

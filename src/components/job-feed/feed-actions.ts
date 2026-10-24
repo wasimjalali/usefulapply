@@ -300,11 +300,7 @@ export async function saveFeedSettings(
   useFeedStore.getState().setIsSavingSettings(true);
   try {
     if (options?.firstTime && !useFeedStore.getState().careerProfile) {
-      const profileResponse = await fetch('/api/job-feed/career-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ force: false }),
-      });
+      const profileResponse = await fetch('/api/job-feed/career-profile', { method: 'POST' });
       const profilePayload = await readJson(profileResponse);
       if (!profileResponse.ok || profilePayload.status === 'no_cv') {
         return {

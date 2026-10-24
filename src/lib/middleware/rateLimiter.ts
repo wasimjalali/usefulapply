@@ -80,7 +80,6 @@ const RATE_LIMIT_BINDING_NAMES = {
   'job-feed-apply-status': 'RATE_LIMIT_JOB_FEED_APPLY_STATUS',
   'career-profile-generate': 'RATE_LIMIT_CAREER_PROFILE_GENERATE',
   'anon-parse-minute': 'RATE_LIMIT_ANON_PARSE',
-  'search-strategy-generate': 'RATE_LIMIT_SEARCH_STRATEGY_GENERATE',
   'files-upload': 'RATE_LIMIT_FILES_UPLOAD',
   'files-get': 'RATE_LIMIT_FILES_GET',
   'exports': 'RATE_LIMIT_EXPORTS',
@@ -124,7 +123,6 @@ declare global {
     RATE_LIMIT_JOB_FEED_APPLY_STATUS?: RateLimitBinding;
     RATE_LIMIT_CAREER_PROFILE_GENERATE?: RateLimitBinding;
     RATE_LIMIT_ANON_PARSE?: RateLimitBinding;
-    RATE_LIMIT_SEARCH_STRATEGY_GENERATE?: RateLimitBinding;
     RATE_LIMIT_FILES_UPLOAD?: RateLimitBinding;
     RATE_LIMIT_FILES_GET?: RateLimitBinding;
     RATE_LIMIT_EXPORTS?: RateLimitBinding;
@@ -293,7 +291,6 @@ export const RATE_LIMITS = {
   'career-profile-generate': { name: 'career-profile-generate', limit: 6,  windowMs: 60_000 },
   'anon-parse':              { name: 'anon-parse', limit: 5,  windowMs: 3_600_000 }, // hourly cap is in-memory only (per isolate on Workers)
   'anon-parse-minute':       { name: 'anon-parse-minute', limit: 2,  windowMs: 60_000 },    // enforced by the Workers binding
-  'search-strategy-generate': { name: 'search-strategy-generate', limit: 3,  windowMs: 60_000 },
   'files-upload':            { name: 'files-upload', limit: 10, windowMs: 60_000 },
   'files-get':               { name: 'files-get', limit: 60, windowMs: 60_000 },
   // Server-side CV and letter exports (Browser Run). Cached repeats are cheap, so 20 a minute is generous.
