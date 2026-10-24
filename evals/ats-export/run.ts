@@ -314,7 +314,7 @@ async function main() {
     const rendered = await renderExport(resolved, deps);
     await writeOut(join(OUT, 'letters'), 'letter-us-on-german-cv.pdf', rendered.bytes);
     const info = await pdfinfo(rendered.bytes);
-    if (rendered.fileName !== 'Juergen_Mueller-Schaefer_Cover_Letter.pdf') failures.push(`file name "${rendered.fileName}"`);
+    if (rendered.fileName !== 'Juergen_Mueller-Schaefer_Harbor_Freight_Technologies_Cover_Letter.pdf') failures.push(`file name "${rendered.fileName}"`);
     if (!/Cover Letter/.test(info.title) || /Anschreiben/.test(info.title)) failures.push(`title "${info.title}"`);
     if (info.pageSizePts.width < 600) failures.push('a US layout letter is not on Letter paper');
     const lang = (await readFile(join(OUT, 'letters', 'letter-us-on-german-cv.pdf'))).toString('latin1').match(/\/Lang\s*\(([^)]*)\)/)?.[1] ?? '';
@@ -341,7 +341,7 @@ async function main() {
     const rendered = await renderExport(resolved, deps);
     const info = await pdfinfo(rendered.bytes);
     const lang = Buffer.from(rendered.bytes).toString('latin1').match(/\/Lang\s*\(([^)]*)\)/)?.[1] ?? '';
-    if (rendered.fileName !== 'Lettre_de_motivation_Camille_Lefevre.pdf') failures.push(`file name "${rendered.fileName}"`);
+    if (rendered.fileName !== 'Lettre_de_motivation_Camille_Lefevre_Harbor_Freight_Technologies.pdf') failures.push(`file name "${rendered.fileName}"`);
     if (info.title !== 'Lettre de motivation - Camille Lefèvre') failures.push(`title "${info.title}"`);
     if (info.subject !== 'Lettre de motivation') failures.push(`subject "${info.subject}"`);
     if (!lang.toLowerCase().startsWith('fr')) failures.push(`language "${lang}"`);

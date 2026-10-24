@@ -411,11 +411,7 @@ export function FeedConversation() {
     if (!profile && !isPreviewing) {
       profile = await loadCareerProfile();
       if (!profile) {
-        const response = await fetch('/api/job-feed/career-profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ force: false }),
-        });
+        const response = await fetch('/api/job-feed/career-profile', { method: 'POST' });
         const payload = await response.json().catch(() => ({})) as { profile?: typeof profile; status?: string };
         if (payload.profile) {
           useFeedStore.getState().setCareerProfile(payload.profile);

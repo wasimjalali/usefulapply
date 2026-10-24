@@ -163,16 +163,6 @@ export interface JobFeedSettingsInput {
   excluded_terms: string[];
 }
 
-export interface JobFeedSettingsSuggestion {
-  target_roles: string[];
-  preferred_locations: string[];
-  target_countries: string[];
-  user_skills: string[];
-  languages: string[];
-  seniority_target: JobFeedSettings['seniority_target'];
-  source: 'cv';
-}
-
 export interface JobFeedSearchPlanItem {
   query: string;
   targetRole: string;

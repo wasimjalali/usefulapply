@@ -81,7 +81,7 @@ export async function renderExport(resolved: ResolvedExport, rawDeps: RenderDeps
   const ext = extensionFor(format);
   const contentType = CONTENT_TYPES[ext];
   const words = exportText(resolved.locale);
-  const fileName = exportFileName(format, resolved.applicantName, resolved.locale);
+  const fileName = exportFileName(format, resolved.applicantName, resolved.locale, resolved.company);
   const name = resolved.applicantName;
   let bytes: Uint8Array;
 
@@ -171,6 +171,6 @@ export async function renderExport(resolved: ResolvedExport, rawDeps: RenderDeps
   }
 
   if (bytes.length > MAX_EXPORT_BYTES) throw new ExportTooLargeError(bytes.length);
-  return { bytes, contentType, fileName, displayName: exportDisplayFileName(format, resolved.applicantName, resolved.locale), renders, fit: fitResult };
+  return { bytes, contentType, fileName, displayName: exportDisplayFileName(format, resolved.applicantName, resolved.locale, resolved.company), renders, fit: fitResult };
 }
 

@@ -47,7 +47,6 @@ export interface ApplicationSession {
   generation_cancelled_at?: string | null;
   generated_artifacts?: any;
   screening_turns_used?: number;
-  prep_turns_used?: number;
   /** Bumped by every write to the application's content. See `updateSession`. */
   revision: number;
   created_at: string;
@@ -118,7 +117,6 @@ export async function createSession(
 function stripServerOwnedCounters(values: Record<string, unknown>): Record<string, unknown> {
   const rest = { ...values };
   delete rest.screening_turns_used;
-  delete rest.prep_turns_used;
   return rest;
 }
 
@@ -141,7 +139,7 @@ export interface UpdateSessionOptions {
 export async function updateSession(
   userId: string,
   sessionId: string,
-  updates: Partial<Omit<ApplicationSession, 'id' | 'user_id' | 'created_at' | 'screening_turns_used' | 'prep_turns_used' | 'revision'>>,
+  updates: Partial<Omit<ApplicationSession, 'id' | 'user_id' | 'created_at' | 'screening_turns_used' | 'revision'>>,
   options: UpdateSessionOptions = {},
 ): Promise<{ error: Error | null; revision?: number }> {
   const db = await getDb();

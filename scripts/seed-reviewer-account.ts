@@ -831,7 +831,7 @@ function applicationSql(userId: string, app: Fixture, now: string, nowDate: Date
   requirements, gaps, generated_cv, cover_letter, email, company_address, company_contact_person, cv_edits,
   optimized_cv_text, email_subject, email_body, selected_template, status, cover_letter_language, fit_assessment,
   generation_completed, generation_status, generation_completed_at, follow_up_email, generated_artifacts,
-  screening_turns_used, prep_turns_used, revision, interview_at, follow_up_due_at, interview_reminder_sent_at,
+  screening_turns_used, revision, interview_at, follow_up_due_at, interview_reminder_sent_at,
   follow_up_reminder_sent_at, created_at, updated_at
 ) VALUES (
   ${sqlText(applicationId(userId, app))}, ${sqlText(userId)}, ${sqlText(app.title)}, ${sqlText(app.company)}, ${sqlText(app.jobDescription)}, ${sqlText(app.jobUrl)},
@@ -840,7 +840,7 @@ function applicationSql(userId: string, app: Fixture, now: string, nowDate: Date
   ${sqlText(app.companyAddress)}, ${sqlText(app.contactPerson)}, '[]',
   ${sqlText(content)}, ${sqlText(email.subject)}, ${sqlText(email.body)}, ${sqlText(app.template)}, ${sqlText(app.status)}, ${sqlText(app.lang)}, ${sqlJson(fit)},
   1, 'succeeded', ${sqlText(now)}, ${sqlJson(followUp)}, ${sqlJson(artifacts)},
-  0, 0, 1, ${sqlText(interviewAt)}, ${sqlText(followUpDueAt)}, ${sqlText(interviewAt ? now : null)},
+  0, 1, ${sqlText(interviewAt)}, ${sqlText(followUpDueAt)}, ${sqlText(interviewAt ? now : null)},
   ${sqlText(followUpDueAt ? now : null)}, ${sqlText(now)}, ${sqlText(now)}
 );`;
 }
@@ -1215,7 +1215,7 @@ async function main(): Promise<void> {
     // Max, no Stripe ids, subscription_status NULL: the monthly sweep only selects paid rows whose status is 'active'.
     `UPDATE user_credits SET plan_tier = 'max', monthly_credits = ${args.credits}, rollover_credits = 0, addon_credits = 0, stripe_customer_id = NULL, stripe_subscription_id = NULL, subscription_status = NULL, last_reset_date = ${sqlText(now)}, next_reset_date = ${sqlText(new Date(nowDate.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString())}, version = version + 1, updated_at = ${sqlText(now)} WHERE user_id = ${u};`,
     `DELETE FROM subscriptions WHERE user_id = ${u};`,
-    `INSERT INTO subscriptions (id, user_id, tier, status, applications_used, applications_limit, cancel_at_period_end, created_at, updated_at) VALUES (${sqlText(randomUUID())}, ${u}, 'max', 'active', 2, 100, 0, ${sqlText(now)}, ${sqlText(now)});`,
+    `INSERT INTO subscriptions (id, user_id, tier, status, cancel_at_period_end, created_at, updated_at) VALUES (${sqlText(randomUUID())}, ${u}, 'max', 'active', 0, ${sqlText(now)}, ${sqlText(now)});`,
   ];
   if (delta !== 0) {
     statements.push(

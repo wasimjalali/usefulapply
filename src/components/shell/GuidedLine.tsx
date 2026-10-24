@@ -522,13 +522,6 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
               structured_data: structured,
             });
             if (saved.error) throw saved.error;
-            if (structured) {
-              fetch('/api/job-feed/settings/suggest', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ structured_data: structured }),
-              }).catch(() => {});
-            }
           }
           // A queued fit request reads the CV from the server. Advance the UI
           // only after the signed-in user's document write is durable.

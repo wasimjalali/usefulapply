@@ -1,9 +1,10 @@
 'use client';
 
-import { ArrowLeft, Bookmark, Clock, DollarSign, ExternalLink, Globe, MapPin, Search } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, Bookmark, Clock, DollarSign, ExternalLink, Globe, MapPin, Search, X } from 'lucide-react';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { JobFeedDescription, workModeLabel } from './job-ad-text';
-import { formatJobAge, safeEmployerUrl } from './feed-format';
+import { canDismissJob, formatJobAge, safeEmployerUrl } from './feed-format';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 
 interface FeedJobDetailProps {
@@ -12,9 +13,13 @@ interface FeedJobDetailProps {
   onCheckFit: (job: JobFeedFeedItem) => void;
   onGenerateKit: (job: JobFeedFeedItem) => void;
   onSave: (job: JobFeedFeedItem) => void;
+  /** Left out where dismissing isn't allowed (the Free plan). */
+  onDismiss?: (job: JobFeedFeedItem) => void;
   onOpenEmployerSite: (job: JobFeedFeedItem) => void;
   onUpgrade?: () => void;
   busy?: boolean;
+  /** True only while this job's own dismiss is in flight. */
+  dismissing?: boolean;
   /** False on the mobile read-only feed, where the kit cannot be generated. */
   showCheckFit?: boolean;
   canAffordFit?: boolean;
@@ -46,9 +51,11 @@ export function FeedJobDetail({
   onCheckFit,
   onGenerateKit,
   onSave,
+  onDismiss,
   onOpenEmployerSite,
   onUpgrade,
   busy = false,
+  dismissing = false,
   showCheckFit = true,
   canAffordFit = true,
   canAffordKit = true,
@@ -57,6 +64,23 @@ export function FeedJobDetail({
   const isStrong = job.fitLabel === 'strong';
   const employerLink = safeEmployerUrl(job);
   const isSaved = Boolean(job.feedback.savedAt);
+  const [confirmingDismiss, setConfirmingDismiss] = useState(false);
+  const keepRef = useRef<HTMLButtonElement>(null);
+  const dismissRef = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef(false);
+
+  useEffect(() => {
+    if (confirmingDismiss) keepRef.current?.focus();
+    else if (returnFocus.current) {
+      returnFocus.current = false;
+      dismissRef.current?.focus();
+    }
+  }, [confirmingDismiss]);
+
+  const cancelDismiss = () => {
+    returnFocus.current = true;
+    setConfirmingDismiss(false);
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -95,6 +119,46 @@ export function FeedJobDetail({
             Employer site
           </a>
         )}
+        {onDismiss && canDismissJob(job) && (confirmingDismiss ? (
+          <div
+            role="group"
+            aria-label="Dismiss this job?"
+            className="flex items-center gap-2"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape' && !busy) cancelDismiss();
+            }}
+          >
+            <span className="text-sm font-semibold text-ink">Dismiss this job?</span>
+            <button
+              ref={keepRef}
+              type="button"
+              disabled={busy}
+              onClick={cancelDismiss}
+              className="inline-flex h-9 items-center rounded-pill border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-resting transition-colors duration-200 hover:bg-surface-raised disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
+            >
+              Keep
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onDismiss(job)}
+              className="inline-flex h-9 items-center rounded-pill px-3.5 text-sm font-semibold text-danger transition-colors duration-200 hover:bg-danger-soft disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
+            >
+              {dismissing ? 'Dismissing' : 'Dismiss'}
+            </button>
+          </div>
+        ) : (
+          <button
+            ref={dismissRef}
+            type="button"
+            disabled={busy}
+            onClick={() => setConfirmingDismiss(true)}
+            className="inline-flex h-9 items-center gap-2 rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-200 hover:bg-surface hover:text-ink cursor-pointer"
+          >
+            <X className="h-4 w-4" />
+            Dismiss
+          </button>
+        ))}
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto px-5 py-5">
