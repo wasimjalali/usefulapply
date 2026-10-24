@@ -178,6 +178,10 @@
   --border-done-soft: var(--color-emerald-100);
   --done-ink: var(--color-emerald-700);
   --scrim: #000000;
+  --info-soft: var(--color-violet-50);
+  --border-info-soft: var(--color-violet-100);
+  --info-ink: var(--color-violet-700);
+  --ink-error: var(--color-rose-700);
   /* PR 3 roles (canvas, workspace) */
   --brand-mid: var(--color-navy-500);
   --brand-muted: var(--color-navy-400);
@@ -268,6 +272,10 @@
   --color-border-done-soft: var(--border-done-soft);
   --color-done-ink: var(--done-ink);
   --color-scrim: var(--scrim);
+  --color-info-soft: var(--info-soft);
+  --color-border-info-soft: var(--border-info-soft);
+  --color-info-ink: var(--info-ink);
+  --color-ink-error: var(--ink-error);
   /* PR 3 roles (canvas, workspace) */
   --color-brand-mid: var(--brand-mid);
   --color-brand-muted: var(--brand-muted);
