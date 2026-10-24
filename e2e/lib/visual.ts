@@ -313,32 +313,36 @@ export async function visualPage(
 }
 
 /**
- * Bring a long page to its final state, then go back to the top: scroll through it a viewport at a time until no
- * scroll reveal (`data-inview="false"`, see ScrollReveal) is left hidden, then wait for every image to load and
- * decode and for the fonts. A pass can run before React has hydrated the reveals, hence the passes.
+ * Bring a long page to its final state. Scroll reveals (ScrollReveal, `data-inview`) show once they intersect the
+ * viewport less its bottom 60px, which a reveal in the page's last 60px never does by scrolling, and whether it
+ * shows anyway depends on when React hydrates. So the viewport is made as tall as the page until every reveal has
+ * shown and every image has loaded (taller if the page grows with it), then set back for the screenshot.
  */
 export async function settleLongPage(page: Page): Promise<void> {
   await page.waitForLoadState('load');
-  const step = page.viewportSize()?.height ?? 900;
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error('the page has no viewport size');
+  const nextFrame = () => page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   let hidden = -1;
-  for (let pass = 0; pass < 4 && hidden !== 0; pass++) {
+  for (let round = 0; round < 3 && hidden !== 0; round++) {
     const height = await page.evaluate(() => document.documentElement.scrollHeight);
-    for (let y = 0; y <= height; y += step / 2) {
-      await page.evaluate((top) => window.scrollTo(0, top), y);
-      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await page.setViewportSize({ width: viewport.width, height: height + 120 });
+    for (const deadline = Date.now() + 10_000; Date.now() < deadline;) {
+      await nextFrame();
+      hidden = await page.locator('[data-inview="false"]').count();
+      if (hidden === 0) break;
     }
-    hidden = await page.locator('[data-inview="false"]').count();
   }
-  if (hidden !== 0) throw new Error(`${hidden} scroll reveals stayed hidden after four passes`);
+  if (hidden !== 0) throw new Error(`${hidden} scroll reveals stayed hidden with the whole page in view`);
   await page.evaluate(async () => {
-    // A lazy image the scroll passed too fast for may never start; eager makes it load now.
-    for (const img of document.images) if (img.loading === 'lazy') img.loading = 'eager';
     await Promise.all([...document.images].map((img) => (img.complete ? Promise.resolve() : new Promise((resolve) => {
       img.addEventListener('load', resolve, { once: true });
       img.addEventListener('error', resolve, { once: true });
     }))));
     await Promise.all([...document.images].map((img) => img.decode().catch(() => undefined)));
     await document.fonts.ready;
-    window.scrollTo(0, 0);
   });
+  await page.setViewportSize(viewport);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await nextFrame();
 }
