@@ -12,7 +12,7 @@ The product has three visual layers. Every panel, card, and document must pick a
 ### Tokens: roles first
 UI code names the job a value does, never the palette step behind it: `bg-surface`, `text-ink`, `border-border`, `rounded-card`, `shadow-resting`, `ease-standard`. The roles live on `:root` in `src/app/globals.css` and reach Tailwind through `@theme inline`; a theme (dark mode) overrides the role variables only. The palette (`navy-*`, `cream-*`, `gold-*`, `sage-*`, `charcoal`, `warm-gray`) stays in `globals.css` as the values behind the roles. Don't use it in components.
 
-`npm run lint` runs `scripts/check-design-tokens.mjs`. It fails on palette-named color classes (Tailwind's default palettes, `white` and `black` included), palette variables (`var(--color-navy-600)`), hex and `rgb()`/`hsl()`/`oklch()` colors (arbitrary values included), radius classes outside the roles, and gradients, in `src/components`, `src/app` and `src/lib/blog`. CV templates, exports, email templates, icons and logos, route handlers, the root error page and blog post bodies keep their own colors. Code that predates the roles is listed in `scripts/design-token-baseline.json` (a count per file and rule) while it migrates. The baseline only shrinks: after removing hits, run `node scripts/check-design-tokens.mjs --update`.
+`npm run lint` runs `scripts/check-design-tokens.mjs`. It fails on palette-named color classes (Tailwind's default palettes, `white` and `black` included), palette variables (`var(--color-navy-600)`), hex and `rgb()`/`hsl()`/`oklch()` colors (arbitrary values included), radius classes outside the roles, and gradients, in `src/components`, `src/app` and `src/lib/blog`. CV templates, exports, email templates, icons and logos, route handlers, the root error page and blog post bodies keep their own colors. Every hit fails lint; there is no baseline.
 
 No role fits? Add one: a variable on `:root`, its `--color-*` line in `@theme inline`, and a row below. Don't reach for the palette.
 
@@ -99,9 +99,9 @@ Values are today's light theme.
 Utilities follow Tailwind's naming, utility then role: `bg-surface`, `text-ink-muted`, `border-border`, `border-border-strong`, `ring-focus-ring`, `bg-accent/10`. Roles whose names start with `border-` take a second `border-` as a border class, so `border-gold-300` becomes `border-border-accent`, while `border-accent` is gold-400. Opacity modifiers work on every role.
 
 Rules:
-- **No gradients on canvas or surface layers.** No `bg-gradient-to-b` shells, no custom `bg-[radial-gradient(...)]` canvases. Gradients are reserved for CTAs (gold/navy buttons), nothing else.
+- **No gradients anywhere.** Not on canvas or surface layers, not on CTAs, not as text or border decoration. Every fill is a flat role.
 - **No translucent whites over cream.** `bg-document/85`, `bg-white/90` and the like on the canvas create subtle tint shifts the eye can feel but not name. Use solid `bg-surface` or solid `bg-document`: decide which role the surface is playing.
-- **Borders on surfaces:** `border-border`. `border-border-strong` (cream-300) and anything darker read as dingy; keep them for dividers.
+- **Hairline borders only.** Borders are 1px and use `border-border`. `border-border-strong` is for dividers only. A thicker border is only ever a focus or selected-state indicator.
 - **Avoid `border-strong` and darker creams on large fills.** They read as aged paper / dingy.
 - **Scrollbars are overlay-style: invisible at rest, white when revealed, never navy and never gold.** The thumb is transparent until the pointer is over the scroller or the scroller is scrolling (`ScrollbarReveal` stamps `data-scrolling`), then soft white `rgba(255,255,255,0.75)` with a faint navy inset hairline so it stays findable on white documents, and solid `#FFFFFF` when the thumb itself is hovered or grabbed. Transparent track, 12px wide with a 2px transparent border so the thumb reads as 8px (`globals.css`). Dark surfaces take `.scrollbar-on-dark`: same behavior, no hairline, `rgba(255,255,255,0.45)` reveal. Firefox has no per-state scrollbar colors, so it keeps an always-visible soft white thin bar.
 
@@ -134,7 +134,7 @@ Known tradeoff: white on `accent` (gold-400, `#D4A853`) measures ~2.2:1, below t
 
 The light gold tints (`bg-accent-soft`, `bg-accent-soft-strong`) are a different role: they are badges, chips and status tiles, not CTAs, and they keep dark text (`text-accent-soft-ink`, `text-ink-body`). White on a light tint is unreadable.
 
-Do NOT use: gradient CTAs (`bg-gradient-to-r` from gold or navy), `bg-accent-strong` / `bg-brand-strong` as default base. Gradients on CTAs read as AI-slop; flat brand colors read as confident.
+Do NOT use: gradient CTAs, `bg-accent-strong` / `bg-brand-strong` as default base. Gradients read as AI-slop; flat brand colors read as confident.
 
 ### Shadow roles (3 values)
 | Depth | Class | Value | Use |
@@ -143,11 +143,13 @@ Do NOT use: gradient CTAs (`bg-gradient-to-r` from gold or navy), `bg-accent-str
 | **Elevated** | `shadow-elevated` | `--shadow-md` | Hover state on cards, dropdowns, popovers |
 | **Floating** | `shadow-floating` | `--shadow-lg` | Modals, full-preview overlays, toasts |
 
+**The one-step lift.** Static cards rest on `shadow-resting` and don't change on hover. Interactive cards (they open, select or navigate) rise one step to `shadow-elevated` on hover (`hover:shadow-elevated transition-shadow duration-(--duration-base) ease-standard`), with no translate. The `-translate-y` lift stays reserved for elevated CTAs (`.cta-gold`).
+
 Do NOT invent bespoke drop-shadow strings like `shadow-[0_24px_60px_-20px_rgba(30,58,95,0.35)]`. If `shadow-floating` isn't dramatic enough for a modal, use `shadow-xl` (last resort). Never `shadow-2xl`. Shadow color modifiers (`shadow-gold-200`) don't apply to the role shadows.
 
 ### Motion
-- `transition-colors duration-(--duration-base)` default (200ms). `--duration-fast` is 150ms.
-- `ease-standard` (decelerating out-quart) for structure; `ease-pop` (spring) for pop moments only: dialogs, ticks, badges.
+- Durations come from tokens only: `duration-(--duration-fast)` (150ms) for small state changes, `duration-(--duration-base)` (200ms, the default) for most transitions, `duration-(--duration-slow)` (400ms) for entrances and progress.
+- One easing for structure, `ease-standard` (decelerating out-quart). `ease-pop` (spring) is for pop moments only: dialogs, ticks, badges.
 - Elevation lift (`-translate-y-0.5 hover:shadow-elevated`) reserved for elevated CTAs only, not on every card.
 
 ### Iconography

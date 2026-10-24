@@ -7,7 +7,6 @@ import { Check, ArrowRight, ChevronDown, Loader2 } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
-import { PricingAurora } from '@/components/marketing/PricingAurora';
 import { useAuth } from '@/contexts/AuthContext';
 import { pricingFAQs } from '@/lib/marketing/pricing-faqs';
 import { CREDIT_PRICES } from '@/lib/plans';
@@ -189,7 +188,6 @@ export default function PricingPage() {
       <main>
       {/* Aurora-backed first-fold: hero + pricing cards share one premium backdrop */}
       <div className="relative overflow-hidden">
-      <PricingAurora />
       {/* Hero Section */}
       <section className="pt-16 pb-8 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-4xl mx-auto text-center relative">
@@ -527,7 +525,6 @@ export default function PricingPage() {
 
       {/* CTA Section */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-surface-inverse-raised relative overflow-hidden">
-        <div className="absolute inset-0 dot-grid opacity-[0.04]" />
         <ScrollReveal>
         <div className="max-w-3xl mx-auto text-center relative">
           <h2 className="font-bold text-ink-inverse text-[32px] md:text-[40px] leading-[1.1] mb-4">

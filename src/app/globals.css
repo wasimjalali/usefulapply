@@ -56,8 +56,6 @@
 
   /* Easing: one calm decelerating curve for structure, one springy curve
      reserved for pop moments (dialogs, ticks, badges). */
-  --ease-out-quart: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* Brand-tinted shadow scale — overrides Tailwind's black-based defaults so
      every card, panel and modal picks up the warm navy tint at once. Kept
@@ -67,8 +65,6 @@
   --shadow-lg: 0 1px 0 0 rgb(30 58 95 / 0.05), 0 22px 46px -20px rgb(30 58 95 / 0.22);
   --shadow-xl: 0 1px 0 0 rgb(30 58 95 / 0.06), 0 32px 60px -24px rgb(30 58 95 / 0.28);
 
-  /* Accent glow (gold) — for primary-CTA hover and active emphasis only. */
-  --shadow-glow-gold: 0 0 0 1px rgb(212 168 83 / 0.18), 0 12px 30px -10px rgb(212 168 83 / 0.42);
 
   /* Radius roles (rounded-pill, rounded-control, rounded-card, rounded-modal). The same in
      every theme, so they are plain theme values. */
@@ -613,22 +609,8 @@ select:focus-visible {
   border: 1px solid var(--border);
 }
 
-.glass-dark {
-  background: rgba(15, 27, 61, 0.4);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
 
-/* Card hover lift effect for marketing pages */
-.card-hover-lift {
-  transition: box-shadow var(--duration-base) var(--ease-standard);
-}
 
-/* The one-step lift: an interactive card rises from resting to elevated, with no translate. */
-.card-hover-lift:hover {
-  box-shadow: var(--depth-elevated);
-}
 
 /* ─── Premium primitives (UI premium pass) ─── */
 
@@ -656,14 +638,8 @@ select:focus-visible {
   animation: panel-rise var(--duration-slow) var(--ease-standard) both;
 }
 
-/* Active segmented-pill tab — premium treatment for app chrome (workspace
-   switcher, document tabs). A faint gold inset ring + soft navy drop reads
-   richer than a flat white pill in a still frame. Layered on top of bg-white. */
-.tab-pill-active {
-  box-shadow: var(--depth-resting);
-}
 
-/* Eyebrow label with a small gradient accent dot — page-level labels only. */
+/* Eyebrow label with a small accent dot, page-level labels only. */
 .eyebrow-dot::before {
   content: '';
   display: inline-block;
@@ -693,61 +669,21 @@ select:focus-visible {
   display: none;
 }
 
-.glass-input {
-  background: var(--surface-raised);
-}
 
 /* Logo bar scroll animation — infinite marquee */
-/* Animated gradient border — for featured/popular cards */
-@property --gradient-angle {
-  syntax: "<angle>";
-  initial-value: 0deg;
-  inherits: false;
-}
 
 /* CTA pulse glow */
-/* Dot grid background pattern */
 
 
-/* Subtle noise texture overlay */
-.noise-overlay::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 1;
-}
 
-/* Browser chrome mockup frame */
-.browser-frame {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  overflow: hidden;
-  box-shadow: var(--depth-floating);
-}
 
-/* Gradient text utility */
-.gradient-text-gold {
-  /* The name stays for its callers; gradients are gone, so it is solid accent ink. */
-  color: var(--ink-accent);
-}
 
 /* Section divider — angled */
 .section-divider-angle {
   position: relative;
 }
 
-/* Stat card glow on hover */
-.stat-glow:hover {
-  box-shadow: var(--depth-elevated);
-}
 
-/* Gradient card top accent bar */
-.card-accent-gold {
-  border-top: 3px solid var(--accent);
-}
 
 /* Floating badge animation */
 
@@ -768,33 +704,7 @@ select:focus-visible {
 /* ─── Ribbon Flow (SVG path) ─── */
 /* ─── Natural Cloud Drift Animations ─── */
 /* ─── Premium Aurora (hero background) ─── */
-@keyframes aurora-slow-1 {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  33%      { transform: translate3d(4%, -3%, 0) scale(1.08); }
-  66%      { transform: translate3d(-3%, 4%, 0) scale(0.96); }
-}
-@keyframes aurora-slow-2 {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50%      { transform: translate3d(-5%, 3%, 0) scale(1.12); }
-}
-@keyframes aurora-slow-3 {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1.04); opacity: 0.55; }
-  50%      { transform: translate3d(3%, -2%, 0) scale(0.94); opacity: 0.8; }
-}
-@keyframes aurora-shimmer {
-  0%, 100% { opacity: 0.35; }
-  50%      { opacity: 0.55; }
-}
-@keyframes conic-sweep {
-  0%   { transform: translate(-50%, -50%) rotate(0deg); }
-  100% { transform: translate(-50%, -50%) rotate(360deg); }
-}
 
-.animate-aurora-slow-1 { animation: aurora-slow-1 42s ease-in-out infinite; will-change: transform; }
-.animate-aurora-slow-2 { animation: aurora-slow-2 56s ease-in-out infinite; will-change: transform; }
-.animate-aurora-slow-3 { animation: aurora-slow-3 48s ease-in-out infinite; will-change: transform, opacity; }
-.animate-aurora-shimmer { animation: aurora-shimmer 8s ease-in-out infinite; }
-.animate-conic-sweep { animation: conic-sweep 90s linear infinite; will-change: transform; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    SCROLL-DRIVEN MOTION (landing)
@@ -928,7 +838,7 @@ select:focus-visible {
 
 /* ═══════════════════════════════════════════════════════════════════════════
    REDUCED MOTION — single blanket gate (UI premium pass)
-   Honors prefers-reduced-motion across the whole app, not just the aurora.
+   Honors prefers-reduced-motion across the whole app.
    Decorative loops stop entirely; functional transitions collapse to near-zero
    so nothing depends on animation and no content stays hidden.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -943,11 +853,6 @@ select:focus-visible {
   }
 
   /* Kill the ambient, infinitely-looping background decoration outright. */
-  .animate-aurora-slow-1,
-  .animate-aurora-slow-2,
-  .animate-aurora-slow-3,
-  .animate-aurora-shimmer,
-  .animate-conic-sweep,
   .animate-float,
   .animate-float-slow,
   .animate-float-delayed,

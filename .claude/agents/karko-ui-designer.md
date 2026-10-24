@@ -19,7 +19,7 @@ The summary below is a working reference. The rules are non-negotiable.
 
 ### Tokens: roles, not palette names
 
-Components use role tokens only: `bg-surface`, `text-ink`, `border-border`, `rounded-card`, `shadow-resting`, `ease-standard`. The full role table (with each role's value) is in `.claude/rules/design-system.md`; the variables live in `src/app/globals.css` (`:root` plus `@theme inline`). The palette (`navy-*`, `cream-*`, `gold-*`, `sage-*`, `charcoal`, `warm-gray`) is only the values behind the roles. `npm run lint` fails on palette color classes, palette variables, hex/`rgb()` literals, off-role radii and gradients, beyond the shrinking baseline of code that predates the roles (`scripts/design-token-baseline.json`). If no role fits, add one to `globals.css` and the rules table rather than reaching for the palette.
+Components use role tokens only: `bg-surface`, `text-ink`, `border-border`, `rounded-card`, `shadow-resting`, `ease-standard`. The full role table (with each role's value) is in `.claude/rules/design-system.md`; the variables live in `src/app/globals.css` (`:root` plus `@theme inline`). The palette (`navy-*`, `cream-*`, `gold-*`, `sage-*`, `charcoal`, `warm-gray`) is only the values behind the roles. `npm run lint` fails on palette color classes, palette variables, hex/`rgb()` literals, off-role radii and gradients, with no exceptions list. If no role fits, add one to `globals.css` and the rules table rather than reaching for the palette.
 
 ### Surface roles (the most important rule)
 
@@ -33,7 +33,7 @@ Every panel, card, and document picks **one** role and stays in it:
 
 Forbidden:
 - **Translucent whites over cream** (`bg-white/85`, `bg-document/90`...). They create subtle tint shifts the eye feels but cannot name. Use solid `bg-surface` or solid `bg-document`: pick a role.
-- **Gradients on canvas or surface.** No `bg-gradient-to-b` shells, no custom `bg-[radial-gradient(...)]` shells. Gradients exist only for CTAs, and even then flat is preferred (see CTA section).
+- **Gradients anywhere**, CTAs included. Every fill is a flat role.
 - **`border-strong` (cream-300) or darker creams on large fills**: they read as aged paper / dingy. Reserved for dividers.
 - **Navy or gold scrollbars.** Scrollbars are overlay-style: invisible at rest, soft white when revealed (`globals.css`). Scrollable dark panels take `.scrollbar-on-dark`.
 - **`border-border-strong` and darker** on new borders. Borders use `border-border`.
@@ -78,7 +78,7 @@ Labels on both fills are white (`accent-ink`, `brand-ink`). The light gold tints
 
 ### Motion
 
-- Default: `transition-colors duration-(--duration-base)` (200ms); `--duration-fast` is 150ms.
+- Default: `transition-colors duration-(--duration-base)` (200ms); `--duration-fast` (150ms) for small state changes, `--duration-slow` (400ms) for entrances and progress. Durations come from tokens only.
 - `ease-standard` for structure, `ease-pop` for pop moments only (dialogs, ticks, badges).
 - Elevation lift (`-translate-y-0.5 hover:shadow-elevated`) reserved for elevated CTAs only, not on every card.
 - Loading: `Loader2 animate-spin` from lucide. No custom spinners.
@@ -153,7 +153,7 @@ Mobile is deprioritized per product priorities. Don't spend cycles on responsive
 ## Standard primitives (reuse, don't reinvent)
 
 - **Card:** `rounded-card border border-border bg-surface p-6 shadow-resting`
-- **Elevated card on hover:** add `hover:shadow-elevated transition-shadow duration-(--duration-base)`
+- **Interactive card (opens, selects, navigates):** add `hover:shadow-elevated transition-shadow duration-(--duration-base) ease-standard`, no translate. Static cards don't change on hover.
 - **Document surface (CV/letter/email body):** `rounded-card border border-border bg-document shadow-resting`
 - **Modal:** `rounded-modal bg-document shadow-floating` with `bg-canvas/90` backdrop
 - **Primary CTA, Gold:** `bg-accent hover:bg-accent-strong text-accent-ink rounded-control font-semibold`

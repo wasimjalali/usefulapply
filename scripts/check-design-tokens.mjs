@@ -19,20 +19,16 @@
  * logos, the web manifest, route handlers, the root error page, blog post content and globals.css
  * itself, which defines the tokens. Comments are ignored.
  *
- * Today's hits live in scripts/design-token-baseline.json as a count per file and rule. The
- * check fails on any hit over the baseline, and on any baseline count the code no longer
- * reaches, so the baseline only shrinks. Without the file every hit fails.
+ * Every hit fails the check. (PRs 1 to 4 of the design-system plan carried a baseline of code
+ * that predated the roles; PR 5 emptied it and removed it.)
  *
- *   node scripts/check-design-tokens.mjs            check
- *   node scripts/check-design-tokens.mjs --update   rewrite the baseline to today's counts; refuses
- *                                                   to raise any count an existing baseline holds
+ *   node scripts/check-design-tokens.mjs
  */
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const BASELINE = join(ROOT, 'scripts', 'design-token-baseline.json');
 const SCAN_DIRS = ['src/components', 'src/app', 'src/lib/blog'];
 const EXTENSIONS = /\.(ts|tsx|css)$/;
 const SKIP = [
@@ -147,62 +143,14 @@ function scan() {
   return { counts, hitsByFile };
 }
 
-function readBaseline() {
-  if (!existsSync(BASELINE)) return {};
-  return JSON.parse(readFileSync(BASELINE, 'utf8'));
-}
-
-/** One entry per line, files and rules sorted, so parallel edits merge cleanly. */
-function formatBaseline(counts) {
-  const files = Object.keys(counts).sort();
-  if (files.length === 0) return '{}\n';
-  const lines = files.map((file) => {
-    const rules = Object.keys(counts[file]).sort().map((rule) => `${JSON.stringify(rule)}: ${counts[file][rule]}`);
-    return `  ${JSON.stringify(file)}: { ${rules.join(', ')} }`;
-  });
-  return `{\n${lines.join(',\n')}\n}\n`;
-}
-
-function compare(counts, baseline) {
-  const over = [];
-  const stale = [];
-  const files = new Set([...Object.keys(counts), ...Object.keys(baseline)]);
-  for (const file of [...files].sort()) {
-    for (const rule of RULE_NAMES) {
-      const now = counts[file]?.[rule] ?? 0;
-      const allowed = baseline[file]?.[rule] ?? 0;
-      if (now > allowed) over.push({ file, rule, now, allowed });
-      else if (now < allowed) stale.push({ file, rule, now, allowed });
-    }
-  }
-  return { over, stale };
-}
-
 const { counts, hitsByFile } = scan();
-const baseline = readBaseline();
-const { over, stale } = compare(counts, baseline);
-
-if (process.argv.includes('--update')) {
-  if (existsSync(BASELINE) && over.length > 0) {
-    console.error('design tokens: --update never raises a baseline count. Use the role tokens instead:');
-    for (const { file, rule, now, allowed } of over) console.error(`  ${file}  ${rule}: ${allowed} -> ${now}`);
-    process.exit(1);
-  }
-  writeFileSync(BASELINE, formatBaseline(counts));
-  const total = Object.values(counts).reduce((sum, rules) => sum + Object.values(rules).reduce((a, b) => a + b, 0), 0);
-  console.log(`design tokens: baseline written, ${Object.keys(counts).length} files, ${total} hits.`);
+const files = Object.keys(counts);
+if (files.length === 0) {
+  console.log('design tokens: no hits.');
   process.exit(0);
 }
-
-if (over.length === 0 && stale.length === 0) {
-  console.log('design tokens: no new hits.');
-  process.exit(0);
+for (const file of files) {
+  for (const hit of hitsByFile[file]) console.error(`${file}:${hit.line}  ${hit.rule}  ${hit.text}`);
 }
-for (const { file, rule, now, allowed } of over) {
-  console.error(`${file}: ${now} ${rule} hit(s), the baseline allows ${allowed}. Use the role tokens in src/app/globals.css.`);
-  for (const hit of hitsByFile[file].filter((h) => h.rule === rule)) console.error(`  ${file}:${hit.line}  ${hit.text}`);
-}
-for (const { file, rule, now, allowed } of stale) {
-  console.error(`${file}: ${rule} is down to ${now} from ${allowed}. Lower the baseline: node scripts/check-design-tokens.mjs --update`);
-}
+console.error(`design tokens: ${Object.values(counts).reduce((sum, rules) => sum + Object.values(rules).reduce((a, b) => a + b, 0), 0)} hit(s) in ${files.length} file(s). Use the role tokens in src/app/globals.css (.claude/rules/design-system.md).`);
 process.exit(1);
