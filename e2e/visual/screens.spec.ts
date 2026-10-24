@@ -7,7 +7,7 @@ import { pinUser, seedFeedInbox, settleLongPage, signIn, visualPage, visualUser,
 
 /**
  * (visual) Every screen of the design-system plan (docs/plans/2026-10-24-design-system.md) at 1280x900 and
- * 768x1024, compared pixel for pixel (maxDiffPixels 0, threshold 0) against the committed Linux renders in
+ * 768x1024, compared pixel for pixel (maxDiffPixels 0, threshold 0.005) against the committed Linux renders in
  * e2e/visual/__screenshots__/. The token PRs change no pixel, so any difference here is a regression.
  *
  * Users, kit and feed rows are seeded through the product (sign-up, the fit and kit flow on the scripted model)

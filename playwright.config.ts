@@ -340,10 +340,11 @@ export default defineConfig({
       snapshotPathTemplate: '{testDir}/__screenshots__/{arg}-{platform}{ext}',
       expect: {
         timeout: 20_000,
-        toHaveScreenshot: { maxDiffPixels: 0, threshold: 0, animations: 'disabled', caret: 'hide', scale: 'css' },
+        // threshold 0.005 (Playwright's default is 0.2) ignores only a change under about 1.5 colour levels: one rounded
+        // corner in the canvas tabs renders one level apart between identical runs. Neighbouring palette steps are 5+.
+        toHaveScreenshot: { maxDiffPixels: 0, threshold: 0.005, animations: 'disabled', caret: 'hide', scale: 'css' },
       },
-      // Software raster: GPU raster in the headless shell varies anti-aliased edges by one colour level between runs.
-      use: { baseURL: BASE_URL, launchOptions: { ...('launchOptions' in browser ? browser.launchOptions : {}), args: ['--disable-gpu'] } },
+      use: { baseURL: BASE_URL },
     },
   ],
   webServer: webServers,
