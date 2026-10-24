@@ -15,14 +15,15 @@ import { PdfPreviewModal } from './ui/PdfPreviewModal';
 import { useToast } from './ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import {
-  buildCoverLetterDocxBlob,
-  buildCoverLetterPdfBlob,
   countWords,
   formatCoverLetterAsText,
   hasAddressPlaceholder as letterHasAddressPlaceholder,
 } from '@/lib/utils/cover-letter-export';
-import { kitFilename } from '@/lib/utils/kit-export';
-import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback } from '@/lib/utils/server-export';
+import { isSavedApplicationId, notifyExportFailure, serverExport, trackExportFailure } from '@/lib/utils/server-export';
+import { useLatest } from '@/hooks/useLatest';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { promptAccountToDownload } from '@/components/kit/account-wall';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { useSessionStore } from '@/store/useSessionStore';
 import { acknowledgedStart, acknowledgementFor, commitEditorSave, discardedSinceSave, editorShouldClose, getEditorStart, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
@@ -56,7 +57,7 @@ function stampOf(letter: GeneratedCoverLetter | null | undefined): number | null
 }
 
 export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) {
-  const { currentSession, isAgentWorking, agentWorkflowPhase, structuredCV } = useAppStore();
+  const { currentSession, isAgentWorking, agentWorkflowPhase } = useAppStore();
   const setPendingApplicationAction = useUIStore((state) => state.setPendingApplicationAction);
   const datePrefs = useDatePrefs();
   const coverLetter = currentSession?.coverLetter;
@@ -69,6 +70,8 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   
   const [copied, setCopied] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<'pdf' | 'docx' | null>(null);
+  // An in-flight guard a toast's Try again can't bypass (the disabled button only stops clicks).
+  const exportBusyRef = useRef(false);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [downloadMenuPos, setDownloadMenuPos] = useState<{ top: number; left: number } | null>(null);
   const downloadButtonRef = useRef<HTMLButtonElement>(null);
@@ -125,6 +128,8 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     editStartRef.current = acknowledgedStart(ack, ['coverLetter'], editStartRef.current);
   }), []);
   const { toast } = useToast();
+  const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
 
   // Check if cover letter still contains any address placeholder (old or new format)
   const hasAddressPlaceholder = () => Boolean(coverLetter && letterHasAddressPlaceholder(coverLetter));
@@ -239,7 +244,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const openLayoutPreview = async () => {
     const letter = editedCoverLetter || coverLetter;
     const applicationId = currentSession?.id;
-    if (!letter || !applicationId) return;
+    if (!letter || !isSavedApplicationId(applicationId)) return;
     layoutOpenerRef.current = document.activeElement as HTMLElement | null;
     setLayoutPreviewLoading(true);
     try {
@@ -260,55 +265,46 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
 
   const exportLetter = async (format: 'pdf' | 'docx') => {
     const letterToDownload = editedCoverLetter || coverLetter;
+    const applicationId = currentSession?.id;
     if (!letterToDownload) return;
+    if (!user) {
+      setShowDownloadMenu(false);
+      promptAccountToDownload(toast, router.push, 'kit', authLoading);
+      return;
+    }
+    if (!isSavedApplicationId(applicationId)) {
+      setShowDownloadMenu(false);
+      toast.error('This application is still saving. Try again in a moment.');
+      return;
+    }
+    // Only a toast's Try again gets here while a download runs (the button is disabled): say so instead of doing nothing.
+    if (exportBusyRef.current) {
+      toast.info('Another download is still running. Try again when it finishes.');
+      return;
+    }
+    exportBusyRef.current = true;
     const showAddressReminder = hasAddressPlaceholder();
     setShowDownloadMenu(false);
     setDownloadFormat(format);
+    const serverFormat = format === 'pdf' ? 'cover_letter_pdf' : 'cover_letter_docx';
     try {
-      let usedFallback = false;
-      let blob: Blob | null = null;
-      let fileName = '';
-      const applicationId = currentSession?.id;
-      if (applicationId) {
-        try {
-          const served = await serverExport({
-            applicationId,
-            format: format === 'pdf' ? 'cover_letter_pdf' : 'cover_letter_docx',
-            ...letterForServer(letterToDownload),
-          });
-          blob = served.blob;
-          fileName = served.fileName;
-        } catch (error) {
-          if (!shouldFallBack(error)) throw error;
-          trackExportFallback(format === 'pdf' ? 'cover_letter_pdf' : 'cover_letter_docx', error);
-        }
-      }
-      if (!blob) {
-        usedFallback = true;
-        const applicantName =
-          letterToDownload.applicantAddress.name ||
-          letterToDownload.signatureName ||
-          structuredCV?.personal.fullName ||
-          'Applicant';
-        const companyName = letterToDownload.companyAddress.companyName || currentSession?.company || 'Company';
-        blob = format === 'pdf'
-          ? buildCoverLetterPdfBlob(letterToDownload)
-          : await buildCoverLetterDocxBlob(letterToDownload);
-        fileName = kitFilename(applicantName, companyName, 'Cover_Letter', format);
-      }
+      const { blob, fileName } = await serverExport({ applicationId, format: serverFormat, ...letterForServer(letterToDownload) });
       await downloadBlob(blob, fileName);
-      if (usedFallback && format === 'pdf') toast.warning(FALLBACK_NOTICE, 7000);
-      else toast.success(`${format.toUpperCase()} downloaded.`);
+      toast.success(`${format.toUpperCase()} downloaded.`);
       if (showAddressReminder) {
         setTimeout(() => toast.warning('Add the company address before you send it.', 6000), 500);
       }
     } catch (error) {
-      console.error(`${format.toUpperCase()} generation error:`, error);
-      toast.error(`The ${format.toUpperCase()} didn't build. Copy the text instead.`);
+      console.error(`${format.toUpperCase()} export failed:`, error);
+      trackExportFailure(serverFormat, error);
+      // Try again runs the handler as it is now, so it sends the letter as it stands then.
+      notifyExportFailure(toast, error, format.toUpperCase(), () => { void latestExportLetter.current(format); });
     } finally {
+      exportBusyRef.current = false;
       setDownloadFormat(null);
     }
   };
+  const latestExportLetter = useLatest(exportLetter);
 
   // Show loading indicator during agent workflow
   if (!coverLetter && isAgentWorking) {
@@ -530,7 +526,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
           <button
             type="button"
             onClick={openLayoutPreview}
-            disabled={layoutPreviewLoading || !currentSession?.id}
+            disabled={layoutPreviewLoading || !isSavedApplicationId(currentSession?.id)}
             className={`${TOOL_CLASS} disabled:opacity-60 disabled:cursor-wait`}
           >
             {layoutPreviewLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
@@ -541,7 +537,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
               ref={downloadButtonRef}
               type="button"
               onClick={() => setShowDownloadMenu((v) => !v)}
-              disabled={downloadFormat !== null}
+              disabled={downloadFormat !== null || (Boolean(user) && !isSavedApplicationId(currentSession?.id))}
               aria-haspopup="menu"
               aria-expanded={showDownloadMenu}
               className={`${TOOL_CLASS} disabled:cursor-wait`}

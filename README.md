@@ -75,7 +75,7 @@ All templates use Arial body + Georgia headers (ATS-compliant system fonts).
 - **Payments:** Stripe (subscriptions + add-on credit packs)
 - **Analytics:** PostHog (analytics + error tracking + LLM cost tracking)
 - **PDF Parsing:** pdfjs-dist v5
-- **PDF Export:** jsPDF + html2canvas, DOCX via `docx`
+- **PDF Export:** server-side through Cloudflare Browser Run, DOCX via `docx` (`src/lib/services/export/`)
 
 ## Project Structure
 

@@ -57,6 +57,43 @@ async function loadPhotoDataUri(userId: string, avatarUrl: string | null | undef
   return null;
 }
 
+function profileLinksOf(profile: Awaited<ReturnType<typeof getProfile>>): ProfileLinks | null {
+  return profile
+    ? {
+        linkedin_url: profile.linkedin_url,
+        github_url: profile.github_url,
+        portfolio_url: profile.portfolio_url,
+        website_url: profile.website_url,
+        date_of_birth: profile.date_of_birth,
+        nationality: profile.nationality,
+      }
+    : null;
+}
+
+/**
+ * The signed-in user's own CV with no application behind it: their profile, primary CV and photo, read
+ * with their user id. Only a CV can be exported from it. Null when they have no primary CV.
+ */
+export async function loadBaseCvKit(userId: string): Promise<ExportKit | null> {
+  const [profile, primary] = await Promise.all([getProfile(userId), getDocumentByType(userId, 'primary_cv')]);
+  if (!primary) return null;
+  const structuredCV = (primary.structured_data ?? null) as StructuredCV | null;
+  const original = buildCvData({ structuredCV, showOptimized: false, profile: profileLinksOf(profile) });
+  return {
+    applicationId: '',
+    jobTitle: '',
+    company: '',
+    templateId: null,
+    applicantName: original?.personal.fullName || profile?.full_name || '',
+    cv: original,
+    originalCv: original,
+    coverLetter: null,
+    emails: [],
+    answers: [],
+    photoDataUri: await loadPhotoDataUri(userId, profile?.avatar_url),
+  };
+}
+
 export const loadKitFromSession: KitLoader = async (userId, applicationId) => {
   let stored;
   try {
@@ -68,16 +105,7 @@ export const loadKitFromSession: KitLoader = async (userId, applicationId) => {
 
   const [profile, primary] = await Promise.all([getProfile(userId), getDocumentByType(userId, 'primary_cv')]);
   const structuredCV = (primary?.structured_data ?? null) as StructuredCV | null;
-  const profileLinks: ProfileLinks | null = profile
-    ? {
-        linkedin_url: profile.linkedin_url,
-        github_url: profile.github_url,
-        portfolio_url: profile.portfolio_url,
-        website_url: profile.website_url,
-        date_of_birth: profile.date_of_birth,
-        nationality: profile.nationality,
-      }
-    : null;
+  const profileLinks = profileLinksOf(profile);
 
   const tailored = buildCvData({
     structuredCV,

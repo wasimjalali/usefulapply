@@ -16,8 +16,6 @@ import { buildCvData } from '@/lib/cv-templates/build-cv-data';
 import { writeDefaultTemplate } from '@/lib/cv-templates/default-template';
 import type { CVData } from '@/lib/cv-templates/types';
 import { useUIStore } from '@/store/useUIStore';
-import { generateCvPdfBlob } from '@/lib/utils/cv-pdf';
-import { kitFilename } from '@/lib/utils/kit-export';
 import {
   FileText,
   FileType2,
@@ -42,7 +40,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from './ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import { PdfPreviewModal } from './ui/PdfPreviewModal';
-import { FALLBACK_NOTICE, serverExport, shouldFallBack, trackExportFallback } from '@/lib/utils/server-export';
+import { isSavedApplicationId, notifyExportFailure, serverExport, ServerExportError, trackExportFailure } from '@/lib/utils/server-export';
+import { useRouter } from 'next/navigation';
+import { promptAccountToDownload } from '@/components/kit/account-wall';
+import { useLatest } from '@/hooks/useLatest';
 import type { Profile } from '@/db/types';
 import { acknowledgedStart, acknowledgementFor, afterClosedEditorSave, commitEditorSave, discardedSinceSave, editorSaveSucceeded, getEditorStart, persistSessionEdits, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
 
@@ -69,7 +70,8 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   } = useAppStore();
   const editedOriginalCVData = useCVStore(state => state.editedOriginalCVData);
 
-  const { user, profile, updateProfile } = useAuth();
+  const { user, profile, updateProfile, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
   const generatedCV = currentSession?.generatedCV;
   const optimizedCVData = currentSession?.optimizedCVData;  // Solution B: Structured JSON from AI
@@ -92,6 +94,9 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDownloadingWord, setIsDownloadingWord] = useState(false);
+  // In-flight guards that a toast's Try again can't bypass (the disabled button only stops clicks).
+  const pdfBusyRef = useRef(false);
+  const wordBusyRef = useRef(false);
   // The rendered PDF the server would export, shown with its real page breaks before anyone downloads.
   const [pdfPreview, setPdfPreview] = useState<{ url: string } | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
@@ -108,7 +113,6 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
     if (canvasCollapsed) setShowFullPreview(false);
   }, [canvasCollapsed]);
   const [editedCVData, setEditedCVData] = useState<CVData | null>(null);
-  const cvTemplateRef = useRef<HTMLDivElement>(null);
   const editableCVRef = useRef<EditableCVCanvasRef>(null);
   const editSessionIdRef = useRef<string | null>(null);
   // The revision the editor opened on; the draft lives outside the store (see commitEditorSave).
@@ -248,62 +252,70 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
     }
   };
 
-  const handleDownloadPDF = async () => {
-    if (!cvData) return;
+  // A saved application exports through its row; otherwise the signed-in user's own base CV
+  // (POST /api/exports with no applicationId). The canvas goes along either way.
+  const exportApplicationId = (): string | undefined => {
+    const id = currentSession?.id;
+    return isSavedApplicationId(id) ? id : undefined;
+  };
 
-    setIsDownloading(true);
-    // The step name lands in the error toast so a failure can be placed.
-    let step = 'init';
-    try {
-      // Full-quality path: the server renders the same template to a text PDF.
-      // What the canvas shows goes along, so a download right after an edit
-      // matches the screen.
-      const applicationId = currentSession?.id;
-      if (applicationId) {
-        try {
-          const { blob, fileName } = await serverExport({
-            applicationId,
-            format: 'cv_pdf',
-            templateId: selectedTemplateId,
-            variant: showOptimized ? 'tailored' : 'original',
-            cv: cvData,
-          });
-          await downloadBlob(blob, fileName);
-          toast.success('PDF downloaded.');
-          return;
-        } catch (err) {
-          if (!shouldFallBack(err)) throw err;
-          trackExportFallback('cv_pdf', err);
-        }
+  // How many base exports in a row found no saved CV. Reset by any other outcome.
+  const noSavedCvRef = useRef(0);
+  const notifyCvExportFailure = (err: unknown, applicationId: string | undefined, label: string, retry: () => void) => {
+    if (!applicationId && err instanceof ServerExportError && err.code === 'NO_CV') {
+      noSavedCvRef.current += 1;
+      // Right after sign-up the CV carried over from this browser can still be saving. A second miss means it
+      // never reached the account, and another wait won't change that.
+      if (noSavedCvRef.current === 1) {
+        toast.error('Your CV is still saving. Try again in a moment.', 10000, [{ label: 'Try again', onClick: retry }]);
+      } else {
+        toast.error("We couldn't find your saved CV. Upload it again in Settings, then download.", 8000);
       }
+      return;
+    }
+    noSavedCvRef.current = 0;
+    notifyExportFailure(toast, err, label, retry);
+  };
 
-      // Fallback: the in-browser export, with a notice so the quality drop is not silent.
-      if (!cvTemplateRef.current) throw new Error('canvas not ready');
-      const filename = kitFilename(
-        cvData.personal.fullName || 'Applicant',
-        showOptimized ? (currentSession?.company || '') : '',
-        'CV',
-        'pdf',
-      );
-      const blob = await generateCvPdfBlob(cvTemplateRef.current, {
+  const handleDownloadPDF = async () => {
+    if (!cvData || pdfBusyRef.current) return;
+    if (!user) {
+      promptAccountToDownload(toast, router.push, 'CV', authLoading);
+      return;
+    }
+    const applicationId = exportApplicationId();
+    pdfBusyRef.current = true;
+    setIsDownloading(true);
+    try {
+      // The server renders the same template to a text PDF. What the canvas shows
+      // goes along, so a download right after an edit matches the screen.
+      const { blob, fileName } = await serverExport({
+        applicationId,
+        format: 'cv_pdf',
         templateId: selectedTemplateId,
-        photoUrl: cvData.personal.photoUrl,
-        onStep: (name) => { step = name; },
+        variant: showOptimized ? 'tailored' : 'original',
+        cv: cvData,
       });
-      await downloadBlob(blob, filename);
-      toast.warning(FALLBACK_NOTICE, 7000);
+      await downloadBlob(blob, fileName);
+      noSavedCvRef.current = 0;
+      toast.success('PDF downloaded.');
     } catch (err) {
-      console.error('PDF generation failed:', err);
-      const errMsg = err instanceof Error ? err.message.slice(0, 80) : 'Unknown error';
-      toast.error(`PDF failed at [${step}]: ${errMsg}`);
+      console.error('PDF export failed:', err);
+      trackExportFailure('cv_pdf', err);
+      notifyCvExportFailure(err, applicationId, 'PDF', () => { void latestDownloadPDF.current(); });
     } finally {
+      pdfBusyRef.current = false;
       setIsDownloading(false);
     }
   };
 
   const handlePreviewPdf = async () => {
-    const applicationId = currentSession?.id;
-    if (!cvData || !applicationId) return;
+    if (!cvData) return;
+    if (!user) {
+      promptAccountToDownload(toast, router.push, 'CV', authLoading);
+      return;
+    }
+    const applicationId = exportApplicationId();
     previewOpenerRef.current = document.activeElement as HTMLElement | null;
     setIsPreviewing(true);
     try {
@@ -329,8 +341,13 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   };
 
   const handleDownloadWord = async () => {
-    const applicationId = currentSession?.id;
-    if (!cvData || !applicationId) return;
+    if (!cvData || wordBusyRef.current) return;
+    if (!user) {
+      promptAccountToDownload(toast, router.push, 'CV', authLoading);
+      return;
+    }
+    const applicationId = exportApplicationId();
+    wordBusyRef.current = true;
     setIsDownloadingWord(true);
     try {
       const { blob, fileName } = await serverExport({
@@ -341,15 +358,20 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
         cv: cvData,
       });
       await downloadBlob(blob, fileName);
+      noSavedCvRef.current = 0;
       toast.success('Word file downloaded.');
     } catch (err) {
       console.error('Word export failed:', err);
-      trackExportFallback('cv_docx', err);
-      toast.error("The Word file didn't build. Try again in a moment, or download the PDF.");
+      trackExportFailure('cv_docx', err);
+      notifyCvExportFailure(err, applicationId, 'Word file', () => { void latestDownloadWord.current(); });
     } finally {
+      wordBusyRef.current = false;
       setIsDownloadingWord(false);
     }
   };
+  // A toast's Try again runs the handler as it is now (the current application, template and edits).
+  const latestDownloadPDF = useLatest(handleDownloadPDF);
+  const latestDownloadWord = useLatest(handleDownloadWord);
 
   if (!currentCV) {
     return (
@@ -519,7 +541,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           <button
             type="button"
             onClick={handlePreviewPdf}
-            disabled={isPreviewing || !cvData || !currentSession?.id}
+            disabled={isPreviewing || !cvData}
             title="Preview the PDF with its page breaks"
             className={`${TOOL_CLASS} disabled:opacity-60 disabled:cursor-wait`}
           >
@@ -545,7 +567,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           <button
             type="button"
             onClick={handleDownloadWord}
-            disabled={isDownloadingWord || !cvData || !currentSession?.id}
+            disabled={isDownloadingWord || !cvData}
             title="Download as Word"
             className={`${TOOL_CLASS} disabled:opacity-60 disabled:cursor-wait`}
           >
@@ -753,7 +775,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
                         willChange: 'transform',
                       } : undefined}
                     >
-                      <div ref={cvTemplateRef}>
+                      <div>
                         <CVTemplateRenderer data={cvData} templateId={selectedTemplateId} />
                       </div>
                     </div>

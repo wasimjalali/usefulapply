@@ -29,6 +29,7 @@ import { sessionHasKit } from '@/components/shell/application-status';
 import {
   clearFreeGenerationFlag,
   hasUsedFreeGeneration,
+  clearAnonymousCarryOver,
   markAnonymousCarryOver,
   markFreeGenerationUsed,
 } from '@/lib/anonymous-generation';
@@ -645,6 +646,8 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
       if (authMode === 'signup') {
         const { error } = await signUp(authEmail, authPassword, structuredCV?.personal?.fullName);
         if (error) {
+          // A failed attempt leaves nothing behind for whoever signs in next on this browser.
+          clearAnonymousCarryOver();
           setAuthError(error.message);
           setAuthLoading(false);
           return;
@@ -657,6 +660,8 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
       } else {
         const { error } = await signIn(authEmail, authPassword);
         if (error) {
+          // The confirmation link signs this same account in, so the marker waits for it.
+          if (error.message !== 'EMAIL_NOT_CONFIRMED') clearAnonymousCarryOver();
           setAuthError(error.message === 'EMAIL_NOT_CONFIRMED'
             ? 'Please confirm your email, then log in.'
             : error.message);
@@ -667,6 +672,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
       }
       // The resume effect takes over once the auth context has the user.
     } catch {
+      clearAnonymousCarryOver();
       setAuthError('Something went wrong. Please try again.');
     } finally {
       setAuthLoading(false);
@@ -677,7 +683,10 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
     setAuthError(null);
     markAnonymousCarryOver();
     const { error } = await signInWithGoogle();
-    if (error) setAuthError(error.message);
+    if (error) {
+      clearAnonymousCarryOver();
+      setAuthError(error.message);
+    }
   };
 
   const score = typeof fitAnalysis?.score === 'number'
