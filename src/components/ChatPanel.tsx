@@ -2455,13 +2455,14 @@ export function ChatPanel({
                   id: 'create-account',
                   label: 'Create a free account',
                   variant: 'primary',
-                  onSelect: () => router.push('/auth/signup'),
+                  // keep=1: the CV and fit check in this browser come along into the new account.
+                  onSelect: () => router.push('/auth/signup?keep=1'),
                 },
                 {
                   id: 'log-in',
                   label: 'Log in',
                   variant: 'secondary',
-                  onSelect: () => router.push('/auth/login'),
+                  onSelect: () => router.push('/auth/login?keep=1'),
                 },
               ]}
             />

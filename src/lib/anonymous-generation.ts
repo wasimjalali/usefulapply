@@ -45,6 +45,25 @@ export function markAnonymousCarryOver(): void {
   localStorage.setItem(CARRY_KEY, String(Date.now()));
 }
 
+/**
+ * An auth form opened from anywhere but an account wall clears the marker on submit, so a marker
+ * someone left behind (they clicked the wall, then walked away) can never hand their CV and fit
+ * check to the next person who signs in on this browser.
+ */
+export function clearAnonymousCarryOver(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(CARRY_KEY);
+}
+
+/** `?keep=1` on /auth/signup and /auth/login: the page was opened from an account wall. */
+export const KEEP_ANONYMOUS_PARAM = 'keep';
+
+/** Set or clear the marker for an auth attempt, depending on whether it started at an account wall. */
+export function prepareAnonymousCarryOver(fromWall: boolean): void {
+  if (fromWall) markAnonymousCarryOver();
+  else clearAnonymousCarryOver();
+}
+
 /** Reads and clears the marker. True only if it was set within the TTL. */
 export function consumeAnonymousCarryOver(): boolean {
   if (typeof window === 'undefined') return false;

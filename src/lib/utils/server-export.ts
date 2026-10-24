@@ -19,7 +19,8 @@ export type ServerExportFormat =
   | 'answers_txt';
 
 export interface ServerExportArgs {
-  applicationId: string;
+  /** Left out for the signed-in user's own base CV (cv_pdf and cv_docx only). */
+  applicationId?: string;
   format: ServerExportFormat;
   templateId?: string;
   variant?: 'tailored' | 'original';

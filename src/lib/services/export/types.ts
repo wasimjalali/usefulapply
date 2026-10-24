@@ -70,7 +70,8 @@ export interface ExportOptions {
 
 export interface ExportRequest extends ExportOptions {
   userId: string;
-  applicationId: string;
+  /** Null exports the user's own base CV (their primary CV, or the canvas override). Only `cv_pdf` and `cv_docx`. */
+  applicationId: string | null;
   format: ExportFormat;
 }
 

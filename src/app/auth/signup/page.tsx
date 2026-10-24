@@ -8,6 +8,7 @@ import { AuthShell } from '@/components/auth/AuthShell';
 import { CheckEmailCard } from '@/components/auth/CheckEmailCard';
 import { AuthField, AUTH_CARD, AUTH_SUBMIT } from '@/components/auth/parts';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
+import { KEEP_ANONYMOUS_PARAM, prepareAnonymousCarryOver } from '@/lib/anonymous-generation';
 
 const MIN_PASSWORD = 8;
 
@@ -16,7 +17,12 @@ function SignUpForm() {
   const planParam = searchParams.get('plan');
   const plan = planParam === 'plus' || planParam === 'max' ? planParam : undefined;
   const next = plan ? `/pricing?checkout=${plan}` : undefined;
-  const loginHref = next ? `/auth/login?next=${encodeURIComponent(next)}` : '/auth/login';
+  // Opened from an account wall: the CV and fit check in this browser come along into the account.
+  const keepAnonymous = searchParams.get(KEEP_ANONYMOUS_PARAM) === '1';
+  const loginParams = new URLSearchParams();
+  if (next) loginParams.set('next', next);
+  if (keepAnonymous) loginParams.set(KEEP_ANONYMOUS_PARAM, '1');
+  const loginHref = loginParams.size > 0 ? `/auth/login?${loginParams.toString()}` : '/auth/login';
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -59,6 +65,7 @@ function SignUpForm() {
     }
 
     setIsLoading(true);
+    prepareAnonymousCarryOver(keepAnonymous);
     try {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
@@ -109,7 +116,7 @@ function SignUpForm() {
         {formError && <p className="mt-3 text-sm text-red-600">{formError}</p>}
 
         <div className="mt-6">
-          <GoogleSignInButton label="Continue with Google" onError={setFormError} next={next} />
+          <GoogleSignInButton label="Continue with Google" onError={setFormError} next={next} keepAnonymous={keepAnonymous} />
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

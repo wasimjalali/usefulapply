@@ -9,6 +9,9 @@ import { downloadBlob } from '@/lib/utils/download-pdf';
 import { formatAnswersAsText } from '@/lib/utils/kit-export';
 import { isSavedApplicationId, notifyExportFailure, serverExport, trackExportFailure } from '@/lib/utils/server-export';
 import { useLatest } from '@/hooks/useLatest';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { promptAccountToDownload } from '@/components/kit/account-wall';
 
 interface AnswersPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -19,6 +22,8 @@ const TOOL_CLASS = 'inline-flex h-9 items-center gap-2 rounded-full border borde
 export function AnswersPanel({ toolbarPortal }: AnswersPanelProps) {
   const currentSession = useSessionStore((s) => s.currentSession);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const router = useRouter();
   const answers = currentSession?.screeningAnswers ?? [];
   const company = currentSession?.company || '';
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -45,7 +50,12 @@ export function AnswersPanel({ toolbarPortal }: AnswersPanelProps) {
   const downloadBusyRef = useRef(false);
   const handleDownload = async () => {
     const applicationId = currentSession?.id;
-    if (answers.length === 0 || !isSavedApplicationId(applicationId) || downloadBusyRef.current) return;
+    if (answers.length === 0) return;
+    if (!user) {
+      promptAccountToDownload(toast, router.push, 'kit');
+      return;
+    }
+    if (!isSavedApplicationId(applicationId) || downloadBusyRef.current) return;
     downloadBusyRef.current = true;
     setDownloading(true);
     try {
@@ -72,7 +82,7 @@ export function AnswersPanel({ toolbarPortal }: AnswersPanelProps) {
         {copiedAll ? <Check className="h-4 w-4 text-gold-600" /> : <Copy className="h-4 w-4" />}
         {copiedAll ? 'Copied' : 'Copy all'}
       </button>
-      <button type="button" onClick={handleDownload} className={TOOL_CLASS} disabled={downloading || answers.length === 0 || !isSavedApplicationId(currentSession?.id)}>
+      <button type="button" onClick={handleDownload} className={TOOL_CLASS} disabled={downloading || answers.length === 0 || (Boolean(user) && !isSavedApplicationId(currentSession?.id))}>
         {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
         Download
       </button>

@@ -40,7 +40,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from './ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
 import { PdfPreviewModal } from './ui/PdfPreviewModal';
-import { isSavedApplicationId, notifyExportFailure, serverExport, trackExportFailure } from '@/lib/utils/server-export';
+import { isSavedApplicationId, notifyExportFailure, serverExport, ServerExportError, trackExportFailure } from '@/lib/utils/server-export';
+import { useRouter } from 'next/navigation';
+import { promptAccountToDownload } from '@/components/kit/account-wall';
 import { useLatest } from '@/hooks/useLatest';
 import type { Profile } from '@/db/types';
 import { acknowledgedStart, acknowledgementFor, afterClosedEditorSave, commitEditorSave, discardedSinceSave, editorSaveSucceeded, getEditorStart, persistSessionEdits, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
@@ -69,6 +71,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const editedOriginalCVData = useCVStore(state => state.editedOriginalCVData);
 
   const { user, profile, updateProfile } = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
   const generatedCV = currentSession?.generatedCV;
   const optimizedCVData = currentSession?.optimizedCVData;  // Solution B: Structured JSON from AI
@@ -249,9 +252,29 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
     }
   };
 
+  // A saved application exports through its row; otherwise the signed-in user's own base CV
+  // (POST /api/exports with no applicationId). The canvas goes along either way.
+  const exportApplicationId = (): string | undefined => {
+    const id = currentSession?.id;
+    return isSavedApplicationId(id) ? id : undefined;
+  };
+
+  const notifyCvExportFailure = (err: unknown, applicationId: string | undefined, label: string, retry: () => void) => {
+    // Right after sign-up the CV carried over from this browser can still be saving.
+    if (!applicationId && err instanceof ServerExportError && err.code === 'NO_CV') {
+      toast.error('Your CV is still saving. Try again in a moment.', 10000, [{ label: 'Try again', onClick: retry }]);
+      return;
+    }
+    notifyExportFailure(toast, err, label, retry);
+  };
+
   const handleDownloadPDF = async () => {
-    const applicationId = currentSession?.id;
-    if (!cvData || !isSavedApplicationId(applicationId) || pdfBusyRef.current) return;
+    if (!cvData || pdfBusyRef.current) return;
+    if (!user) {
+      promptAccountToDownload(toast, router.push, 'CV');
+      return;
+    }
+    const applicationId = exportApplicationId();
     pdfBusyRef.current = true;
     setIsDownloading(true);
     try {
@@ -269,7 +292,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
     } catch (err) {
       console.error('PDF export failed:', err);
       trackExportFailure('cv_pdf', err);
-      notifyExportFailure(toast, err, 'PDF', () => { void latestDownloadPDF.current(); });
+      notifyCvExportFailure(err, applicationId, 'PDF', () => { void latestDownloadPDF.current(); });
     } finally {
       pdfBusyRef.current = false;
       setIsDownloading(false);
@@ -277,8 +300,12 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   };
 
   const handlePreviewPdf = async () => {
-    const applicationId = currentSession?.id;
-    if (!cvData || !isSavedApplicationId(applicationId)) return;
+    if (!cvData) return;
+    if (!user) {
+      promptAccountToDownload(toast, router.push, 'CV');
+      return;
+    }
+    const applicationId = exportApplicationId();
     previewOpenerRef.current = document.activeElement as HTMLElement | null;
     setIsPreviewing(true);
     try {
@@ -304,8 +331,12 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   };
 
   const handleDownloadWord = async () => {
-    const applicationId = currentSession?.id;
-    if (!cvData || !isSavedApplicationId(applicationId) || wordBusyRef.current) return;
+    if (!cvData || wordBusyRef.current) return;
+    if (!user) {
+      promptAccountToDownload(toast, router.push, 'CV');
+      return;
+    }
+    const applicationId = exportApplicationId();
     wordBusyRef.current = true;
     setIsDownloadingWord(true);
     try {
@@ -321,7 +352,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
     } catch (err) {
       console.error('Word export failed:', err);
       trackExportFailure('cv_docx', err);
-      notifyExportFailure(toast, err, 'Word file', () => { void latestDownloadWord.current(); });
+      notifyCvExportFailure(err, applicationId, 'Word file', () => { void latestDownloadWord.current(); });
     } finally {
       wordBusyRef.current = false;
       setIsDownloadingWord(false);
@@ -499,7 +530,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           <button
             type="button"
             onClick={handlePreviewPdf}
-            disabled={isPreviewing || !cvData || !isSavedApplicationId(currentSession?.id)}
+            disabled={isPreviewing || !cvData}
             title="Preview the PDF with its page breaks"
             className={`${TOOL_CLASS} disabled:opacity-60 disabled:cursor-wait`}
           >
@@ -509,7 +540,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           <button
             type="button"
             onClick={handleDownloadPDF}
-            disabled={isDownloading || !cvData || !isSavedApplicationId(currentSession?.id)}
+            disabled={isDownloading || !cvData}
             title="Download as PDF"
             className={`${TOOL_CLASS} disabled:opacity-60 disabled:cursor-wait`}
           >
@@ -525,7 +556,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
           <button
             type="button"
             onClick={handleDownloadWord}
-            disabled={isDownloadingWord || !cvData || !isSavedApplicationId(currentSession?.id)}
+            disabled={isDownloadingWord || !cvData}
             title="Download as Word"
             className={`${TOOL_CLASS} disabled:opacity-60 disabled:cursor-wait`}
           >

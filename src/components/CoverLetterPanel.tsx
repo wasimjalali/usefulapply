@@ -21,6 +21,9 @@ import {
 } from '@/lib/utils/cover-letter-export';
 import { isSavedApplicationId, notifyExportFailure, serverExport, trackExportFailure } from '@/lib/utils/server-export';
 import { useLatest } from '@/hooks/useLatest';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { promptAccountToDownload } from '@/components/kit/account-wall';
 import { isStructuredCoverLetter } from '@/lib/cover-letter/contract';
 import { useSessionStore } from '@/store/useSessionStore';
 import { acknowledgedStart, acknowledgementFor, commitEditorSave, discardedSinceSave, editorShouldClose, getEditorStart, rebaseEditorStart, subscribeConflictAcknowledged, type EditorStart } from '@/lib/session-sync';
@@ -125,6 +128,8 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     editStartRef.current = acknowledgedStart(ack, ['coverLetter'], editStartRef.current);
   }), []);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const router = useRouter();
 
   // Check if cover letter still contains any address placeholder (old or new format)
   const hasAddressPlaceholder = () => Boolean(coverLetter && letterHasAddressPlaceholder(coverLetter));
@@ -261,7 +266,13 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
   const exportLetter = async (format: 'pdf' | 'docx') => {
     const letterToDownload = editedCoverLetter || coverLetter;
     const applicationId = currentSession?.id;
-    if (!letterToDownload || !isSavedApplicationId(applicationId)) return;
+    if (!letterToDownload) return;
+    if (!user) {
+      setShowDownloadMenu(false);
+      promptAccountToDownload(toast, router.push, 'kit');
+      return;
+    }
+    if (!isSavedApplicationId(applicationId)) return;
     // Only a toast's Try again gets here while a download runs (the button is disabled): say so instead of doing nothing.
     if (exportBusyRef.current) {
       toast.info('Another download is still running. Try again when it finishes.');
@@ -522,7 +533,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
               ref={downloadButtonRef}
               type="button"
               onClick={() => setShowDownloadMenu((v) => !v)}
-              disabled={downloadFormat !== null || !isSavedApplicationId(currentSession?.id)}
+              disabled={downloadFormat !== null || (Boolean(user) && !isSavedApplicationId(currentSession?.id))}
               aria-haspopup="menu"
               aria-expanded={showDownloadMenu}
               className={`${TOOL_CLASS} disabled:cursor-wait`}

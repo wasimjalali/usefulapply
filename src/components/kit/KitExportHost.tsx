@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { promptAccountToDownload } from '@/components/kit/account-wall';
 import { useToast } from '@/components/ui/Toast';
 import { useCVStore } from '@/store/useCVStore';
 import { useSessionStore } from '@/store/useSessionStore';
@@ -23,7 +25,8 @@ import { exportFailure, isSavedApplicationId, serverExport, ServerExportError, t
  * tab, a collapsed canvas included. Nothing renders here.
  */
 export function KitExportHost() {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
   const structuredCV = useCVStore((s) => s.structuredCV);
   const profilePhoto = useCVStore((s) => s.profilePhoto);
@@ -63,8 +66,13 @@ export function KitExportHost() {
       toast.error('Nothing to download yet.');
       return;
     }
+    if (!user) {
+      promptAccountToDownload(toast, router.push, 'kit');
+      return;
+    }
     if (!isSavedApplicationId(session.id)) {
-      toast.error("This application isn't saved yet, so it can't be downloaded.");
+      // A signed-in kit built locally gets its stored row a moment after it lands (useSupabaseSync).
+      toast.error('This application is still saving. Try again in a moment.');
       return;
     }
 

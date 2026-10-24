@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getSafeNextPath } from '@/lib/auth/safe-next';
+import { KEEP_ANONYMOUS_PARAM, prepareAnonymousCarryOver } from '@/lib/anonymous-generation';
 import { OAUTH_RESUME_KEY } from '@/lib/mcp/oauth-resume';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { CheckEmailCard } from '@/components/auth/CheckEmailCard';
@@ -35,6 +36,9 @@ function LoginForm() {
 
   // A user with no kit lands on the guided line, which is what /dashboard shows.
   const next = oauthQuery ? '/oauth/resume' : getSafeNextPath(searchParams.get('next'), '/dashboard');
+  // Opened from an account wall: the CV and fit check in this browser come along into the account.
+  const keepAnonymous = searchParams.get(KEEP_ANONYMOUS_PARAM) === '1';
+  const signupHref = keepAnonymous ? `/auth/signup?${KEEP_ANONYMOUS_PARAM}=1` : '/auth/signup';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -71,6 +75,7 @@ function LoginForm() {
     setPasswordError(null);
     setFormError(null);
     setIsLoading(true);
+    prepareAnonymousCarryOver(keepAnonymous);
 
     const { error } = await signIn(email, password);
 
@@ -122,7 +127,7 @@ function LoginForm() {
         {formError && <p className="mt-3 text-sm text-red-600">{formError}</p>}
 
         <div className="mt-6">
-          <GoogleSignInButton label="Continue with Google" onError={setFormError} next={next} />
+          <GoogleSignInButton label="Continue with Google" onError={setFormError} next={next} keepAnonymous={keepAnonymous} />
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -177,7 +182,7 @@ function LoginForm() {
       <p className="mt-5 text-center text-sm text-warm-gray">
         Don&apos;t have an account?{' '}
         <Link
-          href="/auth/signup"
+          href={signupHref}
           className="font-semibold text-navy-800 transition-colors duration-200 hover:text-navy-600 cursor-pointer"
         >
           Sign up
