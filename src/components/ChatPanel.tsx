@@ -2107,7 +2107,7 @@ export function ChatPanel({
                 <BrandIcon size="xs" theme="light" />
               </div>
               <div className="flex-1">
-                <Card padding="sm" className="bg-surface-raised border-border shadow-resting">
+                <Card padding="sm" className="bg-surface-raised">
                   <MarkdownText
                     content={
                       currentCV

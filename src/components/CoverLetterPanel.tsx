@@ -603,7 +603,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
                   Full Preview
                 </button>
               )}
-              <Card className="border-border bg-document p-8 shadow-elevated">
+              <Card className="bg-document p-8">
               {isEditMode ? (
                 /* Edit Mode */
                 <div className="space-y-2">
@@ -648,7 +648,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
             </div>
 
             <div className="flex-1 overflow-auto bg-canvas p-4 sm:p-6">
-              <Card className="mx-auto w-full max-w-3xl p-8 sm:p-10 shadow-elevated">
+              <Card className="mx-auto w-full max-w-3xl p-8 sm:p-10">
                 {renderCoverLetterContent(activeCoverLetter)}
               </Card>
             </div>
