@@ -8,6 +8,8 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { PostHogProvider } from "@/providers/PostHogProvider";
 import PostHogPageView from "@/providers/PostHogPageView";
 import { SEO_METADATA_BASE, SEO_SITE_URL, canonicalUrl } from '@/lib/seo/site-url';
+import { ThemeController } from "@/components/ThemeController";
+import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 
 // Inter is the single UI family (next/font self-hosts it at build time).
 // The CV templates and exported documents keep Arial and Georgia; the brand
@@ -128,6 +130,8 @@ export default function RootLayout({
   return (
     <html lang="en" translate="no" suppressHydrationWarning>
       <head>
+        {/* Sets data-theme from the appearance setting before the first paint, so dark never flashes light. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
         {/* Disable browser translation. Translation extensions (Google Translate,
             Edge, Safari, Firefox) replace text nodes with <font> wrappers, which
             breaks React's reconciler and surfaces as
@@ -202,6 +206,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <ScrollbarReveal />
+        <ThemeController />
         <ChunkReloadGuard />
         <PostHogProvider>
           <AuthProvider>

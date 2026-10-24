@@ -84,7 +84,11 @@
    today's palette value, and exposed to Tailwind by the @theme inline block below. A theme
    (dark mode) overrides these variables only. The palette above stays as the values.
    scripts/check-design-tokens.mjs (in npm run lint) flags palette names and literals in UI code. */
-:root {
+/* `.bg-document` re-declares the light roles, so a white page keeps dark ink inside a dark app. */
+:root,
+.bg-document {
+  color-scheme: light;
+
   /* Ground: the layers things sit on. Document is the printable page, white in every theme. */
   --canvas: var(--color-cream-100);
   --surface: var(--color-cream-50);
@@ -138,6 +142,8 @@
   --border-danger: var(--color-red-200);
 
   --focus-ring: var(--color-navy-600);
+  --selection: var(--color-navy-100);
+  --selection-ink: var(--color-navy-600);
 
   /* Dark navy panels (pricing card, landing band, toasts) and their hairlines. */
   --surface-inverse: var(--color-navy-800);
@@ -231,6 +237,254 @@
   --chart-line: var(--color-navy-300);
 }
 
+/* Dark: a deep navy desk, surfaces one tone step apart, cream ink, gold kept for the accent. Set by the
+   appearance setting (data-theme="dark"), or by the system when the setting is System (no attribute). */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #0B1622;
+  --surface: #111E30;
+  --document: #FFFFFF;
+  --sunken: #08111C;
+  --surface-raised: #18283E;
+  --ink: #F4EFE6;
+  --ink-body: #DCD5C8;
+  --ink-muted: #A1B0C4;
+  --ink-faint: color-mix(in oklab, #A1B0C4 75%, transparent);
+  --ink-inverse: #FFFFFF;
+  --ink-inverse-muted: #C5D1E3;
+  --ink-accent: #E3C47E;
+  --brand: #93ADD0;
+  --brand-strong: #B1C6E2;
+  --brand-soft: #1A2C45;
+  --brand-ink: #0B1622;
+  --accent: #D4A853;
+  --accent-strong: #E0B962;
+  --accent-soft: #2A2315;
+  --accent-soft-strong: #352C1A;
+  --accent-soft-ink: #EDD49B;
+  --accent-ink: #FFFFFF;
+  --border: #243650;
+  --border-strong: #30455F;
+  --border-accent: #7A6430;
+  --border-accent-soft: #514322;
+  --border-brand-soft: #2F4A6D;
+  --border-focus: #6F8FBD;
+  --success: #8CC5A6;
+  --success-strong: #A8D6BC;
+  --success-soft: #13291F;
+  --warning: #E6C24A;
+  --warning-soft: #2B2410;
+  --danger: #F28C8C;
+  --danger-strong: #F7A8A8;
+  --danger-muted: #E57A7A;
+  --danger-soft: #2E1518;
+  --border-danger: #6E2D31;
+  --focus-ring: #93ADD0;
+  --surface-inverse: #172A44;
+  --surface-inverse-strong: #10203A;
+  --surface-inverse-raised: #1F3554;
+  --border-inverse: #2D4668;
+  --border-inverse-raised: #3A5680;
+  --selection: #2F4A6D;
+  --selection-ink: #FFFFFF;
+  /* Shadows don't read on navy: depth is a hairline, one step lighter per level. */
+  --depth-resting: 0 0 0 1px rgb(255 255 255 / 0.05);
+  --depth-elevated: 0 0 0 1px rgb(255 255 255 / 0.09);
+  --depth-floating: 0 0 0 1px rgb(255 255 255 / 0.12), 0 24px 48px -16px rgb(0 0 0 / 0.55);
+  --brand-soft-strong: #22385A;
+  --brand-deep: #C9D7EA;
+  --border-brand-faint: #22385A;
+  --focus-ring-soft: #6F8FBD;
+  --accent-muted: #8A7235;
+  --surface-neutral: #4A5568;
+  --surface-neutral-strong: #5A6578;
+  --surface-notice: #1A2638;
+  --surface-inverse-soft: #2A4468;
+  --ink-inverse-soft: #FEFDFB;
+  --ink-inverse-dim: #D7CFC2;
+  --border-inverse-soft: #5A6B80;
+  --danger-bright: #F07070;
+  --danger-soft-strong: #3A1A1D;
+  --status-done: #34D399;
+  --status-partial: #FBBF24;
+  --status-draft: #6B7A90;
+  --done-soft: #10291F;
+  --border-done-soft: #1D4A37;
+  --done-ink: #6EE7B7;
+  --scrim: #000000;
+  --info-soft: #221B38;
+  --border-info-soft: #3B2F63;
+  --info-ink: #C4B5FD;
+  --ink-error: #FDA4AF;
+  --brand-mid: #7F9BC4;
+  --brand-muted: #6F8FBD;
+  --border-brand: #4A6A96;
+  --border-inverse-mid: #4A6A96;
+  --ink-inverse-tint: #C5D1E3;
+  --ink-ghost: #5C6B80;
+  --border-stronger: #3C5270;
+  --accent-deep: #C99A3E;
+  --success-muted: #6FB08E;
+  --border-success: #3E7A5C;
+  --border-success-soft: #2A5240;
+  --danger-ink: #FFFFFF;
+  --ink-inverse-faint: #9FB3CF;
+  --ink-strong: #FFFFFF;
+  --ink-accent-on-inverse: #E0C687;
+  --border-subtle: #1A2A40;
+  --positive: #4ADE80;
+  --positive-soft: #0F2A1A;
+  --danger-on-inverse: #FCA5A5;
+  --link-inverse: #5EEAD4;
+  --link-inverse-hover: #99F6E4;
+  --tag-blue-soft: #172554;
+  --tag-blue-ink: #BFDBFE;
+  --tag-blue-line: #1E40AF;
+  --tag-purple-soft: #2E1065;
+  --tag-purple-ink: #E9D5FF;
+  --tag-purple-line: #6B21A8;
+  --tag-rose-soft: #4C0519;
+  --tag-rose-ink: #FECDD3;
+  --tag-rose-line: #9F1239;
+  --tag-orange-soft: #431407;
+  --tag-orange-ink: #FED7AA;
+  --tag-orange-line: #9A3412;
+  --tag-green-soft: #052E16;
+  --tag-green-ink: #BBF7D0;
+  --tag-green-line: #166534;
+  --ink-inverse-warm: #F5F0E8;
+  --focus-halo: #22385A;
+  --border-danger-strong: #8B3A3F;
+  --sunken-strong: #30455F;
+  --ink-ghost-soft: #3C5270;
+  --status-bad: #FB7185;
+  --chart-line: #7F9BC4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --canvas: #0B1622;
+    --surface: #111E30;
+    --document: #FFFFFF;
+    --sunken: #08111C;
+    --surface-raised: #18283E;
+    --ink: #F4EFE6;
+    --ink-body: #DCD5C8;
+    --ink-muted: #A1B0C4;
+    --ink-faint: color-mix(in oklab, #A1B0C4 75%, transparent);
+    --ink-inverse: #FFFFFF;
+    --ink-inverse-muted: #C5D1E3;
+    --ink-accent: #E3C47E;
+    --brand: #93ADD0;
+    --brand-strong: #B1C6E2;
+    --brand-soft: #1A2C45;
+    --brand-ink: #0B1622;
+    --accent: #D4A853;
+    --accent-strong: #E0B962;
+    --accent-soft: #2A2315;
+    --accent-soft-strong: #352C1A;
+    --accent-soft-ink: #EDD49B;
+    --accent-ink: #FFFFFF;
+    --border: #243650;
+    --border-strong: #30455F;
+    --border-accent: #7A6430;
+    --border-accent-soft: #514322;
+    --border-brand-soft: #2F4A6D;
+    --border-focus: #6F8FBD;
+    --success: #8CC5A6;
+    --success-strong: #A8D6BC;
+    --success-soft: #13291F;
+    --warning: #E6C24A;
+    --warning-soft: #2B2410;
+    --danger: #F28C8C;
+    --danger-strong: #F7A8A8;
+    --danger-muted: #E57A7A;
+    --danger-soft: #2E1518;
+    --border-danger: #6E2D31;
+    --focus-ring: #93ADD0;
+    --surface-inverse: #172A44;
+    --surface-inverse-strong: #10203A;
+    --surface-inverse-raised: #1F3554;
+    --border-inverse: #2D4668;
+    --border-inverse-raised: #3A5680;
+    --selection: #2F4A6D;
+    --selection-ink: #FFFFFF;
+    /* Shadows don't read on navy: depth is a hairline, one step lighter per level. */
+    --depth-resting: 0 0 0 1px rgb(255 255 255 / 0.05);
+    --depth-elevated: 0 0 0 1px rgb(255 255 255 / 0.09);
+    --depth-floating: 0 0 0 1px rgb(255 255 255 / 0.12), 0 24px 48px -16px rgb(0 0 0 / 0.55);
+    --brand-soft-strong: #22385A;
+    --brand-deep: #C9D7EA;
+    --border-brand-faint: #22385A;
+    --focus-ring-soft: #6F8FBD;
+    --accent-muted: #8A7235;
+    --surface-neutral: #4A5568;
+    --surface-neutral-strong: #5A6578;
+    --surface-notice: #1A2638;
+    --surface-inverse-soft: #2A4468;
+    --ink-inverse-soft: #FEFDFB;
+    --ink-inverse-dim: #D7CFC2;
+    --border-inverse-soft: #5A6B80;
+    --danger-bright: #F07070;
+    --danger-soft-strong: #3A1A1D;
+    --status-done: #34D399;
+    --status-partial: #FBBF24;
+    --status-draft: #6B7A90;
+    --done-soft: #10291F;
+    --border-done-soft: #1D4A37;
+    --done-ink: #6EE7B7;
+    --scrim: #000000;
+    --info-soft: #221B38;
+    --border-info-soft: #3B2F63;
+    --info-ink: #C4B5FD;
+    --ink-error: #FDA4AF;
+    --brand-mid: #7F9BC4;
+    --brand-muted: #6F8FBD;
+    --border-brand: #4A6A96;
+    --border-inverse-mid: #4A6A96;
+    --ink-inverse-tint: #C5D1E3;
+    --ink-ghost: #5C6B80;
+    --border-stronger: #3C5270;
+    --accent-deep: #C99A3E;
+    --success-muted: #6FB08E;
+    --border-success: #3E7A5C;
+    --border-success-soft: #2A5240;
+    --danger-ink: #FFFFFF;
+    --ink-inverse-faint: #9FB3CF;
+    --ink-strong: #FFFFFF;
+    --ink-accent-on-inverse: #E0C687;
+    --border-subtle: #1A2A40;
+    --positive: #4ADE80;
+    --positive-soft: #0F2A1A;
+    --danger-on-inverse: #FCA5A5;
+    --link-inverse: #5EEAD4;
+    --link-inverse-hover: #99F6E4;
+    --tag-blue-soft: #172554;
+    --tag-blue-ink: #BFDBFE;
+    --tag-blue-line: #1E40AF;
+    --tag-purple-soft: #2E1065;
+    --tag-purple-ink: #E9D5FF;
+    --tag-purple-line: #6B21A8;
+    --tag-rose-soft: #4C0519;
+    --tag-rose-ink: #FECDD3;
+    --tag-rose-line: #9F1239;
+    --tag-orange-soft: #431407;
+    --tag-orange-ink: #FED7AA;
+    --tag-orange-line: #9A3412;
+    --tag-green-soft: #052E16;
+    --tag-green-ink: #BBF7D0;
+    --tag-green-line: #166534;
+    --ink-inverse-warm: #F5F0E8;
+    --focus-halo: #22385A;
+    --border-danger-strong: #8B3A3F;
+    --sunken-strong: #30455F;
+    --ink-ghost-soft: #3C5270;
+    --status-bad: #FB7185;
+    --chart-line: #7F9BC4;
+  }
+}
+
 @theme inline {
   --color-canvas: var(--canvas);
   --color-surface: var(--surface);
@@ -277,6 +531,8 @@
   --color-border-danger: var(--border-danger);
 
   --color-focus-ring: var(--focus-ring);
+  --color-selection: var(--selection);
+  --color-selection-ink: var(--selection-ink);
 
   --color-surface-inverse: var(--surface-inverse);
   --color-surface-inverse-strong: var(--surface-inverse-strong);
@@ -362,14 +618,9 @@
   --color-chart-line: var(--chart-line);
 }
 
-:root {
-  --background: var(--color-cream-100);
-  --foreground: var(--color-charcoal);
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--canvas);
+  color: var(--ink-body);
   font-family: var(--font-sans);
 }
 
@@ -475,8 +726,8 @@ body {
 
 /* Selection color */
 ::selection {
-  background-color: #C5D1E3; /* navy-100 */
-  color: #1E3A5F; /* navy-600 */
+  background-color: var(--selection);
+  color: var(--selection-ink);
 }
 
 /* Tailwind v4 dropped the default pointer on buttons — restore it so every
@@ -489,7 +740,7 @@ summary,
 
 /* Focus ring customization — only for elements without custom focus styles */
 *:focus-visible {
-  outline: 2px solid #1E3A5F;
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 

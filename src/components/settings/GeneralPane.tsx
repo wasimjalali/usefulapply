@@ -22,6 +22,7 @@ import {
   Select,
   ValueText,
 } from '@/components/settings/parts';
+import { ThemeRow } from '@/components/settings/ThemeRow';
 import {
   AVAILABILITY_CHOICES,
   AVAILABILITY_LABELS,
@@ -583,6 +584,11 @@ export function GeneralPane() {
             <ValueText>{providerLabel} · {user?.email}</ValueText>
           </Row>
         )}
+      </RowGroup>
+
+      <Caption>APPEARANCE</Caption>
+      <RowGroup>
+        <ThemeRow />
       </RowGroup>
 
       <Caption>PREFERENCES</Caption>
