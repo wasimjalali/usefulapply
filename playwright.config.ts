@@ -342,7 +342,8 @@ export default defineConfig({
         timeout: 20_000,
         toHaveScreenshot: { maxDiffPixels: 0, threshold: 0, animations: 'disabled', caret: 'hide', scale: 'css' },
       },
-      use: { baseURL: BASE_URL },
+      // Software raster: GPU raster in the headless shell varies anti-aliased edges by one colour level between runs.
+      use: { baseURL: BASE_URL, launchOptions: { ...('launchOptions' in browser ? browser.launchOptions : {}), args: ['--disable-gpu'] } },
     },
   ],
   webServer: webServers,

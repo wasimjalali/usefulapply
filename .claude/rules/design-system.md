@@ -25,6 +25,7 @@ Values are today's light theme.
 | | `surface` | cream-50 `#FEFDFB` | Everything cards live in: cards, grids, pills, inputs, state messages, wizard body, tab tracks, tracker rows, job cards, empty-state tiles |
 | | `document` | `#FFFFFF` | Only printable/sendable documents: CV page, cover letter body, email body, modal inner scroll area when it holds a document. White in every theme |
 | | `sunken` | cream-200 | Inset wells and tracks below the surface |
+| | `surface-raised` | `#FFFFFF` | White controls on a surface: active tabs and pills, raised buttons, inputs. Not a document |
 | Ink | `ink` | navy-800 | Headings and strong text |
 | | `ink-body` | charcoal | Running text, labels, form values |
 | | `ink-muted` | warm-gray | Secondary text, hints, meta |

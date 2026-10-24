@@ -94,6 +94,8 @@
   --surface: var(--color-cream-50);
   --document: #FFFFFF;
   --sunken: var(--color-cream-200);
+  /* White controls that sit on a surface: active tabs and pills, raised buttons, inputs. Not a document. */
+  --surface-raised: #FFFFFF;
 
   /* Ink: text and icons. */
   --ink: var(--color-navy-800);
@@ -163,6 +165,7 @@
   --color-surface: var(--surface);
   --color-document: var(--document);
   --color-sunken: var(--sunken);
+  --color-surface-raised: var(--surface-raised);
 
   --color-ink: var(--ink);
   --color-ink-body: var(--ink-body);

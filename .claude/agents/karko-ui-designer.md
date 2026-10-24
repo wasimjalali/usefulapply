@@ -92,7 +92,7 @@ Labels on both fills are white (`accent-ink`, `brand-ink`). The light gold tints
 
 ### Color roles at a glance (values in `.claude/rules/design-system.md`)
 
-**Ground:** `canvas`, `surface`, `document`, `sunken`.
+**Ground:** `canvas`, `surface`, `document`, `sunken`, `surface-raised` (white controls, not documents).
 **Ink:** `ink` (headings), `ink-body` (running text), `ink-muted`, `ink-faint`, `ink-inverse`, `ink-inverse-muted`, `ink-accent`.
 **Brand (navy):** `brand`, `brand-strong`, `brand-soft`, `brand-ink`.
 **Accent (gold, sparingly):** `accent`, `accent-strong`, `accent-soft`, `accent-soft-strong`, `accent-soft-ink`, `accent-ink`.
