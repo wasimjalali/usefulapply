@@ -226,6 +226,8 @@ test('(q5) an anonymous tab left open hands nothing to someone who logs in from 
     window.dispatchEvent(new Event('focus'));
   });
   await expect(anonymousTab.getByRole('heading', { name: 'Start with your CV' })).toBeVisible({ timeout: 30_000 });
+  // Cleared by the signed-in branch (it saw the new user, which keeps the auth id), not by a signed-out answer.
+  expect(await anonymousTab.evaluate(() => localStorage.getItem('usefulapply-auth-user-id'))).toBe(other.id);
   await anonymousTab.waitForTimeout(5000);
   expect(await primaryCvOf(other.id), 'the CV left open in the other tab is not attached').toBeNull();
   expect(query('SELECT id FROM application_sessions WHERE user_id = ?', other.id)).toHaveLength(0);

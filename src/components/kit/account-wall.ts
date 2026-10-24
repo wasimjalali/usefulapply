@@ -18,9 +18,14 @@ export function accountWallHref(page: 'signup' | 'login'): string {
  * An anonymous visitor asked for a download. Downloads render on the server for a signed-in user, so they
  * need an account. The links carry keep=1 (see consumeAnonymousCarryOver in AuthContext).
  */
-export function promptAccountToDownload(toast: InfoToast, push: (href: string) => void, what: 'kit' | 'CV'): void {
+export function promptAccountToDownload(toast: InfoToast, push: (href: string) => void, what: 'kit' | 'CV', authLoading: boolean): void {
   if (Date.now() - shownAt < REPEAT_MS) return;
   shownAt = Date.now();
+  // Still finding out who is signed in: a signed-in user must never see the account wall.
+  if (authLoading) {
+    toast.info('One moment, checking your account.', 3000);
+    return;
+  }
   toast.info(`Create a free account to download your ${what}.`, WALL_MS, [
     { label: 'Create a free account', onClick: () => push(accountWallHref('signup')) },
     { label: 'Log in', onClick: () => push(accountWallHref('login')) },

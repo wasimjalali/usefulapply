@@ -67,8 +67,7 @@ export function KitExportHost() {
       return;
     }
     if (!user) {
-      // Still finding out who is signed in: a signed-in user must never see the account wall.
-      if (!authLoading) promptAccountToDownload(toast, router.push, 'kit');
+      promptAccountToDownload(toast, router.push, 'kit', authLoading);
       return;
     }
     if (!isSavedApplicationId(session.id)) {

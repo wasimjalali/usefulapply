@@ -280,8 +280,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const handleDownloadPDF = async () => {
     if (!cvData || pdfBusyRef.current) return;
     if (!user) {
-      // Still finding out who is signed in: a signed-in user must never see the account wall.
-      if (!authLoading) promptAccountToDownload(toast, router.push, 'CV');
+      promptAccountToDownload(toast, router.push, 'CV', authLoading);
       return;
     }
     const applicationId = exportApplicationId();
@@ -313,8 +312,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const handlePreviewPdf = async () => {
     if (!cvData) return;
     if (!user) {
-      // Still finding out who is signed in: a signed-in user must never see the account wall.
-      if (!authLoading) promptAccountToDownload(toast, router.push, 'CV');
+      promptAccountToDownload(toast, router.push, 'CV', authLoading);
       return;
     }
     const applicationId = exportApplicationId();
@@ -345,8 +343,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const handleDownloadWord = async () => {
     if (!cvData || wordBusyRef.current) return;
     if (!user) {
-      // Still finding out who is signed in: a signed-in user must never see the account wall.
-      if (!authLoading) promptAccountToDownload(toast, router.push, 'CV');
+      promptAccountToDownload(toast, router.push, 'CV', authLoading);
       return;
     }
     const applicationId = exportApplicationId();

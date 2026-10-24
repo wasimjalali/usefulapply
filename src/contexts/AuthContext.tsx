@@ -193,6 +193,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // granted to this very account. Otherwise a stranger's CV left open in one tab would reach the next
       // person who logs in from another tab.
       const signedInElsewhere = anonymousSeenRef.current && !carryOver && prevId === user.id && !anonymousCarryGrantedTo(user.id);
+      // The clear also drops the shared localStorage copies, including any the other tab just wrote. Skipping
+      // that would not help: resetting the stores makes persist write the empty state back anyway. The other
+      // tab re-persists on its next change, and on a reload everything that matters comes back from D1.
       if ((prevId && prevId !== user.id) || (!prevId && !carryOver) || signedInElsewhere) {
         clearPersistedStores();
       }

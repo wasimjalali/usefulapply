@@ -52,8 +52,7 @@ export function AnswersPanel({ toolbarPortal }: AnswersPanelProps) {
     const applicationId = currentSession?.id;
     if (answers.length === 0) return;
     if (!user) {
-      // Still finding out who is signed in: a signed-in user must never see the account wall.
-      if (!authLoading) promptAccountToDownload(toast, router.push, 'kit');
+      promptAccountToDownload(toast, router.push, 'kit', authLoading);
       return;
     }
     if (downloadBusyRef.current) return;

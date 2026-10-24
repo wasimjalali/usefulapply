@@ -269,8 +269,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     if (!letterToDownload) return;
     if (!user) {
       setShowDownloadMenu(false);
-      // Still finding out who is signed in: a signed-in user must never see the account wall.
-      if (!authLoading) promptAccountToDownload(toast, router.push, 'kit');
+      promptAccountToDownload(toast, router.push, 'kit', authLoading);
       return;
     }
     if (!isSavedApplicationId(applicationId)) {
