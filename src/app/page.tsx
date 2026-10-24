@@ -618,7 +618,7 @@ export default function Home() {
               <div className="mt-9 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
                 <Link
                   href="/dashboard"
-                  className="inline-flex h-12 items-center justify-center rounded-control bg-accent px-8 text-base font-semibold text-accent-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-accent-strong cursor-pointer"
+                  className="inline-flex h-12 items-center justify-center rounded-control bg-accent px-8 text-base font-semibold text-accent-ink transition-colors duration-(--duration-base) hover:bg-accent-strong cursor-pointer"
                 >
                   Start free
                 </Link>

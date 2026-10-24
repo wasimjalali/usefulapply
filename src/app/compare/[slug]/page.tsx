@@ -163,7 +163,7 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
               <p className="text-ink-inverse-muted mb-6 leading-relaxed">{comparison.verdict}</p>
               <Link
                 href={comparison.ctaHref || '/dashboard'}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control transition-colors"
               >
                 {comparison.ctaText}
               </Link>

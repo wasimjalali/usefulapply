@@ -450,7 +450,7 @@ export default function MasterCVPage() {
               <span className="text-sm font-medium text-ink-inverse-muted">Master CV Creation Prompt</span>
               <button
                 onClick={handleCopyPrompt}
-                className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-strong text-accent-ink rounded-control transition-colors font-semibold shadow-resting cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-strong text-accent-ink rounded-control transition-colors font-semibold cursor-pointer"
               >
                 {copied ? (
                   <>
@@ -492,7 +492,7 @@ export default function MasterCVPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={handleCopyPrompt}
-              className="w-full sm:w-auto px-8 py-3.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting transition-colors flex items-center justify-center gap-2 text-base cursor-pointer"
+              className="w-full sm:w-auto px-8 py-3.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control transition-colors flex items-center justify-center gap-2 text-base cursor-pointer"
             >
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               {copied ? 'Prompt copied!' : 'Copy the prompt'}

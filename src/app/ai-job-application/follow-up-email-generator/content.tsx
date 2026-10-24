@@ -255,7 +255,7 @@ export const content: GeoContent = {
     actions: <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
       <Link
         href="/dashboard"
-        className="px-10 py-4 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control transition-colors duration-(--duration-fast) ease-standard shadow-floating text-lg inline-flex items-center gap-2"
+        className="px-10 py-4 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control transition-colors duration-(--duration-fast) ease-standard text-lg inline-flex items-center gap-2"
       >
         Start free
       </Link>

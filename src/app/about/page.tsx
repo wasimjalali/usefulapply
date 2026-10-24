@@ -248,7 +248,7 @@ export default function AboutPage() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             <Link
               href="/dashboard"
-              className="px-8 py-3.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting transition-colors flex items-center justify-center text-base"
+              className="px-8 py-3.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control transition-colors flex items-center justify-center text-base"
             >
               Start free
             </Link>

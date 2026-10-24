@@ -87,12 +87,12 @@ export function ChatInput({
     ? `relative rounded-card border bg-surface-raised transition-all duration-(--duration-base) ${
         isWorking
           ? 'border-accent shadow-resting'
-          : 'border-border shadow-resting focus-within:border-border-accent'
+          : 'border-border shadow-resting focus-within:border-border-focus focus-within:ring-2 focus-within:ring-focus-ring-soft/40'
       }`
     : `relative rounded-card border bg-surface-raised shadow-resting overflow-hidden transition-all duration-(--duration-base) ${
         isWorking
           ? 'border-accent'
-          : 'border-border-accent focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20'
+          : 'border-border-accent focus-within:border-border-focus focus-within:ring-2 focus-within:ring-focus-ring-soft/40'
       }`;
 
   return (

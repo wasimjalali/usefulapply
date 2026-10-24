@@ -207,7 +207,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </p>
             <Link
               href={post.cta?.href || '/dashboard'}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting transition-colors text-sm"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control transition-colors text-sm"
             >
               {post.cta?.text || 'Start free'}
             </Link>

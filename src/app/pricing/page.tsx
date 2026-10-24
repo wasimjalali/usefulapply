@@ -379,7 +379,7 @@ export default function PricingPage() {
                       || (profile?.subscription_tier === 'free'
                         ? loadingPlan === 'plus'
                         : loadingAddon === pack.name.split(' ')[0].toLowerCase())}
-                    className="cta-gold px-6 py-4 rounded-control bg-accent hover:bg-accent-strong text-accent-ink font-bold text-[18px] shadow-resting cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 group"
+                    className="transition-colors duration-(--duration-base) ease-standard px-6 py-4 rounded-control bg-accent hover:bg-accent-strong text-accent-ink font-bold text-[18px] cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 group"
                   >
                     {Boolean(user && !profile)
                       || loadingAddon === pack.name.split(' ')[0].toLowerCase()
@@ -536,7 +536,7 @@ export default function PricingPage() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             <Link
               href="/dashboard"
-              className="cta-gold px-8 py-3.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting flex items-center justify-center text-base"
+              className="transition-colors duration-(--duration-base) ease-standard px-8 py-3.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control flex items-center justify-center text-base"
             >
               Start free
             </Link>

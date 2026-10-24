@@ -284,7 +284,7 @@ export default function BlogPage() {
             </p>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control transition-colors"
             >
               Start free
             </Link>

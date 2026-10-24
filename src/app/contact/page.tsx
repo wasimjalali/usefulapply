@@ -230,7 +230,7 @@ export default function ContactPage() {
           </p>
           <Link
             href="/pricing"
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting transition-colors text-base"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control transition-colors text-base"
           >
             View pricing and FAQ
             <ArrowRight className="w-4 h-4" />

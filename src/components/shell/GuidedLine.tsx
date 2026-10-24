@@ -866,7 +866,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                   pendingJobRef.current = e.target.value;
                 }}
                 placeholder="Paste the whole ad. Title, company and requirements, all of it."
-                className="mt-4 h-24 w-full resize-none rounded-card border border-border bg-surface-raised px-4 py-3.5 text-sm text-ink-body placeholder:text-ink-muted focus:border-border-accent focus:outline-none"
+                className="mt-4 h-24 w-full resize-none rounded-card border border-border bg-surface-raised px-4 py-3.5 text-sm text-ink-body placeholder:text-ink-muted focus:border-border-focus focus:ring-2 focus:ring-focus-ring-soft/40 focus:outline-none"
               />
             </div>
           </div>
@@ -882,7 +882,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                 value={jobText}
                 onChange={(e) => setJobText(e.target.value)}
                 placeholder="Paste the whole ad. Title, company and requirements, all of it."
-                className="mt-6 h-[200px] w-full resize-none rounded-card border border-border-accent bg-surface-raised px-4 py-3.5 text-sm leading-relaxed text-ink-body placeholder:text-ink-muted focus:border-accent focus:ring-4 focus:ring-accent/15 focus:outline-none"
+                className="mt-6 h-[200px] w-full resize-none rounded-card border border-border-accent bg-surface-raised px-4 py-3.5 text-sm leading-relaxed text-ink-body placeholder:text-ink-muted focus:border-border-focus focus:ring-2 focus:ring-focus-ring-soft/40 focus:outline-none"
               />
               {lineErrorFeedback}
               <div className="mt-6 flex flex-wrap items-center gap-4">
