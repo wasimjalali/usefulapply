@@ -184,7 +184,7 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-cream-100">
+    <div className="min-h-screen bg-canvas">
       <Navbar />
       <main>
       {/* Aurora-backed first-fold: hero + pricing cards share one premium backdrop */}
@@ -194,18 +194,18 @@ export default function PricingPage() {
       <section className="pt-16 pb-8 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-4xl mx-auto text-center relative">
           <ScrollReveal delay={150}>
-          <h1 className="font-bold text-navy-600 text-[40px] sm:text-[52px] leading-[1.08] mb-4">
-            Every plan, every feature.<br /><span className="text-gold-500">Pick your volume.</span>
+          <h1 className="font-bold text-brand text-[40px] sm:text-[52px] leading-[1.08] mb-4">
+            Every plan, every feature.<br /><span className="text-accent-strong">Pick your volume.</span>
           </h1>
           </ScrollReveal>
           <ScrollReveal delay={300}>
-          <p className="text-lg text-warm-gray max-w-2xl mx-auto">
+          <p className="text-lg text-ink-muted max-w-2xl mx-auto">
             Start free. Upgrade when you&apos;re applying every day. Cancel any time.
           </p>
           </ScrollReveal>
           <ScrollReveal delay={450}>
-          <div className="mt-6 inline-flex items-center gap-2 px-5 py-2 rounded-full bg-cream-50 border border-cream-200">
-            <span className="text-warm-gray text-[13px]">
+          <div className="mt-6 inline-flex items-center gap-2 px-5 py-2 rounded-pill bg-surface border border-border">
+            <span className="text-ink-muted text-[13px]">
               Every word traces back to your real CV · US + EU ATS templates
             </span>
           </div>
@@ -219,15 +219,15 @@ export default function PricingPage() {
           <div className="grid md:grid-cols-3 gap-6 items-stretch">
             {/* === FREE === */}
             <ScrollReveal delay={0} className="h-full">
-            <div className="relative h-full flex flex-col rounded-2xl border border-cream-200 p-6 shadow-sm bg-cream-50">
+            <div className="relative h-full flex flex-col rounded-card border border-border p-6 shadow-resting bg-surface">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[22px] font-semibold leading-tight text-navy-800">Free</span>
+                <span className="text-[22px] font-semibold leading-tight text-ink">Free</span>
               </div>
-              <p className="mt-3 text-[32px] font-semibold leading-none text-navy-900">
+              <p className="mt-3 text-[32px] font-semibold leading-none text-ink-strong">
                 $0
-                <span className="ml-1 text-sm font-normal text-warm-gray">/mo</span>
+                <span className="ml-1 text-sm font-normal text-ink-muted">/mo</span>
               </p>
-              <p className="mt-5 font-semibold text-charcoal text-[15px] mb-3">What&apos;s included:</p>
+              <p className="mt-5 font-semibold text-ink-body text-[15px] mb-3">What&apos;s included:</p>
               <ul className="flex-1 space-y-2.5 mb-6">
                 {[
                   { label: '2 full applications a month', emphasis: true },
@@ -238,15 +238,15 @@ export default function PricingPage() {
                   { label: 'US and EU ATS-optimized templates' },
                   { label: 'Application tracker' },
                 ].map((f) => (
-                  <li key={f.label} className={`flex items-start gap-2 text-sm text-charcoal ${f.emphasis ? 'font-semibold' : ''}`}>
-                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-gold-500" />
+                  <li key={f.label} className={`flex items-start gap-2 text-sm text-ink-body ${f.emphasis ? 'font-semibold' : ''}`}>
+                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-accent-strong" />
                     {f.label}
                   </li>
                 ))}
               </ul>
               <Link
                 href="/dashboard"
-                className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-cream-200 bg-cream-50 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
+                className="inline-flex h-11 w-full items-center justify-center rounded-control border border-border bg-surface text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised cursor-pointer"
               >
                 Start free
               </Link>
@@ -255,18 +255,18 @@ export default function PricingPage() {
 
             {/* === PLUS === */}
             <ScrollReveal delay={100} className="h-full">
-            <div className="relative h-full flex flex-col rounded-2xl border border-gold-400 p-6 shadow-sm bg-cream-50">
+            <div className="relative h-full flex flex-col rounded-card border border-accent p-6 shadow-resting bg-surface">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[22px] font-semibold leading-tight text-navy-800">Plus</span>
-                <span className="rounded-full bg-gold-400 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
+                <span className="text-[22px] font-semibold leading-tight text-ink">Plus</span>
+                <span className="rounded-pill bg-accent px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-accent-ink">
                   Most popular
                 </span>
               </div>
-              <p className="mt-3 text-[32px] font-semibold leading-none text-navy-900">
+              <p className="mt-3 text-[32px] font-semibold leading-none text-ink-strong">
                 $19.99
-                <span className="ml-1 text-sm font-normal text-warm-gray">/mo</span>
+                <span className="ml-1 text-sm font-normal text-ink-muted">/mo</span>
               </p>
-              <p className="mt-5 font-semibold text-charcoal text-[15px] mb-3">Everything in Free, plus:</p>
+              <p className="mt-5 font-semibold text-ink-body text-[15px] mb-3">Everything in Free, plus:</p>
               <ul className="flex-1 space-y-2.5 mb-6">
                 {[
                   { label: '25 full applications a month', emphasis: true },
@@ -278,8 +278,8 @@ export default function PricingPage() {
                   { label: 'Top-up packs when you need more' },
                   { label: 'Priority email support' },
                 ].map((f) => (
-                  <li key={f.label} className={`flex items-start gap-2 text-sm text-charcoal ${f.emphasis ? 'font-semibold' : ''}`}>
-                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-gold-500" />
+                  <li key={f.label} className={`flex items-start gap-2 text-sm text-ink-body ${f.emphasis ? 'font-semibold' : ''}`}>
+                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-accent-strong" />
                     {f.label}
                   </li>
                 ))}
@@ -287,7 +287,7 @@ export default function PricingPage() {
               <button
                 onClick={() => handlePlanClick('plus')}
                 disabled={loadingPlan === 'plus'}
-                className="group inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-gold-400 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer disabled:opacity-60"
+                className="group inline-flex h-11 w-full items-center justify-center gap-2 rounded-control bg-accent text-sm font-semibold text-accent-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-accent-strong cursor-pointer disabled:opacity-60"
               >
                 {loadingPlan === 'plus' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Go Plus'}
               </button>
@@ -296,15 +296,15 @@ export default function PricingPage() {
 
             {/* === MAX === */}
             <ScrollReveal delay={200} className="h-full">
-            <div className="relative h-full flex flex-col rounded-2xl border border-cream-200 p-6 shadow-sm bg-cream-50">
+            <div className="relative h-full flex flex-col rounded-card border border-border p-6 shadow-resting bg-surface">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[22px] font-semibold leading-tight text-navy-800">Max</span>
+                <span className="text-[22px] font-semibold leading-tight text-ink">Max</span>
               </div>
-              <p className="mt-3 text-[32px] font-semibold leading-none text-navy-900">
+              <p className="mt-3 text-[32px] font-semibold leading-none text-ink-strong">
                 $79.99
-                <span className="ml-1 text-sm font-normal text-warm-gray">/mo</span>
+                <span className="ml-1 text-sm font-normal text-ink-muted">/mo</span>
               </p>
-              <p className="mt-5 font-semibold text-charcoal text-[15px] mb-3">Everything in Plus, plus:</p>
+              <p className="mt-5 font-semibold text-ink-body text-[15px] mb-3">Everything in Plus, plus:</p>
               <ul className="flex-1 space-y-2.5 mb-6">
                 {[
                   { label: '100 full applications a month', emphasis: true },
@@ -312,8 +312,8 @@ export default function PricingPage() {
                   { label: 'Built for an all-out daily search' },
                   { label: 'Premium dedicated support' },
                 ].map((f) => (
-                  <li key={f.label} className={`flex items-start gap-2 text-sm text-charcoal ${f.emphasis ? 'font-semibold' : ''}`}>
-                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-gold-500" />
+                  <li key={f.label} className={`flex items-start gap-2 text-sm text-ink-body ${f.emphasis ? 'font-semibold' : ''}`}>
+                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-accent-strong" />
                     {f.label}
                   </li>
                 ))}
@@ -321,7 +321,7 @@ export default function PricingPage() {
               <button
                 onClick={() => handlePlanClick('max')}
                 disabled={loadingPlan === 'max'}
-                className="group inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-gold-400 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer disabled:opacity-60"
+                className="group inline-flex h-11 w-full items-center justify-center gap-2 rounded-control bg-accent text-sm font-semibold text-accent-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-accent-strong cursor-pointer disabled:opacity-60"
               >
                 {loadingPlan === 'max' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Go Max'}
               </button>
@@ -330,11 +330,11 @@ export default function PricingPage() {
           </div>
 
           {checkoutError && (
-            <p className="mt-4 text-center text-sm text-red-600" role="alert">{checkoutError}</p>
+            <p className="mt-4 text-center text-sm text-danger" role="alert">{checkoutError}</p>
           )}
 
           {/* Trust line under cards */}
-          <p className="mt-8 text-center text-[13px] text-warm-gray max-w-3xl mx-auto">
+          <p className="mt-8 text-center text-[13px] text-ink-muted max-w-3xl mx-auto">
             Cancel anytime. No hidden fees, no lock-in contracts.
           </p>
         </div>
@@ -346,17 +346,17 @@ export default function PricingPage() {
       <section className="scroll-mt-24 pb-20 px-4 sm:px-6 lg:px-8" id="addons">
         <div className="max-w-4xl mx-auto">
           <ScrollReveal>
-          <div className="bg-navy-800 border border-navy-700 rounded-2xl p-6 md:p-8 shadow-md">
+          <div className="bg-surface-inverse border border-border-inverse rounded-card p-6 md:p-8 shadow-elevated">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
               {/* Left: label + headline + note */}
               <div className="flex-1">
-                <p className="eyebrow-dot text-xs font-semibold text-gold-400 uppercase tracking-[0.12em] mb-2">
+                <p className="eyebrow-dot text-xs font-semibold text-accent uppercase tracking-[0.12em] mb-2">
                   Need more this month?
                 </p>
-                <h3 className="font-bold text-white text-[24px] leading-tight mb-2">
+                <h3 className="font-bold text-ink-inverse text-[24px] leading-tight mb-2">
                   Top up any time with a credit pack.
                 </h3>
-                <p className="text-sm text-navy-300">
+                <p className="text-sm text-ink-inverse-faint">
                   Available on Plus and Max. Credits roll over while your subscription is active.
                 </p>
               </div>
@@ -365,10 +365,10 @@ export default function PricingPage() {
               {addonPacks.map((pack) => (
                 <div key={pack.name} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                   {/* Credit count block */}
-                  <div className="bg-navy-700 border border-navy-600 rounded-xl px-5 py-4 text-center sm:text-left">
-                    <p className="text-[28px] font-bold text-white leading-none">{pack.credits}</p>
-                    <p className="text-[13px] font-semibold text-gold-400 mt-0.5">credits</p>
-                    <p className="text-[12px] text-navy-300 mt-1">{pack.applications} more applications</p>
+                  <div className="bg-surface-inverse-raised border border-border-inverse-raised rounded-xl px-5 py-4 text-center sm:text-left">
+                    <p className="text-[28px] font-bold text-ink-inverse leading-none">{pack.credits}</p>
+                    <p className="text-[13px] font-semibold text-accent mt-0.5">credits</p>
+                    <p className="text-[12px] text-ink-inverse-faint mt-1">{pack.applications} more applications</p>
                   </div>
                   {/* Buy button */}
                   <button
@@ -381,19 +381,19 @@ export default function PricingPage() {
                       || (profile?.subscription_tier === 'free'
                         ? loadingPlan === 'plus'
                         : loadingAddon === pack.name.split(' ')[0].toLowerCase())}
-                    className="cta-gold px-6 py-4 rounded-xl bg-gold-400 hover:bg-gold-500 text-white font-bold text-[18px] shadow-sm cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 group"
+                    className="cta-gold px-6 py-4 rounded-xl bg-accent hover:bg-accent-strong text-accent-ink font-bold text-[18px] shadow-resting cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 group"
                   >
                     {Boolean(user && !profile)
                       || loadingAddon === pack.name.split(' ')[0].toLowerCase()
                       || (profile?.subscription_tier === 'free' && loadingPlan === 'plus')
                       ? <Loader2 className="w-5 h-5 animate-spin" />
-                      : <>{profile?.subscription_tier === 'free' ? 'Upgrade to Plus' : `$${pack.price}`}<ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" /></>}
+                      : <>{profile?.subscription_tier === 'free' ? 'Upgrade to Plus' : `$${pack.price}`}<ArrowRight className="w-4 h-4 transition-transform duration-(--duration-base) group-hover:translate-x-1" /></>}
                   </button>
                 </div>
               ))}
             </div>
             {checkoutError && (
-              <p className="mt-4 text-sm text-red-300" role="alert">{checkoutError}</p>
+              <p className="mt-4 text-sm text-danger-on-inverse" role="alert">{checkoutError}</p>
             )}
           </div>
           </ScrollReveal>
@@ -401,35 +401,35 @@ export default function PricingPage() {
       </section>
 
       {/* Interactive Time Savings Calculator — Warm premium design */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-200/30 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gold-100/40 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl" />
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-surface relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-border-accent-soft/30 rounded-pill -translate-y-1/2 translate-x-1/2 blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent-soft-strong/40 rounded-pill translate-y-1/2 -translate-x-1/2 blur-3xl" />
         <div className="max-w-4xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-10">
-            <p className="eyebrow-dot text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Time Savings</p>
-            <h2 className="font-bold text-navy-600 text-[32px] md:text-[40px] leading-[1.1] mb-3">
+            <p className="eyebrow-dot text-xs font-semibold text-ink-accent uppercase tracking-[0.12em] mb-3">Time Savings</p>
+            <h2 className="font-bold text-brand text-[32px] md:text-[40px] leading-[1.1] mb-3">
               How much time will you save?
             </h2>
-            <p className="text-warm-gray max-w-lg mx-auto">
+            <p className="text-ink-muted max-w-lg mx-auto">
               One tailored application takes an hour by hand. Useful Apply does it in 90 seconds. Roughly 40x faster, without dropping quality.
             </p>
           </div>
           </ScrollReveal>
 
           <ScrollReveal delay={150}>
-          <div className="bg-white rounded-2xl border border-cream-200 shadow-lg p-8 md:p-10">
+          <div className="bg-surface-raised rounded-card border border-border shadow-floating p-8 md:p-10">
             {/* Tier Selector — pill buttons */}
             <div className="flex items-center justify-center mb-10">
-              <div className="inline-flex bg-cream-100 rounded-xl p-1.5 gap-1 border border-cream-200">
+              <div className="inline-flex bg-canvas rounded-xl p-1.5 gap-1 border border-border">
                 {savingsTiers.map((tier, i) => (
                   <button
                     key={tier.plan}
                     onClick={() => setSelectedSavingsTier(i)}
-                    className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                    className={`px-5 py-2.5 rounded-control text-sm font-semibold transition-all cursor-pointer ${
                       i === selectedSavingsTier
-                        ? 'bg-white text-navy-600 shadow-md border border-cream-200'
-                        : 'text-warm-gray hover:text-navy-600 hover:bg-cream-50'
+                        ? 'bg-surface-raised text-brand shadow-elevated border border-border'
+                        : 'text-ink-muted hover:text-brand hover:bg-surface'
                     }`}
                   >
                     <span>{tier.plan}</span>
@@ -441,27 +441,27 @@ export default function PricingPage() {
 
             {/* Stats Row */}
             <div className="grid grid-cols-3 gap-4 md:gap-6 mb-8">
-              <div className="text-center p-4 md:p-6 bg-cream-50 rounded-xl border border-cream-200">
-                <div className="text-3xl md:text-5xl font-bold text-navy-600 mb-2">{animatedApps}</div>
-                <div className="text-sm text-warm-gray">applications a month</div>
+              <div className="text-center p-4 md:p-6 bg-surface rounded-xl border border-border">
+                <div className="text-3xl md:text-5xl font-bold text-brand mb-2">{animatedApps}</div>
+                <div className="text-sm text-ink-muted">applications a month</div>
               </div>
-              <div className="text-center p-4 md:p-6 bg-cream-50 rounded-xl border border-cream-200">
-                <div className="text-3xl md:text-5xl font-bold text-gold-500 mb-2">40<span className="text-2xl md:text-3xl">x</span></div>
-                <div className="text-sm text-warm-gray">faster than by hand</div>
+              <div className="text-center p-4 md:p-6 bg-surface rounded-xl border border-border">
+                <div className="text-3xl md:text-5xl font-bold text-accent-strong mb-2">40<span className="text-2xl md:text-3xl">x</span></div>
+                <div className="text-sm text-ink-muted">faster than by hand</div>
               </div>
-              <div className="text-center p-4 md:p-6 bg-navy-600 rounded-xl">
-                <div className="text-3xl md:text-5xl font-bold text-gold-400 mb-2">~{animatedHours}</div>
-                <div className="text-sm text-gold-300 font-medium">hours saved each month</div>
+              <div className="text-center p-4 md:p-6 bg-brand rounded-xl">
+                <div className="text-3xl md:text-5xl font-bold text-accent mb-2">~{animatedHours}</div>
+                <div className="text-sm text-ink-accent-on-inverse font-medium">hours saved each month</div>
               </div>
             </div>
 
             {/* Tagline */}
-            <p className="text-center text-lg font-medium text-navy-600 mb-2">
+            <p className="text-center text-lg font-medium text-brand mb-2">
               {currentSavings.tagline}
             </p>
 
             {/* Disclaimer */}
-            <p className="text-center text-sm text-warm-gray">
+            <p className="text-center text-sm text-ink-muted">
               Based on an hour of manual work per tailored application.
             </p>
           </div>
@@ -470,18 +470,18 @@ export default function PricingPage() {
       </section>
 
       {/* How Credits Work */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-surface-raised">
         <div className="max-w-4xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-10">
-            <p className="eyebrow-dot text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">Credit System</p>
-            <h2 className="font-bold text-navy-600 text-[32px] leading-[1.1] mb-3">
+            <p className="eyebrow-dot text-xs font-semibold text-ink-accent uppercase tracking-[0.12em] mb-3">Credit System</p>
+            <h2 className="font-bold text-brand text-[32px] leading-[1.1] mb-3">
               How credits work.
             </h2>
           </div>
           </ScrollReveal>
           <ScrollReveal delay={100}>
-          <p className="text-center text-[15px] text-charcoal">
+          <p className="text-center text-[15px] text-ink-body">
             {CREDIT_PRICES}
           </p>
           </ScrollReveal>
@@ -489,12 +489,12 @@ export default function PricingPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-cream-50">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-surface">
         <div className="max-w-3xl mx-auto">
           <ScrollReveal>
           <div className="text-center mb-10">
-            <p className="eyebrow-dot text-xs font-semibold text-gold-600 uppercase tracking-[0.12em] mb-3">FAQ</p>
-            <h2 className="font-bold text-navy-600 text-[32px] leading-[1.1]">
+            <p className="eyebrow-dot text-xs font-semibold text-ink-accent uppercase tracking-[0.12em] mb-3">FAQ</p>
+            <h2 className="font-bold text-brand text-[32px] leading-[1.1]">
               Frequently asked questions.
             </h2>
           </div>
@@ -503,22 +503,22 @@ export default function PricingPage() {
             {faqs.map((faq, idx) => (
               <div
                 key={idx}
-                className="bg-white border border-cream-200 rounded-xl overflow-hidden"
+                className="bg-surface-raised border border-border rounded-xl overflow-hidden"
               >
                 <button
                   onClick={() => setExpandedFaq(expandedFaq === idx ? null : idx)}
-                  className="w-full flex items-center justify-between p-5 text-left hover:bg-cream-50 transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-between p-5 text-left hover:bg-surface transition-colors cursor-pointer"
                 >
-                  <span className="font-semibold text-charcoal pr-4">{faq.question}</span>
+                  <span className="font-semibold text-ink-body pr-4">{faq.question}</span>
                   <ChevronDown
-                    className={`w-5 h-5 text-warm-gray flex-shrink-0 transition-transform duration-200 ${
+                    className={`w-5 h-5 text-ink-muted flex-shrink-0 transition-transform duration-(--duration-base) ${
                       expandedFaq === idx ? 'rotate-180' : ''
                     }`}
                   />
                 </button>
                 {expandedFaq === idx && (
                   <div className="panel-rise px-5 pb-5">
-                    <p className="text-warm-gray leading-relaxed">{faq.answer}</p>
+                    <p className="text-ink-muted leading-relaxed">{faq.answer}</p>
                   </div>
                 )}
               </div>
@@ -528,31 +528,31 @@ export default function PricingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-navy-700 relative overflow-hidden">
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-surface-inverse-raised relative overflow-hidden">
         <div className="absolute inset-0 dot-grid opacity-[0.04]" />
         <ScrollReveal>
         <div className="max-w-3xl mx-auto text-center relative">
-          <h2 className="font-bold text-white text-[32px] md:text-[40px] leading-[1.1] mb-4">
-            Your next interview is <span className="text-gold-400">90 seconds away.</span>
+          <h2 className="font-bold text-ink-inverse text-[32px] md:text-[40px] leading-[1.1] mb-4">
+            Your next interview is <span className="text-accent">90 seconds away.</span>
           </h2>
-          <p className="text-[17px] text-navy-100 mb-9 max-w-xl mx-auto">
+          <p className="text-[17px] text-ink-inverse-tint mb-9 max-w-xl mx-auto">
             Upload your CV. Pick a role from your feed. Send your first full application before your coffee gets cold.
           </p>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             <Link
               href="/dashboard"
-              className="cta-gold px-8 py-3.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm flex items-center justify-center text-base"
+              className="cta-gold px-8 py-3.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting flex items-center justify-center text-base"
             >
               Start free
             </Link>
             <Link
               href="/"
-              className="px-8 py-3.5 border border-white/30 text-white font-semibold rounded-lg hover:bg-white/10 transition-colors flex items-center justify-center text-base"
+              className="px-8 py-3.5 border border-ink-inverse/30 text-ink-inverse font-semibold rounded-control hover:bg-ink-inverse/10 transition-colors flex items-center justify-center text-base"
             >
               Back to home
             </Link>
           </div>
-          <p className="mt-4 text-sm text-navy-200">No credit card needed.</p>
+          <p className="mt-4 text-sm text-ink-inverse-muted">No credit card needed.</p>
         </div>
         </ScrollReveal>
       </section>

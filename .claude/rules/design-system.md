@@ -75,6 +75,14 @@ Values are today's light theme.
 | | `border-stronger` | cream-400 | Dashed and drop-zone borders |
 | | `accent-deep` | gold-600 | Gold save button hover |
 | | `success-muted`, `border-success`, `border-success-soft` | sage-500, sage-300, sage-200 | Strong-match dot, ATS ring, match pill border |
+| Marketing | `ink-inverse-tint`, `ink-inverse-faint` | navy-100, navy-300 | Softer and fainter text on dark navy bands |
+| | `ink-strong` | navy-900 | Display figures on light ground |
+| | `ink-accent-on-inverse` | gold-300 | Gold text on dark navy |
+| | `border-subtle` | cream-100 | Faint row dividers |
+| | `positive`, `positive-soft` | green-600, green-50 | Check marks and matched-cell tint in comparison tables |
+| | `danger-on-inverse` | red-300 | Error text on dark navy |
+| | `link-inverse`, `link-inverse-hover` | teal-400, teal-300 | Links on the dark footer |
+| | `tag-blue-*`, `tag-purple-*`, `tag-rose-*`, `tag-orange-*`, `tag-green-*` (`-soft`, `-ink`, `-line`) | 50, 700, 200 of that hue | Blog category chips and comparison winner tiles |
 
 Utilities follow Tailwind's naming: `bg-surface`, `text-ink-muted`, `border-border`, `border-border-strong`, `ring-focus-ring`, `bg-accent/10`. Opacity modifiers work on every role.
 

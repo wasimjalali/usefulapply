@@ -38,11 +38,11 @@ export type BlogCategory =
   | 'Product Updates';
 
 export const CATEGORY_COLORS: Record<BlogCategory, { bg: string; text: string; border: string }> = {
-  'Career Tips': { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-  'AI & Technology': { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
-  'Job Search': { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
-  'CV Writing': { bg: 'bg-gold-50', text: 'text-gold-700', border: 'border-gold-200' },
-  'Cover Letters': { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
-  'Interview Prep': { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
-  'Product Updates': { bg: 'bg-navy-50', text: 'text-navy-700', border: 'border-navy-200' },
+  'Career Tips': { bg: 'bg-tag-blue-soft', text: 'text-tag-blue-ink', border: 'border-tag-blue-line' },
+  'AI & Technology': { bg: 'bg-tag-purple-soft', text: 'text-tag-purple-ink', border: 'border-tag-purple-line' },
+  'Job Search': { bg: 'bg-tag-green-soft', text: 'text-tag-green-ink', border: 'border-tag-green-line' },
+  'CV Writing': { bg: 'bg-accent-soft', text: 'text-accent-soft-ink', border: 'border-border-accent-soft' },
+  'Cover Letters': { bg: 'bg-tag-rose-soft', text: 'text-tag-rose-ink', border: 'border-tag-rose-line' },
+  'Interview Prep': { bg: 'bg-tag-orange-soft', text: 'text-tag-orange-ink', border: 'border-tag-orange-line' },
+  'Product Updates': { bg: 'bg-brand-soft', text: 'text-brand-strong', border: 'border-border-brand-soft' },
 };

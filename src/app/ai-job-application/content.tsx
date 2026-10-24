@@ -113,15 +113,15 @@ export const content: GeoContent = {
   ],
   sections: [
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "Common Pitfalls",
       heading: "What Goes Wrong With AI Job Applications and How to Fix It",
       body: body(
         <div className="grid md:grid-cols-2 gap-8">
           <ScrollReveal delay={100}>
-            <div className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm">
-              <h3 className="text-lg font-bold text-charcoal mb-3">The Problem</h3>
-              <p className="text-warm-gray leading-relaxed">
+            <div className="bg-surface-raised rounded-card p-8 border border-border shadow-resting">
+              <h3 className="text-lg font-bold text-ink-body mb-3">The Problem</h3>
+              <p className="text-ink-muted leading-relaxed">
                 Most AI applications fail not because of bad AI but because of wrong
                 expectations. People copy text without matching it to the specific role,
                 without clean source data, and without checking how ATS systems read the file.
@@ -129,9 +129,9 @@ export const content: GeoContent = {
             </div>
           </ScrollReveal>
           <ScrollReveal delay={200}>
-            <div className="bg-white rounded-2xl p-8 border border-cream-200 shadow-sm">
-              <h3 className="text-lg font-bold text-charcoal mb-3">The Fix</h3>
-              <p className="text-warm-gray leading-relaxed">
+            <div className="bg-surface-raised rounded-card p-8 border border-border shadow-resting">
+              <h3 className="text-lg font-bold text-ink-body mb-3">The Fix</h3>
+              <p className="text-ink-muted leading-relaxed">
                 (1) Understand the role, (2) use your own stable data as the base (Master CV),
                 (3) output documents that ATS can process, (4) only automate where it genuinely
                 saves time. When AI fabricates content, credibility collapses in the interview.
@@ -142,17 +142,17 @@ export const content: GeoContent = {
       ),
     },
     {
-      bg: "bg-white",
+      bg: "bg-surface-raised",
       eyebrow: "Your Complete Package",
       heading: "What Useful Apply Generates in 90 Seconds",
       reveal: true,
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
+        <p className="text-ink-body leading-relaxed mb-4 max-w-3xl">
           One input (job description), four outputs: tailored CV, cover letter, application
           email, and follow-up email. Every document references the same job description and draws
           from the same verified source, so they are consistent.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
+        <p className="text-ink-body leading-relaxed mb-4 max-w-3xl">
           The fit score tells you how well your background matches the role before documents are
           generated. Anti-hallucination safeguards mean no skills, metrics, or experience are
           fabricated.
@@ -160,7 +160,7 @@ export const content: GeoContent = {
       ),
     },
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "Explore",
       heading: "The 10 Topics This Hub Covers",
       centered: true,
@@ -170,13 +170,13 @@ export const content: GeoContent = {
             <ScrollReveal key={pillar.href} delay={i * 80}>
               <Link
                 href={pillar.href}
-                className="block bg-white rounded-2xl border border-cream-200 p-7 hover:border-gold-300 hover:shadow-md transition-all card-hover-lift h-full"
+                className="block bg-surface-raised rounded-card border border-border p-7 hover:border-border-accent hover:shadow-elevated transition-all card-hover-lift h-full"
               >
-                <h3 className="text-lg font-bold text-charcoal mb-2">{pillar.title}</h3>
-                <p className="text-warm-gray text-sm leading-relaxed mb-4">
+                <h3 className="text-lg font-bold text-ink-body mb-2">{pillar.title}</h3>
+                <p className="text-ink-muted text-sm leading-relaxed mb-4">
                   {pillar.description}
                 </p>
-                <span className="text-gold-500 text-sm font-semibold inline-flex items-center gap-1">
+                <span className="text-accent-strong text-sm font-semibold inline-flex items-center gap-1">
                   {pillar.linkText} <ArrowRight className="w-4 h-4" />
                 </span>
               </Link>
@@ -186,16 +186,16 @@ export const content: GeoContent = {
       ),
     },
     {
-      bg: "bg-white",
+      bg: "bg-surface-raised",
       eyebrow: "Industry Trends",
       heading: "Recent Trends in AI Job Applications",
       reveal: true,
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
+        <p className="text-ink-body leading-relaxed mb-4 max-w-3xl">
           Recruiter tools and online application forms are the standard. Applications must not
           just read well but be technically submittable (upload, parsing, structure).
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
+        <p className="text-ink-body leading-relaxed mb-4 max-w-3xl">
           The trend is toward faster iteration: applicants test multiple versions rather than
           spending weeks on one perfect application. Trust is becoming more
           important. The more AI content circulates, the more consistency, verifiability, and
@@ -234,7 +234,7 @@ export const content: GeoContent = {
       a: 'Yes. Useful Apply supports US, UK, Canada, and Germany markets with region-appropriate formatting, tone, and templates, including US Letter resumes and German Lebenslauf format.',
     },
   ],
-  faqSection: { bg: "bg-cream-50", cardBg: "bg-white" },
+  faqSection: { bg: "bg-surface", cardBg: "bg-surface-raised" },
   cta: {
     heading: "Ready to Try AI Job Applications?",
     body:
@@ -242,13 +242,13 @@ export const content: GeoContent = {
     actions: <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
       <Link
         href="/dashboard"
-        className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg inline-flex items-center gap-2"
+        className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-accent-ink font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-floating text-lg inline-flex items-center gap-2"
       >
         Start free
       </Link>
       <Link
         href="/pricing"
-        className="px-10 py-4 glass-dark text-white font-semibold rounded-xl hover:bg-white/30 hover:shadow-xl hover:scale-[1.02] hover:border-gold-400/50 transition-all duration-300 text-lg"
+        className="px-10 py-4 glass-dark text-ink-inverse font-semibold rounded-xl hover:bg-ink-inverse/30 hover:shadow-xl hover:scale-[1.02] hover:border-accent/50 transition-all duration-300 text-lg"
       >
         View Pricing
       </Link>

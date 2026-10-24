@@ -21,17 +21,17 @@ export const content: GeoContent = {
   },
   sections: [
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "Definition",
       heading: "What Zero-Fabrication Actually Means (and What It Doesn't)",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Zero-fabrication is not a promise that AI output is always perfect. Generative models
           can still make formatting errors or emphasis mistakes. What it means specifically: the
           AI cannot invent new job titles, new employers, new time periods, new skills, or new
           metrics that don&apos;t exist in your source documents.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           &quot;Zero fabrication&quot; = zero new facts about you. The AI can reformulate,
           reorder, and emphasize, but it cannot create substance that doesn&apos;t already
           exist in your CV.
@@ -39,33 +39,33 @@ export const content: GeoContent = {
       ),
     },
     {
-      bg: "bg-white",
+      bg: "bg-surface-raised",
       eyebrow: "Why It Matters",
       heading: "Why This Matters: What Happens When AI Fabricates",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Fabricated experience creates a credibility problem the moment the application
           succeeds. An interview question about a project you didn&apos;t do, a background check
           that doesn&apos;t match, or a technical assessment for a skill the AI invented. These
           are the downstream consequences of fabricated applications.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           The short-term gain (sounding more qualified) creates long-term risk (a failed
           interview or rescinded offer). Zero-fabrication eliminates this risk category entirely.
         </p>,
       ),
     },
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "The System",
       heading: "How Useful Apply's Anti-Hallucination System Works",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Phase 1 of every workflow extracts two verified lists from your uploaded CV: verified
           skills and verified metrics (actual numbers from your source documents). These lists
           become binding constraints in Phase 2.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           The CV generation agent is explicitly forbidden from writing any skill not in the
           verified skills list, and any number not in the verified metrics list. A bullet point
           without a metric is always generated in preference to a bullet point with a fabricated
@@ -74,27 +74,27 @@ export const content: GeoContent = {
       ),
     },
     {
-      bg: "bg-white",
+      bg: "bg-surface-raised",
       eyebrow: "Your Review",
       heading: "What You Still Need to Review",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Zero-fabrication protects against invented content, but review is still necessary for:
           date accuracy (were dates transferred correctly from your CV?), role title consistency
           (does the tailored CV use your exact job titles?), and emphasis decisions (does the
           AI&apos;s prioritization of your experience reflect how you want to present yourself?).
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           AI handles speed and structure; you handle final judgment.
         </p>,
       ),
     },
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "Global Context",
       heading: "Zero-Fabrication in Different Markets",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           In Germany and the EU, false claims in job applications can have legal consequences. In
           the US and UK, background checks are standard for professional roles.
           Zero-fabrication is therefore not just an ethical principle but a practical risk
@@ -132,7 +132,7 @@ export const content: GeoContent = {
       a: 'Increasingly yes. Background checks, reference calls, technical assessments, and interview deep-dives are standard ways fabricated content is exposed. The risk increases at senior roles where experience claims are more heavily scrutinized.',
     },
   ],
-  faqSection: { bg: "bg-cream-50", cardBg: "bg-white" },
+  faqSection: { bg: "bg-surface", cardBg: "bg-surface-raised" },
   cta: {
     heading: "Generate Your Verified Application",
     body:

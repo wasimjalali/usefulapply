@@ -101,7 +101,7 @@ export function PricingAurora() {
         className="absolute inset-x-0 bottom-0 h-32"
         style={{
           background:
-            'linear-gradient(to bottom, transparent, rgba(250, 247, 242, 1))',
+            'linear-gradient(to bottom, transparent, var(--canvas))',
         }}
       />
     </div>

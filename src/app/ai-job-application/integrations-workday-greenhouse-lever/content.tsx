@@ -21,35 +21,35 @@ export const content: GeoContent = {
   },
   sections: [
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "Compatibility",
       heading: "What \"Compatible\" Really Means",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Compatibility is not about a software integration. It means: (1) the CV can be
           uploaded and parsed with correct work history, job titles, education, and skills
           populated in the right ATS fields; (2) cover letter and cover text can be copy-pasted
           into text fields without formatting breaking; (3) the application email is ready for
           use when the process switches to email submission.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           This is what Useful Apply optimizes for: not a built-in connector, but documents that
           work cleanly in real ATS workflows.
         </p>,
       ),
     },
     {
-      bg: "bg-white",
+      bg: "bg-surface-raised",
       eyebrow: "Workday",
       heading: "Workday: What to Expect",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Workday forms often include 10 to 40 required fields that must be populated from your CV
           data. The most reliable upload path: a clean single-column CV without tables or text
           boxes. After upload, verify that employer names, job titles, and dates in the work
           history fields are correctly parsed.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           If fields are incorrect, the clean-text version of your CV sections can be copy-pasted
           directly. Useful Apply generates the CV in ATS-safe format by default to reduce this
           correction step.
@@ -57,17 +57,17 @@ export const content: GeoContent = {
       ),
     },
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "Greenhouse & Lever",
       heading: "Greenhouse & Lever: Key Differences",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Greenhouse and Lever are commonly used by tech companies and startups, especially in
           the US market. Both support PDF and Word uploads with generally cleaner parsing than
           older systems. Both also frequently use custom questions and text fields for skills,
           cover letters, or motivation answers.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Useful Apply&apos;s cover letter and application email serve as the content source for
           these fields. They are written to be adaptable to both full-document and
           text-field use cases.
@@ -75,17 +75,17 @@ export const content: GeoContent = {
       ),
     },
     {
-      bg: "bg-white",
+      bg: "bg-surface-raised",
       eyebrow: "Quick Check",
       heading: "The 2-Minute Compatibility Check",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Before submitting any application: (1) Upload the CV and check that work history, job
           titles, and education appear correctly in the ATS-populated fields. (2) Copy a skills
           section into a text field. If formatting breaks, the source document layout is too
           complex.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           (3) Confirm a plain-text cover letter version is available. (4) Keep the application
           email and follow-up email as separate text files for use when the process requires
           email rather than portal submission.
@@ -93,17 +93,17 @@ export const content: GeoContent = {
       ),
     },
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "Enterprise ATS",
       heading: "SAP SuccessFactors, iCIMS, and Taleo",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           These enterprise ATS platforms are common in large organizations across all markets.
           They&apos;re generally stricter about formatting than Greenhouse or Lever.
           Single-column layout and standard section headings are particularly important for clean
           parsing in these systems.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Useful Apply&apos;s ATS-optimized templates are designed with these constraints in mind.
         </p>,
       ),
@@ -138,7 +138,7 @@ export const content: GeoContent = {
       a: 'Yes. Useful Apply supports both markets. US and UK applications use standard resume format (typically 1 to 2 pages). German applications use Lebenslauf format with the appropriate German-market header structure. The ATS compatibility considerations are the same across markets.',
     },
   ],
-  faqSection: { bg: "bg-cream-50", cardBg: "bg-white" },
+  faqSection: { bg: "bg-surface", cardBg: "bg-surface-raised" },
   cta: {
     heading: "Generate Your ATS-Ready Package",
     body:

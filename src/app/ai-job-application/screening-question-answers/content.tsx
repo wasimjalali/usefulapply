@@ -24,23 +24,23 @@ export const content: GeoContent = {
   },
   sections: [
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "The Problem",
       heading: "Screening Questions Slow Down Every Application",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Most ATS platforms ask 3 to 10 screening questions before you can submit your
           application. These range from simple eligibility checks (&quot;Are you authorized to
           work in the US?&quot;) to complex behavioral questions (&quot;Tell me about a time you
           led a cross-functional project&quot;).
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Writing thoughtful answers takes 10 to 20 minutes per application. If you are
           applying to 50 jobs, that is 8 to 16 hours just on screening questions. Most job
           seekers either rush through with generic answers or skip applications that have too
           many questions.
         </p>,
-        <p className="text-charcoal leading-relaxed">
+        <p className="text-ink-body leading-relaxed">
           <strong>Both approaches hurt your chances.</strong> Generic answers get filtered out.
           Skipping applications means missing good opportunities. You need answers that are
           specific, concise, and grounded in your actual experience.
@@ -48,11 +48,11 @@ export const content: GeoContent = {
       ),
     },
     {
-      bg: "bg-white",
+      bg: "bg-surface-raised",
       eyebrow: "How It Works",
       heading: "Paste Questions, Get Answers in Seconds",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-6">
+        <p className="text-ink-body leading-relaxed mb-6">
           After Useful Apply generates your full application (CV, cover letter, emails), a
           &quot;Screening Questions&quot; button appears in the chat. Click it, paste your
           questions, and receive formatted answers ready to copy into any ATS portal.
@@ -76,10 +76,10 @@ export const content: GeoContent = {
             },
           ].map((card, i) => (
             <ScrollReveal key={i} delay={i * 150}>
-              <div className="bg-cream-50 rounded-2xl border border-cream-200 p-6">
-                <span className="text-3xl font-bold text-cream-300">{card.step}</span>
-                <h3 className="text-lg font-bold text-navy-600 mt-3 mb-2">{card.title}</h3>
-                <p className="text-warm-gray text-sm leading-relaxed">{card.description}</p>
+              <div className="bg-surface rounded-card border border-border p-6">
+                <span className="text-3xl font-bold text-border-strong">{card.step}</span>
+                <h3 className="text-lg font-bold text-brand mt-3 mb-2">{card.title}</h3>
+                <p className="text-ink-muted text-sm leading-relaxed">{card.description}</p>
               </div>
             </ScrollReveal>
           ))}
@@ -87,11 +87,11 @@ export const content: GeoContent = {
       ),
     },
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "Smart Classification",
       heading: "The Right Length for Every Question Type",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-8">
+        <p className="text-ink-body leading-relaxed mb-8">
           Useful Apply classifies each question and matches the response length to what recruiters
           expect. Short questions get short answers. Behavioral questions get structured STAR
           responses. Nothing is over-explained or padded.
@@ -130,15 +130,15 @@ export const content: GeoContent = {
             },
           ].map((item, i) => (
             <ScrollReveal key={i} delay={i * 80}>
-              <div className="bg-white rounded-xl border border-cream-200 p-6">
+              <div className="bg-surface-raised rounded-xl border border-border p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
-                  <h3 className="text-lg font-bold text-navy-600">{item.type}</h3>
-                  <span className="inline-block px-2.5 py-0.5 bg-cream-50 border border-cream-200 rounded text-xs font-medium text-charcoal">
+                  <h3 className="text-lg font-bold text-brand">{item.type}</h3>
+                  <span className="inline-block px-2.5 py-0.5 bg-surface border border-border rounded text-xs font-medium text-ink-body">
                     {item.length}
                   </span>
                 </div>
-                <p className="text-sm text-warm-gray italic mb-2">{item.example}</p>
-                <p className="text-charcoal text-sm leading-relaxed">{item.description}</p>
+                <p className="text-sm text-ink-muted italic mb-2">{item.example}</p>
+                <p className="text-ink-body text-sm leading-relaxed">{item.description}</p>
               </div>
             </ScrollReveal>
           ))}
@@ -146,11 +146,11 @@ export const content: GeoContent = {
       ),
     },
     {
-      bg: "bg-white",
+      bg: "bg-surface-raised",
       eyebrow: "Zero Fabrication",
       heading: "Every Answer Traces Back to Your CV",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           The AI only references skills, metrics, and qualifications that exist in your
           uploaded CV. If the question asks about a technology you have not used, the answer
           will not claim you have. Instead, it highlights transferable experience or a learning
@@ -166,25 +166,25 @@ export const content: GeoContent = {
             'Multi-language support: answers match the question language',
           ].map((item, i) => (
             <div key={i} className="flex items-start gap-2.5">
-              <Check className="w-5 h-5 text-gold-500 mt-0.5 flex-shrink-0" />
-              <span className="text-charcoal text-sm leading-relaxed">{item}</span>
+              <Check className="w-5 h-5 text-accent-strong mt-0.5 flex-shrink-0" />
+              <span className="text-ink-body text-sm leading-relaxed">{item}</span>
             </div>
           ))}
         </div>,
       ),
     },
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "ATS Compatible",
       heading: "Built for Workday, Greenhouse, Lever, and More",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           ATS platforms enforce strict character limits on screening answer fields, typically
           500 to 1000 characters per field. Recruiters spend 6 to 10 seconds scanning each
           answer. Every answer Useful Apply generates is optimized for both constraints: short
           enough to fit the field, focused enough to make an impression in seconds.
         </p>,
-        <p className="text-charcoal leading-relaxed">
+        <p className="text-ink-body leading-relaxed">
           The maximum answer length is 150 words (approximately 750 characters). Most answers
           are significantly shorter. Yes/no questions get 1 to 5 words. Numeric questions get
           one sentence. Even behavioral STAR answers stay under 150 words by focusing on the
@@ -219,7 +219,7 @@ export const content: GeoContent = {
       a: 'Yes. Useful Apply detects the language of your screening questions and responds in the same language. If your questions are in German, the answers will be in German. This works for all supported languages.',
     },
   ],
-  faqSection: { bg: "bg-white", cardBg: "bg-cream-50" },
+  faqSection: { bg: "bg-surface-raised", cardBg: "bg-surface" },
   cta: {
     heading: "Stop Writing Screening Answers by Hand",
     body:
@@ -227,13 +227,13 @@ export const content: GeoContent = {
     actions: <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
       <Link
         href="/dashboard"
-        className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg inline-flex items-center gap-2"
+        className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-accent-ink font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-floating text-lg inline-flex items-center gap-2"
       >
         Start free
       </Link>
       <Link
         href="/ai-job-application"
-        className="px-10 py-4 glass-dark text-white font-semibold rounded-xl hover:bg-white/30 hover:shadow-xl hover:scale-[1.02] hover:border-gold-400/50 transition-all duration-300 text-lg inline-flex items-center gap-2"
+        className="px-10 py-4 glass-dark text-ink-inverse font-semibold rounded-xl hover:bg-ink-inverse/30 hover:shadow-xl hover:scale-[1.02] hover:border-accent/50 transition-all duration-300 text-lg inline-flex items-center gap-2"
       >
         <ArrowLeft className="w-5 h-5" />
         Back to Guide

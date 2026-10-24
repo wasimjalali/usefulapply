@@ -70,15 +70,15 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     .slice(0, 3);
 
   const categoryColors = CATEGORY_COLORS[post.category as BlogCategory] || {
-    bg: 'bg-cream-50',
-    text: 'text-charcoal',
-    border: 'border-cream-200',
+    bg: 'bg-surface',
+    text: 'text-ink-body',
+    border: 'border-border',
   };
 
   const SITE_URL = SEO_SITE_URL;
 
   return (
-    <div className="min-h-screen bg-cream-100">
+    <div className="min-h-screen bg-canvas">
       <Navbar />
       <main>
       {/* Article JSON-LD */}
@@ -116,7 +116,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           {/* Back link */}
           <Link
             href="/blog"
-            className="inline-flex items-center gap-1.5 text-sm text-warm-gray hover:text-navy-600 transition-colors mb-8"
+            className="inline-flex items-center gap-1.5 text-sm text-ink-muted hover:text-brand transition-colors mb-8"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Blog
@@ -126,22 +126,22 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           <header className="mb-10">
             <div className="flex items-center gap-3 mb-4">
               <span
-                className={`px-3 py-1 text-xs font-medium rounded-full border ${categoryColors.bg} ${categoryColors.text} ${categoryColors.border}`}
+                className={`px-3 py-1 text-xs font-medium rounded-pill border ${categoryColors.bg} ${categoryColors.text} ${categoryColors.border}`}
               >
                 {post.category}
               </span>
             </div>
 
-            <h1 className="font-bold text-navy-600 text-[32px] sm:text-[40px] lg:text-[48px] leading-[1.1] mb-6">
+            <h1 className="font-bold text-brand text-[32px] sm:text-[40px] lg:text-[48px] leading-[1.1] mb-6">
               {post.title}
             </h1>
 
-            <p className="text-lg text-warm-gray mb-6">{post.description}</p>
+            <p className="text-lg text-ink-muted mb-6">{post.description}</p>
 
-            <div className="flex flex-wrap items-center gap-4 text-sm text-warm-gray pb-6 border-b border-cream-200">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-ink-muted pb-6 border-b border-border">
               <div className="flex items-center gap-3">
                 {post.author.name === 'Wasim Jalali' ? (
-                  <div className="relative w-10 h-10 rounded-full overflow-hidden ring-2 ring-gold-200">
+                  <div className="relative w-10 h-10 rounded-pill overflow-hidden ring-2 ring-border-accent-soft">
                     <Image
                       src="/wasim-avatar.jpg"
                       alt="Wasim Jalali"
@@ -151,13 +151,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                     />
                   </div>
                 ) : (
-                  <div className="w-10 h-10 bg-navy-100 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-navy-600" />
+                  <div className="w-10 h-10 bg-brand-soft-strong rounded-pill flex items-center justify-center">
+                    <User className="w-5 h-5 text-brand" />
                   </div>
                 )}
                 <div>
-                  <span className="font-semibold text-charcoal">{post.author.name}</span>
-                  <span className="text-warm-gray"> · {post.author.role}</span>
+                  <span className="font-semibold text-ink-body">{post.author.name}</span>
+                  <span className="text-ink-muted"> · {post.author.role}</span>
                 </div>
               </div>
               <span className="flex items-center gap-1">
@@ -176,19 +176,19 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </header>
 
           {/* Content */}
-          <div className="prose prose-lg max-w-none prose-headings:text-navy-700 prose-headings:font-bold prose-p:text-charcoal prose-p:leading-relaxed prose-a:text-navy-600 prose-a:underline hover:prose-a:text-gold-600 prose-strong:text-navy-700 prose-li:text-charcoal prose-blockquote:border-gold-400 prose-blockquote:text-warm-gray prose-code:text-navy-600 prose-code:bg-cream-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded">
+          <div className="prose prose-lg max-w-none prose-headings:text-brand-strong prose-headings:font-bold prose-p:text-ink-body prose-p:leading-relaxed prose-a:text-brand prose-a:underline hover:prose-a:text-ink-accent prose-strong:text-brand-strong prose-li:text-ink-body prose-blockquote:border-accent prose-blockquote:text-ink-muted prose-code:text-brand prose-code:bg-surface prose-code:px-1 prose-code:py-0.5 prose-code:rounded">
             <BlogContent content={post.content} slug={post.slug} />
           </div>
 
           {/* Tags */}
           {post.tags.length > 0 && (
-            <div className="mt-10 pt-6 border-t border-cream-200">
+            <div className="mt-10 pt-6 border-t border-border">
               <div className="flex items-center gap-2 flex-wrap">
-                <Tag className="w-4 h-4 text-warm-gray" />
+                <Tag className="w-4 h-4 text-ink-muted" />
                 {post.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="px-3 py-1 text-xs font-medium bg-cream-50 text-warm-gray rounded-full border border-cream-200"
+                    className="px-3 py-1 text-xs font-medium bg-surface text-ink-muted rounded-pill border border-border"
                   >
                     {tag}
                   </span>
@@ -198,16 +198,16 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           )}
 
           {/* CTA */}
-          <div className="mt-12 bg-navy-700 rounded-2xl p-8 text-white text-center">
-            <h3 className="font-bold text-white text-[22px] leading-[1.15] mb-2">
+          <div className="mt-12 bg-surface-inverse-raised rounded-card p-8 text-ink-inverse text-center">
+            <h3 className="font-bold text-ink-inverse text-[22px] leading-[1.15] mb-2">
               {post.cta?.heading || 'Ready to apply smarter?'}
             </h3>
-            <p className="text-navy-200 mb-5 text-sm">
+            <p className="text-ink-inverse-muted mb-5 text-sm">
               {post.cta?.description || 'Generate a complete job application (optimized CV + cover letter + email) in under 90 seconds.'}
             </p>
             <Link
               href={post.cta?.href || '/dashboard'}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors text-sm"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting transition-colors text-sm"
             >
               {post.cta?.text || 'Start free'}
             </Link>
@@ -216,15 +216,15 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           {/* Related posts */}
           {relatedPosts.length > 0 && (
             <div className="mt-16">
-              <h2 className="font-bold text-navy-600 text-[22px] md:text-[28px] leading-[1.15] mb-6">Related articles.</h2>
+              <h2 className="font-bold text-brand text-[22px] md:text-[28px] leading-[1.15] mb-6">Related articles.</h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {relatedPosts.map((related) => (
                   <Link key={related.slug} href={`/blog/${related.slug}`} className="group">
-                    <div className="bg-white rounded-xl border border-cream-200 p-5 hover:shadow-md hover:border-gold-300 transition-all">
-                      <h3 className="font-semibold text-navy-700 mb-2 group-hover:text-gold-600 transition-colors line-clamp-2 text-sm">
+                    <div className="bg-surface-raised rounded-xl border border-border p-5 hover:shadow-elevated hover:border-border-accent transition-all">
+                      <h3 className="font-semibold text-brand-strong mb-2 group-hover:text-ink-accent transition-colors line-clamp-2 text-sm">
                         {related.title}
                       </h3>
-                      <p className="text-xs text-warm-gray line-clamp-2">{related.description}</p>
+                      <p className="text-xs text-ink-muted line-clamp-2">{related.description}</p>
                     </div>
                   </Link>
                 ))}
