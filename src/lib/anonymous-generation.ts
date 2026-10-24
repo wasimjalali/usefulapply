@@ -45,6 +45,44 @@ export function markAnonymousCarryOver(): void {
   localStorage.setItem(CARRY_KEY, String(Date.now()));
 }
 
+/**
+ * An auth form opened from anywhere but an account wall clears the marker on submit, so a marker
+ * someone left behind (they clicked the wall, then walked away) can never hand their CV and fit
+ * check to the next person who signs in on this browser.
+ */
+export function clearAnonymousCarryOver(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(CARRY_KEY);
+}
+
+/** `?keep=1` on /auth/signup and /auth/login: the page was opened from an account wall. */
+export const KEEP_ANONYMOUS_PARAM = 'keep';
+
+/** Set or clear the marker for an auth attempt, depending on whether it started at an account wall. */
+export function prepareAnonymousCarryOver(fromWall: boolean): void {
+  if (fromWall) markAnonymousCarryOver();
+  else clearAnonymousCarryOver();
+}
+
+// The account a tab handed this browser's anonymous work to, written by the tab that consumed the
+// marker. Another tab that held the same anonymous work in memory keeps it only for that account.
+const GRANT_KEY = 'usefulapply_carry_granted';
+
+export function grantAnonymousCarryOver(userId: string): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(GRANT_KEY, userId);
+}
+
+export function anonymousCarryGrantedTo(userId: string): boolean {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem(GRANT_KEY) === userId;
+}
+
+export function clearAnonymousCarryGrant(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(GRANT_KEY);
+}
+
 /** Reads and clears the marker. True only if it was set within the TTL. */
 export function consumeAnonymousCarryOver(): boolean {
   if (typeof window === 'undefined') return false;

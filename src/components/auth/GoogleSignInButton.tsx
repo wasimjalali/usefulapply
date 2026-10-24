@@ -3,29 +3,35 @@
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { clearAnonymousCarryOver, prepareAnonymousCarryOver } from '@/lib/anonymous-generation';
 
 interface GoogleSignInButtonProps {
   label: string;
   onError: (message: string) => void;
   /** Where to land after Google returns. Validated again in /auth/callback. */
   next?: string;
+  /** Opened from an account wall: this browser's anonymous CV and fit check carry over into the account. */
+  keepAnonymous?: boolean;
 }
 
 // "Continue with Google" button plus the "or" divider under it.
 // Used on the login and signup pages above the email form.
-export function GoogleSignInButton({ label, onError, next }: GoogleSignInButtonProps) {
+export function GoogleSignInButton({ label, onError, next, keepAnonymous = false }: GoogleSignInButtonProps) {
   const { signInWithGoogle } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleClick = async () => {
     setIsLoading(true);
+    prepareAnonymousCarryOver(keepAnonymous);
     try {
       const { error } = await signInWithGoogle(next);
       if (error) {
+        clearAnonymousCarryOver();
         onError(error.message);
         setIsLoading(false);
       }
     } catch {
+      clearAnonymousCarryOver();
       onError('Google sign in did not start. Check your connection and try again.');
       setIsLoading(false);
     }

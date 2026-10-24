@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, Copy, Download, Loader2 } from 'lucide-react';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useToast } from '@/components/ui/Toast';
 import { downloadBlob } from '@/lib/utils/download-pdf';
-import { buildAnswersPdfBlob, formatAnswersAsText, kitFilename } from '@/lib/utils/kit-export';
-import { useCVStore } from '@/store/useCVStore';
+import { formatAnswersAsText } from '@/lib/utils/kit-export';
+import { isSavedApplicationId, notifyExportFailure, serverExport, trackExportFailure } from '@/lib/utils/server-export';
+import { useLatest } from '@/hooks/useLatest';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { promptAccountToDownload } from '@/components/kit/account-wall';
 
 interface AnswersPanelProps {
   toolbarPortal?: HTMLDivElement | null;
@@ -17,8 +21,9 @@ const TOOL_CLASS = 'inline-flex h-9 items-center gap-2 rounded-full border borde
 
 export function AnswersPanel({ toolbarPortal }: AnswersPanelProps) {
   const currentSession = useSessionStore((s) => s.currentSession);
-  const structuredCV = useCVStore((s) => s.structuredCV);
   const { toast } = useToast();
+  const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const answers = currentSession?.screeningAnswers ?? [];
   const company = currentSession?.company || '';
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -41,19 +46,39 @@ export function AnswersPanel({ toolbarPortal }: AnswersPanelProps) {
     }
   };
 
+  // An in-flight guard a toast's Try again can't bypass (the disabled button only stops clicks).
+  const downloadBusyRef = useRef(false);
   const handleDownload = async () => {
+    const applicationId = currentSession?.id;
     if (answers.length === 0) return;
+    if (!user) {
+      promptAccountToDownload(toast, router.push, 'kit', authLoading);
+      return;
+    }
+    if (downloadBusyRef.current) return;
+    if (!isSavedApplicationId(applicationId)) {
+      toast.error('This application is still saving. Try again in a moment.');
+      return;
+    }
+    downloadBusyRef.current = true;
     setDownloading(true);
     try {
-      const blob = buildAnswersPdfBlob(answers, company);
-      await downloadBlob(blob, kitFilename(structuredCV?.personal.fullName || 'Applicant', company, 'Screening_Answers', 'pdf'));
+      const { blob, fileName } = await serverExport({
+        applicationId,
+        format: 'answers_pdf',
+        answers: answers.map((item) => ({ question: item.question, answer: item.answer })),
+      });
+      await downloadBlob(blob, fileName);
     } catch (err) {
       console.error('Answers PDF failed:', err);
-      toast.error('The PDF didn\'t build. Copy the answers instead.');
+      trackExportFailure('answers_pdf', err);
+      notifyExportFailure(toast, err, 'PDF', () => { void latestDownload.current(); });
     } finally {
+      downloadBusyRef.current = false;
       setDownloading(false);
     }
   };
+  const latestDownload = useLatest(handleDownload);
 
   const toolbar = (
     <>
@@ -61,7 +86,7 @@ export function AnswersPanel({ toolbarPortal }: AnswersPanelProps) {
         {copiedAll ? <Check className="h-4 w-4 text-gold-600" /> : <Copy className="h-4 w-4" />}
         {copiedAll ? 'Copied' : 'Copy all'}
       </button>
-      <button type="button" onClick={handleDownload} className={TOOL_CLASS} disabled={downloading || answers.length === 0}>
+      <button type="button" onClick={handleDownload} className={TOOL_CLASS} disabled={downloading || answers.length === 0 || (Boolean(user) && !isSavedApplicationId(currentSession?.id))}>
         {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
         Download
       </button>

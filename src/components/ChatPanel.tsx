@@ -9,6 +9,7 @@ import { ChatInput } from './chat/ChatInput';
 import { ChatHistory } from './chat/ChatHistory';
 import { FeedbackModal } from './chat/FeedbackModal';
 import { AgentProgressV2 } from './AgentProgressV2';
+import { accountWallHref } from '@/components/kit/account-wall';
 import { FIT_CLOSING_BEFORE_2026_10_23, PROFILE_UNAVAILABLE, useAgentWorkflow } from './chat/useAgentWorkflow';
 import { useChatCompactionMarker } from './chat/compaction-marker';
 import { useStreamingReply } from './chat/streaming-reply';
@@ -2455,13 +2456,14 @@ export function ChatPanel({
                   id: 'create-account',
                   label: 'Create a free account',
                   variant: 'primary',
-                  onSelect: () => router.push('/auth/signup'),
+                  // keep=1: the CV and fit check in this browser come along into the new account.
+                  onSelect: () => router.push(accountWallHref('signup')),
                 },
                 {
                   id: 'log-in',
                   label: 'Log in',
                   variant: 'secondary',
-                  onSelect: () => router.push('/auth/login'),
+                  onSelect: () => router.push(accountWallHref('login')),
                 },
               ]}
             />

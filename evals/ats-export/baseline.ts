@@ -81,7 +81,8 @@ window.renderBaseline = async (data, templateId) => {
     platform: 'browser',
     outfile: join(WORK, 'bundle.js'),
     jsx: 'automatic',
-    nodePaths: [join(REPO_ROOT, 'node_modules')],
+    // jspdf and html2canvas left the app with its browser export; this package keeps them for the baseline.
+    nodePaths: [join(REPO_ROOT, 'evals', 'ats-export', 'node_modules'), join(REPO_ROOT, 'node_modules')],
     alias: { '@/store/useSettingsStore': join(WORK, 'settings-stub.ts'), docx: join(WORK, 'docx-stub.ts'), '@': src },
     define: { 'process.env.NODE_ENV': '"production"' },
     logLevel: 'error',

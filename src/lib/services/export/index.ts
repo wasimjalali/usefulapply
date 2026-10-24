@@ -8,8 +8,8 @@ import { renderExport, type RenderedExport } from './render';
 import { ExportInputError, exportCacheHash, resolveExport } from './resolve';
 import { SigningUnavailableError, exportPathKey, signExportLink } from './signing';
 import { headExport, storeExport } from './storage';
-import { loadKitFromSession } from './kit-loader';
-import type { ExportRequest, ExportedFile, KitLoader } from './types';
+import { loadBaseCvKit, loadKitFromSession } from './kit-loader';
+import type { ExportKit, ExportRequest, ExportedFile, KitLoader } from './types';
 
 export { ExportInputError } from './resolve';
 export { ExportRenderError } from './pdf';
@@ -70,6 +70,8 @@ export interface ExportDeps {
   /** Called before a rendered file is stored, so an account deleted mid-render leaves nothing behind. */
   userExists?: (userId: string) => Promise<boolean>;
   loadKit?: KitLoader;
+  /** Loads the user's base CV for an export without an application. */
+  loadBaseCv?: (userId: string) => Promise<ExportKit | null>;
   browser?: BrowserRunBinding | null;
   loadFont?: FontFileLoader;
   secret?: string;
@@ -139,8 +141,19 @@ export async function exportDocument(req: ExportRequest, deps: ExportDeps = {}):
   const env = await envBindings();
   const loadKit = deps.loadKit ?? loadKitFromSession;
 
-  const kit = await loadKit(req.userId, req.applicationId);
-  if (!kit) throw new ExportInputError('NOT_FOUND', 'Application not found.');
+  let kit: ExportKit | null;
+  if (req.applicationId === null) {
+    // Without an application only the user's own CV can be exported, read with their user id.
+    if (req.format !== 'cv_pdf' && req.format !== 'cv_docx') {
+      throw new ExportInputError('BAD_REQUEST', 'Only a CV can be exported without an application.');
+    }
+    kit = await (deps.loadBaseCv ?? loadBaseCvKit)(req.userId);
+    // No primary CV, or one not parsed yet with nothing from the canvas to stand in for it.
+    if (!kit || (!kit.cv && !req.overrides?.cv)) throw new ExportInputError('NO_CV', 'There is no CV to export yet.');
+  } else {
+    kit = await loadKit(req.userId, req.applicationId);
+    if (!kit) throw new ExportInputError('NOT_FOUND', 'Application not found.');
+  }
 
   const resolved = resolveExport(kit, req.format, req);
   const hash = await exportCacheHash(resolved);

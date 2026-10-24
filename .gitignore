@@ -65,7 +65,6 @@ temp/
 wrangler.e2e.generated.json
 wrangler.e2e-mcp.generated.json
 .dev.vars
-scripts/migrate/out/
 
 # Session scratch and root-level verification screenshots stay out of git
 /todos/

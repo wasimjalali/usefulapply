@@ -52,7 +52,8 @@ function bad(message = 'Invalid request.', status = 400, code = 'BAD_REQUEST') {
 
 /**
  * Renders a CV, cover letter, emails or screening answers for one of the
- * signed-in user's applications and returns a signed link to the file.
+ * signed-in user's applications and returns a signed link to the file. With
+ * no applicationId it renders the user's own base CV (cv_pdf or cv_docx only).
  * The web app's Download buttons use it. The same service backs the MCP
  * `export_documents` tool.
  */
@@ -80,8 +81,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { applicationId, format } = body;
-    if (typeof applicationId !== 'string' || !UUID_RE.test(applicationId)) return bad();
+    // No application: the signed-in user's own base CV, as a CV only (see exportDocument).
+    const baseCv = applicationId === undefined || applicationId === null;
+    if (!baseCv && (typeof applicationId !== 'string' || !UUID_RE.test(applicationId))) return bad();
     if (!isExportFormat(format)) return bad();
+    if (baseCv && format !== 'cv_pdf' && format !== 'cv_docx') return bad();
 
     const options: ExportOptions = {};
     if (body.templateId !== undefined) {
@@ -121,7 +125,7 @@ export async function POST(request: NextRequest) {
     if (Object.keys(overrides).length > 0) options.overrides = overrides;
 
     try {
-      const file = await exportDocument({ userId: user.id, applicationId, format, ...options });
+      const file = await exportDocument({ userId: user.id, applicationId: baseCv ? null : applicationId, format, ...options });
       return NextResponse.json({ file }, { headers: { 'Cache-Control': 'private, no-store' } });
     } catch (error) {
       if (error instanceof ExportInputError) {
@@ -130,14 +134,14 @@ export async function POST(request: NextRequest) {
       }
       if (error instanceof ExportRateLimitedError) return bad('Too many requests. Please try again later.', 429, 'RATE_LIMITED');
       if (error instanceof ExportTooLargeError) return bad('The document is too large to export.', 413, 'EXPORT_TOO_LARGE');
-      // Renderer down, signing secret missing, storage error: the client falls back to its own export.
+      // Renderer down, signing secret missing, storage error: the client says so and offers a retry.
       const reason = error instanceof ExportRenderError ? 'render' : error instanceof SigningUnavailableError ? 'signing' : 'other';
       // Server logs only: the message never reaches the client.
       console.error(`[exports] ${format} failed (${reason}):`, error instanceof Error ? `${error.name}: ${error.message.slice(0, 200)}` : 'unknown');
       const posthog = getPostHogServer();
       posthog?.capture({ distinctId: user.id, event: 'server_export_failed', properties: { format, reason } });
       await posthog?.flush();
-      return bad('The full-quality export is unavailable right now.', 503, 'RENDER_UNAVAILABLE');
+      return bad('The export is unavailable right now.', 503, 'RENDER_UNAVAILABLE');
     }
   } catch (error) {
     console.error('[exports] unexpected error:', error instanceof Error ? error.name : 'unknown');
