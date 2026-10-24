@@ -55,7 +55,7 @@ Forbidden:
 
 **Forbidden:** every other radius class (`rounded-md`, `rounded-xl`, `rounded-3xl`, `rounded-[14px]`...). `rounded-none` is fine.
 
-### CTA treatments (flat — no gradients)
+### CTA treatments (flat, no gradients)
 
 | CTA | Class | Use |
 |---|---|---|
@@ -80,7 +80,7 @@ Labels on both fills are white (`accent-ink`, `brand-ink`). The light gold tints
 
 - Default: `transition-colors duration-(--duration-base)` (200ms); `--duration-fast` is 150ms.
 - `ease-standard` for structure, `ease-pop` for pop moments only (dialogs, ticks, badges).
-- Elevation lift (`-translate-y-0.5 hover:shadow-elevated`) reserved for primary CTA hover only — not on every card.
+- Elevation lift (`-translate-y-0.5 hover:shadow-elevated`) reserved for elevated CTAs only, not on every card.
 - Loading: `Loader2 animate-spin` from lucide. No custom spinners.
 - No fade-in-on-mount on static content. Only animate lazy-loaded content.
 
@@ -96,7 +96,7 @@ Labels on both fills are white (`accent-ink`, `brand-ink`). The light gold tints
 **Ink:** `ink` (headings), `ink-body` (running text), `ink-muted`, `ink-faint`, `ink-inverse`, `ink-inverse-muted`, `ink-accent`.
 **Brand (navy):** `brand`, `brand-strong`, `brand-soft`, `brand-ink`.
 **Accent (gold, sparingly):** `accent`, `accent-strong`, `accent-soft`, `accent-soft-strong`, `accent-soft-ink`, `accent-ink`.
-**Lines:** `border`, `border-strong` (dividers), `border-accent`, `border-accent-soft`, `border-brand-soft`, `border-focus`.
+**Lines:** `border`, `border-strong` (dividers), `border-accent`, `border-accent-soft`, `border-brand-soft`, `border-focus`. As border classes they read `border-border`, `border-border-accent` and so on; `border-accent` the class is the gold-400 `accent` role.
 **Status:** `success`, `success-strong`, `success-soft`, `warning`, `warning-soft`, `danger`, `danger-strong`, `danger-muted`, `danger-soft`, `border-danger`. **Focus:** `focus-ring`.
 **Dark navy panels:** `surface-inverse`, `surface-inverse-strong`, `surface-inverse-raised`, `border-inverse`, `border-inverse-raised`.
 
@@ -115,7 +115,7 @@ Quiet confidence. Navy + cream + gold is deliberately warm rather than cold-tech
 - Heavy blur / glassmorphism
 - Center-aligned text where left-align would be natural
 - Emoji in headings
-- Over-rounded corners (`rounded-full` on non-pills, `rounded-3xl` on cards)
+- Over-rounded corners (`rounded-pill` on non-pills, `rounded-3xl` on cards)
 - Pulsing gradient borders
 - Auto-rotating testimonial carousels
 - Stock illustrations of diverse-people-around-a-laptop
@@ -140,7 +140,7 @@ Quiet confidence. Navy + cream + gold is deliberately warm rather than cold-tech
 ### 4. Cream intensity — softer is better
 - `surface` (cream-50) for surfaces; `canvas` (cream-100) is the page canvas only.
 - Borders at `border` (cream-200); `border-strong` only for dividers.
-- Avoid the darker creams (cream-300, cream-400) on large surfaces — dingy.
+- Avoid the darker creams (cream-300, cream-400) on large surfaces: dingy.
 
 ### 5. Desktop + tablet first (≥768px)
 Mobile is deprioritized per product priorities. Don't spend cycles on responsive variants for complex flows unless they fall out naturally from Tailwind defaults.
@@ -156,8 +156,8 @@ Mobile is deprioritized per product priorities. Don't spend cycles on responsive
 - **Elevated card on hover:** add `hover:shadow-elevated transition-shadow duration-(--duration-base)`
 - **Document surface (CV/letter/email body):** `rounded-card border border-border bg-document shadow-resting`
 - **Modal:** `rounded-modal bg-document shadow-floating` with `bg-canvas/90` backdrop
-- **Primary CTA — Gold:** `bg-accent hover:bg-accent-strong text-accent-ink rounded-control font-semibold`
-- **Primary CTA — Navy:** `bg-brand hover:bg-brand-strong text-brand-ink rounded-control font-semibold`
+- **Primary CTA, Gold:** `bg-accent hover:bg-accent-strong text-accent-ink rounded-control font-semibold`
+- **Primary CTA, Navy:** `bg-brand hover:bg-brand-strong text-brand-ink rounded-control font-semibold`
 - **Ghost / text link:** `text-brand hover:text-brand-strong hover:underline`
 - **Chip / tag:** `rounded-pill border border-border-brand-soft bg-brand-soft px-3 py-1 text-xs font-medium text-brand-strong`
 - **Section header:** eyebrow `text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted` + title `font-semibold text-lg to text-2xl text-ink` + body `text-sm leading-6 text-ink-muted`
