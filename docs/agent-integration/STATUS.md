@@ -7,7 +7,7 @@ Last updated 2026-10-25, session 5. The plan is `PLAN.md` (v3) in this folder; t
 1. **Live since 2026-10-21:** 43 tools at https://usefulapply.com/mcp, the Claude Code plugin ([wasimjalali/usefulapply-plugin](https://github.com/wasimjalali/usefulapply-plugin)) and /integrations. Production on 2026-10-25: Worker version `7121506b`, migrations through 0015 applied.
 2. **Submission pack is current** (session 5): `submission/` and `openai/` match the live catalog, the submission docs as read on 2026-10-25, and OpenAI's new ZIP flow (`openai/package/`).
 3. **Wasim, to submit:** say yes in a session to the production reviewer seed (commands in `submission/checklist.md`, "Production seed"), then the connector and plugin at claude.ai/directory/manage, then the OpenAI app at platform.openai.com/plugins (identity verification and `OPENAI_APPS_CHALLENGE` first).
-4. **Before the OpenAI submission:** the privacy policy doesn't name date of birth or nationality (`update_profile` saves both) and gives no PostHog analytics retention period.
+4. **Done 2026-10-25:** the privacy policy names date of birth and nationality and states PostHog retention (usage events 12 months, session recordings 30 days).
 5. **Follow-ups** as in "Follow-ups", plus: `rewrite_cv_section` returns its before/after text unwrapped while the other CV edit tools wrap it; no spec asserts the top-level `language` code in `get_cv` stays unwrapped.
 
 **Kill switch:** set `MCP_ENABLED` to `"false"` in `wrangler.jsonc` and deploy. /mcp, the OAuth server and /integrations return 404. The footer "AI integrations" link stays (it can't read the var), so it would 404 too: drop it from `Footer.tsx` in the same change.
@@ -102,8 +102,7 @@ Last updated 2026-10-25, session 5. The plan is `PLAN.md` (v3) in this folder; t
 Everything from the old "In flight" and "Left to do" lists (the Discard and short-ad fixes, PR 5, PR 6a and 6b, the launch) has shipped; git history has the old text.
 
 1. **Wasim says yes** to the production reviewer seed, one run per portal (`submission/checklist.md`, "Production seed").
-2. **Privacy policy:** name date of birth and nationality, and state the PostHog analytics retention period.
-3. **Wasim submits** at claude.ai/directory/manage (connector, then plugin) and at platform.openai.com/plugins (identity verification and `OPENAI_APPS_CHALLENGE` first).
+2. **Wasim submits** at claude.ai/directory/manage (connector, then plugin) and at platform.openai.com/plugins (identity verification and `OPENAI_APPS_CHALLENGE` first).
 
 ## Follow-ups (smaller, any time)
 
@@ -124,8 +123,6 @@ Everything from the old "In flight" and "Left to do" lists (the Discard and shor
 
 ## Needs Wasim (ask once, at the end)
 
-- **PostHog analytics retention period:** the privacy policy and OpenAI's review need a number (MCP analytics already say 12 months).
-- **Privacy wording** for date of birth and nationality.
 - **Production reviewer seed:** a yes in session before anyone runs it.
 - **Marketplace submissions:** Anthropic and OpenAI accounts, OpenAI identity verification, a GitHub connection on claude.ai for the plugin.
 - **Uninstall CodeRabbit:** github.com/settings/installations, then CodeRabbit, Configure, Uninstall.
