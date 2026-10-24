@@ -69,9 +69,9 @@ async function feedUser(browser: Browser, request: APIRequestContext, label: str
 
 async function openJobBoard(page: Page) {
   // From the sidebar, the way a user gets there. The dashboard first restores the user's last application, so the
-  // click waits for that to finish, or the restore can switch the workspace back.
+  // click waits for that application's CV tab, or the restore can switch the workspace back.
   await page.goto('/dashboard');
-  await page.waitForLoadState('networkidle');
+  await expect(page.getByRole('tab', { name: 'CV', exact: true })).toBeVisible({ timeout: 30_000 });
   const nav = page.getByRole('navigation', { name: 'Workspace' }).getByRole('button', { name: /^Job Board/ });
   await nav.click();
   await expect(nav).toHaveAttribute('aria-current', 'page');

@@ -42,24 +42,44 @@ export function notifyJobFeedBadgeRefresh() {
 }
 
 // The badge hook is mounted in three places, and a save or dismiss pings them
-// all at once. They share one request while it is in flight.
-let inFlight: Promise<JobFeedSummary | null> | null = null;
-function fetchSummary(): Promise<JobFeedSummary | null> {
-  if (!inFlight) {
-    inFlight = (async () => {
-      try {
-        const res = await fetch('/api/job-feed/summary');
-        if (!res.ok) return null;
-        return (await res.json()) as JobFeedSummary;
-      } catch {
-        // swallow, the badge is best-effort
-        return null;
-      } finally {
-        inFlight = null;
-      }
-    })();
+// all at once. Instances of one user share a request while it is in flight. A
+// refresh asked for during a flight can't reuse it (it may predate the action),
+// so it shares one follow-up that starts when the flight lands. Keyed by user,
+// so a result never reaches another account's instance.
+const inFlight = new Map<string, Promise<JobFeedSummary | null>>();
+const followUp = new Map<string, Promise<JobFeedSummary | null>>();
+
+function startFetch(key: string): Promise<JobFeedSummary | null> {
+  const request = (async () => {
+    try {
+      const res = await fetch('/api/job-feed/summary');
+      if (!res.ok) return null;
+      return (await res.json()) as JobFeedSummary;
+    } catch {
+      // swallow, the badge is best-effort
+      return null;
+    } finally {
+      if (inFlight.get(key) === request) inFlight.delete(key);
+    }
+  })();
+  inFlight.set(key, request);
+  return request;
+}
+
+function fetchSummary(userId: string | null | undefined, fresh: boolean): Promise<JobFeedSummary | null> {
+  const key = userId ?? '';
+  const current = inFlight.get(key);
+  if (!current) return startFetch(key);
+  if (!fresh) return current;
+  let next = followUp.get(key);
+  if (!next) {
+    next = current.then(() => {
+      followUp.delete(key);
+      return startFetch(key);
+    });
+    followUp.set(key, next);
   }
-  return inFlight;
+  return next;
 }
 
 export function useJobFeedBadge(enabled: boolean, userId?: string | null) {
@@ -75,7 +95,7 @@ export function useJobFeedBadge(enabled: boolean, userId?: string | null) {
     if (!enabled) return;
     let cancelled = false;
     (async () => {
-      const data = await fetchSummary();
+      const data = await fetchSummary(userId, refreshTick > 0);
       if (!data || cancelled) return;
       setSummary(data);
 
