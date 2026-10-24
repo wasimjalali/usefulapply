@@ -185,6 +185,52 @@
   --border-info-soft: var(--color-violet-100);
   --info-ink: var(--color-violet-700);
   --ink-error: var(--color-rose-700);
+  /* PR 3 roles (canvas, workspace) */
+  --brand-mid: var(--color-navy-500);
+  --brand-muted: var(--color-navy-400);
+  --border-brand: var(--color-navy-300);
+  --border-inverse-mid: var(--color-navy-500);
+  --ink-inverse-tint: var(--color-navy-100);
+  --ink-ghost: var(--color-cream-400);
+  --border-stronger: var(--color-cream-400);
+  --accent-deep: var(--color-gold-600);
+  --success-muted: var(--color-sage-500);
+  --border-success: var(--color-sage-300);
+  --border-success-soft: var(--color-sage-200);
+  --danger-ink: #FFFFFF;
+  /* PR 4 roles (marketing) */
+  --ink-inverse-faint: var(--color-navy-300);
+  --ink-strong: var(--color-navy-900);
+  --ink-accent-on-inverse: var(--color-gold-300);
+  --border-subtle: var(--color-cream-100);
+  --positive: var(--color-green-600);
+  --positive-soft: var(--color-green-50);
+  --danger-on-inverse: var(--color-red-300);
+  --link-inverse: var(--color-teal-400);
+  --link-inverse-hover: var(--color-teal-300);
+  --tag-blue-soft: var(--color-blue-50);
+  --tag-blue-ink: var(--color-blue-700);
+  --tag-blue-line: var(--color-blue-200);
+  --tag-purple-soft: var(--color-purple-50);
+  --tag-purple-ink: var(--color-purple-700);
+  --tag-purple-line: var(--color-purple-200);
+  --tag-rose-soft: var(--color-rose-50);
+  --tag-rose-ink: var(--color-rose-700);
+  --tag-rose-line: var(--color-rose-200);
+  --tag-orange-soft: var(--color-orange-50);
+  --tag-orange-ink: var(--color-orange-700);
+  --tag-orange-line: var(--color-orange-200);
+  --tag-green-soft: var(--color-green-50);
+  --tag-green-ink: var(--color-green-700);
+  --tag-green-line: var(--color-green-200);
+  /* PR 4 roles (app pages) */
+  --ink-inverse-warm: var(--color-cream-100);
+  --focus-halo: var(--color-navy-100);
+  --border-danger-strong: var(--color-red-300);
+  --sunken-strong: var(--color-cream-300);
+  --ink-ghost-soft: var(--color-cream-300);
+  --status-bad: var(--color-rose-600);
+  --chart-line: var(--color-navy-300);
 }
 
 @theme inline {
@@ -270,6 +316,52 @@
   --color-border-info-soft: var(--border-info-soft);
   --color-info-ink: var(--info-ink);
   --color-ink-error: var(--ink-error);
+  /* PR 3 roles (canvas, workspace) */
+  --color-brand-mid: var(--brand-mid);
+  --color-brand-muted: var(--brand-muted);
+  --color-border-brand: var(--border-brand);
+  --color-border-inverse-mid: var(--border-inverse-mid);
+  --color-ink-inverse-tint: var(--ink-inverse-tint);
+  --color-ink-ghost: var(--ink-ghost);
+  --color-border-stronger: var(--border-stronger);
+  --color-accent-deep: var(--accent-deep);
+  --color-success-muted: var(--success-muted);
+  --color-border-success: var(--border-success);
+  --color-border-success-soft: var(--border-success-soft);
+  --color-danger-ink: var(--danger-ink);
+  /* PR 4 roles (marketing) */
+  --color-ink-inverse-faint: var(--ink-inverse-faint);
+  --color-ink-strong: var(--ink-strong);
+  --color-ink-accent-on-inverse: var(--ink-accent-on-inverse);
+  --color-border-subtle: var(--border-subtle);
+  --color-positive: var(--positive);
+  --color-positive-soft: var(--positive-soft);
+  --color-danger-on-inverse: var(--danger-on-inverse);
+  --color-link-inverse: var(--link-inverse);
+  --color-link-inverse-hover: var(--link-inverse-hover);
+  --color-tag-blue-soft: var(--tag-blue-soft);
+  --color-tag-blue-ink: var(--tag-blue-ink);
+  --color-tag-blue-line: var(--tag-blue-line);
+  --color-tag-purple-soft: var(--tag-purple-soft);
+  --color-tag-purple-ink: var(--tag-purple-ink);
+  --color-tag-purple-line: var(--tag-purple-line);
+  --color-tag-rose-soft: var(--tag-rose-soft);
+  --color-tag-rose-ink: var(--tag-rose-ink);
+  --color-tag-rose-line: var(--tag-rose-line);
+  --color-tag-orange-soft: var(--tag-orange-soft);
+  --color-tag-orange-ink: var(--tag-orange-ink);
+  --color-tag-orange-line: var(--tag-orange-line);
+  --color-tag-green-soft: var(--tag-green-soft);
+  --color-tag-green-ink: var(--tag-green-ink);
+  --color-tag-green-line: var(--tag-green-line);
+  /* PR 4 roles (app pages) */
+  --color-ink-inverse-warm: var(--ink-inverse-warm);
+  --color-focus-halo: var(--focus-halo);
+  --color-border-danger-strong: var(--border-danger-strong);
+  --color-sunken-strong: var(--sunken-strong);
+  --color-ink-ghost-soft: var(--ink-ghost-soft);
+  --color-status-bad: var(--status-bad);
+  --color-chart-line: var(--chart-line);
 }
 
 :root {

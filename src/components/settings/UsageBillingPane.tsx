@@ -241,7 +241,7 @@ export function UsageBillingPane() {
       <div>
         <PaneHeading>Usage &amp; Billing</PaneHeading>
         <div className="flex min-h-[240px] items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-navy-600" />
+          <Loader2 className="h-6 w-6 animate-spin text-brand" />
         </div>
       </div>
     );
@@ -253,10 +253,10 @@ export function UsageBillingPane() {
 
       {checkoutStatus !== 'idle' && (
         <div
-          className="mb-5 flex items-center gap-3 rounded-xl border border-cream-200 bg-cream-50 px-4 py-3 text-sm text-navy-800"
+          className="mb-5 flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm text-ink"
           role="status"
         >
-          {checkoutStatus === 'processing' && <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-gold-600" />}
+          {checkoutStatus === 'processing' && <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-ink-accent" />}
           <p>
             {checkoutStatus === 'processing' && 'Your payment is processing. Your plan and credits will update here.'}
             {checkoutStatus === 'complete' && 'Your payment is confirmed. Your plan and credits are up to date.'}
@@ -266,17 +266,17 @@ export function UsageBillingPane() {
       )}
 
       <Caption>USAGE</Caption>
-      <div className="rounded-2xl border border-cream-200 bg-cream-50 px-5 py-4">
+      <div className="rounded-card border border-border bg-surface px-5 py-4">
         <div className="flex items-baseline justify-between gap-4">
-          <p className="text-sm text-charcoal">
+          <p className="text-sm text-ink-body">
             <strong className="font-semibold">{tidy(total)} of {tidy(allowance)} credits</strong> left this month
           </p>
-          {resets && <p className="text-xs text-warm-gray">Resets {resets}</p>}
+          {resets && <p className="text-xs text-ink-muted">Resets {resets}</p>}
         </div>
-        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-cream-200">
-          <div className="h-full rounded-full bg-gold-400" style={{ width: `${percent}%` }} />
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-pill bg-sunken">
+          <div className="h-full rounded-pill bg-accent" style={{ width: `${percent}%` }} />
         </div>
-        <p className="mt-3 text-xs text-warm-gray">{spendLine}</p>
+        <p className="mt-3 text-xs text-ink-muted">{spendLine}</p>
       </div>
 
       <Caption>BILLING</Caption>
@@ -284,17 +284,17 @@ export function UsageBillingPane() {
         {isFree ? (
           <div className="flex items-center justify-between gap-4 px-5 py-4">
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-navy-800">Free plan</p>
-              <p className="mt-0.5 text-xs text-warm-gray">Four credits a month, top-5 daily feed. Upgrade below to get more.</p>
+              <p className="text-sm font-semibold text-ink">Free plan</p>
+              <p className="mt-0.5 text-xs text-ink-muted">Four credits a month, top-5 daily feed. Upgrade below to get more.</p>
             </div>
-            <span className="flex-shrink-0 text-sm text-warm-gray">No card on file</span>
+            <span className="flex-shrink-0 text-sm text-ink-muted">No card on file</span>
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between gap-4 px-5 py-4">
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-navy-800">{PLAN_LABEL[tier]}</p>
-                <p className="mt-0.5 text-xs text-warm-gray">
+                <p className="text-sm font-semibold text-ink">{PLAN_LABEL[tier]}</p>
+                <p className="mt-0.5 text-xs text-ink-muted">
                   {PLAN_PRICE[tier]}
                   {subscription?.cancel_at_period_end && planEnds
                     ? ` · plan ends ${planEnds}`
@@ -306,21 +306,21 @@ export function UsageBillingPane() {
                 type="button"
                 disabled={busy === 'portal'}
                 onClick={() => { void handlePortal(); }}
-                className="inline-flex h-9 flex-shrink-0 items-center rounded-full border border-cream-200 bg-cream-50 px-4 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white disabled:text-warm-gray cursor-pointer"
+                className="inline-flex h-9 flex-shrink-0 items-center rounded-pill border border-border bg-surface px-4 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised disabled:text-ink-muted cursor-pointer"
               >
                 Manage billing
               </button>
             </div>
             <div className="flex items-center justify-between gap-4 px-5 py-4">
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-navy-800">Credit pack</p>
-                <p className="mt-0.5 text-xs text-warm-gray">50 extra credits, they roll over while you&apos;re subscribed.</p>
+                <p className="text-sm font-semibold text-ink">Credit pack</p>
+                <p className="mt-0.5 text-xs text-ink-muted">50 extra credits, they roll over while you&apos;re subscribed.</p>
               </div>
               <button
                 type="button"
                 disabled={busy === 'addon'}
                 onClick={() => { void handleCheckout('/api/stripe/create-addon-checkout', { packSize: 'credit pack' }, 'addon'); }}
-                className="inline-flex h-9 flex-shrink-0 items-center rounded-full border border-cream-200 bg-cream-50 px-4 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white disabled:text-warm-gray cursor-pointer"
+                className="inline-flex h-9 flex-shrink-0 items-center rounded-pill border border-border bg-surface px-4 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised disabled:text-ink-muted cursor-pointer"
               >
                 Add 50 credits · $19.99
               </button>
@@ -338,24 +338,24 @@ export function UsageBillingPane() {
           return (
             <div
               key={plan.tier}
-              className={`flex flex-col rounded-2xl border p-4 ${
-                isTarget ? 'border-gold-200 bg-gold-50' : 'border-cream-200 bg-cream-50'
+              className={`flex flex-col rounded-card border p-4 ${
+                isTarget ? 'border-border-accent-soft bg-accent-soft' : 'border-border bg-surface'
               }`}
             >
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-navy-800">{plan.name}</span>
+                <span className="text-sm font-semibold text-ink">{plan.name}</span>
                 {isCurrent && (
-                  <span className="inline-flex items-center rounded-full bg-cream-200 px-2 py-0.5 text-[11px] font-semibold text-navy-700">
+                  <span className="inline-flex items-center rounded-pill bg-sunken px-2 py-0.5 text-[11px] font-semibold text-brand-strong">
                     Current
                   </span>
                 )}
               </div>
-              <p className="mt-1.5 text-[22px] font-semibold leading-none text-navy-900">
+              <p className="mt-1.5 text-[22px] font-semibold leading-none text-ink-strong">
                 {plan.price}
-                <span className="ml-1 font-sans text-xs font-normal text-warm-gray">{plan.per}</span>
+                <span className="ml-1 font-sans text-xs font-normal text-ink-muted">{plan.per}</span>
               </p>
-              <p className="mt-2 text-[13px] font-semibold text-gold-600">{plan.credits}</p>
-              <p className="mt-1.5 text-xs leading-relaxed text-warm-gray">{plan.settingsLine}</p>
+              <p className="mt-2 text-[13px] font-semibold text-ink-accent">{plan.credits}</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">{plan.settingsLine}</p>
               <div className="mt-auto pt-3">
                 {isTarget && (
                   <button
@@ -365,7 +365,7 @@ export function UsageBillingPane() {
                       if (isFree) void handleCheckout('/api/stripe/create-checkout', { planTier: plan.tier }, 'plan');
                       else void handlePortal({ flow: 'subscription_update' });
                     }}
-                    className="inline-flex h-9 w-full items-center justify-center rounded-full bg-gold-400 px-4 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 disabled:opacity-60 cursor-pointer"
+                    className="inline-flex h-9 w-full items-center justify-center rounded-pill bg-accent px-4 text-sm font-semibold text-accent-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-accent-strong disabled:opacity-60 cursor-pointer"
                   >
                     {plan.tier === 'plus' ? 'Upgrade to Plus' : 'Move to Max'}
                   </button>
@@ -375,7 +375,7 @@ export function UsageBillingPane() {
                     type="button"
                     disabled={busy === 'plan'}
                     onClick={() => { void handleCheckout('/api/stripe/create-checkout', { planTier: 'max' }, 'plan'); }}
-                    className="inline-flex h-9 w-full items-center justify-center rounded-full border border-cream-200 bg-cream-50 px-4 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white disabled:text-warm-gray cursor-pointer"
+                    className="inline-flex h-9 w-full items-center justify-center rounded-pill border border-border bg-surface px-4 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised disabled:text-ink-muted cursor-pointer"
                   >
                     Go Max
                   </button>
@@ -385,8 +385,8 @@ export function UsageBillingPane() {
           );
         })}
       </div>
-      <p className="mt-3 text-xs text-warm-gray">Card via Stripe, cancel any time. Credits stay until the period ends.</p>
-      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+      <p className="mt-3 text-xs text-ink-muted">Card via Stripe, cancel any time. Credits stay until the period ends.</p>
+      {error && <p className="mt-2 text-xs text-danger">{error}</p>}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { AlertCircle, ArrowUpRight, Briefcase, Check, Loader2, SlidersHorizontal } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
@@ -12,6 +12,7 @@ import { resolveFeedBuild, useFeedStore } from '@/store/useFeedStore';
 import { openSettings } from '@/store/useSettingsStore';
 import { FeedEditView } from './FeedEditView';
 import { saveFeedSettings } from './feed-actions';
+import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { FeedJobCard } from './FeedJobCard';
 import { FeedJobDetail } from './FeedJobDetail';
 import { buildRankedForLine, plural } from './feed-format';
@@ -53,6 +54,29 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
   const { all: allJobs } = useFeedJobLists();
   const actions = useFeedJobActions();
   const [detailBusy, setDetailBusy] = useState(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  // The card the user was on is gone, so focus would fall to the page. Hand it
+  // to the next card's X, then the previous one, then the list heading.
+  const dismissAndMoveFocus = async (job: JobFeedFeedItem, toNeighbour: boolean) => {
+    const index = jobs.findIndex((item) => item.id === job.id);
+    const neighbours = toNeighbour ? [jobs[index + 1], jobs[index - 1]].filter(Boolean) : [];
+    const gone = await actions.dismiss(job);
+    if (!gone) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      // Only if focus is still lost or still in the feed: the user may have moved on.
+      const active = document.activeElement;
+      if (active && active !== document.body && !active.closest('[data-shell-column="canvas"]')) return;
+      for (const neighbour of neighbours) {
+        const target = document.querySelector<HTMLElement>(`[data-job-dismiss="${CSS.escape(neighbour.id)}"]`);
+        if (target) {
+          target.focus();
+          return;
+        }
+      }
+      headingRef.current?.focus();
+    }));
+  };
   const [previewMode] = useState(() => getJobFeedPreviewMode());
 
   // Auth does not run in local dev, so a preview names the plan it is showing.
@@ -63,6 +87,8 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
   // for an empty day, and telling the user "2 searches" when one runs would be
   // a promise the normal day does not keep.
   const queryBudget = getJobFeedTierLimits(tier ?? 'free').maxMainQueries;
+  // The server allows a dismiss on Plus and Max only, so Free never sees the button.
+  const canDismiss = (tier === 'plus' || tier === 'max') && !readOnly;
   const canAffordFit = credits === null || credits.total >= CREDIT_COSTS.FIT_ANALYSIS;
   const canAffordKit = credits === null || credits.total >= CREDIT_COSTS.FULL_APPLICATION;
   const selectedJob = useMemo(
@@ -115,7 +141,8 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
     return (
       <FeedJobDetail
         job={selectedJob}
-        busy={detailBusy || actions.busyJobId === selectedJob.id}
+        busy={detailBusy || actions.busyJobIds.has(selectedJob.id)}
+        dismissing={actions.dismissingJobIds.has(selectedJob.id)}
         onBack={() => useFeedStore.getState().backToList()}
         onCheckFit={(job) => { void actions.checkFit(job, 'analyze'); }}
         onGenerateKit={(job) => {
@@ -123,6 +150,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
           void actions.checkFit(job, 'apply').finally(() => setDetailBusy(false));
         }}
         onSave={(job) => { void actions.save(job); }}
+        onDismiss={canDismiss ? (job) => { void dismissAndMoveFocus(job, false); } : undefined}
         onOpenEmployerSite={actions.openEmployerSite}
         onUpgrade={() => openSettings('usage')}
         showCheckFit={!readOnly}
@@ -201,19 +229,19 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex flex-shrink-0 items-start gap-3 border-b border-cream-200 px-5 py-3">
+      <header className="flex flex-shrink-0 items-start gap-3 border-b border-border px-5 py-3">
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-xl font-semibold text-navy-800">{headline}</h2>
-          {rankedFor && <p className="truncate text-xs text-warm-gray">{rankedFor}</p>}
+          <h2 ref={headingRef} tabIndex={-1} className="truncate text-xl font-semibold text-ink focus:outline-none">{headline}</h2>
+          {rankedFor && <p className="truncate text-xs text-ink-muted">{rankedFor}</p>}
         </div>
-        <div className="inline-flex flex-shrink-0 items-center rounded-full border border-cream-200 bg-cream-50 p-0.5" role="tablist">
+        <div className="inline-flex flex-shrink-0 items-center rounded-pill border border-border bg-surface p-0.5" role="tablist">
           <button
             type="button"
             role="tab"
             aria-selected={!showingSaved}
             onClick={actions.showToday}
-            className={`rounded-full px-3.5 py-1.5 text-sm transition-colors duration-200 cursor-pointer ${
-              !showingSaved ? 'bg-white font-semibold text-navy-800 shadow-sm' : 'font-medium text-warm-gray hover:text-navy-700'
+            className={`rounded-pill px-3.5 py-1.5 text-sm transition-colors duration-(--duration-base) cursor-pointer ${
+              !showingSaved ? 'bg-surface-raised font-semibold text-ink shadow-resting' : 'font-medium text-ink-muted hover:text-brand-strong'
             }`}
           >
             Today
@@ -223,8 +251,8 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
             role="tab"
             aria-selected={showingSaved}
             onClick={actions.showSaved}
-            className={`rounded-full px-3.5 py-1.5 text-sm transition-colors duration-200 cursor-pointer ${
-              showingSaved ? 'bg-white font-semibold text-navy-800 shadow-sm' : 'font-medium text-warm-gray hover:text-navy-700'
+            className={`rounded-pill px-3.5 py-1.5 text-sm transition-colors duration-(--duration-base) cursor-pointer ${
+              showingSaved ? 'bg-surface-raised font-semibold text-ink shadow-resting' : 'font-medium text-ink-muted hover:text-brand-strong'
             }`}
           >
             Saved
@@ -238,7 +266,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
               store.setEditPill('profile');
               store.setView('edit');
             }}
-            className="inline-flex h-9 flex-shrink-0 items-center gap-2 rounded-full border border-cream-200 bg-cream-50 px-3.5 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
+            className="inline-flex h-9 flex-shrink-0 items-center gap-2 rounded-pill border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised cursor-pointer"
           >
             <SlidersHorizontal className="h-4 w-4" />
             Edit feed
@@ -248,15 +276,15 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
 
       <div className="min-h-0 flex-1 space-y-3 overflow-auto px-5 py-4">
         {loadingSaved && showingSaved && (
-          <p className="text-sm text-warm-gray">Loading your saved roles.</p>
+          <p className="text-sm text-ink-muted">Loading your saved roles.</p>
         )}
 
         {showingSaved && savedError && (
-          <p className="text-sm text-warm-gray">{savedError}</p>
+          <p className="text-sm text-ink-muted">{savedError}</p>
         )}
 
         {jobs.length === 0 && !loadingSaved && !(showingSaved && savedError) && (
-          <p className="text-sm text-warm-gray">
+          <p className="text-sm text-ink-muted">
             {showingSaved
               ? 'Nothing saved yet. The bookmark on a card keeps it here.'
               : narrowed
@@ -269,10 +297,12 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
           <FeedJobCard
             key={job.id}
             job={job}
-            busy={actions.busyJobId === job.id}
+            busy={actions.busyJobIds.has(job.id)}
+            dismissing={actions.dismissingJobIds.has(job.id)}
             onOpenDetail={actions.openDetail}
             onCheckFit={(item) => { void actions.checkFit(item, 'analyze'); }}
             onSave={(item) => { void actions.save(item); }}
+            onDismiss={canDismiss ? (item) => { void dismissAndMoveFocus(item, true); } : undefined}
             onOpenEmployerSite={actions.openEmployerSite}
             onUpgrade={() => openSettings('usage')}
             showCheckFit={!readOnly}
@@ -285,15 +315,15 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
             type="button"
             disabled={loadingMore}
             onClick={() => { void actions.loadMore(); }}
-            className="w-full rounded-2xl border border-cream-200 bg-cream-50 px-5 py-3 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white disabled:cursor-not-allowed disabled:text-warm-gray cursor-pointer"
+            className="w-full rounded-card border border-border bg-surface px-5 py-3 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
           >
             {loadingMore ? 'Loading' : 'Show more roles'}
           </button>
         )}
 
         {knownFree && !readOnly && !showingSaved && jobs.length > 0 && (
-          <div className="flex items-center gap-4 rounded-2xl border border-gold-200 bg-gold-50 px-5 py-4">
-            <p className="min-w-0 flex-1 text-sm leading-relaxed text-charcoal">
+          <div className="flex items-center gap-4 rounded-card border border-border-accent-soft bg-accent-soft px-5 py-4">
+            <p className="min-w-0 flex-1 text-sm leading-relaxed text-ink-body">
               <strong className="font-semibold">You&apos;re seeing your top {feedCap} today.</strong>
               {hiddenMatched > 0
                 ? ` ${hiddenMatched} more ${plural(hiddenMatched, 'role', 'roles')} matched today.`
@@ -303,7 +333,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
             <button
               type="button"
               onClick={() => openSettings('usage')}
-              className="inline-flex h-10 flex-shrink-0 items-center gap-2 rounded-full border border-gold-400 bg-cream-50 px-4 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
+              className="inline-flex h-10 flex-shrink-0 items-center gap-2 rounded-pill border border-accent bg-surface px-4 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised cursor-pointer"
             >
               See Plus
               <ArrowUpRight className="h-4 w-4" />
@@ -319,11 +349,11 @@ function EmptyCanvas({ icon, title, body }: { icon: React.ReactNode; title: stri
   return (
     <div className="flex h-full items-center justify-center px-10">
       <div className="max-w-md text-center">
-        <span className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-full bg-gold-100 text-gold-600">
+        <span className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-pill bg-accent-soft-strong text-ink-accent">
           {icon}
         </span>
-        <h2 className="text-2xl font-semibold text-navy-800">{title}</h2>
-        {body && <p className="mt-2 text-sm leading-relaxed text-warm-gray">{body}</p>}
+        <h2 className="text-2xl font-semibold text-ink">{title}</h2>
+        {body && <p className="mt-2 text-sm leading-relaxed text-ink-muted">{body}</p>}
       </div>
     </div>
   );
@@ -351,9 +381,9 @@ function BuildingCanvas({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex-shrink-0 border-b border-cream-200 px-5 py-3">
-        <h2 className="text-xl font-semibold text-navy-800">Searching for you</h2>
-        <p className="text-xs text-warm-gray">
+      <header className="flex-shrink-0 border-b border-border px-5 py-3">
+        <h2 className="text-xl font-semibold text-ink">Searching for you</h2>
+        <p className="text-xs text-ink-muted">
           {queries.length > 0
             ? `${queries.length} ${plural(queries.length, 'search', 'searches')} today, in priority order.`
             : `${queryBudget} ${plural(queryBudget, 'search', 'searches')} run on your plan each time you build the feed.`}
@@ -370,30 +400,30 @@ function BuildingCanvas({
           return (
           <div
             key={`${query.query}-${index}`}
-            className={`flex items-start gap-3 rounded-2xl border px-4 py-3 ${
-              done ? 'border-gold-200 bg-gold-50' : 'border-cream-200 bg-cream-50'
+            className={`flex items-start gap-3 rounded-card border px-4 py-3 ${
+              done ? 'border-border-accent-soft bg-accent-soft' : 'border-border bg-surface'
             }`}
           >
-            <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full">
+            <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-pill">
               {done ? (
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gold-400 text-white">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-pill bg-accent text-accent-ink">
                   <Check className="h-3 w-3" strokeWidth={2.5} />
                 </span>
               ) : (
-                <Loader2 className="h-4 w-4 animate-spin text-gold-500" />
+                <Loader2 className="h-4 w-4 animate-spin text-accent-strong" />
               )}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-navy-800">{query.query}</p>
-              <p className="mt-0.5 text-xs text-warm-gray">{query.rationale}</p>
-              {foundLine && <p className="mt-1 text-[11px] text-warm-gray">{foundLine}</p>}
+              <p className="text-sm font-semibold text-ink">{query.query}</p>
+              <p className="mt-0.5 text-xs text-ink-muted">{query.rationale}</p>
+              {foundLine && <p className="mt-1 text-[11px] text-ink-muted">{foundLine}</p>}
             </div>
           </div>
           );
         })}
 
         {queries.length === 0 && (
-          <p className="text-sm text-warm-gray">
+          <p className="text-sm text-ink-muted">
             {canSteer
               ? "I'm planning the searches now. They show up here as soon as they're set."
               : 'Plus shows you every query it runs and why.'}

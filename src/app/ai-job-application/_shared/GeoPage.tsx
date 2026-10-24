@@ -37,8 +37,8 @@ function CenteredHeader({ eyebrow, heading }: { eyebrow: string; heading: string
   return (
     <ScrollReveal>
       <div className="text-center mb-10">
-        <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">{eyebrow}</p>
-        <h2 className="text-3xl md:text-4xl font-bold text-navy-600">{heading}</h2>
+        <p className="text-sm font-semibold text-accent-strong uppercase tracking-widest mb-3">{eyebrow}</p>
+        <h2 className="text-3xl md:text-4xl font-bold text-brand">{heading}</h2>
       </div>
     </ScrollReveal>
   );
@@ -49,8 +49,8 @@ function contentSection(s: GeoSection) {
     <CenteredHeader eyebrow={s.eyebrow} heading={s.heading} />
   ) : (
     <ScrollReveal>
-      <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-3">{s.eyebrow}</p>
-      <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-6">{s.heading}</h2>
+      <p className="text-sm font-semibold text-accent-strong uppercase tracking-widest mb-3">{s.eyebrow}</p>
+      <h2 className="text-3xl md:text-4xl font-bold text-brand mb-6">{s.heading}</h2>
     </ScrollReveal>
   );
   // Spread (not nested) so the children stay a flat static list, as in the original pages.
@@ -122,14 +122,14 @@ export function GeoPage({ content: c }: { content: GeoContent }) {
 
   const homeCrumb = (
     <li>
-      <Link href="/" className="hover:text-navy-600 transition-colors">
+      <Link href="/" className="hover:text-brand transition-colors">
         Home
       </Link>
     </li>
   );
   const hubCrumb = (
     <li>
-      <Link href="/ai-job-application" className="hover:text-navy-600 transition-colors">
+      <Link href="/ai-job-application" className="hover:text-brand transition-colors">
         AI Job Application
       </Link>
     </li>
@@ -141,14 +141,14 @@ export function GeoPage({ content: c }: { content: GeoContent }) {
   const crumbs: ReactNode[] = [];
   crumbs.push(homeCrumb, slash());
   if (!c.hub) crumbs.push(hubCrumb, slash());
-  crumbs.push(<li className="text-navy-600 font-medium">{c.crumb}</li>);
+  crumbs.push(<li className="text-brand font-medium">{c.crumb}</li>);
   const breadcrumb = (
     <nav
       className={
         (c.hub ? 'max-w-5xl' : 'max-w-4xl') + ' mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-2'
       }
     >
-      {createElement('ol', { className: 'flex items-center gap-2 text-sm text-warm-gray' }, ...crumbs)}
+      {createElement('ol', { className: 'flex items-center gap-2 text-sm text-ink-muted' }, ...crumbs)}
     </nav>
   );
 
@@ -157,7 +157,7 @@ export function GeoPage({ content: c }: { content: GeoContent }) {
   leadKids.push(
     <p
       className={
-        'text-xl text-warm-gray max-w-3xl mx-auto leading-relaxed' + (h.leadMb4 ? ' mb-4' : '')
+        'text-xl text-ink-muted max-w-3xl mx-auto leading-relaxed' + (h.leadMb4 ? ' mb-4' : '')
       }
     >
       {h.lead}
@@ -167,10 +167,10 @@ export function GeoPage({ content: c }: { content: GeoContent }) {
   const heroKids: ReactNode[] = [];
   heroKids.push(
     <ScrollReveal delay={0} direction="down" distance={20}>
-      <p className="text-sm font-semibold text-gold-500 uppercase tracking-widest mb-4">{h.eyebrow}</p>
+      <p className="text-sm font-semibold text-accent-strong uppercase tracking-widest mb-4">{h.eyebrow}</p>
     </ScrollReveal>,
     <ScrollReveal delay={150}>
-      <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-navy-600 mb-6 leading-tight">
+      <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-brand mb-6 leading-tight">
         {h.title}
       </h1>
     </ScrollReveal>,
@@ -187,7 +187,7 @@ export function GeoPage({ content: c }: { content: GeoContent }) {
             {
               href: '/dashboard',
               className:
-                'inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-md',
+                'inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-400 to-gold-500 text-accent-ink font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-elevated',
             },
             ...btnKids,
           )}
@@ -207,7 +207,7 @@ export function GeoPage({ content: c }: { content: GeoContent }) {
     linkKids.push(
       <Link
         href="/ai-job-application"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-navy-600 hover:text-gold-500 transition-colors"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-brand hover:text-accent-strong transition-colors"
       >
         <ArrowLeft className="w-4 h-4" /> AI Job Application Hub
       </Link>,
@@ -216,7 +216,7 @@ export function GeoPage({ content: c }: { content: GeoContent }) {
       linkKids.push(
         <Link
           href={l.href}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-gold-500 hover:text-gold-600 transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-accent-strong hover:text-ink-accent transition-colors"
         >
           {l.label + ' '}
           <ArrowRight className="w-4 h-4" />
@@ -244,13 +244,13 @@ export function GeoPage({ content: c }: { content: GeoContent }) {
               key={i}
               itemScope
               itemType="https://schema.org/Question"
-              className={c.faqSection.cardBg + ' rounded-xl border border-cream-200 p-6'}
+              className={c.faqSection.cardBg + ' rounded-xl border border-border p-6'}
             >
-              <h3 itemProp="name" className="text-lg font-bold text-charcoal mb-3">
+              <h3 itemProp="name" className="text-lg font-bold text-ink-body mb-3">
                 {faq.q}
               </h3>
               <div itemScope itemType="https://schema.org/Answer" itemProp="acceptedAnswer">
-                <p itemProp="text" className="text-warm-gray leading-relaxed">
+                <p itemProp="text" className="text-ink-muted leading-relaxed">
                   {faq.a}
                 </p>
               </div>
@@ -270,7 +270,7 @@ export function GeoPage({ content: c }: { content: GeoContent }) {
       {
         href: '/dashboard',
         className:
-          'inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-white font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-lg text-lg',
+          'inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-accent-ink font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-floating text-lg',
       },
       ...ctaKids,
     );
@@ -278,11 +278,11 @@ export function GeoPage({ content: c }: { content: GeoContent }) {
 
   const cta = (
     <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float-slow" />
+      <div className="absolute top-0 right-0 w-96 h-96 bg-accent/10 rounded-pill -translate-y-1/2 translate-x-1/2 animate-float-slow" />
       <ScrollReveal>
         <div className="max-w-4xl mx-auto text-center relative">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">{c.cta.heading}</h2>
-          <p className="text-lg text-navy-200 mb-10 max-w-2xl mx-auto">{c.cta.body}</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-ink-inverse mb-4">{c.cta.heading}</h2>
+          <p className="text-lg text-ink-inverse-muted mb-10 max-w-2xl mx-auto">{c.cta.body}</p>
           {ctaAction}
         </div>
       </ScrollReveal>
@@ -291,7 +291,7 @@ export function GeoPage({ content: c }: { content: GeoContent }) {
 
   return createElement(
     'div',
-    { className: 'min-h-screen bg-cream-100' },
+    { className: 'min-h-screen bg-canvas' },
     <Navbar />,
     ...scripts,
     createElement('main', null, ...mainKids, faq, cta),

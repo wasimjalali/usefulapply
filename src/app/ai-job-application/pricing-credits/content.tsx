@@ -21,18 +21,18 @@ export const content: GeoContent = {
   },
   sections: [
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "Plans",
       heading: "The Three Plans Explained",
       reveal: true,
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
+        <p className="text-ink-body leading-relaxed mb-4 max-w-3xl">
           Free: 4 credits, 2 complete applications per month, no credit card required. Good for
           evaluating output quality before committing. Plus ($19.99/month): 50
           credits, 25 complete applications per month. Good for active job searchers applying to
           5 to 10 roles per week.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
+        <p className="text-ink-body leading-relaxed mb-4 max-w-3xl">
           Max ($79.99/month): 200 credits, 100 applications per month. Good for high-volume
           campaigns or career transitions with many active applications. All plans include the
           full document package, fit score, and anti-hallucination safeguards.
@@ -40,65 +40,65 @@ export const content: GeoContent = {
       ),
     },
     {
-      bg: "bg-white",
+      bg: "bg-surface-raised",
       eyebrow: "Credit System",
       heading: "How Credits Are Counted",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           One complete application (Check Fit or Generate Application) costs 2 credits. A fit
           assessment only (without generating documents) costs 0.5 credits. Regenerating a cover
           letter or email costs 0.5 credits per regeneration. The follow-up email is included in
           the initial 2-credit generation at no additional credit cost.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Add-on credit packs are available if you exceed your monthly plan volume.
         </p>,
       ),
     },
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "Cost Breakdown",
       heading: "Cost Per Application: The Right Way to Compare",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           The fair comparison metric is cost per full application, not cost per
           month. Plus plan: $19.99 ÷ 25 applications = ~$0.80 per full application
           (CV + cover letter + 2 emails). Max plan: $79.99 ÷ 100 applications = ~$0.80 per
           full application.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Compare this to the time cost of manual applications: roughly an hour each, 25
           applications is around 25 hours of manual work.
         </p>,
       ),
     },
     {
-      bg: "bg-white",
+      bg: "bg-surface-raised",
       eyebrow: "Choosing a Plan",
       heading: "When to Choose Each Plan",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Start with the Free plan to validate output quality. Move to Plus if you are
           applying consistently and need more than 2 applications per month. Move to Max if you are in
           an intensive job search phase: layoff, career transition, or high-volume market.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Use credit packs to cover occasional spikes without upgrading your plan permanently.
         </p>,
       ),
     },
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "Transparency",
       heading: "What the Credit System Prevents",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Transparent credit counting makes cost predictable. Unlike tools that charge per
           &quot;AI interaction&quot; or have opaque token-based billing, Useful Apply charges per
           full application. One job description generates one complete set of four
           documents for 2 credits.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           You always know exactly what you&apos;re paying for.
         </p>,
       ),
@@ -133,7 +133,7 @@ export const content: GeoContent = {
       a: 'The Max plan at $79.99/month gives 100 applications, which works out to approximately $0.80 per full application. For context: one tailored application takes roughly an hour by hand. Useful Apply does it in 90 seconds, roughly 40x faster. On Max, 100 applications a month is close to 100 hours of manual work returned to you.',
     },
   ],
-  faqSection: { bg: "bg-cream-50", cardBg: "bg-white" },
+  faqSection: { bg: "bg-surface", cardBg: "bg-surface-raised" },
   cta: {
     heading: "Start free",
     body:

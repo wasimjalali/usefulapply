@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ canAccess: false, latestRunDate: null, jobCount: 0, lastSeenRunDate: null }, { status: 200 });
     }
 
-    const { allowed } = await checkRateLimit(`job-feed-overview:${user.id}`, RATE_LIMITS['job-feed-overview']);
+    const { allowed } = await checkRateLimit(`job-feed-summary:${user.id}`, RATE_LIMITS['job-feed-summary']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
@@ -62,7 +62,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    const { allowed } = await checkRateLimit(`job-feed-overview:${user.id}`, RATE_LIMITS['job-feed-overview']);
+    const { allowed } = await checkRateLimit(`job-feed-summary:${user.id}`, RATE_LIMITS['job-feed-summary']);
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
     }

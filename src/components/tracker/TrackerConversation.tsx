@@ -226,11 +226,11 @@ export function TrackerConversation() {
   }, [addMessage, applyStatus, input, profile, say, setHideRejected, setThinking, thinking, user]);
 
   return (
-    <section className="flex h-full w-full min-w-0 flex-col border-r border-cream-200 bg-cream-50">
-      <header className="flex flex-shrink-0 items-center gap-3 border-b border-cream-200 px-5 py-3.5">
+    <section className="flex h-full w-full min-w-0 flex-col border-r border-border bg-surface">
+      <header className="flex flex-shrink-0 items-center gap-3 border-b border-border px-5 py-3.5">
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-base font-semibold text-navy-800">Application Tracker</h2>
-          <p className="text-xs text-warm-gray">
+          <h2 className="truncate text-base font-semibold text-ink">Application Tracker</h2>
+          <p className="text-xs text-ink-muted">
             {rows.length} application{rows.length === 1 ? '' : 's'}
           </p>
         </div>
@@ -240,8 +240,8 @@ export function TrackerConversation() {
         {messages.map((message) =>
           message.role === 'user' ? (
             <div key={message.id} className="flex justify-end">
-              <div className="max-w-[86%] rounded-2xl rounded-br-sm border border-cream-200 bg-white px-3.5 py-3 shadow-sm">
-                <MarkdownText content={message.text} className="text-sm text-charcoal" />
+              <div className="max-w-[86%] rounded-card rounded-br-sm border border-border bg-surface-raised px-3.5 py-3 shadow-resting">
+                <MarkdownText content={message.text} className="text-sm text-ink-body" />
               </div>
             </div>
           ) : (
@@ -250,7 +250,7 @@ export function TrackerConversation() {
                 <BrandIcon size="xs" theme="light" />
               </div>
               <div className="min-w-0 flex-1 space-y-3">
-                <MarkdownText content={message.text} className="text-sm leading-relaxed text-charcoal" />
+                <MarkdownText content={message.text} className="text-sm leading-relaxed text-ink-body" />
                 {message.chips && message.chips.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {message.chips.map((chip) => (
@@ -261,10 +261,10 @@ export function TrackerConversation() {
                         onClick={() => {
                           void handleChip(chip);
                         }}
-                        className={`inline-flex h-10 max-w-full items-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer ${
+                        className={`inline-flex h-10 max-w-full items-center gap-2 rounded-pill px-4 text-sm font-semibold transition-colors duration-(--duration-base) disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer ${
                           chip.primary
-                            ? 'bg-gold-400 text-white hover:bg-gold-500'
-                            : 'border border-cream-200 bg-cream-50 text-navy-800 shadow-sm hover:bg-white'
+                            ? 'bg-accent text-accent-ink hover:bg-accent-strong'
+                            : 'border border-border bg-surface text-ink shadow-resting hover:bg-surface-raised'
                         }`}
                       >
                         {chip.label}
@@ -281,14 +281,14 @@ export function TrackerConversation() {
             <div className="h-fit flex-shrink-0">
               <BrandIcon size="xs" theme="light" />
             </div>
-            <Loader2 className="mt-1 h-4 w-4 animate-spin text-warm-gray" />
+            <Loader2 className="mt-1 h-4 w-4 animate-spin text-ink-muted" />
           </div>
         )}
         <div ref={endRef} />
       </div>
 
-      <div className="flex-shrink-0 bg-cream-50 px-5 pb-4 pt-2.5">
-        <div className="flex items-end gap-2 rounded-2xl border border-cream-200 bg-white px-3.5 py-2.5 shadow-sm">
+      <div className="flex-shrink-0 bg-surface px-5 pb-4 pt-2.5">
+        <div className="flex items-end gap-2 rounded-card border border-border bg-surface-raised px-3.5 py-2.5 shadow-resting">
           <textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
@@ -301,7 +301,7 @@ export function TrackerConversation() {
             rows={1}
             disabled={thinking}
             placeholder={'"Avetta moved to interview", "what’s due this week?"'}
-            className="max-h-32 min-h-[24px] flex-1 resize-none bg-transparent text-sm text-charcoal placeholder:text-warm-gray/70 focus:outline-none disabled:cursor-not-allowed"
+            className="max-h-32 min-h-[24px] flex-1 resize-none bg-transparent text-sm text-ink-body placeholder:text-ink-faint focus:outline-none disabled:cursor-not-allowed"
           />
           <button
             type="button"
@@ -310,7 +310,7 @@ export function TrackerConversation() {
             }}
             disabled={!input.trim() || thinking}
             aria-label="Send"
-            className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gold-400 text-white transition-colors duration-200 hover:bg-gold-500 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-warm-gray cursor-pointer"
+            className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-pill bg-accent text-accent-ink transition-colors duration-(--duration-base) hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-sunken disabled:text-ink-muted cursor-pointer"
           >
             <Send className="h-4 w-4" />
           </button>

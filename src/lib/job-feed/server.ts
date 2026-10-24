@@ -33,7 +33,7 @@ import { ingestJobFeedRunJobs } from '@/lib/job-feed/ingestion';
 import { prepareJobFeedRankingCandidates, prefilterJobFeedJobs } from '@/lib/job-feed/prefilter';
 import { rankJobFeedCandidates } from '@/lib/job-feed/ranking';
 import { captureJobFeedEvent } from '@/lib/job-feed/analytics';
-import { estimateTotalExperienceYears } from '@/lib/job-feed/cv-suggestions';
+import { estimateTotalExperienceYears } from '@/lib/job-feed/cv-experience';
 import {
   CAREER_PROFILE_SCHEMA_VERSION,
   isCurrentCareerProfile,

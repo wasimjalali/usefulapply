@@ -76,7 +76,7 @@ const toolGroups: { title: string; body: string; tools: string }[] = [
   },
   {
     title: 'Update your settings',
-    body: 'Choose which emails you get: product news, follow-up due, interview tomorrow and low credits.',
+    body: 'Choose which emails you get: follow-up due and interview tomorrow.',
     tools: 'update_notification_settings',
   },
 ];
@@ -96,19 +96,19 @@ const scopes: { name: string; body: string }[] = [
   { name: 'Spend', body: 'Use your credits to check your fit and write applications. Any tool that costs credits needs this, and so do screening answers, which allow 5 requests per application.' },
 ];
 
-const h2 = 'text-[28px] md:text-[34px] font-semibold text-navy-600 leading-[1.1] mb-4';
-const p = 'text-warm-gray leading-relaxed';
-const card = 'bg-cream-50 rounded-2xl p-6 border border-cream-200 shadow-sm';
-const code = 'font-mono text-sm bg-cream-100 border border-cream-200 rounded-lg px-1.5 py-0.5 text-charcoal whitespace-nowrap';
+const h2 = 'text-[28px] md:text-[34px] font-semibold text-brand leading-[1.1] mb-4';
+const p = 'text-ink-muted leading-relaxed';
+const card = 'bg-surface rounded-card p-6 border border-border shadow-resting';
+const code = 'font-mono text-sm bg-canvas border border-border rounded-control px-1.5 py-0.5 text-ink-body whitespace-nowrap';
 const pre =
-  'font-mono text-sm bg-navy-800 text-cream-100 rounded-xl p-4 whitespace-pre overflow-x-auto leading-relaxed';
+  'font-mono text-sm bg-surface-inverse text-ink-inverse-warm rounded-xl p-4 whitespace-pre overflow-x-auto leading-relaxed';
 // Shell commands wrap instead of scrolling, so the whole command is visible in a half-width card.
 const commandPre = pre.replace('whitespace-pre overflow-x-auto', 'whitespace-pre-wrap wrap-anywhere');
 
 export default function IntegrationsPage() {
   if (!isMcpEnabled()) notFound();
   return (
-    <div className="min-h-screen bg-cream-100">
+    <div className="min-h-screen bg-canvas">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
@@ -117,13 +117,13 @@ export default function IntegrationsPage() {
       <main>
         <section className="pt-20 pb-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto">
-            <p className="text-xs font-semibold text-gold-700 uppercase tracking-[0.12em] mb-4">
+            <p className="text-xs font-semibold text-accent-soft-ink uppercase tracking-[0.12em] mb-4">
               Integrations
             </p>
-            <h1 className="font-semibold text-navy-600 text-[40px] sm:text-[48px] leading-[1.05] tracking-tight mb-6">
+            <h1 className="font-semibold text-brand text-[40px] sm:text-[48px] leading-[1.05] tracking-tight mb-6">
               Use Useful Apply from your AI assistant.
             </h1>
-            <p className="text-xl text-warm-gray max-w-2xl leading-relaxed">
+            <p className="text-xl text-ink-muted max-w-2xl leading-relaxed">
               Connect Claude, ChatGPT, Claude Code, Cursor or another MCP app. Your assistant can
               check your fit, write your application and update your tracker. You choose what it
               can do, and you review everything before it goes anywhere.
@@ -140,7 +140,7 @@ export default function IntegrationsPage() {
             </p>
             <div className="grid md:grid-cols-2 gap-6">
               <div className={card}>
-                <h3 className="text-xl font-semibold text-charcoal mb-3">Claude.ai and Desktop</h3>
+                <h3 className="text-xl font-semibold text-ink-body mb-3">Claude.ai and Desktop</h3>
                 <p className={p}>
                   Open Settings, then Connectors, then Add custom connector. Paste{' '}
                   <code className={code}>{MCP_URL}</code>. Once we&apos;re listed, you can pick
@@ -148,7 +148,7 @@ export default function IntegrationsPage() {
                 </p>
               </div>
               <div className={card}>
-                <h3 className="text-xl font-semibold text-charcoal mb-3">ChatGPT</h3>
+                <h3 className="text-xl font-semibold text-ink-body mb-3">ChatGPT</h3>
                 <p className={p}>
                   Once we&apos;re listed, find Useful Apply in the ChatGPT app directory. Until then, turn
                   on developer mode and add{' '}
@@ -156,7 +156,7 @@ export default function IntegrationsPage() {
                 </p>
               </div>
               <div className={card}>
-                <h3 className="text-xl font-semibold text-charcoal mb-3">Claude Code</h3>
+                <h3 className="text-xl font-semibold text-ink-body mb-3">Claude Code</h3>
                 <p className={`${p} mb-3`}>Install the plugin. It adds the connector and an apply-to-job skill:</p>
                 <pre className={commandPre} tabIndex={0} role="region" aria-label="Claude Code plugin commands">
                   <code>{`/plugin marketplace add wasimjalali/usefulapply-plugin\n/plugin install usefulapply@usefulapply`}</code>
@@ -170,7 +170,7 @@ export default function IntegrationsPage() {
                 </p>
               </div>
               <div className={card}>
-                <h3 className="text-xl font-semibold text-charcoal mb-3">Cursor</h3>
+                <h3 className="text-xl font-semibold text-ink-body mb-3">Cursor</h3>
                 <p className={`${p} mb-3`}>
                   Add this to <code className={code}>.cursor/mcp.json</code> in a project, or{' '}
                   <code className={code}>~/.cursor/mcp.json</code> for all projects:
@@ -189,19 +189,19 @@ export default function IntegrationsPage() {
             <div className="grid md:grid-cols-2 gap-6 mt-8">
               {toolGroups.map((group) => (
                 <div key={group.title} className={card}>
-                  <h3 className="text-lg font-semibold text-charcoal mb-2">{group.title}</h3>
+                  <h3 className="text-lg font-semibold text-ink-body mb-2">{group.title}</h3>
                   <p className={`${p} mb-3`}>{group.body}</p>
-                  <p className="text-xs text-warm-gray font-mono break-words">{group.tools}</p>
+                  <p className="text-xs text-ink-muted font-mono break-words">{group.tools}</p>
                 </div>
               ))}
             </div>
 
-            <h3 className="text-2xl font-semibold text-navy-600 mt-12 mb-2">What costs credits</h3>
+            <h3 className="text-2xl font-semibold text-brand mt-12 mb-2">What costs credits</h3>
             <p className={`${p} mb-4`}>
               These tools cost the same as in the web app. Screening answers are free but need Spend access. Everything else is free.
             </p>
             <div
-              className="overflow-x-auto bg-cream-50 rounded-2xl border border-cream-200 shadow-sm"
+              className="overflow-x-auto bg-surface rounded-card border border-border shadow-resting"
               tabIndex={0}
               role="region"
               aria-label="Tools that cost credits"
@@ -209,16 +209,16 @@ export default function IntegrationsPage() {
               <table className="w-full text-sm text-left border-collapse">
                 <caption className="sr-only">Tools that cost credits and what each one costs</caption>
                 <thead>
-                  <tr className="border-b border-cream-200 text-charcoal">
+                  <tr className="border-b border-border text-ink-body">
                     <th scope="col" className="py-3 px-4 font-semibold">Tool</th>
                     <th scope="col" className="py-3 px-4 font-semibold">What it does</th>
                     <th scope="col" className="py-3 px-4 font-semibold">Credits</th>
                   </tr>
                 </thead>
-                <tbody className="text-warm-gray">
+                <tbody className="text-ink-muted">
                   {spendTools.map((tool) => (
-                    <tr key={tool.name} className="border-b border-cream-200 last:border-0 align-top">
-                      <td className="py-3 px-4 font-mono text-xs text-charcoal">{tool.name}</td>
+                    <tr key={tool.name} className="border-b border-border last:border-0 align-top">
+                      <td className="py-3 px-4 font-mono text-xs text-ink-body">{tool.name}</td>
                       <td className="py-3 px-4">{tool.what}</td>
                       <td className="py-3 px-4">{tool.cost}</td>
                     </tr>
@@ -238,7 +238,7 @@ export default function IntegrationsPage() {
             <div className="grid md:grid-cols-3 gap-6 mb-8">
               {scopes.map((scope) => (
                 <div key={scope.name} className={card}>
-                  <h3 className="text-lg font-semibold text-charcoal mb-2">{scope.name}</h3>
+                  <h3 className="text-lg font-semibold text-ink-body mb-2">{scope.name}</h3>
                   <p className={p}>{scope.body}</p>
                 </div>
               ))}
@@ -293,19 +293,19 @@ export default function IntegrationsPage() {
             <h2 className={h2}>Support</h2>
             <p className={p}>
               Questions or problems? Email{' '}
-              <a href={`mailto:${BRAND.supportEmail}`} className="text-navy-600 hover:underline">
+              <a href={`mailto:${BRAND.supportEmail}`} className="text-brand hover:underline">
                 {BRAND.supportEmail}
               </a>{' '}
               or use the{' '}
-              <Link href="/contact" className="text-navy-600 hover:underline">
+              <Link href="/contact" className="text-brand hover:underline">
                 contact page
               </Link>
               . See our{' '}
-              <Link href="/privacy" className="text-navy-600 hover:underline">
+              <Link href="/privacy" className="text-brand hover:underline">
                 Privacy Policy
               </Link>{' '}
               and{' '}
-              <Link href="/terms" className="text-navy-600 hover:underline">
+              <Link href="/terms" className="text-brand hover:underline">
                 Terms of Service
               </Link>
               .

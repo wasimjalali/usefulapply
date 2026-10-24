@@ -63,13 +63,13 @@ function CallbackHandler() {
 
   if (status === 'error') {
     return (
-      <div className="min-h-screen bg-cream-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-canvas flex items-center justify-center p-4">
         <div className="text-center">
-          <p className="mb-4 text-warm-gray">{errorMessage}</p>
+          <p className="mb-4 text-ink-muted">{errorMessage}</p>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="h-10 rounded-full bg-navy-600 px-5 text-sm font-semibold text-white hover:bg-navy-700"
+            className="h-10 rounded-pill bg-brand px-5 text-sm font-semibold text-brand-ink hover:bg-brand-strong"
           >
             Try again
           </button>
@@ -79,10 +79,10 @@ function CallbackHandler() {
   }
 
   return (
-    <div className="min-h-screen bg-cream-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-canvas flex items-center justify-center p-4">
       <div className="text-center">
-        <Loader2 className="w-8 h-8 animate-spin text-navy-600 mx-auto mb-4" />
-        <p className="text-warm-gray">Completing sign in...</p>
+        <Loader2 className="w-8 h-8 animate-spin text-brand mx-auto mb-4" />
+        <p className="text-ink-muted">Completing sign in...</p>
       </div>
     </div>
   );
@@ -92,10 +92,10 @@ export default function AuthCallbackPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-cream-100 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-canvas flex items-center justify-center p-4">
           <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin text-navy-600 mx-auto mb-4" />
-            <p className="text-warm-gray">Loading...</p>
+            <Loader2 className="w-8 h-8 animate-spin text-brand mx-auto mb-4" />
+            <p className="text-ink-muted">Loading...</p>
           </div>
         </div>
       }

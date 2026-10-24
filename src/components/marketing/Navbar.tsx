@@ -49,7 +49,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-3 z-50 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div className="rounded-2xl border border-cream-200 bg-cream-50 px-4 shadow-sm sm:px-6 lg:px-8">
+      <div className="rounded-card border border-border bg-surface px-4 shadow-resting sm:px-6 lg:px-8">
         <div className="flex h-14 items-center justify-between">
           <Link href="/" onClick={handleLogoClick} className="flex items-center">
             <BrandLogo variant="full" size="sm" theme="light" />
@@ -60,7 +60,7 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium text-charcoal transition-colors duration-200 hover:text-navy-600"
+                className="text-sm font-medium text-ink-body transition-colors duration-(--duration-base) hover:text-brand"
               >
                 {link.label}
               </Link>
@@ -72,7 +72,7 @@ export default function Navbar() {
             ) : isSignedIn ? (
               <Link
                 href="/dashboard"
-                className="inline-flex h-10 items-center gap-1.5 rounded-full border border-cream-200 bg-white px-5 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-cream-100"
+                className="inline-flex h-10 items-center gap-1.5 rounded-pill border border-border bg-surface-raised px-5 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-canvas"
               >
                 Open app
                 <ArrowUpRight className="h-4 w-4" />
@@ -81,13 +81,13 @@ export default function Navbar() {
               <>
                 <Link
                   href="/auth/login"
-                  className="text-sm font-medium text-charcoal transition-colors duration-200 hover:text-navy-600"
+                  className="text-sm font-medium text-ink-body transition-colors duration-(--duration-base) hover:text-brand"
                 >
                   Log in
                 </Link>
                 <Link
                   href="/dashboard"
-                  className="inline-flex h-10 items-center rounded-full bg-gold-400 px-5 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500"
+                  className="inline-flex h-10 items-center rounded-pill bg-accent px-5 text-sm font-semibold text-accent-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-accent-strong"
                 >
                   Start free
                 </Link>
@@ -96,7 +96,7 @@ export default function Navbar() {
           </nav>
 
           <button
-            className="p-2 text-charcoal md:hidden cursor-pointer"
+            className="p-2 text-ink-body md:hidden cursor-pointer"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -105,23 +105,23 @@ export default function Navbar() {
         </div>
 
         {mobileMenuOpen && (
-          <div className="border-t border-cream-200 py-4 md:hidden">
+          <div className="border-t border-border py-4 md:hidden">
             <nav className="flex flex-col gap-3">
               {NAV_LINKS.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-sm font-medium text-charcoal transition-colors duration-200 hover:text-navy-600"
+                  className="text-sm font-medium text-ink-body transition-colors duration-(--duration-base) hover:text-brand"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {link.label}
                 </Link>
               ))}
-              <div className="flex flex-col gap-3 border-t border-cream-200 pt-4">
+              <div className="flex flex-col gap-3 border-t border-border pt-4">
                 {isSignedIn ? (
                   <Link
                     href="/dashboard"
-                    className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-cream-200 bg-white text-sm font-semibold text-navy-800 shadow-sm"
+                    className="inline-flex h-11 items-center justify-center gap-1.5 rounded-pill border border-border bg-surface-raised text-sm font-semibold text-ink shadow-resting"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Open app
@@ -131,14 +131,14 @@ export default function Navbar() {
                   <>
                     <Link
                       href="/auth/login"
-                      className="text-sm font-medium text-charcoal transition-colors duration-200 hover:text-navy-600"
+                      className="text-sm font-medium text-ink-body transition-colors duration-(--duration-base) hover:text-brand"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       Log in
                     </Link>
                     <Link
                       href="/dashboard"
-                      className="inline-flex h-11 items-center justify-center rounded-full bg-gold-400 text-sm font-semibold text-white shadow-sm"
+                      className="inline-flex h-11 items-center justify-center rounded-pill bg-accent text-sm font-semibold text-accent-ink shadow-resting"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       Start free

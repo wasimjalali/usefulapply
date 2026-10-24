@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Caption, LinkButton, PaneHeading, Row, RowGroup, Toggle, ValueText } from '@/components/settings/parts';
-import { useSettingsStore } from '@/store/useSettingsStore';
+import { Caption, PaneHeading, Row, RowGroup, Toggle, ValueText } from '@/components/settings/parts';
 
 // `notify_feed_ready` is deliberately absent. The feed runs in real time on a
 // click and the user watches it finish, so there is no moment to mail. The
@@ -12,15 +11,12 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 const TOGGLES = [
   { field: 'notify_follow_up_due', label: 'A follow-up or offer deadline is due', fallback: true },
   { field: 'notify_interview_tomorrow', label: 'An interview is tomorrow', fallback: true },
-  { field: 'notify_credits_low', label: 'Credits are about to run out', fallback: true },
-  { field: 'notify_marketing', label: 'Product news, once a month at most', fallback: false },
 ] as const;
 
 type ToggleField = (typeof TOGGLES)[number]['field'];
 
 export function NotificationsPane() {
   const { user, profile, updateProfile } = useAuth();
-  const open = useSettingsStore((state) => state.open);
   const [error, setError] = useState<string | null>(null);
 
   // The columns land with the tracker migration. Until it runs, a missing
@@ -51,13 +47,11 @@ export function NotificationsPane() {
           </Row>
         ))}
       </RowGroup>
-      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-xs text-danger">{error}</p>}
 
       <Caption>SEND TO</Caption>
       <RowGroup>
-        <Row label={<ValueText>{user?.email ?? 'Your email'}</ValueText>}>
-          <LinkButton onClick={() => open('general')}>Change in General</LinkButton>
-        </Row>
+        <Row label={<ValueText>{user?.email ?? 'Your email'}</ValueText>} />
       </RowGroup>
     </div>
   );

@@ -95,7 +95,7 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-cream-100">
+    <div className="min-h-screen bg-canvas">
       {/* JSON-LD schemas */}
       <script
         type="application/ld+json"
@@ -113,7 +113,7 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
           <div className="max-w-5xl mx-auto">
             <Link
               href="/compare"
-              className="inline-flex items-center gap-1.5 text-sm text-warm-gray hover:text-navy-600 transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm text-ink-muted hover:text-brand transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Comparisons
@@ -132,7 +132,7 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
         {/* Tool Deep Dives */}
         <section className="py-16 px-4 sm:px-6 lg:px-8">
           <div className="max-w-5xl mx-auto">
-            <h2 className="font-bold text-navy-600 text-[32px] leading-[1.1] mb-10 text-center">Detailed overview.</h2>
+            <h2 className="font-bold text-brand text-[32px] leading-[1.1] mb-10 text-center">Detailed overview.</h2>
             <div className="grid lg:grid-cols-2 gap-8">
               <ComparisonDeepDive tool={comparison.brandOverview} isBrand={true} />
               <ComparisonDeepDive tool={comparison.competitorOverview} isBrand={false} />
@@ -158,12 +158,12 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
         {/* Verdict & CTA */}
         <section className="py-16 px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto">
-            <div className="bg-navy-700 rounded-2xl p-10 text-white text-center">
-              <h2 className="font-bold text-white text-[28px] leading-[1.1] mb-4">The verdict.</h2>
-              <p className="text-navy-200 mb-6 leading-relaxed">{comparison.verdict}</p>
+            <div className="bg-surface-inverse-raised rounded-card p-10 text-ink-inverse text-center">
+              <h2 className="font-bold text-ink-inverse text-[28px] leading-[1.1] mb-4">The verdict.</h2>
+              <p className="text-ink-inverse-muted mb-6 leading-relaxed">{comparison.verdict}</p>
               <Link
                 href={comparison.ctaHref || '/dashboard'}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting transition-colors"
               >
                 {comparison.ctaText}
               </Link>

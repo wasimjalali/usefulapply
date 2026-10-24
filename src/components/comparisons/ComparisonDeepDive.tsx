@@ -9,17 +9,17 @@ interface ComparisonDeepDiveProps {
 
 export function ComparisonDeepDive({ tool, isBrand = false }: ComparisonDeepDiveProps) {
   return (
-    <div className={`bg-white rounded-2xl border ${isBrand ? 'border-gold-300' : 'border-cream-200'} p-8 shadow-sm`}>
+    <div className={`bg-surface-raised rounded-card border ${isBrand ? 'border-border-accent' : 'border-border'} p-8 shadow-resting`}>
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h3 className="font-bold text-navy-600 text-[22px] leading-[1.15] mb-2">{tool.name}</h3>
-          <p className="text-warm-gray">{tool.description}</p>
+          <h3 className="font-bold text-brand text-[22px] leading-[1.15] mb-2">{tool.name}</h3>
+          <p className="text-ink-muted">{tool.description}</p>
         </div>
         {tool.rating && (
-          <div className="flex items-center gap-1 bg-gold-50 px-3 py-1.5 rounded-lg border border-gold-200">
-            <Star className="w-4 h-4 text-gold-600 fill-gold-600" />
-            <span className="text-sm font-semibold text-gold-700">{tool.rating.toFixed(1)}</span>
+          <div className="flex items-center gap-1 bg-accent-soft px-3 py-1.5 rounded-control border border-border-accent-soft">
+            <Star className="w-4 h-4 text-ink-accent fill-ink-accent" />
+            <span className="text-sm font-semibold text-accent-soft-ink">{tool.rating.toFixed(1)}</span>
           </div>
         )}
       </div>
@@ -27,11 +27,11 @@ export function ComparisonDeepDive({ tool, isBrand = false }: ComparisonDeepDive
       {/* Key Features */}
       {tool.keyFeatures && tool.keyFeatures.length > 0 && (
         <div className="mb-6">
-          <h4 className="text-sm font-semibold text-navy-700 uppercase tracking-wide mb-3">Key Features</h4>
+          <h4 className="text-sm font-semibold text-brand-strong uppercase tracking-wide mb-3">Key Features</h4>
           <ul className="space-y-2">
             {tool.keyFeatures.map((feature, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-charcoal">
-                <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+              <li key={i} className="flex items-start gap-2 text-sm text-ink-body">
+                <Check className="w-4 h-4 text-positive mt-0.5 flex-shrink-0" />
                 <span>{feature}</span>
               </li>
             ))}
@@ -40,22 +40,22 @@ export function ComparisonDeepDive({ tool, isBrand = false }: ComparisonDeepDive
       )}
 
       {/* Pricing */}
-      <div className="mb-6 pb-6 border-b border-cream-100">
-        <h4 className="text-sm font-semibold text-navy-700 uppercase tracking-wide mb-2">Pricing</h4>
-        <p className="text-charcoal font-medium">{tool.pricing}</p>
+      <div className="mb-6 pb-6 border-b border-border-subtle">
+        <h4 className="text-sm font-semibold text-brand-strong uppercase tracking-wide mb-2">Pricing</h4>
+        <p className="text-ink-body font-medium">{tool.pricing}</p>
       </div>
 
       {/* Pros & Cons */}
       <div className="grid sm:grid-cols-2 gap-6 mb-6">
         {/* Pros */}
         <div>
-          <h4 className="text-sm font-semibold text-green-700 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+          <h4 className="text-sm font-semibold text-tag-green-ink uppercase tracking-wide mb-3 flex items-center gap-1.5">
             <Check className="w-4 h-4" />
             Pros
           </h4>
           <ul className="space-y-2">
             {tool.pros.map((pro, i) => (
-              <li key={i} className="text-sm text-charcoal leading-relaxed">
+              <li key={i} className="text-sm text-ink-body leading-relaxed">
                 {pro}
               </li>
             ))}
@@ -64,13 +64,13 @@ export function ComparisonDeepDive({ tool, isBrand = false }: ComparisonDeepDive
 
         {/* Cons */}
         <div>
-          <h4 className="text-sm font-semibold text-warm-gray uppercase tracking-wide mb-3 flex items-center gap-1.5">
+          <h4 className="text-sm font-semibold text-ink-muted uppercase tracking-wide mb-3 flex items-center gap-1.5">
             <X className="w-4 h-4" />
             Cons
           </h4>
           <ul className="space-y-2">
             {tool.cons.map((con, i) => (
-              <li key={i} className="text-sm text-charcoal leading-relaxed">
+              <li key={i} className="text-sm text-ink-body leading-relaxed">
                 {con}
               </li>
             ))}
@@ -79,9 +79,9 @@ export function ComparisonDeepDive({ tool, isBrand = false }: ComparisonDeepDive
       </div>
 
       {/* Best For */}
-      <div className={`${isBrand ? 'bg-gold-50 border-gold-200' : 'bg-cream-50 border-cream-200'} border rounded-xl p-4`}>
-        <h4 className="text-sm font-semibold text-navy-700 mb-2">Best For:</h4>
-        <p className="text-sm text-charcoal leading-relaxed">{tool.bestFor}</p>
+      <div className={`${isBrand ? 'bg-accent-soft border-border-accent-soft' : 'bg-surface border-border'} border rounded-xl p-4`}>
+        <h4 className="text-sm font-semibold text-brand-strong mb-2">Best For:</h4>
+        <p className="text-sm text-ink-body leading-relaxed">{tool.bestFor}</p>
       </div>
 
       {/* CTA */}
@@ -89,7 +89,7 @@ export function ComparisonDeepDive({ tool, isBrand = false }: ComparisonDeepDive
         <div className="mt-6">
           <Link
             href="/dashboard"
-            className="inline-block w-full text-center px-6 py-3 bg-gold-400 hover:bg-gold-500 text-white font-semibold rounded-lg shadow-sm transition-colors"
+            className="inline-block w-full text-center px-6 py-3 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting transition-colors"
           >
             Start free
           </Link>
@@ -101,7 +101,7 @@ export function ComparisonDeepDive({ tool, isBrand = false }: ComparisonDeepDive
             href={tool.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block w-full text-center px-6 py-3 bg-cream-100 text-navy-700 font-semibold rounded-xl hover:bg-cream-200 transition-all border border-cream-200"
+            className="inline-block w-full text-center px-6 py-3 bg-canvas text-brand-strong font-semibold rounded-xl hover:bg-sunken transition-all border border-border"
           >
             Visit {tool.name}
           </a>

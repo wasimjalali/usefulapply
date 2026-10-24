@@ -125,9 +125,9 @@ function LoginForm() {
   return (
     <AuthShell linkLabel="New here? Start free" linkHref="/dashboard">
       <div className={AUTH_CARD}>
-        <h1 className="text-2xl font-semibold text-navy-800">Log in</h1>
+        <h1 className="text-2xl font-semibold text-ink">Log in</h1>
 
-        {formError && <p className="mt-3 text-sm text-red-600">{formError}</p>}
+        {formError && <p className="mt-3 text-sm text-danger">{formError}</p>}
 
         <div className="mt-6">
           <GoogleSignInButton label="Continue with Google" onError={setFormError} next={next} keepAnonymous={keepAnonymous} />
@@ -157,7 +157,7 @@ function LoginForm() {
             <div className="mt-2 flex justify-end">
               <Link
                 href="/auth/forgot-password"
-                className="text-sm font-semibold text-navy-800 transition-colors duration-200 hover:text-navy-600 cursor-pointer"
+                className="text-sm font-semibold text-ink transition-colors duration-(--duration-base) hover:text-brand cursor-pointer"
               >
                 Forgot password?
               </Link>
@@ -169,24 +169,24 @@ function LoginForm() {
           </button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-warm-gray">
+        <p className="mt-4 text-center text-xs text-ink-muted">
           By continuing you agree to the{' '}
-          <Link href="/terms" className="font-semibold text-navy-800 hover:text-navy-600 cursor-pointer">
+          <Link href="/terms" className="font-semibold text-ink hover:text-brand cursor-pointer">
             Terms
           </Link>
           {' and '}
-          <Link href="/privacy" className="font-semibold text-navy-800 hover:text-navy-600 cursor-pointer">
+          <Link href="/privacy" className="font-semibold text-ink hover:text-brand cursor-pointer">
             Privacy policy
           </Link>
           .
         </p>
       </div>
 
-      <p className="mt-5 text-center text-sm text-warm-gray">
+      <p className="mt-5 text-center text-sm text-ink-muted">
         Don&apos;t have an account?{' '}
         <Link
           href={signupHref}
-          className="font-semibold text-navy-800 transition-colors duration-200 hover:text-navy-600 cursor-pointer"
+          className="font-semibold text-ink transition-colors duration-(--duration-base) hover:text-brand cursor-pointer"
         >
           Sign up
         </Link>
@@ -197,7 +197,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-cream-100" />}>
+    <Suspense fallback={<div className="min-h-screen bg-canvas" />}>
       <LoginForm />
     </Suspense>
   );

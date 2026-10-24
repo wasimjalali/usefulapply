@@ -20,47 +20,47 @@ export default function ComparisonTable({ tools, features }: ComparisonTableProp
     if (status === 'yes') {
       return (
         <div className="flex items-center justify-center gap-2">
-          <Check className="w-5 h-5 text-green-600" />
-          {text && <span className="text-sm text-charcoal">{text}</span>}
+          <Check className="w-5 h-5 text-positive" />
+          {text && <span className="text-sm text-ink-body">{text}</span>}
         </div>
       );
     }
     if (status === 'no') {
       return (
         <div className="flex items-center justify-center">
-          <X className="w-5 h-5 text-red-500" />
+          <X className="w-5 h-5 text-danger-bright" />
         </div>
       );
     }
     if (status === 'warning') {
       return (
         <div className="flex items-center justify-center gap-2">
-          <AlertTriangle className="w-5 h-5 text-yellow-600" />
-          {text && <span className="text-sm text-charcoal">{text}</span>}
+          <AlertTriangle className="w-5 h-5 text-warning" />
+          {text && <span className="text-sm text-ink-body">{text}</span>}
         </div>
       );
     }
-    return <span className="text-sm text-charcoal text-center block">{text}</span>;
+    return <span className="text-sm text-ink-body text-center block">{text}</span>;
   };
 
   const getStatusBgColor = (status: 'yes' | 'no' | 'warning' | 'text') => {
-    if (status === 'yes') return 'bg-green-50/50';
-    if (status === 'no') return 'bg-red-50/50';
-    if (status === 'warning') return 'bg-yellow-50/50';
-    return 'bg-white';
+    if (status === 'yes') return 'bg-positive-soft/50';
+    if (status === 'no') return 'bg-danger-soft/50';
+    if (status === 'warning') return 'bg-warning-soft/50';
+    return 'bg-surface-raised';
   };
 
   return (
     <div className="my-8 overflow-x-auto">
       <div className="inline-block min-w-full align-middle">
-        <div className="overflow-hidden border border-cream-200 rounded-xl shadow-sm">
-          <table className="min-w-full divide-y divide-cream-200">
+        <div className="overflow-hidden border border-border rounded-xl shadow-resting">
+          <table className="min-w-full divide-y divide-border">
             {/* Header */}
             <thead className="bg-gradient-to-r from-navy-600 to-navy-700">
               <tr>
                 <th
                   scope="col"
-                  className="sticky left-0 z-10 bg-navy-600 px-6 py-4 text-left text-sm font-semibold text-white border-r border-navy-500"
+                  className="sticky left-0 z-10 bg-brand px-6 py-4 text-left text-sm font-semibold text-brand-ink border-r border-border-inverse-mid"
                 >
                   Feature
                 </th>
@@ -68,8 +68,8 @@ export default function ComparisonTable({ tools, features }: ComparisonTableProp
                   <th
                     key={tool.name}
                     scope="col"
-                    className={`px-6 py-4 text-center text-sm font-semibold text-white whitespace-nowrap ${
-                      idx === 0 ? 'bg-gold-600' : ''
+                    className={`px-6 py-4 text-center text-sm font-semibold text-brand-ink whitespace-nowrap ${
+                      idx === 0 ? 'bg-accent-deep' : ''
                     }`}
                   >
                     {tool.name}
@@ -79,13 +79,13 @@ export default function ComparisonTable({ tools, features }: ComparisonTableProp
             </thead>
 
             {/* Body */}
-            <tbody className="bg-white divide-y divide-cream-200">
+            <tbody className="bg-surface-raised divide-y divide-border">
               {features.map((feature, featureIdx) => (
                 <tr
                   key={feature.name}
-                  className={featureIdx % 2 === 0 ? 'bg-cream-50/30' : 'bg-white'}
+                  className={featureIdx % 2 === 0 ? 'bg-surface/30' : 'bg-surface-raised'}
                 >
-                  <td className="sticky left-0 z-10 bg-white px-6 py-4 text-sm font-medium text-navy-700 border-r border-cream-200 whitespace-nowrap">
+                  <td className="sticky left-0 z-10 bg-surface-raised px-6 py-4 text-sm font-medium text-brand-strong border-r border-border whitespace-nowrap">
                     {feature.name}
                   </td>
                   {feature.values.map((value, valueIdx) => (
@@ -104,17 +104,17 @@ export default function ComparisonTable({ tools, features }: ComparisonTableProp
       </div>
 
       {/* Legend */}
-      <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-warm-gray">
+      <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-ink-muted">
         <div className="flex items-center gap-1.5">
-          <Check className="w-4 h-4 text-green-600" />
+          <Check className="w-4 h-4 text-positive" />
           <span>Available</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <X className="w-4 h-4 text-red-500" />
+          <X className="w-4 h-4 text-danger-bright" />
           <span>Not available</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <AlertTriangle className="w-4 h-4 text-yellow-600" />
+          <AlertTriangle className="w-4 h-4 text-warning" />
           <span>Partial/Manual</span>
         </div>
       </div>

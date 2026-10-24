@@ -146,18 +146,18 @@ export function BlogContent({ content, slug }: BlogContentProps) {
     <div>
       {/* Table of Contents */}
       {toc.length > 2 && (
-        <nav className="mb-10 p-6 bg-cream-50 border border-cream-200 rounded-2xl" aria-label="Table of contents">
-          <h2 className="text-lg font-bold text-navy-700 mb-4">Table of Contents</h2>
+        <nav className="mb-10 p-6 bg-surface border border-border rounded-card" aria-label="Table of contents">
+          <h2 className="text-lg font-bold text-brand-strong mb-4">Table of Contents</h2>
           <ol className="space-y-2">
             {toc.map((item, i) => (
               <li key={item.id}>
                 <a
                   href={`#${item.id}`}
-                  className={`text-warm-gray hover:text-navy-600 transition-colors text-sm leading-relaxed ${
+                  className={`text-ink-muted hover:text-brand transition-colors text-sm leading-relaxed ${
                     item.level === 3 ? 'ml-5' : ''
                   }`}
                 >
-                  <span className="text-gold-500 font-medium mr-2">{i + 1}.</span>
+                  <span className="text-accent-strong font-medium mr-2">{i + 1}.</span>
                   {item.text}
                 </a>
               </li>
@@ -222,7 +222,7 @@ function renderMarkdown(md: string, hasComparisonTable: boolean): string {
     if (hasComparisonTable && line.trim() === '## Feature Comparison Table') {
       if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
       const id = slugify('Feature Comparison Table');
-      result.push(`<h2 id="${id}" class="text-2xl sm:text-3xl font-bold text-navy-700 mt-12 mb-4 leading-tight">Feature Comparison Table</h2>`);
+      result.push(`<h2 id="${id}" class="text-2xl sm:text-3xl font-bold text-brand-strong mt-12 mb-4 leading-tight">Feature Comparison Table</h2>`);
       result.push('<!-- COMPARISON_TABLE -->');
       inTable = true;
       continue;
@@ -245,7 +245,7 @@ function renderMarkdown(md: string, hasComparisonTable: boolean): string {
     // Code blocks
     if (line.trim().startsWith('```')) {
       if (inCodeBlock) {
-        result.push(`<pre class="bg-navy-50 border border-cream-200 rounded-xl p-4 overflow-x-auto my-6"><code>${codeBlockContent.join('\n')}</code></pre>`);
+        result.push(`<pre class="bg-brand-soft border border-border rounded-xl p-4 overflow-x-auto my-6"><code>${codeBlockContent.join('\n')}</code></pre>`);
         codeBlockContent = [];
         inCodeBlock = false;
       } else {
@@ -277,28 +277,28 @@ function renderMarkdown(md: string, hasComparisonTable: boolean): string {
       if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
       const text = line.slice(5);
       const id = slugify(text.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1'));
-      result.push(`<h4 id="${id}" class="text-lg font-bold text-navy-700 mt-8 mb-3">${inlineFormat(text)}</h4>`);
+      result.push(`<h4 id="${id}" class="text-lg font-bold text-brand-strong mt-8 mb-3">${inlineFormat(text)}</h4>`);
       continue;
     }
     if (line.startsWith('### ')) {
       if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
       const text = line.slice(4);
       const id = slugify(text.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1'));
-      result.push(`<h3 id="${id}" class="text-xl sm:text-2xl font-bold text-navy-700 mt-10 mb-4">${inlineFormat(text)}</h3>`);
+      result.push(`<h3 id="${id}" class="text-xl sm:text-2xl font-bold text-brand-strong mt-10 mb-4">${inlineFormat(text)}</h3>`);
       continue;
     }
     if (line.startsWith('## ')) {
       if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
       const text = line.slice(3);
       const id = slugify(text.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1'));
-      result.push(`<h2 id="${id}" class="text-2xl sm:text-3xl font-bold text-navy-700 mt-12 mb-4 leading-tight">${inlineFormat(text)}</h2>`);
+      result.push(`<h2 id="${id}" class="text-2xl sm:text-3xl font-bold text-brand-strong mt-12 mb-4 leading-tight">${inlineFormat(text)}</h2>`);
       continue;
     }
 
     // Blockquote
     if (line.startsWith('> ')) {
       if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
-      result.push(`<blockquote class="border-l-4 border-gold-400 pl-5 my-6 italic text-warm-gray"><p>${inlineFormat(line.slice(2))}</p></blockquote>`);
+      result.push(`<blockquote class="border-l-4 border-accent pl-5 my-6 italic text-ink-muted"><p>${inlineFormat(line.slice(2))}</p></blockquote>`);
       continue;
     }
 
@@ -312,9 +312,9 @@ function renderMarkdown(md: string, hasComparisonTable: boolean): string {
       const src = imgMatch[2];
       const caption = imgMatch[3] !== undefined ? imgMatch[3] : alt;
       const captionHtml = caption
-        ? `<figcaption class="text-center text-sm text-warm-gray mt-3">${escapeHtml(caption)}</figcaption>`
+        ? `<figcaption class="text-center text-sm text-ink-muted mt-3">${escapeHtml(caption)}</figcaption>`
         : '';
-      result.push(`<figure class="my-10"><img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" class="rounded-xl w-full shadow-sm" loading="lazy" />${captionHtml}</figure>`);
+      result.push(`<figure class="my-10"><img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" class="rounded-xl w-full shadow-resting" loading="lazy" />${captionHtml}</figure>`);
       continue;
     }
 
@@ -322,7 +322,7 @@ function renderMarkdown(md: string, hasComparisonTable: boolean): string {
     if (line.match(/^[-*] /)) {
       if (!inList || listType !== 'ul') {
         if (inList) result.push(listType === 'ul' ? '</ul>' : '</ol>');
-        result.push('<ul class="list-disc list-inside space-y-2 my-4 text-charcoal leading-relaxed">');
+        result.push('<ul class="list-disc list-inside space-y-2 my-4 text-ink-body leading-relaxed">');
         inList = true;
         listType = 'ul';
       }
@@ -334,7 +334,7 @@ function renderMarkdown(md: string, hasComparisonTable: boolean): string {
     if (line.match(/^\d+\. /)) {
       if (!inList || listType !== 'ol') {
         if (inList) result.push(listType === 'ul' ? '</ul>' : '</ol>');
-        result.push('<ol class="list-decimal list-inside space-y-2 my-4 text-charcoal leading-relaxed">');
+        result.push('<ol class="list-decimal list-inside space-y-2 my-4 text-ink-body leading-relaxed">');
         inList = true;
         listType = 'ol';
       }
@@ -345,13 +345,13 @@ function renderMarkdown(md: string, hasComparisonTable: boolean): string {
     // Horizontal rule
     if (line.match(/^---+$/)) {
       if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
-      result.push('<hr class="my-8 border-cream-200" />');
+      result.push('<hr class="my-8 border-border" />');
       continue;
     }
 
     // Regular paragraph
     if (inList) { result.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
-    result.push(`<p class="text-charcoal leading-relaxed mb-4">${inlineFormat(line)}</p>`);
+    result.push(`<p class="text-ink-body leading-relaxed mb-4">${inlineFormat(line)}</p>`);
   }
 
   if (inList) {
@@ -374,7 +374,7 @@ function inlineFormat(text: string): string {
   result = result.replace(/`([^`]+)`/g, '<code>$1</code>');
 
   // Links
-  result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-navy-600 underline hover:text-navy-800 transition-colors">$1</a>');
+  result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-brand underline hover:text-ink transition-colors">$1</a>');
 
   return result;
 }

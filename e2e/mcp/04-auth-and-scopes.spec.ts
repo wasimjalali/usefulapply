@@ -86,7 +86,7 @@ test.describe.serial('scopes: a token can only do what its consent said', () => 
     const writeSpends = await call(writeOnly, 'analyze_job_fit', { applicationId });
     expect(writeSpends.status).toBe(403);
     expect(writeSpends.headers['www-authenticate']).toContain('spend');
-    const spendWrites = await call(spendOnly, 'update_notification_settings', { marketing: false });
+    const spendWrites = await call(spendOnly, 'update_notification_settings', { followUpDue: false });
     expect(spendWrites.status).toBe(403);
     expect(spendWrites.headers['www-authenticate']).toContain('write');
     const spendReads = await call(spendOnly, 'get_operation');
@@ -94,8 +94,8 @@ test.describe.serial('scopes: a token can only do what its consent said', () => 
     expect(accountSnapshot(user.id)).toEqual(before);
 
     // Each token does work in its own lane.
-    const notifications = await writeOnly.ok<{ marketing: boolean }>('update_notification_settings', { marketing: false });
-    expect(notifications.marketing).toBe(false);
+    const notifications = await writeOnly.ok<{ followUpDue: boolean }>('update_notification_settings', { followUpDue: false });
+    expect(notifications.followUpDue).toBe(false);
     const fit = await spendOnly.ok<{ creditsUsed: number; applicationId: string }>('analyze_job_fit', { idempotencyKey: uuid(), applicationId });
     expect(fit).toMatchObject({ creditsUsed: 0.5, applicationId });
   });

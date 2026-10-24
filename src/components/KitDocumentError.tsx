@@ -66,7 +66,7 @@ export function KitDocumentError({ variant, title, target }: KitDocumentErrorPro
       type="button"
       onClick={retry}
       disabled={isRetrying}
-      className="inline-flex h-9 items-center gap-2 rounded-full bg-navy-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-navy-700 disabled:cursor-wait disabled:opacity-70 cursor-pointer"
+      className="inline-flex h-9 items-center gap-2 rounded-pill bg-brand px-4 text-sm font-semibold text-brand-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-brand-strong disabled:cursor-wait disabled:opacity-70 cursor-pointer"
     >
       {isRetrying ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
       {isRetrying ? 'Writing...' : `Try again (${meta.cost} credits)`}
@@ -75,21 +75,21 @@ export function KitDocumentError({ variant, title, target }: KitDocumentErrorPro
 
   if (variant === 'card') {
     return (
-      <div role="alert" className="flex flex-wrap items-center gap-3 rounded-2xl border border-cream-200 bg-cream-50 p-5 shadow-sm">
-        <AlertCircle className="h-5 w-5 flex-shrink-0 text-warm-gray" />
-        <p className="min-w-0 flex-1 text-sm font-semibold text-navy-800">{title}</p>
+      <div role="alert" className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface p-5 shadow-resting">
+        <AlertCircle className="h-5 w-5 flex-shrink-0 text-ink-muted" />
+        <p className="min-w-0 flex-1 text-sm font-semibold text-ink">{title}</p>
         {button}
       </div>
     );
   }
 
   return (
-    <div role="alert" className="h-full flex items-center justify-center bg-cream-100 p-8">
-      <div className="max-w-sm rounded-2xl border border-cream-200 bg-cream-50 p-8 text-center shadow-sm">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-cream-100">
-          <AlertCircle className="h-6 w-6 text-warm-gray" />
+    <div role="alert" className="h-full flex items-center justify-center bg-canvas p-8">
+      <div className="max-w-sm rounded-card border border-border bg-surface p-8 text-center shadow-resting">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-pill bg-canvas">
+          <AlertCircle className="h-6 w-6 text-ink-muted" />
         </div>
-        <h3 className="mb-5 text-lg font-semibold tracking-tight text-charcoal">{title}</h3>
+        <h3 className="mb-5 text-lg font-semibold tracking-tight text-ink-body">{title}</h3>
         {button}
       </div>
     </div>

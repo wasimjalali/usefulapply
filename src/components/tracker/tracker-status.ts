@@ -53,24 +53,24 @@ export function toTrackerStatus(value: string | null | undefined): TrackerStatus
 export function statusPillClass(status: TrackerStatus): string {
   switch (status) {
     case 'drafted':
-      return 'bg-gold-100 text-gold-700';
+      return 'bg-accent-soft-strong text-accent-soft-ink';
     case 'applied':
-      return 'bg-navy-50 text-navy-800';
+      return 'bg-brand-soft text-ink';
     case 'follow_up':
-      return 'bg-navy-50 text-navy-800';
+      return 'bg-brand-soft text-ink';
     case 'interview':
-      return 'bg-sage-50 text-sage-700';
+      return 'bg-success-soft text-success-strong';
     case 'accepted':
-      return 'bg-sage-50 text-sage-700';
+      return 'bg-success-soft text-success-strong';
     case 'rejected':
-      return 'bg-cream-100 text-warm-gray';
+      return 'bg-canvas text-ink-muted';
   }
 }
 
 /** A match at 80 or above reads as sage, below it as gold. */
 export function matchToneClass(score: number | null): string {
-  if (score === null) return 'text-warm-gray';
-  return score >= 80 ? 'text-sage-700' : 'text-gold-600';
+  if (score === null) return 'text-ink-muted';
+  return score >= 80 ? 'text-success-strong' : 'text-ink-accent';
 }
 
 // ---------------------------------------------------------------------------

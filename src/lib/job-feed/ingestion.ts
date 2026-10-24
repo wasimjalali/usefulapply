@@ -5,7 +5,7 @@ import {
   JOB_FEED_MAX_RAW_JOBS_PER_RUN,
   JOB_FEED_PROVIDER,
 } from '@/lib/job-feed/constants';
-import { splitCompositeRole } from '@/lib/job-feed/cv-suggestions';
+import { splitCompositeRole } from '@/lib/job-feed/cv-experience';
 import type { SearchStrategy } from '@/lib/job-feed/search-strategy';
 import {
   buildSerpApiSearchParams,

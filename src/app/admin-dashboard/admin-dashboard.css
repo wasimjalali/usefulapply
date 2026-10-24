@@ -1,12 +1,12 @@
 .admin-shell {
-  --admin-canvas: var(--color-cream-100);
-  --admin-surface: var(--color-cream-50);
-  --admin-border: var(--color-cream-200);
-  --admin-ink: var(--color-charcoal);
-  --admin-muted: var(--color-warm-gray);
-  --admin-brand: var(--color-navy-600);
-  --admin-brand-strong: var(--color-navy-700);
-  --admin-accent: var(--color-gold-400);
+  --admin-canvas: var(--canvas);
+  --admin-surface: var(--surface);
+  --admin-border: var(--border);
+  --admin-ink: var(--ink-body);
+  --admin-muted: var(--ink-muted);
+  --admin-brand: var(--brand);
+  --admin-brand-strong: var(--brand-strong);
+  --admin-accent: var(--accent);
   min-height: 100vh;
   background: var(--admin-canvas);
   color: var(--admin-ink);
@@ -76,7 +76,7 @@
 }
 
 .admin-sidebar__link:hover {
-  background: var(--color-navy-50);
+  background: var(--brand-soft);
   color: var(--admin-brand-strong);
 }
 
@@ -152,12 +152,12 @@
   height: 7px;
   margin-right: 7px;
   border-radius: 50%;
-  background: var(--color-warm-gray);
+  background: var(--ink-muted);
   content: '';
 }
 
 .admin-status[data-tone='good']::before {
-  background: var(--color-sage-500);
+  background: var(--success-muted);
 }
 
 .admin-status[data-tone='warning']::before {
@@ -165,7 +165,7 @@
 }
 
 .admin-status[data-tone='bad']::before {
-  background: var(--color-rose-600);
+  background: var(--status-bad);
 }
 
 .admin-mono {
@@ -221,7 +221,7 @@
 }
 
 .admin-source-status--available::after {
-  background: var(--color-sage-500);
+  background: var(--success-muted);
 }
 
 .admin-source-status--partial::after {
@@ -229,7 +229,7 @@
 }
 
 .admin-source-status--unavailable::after {
-  background: var(--color-rose-600);
+  background: var(--status-bad);
 }
 
 .admin-section,
@@ -238,7 +238,7 @@
   border: 1px solid var(--admin-border);
   border-radius: 16px;
   background: var(--admin-surface);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--depth-resting);
 }
 
 .admin-section {
@@ -307,15 +307,15 @@
 }
 
 .admin-metric__detail--positive {
-  color: var(--color-sage-700);
+  color: var(--success-strong);
 }
 
 .admin-metric__detail--warning {
-  color: var(--color-gold-700);
+  color: var(--accent-soft-ink);
 }
 
 .admin-metric__detail--negative {
-  color: var(--color-rose-700);
+  color: var(--ink-error);
 }
 
 .admin-journey {
@@ -344,7 +344,7 @@
   border: 3px solid var(--admin-surface);
   border-radius: 999px;
   background: var(--admin-brand);
-  outline: 1px solid var(--color-navy-200);
+  outline: 1px solid var(--border-brand-soft);
 }
 
 .admin-journey__stage strong {
@@ -369,7 +369,7 @@
   left: 12px;
   width: 152px;
   height: 1px;
-  background: var(--color-navy-200);
+  background: var(--border-brand-soft);
 }
 
 .admin-journey__connector span {
@@ -451,7 +451,7 @@
 }
 
 .admin-line-chart__series {
-  stroke: var(--color-navy-300);
+  stroke: var(--chart-line);
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.5;
@@ -471,7 +471,7 @@
 }
 
 .admin-line-chart__label--focal {
-  fill: var(--color-gold-700);
+  fill: var(--accent-soft-ink);
   font-weight: 600;
 }
 
@@ -496,7 +496,7 @@
 }
 
 .admin-state--error .admin-state__icon {
-  color: var(--color-rose-700);
+  color: var(--ink-error);
 }
 
 .admin-state h2 {
@@ -553,7 +553,7 @@
 }
 
 .admin-table tbody tr:hover td {
-  background: var(--color-navy-50);
+  background: var(--brand-soft);
 }
 
 .admin-table tbody tr:last-child td {
@@ -573,7 +573,7 @@
 }
 
 .admin-table tbody tr:hover td:first-child {
-  background: var(--color-navy-50);
+  background: var(--brand-soft);
 }
 
 .admin-table .admin-table__numeric {
@@ -653,26 +653,26 @@
     justify-items: center;
     gap: 10px;
     padding: 32px;
-    background: var(--color-cream-100);
-    color: var(--color-charcoal);
+    background: var(--canvas);
+    color: var(--ink-body);
     text-align: center;
   }
 
   .admin-desktop-required svg {
     width: 24px;
     height: 24px;
-    color: var(--color-navy-600);
+    color: var(--brand);
   }
 
   .admin-desktop-required h1 {
-    color: var(--color-navy-700);
+    color: var(--brand-strong);
     font-size: 20px;
     font-weight: 600;
     letter-spacing: -0.02em;
   }
 
   .admin-desktop-required p {
-    color: var(--color-warm-gray);
+    color: var(--ink-muted);
     font-size: 14px;
   }
 }

@@ -95,6 +95,12 @@ interface FeedState {
   pollGaveUp: boolean;
   /** Bumped on reset so in-flight fetches cannot write a cleared store. */
   fetchGeneration: number;
+  /**
+   * Jobs dismissed in this tab. A list fetch that started before the dismiss can
+   * land after it, so every list written to the store is filtered against these.
+   * Cleared on reset.
+   */
+  dismissedJobIds: string[];
 
   view: FeedCanvasView;
   listTab: FeedListTab;
@@ -166,6 +172,7 @@ const initialState: FeedState = {
   isSavingSettings: false,
   pollGaveUp: false,
   fetchGeneration: 0,
+  dismissedJobIds: [],
   view: 'list',
   listTab: 'today',
   selectedJobId: null,
@@ -184,6 +191,10 @@ function nextMessageId(): string {
   return `feed-msg-${messageSeq}`;
 }
 
+function withoutDismissed(jobs: JobFeedFeedItem[], dismissed: string[]): JobFeedFeedItem[] {
+  return dismissed.length === 0 ? jobs : jobs.filter((job) => !dismissed.includes(job.id));
+}
+
 const withFeedback = (job: JobFeedFeedItem, jobId: string, feedback: JobFeedItemFeedbackState) =>
   job.id === jobId ? { ...job, feedback } : job;
 
@@ -194,8 +205,12 @@ export const useFeedStore = create<FeedState & FeedActions>()((set) => ({
   setOverview: (overview) => set((state) => {
     const prevRun = state.overview?.feedRun?.id ?? state.overview?.latestRun?.id ?? null;
     const nextRun = overview?.feedRun?.id ?? overview?.latestRun?.id ?? null;
+    const kept = overview ? withoutDismissed(overview.jobs, state.dismissedJobIds) : null;
+    const dropped = overview && kept ? overview.jobs.length - kept.length : 0;
     return {
-      overview,
+      overview: overview && kept && dropped > 0
+        ? { ...overview, jobs: kept, jobsTotalCount: Math.max(kept.length, overview.jobsTotalCount - dropped) }
+        : overview,
       extraJobs: prevRun !== nextRun ? [] : state.extraJobs,
       pollGaveUp: overview?.state === 'generating' ? state.pollGaveUp : false,
     };
@@ -211,21 +226,36 @@ export const useFeedStore = create<FeedState & FeedActions>()((set) => ({
       : state.savedJobs,
   })),
 
-  removeJob: (jobId) => set((state) => ({
-    overview: state.overview
-      ? { ...state.overview, jobs: state.overview.jobs.filter((job) => job.id !== jobId) }
-      : state.overview,
-    extraJobs: state.extraJobs.filter((job) => job.id !== jobId),
-    savedJobs: state.savedJobs ? state.savedJobs.filter((job) => job.id !== jobId) : state.savedJobs,
-    // The detail view is about one job. If it just left the feed, go back.
-    view: state.selectedJobId === jobId && state.view === 'detail' ? 'list' : state.view,
-    selectedJobId: state.selectedJobId === jobId ? null : state.selectedJobId,
-  })),
+  removeJob: (jobId) => set((state) => {
+    const jobs = state.overview ? state.overview.jobs.filter((job) => job.id !== jobId) : null;
+    const extraJobs = state.extraJobs.filter((job) => job.id !== jobId);
+    const left = state.overview !== null
+      && ((jobs !== null && jobs.length < state.overview.jobs.length) || extraJobs.length < state.extraJobs.length);
+    return {
+      dismissedJobIds: state.dismissedJobIds.includes(jobId) ? state.dismissedJobIds : [...state.dismissedJobIds, jobId],
+      overview: state.overview && jobs
+        ? {
+          ...state.overview,
+          jobs,
+          // The total counts what the server will page through. Leaving it
+          // alone would show "Show more roles" for a page that has nothing.
+          jobsTotalCount: left
+            ? Math.max(jobs.length + extraJobs.length, state.overview.jobsTotalCount - 1)
+            : state.overview.jobsTotalCount,
+        }
+        : state.overview,
+      extraJobs,
+      savedJobs: state.savedJobs ? state.savedJobs.filter((job) => job.id !== jobId) : state.savedJobs,
+      // The detail view is about one job. If it just left the feed, go back.
+      view: state.selectedJobId === jobId && state.view === 'detail' ? 'list' : state.view,
+      selectedJobId: state.selectedJobId === jobId ? null : state.selectedJobId,
+    };
+  }),
 
-  setExtraJobs: (jobs) => set({ extraJobs: jobs }),
-  appendExtraJobs: (jobs) => set((state) => ({ extraJobs: [...state.extraJobs, ...jobs] })),
+  setExtraJobs: (jobs) => set((state) => ({ extraJobs: withoutDismissed(jobs, state.dismissedJobIds) })),
+  appendExtraJobs: (jobs) => set((state) => ({ extraJobs: [...state.extraJobs, ...withoutDismissed(jobs, state.dismissedJobIds)] })),
   setLoadingMore: (value) => set({ loadingMore: value }),
-  setSavedJobs: (jobs) => set({ savedJobs: jobs }),
+  setSavedJobs: (jobs) => set((state) => ({ savedJobs: jobs ? withoutDismissed(jobs, state.dismissedJobIds) : jobs })),
   setLoadingSaved: (value) => set({ loadingSaved: value }),
   setSavedError: (message) => set({ savedError: message }),
   setStrategy: (strategy) => set({ strategy }),

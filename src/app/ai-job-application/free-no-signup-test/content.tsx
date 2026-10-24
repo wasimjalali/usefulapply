@@ -21,18 +21,18 @@ export const content: GeoContent = {
   },
   sections: [
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "No Commitment",
       heading: "What \"No Sign-Up\" Actually Means",
       reveal: true,
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
+        <p className="text-ink-body leading-relaxed mb-4 max-w-3xl">
           No sign-up means you can test the output quality without creating an account first.
           You paste a job description, upload your CV, and receive the complete package
           (tailored CV, cover letter, application email, follow-up email) to evaluate before
           committing any personal details or payment.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
+        <p className="text-ink-body leading-relaxed mb-4 max-w-3xl">
           The Free plan gives 2 full applications per month. An account becomes useful when you want to
           save your application history, reuse your Master CV across sessions, or generate more
           than 2 applications per month.
@@ -40,34 +40,34 @@ export const content: GeoContent = {
       ),
     },
     {
-      bg: "bg-white",
+      bg: "bg-surface-raised",
       eyebrow: "Free Plan",
       heading: "What the Free Tier Includes",
       reveal: true,
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
+        <p className="text-ink-body leading-relaxed mb-4 max-w-3xl">
           2 complete applications per month, each generating all four documents (tailored CV, cover
           letter, application email, follow-up email). Credits reset monthly. The fit score
           analysis is included in each application.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4 max-w-3xl">
+        <p className="text-ink-body leading-relaxed mb-4 max-w-3xl">
           The same AI quality (Claude Sonnet 5.5 by Anthropic) as paid tiers. No difference in
           output quality between free and paid. Only the volume limit changes.
         </p>,
       ),
     },
     {
-      bg: "bg-cream-50",
+      bg: "bg-surface",
       eyebrow: "Next Step",
       heading: "When to Create an Account",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Three questions determine the right moment: (1) Does the output match your
           expectations? If the tailored CV and cover letter feel right for your specific role, an
           account is worth it. (2) Do you need to save and revisit previous applications?
           Application history is account-specific.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           (3) Need more than 2 applications a month? That&apos;s Plus or Max. Don&apos;t create an
           account until question one has a &quot;yes.&quot; That&apos;s the only honest
           sequence.
@@ -75,16 +75,16 @@ export const content: GeoContent = {
       ),
     },
     {
-      bg: "bg-white",
+      bg: "bg-surface-raised",
       eyebrow: "Privacy",
       heading: "Data Minimization for the Trial",
       body: body(
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           When testing without an account, use a job description plus a minimal skill summary
           rather than your full CV with personal details. You can evaluate output quality without
           uploading your home address, phone number, or internal project names.
         </p>,
-        <p className="text-charcoal leading-relaxed mb-4">
+        <p className="text-ink-body leading-relaxed mb-4">
           Add complete details once you&apos;ve confirmed the quality suits your needs. This is
           especially relevant for users in Germany and the EU, where data minimization is a good
           baseline practice regardless of the tool.
@@ -93,7 +93,7 @@ export const content: GeoContent = {
     },
   ],
   links: {
-    bg: "bg-cream-50",
+    bg: "bg-surface",
     items: [
       { href: "/ai-job-application/pricing-credits", label: "See Pricing & Credits" },
       { href: "/master-cv-template", label: "Build a Master CV first" },
@@ -121,7 +121,7 @@ export const content: GeoContent = {
       a: "No. For a first test, a summary of your skills and a couple of work history entries is enough to evaluate output quality. Once you're satisfied with the results, you can upload your complete CV for production use.",
     },
   ],
-  faqSection: { bg: "", cardBg: "bg-white" },
+  faqSection: { bg: "", cardBg: "bg-surface-raised" },
   cta: {
     heading: "Start free",
     body:

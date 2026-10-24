@@ -59,7 +59,7 @@ function parseDescriptionText(text: string, knownItems: string[]): ParsedDescrip
       <ul key={`list-${nodes.length}`} className="my-2 ml-1 space-y-1.5">
         {items.map((item, index) => (
           <li key={index} className="flex items-start gap-2">
-            <span className="mt-0.5 flex-shrink-0 text-navy-500">•</span>
+            <span className="mt-0.5 flex-shrink-0 text-brand-mid">•</span>
             <span>{item}</span>
           </li>
         ))}
@@ -86,7 +86,7 @@ function parseDescriptionText(text: string, knownItems: string[]): ParsedDescrip
       flushList();
       headingCount += 1;
       nodes.push(
-        <h4 key={`heading-${nodes.length}`} className="mb-1.5 mt-4 font-semibold text-charcoal">
+        <h4 key={`heading-${nodes.length}`} className="mb-1.5 mt-4 font-semibold text-ink-body">
           {trimmed.replace(/:$/, '')}
         </h4>
       );
@@ -121,12 +121,12 @@ function HighlightSections({ highlights }: { highlights: JobFeedHighlight[] }) {
       {highlights.map((section, sectionIndex) => (
         <div key={sectionIndex}>
           {section.title && (
-            <h4 className="mb-1.5 font-semibold text-charcoal">{section.title}</h4>
+            <h4 className="mb-1.5 font-semibold text-ink-body">{section.title}</h4>
           )}
           <ul className="ml-1 space-y-1.5">
             {section.items.map((item, index) => (
               <li key={index} className="flex items-start gap-2">
-                <span className="mt-0.5 flex-shrink-0 text-navy-500">•</span>
+                <span className="mt-0.5 flex-shrink-0 text-brand-mid">•</span>
                 <span>{item}</span>
               </li>
             ))}

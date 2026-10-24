@@ -80,26 +80,26 @@ export function FileUpload({
 
   if (selectedFile) {
     return (
-      <div className="border-2 border-gold-200 bg-gold-50 rounded-lg p-4">
+      <div className="border-2 border-border-accent-soft bg-accent-soft rounded-control p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gold-100 rounded-lg">
-              <File className="w-5 h-5 text-gold-600" />
+            <div className="p-2 bg-accent-soft-strong rounded-control">
+              <File className="w-5 h-5 text-ink-accent" />
             </div>
             <div>
-              <p className="text-sm font-medium text-charcoal">{selectedFile.name}</p>
-              <p className="text-xs text-gold-500">File uploaded successfully</p>
+              <p className="text-sm font-medium text-ink-body">{selectedFile.name}</p>
+              <p className="text-xs text-accent-strong">File uploaded successfully</p>
             </div>
           </div>
           {onClear && (
             <button
               onClick={onClear}
-              className="p-1 hover:bg-gold-100 rounded-full transition-colors"
+              className="p-1 hover:bg-accent-soft-strong rounded-pill transition-colors"
               disabled={isLoading}
               aria-label="Remove file"
               title="Remove file"
             >
-              <X className="w-5 h-5 text-warm-gray" />
+              <X className="w-5 h-5 text-ink-muted" />
             </button>
           )}
         </div>
@@ -110,18 +110,18 @@ export function FileUpload({
   return (
     <div
       {...getRootProps()}
-      className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-        isDragActive ? 'border-navy-500 bg-navy-50' : 'border-cream-400 hover:border-navy-300'
+      className={`border-2 border-dashed rounded-control p-6 text-center cursor-pointer transition-colors ${
+        isDragActive ? 'border-border-focus bg-brand-soft' : 'border-border-stronger hover:border-border-brand'
       } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
       <input {...getInputProps()} />
       <div className="flex flex-col items-center gap-2">
-        <div className={`p-3 rounded-full ${isDragActive ? 'bg-navy-100' : 'bg-cream-200'}`}>
-          <Upload className={`w-6 h-6 ${isDragActive ? 'text-navy-600' : 'text-warm-gray'}`} />
+        <div className={`p-3 rounded-pill ${isDragActive ? 'bg-brand-soft-strong' : 'bg-sunken'}`}>
+          <Upload className={`w-6 h-6 ${isDragActive ? 'text-brand' : 'text-ink-muted'}`} />
         </div>
         <div>
-          <p className="text-sm font-medium text-charcoal">{label}</p>
-          <p className="text-xs text-warm-gray mt-1">
+          <p className="text-sm font-medium text-ink-body">{label}</p>
+          <p className="text-xs text-ink-muted mt-1">
             {isDragActive ? 'Drop the file here' : description}
           </p>
         </div>

@@ -44,19 +44,19 @@ export function ATSChangesView({ onBack }: ATSChangesViewProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center gap-4 border-b border-cream-200 px-5 py-3">
+      <div className="flex items-center gap-4 border-b border-border px-5 py-3">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex h-10 items-center gap-2 rounded-full border border-cream-200 bg-cream-50 px-4 text-sm font-semibold text-navy-800 shadow-sm hover:bg-white cursor-pointer"
+          className="inline-flex h-10 items-center gap-2 rounded-pill border border-border bg-surface px-4 text-sm font-semibold text-ink shadow-resting hover:bg-surface-raised cursor-pointer"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to CV
         </button>
-        <h2 className="text-lg font-semibold text-navy-800">What changed in your CV</h2>
+        <h2 className="text-lg font-semibold text-ink">What changed in your CV</h2>
         <div className="flex-1" />
         {score !== null && (
-          <span className="inline-flex h-9 items-center gap-2 rounded-full bg-sage-50 px-3 text-[13px] font-semibold text-sage-700">
+          <span className="inline-flex h-9 items-center gap-2 rounded-pill bg-success-soft px-3 text-[13px] font-semibold text-success-strong">
             <Shield className="h-3.5 w-3.5" />
             ATS {score}%
             {company ? <span className="font-medium opacity-80">· {company} ad</span> : null}
@@ -66,42 +66,42 @@ export function ATSChangesView({ onBack }: ATSChangesViewProps) {
 
       <div className="min-h-0 flex-1 overflow-auto px-5 py-5">
         <div className="mx-auto flex max-w-[620px] flex-col gap-4">
-          <div className="rounded-2xl border border-cream-200 bg-cream-50 p-5 shadow-sm">
+          <div className="rounded-card border border-border bg-surface p-5 shadow-resting">
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-semibold text-navy-800">ATS compatibility</span>
+              <span className="text-sm font-semibold text-ink">ATS compatibility</span>
               {score !== null && (
-                <span className="text-2xl font-semibold text-navy-800">{score}%</span>
+                <span className="text-2xl font-semibold text-ink">{score}%</span>
               )}
             </div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-cream-200">
-              <div className="h-full rounded-full bg-gold-400" style={{ width: `${score ?? 0}%` }} />
+            <div className="mt-2 h-1.5 overflow-hidden rounded-pill bg-sunken">
+              <div className="h-full rounded-pill bg-accent" style={{ width: `${score ?? 0}%` }} />
             </div>
-            <p className="mt-3 text-sm leading-relaxed text-warm-gray">
+            <p className="mt-3 text-sm leading-relaxed text-ink-muted">
               {analysis?.summary ? `${analysis.summary.trim().replace(/\.?$/, '.')} ` : ''}
               {countLabel(cards.length, 'change')}, nothing added.
             </p>
           </div>
 
           {cards.map((card, i) => (
-            <div key={`${card.title ?? 'change'}-${i}`} className="rounded-2xl border border-cream-200 bg-white p-5 shadow-sm">
+            <div key={`${card.title ?? 'change'}-${i}`} className="rounded-card border border-border bg-surface-raised p-5 shadow-resting">
               <div className="flex items-start gap-3">
-                <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700">
+                <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-pill bg-accent-soft-strong text-accent-soft-ink">
                   <Check className="h-3 w-3" strokeWidth={2.5} />
                 </span>
-                <p className="text-sm leading-relaxed text-charcoal">
-                  {card.title ? <span className="font-semibold text-navy-800">{card.title} </span> : null}
-                  <span className="text-warm-gray">{card.reason}</span>
+                <p className="text-sm leading-relaxed text-ink-body">
+                  {card.title ? <span className="font-semibold text-ink">{card.title} </span> : null}
+                  <span className="text-ink-muted">{card.reason}</span>
                 </p>
               </div>
               {card.before && card.after && (
                 <div className="mt-3 grid grid-cols-2 gap-4 pl-8">
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-warm-gray">Before</p>
-                    <p className="mt-1 text-sm text-warm-gray line-through decoration-cream-400">{card.before}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-muted">Before</p>
+                    <p className="mt-1 text-sm text-ink-muted line-through decoration-ink-ghost">{card.before}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sage-700">After</p>
-                    <p className="mt-1 rounded-lg bg-sage-50 px-3 py-2 text-sm text-charcoal">{card.after}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-success-strong">After</p>
+                    <p className="mt-1 rounded-control bg-success-soft px-3 py-2 text-sm text-ink-body">{card.after}</p>
                   </div>
                 </div>
               )}
@@ -109,22 +109,22 @@ export function ATSChangesView({ onBack }: ATSChangesViewProps) {
           ))}
 
           {cards.length === 0 && (
-            <p className="text-sm text-warm-gray">The change list for this CV wasn&apos;t saved. The score above still stands.</p>
+            <p className="text-sm text-ink-muted">The change list for this CV wasn&apos;t saved. The score above still stands.</p>
           )}
 
           {keywords.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 px-1">
-              <span className="mr-1 text-xs text-warm-gray">Matched from the ad, already in your CV:</span>
+              <span className="mr-1 text-xs text-ink-muted">Matched from the ad, already in your CV:</span>
               {keywords.map((k) => (
-                <span key={k} className="rounded-full bg-gold-50 px-2.5 py-1 text-xs font-medium text-gold-700">
+                <span key={k} className="rounded-pill bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent-soft-ink">
                   {k}
                 </span>
               ))}
             </div>
           )}
 
-          <div className="flex items-center gap-3 rounded-lg bg-sage-50 px-4 py-3 text-sm text-sage-700">
-            <span className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-white">
+          <div className="flex items-center gap-3 rounded-control bg-success-soft px-4 py-3 text-sm text-success-strong">
+            <span className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-pill bg-surface-raised">
               <Check className="h-3 w-3" strokeWidth={2.5} />
             </span>
             <p>

@@ -111,7 +111,7 @@ export function ConnectedAppsPane() {
       <Caption>APPS WITH ACCESS</Caption>
       {apps === null ? (
         <div className="flex justify-center py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-warm-gray" aria-label="Loading" />
+          <Loader2 className="h-5 w-5 animate-spin text-ink-muted" aria-label="Loading" />
         </div>
       ) : apps.length === 0 ? (
         <RowGroup>
@@ -157,7 +157,7 @@ export function ConnectedAppsPane() {
               setLimit(e.target.value);
               setLimitMessage(null);
             }}
-            className="h-9 w-24 rounded-lg border border-cream-200 bg-cream-50 px-3 text-right text-sm text-charcoal shadow-sm focus:border-navy-500 focus:outline-none"
+            className="h-9 w-24 rounded-control border border-border bg-surface px-3 text-right text-sm text-ink-body shadow-resting focus:border-border-focus focus:outline-none"
           />
           <OutlineButton
             onClick={() => void handleSaveLimit()}
@@ -167,9 +167,9 @@ export function ConnectedAppsPane() {
           </OutlineButton>
         </Row>
       </RowGroup>
-      {limitMessage && <p className="mt-2 text-xs text-warm-gray">{limitMessage}</p>}
-      {!limitValid && <p className="mt-2 text-xs text-red-600">Enter 0 to {MAX_LIMIT}, in steps of 0.5.</p>}
-      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+      {limitMessage && <p className="mt-2 text-xs text-ink-muted">{limitMessage}</p>}
+      {!limitValid && <p className="mt-2 text-xs text-danger">Enter 0 to {MAX_LIMIT}, in steps of 0.5.</p>}
+      {error && <p className="mt-2 text-xs text-danger">{error}</p>}
     </div>
   );
 }
