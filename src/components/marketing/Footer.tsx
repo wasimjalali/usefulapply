@@ -46,8 +46,7 @@ export default function Footer() {
   const recentBlogPosts = getAllPosts().slice(0, 5);
 
   return (
-    <footer className="bg-gradient-to-b from-navy-600 to-navy-800 text-ink-inverse relative">
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-gold-400/40 via-gold-500/60 to-gold-400/40" />
+    <footer className="bg-surface-inverse text-ink-inverse relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Link columns (center) + blurb (right) */}
         <div className="flex flex-col lg:flex-row lg:items-start gap-12 lg:gap-16">

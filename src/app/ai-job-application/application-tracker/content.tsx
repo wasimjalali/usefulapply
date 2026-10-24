@@ -57,39 +57,39 @@ export const content: GeoContent = {
           A minimal tracker needs these fields:
         </p>,
         <div className="grid md:grid-cols-2 gap-4 mb-6">
-          <div className="bg-surface border border-border rounded-xl p-6">
+          <div className="bg-surface border border-border rounded-card p-6">
             <h3 className="text-lg font-bold text-ink-body mb-2">Company Name</h3>
             <p className="text-ink-muted leading-relaxed">
               So you know where you applied.
             </p>
           </div>
-          <div className="bg-surface border border-border rounded-xl p-6">
+          <div className="bg-surface border border-border rounded-card p-6">
             <h3 className="text-lg font-bold text-ink-body mb-2">Job Title</h3>
             <p className="text-ink-muted leading-relaxed">
               So you know which role (especially if applying to multiple roles at the same
               company).
             </p>
           </div>
-          <div className="bg-surface border border-border rounded-xl p-6">
+          <div className="bg-surface border border-border rounded-card p-6">
             <h3 className="text-lg font-bold text-ink-body mb-2">Application Date</h3>
             <p className="text-ink-muted leading-relaxed">
               So you know when to follow up (7 to 10 business days later).
             </p>
           </div>
-          <div className="bg-surface border border-border rounded-xl p-6">
+          <div className="bg-surface border border-border rounded-card p-6">
             <h3 className="text-lg font-bold text-ink-body mb-2">Status</h3>
             <p className="text-ink-muted leading-relaxed">
               Applied, Interview, Rejected, Accepted, Follow-Up, so you know where each
               application stands.
             </p>
           </div>
-          <div className="bg-surface border border-border rounded-xl p-6">
+          <div className="bg-surface border border-border rounded-card p-6">
             <h3 className="text-lg font-bold text-ink-body mb-2">Job Posting Link</h3>
             <p className="text-ink-muted leading-relaxed">
               So you can re-read the JD before the interview.
             </p>
           </div>
-          <div className="bg-surface border border-border rounded-xl p-6">
+          <div className="bg-surface border border-border rounded-card p-6">
             <h3 className="text-lg font-bold text-ink-body mb-2">Documents Sent</h3>
             <p className="text-ink-muted leading-relaxed">
               A copy of the CV and cover letter you sent, so you know what claims you made.
@@ -221,13 +221,13 @@ export const content: GeoContent = {
     actions: <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
       <Link
         href="/dashboard"
-        className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-accent-ink font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-floating text-lg inline-flex items-center gap-2"
+        className="px-10 py-4 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control transition-colors duration-(--duration-fast) ease-standard shadow-floating text-lg inline-flex items-center gap-2"
       >
         Start free
       </Link>
       <Link
         href="/ai-job-application"
-        className="px-10 py-4 glass-dark text-ink-inverse font-semibold rounded-xl hover:bg-ink-inverse/30 hover:shadow-xl hover:scale-[1.02] hover:border-accent/50 transition-all duration-300 text-lg inline-flex items-center gap-2"
+        className="px-10 py-4 border border-border-inverse-raised bg-ink-inverse/10 text-ink-inverse font-semibold rounded-control hover:bg-ink-inverse/20 transition-colors duration-(--duration-base) ease-standard text-lg inline-flex items-center gap-2"
       >
         <ArrowLeft className="w-5 h-5" />
         Back to Guide

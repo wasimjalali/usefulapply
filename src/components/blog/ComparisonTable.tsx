@@ -53,10 +53,10 @@ export default function ComparisonTable({ tools, features }: ComparisonTableProp
   return (
     <div className="my-8 overflow-x-auto">
       <div className="inline-block min-w-full align-middle">
-        <div className="overflow-hidden border border-border rounded-xl shadow-resting">
+        <div className="overflow-hidden border border-border rounded-card shadow-resting">
           <table className="min-w-full divide-y divide-border">
             {/* Header */}
-            <thead className="bg-gradient-to-r from-navy-600 to-navy-700">
+            <thead className="bg-surface-inverse">
               <tr>
                 <th
                   scope="col"

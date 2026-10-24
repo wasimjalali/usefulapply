@@ -114,8 +114,8 @@ export default function AboutPage() {
               const Icon = value.icon;
               return (
                 <ScrollReveal key={i} delay={i * 150}>
-                <div className="bg-surface-raised rounded-card p-8 border border-border shadow-resting card-hover-lift">
-                  <div className="w-14 h-14 bg-accent-soft-strong rounded-xl flex items-center justify-center mb-5">
+                <div className="bg-surface-raised rounded-card p-8 border border-border shadow-resting">
+                  <div className="w-14 h-14 bg-accent-soft-strong rounded-control flex items-center justify-center mb-5">
                     <Icon className="w-7 h-7 text-accent-strong" />
                   </div>
                   <h3 className="text-xl font-semibold text-ink-body mb-3">{value.title}</h3>
@@ -164,7 +164,7 @@ export default function AboutPage() {
               return (
                 <ScrollReveal key={i} delay={i * 120}>
                 <div className="text-center p-6">
-                  <div className="w-14 h-14 bg-brand-soft-strong rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <div className="w-14 h-14 bg-brand-soft-strong rounded-control flex items-center justify-center mx-auto mb-4">
                     <Icon className="w-7 h-7 text-brand" />
                   </div>
                   <h3 className="text-lg font-semibold text-ink-body mb-2">{value.title}</h3>

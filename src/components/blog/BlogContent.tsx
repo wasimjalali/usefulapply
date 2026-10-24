@@ -245,7 +245,7 @@ function renderMarkdown(md: string, hasComparisonTable: boolean): string {
     // Code blocks
     if (line.trim().startsWith('```')) {
       if (inCodeBlock) {
-        result.push(`<pre class="bg-brand-soft border border-border rounded-xl p-4 overflow-x-auto my-6"><code>${codeBlockContent.join('\n')}</code></pre>`);
+        result.push(`<pre class="bg-brand-soft border border-border rounded-control p-4 overflow-x-auto my-6"><code>${codeBlockContent.join('\n')}</code></pre>`);
         codeBlockContent = [];
         inCodeBlock = false;
       } else {
@@ -314,7 +314,7 @@ function renderMarkdown(md: string, hasComparisonTable: boolean): string {
       const captionHtml = caption
         ? `<figcaption class="text-center text-sm text-ink-muted mt-3">${escapeHtml(caption)}</figcaption>`
         : '';
-      result.push(`<figure class="my-10"><img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" class="rounded-xl w-full shadow-resting" loading="lazy" />${captionHtml}</figure>`);
+      result.push(`<figure class="my-10"><img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" class="rounded-card w-full shadow-resting" loading="lazy" />${captionHtml}</figure>`);
       continue;
     }
 

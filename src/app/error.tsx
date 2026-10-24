@@ -50,7 +50,7 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-canvas">
       <div className="text-center max-w-md mx-auto px-6">
         <div className="text-6xl mb-4">⚠️</div>
         <h2 className="text-2xl font-bold text-brand-strong mb-2">Something went wrong</h2>
@@ -66,7 +66,7 @@ export default function Error({
             }
             reset();
           }}
-          className="px-6 py-3 bg-blue-600 text-white rounded-control hover:bg-blue-700 transition-colors font-medium"
+          className="px-6 py-3 bg-brand hover:bg-brand-strong text-brand-ink rounded-control transition-colors duration-(--duration-fast) ease-standard font-medium"
         >
           Try again
         </button>

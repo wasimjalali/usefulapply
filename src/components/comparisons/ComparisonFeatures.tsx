@@ -42,18 +42,18 @@ export function ComparisonFeatures({ features, competitorName }: ComparisonFeatu
 
               {/* Side-by-Side Details */}
               <div className="grid md:grid-cols-2 gap-6 mb-6">
-                <div className={`rounded-xl border p-6 ${feature.winner === 'brand' ? 'bg-accent-soft border-border-accent-soft' : 'bg-surface border-border'}`}>
+                <div className={`rounded-card border p-6 ${feature.winner === 'brand' ? 'bg-accent-soft border-border-accent-soft' : 'bg-surface border-border'}`}>
                   <h4 className="text-sm font-semibold text-brand-strong uppercase tracking-wide mb-3">Useful Apply</h4>
                   <p className="text-sm text-ink-body leading-relaxed">{feature.brandDetails}</p>
                 </div>
-                <div className={`rounded-xl border p-6 ${feature.winner === 'competitor' ? 'bg-tag-blue-soft border-tag-blue-line' : 'bg-surface border-border'}`}>
+                <div className={`rounded-card border p-6 ${feature.winner === 'competitor' ? 'bg-tag-blue-soft border-tag-blue-line' : 'bg-surface border-border'}`}>
                   <h4 className="text-sm font-semibold text-brand-strong uppercase tracking-wide mb-3">{competitorName}</h4>
                   <p className="text-sm text-ink-body leading-relaxed">{feature.competitorDetails}</p>
                 </div>
               </div>
 
               {/* Reasoning */}
-              <div className="bg-surface rounded-xl p-4 border border-border">
+              <div className="bg-surface rounded-card p-4 border border-border">
                 <h4 className="text-xs font-semibold text-brand-strong uppercase tracking-wide mb-2">Why This Matters</h4>
                 <p className="text-sm text-ink-body leading-relaxed">{feature.reasoning}</p>
               </div>

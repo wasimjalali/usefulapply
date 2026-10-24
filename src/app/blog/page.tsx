@@ -157,7 +157,7 @@ export default function BlogPage() {
                                   {...(getBlurDataUrl(post.ogImage)
                                     ? { placeholder: 'blur' as const, blurDataURL: getBlurDataUrl(post.ogImage) }
                                     : {})}
-                                  className="object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                                  className="object-cover group-hover:scale-[1.03] transition-transform duration-(--duration-base) ease-standard"
                                   sizes="(max-width: 768px) 100vw, 50vw"
                                 />
                               ) : (
@@ -226,7 +226,7 @@ export default function BlogPage() {
                                   {...(getBlurDataUrl(post.ogImage)
                                     ? { placeholder: 'blur' as const, blurDataURL: getBlurDataUrl(post.ogImage) }
                                     : {})}
-                                  className="object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                                  className="object-cover group-hover:scale-[1.03] transition-transform duration-(--duration-base) ease-standard"
                                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                 />
                               ) : (

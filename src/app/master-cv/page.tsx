@@ -354,7 +354,7 @@ export default function MasterCVPage() {
       <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <ScrollReveal delay={0} direction="down" distance={20}>
-          <div className="inline-flex items-center gap-2 px-4 py-2 glass rounded-pill text-sm text-ink-body mb-8 shadow-resting">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-surface rounded-pill border border-border text-sm text-ink-body mb-8 shadow-resting">
             <Sparkles className="w-4 h-4 text-accent" />
             <span className="font-medium">The Foundation of Great Applications</span>
           </div>
@@ -414,8 +414,8 @@ export default function MasterCVPage() {
               const Icon = benefit.icon;
               return (
                 <ScrollReveal key={i} delay={i * 100}>
-                <div className="bg-surface rounded-xl p-6 border border-border">
-                  <div className="w-12 h-12 bg-surface-raised rounded-xl flex items-center justify-center mb-4 shadow-resting">
+                <div className="bg-surface rounded-card p-6 border border-border">
+                  <div className="w-12 h-12 bg-surface-raised rounded-control flex items-center justify-center mb-4 shadow-resting">
                     <Icon className="w-6 h-6 text-brand" />
                   </div>
                   <h3 className="text-base font-bold text-ink-body mb-2">{benefit.title}</h3>

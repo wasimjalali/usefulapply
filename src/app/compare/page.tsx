@@ -115,7 +115,7 @@ export default function CompareHubPage() {
               </p>
               <Link
                 href="/dashboard"
-                className="inline-flex items-center px-6 py-3 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting hover:shadow-elevated transition-all duration-(--duration-base) hover:-translate-y-0.5"
+                className="inline-flex items-center px-6 py-3 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting hover:shadow-elevated transition-all duration-(--duration-base)"
               >
                 Start free
               </Link>

@@ -371,7 +371,7 @@ export default function MasterCVTemplatePage() {
                   key={i}
                   itemScope
                   itemType="https://schema.org/Question"
-                  className="bg-surface-raised rounded-xl border border-border p-6"
+                  className="bg-surface-raised rounded-card border border-border p-6"
                 >
                   <h3 itemProp="name" className="text-lg font-bold text-ink-body mb-3">
                     {faq.q}
@@ -392,7 +392,7 @@ export default function MasterCVTemplatePage() {
         </section>
 
         {/* CTA */}
-        <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 relative overflow-hidden">
+        <section className="py-20 px-4 sm:px-6 lg:px-8 bg-surface-inverse relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-accent/10 rounded-pill -translate-y-1/2 translate-x-1/2 animate-float-slow" />
           <ScrollReveal>
             <div className="max-w-4xl mx-auto text-center relative">
@@ -405,7 +405,7 @@ export default function MasterCVTemplatePage() {
               </p>
               <a
                 href="/dashboard"
-                className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-accent-ink font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-floating text-lg"
+                className="inline-flex items-center gap-2 px-10 py-4 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control transition-colors duration-(--duration-fast) ease-standard shadow-floating text-lg"
               >
                 Upload Your Master CV to Useful Apply
                 <ArrowRight className="w-5 h-5" />

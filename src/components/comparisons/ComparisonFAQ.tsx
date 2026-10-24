@@ -11,7 +11,7 @@ export function ComparisonFAQ({ faq }: ComparisonFAQProps) {
         <h2 className="font-bold text-brand text-[32px] leading-[1.1] mb-10 text-center">Frequently asked questions.</h2>
         <div className="space-y-6">
           {faq.map((item, i) => (
-            <div key={i} className="bg-surface-raised rounded-xl border border-border p-6 shadow-resting">
+            <div key={i} className="bg-surface-raised rounded-card border border-border p-6 shadow-resting">
               <h3 className="text-lg font-semibold text-brand mb-3">{item.question}</h3>
               <p className="text-ink-body leading-relaxed">{item.answer}</p>
             </div>

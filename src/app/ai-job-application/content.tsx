@@ -170,7 +170,7 @@ export const content: GeoContent = {
             <ScrollReveal key={pillar.href} delay={i * 80}>
               <Link
                 href={pillar.href}
-                className="block bg-surface-raised rounded-card border border-border p-7 hover:border-border-accent hover:shadow-elevated transition-all card-hover-lift h-full"
+                className="block bg-surface-raised rounded-card border border-border p-7 shadow-resting hover:shadow-elevated transition-shadow duration-(--duration-base) ease-standard h-full"
               >
                 <h3 className="text-lg font-bold text-ink-body mb-2">{pillar.title}</h3>
                 <p className="text-ink-muted text-sm leading-relaxed mb-4">
@@ -242,13 +242,13 @@ export const content: GeoContent = {
     actions: <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
       <Link
         href="/dashboard"
-        className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-accent-ink font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-floating text-lg inline-flex items-center gap-2"
+        className="px-10 py-4 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control transition-colors duration-(--duration-fast) ease-standard shadow-floating text-lg inline-flex items-center gap-2"
       >
         Start free
       </Link>
       <Link
         href="/pricing"
-        className="px-10 py-4 glass-dark text-ink-inverse font-semibold rounded-xl hover:bg-ink-inverse/30 hover:shadow-xl hover:scale-[1.02] hover:border-accent/50 transition-all duration-300 text-lg"
+        className="px-10 py-4 border border-border-inverse-raised bg-ink-inverse/10 text-ink-inverse font-semibold rounded-control hover:bg-ink-inverse/20 transition-colors duration-(--duration-base) ease-standard text-lg"
       >
         View Pricing
       </Link>
