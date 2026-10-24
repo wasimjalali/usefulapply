@@ -146,6 +146,8 @@ export async function runServiceChecks(): Promise<ServiceReport[]> {
       [exportFileName('cv_pdf', 'Jürgen Müller-Schäfer', 'de'), 'Lebenslauf_Juergen_Mueller-Schaefer.pdf'],
       [exportFileName('cover_letter_pdf', 'Jordan Ellis', 'en'), 'Jordan_Ellis_Cover_Letter.pdf'],
       [exportFileName('cover_letter_pdf', 'Jürgen Müller-Schäfer', 'de'), 'Anschreiben_Juergen_Mueller-Schaefer.pdf'],
+      [exportFileName('cv_pdf', 'Jordan Ellis', 'en', 'Harbor Freight Technologies'), 'Jordan_Ellis_Harbor_Freight_Technologies_CV.pdf'],
+      [exportFileName('cover_letter_pdf', 'Jürgen Müller-Schäfer', 'de', 'Müller & Söhne GmbH'), 'Anschreiben_Juergen_Mueller-Schaefer_Mueller_Soehne_GmbH.pdf'],
       [nameForFile('  José  Núñez '), 'Jose_Nunez'],
       [nameForFile('../../etc/passwd'), 'etc_passwd'],
     ];
