@@ -64,7 +64,7 @@ function EditableField({ value, onChange, placeholder, multiline, className = ''
 
   if (isEditing) {
     return (
-      <div className="relative group">
+      <div className="relative group min-w-0">
         {label && <span className="text-xs text-ink-muted mb-1 block">{label}</span>}
         {multiline ? (
           <textarea
@@ -99,11 +99,11 @@ function EditableField({ value, onChange, placeholder, multiline, className = ''
 
   return (
     <div 
-      className={`group cursor-pointer hover:bg-brand-soft rounded px-1 -mx-1 transition-colors ${className}`}
+      className={`group min-w-0 cursor-pointer hover:bg-brand-soft rounded px-1 -mx-1 transition-colors ${className}`}
       onClick={() => setIsEditing(true)}
     >
       {label && <span className="text-xs text-ink-muted mb-1 block">{label}</span>}
-      <span className={value ? '' : 'text-ink-muted italic'}>
+      <span className={`[overflow-wrap:anywhere] ${value ? '' : 'text-ink-muted italic'}`}>
         {value || placeholder || 'Click to edit'}
       </span>
       <Edit3 className="w-3 h-3 inline-block ml-1 opacity-0 group-hover:opacity-50 transition-opacity" />
