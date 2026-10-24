@@ -29,8 +29,8 @@ Status as of 2026-10-25, checked against production (Worker version `7121506b`, 
 |---|---|---|
 | Seed script written, idempotent, no MFA, verified email | done, `scripts/seed-reviewer-account.ts`. Re-run on a fresh local D1 after migration 0015 on 2026-10-25: two runs, both exit 0 (see `../STATUS.md`) | done |
 | Reviewer is on Max with no Stripe ids, so screening and the job feed work | done in the seed. The monthly sweep never selects it (see Reset and plan survival below) | done |
-| One reviewer account per portal: `reviewer+anthropic@usefulapply.com` for Anthropic and `reviewer+openai@usefulapply.com` for OpenAI, each seeded with `--email` and its own credentials file | open | Wasim |
-| Seeded on production | open. **Needs Wasim's yes in session first.** Commands below | Wasim |
+| One reviewer account per portal: `reviewer+anthropic@usefulapply.com` for Anthropic and `reviewer+openai@usefulapply.com` for OpenAI, each seeded with `--email` and its own credentials file | done on 2026-10-25. Credentials in `~/Documents/usefulapply-reviewers/{anthropic,openai}.json` (mode 0600, outside the repo) | done |
+| Seeded on production | done on 2026-10-25 around 00:45 CEST, with Wasim's yes, from main at `ec8c6020`. Both runs exit 0. Read-only D1 check per account: email verified, Max, 200 credits, `subscription_status` NULL, no Stripe id, 1 subscription row, Halcyon (applied) and Fjordwerk (interview) kits succeeded, 1 CV, 8 chat messages, 5 ranked feed items | done |
 | Re-run the seed right before each review window opens, and again if the review is delayed. The briefing counts feed matches from the last 24 hours and interviews in the next 7 days, and the seed puts the interview 5 days out, so the dates go stale fast | open | Wasim |
 | Credentials entered in the matching portal only, files kept outside git | open | Wasim |
 | Accounts and data kept available for later reviews | ongoing | Wasim |
@@ -102,7 +102,7 @@ After submitting, Anthropic scans it and by default lists it as a Community conn
 | Domain challenge route and `OPENAI_APPS_CHALLENGE` secret | route live (404 until the secret is set). Secret needs the portal token | Wasim |
 | Registration method `dcr`, scopes, redirect URIs | in `package/mcp.json` and the sheet. Compare with the dashboard's callback | Wasim |
 | 5 positive and 3 negative test cases, all positive ones run | drafted in the sheet | Wasim runs |
-| Test account with no MFA, no sign-up needed | seed script supports it | Wasim |
+| Test account with no MFA, no sign-up needed | seeded on production 2026-10-25 (`reviewer+openai@usefulapply.com`) | done |
 | No digital goods, credits or upgrade promotion in the app | done (see Product readiness) | done |
 | No pricing, trial or promotion wording in descriptions | listing text complies | done |
 | Policy attestations in the Submit dialog | open | Wasim |
@@ -114,7 +114,7 @@ After submitting, Anthropic scans it and by default lists it as a Community conn
 - OpenAI identity verification and a Claude paid plan for submitting.
 - The OpenAI domain challenge token, set as `OPENAI_APPS_CHALLENGE`.
 - Company details, review contact and categories.
-- A yes to run the seed on production, then entering the credentials in the portals.
+- Entering the reviewer credentials in the portals, and a seed re-run right before each review window.
 - The demo recording and the screenshots.
 - A decision on the commerce risk: ship `spend` to ChatGPT, or drop it if OpenAI rejects credits.
 
