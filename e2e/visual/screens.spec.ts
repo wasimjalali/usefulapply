@@ -1,4 +1,4 @@
-import { expect, request as playwrightRequest, test, type Page } from '@playwright/test';
+import { expect, request as playwrightRequest, test, type Browser, type Page } from '@playwright/test';
 import { generateKitThroughUi, signedInPage, storedApplication, waitForStored } from '../lib/app';
 import { BASE_URL } from '../lib/env';
 import { fakeReset } from '../lib/fake-control';
@@ -12,16 +12,18 @@ import { pinUser, seedFeedInbox, settleLongPage, signIn, visualPage, visualUser,
  *
  * Users, kit and feed rows are seeded through the product (sign-up, the fit and kit flow on the scripted model)
  * or straight into the local D1, then pinned to a fixed name, email and timestamps (e2e/lib/visual.ts). The
- * browser runs on a frozen clock (2026-10-24T09:00:00Z), in UTC and en-US, with reduced motion and with every
- * request to another host aborted. Animations and the caret are off in the screenshots.
+ * browser clock starts at 2026-10-24T09:00:00Z and runs from there, and the pinned rows sit two and a half hours
+ * earlier, so every relative time on screen ("2 hours ago") holds for the whole run. Screens whose toast would
+ * time out pause the clock before the screenshot. UTC, en-US, reduced motion, and every request to another host
+ * aborted. Animations and the caret are off in the screenshots.
+ *
+ * Not serial: one failing screen doesn't hide the others. After a failure the worker restarts and seeds again.
  *
  * The snapshots are Linux renders, so the project skips itself anywhere else. Rebaseline only with the plan's
  * four-step procedure, never to make a diff go away.
  */
 
 test.skip(process.platform !== 'linux', 'The snapshots are Linux renders; other platforms render fonts differently.');
-test.describe.configure({ mode: 'serial' });
-
 const FEED_JOBS = [
   { title: 'Senior FP&A Analyst', company: 'Northwind Foods', fitLabel: 'strong' as const, salary: 'USD 95k to 115k', location: 'Remote' },
   { title: 'Financial Planning Analyst', company: 'Harbor Freight Lines', fitLabel: 'good' as const, salary: 'USD 85k to 100k', location: 'Chicago, IL' },
@@ -53,13 +55,23 @@ test.beforeAll(async ({ browser }) => {
     // Its own request context: signing in leaves a session cookie behind, and Better Auth refuses a sign-up that
     // carries cookies but no Origin.
     const kitApi = await playwrightRequest.newContext({ baseURL: BASE_URL });
-    const signedIn = await signedInPage(browser, kitApi, 'visual-kit');
-    await generateKitThroughUi(signedIn.page);
-    await waitForStored(signedIn.user.id, (row) => row.generation_status === 'succeeded', 'kit persisted');
-    await waitForSavedChat(signedIn.user.id, 'Your kit for Northwind Foods is ready');
-    await signedIn.context.close();
-    await kitApi.dispose();
-    const kitUser = pinUser(signedIn.user, 'kit');
+    const generationDay = new Date().toISOString().slice(0, 10);
+    let generated: TestUser;
+    try {
+      const signedIn = await signedInPage(browser, kitApi, 'visual-kit');
+      try {
+        await generateKitThroughUi(signedIn.page);
+        await waitForStored(signedIn.user.id, (row) => row.generation_status === 'succeeded', 'kit persisted');
+        await waitForSavedChat(signedIn.user.id, 'Your kit for Northwind Foods is ready');
+        generated = signedIn.user;
+      } finally {
+        await signedIn.context.close();
+      }
+    } finally {
+      await kitApi.dispose();
+    }
+    // The kit writes its generation day into the letter; a run that crosses midnight UTC has two days to pin.
+    const kitUser = pinUser(generated, 'kit', [generationDay]);
     kit = { user: kitUser, cookies: await signIn(kitUser) };
     kitSessionId = sessionOf(kitUser);
 
@@ -96,6 +108,31 @@ async function shoot(page: Page, name: string, viewport: Viewport, fullPage = fa
 }
 
 /**
+ * Run one screen in its own context and close it whatever happens. Route handlers are dropped first, so a feed
+ * request still in flight can't throw after the test.
+ */
+async function onScreen(
+  browser: Browser,
+  viewport: Viewport,
+  options: Parameters<typeof visualPage>[2],
+  body: (page: Page) => Promise<void>,
+): Promise<void> {
+  const { context, page } = await visualPage(browser, viewport, options);
+  try {
+    await body(page);
+  } finally {
+    await context.unrouteAll({ behavior: 'ignoreErrors' });
+    await context.close();
+  }
+}
+
+/** Stop the page's timers, so a toast that closes itself after a few seconds stays for the screenshot. */
+async function pauseClock(page: Page): Promise<void> {
+  const now = await page.evaluate(() => Date.now());
+  await page.clock.pauseAt(now + 100);
+}
+
+/**
  * The tracker or the job feed, opened from the sidebar the way a user gets there. The dashboard first restores the
  * user's last application, so the click waits for that to finish, or the restore can switch the workspace back.
  */
@@ -124,39 +161,39 @@ for (const viewport of VIEWPORTS) {
       ['geo-cover-letter-generator', '/ai-job-application/cover-letter-generator'],
     ] as const) {
       test(`${name} @${viewport.name}`, async ({ browser }) => {
-        const { context, page } = await visualPage(browser, viewport);
-        await page.goto(path);
-        await settleLongPage(page);
-        await shoot(page, name, viewport, true);
-        await context.close();
+        await onScreen(browser, viewport, {}, async (page) => {
+          await page.goto(path);
+          await settleLongPage(page);
+          await shoot(page, name, viewport, true);
+        });
       });
     }
 
     test(`sign-in @${viewport.name}`, async ({ browser }) => {
-      const { context, page } = await visualPage(browser, viewport);
-      await page.goto('/auth/login');
-      await expect(page.getByRole('heading', { name: 'Log in' })).toBeVisible();
-      await page.waitForLoadState('networkidle');
-      await shoot(page, 'sign-in', viewport);
-      await context.close();
+      await onScreen(browser, viewport, {}, async (page) => {
+        await page.goto('/auth/login');
+        await expect(page.getByRole('heading', { name: 'Log in' })).toBeVisible();
+        await page.waitForLoadState('networkidle');
+        await shoot(page, 'sign-in', viewport);
+      });
     });
 
     test(`sign-up @${viewport.name}`, async ({ browser }) => {
-      const { context, page } = await visualPage(browser, viewport);
-      await page.goto('/auth/signup');
-      await expect(page.getByRole('heading', { name: 'Create your free account' })).toBeVisible();
-      await page.waitForLoadState('networkidle');
-      await shoot(page, 'sign-up', viewport);
-      await context.close();
+      await onScreen(browser, viewport, {}, async (page) => {
+        await page.goto('/auth/signup');
+        await expect(page.getByRole('heading', { name: 'Create your free account' })).toBeVisible();
+        await page.waitForLoadState('networkidle');
+        await shoot(page, 'sign-up', viewport);
+      });
     });
 
     test(`dashboard empty @${viewport.name}`, async ({ browser }) => {
-      const { context, page } = await visualPage(browser, viewport, { user: empty });
-      await page.goto('/dashboard');
-      await expect(page.getByPlaceholder(/Paste the whole ad/)).toBeVisible({ timeout: 30_000 });
-      await page.waitForLoadState('networkidle');
-      await shoot(page, 'dashboard-empty', viewport);
-      await context.close();
+      await onScreen(browser, viewport, { user: empty }, async (page) => {
+        await page.goto('/dashboard');
+        await expect(page.getByPlaceholder(/Paste the whole ad/)).toBeVisible({ timeout: 30_000 });
+        await page.waitForLoadState('networkidle');
+        await shoot(page, 'dashboard-empty', viewport);
+      });
     });
 
     for (const [name, tab, tabName] of [
@@ -165,94 +202,99 @@ for (const viewport of VIEWPORTS) {
       ['dashboard-kit-emails', 'email', 'Emails'],
     ] as const) {
       test(`${name} @${viewport.name}`, async ({ browser }) => {
-        const { context, page } = await visualPage(browser, viewport, { user: kit });
-        await page.goto(kitTab(tab));
-        await expect(page.getByRole('tab', { name: tabName, exact: true })).toHaveAttribute('aria-selected', 'true', { timeout: 30_000 });
-        await waitForKitChat(page);
-        await page.waitForLoadState('networkidle');
-        await shoot(page, name, viewport);
-        await context.close();
+        await onScreen(browser, viewport, { user: kit }, async (page) => {
+          await page.goto(kitTab(tab));
+          await expect(page.getByRole('tab', { name: tabName, exact: true })).toHaveAttribute('aria-selected', 'true', { timeout: 30_000 });
+          await waitForKitChat(page);
+          await page.waitForLoadState('networkidle');
+          await shoot(page, name, viewport);
+        });
       });
     }
 
     if (viewport.name === 'tablet') {
       // At 768 the conversation and the canvas take turns; this is the conversation's turn.
       test(`dashboard-kit-chat @${viewport.name}`, async ({ browser }) => {
-        const { context, page } = await visualPage(browser, viewport, { user: kit });
-        await page.goto(kitTab('cv'));
-        await page.getByRole('button', { name: 'Show the conversation' }).click();
-        await expect(page.getByText(/Your kit for Northwind Foods is ready/).last()).toBeVisible({ timeout: 30_000 });
-        await page.waitForLoadState('networkidle');
-        await shoot(page, 'dashboard-kit-chat', viewport);
-        await context.close();
+        await onScreen(browser, viewport, { user: kit }, async (page) => {
+          await page.goto(kitTab('cv'));
+          await page.getByRole('button', { name: 'Show the conversation' }).click();
+          await expect(page.getByText(/Your kit for Northwind Foods is ready/).last()).toBeVisible({ timeout: 30_000 });
+          await page.waitForLoadState('networkidle');
+          await shoot(page, 'dashboard-kit-chat', viewport);
+        });
       });
     }
 
     test(`tracker @${viewport.name}`, async ({ browser }) => {
-      const { context, page } = await visualPage(browser, viewport, { user: tracker });
-      await openWorkspace(page, 'Application Tracker');
-      await expect(page.getByRole('button', { name: 'Delete this application', exact: true })).toBeAttached({ timeout: 30_000 });
-      await page.waitForLoadState('networkidle');
-      await shoot(page, 'tracker', viewport);
-      await context.close();
+      await onScreen(browser, viewport, { user: tracker }, async (page) => {
+        await openWorkspace(page, 'Application Tracker');
+        await expect(page.getByRole('button', { name: 'Delete this application', exact: true })).toBeAttached({ timeout: 30_000 });
+        await page.waitForLoadState('networkidle');
+        await shoot(page, 'tracker', viewport);
+      });
     });
 
     test(`dialog delete-application @${viewport.name}`, async ({ browser }) => {
-      const { context, page } = await visualPage(browser, viewport, { user: tracker });
-      await openWorkspace(page, 'Application Tracker');
-      await page.getByRole('button', { name: 'Delete this application', exact: true }).click();
-      await expect(page.getByRole('dialog', { name: 'Delete Northwind Foods?' })).toBeVisible();
-      await shoot(page, 'dialog-delete-application', viewport);
-      await context.close();
+      await onScreen(browser, viewport, { user: tracker }, async (page) => {
+        await openWorkspace(page, 'Application Tracker');
+        await page.getByRole('button', { name: 'Delete this application', exact: true }).click();
+        await expect(page.getByRole('dialog', { name: 'Delete Northwind Foods?' })).toBeVisible();
+        await shoot(page, 'dialog-delete-application', viewport);
+      });
     });
 
     test(`job-feed setup @${viewport.name}`, async ({ browser }) => {
       // A user with an application who never set the feed up. (With no application, the first-run view has no sidebar.)
-      const { context, page } = await visualPage(browser, viewport, { user: feedSetup });
-      await openWorkspace(page, /^Job Board/);
-      await page.waitForLoadState('networkidle');
-      await shoot(page, 'job-feed-setup', viewport);
-      await context.close();
+      await onScreen(browser, viewport, { user: feedSetup }, async (page) => {
+        await openWorkspace(page, /^Job Board/);
+        // The setup lives in the conversation; at 768 the canvas has the room until the conversation is shown.
+        if (viewport.name === 'tablet') await page.getByRole('button', { name: 'Show the conversation' }).click();
+        await expect(page.getByRole('button', { name: 'Build my feed' })).toBeVisible({ timeout: 30_000 });
+        await page.waitForLoadState('networkidle');
+        await shoot(page, 'job-feed-setup', viewport);
+      });
     });
 
     test(`job-feed results @${viewport.name}`, async ({ browser }) => {
-      const { context, page } = await visualPage(browser, viewport, { user: feed, rewrites: feedRewrites });
-      await openWorkspace(page, /^Job Board/);
-      await expect(page.getByText('Harbor Freight Lines').first()).toBeVisible({ timeout: 30_000 });
-      await page.waitForLoadState('networkidle');
-      await shoot(page, 'job-feed-results', viewport);
-      await context.close();
+      await onScreen(browser, viewport, { user: feed, rewrites: feedRewrites }, async (page) => {
+        await openWorkspace(page, /^Job Board/);
+        await expect(page.getByText('Harbor Freight Lines').first()).toBeVisible({ timeout: 30_000 });
+        await page.waitForLoadState('networkidle');
+        await shoot(page, 'job-feed-results', viewport);
+      });
     });
 
     test(`settings @${viewport.name}`, async ({ browser }) => {
-      const { context, page } = await visualPage(browser, viewport, { user: empty });
-      await page.goto('/settings');
-      await page.waitForLoadState('networkidle');
-      await expect(page.getByText('visual-empty@test.local').first()).toBeVisible({ timeout: 30_000 });
-      await shoot(page, 'settings', viewport);
-      await context.close();
+      await onScreen(browser, viewport, { user: empty }, async (page) => {
+        await page.goto('/settings');
+        await page.waitForLoadState('networkidle');
+        await expect(page.getByText('visual-empty@test.local').first()).toBeVisible({ timeout: 30_000 });
+        await shoot(page, 'settings', viewport);
+      });
     });
 
     test(`toast success @${viewport.name}`, async ({ browser }) => {
-      const { context, page } = await visualPage(browser, viewport, { user: toasts });
-      await page.goto(kitTab('cover-letter', toastsSessionId));
-      await waitForKitChat(page);
-      await page.getByRole('button', { name: 'Download', exact: true }).click();
-      await page.getByRole('menuitem', { name: 'DOCX' }).click();
-      await expect(page.getByRole('alert').filter({ hasText: 'DOCX downloaded.' })).toBeVisible({ timeout: 30_000 });
-      await shoot(page, 'toast-success', viewport);
-      await context.close();
+      await onScreen(browser, viewport, { user: toasts }, async (page) => {
+        await page.goto(kitTab('cover-letter', toastsSessionId));
+        await waitForKitChat(page);
+        await page.getByRole('button', { name: 'Download', exact: true }).click();
+        await page.getByRole('menuitem', { name: 'DOCX' }).click();
+        await expect(page.getByRole('alert').filter({ hasText: 'DOCX downloaded.' })).toBeVisible({ timeout: 30_000 });
+        await pauseClock(page);
+        await shoot(page, 'toast-success', viewport);
+      });
     });
 
     test(`toast error @${viewport.name}`, async ({ browser }) => {
-      const { context, page } = await visualPage(browser, viewport, { user: toasts });
-      await page.goto(kitTab('cv', toastsSessionId));
-      await waitForKitChat(page);
-      // Browser Run does not run locally, so the PDF export fails the way a real outage does.
-      await page.getByRole('button', { name: 'Download PDF' }).click();
-      await expect(page.getByRole('alert').filter({ hasText: "The PDF didn't build. Try again in a moment." })).toBeVisible({ timeout: 30_000 });
-      await shoot(page, 'toast-error', viewport);
-      await context.close();
+      await onScreen(browser, viewport, { user: toasts }, async (page) => {
+        await page.goto(kitTab('cv', toastsSessionId));
+        await waitForKitChat(page);
+        // Browser Run does not run locally, so the PDF export fails the way a real outage does.
+        await page.getByRole('button', { name: 'Download PDF' }).click();
+        await expect(page.getByRole('alert').filter({ hasText: "The PDF didn't build. Try again in a moment." })).toBeVisible({ timeout: 30_000 });
+        await pauseClock(page);
+        await shoot(page, 'toast-error', viewport);
+      });
     });
   });
 }
