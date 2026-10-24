@@ -28,16 +28,16 @@ You are the database specialist for Useful Apply. A query without a `user_id` fi
 | Table | Purpose | Key columns |
 |-------|---------|-------------|
 | `user`, `session`, `account`, `verification` | Better Auth tables | managed by Better Auth, do not hand-edit |
-| `profiles` | User profile + plan | `id, email (unique), subscription_tier (free/plus/max), subscription_status, timezone, notify_*, job_searches_used` |
+| `profiles` | User profile + plan | `id, email (unique), subscription_tier (free/plus/max), subscription_status, timezone, notify_*` |
 | `user_credits` | Credit balances | `user_id (unique), monthly_credits, rollover_credits, addon_credits, plan_tier, stripe_*, version` (optimistic concurrency) |
 | `credit_transactions` | Credit ledger | `user_id, amount, transaction_type, transaction_kind, balance_before, balance_after` |
-| `subscriptions` | Stripe subscription state | `user_id, tier, status, stripe_customer_id, stripe_subscription_id, current_period_start/end, applications_used, applications_limit` |
+| `subscriptions` | Stripe subscription state | `user_id, tier, status, stripe_customer_id, stripe_subscription_id, current_period_start/end` |
 | `webhook_events` | Stripe webhook idempotency | `event_id` PK |
 | `documents` | CV uploads (primary and master CV) | `user_id, type, file_name, raw_text, all_skills, structured_data` |
 | `application_sessions` | One per application | `user_id, job_title, company, job_description, match_score, status (drafted/applied/interview/rejected/accepted/follow_up), generation_status, fit_assessment, generated_cv, cover_letter, email, interview_at, follow_up_due_at` |
 | `chat_messages` | Chat per session | `session_id, user_id, role, content, actions` |
 | `message_feedback` | Per-message feedback | `user_id, session_id, message_id, feedback_type` |
-| `user_cv_suggestions`, `user_job_preferences`, `user_career_profiles` | Per-user job-feed inputs | `user_id` PK in each |
+| `user_job_preferences`, `user_career_profiles` | Per-user job-feed inputs | `user_id` PK in each |
 | `user_search_strategies` | Search strategies per user and settings | Unique `(user_id, settings_hash)`, several rows per user |
 | `job_feed_settings` | Per-user feed config | `user_id` PK, `enabled, consent_accepted_at, target_roles, target_countries, salary_floor, employment_types, languages, excluded_terms` |
 | `job_feed_runs` | One row per feed run | `id, user_id, local_date, trigger_source, status (queued/running/completed/failed/skipped), idempotency_key, raw_jobs_fetched, jobs_after_prefilter, ranked_jobs_count, settings_snapshot` |

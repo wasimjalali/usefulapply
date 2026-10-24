@@ -163,26 +163,6 @@ function itemKey(item: unknown): string | undefined {
   return typeof record.id === 'string' ? record.id : typeof record.category === 'string' ? record.category : typeof record.language === 'string' ? record.language : undefined;
 }
 
-/** Put the items of one section in the given order. Items not named keep their relative order at the end. */
-export async function reorderCvItems(
-  userId: string,
-  sessionId: string,
-  expectedRevision: number,
-  section: CvItemSection,
-  order: string[],
-): Promise<{ revision: number }> {
-  return editTailoredCv(userId, sessionId, expectedRevision, (data) => {
-    const list = itemList(data, section);
-    const named: unknown[] = order.map((key) => {
-      const item = list.find((candidate) => itemKey(candidate) === key);
-      if (item === undefined) throw new InvalidInputError(`No item "${key}" in ${section}`);
-      return item;
-    });
-    data[section] = [...named, ...list.filter((item) => !named.includes(item))];
-    return data;
-  });
-}
-
 export async function deleteCvItem(
   userId: string,
   sessionId: string,
@@ -195,26 +175,6 @@ export async function deleteCvItem(
     const index = list.findIndex((item) => itemKey(item) === key);
     if (index === -1) throw new InvalidInputError(`No item "${key}" in ${section}`);
     data[section] = list.filter((_, i) => i !== index);
-    return data;
-  });
-}
-
-const HEADING_KEYS = new Set(['summary', 'skills', 'experience', 'education', 'certifications', 'languages', 'contact', 'additionalInfo', 'projects']);
-
-/** Rename a section heading (`sectionHeaders.<key>`). */
-export async function renameCvHeading(
-  userId: string,
-  sessionId: string,
-  expectedRevision: number,
-  heading: string,
-  text: string,
-): Promise<{ revision: number }> {
-  if (!HEADING_KEYS.has(heading)) throw new InvalidInputError(`Unknown heading "${heading}"`);
-  if (!text.trim() || text.length > 100) throw new InvalidInputError('A heading must be 1 to 100 characters');
-  return editTailoredCv(userId, sessionId, expectedRevision, (data) => {
-    const headers: Json = { ...(asRecord(data.sectionHeaders) ?? {}) };
-    headers[heading] = text.trim();
-    data.sectionHeaders = headers;
     return data;
   });
 }

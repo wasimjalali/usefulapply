@@ -252,14 +252,6 @@ export function CvDocumentsPane() {
           console.error('Error saving CV:', saveError);
         } else if (savedDoc) {
           setStoredDocs(prev => ({ ...prev, primary: savedDoc }));
-
-          if (result.structuredCV) {
-            fetch('/api/job-feed/settings/suggest', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ structured_data: result.structuredCV }),
-            }).catch(() => {});
-          }
         }
       }
       setReplacingPrimary(false);

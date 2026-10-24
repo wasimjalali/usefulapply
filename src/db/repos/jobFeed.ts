@@ -10,7 +10,6 @@ import {
   jobFeedRuns,
   jobFeedSettings,
   userCareerProfiles,
-  userCvSuggestions,
   userJobPreferences,
   userSearchStrategies,
 } from '../schema';
@@ -637,18 +636,6 @@ export async function listSavedFeedback(userId: string): Promise<JobFeedFeedback
     .from(jobFeedFeedback)
     .where(and(eq(jobFeedFeedback.user_id, userId), sql`${jobFeedFeedback.saved_at} is not null`))
     .orderBy(desc(jobFeedFeedback.saved_at)) as JobFeedFeedback[];
-}
-
-export async function upsertCvSuggestion(userId: string, suggestion: Json): Promise<void> {
-  const db = await getDb();
-  const now = nowIso();
-  await db
-    .insert(userCvSuggestions)
-    .values({ user_id: userId, suggestion, created_at: now, updated_at: now })
-    .onConflictDoUpdate({
-      target: userCvSuggestions.user_id,
-      set: { suggestion, updated_at: now },
-    });
 }
 
 export type UserJobPreferences = typeof userJobPreferences.$inferSelect;

@@ -218,7 +218,7 @@ test.describe.serial('out of credits and the daily agent cap', () => {
     await setDailyLimitInUi(page, '0');
     const off = await agent.fails('analyze_job_fit', { idempotencyKey: uuid(), jobDescription: JOB_DESCRIPTION });
     expect(off).toMatch(/daily agent credit limit/);
-    await agent.ok('update_notification_settings', { marketing: false });
+    await agent.ok('update_notification_settings', { followUpDue: false });
     await agent.ok('get_account');
     await page.close();
   });

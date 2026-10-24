@@ -11,7 +11,7 @@ import {
   legacyMarketFromCountries,
 } from '@/lib/job-feed/constants';
 import { countryForCity } from '@/lib/job-feed/constants';
-import { splitCompositeRole } from '@/lib/job-feed/cv-suggestions';
+import { splitCompositeRole } from '@/lib/job-feed/cv-experience';
 import type { JobFeedOverviewState, JobFeedSettingsInput } from '@/lib/job-feed/types';
 import type { JobFeedRun, JobFeedSettings } from '@/db/types';
 
@@ -40,7 +40,7 @@ export function canAccessJobFeed(subscriptionTier?: string | null): boolean {
  * reservation enforced server-side in /api/agent-v2 before any generation runs,
  * which is gated on session identity (a logged-in free user always pays).
  *
- * Truly premium-exclusive actions (settings + settings/suggest, search-strategy
+ * Truly premium-exclusive actions (settings, search-strategy
  * generation, and steering the feed) still require canAccessJobFeed (plus/max
  * only). Career-profile and search-strategy GETs are viewable: the free feed
  * is CV-driven and builds that profile during its run. Bookmarking a role

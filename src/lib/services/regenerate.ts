@@ -34,7 +34,7 @@ import { clearKitDocumentError, getSession, updateSession } from '@/db/repos/ses
 import { applyRewrittenSection, type CvRewriteSection } from '@/lib/cv-structure/apply-rewrite';
 import type { TailoredCV } from '@/lib/cv-structure/types';
 import type { CreditAction } from '@/lib/credit-costs';
-import { detectLanguage, isSupportedLanguage, normalizeLanguage } from '@/lib/utils/language-detector';
+import { detectLanguage, isSupportedLanguage } from '@/lib/utils/language-detector';
 import { editTailoredCv, getTailoredCv } from './cv';
 import { EDIT_HISTORY_KEEP, historyPriorValue, saveRecordedKitDocument, type EditGroup } from './edit-history';
 import { InvalidInputError, NotFoundError, RevisionConflict } from './errors';
@@ -69,8 +69,6 @@ export interface RegenerateRequest {
   instruction?: unknown;
   /** For `cv_section`: the section kind and, for a role, project or custom section, its entry id. */
   section?: { kind?: unknown; id?: unknown };
-  /** The language the user asked for, when it differs from the ad's. */
-  userLanguageOverride?: unknown;
 }
 
 export interface ExecuteOptions {
@@ -275,9 +273,6 @@ export async function prepareRegeneration(userId: string, request: RegenerateReq
         rawCV,
         masterCV: storedMasterCv?.raw_text || undefined,
         detectedLanguage: detectedLanguage,
-        userLanguageOverride: request.userLanguageOverride === undefined
-          ? undefined
-          : normalizeLanguage(request.userLanguageOverride),
         applicant,
         job: jobFromSession(session),
         companyResearch: session.company_research && typeof session.company_research === 'object'
