@@ -21,36 +21,36 @@ export function NamedStages({ stages, percent }: NamedStagesProps) {
       {stages.map((stage) => (
         <div
           key={stage.title}
-          className={`flex items-center gap-3 rounded-lg border px-3.5 py-3 ${
+          className={`flex items-center gap-3 rounded-control border px-3.5 py-3 ${
             stage.state === 'done'
-              ? 'border-gold-200 bg-[#FBF7EE]'
-              : 'border-cream-200 bg-cream-50'
+              ? 'border-border-accent-soft bg-accent-soft'
+              : 'border-border bg-surface'
           }`}
         >
           {stage.state === 'done' ? (
-            <span className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gold-400 text-white">
+            <span className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-pill bg-accent text-accent-ink">
               <Check className="h-3 w-3" strokeWidth={2.5} />
             </span>
           ) : stage.state === 'active' ? (
-            <Loader2 className="h-5 w-5 flex-shrink-0 animate-spin text-gold-500" />
+            <Loader2 className="h-5 w-5 flex-shrink-0 animate-spin text-accent-strong" />
           ) : (
-            <span className="inline-flex h-5 w-5 flex-shrink-0 rounded-full border border-cream-200 bg-white" />
+            <span className="inline-flex h-5 w-5 flex-shrink-0 rounded-pill border border-border bg-surface-raised" />
           )}
           <div className="min-w-0 flex-1">
-            <p className={`text-sm font-medium ${stage.state === 'todo' ? 'text-warm-gray' : 'text-navy-800'}`}>
+            <p className={`text-sm font-medium ${stage.state === 'todo' ? 'text-ink-muted' : 'text-ink'}`}>
               {stage.title}
             </p>
             {stage.detail ? (
-              <p className="text-xs text-warm-gray">{stage.detail}</p>
+              <p className="text-xs text-ink-muted">{stage.detail}</p>
             ) : null}
           </div>
           <span
             className={`text-xs font-medium ${
               stage.state === 'done'
-                ? 'text-gold-600'
+                ? 'text-ink-accent'
                 : stage.state === 'active'
-                  ? 'text-gold-600'
-                  : 'text-warm-gray'
+                  ? 'text-ink-accent'
+                  : 'text-ink-muted'
             }`}
           >
             {stage.state === 'done' ? 'Done' : stage.state === 'active' ? 'Now' : 'Next'}
@@ -59,13 +59,13 @@ export function NamedStages({ stages, percent }: NamedStagesProps) {
       ))}
       {typeof percent === 'number' && (
         <div className="mt-1 flex items-center gap-3">
-          <div className="h-1 flex-1 overflow-hidden rounded-full bg-cream-200">
+          <div className="h-1 flex-1 overflow-hidden rounded-pill bg-sunken">
             <div
-              className="h-full bg-gold-400 transition-all duration-300"
+              className="h-full bg-accent transition-all duration-300"
               style={{ width: `${Math.max(0, Math.min(100, percent))}%` }}
             />
           </div>
-          <span className="text-xs font-medium text-gold-600">{Math.round(percent)}%</span>
+          <span className="text-xs font-medium text-ink-accent">{Math.round(percent)}%</span>
         </div>
       )}
     </div>

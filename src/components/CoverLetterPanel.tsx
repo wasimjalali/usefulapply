@@ -603,7 +603,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
                   Full Preview
                 </button>
               )}
-              <Card className="border-cream-200 bg-white p-8 shadow-md">
+              <Card className="border-border bg-white p-8 shadow-md">
               {isEditMode ? (
                 /* Edit Mode */
                 <div className="space-y-2">

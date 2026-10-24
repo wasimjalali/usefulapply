@@ -27,7 +27,7 @@ export function MarkdownText({ content, className = '' }: MarkdownTextProps) {
             <p className="mb-2 last:mb-0">{children}</p>
           ),
           strong: ({ children }) => (
-            <strong className="font-semibold text-charcoal">{children}</strong>
+            <strong className="font-semibold text-ink-body">{children}</strong>
           ),
           em: ({ children }) => (
             <em className="italic">{children}</em>
@@ -42,7 +42,7 @@ export function MarkdownText({ content, className = '' }: MarkdownTextProps) {
             <li className="text-sm">{children}</li>
           ),
           code: ({ children }) => (
-            <code className="px-1 py-0.5 bg-cream-200 rounded text-xs font-mono">
+            <code className="px-1 py-0.5 bg-sunken rounded text-xs font-mono">
               {children}
             </code>
           ),
@@ -51,7 +51,7 @@ export function MarkdownText({ content, className = '' }: MarkdownTextProps) {
             isSafeMarkdownHref(href) ? (
               <a
                 href={href}
-                className="text-navy-600 hover:underline"
+                className="text-brand hover:underline"
                 target="_blank"
                 rel="noopener noreferrer"
               >

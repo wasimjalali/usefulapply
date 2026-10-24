@@ -154,12 +154,12 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
 
   return (
     <>
-    <aside style={{ width: SIDEBAR_WIDTH }} className="flex h-full flex-shrink-0 flex-col border-r border-cream-200 bg-cream-100 px-2.5 pb-2.5 pt-3">
+    <aside style={{ width: SIDEBAR_WIDTH }} className="flex h-full flex-shrink-0 flex-col border-r border-border bg-canvas px-2.5 pb-2.5 pt-3">
       <div className="px-2 py-1">
         <button
           type="button"
           onClick={() => setActiveTab('cv')}
-          className="cursor-pointer rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400"
+          className="cursor-pointer rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           aria-label="Go to Application Kit"
         >
           <BrandLogo variant="full" size="xs" theme="light" />
@@ -171,7 +171,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
         <button
           type="button"
           onClick={requestNewApplication}
-          className="flex h-10 items-center gap-2 rounded-lg border border-cream-200 bg-cream-50 px-2.5 text-[13px] font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white"
+          className="flex h-10 items-center gap-2 rounded-control border border-border bg-surface px-2.5 text-[13px] font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised"
         >
           <Plus className="h-3.5 w-3.5" strokeWidth={2} />
           New Application
@@ -181,9 +181,9 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
           ref={searchButtonRef}
           type="button"
           onClick={() => setSearchOpen(true)}
-          className="flex h-10 items-center gap-2 rounded-lg px-2.5 text-[13px] font-medium text-charcoal transition-colors duration-200 hover:bg-cream-50"
+          className="flex h-10 items-center gap-2 rounded-control px-2.5 text-[13px] font-medium text-ink-body transition-colors duration-(--duration-base) hover:bg-surface"
         >
-          <Search className="h-3.5 w-3.5 text-warm-gray" />
+          <Search className="h-3.5 w-3.5 text-ink-muted" />
           Search
         </button>
 
@@ -196,16 +196,16 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
           aria-current={activeTab === 'jobs' ? 'page' : undefined}
           aria-label={`Job Board. ${feedLabel}`}
           title={feedLabel}
-          className={`flex h-10 items-center gap-2 rounded-lg px-2.5 text-[13px] font-medium transition-colors duration-200 ${
+          className={`flex h-10 items-center gap-2 rounded-control px-2.5 text-[13px] font-medium transition-colors duration-(--duration-base) ${
             activeTab === 'jobs'
-              ? 'bg-cream-50 text-navy-800 shadow-sm'
-              : 'text-charcoal hover:bg-cream-50'
+              ? 'bg-surface text-ink shadow-resting'
+              : 'text-ink-body hover:bg-surface'
           }`}
         >
-          <Briefcase className="h-3.5 w-3.5 text-warm-gray" />
+          <Briefcase className="h-3.5 w-3.5 text-ink-muted" />
           <span className="min-w-0 flex-1 truncate text-left">Job Board</span>
           {feedCount > 0 && (
-            <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-gold-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+            <span className="inline-flex min-w-5 items-center justify-center rounded-pill bg-accent-strong px-1.5 py-0.5 text-[10px] font-semibold text-accent-ink">
               {feedCount}
             </span>
           )}
@@ -215,21 +215,21 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
           type="button"
           onClick={() => setActiveTab('tracker')}
           aria-current={activeTab === 'tracker' ? 'page' : undefined}
-          className={`flex h-10 items-center gap-2 rounded-lg px-2.5 text-[13px] font-medium transition-colors duration-200 ${
+          className={`flex h-10 items-center gap-2 rounded-control px-2.5 text-[13px] font-medium transition-colors duration-(--duration-base) ${
             activeTab === 'tracker'
-              ? 'bg-cream-50 text-navy-800 shadow-sm'
-              : 'text-charcoal hover:bg-cream-50'
+              ? 'bg-surface text-ink shadow-resting'
+              : 'text-ink-body hover:bg-surface'
           }`}
         >
-          <ClipboardList className="h-3.5 w-3.5 text-warm-gray" />
+          <ClipboardList className="h-3.5 w-3.5 text-ink-muted" />
           Application Tracker
         </button>
       </nav>
 
       <div className="mt-5 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
-        <p className="px-2 pb-1 text-xs font-medium text-warm-gray">Applications</p>
+        <p className="px-2 pb-1 text-xs font-medium text-ink-muted">Applications</p>
         {sessions.length === 0 && sessionsKnown && (
-          <p className="px-2 py-1 text-xs text-warm-gray">No applications yet.</p>
+          <p className="px-2 py-1 text-xs text-ink-muted">No applications yet.</p>
         )}
         {sessions.map((session) => {
           const isCurrent = currentSession?.id === session.id && activeTab !== 'jobs' && activeTab !== 'tracker';
@@ -247,21 +247,21 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
                 });
               }}
               aria-current={isCurrent ? 'page' : undefined}
-              className={`flex w-full flex-col gap-1 rounded-lg px-2 py-2 text-left transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold-400/50 ${
+              className={`flex w-full flex-col gap-1 rounded-control px-2 py-2 text-left transition-colors duration-(--duration-base) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50 ${
                 isCurrent
-                  ? 'bg-cream-50 shadow-sm'
-                  : 'hover:bg-cream-50'
+                  ? 'bg-surface shadow-resting'
+                  : 'hover:bg-surface'
               }`}
             >
               <span className="flex items-center justify-between gap-2">
-                <span className="truncate text-[13px] font-semibold text-navy-800">
+                <span className="truncate text-[13px] font-semibold text-ink">
                   {session.company || 'New application'}
                 </span>
-                <span className={`inline-flex h-[22px] flex-shrink-0 items-center rounded-full px-2 text-[11px] font-semibold ${statusPillClass(status)}`}>
+                <span className={`inline-flex h-[22px] flex-shrink-0 items-center rounded-pill px-2 text-[11px] font-semibold ${statusPillClass(status)}`}>
                   {status}
                 </span>
               </span>
-              <span className="truncate text-xs text-warm-gray">
+              <span className="truncate text-xs text-ink-muted">
                 {session.jobTitle || 'Role not set'}
               </span>
             </button>
@@ -269,10 +269,10 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
         })}
       </div>
 
-      <div className="my-2 h-px bg-cream-200" />
+      <div className="my-2 h-px bg-border" />
 
       <div className="flex items-center gap-2 px-1 py-1">
-        <span className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-navy-600 text-[11px] font-semibold text-white">
+        <span className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center overflow-hidden rounded-pill bg-brand text-[11px] font-semibold text-brand-ink">
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -281,13 +281,13 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
           )}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold text-navy-800">{displayName}</p>
-          <p className="text-[11px] text-warm-gray">{planLabel}</p>
+          <p className="truncate text-[13px] font-semibold text-ink">{displayName}</p>
+          <p className="text-[11px] text-ink-muted">{planLabel}</p>
         </div>
         <button
           type="button"
           onClick={() => openSettings('general')}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full text-warm-gray transition-colors duration-200 hover:bg-cream-50 hover:text-navy-800"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-pill text-ink-muted transition-colors duration-(--duration-base) hover:bg-surface hover:text-ink"
           aria-label="Open settings"
         >
           <Settings className="h-3.5 w-3.5" />
@@ -302,7 +302,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
           tabIndex={-1}
           aria-label="Close application search"
           onClick={closeSearch}
-          className="absolute inset-0 h-full w-full cursor-default bg-cream-100/90"
+          className="absolute inset-0 h-full w-full cursor-default bg-canvas/90"
         />
         {/* Modal keeps all interaction states in one solid document-role surface. */}
         <div
@@ -310,12 +310,12 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
           role="dialog"
           aria-modal="true"
           aria-labelledby="application-search-title"
-          className="relative flex max-h-[68vh] w-full max-w-[580px] flex-col overflow-hidden rounded-2xl bg-cream-50 shadow-lg"
+          className="relative flex max-h-[68vh] w-full max-w-[580px] flex-col overflow-hidden rounded-card bg-surface shadow-floating"
         >
           <div className="flex items-center justify-between px-5 pb-3 pt-5">
             <h2
               id="application-search-title"
-              className="text-lg font-semibold tracking-tight text-charcoal"
+              className="text-lg font-semibold tracking-tight text-ink-body"
             >
               Search applications
             </h2>
@@ -323,15 +323,15 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
               type="button"
               onClick={closeSearch}
               aria-label="Close application search"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-warm-gray transition-colors duration-200 hover:bg-cream-100 hover:text-navy-800"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-pill text-ink-muted transition-colors duration-(--duration-base) hover:bg-canvas hover:text-ink"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
 
           <div className="px-5 pb-4">
-            <div className="flex h-10 items-center gap-2 rounded-lg border border-cream-200 bg-cream-50 px-3 focus-within:border-gold-400">
-              <Search className="h-4 w-4 flex-shrink-0 text-warm-gray" />
+            <div className="flex h-10 items-center gap-2 rounded-control border border-border bg-surface px-3 focus-within:border-accent">
+              <Search className="h-4 w-4 flex-shrink-0 text-ink-muted" />
               <input
                 ref={searchInputRef}
                 value={searchQuery}
@@ -350,23 +350,23 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
                 aria-label="Search by company or role"
                 aria-controls="application-search-results"
                 placeholder="Search by company or role"
-                className="min-w-0 flex-1 bg-transparent text-sm text-charcoal outline-none placeholder:text-warm-gray"
+                className="min-w-0 flex-1 bg-transparent text-sm text-ink-body outline-none placeholder:text-ink-muted"
               />
             </div>
           </div>
 
           <div
             id="application-search-results"
-            className="min-h-0 overflow-y-auto border-t border-cream-200 px-3 py-3"
+            className="min-h-0 overflow-y-auto border-t border-border px-3 py-3"
           >
             <p className="sr-only" role="status" aria-live="polite">
               {filteredSessions.length} application{filteredSessions.length === 1 ? '' : 's'} found
             </p>
             {searchError && (
-              <p className="px-2 py-3 text-sm text-rose-700" role="alert">{searchError}</p>
+              <p className="px-2 py-3 text-sm text-ink-error" role="alert">{searchError}</p>
             )}
             {filteredSessions.length === 0 && sessionsKnown && (
-              <p className="px-2 py-8 text-center text-sm text-warm-gray">
+              <p className="px-2 py-8 text-center text-sm text-ink-muted">
                 {sessions.length === 0
                   ? 'No applications yet.'
                   : `No applications match “${searchQuery.trim()}”.`}
@@ -381,18 +381,18 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
                   type="button"
                   disabled={openingSessionId !== null}
                   onClick={() => void handleSearchSessionOpen(session.id)}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors duration-200 hover:bg-cream-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold-400/50 disabled:cursor-wait disabled:opacity-60"
+                  className="flex w-full items-center gap-3 rounded-control px-3 py-2.5 text-left transition-colors duration-(--duration-base) hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50 disabled:cursor-wait disabled:opacity-60"
                 >
-                  <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-cream-100 text-navy-600">
+                  <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-control bg-canvas text-brand">
                     {isOpening
                       ? <Loader2 className="h-4 w-4 animate-spin" />
                       : <Briefcase className="h-4 w-4" />}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-charcoal">
+                    <span className="block truncate text-sm font-semibold text-ink-body">
                       {session.company || 'New application'}
                     </span>
-                    <span className="block truncate text-xs text-warm-gray">
+                    <span className="block truncate text-xs text-ink-muted">
                       {session.jobTitle || 'Role not set'}
                     </span>
                   </span>

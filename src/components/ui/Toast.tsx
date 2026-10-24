@@ -150,10 +150,10 @@ interface ToastItemProps {
 }
 
 const toastStyles: Record<ToastType, { bg: string; icon: typeof CheckCircle; iconColor: string }> = {
-  success: { bg: 'bg-navy-700 border-navy-600 text-cream-50', icon: CheckCircle, iconColor: 'text-gold-400' },
-  error: { bg: 'bg-red-50 border-red-200', icon: XCircle, iconColor: 'text-red-500' },
-  warning: { bg: 'bg-cream-100 border-gold-300', icon: AlertTriangle, iconColor: 'text-gold-500' },
-  info: { bg: 'bg-navy-700 border-navy-600 text-cream-50', icon: Info, iconColor: 'text-cream-200' },
+  success: { bg: 'bg-surface-inverse-raised border-border-inverse-raised text-ink-inverse-soft', icon: CheckCircle, iconColor: 'text-accent' },
+  error: { bg: 'bg-danger-soft border-border-danger', icon: XCircle, iconColor: 'text-danger-bright' },
+  warning: { bg: 'bg-surface-notice border-border-accent', icon: AlertTriangle, iconColor: 'text-accent-strong' },
+  info: { bg: 'bg-surface-inverse-raised border-border-inverse-raised text-ink-inverse-soft', icon: Info, iconColor: 'text-ink-inverse-dim' },
 };
 
 function ToastItem({ toast, onClose }: ToastItemProps) {
@@ -164,28 +164,28 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
 
   return (
     <div
-      className={`flex items-start gap-3 p-4 rounded-lg border shadow-lg ${style.bg} animate-slide-in`}
+      className={`flex items-start gap-3 p-4 rounded-control border shadow-floating ${style.bg} animate-slide-in`}
       role="alert"
     >
       <Icon className={`h-5 w-5 flex-shrink-0 ${style.iconColor}`} />
       <div className="flex-1">
-        {toast.pin?.heading && <p className="text-xs font-medium text-cream-200 mb-1">{toast.pin.heading}</p>}
-        <p className={`text-sm ${toast.type === 'success' || toast.type === 'info' ? 'text-cream-50' : 'text-charcoal'}`}>{toast.message}</p>
-        {toast.pin?.detail && <p className="mt-1 text-xs text-cream-200">{toast.pin.detail}</p>}
+        {toast.pin?.heading && <p className="text-xs font-medium text-ink-inverse-dim mb-1">{toast.pin.heading}</p>}
+        <p className={`text-sm ${toast.type === 'success' || toast.type === 'info' ? 'text-ink-inverse-soft' : 'text-ink-body'}`}>{toast.message}</p>
+        {toast.pin?.detail && <p className="mt-1 text-xs text-ink-inverse-dim">{toast.pin.detail}</p>}
         {toast.pin && (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {confirming ? (
               <>
-                <span className="text-xs text-cream-50">Discard your text?</span>
+                <span className="text-xs text-ink-inverse-soft">Discard your text?</span>
                 <button
                   onClick={() => { toast.pin?.onDiscard(); onClose(); }}
-                  className="rounded border border-cream-200 px-2 py-1 text-xs text-cream-50 hover:bg-navy-600"
+                  className="rounded border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-surface-inverse-soft"
                 >
                   Discard
                 </button>
                 <button
                   onClick={() => setConfirming(false)}
-                  className="rounded border border-cream-200 px-2 py-1 text-xs text-cream-50 hover:bg-navy-600"
+                  className="rounded border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-surface-inverse-soft"
                 >
                   Keep
                 </button>
@@ -196,14 +196,14 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
                   <button
                     key={action.label}
                     onClick={() => { action.onClick(); onClose(); }}
-                    className="rounded border border-cream-200 px-2 py-1 text-xs text-cream-50 hover:bg-navy-600"
+                    className="rounded border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-surface-inverse-soft"
                   >
                     {action.label}
                   </button>
                 ))}
                 <button
                   onClick={() => setConfirming(true)}
-                  className="rounded px-2 py-1 text-xs text-cream-200 underline hover:text-white"
+                  className="rounded px-2 py-1 text-xs text-ink-inverse-dim underline hover:text-ink-inverse"
                 >
                   Dismiss
                 </button>
@@ -218,8 +218,8 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
                 key={action.label}
                 onClick={() => { action.onClick(); onClose(); }}
                 className={toast.type === 'success' || toast.type === 'info'
-                  ? 'rounded border border-cream-200 px-2 py-1 text-xs text-cream-50 hover:bg-navy-600'
-                  : 'rounded border border-charcoal/30 px-2 py-1 text-xs font-medium text-charcoal hover:bg-white/60'}
+                  ? 'rounded border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-surface-inverse-soft'
+                  : 'rounded border border-ink-body/30 px-2 py-1 text-xs font-medium text-ink-body hover:bg-surface-raised/60'}
               >
                 {action.label}
               </button>
@@ -229,7 +229,7 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
       </div>
       {!toast.pin && <button
         onClick={onClose}
-        className={`p-0.5 rounded transition-colors ${toast.type === 'success' || toast.type === 'info' ? 'text-cream-200 hover:text-white' : 'text-warm-gray hover:text-charcoal'}`}
+        className={`p-0.5 rounded transition-colors ${toast.type === 'success' || toast.type === 'info' ? 'text-ink-inverse-dim hover:text-ink-inverse' : 'text-ink-muted hover:text-ink-body'}`}
         aria-label="Dismiss"
       >
         <X className="h-4 w-4" />

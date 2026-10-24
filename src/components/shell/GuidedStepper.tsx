@@ -18,21 +18,21 @@ export function GuidedStepper({ activeIndex }: GuidedStepperProps) {
           <div key={label} className="flex items-center">
             <div className="flex items-center gap-2.5">
               {done ? (
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gold-400 text-white">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-pill bg-accent text-accent-ink">
                   <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
                 </span>
               ) : on ? (
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-navy-600 text-[13px] font-semibold text-white">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-pill bg-brand text-[13px] font-semibold text-brand-ink">
                   {index + 1}
                 </span>
               ) : (
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border-[1.5px] border-cream-200 text-[13px] font-semibold text-warm-gray">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-pill border-[1.5px] border-border text-[13px] font-semibold text-ink-muted">
                   {index + 1}
                 </span>
               )}
               <span
                 className={`text-sm ${
-                  on ? 'font-semibold text-navy-800' : done ? 'font-medium text-charcoal' : 'font-medium text-warm-gray'
+                  on ? 'font-semibold text-ink' : done ? 'font-medium text-ink-body' : 'font-medium text-ink-muted'
                 }`}
               >
                 {label}
@@ -40,7 +40,7 @@ export function GuidedStepper({ activeIndex }: GuidedStepperProps) {
             </div>
             {index < STEPS.length - 1 && (
               <span
-                className={`mx-4 h-[1.5px] w-16 ${done ? 'bg-gold-400' : 'bg-cream-200'}`}
+                className={`mx-4 h-[1.5px] w-16 ${done ? 'bg-accent' : 'bg-sunken'}`}
                 aria-hidden="true"
               />
             )}

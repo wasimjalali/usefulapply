@@ -13,10 +13,14 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       lg: 'p-6',
     };
 
+    // A caller's own background replaces the default. Two bg utilities on one element resolve by Tailwind's
+    // class order, not by which came last in the string, so the default is left out instead of overridden.
+    const background = /(^|\s)bg-/.test(className) ? '' : 'bg-surface ';
+
     return (
       <div
         ref={ref}
-        className={`bg-cream-50 rounded-2xl border border-cream-300 shadow-sm ${paddings[padding]} ${className}`}
+        className={`${background}rounded-card border border-border-strong shadow-resting ${paddings[padding]} ${className}`}
         {...props}
       >
         {children}

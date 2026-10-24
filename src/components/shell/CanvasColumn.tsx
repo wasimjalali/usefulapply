@@ -98,14 +98,14 @@ export function CanvasColumn({
        never jumps when the canvas opens or closes. */
     <div
       style={{ width: RAIL_WIDTH }}
-      className={`flex h-full flex-shrink-0 flex-col items-center border-l border-cream-200 bg-cream-100 ${
+      className={`flex h-full flex-shrink-0 flex-col items-center border-l border-border bg-canvas ${
         compact ? 'justify-start py-3' : 'justify-end py-4'
       }`}
     >
       <button
         type="button"
         onClick={onToggleCollapsed}
-        className="rounded-full border border-cream-200 bg-cream-50 p-1.5 text-warm-gray shadow-sm hover:text-navy-700 cursor-pointer"
+        className="rounded-pill border border-border bg-surface p-1.5 text-ink-muted shadow-resting hover:text-brand-strong cursor-pointer"
         aria-label={railLabel}
         title={railLabel}
         data-shell-toggle="canvas"
@@ -131,7 +131,7 @@ export function CanvasColumn({
         inert={collapsed}
         data-shell-column="canvas"
         style={collapsed ? { left: SIDEBAR_WIDTH + RAIL_WIDTH } : undefined}
-        className={`flex min-w-0 flex-col bg-cream-100 ${
+        className={`flex min-w-0 flex-col bg-canvas ${
           collapsed ? 'pointer-events-none absolute inset-y-0 right-0 opacity-0' : 'relative flex-1'
         }`}
       >
@@ -141,7 +141,7 @@ export function CanvasColumn({
           <button
             type="button"
             onClick={onToggleCollapsed}
-            className="absolute bottom-4 right-4 z-20 rounded-full border border-cream-200 bg-cream-50 p-1.5 text-warm-gray shadow-sm hover:text-navy-700 cursor-pointer"
+            className="absolute bottom-4 right-4 z-20 rounded-pill border border-border bg-surface p-1.5 text-ink-muted shadow-resting hover:text-brand-strong cursor-pointer"
             aria-label="Collapse canvas"
             data-shell-toggle="canvas"
           >
@@ -153,8 +153,8 @@ export function CanvasColumn({
           <>
             {/* At tablet width the tabs and Download all only just fit, and an Answers tab tips them over: labels
                 never break, Download all wraps to its own line instead. */}
-            <div className="flex flex-wrap items-center gap-3 border-b border-cream-200 px-5 py-3">
-              <div className="inline-flex items-center rounded-full border border-cream-200 bg-cream-50 p-0.5" role="tablist">
+            <div className="flex flex-wrap items-center gap-3 border-b border-border px-5 py-3">
+              <div className="inline-flex items-center rounded-pill border border-border bg-surface p-0.5" role="tablist">
                 {TABS.map((tab) => {
                   const Icon = tab.icon;
                   const on = activeTab === tab.id;
@@ -165,13 +165,13 @@ export function CanvasColumn({
                       role="tab"
                       aria-selected={on}
                       onClick={() => selectTab(tab.id)}
-                      className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm cursor-pointer ${
+                      className={`inline-flex items-center gap-2 whitespace-nowrap rounded-pill px-3.5 py-1.5 text-sm cursor-pointer ${
                         on
-                          ? 'bg-white font-semibold text-navy-800 shadow-sm'
-                          : 'font-medium text-warm-gray hover:text-navy-700'
+                          ? 'bg-surface-raised font-semibold text-ink shadow-resting'
+                          : 'font-medium text-ink-muted hover:text-brand-strong'
                       }`}
                     >
-                      <Icon className={`h-4 w-4 ${on ? 'text-gold-500' : ''}`} />
+                      <Icon className={`h-4 w-4 ${on ? 'text-accent-strong' : ''}`} />
                       {tab.label}
                     </button>
                   );
@@ -182,15 +182,15 @@ export function CanvasColumn({
                     role="tab"
                     aria-selected={activeTab === 'answers'}
                     onClick={() => selectTab('answers')}
-                    className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm cursor-pointer ${
+                    className={`inline-flex items-center gap-2 whitespace-nowrap rounded-pill px-3.5 py-1.5 text-sm cursor-pointer ${
                       activeTab === 'answers'
-                        ? 'bg-white font-semibold text-navy-800 shadow-sm'
-                        : 'font-medium text-warm-gray hover:text-navy-700'
+                        ? 'bg-surface-raised font-semibold text-ink shadow-resting'
+                        : 'font-medium text-ink-muted hover:text-brand-strong'
                     }`}
                   >
-                    <Sparkles className={`h-4 w-4 ${activeTab === 'answers' ? 'text-gold-500' : ''}`} />
+                    <Sparkles className={`h-4 w-4 ${activeTab === 'answers' ? 'text-accent-strong' : ''}`} />
                     Answers
-                    <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-gold-100 px-1.5 text-[10px] font-bold text-gold-700">
+                    <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-pill bg-accent-soft-strong px-1.5 text-[10px] font-bold text-accent-soft-ink">
                       {answersCount}
                     </span>
                   </button>
@@ -206,11 +206,11 @@ export function CanvasColumn({
                 while the ATS view covers the CV so edit state survives. */}
             <div className={showAtsView ? 'hidden' : 'contents'}>
               {activeTab === 'cv' && currentSession?.generatedCV && (
-                <div className="flex items-center gap-3 border-b border-cream-200 px-5 py-2.5">
+                <div className="flex items-center gap-3 border-b border-border px-5 py-2.5">
                   <div ref={setHeaderNode} className="@container flex min-w-0 flex-1 items-center gap-3" />
                 </div>
               )}
-              <div className="flex items-center gap-2 border-b border-cream-200 px-5 py-2.5">
+              <div className="flex items-center gap-2 border-b border-border px-5 py-2.5">
                 {/* Wraps rather than scrolls, so every control stays in sight at any canvas width. A container,
                     so panels can tighten labels against the row's own width (CVPanel's downloads). */}
                 <div ref={setToolbarNode} data-canvas-toolbar className="@container flex min-w-0 flex-1 flex-wrap items-center gap-2" />
@@ -220,7 +220,7 @@ export function CanvasColumn({
         )}
 
         {bannerText && (
-          <div className="border-b border-gold-200 bg-gold-50 px-5 py-2 text-[13px] font-medium text-gold-700">
+          <div className="border-b border-border-accent-soft bg-accent-soft px-5 py-2 text-[13px] font-medium text-accent-soft-ink">
             {bannerText}
           </div>
         )}

@@ -34,10 +34,10 @@ export function deriveApplicationStatus(
 
 export function statusPillClass(status: ApplicationStatusLabel): string {
   if (status === 'Drafted') {
-    return 'bg-gold-100 text-gold-700';
+    return 'bg-accent-soft-strong text-accent-soft-ink';
   }
   if (status === 'Applied') {
-    return 'bg-[#EEF4F1] text-[#3A5A4C]';
+    return 'bg-success-soft text-success-strong';
   }
-  return 'bg-[#E8EDF4] text-navy-800';
+  return 'bg-brand-soft text-ink';
 }

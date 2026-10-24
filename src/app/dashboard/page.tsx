@@ -188,20 +188,20 @@ export default function Dashboard() {
     || (!previewingFeed && user && !hasKit && (!sessionsHydrated || !documentsHydrated) && !hydrationError)
   ) {
     return (
-      <div className="h-dvh flex items-center justify-center bg-cream-100">
-        <Loader2 className="w-8 h-8 animate-spin text-navy-600" />
+      <div className="h-dvh flex items-center justify-center bg-canvas">
+        <Loader2 className="w-8 h-8 animate-spin text-brand" />
       </div>
     );
   }
 
   if (user && hydrationError === 'sessions') {
     return (
-      <div className="h-dvh flex flex-col items-center justify-center gap-4 bg-cream-100 px-6 text-center">
-        <p className="text-sm font-medium text-charcoal">We couldn&apos;t load your account data.</p>
+      <div className="h-dvh flex flex-col items-center justify-center gap-4 bg-canvas px-6 text-center">
+        <p className="text-sm font-medium text-ink-body">We couldn&apos;t load your account data.</p>
         <button
           type="button"
           onClick={retryHydration}
-          className="h-9 rounded-full bg-navy-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-navy-700"
+          className="h-9 rounded-pill bg-brand px-4 text-sm font-semibold text-brand-ink shadow-resting transition-colors hover:bg-brand-strong"
         >
           Try again
         </button>
@@ -210,7 +210,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="h-dvh overflow-hidden flex flex-col bg-cream-100">
+    <div className="h-dvh overflow-hidden flex flex-col bg-canvas">
       {/* The gear opens this over whatever is on screen, guided line included. */}
       <SettingsModal />
       {!isNarrow && (
@@ -225,7 +225,7 @@ export default function Dashboard() {
 
       {isNarrow && (
       <div className="md:hidden flex-1 flex flex-col overflow-hidden">
-        <div className="flex items-center px-3 py-1.5 bg-cream-50 border-b border-cream-200 flex-shrink-0">
+        <div className="flex items-center px-3 py-1.5 bg-surface border-b border-border flex-shrink-0">
           <BrandLogo variant="full" size="xs" theme="light" />
         </div>
         <div className="flex-1 overflow-auto">
@@ -239,15 +239,15 @@ export default function Dashboard() {
                 <div className="inline-flex mb-5">
                   <BrandIcon size="md" theme="light" />
                 </div>
-                <h2 className="text-xl font-semibold tracking-tight text-charcoal mb-2">Best on desktop</h2>
-                <p className="text-sm text-warm-gray leading-relaxed mb-6">
+                <h2 className="text-xl font-semibold tracking-tight text-ink-body mb-2">Best on desktop</h2>
+                <p className="text-sm text-ink-muted leading-relaxed mb-6">
                   Useful Apply&apos;s Application Kit works best on a laptop or tablet. Open it on a larger screen to upload your CV and generate tailored applications.
                 </p>
                 <div className="flex flex-col gap-2">
                   <button
                     type="button"
                     onClick={() => handleMobileViewChange('job-feed')}
-                    className="w-full flex items-center justify-center gap-2 rounded-full bg-gold-400 text-white px-5 py-3 text-sm font-semibold shadow-sm hover:bg-gold-500 transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 rounded-pill bg-accent text-accent-ink px-5 py-3 text-sm font-semibold shadow-resting hover:bg-accent-strong transition-colors cursor-pointer"
                   >
                     <Briefcase className="w-4 h-4" />
                     Open Job Feed
@@ -255,7 +255,7 @@ export default function Dashboard() {
                   <button
                     type="button"
                     onClick={() => handleMobileViewChange('tracker')}
-                    className="w-full flex items-center justify-center gap-2 rounded-full border border-cream-200 bg-cream-50 text-charcoal px-5 py-3 text-sm font-semibold hover:bg-white transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 rounded-pill border border-border bg-surface text-ink-body px-5 py-3 text-sm font-semibold hover:bg-surface-raised transition-colors cursor-pointer"
                   >
                     <ClipboardList className="w-4 h-4" />
                     Open Tracker
@@ -265,19 +265,19 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-        <div className="flex-shrink-0 bg-cream-50 border-t border-cream-200 px-2 pb-[env(safe-area-inset-bottom)]">
+        <div className="flex-shrink-0 bg-surface border-t border-border px-2 pb-[env(safe-area-inset-bottom)]">
           <div className="flex items-center justify-around py-1.5">
             <button
               type="button"
               onClick={() => handleMobileViewChange('job-feed')}
-              className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg cursor-pointer min-w-[52px] ${
-                mobileView === 'job-feed' ? 'text-gold-600' : 'text-warm-gray'
+              className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-control cursor-pointer min-w-[52px] ${
+                mobileView === 'job-feed' ? 'text-ink-accent' : 'text-ink-muted'
               }`}
             >
               <Briefcase className="w-5 h-5" />
               <span className="text-[10px] font-medium">Feed</span>
               {jobFeedBadge.hasNewRun && (
-                <span className="absolute top-0 right-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-gold-500 px-1 py-0.5 text-[9px] font-semibold leading-none text-white">
+                <span className="absolute top-0 right-1 inline-flex min-w-[16px] items-center justify-center rounded-pill bg-accent-strong px-1 py-0.5 text-[9px] font-semibold leading-none text-accent-ink">
                   {jobFeedBadge.jobCount > 99 ? '99+' : jobFeedBadge.jobCount}
                 </span>
               )}
@@ -285,8 +285,8 @@ export default function Dashboard() {
             <button
               type="button"
               onClick={() => handleMobileViewChange('tracker')}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg cursor-pointer min-w-[52px] ${
-                mobileView === 'tracker' ? 'text-gold-600' : 'text-warm-gray'
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-control cursor-pointer min-w-[52px] ${
+                mobileView === 'tracker' ? 'text-ink-accent' : 'text-ink-muted'
               }`}
             >
               <ClipboardList className="w-5 h-5" />

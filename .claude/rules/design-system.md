@@ -57,6 +57,20 @@ Values are today's light theme.
 | | `surface-inverse-strong` | navy-900 | The darkest band (landing), scrims |
 | | `surface-inverse-raised` | navy-700 | Navy toasts and raised dark tiles |
 | | `border-inverse`, `border-inverse-raised` | navy-700, navy-600 | Hairlines on those panels |
+| Shell, dashboard and chat extras | `brand-soft-strong`, `border-brand-faint` | navy-100, navy-100 | Stronger navy tint fill, faint navy hairline |
+| | `brand-deep` | navy-900 | Brand text on hover, one step past `brand-strong` |
+| | `focus-ring-soft` | navy-400 | Soft focus ring (use with an opacity) |
+| | `accent-muted` | gold-300 | Gold fill lighter than `accent` (drag-handle hover) |
+| | `surface-neutral`, `surface-neutral-strong` | warm-gray, gray-600 | Neutral gray button fill and its hover |
+| | `surface-notice` | cream-100 | Light notice fill (warning toast) |
+| | `surface-inverse-soft` | navy-600 | Lighter tile or hover on a dark navy panel |
+| | `ink-inverse-soft`, `ink-inverse-dim`, `border-inverse-soft` | cream-50, cream-200, cream-200 | Text and hairlines on navy toasts |
+| | `danger-bright`, `danger-soft-strong` | red-500, red-100 | Error icons, stronger red tint |
+| | `status-done`, `status-partial`, `status-draft` | emerald-400, amber-400, gray-300 | Status dots in chat history |
+| | `done-soft`, `border-done-soft`, `done-ink` | emerald-50, emerald-100, emerald-700 | "Done" banner in agent progress |
+| | `scrim` | black | Modal backdrops (use with an opacity) |
+| | `info-soft`, `border-info-soft`, `info-ink` | violet-50, violet-100, violet-700 | In-progress notes (agent "reflecting" banner) |
+| | `ink-error` | rose-700 | Inline error text in lists and search |
 
 Utilities follow Tailwind's naming, utility then role: `bg-surface`, `text-ink-muted`, `border-border`, `border-border-strong`, `ring-focus-ring`, `bg-accent/10`. Roles whose names start with `border-` take a second `border-` as a border class, so `border-gold-300` becomes `border-border-accent`, while `border-accent` is gold-400. Opacity modifiers work on every role.
 

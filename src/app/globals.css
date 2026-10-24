@@ -158,6 +158,33 @@
   /* Durations, used as duration-(--duration-fast) and duration-(--duration-base). */
   --duration-fast: 150ms;
   --duration-base: 200ms;
+
+  /* PR 2 roles (shell, dashboard, chat) */
+  --brand-soft-strong: var(--color-navy-100);
+  --brand-deep: var(--color-navy-900);
+  --border-brand-faint: var(--color-navy-100);
+  --focus-ring-soft: var(--color-navy-400);
+  --accent-muted: var(--color-gold-300);
+  --surface-neutral: var(--color-warm-gray);
+  --surface-neutral-strong: var(--color-gray-600);
+  --surface-notice: var(--color-cream-100);
+  --surface-inverse-soft: var(--color-navy-600);
+  --ink-inverse-soft: var(--color-cream-50);
+  --ink-inverse-dim: var(--color-cream-200);
+  --border-inverse-soft: var(--color-cream-200);
+  --danger-bright: var(--color-red-500);
+  --danger-soft-strong: var(--color-red-100);
+  --status-done: var(--color-emerald-400);
+  --status-partial: var(--color-amber-400);
+  --status-draft: var(--color-gray-300);
+  --done-soft: var(--color-emerald-50);
+  --border-done-soft: var(--color-emerald-100);
+  --done-ink: var(--color-emerald-700);
+  --scrim: #000000;
+  --info-soft: var(--color-violet-50);
+  --border-info-soft: var(--color-violet-100);
+  --info-ink: var(--color-violet-700);
+  --ink-error: var(--color-rose-700);
 }
 
 @theme inline {
@@ -216,6 +243,33 @@
   --shadow-resting: var(--depth-resting);
   --shadow-elevated: var(--depth-elevated);
   --shadow-floating: var(--depth-floating);
+
+  /* PR 2 roles (shell, dashboard, chat) */
+  --color-brand-soft-strong: var(--brand-soft-strong);
+  --color-brand-deep: var(--brand-deep);
+  --color-border-brand-faint: var(--border-brand-faint);
+  --color-focus-ring-soft: var(--focus-ring-soft);
+  --color-accent-muted: var(--accent-muted);
+  --color-surface-neutral: var(--surface-neutral);
+  --color-surface-neutral-strong: var(--surface-neutral-strong);
+  --color-surface-notice: var(--surface-notice);
+  --color-surface-inverse-soft: var(--surface-inverse-soft);
+  --color-ink-inverse-soft: var(--ink-inverse-soft);
+  --color-ink-inverse-dim: var(--ink-inverse-dim);
+  --color-border-inverse-soft: var(--border-inverse-soft);
+  --color-danger-bright: var(--danger-bright);
+  --color-danger-soft-strong: var(--danger-soft-strong);
+  --color-status-done: var(--status-done);
+  --color-status-partial: var(--status-partial);
+  --color-status-draft: var(--status-draft);
+  --color-done-soft: var(--done-soft);
+  --color-border-done-soft: var(--border-done-soft);
+  --color-done-ink: var(--done-ink);
+  --color-scrim: var(--scrim);
+  --color-info-soft: var(--info-soft);
+  --color-border-info-soft: var(--border-info-soft);
+  --color-info-ink: var(--info-ink);
+  --color-ink-error: var(--ink-error);
 }
 
 :root {

@@ -34,6 +34,7 @@ import {
   markFreeGenerationUsed,
 } from '@/lib/anonymous-generation';
 import { computeFitLevel } from '@/lib/agents/prompts/fit-assessment-prompt';
+import { GoogleMark } from '@/components/icons/GoogleMark';
 
 const MIN_JD = 80;
 const RESUME_INTENT_KEY = 'usefulapply_resume_intent';
@@ -753,12 +754,12 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
 
   const lineErrorFeedback = lineError ? (
     <div className="mt-4 flex flex-wrap items-center gap-3" role="alert">
-      <p className="text-sm text-red-600">{lineError}</p>
+      <p className="text-sm text-danger">{lineError}</p>
       {isCreditError && (
         <button
           type="button"
           onClick={() => openSettings('usage')}
-          className="text-sm font-semibold text-navy-700 hover:text-navy-900 cursor-pointer"
+          className="text-sm font-semibold text-brand-strong hover:text-brand-deep cursor-pointer"
         >
           Upgrade to Plus
         </button>
@@ -767,15 +768,15 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
   ) : null;
 
   return (
-    <div className="flex h-full w-full min-w-0 min-h-0 flex-col bg-cream-100">
-      <header className="flex h-[52px] flex-shrink-0 items-center gap-3 border-b border-cream-200 bg-cream-50 px-5">
+    <div className="flex h-full w-full min-w-0 min-h-0 flex-col bg-canvas">
+      <header className="flex h-[52px] flex-shrink-0 items-center gap-3 border-b border-border bg-surface px-5">
         <BrandLogo variant="full" size="xs" theme="light" />
         <div className="flex-1" />
         {!user && (
           <button
             type="button"
             onClick={() => router.push('/auth/login')}
-            className="px-2.5 text-sm font-medium text-navy-600 hover:text-navy-800 cursor-pointer"
+            className="px-2.5 text-sm font-medium text-brand hover:text-ink cursor-pointer"
           >
             Log in
           </button>
@@ -787,10 +788,10 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
 
         {step === 'cv' && (
           <div className="mt-9 flex w-full max-w-[720px] flex-col gap-6">
-            <div className="rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">
-              <h1 className="text-2xl font-semibold text-navy-800">Start with your CV</h1>
+            <div className="rounded-card border border-border bg-surface-raised p-8 shadow-resting">
+              <h1 className="text-2xl font-semibold text-ink">Start with your CV</h1>
               {uploadError && (
-                <p className="mt-3 text-sm text-red-600">{uploadError}</p>
+                <p className="mt-3 text-sm text-danger">{uploadError}</p>
               )}
               {pasteMode ? (
                 <div className="mt-6">
@@ -798,12 +799,12 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                     value={pastedCv}
                     onChange={(e) => setPastedCv(e.target.value)}
                     placeholder="Paste your full CV. Name, experience, skills, the lot."
-                    className="h-52 w-full resize-none rounded-lg border border-cream-200 bg-white p-4 text-sm text-charcoal placeholder:text-warm-gray focus:border-gold-300 focus:outline-none"
+                    className="h-52 w-full resize-none rounded-control border border-border bg-surface-raised p-4 text-sm text-ink-body placeholder:text-ink-muted focus:border-border-accent focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={handlePasteCv}
-                    className="mt-4 inline-flex h-11 items-center rounded-full bg-gold-400 px-5 text-sm font-semibold text-white hover:bg-gold-500 cursor-pointer"
+                    className="mt-4 inline-flex h-11 items-center rounded-pill bg-accent px-5 text-sm font-semibold text-accent-ink hover:bg-accent-strong cursor-pointer"
                   >
                     Use this text
                   </button>
@@ -811,22 +812,22 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
               ) : (
                 <div
                   {...getRootProps()}
-                  className={`mt-6 flex h-60 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed bg-[#FBF7EE] ${
-                    isDragActive ? 'border-gold-400' : 'border-gold-300'
+                  className={`mt-6 flex h-60 flex-col items-center justify-center gap-3 rounded-card border-2 border-dashed bg-accent-soft ${
+                    isDragActive ? 'border-accent' : 'border-border-accent'
                   }`}
                 >
                   <input {...getInputProps()} />
-                  <span className="inline-flex h-[52px] w-[52px] items-center justify-center rounded-full bg-white text-gold-500 shadow-sm">
+                  <span className="inline-flex h-[52px] w-[52px] items-center justify-center rounded-pill bg-surface-raised text-accent-strong shadow-resting">
                     <Upload className="h-[22px] w-[22px]" />
                   </span>
-                  <p className="text-[15px] font-semibold text-navy-800">Drop your CV here</p>
-                  <p className="text-[13px] text-warm-gray">
+                  <p className="text-[15px] font-semibold text-ink">Drop your CV here</p>
+                  <p className="text-[13px] text-ink-muted">
                     PDF or Word, up to {formatUploadLimit(maxSizeBytes)}
                   </p>
                   <button
                     type="button"
                     onClick={open}
-                    className="mt-1 inline-flex h-11 items-center rounded-full bg-gold-400 px-5 text-sm font-semibold text-white hover:bg-gold-500 cursor-pointer"
+                    className="mt-1 inline-flex h-11 items-center rounded-pill bg-accent px-5 text-sm font-semibold text-accent-ink hover:bg-accent-strong cursor-pointer"
                   >
                     Choose a file
                   </button>
@@ -838,12 +839,12 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                   setPasteMode((v) => !v);
                   setUploadError(null);
                 }}
-                className="mt-6 w-full text-center text-[13px] font-medium text-navy-600 hover:text-navy-800 cursor-pointer"
+                className="mt-6 w-full text-center text-[13px] font-medium text-brand hover:text-ink cursor-pointer"
               >
                 {pasteMode ? 'Have a file? Upload it instead' : 'No file handy? Paste the text instead'}
               </button>
             </div>
-            <p className="text-[13px] text-warm-gray">
+            <p className="text-[13px] text-ink-muted">
               Free to try. Your first fit check is on us, no account needed.
             </p>
           </div>
@@ -851,18 +852,18 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
 
         {step === 'cv-reading' && (
           <div className="mt-9 flex w-full max-w-[720px] flex-col gap-6">
-            <div className="rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">
+            <div className="rounded-card border border-border bg-surface-raised p-8 shadow-resting">
               <div className="mb-5 flex items-center gap-3">
-                <h1 className="text-2xl font-semibold text-navy-800">
+                <h1 className="text-2xl font-semibold text-ink">
                   Reading {fileName || 'your CV'}
                 </h1>
                 <div className="flex-1" />
-                <span className="text-[13px] text-warm-gray">About 40 seconds</span>
+                <span className="text-[13px] text-ink-muted">About 40 seconds</span>
               </div>
               <NamedStages stages={parseStages} percent={parsePercent} />
             </div>
-            <div className="rounded-2xl border border-cream-200 bg-cream-50 p-8 shadow-sm">
-              <p className="text-[15px] font-semibold text-navy-800">While I read, paste the job ad</p>
+            <div className="rounded-card border border-border bg-surface p-8 shadow-resting">
+              <p className="text-[15px] font-semibold text-ink">While I read, paste the job ad</p>
               <textarea
                 value={jobText}
                 onChange={(e) => {
@@ -870,7 +871,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                   pendingJobRef.current = e.target.value;
                 }}
                 placeholder="Paste the whole ad. Title, company and requirements, all of it."
-                className="mt-4 h-24 w-full resize-none rounded-2xl border border-cream-200 bg-white px-4 py-3.5 text-sm text-charcoal placeholder:text-warm-gray focus:border-gold-300 focus:outline-none"
+                className="mt-4 h-24 w-full resize-none rounded-card border border-border bg-surface-raised px-4 py-3.5 text-sm text-ink-body placeholder:text-ink-muted focus:border-border-accent focus:outline-none"
               />
             </div>
           </div>
@@ -878,15 +879,15 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
 
         {step === 'job' && (
           <div className="mt-9 flex w-full max-w-[720px] flex-col gap-6">
-            <div className="rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">
-              <h1 className="text-2xl font-semibold text-navy-800">
+            <div className="rounded-card border border-border bg-surface-raised p-8 shadow-resting">
+              <h1 className="text-2xl font-semibold text-ink">
                 Which job are you applying for?
               </h1>
               <textarea
                 value={jobText}
                 onChange={(e) => setJobText(e.target.value)}
                 placeholder="Paste the whole ad. Title, company and requirements, all of it."
-                className="mt-6 h-[200px] w-full resize-none rounded-2xl border-2 border-gold-300 bg-white px-4 py-3.5 text-sm leading-relaxed text-charcoal placeholder:text-warm-gray shadow-[0_0_0_4px_rgba(212,168,83,0.12)] focus:outline-none"
+                className="mt-6 h-[200px] w-full resize-none rounded-card border-2 border-border-accent bg-surface-raised px-4 py-3.5 text-sm leading-relaxed text-ink-body placeholder:text-ink-muted shadow-[0_0_0_4px_rgba(212,168,83,0.12)] focus:outline-none"
               />
               {lineErrorFeedback}
               <div className="mt-6 flex flex-wrap items-center gap-4">
@@ -894,7 +895,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                   type="button"
                   onClick={() => startFit(jobText)}
                   disabled={jobText.trim().length < MIN_JD}
-                  className="inline-flex h-12 items-center gap-2 rounded-full bg-gold-400 px-[22px] text-[15px] font-semibold text-white hover:bg-gold-500 disabled:bg-cream-200 disabled:text-warm-gray cursor-pointer disabled:cursor-not-allowed"
+                  className="inline-flex h-12 items-center gap-2 rounded-pill bg-accent px-[22px] text-[15px] font-semibold text-accent-ink hover:bg-accent-strong disabled:bg-sunken disabled:text-ink-muted cursor-pointer disabled:cursor-not-allowed"
                 >
                   <Search className="h-4 w-4" />
                   Check my fit
@@ -904,7 +905,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                   type="button"
                   onClick={startDirectKit}
                   disabled={jobText.trim().length < MIN_JD}
-                  className="text-[13px] font-medium text-navy-600 hover:text-navy-800 cursor-pointer disabled:text-warm-gray"
+                  className="text-[13px] font-medium text-brand hover:text-ink cursor-pointer disabled:text-ink-muted"
                 >
                   Skip the check, generate the full kit now
                 </button>
@@ -912,7 +913,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
             </div>
             <div className="flex flex-col gap-2.5 text-[13px]">
               <div className="flex items-center gap-2">
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gold-400 text-white">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-pill bg-accent text-accent-ink">
                   <Check className="h-3 w-3" strokeWidth={2.5} />
                 </span>
                 <span>
@@ -921,12 +922,12 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                 <button
                   type="button"
                   onClick={() => setStep('cv')}
-                  className="font-medium text-navy-600 hover:text-navy-800 cursor-pointer"
+                  className="font-medium text-brand hover:text-ink cursor-pointer"
                 >
                   Change
                 </button>
               </div>
-              <p className="text-warm-gray">
+              <p className="text-ink-muted">
                 Your first fit check is free. The full kit needs a free account, 4 credits included.
               </p>
             </div>
@@ -934,13 +935,13 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
         )}
 
         {step === 'fit-working' && (
-          <div className="mt-9 w-full max-w-[720px] rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">
+          <div className="mt-9 w-full max-w-[720px] rounded-card border border-border bg-surface-raised p-8 shadow-resting">
             <div className="mb-5 flex items-center gap-3">
-              <h1 className="text-2xl font-semibold text-navy-800">
+              <h1 className="text-2xl font-semibold text-ink">
                 Checking your fit{companyName ? ` for ${companyName}` : ''}
               </h1>
               <div className="flex-1" />
-              <span className="text-[13px] text-warm-gray">About 10 seconds left</span>
+              <span className="text-[13px] text-ink-muted">About 10 seconds left</span>
             </div>
             <NamedStages stages={fitStages} percent={fitPercent} />
           </div>
@@ -948,30 +949,30 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
 
         {step === 'fit-result' && (
           <div className="mt-9 flex w-full max-w-[720px] flex-col gap-6">
-            <div className="rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">
+            <div className="rounded-card border border-border bg-surface-raised p-8 shadow-resting">
               <div className="flex items-center gap-5">
                 <div className="min-w-0 flex-1">
-                  <h1 className="text-2xl font-semibold text-navy-800">
+                  <h1 className="text-2xl font-semibold text-ink">
                     {fitHeading(fitLevel, companyName || jobTitle)}
                   </h1>
-                  <p className="mt-1 text-sm text-warm-gray">{reason}</p>
+                  <p className="mt-1 text-sm text-ink-muted">{reason}</p>
                 </div>
                 {typeof score === 'number' && (
-                  <div className="flex h-[84px] w-[84px] flex-shrink-0 flex-col items-center justify-center rounded-full border-4 border-gold-400 bg-[#FBF7EE]">
-                    <span className="text-[26px] font-semibold leading-none text-navy-800">{Math.round(score)}%</span>
-                    <span className="mt-1 text-[10px] font-semibold tracking-[0.06em] text-gold-600">MATCH</span>
+                  <div className="flex h-[84px] w-[84px] flex-shrink-0 flex-col items-center justify-center rounded-pill border-4 border-accent bg-accent-soft">
+                    <span className="text-[26px] font-semibold leading-none text-ink">{Math.round(score)}%</span>
+                    <span className="mt-1 text-[10px] font-semibold tracking-[0.06em] text-ink-accent">MATCH</span>
                   </div>
                 )}
               </div>
-              <div className="my-6 h-px bg-cream-200" />
+              <div className="my-6 h-px bg-border" />
               <div className="grid grid-cols-2 gap-6">
                 <div className="flex flex-col gap-2.5">
-                  <span className="text-xs font-semibold tracking-[0.08em] text-[#3A5A4C]">STRONG</span>
+                  <span className="text-xs font-semibold tracking-[0.08em] text-success-strong">STRONG</span>
                   {strengths.length === 0 ? (
-                    <p className="text-sm text-warm-gray">No matching skills listed.</p>
+                    <p className="text-sm text-ink-muted">No matching skills listed.</p>
                   ) : strengths.map((item) => (
-                    <div key={item} className="flex items-start gap-2.5 text-sm leading-relaxed text-charcoal">
-                      <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#EEF4F1] text-[#3A5A4C]">
+                    <div key={item} className="flex items-start gap-2.5 text-sm leading-relaxed text-ink-body">
+                      <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-pill bg-success-soft text-success-strong">
                         <Check className="h-3 w-3" strokeWidth={2.5} />
                       </span>
                       <span>{item}</span>
@@ -979,12 +980,12 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                   ))}
                 </div>
                 <div className="flex flex-col gap-2.5">
-                  <span className="text-xs font-semibold tracking-[0.08em] text-gold-700">GAPS</span>
+                  <span className="text-xs font-semibold tracking-[0.08em] text-accent-soft-ink">GAPS</span>
                   {gaps.length === 0 ? (
-                    <p className="text-sm text-warm-gray">No major gaps listed.</p>
+                    <p className="text-sm text-ink-muted">No major gaps listed.</p>
                   ) : gaps.map((item) => (
-                    <div key={item} className="flex items-start gap-2.5 text-sm leading-relaxed text-charcoal">
-                      <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700">
+                    <div key={item} className="flex items-start gap-2.5 text-sm leading-relaxed text-ink-body">
+                      <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-pill bg-accent-soft-strong text-accent-soft-ink">
                         <span className="block h-0.5 w-2 rounded-sm bg-current" />
                       </span>
                       <span>{item}</span>
@@ -992,19 +993,19 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                   ))}
                 </div>
               </div>
-              <div className="my-6 h-px bg-cream-200" />
+              <div className="my-6 h-px bg-border" />
               {lineErrorFeedback}
               <div className="flex flex-wrap items-center gap-4">
                 <button
                   type="button"
                   onClick={startKit}
-                  className="inline-flex h-12 items-center gap-2 rounded-full bg-gold-400 px-[22px] text-[15px] font-semibold text-white hover:bg-gold-500 cursor-pointer"
+                  className="inline-flex h-12 items-center gap-2 rounded-pill bg-accent px-[22px] text-[15px] font-semibold text-accent-ink hover:bg-accent-strong cursor-pointer"
                 >
                   <Sparkles className="h-4 w-4" />
                   Generate the full kit
                   <span className="font-medium opacity-85">· {CREDIT_COSTS.GENERATION_AFTER_FIT} credits</span>
                 </button>
-                <p className="text-[13px] text-warm-gray">
+                <p className="text-[13px] text-ink-muted">
                   {user
                     ? 'Tailored CV, cover letter and two emails, about 50 seconds.'
                     : 'Takes a free account first, 4 credits included, no card.'}
@@ -1019,7 +1020,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                 useAppStore.getState().updateCurrentSession({ pendingFitAnalysis: null });
                 setStep('job');
               }}
-              className="self-start text-[13px] font-medium text-navy-600 hover:text-navy-800 cursor-pointer"
+              className="self-start text-[13px] font-medium text-brand hover:text-ink cursor-pointer"
             >
               Not this one? Try another job
             </button>
@@ -1027,35 +1028,30 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
         )}
 
         {step === 'signup' && (
-          <div className="mt-9 w-full max-w-[720px] rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">
-            <h1 className="text-2xl font-semibold text-navy-800">
+          <div className="mt-9 w-full max-w-[720px] rounded-card border border-border bg-surface-raised p-8 shadow-resting">
+            <h1 className="text-2xl font-semibold text-ink">
               {authMode === 'signup' ? 'Create your free account to get the kit' : 'Log in to get the kit'}
             </h1>
-            <p className="mt-1.5 text-sm text-warm-gray">
+            <p className="mt-1.5 text-sm text-ink-muted">
               {freeCheckUsed
                 ? "You've used your free check. A free account runs this one, 4 credits included. Your CV and the job come with you."
                 : authMode === 'signup'
                   ? '4 credits included. Your CV and this fit check come with you.'
                   : 'Your CV and this fit check come with you.'}
             </p>
-            {authError && <p className="mt-4 text-sm text-red-600">{authError}</p>}
+            {authError && <p className="mt-4 text-sm text-danger">{authError}</p>}
             <button
               type="button"
               onClick={() => void handleGoogle()}
-              className="mt-6 flex h-12 w-full items-center justify-center gap-2.5 rounded-full border border-cream-200 bg-cream-50 text-[15px] font-semibold text-navy-800 shadow-sm hover:bg-white cursor-pointer"
+              className="mt-6 flex h-12 w-full items-center justify-center gap-2.5 rounded-pill border border-border bg-surface text-[15px] font-semibold text-ink shadow-resting hover:bg-surface-raised cursor-pointer"
             >
-              <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" aria-hidden="true">
-                <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47a5.55 5.55 0 0 1-2.4 3.63v3h3.87c2.27-2.09 3.55-5.17 3.55-8.87z" />
-                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.94-2.91l-3.87-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09A12 12 0 0 0 12 24z" />
-                <path fill="#FBBC05" d="M5.27 14.29A7.2 7.2 0 0 1 4.89 12c0-.8.14-1.57.38-2.29V6.62H1.29A12 12 0 0 0 0 12c0 1.94.46 3.77 1.29 5.38l3.98-3.09z" />
-                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z" />
-              </svg>
+              <GoogleMark className="h-[18px] w-[18px]" />
               Continue with Google
             </button>
             <div className="my-5 flex items-center gap-3">
-              <span className="h-px flex-1 bg-cream-200" />
-              <span className="text-xs text-warm-gray">or</span>
-              <span className="h-px flex-1 bg-cream-200" />
+              <span className="h-px flex-1 bg-border" />
+              <span className="text-xs text-ink-muted">or</span>
+              <span className="h-px flex-1 bg-border" />
             </div>
             <form onSubmit={handleAuthSubmit} className="flex flex-col gap-2.5">
               <input
@@ -1064,7 +1060,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                 value={authEmail}
                 onChange={(e) => setAuthEmail(e.target.value)}
                 placeholder="Email"
-                className="h-12 rounded-lg border border-cream-200 bg-white px-3.5 text-sm text-charcoal placeholder:text-warm-gray focus:border-gold-300 focus:outline-none"
+                className="h-12 rounded-control border border-border bg-surface-raised px-3.5 text-sm text-ink-body placeholder:text-ink-muted focus:border-border-accent focus:outline-none"
               />
               <input
                 type="password"
@@ -1072,30 +1068,30 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                 value={authPassword}
                 onChange={(e) => setAuthPassword(e.target.value)}
                 placeholder="Password"
-                className="h-12 rounded-lg border border-cream-200 bg-white px-3.5 text-sm text-charcoal placeholder:text-warm-gray focus:border-gold-300 focus:outline-none"
+                className="h-12 rounded-control border border-border bg-surface-raised px-3.5 text-sm text-ink-body placeholder:text-ink-muted focus:border-border-accent focus:outline-none"
               />
               <button
                 type="submit"
                 disabled={authLoading}
-                className="mt-2 flex h-12 w-full items-center justify-center rounded-full bg-gold-400 text-[15px] font-semibold text-white hover:bg-gold-500 disabled:opacity-60 cursor-pointer"
+                className="mt-2 flex h-12 w-full items-center justify-center rounded-pill bg-accent text-[15px] font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-60 cursor-pointer"
               >
                 {authLoading
                   ? <Loader2 className="h-4 w-4 animate-spin" />
                   : authMode === 'signup' ? 'Create account and generate the kit' : 'Log in and generate the kit'}
               </button>
             </form>
-            <p className="mt-4 text-center text-xs text-warm-gray">
+            <p className="mt-4 text-center text-xs text-ink-muted">
               By continuing you agree to the{' '}
-              <Link href="/terms" className="font-semibold text-navy-800 hover:text-navy-600">
+              <Link href="/terms" className="font-semibold text-ink hover:text-brand">
                 Terms
               </Link>
               {' and '}
-              <Link href="/privacy" className="font-semibold text-navy-800 hover:text-navy-600">
+              <Link href="/privacy" className="font-semibold text-ink hover:text-brand">
                 Privacy policy
               </Link>
               .
             </p>
-            <p className="mt-4 text-center text-xs text-warm-gray">
+            <p className="mt-4 text-center text-xs text-ink-muted">
               {authMode === 'signup' ? 'Already have an account?' : 'New here?'}{' '}
               <button
                 type="button"
@@ -1103,7 +1099,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                   setAuthMode((m) => (m === 'signup' ? 'login' : 'signup'));
                   setAuthError(null);
                 }}
-                className="font-medium text-navy-600 hover:text-navy-800 cursor-pointer"
+                className="font-medium text-brand hover:text-ink cursor-pointer"
               >
                 {authMode === 'signup' ? 'Log in' : 'Create an account'}
               </button>
@@ -1112,13 +1108,13 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
         )}
 
         {step === 'verify-email' && (
-          <div className="mt-9 w-full max-w-[720px] rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">
-            <h1 className="text-2xl font-semibold text-navy-800">Check your inbox</h1>
-            <p className="mt-3 text-sm text-warm-gray">
-              We sent a confirmation link to <strong className="text-navy-800">{authEmail}</strong>. Open it and your kit
+          <div className="mt-9 w-full max-w-[720px] rounded-card border border-border bg-surface-raised p-8 shadow-resting">
+            <h1 className="text-2xl font-semibold text-ink">Check your inbox</h1>
+            <p className="mt-3 text-sm text-ink-muted">
+              We sent a confirmation link to <strong className="text-ink">{authEmail}</strong>. Open it and your kit
               {companyName ? ` for ${companyName}` : ''} starts building the moment you land back here.
             </p>
-            <p className="mt-5 text-xs text-warm-gray">Nothing there? Check your spam folder.</p>
+            <p className="mt-5 text-xs text-ink-muted">Nothing there? Check your spam folder.</p>
           </div>
         )}
 
@@ -1143,17 +1139,17 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
         <p role="status" aria-live="polite" className="sr-only">{logisticsNotice}</p>
 
         {step === 'kit-working' && !askingLogistics && (
-          <div className="mt-9 w-full max-w-[720px] rounded-2xl border border-cream-200 bg-white p-8 shadow-sm">
+          <div className="mt-9 w-full max-w-[720px] rounded-card border border-border bg-surface-raised p-8 shadow-resting">
             <div className="mb-5 flex items-center gap-3">
-              <h1 className="text-2xl font-semibold text-navy-800">
+              <h1 className="text-2xl font-semibold text-ink">
                 Building your kit{companyName ? ` for ${companyName}` : ''}
               </h1>
               <div className="flex-1" />
-              <span className="text-[13px] text-warm-gray">About 30 seconds left</span>
+              <span className="text-[13px] text-ink-muted">About 30 seconds left</span>
             </div>
             <NamedStages stages={kitStages} percent={kitPercent} />
-            <div className="mt-6 h-px bg-cream-200" />
-            <p className="mt-5 text-sm text-warm-gray">
+            <div className="mt-6 h-px bg-border" />
+            <p className="mt-5 text-sm text-ink-muted">
               When this finishes your workspace opens with everything in it.
             </p>
           </div>
