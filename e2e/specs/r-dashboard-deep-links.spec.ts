@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { signedInPage } from '../lib/app';
-import { JOB_DESCRIPTION, PRIMARY_CV } from '../lib/model-script';
+import { PRIMARY_CV } from '../lib/model-script';
 import { createTestUser, nextTestIp, signInContext } from '../lib/user';
 import type { TestUser } from '../lib/user';
 
@@ -74,15 +74,10 @@ test('(r3) a plain /dashboard load shows the guided line without anonymous-only 
     await page.getByRole('button', { name: 'No file handy? Paste the text instead' }).click();
     await page.getByPlaceholder(/Paste your full CV/).fill(PRIMARY_CV);
     await page.getByRole('button', { name: 'Use this text' }).click();
-    const adBox = page.getByPlaceholder(/Paste the whole ad/).first();
-    await expect(adBox).toBeVisible({ timeout: 60_000 });
-    // Job step, before the ad is filled: where the copy lived.
+    await expect(page.getByPlaceholder(/Paste the whole ad/).first()).toBeVisible({ timeout: 60_000 });
+    // The job step is where the copy lived. Stop here: filling the ad can advance on its own and spends credits.
+    await expect(page.getByRole('heading', { level: 1, name: 'Which job are you applying for?' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Check my fit/ })).toBeVisible();
-    await expect(page.getByText('needs a free account')).toHaveCount(0);
-    await expect(page.getByText('Your first fit check is free')).toHaveCount(0);
-    // Filling the ad goes straight to the fit step: absent there too.
-    await adBox.fill(JOB_DESCRIPTION);
-    await expect(page.getByRole('button', { name: /Generate the full kit/ })).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText('needs a free account')).toHaveCount(0);
     await expect(page.getByText('Your first fit check is free')).toHaveCount(0);
   } finally {
