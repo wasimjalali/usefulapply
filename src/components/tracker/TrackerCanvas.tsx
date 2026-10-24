@@ -164,22 +164,22 @@ export function TrackerCanvas() {
     .join(' · ');
 
   return (
-    <div ref={shellRef} className="flex h-full flex-col bg-cream-100">
-      <header className="flex-shrink-0 border-b border-cream-200 px-6 pb-4 pt-5">
+    <div ref={shellRef} className="flex h-full flex-col bg-canvas">
+      <header className="flex-shrink-0 border-b border-border px-6 pb-4 pt-5">
         <div className="flex items-start gap-4">
           <div className="min-w-0 flex-1">
-            <h2 className="text-xl font-semibold text-navy-800">Tracker</h2>
-            <p className="mt-0.5 text-[13px] text-warm-gray">{headerLine}</p>
+            <h2 className="text-xl font-semibold text-ink">Tracker</h2>
+            <p className="mt-0.5 text-[13px] text-ink-muted">{headerLine}</p>
           </div>
           <label className="relative w-[228px] flex-shrink-0">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-warm-gray" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
             <input
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Company or role"
               aria-label="Search applications"
-              className="h-10 w-full rounded-full border border-cream-200 bg-cream-50 pl-9 pr-3 text-[13px] text-navy-800 placeholder:text-warm-gray focus:bg-white focus:outline-none"
+              className="h-10 w-full rounded-pill border border-border bg-surface pl-9 pr-3 text-[13px] text-ink placeholder:text-ink-muted focus:bg-surface-raised focus:outline-none"
             />
           </label>
         </div>
@@ -204,14 +204,14 @@ export function TrackerCanvas() {
       </header>
 
       <div className="min-h-0 flex-1 overflow-auto px-6 py-5">
-        {error && <p className="mb-3 text-[13px] text-red-600">{error}</p>}
+        {error && <p className="mb-3 text-[13px] text-danger">{error}</p>}
         {loading && rows.length === 0 ? (
           <div className="flex h-40 items-center justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-navy-600" />
+            <Loader2 className="h-5 w-5 animate-spin text-brand" />
           </div>
         ) : rows.length === 0 ? (
-          <div className="rounded-2xl border border-cream-200 bg-cream-50 px-5 py-10 text-center">
-            <p className="text-sm text-warm-gray">
+          <div className="rounded-card border border-border bg-surface px-5 py-10 text-center">
+            <p className="text-sm text-ink-muted">
               {allRows.length === 0
                 ? 'Nothing here yet. Your applications land here once a kit is ready.'
                 : 'No application matches that.'}
@@ -220,7 +220,7 @@ export function TrackerCanvas() {
               <button
                 type="button"
                 onClick={requestNewApplication}
-                className="mt-4 inline-flex h-10 items-center gap-2 rounded-full bg-gold-400 px-5 text-sm font-semibold text-white hover:bg-gold-500 cursor-pointer"
+                className="mt-4 inline-flex h-10 items-center gap-2 rounded-pill bg-accent px-5 text-sm font-semibold text-accent-ink hover:bg-accent-strong cursor-pointer"
               >
                 <Plus className="h-4 w-4" />
                 New Application
@@ -228,12 +228,12 @@ export function TrackerCanvas() {
             )}
           </div>
         ) : (
-          <div className="min-w-[720px] overflow-hidden rounded-2xl border border-cream-200 bg-cream-50 shadow-sm">
+          <div className="min-w-[720px] overflow-hidden rounded-card border border-border bg-surface shadow-resting">
             {/* min-w matches the grid's fixed tracks (68+150+150+100/72+32 + gaps
                 + padding): below ~720px the application column would collapse to
                 0 and the headers would overlap. A starved canvas scrolls instead. */}
             <div
-              className={`grid items-center gap-3 border-b border-cream-200 px-5 py-2.5 text-[11px] font-semibold tracking-[0.08em] text-warm-gray ${
+              className={`grid items-center gap-3 border-b border-border px-5 py-2.5 text-[11px] font-semibold tracking-[0.08em] text-ink-muted ${
                 wide
                   ? 'grid-cols-[minmax(0,1fr)_68px_150px_150px_100px_32px]'
                   : 'grid-cols-[minmax(0,1fr)_68px_150px_150px_72px_32px]'
@@ -273,17 +273,17 @@ export function TrackerCanvas() {
                       openApplication(row.id);
                     }
                   }}
-                  className={`group relative grid cursor-pointer items-center gap-3 border-b border-cream-200 px-5 py-3 last:border-b-0 hover:bg-cream-100 ${
+                  className={`group relative grid cursor-pointer items-center gap-3 border-b border-border px-5 py-3 last:border-b-0 hover:bg-canvas ${
                     wide
                   ? 'grid-cols-[minmax(0,1fr)_68px_150px_150px_100px_32px]'
                   : 'grid-cols-[minmax(0,1fr)_68px_150px_150px_72px_32px]'
                   }`}
                 >
                   <div className="min-w-0">
-                    <span className="block truncate text-[13px] font-semibold text-navy-800">
+                    <span className="block truncate text-[13px] font-semibold text-ink">
                       {row.company || 'New application'}
                     </span>
-                    <span className="block truncate text-xs text-warm-gray">
+                    <span className="block truncate text-xs text-ink-muted">
                       {row.job_title || 'Role not set'}
                     </span>
                   </div>
@@ -300,8 +300,8 @@ export function TrackerCanvas() {
                       }
                       aria-haspopup="dialog"
                       aria-expanded={isOpen}
-                      className={`inline-flex h-[26px] items-center gap-1.5 rounded-full px-2.5 text-[12px] font-semibold cursor-pointer ${statusPillClass(status)} ${
-                        isOpen ? 'ring-1 ring-gold-300' : ''
+                      className={`inline-flex h-[26px] items-center gap-1.5 rounded-pill px-2.5 text-[12px] font-semibold cursor-pointer ${statusPillClass(status)} ${
+                        isOpen ? 'ring-1 ring-border-accent' : ''
                       }`}
                     >
                       {TRACKER_STATUS_LABEL[status]}
@@ -332,15 +332,15 @@ export function TrackerCanvas() {
                         onClick={() => openApplication(row.id, 'email')}
                         className={`inline-flex items-center gap-1 text-[13px] font-medium cursor-pointer ${
                           next.tone === 'overdue'
-                            ? 'font-semibold text-gold-600 hover:text-gold-700'
-                            : 'text-navy-800 hover:text-gold-600'
+                            ? 'font-semibold text-ink-accent hover:text-accent-soft-ink'
+                            : 'text-ink hover:text-ink-accent'
                         }`}
                       >
                         {next.label}
                         <ArrowUpRight className="h-3.5 w-3.5" />
                       </button>
                     ) : next.opens === 'none' ? (
-                      <span className="text-[13px] text-warm-gray">{next.label}</span>
+                      <span className="text-[13px] text-ink-muted">{next.label}</span>
                     ) : (
                       <button
                         type="button"
@@ -353,10 +353,10 @@ export function TrackerCanvas() {
                         }
                         className={`truncate text-left text-[13px] cursor-pointer hover:underline ${
                           next.tone === 'overdue'
-                            ? 'font-semibold text-gold-600'
+                            ? 'font-semibold text-ink-accent'
                             : next.tone === 'muted'
-                              ? 'text-warm-gray'
-                              : 'text-navy-800'
+                              ? 'text-ink-muted'
+                              : 'text-ink'
                         }`}
                       >
                         {next.label}
@@ -365,8 +365,8 @@ export function TrackerCanvas() {
                   </div>
 
                   <span
-                    className={`text-right text-xs text-warm-gray ${
-                      wide ? '' : 'opacity-0 transition-opacity duration-200 group-hover:opacity-100'
+                    className={`text-right text-xs text-ink-muted ${
+                      wide ? '' : 'opacity-0 transition-opacity duration-(--duration-base) group-hover:opacity-100'
                     }`}
                   >
                     {formatSavedDate(row.created_at, datePrefs)}
@@ -385,7 +385,7 @@ export function TrackerCanvas() {
                           anchor: event.currentTarget,
                         });
                       }}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-warm-gray opacity-0 transition-opacity duration-200 hover:bg-cream-50 hover:text-navy-800 group-hover:opacity-100 cursor-pointer"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-pill text-ink-muted opacity-0 transition-opacity duration-(--duration-base) hover:bg-surface hover:text-ink group-hover:opacity-100 cursor-pointer"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -446,14 +446,14 @@ function CountPill({
       type="button"
       onClick={onClick}
       aria-pressed={on}
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] cursor-pointer ${
+      className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-[13px] cursor-pointer ${
         on
-          ? 'bg-cream-50 font-semibold text-navy-800 shadow-sm'
-          : 'font-medium text-warm-gray hover:text-navy-700'
+          ? 'bg-surface font-semibold text-ink shadow-resting'
+          : 'font-medium text-ink-muted hover:text-brand-strong'
       }`}
     >
       {label}
-      <span className={on ? 'text-gold-600' : 'text-warm-gray'}>{count}</span>
+      <span className={on ? 'text-ink-accent' : 'text-ink-muted'}>{count}</span>
     </button>
   );
 }

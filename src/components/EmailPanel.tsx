@@ -20,9 +20,10 @@ interface EmailPanelProps {
 
 type FollowUp = { subject: string; body: string; recommendedDelay: number };
 
-const TOOL_CLASS = 'inline-flex h-9 items-center gap-2 rounded-full border border-cream-200 bg-cream-50 px-3.5 text-sm font-medium text-charcoal shadow-sm hover:bg-white transition-colors duration-200 cursor-pointer flex-shrink-0';
-const FIELD_LABEL = 'text-[11px] font-semibold uppercase tracking-[0.08em] text-warm-gray';
-const FIELD_BOX = 'w-full rounded-lg border border-cream-200 bg-white px-3 py-2.5 text-sm text-charcoal';
+const TOOL_CLASS = 'inline-flex h-9 items-center gap-2 rounded-pill border border-border bg-surface px-3.5 text-sm font-medium text-ink-body shadow-resting hover:bg-surface-raised transition-colors duration-(--duration-base) cursor-pointer flex-shrink-0';
+const FIELD_LABEL = 'text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted';
+// The subject and body boxes hold the email itself, a document: white in every theme.
+const FIELD_BOX = 'w-full rounded-control border border-border bg-document px-3 py-2.5 text-sm text-ink-body';
 
 export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   const posthog = usePostHog();
@@ -220,26 +221,26 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   // the real next steps (apply for the job or start over).
   if (!email && hasFreshPendingFitAnalysis) {
     return (
-      <div className="h-full flex items-center justify-center bg-cream-50 p-8">
+      <div className="h-full flex items-center justify-center bg-surface p-8">
         <div className="text-center max-w-md">
-          <div className="w-16 h-16 rounded-2xl bg-navy-50 flex items-center justify-center mx-auto mb-5">
-            <Send className="w-8 h-8 text-navy-400" />
+          <div className="w-16 h-16 rounded-card bg-brand-soft flex items-center justify-center mx-auto mb-5">
+            <Send className="w-8 h-8 text-brand-muted" />
           </div>
-          <h3 className="text-lg font-bold tracking-tight text-charcoal mb-2">Ready to apply?</h3>
-          <p className="text-sm text-warm-gray mb-6 leading-relaxed">
+          <h3 className="text-lg font-bold tracking-tight text-ink-body mb-2">Ready to apply?</h3>
+          <p className="text-sm text-ink-muted mb-6 leading-relaxed">
             Your fit analysis is ready. Generate the full application to unlock your tailored email.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <button
               onClick={() => setPendingApplicationAction('generate-full-application')}
-              className="flex items-center gap-2 rounded-full bg-gold-400 text-white px-5 py-3 text-sm font-semibold shadow-sm hover:bg-gold-500 transition-all cursor-pointer"
+              className="flex items-center gap-2 rounded-pill bg-accent text-accent-ink px-5 py-3 text-sm font-semibold shadow-resting hover:bg-accent-strong transition-all cursor-pointer"
             >
               <Zap className="w-4 h-4" />
               Generate Kit
             </button>
             <button
               onClick={() => setPendingApplicationAction('skip-job')}
-              className="flex items-center gap-2 rounded-full border border-cream-200 bg-white text-charcoal px-5 py-3 text-sm font-semibold hover:bg-cream-50 hover:border-gold-300 transition-all cursor-pointer"
+              className="flex items-center gap-2 rounded-pill border border-border bg-surface-raised text-ink-body px-5 py-3 text-sm font-semibold hover:bg-surface hover:border-border-accent transition-all cursor-pointer"
             >
               New Search
             </button>
@@ -254,13 +255,13 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   // Email" button (it cannot work without a generation context).
   if (!email && !emailFailed) {
     return (
-      <div className="h-full flex items-center justify-center bg-cream-50 p-8">
+      <div className="h-full flex items-center justify-center bg-surface p-8">
         <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-cream-100 flex items-center justify-center mx-auto mb-5">
-            <Send className="w-8 h-8 text-cream-400" />
+          <div className="w-16 h-16 rounded-card bg-canvas flex items-center justify-center mx-auto mb-5">
+            <Send className="w-8 h-8 text-ink-ghost" />
           </div>
-          <h3 className="text-lg font-bold tracking-tight text-charcoal mb-2">No email yet</h3>
-          <p className="text-sm text-warm-gray leading-relaxed">
+          <h3 className="text-lg font-bold tracking-tight text-ink-body mb-2">No email yet</h3>
+          <p className="text-sm text-ink-muted leading-relaxed">
             Paste a job description in the chat to generate your full application kit.
           </p>
         </div>
@@ -275,11 +276,11 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
     <>
       {isEditMode ? (
         <>
-          <span className="text-sm font-semibold text-navy-600 flex-shrink-0">Editing</span>
+          <span className="text-sm font-semibold text-brand flex-shrink-0">Editing</span>
           <button
             type="button"
             onClick={handleSaveEdits}
-            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-navy-600 px-3.5 text-sm font-semibold text-white shadow-sm hover:bg-navy-700 transition-colors duration-200 cursor-pointer flex-shrink-0"
+            className="inline-flex h-9 items-center gap-1.5 rounded-pill bg-brand px-3.5 text-sm font-semibold text-brand-ink shadow-resting hover:bg-brand-strong transition-colors duration-(--duration-base) cursor-pointer flex-shrink-0"
           >
             <Check className="w-4 h-4" />
             Save
@@ -292,7 +293,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
               setEditedFollowUp(null);
               setEditBase(null);
             }}
-            className="h-9 px-3.5 text-sm font-medium text-warm-gray hover:text-charcoal rounded-full hover:bg-cream-100 transition-colors duration-200 cursor-pointer flex-shrink-0"
+            className="h-9 px-3.5 text-sm font-medium text-ink-muted hover:text-ink-body rounded-pill hover:bg-canvas transition-colors duration-(--duration-base) cursor-pointer flex-shrink-0"
           >
             Cancel
           </button>
@@ -311,11 +312,11 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
           }}
           className={TOOL_CLASS}
         >
-          <Edit3 className="w-4 h-4 text-navy-500" />
+          <Edit3 className="w-4 h-4 text-brand-mid" />
           Edit
         </button>
       )}
-      <span className="flex-shrink-0 pl-1 text-[13px] text-warm-gray">
+      <span className="flex-shrink-0 pl-1 text-[13px] text-ink-muted">
         {currentSession?.coverLetter
           ? 'Attach the CV and cover letter as PDFs when you send.'
           : 'Attach the CV as a PDF when you send.'}
@@ -333,11 +334,11 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
     onBody: (v: string) => void;
     copyEvent: string;
   }) => (
-    <div className="box-border w-full rounded-2xl border border-cream-200 bg-white p-5 shadow-sm">
+    <div className="box-border w-full rounded-card border border-border bg-surface-raised p-5 shadow-resting">
       <div className="flex items-center gap-2.5">
-        <h3 className="text-sm font-semibold text-navy-800">{opts.title}</h3>
+        <h3 className="text-sm font-semibold text-ink">{opts.title}</h3>
         {opts.chip && (
-          <span className="inline-flex h-[22px] items-center rounded-full bg-gold-100 px-2.5 text-[11px] font-semibold text-gold-700">
+          <span className="inline-flex h-[22px] items-center rounded-pill bg-accent-soft-strong px-2.5 text-[11px] font-semibold text-accent-soft-ink">
             {opts.chip}
           </span>
         )}
@@ -347,7 +348,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
           onClick={() => copy(formatEmailAsText({ subject: opts.subject, body: opts.body }), opts.key, opts.copyEvent)}
           className={`${TOOL_CLASS} h-8 text-[13px]`}
         >
-          {copiedKey === opts.key ? <Check className="w-4 h-4 text-gold-600" /> : <Copy className="w-4 h-4" />}
+          {copiedKey === opts.key ? <Check className="w-4 h-4 text-ink-accent" /> : <Copy className="w-4 h-4" />}
           {copiedKey === opts.key ? 'Copied' : 'Copy email'}
         </button>
       </div>
@@ -359,7 +360,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
             type="text"
             value={opts.subject}
             onChange={(e) => opts.onSubject(e.target.value)}
-            className={`${FIELD_BOX} focus:border-navy-400 focus:outline-none`}
+            className={`${FIELD_BOX} focus:border-focus-ring-soft focus:outline-none`}
           />
         ) : (
           <div className={FIELD_BOX}>{opts.subject}</div>
@@ -373,7 +374,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
             value={opts.body}
             onChange={(e) => opts.onBody(e.target.value)}
             rows={11}
-            className={`${FIELD_BOX} resize-none leading-relaxed focus:border-navy-400 focus:outline-none`}
+            className={`${FIELD_BOX} resize-none leading-relaxed focus:border-focus-ring-soft focus:outline-none`}
           />
         ) : (
           <div className={`${FIELD_BOX} whitespace-pre-wrap leading-relaxed`}>{opts.body}</div>
@@ -387,10 +388,10 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
     {/* Toolbar: portal to tab bar on desktop, inline on mobile */}
     {toolbarPortal && createPortal(toolbarContent, toolbarPortal)}
 
-    <div className="h-full flex flex-col bg-cream-100">
+    <div className="h-full flex flex-col bg-canvas">
       {/* Inline toolbar for mobile only (no portal) */}
       {!toolbarPortal && (
-        <div className="px-3 sm:px-5 py-2.5 bg-cream-100 border-b border-cream-200 flex-shrink-0">
+        <div className="px-3 sm:px-5 py-2.5 bg-canvas border-b border-border flex-shrink-0">
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
             {toolbarContent}
           </div>

@@ -185,6 +185,19 @@
   --border-info-soft: var(--color-violet-100);
   --info-ink: var(--color-violet-700);
   --ink-error: var(--color-rose-700);
+  /* PR 3 roles (canvas, workspace) */
+  --brand-mid: var(--color-navy-500);
+  --brand-muted: var(--color-navy-400);
+  --border-brand: var(--color-navy-300);
+  --border-inverse-mid: var(--color-navy-500);
+  --ink-inverse-tint: var(--color-navy-100);
+  --ink-ghost: var(--color-cream-400);
+  --border-stronger: var(--color-cream-400);
+  --accent-deep: var(--color-gold-600);
+  --success-muted: var(--color-sage-500);
+  --border-success: var(--color-sage-300);
+  --border-success-soft: var(--color-sage-200);
+  --danger-ink: #FFFFFF;
 }
 
 @theme inline {
@@ -270,6 +283,19 @@
   --color-border-info-soft: var(--border-info-soft);
   --color-info-ink: var(--info-ink);
   --color-ink-error: var(--ink-error);
+  /* PR 3 roles (canvas, workspace) */
+  --color-brand-mid: var(--brand-mid);
+  --color-brand-muted: var(--brand-muted);
+  --color-border-brand: var(--border-brand);
+  --color-border-inverse-mid: var(--border-inverse-mid);
+  --color-ink-inverse-tint: var(--ink-inverse-tint);
+  --color-ink-ghost: var(--ink-ghost);
+  --color-border-stronger: var(--border-stronger);
+  --color-accent-deep: var(--accent-deep);
+  --color-success-muted: var(--success-muted);
+  --color-border-success: var(--border-success);
+  --color-border-success-soft: var(--border-success-soft);
+  --color-danger-ink: var(--danger-ink);
 }
 
 :root {

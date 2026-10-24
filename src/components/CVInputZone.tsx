@@ -72,15 +72,15 @@ export function CVInputZone({
   return (
     <div>
       {/* Mode tabs */}
-      <div className="flex gap-1 p-1 bg-cream-100 rounded-xl mb-3">
+      <div className="flex gap-1 p-1 bg-canvas rounded-xl mb-3">
         <button
           type="button"
           onClick={() => setMode('file')}
           disabled={isLoading}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-control text-sm font-medium transition-all cursor-pointer ${
             mode === 'file'
-              ? 'bg-white text-charcoal shadow-sm'
-              : 'text-warm-gray hover:text-charcoal'
+              ? 'bg-surface-raised text-ink-body shadow-resting'
+              : 'text-ink-muted hover:text-ink-body'
           } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           <Upload className="w-3.5 h-3.5" />
@@ -93,10 +93,10 @@ export function CVInputZone({
             setTimeout(() => textareaRef.current?.focus(), 100);
           }}
           disabled={isLoading}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-control text-sm font-medium transition-all cursor-pointer ${
             mode === 'text'
-              ? 'bg-white text-charcoal shadow-sm'
-              : 'text-warm-gray hover:text-charcoal'
+              ? 'bg-surface-raised text-ink-body shadow-resting'
+              : 'text-ink-muted hover:text-ink-body'
           } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           <Type className="w-3.5 h-3.5" />
@@ -121,8 +121,8 @@ export function CVInputZone({
         <div
           className={`border-2 border-dashed rounded-xl overflow-hidden transition-colors ${
             isLoading
-              ? 'border-cream-300 opacity-50'
-              : 'border-cream-400 focus-within:border-navy-300'
+              ? 'border-border-strong opacity-50'
+              : 'border-border-stronger focus-within:border-border-brand'
           }`}
         >
           <textarea
@@ -133,13 +133,13 @@ export function CVInputZone({
               'Paste your CV / resume content here...\n\n' +
               'Include your name, contact info, experience, education, skills, everything from your CV. Plain text or Markdown.'
             }
-            className={`w-full bg-transparent text-sm text-charcoal placeholder:text-warm-gray/50 resize-none p-4 focus:outline-none ${
+            className={`w-full bg-transparent text-sm text-ink-body placeholder:text-ink-muted/50 resize-none p-4 focus:outline-none ${
               compact ? 'h-40' : 'h-52'
             }`}
             disabled={isLoading}
           />
-          <div className="flex items-center justify-between px-4 py-2.5 bg-cream-50 border-t border-cream-200">
-            <span className="text-xs text-warm-gray">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-surface border-t border-border">
+            <span className="text-xs text-ink-muted">
               {pastedText.length > 0
                 ? `${pastedText.length.toLocaleString()} characters`
                 : 'Plain text or Markdown'}
@@ -148,7 +148,7 @@ export function CVInputZone({
               type="button"
               onClick={handleTextSubmit}
               disabled={!pastedText.trim() || isLoading}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-navy-600 text-white text-sm font-medium rounded-lg hover:bg-navy-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-brand text-brand-ink text-sm font-medium rounded-control hover:bg-brand-strong disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
               Parse CV
               <ArrowRight className="w-3.5 h-3.5" />

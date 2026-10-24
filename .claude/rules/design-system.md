@@ -65,12 +65,21 @@ Values are today's light theme.
 | | `surface-notice` | cream-100 | Light notice fill (warning toast) |
 | | `surface-inverse-soft` | navy-600 | Lighter tile or hover on a dark navy panel |
 | | `ink-inverse-soft`, `ink-inverse-dim`, `border-inverse-soft` | cream-50, cream-200, cream-200 | Text and hairlines on navy toasts |
-| | `danger-bright`, `danger-soft-strong` | red-500, red-100 | Error icons, stronger red tint |
+| | `danger-bright`, `danger-soft-strong` | red-500, red-100 | Error icons and small destructive fills, stronger red tint |
 | | `status-done`, `status-partial`, `status-draft` | emerald-400, amber-400, gray-300 | Status dots in chat history |
 | | `done-soft`, `border-done-soft`, `done-ink` | emerald-50, emerald-100, emerald-700 | "Done" banner in agent progress |
 | | `scrim` | black | Modal backdrops (use with an opacity) |
 | | `info-soft`, `border-info-soft`, `info-ink` | violet-50, violet-100, violet-700 | In-progress notes (agent "reflecting" banner) |
 | | `ink-error` | rose-700 | Inline error text in lists and search |
+| Canvas and workspace extras | `brand-mid`, `brand-muted` | navy-500, navy-400 | Brand-colored icons and bullets, empty-state icons. Focus borders use `focus-ring-soft` |
+| | `border-brand` | navy-300 | Dashed add buttons and edit-field outlines |
+| | `border-inverse-mid` | navy-500 | Hairline on a dark panel |
+| | `ink-inverse-tint` | navy-100 | Mono text on a dark panel |
+| | `ink-ghost` | cream-400 | Empty-state icons, strikethrough decoration |
+| | `border-stronger` | cream-400 | Dashed and drop-zone borders |
+| | `accent-deep` | gold-600 | Gold save button hover |
+| | `success-muted`, `border-success`, `border-success-soft` | sage-500, sage-300, sage-200 | Strong-match dot, ATS ring, match pill border |
+| | `danger-ink` | `#FFFFFF` | Text and icons on a red fill |
 
 Utilities follow Tailwind's naming, utility then role: `bg-surface`, `text-ink-muted`, `border-border`, `border-border-strong`, `ring-focus-ring`, `bg-accent/10`. Roles whose names start with `border-` take a second `border-` as a border class, so `border-gold-300` becomes `border-border-accent`, while `border-accent` is gold-400. Opacity modifiers work on every role.
 

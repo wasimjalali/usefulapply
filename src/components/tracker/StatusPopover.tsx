@@ -178,7 +178,7 @@ export function StatusPopover({
           left: position?.left ?? -9999,
           width: PANEL_WIDTH,
         }}
-        className="z-50 rounded-2xl border border-cream-200 bg-cream-50 p-1.5 shadow-md focus:outline-none"
+        className="z-50 rounded-card border border-border bg-surface p-1.5 shadow-elevated focus:outline-none"
       >
         {step === 'status' ? (
           <ul role="listbox" aria-label="Status">
@@ -191,13 +191,13 @@ export function StatusPopover({
                     role="option"
                     aria-selected={on}
                     onClick={() => pick(option)}
-                    className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] cursor-pointer ${
-                      on ? 'bg-white font-semibold text-navy-800 shadow-sm' : 'text-navy-800 hover:bg-cream-100'
+                    className={`flex w-full items-center gap-2.5 rounded-control px-2.5 py-2 text-left text-[13px] cursor-pointer ${
+                      on ? 'bg-surface-raised font-semibold text-ink shadow-resting' : 'text-ink hover:bg-canvas'
                     }`}
                   >
-                    <span className="h-2 w-2 flex-shrink-0 rounded-full bg-navy-600" />
+                    <span className="h-2 w-2 flex-shrink-0 rounded-pill bg-brand" />
                     <span className="flex-1">{TRACKER_STATUS_LABEL[option]}</span>
-                    {on && <Check className="h-4 w-4 text-gold-500" />}
+                    {on && <Check className="h-4 w-4 text-accent-strong" />}
                   </button>
                 </li>
               );
@@ -205,10 +205,10 @@ export function StatusPopover({
           </ul>
         ) : (
           <div className="p-1.5">
-            <p className="flex items-center gap-2 text-[13px] font-semibold text-navy-800">
-              <span className="h-2 w-2 rounded-full bg-navy-600" />
+            <p className="flex items-center gap-2 text-[13px] font-semibold text-ink">
+              <span className="h-2 w-2 rounded-pill bg-brand" />
               {label}
-              <span className="font-normal text-warm-gray">· when?</span>
+              <span className="font-normal text-ink-muted">· when?</span>
             </p>
 
             <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -220,17 +220,17 @@ export function StatusPopover({
                     key={option.label}
                     type="button"
                     onClick={() => setDate(value)}
-                    className={`rounded-full px-2.5 py-1.5 text-[12px] font-medium cursor-pointer ${
+                    className={`rounded-pill px-2.5 py-1.5 text-[12px] font-medium cursor-pointer ${
                       on
-                        ? 'bg-gold-400 text-white'
-                        : 'border border-cream-200 bg-cream-50 text-navy-800 hover:bg-cream-100'
+                        ? 'bg-accent text-accent-ink'
+                        : 'border border-border bg-surface text-ink hover:bg-canvas'
                     }`}
                   >
                     {option.label}
                   </button>
                 );
               })}
-              <label className="rounded-full border border-cream-200 bg-cream-50 px-2.5 py-1.5 text-[12px] font-medium text-navy-800 hover:bg-cream-100 cursor-pointer">
+              <label className="rounded-pill border border-border bg-surface px-2.5 py-1.5 text-[12px] font-medium text-ink hover:bg-canvas cursor-pointer">
                 Pick a date
                 <input
                   type="date"
@@ -248,13 +248,13 @@ export function StatusPopover({
                   value={time}
                   onChange={(event) => setTime(event.target.value)}
                   aria-label="Time"
-                  className="h-9 flex-1 rounded-lg border border-cream-200 bg-white px-2.5 text-[13px] text-navy-800"
+                  className="h-9 flex-1 rounded-control border border-border bg-surface-raised px-2.5 text-[13px] text-ink"
                 />
               )}
               <button
                 type="button"
                 onClick={save}
-                className={`h-9 rounded-lg bg-gold-400 px-4 text-[13px] font-semibold text-white hover:bg-gold-500 cursor-pointer ${
+                className={`h-9 rounded-control bg-accent px-4 text-[13px] font-semibold text-accent-ink hover:bg-accent-strong cursor-pointer ${
                   pending === 'interview' ? '' : 'flex-1'
                 }`}
               >
@@ -262,7 +262,7 @@ export function StatusPopover({
               </button>
             </div>
 
-            <p className="mt-2 text-[11px] leading-snug text-warm-gray">
+            <p className="mt-2 text-[11px] leading-snug text-ink-muted">
               {remindersOn(pending) ? 'I’ll remind you the day before. ' : ''}
               Skip the date and it just says {label}.
             </p>

@@ -33,13 +33,13 @@ function MetaChip({ icon: Icon, label, tone = 'default' }: {
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm ${
+      className={`inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-sm ${
         tone === 'sage'
-          ? 'border-sage-200 bg-sage-50 text-sage-700'
-          : 'border-cream-200 bg-white text-charcoal'
+          ? 'border-border-success-soft bg-success-soft text-success-strong'
+          : 'border-border bg-surface-raised text-ink-body'
       }`}
     >
-      <Icon className={`h-4 w-4 ${tone === 'sage' ? 'text-sage-600' : 'text-warm-gray'}`} />
+      <Icon className={`h-4 w-4 ${tone === 'sage' ? 'text-success' : 'text-ink-muted'}`} />
       {label}
     </span>
   );
@@ -84,11 +84,11 @@ export function FeedJobDetail({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-shrink-0 items-center gap-3 border-b border-cream-200 px-5 py-3">
+      <div className="flex flex-shrink-0 items-center gap-3 border-b border-border px-5 py-3">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-cream-200 bg-cream-50 px-3.5 text-sm font-semibold text-navy-800 shadow-sm transition-colors duration-200 hover:bg-white cursor-pointer"
+          className="inline-flex h-9 flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised cursor-pointer"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to feed
@@ -100,8 +100,8 @@ export function FeedJobDetail({
           onClick={() => onSave(job)}
           aria-label={isSaved ? 'Remove from saved' : 'Save this role'}
           aria-pressed={isSaved}
-          className={`inline-flex h-9 items-center gap-2 rounded-full px-3 text-sm font-medium transition-colors duration-200 hover:bg-cream-50 cursor-pointer ${
-            isSaved ? 'text-gold-600' : 'text-warm-gray hover:text-navy-800'
+          className={`inline-flex h-9 items-center gap-2 rounded-pill px-3 text-sm font-medium transition-colors duration-(--duration-base) hover:bg-surface cursor-pointer ${
+            isSaved ? 'text-ink-accent' : 'text-ink-muted hover:text-ink'
           }`}
         >
           <Bookmark className="h-4 w-4" fill={isSaved ? 'currentColor' : 'none'} />
@@ -113,7 +113,7 @@ export function FeedJobDetail({
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => onOpenEmployerSite(job)}
-            className="inline-flex h-9 items-center gap-2 rounded-full px-3 text-sm font-medium text-warm-gray transition-colors duration-200 hover:bg-cream-50 hover:text-navy-800 cursor-pointer"
+            className="inline-flex h-9 items-center gap-2 rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-(--duration-base) hover:bg-surface hover:text-ink cursor-pointer"
           >
             <ExternalLink className="h-4 w-4" />
             Employer site
@@ -163,13 +163,13 @@ export function FeedJobDetail({
 
       <div className="min-h-0 flex-1 overflow-auto px-5 py-5">
         {job.fitLabel && (
-          <p className={`flex items-center gap-2 text-xs font-semibold ${isStrong ? 'text-sage-600' : 'text-gold-600'}`}>
-            <span className={`inline-block h-1.5 w-1.5 rounded-full ${isStrong ? 'bg-sage-500' : 'bg-gold-400'}`} />
+          <p className={`flex items-center gap-2 text-xs font-semibold ${isStrong ? 'text-success' : 'text-ink-accent'}`}>
+            <span className={`inline-block h-1.5 w-1.5 rounded-pill ${isStrong ? 'bg-success-muted' : 'bg-accent'}`} />
             {isStrong ? 'Strong match' : 'Good match'}
           </p>
         )}
-        <h2 className="mt-2 text-2xl font-semibold text-navy-800">{job.title}</h2>
-        <p className="mt-0.5 text-sm text-warm-gray">{job.company}</p>
+        <h2 className="mt-2 text-2xl font-semibold text-ink">{job.title}</h2>
+        <p className="mt-0.5 text-sm text-ink-muted">{job.company}</p>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {job.location && <MetaChip icon={MapPin} label={job.location} />}
@@ -178,9 +178,9 @@ export function FeedJobDetail({
           {age && <MetaChip icon={Clock} label={age} />}
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center gap-4 border-t border-cream-200 pt-5">
+        <div className="mt-5 flex flex-wrap items-center gap-4 border-t border-border pt-5">
           {!showCheckFit && (
-            <p className="text-sm text-warm-gray">Open Useful Apply on a computer to check the fit and build the kit.</p>
+            <p className="text-sm text-ink-muted">Open Useful Apply on a computer to check the fit and build the kit.</p>
           )}
           {showCheckFit && (
           <>
@@ -189,7 +189,7 @@ export function FeedJobDetail({
               type="button"
               disabled={busy}
               onClick={() => onCheckFit(job)}
-              className="inline-flex h-11 items-center gap-2 rounded-full bg-gold-400 px-5 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-warm-gray cursor-pointer"
+              className="inline-flex h-11 items-center gap-2 rounded-pill bg-accent px-5 text-sm font-semibold text-accent-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-sunken disabled:text-ink-muted cursor-pointer"
             >
               <Search className="h-4 w-4" />
               Check fit
@@ -199,7 +199,7 @@ export function FeedJobDetail({
             <button
               type="button"
               onClick={() => onUpgrade?.()}
-              className="inline-flex h-11 items-center gap-2 rounded-full bg-gold-400 px-5 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-gold-500 cursor-pointer"
+              className="inline-flex h-11 items-center gap-2 rounded-pill bg-accent px-5 text-sm font-semibold text-accent-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-accent-strong cursor-pointer"
             >
               See Plus
               <span className="font-medium opacity-85">· {CREDIT_COSTS.FIT_ANALYSIS} credits</span>
@@ -210,7 +210,7 @@ export function FeedJobDetail({
               type="button"
               disabled={busy}
               onClick={() => onGenerateKit(job)}
-              className="text-[13px] font-medium text-navy-600 transition-colors duration-200 hover:text-navy-800 disabled:cursor-not-allowed disabled:text-warm-gray cursor-pointer"
+              className="text-[13px] font-medium text-brand transition-colors duration-(--duration-base) hover:text-ink disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
             >
               Skip the check, generate the kit ({CREDIT_COSTS.FULL_APPLICATION} credits)
             </button>
@@ -218,7 +218,7 @@ export function FeedJobDetail({
             <button
               type="button"
               onClick={() => onUpgrade?.()}
-              className="text-[13px] font-medium text-navy-600 transition-colors duration-200 hover:text-navy-800 cursor-pointer"
+              className="text-[13px] font-medium text-brand transition-colors duration-(--duration-base) hover:text-ink cursor-pointer"
             >
               Upgrade to generate the kit ({CREDIT_COSTS.FULL_APPLICATION} credits)
             </button>
@@ -229,18 +229,18 @@ export function FeedJobDetail({
 
         {job.matchReason && (
           <section className="mt-6">
-            <h3 className="text-[11px] font-semibold tracking-[0.08em] text-warm-gray">WHY IT&apos;S A MATCH</h3>
-            <p className="mt-2 text-sm leading-relaxed text-charcoal">{job.matchReason}</p>
+            <h3 className="text-[11px] font-semibold tracking-[0.08em] text-ink-muted">WHY IT&apos;S A MATCH</h3>
+            <p className="mt-2 text-sm leading-relaxed text-ink-body">{job.matchReason}</p>
           </section>
         )}
 
         <section className="mt-6">
-          <h3 className="text-[11px] font-semibold tracking-[0.08em] text-warm-gray">THE AD</h3>
-          <div className="mt-2 text-sm leading-relaxed text-charcoal">
+          <h3 className="text-[11px] font-semibold tracking-[0.08em] text-ink-muted">THE AD</h3>
+          <div className="mt-2 text-sm leading-relaxed text-ink-body">
             {job.description || job.highlights.length > 0 ? (
               <JobFeedDescription text={job.description} highlights={job.highlights} />
             ) : (
-              <p className="text-warm-gray">
+              <p className="text-ink-muted">
                 The board didn&apos;t give us the full text for this one. Open the employer site to read it.
               </p>
             )}
