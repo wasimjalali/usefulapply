@@ -563,7 +563,7 @@ select:focus-visible {
 }
 
 .step-complete-pulse {
-  animation: completePulse 0.6s var(--ease-pop);
+  animation: completePulse var(--duration-slow) var(--ease-pop);
 }
 
 /* Marketing page animations */
@@ -609,6 +609,24 @@ select:focus-visible {
 }
 .panel-rise {
   animation: panel-rise var(--duration-slow) var(--ease-standard) both;
+}
+
+/* Toast entrance. */
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-in {
+  animation: slide-in var(--duration-base) var(--ease-standard) backwards;
+}
+
+/* Pop entrance for small dialogs and popovers (ease-pop is for pop moments only). */
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-pop-in {
+  animation: pop-in var(--duration-base) var(--ease-pop) backwards;
 }
 
 /* Eyebrow label with a small accent dot, page-level labels only. */

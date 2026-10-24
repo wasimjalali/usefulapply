@@ -75,7 +75,7 @@ export function DeleteConfirm({
           left: position?.left ?? -9999,
           width: PANEL_WIDTH,
         }}
-        className="z-50 rounded-card border border-border bg-surface p-3 shadow-elevated focus:outline-none"
+        className="z-50 origin-top-right rounded-card border border-border bg-surface p-3 shadow-elevated animate-pop-in focus:outline-none"
       >
         <p className="text-[13px] font-semibold text-ink">{label}</p>
         {error && <p className="mt-2 text-xs text-danger">{error}</p>}
