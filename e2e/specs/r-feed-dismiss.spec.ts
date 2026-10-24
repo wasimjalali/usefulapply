@@ -43,8 +43,9 @@ const cardOf = (page: Page, title: string): Locator =>
   canvas(page).getByRole('heading', { name: title }).locator('xpath=ancestor::div[@role="button"][1]');
 
 async function openJobBoard(page: Page) {
-  await page.goto('/dashboard');
-  await page.getByRole('button', { name: /^Job Board/ }).click();
+  // A user with no kit yet is on the guided line, which has no sidebar. The dashboard's own deep link opens the
+  // Job Board straight away.
+  await page.goto('/dashboard?workspace=job-feed');
   await expect(canvas(page).getByRole('tab', { name: 'Today' })).toBeVisible();
 }
 
