@@ -155,9 +155,11 @@
   --depth-elevated: var(--shadow-md);
   --depth-floating: var(--shadow-lg);
 
-  /* Durations, used as duration-(--duration-fast) and duration-(--duration-base). */
+  /* Durations, used as duration-(--duration-fast), duration-(--duration-base) and duration-(--duration-slow)
+     (entrances and progress only). */
   --duration-fast: 150ms;
   --duration-base: 200ms;
+  --duration-slow: 400ms;
 
   /* PR 2 roles (shell, dashboard, chat) */
   --brand-soft-strong: var(--color-navy-100);
@@ -523,11 +525,11 @@ select:focus-visible {
 /* Agent Progress Animations */
 .agent-progress-bar {
   width: var(--progress-width, 0%);
-  transition: width 0.3s ease-in-out;
+  transition: width var(--duration-slow) var(--ease-standard);
 }
 
 .agent-step-enter {
-  animation: slideIn 0.3s ease-out;
+  animation: slideIn var(--duration-slow) var(--ease-standard);
 }
 
 @keyframes slideIn {
@@ -555,27 +557,22 @@ select:focus-visible {
 .shimmer-bar::after {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--color-gold-300) 40%,
-    var(--color-gold-400) 50%,
-    var(--color-gold-300) 60%,
-    transparent 100%
-  );
-  animation: shimmer 1.8s ease-in-out infinite;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  animation: shimmer 1.8s var(--ease-standard) infinite;
 }
 
 /* Step completion pulse */
 @keyframes completePulse {
-  0% { box-shadow: 0 0 0 0 rgba(212, 168, 83, 0.4); }
-  70% { box-shadow: 0 0 0 6px rgba(212, 168, 83, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(212, 168, 83, 0); }
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 40%, transparent); }
+  70% { box-shadow: 0 0 0 6px color-mix(in oklab, var(--accent) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 0%, transparent); }
 }
 
 .step-complete-pulse {
-  animation: completePulse 0.6s ease-out;
+  animation: completePulse 0.6s var(--ease-pop);
 }
 
 /* Sub-action text fade cycle */
@@ -611,10 +608,9 @@ select:focus-visible {
 /* Lightbox fade-in */
 /* Glassmorphism utility classes */
 .glass {
-  background: rgba(255, 255, 255, 0.6);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  /* Solid, not translucent white: a tint over cream reads as a stain (design-system.md). */
+  background: var(--surface);
+  border: 1px solid var(--border);
 }
 
 .glass-dark {
@@ -626,12 +622,12 @@ select:focus-visible {
 
 /* Card hover lift effect for marketing pages */
 .card-hover-lift {
-  transition: transform 0.3s var(--ease-out-quart), box-shadow 0.3s var(--ease-out-quart);
+  transition: box-shadow var(--duration-base) var(--ease-standard);
 }
 
+/* The one-step lift: an interactive card rises from resting to elevated, with no translate. */
 .card-hover-lift:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--depth-elevated);
 }
 
 /* ─── Premium primitives (UI premium pass) ─── */
@@ -639,12 +635,12 @@ select:focus-visible {
 /* Primary gold CTA: warms to a gold glow on hover and dips slightly on press.
    Layered on top of existing bg-gold-400 / hover:bg-gold-500 utilities. */
 .cta-gold {
-  transition: background-color 0.2s var(--ease-out-quart),
-    box-shadow 0.2s var(--ease-out-quart),
-    transform 0.2s var(--ease-out-quart);
+  transition: background-color var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard),
+    transform var(--duration-base) var(--ease-standard);
 }
 .cta-gold:hover {
-  box-shadow: var(--shadow-glow-gold);
+  box-shadow: var(--depth-elevated);
   transform: translateY(-1px);
 }
 .cta-gold:active {
@@ -657,17 +653,14 @@ select:focus-visible {
   to { opacity: 1; transform: translateY(0); }
 }
 .panel-rise {
-  animation: panel-rise 0.42s var(--ease-out-quart) both;
+  animation: panel-rise var(--duration-slow) var(--ease-standard) both;
 }
 
 /* Active segmented-pill tab — premium treatment for app chrome (workspace
    switcher, document tabs). A faint gold inset ring + soft navy drop reads
    richer than a flat white pill in a still frame. Layered on top of bg-white. */
 .tab-pill-active {
-  box-shadow:
-    inset 0 0 0 1px rgb(212 168 83 / 0.28),
-    0 1px 0 0 rgb(255 255 255 / 0.9) inset,
-    0 4px 12px -6px rgb(30 58 95 / 0.30);
+  box-shadow: var(--depth-resting);
 }
 
 /* Eyebrow label with a small gradient accent dot — page-level labels only. */
@@ -677,7 +670,7 @@ select:focus-visible {
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--color-gold-300), var(--color-gold-500));
+  background: var(--accent);
   margin-right: 0.45rem;
   vertical-align: 1.5px;
 }
@@ -685,7 +678,8 @@ select:focus-visible {
 /* Smooth FAQ expand/collapse */
 .faq-answer {
   overflow: hidden;
-  transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out;
+  transition: max-height var(--duration-slow) var(--ease-standard), opacity var(--duration-slow) var(--ease-standard),
+    padding var(--duration-slow) var(--ease-standard);
 }
 
 /* CV scaling is handled dynamically in CVPanel.tsx via ResizeObserver */
@@ -700,14 +694,7 @@ select:focus-visible {
 }
 
 .glass-input {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.5) 0%,
-    rgba(255, 255, 255, 0.35) 50%,
-    rgba(245, 240, 235, 0.3) 100%
-  );
-  -webkit-backdrop-filter: blur(20px) saturate(1.5);
-  backdrop-filter: blur(20px) saturate(1.5);
+  background: var(--surface-raised);
 }
 
 /* Logo bar scroll animation — infinite marquee */
@@ -720,10 +707,7 @@ select:focus-visible {
 
 /* CTA pulse glow */
 /* Dot grid background pattern */
-.dot-grid {
-  background-image: radial-gradient(circle, rgba(30, 58, 95, 0.07) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
+
 
 /* Subtle noise texture overlay */
 .noise-overlay::before {
@@ -737,21 +721,17 @@ select:focus-visible {
 
 /* Browser chrome mockup frame */
 .browser-frame {
-  background: linear-gradient(180deg, #f8f7f5 0%, #f0ede8 100%);
-  border: 1px solid #e0dbd2;
-  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
   overflow: hidden;
-  box-shadow:
-    0 25px 50px -12px rgba(30, 58, 95, 0.15),
-    0 8px 20px -8px rgba(30, 58, 95, 0.1);
+  box-shadow: var(--depth-floating);
 }
 
 /* Gradient text utility */
 .gradient-text-gold {
-  background: linear-gradient(135deg, #D4A853 0%, #C4932E 50%, #D4A853 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  /* The name stays for its callers; gradients are gone, so it is solid accent ink. */
+  color: var(--ink-accent);
 }
 
 /* Section divider — angled */
@@ -761,13 +741,12 @@ select:focus-visible {
 
 /* Stat card glow on hover */
 .stat-glow:hover {
-  box-shadow: 0 0 30px rgba(212, 168, 83, 0.15), 0 8px 24px -8px rgba(30, 58, 95, 0.1);
+  box-shadow: var(--depth-elevated);
 }
 
 /* Gradient card top accent bar */
 .card-accent-gold {
-  border-top: 3px solid transparent;
-  border-image: linear-gradient(90deg, #D4A853, #C4932E) 1;
+  border-top: 3px solid var(--accent);
 }
 
 /* Floating badge animation */
@@ -778,9 +757,7 @@ select:focus-visible {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ─── Radial Gradient Utility ─── */
-.bg-gradient-radial {
-  background: radial-gradient(ellipse at center, var(--tw-gradient-from), var(--tw-gradient-to));
-}
+
 
 /* ─── Floating Cloud Shapes ─── */
 /* ─── Floating Platform Shapes (oval discs) ─── */
@@ -925,7 +902,7 @@ select:focus-visible {
 .stagger-rise > * {
   opacity: 0;
   transform: translateY(18px);
-  transition: opacity 0.5s var(--ease-out-quart), transform 0.5s var(--ease-out-quart);
+  transition: opacity var(--duration-slow) var(--ease-standard), transform var(--duration-slow) var(--ease-standard);
 }
 [data-inview='true'] .stagger-rise > * { opacity: 1; transform: none; }
 [data-inview='true'] .stagger-rise > :nth-child(2) { transition-delay: 60ms; }
