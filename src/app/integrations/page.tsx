@@ -76,7 +76,7 @@ const toolGroups: { title: string; body: string; tools: string }[] = [
   },
   {
     title: 'Update your settings',
-    body: 'Choose which emails you get: product news, follow-up due, interview tomorrow and low credits.',
+    body: 'Choose which emails you get: follow-up due and interview tomorrow.',
     tools: 'update_notification_settings',
   },
 ];

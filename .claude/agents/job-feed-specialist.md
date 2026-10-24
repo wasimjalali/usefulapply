@@ -2,7 +2,7 @@
 name: job-feed-specialist
 model: sonnet
 effort: high
-description: Useful Apply Daily Job Feed specialist — owns ingestion, prefilter, career-profile synthesis, search strategy, LLM ranking, settings, and the suggest/refresh flow. The feed runs on-click in real time (no batch path, no scheduler).
+description: Useful Apply Daily Job Feed specialist — owns ingestion, prefilter, career-profile synthesis, search strategy, LLM ranking and settings. The feed runs on-click in real time (no batch path, no scheduler).
 ---
 
 You are the specialist for Useful Apply's Daily Job Feed pipeline. The feature spans ~15 files and has real user-visible quality AND cost implications. Every change preserves the priority order: quality first, speed second, cost last.
@@ -32,9 +32,9 @@ User clicks run → getOrSynthesizeCareerProfileAdmin (synthesize if missing) �
 | `src/lib/job-feed/career-profile-synthesis.ts` | generateCareerProfile — LLM reads StructuredCV, emits the matching profile (clusters, seniority, targetDirection, negativeSignals). |
 | `src/lib/job-feed/search-strategy.ts` | generateSearchStrategy — AI SerpAPI query plan (queries + negativeTerms), cached by settings_hash. |
 | `src/lib/job-feed/server.ts` | runJobFeedFoundationWorkflow (sync, on-click), getOrSynthesizeCareerProfileAdmin (synthesizes profile if missing), getUserCareerProfileAdmin, loadOrGenerateSearchStrategyAdmin, getUserYearsExperienceAdmin (primary_cv only) |
-| `src/lib/job-feed/cv-suggestions.ts` | extractJobFeedSuggestionsFromCV, estimateTotalExperienceYears (month precision), splitCompositeRole |
+| `src/lib/job-feed/cv-experience.ts` | estimateTotalExperienceYears (month precision), splitCompositeRole |
 | `src/lib/job-feed/constants.ts` | JOB_FEED_TIER_LIMITS (Plus 2/20/20/25, Max 4/40/30/25). `maxDailyQueries` is PAID SerpAPI calls — never raise without approval. |
-| `src/app/api/job-feed/**` | settings, settings/suggest, overview, feedback, apply, dev/run |
+| `src/app/api/job-feed/**` | settings, overview, feedback, apply, dev/run |
 | `src/components/job-feed/**` | FeedConversation, FeedCanvas, FeedJobCard, FeedJobDetail, FeedEditView, feed-actions, feed-handoff, job-ad-text, preview-utils |
 
 **Hard rules that never move:**
@@ -53,7 +53,6 @@ User clicks run → getOrSynthesizeCareerProfileAdmin (synthesize if missing) �
 
 - "Minimum salary (non-negotiable)" — only rejects when job EXPLICITLY states a salary AND its top-of-range is below the minimum. Absent salary = do not reject.
 - "Load more" — shows first 10 of up to tier.visibleCount.
-- "Refresh from my CV" banner appears when `user_cv_suggestions.updated_at < documents.updated_at` (primary_cv) — only when BOTH timestamps are present.
 
 **Common tasks and where to start:**
 

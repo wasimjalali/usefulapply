@@ -62,14 +62,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    let force = false;
-    try {
-      const body = await request.json();
-      force = Boolean(body?.force);
-    } catch {
-      // No body / malformed body — treat as non-forced regeneration.
-    }
-
     const { profileRow, primaryDoc } = await loadProfileAndPrimaryCV(userId);
 
     if (!primaryDoc?.structured_data) {
@@ -83,8 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (
-      !force
-      && profileRow?.profile
+      profileRow?.profile
       && isCurrentCareerProfile(profileRow.profile)
       && profileRow.version === CAREER_PROFILE_SCHEMA_VERSION
       && !isCVNewerThanProfile({
@@ -92,7 +83,7 @@ export async function POST(request: NextRequest) {
         primaryDocUpdatedAt: primaryDoc.updated_at,
       })
     ) {
-      // Cache hit, no force, no CV change — return existing profile unchanged.
+      // Cache hit and no CV change — return existing profile unchanged.
       const body: CareerProfileResponseBody = {
         profile: profileRow.profile,
         cvNewerThanProfile: false,
@@ -100,34 +91,6 @@ export async function POST(request: NextRequest) {
         generatedAt: profileRow.profile.generatedAt,
       };
       return NextResponse.json(body);
-    }
-
-    // Idempotency guard for force=true: if the profile was generated very
-    // recently (within the last 30 seconds) AND the source CV hasn't changed
-    // since then, return the cached profile instead of burning another LLM
-    // call. This prevents duplicate generations from rapid re-mounts or
-    // parallel requests (e.g. two feed columns loading the profile at once).
-    if (
-      force
-      && profileRow?.profile
-      && isCurrentCareerProfile(profileRow.profile)
-      && profileRow.source_document_updated_at
-      && primaryDoc.updated_at
-    ) {
-      const profileAge = Date.now() - Date.parse(profileRow.profile.generatedAt);
-      const cvNewerThanCached = isCVNewerThanProfile({
-        profileSourceUpdatedAt: profileRow.source_document_updated_at,
-        primaryDocUpdatedAt: primaryDoc.updated_at,
-      });
-      if (profileAge < 30_000 && !cvNewerThanCached) {
-        const body: CareerProfileResponseBody = {
-          profile: profileRow.profile,
-          cvNewerThanProfile: false,
-          status: 'ok',
-          generatedAt: profileRow.profile.generatedAt,
-        };
-        return NextResponse.json(body);
-      }
     }
 
     const cv = primaryDoc.structured_data as StructuredCV;

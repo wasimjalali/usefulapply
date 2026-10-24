@@ -8,18 +8,23 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { usePostHog } from 'posthog-js/react';
+import { useToast } from '@/components/ui/Toast';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { useCVStore } from '@/store/useCVStore';
 import { selectFeedThreadKey, useFeedStore } from '@/store/useFeedStore';
-import { loadMoreFeedJobs, loadSavedFeedJobs, recordFeedFeedback } from './feed-actions';
+import { loadFeedOverview, loadMoreFeedJobs, loadSavedFeedJobs, recordFeedFeedback } from './feed-actions';
 import { startFeedHandoff, type FeedHandoffMode } from './feed-handoff';
 import { getJobFeedPreviewMode } from './preview-utils';
 
 export interface FeedJobActions {
-  /** Job id with an action in flight, so its card can show it. */
-  busyJobId: string | null;
+  /** Job ids with an action in flight, so their cards can show it. */
+  busyJobIds: ReadonlySet<string>;
+  /** Job ids whose dismiss specifically is in flight. */
+  dismissingJobIds: ReadonlySet<string>;
   openDetail: (job: JobFeedFeedItem) => void;
   save: (job: JobFeedFeedItem) => Promise<void>;
+  /** True when the role left the feed. */
+  dismiss: (job: JobFeedFeedItem) => Promise<boolean>;
   openEmployerSite: (job: JobFeedFeedItem) => void;
   checkFit: (job: JobFeedFeedItem, mode?: FeedHandoffMode) => Promise<void>;
   loadMore: () => Promise<void>;
@@ -45,8 +50,30 @@ function actionRunId(): string | null {
 
 export function useFeedJobActions(): FeedJobActions {
   const posthog = usePostHog();
-  const [busyJobId, setBusyJobId] = useState<string | null>(null);
-  const busyJobIdRef = useRef<string | null>(null);
+  const { toast } = useToast();
+  const [busyJobIds, setBusyJobIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [dismissingJobIds, setDismissingJobIds] = useState<ReadonlySet<string>>(() => new Set());
+  // The lock is per job: one action on a job at a time, any number of jobs at once.
+  const lockedRef = useRef<Set<string>>(new Set());
+
+  const begin = useCallback((jobId: string, dismissing = false): boolean => {
+    if (lockedRef.current.has(jobId)) return false;
+    lockedRef.current.add(jobId);
+    setBusyJobIds((prev) => new Set(prev).add(jobId));
+    if (dismissing) setDismissingJobIds((prev) => new Set(prev).add(jobId));
+    return true;
+  }, []);
+
+  const end = useCallback((jobId: string) => {
+    lockedRef.current.delete(jobId);
+    const without = (prev: ReadonlySet<string>) => {
+      const next = new Set(prev);
+      next.delete(jobId);
+      return next;
+    };
+    setBusyJobIds(without);
+    setDismissingJobIds(without);
+  }, []);
 
   const openDetail = useCallback((job: JobFeedFeedItem) => {
     const store = useFeedStore.getState();
@@ -56,9 +83,7 @@ export function useFeedJobActions(): FeedJobActions {
   }, [posthog]);
 
   const save = useCallback(async (job: JobFeedFeedItem) => {
-    if (busyJobIdRef.current === job.id) return;
-    busyJobIdRef.current = job.id;
-    setBusyJobId(job.id);
+    if (!begin(job.id)) return;
     const action = job.feedback.savedAt ? 'unsaved' : 'saved';
     try {
       const result = await recordFeedFeedback(job, action, actionRunId());
@@ -83,17 +108,56 @@ export function useFeedJobActions(): FeedJobActions {
         }
       }
     } finally {
-      busyJobIdRef.current = null;
-      setBusyJobId(null);
+      end(job.id);
     }
-  }, [posthog]);
+  }, [posthog, begin, end]);
+
+  const dismiss = useCallback(async (job: JobFeedFeedItem): Promise<boolean> => {
+    if (!begin(job.id, true)) return false;
+    try {
+      const result = await recordFeedFeedback(job, 'dismissed', actionRunId());
+      // 404 is a role that's already gone, so the card should leave quietly.
+      const alreadyGone = !result.ok && result.status === 404;
+      if (!result.ok && result.status === 409) {
+        // The server won't dismiss it (applied, kit built, rated not relevant).
+        // Nothing was dismissed, so don't tombstone or remove: say so and
+        // reload so the screen matches the server.
+        // Read the live item: the card in hand may predate the change.
+        const state = useFeedStore.getState();
+        const live = [...(state.overview?.jobs ?? []), ...state.extraJobs, ...(state.savedJobs ?? [])]
+          .find((item) => item.id === job.id) ?? job;
+        const rated = live.feedback.matchRating === 'not_relevant';
+        // A not-relevant role leaves the list on the reload, so there's nothing to explain.
+        if (!rated) {
+          toast.error(live.feedback.appliedAt || live.feedback.generationStatus === 'succeeded'
+            ? "You've already applied to this role, so it stays in your list."
+            : "That role can't be dismissed now.");
+        }
+        void loadFeedOverview({ quiet: true });
+        if (useFeedStore.getState().savedJobs !== null) void loadSavedFeedJobs();
+        return false;
+      }
+      if (!result.ok && !alreadyGone) {
+        toast.error(result.error);
+        return false;
+      }
+      posthog?.capture(alreadyGone ? 'job_feed_item_dismiss_gone' : 'job_feed_item_dismissed', { job_id: job.id, company: job.company });
+      // Leaves Today and Saved, and closes the detail if it was open. Also what
+      // a preview needs, since it never refetches.
+      useFeedStore.getState().removeJob(job.id);
+      if (!alreadyGone) toast.success("That role won't come back.");
+      return true;
+    } finally {
+      end(job.id);
+    }
+  }, [posthog, toast, begin, end]);
 
   const openEmployerSite = useCallback((job: JobFeedFeedItem) => {
     posthog?.capture('job_feed_external_apply_clicked', { job_id: job.id, company: job.company });
   }, [posthog]);
 
   const checkFit = useCallback(async (job: JobFeedFeedItem, mode: FeedHandoffMode = 'analyze') => {
-    setBusyJobId(job.id);
+    if (!begin(job.id)) return;
     try {
       const hasCV = Boolean(useCVStore.getState().currentCV);
       const result = await startFeedHandoff(job, mode, { hasCV });
@@ -103,9 +167,9 @@ export function useFeedJobActions(): FeedJobActions {
       }
       posthog?.capture('job_feed_item_applied', { job_id: job.id, company: job.company, mode });
     } finally {
-      setBusyJobId(null);
+      end(job.id);
     }
-  }, [posthog]);
+  }, [posthog, begin, end]);
 
   const loadMore = useCallback(async () => {
     const result = await loadMoreFeedJobs();
@@ -134,5 +198,5 @@ export function useFeedJobActions(): FeedJobActions {
     store.backToList();
   }, []);
 
-  return { busyJobId, openDetail, save, openEmployerSite, checkFit, loadMore, showSaved, showToday };
+  return { busyJobIds, dismissingJobIds, openDetail, save, dismiss, openEmployerSite, checkFit, loadMore, showSaved, showToday };
 }

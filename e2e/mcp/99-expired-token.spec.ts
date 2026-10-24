@@ -40,7 +40,7 @@ test('an expired access token is refused with a 401 the client can recover from,
     expect(list.headers()['www-authenticate']).toMatch(/error="invalid_token"/);
     expect(list.headers()['www-authenticate']).toMatch(/expired/i);
     expect(list.headers()['www-authenticate']).toMatch(/resource_metadata=/);
-    const write = await call(minted.accessToken, { method: 'tools/call', params: { name: 'update_notification_settings', arguments: { marketing: false } } });
+    const write = await call(minted.accessToken, { method: 'tools/call', params: { name: 'update_notification_settings', arguments: { followUpDue: false } } });
     expect(write.status(), 'a write with an expired token does not run').toBe(401);
 
     // The way back: the refresh token (30 days) issues a new access token that works, and the old one stays dead.

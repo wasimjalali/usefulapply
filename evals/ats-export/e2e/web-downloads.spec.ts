@@ -33,7 +33,7 @@ test.describe('web downloads use the server renderer', () => {
     const pdfDownload = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Download PDF' }).click();
     const pdf = await pdfDownload;
-    expect(pdf.suggestedFilename()).toBe('Jordan_Ellis_CV.pdf');
+    expect(pdf.suggestedFilename()).toBe('Jordan_Ellis_Harbor_Freight_Technologies_CV.pdf');
     const pdfPath = info.outputPath('downloaded-cv.pdf');
     await pdf.saveAs(pdfPath);
     const report = await checkCvPdf(new Uint8Array(await readFile(pdfPath)), {
@@ -56,7 +56,7 @@ test.describe('web downloads use the server renderer', () => {
     const wordDownload = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Download Word' }).click();
     const word = await wordDownload;
-    expect(word.suggestedFilename()).toBe('Jordan_Ellis_CV.docx');
+    expect(word.suggestedFilename()).toBe('Jordan_Ellis_Harbor_Freight_Technologies_CV.docx');
     const docxPath = info.outputPath('downloaded-cv.docx');
     await word.saveAs(docxPath);
     const docx = await checkCvDocx(new Uint8Array(await readFile(docxPath)), { fixture: 'us-one-page', templateId: 'premium-ats', source: { ...US_ONE_PAGE, personal: { ...US_ONE_PAGE.personal, ...E2E_PERSONAL } }, expectPhoto: false });
@@ -92,7 +92,7 @@ test.describe('web downloads use the server renderer', () => {
     const pdfDownload = page.waitForEvent('download');
     await page.getByRole('menuitem', { name: 'PDF' }).click();
     const pdf = await pdfDownload;
-    expect(pdf.suggestedFilename()).toBe('Jordan_Ellis_Cover_Letter.pdf');
+    expect(pdf.suggestedFilename()).toBe('Jordan_Ellis_Harbor_Freight_Technologies_Cover_Letter.pdf');
     const pdfPath = info.outputPath('downloaded-letter.pdf');
     await pdf.saveAs(pdfPath);
     const report = await checkLetterPdf(new Uint8Array(await readFile(pdfPath)), 'web-letter', 'us', US_LETTER);
@@ -102,7 +102,7 @@ test.describe('web downloads use the server renderer', () => {
     const docxDownload = page.waitForEvent('download');
     await page.getByRole('menuitem', { name: 'DOCX' }).click();
     const docx = await docxDownload;
-    expect(docx.suggestedFilename()).toBe('Jordan_Ellis_Cover_Letter.docx');
+    expect(docx.suggestedFilename()).toBe('Jordan_Ellis_Harbor_Freight_Technologies_Cover_Letter.docx');
     const docxPath = info.outputPath('downloaded-letter.docx');
     await docx.saveAs(docxPath);
     const docxReport = await checkLetterDocx(
@@ -159,7 +159,7 @@ test.describe('web downloads use the server renderer', () => {
     await page.unroute('**/api/exports');
     const download = page.waitForEvent('download');
     await toast.getByRole('button', { name: 'Try again' }).click();
-    expect((await download).suggestedFilename()).toBe('Jordan_Ellis_CV.pdf');
+    expect((await download).suggestedFilename()).toBe('Jordan_Ellis_Harbor_Freight_Technologies_CV.pdf');
   });
 
   test('signed links: plain HTTP works, tampering and other users do not', async ({ page }) => {
@@ -170,7 +170,7 @@ test.describe('web downloads use the server renderer', () => {
     expect(create.status()).toBe(200);
     const body = await create.json();
     const file = body.file as { url: string; cached: boolean; fileName: string; expiresAt: string };
-    expect(file.fileName).toBe('Jordan_Ellis_CV.pdf');
+    expect(file.fileName).toBe('Jordan_Ellis_Harbor_Freight_Technologies_CV.pdf');
     expect(new Date(file.expiresAt).getTime() - Date.now()).toBeLessThanOrEqual(15 * 60 * 1000);
 
     // A second identical request is served from the cache.

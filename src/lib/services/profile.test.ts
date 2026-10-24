@@ -94,7 +94,7 @@ test('an undefined value means not given, never clear', () => {
 });
 
 test('an update that has nothing to do with logistics does not stamp', () => {
-  const out = write({ full_name: 'Ada', timezone: 'Europe/Berlin', notify_marketing: false });
+  const out = write({ full_name: 'Ada', timezone: 'Europe/Berlin', notify_follow_up_due: false });
   assert.equal('availability_asked_at' in out, false);
   assert.equal(out.full_name, 'Ada');
   assert.equal(out.timezone, 'Europe/Berlin');

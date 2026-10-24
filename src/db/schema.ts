@@ -16,8 +16,9 @@
  *   set_updated_at / *_set_updated_at -> data layer sets updated_at on every update
  *
  * `avatars` in the Phase 4 table list is a Supabase Storage bucket, not a table.
- * The matching table is `profile_photos`. `user_notifications` is used by the
- * app (delete-account, job-feed) and is included.
+ * Profile photos are files in R2 (the CV photo is the avatar), with no table.
+ * Migration 0015 dropped the unused `connected_accounts`, `profile_photos`,
+ * `user_cv_suggestions` and `user_notifications` tables.
  */
 
 import { sql } from 'drizzle-orm';
@@ -78,7 +79,6 @@ export const addonCreditPacks = sqliteTable('addon_credit_packs', {
   name: text('name').notNull(),
   credits: real('credits').notNull(),
   price: real('price').notNull(),
-  discount_percent: real('discount_percent').notNull().default(0),
   stripe_product_id: text('stripe_product_id'),
   stripe_price_id: text('stripe_price_id'),
   active: integer('active', { mode: 'boolean' }).notNull().default(true),
@@ -473,15 +473,9 @@ export const profiles = sqliteTable(
     nationality: text('nationality'),
     subscription_tier: text('subscription_tier').notNull().default('free'),
     subscription_status: text('subscription_status').notNull().default('active'),
-    notify_tips: integer('notify_tips', { mode: 'boolean' }).notNull().default(true),
-    notify_updates: integer('notify_updates', { mode: 'boolean' }).notNull().default(true),
-    notify_weekly: integer('notify_weekly', { mode: 'boolean' }).notNull().default(true),
-    // Product news in the Notifications pane.
-    notify_marketing: integer('notify_marketing', { mode: 'boolean' }).notNull().default(false),
     notify_feed_ready: integer('notify_feed_ready', { mode: 'boolean' }).notNull().default(true),
     notify_follow_up_due: integer('notify_follow_up_due', { mode: 'boolean' }).notNull().default(true),
     notify_interview_tomorrow: integer('notify_interview_tomorrow', { mode: 'boolean' }).notNull().default(true),
-    notify_credits_low: integer('notify_credits_low', { mode: 'boolean' }).notNull().default(true),
     // Tracker view filter, kept per user so it survives a reload.
     hide_rejected: integer('hide_rejected', { mode: 'boolean' }).notNull().default(false),
     timezone: text('timezone'),
@@ -496,7 +490,7 @@ export const profiles = sqliteTable(
     // Credits AI agents (MCP) may spend per UTC day on this account. Enforced
     // from the tool catalog PR on; the Connected apps pane edits it.
     mcp_daily_credit_limit: real('mcp_daily_credit_limit').notNull().default(10),
-    job_searches_used: integer('job_searches_used').notNull().default(0),
+    // Unused. Kept because it is NOT NULL with no DB default and dropping it needs a profiles rebuild.
     job_searches_reset_at: text('job_searches_reset_at').notNull().$defaultFn(isoNow),
     job_feed_last_seen_run_date: text('job_feed_last_seen_run_date'),
     welcome_sent_at: text('welcome_sent_at'),
@@ -626,9 +620,6 @@ export const applicationSessions = sqliteTable(
     // so anything that rides in there is a display number, not a cap. These two
     // are the cap: only the route that spends the turn increments them.
     screening_turns_used: integer('screening_turns_used').notNull().default(0),
-    // Interview prep is not built yet (A6). The column ships with A3's so the
-    // production database takes one migration pass instead of two.
-    prep_turns_used: integer('prep_turns_used').notNull().default(0),
     generated_artifacts: text('generated_artifacts', { mode: 'json' }).$type<Json>(),
     // Bumped by every write to the application's content (migration 0010). A
     // writer that loaded revision N updates `WHERE revision = N`, so a stale tab
@@ -724,11 +715,6 @@ export const subscriptions = sqliteTable(
     current_period_start: text('current_period_start'),
     current_period_end: text('current_period_end'),
     cancel_at_period_end: integer('cancel_at_period_end', { mode: 'boolean' }).notNull().default(false),
-    canceled_at: text('canceled_at'),
-    trial_start: text('trial_start'),
-    trial_end: text('trial_end'),
-    applications_used: integer('applications_used').notNull().default(0),
-    applications_limit: integer('applications_limit').notNull().default(5),
     created_at: text('created_at').notNull().$defaultFn(isoNow),
     updated_at: text('updated_at').notNull().$defaultFn(isoNow),
   },
@@ -739,28 +725,6 @@ export const subscriptions = sqliteTable(
       'subscriptions_status_check',
       sql`${t.status} in ('active', 'canceled', 'past_due', 'trialing', 'incomplete')`,
     ),
-  ],
-);
-
-export const connectedAccounts = sqliteTable(
-  'connected_accounts',
-  {
-    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-    user_id: text('user_id')
-      .notNull()
-      .references(() => profiles.id, { onDelete: 'cascade' }),
-    provider: text('provider').notNull(),
-    provider_user_id: text('provider_user_id').notNull(),
-    provider_email: text('provider_email'),
-    access_token: text('access_token'),
-    refresh_token: text('refresh_token'),
-    token_expires_at: text('token_expires_at'),
-    created_at: text('created_at').notNull().$defaultFn(isoNow),
-    updated_at: text('updated_at').notNull().$defaultFn(isoNow),
-  },
-  (t) => [
-    uniqueIndex('connected_accounts_user_provider_uidx').on(t.user_id, t.provider),
-    check('connected_accounts_provider_check', sql`${t.provider} in ('google', 'linkedin', 'github')`),
   ],
 );
 
@@ -808,29 +772,6 @@ export const messageFeedback = sqliteTable(
     check('message_feedback_type_check', sql`${t.feedback_type} in ('positive', 'negative')`),
   ],
 );
-
-export const profilePhotos = sqliteTable(
-  'profile_photos',
-  {
-    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-    user_id: text('user_id')
-      .notNull()
-      .references(() => profiles.id, { onDelete: 'cascade' }),
-    file_name: text('file_name').notNull(),
-    storage_path: text('storage_path').notNull(),
-    created_at: text('created_at').notNull().$defaultFn(isoNow),
-  },
-  (t) => [index('profile_photos_user_idx').on(t.user_id)],
-);
-
-export const userCvSuggestions = sqliteTable('user_cv_suggestions', {
-  user_id: text('user_id')
-    .primaryKey()
-    .references(() => profiles.id, { onDelete: 'cascade' }),
-  suggestion: text('suggestion', { mode: 'json' }).$type<Json>().notNull().$defaultFn(emptyObject),
-  created_at: text('created_at').notNull().$defaultFn(isoNow),
-  updated_at: text('updated_at').notNull().$defaultFn(isoNow),
-});
 
 export const userJobPreferences = sqliteTable(
   'user_job_preferences',
@@ -900,34 +841,6 @@ export const userSearchStrategies = sqliteTable(
   (t) => [
     uniqueIndex('user_search_strategies_pk').on(t.user_id, t.settings_hash),
     index('user_search_strategies_user_updated_idx').on(t.user_id, t.updated_at),
-  ],
-);
-
-export const userNotifications = sqliteTable(
-  'user_notifications',
-  {
-    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-    user_id: text('user_id')
-      .notNull()
-      .references(() => profiles.id, { onDelete: 'cascade' }),
-    event_type: text('event_type').notNull(),
-    title: text('title').notNull(),
-    body: text('body'),
-    payload: text('payload', { mode: 'json' }).$type<Json>().notNull().$defaultFn(emptyObject),
-    read_at: text('read_at'),
-    dismissed_at: text('dismissed_at'),
-    created_at: text('created_at').notNull().$defaultFn(isoNow),
-  },
-  (t) => [
-    index('user_notifications_user_created_idx').on(t.user_id, t.created_at),
-    check(
-      'user_notifications_event_type_check',
-      sql`${t.event_type} in (
-        'feed_ready', 'feed_empty', 'feed_thin', 'feed_failed', 'new_jobs_available',
-        'job_saved', 'job_dismissed', 'generation_started', 'generation_succeeded',
-        'generation_failed', 'generation_cancelled', 'generation_expired', 'retry_available'
-      )`,
-    ),
   ],
 );
 

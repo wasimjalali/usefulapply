@@ -14,7 +14,7 @@
 import { callHaiku, type HaikuCallOptions } from '@/lib/models/haiku';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import type { StructuredCV } from '@/lib/types/cv-schema';
-import { parseYearMonthFromCVDate } from '@/lib/job-feed/cv-suggestions';
+import { parseYearMonthFromCVDate } from '@/lib/job-feed/cv-experience';
 import {
   CAREER_PROFILE_SCHEMA_VERSION,
   type CareerProfile,
