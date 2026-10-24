@@ -355,6 +355,8 @@ export async function settleLongPage(page: Page): Promise<void> {
   }
   if (hidden !== 0) throw new Error(`${hidden} scroll reveals stayed hidden with the whole page in view`);
   await page.evaluate(async () => {
+    // A lazy image's deferred load sometimes never starts after the viewport resizes; eager starts it now.
+    for (const img of document.images) if (img.loading === 'lazy') img.loading = 'eager';
     const loads = Promise.all([...document.images].map((img) => (img.complete ? Promise.resolve() : new Promise((resolve) => {
       img.addEventListener('load', resolve, { once: true });
       img.addEventListener('error', resolve, { once: true });
