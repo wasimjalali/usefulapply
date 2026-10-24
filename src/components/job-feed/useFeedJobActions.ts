@@ -12,7 +12,8 @@ import { useToast } from '@/components/ui/Toast';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { useCVStore } from '@/store/useCVStore';
 import { selectFeedThreadKey, useFeedStore } from '@/store/useFeedStore';
-import { loadMoreFeedJobs, loadSavedFeedJobs, recordFeedFeedback } from './feed-actions';
+import { loadFeedOverview, loadMoreFeedJobs, loadSavedFeedJobs, recordFeedFeedback } from './feed-actions';
+import { canDismissJob } from './feed-format';
 import { startFeedHandoff, type FeedHandoffMode } from './feed-handoff';
 import { getJobFeedPreviewMode } from './preview-utils';
 
@@ -23,7 +24,8 @@ export interface FeedJobActions {
   dismissingJobIds: ReadonlySet<string>;
   openDetail: (job: JobFeedFeedItem) => void;
   save: (job: JobFeedFeedItem) => Promise<void>;
-  dismiss: (job: JobFeedFeedItem) => Promise<void>;
+  /** True when the role left the feed. */
+  dismiss: (job: JobFeedFeedItem) => Promise<boolean>;
   openEmployerSite: (job: JobFeedFeedItem) => void;
   checkFit: (job: JobFeedFeedItem, mode?: FeedHandoffMode) => Promise<void>;
   loadMore: () => Promise<void>;
@@ -111,22 +113,31 @@ export function useFeedJobActions(): FeedJobActions {
     }
   }, [posthog, begin, end]);
 
-  const dismiss = useCallback(async (job: JobFeedFeedItem) => {
-    if (!begin(job.id, true)) return;
+  const dismiss = useCallback(async (job: JobFeedFeedItem): Promise<boolean> => {
+    if (!begin(job.id, true)) return false;
     try {
       const result = await recordFeedFeedback(job, 'dismissed', actionRunId());
-      // 409 is a role the chat already dismissed (or one that moved on), 404 one
-      // that's already gone. Either way the card should leave, not show an error.
-      const alreadyGone = !result.ok && (result.status === 409 || result.status === 404);
+      // 404 is a role that's already gone, so the card should leave quietly.
+      const alreadyGone = !result.ok && result.status === 404;
+      if (!result.ok && result.status === 409) {
+        // The server won't dismiss it (applied, kit built, rated not relevant).
+        // Nothing was dismissed, so don't tombstone or remove: say so and
+        // reload so the screen matches the server.
+        toast.error(canDismissJob(job) ? "That role can't be dismissed now." : "You've already applied to this role, so it stays in your list.");
+        void loadFeedOverview({ quiet: true });
+        if (useFeedStore.getState().savedJobs !== null) void loadSavedFeedJobs();
+        return false;
+      }
       if (!result.ok && !alreadyGone) {
         toast.error(result.error);
-        return;
+        return false;
       }
       posthog?.capture('job_feed_item_dismissed', { job_id: job.id, company: job.company });
       // Leaves Today and Saved, and closes the detail if it was open. Also what
       // a preview needs, since it never refetches.
       useFeedStore.getState().removeJob(job.id);
-      toast.success("That role won't come back.");
+      if (!alreadyGone) toast.success("That role won't come back.");
+      return true;
     } finally {
       end(job.id);
     }
@@ -137,7 +148,7 @@ export function useFeedJobActions(): FeedJobActions {
   }, [posthog]);
 
   const checkFit = useCallback(async (job: JobFeedFeedItem, mode: FeedHandoffMode = 'analyze') => {
-    const began = begin(job.id);
+    if (!begin(job.id)) return;
     try {
       const hasCV = Boolean(useCVStore.getState().currentCV);
       const result = await startFeedHandoff(job, mode, { hasCV });
@@ -147,7 +158,7 @@ export function useFeedJobActions(): FeedJobActions {
       }
       posthog?.capture('job_feed_item_applied', { job_id: job.id, company: job.company, mode });
     } finally {
-      if (began) end(job.id);
+      end(job.id);
     }
   }, [posthog, begin, end]);
 

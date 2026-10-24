@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Bookmark, Clock, DollarSign, ExternalLink, Globe, MapPin, Search, X } from 'lucide-react';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { workModeLabel } from './job-ad-text';
-import { buildCardSummary, formatJobAge, safeEmployerUrl } from './feed-format';
+import { buildCardSummary, canDismissJob, formatJobAge, safeEmployerUrl } from './feed-format';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 
 interface FeedJobCardProps {
@@ -112,6 +112,7 @@ export function FeedJobCard({
               <button
                 type="button"
                 disabled={busy}
+                onKeyDown={(event) => event.stopPropagation()}
                 onClick={(event) => {
                   event.stopPropagation();
                   onCheckFit(job);
@@ -125,6 +126,7 @@ export function FeedJobCard({
             ) : (
               <button
                 type="button"
+                onKeyDown={(event) => event.stopPropagation()}
                 onClick={(event) => {
                   event.stopPropagation();
                   onUpgrade?.();
@@ -199,9 +201,10 @@ export function FeedJobCard({
                   <ExternalLink className="h-4 w-4" />
                 </a>
               )}
-              {onDismiss && (
+              {onDismiss && canDismissJob(job) && (
                 <button
                   ref={dismissRef}
+                  data-job-dismiss={job.id}
                   type="button"
                   disabled={busy}
                   onKeyDown={(event) => event.stopPropagation()}

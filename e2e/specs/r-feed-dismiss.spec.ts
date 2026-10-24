@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { signedInPage } from '../lib/app';
 import { setPlan } from '../lib/mcp-db';
 import { feedFeedbackRows, seedFeedInbox, seedFeedSettings } from '../lib/mcp-feed-seed';
+import { openLocalD1 } from '../lib/sqlite';
 
 /**
  * (r) Dismissing a job from the Job Board.
@@ -22,6 +23,12 @@ import { feedFeedbackRows, seedFeedInbox, seedFeedSettings } from '../lib/mcp-fe
  * 11. Dismissing one job while another job's save is in flight re-enables or double-submits either (one shared lock),
  *     or the same job's X stays live while its own save is pending.
  * 12. The list keeps a phantom "Show more roles" after the total drops.
+ * 13. Two clicks in the same tick on Dismiss (before React disables it) send two requests.
+ * 14. Enter on Check fit bubbles to the card and opens the detail as well as starting the fit.
+ * 15. A list fetched before the dismiss lands after it and puts the job back (Saved tab here).
+ * 16. A 404 (already gone) shows an error instead of just removing the card.
+ * 17. A role that was applied to offers Dismiss, which the server refuses with a 409 that must not read as success.
+ * 18. After a dismiss focus falls to the page instead of the next card (or the list heading).
  */
 
 const JOBS = [
@@ -117,11 +124,16 @@ test('(r1) a Plus user dismisses a saved job: asked first, gone from Today and S
       await route.continue();
     });
     await trigger.click();
-    await card.getByRole('button', { name: 'Dismiss', exact: true }).click();
+    // Two clicks in the same tick, before React can disable the button: the lock, not the DOM, stops the second.
+    await card.getByRole('button', { name: 'Dismiss', exact: true }).evaluate((el) => {
+      (el as HTMLButtonElement).click();
+      (el as HTMLButtonElement).click();
+    });
     await expect(card.getByRole('button', { name: 'Dismissing' })).toBeDisabled();
-    await card.getByRole('button', { name: 'Dismissing' }).click({ force: true, timeout: 500 }).catch(() => undefined);
     await expect(page.getByText("That role won't come back.").first()).toBeVisible();
     await expect(cardOf(page, target.title)).toHaveCount(0);
+    // Focus moved on to the next card's X, not the page.
+    await expect(cardOf(page, other.title).getByRole('button', { name: 'Dismiss this role' })).toBeFocused();
     await page.unroute('**/api/job-feed/feedback');
     // One for the fourth job above, one for the target.
     expect(dismissRequests()).toHaveLength(2);
@@ -175,6 +187,7 @@ test('(r1) a Plus user dismisses a saved job: asked first, gone from Today and S
     await expect(canvas(page).getByRole('tab', { name: 'Today' })).toBeVisible();
     await expect(cardOf(page, other.title)).toHaveCount(0);
     await expect(cardOf(page, keep.title)).toBeVisible();
+    await expect(canvas(page).getByRole('heading', { level: 2 })).toBeFocused();
     expect(feedFeedbackRows(user.id).find((r) => r.canonical_job_id === other.id)?.dismissed_at).toBeTruthy();
     expect(feedFeedbackRows(user.id).find((r) => r.canonical_job_id === keep.id)?.dismissed_at ?? null).toBeNull();
   } finally {
@@ -203,6 +216,106 @@ test('(r2) a Free user sees no dismiss icon, and the server refuses a hand-made 
     await page.reload();
     await openJobBoard(page);
     await expect(cardOf(page, job.title)).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});
+
+test('(r3) Enter on Check fit starts the fit and does not also open the detail', async ({ browser, request }) => {
+  test.setTimeout(90_000);
+  const { user, context, page } = await signedInPage(browser, request, 'feeddismisskey');
+  try {
+    setPlan(user.id, 'plus');
+    seedFeedSettings(user.id);
+    const [job] = seedFeedInbox(user.id, JOBS.slice(0, 1));
+    await openJobBoard(page);
+    // Stop the handoff at the door: the request is enough to prove the click ran, and no kit gets built.
+    await page.route('**/api/job-feed/apply', (route) => route.abort());
+    const checkFit = cardOf(page, job.title).getByRole('button', { name: /Check fit/ });
+    await checkFit.focus();
+    const sent = page.waitForRequest((req) => req.url().endsWith('/api/job-feed/apply'), { timeout: 15_000 });
+    await page.keyboard.press('Enter');
+    await sent;
+    await expect(canvas(page).getByRole('button', { name: 'Back to feed' })).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+});
+
+test('(r4) a list fetched before the dismiss cannot bring the job back, and a 404 just removes the card', async ({ browser, request }) => {
+  test.setTimeout(120_000);
+  const { user, context, page } = await signedInPage(browser, request, 'feeddismissrace');
+  try {
+    setPlan(user.id, 'plus');
+    seedFeedSettings(user.id);
+    const [first, second] = seedFeedInbox(user.id, JOBS.slice(0, 2));
+    await openJobBoard(page);
+    await cardOf(page, first.title).getByRole('button', { name: 'Save this role' }).click();
+    await expect(cardOf(page, first.title).getByRole('button', { name: 'Remove from saved' })).toBeVisible();
+
+    // The Saved list is asked for while the job is still saved, and answers only after the dismiss.
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    await page.route('**/api/job-feed/saved', async (route) => {
+      const response = await route.fetch();
+      await gate;
+      await route.fulfill({ response });
+    });
+    await canvas(page).getByRole('tab', { name: 'Saved' }).click();
+    await canvas(page).getByRole('tab', { name: 'Today' }).click();
+    await cardOf(page, first.title).getByRole('button', { name: 'Dismiss this role' }).click();
+    await cardOf(page, first.title).getByRole('button', { name: 'Dismiss', exact: true }).click();
+    await expect(cardOf(page, first.title)).toHaveCount(0);
+    release();
+    await page.waitForTimeout(500);
+    await canvas(page).getByRole('tab', { name: 'Saved' }).click();
+    await expect(canvas(page).getByText('Loading your saved roles.')).toHaveCount(0);
+    await expect(cardOf(page, first.title)).toHaveCount(0);
+    await canvas(page).getByRole('tab', { name: 'Today' }).click();
+    await expect(cardOf(page, second.title)).toBeVisible();
+    await expect(canvas(page).getByRole('button', { name: 'Show more roles' })).toHaveCount(0);
+
+    // A 404 means the role is already gone: the card leaves and no error is shown.
+    await page.route('**/api/job-feed/feedback', (route) => (
+      route.request().postData()?.includes('"dismissed"')
+        ? route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Job Feed item not found.' }) })
+        : route.continue()
+    ));
+    await cardOf(page, second.title).getByRole('button', { name: 'Dismiss this role' }).click();
+    await cardOf(page, second.title).getByRole('button', { name: 'Dismiss', exact: true }).click();
+    await expect(cardOf(page, second.title)).toHaveCount(0);
+    await expect(page.getByText(/no longer in your feed/)).toHaveCount(0);
+    await expect(page.getByText("That role won't come back.")).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+});
+
+test('(r5) a saved role that was already applied to offers no dismiss', async ({ browser, request }) => {
+  test.setTimeout(90_000);
+  const { user, context, page } = await signedInPage(browser, request, 'feeddismissapplied');
+  try {
+    setPlan(user.id, 'plus');
+    seedFeedSettings(user.id);
+    const [applied] = seedFeedInbox(user.id, JOBS.slice(0, 2));
+    const db = openLocalD1();
+    try {
+      const run = db.prepare('SELECT run_id FROM job_feed_ranked_items WHERE canonical_job_id = ?').get(applied.id) as { run_id: string };
+      const now = new Date().toISOString();
+      db.prepare(`
+        INSERT INTO job_feed_feedback
+          (id, user_id, canonical_job_id, latest_run_id, opened_at, saved_at, applied_at, generation_status, metadata, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'succeeded', '{}', ?, ?)
+      `).run(crypto.randomUUID(), user.id, applied.id, run.run_id, now, now, now, now, now);
+    } finally {
+      db.close();
+    }
+    await openJobBoard(page);
+    await canvas(page).getByRole('tab', { name: 'Saved' }).click();
+    await expect(cardOf(page, applied.title)).toBeVisible();
+    await expect(cardOf(page, applied.title).getByRole('button', { name: 'Save this role' })).toHaveCount(0);
+    await expect(cardOf(page, applied.title).getByRole('button', { name: 'Remove from saved' })).toBeVisible();
+    await expect(cardOf(page, applied.title).getByRole('button', { name: 'Dismiss this role' })).toHaveCount(0);
   } finally {
     await context.close();
   }

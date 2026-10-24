@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Bookmark, Clock, DollarSign, ExternalLink, Globe, MapPin, Search, X } from 'lucide-react';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { JobFeedDescription, workModeLabel } from './job-ad-text';
-import { formatJobAge, safeEmployerUrl } from './feed-format';
+import { canDismissJob, formatJobAge, safeEmployerUrl } from './feed-format';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 
 interface FeedJobDetailProps {
@@ -119,7 +119,7 @@ export function FeedJobDetail({
             Employer site
           </a>
         )}
-        {onDismiss && (confirmingDismiss ? (
+        {onDismiss && canDismissJob(job) && (confirmingDismiss ? (
           <div
             role="group"
             aria-label="Dismiss this job?"

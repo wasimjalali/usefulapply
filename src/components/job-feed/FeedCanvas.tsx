@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { AlertCircle, ArrowUpRight, Briefcase, Check, Loader2, SlidersHorizontal } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
@@ -12,6 +12,7 @@ import { resolveFeedBuild, useFeedStore } from '@/store/useFeedStore';
 import { openSettings } from '@/store/useSettingsStore';
 import { FeedEditView } from './FeedEditView';
 import { saveFeedSettings } from './feed-actions';
+import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { FeedJobCard } from './FeedJobCard';
 import { FeedJobDetail } from './FeedJobDetail';
 import { buildRankedForLine, plural } from './feed-format';
@@ -53,6 +54,26 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
   const { all: allJobs } = useFeedJobLists();
   const actions = useFeedJobActions();
   const [detailBusy, setDetailBusy] = useState(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  // The card the user was on is gone, so focus would fall to the page. Hand it
+  // to the next card's X, then the previous one, then the list heading.
+  const dismissAndMoveFocus = async (job: JobFeedFeedItem, toNeighbour: boolean) => {
+    const index = jobs.findIndex((item) => item.id === job.id);
+    const neighbours = toNeighbour ? [jobs[index + 1], jobs[index - 1]].filter(Boolean) : [];
+    const gone = await actions.dismiss(job);
+    if (!gone) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      for (const neighbour of neighbours) {
+        const target = document.querySelector<HTMLElement>(`[data-job-dismiss="${CSS.escape(neighbour.id)}"]`);
+        if (target) {
+          target.focus();
+          return;
+        }
+      }
+      headingRef.current?.focus();
+    }));
+  };
   const [previewMode] = useState(() => getJobFeedPreviewMode());
 
   // Auth does not run in local dev, so a preview names the plan it is showing.
@@ -126,7 +147,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
           void actions.checkFit(job, 'apply').finally(() => setDetailBusy(false));
         }}
         onSave={(job) => { void actions.save(job); }}
-        onDismiss={canDismiss ? (job) => { void actions.dismiss(job); } : undefined}
+        onDismiss={canDismiss ? (job) => { void dismissAndMoveFocus(job, false); } : undefined}
         onOpenEmployerSite={actions.openEmployerSite}
         onUpgrade={() => openSettings('usage')}
         showCheckFit={!readOnly}
@@ -207,7 +228,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
     <div className="flex h-full min-h-0 flex-col">
       <header className="flex flex-shrink-0 items-start gap-3 border-b border-cream-200 px-5 py-3">
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-xl font-semibold text-navy-800">{headline}</h2>
+          <h2 ref={headingRef} tabIndex={-1} className="truncate text-xl font-semibold text-navy-800 focus:outline-none">{headline}</h2>
           {rankedFor && <p className="truncate text-xs text-warm-gray">{rankedFor}</p>}
         </div>
         <div className="inline-flex flex-shrink-0 items-center rounded-full border border-cream-200 bg-cream-50 p-0.5" role="tablist">
@@ -278,7 +299,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
             onOpenDetail={actions.openDetail}
             onCheckFit={(item) => { void actions.checkFit(item, 'analyze'); }}
             onSave={(item) => { void actions.save(item); }}
-            onDismiss={canDismiss ? (item) => { void actions.dismiss(item); } : undefined}
+            onDismiss={canDismiss ? (item) => { void dismissAndMoveFocus(item, true); } : undefined}
             onOpenEmployerSite={actions.openEmployerSite}
             onUpgrade={() => openSettings('usage')}
             showCheckFit={!readOnly}

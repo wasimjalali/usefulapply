@@ -179,6 +179,14 @@ export async function loadMoreFeedJobs(): Promise<FeedResult<JobFeedFeedItem[]>>
     }
     const items = (payload.items ?? []) as JobFeedFeedItem[];
     useFeedStore.getState().appendExtraJobs(items);
+    if (items.length < JOB_FEED_INBOX_PAGE_SIZE) {
+      // A short page is the end of the list. A total that still says more (an
+      // overview fetched before a dismiss) must not keep offering it.
+      const current = useFeedStore.getState().overview;
+      if (current && current.jobsTotalCount !== already + items.length) {
+        useFeedStore.getState().setOverview({ ...current, jobsTotalCount: already + items.length });
+      }
+    }
     return { ok: true, data: items };
   } catch {
     return { ok: false, error: 'More roles did not load.' };

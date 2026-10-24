@@ -325,3 +325,15 @@ function formatRunStamp(overview: JobFeedOverviewResponse, prefs?: DatePrefs): s
   }
   return `last run ${formatDayMonth(date, stamp, 'long')}`;
 }
+
+/**
+ * A role the server won't let the user dismiss: the kit was applied or built,
+ * or the role was rated not relevant. The server answers 409 for these, so the
+ * card doesn't offer Dismiss at all.
+ */
+export function canDismissJob(job: JobFeedFeedItem): boolean {
+  const feedback = job.feedback;
+  return !feedback.appliedAt
+    && feedback.generationStatus !== 'succeeded'
+    && feedback.matchRating !== 'not_relevant';
+}
