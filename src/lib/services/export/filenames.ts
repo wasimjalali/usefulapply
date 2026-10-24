@@ -141,7 +141,7 @@ export const CONTENT_TYPES: Record<string, string> = {
 /** Cut by code point, not UTF-16 unit, so an emoji or a rare letter is never split in half, then make the result well formed (a lone surrogate would break the header it ends up in). */
 function cutParts(value: string, max: number): string {
   const cut = Array.from(value).slice(0, Math.max(0, max)).join('');
-  const wellFormed = typeof cut.toWellFormed === 'function' ? cut.toWellFormed() : cut.replace(/[\uD800-\uDFFF]/g, '�');
+  const wellFormed = typeof cut.toWellFormed === 'function' ? cut.toWellFormed() : cut.replace(/[\uD800-\uDFFF]/g, '\uFFFD');
   return wellFormed.replace(/^[_-]+|[_-]+$/g, '');
 }
 
