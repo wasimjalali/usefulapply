@@ -49,7 +49,7 @@ export default function Dashboard() {
     currentSession,
     sessions,
   } = useAppStore();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, storesReadyFor } = useAuth();
   const { sessionsHydrated, documentsHydrated, hydrationError, retryHydration } = useSupabaseSync();
   const jobFeedBadge = useJobFeedBadge(Boolean(user), user?.id ?? null);
 
@@ -77,7 +77,11 @@ export default function Dashboard() {
     () => false,
   );
   const lastApplicationTabRef = useRef<ApplicationTab>('cv');
+  // The link last applied for the current identity, the identity the effect last
+  // settled on, and whether the current anonymous identity is a sign-out.
   const processedWorkspaceRef = useRef<string | null>(null);
+  const settledIdentityRef = useRef<string | null>(null);
+  const afterSignOutRef = useRef(false);
   const hasKit = sessions.some(sessionHasKit) || sessionHasKit(currentSession);
 
   const isApplicationTab = activeTab === 'cv' || activeTab === 'cover-letter' || activeTab === 'email';
@@ -102,6 +106,29 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
+    // Hold the deep link until AuthContext has settled the session and run
+    // its store reset. That reset puts the workspace back to the CV when a
+    // signed-in user loads a browser with no stored user id, and would undo
+    // the link if it ran after it.
+    // Readiness belongs to the current identity: after an anonymous load
+    // then a sign-in, the flag still names 'anon' until the new user's reset
+    // has run.
+    const identity = user?.id ?? 'anon';
+    if (storesReadyFor !== identity && !previewingFeed) return;
+    // Identity transitions, tracked apart from the applied key. On any change
+    // the applied key is cleared, so a link applies again for the new identity.
+    //   first load (anon or user): no previous identity, applies once.
+    //   anon -> A (sign-in)      : cleared, applies for A.
+    //   A -> anon (sign-out)     : cleared and flagged, nothing applies for the visitor.
+    //   anon (after sign-out) -> A, i.e. A -> anon -> A: flag drops, applies for A again.
+    //   A -> B                   : cleared, applies for B.
+    //   A -> A (re-render, session list changes): same identity, key kept, no repeat.
+    if (settledIdentityRef.current !== identity) {
+      const previous = settledIdentityRef.current;
+      afterSignOutRef.current = identity === 'anon' && previous !== null && previous !== 'anon';
+      processedWorkspaceRef.current = null;
+      settledIdentityRef.current = identity;
+    }
     let cancelled = false;
     const run = async () => {
       const {
@@ -130,6 +157,8 @@ export default function Dashboard() {
       if (processedWorkspaceRef.current === navKey) {
         return;
       }
+      // A visitor who just signed out must not get the link back.
+      if (afterSignOutRef.current) return;
       processedWorkspaceRef.current = navKey;
 
       const resolvedTab: ApplicationTab = requestedTab === 'cover-letter' || requestedTab === 'email'
@@ -159,6 +188,9 @@ export default function Dashboard() {
     currentSession?.id,
     sessions.length,
     setActiveTab,
+    storesReadyFor,
+    user?.id,
+    previewingFeed,
   ]);
 
   const handleMobileViewChange = useCallback((view: MobileView) => {

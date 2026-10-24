@@ -335,18 +335,19 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
     copyEvent: string;
   }) => (
     <div className="box-border w-full rounded-card border border-border bg-surface-raised p-5 shadow-resting">
-      <div className="flex items-center gap-2.5">
-        <h3 className="text-sm font-semibold text-ink">{opts.title}</h3>
-        {opts.chip && (
-          <span className="inline-flex h-[22px] items-center rounded-pill bg-accent-soft-strong px-2.5 text-[11px] font-semibold text-accent-soft-ink">
-            {opts.chip}
-          </span>
-        )}
-        <div className="flex-1" />
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
+          <h3 className="whitespace-nowrap text-sm font-semibold text-ink">{opts.title}</h3>
+          {opts.chip && (
+            <span className="inline-flex h-[22px] items-center whitespace-nowrap rounded-pill bg-accent-soft-strong px-2.5 text-[11px] font-semibold text-accent-soft-ink">
+              {opts.chip}
+            </span>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => copy(formatEmailAsText({ subject: opts.subject, body: opts.body }), opts.key, opts.copyEvent)}
-          className={`${TOOL_CLASS} h-8 text-[13px]`}
+          className={`${TOOL_CLASS} h-8 shrink-0 text-[13px]`}
         >
           {copiedKey === opts.key ? <Check className="w-4 h-4 text-ink-accent" /> : <Copy className="w-4 h-4" />}
           {copiedKey === opts.key ? 'Copied' : 'Copy email'}
