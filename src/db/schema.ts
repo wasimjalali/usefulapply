@@ -490,6 +490,8 @@ export const profiles = sqliteTable(
     // Credits AI agents (MCP) may spend per UTC day on this account. Enforced
     // from the tool catalog PR on; the Connected apps pane edits it.
     mcp_daily_credit_limit: real('mcp_daily_credit_limit').notNull().default(10),
+    // Unused. Kept because it is NOT NULL with no DB default and dropping it needs a profiles rebuild.
+    job_searches_reset_at: text('job_searches_reset_at').notNull().$defaultFn(isoNow),
     job_feed_last_seen_run_date: text('job_feed_last_seen_run_date'),
     welcome_sent_at: text('welcome_sent_at'),
     check_in_sent_at: text('check_in_sent_at'),

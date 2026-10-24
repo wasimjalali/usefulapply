@@ -22,6 +22,7 @@ export async function createProfile(
     full_name: extras?.full_name ?? null,
     created_at: now,
     updated_at: now,
+    job_searches_reset_at: now,
   });
   const created = await getProfile(userId);
   if (!created) {

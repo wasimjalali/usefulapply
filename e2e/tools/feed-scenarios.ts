@@ -101,7 +101,7 @@ async function main(): Promise<void> {
   async function seedUser(label: string, options: { cv: boolean; sessions?: number; feed?: boolean }) {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
-    await run('INSERT INTO profiles (id, email, created_at, updated_at) VALUES (?, ?, ?, ?)', id, `${label}@test.local`, now, now);
+    await run('INSERT INTO profiles (id, email, job_searches_reset_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?)', id, `${label}@test.local`, now, now, now);
     await run(
       'INSERT INTO user_credits (id, user_id, monthly_credits, rollover_credits, addon_credits, plan_tier, version, created_at, updated_at) VALUES (?, ?, 4, 0, 6, ?, 0, ?, ?)',
       crypto.randomUUID(), id, 'free', now, now,
