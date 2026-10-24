@@ -154,7 +154,7 @@ export function FeedJobCard({
                 type="button"
                 disabled={busy}
                 onClick={cancelDismiss}
-                className="inline-flex h-8 items-center rounded-pill border border-border bg-surface px-3 text-xs font-semibold text-ink shadow-resting transition-colors duration-200 hover:bg-surface-raised disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
+                className="inline-flex h-8 items-center rounded-pill border border-border bg-surface px-3 text-xs font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
               >
                 Keep
               </button>
@@ -162,7 +162,7 @@ export function FeedJobCard({
                 type="button"
                 disabled={busy}
                 onClick={() => onDismiss?.(job)}
-                className="inline-flex h-8 items-center rounded-pill px-3 text-xs font-semibold text-danger transition-colors duration-200 hover:bg-danger-soft disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
+                className="inline-flex h-8 items-center rounded-pill px-3 text-xs font-semibold text-danger transition-colors duration-(--duration-base) hover:bg-danger-soft disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
               >
                 {dismissing ? 'Dismissing' : 'Dismiss'}
               </button>
@@ -214,7 +214,7 @@ export function FeedJobCard({
                   }}
                   aria-label="Dismiss this role"
                   title="Dismiss"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-pill text-ink-muted transition-colors duration-200 hover:bg-canvas hover:text-brand-strong cursor-pointer"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-pill text-ink-muted transition-colors duration-(--duration-base) hover:bg-canvas hover:text-brand-strong cursor-pointer"
                 >
                   <X className="h-4 w-4" />
                 </button>

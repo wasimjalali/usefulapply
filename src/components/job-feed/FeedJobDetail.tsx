@@ -134,7 +134,7 @@ export function FeedJobDetail({
               type="button"
               disabled={busy}
               onClick={cancelDismiss}
-              className="inline-flex h-9 items-center rounded-pill border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-resting transition-colors duration-200 hover:bg-surface-raised disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
+              className="inline-flex h-9 items-center rounded-pill border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
             >
               Keep
             </button>
@@ -142,7 +142,7 @@ export function FeedJobDetail({
               type="button"
               disabled={busy}
               onClick={() => onDismiss(job)}
-              className="inline-flex h-9 items-center rounded-pill px-3.5 text-sm font-semibold text-danger transition-colors duration-200 hover:bg-danger-soft disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
+              className="inline-flex h-9 items-center rounded-pill px-3.5 text-sm font-semibold text-danger transition-colors duration-(--duration-base) hover:bg-danger-soft disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
             >
               {dismissing ? 'Dismissing' : 'Dismiss'}
             </button>
@@ -153,7 +153,7 @@ export function FeedJobDetail({
             type="button"
             disabled={busy}
             onClick={() => setConfirmingDismiss(true)}
-            className="inline-flex h-9 items-center gap-2 rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-200 hover:bg-surface hover:text-ink cursor-pointer"
+            className="inline-flex h-9 items-center gap-2 rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-(--duration-base) hover:bg-surface hover:text-ink cursor-pointer"
           >
             <X className="h-4 w-4" />
             Dismiss
