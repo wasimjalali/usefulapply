@@ -54,7 +54,8 @@ PR 5 merges, PR 6.
     names them per platform). On macOS the `visual` project is skipped, so the Mac never compares
     against Linux renders.
   - **PR 1 makes the baseline:**
-    1. `git worktree add ../base <merge-base>`, then `npm ci` and `npx opennextjs-cloudflare build`
+    1. `git worktree remove --force ../base` (a leftover from a failed run), then
+       `git worktree add ../base <merge-base>`, then `npm ci` and `npx opennextjs-cloudflare build`
        there.
     2. Copy PR 1's `e2e/visual/`, its `playwright.config.ts` and any new `e2e/lib/` helper into
        that worktree, uncommitted. The base commit doesn't have them yet.
