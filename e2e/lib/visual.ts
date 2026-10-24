@@ -7,7 +7,7 @@ import { createTestUser, nextTestIp, type TestUser } from './user';
  * Helpers for e2e/visual/screens.spec.ts. A screenshot compared with maxDiffPixels 0 has to come out the same on
  * any day, in any run, so everything a screen prints that would differ is pinned here:
  *
- *  - the browser clock (`FROZEN_NOW`), time zone and locale;
+ *  - the browser clock's start (`FROZEN_NOW`; it runs from there), time zone and locale;
  *  - the user's name and email, and every timestamp of their rows, rewritten in the local D1 to fixed instants
  *    (`pinUser`), keeping their order;
  *  - the job feed: the server drops runs and jobs older than seven days of real time, so the seeded rows carry a
@@ -18,8 +18,11 @@ import { createTestUser, nextTestIp, type TestUser } from './user';
  */
 
 export const FROZEN_NOW = new Date('2026-10-24T09:00:00Z');
-/** Rows are pinned to half an hour before the frozen clock. */
-const PINNED_FROM = Date.parse('2026-10-24T08:30:00.000Z');
+/**
+ * Rows are pinned two and a half hours before the clock's start: relative times read "2 hours ago" for the whole
+ * run, and nothing sits on the edge of the product's 30-minute windows (a fresh fit, a recent edit).
+ */
+const PINNED_FROM = Date.parse('2026-10-24T06:30:00.000Z');
 const PINNED_DAY = '2026-10-24';
 
 export const VIEWPORTS = [
@@ -54,6 +57,20 @@ function letterDate(day: string): string {
   return new Date(`${day}T00:00:00Z`).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
 }
 
+/** Ways a day could be written other than ISO and the letter's date line: short and long, US and UK, numeric. */
+function otherRenderings(day: string): string[] {
+  const date = new Date(`${day}T00:00:00Z`);
+  const as = (locale: string, options: Intl.DateTimeFormatOptions) => date.toLocaleDateString(locale, { ...options, timeZone: 'UTC' });
+  return [
+    as('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+    as('en-GB', { year: 'numeric', month: 'long', day: 'numeric' }),
+    as('en-GB', { year: 'numeric', month: 'short', day: 'numeric' }),
+    as('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+    as('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+    as('de-DE', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+  ];
+}
+
 /** Tables a screen reads timestamps from, and the column that names the user. */
 const USER_TABLES: Array<[table: string, userColumn: string]> = [
   ['user', 'id'],
@@ -71,13 +88,13 @@ const TEXT_TABLES: Array<[table: string, userColumn: string]> = [
 ];
 
 /**
- * Give a user a fixed name and email, and move every timestamp of their rows to fixed instants from 08:30:00
+ * Give a user a fixed name and email, and move every timestamp of their rows to fixed instants from 06:30:00
  * on the frozen day, one second apart in their original order. Dates written into the kit (the letter's date
  * line, `updatedAt` fields) move to the frozen day too. Only the local D1 is touched.
  */
-export function pinUser(user: TestUser, handle: string): TestUser {
+export function pinUser(user: TestUser, handle: string, moreRealDays: string[] = []): TestUser {
   const email = `visual-${handle}@test.local`;
-  const realDay = new Date().toISOString().slice(0, 10);
+  const realDays = [...new Set([new Date().toISOString().slice(0, 10), ...moreRealDays])].filter((day) => day !== PINNED_DAY);
   withDb((db) => {
     // A rerun on the same local D1 finds the address taken by the last run's user.
     db.prepare("UPDATE user SET email = email || '.' || id WHERE email = ?").run(email);
@@ -114,10 +131,11 @@ export function pinUser(user: TestUser, handle: string): TestUser {
         for (const column of columns) {
           const value = row[column];
           if (typeof value !== 'string') continue;
-          const next = value
-            .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/g, new Date(PINNED_FROM).toISOString())
-            .replaceAll(realDay, PINNED_DAY)
-            .replaceAll(letterDate(realDay), letterDate(PINNED_DAY));
+          // A real day in a format the two replacements don't know would print on screen and break later runs.
+          const unknown = realDays.flatMap(otherRenderings).find((text) => value.includes(text));
+          if (unknown) throw new Error(`${table}.${column} holds "${unknown}", a real date pinUser doesn't rewrite`);
+          let next = value.replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/g, new Date(PINNED_FROM).toISOString());
+          for (const day of realDays) next = next.replaceAll(day, PINNED_DAY).replaceAll(letterDate(day), letterDate(PINNED_DAY));
           if (next !== value) changed[column] = next;
         }
         const names = Object.keys(changed);
@@ -335,10 +353,22 @@ export async function settleLongPage(page: Page): Promise<void> {
   }
   if (hidden !== 0) throw new Error(`${hidden} scroll reveals stayed hidden with the whole page in view`);
   await page.evaluate(async () => {
-    await Promise.all([...document.images].map((img) => (img.complete ? Promise.resolve() : new Promise((resolve) => {
+    const loads = Promise.all([...document.images].map((img) => (img.complete ? Promise.resolve() : new Promise((resolve) => {
       img.addEventListener('load', resolve, { once: true });
       img.addEventListener('error', resolve, { once: true });
     }))));
+    let timer = 0;
+    const late = new Promise<never>((_, reject) => {
+      timer = window.setTimeout(() => reject(new Error(
+        `images still loading after 15 s: ${[...document.images].filter((img) => !img.complete).map((img) => img.currentSrc || img.src).join(', ')}`,
+      )), 15_000);
+    });
+    try {
+      await Promise.race([loads, late]);
+    } finally {
+      clearTimeout(timer);
+    }
+    // decode() rejects for a broken image, which already renders as broken; that's the same every run.
     await Promise.all([...document.images].map((img) => img.decode().catch(() => undefined)));
     await document.fonts.ready;
   });
