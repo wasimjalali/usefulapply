@@ -296,6 +296,14 @@
 			}
 		},
 		{
+			"name": "RATE_LIMIT_JOB_FEED_SUMMARY",
+			"namespace_id": "3153",
+			"simple": {
+				"limit": 60,
+				"period": 60
+			}
+		},
+		{
 			"name": "RATE_LIMIT_CAREER_PROFILE_GENERATE",
 			"namespace_id": "3125",
 			"simple": {

@@ -41,6 +41,27 @@ export function notifyJobFeedBadgeRefresh() {
   for (const listener of listeners) listener();
 }
 
+// The badge hook is mounted in three places, and a save or dismiss pings them
+// all at once. They share one request while it is in flight.
+let inFlight: Promise<JobFeedSummary | null> | null = null;
+function fetchSummary(): Promise<JobFeedSummary | null> {
+  if (!inFlight) {
+    inFlight = (async () => {
+      try {
+        const res = await fetch('/api/job-feed/summary');
+        if (!res.ok) return null;
+        return (await res.json()) as JobFeedSummary;
+      } catch {
+        // swallow, the badge is best-effort
+        return null;
+      } finally {
+        inFlight = null;
+      }
+    })();
+  }
+  return inFlight;
+}
+
 export function useJobFeedBadge(enabled: boolean, userId?: string | null) {
   const [summary, setSummary] = useState<JobFeedSummary | null>(null);
   const [lastSeenDate, setLastSeenDate] = useState<string | null>(() => readLocalCache(userId));
@@ -54,23 +75,17 @@ export function useJobFeedBadge(enabled: boolean, userId?: string | null) {
     if (!enabled) return;
     let cancelled = false;
     (async () => {
-      try {
-        const res = await fetch('/api/job-feed/summary');
-        if (!res.ok || cancelled) return;
-        const data = (await res.json()) as JobFeedSummary;
-        if (cancelled) return;
-        setSummary(data);
+      const data = await fetchSummary();
+      if (!data || cancelled) return;
+      setSummary(data);
 
-        // DB is authoritative — sync localStorage cache from DB value
-        if (data.lastSeenRunDate) {
-          const localValue = readLocalCache(userId);
-          if (localValue !== data.lastSeenRunDate) {
-            writeLocalCache(data.lastSeenRunDate, userId);
-            setLastSeenDate(data.lastSeenRunDate);
-          }
+      // DB is authoritative — sync localStorage cache from DB value
+      if (data.lastSeenRunDate) {
+        const localValue = readLocalCache(userId);
+        if (localValue !== data.lastSeenRunDate) {
+          writeLocalCache(data.lastSeenRunDate, userId);
+          setLastSeenDate(data.lastSeenRunDate);
         }
-      } catch {
-        // swallow — badge is best-effort
       }
     })();
     return () => { cancelled = true; };
