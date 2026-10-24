@@ -341,7 +341,7 @@ async function main() {
     const rendered = await renderExport(resolved, deps);
     const info = await pdfinfo(rendered.bytes);
     const lang = Buffer.from(rendered.bytes).toString('latin1').match(/\/Lang\s*\(([^)]*)\)/)?.[1] ?? '';
-    if (rendered.fileName !== 'Lettre_de_motivation_Camille_Lefevre.pdf') failures.push(`file name "${rendered.fileName}"`);
+    if (rendered.fileName !== 'Lettre_de_motivation_Camille_Lefevre_Harbor_Freight_Technologies.pdf') failures.push(`file name "${rendered.fileName}"`);
     if (info.title !== 'Lettre de motivation - Camille Lefèvre') failures.push(`title "${info.title}"`);
     if (info.subject !== 'Lettre de motivation') failures.push(`subject "${info.subject}"`);
     if (!lang.toLowerCase().startsWith('fr')) failures.push(`language "${lang}"`);

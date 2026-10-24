@@ -36,7 +36,8 @@ function capitalize(value: string): string {
 function asciiPart(value: string): string {
   // Letters with their own spelling (ä, ø, Cyrillic) first, then accents come off (Greek tonos, é), then what the accents hid.
   // The Greek digraph ου is "ou" (ELOT 743), so it goes before its letters are mapped one by one.
-  const base = transliterate(value.replace(/ο[υύ]/g, 'ou').replace(/Ο[υύ]/g, 'Ou').replace(/ΟΥ|ΟΎ/g, 'OU'))
+  // Trademark signs would otherwise decompose to "TM" and "(R)" letters.
+  const base = transliterate(value.replace(/[\u00a9\u00ae\u2120\u2122]/g, '').replace(/ο[υύ]/g, 'ou').replace(/Ο[υύ]/g, 'Ou').replace(/ΟΥ|ΟΎ/g, 'OU'))
     .normalize('NFKD')
     .replace(/[\u0300-\u036F]/g, '');
   return transliterate(base)
@@ -65,7 +66,8 @@ export function nameForFile(fullName: string): string {
 
 function unicodePart(value: string): string {
   return value
-    .replace(/[\u0000-\u001f\u007f/\\:*?"<>|]+/g, ' ')
+    // Control, bidi and zero-width characters would spoof or hide part of the name in a file manager, so they split it like a space.
+    .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff/\\:*?"<>|]+/g, ' ')
     .trim()
     .split(/\s+/)
     .filter(Boolean)

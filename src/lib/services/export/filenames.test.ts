@@ -9,11 +9,15 @@ import { exportCacheHash, type ResolvedExport } from './resolve';
 // - a company with & / " ' or an umlaut leaves unsafe characters or double underscores in the ASCII name
 // - a CJK company becomes "_" or "Applicant" instead of being left out
 // - a long company pushes the name out, or the file passes 80 characters, or the cut splits a code point
-// - the cut ends on "_" or "-"
+// - the cut ends on "_" or "-", also when it lands exactly on a separator
 // - an empty or whitespace company changes today's name
 // - emails and screening answers pick up the company
 // - the display name loses the company's own letters, or keeps separators like "/"
+// - bidi, zero-width or C1 control characters from a job ad survive into the display name and spoof it
+// - a trademark sign turns into "TM" or "(R)" in the ASCII name
+// - a cut inside a letter plus combining mark leaves a broken or over-long name
 // - the cache key ignores the company, so a renamed export is served under its old name
+// (A null company cannot reach the name functions: session-row-mapping.ts coalesces it to '' when the kit is read.)
 
 test('file name: English CV and letter carry name and company', () => {
   assert.equal(exportFileName('cv_pdf', 'Wasim Jalali', 'en', 'VEGA Grieshaber KG'), 'Wasim_Jalali_VEGA_Grieshaber_KG_CV.pdf');
@@ -56,8 +60,8 @@ test('file name: a long company is cut first, the name stays whole, 80 character
     assert.ok(!got.includes('__') && !got.includes('-_'), got);
   }
   // A cut that lands on a separator does not leave one dangling before the suffix.
-  const edge = exportFileName('cv_pdf', 'Wasim Jalali', 'en', 'Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa Bbbbbbbbbb');
-  assert.ok(!edge.includes('__') && edge.length <= 80, edge);
+  const edge = exportFileName('cv_pdf', 'Wasim Jalali', 'en', `${'A'.repeat(59)} ${'B'.repeat(5)}`);
+  assert.equal(edge, `Wasim_Jalali_${'A'.repeat(59)}_CV.pdf`);
 });
 
 test('file name: a very long name still fits and the company is left out when no room remains', () => {
@@ -71,6 +75,26 @@ test('file name: the display name keeps the company letters, cuts by code point 
   const wide = exportDisplayFileName('cover_letter_pdf', 'Wasim Jalali', 'en', '\u{1D518}'.repeat(120));
   assert.ok(Array.from(wide).length <= 80 && wide.isWellFormed(), wide);
   assert.ok(!wide.includes('__'), wide);
+});
+
+test('file name: bidi, zero-width and C1 control characters split the part and never reach the display name', () => {
+  const spoof = exportDisplayFileName('cv_pdf', 'Jordan Ellis', 'en', 'x\u202Egnp.exe');
+  assert.equal(spoof, 'Jordan_Ellis_x_gnp.exe_CV.pdf');
+  assert.equal(exportDisplayFileName('cv_pdf', 'Jor\u200Ddan\u200B Ellis\uFEFF', 'en', 'Acme\u2066Corp\u2069'), 'Jor_dan_Ellis_Acme_Corp_CV.pdf');
+  assert.equal(exportDisplayFileName('cv_pdf', 'Jordan Ellis', 'en', 'Ac\u0085me\u009F'), 'Jordan_Ellis_Ac_me_CV.pdf');
+  assert.equal(exportFileName('cv_pdf', 'Jordan Ellis', 'en', 'x\u202Egnp.exe'), 'Jordan_Ellis_x_gnp_exe_CV.pdf');
+});
+
+test('file name: trademark signs are dropped from the ASCII name', () => {
+  assert.equal(exportFileName('cv_pdf', 'Jordan Ellis', 'en', 'Acme\u2122'), 'Jordan_Ellis_Acme_CV.pdf');
+  assert.equal(exportFileName('cv_pdf', 'Jordan Ellis', 'en', 'Acme\u00AE Corp\u00A9'), 'Jordan_Ellis_Acme_Corp_CV.pdf');
+});
+
+test('file name: a display cut inside a letter and its combining mark stays well formed and short', () => {
+  const company = 'e\u0301'.repeat(100);
+  const got = exportDisplayFileName('cover_letter_pdf', 'Wasim Jalali', 'en', company);
+  assert.ok(Array.from(got).length <= 80 && got.isWellFormed(), got);
+  assert.ok(got.startsWith('Wasim_Jalali_'), got);
 });
 
 test('file name: emails and screening answers do not carry the company', () => {
