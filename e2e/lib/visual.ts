@@ -306,7 +306,7 @@ export async function rewriteTimes(context: BrowserContext, rewrites: TimeRewrit
 export async function visualPage(
   browser: Browser,
   viewport: Viewport,
-  options: { user?: { user: TestUser; cookies: SessionCookies }; rewrites?: TimeRewrite[] } = {},
+  options: { user?: { user: TestUser; cookies: SessionCookies }; rewrites?: TimeRewrite[]; theme?: 'light' | 'dark' } = {},
 ): Promise<{ context: BrowserContext; page: Page }> {
   // A fresh address per context, so the per-address limits of one screenshot never reach the next.
   const ip = nextTestIp();
@@ -325,6 +325,8 @@ export async function visualPage(
   await context.route('**/demo/useful-apply-reel**', (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>reel</title>' }));
   await rewriteTimes(context, options.rewrites ?? []);
   if (options.user) await context.addCookies(options.user.cookies);
+  // Light is the setting's default (System on a light browser), so only dark sets the cookie the app reads.
+  if (options.theme === 'dark') await context.addCookies([{ name: 'ua-theme', value: 'dark', url: BASE_URL }]);
   await context.clock.install({ time: FROZEN_NOW });
   const page = await context.newPage();
   return { context, page };
