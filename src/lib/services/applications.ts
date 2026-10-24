@@ -102,6 +102,15 @@ const RECIPIENT_FIELDS: Record<RecipientField, { kind: FieldKind; max?: number }
 /** One patch may not carry more than this many serialized characters in total. */
 const MAX_PATCH_CHARS = 3_000_000;
 
+function isWebUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 function validatePatch(patch: Record<string, unknown>, allowRecipient: boolean): Record<string, unknown> {
   const clean: Record<string, unknown> = {};
   let total = 0;
@@ -119,6 +128,8 @@ function validatePatch(patch: Record<string, unknown>, allowRecipient: boolean):
         if (typeof value !== 'string') throw new InvalidInputError(`Field "${key}" must be text`, key);
         if (rule.kind === 'text-required' && !value.trim()) throw new InvalidInputError(`Field "${key}" cannot be empty`, key);
         if (rule.max !== undefined && value.length > rule.max) throw new InvalidInputError(`Field "${key}" is too long`, key);
+        // The link is rendered as an href, so only web links are stored.
+        if (key === 'job_url' && value !== '' && !isWebUrl(value)) throw new InvalidInputError('Field "job_url" must be a web link', key);
         total += value.length;
         break;
       }
