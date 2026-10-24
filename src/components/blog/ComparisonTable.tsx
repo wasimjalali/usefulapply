@@ -83,9 +83,9 @@ export default function ComparisonTable({ tools, features }: ComparisonTableProp
               {features.map((feature, featureIdx) => (
                 <tr
                   key={feature.name}
-                  className={featureIdx % 2 === 0 ? 'bg-surface/30' : 'bg-surface-raised'}
+                  className={featureIdx % 2 === 0 ? 'bg-surface' : 'bg-surface-raised'}
                 >
-                  <td className="sticky left-0 z-10 bg-surface-raised px-6 py-4 text-sm font-medium text-brand-strong border-r border-border whitespace-nowrap">
+                  <td className={`sticky left-0 z-10 ${featureIdx % 2 === 0 ? 'bg-surface' : 'bg-surface-raised'} px-6 py-4 text-sm font-medium text-brand-strong border-r border-border whitespace-nowrap`}>
                     {feature.name}
                   </td>
                   {feature.values.map((value, valueIdx) => (

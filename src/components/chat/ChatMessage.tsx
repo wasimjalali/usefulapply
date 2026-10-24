@@ -239,7 +239,7 @@ export function ChatMessage({
             </div>
           ) : isLongMessage ? (
             /* Collapsible content for long user messages */
-            <div className="relative">
+            <div>
               <div className={`text-sm text-ink-body overflow-hidden transition-all duration-(--duration-base) ${
                 isExpanded ? '' : 'max-h-24'
               }`}>

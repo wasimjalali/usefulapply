@@ -74,8 +74,8 @@
   --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* Defaults for bare transition utilities. */
-  --default-transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-  --default-transition-duration: 150ms;
+  --default-transition-timing-function: var(--ease-standard);
+  --default-transition-duration: var(--duration-fast);
 }
 
 /* ─── Role tokens ───
@@ -566,7 +566,6 @@ select:focus-visible {
   animation: completePulse 0.6s var(--ease-pop);
 }
 
-/* Sub-action text fade cycle */
 /* Marketing page animations */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
@@ -623,8 +622,6 @@ select:focus-visible {
   margin-right: 0.45rem;
   vertical-align: 1.5px;
 }
-
-/* CV scaling is handled dynamically in CVPanel.tsx via ResizeObserver */
 
 /* Hide scrollbar utility */
 .scrollbar-hide {
@@ -783,24 +780,7 @@ select:focus-visible {
 
   /* Kill the ambient, infinitely-looping background decoration outright. */
   .animate-float,
-  .animate-float-slow,
-  .animate-float-delayed,
-  .animate-pulse-soft,
-  .animate-scroll-logos,
-  .animate-badge-float,
-  .cta-glow,
-  [class*="animate-ring-float"],
-  [class*="animate-dot-float"],
-  [class*="animate-streak"],
-  [class*="animate-cloud"],
-  [class*="animate-platform-float"],
-  [class*="animate-light-stream"],
-  [class*="animate-sparkle"],
-  [class*="animate-glow"],
-  [class*="animate-breathe"],
-  [class*="animate-ribbon"],
-  [class*="animate-golden-glow"],
-  .animated-border::before { animation: none !important; }
+  .animate-float-slow { animation: none !important; }
 }
 
 /* CV and cover letter fonts: Arimo and Gelasio (SIL OFL 1.1, metric twins of Arial and Georgia).

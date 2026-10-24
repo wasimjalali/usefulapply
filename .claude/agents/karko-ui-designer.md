@@ -78,7 +78,7 @@ Labels on both fills are white (`accent-ink`, `brand-ink`). The light gold tints
 
 ### Motion
 
-- Default: `transition-colors duration-(--duration-base)` (200ms); `--duration-fast` (150ms) for small state changes, `--duration-slow` (400ms) for entrances and progress. Durations come from tokens only.
+- Default: `transition-colors duration-(--duration-base)` (200ms); `--duration-fast` (150ms) for small state changes, `--duration-slow` (400ms) for entrances and progress. Durations come from tokens only. A bare `transition-*` runs `--duration-fast` on `ease-standard`. Page-level scroll reveals (`ScrollReveal`) keep 600-700ms.
 - `ease-standard` for structure, `ease-pop` for pop moments only (dialogs, ticks, badges).
 - The `.cta-gold` 1px lift is reserved for elevated CTAs only, not on every card.
 - Loading: `Loader2 animate-spin` from lucide. No custom spinners.

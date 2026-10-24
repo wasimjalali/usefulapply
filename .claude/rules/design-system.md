@@ -148,7 +148,7 @@ Do NOT use: gradient CTAs, `bg-accent-strong` / `bg-brand-strong` as default bas
 Do NOT invent bespoke drop-shadow strings like `shadow-[0_24px_60px_-20px_rgba(30,58,95,0.35)]`. If `shadow-floating` isn't dramatic enough for a modal, use `shadow-xl` (last resort). Never `shadow-2xl`. Shadow color modifiers (`shadow-gold-200`) don't apply to the role shadows.
 
 ### Motion
-- Durations come from tokens only: `duration-(--duration-fast)` (150ms) for small state changes, `duration-(--duration-base)` (200ms, the default) for most transitions, `duration-(--duration-slow)` (400ms) for entrances and progress.
+- Durations come from tokens only: `duration-(--duration-fast)` (150ms) for small state changes, `duration-(--duration-base)` (200ms) for most transitions, `duration-(--duration-slow)` (400ms) for entrances and progress. A bare `transition-*` with no duration runs `--duration-fast` on `ease-standard` (set in `@theme`). Page-level scroll reveals (`ScrollReveal`, 600-700ms) are the one exception.
 - One easing for structure, `ease-standard` (decelerating out-quart). `ease-pop` (spring) is for pop moments only: dialogs, ticks, badges.
 
 ### Iconography

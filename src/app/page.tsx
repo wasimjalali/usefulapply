@@ -306,7 +306,7 @@ export default function Home() {
         </section>
 
         </div>
-        {/* /Aurora-backed first fold */}
+        {/* /first fold */}
 
         {/* Volume band: the problem, as a full-bleed navy mood beat straight
             after the demo. The three lines rise one after another on scroll

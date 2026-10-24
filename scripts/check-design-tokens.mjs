@@ -65,7 +65,7 @@ const COLOR_UTILITIES = [
 ].join('|');
 const RADIUS_ROLES = new Set(['pill', 'control', 'card', 'modal', 'none']);
 
-/** Rule name to a global regex. `radius` is filtered further in countHits. */
+/** Rule name to a global regex. `radius` is filtered further in findHits. */
 const RULES = {
   'color-class': new RegExp(`(?<![\\w-])(?:${COLOR_UTILITIES})-(?:(?:${PALETTES})-\\d{2,3}|charcoal|warm-gray|white|black)(?![\\w-])`, 'g'),
   'palette-var': new RegExp(`--color-(?:(?:${PALETTES})-\\d{2,3}|charcoal|warm-gray|white|black)(?![\\w-])`, 'g'),

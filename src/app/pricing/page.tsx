@@ -338,7 +338,7 @@ export default function PricingPage() {
         </div>
       </section>
       </div>
-      {/* /Aurora-backed first-fold */}
+      {/* /first fold */}
 
       {/* Add-on credit packs — moved out of cards into a dedicated band */}
       <section className="scroll-mt-24 pb-20 px-4 sm:px-6 lg:px-8" id="addons">
