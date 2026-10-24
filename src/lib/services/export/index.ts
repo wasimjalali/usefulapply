@@ -148,7 +148,8 @@ export async function exportDocument(req: ExportRequest, deps: ExportDeps = {}):
       throw new ExportInputError('BAD_REQUEST', 'Only a CV can be exported without an application.');
     }
     kit = await (deps.loadBaseCv ?? loadBaseCvKit)(req.userId);
-    if (!kit) throw new ExportInputError('NO_CV', 'There is no CV to export yet.');
+    // No primary CV, or one not parsed yet with nothing from the canvas to stand in for it.
+    if (!kit || (!kit.cv && !req.overrides?.cv)) throw new ExportInputError('NO_CV', 'There is no CV to export yet.');
   } else {
     kit = await loadKit(req.userId, req.applicationId);
     if (!kit) throw new ExportInputError('NOT_FOUND', 'Application not found.');

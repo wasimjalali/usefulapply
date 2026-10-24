@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getSafeNextPath } from '@/lib/auth/safe-next';
-import { KEEP_ANONYMOUS_PARAM, prepareAnonymousCarryOver } from '@/lib/anonymous-generation';
+import { KEEP_ANONYMOUS_PARAM, clearAnonymousCarryOver, prepareAnonymousCarryOver } from '@/lib/anonymous-generation';
 import { OAUTH_RESUME_KEY } from '@/lib/mcp/oauth-resume';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { CheckEmailCard } from '@/components/auth/CheckEmailCard';
@@ -87,10 +87,13 @@ function LoginForm() {
     }
 
     setIsLoading(false);
+    // The confirmation link signs this same account in, so the marker waits for it.
     if (error.message === 'EMAIL_NOT_CONFIRMED') {
       setNeedsConfirmation(true);
       return;
     }
+    // A failed attempt leaves nothing behind for whoever signs in next on this browser.
+    clearAnonymousCarryOver();
     if (/invalid|password|credential/i.test(error.message)) {
       setPasswordError(WRONG_PASSWORD);
       return;
@@ -100,7 +103,7 @@ function LoginForm() {
 
   if (needsConfirmation) {
     return (
-      <AuthShell linkLabel="Log in" linkHref="/auth/login">
+      <AuthShell linkLabel="Log in" linkHref={keepAnonymous ? `/auth/login?${KEEP_ANONYMOUS_PARAM}=1` : '/auth/login'}>
         <CheckEmailCard
           email={email}
           onResend={handleResend}

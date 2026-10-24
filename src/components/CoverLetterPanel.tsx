@@ -128,7 +128,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     editStartRef.current = acknowledgedStart(ack, ['coverLetter'], editStartRef.current);
   }), []);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
 
   // Check if cover letter still contains any address placeholder (old or new format)
@@ -269,10 +269,15 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
     if (!letterToDownload) return;
     if (!user) {
       setShowDownloadMenu(false);
-      promptAccountToDownload(toast, router.push, 'kit');
+      // Still finding out who is signed in: a signed-in user must never see the account wall.
+      if (!authLoading) promptAccountToDownload(toast, router.push, 'kit');
       return;
     }
-    if (!isSavedApplicationId(applicationId)) return;
+    if (!isSavedApplicationId(applicationId)) {
+      setShowDownloadMenu(false);
+      toast.error('This application is still saving. Try again in a moment.');
+      return;
+    }
     // Only a toast's Try again gets here while a download runs (the button is disabled): say so instead of doing nothing.
     if (exportBusyRef.current) {
       toast.info('Another download is still running. Try again when it finishes.');

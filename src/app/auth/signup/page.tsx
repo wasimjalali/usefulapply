@@ -8,7 +8,7 @@ import { AuthShell } from '@/components/auth/AuthShell';
 import { CheckEmailCard } from '@/components/auth/CheckEmailCard';
 import { AuthField, AUTH_CARD, AUTH_SUBMIT } from '@/components/auth/parts';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
-import { KEEP_ANONYMOUS_PARAM, prepareAnonymousCarryOver } from '@/lib/anonymous-generation';
+import { KEEP_ANONYMOUS_PARAM, clearAnonymousCarryOver, prepareAnonymousCarryOver } from '@/lib/anonymous-generation';
 
 const MIN_PASSWORD = 8;
 
@@ -22,7 +22,8 @@ function SignUpForm() {
   const loginParams = new URLSearchParams();
   if (next) loginParams.set('next', next);
   if (keepAnonymous) loginParams.set(KEEP_ANONYMOUS_PARAM, '1');
-  const loginHref = loginParams.size > 0 ? `/auth/login?${loginParams.toString()}` : '/auth/login';
+  const loginQuery = loginParams.toString();
+  const loginHref = loginQuery ? `/auth/login?${loginQuery}` : '/auth/login';
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -79,8 +80,10 @@ function SignUpForm() {
       // The signup route returns one fixed string for every failure, on purpose,
       // so an existing address can't be told apart from a broken one. Point at
       // log in rather than guessing which it was.
+      clearAnonymousCarryOver();
       setFormError("We couldn't create that account. If you already have one, log in.");
     } catch {
+      clearAnonymousCarryOver();
       setFormError("We couldn't create that account. Try again.");
     } finally {
       setIsLoading(false);

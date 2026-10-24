@@ -70,7 +70,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   } = useAppStore();
   const editedOriginalCVData = useCVStore(state => state.editedOriginalCVData);
 
-  const { user, profile, updateProfile } = useAuth();
+  const { user, profile, updateProfile, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const generatedCV = currentSession?.generatedCV;
@@ -259,19 +259,29 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
     return isSavedApplicationId(id) ? id : undefined;
   };
 
+  // How many base exports in a row found no saved CV. Reset by any other outcome.
+  const noSavedCvRef = useRef(0);
   const notifyCvExportFailure = (err: unknown, applicationId: string | undefined, label: string, retry: () => void) => {
-    // Right after sign-up the CV carried over from this browser can still be saving.
     if (!applicationId && err instanceof ServerExportError && err.code === 'NO_CV') {
-      toast.error('Your CV is still saving. Try again in a moment.', 10000, [{ label: 'Try again', onClick: retry }]);
+      noSavedCvRef.current += 1;
+      // Right after sign-up the CV carried over from this browser can still be saving. A second miss means it
+      // never reached the account, and another wait won't change that.
+      if (noSavedCvRef.current === 1) {
+        toast.error('Your CV is still saving. Try again in a moment.', 10000, [{ label: 'Try again', onClick: retry }]);
+      } else {
+        toast.error("We couldn't find your saved CV. Upload it again in Settings, then download.", 8000);
+      }
       return;
     }
+    noSavedCvRef.current = 0;
     notifyExportFailure(toast, err, label, retry);
   };
 
   const handleDownloadPDF = async () => {
     if (!cvData || pdfBusyRef.current) return;
     if (!user) {
-      promptAccountToDownload(toast, router.push, 'CV');
+      // Still finding out who is signed in: a signed-in user must never see the account wall.
+      if (!authLoading) promptAccountToDownload(toast, router.push, 'CV');
       return;
     }
     const applicationId = exportApplicationId();
@@ -288,6 +298,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
         cv: cvData,
       });
       await downloadBlob(blob, fileName);
+      noSavedCvRef.current = 0;
       toast.success('PDF downloaded.');
     } catch (err) {
       console.error('PDF export failed:', err);
@@ -302,7 +313,8 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const handlePreviewPdf = async () => {
     if (!cvData) return;
     if (!user) {
-      promptAccountToDownload(toast, router.push, 'CV');
+      // Still finding out who is signed in: a signed-in user must never see the account wall.
+      if (!authLoading) promptAccountToDownload(toast, router.push, 'CV');
       return;
     }
     const applicationId = exportApplicationId();
@@ -333,7 +345,8 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
   const handleDownloadWord = async () => {
     if (!cvData || wordBusyRef.current) return;
     if (!user) {
-      promptAccountToDownload(toast, router.push, 'CV');
+      // Still finding out who is signed in: a signed-in user must never see the account wall.
+      if (!authLoading) promptAccountToDownload(toast, router.push, 'CV');
       return;
     }
     const applicationId = exportApplicationId();
@@ -348,6 +361,7 @@ export function CVPanel({ toolbarPortal, headerPortal, atsOpen = false, onOpenAt
         cv: cvData,
       });
       await downloadBlob(blob, fileName);
+      noSavedCvRef.current = 0;
       toast.success('Word file downloaded.');
     } catch (err) {
       console.error('Word export failed:', err);

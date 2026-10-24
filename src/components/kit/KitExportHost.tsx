@@ -25,7 +25,7 @@ import { exportFailure, isSavedApplicationId, serverExport, ServerExportError, t
  * tab, a collapsed canvas included. Nothing renders here.
  */
 export function KitExportHost() {
-  const { user, profile } = useAuth();
+  const { user, profile, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const structuredCV = useCVStore((s) => s.structuredCV);
@@ -67,12 +67,13 @@ export function KitExportHost() {
       return;
     }
     if (!user) {
-      promptAccountToDownload(toast, router.push, 'kit');
+      // Still finding out who is signed in: a signed-in user must never see the account wall.
+      if (!authLoading) promptAccountToDownload(toast, router.push, 'kit');
       return;
     }
     if (!isSavedApplicationId(session.id)) {
       // A signed-in kit built locally gets its stored row a moment after it lands (useSupabaseSync).
-      toast.error('This application is still saving. Try again in a moment.');
+      toast.error("This application is still saving. Try again in a moment, or reload the page if it doesn't download.");
       return;
     }
 

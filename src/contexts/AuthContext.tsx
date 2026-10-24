@@ -1,7 +1,12 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { consumeAnonymousCarryOver } from '@/lib/anonymous-generation';
+import {
+  anonymousCarryGrantedTo,
+  clearAnonymousCarryGrant,
+  consumeAnonymousCarryOver,
+  grantAnonymousCarryOver,
+} from '@/lib/anonymous-generation';
 import { authClient } from '@/auth/client';
 import type { Profile } from '@/db/types';
 import type { ProfileUpdateInput } from '@/lib/services/profile';
@@ -104,6 +109,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: sessionData, isPending } = authClient.useSession();
   const [profile, setProfile] = useState<Profile | null>(null);
   const prevUserIdRef = useRef<string | null>(null);
+  // True once this tab has settled signed out: whatever it holds in memory from then on is anonymous work.
+  const anonymousSeenRef = useRef(false);
   // Better Auth refetches the session on window refocus and republishes
   // isPending: true while it runs. Only the first resolution counts as
   // loading; a refocus refetch must not unmount the app into a spinner
@@ -180,9 +187,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // browser that never held a user drops it, so a stranger's CV can't
       // become this account's primary CV via useSupabaseSync.
       const carryOver = consumeAnonymousCarryOver();
-      if ((prevId && prevId !== user.id) || (!prevId && !carryOver)) {
+      if (carryOver) grantAnonymousCarryOver(user.id);
+      // A tab that sat signed out with anonymous work in memory while another tab signed in: the auth id
+      // that tab wrote makes this look like the same user, so the work stays only if the carry-over was
+      // granted to this very account. Otherwise a stranger's CV left open in one tab would reach the next
+      // person who logs in from another tab.
+      const signedInElsewhere = anonymousSeenRef.current && !carryOver && prevId === user.id && !anonymousCarryGrantedTo(user.id);
+      if ((prevId && prevId !== user.id) || (!prevId && !carryOver) || signedInElsewhere) {
         clearPersistedStores();
       }
+      anonymousSeenRef.current = false;
       writeAuthUserId(user.id);
       prevUserIdRef.current = user.id;
 
@@ -218,9 +232,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (storedUserId || prevUserIdRef.current) {
         clearPersistedStores();
         clearAuthUserId();
+        clearAnonymousCarryGrant();
         posthog.reset();
       }
       prevUserIdRef.current = null;
+      anonymousSeenRef.current = true;
     }
   }, [user, isPending, fetchProfile]);
 

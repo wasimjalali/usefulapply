@@ -64,6 +64,25 @@ export function prepareAnonymousCarryOver(fromWall: boolean): void {
   else clearAnonymousCarryOver();
 }
 
+// The account a tab handed this browser's anonymous work to, written by the tab that consumed the
+// marker. Another tab that held the same anonymous work in memory keeps it only for that account.
+const GRANT_KEY = 'usefulapply_carry_granted';
+
+export function grantAnonymousCarryOver(userId: string): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(GRANT_KEY, userId);
+}
+
+export function anonymousCarryGrantedTo(userId: string): boolean {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem(GRANT_KEY) === userId;
+}
+
+export function clearAnonymousCarryGrant(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(GRANT_KEY);
+}
+
 /** Reads and clears the marker. True only if it was set within the TTL. */
 export function consumeAnonymousCarryOver(): boolean {
   if (typeof window === 'undefined') return false;

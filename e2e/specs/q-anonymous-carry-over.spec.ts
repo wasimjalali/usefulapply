@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Browser, type BrowserContext, type Download, type Page } from '@playwright/test';
 import { generateKitThroughUi, signedInPage } from '../lib/app';
-import { TEST_PASSWORD } from '../lib/env';
+import { BASE_URL, TEST_PASSWORD } from '../lib/env';
+import { accountWallHref } from '../../src/components/kit/account-wall';
 import { JOB_DESCRIPTION, PRIMARY_CV } from '../lib/model-script';
 import { openLocalD1 } from '../lib/sqlite';
 import { createTestUser, nextTestIp } from '../lib/user';
@@ -116,15 +117,12 @@ test('(q1) anonymous CV and fit, then sign-up from the guided line: the kit is b
   }
   expect(await primaryCvOf(userId), 'nothing is attached before the account authenticates').toBeNull();
 
-  // Back on the guided line after confirming (the phone opened the link): the CV and the fit check are still here.
-  await page.reload();
-  await expect(page.getByText('Good Fit (68%)').first()).toBeVisible({ timeout: 30_000 });
-  await page.getByRole('button', { name: /Generate the full kit/ }).click();
-  // The card's own switch, not the header's Log in link.
-  await page.getByText('Already have an account?').getByRole('button', { name: 'Log in' }).click();
-  await page.getByPlaceholder('Email').fill(email);
-  await page.getByPlaceholder('Password').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log in and generate the kit' }).click();
+  // The confirmation link signs the account in with no form (autoSignInAfterVerification). The same happens here:
+  // a session arrives in this browser and nothing touches the marker the sign-up card set, so the carry-over
+  // rests on that marker alone. Then the user lands back on the dashboard and the kit picks up where it stopped.
+  const signIn = await context.request.post(`${BASE_URL}/api/auth/sign-in/email`, { data: { email, password: TEST_PASSWORD } });
+  expect(signIn.ok(), await signIn.text()).toBe(true);
+  await page.goto('/dashboard');
   await expect(page.getByText(/Your kit for Northwind Foods is ready/)).toBeVisible({ timeout: 120_000 });
 
   // The carried CV became the account's primary CV, and the kit is one stored application.
@@ -190,7 +188,33 @@ test('(q4) a log-in opened from an account wall (keep=1) carries the CV into tha
   const { context, page } = await anonymousContext(browser);
   await anonymousCvAndFit(page);
 
-  await logInOnPage(page, '/auth/login?keep=1', owner.email);
+  // The exact link the download wall and the chat's account wall open.
+  await logInOnPage(page, accountWallHref('login'), owner.email);
   await expect.poll(() => primaryCvOf(owner.id), { timeout: 20_000 }).toContain('Calder Industrial Components');
+  // The fit check came along too: the line is back on its verdict.
+  await expect(page.getByText('Good Fit (68%)').first()).toBeVisible({ timeout: 20_000 });
+  await context.close();
+});
+
+test('(q5) an anonymous tab left open hands nothing to someone who logs in from another tab', async ({ browser, request }) => {
+  const other = await createTestUser(request, 'tab', { primaryCv: false });
+  const { context, page: anonymousTab } = await anonymousContext(browser);
+  await anonymousCvAndFit(anonymousTab);
+
+  // Someone else logs in, plainly, in a second tab of the same browser.
+  const loginTab = await context.newPage();
+  await logInOnPage(loginTab, '/auth/login', other.email);
+
+  // The first tab comes back into focus: Better Auth refetches the session there and finds the new user. That tab
+  // was anonymous and consumed no marker, so its CV and fit check go, not into this account.
+  await anonymousTab.bringToFront();
+  await anonymousTab.evaluate(() => {
+    document.dispatchEvent(new Event('visibilitychange'));
+    window.dispatchEvent(new Event('focus'));
+  });
+  await expect(anonymousTab.getByRole('heading', { name: 'Start with your CV' })).toBeVisible({ timeout: 30_000 });
+  await anonymousTab.waitForTimeout(5000);
+  expect(await primaryCvOf(other.id), 'the CV left open in the other tab is not attached').toBeNull();
+  expect(query('SELECT id FROM application_sessions WHERE user_id = ?', other.id)).toHaveLength(0);
   await context.close();
 });

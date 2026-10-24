@@ -22,7 +22,7 @@ const TOOL_CLASS = 'inline-flex h-9 items-center gap-2 rounded-full border borde
 export function AnswersPanel({ toolbarPortal }: AnswersPanelProps) {
   const currentSession = useSessionStore((s) => s.currentSession);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const answers = currentSession?.screeningAnswers ?? [];
   const company = currentSession?.company || '';
@@ -52,10 +52,15 @@ export function AnswersPanel({ toolbarPortal }: AnswersPanelProps) {
     const applicationId = currentSession?.id;
     if (answers.length === 0) return;
     if (!user) {
-      promptAccountToDownload(toast, router.push, 'kit');
+      // Still finding out who is signed in: a signed-in user must never see the account wall.
+      if (!authLoading) promptAccountToDownload(toast, router.push, 'kit');
       return;
     }
-    if (!isSavedApplicationId(applicationId) || downloadBusyRef.current) return;
+    if (downloadBusyRef.current) return;
+    if (!isSavedApplicationId(applicationId)) {
+      toast.error('This application is still saving. Try again in a moment.');
+      return;
+    }
     downloadBusyRef.current = true;
     setDownloading(true);
     try {

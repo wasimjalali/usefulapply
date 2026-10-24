@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { prepareAnonymousCarryOver } from '@/lib/anonymous-generation';
+import { clearAnonymousCarryOver, prepareAnonymousCarryOver } from '@/lib/anonymous-generation';
 
 interface GoogleSignInButtonProps {
   label: string;
@@ -26,10 +26,12 @@ export function GoogleSignInButton({ label, onError, next, keepAnonymous = false
     try {
       const { error } = await signInWithGoogle(next);
       if (error) {
+        clearAnonymousCarryOver();
         onError(error.message);
         setIsLoading(false);
       }
     } catch {
+      clearAnonymousCarryOver();
       onError('Google sign in did not start. Check your connection and try again.');
       setIsLoading(false);
     }
