@@ -62,7 +62,6 @@
   --shadow-lg: 0 1px 0 0 rgb(30 58 95 / 0.05), 0 22px 46px -20px rgb(30 58 95 / 0.22);
   --shadow-xl: 0 1px 0 0 rgb(30 58 95 / 0.06), 0 32px 60px -24px rgb(30 58 95 / 0.28);
 
-
   /* Radius roles (rounded-pill, rounded-control, rounded-card, rounded-modal). The same in
      every theme, so they are plain theme values. */
   --radius-pill: calc(infinity * 1px);
@@ -587,13 +586,6 @@ select:focus-visible {
   animation: floatSlow 8s ease-in-out infinite;
 }
 
-/* === Animated background system === */
-
-/* Floating rings - gentle orbit */
-/* Floating dots - slow drift */
-/* Light streaks - subtle pulse */
-/* Lightbox fade-in */
-
 /* ─── Premium primitives (UI premium pass) ─── */
 
 /* Primary CTA: lifts 1px with an elevated shadow on hover and dips on press.
@@ -620,7 +612,6 @@ select:focus-visible {
   animation: panel-rise var(--duration-slow) var(--ease-standard) both;
 }
 
-
 /* Eyebrow label with a small accent dot, page-level labels only. */
 .eyebrow-dot::before {
   content: '';
@@ -643,23 +634,6 @@ select:focus-visible {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
-
-/* Floating badge animation */
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   ETHEREAL CLOUD BACKGROUND ANIMATIONS
-   Soft 3D clouds with golden light streams — inspired by premium SaaS aesthetics
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-/* ─── Floating Cloud Shapes ─── */
-/* ─── Floating Platform Shapes (oval discs) ─── */
-/* ─── Golden Light Streams ─── */
-/* ─── Sparkle / Particle Effects ─── */
-/* ─── Ambient Glow Pulse ─── */
-/* ─── Gentle Breathing Effect ─── */
-/* ─── Ribbon Flow (SVG path) ─── */
-/* ─── Natural Cloud Drift Animations ─── */
-
 
 /* ═══════════════════════════════════════════════════════════════════════════
    SCROLL-DRIVEN MOTION (landing)
