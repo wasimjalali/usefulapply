@@ -1,8 +1,10 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
-import { signedInPage } from '../lib/app';
+import { expect, test, type APIRequestContext, type Browser, type Locator, type Page } from '@playwright/test';
+import { generateKitThroughUi, signedInPage, waitForStored } from '../lib/app';
+import { fakeReset } from '../lib/fake-control';
 import { setPlan } from '../lib/mcp-db';
 import { feedFeedbackRows, seedFeedInbox, seedFeedSettings } from '../lib/mcp-feed-seed';
 import { openLocalD1 } from '../lib/sqlite';
+import { cloneApplications } from '../lib/visual';
 
 /**
  * (r) Dismissing a job from the Job Board.
@@ -42,16 +44,43 @@ const canvas = (page: Page) => page.locator('[data-shell-column="canvas"]:not([i
 const cardOf = (page: Page, title: string): Locator =>
   canvas(page).getByRole('heading', { name: title }).locator('xpath=ancestor::div[@role="button"][1]');
 
+// A user with no kit is on the guided line, which has no sidebar and so no way to the Job Board. Every user here
+// holds a copy of one kit, built once through the real UI, the way the visual spec sets up its feed users.
+let kitOwnerId: string;
+
+test.beforeAll(async ({ browser, request }) => {
+  test.setTimeout(300_000);
+  await fakeReset();
+  const { user, context, page } = await signedInPage(browser, request, 'feeddismisskit');
+  try {
+    await generateKitThroughUi(page);
+    await waitForStored(user.id, (row) => row.generation_status === 'succeeded', 'kit persisted');
+  } finally {
+    await context.close();
+  }
+  kitOwnerId = user.id;
+});
+
+async function feedUser(browser: Browser, request: APIRequestContext, label: string) {
+  const signedIn = await signedInPage(browser, request, label);
+  cloneApplications(kitOwnerId, signedIn.user.id);
+  return signedIn;
+}
+
 async function openJobBoard(page: Page) {
-  // A user with no kit yet is on the guided line, which has no sidebar. The dashboard's own deep link opens the
-  // Job Board straight away.
-  await page.goto('/dashboard?workspace=job-feed');
+  // From the sidebar, the way a user gets there. The dashboard first restores the user's last application, so the
+  // click waits for that to finish, or the restore can switch the workspace back.
+  await page.goto('/dashboard');
+  await page.waitForLoadState('networkidle');
+  const nav = page.getByRole('navigation', { name: 'Workspace' }).getByRole('button', { name: /^Job Board/ });
+  await nav.click();
+  await expect(nav).toHaveAttribute('aria-current', 'page');
   await expect(canvas(page).getByRole('tab', { name: 'Today' })).toBeVisible();
 }
 
 test('(r1) a Plus user dismisses a saved job: asked first, gone from Today and Saved, still gone after a reload, row stamped', async ({ browser, request }) => {
   test.setTimeout(150_000);
-  const { user, context, page } = await signedInPage(browser, request, 'feeddismiss');
+  const { user, context, page } = await feedUser(browser, request, 'feeddismiss');
   try {
     setPlan(user.id, 'plus');
     seedFeedSettings(user.id);
@@ -198,7 +227,7 @@ test('(r1) a Plus user dismisses a saved job: asked first, gone from Today and S
 
 test('(r2) a Free user sees no dismiss icon, and the server refuses a hand-made dismiss', async ({ browser, request }) => {
   test.setTimeout(90_000);
-  const { user, context, page } = await signedInPage(browser, request, 'feeddismissfree');
+  const { user, context, page } = await feedUser(browser, request, 'feeddismissfree');
   try {
     setPlan(user.id, 'free');
     seedFeedSettings(user.id);
@@ -224,7 +253,7 @@ test('(r2) a Free user sees no dismiss icon, and the server refuses a hand-made 
 
 test('(r3) Enter on Check fit starts the fit and does not also open the detail', async ({ browser, request }) => {
   test.setTimeout(90_000);
-  const { user, context, page } = await signedInPage(browser, request, 'feeddismisskey');
+  const { user, context, page } = await feedUser(browser, request, 'feeddismisskey');
   try {
     setPlan(user.id, 'plus');
     seedFeedSettings(user.id);
@@ -250,7 +279,7 @@ test('(r3) Enter on Check fit starts the fit and does not also open the detail',
 
 test('(r4) a list fetched before the dismiss cannot bring the job back, and a 404 just removes the card', async ({ browser, request }) => {
   test.setTimeout(120_000);
-  const { user, context, page } = await signedInPage(browser, request, 'feeddismissrace');
+  const { user, context, page } = await feedUser(browser, request, 'feeddismissrace');
   try {
     setPlan(user.id, 'plus');
     seedFeedSettings(user.id);
@@ -304,7 +333,7 @@ test('(r4) a list fetched before the dismiss cannot bring the job back, and a 40
 
 test('(r5) a saved role that was already applied to offers no dismiss', async ({ browser, request }) => {
   test.setTimeout(90_000);
-  const { user, context, page } = await signedInPage(browser, request, 'feeddismissapplied');
+  const { user, context, page } = await feedUser(browser, request, 'feeddismissapplied');
   try {
     setPlan(user.id, 'plus');
     seedFeedSettings(user.id);
@@ -334,7 +363,7 @@ test('(r5) a saved role that was already applied to offers no dismiss', async ({
 
 test('(r6) a 409 from the server keeps the card, says why and reloads the list', async ({ browser, request }) => {
   test.setTimeout(90_000);
-  const { user, context, page } = await signedInPage(browser, request, 'feeddismiss409');
+  const { user, context, page } = await feedUser(browser, request, 'feeddismiss409');
   try {
     setPlan(user.id, 'plus');
     seedFeedSettings(user.id);
