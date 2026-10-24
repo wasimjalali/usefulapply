@@ -340,8 +340,10 @@ export default defineConfig({
       snapshotPathTemplate: '{testDir}/__screenshots__/{arg}-{platform}{ext}',
       expect: {
         timeout: 20_000,
-        // threshold 0.005 (Playwright's default is 0.2) ignores only a change under about 1.5 colour levels: one rounded
-        // corner in the canvas tabs renders one level apart between identical runs. Neighbouring palette steps are 5+.
+        // threshold 0.005 (Playwright's default is 0.2): pixelmatch ignores a pixel whose YIQ distance is under 0.88. One
+        // rounded corner in the canvas tabs renders one colour level apart between identical runs (0.51). The closest
+        // role pairs, cream-100/gold-50 (1.28) and cream-50/white (2.37), still fail it when opaque; a translucent mix
+        // of them may not, and Playwright never counts pixels it takes for anti-aliasing. Check those swaps by eye.
         toHaveScreenshot: { maxDiffPixels: 0, threshold: 0.005, animations: 'disabled', caret: 'hide', scale: 'css' },
       },
       use: { baseURL: BASE_URL },
