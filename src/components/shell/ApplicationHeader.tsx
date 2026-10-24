@@ -117,6 +117,7 @@ export function ApplicationHeader({ session, title, statusLabel }: ApplicationHe
     return (
       <header className="flex-shrink-0 border-b border-border px-4 py-3">
         <form
+          noValidate
           onSubmit={(event) => {
             event.preventDefault();
             void save();
