@@ -150,7 +150,7 @@ Do NOT use: gradient CTAs, `bg-accent-strong` / `bg-brand-strong` as default bas
 Do NOT invent bespoke drop-shadow strings like `shadow-[0_24px_60px_-20px_rgba(30,58,95,0.35)]`. If `shadow-floating` isn't dramatic enough for a modal, use `shadow-xl` (last resort). Never `shadow-2xl`. Shadow color modifiers (`shadow-gold-200`) don't apply to the role shadows.
 
 ### Focus
-- Text inputs and composers show focus with `border-border-focus` plus `ring-2 ring-focus-ring-soft/40` (`focus:` on a bare field, `focus-within:` on a shell that wraps one), as in the chat composer, the guided line's text boxes and the CV canvas fields. Everything else keeps the global 2px `focus-ring` outline.
+- Text inputs and composers show focus with `border-border-focus` plus `ring-2 ring-focus-ring-soft/40` (`focus:` on a bare field, `focus-within:` on a shell that wraps one), as in the chat composer, the guided line's text boxes and the CV canvas fields. Other inputs still carry older variants (`focus:border-brand-strong focus:ring-brand-strong/15` in the feed editor and application header, a border-only change in a few panels); the `border-input` follow-up moves them onto this one. Everything else keeps the global 2px `focus-ring` outline.
 
 ### Motion
 - Durations come from tokens only: `duration-(--duration-fast)` (150ms) for small state changes, `duration-(--duration-base)` (200ms) for most transitions, `duration-(--duration-slow)` (400ms) for entrances and progress. A bare `transition-*` with no duration runs `--duration-fast` on `ease-standard` (set in `@theme`). Page-level scroll reveals (`ScrollReveal`, 600-700ms) are the one exception.

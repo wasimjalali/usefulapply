@@ -15,6 +15,7 @@ export interface StoredSessionRow {
   id: string;
   job_title?: string | null;
   company?: string | null;
+  job_url?: string | null;
   job_description?: string | null;
   selected_template?: string | null;
   match_score?: number | null;
@@ -125,6 +126,7 @@ export function mapSessionRowToStore(row: StoredSessionRow): ApplicationSession 
     revision: typeof row.revision === 'number' ? row.revision : 0,
     jobTitle: row.job_title || '',
     company: row.company || '',
+    jobUrl: row.job_url || undefined,
     jobDescription: row.job_description || '',
     selectedTemplate: row.selected_template || undefined,
     createdAt: row.created_at,

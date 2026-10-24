@@ -7,6 +7,7 @@ import type { SearchStrategy } from '@/lib/job-feed/search-strategy-types';
 import type { JobFeedOverviewResponse, JobFeedSettingsInput } from '@/lib/job-feed/types';
 import {
   JOB_FEED_COUNTRY_OPTIONS,
+  JOB_FEED_EMPLOYMENT_TYPE_OPTIONS,
   JOB_FEED_REMOTE_PREFERENCE_OPTIONS,
   JOB_FEED_WORK_AUTH_OPTIONS,
   legacyMarketFromCountries,
@@ -48,6 +49,7 @@ interface PreferenceDraft {
   countries: string[];
   cities: string;
   workModes: JobFeedSettingsInput['remote_preferences'];
+  employmentTypes: JobFeedSettingsInput['employment_types'];
   salaryFloor: string;
   searchRows: ConfirmedSearchQuery[];
   workAuthorization: JobFeedSettingsInput['work_authorization_status'];
@@ -110,8 +112,10 @@ export function FeedEditView({
   const plannedQueries = strategy?.queries ?? [];
   const todaysQueries = plannedQueries.slice(0, queryBudget);
   const laterQueries = plannedQueries.slice(queryBudget);
+  // Employment types are a set: the same types in another order are no change.
+  const sortedTypes = (value: PreferenceDraft) => ({ ...value, employmentTypes: [...value.employmentTypes].sort() });
   const dirty = draft !== null && savedDraft !== null
-    && JSON.stringify(draft) !== JSON.stringify(savedDraft);
+    && JSON.stringify(sortedTypes(draft)) !== JSON.stringify(sortedTypes(savedDraft));
   const salaryValue = draft?.salaryFloor.trim() ?? '';
   const salaryValid = salaryValue === ''
     || (/^\d+$/.test(salaryValue) && Number(salaryValue) >= 0);
@@ -119,6 +123,7 @@ export function FeedEditView({
     draft
     && draft.countries.length > 0
     && draft.workModes.length > 0
+    && draft.employmentTypes.length > 0
     && salaryValid
     && draft.searchRows.length > 0
     && draft.searchRows.every((row) => row.query.trim().length > 0),
@@ -309,6 +314,38 @@ export function FeedEditView({
                       )}
                     </div>
 
+                    <fieldset className="xl:col-span-2">
+                      <legend className="text-sm font-medium text-ink-body">Employment type</legend>
+                      <div className="mt-1.5 flex flex-wrap gap-2">
+                        {JOB_FEED_EMPLOYMENT_TYPE_OPTIONS.map((option) => {
+                          const selected = draft.employmentTypes.includes(option.value);
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              aria-pressed={selected}
+                              onClick={() => updateDraft({
+                                employmentTypes: selected
+                                  ? draft.employmentTypes.filter((item) => item !== option.value)
+                                  : [...draft.employmentTypes, option.value],
+                              })}
+                              className={`inline-flex h-10 items-center gap-1.5 rounded-pill border px-3 text-sm transition-colors duration-(--duration-fast) ${
+                                selected
+                                  ? 'border-brand-strong bg-surface-raised font-semibold text-ink'
+                                  : 'border-border bg-surface-raised text-ink-body hover:border-border-strong'
+                              }`}
+                            >
+                              {selected && <Check className="h-3.5 w-3.5" />}
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {draft.employmentTypes.length === 0 && (
+                        <p className="mt-1 text-xs text-danger-strong">Choose at least one employment type.</p>
+                      )}
+                    </fieldset>
+
                     <div className="xl:col-span-2">
                       <p className="text-sm font-medium text-ink-body">Searches</p>
                       <div className="mt-2">
@@ -491,6 +528,7 @@ function toPreferenceDraft(
     countries: [...input.target_countries],
     cities: input.target_cities.join(', '),
     workModes: [...input.remote_preferences],
+    employmentTypes: [...input.employment_types],
     salaryFloor: input.salary_floor === null ? '' : String(input.salary_floor),
     searchRows,
     workAuthorization: input.work_authorization_status,
@@ -509,6 +547,7 @@ function toSettingsInput(base: JobFeedSettingsInput, draft: PreferenceDraft): Jo
     target_roles: rolesFromConfirmedQueries(draft.searchRows),
     remote_preference: remotePreference,
     remote_preferences: draft.workModes,
+    employment_types: draft.employmentTypes,
     salary_floor: salary ? Number(salary) : null,
     work_authorization_status: draft.workAuthorization,
     excluded_terms: splitCommaList(draft.excludedTerms),

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Bookmark, Clock, DollarSign, ExternalLink, Globe, MapPin, Search, X } from 'lucide-react';
+import { ArrowLeft, Bookmark, Check, Clock, DollarSign, ExternalLink, Globe, MapPin, Search, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { JobFeedDescription, workModeLabel } from './job-ad-text';
 import { canDismissJob, formatJobAge, safeEmployerUrl } from './feed-format';
@@ -15,10 +15,13 @@ interface FeedJobDetailProps {
   onSave: (job: JobFeedFeedItem) => void;
   /** Left out where dismissing isn't allowed (the Free plan). */
   onDismiss?: (job: JobFeedFeedItem) => void;
+  /** Left out with onDismiss: ratings are Plus and Max only. */
+  onRateHelpful?: (job: JobFeedFeedItem) => void;
+  onRateNotRelevant?: (job: JobFeedFeedItem) => void;
   onOpenEmployerSite: (job: JobFeedFeedItem) => void;
   onUpgrade?: () => void;
   busy?: boolean;
-  /** True only while this job's own dismiss is in flight. */
+  /** True only while this job's own dismiss or "not relevant" is in flight. */
   dismissing?: boolean;
   /** False on the mobile read-only feed, where the kit cannot be generated. */
   showCheckFit?: boolean;
@@ -52,6 +55,8 @@ export function FeedJobDetail({
   onGenerateKit,
   onSave,
   onDismiss,
+  onRateHelpful,
+  onRateNotRelevant,
   onOpenEmployerSite,
   onUpgrade,
   busy = false,
@@ -64,22 +69,42 @@ export function FeedJobDetail({
   const isStrong = job.fitLabel === 'strong';
   const employerLink = safeEmployerUrl(job);
   const isSaved = Boolean(job.feedback.savedAt);
-  const [confirmingDismiss, setConfirmingDismiss] = useState(false);
+  // Dismiss and "Not relevant" both take the role out of the feed for good, so
+  // each asks in place first. Only one asks at a time.
+  const [confirming, setConfirming] = useState<'dismiss' | 'not_relevant' | null>(null);
   const keepRef = useRef<HTMLButtonElement>(null);
+  const saveRef = useRef<HTMLButtonElement>(null);
+  const hadQuestion = useRef(false);
   const dismissRef = useRef<HTMLButtonElement>(null);
+  const notRelevantRef = useRef<HTMLButtonElement>(null);
+  const lastAsked = useRef<'dismiss' | 'not_relevant' | null>(null);
   const returnFocus = useRef(false);
+  const rating = job.feedback.matchRating;
+  const canChange = canDismissJob(job);
+  // A refresh can make the role final (applied elsewhere, rated in another tab) while its question is up: then it closes.
+  const asking = canChange ? confirming : null;
+  if (!canChange && confirming !== null) setConfirming(null);
 
   useEffect(() => {
-    if (confirmingDismiss) keepRef.current?.focus();
+    if (confirming) keepRef.current?.focus();
     else if (returnFocus.current) {
       returnFocus.current = false;
-      dismissRef.current?.focus();
+      (lastAsked.current === 'not_relevant' ? notRelevantRef : dismissRef).current?.focus();
+    } else if (hadQuestion.current) {
+      // The question closed because the role became final: its buttons are gone, so focus goes to what is left.
+      saveRef.current?.focus();
     }
-  }, [confirmingDismiss]);
+    hadQuestion.current = confirming !== null;
+  }, [confirming]);
 
-  const cancelDismiss = () => {
+  const ask = (which: 'dismiss' | 'not_relevant') => {
+    lastAsked.current = which;
+    setConfirming(which);
+  };
+
+  const cancelConfirm = () => {
     returnFocus.current = true;
-    setConfirmingDismiss(false);
+    setConfirming(null);
   };
 
   return (
@@ -95,6 +120,7 @@ export function FeedJobDetail({
         </button>
         <div className="flex-1" />
         <button
+          ref={saveRef}
           type="button"
           disabled={busy}
           onClick={() => onSave(job)}
@@ -119,21 +145,23 @@ export function FeedJobDetail({
             Employer site
           </a>
         )}
-        {onDismiss && canDismissJob(job) && (confirmingDismiss ? (
+        {asking && (
           <div
             role="group"
-            aria-label="Dismiss this job?"
+            aria-label={asking === 'dismiss' ? 'Dismiss this job?' : 'Not a fit?'}
             className="flex items-center gap-2"
             onKeyDown={(event) => {
-              if (event.key === 'Escape' && !busy) cancelDismiss();
+              if (event.key === 'Escape' && !busy) cancelConfirm();
             }}
           >
-            <span className="text-sm font-semibold text-ink">Dismiss this job?</span>
+            <span className="text-sm font-semibold text-ink">
+              {asking === 'dismiss' ? 'Dismiss this job?' : "Not a fit? It won't come back."}
+            </span>
             <button
               ref={keepRef}
               type="button"
               disabled={busy}
-              onClick={cancelDismiss}
+              onClick={cancelConfirm}
               className="inline-flex h-9 items-center rounded-pill border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
             >
               Keep
@@ -141,24 +169,57 @@ export function FeedJobDetail({
             <button
               type="button"
               disabled={busy}
-              onClick={() => onDismiss(job)}
+              onClick={() => (asking === 'dismiss' ? onDismiss : onRateNotRelevant)?.(job)}
               className="inline-flex h-9 items-center rounded-pill px-3.5 text-sm font-semibold text-danger transition-colors duration-(--duration-base) hover:bg-danger-soft disabled:cursor-not-allowed disabled:text-ink-muted cursor-pointer"
             >
-              {dismissing ? 'Dismissing' : 'Dismiss'}
+              {asking === 'dismiss'
+                ? (dismissing ? 'Dismissing' : 'Dismiss')
+                : (dismissing ? 'Removing' : 'Not relevant')}
             </button>
           </div>
-        ) : (
+        )}
+        {!asking && onRateHelpful && canChange && (
+          // aria-disabled, not disabled, while it runs or once rated: a disabled button drops the focus the user just put on it.
+          <button
+            type="button"
+            aria-disabled={busy || rating === 'helpful'}
+            onClick={() => {
+              if (!busy && rating !== 'helpful') onRateHelpful(job);
+            }}
+            className={`inline-flex h-9 items-center gap-2 rounded-pill px-3 text-sm font-medium transition-colors duration-(--duration-base) ${
+              rating === 'helpful'
+                ? 'cursor-default text-success-strong'
+                : 'text-ink-muted hover:bg-surface hover:text-ink cursor-pointer'
+            }`}
+          >
+            {rating === 'helpful' ? <Check className="h-4 w-4" /> : <ThumbsUp className="h-4 w-4" />}
+            {rating === 'helpful' ? 'Rated a good match' : 'Good match'}
+          </button>
+        )}
+        {!asking && onRateNotRelevant && canChange && (
+          <button
+            ref={notRelevantRef}
+            type="button"
+            disabled={busy}
+            onClick={() => ask('not_relevant')}
+            className="inline-flex h-9 items-center gap-2 rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-(--duration-base) hover:bg-surface hover:text-ink cursor-pointer"
+          >
+            <ThumbsDown className="h-4 w-4" />
+            Not relevant
+          </button>
+        )}
+        {!asking && onDismiss && canChange && (
           <button
             ref={dismissRef}
             type="button"
             disabled={busy}
-            onClick={() => setConfirmingDismiss(true)}
+            onClick={() => ask('dismiss')}
             className="inline-flex h-9 items-center gap-2 rounded-pill px-3 text-sm font-medium text-ink-muted transition-colors duration-(--duration-base) hover:bg-surface hover:text-ink cursor-pointer"
           >
             <X className="h-4 w-4" />
             Dismiss
           </button>
-        ))}
+        )}
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto px-5 py-5">

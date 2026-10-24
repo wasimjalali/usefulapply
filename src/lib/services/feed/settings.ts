@@ -106,6 +106,13 @@ async function persistFeedSettings(params: {
   const { userId, subscriptionTier, body } = params;
   const normalized = normalizeJobFeedSettingsInput(body);
 
+  // A list that is sent and empty is a request for no employment type at all, which the table refuses and the feed
+  // cannot honour. It is refused here rather than quietly turned into full-time; a body without the key keeps the default.
+  const sentEmploymentTypes = (body as { employment_types?: unknown } | null)?.employment_types;
+  if (Array.isArray(sentEmploymentTypes) && sentEmploymentTypes.length === 0) {
+    throw new FeedError(400, 'Choose at least one employment type.', 'invalid_input');
+  }
+
   if (!normalized.data) {
     throw new FeedError(400, normalized.error || 'Invalid settings payload.', 'invalid_input');
   }
@@ -175,9 +182,9 @@ async function persistFeedSettings(params: {
     ?? (existingSettings?.seniority_targets?.length ? existingSettings.seniority_targets : normalized.data.seniority_targets);
   const seniorityTarget = seniorityTargets[0] ?? normalized.data.seniority_target ?? existingSettings?.seniority_target ?? null;
 
-  // Employment types stays user-controlled in DB but the new wizard
-  // doesn't expose it. Default to ['full_time'] when the client did not
-  // send a value.
+  // Employment types is a setting of its own in the editor and the MCP tool. A body that leaves the key out
+  // gets ['full_time'] (the web app always sends a list, ['full_time'] from the first-run wizard); a body that
+  // sends an empty list was refused above.
   const employmentTypes = normalized.data.employment_types.length > 0
     ? normalized.data.employment_types
     : (['full_time'] as JobFeedSettingsInput['employment_types']);
@@ -329,6 +336,7 @@ export interface FeedSettingsPatch {
   roles?: string[];
   countries?: string[];
   workModes?: string[];
+  employmentTypes?: string[];
   salaryFloor?: number | null;
   automationEnabled?: boolean;
   timezone?: string;
@@ -365,6 +373,7 @@ export function changedFeedSettingFields(existing: JobFeedSettings | null, patch
   if (rolesWouldChange(existing, patch, searchLimit)) changed.push('roles');
   if (patch.countries && !sameSet(patch.countries, current.target_countries)) changed.push('countries');
   if (patch.workModes && !sameSet(patch.workModes, current.remote_preferences)) changed.push('work modes');
+  if (patch.employmentTypes && !sameSet(patch.employmentTypes, current.employment_types)) changed.push('employment types');
   if (patch.salaryFloor !== undefined && patch.salaryFloor !== current.salary_floor) changed.push('salary floor');
   if (patch.automationEnabled !== undefined && patch.automationEnabled !== Boolean(existing?.enabled)) changed.push('daily feed on or off');
   if (patch.timezone !== undefined && patch.timezone !== (existing ? current.user_timezone : undefined)) changed.push('timezone');
@@ -405,6 +414,7 @@ export async function updateFeedSettingsPartial(params: {
     body.remote_preferences = patch.workModes;
     body.remote_preference = patch.workModes[0];
   }
+  if (patch.employmentTypes) body.employment_types = patch.employmentTypes;
   if (patch.salaryFloor !== undefined) body.salary_floor = patch.salaryFloor;
   if (patch.automationEnabled !== undefined) body.enabled = patch.automationEnabled;
   if (patch.timezone !== undefined) body.user_timezone = patch.timezone;

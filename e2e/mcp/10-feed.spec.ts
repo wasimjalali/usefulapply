@@ -167,6 +167,25 @@ test.describe.serial('feed: reading, rating, settings, applying', () => {
     expect(kept.settings).toMatchObject({ roles: keptRoles, salaryFloor: 90000 });
   });
 
+  test('update_feed_settings: employment types are set, an unchanged list changes nothing, and an unknown type is refused', async () => {
+    const { tools } = await (await agent.connect()).listTools();
+    const types = (tools.find((tool) => tool.name === 'update_feed_settings')?.inputSchema as { properties: Record<string, { items?: { enum?: string[] } }> }).properties.employmentTypes.items?.enum;
+    expect(types).toEqual(['full_time', 'part_time', 'contract', 'internship', 'temporary']);
+
+    const changed = await agent.ok<{ changed: string[]; settings: { employmentTypes: string[] } }>('update_feed_settings', { employmentTypes: ['contract', 'part_time'] });
+    expect(changed.changed).toEqual(['employment types']);
+    expect([...changed.settings.employmentTypes].sort()).toEqual(['contract', 'part_time']);
+
+    // The same set in another order is no change.
+    const same = await agent.ok<{ changed: string[] }>('update_feed_settings', { employmentTypes: ['part_time', 'contract'] });
+    expect(same.changed).toEqual([]);
+
+    expect(await agent.fails('update_feed_settings', { employmentTypes: ['freelance'] })).toMatch(/Invalid option|invalid/i);
+    expect(await agent.fails('update_feed_settings', { employmentTypes: [] })).toMatch(/at least|too small|1/i);
+    const kept = await agent.ok<{ settings: { employmentTypes: string[] } }>('get_feed_settings');
+    expect([...kept.settings.employmentTypes].sort()).toEqual(['contract', 'part_time']);
+  });
+
   test('get_career_profile maps a stored career profile and the confirmed searches, field by field', async () => {
     seedCareerProfile(user.id);
     const career = await agent.ok<{
