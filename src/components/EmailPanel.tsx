@@ -334,7 +334,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
     copyEvent: string;
   }) => (
     <div className="box-border w-full rounded-2xl border border-cream-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
           <h3 className="whitespace-nowrap text-sm font-semibold text-navy-800">{opts.title}</h3>
           {opts.chip && (
