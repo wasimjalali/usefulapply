@@ -28,6 +28,7 @@ PR 5 merges, PR 6.
   `shadow-md`, Floating `shadow-lg`). This plan turns those into tokens and enforces them.
 - Navy is both text and a dark surface, so remapping the palette can't give dark mode. Each use
   has to move to the role it plays.
+- These counts are from 2026-10-24. Re-count before relying on them.
 - Out of scope in every PR: `src/components/cv-templates/**`, `src/lib/cv-templates/**`,
   `src/lib/services/export/**`, email templates, `opengraph-image`, icons. Documents are white paper
   in both themes.
@@ -37,18 +38,30 @@ PR 5 merges, PR 6.
 - **Tokens:** role variables live on `:root` in `globals.css` and are exposed to Tailwind through
   `@theme inline` (`--color-surface: var(--surface)` and so on). Dark mode later overrides only the
   variables (`:root[data-theme="dark"]`).
-- **Cloud setup:** run `npm ci`, `npx playwright install chromium` and
-  `CI=1 npx wrangler d1 migrations apply usefulapply-db --local`. E2E runs without local secret
-  files (PR 0 adds test-only fallbacks).
-- **Visual check (PRs 1 to 4: no visible change):** the visual spec from PR 1
+- **Cloud setup:** run `npm ci`, `npx playwright install chromium ffmpeg` and
+  `CI=1 npx wrangler d1 migrations apply usefulapply-db --local`. Export `PW_CHANNEL=chromium`
+  for every Playwright run: there is no Google Chrome in the cloud, and the config defaults to it.
+  E2E runs without local secret files: PR 0 added a test-only auth secret fallback in
+  `e2e/lib/env.ts`. `npm run test:e2e` sets `E2E_MCP=1` itself; a single project run needs it set
+  by hand for the mcp lanes.
+- **Visual check (PRs 1 to 4: no visible change):** the `visual` Playwright project from PR 1
   (`e2e/visual/screens.spec.ts`) screenshots every screen in the list below at 1280x900 and
-  768x1024. Data is seeded and the clock fixed, and animations and the caret are off.
-  - **Baseline:** run it on the PR's base commit (`git worktree add ../base <merge-base>`).
-  - **Compare:** run it on the head in the same VM, with `maxDiffPixels: 0`.
+  768x1024 with `toHaveScreenshot` and `maxDiffPixels: 0`. It runs on the data lane's preview
+  (`E2E_WRANGLER`, `PREVIEW_PORT`) and seeds through the existing helpers (`e2e/lib/user.ts`,
+  `e2e/lib/model-script.ts` with `e2e/fake-anthropic.ts`). The clock is frozen with
+  `page.clock.install` at 2026-10-24T09:00:00Z, and animations and the caret are off.
+  - **Snapshots are committed** under `e2e/visual/__screenshots__/` and are Linux-only (Playwright
+    names them per platform). On macOS the `visual` project is skipped, so the Mac never compares
+    against Linux renders.
+  - **PR 1 makes the baseline:** check out its base commit in a second worktree, `npm ci`, build,
+    run `npx playwright test --project=visual --update-snapshots` there, and copy the snapshots
+    into the PR. Then run the head against them. Run the two one after the other, never at once,
+    because they use the same ports.
+  - **PRs 2 to 4 compare** against the committed snapshots. They never update them.
   - **Report:** paste the result into the PR body. Any difference is a bug, unless you name it in
     the PR body with a before and after crop.
 - **Screens:**
-  - landing `/`, `/pricing`, one GEO page;
+  - landing `/`, `/pricing`, the GEO page `/ai-job-application/cover-letter-generator`;
   - sign-in and sign-up;
   - the dashboard: empty, with chat and a kit, and with the canvas on each tab (CV, Cover letter,
     Emails);
@@ -85,16 +98,17 @@ when the local secrets file is missing. Small-PR review row. Lands on main befor
      themes), `sunken` (cream-200);
    - ink: `ink` (the main text navy), `ink-muted` (warm-gray), `ink-faint`, `ink-inverse` (text on
      navy);
-   - brand: `brand` (navy-600), `brand-strong`, `brand-ink` (text on brand);
-   - accent: `accent` (gold-400), `accent-strong` (gold-500), `accent-soft` (gold-50/100),
-     `accent-ink` (text on gold);
-   - lines: `border` (cream-200), `border-strong` (cream-300);
+   - brand: `brand` (navy-600), `brand-strong`, `brand-ink` (text on brand: white in light mode);
+   - accent: `accent` (gold-400), `accent-strong` (gold-500), `accent-soft` (gold-50/100, keeps
+     dark text), `accent-ink` (text on gold: white in light mode, as design-system.md requires);
+   - lines: `border` (cream-200), `border-strong` (cream-300, dividers only, per
+     design-system.md);
    - status: `success`, `success-soft`, `warning`, `warning-soft`, `danger`, `danger-soft`;
    - `focus-ring`;
    - a dark-surface pair for the navy panels (`surface-inverse`, `border-inverse`).
 
-   Read how each palette color is actually used before naming a role. Add a role only when it's
-   used.
+   Read how every palette color is used across `src/components` and `src/app` before naming
+   roles, so PRs 2 to 4 find a role for every use. Add a role only when it's used.
 2. **Radius roles:** `--radius-pill`, `--radius-control`, `--radius-card`, `--radius-modal`. Map
    them to today's `rounded-full`, `rounded-lg`, `rounded-2xl` and `rounded-[24px]`.
 3. **Shadow roles:** `resting`, `elevated`, `floating` (the current sm, md, lg), plus `lift` for
@@ -108,7 +122,9 @@ when the local secrets file is missing. Small-PR review row. Lands on main befor
    - radius classes outside the roles.
 
    Out-of-scope paths are skipped. Today's hits go in a committed baseline file
-   (`scripts/design-token-baseline.json`), so lint passes now. The check fails on any new hit,
+   (`scripts/design-token-baseline.json`), so lint passes now. Its format: one key per file path,
+   sorted, each holding a count per rule (`{"src/x.tsx": {"color-class": 12}}`), one entry per
+   line, never line numbers. That keeps parallel edits in PRs 2 to 4 easy to merge. The check fails on any new hit,
    and on any hit removed from the code but still listed in the baseline (that keeps the baseline
    shrinking).
 6. **The visual spec** and its fixtures (see Shared rules).
@@ -117,7 +133,7 @@ when the local secrets file is missing. Small-PR review row. Lands on main befor
 
 **Owns:** `src/app/globals.css`, `scripts/check-design-tokens.mjs`,
 `scripts/design-token-baseline.json`, `package.json` (the lint script only), `e2e/visual/**`, the
-two docs above.
+`visual` project in `playwright.config.ts`, any new helper under `e2e/lib/`, the two docs above.
 
 **Done when:** the visual spec shows 0 pixel difference against the base, and the token check runs
 in lint.
@@ -132,7 +148,9 @@ in lint.
 - Change no behaviour.
 
 **Areas** (each PR owns only its files; the baseline file is edited by each, so expect small merge
-conflicts there and resolve them by re-running the check)
+conflicts there and resolve them by re-running the check). A use with no fitting role gets a new
+role appended at the end of the role block in `globals.css`, in a comment-marked group for that
+PR, and nothing else in `globals.css` changes.
 - **PR 2, shell, dashboard and chat:** `src/components/shell/**`, `src/components/chat/**`,
   `ChatPanel.tsx`, `AgentProgressV2.tsx`, `MarkdownText.tsx`, `StepIndicator.tsx`,
   `src/app/dashboard/**`, `src/components/ui/**`.
@@ -141,23 +159,34 @@ conflicts there and resolve them by re-running the check)
   `src/components/kit/**`, `src/components/tracker/**`, `src/components/job-feed/**`,
   `src/app/master-cv/**`, `src/app/master-cv-template/**`, `src/app/profile/**`.
 - **PR 4, everything else:** `src/components/marketing/**`, `blog/**`, `comparisons/**`, `auth/**`,
-  `oauth/**`, `settings/**`, `BrandLogo.tsx`, and every page under `src/app/**` not named above
-  (landing, pricing, about, legal, GEO, settings, account, subscription, notifications, MCP pages,
-  error pages).
+  `oauth/**`, `settings/**`, `BrandLogo.tsx`, `ChunkReloadGuard.tsx`, `ScrollbarReveal.tsx`,
+  `src/lib/blog/**`, and everything under `src/components` and `src/app` not named above,
+  including `*.css` files (landing, pricing, about, legal, GEO, settings, account, subscription,
+  notifications, MCP pages, `admin-dashboard` and its CSS, `page.tsx`, error pages).
 
 **Done when:** the visual spec shows 0 difference, and the area's baseline entries are gone. PR 4
 also empties the baseline, switches the check to enforce with no baseline, and deletes the file.
 
 ## PR 5: the discipline pass, a visible change (after PRs 2 to 4 merge)
 
+Wasim chose to adopt these from the Useful brand system, so this PR also updates
+`.claude/rules/design-system.md` to match. Where the old rules differ, the new rules below win.
+
 **The work**
-- Hairline borders only: 1px, from `border` or `border-strong`, never darker.
-- The one-step lift: cards rest flat on `resting`, and only interactive cards rise to `lift` on
-  hover. No lift on static cards.
+- Hairline borders only: 1px, from `border`; `border-strong` only for dividers.
+- The one-step lift: static cards rest on `resting` with no hover change. Interactive cards (they
+  open, select or navigate) rise one step to `elevated` on hover, with no translate. The
+  `-translate-y` lift stays reserved for elevated CTAs.
 - Radius exactly by role everywhere.
 - One easing for structure (`ease-standard`) and `ease-pop` for pop moments only (dialogs, ticks,
   badges). Durations come from tokens.
-- Remove leftover gradients outside CTAs, and translucent whites over cream (design-system rules).
+- No gradients anywhere (CTAs included, as the CTA rules already say), and no translucent whites
+  over cream. Fix the rules doc's surface section, which still says gradients are reserved for
+  CTAs.
+
+**Owns:** every file under `src/components` and `src/app` outside the out-of-scope list,
+`src/app/globals.css`, `.claude/rules/design-system.md`, `.claude/agents/karko-ui-designer.md`,
+`e2e/visual/**` (snapshots are updated in this PR, since the change is visible).
 
 **Verify**
 - The visual spec now shows differences. Attach before and after screenshots of every screen at
@@ -179,6 +208,8 @@ also empties the baseline, switches the check to enforce with no baseline, and d
   - shadows replaced by tone steps and hairlines, since dark shadows don't read.
 - **Documents stay white:** the CV page, the cover letter and email bodies, and exports. In dark
   mode they sit as a white sheet on a dark desk.
+- **Owns:** the same files as PR 5, plus `package.json` and the lockfile for
+  `@axe-core/playwright` (dev only), and `src/app/layout.tsx`.
 - **A theme setting:** System, Light or Dark, in `/settings` (Appearance).
   - Stored in a cookie plus localStorage. No database change.
   - Applied before first paint, through an inline script in `layout.tsx` that reads the cookie, so
@@ -189,7 +220,10 @@ also empties the baseline, switches the check to enforce with no baseline, and d
 
 **Verify**
 - The visual spec runs in both themes. Attach every screen at both widths in both themes.
-- An axe contrast check (WCAG AA) passes in both themes.
+- An axe contrast check (WCAG AA, `@axe-core/playwright`) passes in both themes, with one
+  exception: white labels on gold buttons. design-system.md accepts them on purpose (about 2.2:1),
+  so exclude that pattern from the check and list it in the PR. Don't darken the gold or change
+  the label color: that's Wasim's decision, not this PR's.
 - No flash on a cold load in dark mode: record at 30 fps and review every frame.
 - Have an Opus judge review the dark screenshots, and paste its verdict.
 - Wasim gives his verdict on the PR. This PR stops for him.

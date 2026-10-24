@@ -10,7 +10,7 @@ import {
   type StoredOAuthClientInformation,
   type StoredOAuthTokens,
 } from '@modelcontextprotocol/client';
-import { FALLBACK_SECRET_VARS, OAUTH_PORT } from './lib/env';
+import { FALLBACK_SECRET_VARS, OAUTH_PORT, REPO_ROOT } from './lib/env';
 import { TOOL_SCOPES } from '../src/lib/mcp/scopes';
 
 /**
@@ -1242,7 +1242,7 @@ test.describe('Test mode is never honoured off localhost', () => {
         '--persist-to',
         '.wrangler/e2e-test-mode-guard',
       ],
-      { stdio: 'ignore', detached: true },
+      { cwd: REPO_ROOT, stdio: 'ignore', detached: true },
     );
     const deadline = Date.now() + 120_000;
     for (;;) {
@@ -1323,7 +1323,7 @@ test.describe('MCP flag off', () => {
         '--persist-to',
         '.wrangler/e2e-flag-off',
       ],
-      { stdio: 'ignore', detached: true },
+      { cwd: REPO_ROOT, stdio: 'ignore', detached: true },
     );
     const deadline = Date.now() + 120_000;
     for (;;) {
