@@ -22,7 +22,8 @@ type FollowUp = { subject: string; body: string; recommendedDelay: number };
 
 const TOOL_CLASS = 'inline-flex h-9 items-center gap-2 rounded-pill border border-border bg-surface px-3.5 text-sm font-medium text-ink-body shadow-resting hover:bg-surface-raised transition-colors duration-(--duration-base) cursor-pointer flex-shrink-0';
 const FIELD_LABEL = 'text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted';
-const FIELD_BOX = 'w-full rounded-control border border-border bg-surface-raised px-3 py-2.5 text-sm text-ink-body';
+// The subject and body boxes hold the email itself, a document: white in every theme.
+const FIELD_BOX = 'w-full rounded-control border border-border bg-document px-3 py-2.5 text-sm text-ink-body';
 
 export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
   const posthog = usePostHog();
@@ -333,7 +334,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
     onBody: (v: string) => void;
     copyEvent: string;
   }) => (
-    <div className="box-border w-full rounded-card border border-border bg-document p-5 shadow-resting">
+    <div className="box-border w-full rounded-card border border-border bg-surface-raised p-5 shadow-resting">
       <div className="flex items-center gap-2.5">
         <h3 className="text-sm font-semibold text-ink">{opts.title}</h3>
         {opts.chip && (
@@ -359,7 +360,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
             type="text"
             value={opts.subject}
             onChange={(e) => opts.onSubject(e.target.value)}
-            className={`${FIELD_BOX} focus:border-brand-muted focus:outline-none`}
+            className={`${FIELD_BOX} focus:border-focus-ring-soft focus:outline-none`}
           />
         ) : (
           <div className={FIELD_BOX}>{opts.subject}</div>
@@ -373,7 +374,7 @@ export function EmailPanel({ toolbarPortal }: EmailPanelProps = {}) {
             value={opts.body}
             onChange={(e) => opts.onBody(e.target.value)}
             rows={11}
-            className={`${FIELD_BOX} resize-none leading-relaxed focus:border-brand-muted focus:outline-none`}
+            className={`${FIELD_BOX} resize-none leading-relaxed focus:border-focus-ring-soft focus:outline-none`}
           />
         ) : (
           <div className={`${FIELD_BOX} whitespace-pre-wrap leading-relaxed`}>{opts.body}</div>

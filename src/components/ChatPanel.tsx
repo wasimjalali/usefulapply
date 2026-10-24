@@ -2210,9 +2210,9 @@ export function ChatPanel({
               />
               {message.id === compactedThroughMessageId && (
                 <div role="separator" aria-label="Earlier messages summarized" className="flex items-center gap-3">
-                  <span className="h-px flex-1 bg-sunken" />
+                  <span className="h-px flex-1 bg-border" />
                   <span className="text-xs text-ink-muted">Earlier messages summarized</span>
-                  <span className="h-px flex-1 bg-sunken" />
+                  <span className="h-px flex-1 bg-border" />
                 </div>
               )}
             </Fragment>
