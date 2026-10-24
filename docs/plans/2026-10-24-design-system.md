@@ -1,0 +1,204 @@
+# Plan: role-based design system and dark mode (2026-10-24)
+
+Wasim's decision: keep the Useful Apply palette (navy, cream, gold). Borrow the structure of the
+Useful brand system, not its colors: color tokens named by role, one radius scale by role,
+hairline borders, a one-step lift for cards, motion from tokens only. Then add dark mode. No
+"by Useful" family mark.
+
+Each PR below runs as its own cloud session (global rules, "Cloud or local"), launched from main
+by the local orchestrator. Every cloud PR ends reviewed and green with the `needs-local` label and
+the Local handoff section. The cloud never merges or deploys. The local orchestrator merges, deploys
+and checks production.
+
+Order: PR 1 alone. After it merges, PRs 2, 3 and 4 in parallel. After those merge, PR 5. After
+PR 5 merges, PR 6.
+
+## Facts (main at 94af4570, 2026-10-24)
+
+- 110 component files use palette-named color classes about 2,700 times (`bg-cream-50`,
+  `text-navy-900`...). About 370 of them are raw `white`, `black` or `gray`. About 100 hex literals
+  and 91 inline `style` colors sit outside the CV templates and exports. There are no `dark:`
+  classes.
+- Tokens live in `src/app/globals.css` under `@theme`: navy 50-900, cream 50-400, gold 50-700,
+  sage 50-700, `charcoal`, `warm-gray`, shadows `--shadow-sm/md/lg/xl`, `--shadow-glow-gold`,
+  easings `--ease-out-quart` and `--ease-spring`.
+- `.claude/rules/design-system.md` already names surface roles (Canvas `cream-100`, Surface
+  `cream-50`, Document `white`), a radius scale (Pill `rounded-full`, Control `rounded-lg`, Card
+  `rounded-2xl`, Modal `rounded-[24px]`) and a shadow scale (Resting `shadow-sm`, Elevated
+  `shadow-md`, Floating `shadow-lg`). This plan turns those into tokens and enforces them.
+- Navy is both text and a dark surface, so remapping the palette can't give dark mode. Each use
+  has to move to the role it plays.
+- Out of scope in every PR: `src/components/cv-templates/**`, `src/lib/cv-templates/**`,
+  `src/lib/services/export/**`, email templates, `opengraph-image`, icons. Documents are white paper
+  in both themes.
+
+## Shared rules for every PR
+
+- **Tokens:** role variables live on `:root` in `globals.css` and are exposed to Tailwind through
+  `@theme inline` (`--color-surface: var(--surface)` and so on). Dark mode later overrides only the
+  variables (`:root[data-theme="dark"]`).
+- **Cloud setup:** run `npm ci`, `npx playwright install chromium` and
+  `CI=1 npx wrangler d1 migrations apply usefulapply-db --local`. E2E runs without local secret
+  files (PR 0 adds test-only fallbacks).
+- **Visual check (PRs 1 to 4: no visible change):** the visual spec from PR 1
+  (`e2e/visual/screens.spec.ts`) screenshots every screen in the list below at 1280x900 and
+  768x1024. Data is seeded and the clock fixed, and animations and the caret are off.
+  - **Baseline:** run it on the PR's base commit (`git worktree add ../base <merge-base>`).
+  - **Compare:** run it on the head in the same VM, with `maxDiffPixels: 0`.
+  - **Report:** paste the result into the PR body. Any difference is a bug, unless you name it in
+    the PR body with a before and after crop.
+- **Screens:**
+  - landing `/`, `/pricing`, one GEO page;
+  - sign-in and sign-up;
+  - the dashboard: empty, with chat and a kit, and with the canvas on each tab (CV, Cover letter,
+    Emails);
+  - `/applications` (tracker);
+  - the job feed: setup, then results;
+  - `/settings`;
+  - one dialog (delete application);
+  - toasts: success and error.
+- **Checks in every PR:**
+  - `npx tsc --noEmit`: 0 errors;
+  - `npm run lint`: 0 errors, the token check included;
+  - `npm test`;
+  - the visual spec;
+  - the full `npm run test:e2e`.
+
+  Paste each command's output tail into the PR body.
+- **Review:** the Features row. Sonnet (`sonnet-sweeper`, high) plus Opus in GPT's slot, at high
+  effort. Every file goes to one reviewer. Fix every finding, lows included; at most 3 rounds.
+- **Commit and push work in progress often.**
+- **Voice:** any user-facing copy follows the global Voice rules.
+
+## PR 0 (local, by the orchestrator): this plan and E2E without local secrets
+
+This file, plus `playwright.config.ts` test-only fallbacks for the secrets the preview servers need
+when the local secrets file is missing. Small-PR review row. Lands on main before PR 1.
+
+## PR 1: token foundation, no visible change
+
+**Goal:** add role tokens and the guardrails. Migrate nothing.
+
+**The work**
+1. **Color roles** in `globals.css`, mapped to today's values:
+   - ground: `canvas` (cream-100), `surface` (cream-50), `document` (white, constant in both
+     themes), `sunken` (cream-200);
+   - ink: `ink` (the main text navy), `ink-muted` (warm-gray), `ink-faint`, `ink-inverse` (text on
+     navy);
+   - brand: `brand` (navy-600), `brand-strong`, `brand-ink` (text on brand);
+   - accent: `accent` (gold-400), `accent-strong` (gold-500), `accent-soft` (gold-50/100),
+     `accent-ink` (text on gold);
+   - lines: `border` (cream-200), `border-strong` (cream-300);
+   - status: `success`, `success-soft`, `warning`, `warning-soft`, `danger`, `danger-soft`;
+   - `focus-ring`;
+   - a dark-surface pair for the navy panels (`surface-inverse`, `border-inverse`).
+
+   Read how each palette color is actually used before naming a role. Add a role only when it's
+   used.
+2. **Radius roles:** `--radius-pill`, `--radius-control`, `--radius-card`, `--radius-modal`. Map
+   them to today's `rounded-full`, `rounded-lg`, `rounded-2xl` and `rounded-[24px]`.
+3. **Shadow roles:** `resting`, `elevated`, `floating` (the current sm, md, lg), plus `lift` for
+   the one-step card lift.
+4. **Motion roles:** `--ease-standard` (the current out-quart), `--ease-pop` (spring, for pop
+   moments only), and `--duration-fast` and `--duration-base`.
+5. **Token check:** `scripts/check-design-tokens.mjs`, run inside `npm run lint`. It flags:
+   - palette-named color classes (`navy-*`, `cream-*`, `gold-*`, `sage-*`, `charcoal`,
+     `warm-gray`, `white`, `black`, `gray-*`, `slate-*`);
+   - hex and `rgb()` colors in `.tsx` and inline styles;
+   - radius classes outside the roles.
+
+   Out-of-scope paths are skipped. Today's hits go in a committed baseline file
+   (`scripts/design-token-baseline.json`), so lint passes now. The check fails on any new hit,
+   and on any hit removed from the code but still listed in the baseline (that keeps the baseline
+   shrinking).
+6. **The visual spec** and its fixtures (see Shared rules).
+7. **Docs:** update `.claude/rules/design-system.md` (roles first, palette names only as their
+   values) and `.claude/agents/karko-ui-designer.md`.
+
+**Owns:** `src/app/globals.css`, `scripts/check-design-tokens.mjs`,
+`scripts/design-token-baseline.json`, `package.json` (the lint script only), `e2e/visual/**`, the
+two docs above.
+
+**Done when:** the visual spec shows 0 pixel difference against the base, and the token check runs
+in lint.
+
+## PRs 2, 3, 4: migration by area, no visible change (after PR 1 merges, in parallel)
+
+**The work** (same in each)
+- Replace palette classes, hex and inline colors with role tokens.
+- Replace radius classes with the radius roles.
+- Replace shadow strings and inline easings with the shadow and motion roles.
+- Remove each area's entries from the token baseline.
+- Change no behaviour.
+
+**Areas** (each PR owns only its files; the baseline file is edited by each, so expect small merge
+conflicts there and resolve them by re-running the check)
+- **PR 2, shell, dashboard and chat:** `src/components/shell/**`, `src/components/chat/**`,
+  `ChatPanel.tsx`, `AgentProgressV2.tsx`, `MarkdownText.tsx`, `StepIndicator.tsx`,
+  `src/app/dashboard/**`, `src/components/ui/**`.
+- **PR 3, canvas and workspace:** `CVPanel.tsx`, `EditableCVCanvas.tsx`, `CoverLetterPanel.tsx`,
+  `EmailPanel.tsx`, `CVInputZone.tsx`, `FileUpload.tsx`, `KitDocumentError.tsx`,
+  `src/components/kit/**`, `src/components/tracker/**`, `src/components/job-feed/**`,
+  `src/app/master-cv/**`, `src/app/master-cv-template/**`, `src/app/profile/**`.
+- **PR 4, everything else:** `src/components/marketing/**`, `blog/**`, `comparisons/**`, `auth/**`,
+  `oauth/**`, `settings/**`, `BrandLogo.tsx`, and every page under `src/app/**` not named above
+  (landing, pricing, about, legal, GEO, settings, account, subscription, notifications, MCP pages,
+  error pages).
+
+**Done when:** the visual spec shows 0 difference, and the area's baseline entries are gone. PR 4
+also empties the baseline, switches the check to enforce with no baseline, and deletes the file.
+
+## PR 5: the discipline pass, a visible change (after PRs 2 to 4 merge)
+
+**The work**
+- Hairline borders only: 1px, from `border` or `border-strong`, never darker.
+- The one-step lift: cards rest flat on `resting`, and only interactive cards rise to `lift` on
+  hover. No lift on static cards.
+- Radius exactly by role everywhere.
+- One easing for structure (`ease-standard`) and `ease-pop` for pop moments only (dialogs, ticks,
+  badges). Durations come from tokens.
+- Remove leftover gradients outside CTAs, and translucent whites over cream (design-system rules).
+
+**Verify**
+- The visual spec now shows differences. Attach before and after screenshots of every screen at
+  both widths.
+- Record motion (dialog open, card hover, toast) at 30 fps and review every frame.
+- Have an Opus judge (a clean run: no rules, no skills, only the screenshots) compare before and
+  after, and paste its verdict.
+- Wasim gives his verdict on the PR before the local merge. This PR stops for him.
+
+## PR 6: dark mode, a visible change (after PR 5 merges)
+
+**The work**
+- **Dark values** for every color role under `:root[data-theme="dark"]`, built from the navy
+  family:
+  - a deep navy canvas, with surfaces one tone step apart;
+  - cream ink;
+  - gold accent tuned for contrast on navy;
+  - status colors readable on dark;
+  - shadows replaced by tone steps and hairlines, since dark shadows don't read.
+- **Documents stay white:** the CV page, the cover letter and email bodies, and exports. In dark
+  mode they sit as a white sheet on a dark desk.
+- **A theme setting:** System, Light or Dark, in `/settings` (Appearance).
+  - Stored in a cookie plus localStorage. No database change.
+  - Applied before first paint, through an inline script in `layout.tsx` that reads the cookie, so
+    there's no flash.
+  - `color-scheme` is set for form controls and scrollbars.
+- **Charts, status pills, toasts, the job feed and the marketing pages all get dark values.**
+  Marketing pages may stay light if they read better that way. Say which in the PR.
+
+**Verify**
+- The visual spec runs in both themes. Attach every screen at both widths in both themes.
+- An axe contrast check (WCAG AA) passes in both themes.
+- No flash on a cold load in dark mode: record at 30 fps and review every frame.
+- Have an Opus judge review the dark screenshots, and paste its verdict.
+- Wasim gives his verdict on the PR. This PR stops for him.
+
+## After each merge (local)
+
+Deploy with `npm run deploy:cf` from main. Check production on the screens list, both themes after
+PR 6, through Aside as Wasim. Clean up.
+
+## Effort
+
+About a week of agent work for PRs 1 to 5, plus 2 to 3 days for PR 6.
