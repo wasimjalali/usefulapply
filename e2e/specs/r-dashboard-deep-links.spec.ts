@@ -97,13 +97,16 @@ test('(r4) a tab that loaded the link anonymously and then signs in lands on the
     await page.waitForLoadState('networkidle');
     // Sign in without a reload: the cookie lands, then the app's session refetch (a window refocus) picks it up.
     await signInContext(context, request, user);
+    // The tracker heading also shows anonymously, so first wait for something only a signed-in user sees: the
+    // sidebar's plan label. Better Auth throttles visibility refetches (about 5 s), so keep poking until it lands.
     await expect(async () => {
       await page.evaluate(() => {
         document.dispatchEvent(new Event('visibilitychange'));
         window.dispatchEvent(new Event('focus'));
       });
-      await expect(page.getByRole('heading', { level: 2, name: 'Application Tracker' })).toBeVisible({ timeout: 2000 });
+      await expect(page.getByText(/^(Free|Plus|Max) plan$/)).toBeVisible({ timeout: 6000 });
     }).toPass({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { level: 2, name: 'Application Tracker' })).toBeVisible({ timeout: 20_000 });
     await page.waitForLoadState('networkidle');
     await expect(page.getByRole('heading', { level: 2, name: 'Application Tracker' })).toBeVisible();
   } finally {

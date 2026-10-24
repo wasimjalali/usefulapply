@@ -77,7 +77,11 @@ export default function Dashboard() {
     () => false,
   );
   const lastApplicationTabRef = useRef<ApplicationTab>('cv');
+  // The link last applied for the current identity, the identity the effect last
+  // settled on, and whether the current anonymous identity is a sign-out.
   const processedWorkspaceRef = useRef<string | null>(null);
+  const settledIdentityRef = useRef<string | null>(null);
+  const afterSignOutRef = useRef(false);
   const hasKit = sessions.some(sessionHasKit) || sessionHasKit(currentSession);
 
   const isApplicationTab = activeTab === 'cv' || activeTab === 'cover-letter' || activeTab === 'email';
@@ -111,6 +115,20 @@ export default function Dashboard() {
     // has run.
     const identity = user?.id ?? 'anon';
     if (storesReadyFor !== identity && !previewingFeed) return;
+    // Identity transitions, tracked apart from the applied key. On any change
+    // the applied key is cleared, so a link applies again for the new identity.
+    //   first load (anon or user): no previous identity, applies once.
+    //   anon -> A (sign-in)      : cleared, applies for A.
+    //   A -> anon (sign-out)     : cleared and flagged, nothing applies for the visitor.
+    //   anon (after sign-out) -> A, i.e. A -> anon -> A: flag drops, applies for A again.
+    //   A -> B                   : cleared, applies for B.
+    //   A -> A (re-render, session list changes): same identity, key kept, no repeat.
+    if (settledIdentityRef.current !== identity) {
+      const previous = settledIdentityRef.current;
+      afterSignOutRef.current = identity === 'anon' && previous !== null && previous !== 'anon';
+      processedWorkspaceRef.current = null;
+      settledIdentityRef.current = identity;
+    }
     let cancelled = false;
     const run = async () => {
       const {
@@ -135,14 +153,12 @@ export default function Dashboard() {
 
       if (cancelled) return;
 
-      const navKey = `${identity}|${requestedWorkspace ?? ''}|${requestedSessionId ?? ''}|${requestedTab ?? ''}|${autostart ?? ''}`;
+      const navKey = `${requestedWorkspace ?? ''}|${requestedSessionId ?? ''}|${requestedTab ?? ''}|${autostart ?? ''}`;
       if (processedWorkspaceRef.current === navKey) {
         return;
       }
-      // Identity is in the key so a link re-applies for a new user. A visitor
-      // who just signed out must not get it back: only the first anonymous
-      // load applies it, as before.
-      if (identity === 'anon' && processedWorkspaceRef.current !== null) return;
+      // A visitor who just signed out must not get the link back.
+      if (afterSignOutRef.current) return;
       processedWorkspaceRef.current = navKey;
 
       const resolvedTab: ApplicationTab = requestedTab === 'cover-letter' || requestedTab === 'email'
