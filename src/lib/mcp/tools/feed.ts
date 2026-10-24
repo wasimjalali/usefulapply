@@ -4,7 +4,7 @@ import { getProfile } from '@/db/repos/profiles';
 import { profileGaps } from '@/lib/profile/logistics';
 import { START_DATE_NOTE, profileGapsSchema } from '@/lib/mcp/tools/spend';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
-import { JOB_FEED_COUNTRY_OPTIONS, JOB_FEED_REMOTE_PREFERENCE_OPTIONS } from '@/lib/job-feed/constants';
+import { JOB_FEED_COUNTRY_OPTIONS, JOB_FEED_EMPLOYMENT_TYPE_OPTIONS, JOB_FEED_REMOTE_PREFERENCE_OPTIONS } from '@/lib/job-feed/constants';
 import { toJobFeedInput } from '@/lib/job-feed/helpers';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { getJobFeedFeedbackAdmin } from '@/lib/job-feed/server';
@@ -253,6 +253,7 @@ const getFeedSettings = defineTool({
 
 const COUNTRY_CODES = JOB_FEED_COUNTRY_OPTIONS.map((option) => option.value) as [string, ...string[]];
 const WORK_MODES = JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => option.value) as [string, ...string[]];
+const EMPLOYMENT_TYPES = JOB_FEED_EMPLOYMENT_TYPE_OPTIONS.map((option) => option.value) as [string, ...string[]];
 
 const updateFeedSettings = defineTool({
   name: 'update_feed_settings',
@@ -267,6 +268,8 @@ const updateFeedSettings = defineTool({
       .describe(`Countries to search, as two-letter codes: ${COUNTRY_CODES.join(', ')}.`),
     workModes: z.array(z.enum(WORK_MODES)).min(1).max(5).optional()
       .describe(`Work arrangements to include: ${WORK_MODES.join(', ')}.`),
+    employmentTypes: z.array(z.enum(EMPLOYMENT_TYPES)).min(1).max(5).optional()
+      .describe(`Employment types to include: ${EMPLOYMENT_TYPES.join(', ')}. Other types are filtered out of the feed.`),
     salaryFloor: z.number().int().min(0).max(10_000_000).nullable().optional()
       .describe('Minimum salary as a whole number in the local currency. null removes the floor.'),
     automationEnabled: z.boolean().optional()
@@ -313,6 +316,7 @@ function toPatch(args: {
   roles?: string[];
   countries?: string[];
   workModes?: string[];
+  employmentTypes?: string[];
   salaryFloor?: number | null;
   automationEnabled?: boolean;
   timezone?: string;
@@ -321,6 +325,7 @@ function toPatch(args: {
   if (args.roles !== undefined) patch.roles = args.roles;
   if (args.countries !== undefined) patch.countries = args.countries;
   if (args.workModes !== undefined) patch.workModes = args.workModes;
+  if (args.employmentTypes !== undefined) patch.employmentTypes = args.employmentTypes;
   if (args.salaryFloor !== undefined) patch.salaryFloor = args.salaryFloor;
   if (args.automationEnabled !== undefined) patch.automationEnabled = args.automationEnabled;
   if (args.timezone !== undefined) patch.timezone = args.timezone;

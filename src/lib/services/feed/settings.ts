@@ -329,6 +329,7 @@ export interface FeedSettingsPatch {
   roles?: string[];
   countries?: string[];
   workModes?: string[];
+  employmentTypes?: string[];
   salaryFloor?: number | null;
   automationEnabled?: boolean;
   timezone?: string;
@@ -365,6 +366,7 @@ export function changedFeedSettingFields(existing: JobFeedSettings | null, patch
   if (rolesWouldChange(existing, patch, searchLimit)) changed.push('roles');
   if (patch.countries && !sameSet(patch.countries, current.target_countries)) changed.push('countries');
   if (patch.workModes && !sameSet(patch.workModes, current.remote_preferences)) changed.push('work modes');
+  if (patch.employmentTypes && !sameSet(patch.employmentTypes, current.employment_types)) changed.push('employment types');
   if (patch.salaryFloor !== undefined && patch.salaryFloor !== current.salary_floor) changed.push('salary floor');
   if (patch.automationEnabled !== undefined && patch.automationEnabled !== Boolean(existing?.enabled)) changed.push('daily feed on or off');
   if (patch.timezone !== undefined && patch.timezone !== (existing ? current.user_timezone : undefined)) changed.push('timezone');
@@ -405,6 +407,7 @@ export async function updateFeedSettingsPartial(params: {
     body.remote_preferences = patch.workModes;
     body.remote_preference = patch.workModes[0];
   }
+  if (patch.employmentTypes) body.employment_types = patch.employmentTypes;
   if (patch.salaryFloor !== undefined) body.salary_floor = patch.salaryFloor;
   if (patch.automationEnabled !== undefined) body.enabled = patch.automationEnabled;
   if (patch.timezone !== undefined) body.user_timezone = patch.timezone;
