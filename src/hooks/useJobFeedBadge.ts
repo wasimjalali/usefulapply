@@ -59,7 +59,7 @@ function startFetch(key: string): Promise<JobFeedSummary | null> {
       // swallow, the badge is best-effort
       return null;
     } finally {
-      if (inFlight.get(key) === request) inFlight.delete(key);
+      inFlight.delete(key);
     }
   })();
   inFlight.set(key, request);
