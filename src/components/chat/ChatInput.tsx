@@ -103,7 +103,8 @@ export function ChatInput({
     setExpanded(wraps);
   }, []);
 
-  // A field disabled while the agent replies loses focus; hand it back when the reply is done, if it had it.
+  // A field disabled while the agent replies loses focus to the page; hand it back when the reply is done, if
+  // it had it and the user has not moved focus anywhere since.
   const focusedWhenDisabledRef = useRef(false);
   useLayoutEffect(() => {
     const field = textareaRef.current;
@@ -112,7 +113,8 @@ export function ChatInput({
       if (document.activeElement === field) focusedWhenDisabledRef.current = true;
     } else if (focusedWhenDisabledRef.current) {
       focusedWhenDisabledRef.current = false;
-      field.focus({ preventScroll: true });
+      const active = document.activeElement;
+      if (!active || active === document.body) field.focus({ preventScroll: true });
     }
   }, [disabled]);
 
