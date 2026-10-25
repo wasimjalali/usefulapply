@@ -71,7 +71,7 @@ Values are today's light theme.
 | | `scrim` | black | Modal backdrops (use with an opacity) |
 | | `info-soft`, `border-info-soft`, `info-ink` | violet-50, violet-100, violet-700 | In-progress notes (agent "reflecting" banner) |
 | | `ink-error` | rose-700 | Inline error text in lists and search |
-| Canvas and workspace extras | `brand-mid`, `brand-muted` | navy-500, navy-400 | Brand-colored icons and bullets, empty-state icons. Focus borders use `focus-ring-soft` |
+| Canvas and workspace extras | `brand-mid`, `brand-muted` | navy-500, navy-400 | Brand-colored icons and bullets, empty-state icons. The input focus ring uses `focus-ring-soft` (see Focus) |
 | | `border-brand` | navy-300 | Dashed add buttons and edit-field outlines |
 | | `border-inverse-mid` | navy-500 | Hairline on a dark panel |
 | | `ink-inverse-tint` | navy-100 | Softer text on a dark panel: mono text, secondary lines on navy bands |
@@ -150,7 +150,7 @@ Do NOT use: gradient CTAs, `bg-accent-strong` / `bg-brand-strong` as default bas
 Do NOT invent bespoke drop-shadow strings like `shadow-[0_24px_60px_-20px_rgba(30,58,95,0.35)]`. If `shadow-floating` isn't dramatic enough for a modal, use `shadow-xl` (last resort). Never `shadow-2xl`. Shadow color modifiers (`shadow-gold-200`) don't apply to the role shadows.
 
 ### Focus
-- Text inputs and composers show focus with `border-border-focus` plus `ring-2 ring-focus-ring-soft/40` (`focus:` on a bare field, `focus-within:` on a shell that wraps one), as in the chat composer, the guided line's text boxes and the CV canvas fields. Other inputs still carry older variants (`focus:border-brand-strong focus:ring-brand-strong/15` in the feed editor and application header, a border-only change in a few panels); the `border-input` follow-up moves them onto this one. Everything else keeps the global 2px `focus-ring` outline.
+- Text inputs and composers show focus with `border-border-focus` plus `ring-2 ring-focus-ring-soft/40` (`focus:` on a bare field, `focus-within:` on a shell that wraps one), as in the chat composer, the job ad boxes (guided line and chat hero), the guided line's CV paste box and the CV canvas fields. Other inputs still carry older variants (`focus:border-brand-strong focus:ring-brand-strong/15` in the feed editor, search plan and application header; a border-only `focus:border-border-accent` or `focus:border-focus-ring-soft` in the guided line's sign-in fields, the email and cover letter panels and a few others); the `border-input` follow-up moves them onto this one. Everything else keeps the global 2px `focus-ring` outline.
 
 ### Motion
 - Durations come from tokens only: `duration-(--duration-fast)` (150ms) for small state changes, `duration-(--duration-base)` (200ms) for most transitions, `duration-(--duration-slow)` (400ms) for entrances and progress. A bare `transition-*` with no duration runs `--duration-fast` on `ease-standard` (set in `@theme`). Page-level scroll reveals (`ScrollReveal`, 600-700ms) are the one exception.
