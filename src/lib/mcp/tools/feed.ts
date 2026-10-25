@@ -4,8 +4,16 @@ import { getProfile } from '@/db/repos/profiles';
 import { profileGaps } from '@/lib/profile/logistics';
 import { START_DATE_NOTE, profileGapsSchema } from '@/lib/mcp/tools/spend';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
-import { JOB_FEED_COUNTRY_OPTIONS, JOB_FEED_EMPLOYMENT_TYPE_OPTIONS, JOB_FEED_REMOTE_PREFERENCE_OPTIONS } from '@/lib/job-feed/constants';
+import {
+  JOB_FEED_COUNTRY_OPTIONS,
+  JOB_FEED_EMPLOYMENT_TYPE_OPTIONS,
+  JOB_FEED_REMOTE_PREFERENCE_OPTIONS,
+  JOB_FEED_SENIORITY_OPTIONS,
+  JOB_FEED_TIER_LIMITS,
+  getJobFeedTierLimits,
+} from '@/lib/job-feed/constants';
 import { toJobFeedInput } from '@/lib/job-feed/helpers';
+import { splitCompositeRole } from '@/lib/job-feed/cv-experience';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { getJobFeedFeedbackAdmin } from '@/lib/job-feed/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
@@ -20,10 +28,12 @@ import {
   waitSecondsField,
   wrapLong,
   wrapShort,
+  wrapUrl,
 } from '@/lib/mcp/tools/shared';
-import { requireFeedViewer } from '@/lib/services/feed/access';
+import { requireFeedEditor, requireFeedViewer } from '@/lib/services/feed/access';
 import { applyToFeedJob } from '@/lib/services/feed/apply';
-import { readCareerProfile, readSearchStrategy } from '@/lib/services/feed/career-profile';
+import { generateCareerProfileForUser, readCareerProfile, readSearchStrategy } from '@/lib/services/feed/career-profile';
+import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import { FeedError } from '@/lib/services/feed/errors';
 import { recordFeedFeedback } from '@/lib/services/feed/feedback';
 import { loadInboxPage, loadSavedJobs } from '@/lib/services/feed/inbox';
@@ -90,6 +100,7 @@ const feedItemSchema = z.object({
   applicationId: z.string().nullable(),
   generationStatus: z.string(),
   description: z.string().nullable().optional(),
+  descriptionComplete: z.boolean().optional(),
   highlights: z.array(z.object({ title: z.string(), items: z.array(z.string()) })).optional(),
   sourceUrl: z.string().nullable().optional(),
   applyOptions: z.array(z.object({ title: z.string(), link: z.string() })).optional(),
@@ -99,15 +110,27 @@ function wrapOrNull(value: string | null | undefined, cap?: number): string | nu
   return value ? wrapLong(value, cap) : null;
 }
 
-/** The most description text one get_job_feed call returns in total, split evenly across its jobs, so a page stays well under about 100 KB. */
+/**
+ * About how much description text one get_job_feed call returns. A description is never cut: a page with
+ * `full` stops before the job that would pass this (the first job always fits) and says where to go on.
+ */
 const DESCRIPTION_BUDGET = 40_000;
-const MAX_DESCRIPTION = 12_000;
 
-function descriptionCapFor(jobCount: number): number {
-  return Math.min(MAX_DESCRIPTION, Math.floor(DESCRIPTION_BUDGET / Math.max(jobCount, 1)));
+/** The views of `items` that fit one page, and how many of them there are. */
+function fitPage(items: JobFeedFeedItem[], detail: 'concise' | 'full'): z.infer<typeof feedItemSchema>[] {
+  const views: z.infer<typeof feedItemSchema>[] = [];
+  let used = 0;
+  for (const item of items) {
+    const view = toFeedItemView(item, detail);
+    const size = (view.description?.length ?? 0) + JSON.stringify(view.highlights ?? []).length;
+    if (detail === 'full' && views.length > 0 && used + size > DESCRIPTION_BUDGET) break;
+    used += size;
+    views.push(view);
+  }
+  return views;
 }
 
-function toFeedItemView(item: JobFeedFeedItem, detail: 'concise' | 'full', descriptionCap: number): z.infer<typeof feedItemSchema> {
+function toFeedItemView(item: JobFeedFeedItem, detail: 'concise' | 'full'): z.infer<typeof feedItemSchema> {
   const view: z.infer<typeof feedItemSchema> = {
     jobId: item.id,
     title: wrapShort(item.title),
@@ -118,7 +141,7 @@ function toFeedItemView(item: JobFeedFeedItem, detail: 'concise' | 'full', descr
     salaryText: item.salaryText ? wrapShort(item.salaryText) : null,
     postedAtText: item.postedAtText ? wrapShort(item.postedAtText) : null,
     via: item.via ? wrapShort(item.via) : null,
-    applyUrl: item.applyUrl ? wrapShort(item.applyUrl) : null,
+    applyUrl: wrapUrl(item.applyUrl),
     fitLabel: item.fitLabel,
     matchReason: wrapOrNull(item.matchReason, 1000),
     saved: Boolean(item.feedback.savedAt),
@@ -128,13 +151,17 @@ function toFeedItemView(item: JobFeedFeedItem, detail: 'concise' | 'full', descr
     generationStatus: item.feedback.generationStatus,
   };
   if (detail === 'full') {
-    view.description = wrapOrNull(item.description, descriptionCap);
+    view.description = wrapOrNull(item.description, Number.POSITIVE_INFINITY);
+    view.descriptionComplete = item.descriptionComplete;
     view.highlights = item.highlights.map((highlight) => ({
       title: wrapShort(highlight.title),
       items: highlight.items.map((entry) => wrapShort(entry)),
     }));
-    view.sourceUrl = item.sourceUrl ? wrapShort(item.sourceUrl) : null;
-    view.applyOptions = item.applyOptions.map((option) => ({ title: wrapShort(option.title), link: wrapShort(option.link) }));
+    view.sourceUrl = wrapUrl(item.sourceUrl);
+    view.applyOptions = item.applyOptions.flatMap((option) => {
+      const link = wrapUrl(option.link);
+      return link ? [{ title: wrapShort(option.title), link }] : [];
+    });
   }
   return view;
 }
@@ -148,7 +175,7 @@ const getJobFeed = defineTool({
     view: z.enum(['inbox', 'saved']).describe('inbox is the ranked feed of the last 7 days. saved is the bookmarked jobs, newest first.'),
     offset: z.number().int().min(0).max(10_000).optional().describe('Jobs to skip. Defaults to 0.'),
     limit: z.number().int().min(1).max(50).optional().describe('Jobs to return, 1 to 50. Defaults to 10.'),
-    detail: z.enum(['concise', 'full']).optional().describe('concise (the default) leaves out the job description. full adds the description, highlights and apply links; the descriptions of one call share about 40,000 characters, so a long page gets shorter descriptions.'),
+    detail: z.enum(['concise', 'full']).optional().describe('concise (the default) leaves out the job description. full adds the whole description, highlights and apply links. Descriptions are never cut: a full page holds about 40,000 characters of them and may return fewer jobs than the limit; read on from nextOffset.'),
   }),
   output: z.object({
     view: z.enum(['inbox', 'saved']),
@@ -157,31 +184,38 @@ const getJobFeed = defineTool({
     hasMore: z.boolean(),
     offset: z.number(),
     limit: z.number(),
+    /** The offset of the next page, or null when this page reached the end. */
+    nextOffset: z.number().nullable(),
   }),
   async run({ view, offset = 0, limit = 10, detail = 'concise' }, { userId }) {
     return feedCall(async () => {
       if (view === 'inbox') {
         await withinRateLimit(`job-feed-inbox:${userId}`, RATE_LIMITS['job-feed-inbox']);
         const page = await loadInboxPage(userId, offset, limit);
+        const items = fitPage(page.items, detail);
+        const hasMore = page.hasMore || items.length < page.items.length;
         return ok({
           view,
-          items: page.items.map((item) => toFeedItemView(item, detail, descriptionCapFor(page.items.length))),
+          items,
           totalCount: page.totalCount,
-          hasMore: page.hasMore,
+          hasMore,
           offset: page.offset,
           limit: page.limit,
+          nextOffset: hasMore ? page.offset + items.length : null,
         });
       }
       await withinRateLimit(`job-feed-saved:${userId}`, RATE_LIMITS['job-feed-saved']);
       const saved = await loadSavedJobs(userId);
-      const items = saved.slice(offset, offset + limit);
+      const items = fitPage(saved.slice(offset, offset + limit), detail);
+      const hasMore = offset + items.length < saved.length;
       return ok({
         view,
-        items: items.map((item) => toFeedItemView(item, detail, descriptionCapFor(items.length))),
+        items,
         totalCount: saved.length,
-        hasMore: offset + items.length < saved.length,
+        hasMore,
         offset,
         limit,
+        nextOffset: hasMore ? offset + items.length : null,
       });
     });
   },
@@ -235,6 +269,8 @@ const getFeedSettings = defineTool({
     configured: z.boolean(),
     canEdit: z.boolean(),
     consent: z.object({ given: z.boolean(), acceptedAt: z.string().nullable() }),
+    /** Send it with update_feed_settings. Null before the feed is set up. */
+    revision: z.number().nullable(),
     settings: settingsSchema.nullable(),
   }),
   async run(_args, { userId }) {
@@ -245,6 +281,7 @@ const getFeedSettings = defineTool({
         configured: settings !== null,
         canEdit,
         consent: { given: Boolean(settings?.consent_accepted_at), acceptedAt: settings?.consent_accepted_at ?? null },
+        revision: settings ? settings.revision : null,
         settings: settings ? toSettingsView(settings) : null,
       });
     });
@@ -254,6 +291,9 @@ const getFeedSettings = defineTool({
 const COUNTRY_CODES = JOB_FEED_COUNTRY_OPTIONS.map((option) => option.value) as [string, ...string[]];
 const WORK_MODES = JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => option.value) as [string, ...string[]];
 const EMPLOYMENT_TYPES = JOB_FEED_EMPLOYMENT_TYPE_OPTIONS.map((option) => option.value) as [string, ...string[]];
+const SENIORITY = JOB_FEED_SENIORITY_OPTIONS.map((option) => option.value) as [string, ...string[]];
+/** The most searches any plan runs in one run; the tool checks the user's own plan. */
+const SEARCHES_PER_RUN_MAX = Math.max(...Object.values(JOB_FEED_TIER_LIMITS).map((limits) => limits.maxMainQueries));
 
 const updateFeedSettings = defineTool({
   name: 'update_feed_settings',
@@ -262,8 +302,10 @@ const updateFeedSettings = defineTool({
     'Changes the given job feed settings and leaves the others as saved. Returns the settings after the change and, when the roles or countries changed, the role and country searches the next feed run will make.',
   hints: { readOnly: false, destructive: true, idempotent: true, openWorld: false },
   input: z.object({
-    roles: z.array(z.string().trim().min(1).max(80)).min(1).max(8).optional()
-      .describe('Job titles to search for. Each feed run makes a limited number of role and country searches, so fewer roles may be kept than sent; the result lists the searches kept.'),
+    revision: z.number().int().min(0)
+      .describe('The revision from get_feed_settings (0 before the feed is set up). If the settings changed since, in the web app or another call, nothing is changed and the call fails: read them again and send the new revision.'),
+    roles: z.array(z.string().trim().min(1).max(80)).min(1).max(50).optional()
+      .describe('Job titles to search for. The search list holds a limited number of role and country searches (searchLimit), so fewer roles may be kept than sent: droppedRoles and warning in the result name any left out.'),
     countries: z.array(z.enum(COUNTRY_CODES)).min(1).max(12).optional()
       .describe(`Countries to search, as two-letter codes: ${COUNTRY_CODES.join(', ')}.`),
     workModes: z.array(z.enum(WORK_MODES)).min(1).max(5).optional()
@@ -273,15 +315,30 @@ const updateFeedSettings = defineTool({
     salaryFloor: z.number().int().min(0).max(10_000_000).nullable().optional()
       .describe('Minimum salary as a whole number in the local currency. null removes the floor.'),
     automationEnabled: z.boolean().optional()
-      .describe('Whether the feed is switched on. It never runs by itself: when on, the user in the web app or run_job_feed starts at most one completed run a day. Turning it on needs consent already on file.'),
+      .describe('Whether the feed is switched on. It never runs by itself: when on, the user in the web app or run_job_feed starts runs, as many completed runs a day as the plan allows. Turning it on needs consent already on file.'),
     timezone: z.string().trim().min(1).max(80).optional()
-      .describe('IANA timezone name, for example Europe/Berlin. The one run a day follows this timezone.'),
+      .describe('IANA timezone name, for example Europe/Berlin. The day the plan\'s runs a day count in follows this timezone.'),
+    seniority: z.array(z.enum(SENIORITY)).max(SENIORITY.length).optional()
+      .describe(`Levels to keep: ${SENIORITY.join(', ')}. A job whose ad is only for other levels is left out of the feed; an ad that does not say is kept. An empty list keeps every level.`),
+    excludedTerms: z.array(z.string().trim().min(1).max(80)).max(20).optional()
+      .describe('Words to avoid: titles, companies or keywords the user never wants to see, for example "Sales" or a staffing agency. Up to 20. An empty list clears them.'),
+    cities: z.array(z.string().trim().min(1).max(80)).max(20).optional()
+      .describe('Cities to search in, for example Berlin. A city named for the first time adds its country to the countries. Up to 20. An empty list clears them.'),
+    languages: z.array(z.string().trim().min(1).max(40)).min(1).max(8).optional()
+      .describe('Languages the user works in, as names, for example English, German. The ranking keeps ads written in or asking for these.'),
+    workAuthorization: z.enum(['authorized', 'needs_sponsorship', 'open_to_both']).optional()
+      .describe('authorized: may work in the target countries. needs_sponsorship: needs a visa sponsor; ads that rule sponsorship out are left out. open_to_both (the default): sponsorship plays no part.'),
   }),
   output: z.object({
     changed: z.array(z.string()),
+    /** The revision after this call; send it with the next update. */
+    revision: z.number(),
     settings: settingsSchema,
     searches: z.array(z.object({ role: z.string(), country: z.string() })).nullable(),
     searchLimit: z.number().nullable(),
+    /** Roles sent that did not fit the search list. */
+    droppedRoles: z.array(z.string()),
+    warning: z.string().nullable(),
   }),
   async confirm(args, { userId }) {
     return feedCall(async () => {
@@ -299,20 +356,46 @@ const updateFeedSettings = defineTool({
       const { settings: before, searchLimit } = await loadFeedSettings(userId);
       const changed = changedFeedSettingFields(before, patch, searchLimit);
       if (before && changed.length === 0) {
-        return ok({ changed, settings: toSettingsView(before), searches: null, searchLimit: null });
+        const droppedRoles = rolesNotKept(patch.roles ?? [], before.target_roles);
+        return ok({ changed, revision: before.revision, settings: toSettingsView(before), searches: null, searchLimit: null, droppedRoles, warning: droppedWarning(droppedRoles, searchLimit) });
       }
-      const saved = await updateFeedSettingsPartial({ userId, patch, clientRequestId: null });
+      const saved = await updateFeedSettingsPartial({ userId, patch, clientRequestId: null, expectedRevision: args.revision });
+      const droppedRoles = rolesNotKept(patch.roles ?? [], saved.settings.target_roles);
       return ok({
         changed,
+        revision: saved.settings.revision,
         settings: toSettingsView(saved.settings),
         searches: saved.searches ? saved.searches.map((row) => ({ role: row.query, country: row.targetCountry })) : null,
         searchLimit: saved.searchLimit,
+        droppedRoles,
+        warning: droppedWarning(droppedRoles, saved.searchLimit),
       });
     });
   },
 });
 
+/**
+ * The roles sent that were not saved. A save splits a composite role ("AI Engineer | PM") into its parts, so
+ * a composite role reports each part that was left out ("PM" when only "AI Engineer" fit).
+ */
+function rolesNotKept(sent: string[], saved: string[]): string[] {
+  const key = (role: string) => role.trim().toLowerCase().slice(0, 80);
+  const kept = new Set(saved.map(key));
+  return sent.flatMap((role) => {
+    if (kept.has(key(role))) return [];
+    const parts = splitCompositeRole(role);
+    return parts.length === 0 ? [role] : parts.filter((part) => !kept.has(key(part)));
+  });
+}
+
+/** Why roles were left out, in a sentence an agent can pass on. Null when none were. */
+function droppedWarning(droppedRoles: string[], searchLimit: number): string | null {
+  if (droppedRoles.length === 0) return null;
+  return `${droppedRoles.length} of the roles sent did not fit: the search list holds ${searchLimit} role and country searches on this plan. Not saved: ${droppedRoles.join(', ')}. Send fewer roles or countries, or set the searches with update_feed_searches.`;
+}
+
 function toPatch(args: {
+  revision?: number;
   roles?: string[];
   countries?: string[];
   workModes?: string[];
@@ -320,6 +403,11 @@ function toPatch(args: {
   salaryFloor?: number | null;
   automationEnabled?: boolean;
   timezone?: string;
+  seniority?: string[];
+  excludedTerms?: string[];
+  cities?: string[];
+  languages?: string[];
+  workAuthorization?: 'authorized' | 'needs_sponsorship' | 'open_to_both';
 }): FeedSettingsPatch {
   const patch: FeedSettingsPatch = {};
   if (args.roles !== undefined) patch.roles = args.roles;
@@ -329,7 +417,23 @@ function toPatch(args: {
   if (args.salaryFloor !== undefined) patch.salaryFloor = args.salaryFloor;
   if (args.automationEnabled !== undefined) patch.automationEnabled = args.automationEnabled;
   if (args.timezone !== undefined) patch.timezone = args.timezone;
+  if (args.seniority !== undefined) patch.seniority = [...new Set(args.seniority)];
+  if (args.excludedTerms !== undefined) patch.excludedTerms = dedupeCaseless(args.excludedTerms);
+  if (args.cities !== undefined) patch.cities = dedupeCaseless(args.cities);
+  if (args.languages !== undefined) patch.languages = dedupeCaseless(args.languages);
+  if (args.workAuthorization !== undefined) patch.workAuthorization = args.workAuthorization;
   return patch;
+}
+
+/** The first spelling of each value, compared without case. */
+function dedupeCaseless(values: string[]): string[] {
+  const seen = new Set<string>();
+  return values.filter((value) => {
+    const key = value.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -338,32 +442,52 @@ function toPatch(args: {
 
 const skillClusterSchema = z.object({ name: z.string(), skills: z.array(z.string()) });
 
+const careerProfileSchema = z.object({
+  function: z.string(),
+  seniority: z.object({ level: z.string(), confidence: z.string() }),
+  yearsTotal: z.number(),
+  yearsInFunction: z.number(),
+  inferredTitles: z.array(z.object({ title: z.string(), confidence: z.string() })),
+  aspirationalTitles: z.array(z.string()),
+  pivot: z.object({ from: z.string(), to: z.string() }).nullable(),
+  primarySkills: z.array(skillClusterSchema),
+  secondarySkills: z.array(skillClusterSchema),
+  industries: z.array(z.string()),
+  tools: z.array(z.string()),
+  workingLanguages: z.array(z.string()),
+  narrative: z.string(),
+});
+
+function toCareerProfileView(profile: CareerProfile): z.infer<typeof careerProfileSchema> {
+  return {
+    function: profile.function,
+    seniority: { level: profile.seniority.level, confidence: profile.seniority.confidence },
+    yearsTotal: profile.yearsTotal,
+    yearsInFunction: profile.yearsInFunction,
+    inferredTitles: profile.inferredTitles.map((title) => ({ title: title.canonical, confidence: title.confidence })),
+    aspirationalTitles: profile.targetDirection.aspirationalTitles,
+    pivot: profile.targetDirection.pivot ? { from: profile.targetDirection.pivot.from, to: profile.targetDirection.pivot.to } : null,
+    primarySkills: profile.primarySkillClusters.map((cluster) => ({ name: cluster.name, skills: cluster.skills })),
+    secondarySkills: profile.secondarySkillClusters.map((cluster) => ({ name: cluster.name, skills: cluster.skills })),
+    industries: profile.industryDomains,
+    tools: profile.toolsEnvironment,
+    workingLanguages: profile.workingLanguages,
+    narrative: profile.narrative,
+  };
+}
+
 const getCareerProfile = defineTool({
   name: 'get_career_profile',
   title: 'Get career profile',
   description:
-    "Returns the career profile the job feed derives from the user's CV (titles, seniority, skills, direction) and the search strategy it currently runs. Never generates either one.",
+    "Returns the career profile the job feed derives from the user's CV (titles, seniority, skills, direction) and the search strategy it currently runs. Never generates either one: regenerate_career_profile reads the CV again, and update_feed_searches changes the searches.",
   hints: READ_HINTS,
   input: z.object({}),
   output: z.object({
     status: z.enum(['ok', 'no_cv', 'no_profile']),
     generatedAt: z.string().nullable(),
     cvNewerThanProfile: z.boolean(),
-    profile: z.object({
-      function: z.string(),
-      seniority: z.object({ level: z.string(), confidence: z.string() }),
-      yearsTotal: z.number(),
-      yearsInFunction: z.number(),
-      inferredTitles: z.array(z.object({ title: z.string(), confidence: z.string() })),
-      aspirationalTitles: z.array(z.string()),
-      pivot: z.object({ from: z.string(), to: z.string() }).nullable(),
-      primarySkills: z.array(skillClusterSchema),
-      secondarySkills: z.array(skillClusterSchema),
-      industries: z.array(z.string()),
-      tools: z.array(z.string()),
-      workingLanguages: z.array(z.string()),
-      narrative: z.string(),
-    }).nullable(),
+    profile: careerProfileSchema.nullable(),
     searchStrategy: z.object({
       status: z.enum(['ok', 'no_profile', 'profile_only', 'no_settings', 'no_countries']),
       generatedAt: z.string().nullable(),
@@ -388,23 +512,7 @@ const getCareerProfile = defineTool({
         status: career.status,
         generatedAt: career.generatedAt,
         cvNewerThanProfile: career.cvNewerThanProfile,
-        profile: profile
-          ? {
-              function: profile.function,
-              seniority: { level: profile.seniority.level, confidence: profile.seniority.confidence },
-              yearsTotal: profile.yearsTotal,
-              yearsInFunction: profile.yearsInFunction,
-              inferredTitles: profile.inferredTitles.map((title) => ({ title: title.canonical, confidence: title.confidence })),
-              aspirationalTitles: profile.targetDirection.aspirationalTitles,
-              pivot: profile.targetDirection.pivot ? { from: profile.targetDirection.pivot.from, to: profile.targetDirection.pivot.to } : null,
-              primarySkills: profile.primarySkillClusters.map((cluster) => ({ name: cluster.name, skills: cluster.skills })),
-              secondarySkills: profile.secondarySkillClusters.map((cluster) => ({ name: cluster.name, skills: cluster.skills })),
-              industries: profile.industryDomains,
-              tools: profile.toolsEnvironment,
-              workingLanguages: profile.workingLanguages,
-              narrative: profile.narrative,
-            }
-          : null,
+        profile: profile ? toCareerProfileView(profile) : null,
         searchStrategy: {
           status: strategy.status,
           generatedAt: strategy.generatedAt,
@@ -424,6 +532,77 @@ const getCareerProfile = defineTool({
 });
 
 // ---------------------------------------------------------------------------
+// regenerate_career_profile, update_feed_searches
+// ---------------------------------------------------------------------------
+
+const regenerateCareerProfile = defineTool({
+  name: 'regenerate_career_profile',
+  title: 'Regenerate career profile',
+  description:
+    "Reads the user's primary CV again and replaces the career profile the job feed derives from it (titles, seniority estimate, years, skills). Costs no credits. A changed CV is always read. An unchanged CV read in the last 5 minutes returns the stored profile as it is (regenerated false). The feed settings stay as saved: the seniority estimate never overrides the levels in the settings, which update_feed_settings changes.",
+  hints: { readOnly: false, destructive: false, idempotent: false, openWorld: false },
+  input: z.object({}),
+  output: z.object({
+    status: z.enum(['ok', 'no_cv']),
+    /** False when the CV is unchanged and was read in the last 5 minutes: the stored profile is returned as it is. */
+    regenerated: z.boolean(),
+    generatedAt: z.string().nullable(),
+    profile: careerProfileSchema.nullable(),
+  }),
+  async run(_args, { userId }) {
+    return feedCall(async () => {
+      await requireFeedEditor(userId);
+      await withinRateLimit(`career-profile-generate:${userId}`, RATE_LIMITS['career-profile-generate']);
+      const result = await generateCareerProfileForUser({ userId, force: true, clientRequestId: null, route: 'mcp:regenerate_career_profile' });
+      if (result.status === 'no_cv' || !result.profile) {
+        return ok({ status: 'no_cv' as const, regenerated: false, generatedAt: null, profile: null });
+      }
+      return ok({ status: 'ok' as const, regenerated: result.regenerated, generatedAt: result.generatedAt, profile: toCareerProfileView(result.profile) });
+    });
+  },
+});
+
+const updateFeedSearches = defineTool({
+  name: 'update_feed_searches',
+  title: 'Update feed searches',
+  description:
+    'Replaces the list of searches the job feed runs, in order: each is a role keyword and a country. The roles become the searched roles, and a country a search names joins the countries. Returns the searches saved. get_career_profile shows the current list.',
+  hints: { readOnly: false, destructive: true, idempotent: true, openWorld: false },
+  input: z.object({
+    revision: z.number().int().min(0)
+      .describe('The revision from get_feed_settings. If the settings changed since, nothing is changed and the call fails: read them again and send the new revision.'),
+    searches: z.array(z.object({
+      query: z.string().trim().min(1).max(80).describe('A role keyword, for example "Applied AI Engineer". Use the language ads in that country are written in when it differs.'),
+      country: z.enum(COUNTRY_CODES).describe('Two-letter country code.'),
+    })).min(1).max(50)
+      .describe('The searches, best first. Each run makes a limited number of searches (searchLimit in the result); a longer list is refused.'),
+  }),
+  output: z.object({
+    revision: z.number(),
+    searches: z.array(z.object({ query: z.string(), country: z.string() })),
+    roles: z.array(z.string()),
+    countries: z.array(z.string()),
+    searchLimit: z.number(),
+  }),
+  confirm({ searches }) {
+    return `Replace the feed's searches with these ${searches.length}? The roles saved follow them.`;
+  },
+  async run({ revision, searches }, { userId }) {
+    return feedCall(async () => {
+      await withinRateLimit(`job-feed-settings:${userId}`, RATE_LIMITS['job-feed-settings']);
+      const saved = await updateFeedSettingsPartial({ userId, patch: { searches }, clientRequestId: null, expectedRevision: revision });
+      return ok({
+        revision: saved.settings.revision,
+        searches: (saved.searches ?? []).map((row) => ({ query: row.query, country: row.targetCountry })),
+        roles: saved.settings.target_roles,
+        countries: saved.settings.target_countries,
+        searchLimit: saved.searchLimit,
+      });
+    });
+  },
+});
+
+// ---------------------------------------------------------------------------
 // run_job_feed
 // ---------------------------------------------------------------------------
 
@@ -431,9 +610,15 @@ const runJobFeed = defineTool({
   name: 'run_job_feed',
   title: 'Run job feed',
   description:
-    "Queues today's job search for the user and returns at once with a runId and its status: queued or running while it is in progress, completed or failed once it ended. The search runs in the background, usually within a couple of minutes, and the jobs it finds appear in get_job_feed when the run completes. Nothing runs on a schedule: this call, or the user in the web app, starts the day's run. At most one completed run a day (a failed run can be started again), and it needs consent on file.",
+    "Queues a job search for the user and returns at once with a runId and its status: queued or running while it is in progress, completed or failed once it ended. The search runs in the background, usually within a couple of minutes, and the jobs it finds appear in get_job_feed when the run completes. It searches the saved search list, or the queries sent, through the same filtering and ranking as every run. Nothing runs on a schedule: this call, or the user in the web app, starts a run. The plan sets how many completed runs a day are allowed (runsPerDay; a failed run can be started again), and it needs consent on file.",
   hints: { readOnly: false, destructive: false, idempotent: true, openWorld: true },
-  input: z.object({}),
+  input: z.object({
+    queries: z.array(z.object({
+      query: z.string().trim().min(1).max(80).describe('A role keyword, for example "Applied AI Engineer", in the language ads in that country use.'),
+      country: z.enum(COUNTRY_CODES).describe('Two-letter country code.'),
+    })).min(1).max(SEARCHES_PER_RUN_MAX).optional()
+      .describe("This run's own searches instead of the saved search list, for example to try another title. Up to the plan's searches per run; the saved settings and list stay as they are. Without it the run searches the next part of the saved list."),
+  }),
   output: z.object({
     runId: z.string().nullable(),
     status: z.string().nullable(),
@@ -446,15 +631,28 @@ const runJobFeed = defineTool({
     jobsAfterPrefilter: z.number().nullable(),
     rankedJobsCount: z.number().nullable(),
     failed: z.boolean(),
+    /** Completed runs still allowed today after this one. */
+    runsLeftToday: z.number(),
+    runsPerDay: z.number(),
+    /** Which run of the day this is, from 0. */
+    runSlot: z.number().nullable(),
+    /** Set when queries were sent but not used: a run was already queued or running, or none was allowed. */
+    warning: z.string().nullable(),
   }),
-  async run(_args, { userId }) {
+  async run({ queries }, { userId }) {
     return feedCall(async () => {
       await withinRateLimit(`job-feed-run:${userId}`, RATE_LIMITS['job-feed-run']);
       const blocker = await explainFeedRunBlocker(userId);
       if (blocker) throw new ToolError(blocker.code, blocker.message);
       // An agent cannot give the user's consent, so the run only goes ahead on consent already on file.
       // The run itself happens on the agent queue; this returns once it is queued.
-      const result = await queueFeedRun(userId);
+      const limit = getJobFeedTierLimits((await requireFeedViewer(userId)).subscription_tier).maxMainQueries;
+      if (queries && queries.length > limit) {
+        throw new ToolError('invalid_input', `This plan runs at most ${limit} searches a run. Send ${limit} or fewer.`);
+      }
+      const result = await queueFeedRun(userId, {
+        customQueries: queries ? queries.map((row) => ({ query: row.query, targetCountry: row.country })) : null,
+      });
       return ok({
         runId: result.runId,
         status: result.status,
@@ -466,6 +664,14 @@ const runJobFeed = defineTool({
         jobsAfterPrefilter: result.jobsAfterPrefilter,
         rankedJobsCount: result.rankedJobsCount,
         failed: result.status === 'failed',
+        runsLeftToday: result.runsLeftToday,
+        runsPerDay: result.runsPerDay,
+        runSlot: result.runSlot,
+        warning: queries && !result.started
+          ? (result.alreadyRanToday
+            ? 'No run was started, so the queries sent were not searched: today\'s runs are used up.'
+            : 'A run was already in progress, so the queries sent were not searched. Send them again once it has ended.')
+          : null,
       });
     });
   },
@@ -679,8 +885,10 @@ export const feedTools: AnyToolDefinition[] = [
   getJobFeed,
   getFeedSettings,
   getCareerProfile,
+  regenerateCareerProfile,
   runJobFeed,
   updateFeedSettings,
+  updateFeedSearches,
   giveJobFeedback,
   withdrawFeedConsentTool,
   applyToFeedJobTool,

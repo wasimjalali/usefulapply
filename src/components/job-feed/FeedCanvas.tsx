@@ -4,14 +4,14 @@ import { useMemo, useRef, useState } from 'react';
 import { AlertCircle, ArrowUpRight, Briefcase, Check, Loader2, SlidersHorizontal } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
-import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
+import { getJobFeedTierLimits, searchListCapForTier } from '@/lib/job-feed/constants';
 import { readJobFeedQueryProgress, type JobFeedQueryProgress } from '@/lib/job-feed/types';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { useCreditsBalance } from '@/hooks/useCreditsBalance';
 import { resolveFeedBuild, useFeedStore } from '@/store/useFeedStore';
 import { openSettings } from '@/store/useSettingsStore';
 import { FeedEditView } from './FeedEditView';
-import { saveFeedSettings } from './feed-actions';
+import { rereadCareerProfile, saveFeedSettings } from './feed-actions';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { FeedJobCard } from './FeedJobCard';
 import { FeedJobDetail } from './FeedJobDetail';
@@ -91,6 +91,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
   // for an empty day, and telling the user "2 searches" when one runs would be
   // a promise the normal day does not keep.
   const queryBudget = getJobFeedTierLimits(tier ?? 'free').maxMainQueries;
+  const searchListCap = searchListCapForTier(tier ?? 'free');
   // The server allows a dismiss on Plus and Max only, so Free never sees the button.
   const canDismiss = (tier === 'plus' || tier === 'max') && !readOnly;
   const canAffordFit = credits === null || credits.total >= CREDIT_COSTS.FIT_ANALYSIS;
@@ -128,14 +129,24 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         profile={careerProfile}
         strategy={strategy}
         queryBudget={queryBudget}
+        searchListCap={searchListCap}
         pill={editPill}
         onPillChange={(pill) => useFeedStore.getState().setEditPill(pill)}
         onBack={() => useFeedStore.getState().backToList()}
-        onSavePreferences={async (draft, plan) => {
-          const result = await saveFeedSettings(draft, { confirmedQueries: plan });
+        onRereadCv={async () => {
+          const result = await rereadCareerProfile();
+          return result.ok ? { ok: true } : { ok: false, error: result.error };
+        }}
+        onSavePreferences={async (draft, plan, expectedRevision) => {
+          const result = await saveFeedSettings(draft, { confirmedQueries: plan, expectedRevision });
           return result.ok
-            ? { ok: true, settingsVersion: result.data?.updated_at ?? overview?.settings?.updated_at ?? null }
-            : { ok: false, error: result.error };
+            ? {
+              ok: true,
+              settingsVersion: result.data?.revision ?? overview?.settings?.revision ?? null,
+              // The list this save wrote, loaded by saveFeedSettings before it resolved.
+              strategyVersion: useFeedStore.getState().strategy?.generatedAt ?? null,
+            }
+            : { ok: false, error: result.error, stale: result.stale === true };
         }}
       />
     );

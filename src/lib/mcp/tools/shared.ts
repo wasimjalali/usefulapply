@@ -15,6 +15,22 @@ export function wrapShort(value: string | null | undefined): string {
   return `<<${flattenUntrusted(value)}>>`;
 }
 
+/**
+ * A link from a job ad or the web: never cut, since a shortened URL is a dead one. Serializing it through
+ * URL percent-encodes angle brackets, quotes and spaces, so it cannot close the << >> wrapper. Null for a
+ * value that is not an absolute http(s) URL.
+ */
+export function wrapUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
+    return `<<${url.href}>>`;
+  } catch {
+    return null;
+  }
+}
+
 /** Longer job-ad text (the description, an assessment): line breaks kept, chrome labels and angle brackets neutralized, wrapped. */
 export function wrapLong(value: string | null | undefined, cap = 12_000): string {
   return `<<${sanitizeAdText(value ?? '').slice(0, cap)}>>`;

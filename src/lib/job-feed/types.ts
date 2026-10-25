@@ -52,6 +52,9 @@ export interface JobFeedOverviewResponse {
   // "Run for today" 24h cooldown considers. Preview mode's fake run sits
   // outside that list so it never locks the button.
   latestManualRun: JobFeedRun | null;
+  /** Runs the plan still allows today (the run gate's count), and the plan's runs a day. */
+  runsLeftToday?: number;
+  runsPerDay?: number;
   feedRun: JobFeedRun | null;
   latestRunDiagnostics: JobFeedRunDiagnostics | null;
   // First page of the 7-day inbox (JOB_FEED_VISIBLE_DEFAULT_COUNT items).
@@ -233,6 +236,8 @@ export interface JobFeedFeedItem {
   employmentType: JobFeedCanonicalJob['employment_type'];
   salaryText: string | null;
   description: string | null;
+  /** False when the description is a snippet or was cut off and the ad's own page could not be read. */
+  descriptionComplete: boolean;
   highlights: JobFeedHighlight[];
   applyUrl: string | null;
   sourceUrl: string | null;
@@ -348,6 +353,10 @@ export interface JobFeedRankedItemRecord {
   reason: string | null;
   deterministicScore: number;
   companyDisplay?: string | null;
+  /** The work mode the ranker read in the ad. Absent on the deterministic fallback. */
+  workMode?: 'remote' | 'hybrid' | 'onsite' | 'unknown';
+  /** The levels the ranker read the role is open to; empty when the ad does not say. */
+  seniorityLevels?: string[];
 }
 
 export interface JobFeedRankingExecutionResult {
@@ -361,6 +370,10 @@ export interface JobFeedRankingExecutionResult {
     outputTokens: number;
     latencyMs: number;
   } | null;
+  /** Jobs the model surfaced that the settings removed (completed_llm only). */
+  excludedBySettings?: { workMode: number; seniority: number };
+  /** The work mode the model read in each ad it answered for, by canonical job id (completed_llm only). */
+  readWorkModes?: Map<string, 'remote' | 'hybrid' | 'onsite' | 'unknown'>;
 }
 
 export interface JobFeedRunWorkflowResult {

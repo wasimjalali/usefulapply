@@ -10,8 +10,10 @@
 
 import * as jobFeedRepo from '@/db/repos/jobFeed';
 import { getProfile } from '@/db/repos/profiles';
-import type { JobFeedRun } from '@/db/types';
-import { canViewJobFeed, getLocalDateKey, isJobFeedConfigured, isValidTimeZone } from '@/lib/job-feed/helpers';
+import type { JobFeedRun, Json } from '@/db/types';
+import { canViewJobFeed, getLocalDateKey, getStartOfNextLocalDay, isJobFeedConfigured, isValidTimeZone } from '@/lib/job-feed/helpers';
+import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
+import type { ConfirmedSearchQuery } from '@/lib/job-feed/search-plan';
 import {
   getJobFeedSettingsAdmin,
   getJobFeedRunDiagnostics,
@@ -23,6 +25,8 @@ import { sendFeedRunMessage } from '../generation-runner';
 import { FeedError } from './errors';
 import { failUnclaimedRun } from './run-queue';
 import { getCalendarDayCooldown, nextRunAfter } from './cooldown';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface FeedRunResponse {
   success: true;
@@ -57,7 +61,7 @@ export async function startFeedRun(params: {
 }): Promise<FeedRunResponse> {
   const { userId, consentAccepted } = params;
   const gate = await readRunGate(userId);
-  const { timeZone, now, cooldown } = gate;
+  const { now, cooldown } = gate;
 
   if (cooldown.blocked) return cooldownResponse(gate);
 
@@ -72,6 +76,7 @@ export async function startFeedRun(params: {
       orchestrator: 'direct',
       consentAccepted,
       force: cooldown.forceRerun,
+      nextRunSlot: gate.nextRunSlot,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'JOB_FEED_CONSENT_REQUIRED') {
@@ -88,7 +93,7 @@ export async function startFeedRun(params: {
   }
 
   const diagnostics = getJobFeedRunDiagnostics(result.run);
-  const nextRunAt = nextRunAfter(result.run, timeZone, now);
+  const nextRunAt = gateNextRunAt(gate, result.run);
 
   return {
     success: true,
@@ -117,9 +122,34 @@ interface RunGate {
   now: Date;
   latestManualRun: JobFeedRun | null;
   cooldown: ReturnType<typeof getCalendarDayCooldown>;
+  /** The plan's runs a day. */
+  runsPerDay: number;
+  /** Completed runs the plan still allows today (multi-run plans; 0 or 1 on a one-run plan). */
+  runsLeftToday: number;
+  /** Set when today's latest run completed and the plan allows another: the slot the next run takes. */
+  nextRunSlot?: number;
+  /** Today's runs that had completed when the gate was read (multi-run plans). */
+  completedRunIds?: Set<string>;
 }
 
-/** The plan check and the once-a-day cooldown, the same for the synchronous and the queued run. */
+/**
+ * When the run after `run` may start. On a one-run plan, the classic calendar-day cooldown. On a plan with
+ * more runs a day, at once while today has runs left after this one, else at the start of the next local day.
+ */
+function gateNextRunAt(gate: RunGate, run: JobFeedRun): string | null {
+  if (gate.runsPerDay <= 1) return nextRunAfter(run, gate.timeZone, gate.now);
+  if (run.status === 'failed') return null;
+  // A run the gate already counted leaves the count as it is; any other run takes one more of today's runs.
+  const counted = gate.completedRunIds?.has(run.id) ?? false;
+  const leftAfterThis = gate.runsLeftToday - (counted ? 0 : 1);
+  return leftAfterThis > 0 ? null : getStartOfNextLocalDay(gate.now, gate.timeZone).toISOString();
+}
+
+/**
+ * The plan check and the run gate, the same for the synchronous and the queued run. A one-run plan keeps
+ * the calendar-day cooldown (one completed run a day, 20 to 28 hours apart). A plan with more runs a day
+ * counts today's completed runs instead: while some are left, a completed run opens the next slot.
+ */
 async function readRunGate(userId: string): Promise<RunGate> {
   const profile = await getProfile(userId);
 
@@ -146,7 +176,42 @@ async function readRunGate(userId: string): Promise<RunGate> {
     timeZone,
     now,
   });
-  return { timeZone, now, latestManualRun, cooldown };
+  const { runsPerDay } = getJobFeedTierLimits(profile.subscription_tier);
+  if (runsPerDay <= 1) {
+    return { timeZone, now, latestManualRun, cooldown, runsPerDay, runsLeftToday: cooldown.blocked ? 0 : 1 };
+  }
+
+  const [todaysRuns, lastDay] = await Promise.all([
+    jobFeedRepo.listRunsByDate(userId, todayKey),
+    jobFeedRepo.listRunsCompletedSince(userId, new Date(now.getTime() - DAY_MS).toISOString()),
+  ]);
+  // Today's completed runs: those stored under today's date, and those of the last day that fall on today in
+  // the current timezone, so a timezone change never opens another day's runs.
+  const completedRunIds = new Set([
+    ...todaysRuns.filter((run) => run.status === 'completed').map((run) => run.id),
+    ...lastDay.filter((run) => getLocalDateKey(new Date(run.completed_at as string), timeZone) === todayKey).map((run) => run.id),
+  ]);
+  const latestToday = todaysRuns[0] ?? null;
+  const open = { blocked: false, nextRunAt: null, remainingMs: 0, forceRerun: false };
+  const runsLeftToday = Math.max(0, runsPerDay - completedRunIds.size);
+  if (latestToday && latestToday.status !== 'completed') {
+    // Today's latest run is queued, running or failed: the workflow takes it from there.
+    return { timeZone, now, latestManualRun, cooldown: open, runsPerDay, runsLeftToday, completedRunIds };
+  }
+  if (runsLeftToday > 0) {
+    // Nothing stored under today yet starts slot 0; otherwise the slot after today's latest.
+    return { timeZone, now, latestManualRun, cooldown: open, runsPerDay, runsLeftToday, completedRunIds, nextRunSlot: latestToday ? latestToday.run_slot + 1 : undefined };
+  }
+  const nextRunAt = getStartOfNextLocalDay(now, timeZone);
+  return {
+    timeZone,
+    now,
+    latestManualRun,
+    cooldown: { blocked: true, nextRunAt: nextRunAt.toISOString(), remainingMs: Math.max(0, nextRunAt.getTime() - now.getTime()), forceRerun: false },
+    runsPerDay,
+    runsLeftToday: 0,
+    completedRunIds,
+  };
 }
 
 /** What a blocked run reports: the latest completed manual run, and when the next one may start. */
@@ -187,15 +252,24 @@ export interface QueuedFeedRunResponse {
   rawJobsFetched: number | null;
   jobsAfterPrefilter: number | null;
   rankedJobsCount: number | null;
+  /** Completed runs the plan still allows today, not counting this one if it is still to finish. */
+  runsLeftToday: number;
+  runsPerDay: number;
+  /** Which run of the day this is, from 0. */
+  runSlot: number | null;
 }
 
 /**
  * Queue today's run for the agent queue consumer and return without running it. Checks the same
  * gate as startFeedRun, then creates (or finds) today's run row in `queued` through
- * queueJobFeedRunAdmin, whose unique run per user and local day keeps it to one. The caller has
- * already ruled out the refusals in explainFeedRunBlocker, so consent is on file.
+ * queueJobFeedRunAdmin, whose unique run per user, local day and slot keeps it to one per slot. The
+ * caller has already ruled out the refusals in explainFeedRunBlocker, so consent is on file.
+ * `customQueries` are an agent's own searches for this run, used instead of the search list.
  */
-export async function queueFeedRun(userId: string): Promise<QueuedFeedRunResponse> {
+export async function queueFeedRun(
+  userId: string,
+  options: { customQueries?: ConfirmedSearchQuery[] | null } = {},
+): Promise<QueuedFeedRunResponse> {
   const gate = await readRunGate(userId);
   if (gate.cooldown.blocked) {
     const blocked = cooldownResponse(gate);
@@ -209,20 +283,37 @@ export async function queueFeedRun(userId: string): Promise<QueuedFeedRunRespons
       rawJobsFetched: blocked.rawJobsFetched,
       jobsAfterPrefilter: blocked.jobsAfterPrefilter,
       rankedJobsCount: blocked.rankedJobsCount,
+      runsLeftToday: 0,
+      runsPerDay: gate.runsPerDay,
+      runSlot: gate.latestManualRun?.run_slot ?? null,
     };
   }
 
-  const queued = await queueJobFeedRunAdmin({ userId, now: gate.now, triggerSource: 'manual_user' });
+  const queued = await queueJobFeedRunAdmin({
+    userId,
+    now: gate.now,
+    triggerSource: 'manual_user',
+    nextRunSlot: gate.nextRunSlot,
+    customQueries: options.customQueries ?? null,
+  });
   let { run, queuedNow, dispatch } = queued;
   if (gate.cooldown.forceRerun && run.status === 'completed') {
     // The gate lets this run through although today's row already completed (28 hours or more have passed
     // since it ran, as after a timezone change). The synchronous path passes `force` to its workflow; the
     // queued path puts the completed row back on the queue, which is what a forced rerun of it amounts to.
     // The guard on status and updated_at lets one caller win; a loser reports the row as it is now.
-    const requeued = await jobFeedRepo.requeueRun(userId, run.id, {
-      status: run.status,
-      updatedAt: run.updated_at,
-    });
+    // The rerun searches what this call asked for: an agent's own queries, or the saved list.
+    const customQueries = options.customQueries ?? null;
+    const metadata = run.metadata && typeof run.metadata === 'object' && !Array.isArray(run.metadata) ? run.metadata : {};
+    // Written by the same guarded update as the requeue, so a caller that loses never changes the run.
+    const requeued = await jobFeedRepo.requeueRun(
+      userId,
+      run.id,
+      { status: run.status as 'completed', updatedAt: run.updated_at },
+      customQueries || 'custom_queries' in metadata
+        ? { ...metadata, custom_queries: customQueries ? (customQueries as unknown as Json) : null }
+        : undefined,
+    );
     if (requeued) {
       run = requeued;
       queuedNow = true;
@@ -245,16 +336,20 @@ export async function queueFeedRun(userId: string): Promise<QueuedFeedRunRespons
     }
   }
   const finished = run.status === 'completed' || run.status === 'failed';
+  const counted = gate.completedRunIds?.has(run.id) ?? run.status === 'completed';
   return {
     runId: run.id,
     status: run.status,
     localDate: run.local_date,
     started: queuedNow,
     alreadyRanToday: run.status === 'completed',
-    nextRunAt: nextRunAfter(run, gate.timeZone, gate.now),
+    nextRunAt: gateNextRunAt(gate, run),
     rawJobsFetched: finished ? run.raw_jobs_fetched : null,
     jobsAfterPrefilter: finished ? run.jobs_after_prefilter : null,
     rankedJobsCount: finished ? run.ranked_jobs_count : null,
+    runsLeftToday: Math.max(0, gate.runsLeftToday - (counted || run.status === 'failed' ? 0 : 1)),
+    runsPerDay: gate.runsPerDay,
+    runSlot: run.run_slot,
   };
 }
 
@@ -283,4 +378,10 @@ export async function explainFeedRunBlocker(userId: string): Promise<{ code: str
   if (!settings.enabled) return { code: 'feed_off', message: 'The daily feed is turned off in the feed settings.' };
   if (!isJobFeedConfigured(settings)) return { code: 'setup_incomplete', message: 'The feed setup is not finished.' };
   return null;
+}
+
+/** Runs the plan still allows today, for the overview: the same gate a run checks. */
+export async function readRunsLeftToday(userId: string): Promise<{ runsLeftToday: number; runsPerDay: number }> {
+  const gate = await readRunGate(userId);
+  return { runsLeftToday: gate.cooldown.blocked ? 0 : gate.runsLeftToday, runsPerDay: gate.runsPerDay };
 }

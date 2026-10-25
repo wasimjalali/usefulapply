@@ -34,7 +34,9 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof FeedError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+      // A stale save says so by code, so the form reloads instead of showing a generic conflict.
+      const stale = error.code === 'stale_settings' ? { code: error.code } : {};
+      return NextResponse.json({ error: error.message, ...stale }, { status: error.status });
     }
     console.error('[job-feed/settings] PUT unexpected error:', error);
     return NextResponse.json({ error: 'Failed to save job feed settings.' }, { status: 500 });

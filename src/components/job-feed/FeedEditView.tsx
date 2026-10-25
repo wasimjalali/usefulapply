@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Check, Loader2, X } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, RefreshCw, X } from 'lucide-react';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import type { SearchStrategy } from '@/lib/job-feed/search-strategy-types';
 import type { JobFeedOverviewResponse, JobFeedSettingsInput } from '@/lib/job-feed/types';
@@ -9,6 +9,7 @@ import {
   JOB_FEED_COUNTRY_OPTIONS,
   JOB_FEED_EMPLOYMENT_TYPE_OPTIONS,
   JOB_FEED_REMOTE_PREFERENCE_OPTIONS,
+  JOB_FEED_SENIORITY_OPTIONS,
   JOB_FEED_WORK_AUTH_OPTIONS,
   legacyMarketFromCountries,
 } from '@/lib/job-feed/constants';
@@ -32,11 +33,16 @@ interface FeedEditViewProps {
   strategy: SearchStrategy | null;
   /** How many of the planned queries today's plan actually runs. */
   queryBudget: number;
+  /** How many searches the list may hold: a run's searches times the plan's runs a day. */
+  searchListCap: number;
   pill: FeedEditPill;
   onPillChange: (pill: FeedEditPill) => void;
   onBack: () => void;
-  onSavePreferences: (draft: JobFeedSettingsInput, plan: ConfirmedSearchQuery[]) => Promise<
-    { ok: true; settingsVersion: string | null } | { ok: false; error: string }
+  /** Read the CV into the profile again. */
+  onRereadCv: () => Promise<{ ok: true } | { ok: false; error: string }>;
+  /** `expectedRevision` is the settings revision the draft was made from; a newer saved one refuses the save. */
+  onSavePreferences: (draft: JobFeedSettingsInput, plan: ConfirmedSearchQuery[], expectedRevision: number | null) => Promise<
+    { ok: true; settingsVersion: number | null; strategyVersion: string | null } | { ok: false; error: string; stale: boolean }
   >;
 }
 
@@ -50,10 +56,12 @@ interface PreferenceDraft {
   cities: string;
   workModes: JobFeedSettingsInput['remote_preferences'];
   employmentTypes: JobFeedSettingsInput['employment_types'];
+  seniority: JobFeedSettingsInput['seniority_targets'];
   salaryFloor: string;
   searchRows: ConfirmedSearchQuery[];
   workAuthorization: JobFeedSettingsInput['work_authorization_status'];
   excludedTerms: string;
+  languages: string;
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -80,9 +88,11 @@ export function FeedEditView({
   profile,
   strategy,
   queryBudget,
+  searchListCap,
   pill,
   onPillChange,
   onBack,
+  onRereadCv,
   onSavePreferences,
 }: FeedEditViewProps) {
   const datePrefs = useDatePrefs();
@@ -90,32 +100,59 @@ export function FeedEditView({
   const settingsInput = useMemo(() => settings ? toJobFeedInput(settings) : null, [settings]);
   const nextDraft = useMemo(
     () => settingsInput
-      ? toPreferenceDraft(settingsInput, strategy, queryBudget)
+      ? toPreferenceDraft(settingsInput, strategy, searchListCap)
       : null,
-    [queryBudget, settingsInput, strategy],
+    [searchListCap, settingsInput, strategy],
   );
-  const settingsVersion = settings?.updated_at ?? null;
+  const settingsVersion = settings?.revision ?? null;
   const [draft, setDraft] = useState<PreferenceDraft | null>(nextDraft);
   const [savedDraft, setSavedDraft] = useState<PreferenceDraft | null>(nextDraft);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [saveError, setSaveError] = useState('');
+  /** Shown after a stale save, over the reloaded settings, until the next edit. */
+  const [staleNotice, setStaleNotice] = useState('');
   const [draftVersion, setDraftVersion] = useState(settingsVersion);
+  const [rereading, setRereading] = useState(false);
+  const [rereadError, setRereadError] = useState('');
+  /** Set by a stale save: take in the newer settings even over unsaved edits. */
+  const [reloadDraft, setReloadDraft] = useState(false);
+  /** The search list the draft was made from: a newer one (saved by an agent) replaces a clean form too. */
+  const strategyVersion = strategy?.generatedAt ?? null;
+  const [draftStrategyVersion, setDraftStrategyVersion] = useState(strategyVersion);
 
-  if (isNewerSettingsVersion(settingsVersion, draftVersion) && saveState !== 'saving' && saveState !== 'error') {
+  // Employment types and levels are sets: the same values in another order are no change.
+  const sortedTypes = (value: PreferenceDraft) => ({
+    ...value,
+    employmentTypes: [...value.employmentTypes].sort(),
+    seniority: [...value.seniority].sort(),
+  });
+  const dirty = draft !== null && savedDraft !== null
+    && JSON.stringify(sortedTypes(draft)) !== JSON.stringify(sortedTypes(savedDraft));
+
+  // Newer saved settings replace a clean form. Unsaved edits are never replaced quietly: their save is
+  // refused as stale, and only then does the form take the newer settings in.
+  const newerSettings = isNewerSettingsVersion(settingsVersion, draftVersion);
+  if (
+    (newerSettings || strategyVersion !== draftStrategyVersion)
+    && (!dirty || reloadDraft)
+    && saveState !== 'saving'
+    && saveState !== 'error'
+  ) {
     setDraft(nextDraft);
     setSavedDraft(nextDraft);
-    setSaveState('idle');
-    setSaveError('');
+    // Only settings saved elsewhere clear "Saved.": the list reloading after this form's own save does not.
+    if (newerSettings) {
+      setSaveState('idle');
+      setSaveError('');
+    }
     setDraftVersion(settingsVersion);
+    setDraftStrategyVersion(strategyVersion);
+    setReloadDraft(false);
   }
 
   const plannedQueries = strategy?.queries ?? [];
   const todaysQueries = plannedQueries.slice(0, queryBudget);
   const laterQueries = plannedQueries.slice(queryBudget);
-  // Employment types are a set: the same types in another order are no change.
-  const sortedTypes = (value: PreferenceDraft) => ({ ...value, employmentTypes: [...value.employmentTypes].sort() });
-  const dirty = draft !== null && savedDraft !== null
-    && JSON.stringify(sortedTypes(draft)) !== JSON.stringify(sortedTypes(savedDraft));
   const salaryValue = draft?.salaryFloor.trim() ?? '';
   const salaryValid = salaryValue === ''
     || (/^\d+$/.test(salaryValue) && Number(salaryValue) >= 0);
@@ -129,16 +166,27 @@ export function FeedEditView({
     && draft.searchRows.every((row) => row.query.trim().length > 0),
   );
 
+  // An edit keeps the revision the draft was made from: a save then only goes through if nothing newer
+  // was saved meanwhile (by an agent through the MCP, or another tab).
   const updateDraft = (patch: Partial<PreferenceDraft>) => {
     setDraft((current) => current ? { ...current, ...patch } : current);
-    setDraftVersion(settingsVersion);
     setSaveState('idle');
     setSaveError('');
+    setStaleNotice('');
+    // An edit after a stale save keeps the user's own changes: the next save is checked again.
+    setReloadDraft(false);
   };
 
   const savePreferences = async () => {
     if (!draft || !settingsInput || !formValid || saveState === 'saving') return;
-    const checked = validateConfirmedQueries(draft.searchRows, queryBudget);
+    // The search list changed under unsaved edits (an agent saved one): saving these rows would put the old
+    // list back. Treat it as a stale save: take in the newer list and say so.
+    if (strategyVersion !== draftStrategyVersion) {
+      setStaleNotice('Your searches changed somewhere else. I loaded the latest. Check them and save again.');
+      setReloadDraft(true);
+      return;
+    }
+    const checked = validateConfirmedQueries(draft.searchRows, searchListCap);
     if (!checked.ok) {
       setSaveState('error');
       setSaveError(checked.error);
@@ -148,10 +196,17 @@ export function FeedEditView({
     setSaveError('');
     let result: Awaited<ReturnType<typeof onSavePreferences>>;
     try {
-      result = await onSavePreferences(toSettingsInput(settingsInput, { ...draft, searchRows: checked.queries }), checked.queries);
+      result = await onSavePreferences(toSettingsInput(settingsInput, { ...draft, searchRows: checked.queries }), checked.queries, draftVersion);
     } catch {
       setSaveState('error');
       setSaveError('Your preferences did not save. Try again.');
+      return;
+    }
+    if (!result.ok && result.stale) {
+      // The latest settings are loaded by now; going idle lets the form take them in.
+      setSaveState('idle');
+      setStaleNotice(result.error);
+      setReloadDraft(true);
       return;
     }
     if (!result.ok) {
@@ -160,6 +215,8 @@ export function FeedEditView({
       return;
     }
     setDraftVersion(result.settingsVersion);
+    // The list this save wrote is the draft's own, even when the user typed on while it saved.
+    setDraftStrategyVersion(result.strategyVersion);
     setSavedDraft(draft);
     setSaveState('saved');
   };
@@ -346,6 +403,38 @@ export function FeedEditView({
                       )}
                     </fieldset>
 
+                    <fieldset className="xl:col-span-2">
+                      <legend className="text-sm font-medium text-ink-body">Seniority</legend>
+                      <div className="mt-1.5 flex flex-wrap gap-2">
+                        {JOB_FEED_SENIORITY_OPTIONS.map((option) => {
+                          const selected = draft.seniority.includes(option.value);
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              aria-pressed={selected}
+                              onClick={() => updateDraft({
+                                seniority: selected
+                                  ? draft.seniority.filter((item) => item !== option.value)
+                                  : [...draft.seniority, option.value],
+                              })}
+                              className={`inline-flex h-10 items-center gap-1.5 rounded-pill border px-3 text-sm transition-colors duration-(--duration-fast) ${
+                                selected
+                                  ? 'border-brand-strong bg-surface-raised font-semibold text-ink'
+                                  : 'border-border bg-surface-raised text-ink-body hover:border-border-brand-soft'
+                              }`}
+                            >
+                              {selected && <Check className="h-3.5 w-3.5" />}
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {draft.seniority.length === 0 && (
+                        <p className="mt-1 text-xs text-ink-muted">No level chosen: every level is shown.</p>
+                      )}
+                    </fieldset>
+
                     <div className="xl:col-span-2">
                       <p className="text-sm font-medium text-ink-body">Searches</p>
                       <div className="mt-2">
@@ -353,7 +442,7 @@ export function FeedEditView({
                           <SearchPlanEditor
                             rows={draft.searchRows}
                             countries={draft.countries}
-                            cap={queryBudget}
+                            cap={searchListCap}
                             disabled={saveState === 'saving'}
                             onChange={(searchRows) => updateDraft({ searchRows })}
                           />
@@ -394,11 +483,24 @@ export function FeedEditView({
                         className="mt-1.5 h-10 w-full rounded-control border border-border bg-surface-raised px-3 text-sm text-ink-body outline-none transition-colors duration-(--duration-fast) placeholder:text-ink-muted focus:border-brand-strong focus:ring-2 focus:ring-brand-strong/15"
                       />
                     </div>
+
+                    <div>
+                      <label htmlFor="feed-languages" className="text-sm font-medium text-ink-body">Languages</label>
+                      <input
+                        id="feed-languages"
+                        type="text"
+                        value={draft.languages}
+                        onChange={(event) => updateDraft({ languages: event.target.value })}
+                        placeholder="English, German"
+                        className="mt-1.5 h-10 w-full rounded-control border border-border bg-surface-raised px-3 text-sm text-ink-body outline-none transition-colors duration-(--duration-fast) placeholder:text-ink-muted focus:border-brand-strong focus:ring-2 focus:ring-brand-strong/15"
+                      />
+                    </div>
                   </div>
 
                   <div className="mt-5 flex min-h-10 items-center justify-end gap-3 border-t border-border pt-4">
                     <div className="min-w-0 flex-1" aria-live="polite">
                       {saveState === 'saved' && <p className="text-sm text-ink-body">Saved.</p>}
+                      {staleNotice && saveState === 'idle' && <p className="text-sm text-danger-strong" role="alert">{staleNotice}</p>}
                       {saveState === 'error' && <p className="text-sm text-danger-strong">{saveError}</p>}
                     </div>
                     <button
@@ -417,14 +519,33 @@ export function FeedEditView({
             </section>
 
             <section className="rounded-card border border-border bg-surface px-5 py-5 shadow-resting">
-              <h3 className="text-base font-semibold text-ink">
-                What I read from your CV
-                {profile?.generatedAt && (
-                  <span className="ml-2 text-xs font-normal text-ink-muted">
-                    refreshed {formatDayMonth(new Date(profile.generatedAt), datePrefs)}
-                  </span>
-                )}
-              </h3>
+              <div className="flex flex-wrap items-center gap-3">
+                <h3 className="text-base font-semibold text-ink">
+                  What I read from your CV
+                  {profile?.generatedAt && (
+                    <span className="ml-2 text-xs font-normal text-ink-muted">
+                      refreshed {formatDayMonth(new Date(profile.generatedAt), datePrefs)}
+                    </span>
+                  )}
+                </h3>
+                <div className="flex-1" />
+                <button
+                  type="button"
+                  disabled={rereading}
+                  onClick={async () => {
+                    setRereading(true);
+                    setRereadError('');
+                    const result = await onRereadCv();
+                    setRereading(false);
+                    if (!result.ok) setRereadError(result.error);
+                  }}
+                  className="inline-flex h-9 items-center gap-2 rounded-pill border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised disabled:cursor-wait disabled:text-ink-muted"
+                >
+                  {rereading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  {rereading ? 'Reading your CV' : 'Read my CV again'}
+                </button>
+              </div>
+              {rereadError && <p className="mt-2 text-sm text-danger-strong" role="alert">{rereadError}</p>}
 
               {profile ? (
                 <div className="mt-4 space-y-5">
@@ -494,7 +615,7 @@ export function FeedEditView({
               <div className="rounded-card border border-border bg-surface px-4 py-3">
                 <p className="text-sm text-ink-body">
                   {laterQueries.length} more {laterQueries.length === 1 ? 'query is' : 'queries are'} in the plan. Later runs
-                  work down the list, so they come round on other days.
+                  work down the list, so they come round on later runs.
                 </p>
               </div>
             )}
@@ -529,10 +650,12 @@ function toPreferenceDraft(
     cities: input.target_cities.join(', '),
     workModes: [...input.remote_preferences],
     employmentTypes: [...input.employment_types],
+    seniority: [...input.seniority_targets],
     salaryFloor: input.salary_floor === null ? '' : String(input.salary_floor),
     searchRows,
     workAuthorization: input.work_authorization_status,
     excludedTerms: input.excluded_terms.join(', '),
+    languages: input.languages.join(', '),
   };
 }
 
@@ -548,9 +671,12 @@ function toSettingsInput(base: JobFeedSettingsInput, draft: PreferenceDraft): Jo
     remote_preference: remotePreference,
     remote_preferences: draft.workModes,
     employment_types: draft.employmentTypes,
+    seniority_targets: draft.seniority,
+    seniority_target: draft.seniority[0] ?? null,
     salary_floor: salary ? Number(salary) : null,
     work_authorization_status: draft.workAuthorization,
     excluded_terms: splitCommaList(draft.excludedTerms),
+    languages: splitCommaList(draft.languages),
   };
 }
 
@@ -561,11 +687,7 @@ function splitCommaList(value: string): string[] {
     .filter((item, index, items) => item.length > 0 && items.indexOf(item) === index);
 }
 
-function isNewerSettingsVersion(current: string | null, draft: string | null): boolean {
-  if (!current || current === draft) return false;
-  if (!draft) return true;
-  const currentTime = Date.parse(current);
-  const draftTime = Date.parse(draft);
-  if (!Number.isFinite(currentTime) || !Number.isFinite(draftTime)) return true;
-  return currentTime > draftTime;
+function isNewerSettingsVersion(current: number | null, draft: number | null): boolean {
+  if (current === null) return false;
+  return draft === null || current > draft;
 }

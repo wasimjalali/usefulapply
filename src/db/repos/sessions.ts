@@ -526,6 +526,20 @@ export interface TrackerApplicationRow {
   created_at: string;
 }
 
+/**
+ * Company and title of every application a user has, drafts included, for keeping jobs already in the
+ * tracker out of the job feed. Newest first, capped well above any real tracker.
+ */
+export async function listApplicationIdentities(userId: string): Promise<Array<{ id: string; company: string | null; job_title: string | null }>> {
+  const db = await getDb();
+  return db
+    .select({ id: applicationSessions.id, company: applicationSessions.company, job_title: applicationSessions.job_title })
+    .from(applicationSessions)
+    .where(eq(applicationSessions.user_id, userId))
+    .orderBy(desc(applicationSessions.created_at))
+    .limit(2000);
+}
+
 /** Enough for any real job hunt, and it bounds the tracker chat prompt. */
 export const TRACKER_OVERVIEW_LIMIT = 300;
 

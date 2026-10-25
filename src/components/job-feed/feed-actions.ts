@@ -88,8 +88,15 @@ export async function loadFeedOverview(options?: { quiet?: boolean }): Promise<F
     }
     const overview = payload as unknown as JobFeedOverviewResponse;
     const merged = mergeQuietSettings(overview, next);
-    next.setOverview(merged);
-    next.setStatus('ready');
+    // Settings saved elsewhere (an agent, another tab) can carry a new search list: load it first, so the
+    // editor never pairs the new settings with the old searches, even for a moment.
+    const previousRevision = next.overview?.settings?.revision ?? null;
+    const revision = merged.settings?.revision ?? null;
+    if (previousRevision !== null && revision !== null && revision > previousRevision) await loadSearchStrategy();
+    const current = useFeedStore.getState();
+    if (current.fetchGeneration !== generation) return { ok: false, error: 'Feed was reset.' };
+    current.setOverview(merged);
+    current.setStatus('ready');
     return { ok: true, data: merged };
   } catch {
     const next = useFeedStore.getState();
@@ -111,12 +118,8 @@ function mergeQuietSettings(
   if (store.isSavingSettings) return { ...incoming, settings: local };
   const remote = incoming.settings;
   if (!remote) return { ...incoming, settings: local };
-  const localTs = Date.parse(local.updated_at ?? '');
-  const remoteTs = Date.parse(remote.updated_at ?? '');
-  if (Number.isFinite(localTs) && (!Number.isFinite(remoteTs) || localTs > remoteTs)) {
-    return { ...incoming, settings: local };
-  }
-  return incoming;
+  // Every write moves the revision on, so the higher one is the newer settings.
+  return local.revision > remote.revision ? { ...incoming, settings: local } : incoming;
 }
 
 function isStale(generation: number): boolean {
@@ -229,6 +232,33 @@ export async function loadCareerProfile(): Promise<CareerProfile | null> {
   }
 }
 
+/** Read the CV into the search profile again, even when the stored one is current. */
+export async function rereadCareerProfile(): Promise<FeedResult<CareerProfile>> {
+  if (isPreviewing()) {
+    const profile = useFeedStore.getState().careerProfile;
+    return profile ? { ok: true, data: profile } : { ok: false, error: 'There is no CV to read yet.' };
+  }
+  const generation = useFeedStore.getState().fetchGeneration;
+  try {
+    const response = await fetch('/api/job-feed/career-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ force: true }),
+    });
+    const payload = await readJson(response);
+    if (isStale(generation)) return { ok: false, error: 'Feed was reset.' };
+    if (!response.ok) return { ok: false, error: humanError(response.status, 'I could not read your CV just now. Try again in a moment.') };
+    if (payload.status === 'no_cv' || !payload.profile) {
+      return { ok: false, error: 'I need your CV first. Upload it on the CV tab.' };
+    }
+    const profile = payload.profile as CareerProfile;
+    useFeedStore.getState().setCareerProfile(profile);
+    return { ok: true, data: profile };
+  } catch {
+    return { ok: false, error: 'I could not read your CV just now. Try again in a moment.' };
+  }
+}
+
 export interface FeedRunOutcome {
   skipped: boolean;
   cooldown: boolean;
@@ -299,8 +329,13 @@ export async function withdrawFeedConsent(): Promise<FeedResult<{ withdrawn: tru
  */
 export async function saveFeedSettings(
   input: JobFeedSettingsInput,
-  options?: { firstTime?: boolean; confirmedQueries?: ConfirmedSearchQuery[] },
-): Promise<FeedResult<JobFeedSettings | null>> {
+  options?: {
+    firstTime?: boolean;
+    confirmedQueries?: ConfirmedSearchQuery[];
+    /** The revision the edit started from. Defaults to the revision of the settings on screen now. */
+    expectedRevision?: number | null;
+  },
+): Promise<FeedResult<JobFeedSettings | null> & { stale?: boolean }> {
   if (isPreviewing()) {
     return { ok: true, data: null };
   }
@@ -321,17 +356,31 @@ export async function saveFeedSettings(
       useFeedStore.getState().patchBuild({ profileDone: true });
     }
 
+    const expectedRevision = options?.expectedRevision !== undefined
+      ? options.expectedRevision
+      : useFeedStore.getState().overview?.settings?.revision ?? null;
     const response = await fetch('/api/job-feed/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(
-        options?.confirmedQueries
-          ? { ...input, confirmed_queries: options.confirmedQueries }
-          : input,
-      ),
+      body: JSON.stringify({
+        ...input,
+        ...(options?.confirmedQueries ? { confirmed_queries: options.confirmedQueries } : {}),
+        ...(expectedRevision !== null ? { expected_revision: expectedRevision } : {}),
+      }),
     });
     const payload = await readJson(response);
     if (isStale(generation)) return { ok: false, error: 'Feed was reset.' };
+    if (response.status === 409 && payload.code === 'stale_settings') {
+      // Someone (an agent, another tab) saved newer settings. Load them so the form shows what is saved.
+      // This save is over, so the reload must not keep the settings on screen as an in-flight save would.
+      useFeedStore.getState().setIsSavingSettings(false);
+      await Promise.all([loadFeedOverview({ quiet: true }), loadSearchStrategy()]);
+      return {
+        ok: false,
+        stale: true,
+        error: typeof payload.error === 'string' ? payload.error : 'Your feed settings changed somewhere else. I loaded the latest. Check them and save again.',
+      };
+    }
     if (!response.ok) {
       return { ok: false, error: humanError(response.status, 'Your feed settings did not save.') };
     }
@@ -344,6 +393,8 @@ export async function saveFeedSettings(
 
     if (options?.confirmedQueries && !isStale(generation)) {
       useFeedStore.getState().patchBuild({ strategyDone: true });
+      // The saved list is the strategy now: hold the store to it, as the editor reads its rows from there.
+      await loadSearchStrategy();
     }
 
     if (shouldGenerateStrategyOnSettingsSave()) {

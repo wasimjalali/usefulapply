@@ -896,12 +896,12 @@ function jobFeedSql(userId: string, now: string): string {
   return `INSERT OR REPLACE INTO job_feed_settings (
   user_id, enabled, consent_accepted_at, user_timezone, target_market, target_countries, target_cities, target_roles,
   preferred_locations, remote_preference, remote_preferences, salary_floor, languages, seniority_target, seniority_targets,
-  employment_types, work_authorization_status, user_skills, excluded_terms, created_at, updated_at
+  employment_types, work_authorization_status, user_skills, excluded_terms, revision, created_at, updated_at
 ) VALUES (
   ${sqlText(userId)}, 1, ${sqlText(now)}, 'America/Chicago', ${sqlText(f.target_market)}, ${sqlJson(f.target_countries)}, ${sqlJson(f.target_cities)},
   ${sqlJson(f.target_roles)},
   ${sqlJson(f.preferred_locations)}, ${sqlText(f.remote_preference)}, ${sqlJson(f.remote_preferences)}, ${f.salary_floor}, ${sqlJson(f.languages)}, ${sqlText(f.seniority_target)}, ${sqlJson(f.seniority_targets)},
-  ${sqlJson(f.employment_types)}, 'authorized', ${sqlJson(f.user_skills)}, '[]', ${sqlText(now)}, ${sqlText(now)}
+  ${sqlJson(f.employment_types)}, 'authorized', ${sqlJson(f.user_skills)}, '[]', 1, ${sqlText(now)}, ${sqlText(now)}
 );`;
 }
 

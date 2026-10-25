@@ -67,6 +67,8 @@ export const TOOL_SCOPES = {
   export_documents: 'write',
   run_job_feed: 'write',
   update_feed_settings: 'write',
+  update_feed_searches: 'write',
+  regenerate_career_profile: 'write',
   give_job_feedback: 'write',
   withdraw_feed_consent: 'write',
   update_notification_settings: 'write',

@@ -1,5 +1,6 @@
 import { JOB_FEED_PROVIDER } from '@/lib/job-feed/constants';
 import { captureJobFeedEvent } from '@/lib/job-feed/analytics';
+import { structureAdText } from '@/lib/job-feed/ad-text';
 import type { JobFeedCanonicalJob, Json } from '@/db/types';
 
 export interface SerpApiJob {
@@ -399,7 +400,7 @@ export function normalizeSerpApiJob(job: SerpApiJob): NormalizedSerpApiJob {
     salary_min: salary.salaryMin,
     salary_max: salary.salaryMax,
     salary_currency: salary.salaryCurrency,
-    description: normalizeOptionalMultilineText(job.description),
+    description: structureSerpDescription(job),
     apply_url: applyUrl,
     source_url: sourceUrl,
     posted_at_text: postedAtText,
@@ -495,7 +496,9 @@ function inferWorkMode(job: SerpApiJob): JobFeedCanonicalJob['work_mode'] {
     return 'onsite';
   }
 
-  return normalizeOptionalText(job.location) ? 'onsite' : 'unknown';
+  // A city is where the job is, not how it is worked: most German ads with a location are hybrid. The
+  // ranker reads the work mode in the ad and stores it.
+  return 'unknown';
 }
 
 function normalizeEmploymentType(value?: string): JobFeedCanonicalJob['employment_type'] {
@@ -698,6 +701,18 @@ function normalizeMultilineText(value?: string | null): string {
     .replace(/ *\n */g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+/**
+ * Google's copy of the ad with the structure its board stripped put back where that is safe (see
+ * structureAdText). Google's own highlight items are exact, so they mark where glued list items split.
+ */
+function structureSerpDescription(job: SerpApiJob): string | null {
+  const text = normalizeOptionalMultilineText(job.description);
+  if (!text) return null;
+  const items = (job.job_highlights ?? []).flatMap((section) => (Array.isArray(section.items) ? section.items : []))
+    .filter((item): item is string => typeof item === 'string');
+  return structureAdText(text, items);
 }
 
 function normalizeOptionalMultilineText(value?: string | null): string | null {

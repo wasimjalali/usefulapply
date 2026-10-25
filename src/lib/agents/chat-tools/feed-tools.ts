@@ -21,6 +21,8 @@
  */
 
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
+import { readRunsLeftToday } from '@/lib/services/feed/run';
+import { RevisionConflict } from '@/lib/services/errors';
 import { getProfile } from '@/db/repos/profiles';
 import { getSettings, upsertSettings, upsertJobPreferences } from '@/db/repos/jobFeed';
 import { getUserCredits } from '@/db/repos/credits';
@@ -30,7 +32,6 @@ import {
   canAccessJobFeed,
   canViewJobFeed,
   countriesImpliedByNewCities,
-  getLocalDateKey,
   normalizeJobFeedSettingsInput,
   toJobFeedInput,
 } from '@/lib/job-feed/helpers';
@@ -485,8 +486,12 @@ Work authorization: ${WORK_AUTH_VALUES.join(', ')}.`,
         work_authorization_status: workAuthorization,
         user_skills: saved_row.user_skills,
         excluded_terms: validated.excluded_terms,
-      });
+      }, { expectedRevision: saved_row.revision });
     } catch (error) {
+      // Saved meanwhile in the editor or by an agent: nothing was written, and the model reads them again.
+      if (error instanceof RevisionConflict) {
+        return { data: { error: 'The feed settings changed while this was being saved, so nothing changed. Read them again before changing them.' } };
+      }
       console.error('[chat-tools] update_feed_settings save failed:', error);
       return { data: { error: 'That change did not save. Tell the user to try again from the feed settings panel.' } };
     }
@@ -567,18 +572,19 @@ const runFeed: ChatTool = {
       };
     }
 
-    // Same one-run-per-local-day rule the run route enforces. Checked here only
-    // so the reply can say why nothing is starting; the route is the authority.
-    const timeZone = settings.user_timezone || 'UTC';
-    const latestManualRun = await getLatestManualCompletedJobFeedRunAdmin(ctx.userId);
-    const todayKey = getLocalDateKey(new Date(), timeZone);
-    if (latestManualRun?.local_date === todayKey) {
+    // The run gate the run route and run_job_feed use (the plan's runs a day). Checked here only so the
+    // reply can say why nothing is starting; the route is the authority.
+    const allowance = await readRunsLeftToday(ctx.userId);
+    if (allowance.runsLeftToday === 0) {
+      const latestManualRun = await getLatestManualCompletedJobFeedRunAdmin(ctx.userId);
       return {
         data: {
           ok: false,
           already_ran_today: true,
-          ranked_jobs_count: latestManualRun.ranked_jobs_count ?? null,
-          note: 'The feed already ran today, so the next one opens tomorrow. Say that and mention what today\'s run found.',
+          ranked_jobs_count: latestManualRun?.ranked_jobs_count ?? null,
+          note: allowance.runsPerDay > 1
+            ? `Today's ${allowance.runsPerDay} runs are used up, so the next one opens tomorrow. Say that and mention what today's runs found.`
+            : 'The feed already ran today, so the next one opens tomorrow. Say that and mention what today\'s run found.',
         },
       };
     }

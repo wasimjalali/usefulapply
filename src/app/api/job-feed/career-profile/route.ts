@@ -2,18 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 import { getCurrentUser } from '@/auth/server';
 import { requireJobFeedAccess, requireJobFeedView } from '@/lib/job-feed/auth';
+import { FeedError } from '@/lib/services/feed/errors';
 import {
-  CAREER_PROFILE_SCHEMA_VERSION,
-  isCurrentCareerProfile,
-} from '@/lib/job-feed/career-profile';
-import { generateCareerProfile } from '@/lib/job-feed/career-profile-synthesis';
-import type { StructuredCV } from '@/lib/types/cv-schema';
-import type { Json } from '@/db/types';
-import { upsertCareerProfile } from '@/db/repos/jobFeed';
-import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
-import {
-  isCVNewerThanProfile,
-  loadProfileAndPrimaryCV,
+  generateCareerProfileForUser,
   readCareerProfile,
   type CareerProfileResponseBody,
 } from '@/lib/services/feed/career-profile';
@@ -62,77 +53,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const { profileRow, primaryDoc } = await loadProfileAndPrimaryCV(userId);
-
-    if (!primaryDoc?.structured_data) {
-      const body: CareerProfileResponseBody = {
-        profile: null,
-        cvNewerThanProfile: false,
-        status: 'no_cv',
-        generatedAt: null,
-      };
-      return NextResponse.json(body, { status: 200 });
-    }
-
-    if (
-      profileRow?.profile
-      && isCurrentCareerProfile(profileRow.profile)
-      && profileRow.version === CAREER_PROFILE_SCHEMA_VERSION
-      && !isCVNewerThanProfile({
-        profileSourceUpdatedAt: profileRow.source_document_updated_at,
-        primaryDocUpdatedAt: primaryDoc.updated_at,
-      })
-    ) {
-      // Cache hit and no CV change — return existing profile unchanged.
-      const body: CareerProfileResponseBody = {
-        profile: profileRow.profile,
-        cvNewerThanProfile: false,
-        status: 'ok',
-        generatedAt: profileRow.profile.generatedAt,
-      };
-      return NextResponse.json(body);
-    }
-
-    const cv = primaryDoc.structured_data as StructuredCV;
-    const generationContext: LlmGenerationContext = {
-      requestExecutionId: crypto.randomUUID(),
-      clientRequestId: request.headers.get('x-request-id'),
+    // `force` reads the CV again even when the stored profile is current (the "Read my CV again" button).
+    const body = await request.json().catch(() => null) as { force?: unknown } | null;
+    const result = await generateCareerProfileForUser({
       userId,
+      force: body?.force === true,
+      clientRequestId: request.headers.get('x-request-id'),
       route: '/api/job-feed/career-profile',
-      feature: 'job_feed',
-      operation: 'career_profile_synthesis',
-    };
-    const result = await generateCareerProfile(cv, generationContext);
-
-    try {
-      await upsertCareerProfile(userId, {
-        profile: result.profile as unknown as Json,
-        version: CAREER_PROFILE_SCHEMA_VERSION,
-        source_document_id: primaryDoc.id ?? null,
-        source_document_updated_at: primaryDoc.updated_at ?? null,
-        model_provider: result.modelProvider,
-        model_name: result.modelName,
-      });
-    } catch (persistError) {
-      console.error('[career-profile] Failed to persist generated profile:', {
-        userId,
-        error: persistError instanceof Error ? persistError.message : persistError,
-      });
-      return NextResponse.json({ error: 'Failed to save career profile.' }, { status: 500 });
-    }
-
-    console.log(
-      `[career-profile] Generated for user ${userId}: ${result.modelName} | ${result.inputTokens}in/${result.outputTokens}out | ${result.latencyMs}ms`,
-    );
-
-    const body: CareerProfileResponseBody = {
-      profile: result.profile,
-      cvNewerThanProfile: false,
-      status: 'ok',
-      generatedAt: result.profile.generatedAt,
-    };
-    return NextResponse.json(body);
+    });
+    return NextResponse.json<CareerProfileResponseBody & { regenerated: boolean }>(result);
   } catch (error) {
+    if (error instanceof FeedError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error('[job-feed/career-profile] POST unexpected error:', error);
     return NextResponse.json({ error: 'Failed to generate career profile.' }, { status: 500 });
   }

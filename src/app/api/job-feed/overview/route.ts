@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readRunsLeftToday } from '@/lib/services/feed/run';
 import { getCurrentUser } from '@/auth/server';
 import { canAccessJobFeed, canViewJobFeed, getJobFeedOverviewState, getLocalDateKey } from '@/lib/job-feed/helpers';
 import { getJobFeedTierLimits, JOB_FEED_MIRRORED_ROLE_LIMIT } from '@/lib/job-feed/constants';
@@ -7,6 +8,7 @@ import {
   getLatestManualCompletedJobFeedRunAdmin,
   listJobFeedInboxPageAdmin,
   resolveJobFeedRunForFeedAdmin,
+  listJobFeedRankedItemsForRunAdmin,
 } from '@/lib/job-feed/server';
 import { JOB_FEED_INBOX_PAGE_SIZE } from '@/lib/job-feed/constants';
 import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
@@ -14,7 +16,7 @@ import { isCurrentCareerProfile, type CareerProfile } from '@/lib/job-feed/caree
 import type { JobFeedRun } from '@/db/types';
 import { getProfile } from '@/db/repos/profiles';
 import { getDocumentByType } from '@/db/repos/documents';
-import { getCareerProfileRow, getLatestRun, getSettings } from '@/db/repos/jobFeed';
+import { getCareerProfileRow, getLatestRun, getSettings, listRunsByDate } from '@/db/repos/jobFeed';
 
 export const runtime = 'nodejs';
 
@@ -100,6 +102,7 @@ export async function GET(request: NextRequest) {
       }),
       getLatestManualCompletedJobFeedRunAdmin(user.id),
     ]);
+    const runAllowance = await readRunsLeftToday(user.id);
 
     // For free users the visible inbox is capped to tierLimits.visibleCount (5).
     // We slice here rather than in the DB layer to keep server.ts tier-agnostic.
@@ -129,9 +132,14 @@ export async function GET(request: NextRequest) {
       new Date(),
       settings?.user_timezone || latestRun?.local_timezone || 'UTC',
     );
-    const rankedToday = latestRun?.local_date === todayKey
-      ? latestRun.ranked_jobs_count
-      : 0;
+    // Distinct jobs ranked by today's completed runs (a plan with more runs a day has several, and they can
+    // find the same job). No completed run today falls back to the visible count below.
+    const todaysCompletedRuns = (await listRunsByDate(user.id, todayKey)).filter((run) => run.status === 'completed');
+    const rankedToday = todaysCompletedRuns.length > 0
+      ? new Set((await Promise.all(todaysCompletedRuns.map((run) => listJobFeedRankedItemsForRunAdmin(run.id))))
+        .flat()
+        .map((item) => item.canonical_job_id)).size
+      : null;
     const jobsMatchedCount = Math.max(
       0,
       typeof rankedToday === 'number' && Number.isFinite(rankedToday)
@@ -151,6 +159,8 @@ export async function GET(request: NextRequest) {
       settings: settings ?? null,
       latestRun: latestRun ?? null,
       latestManualRun: latestManualRun ?? null,
+      runsLeftToday: runAllowance.runsLeftToday,
+      runsPerDay: runAllowance.runsPerDay,
       feedRun,
       latestRunDiagnostics: getJobFeedRunDiagnostics(latestRun ?? null),
       jobs,

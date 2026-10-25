@@ -57,6 +57,9 @@ test.describe.serial('feed: reading, rating, settings, applying', () => {
     jobs = seedFeedInbox(user.id, JOBS);
   });
 
+  /** The settings revision now saved; update_feed_settings needs it. */
+  const revision = async () => (await agent.ok<{ revision: number }>('get_feed_settings')).revision;
+
   test.afterAll(async () => {
     await agent?.close();
     await context?.close();
@@ -131,7 +134,7 @@ test.describe.serial('feed: reading, rating, settings, applying', () => {
     const country = properties.countries.items?.enum?.find((code) => code !== 'us') as string;
     const workMode = properties.workModes.items?.enum?.[0] as string;
 
-    const changed = await agent.ok<{ changed: string[]; settings: { roles: string[]; countries: string[]; workModes: string[]; salaryFloor: number | null; timezone: string }; searches: Array<{ role: string; country: string }> | null }>('update_feed_settings', {
+    const changed = await agent.ok<{ changed: string[]; settings: { roles: string[]; countries: string[]; workModes: string[]; salaryFloor: number | null; timezone: string }; searches: Array<{ role: string; country: string }> | null }>('update_feed_settings', { revision: await revision(),
       roles: ['Financial Controller', 'FP&A Manager'],
       countries: ['us', country],
       workModes: [workMode],
@@ -146,18 +149,18 @@ test.describe.serial('feed: reading, rating, settings, applying', () => {
     expect(changed.searches?.length).toBeGreaterThan(0);
     const keptRoles = changed.settings.roles;
 
-    const same = await agent.ok<{ changed: string[]; searches: unknown }>('update_feed_settings', { salaryFloor: 90000 });
+    const same = await agent.ok<{ changed: string[]; searches: unknown }>('update_feed_settings', { revision: await revision(), salaryFloor: 90000 });
     expect(same.changed).toEqual([]);
     expect(same.searches).toBeNull();
     // The same roles again also change nothing, although the plan's search cap kept fewer of them than were sent.
-    const sameRoles = await agent.ok<{ changed: string[]; searches: unknown }>('update_feed_settings', { roles: ['Financial Controller', 'FP&A Manager'] });
+    const sameRoles = await agent.ok<{ changed: string[]; searches: unknown }>('update_feed_settings', { revision: await revision(), roles: ['Financial Controller', 'FP&A Manager'] });
     expect(sameRoles.changed).toEqual([]);
     expect(sameRoles.searches).toBeNull();
-    expect(await agent.fails('update_feed_settings', {})).toMatch(/at least one setting/i);
+    expect(await agent.fails('update_feed_settings', { revision: await revision() })).toMatch(/at least one setting/i);
 
     const declining = await agent.elicitingClient('decline');
     try {
-      const result = await declining.client.callTool({ name: 'update_feed_settings', arguments: { roles: ['Chief Executive'], salaryFloor: null } });
+      const result = await declining.client.callTool({ name: 'update_feed_settings', arguments: { revision: await revision(), roles: ['Chief Executive'], salaryFloor: null } });
       expect(result.isError).toBe(true);
       expect(declining.asked[0]).toMatch(/Change the job feed settings \(roles, salary floor\)/);
     } finally {
@@ -172,16 +175,16 @@ test.describe.serial('feed: reading, rating, settings, applying', () => {
     const types = (tools.find((tool) => tool.name === 'update_feed_settings')?.inputSchema as { properties: Record<string, { items?: { enum?: string[] } }> }).properties.employmentTypes.items?.enum;
     expect(types).toEqual(['full_time', 'part_time', 'contract', 'internship', 'temporary']);
 
-    const changed = await agent.ok<{ changed: string[]; settings: { employmentTypes: string[] } }>('update_feed_settings', { employmentTypes: ['contract', 'part_time'] });
+    const changed = await agent.ok<{ changed: string[]; settings: { employmentTypes: string[] } }>('update_feed_settings', { revision: await revision(), employmentTypes: ['contract', 'part_time'] });
     expect(changed.changed).toEqual(['employment types']);
     expect([...changed.settings.employmentTypes].sort()).toEqual(['contract', 'part_time']);
 
     // The same set in another order is no change.
-    const same = await agent.ok<{ changed: string[] }>('update_feed_settings', { employmentTypes: ['part_time', 'contract'] });
+    const same = await agent.ok<{ changed: string[] }>('update_feed_settings', { revision: await revision(), employmentTypes: ['part_time', 'contract'] });
     expect(same.changed).toEqual([]);
 
-    expect(await agent.fails('update_feed_settings', { employmentTypes: ['freelance'] })).toMatch(/Invalid option|invalid/i);
-    expect(await agent.fails('update_feed_settings', { employmentTypes: [] })).toMatch(/at least|too small|1/i);
+    expect(await agent.fails('update_feed_settings', { revision: await revision(), employmentTypes: ['freelance'] })).toMatch(/Invalid option|invalid/i);
+    expect(await agent.fails('update_feed_settings', { revision: await revision(), employmentTypes: [] })).toMatch(/at least|too small|1/i);
     const kept = await agent.ok<{ settings: { employmentTypes: string[] } }>('get_feed_settings');
     expect([...kept.settings.employmentTypes].sort()).toEqual(['contract', 'part_time']);
   });
@@ -312,9 +315,13 @@ test.describe.serial('run_job_feed: the states no queue message can claim', () =
       const result = await created.session.ok<{ runId: string; status: string; started: boolean; alreadyRanToday: boolean; rankedJobsCount: number; nextRunAt: string | null; failed: boolean }>('run_job_feed');
       expect(result).toMatchObject({ runId, status: 'completed', started: false, alreadyRanToday: true, rankedJobsCount: 7, failed: false });
       expect(new Date(result.nextRunAt as string).getTime()).toBeGreaterThan(Date.now());
-      // A second call the same day says the same, and starts nothing.
-      const again = await created.session.ok<{ runId: string; alreadyRanToday: boolean; nextRunAt: string | null }>('run_job_feed');
-      expect(again).toMatchObject({ runId, alreadyRanToday: true });
+      // A second call the same day, with an agent's own searches, says the same, starts nothing, and says the
+      // searches were not run.
+      const again = await created.session.ok<{ runId: string; alreadyRanToday: boolean; nextRunAt: string | null; runsLeftToday: number; runsPerDay: number; warning: string | null }>('run_job_feed', {
+        queries: [{ query: 'Financial Controller', country: 'us' }, { query: 'FP&A Manager', country: 'us' }],
+      });
+      expect(again).toMatchObject({ runId, alreadyRanToday: true, runsLeftToday: 0, runsPerDay: 1 });
+      expect(again.warning).toMatch(/today's runs are used up/);
       // The same instant on every call. (This one held on main too; the running run below is the case that failed live.)
       expect(again.nextRunAt).toBe(result.nextRunAt);
       expect(feedRuns(created.user.id)).toEqual(before);
@@ -345,6 +352,23 @@ test.describe.serial('run_job_feed: the states no queue message can claim', () =
       await new Promise((resolve) => setTimeout(resolve, 1_100));
       const again = await created.session.ok<{ nextRunAt: string | null }>('run_job_feed');
       expect(again.nextRunAt).toBe(result.nextRunAt);
+    } finally {
+      await created.session.close();
+      await created.context.close();
+    }
+  });
+
+  test('an agent\'s own searches beyond the plan\'s searches per run are refused before anything is queued', async ({ browser, request }) => {
+    const created = await newAgent(browser, request, 'feed-too-many');
+    try {
+      setPlan(created.user.id, 'plus');
+      seedFeedSettings(created.user.id);
+      const before = feedRuns(created.user.id);
+      const tooMany = await created.session.fails('run_job_feed', {
+        queries: ['Financial Controller', 'FP&A Manager', 'Planning Analyst'].map((query) => ({ query, country: 'us' })),
+      });
+      expect(tooMany).toBe('This plan runs at most 2 searches a run. Send 2 or fewer.');
+      expect(feedRuns(created.user.id)).toEqual(before);
     } finally {
       await created.session.close();
       await created.context.close();

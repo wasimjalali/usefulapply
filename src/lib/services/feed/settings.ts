@@ -8,7 +8,7 @@
  */
 
 import { getProfile } from '@/db/repos/profiles';
-import { getSettings, upsertSettings, upsertJobPreferences, withdrawConsent } from '@/db/repos/jobFeed';
+import { deleteSettings, getSettings, upsertSettings, upsertJobPreferences, withdrawConsent } from '@/db/repos/jobFeed';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import {
   countriesImpliedByNewCities,
@@ -23,13 +23,14 @@ import type { JobFeedSettingsInput } from '@/lib/job-feed/types';
 import {
   buildConfirmSearchPlan,
   buildUserConfirmedStrategy,
-  planCapForTier,
+  searchListCap,
   resolveSavedTargetRoles,
   rolesFromConfirmedQueries,
   validateConfirmedQueries,
   type ConfirmedSearchQuery,
 } from '@/lib/job-feed/search-plan';
 import type { JobFeedSettings } from '@/db/types';
+import { RevisionConflict } from '@/lib/services/errors';
 import { FeedError } from './errors';
 
 // ---------------------------------------------------------------------------
@@ -41,7 +42,7 @@ export interface FeedSettingsView {
   settings: JobFeedSettings | null;
   /** Whether the plan allows changing the settings (Plus and Max). */
   canEdit: boolean;
-  /** How many role-by-country searches the plan keeps. */
+  /** How many searches the confirmed list keeps: a run's searches times the runs a day. */
   searchLimit: number;
 }
 
@@ -56,7 +57,7 @@ export async function loadFeedSettings(userId: string): Promise<FeedSettingsView
   return {
     settings,
     canEdit: ['plus', 'max'].includes(profile.subscription_tier),
-    searchLimit: planCapForTier(profile.subscription_tier),
+    searchLimit: searchListCap(profile.subscription_tier),
   };
 }
 
@@ -87,13 +88,47 @@ export async function saveFeedSettings(params: {
   }
 
   const body = await params.readBody();
+  // The web form sends the revision it was opened at. A save without one comes from a tab opened before
+  // revisions existed, which may hold anything: it is treated as stale once a row exists.
+  const sent = (body as { expected_revision?: unknown } | null)?.expected_revision;
+  const expectedRevision = typeof sent === 'number' && Number.isInteger(sent) && sent >= 0 ? sent : -1;
   return persistFeedSettings({
     userId,
     subscriptionTier: profile.subscription_tier,
     body,
     clientRequestId: params.clientRequestId,
     llmRoute: params.llmRoute,
+    expectedRevision,
+    staleMessage: WEB_STALE_MESSAGE,
   });
+}
+
+/**
+ * Put the settings row back after the search list failed to save: the previous values, or no row for a first
+ * save. Conditional on the revision this save wrote, so a newer save meanwhile is left alone. A failed restore
+ * is logged loudly; the caller still reports the save as failed.
+ */
+async function restoreSettings(userId: string, previous: JobFeedSettings | null, writtenRevision: number): Promise<void> {
+  try {
+    if (previous) {
+      // Back at the revision the caller read, so its retry is not refused as stale. upsertSettings drops the
+      // identity it is handed and stamps updated_at itself.
+      await upsertSettings(userId, { ...previous }, { expectedRevision: writtenRevision, restoreRevision: previous.revision });
+    } else {
+      await deleteSettings(userId, writtenRevision);
+    }
+  } catch (error) {
+    console.error('[job-feed/settings] could not restore settings after a failed search list save:', error instanceof Error ? error.message : error);
+  }
+}
+
+const WEB_STALE_MESSAGE = 'Your feed settings changed somewhere else. I loaded the latest. Check them and save again.';
+
+/** A save based on an older revision than the row's. Nothing was written. */
+function staleSettings(message: string, currentRevision: number | null): FeedError {
+  const error = new FeedError(409, message, 'stale_settings');
+  error.currentRevision = currentRevision;
+  return error;
 }
 
 async function persistFeedSettings(params: {
@@ -102,6 +137,14 @@ async function persistFeedSettings(params: {
   body: unknown;
   clientRequestId: string | null;
   llmRoute: string;
+  /** The revision the caller read. Refused when the row has moved on (-1 never matches an existing row). */
+  expectedRevision: number;
+  staleMessage: string;
+  /**
+   * Fields the caller set on purpose. On a first save (no row yet) seniority and languages come from the
+   * career profile unless set here: the first-run wizard sends the defaults, which are no one's choice.
+   */
+  userSet?: { seniority?: boolean; languages?: boolean };
 }): Promise<{ settings: JobFeedSettings }> {
   const { userId, subscriptionTier, body } = params;
   const normalized = normalizeJobFeedSettingsInput(body);
@@ -118,6 +161,11 @@ async function persistFeedSettings(params: {
   }
 
   const existingSettings = await getSettings(userId);
+  // Checked before anything is written (the confirmed search list goes first); the conditional update
+  // below closes the window between this read and the write.
+  if (existingSettings ? existingSettings.revision !== params.expectedRevision : params.expectedRevision > 0) {
+    throw staleSettings(params.staleMessage, existingSettings?.revision ?? null);
+  }
 
   // A city named for the first time brings its country with it. Scoped to
   // new cities so unchecking a country still sticks.
@@ -153,7 +201,7 @@ async function persistFeedSettings(params: {
     operation: 'career_profile_synthesis',
   });
 
-  const cap = planCapForTier(subscriptionTier);
+  const cap = searchListCap(subscriptionTier);
   const confirmed = 'confirmed_queries' in (body as object)
     ? validateConfirmedQueries((body as { confirmed_queries?: unknown }).confirmed_queries, cap)
     : null;
@@ -176,11 +224,25 @@ async function persistFeedSettings(params: {
   }
 
   const userSkills = profileMirror?.userSkills ?? existingSettings?.user_skills ?? [];
-  const languages = profileMirror?.languages ?? (existingSettings?.languages?.length ? existingSettings.languages : ['English']);
 
-  const seniorityTargets = profileMirror?.seniorityTargets
-    ?? (existingSettings?.seniority_targets?.length ? existingSettings.seniority_targets : normalized.data.seniority_targets);
-  const seniorityTarget = seniorityTargets[0] ?? normalized.data.seniority_target ?? existingSettings?.seniority_target ?? null;
+  // Seniority and languages are the user's to set (the editor, update_feed_settings). They used to be replaced
+  // by the profile's estimate on every save, which pinned a wrong "senior" with no way to change it. Now the
+  // profile fills them only on a first save, unless that save set them on purpose.
+  const sent = body as Record<string, unknown>;
+  const fromProfile = (field: 'seniority' | 'languages') => !existingSettings && !params.userSet?.[field] && profileMirror !== null;
+  const languages = fromProfile('languages')
+    ? profileMirror!.languages
+    : Array.isArray(sent.languages)
+      ? normalized.data.languages
+      : existingSettings?.languages?.length
+        ? existingSettings.languages
+        : ['English'];
+  const seniorityTargets: JobFeedSettingsInput['seniority_targets'] = fromProfile('seniority')
+    ? profileMirror!.seniorityTargets
+    : Array.isArray(sent.seniority_targets)
+      ? normalized.data.seniority_targets
+      : (existingSettings?.seniority_targets ?? []) as JobFeedSettingsInput['seniority_targets'];
+  const seniorityTarget = seniorityTargets[0] ?? null;
 
   // Employment types is a setting of its own in the editor and the MCP tool. A body that leaves the key out
   // gets ['full_time'] (the web app always sends a list, ['full_time'] from the first-run wizard); a body that
@@ -216,17 +278,23 @@ async function persistFeedSettings(params: {
     excluded_terms: normalized.data.excluded_terms,
   };
 
-  // Persist the confirmed list before enabling the feed. If this fails we
-  // must not turn the feed on, or a later run would silently generate a
-  // new strategy over the user's picks.
+  // The settings row first, conditional on the revision the caller read: a save that lost a race stops here
+  // and writes nothing, its search list included. Then the confirmed list, the one other write. If that fails
+  // the row goes back to what it was, so the feed is never left on with settings its searches do not match.
+  let data;
+  try {
+    data = await upsertSettings(userId, nextSettings, { expectedRevision: existingSettings ? params.expectedRevision : 0 });
+  } catch (error) {
+    if (error instanceof RevisionConflict) throw staleSettings(params.staleMessage, error.currentRevision);
+    console.error('[job-feed/settings] PUT error:', error instanceof Error ? error.message : error);
+    throw new FeedError(500, 'Failed to save job feed settings.', 'save_failed');
+  }
+
   if (confirmed?.ok) {
     try {
       await persistUserConfirmedStrategyAdmin({
         userId,
-        settings: {
-          ...(existingSettings ?? {}),
-          ...nextSettings,
-        } as JobFeedSettings,
+        settings: data,
         strategy: buildUserConfirmedStrategy({
           queries: confirmed.queries,
           sourceProfileGeneratedAt: profileMirror ? undefined : existingSettings?.updated_at ?? new Date().toISOString(),
@@ -235,16 +303,9 @@ async function persistFeedSettings(params: {
       });
     } catch (error) {
       console.error('[job-feed/settings] confirmed strategy persist error:', error instanceof Error ? error.message : error);
+      await restoreSettings(userId, existingSettings, data.revision);
       throw new FeedError(500, 'Your searches did not save. Try again.', 'save_failed');
     }
-  }
-
-  let data;
-  try {
-    data = await upsertSettings(userId, nextSettings);
-  } catch (error) {
-    console.error('[job-feed/settings] PUT error:', error instanceof Error ? error.message : error);
-    throw new FeedError(500, 'Failed to save job feed settings.', 'save_failed');
   }
 
   // Sync preferences for cover letter context. Awaited because Vercel kills
@@ -340,6 +401,19 @@ export interface FeedSettingsPatch {
   salaryFloor?: number | null;
   automationEnabled?: boolean;
   timezone?: string;
+  /** Levels the feed keeps; an empty list keeps every level. */
+  seniority?: string[];
+  /** "Words to avoid" in the editor: titles, companies or keywords to keep out. An empty list clears them. */
+  excludedTerms?: string[];
+  /** A city named for the first time brings its country with it. An empty list clears them. */
+  cities?: string[];
+  languages?: string[];
+  workAuthorization?: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null;
+  /**
+   * The confirmed search list itself, in run order, replacing the role-by-country list. The roles become
+   * the searches' roles, and a country a search names joins the countries.
+   */
+  searches?: Array<{ query: string; country: string }>;
 }
 
 function sameSet(left: readonly string[], right: readonly string[]): boolean {
@@ -377,6 +451,12 @@ export function changedFeedSettingFields(existing: JobFeedSettings | null, patch
   if (patch.salaryFloor !== undefined && patch.salaryFloor !== current.salary_floor) changed.push('salary floor');
   if (patch.automationEnabled !== undefined && patch.automationEnabled !== Boolean(existing?.enabled)) changed.push('daily feed on or off');
   if (patch.timezone !== undefined && patch.timezone !== (existing ? current.user_timezone : undefined)) changed.push('timezone');
+  if (patch.seniority && !sameSet(patch.seniority, current.seniority_targets)) changed.push('seniority');
+  if (patch.excludedTerms && !sameSet(patch.excludedTerms, current.excluded_terms)) changed.push('words to avoid');
+  if (patch.cities && !sameSet(patch.cities, current.target_cities)) changed.push('cities');
+  if (patch.languages && !sameSet(patch.languages, current.languages)) changed.push('languages');
+  if (patch.workAuthorization !== undefined && patch.workAuthorization !== current.work_authorization_status) changed.push('work authorization');
+  if (patch.searches) changed.push('searches');
   return changed;
 }
 
@@ -395,6 +475,8 @@ export async function updateFeedSettingsPartial(params: {
   userId: string;
   patch: FeedSettingsPatch;
   clientRequestId: string | null;
+  /** The revision from get_feed_settings. A newer saved revision refuses the change. */
+  expectedRevision: number;
 }): Promise<{ settings: JobFeedSettings; searches: ConfirmedSearchQuery[] | null; searchLimit: number }> {
   const { userId, patch } = params;
   const profile = await getProfile(userId);
@@ -418,12 +500,25 @@ export async function updateFeedSettingsPartial(params: {
   if (patch.salaryFloor !== undefined) body.salary_floor = patch.salaryFloor;
   if (patch.automationEnabled !== undefined) body.enabled = patch.automationEnabled;
   if (patch.timezone !== undefined) body.user_timezone = patch.timezone;
+  if (patch.seniority) {
+    body.seniority_targets = patch.seniority;
+    body.seniority_target = patch.seniority[0] ?? null;
+  }
+  if (patch.excludedTerms) body.excluded_terms = patch.excludedTerms;
+  if (patch.cities) body.target_cities = patch.cities;
+  if (patch.languages) body.languages = patch.languages;
+  if (patch.workAuthorization !== undefined) body.work_authorization_status = patch.workAuthorization;
 
-  const searchLimit = planCapForTier(profile.subscription_tier);
+  const searchLimit = searchListCap(profile.subscription_tier);
   let searches: ConfirmedSearchQuery[] | null = null;
   const rolesChanged = rolesWouldChange(existing, patch, searchLimit);
   const countriesChanged = Boolean(patch.countries) && !sameSet(patch.countries ?? [], base.target_countries);
-  if (rolesChanged || countriesChanged) {
+  if (patch.searches) {
+    const plan = patch.searches.map((row) => ({ query: row.query, targetCountry: row.country }));
+    searches = plan;
+    body.confirmed_queries = plan;
+    body.target_countries = [...new Set([...(patch.countries ?? base.target_countries), ...plan.map((row) => row.targetCountry)])];
+  } else if (rolesChanged || countriesChanged) {
     const plan = buildConfirmSearchPlan({
       roles: patch.roles ?? existing?.target_roles ?? [],
       countries: patch.countries ?? base.target_countries,
@@ -442,6 +537,9 @@ export async function updateFeedSettingsPartial(params: {
     body,
     clientRequestId: params.clientRequestId,
     llmRoute: 'mcp:update_feed_settings',
+    expectedRevision: params.expectedRevision,
+    userSet: { seniority: patch.seniority !== undefined, languages: patch.languages !== undefined },
+    staleMessage: 'The feed settings changed after you read them. Read them again with get_feed_settings and send the new revision.',
   });
   return { settings, searches, searchLimit };
 }

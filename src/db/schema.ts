@@ -872,6 +872,8 @@ export const jobFeedSettings = sqliteTable(
     work_authorization_status: text('work_authorization_status'),
     user_skills: text('user_skills', { mode: 'json' }).$type<string[]>().notNull().$defaultFn(emptyArray),
     excluded_terms: text('excluded_terms', { mode: 'json' }).$type<string[]>().notNull().$defaultFn(emptyArray),
+    /** Moves up on every write; a save based on an older revision is refused (migration 0017). */
+    revision: integer('revision').notNull().default(0),
     created_at: text('created_at').notNull().$defaultFn(isoNow),
     updated_at: text('updated_at').notNull().$defaultFn(isoNow),
   },
@@ -905,6 +907,8 @@ export const jobFeedRuns = sqliteTable(
       .notNull()
       .references(() => profiles.id, { onDelete: 'cascade' }),
     local_date: text('local_date').notNull(),
+    /** Which run of the local day this is, from 0 (migration 0018). */
+    run_slot: integer('run_slot').notNull().default(0),
     local_timezone: text('local_timezone').notNull(),
     trigger_source: text('trigger_source').notNull().default('scheduled'),
     status: text('status').notNull().default('queued'),
@@ -922,7 +926,7 @@ export const jobFeedRuns = sqliteTable(
     updated_at: text('updated_at').notNull().$defaultFn(isoNow),
   },
   (t) => [
-    uniqueIndex('job_feed_runs_user_local_date_uidx').on(t.user_id, t.local_date),
+    uniqueIndex('job_feed_runs_user_local_date_slot_uidx').on(t.user_id, t.local_date, t.run_slot),
     uniqueIndex('job_feed_runs_idempotency_uidx').on(t.idempotency_key),
     index('job_feed_runs_user_created_idx').on(t.user_id, t.created_at),
     check('job_feed_runs_status_check', sql`${t.status} in ('queued', 'running', 'completed', 'failed', 'skipped')`),
@@ -984,6 +988,10 @@ export const jobFeedCanonicalJobs = sqliteTable(
     salary_max: integer('salary_max'),
     salary_currency: text('salary_currency'),
     description: text('description'),
+    /** 'serp' (Google Jobs' copy) or 'employer_page' (the JobPosting read from the ad's own page). */
+    description_source: text('description_source').notNull().default('serp'),
+    /** Whether the description is the whole ad. Null on rows from before migration 0016. */
+    description_complete: integer('description_complete', { mode: 'boolean' }),
     apply_url: text('apply_url'),
     source_url: text('source_url'),
     posted_at_text: text('posted_at_text'),

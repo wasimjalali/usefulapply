@@ -71,8 +71,8 @@ const toolGroups: { title: string; body: string; tools: string }[] = [
   },
   {
     title: 'Run your job feed',
-    body: 'Run today’s feed, change its settings and save or dismiss jobs. You can also turn off the feed and withdraw your consent.',
-    tools: 'run_job_feed, update_feed_settings, give_job_feedback, withdraw_feed_consent',
+    body: 'Run the feed, with your saved searches or new ones. Change any of its settings and searches, read your CV into your search profile again, and save or dismiss jobs. You can also turn off the feed and withdraw your consent.',
+    tools: 'run_job_feed, update_feed_settings, update_feed_searches, regenerate_career_profile, give_job_feedback, withdraw_feed_consent',
   },
   {
     title: 'Update your settings',

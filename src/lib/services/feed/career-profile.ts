@@ -6,8 +6,11 @@
  */
 
 import { getDocumentByType } from '@/db/repos/documents';
-import { getCareerProfileRow, getLatestSearchStrategyRow, getSearchStrategyRow } from '@/db/repos/jobFeed';
-import { isCurrentCareerProfile, type CareerProfile } from '@/lib/job-feed/career-profile';
+import { getCareerProfileRow, getLatestSearchStrategyRow, getSearchStrategyRow, upsertCareerProfile } from '@/db/repos/jobFeed';
+import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
+import type { Json } from '@/db/types';
+import { CAREER_PROFILE_SCHEMA_VERSION, isCurrentCareerProfile, type CareerProfile } from '@/lib/job-feed/career-profile';
+import { generateCareerProfile } from '@/lib/job-feed/career-profile-synthesis';
 import { isUserConfirmedStrategy } from '@/lib/job-feed/search-plan';
 import {
   computeSettingsHash,
@@ -182,5 +185,87 @@ export async function readSearchStrategy(userId: string): Promise<SearchStrategy
     generatedAt: strategy.generatedAt,
     sourceProfileGeneratedAt: row.source_profile_generated_at,
     profileNewerThanStrategy,
+  };
+}
+
+/** How old a stored profile must be before a forced re-read replaces it. */
+const FORCED_REREAD_MIN_AGE_MS = 5 * 60 * 1000;
+
+/**
+ * Read the primary CV into a career profile and store it: the body of POST /api/job-feed/career-profile,
+ * shared with the MCP `regenerate_career_profile` tool. Without `force`, a stored profile that is current
+ * and no older than the CV is returned as it is. With `force`, the CV is read again whatever is stored,
+ * so a wrong reading can be redone. The caller gates the plan and the rate limit.
+ */
+export async function generateCareerProfileForUser(params: {
+  userId: string;
+  force: boolean;
+  clientRequestId: string | null;
+  route: string;
+}): Promise<CareerProfileResponseBody & { regenerated: boolean }> {
+  const { userId } = params;
+  const { profileRow, primaryDoc } = await loadProfileAndPrimaryCV(userId);
+
+  if (!primaryDoc?.structured_data) {
+    return { profile: null, cvNewerThanProfile: false, status: 'no_cv', generatedAt: null, regenerated: false };
+  }
+
+  const current = profileRow?.profile
+    && isCurrentCareerProfile(profileRow.profile)
+    && profileRow.version === CAREER_PROFILE_SCHEMA_VERSION;
+  // A changed CV is always read. Otherwise the stored profile stands, and a forced re-read (a model call with
+  // no credit cost) is allowed once the profile is a few minutes old.
+  const cvNewer = isCVNewerThanProfile({
+    profileSourceUpdatedAt: profileRow?.source_document_updated_at ?? null,
+    primaryDocUpdatedAt: primaryDoc.updated_at,
+  });
+  const justRead = current && Date.now() - Date.parse(profileRow!.profile!.generatedAt) < FORCED_REREAD_MIN_AGE_MS;
+  if (current && !cvNewer && (!params.force || justRead)) {
+    return {
+      profile: profileRow!.profile,
+      cvNewerThanProfile: false,
+      status: 'ok',
+      generatedAt: profileRow!.profile!.generatedAt,
+      regenerated: false,
+    };
+  }
+
+  const generationContext: LlmGenerationContext = {
+    requestExecutionId: crypto.randomUUID(),
+    clientRequestId: params.clientRequestId,
+    userId,
+    route: params.route,
+    feature: 'job_feed',
+    operation: 'career_profile_synthesis',
+  };
+  const result = await generateCareerProfile(primaryDoc.structured_data, generationContext);
+
+  try {
+    await upsertCareerProfile(userId, {
+      profile: result.profile as unknown as Json,
+      version: CAREER_PROFILE_SCHEMA_VERSION,
+      source_document_id: primaryDoc.id ?? null,
+      source_document_updated_at: primaryDoc.updated_at ?? null,
+      model_provider: result.modelProvider,
+      model_name: result.modelName,
+    });
+  } catch (persistError) {
+    console.error('[career-profile] Failed to persist generated profile:', {
+      userId,
+      error: persistError instanceof Error ? persistError.message : persistError,
+    });
+    throw new FeedError(500, 'Failed to save career profile.', 'save_failed');
+  }
+
+  console.log(
+    `[career-profile] Generated for user ${userId}: ${result.modelName} | ${result.inputTokens}in/${result.outputTokens}out | ${result.latencyMs}ms`,
+  );
+
+  return {
+    profile: result.profile,
+    cvNewerThanProfile: false,
+    status: 'ok',
+    generatedAt: result.profile.generatedAt,
+    regenerated: true,
   };
 }

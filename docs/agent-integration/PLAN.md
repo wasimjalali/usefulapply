@@ -168,7 +168,7 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
 | `list_cv_templates` | 6 templates: market, paper, photo support, measured ATS level from the eval |
 | `get_job_feed` | Inbox or saved, paginated, untrusted-wrapped |
 | `get_feed_settings` | All feed preferences including automation and timezone |
-| `get_career_profile` | Career profile and search strategy |
+| `get_career_profile` | Career profile and search strategy (never generates either) |
 | `explain_fit` | Plain-language fit explanation for an application |
 | `morning_briefing` | What needs attention today (follow-ups due, interviews, new strong matches) |
 
@@ -205,13 +205,15 @@ OAuth: /.well-known/*, /api/auth/oauth2/*, /oauth/consent, Settings > Connected 
 | `edit_document_text` | yes (overwrites) | Directly edit cover letter, email or follow-up text with the user's own words; returns a diff |
 | `set_cv_template` | yes (replaces the choice) | Choose a template for an application |
 | `export_documents` | no | `cv_pdf`, `cv_docx`, `cover_letter_pdf`, `cover_letter_docx`, `emails_txt`, `answers_pdf`, `answers_txt`, with any `templateId`, an optional `paper` override and `letterLocale`; returns signed links |
-| `run_job_feed` | no | Today's feed (one a day, consent required) |
-| `update_feed_settings` | yes (overwrites settings) | Roles, countries, remote, salary floor, automation, timezone |
+| `run_job_feed` | no | A feed run: the saved search list or the agent's own queries for that run; the plan's runs a day (Max 3, else 1); consent required |
+| `update_feed_settings` | yes (overwrites settings) | Every feed setting: roles, countries, cities, work modes, employment types, salary floor, seniority, languages, words to avoid, work authorization, automation, timezone; `revision` required; names roles that did not fit |
+| `update_feed_searches` | yes (replaces the search list) | The confirmed search list itself, role keyword and country per row; `revision` required |
+| `regenerate_career_profile` | no | Read the primary CV into the career profile again; the settings' seniority stays the user's |
 | `give_job_feedback` | yes (dismiss and not relevant end the job, with no undo) | Save, unsave, dismiss, rate. Only dismiss and rate_not_relevant ask the user to confirm; the other verbs run without a form |
 | `withdraw_feed_consent` | yes | Stop feed data processing |
 | `update_notification_settings` | yes (overwrites settings) | Email notifications and reminders |
 
-**Left out:** checkout, plans, credit packs, account deletion, admin and the chat endpoint. The tool count is 43 (13 read, 6 spend, 24 free writes), which is within normal range for catalogs the directories have reviewed. Each description stays one or two sentences.
+**Left out:** checkout, plans, credit packs, account deletion, admin and the chat endpoint. The tool count is 45 (13 read, 6 spend, 26 free writes; `update_feed_searches` and `regenerate_career_profile` added 2026-10-25), which is within normal range for catalogs the directories have reviewed. Each description stays one or two sentences.
 
 **Claude Code skill `apply-to-job`:** check the account and CV, create the application, run the fit check, confirm spend with the user, generate, poll `get_operation`, review, export, set the tracker status.
 

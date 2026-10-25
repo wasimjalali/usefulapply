@@ -63,7 +63,7 @@ test('cities are optional: empty city list is a valid confirm plan', () => {
 
 test('plan cap is Plus 2 and Max 4', () => {
   assert.equal(planCapForTier('plus'), 2);
-  assert.equal(planCapForTier('max'), 4);
+  assert.equal(planCapForTier('max'), 8);
   assert.equal(planCapForTier('free'), 1);
   const plus = buildConfirmSearchPlan({ roles: ROLES, countries: ['us'], cap: 2 });
   const max = buildConfirmSearchPlan({ roles: ROLES, countries: ['us'], cap: 4 });
@@ -239,6 +239,7 @@ test('consent plan summary is one search per line with no trailing comma', () =>
 function fixtureSettings(overrides: Partial<JobFeedSettings>): JobFeedSettings {
   return {
     user_id: 'test-user',
+    revision: 0,
     enabled: true,
     consent_accepted_at: '2026-08-25T00:00:00.000Z',
     user_timezone: 'America/New_York',

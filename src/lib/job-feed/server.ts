@@ -47,9 +47,14 @@ import {
   type SearchStrategy,
 } from '@/lib/job-feed/search-strategy';
 import {
+  buildUserConfirmedStrategy,
   shouldReuseUserConfirmedStrategy,
+  type ConfirmedSearchQuery,
 } from '@/lib/job-feed/search-plan';
 import { generateCareerProfile } from '@/lib/job-feed/career-profile-synthesis';
+import { enrichJobDescriptions } from '@/lib/job-feed/enrich-descriptions';
+import { isDescriptionComplete } from '@/lib/job-feed/posting-page';
+import { asSeniorityLevels, buildTrackerIndex, inTracker, seniorityAllowed, workModeAllowed, type TrackerIndex } from '@/lib/job-feed/settings-filters';
 import type { StructuredCV } from '@/lib/types/cv-schema';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
@@ -970,14 +975,16 @@ export async function listLatestJobFeedItemsAdmin(params: {
     };
   }
 
-  const inboxItems = await listRecentJobFeedInboxItemsAdmin({
+  const inbox = await listRecentJobFeedInboxItemsAdmin({
     userId: params.userId,
     latestCompletedRun: run,
   });
-  if (inboxItems.length > 0) {
+  // The fallbacks below are for runs with no inbox rows at all. An inbox that the settings or the
+  // tracker emptied is the answer, not a reason to show the unfiltered run.
+  if (inbox.hadRows) {
     return {
       run,
-      items: inboxItems,
+      items: inbox.items,
     };
   }
 
@@ -1018,16 +1025,17 @@ export async function listLatestJobFeedItemsAdmin(params: {
 async function listRecentJobFeedInboxItemsAdmin(params: {
   userId: string;
   latestCompletedRun: JobFeedRun;
-}): Promise<JobFeedFeedItem[]> {
-  const { rows } = await loadDedupedInboxRows({
+}): Promise<{ items: JobFeedFeedItem[]; hadRows: boolean }> {
+  const { rows, rowsBeforeFilters } = await loadDedupedInboxRows({
     userId: params.userId,
     latestCompletedRun: params.latestCompletedRun,
   });
 
-  return buildFeedItemsForSnapshot({
+  const items = await buildFeedItemsForSnapshot({
     userId: params.userId,
     rankedPreview: rows.map(toRankedPreviewItem),
   });
+  return { items, hadRows: rowsBeforeFilters > 0 };
 }
 
 /**
@@ -1044,7 +1052,7 @@ async function listRecentJobFeedInboxItemsAdmin(params: {
 async function loadDedupedInboxRows(params: {
   userId: string;
   latestCompletedRun: JobFeedRun;
-}): Promise<{ rows: SupabaseJobFeedRankedItem[]; totalCount: number }> {
+}): Promise<{ rows: SupabaseJobFeedRankedItem[]; totalCount: number; rowsBeforeFilters: number }> {
   const since = new Date(Date.now() - JOB_FEED_INBOX_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const data = await jobFeedRepo.listInboxRankedItems(params.userId, since);
   const olderRows = data.filter((row) => row.run_id !== params.latestCompletedRun.id);
@@ -1060,12 +1068,26 @@ async function loadDedupedInboxRows(params: {
   // Exclude jobs the user has already acted on (applied / dismissed /
   // rated not relevant). Keeps the inbox focused on roles the user has
   // yet to decide on.
-  const blockedIds = await getBlockedCanonicalJobIdsAdmin(params.userId);
-  const visibleRows = blockedIds.size > 0
-    ? dedupedRows.filter((row) => !blockedIds.has(row.canonical_job_id))
-    : dedupedRows;
+  // Settings are applied again when the inbox is read, so a change takes effect at once: the work mode
+  // and levels the ranker read, and jobs that have since entered the tracker.
+  const [exclusions, settings, jobs] = await Promise.all([
+    loadFeedExclusionsAdmin(params.userId),
+    getJobFeedSettingsAdmin(params.userId),
+    adminRepo.getCanonicalJobsByIds([...seenJobIds]),
+  ]);
+  const jobsById = new Map(jobs.map((job) => [job.id, job]));
+  const visibleRows = dedupedRows.filter((row) => {
+    const job = jobsById.get(row.canonical_job_id);
+    if (!job) return !exclusions.blockedIds.has(row.canonical_job_id);
+    if (isExcludedFromFeed(job, exclusions)) return false;
+    if (!settings) return true;
+    const metadata = isJsonRecord(row.metadata) ? row.metadata : {};
+    // The work mode this run's ranker read in the ad comes first; the job's stored mode covers older rows.
+    const workMode = typeof metadata.work_mode === 'string' ? metadata.work_mode : job.work_mode;
+    return workModeAllowed(workMode, settings) && seniorityAllowed(asSeniorityLevels(metadata.seniority_levels), settings);
+  });
 
-  return { rows: visibleRows, totalCount: visibleRows.length };
+  return { rows: visibleRows, totalCount: visibleRows.length, rowsBeforeFilters: dedupedRows.length };
 }
 
 /**
@@ -1109,11 +1131,12 @@ export async function listJobFeedInboxPageAdmin(params: {
   // yesterday's or older — those visible jobs belong in the backlog, not
   // the today bucket.
   const todayKey = getLocalDateKey(new Date(), timeZone);
-  const latestRunIsToday = latestCompletedRun.local_date === todayKey;
+  // Every completed run of today counts as today: a plan with more runs a day has several.
+  const todaysRunIds = new Set(
+    (await jobFeedRepo.listRunsByDate(params.userId, todayKey)).filter((run) => run.status === 'completed').map((run) => run.id),
+  );
 
-  const todayVisibleCount = latestRunIsToday
-    ? rows.filter((row) => row.run_id === latestCompletedRun.id).length
-    : 0;
+  const todayVisibleCount = rows.filter((row) => todaysRunIds.has(row.run_id)).length;
   const backlogVisibleCount = totalCount - todayVisibleCount;
 
   const offset = Math.max(0, Math.floor(params.offset));
@@ -1269,6 +1292,11 @@ export async function runJobFeedFoundationWorkflow(params: {
    * finished or failed is never run again by a redelivered message.
    */
   runId?: string;
+  /**
+   * Set by the run gate when the plan allows another run today and today's latest run completed: the run
+   * goes in this slot instead of being skipped as already done.
+   */
+  nextRunSlot?: number;
 }): Promise<JobFeedRunWorkflowResult> {
   const {
     userId,
@@ -1347,7 +1375,13 @@ export async function runJobFeedFoundationWorkflow(params: {
     return { run: targetRun, created: false, skipped: true };
   }
   const localDate = targetRun?.local_date ?? getLocalDateKey(now, localTimeZone);
-  const existingRun = targetRun ?? await getJobFeedRunByDate(userId, localDate);
+  const latestToday = targetRun ?? await getJobFeedRunByDate(userId, localDate);
+  // Another run of the day: today's latest is done and the gate opened the next slot.
+  const startsNewSlot = !targetRun
+    && params.nextRunSlot !== undefined
+    && latestToday?.status === 'completed'
+    && latestToday.run_slot < params.nextRunSlot;
+  const existingRun = startsNewSlot ? null : latestToday;
 
   if (existingRun?.status === 'completed' && !force) {
     captureJobFeedRunIdempotencyConflict({
@@ -1410,6 +1444,7 @@ export async function runJobFeedFoundationWorkflow(params: {
         settings,
         triggerSource,
         orchestrator,
+        runSlot: startsNewSlot ? params.nextRunSlot : 0,
       });
 
   // Another request created today's row between our read and our insert. The
@@ -1479,6 +1514,7 @@ export async function runJobFeedFoundationWorkflow(params: {
       foundation_mode: true,
       last_trigger_source: triggerSource,
       orchestrator,
+      ...(params.runId ? {} : { custom_queries: null }),
     }),
   };
   let runningRun: JobFeedRun;
@@ -1517,15 +1553,20 @@ export async function runJobFeedFoundationWorkflow(params: {
       jobFeedRunId: run.id,
       operation: 'career_profile_synthesis',
     });
-    const searchStrategy = await loadOrGenerateSearchStrategyAdmin({
-      userId,
-      settings,
-      profile: careerProfileForStrategy,
-      generationContext: {
-        ...workflowGenerationContext,
-        jobFeedRunId: run.id,
-      },
-    });
+    // A run an agent started with its own searches (run_job_feed with queries) runs exactly those. Only
+    // the queue runs them: a web retry of the same row searches the saved list (and clears them below).
+    const customQueries = params.runId ? readCustomQueries(run.metadata) : null;
+    const searchStrategy = customQueries
+      ? buildUserConfirmedStrategy({ queries: customQueries, sourceProfileGeneratedAt: careerProfileForStrategy?.generatedAt ?? null })
+      : await loadOrGenerateSearchStrategyAdmin({
+          userId,
+          settings,
+          profile: careerProfileForStrategy,
+          generationContext: {
+            ...workflowGenerationContext,
+            jobFeedRunId: run.id,
+          },
+        });
 
     const ingestion = await ingestJobFeedRunJobs({
       runId: run.id,
@@ -1535,6 +1576,8 @@ export async function runJobFeedFoundationWorkflow(params: {
       maxMainQueries: tierLimits.maxMainQueries,
       maxRawJobs: tierLimits.maxRawJobsPerRun,
       strategy: searchStrategy,
+      // The day's later runs start further down the search list.
+      queryOffset: customQueries ? 0 : run.run_slot * tierLimits.maxMainQueries,
     });
 
     if (ingestion.rawJobsFetched === 0 && ingestion.failedFetches.length === ingestion.searchPlan.length && ingestion.searchPlan.length > 0) {
@@ -1544,10 +1587,13 @@ export async function runJobFeedFoundationWorkflow(params: {
     // Exclude canonical jobs the user has already applied to, dismissed, or
     // rated "not relevant" — no point ranking rows the user has already
     // rejected. Keeps the feed fresh and saves LLM budget.
-    const blockedIds = await getBlockedCanonicalJobIdsAdmin(userId);
-    const rankableJobs = blockedIds.size > 0
-      ? ingestion.canonicalJobs.filter((job) => !blockedIds.has(job.id))
-      : ingestion.canonicalJobs;
+    // Jobs already in the tracker are left out too, matched by company and title, since an application
+    // made outside the feed (or for the same ad found under another link) has no feedback row.
+    const exclusions = await loadFeedExclusionsAdmin(userId);
+    const rankableJobs = ingestion.canonicalJobs.filter((job) => !isExcludedFromFeed(job, exclusions));
+    const trackerExcludedCount = ingestion.canonicalJobs.filter(
+      (job) => !exclusions.blockedIds.has(job.id) && isExcludedFromFeed(job, exclusions),
+    ).length;
 
     const prefilter = prefilterJobFeedJobs({
       settings,
@@ -1560,9 +1606,13 @@ export async function runJobFeedFoundationWorkflow(params: {
     // a deterministic-score shortlist of 15 ever could, and the token cost
     // is trivial at our scale. Deterministic shortlist stays wired to the
     // fallback path inside the ranker for the case where the LLM fails.
+    // Google's copy of an ad is often a snippet or a flat block with its lists stripped. Read the ad's own
+    // page for the jobs still in the running, so the ranker and every reader get the whole text.
+    const descriptions = await enrichJobDescriptions({ jobs: prefilter.survivors, updateJob: adminRepo.updateCanonicalJob });
+
     const rankingPrep = prepareJobFeedRankingCandidates({
       settings,
-      jobs: prefilter.survivors,
+      jobs: descriptions.jobs,
     });
     const yearsExperience = await getUserYearsExperienceAdmin(userId);
     const rankingResult = await rankJobFeedCandidates({
@@ -1583,6 +1633,14 @@ export async function runJobFeedFoundationWorkflow(params: {
         operation: 'job_feed_ranking',
       },
     });
+    // The ranker read the work mode in the ad; the board's label is often only a city. Keep the reading,
+    // before the ranking is stored, so a failed write fails the run with nothing half-written.
+    const jobsById = new Map(descriptions.jobs.map((job) => [job.id, job]));
+    await Promise.all(
+      [...(rankingResult.readWorkModes ?? [])]
+        .filter(([jobId, workMode]) => workMode !== 'unknown' && jobsById.has(jobId) && jobsById.get(jobId)?.work_mode !== workMode)
+        .map(([jobId, workMode]) => adminRepo.updateCanonicalJob(jobId, { work_mode: workMode })),
+    );
     const materializedRanking = await persistJobFeedRankedItemsForRunAdmin({
       runId: run.id,
       userId,
@@ -1609,7 +1667,11 @@ export async function runJobFeedFoundationWorkflow(params: {
         duplicate_count: ingestion.duplicateCount,
         failed_fetches: toJson(ingestion.failedFetches),
         ingestion_preview_jobs: toJson(ingestion.previewJobs),
+        tracker_excluded_count: trackerExcludedCount,
+        ranking_excluded_by_settings: toJson(rankingResult.excludedBySettings ?? null),
         prefilter_survivors_count: prefilter.survivors.length,
+        descriptions_fetch_attempted: descriptions.attempted,
+        descriptions_from_employer_page: descriptions.enriched,
         prefilter_rejected_count: prefilter.rejectedCount,
         prefilter_rejections_by_reason: toJson(prefilter.rejectionsByReason),
         prefilter_survivors_preview: toJson(prefilter.survivorsPreview),
@@ -1680,8 +1742,12 @@ export async function queueJobFeedRunAdmin(params: {
   userId: string;
   now?: Date;
   triggerSource?: string;
+  /** The slot the run gate opened: today's latest run completed and the plan allows another. */
+  nextRunSlot?: number;
+  /** An agent's own searches for the run it queues now. */
+  customQueries?: ConfirmedSearchQuery[] | null;
 }): Promise<{ run: JobFeedRun; queuedNow: boolean; dispatch: boolean }> {
-  const { userId, now = new Date(), triggerSource = 'manual_user' } = params;
+  const { userId, now = new Date(), triggerSource = 'manual_user', nextRunSlot, customQueries = null } = params;
   const settings = await getJobFeedSettingsAdmin(userId);
   if (!settings) {
     throw new Error('Job feed settings were not found for this user.');
@@ -1692,8 +1758,17 @@ export async function queueJobFeedRunAdmin(params: {
   const localDate = getLocalDateKey(now, localTimeZone);
 
   let run = await getJobFeedRunByDate(userId, localDate);
-  if (!run) {
-    const creation = await createJobFeedRunForToday({ userId, localDate, settings, triggerSource, orchestrator: 'queue' });
+  const startsNewSlot = nextRunSlot !== undefined && run?.status === 'completed' && run.run_slot < nextRunSlot;
+  if (!run || startsNewSlot) {
+    const creation = await createJobFeedRunForToday({
+      userId,
+      localDate,
+      settings,
+      triggerSource,
+      orchestrator: 'queue',
+      runSlot: startsNewSlot ? nextRunSlot : 0,
+      customQueries,
+    });
     // The row this call inserted is queued. One that lost the insert race is the winner's, judged below.
     if (!creation.raced) return { run: creation.run, queuedNow: true, dispatch: true };
     run = creation.run;
@@ -1708,7 +1783,13 @@ export async function queueJobFeedRunAdmin(params: {
     return { run, queuedNow: false, dispatch: false };
   }
 
-  // A failed run is retried and a stalled one is taken over, as the synchronous path does.
+  // A failed run is retried and a stalled one is taken over, as the synchronous path does. The retry
+  // runs the searches asked for now: an agent's own, or the search list.
+  if (customQueries || readCustomQueries(run.metadata)) {
+    run = await updateJobFeedRun(run.id, {
+      metadata: mergeMetadata(run.metadata, { custom_queries: customQueries ? toJson(customQueries) : null }),
+    });
+  }
   captureJobFeedRunIdempotencyConflict({
     userId,
     run,
@@ -1747,34 +1828,52 @@ async function createJobFeedRunForToday(params: {
   settings: JobFeedSettings;
   triggerSource: string;
   orchestrator: JobFeedRunDiagnostics['orchestrator'];
+  /** Which run of the day (0 for the first). */
+  runSlot?: number;
+  /** An agent's own searches for this run, instead of the search list. */
+  customQueries?: ConfirmedSearchQuery[] | null;
 }): Promise<{ run: JobFeedRun; raced: boolean }> {
-  const { userId, localDate, settings, triggerSource, orchestrator } = params;
+  const { userId, localDate, settings, triggerSource, orchestrator, runSlot = 0, customQueries = null } = params;
   try {
     const run = await createJobFeedRun({
       user_id: userId,
       local_date: localDate,
+      run_slot: runSlot,
       local_timezone: isValidTimeZone(settings.user_timezone) ? settings.user_timezone : 'UTC',
       trigger_source: triggerSource,
-      idempotency_key: `${userId}:${localDate}`,
+      // The first run of a day keeps the key it always had.
+      idempotency_key: runSlot === 0 ? `${userId}:${localDate}` : `${userId}:${localDate}:${runSlot}`,
       settings_snapshot: settings as unknown as Json,
       metadata: {
         stage: 'phase_4_ranking',
         foundation_mode: true,
         target_market: settings.target_market,
         orchestrator,
+        ...(customQueries ? { custom_queries: toJson(customQueries) } : {}),
       },
     });
     return { run, raced: false };
   } catch (error) {
     const raced = await getJobFeedRunByDate(userId, localDate);
-    if (raced) return { run: raced, raced: true };
+    if (raced && raced.run_slot >= runSlot) return { run: raced, raced: true };
     throw error;
   }
+}
+
+/** The searches an agent gave a run, when it gave any. */
+function readCustomQueries(metadata: Json | null | undefined): ConfirmedSearchQuery[] | null {
+  if (!metadata || !isJsonRecord(metadata) || !Array.isArray(metadata.custom_queries)) return null;
+  const queries = metadata.custom_queries
+    .filter((row): row is Record<string, Json> => row !== null && isJsonRecord(row))
+    .map((row) => ({ query: String(row.query ?? '').trim(), targetCountry: String(row.targetCountry ?? '').trim().toLowerCase() }))
+    .filter((row) => row.query && row.targetCountry);
+  return queries.length > 0 ? queries : null;
 }
 
 async function createJobFeedRun(insert: {
   user_id: string;
   local_date: string;
+  run_slot: number;
   local_timezone: string;
   trigger_source: string;
   idempotency_key: string;
@@ -1783,6 +1882,7 @@ async function createJobFeedRun(insert: {
 }): Promise<JobFeedRun> {
   return jobFeedRepo.insertRun(insert.user_id, {
     local_date: insert.local_date,
+    run_slot: insert.run_slot,
     local_timezone: insert.local_timezone,
     trigger_source: insert.trigger_source,
     idempotency_key: insert.idempotency_key,
@@ -1937,7 +2037,7 @@ function extractRankedPreviewItems(metadata: Json): JobFeedRankedPreviewItem[] {
   return previewItems;
 }
 
-async function listJobFeedRankedItemsForRunAdmin(runId: string): Promise<SupabaseJobFeedRankedItem[]> {
+export async function listJobFeedRankedItemsForRunAdmin(runId: string): Promise<SupabaseJobFeedRankedItem[]> {
   return adminRepo.listRankedItemsByRunId(runId) as Promise<SupabaseJobFeedRankedItem[]>;
 }
 
@@ -1961,7 +2061,11 @@ async function persistJobFeedRankedItemsForRunAdmin(params: {
     ranking_source: item.rankingSource,
     reason: item.reason,
     deterministic_score: item.deterministicScore,
-    metadata: item.companyDisplay ? { company_display: item.companyDisplay } : {},
+    metadata: {
+      ...(item.companyDisplay ? { company_display: item.companyDisplay } : {}),
+      ...(item.workMode ? { work_mode: item.workMode } : {}),
+      ...(item.seniorityLevels ? { seniority_levels: item.seniorityLevels } : {}),
+    },
   })));
   return { materialized: true, preview: params.items.map(toRankedPreviewRecord) };
 }
@@ -2049,6 +2153,33 @@ export async function getBlockedCanonicalJobIdsAdmin(userId: string): Promise<Se
   return blocked;
 }
 
+export interface FeedExclusions {
+  /** Jobs the user applied to from the feed, dismissed or rated not relevant. */
+  blockedIds: Set<string>;
+  trackerIndex: TrackerIndex;
+  /** The application the feed itself made for a job, which must not hide that job. */
+  ownApplicationByJob: Map<string, string>;
+}
+
+export async function loadFeedExclusionsAdmin(userId: string): Promise<FeedExclusions> {
+  const [feedback, applications] = await Promise.all([
+    jobFeedRepo.listFeedback(userId),
+    sessionsRepo.listApplicationIdentities(userId),
+  ]);
+  const blockedIds = new Set<string>();
+  const ownApplicationByJob = new Map<string, string>();
+  for (const row of feedback) {
+    if (isJobFeedbackBlocked(row)) blockedIds.add(row.canonical_job_id);
+    if (row.application_session_id) ownApplicationByJob.set(row.canonical_job_id, row.application_session_id);
+  }
+  return { blockedIds, trackerIndex: buildTrackerIndex(applications), ownApplicationByJob };
+}
+
+export function isExcludedFromFeed(job: Pick<JobFeedCanonicalJob, 'id' | 'company' | 'title'>, exclusions: FeedExclusions): boolean {
+  if (exclusions.blockedIds.has(job.id)) return true;
+  return inTracker(job, exclusions.trackerIndex, exclusions.ownApplicationByJob.get(job.id) ?? null);
+}
+
 function toFeedItem(
   job: JobFeedCanonicalJob,
   feedback: JobFeedFeedback | null,
@@ -2078,6 +2209,7 @@ function toFeedItem(
     employmentType: job.employment_type,
     salaryText,
     description: job.description,
+    descriptionComplete: job.description_complete ?? isDescriptionComplete(job.description),
     highlights,
     applyUrl: job.apply_url && isSafeExternalUrl(job.apply_url) ? job.apply_url : null,
     sourceUrl: job.source_url && isSafeExternalUrl(job.source_url) ? job.source_url : null,

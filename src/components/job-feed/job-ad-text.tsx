@@ -12,7 +12,7 @@ import {
   looksLikeAdHeading,
   splitGluedAdText,
   straightenQuotes,
-} from './feed-format';
+} from '@/lib/job-feed/ad-text';
 
 export function workModeLabel(value: JobFeedFeedItem['workMode']): string {
   switch (value) {

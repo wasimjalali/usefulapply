@@ -259,6 +259,7 @@ export function toPreviewJobFeedSettings(form: JobFeedSettingsInput): NonNullabl
 
   return {
     user_id: 'preview-user',
+    revision: 0,
     enabled: form.enabled,
     consent_accepted_at: form.consent_accepted ? now : null,
     user_timezone: form.user_timezone,
@@ -305,6 +306,7 @@ export function buildPreviewJobFeedRun({
     id: `preview-run-${status}`,
     user_id: 'preview-user',
     local_date: localDate,
+    run_slot: 0,
     local_timezone: timeZone,
     // Outside MANUAL_JOB_FEED_TRIGGER_SOURCES on purpose, so a preview run
     // never locks the button for a real account.
@@ -336,6 +338,7 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
       employmentType: 'full_time',
       salaryText: '$165,000 - $190,000',
       description: 'Build the roadmap for workflow automation, partner with engineering on agent tooling, and shape how customers discover high-value automation use cases.\n\nResponsibilities:\n• Own roadmap prioritization across search, ranking, and personalization\n• Work closely with design and engineering to validate product bets\n• Translate market feedback into practical release plans',
+      descriptionComplete: true,
       highlights: [],
       applyUrl: 'https://example.com/jobs/preview-job-1',
       sourceUrl: 'https://example.com/jobs/preview-job-1',
@@ -371,6 +374,7 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
       employmentType: 'full_time',
       salaryText: '$150,000 - $175,000',
       description: 'Drive acquisition and activation experiments for a product-led platform, working across lifecycle, product analytics, and experimentation.',
+      descriptionComplete: true,
       highlights: [
         {
           title: 'Qualifications',
@@ -423,6 +427,7 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
       employmentType: 'full_time',
       salaryText: '$140,000 - $160,000',
       description: 'Own internal platform investments that improve developer velocity, reliability, and experimentation across product teams.',
+      descriptionComplete: true,
       highlights: [],
       applyUrl: 'https://example.com/jobs/preview-job-3',
       sourceUrl: 'https://example.com/jobs/preview-job-3',
@@ -458,6 +463,7 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
       employmentType: 'full_time',
       salaryText: '$175,000 - $205,000',
       description: 'Lead partner ecosystem product strategy and define the platform roadmap for integrations, developer tooling, and marketplace growth.',
+      descriptionComplete: true,
       highlights: [],
       applyUrl: 'https://example.com/jobs/preview-job-4',
       sourceUrl: 'https://example.com/jobs/preview-job-4',
@@ -493,6 +499,7 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
       employmentType: 'full_time',
       salaryText: '$160,000 - $185,000',
       description: 'Improve product discovery and ranking quality for a high-volume commerce platform with a mix of marketplace and first-party inventory.',
+      descriptionComplete: true,
       highlights: [],
       applyUrl: 'https://example.com/jobs/preview-job-5',
       sourceUrl: 'https://example.com/jobs/preview-job-5',
@@ -527,6 +534,7 @@ export function buildJobFeedPreviewJobs(): JobFeedFeedItem[] {
       employmentType: 'full_time',
       salaryText: '$185,000 - $220,000',
       description: 'Lead a team building internal and customer-facing automation workflows, with ownership across prioritization, delivery, and adoption.',
+      descriptionComplete: true,
       highlights: [],
       applyUrl: 'https://example.com/jobs/preview-job-6',
       sourceUrl: 'https://example.com/jobs/preview-job-6',

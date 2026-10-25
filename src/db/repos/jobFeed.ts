@@ -24,6 +24,7 @@ import type {
   JobFeedSettings,
   Json,
 } from '@/db/types';
+import { RevisionConflict } from '@/lib/services/errors';
 
 export async function getSettings(userId: string): Promise<JobFeedSettings | null> {
   const db = await getDb();
@@ -31,27 +32,66 @@ export async function getSettings(userId: string): Promise<JobFeedSettings | nul
   return (rows[0] as JobFeedSettings | undefined) ?? null;
 }
 
-export async function upsertSettings(userId: string, values: Record<string, unknown> & { user_id: string }): Promise<JobFeedSettings> {
+/**
+ * Write the settings row. Every write moves `revision` up by one. With `expectedRevision`, the write only
+ * happens while the row is still at that revision (a first insert counts as revision 0); otherwise it
+ * throws a RevisionConflict carrying the current revision and nothing changes.
+ */
+export async function upsertSettings(
+  userId: string,
+  values: Record<string, unknown> & { user_id: string },
+  /**
+   * `restoreRevision`: put the row back at this revision instead of moving it on. Only for undoing a save
+   * that wrote `expectedRevision` with the whole row as it was at `restoreRevision`, so a reader still at
+   * that revision holds exactly what the row holds again.
+   */
+  options: { expectedRevision?: number; restoreRevision?: number } = {},
+): Promise<JobFeedSettings> {
   const db = await getDb();
   const now = nowIso();
   const existing = await getSettings(userId);
   const safe = stripIdentity(values);
+  delete safe.revision;
+  const { expectedRevision, restoreRevision } = options;
   if (existing) {
-    await db
+    const conditions = [eq(jobFeedSettings.user_id, userId)];
+    if (expectedRevision !== undefined) conditions.push(eq(jobFeedSettings.revision, expectedRevision));
+    const updated = await db
       .update(jobFeedSettings)
-      .set({ ...safe, updated_at: now })
-      .where(eq(jobFeedSettings.user_id, userId));
+      .set({ ...safe, revision: restoreRevision ?? sql`${jobFeedSettings.revision} + 1`, updated_at: now } as never)
+      .where(and(...conditions))
+      .returning({ revision: jobFeedSettings.revision });
+    if (updated.length === 0) {
+      const current = await getSettings(userId);
+      throw new RevisionConflict(current?.revision ?? null);
+    }
   } else {
-    await db.insert(jobFeedSettings).values({
-      ...safe,
-      user_id: userId,
-      created_at: now,
-      updated_at: now,
-    });
+    // A first row starts at revision 1, so 0 only ever means "no settings yet".
+    if (expectedRevision !== undefined && expectedRevision !== 0) throw new RevisionConflict(null);
+    try {
+      await db.insert(jobFeedSettings).values({
+        ...safe,
+        user_id: userId,
+        revision: 1,
+        created_at: now,
+        updated_at: now,
+      });
+    } catch (error) {
+      // Another first save inserted the row since this one read "none": the same answer as a stale revision.
+      const raced = await getSettings(userId);
+      if (raced) throw new RevisionConflict(raced.revision);
+      throw error;
+    }
   }
   const row = await getSettings(userId);
   if (!row) throw new Error('Failed to persist job feed settings');
   return row;
+}
+
+/** Remove the settings row a failed first save wrote, only while it is still at that revision. */
+export async function deleteSettings(userId: string, revision: number): Promise<void> {
+  const db = await getDb();
+  await db.delete(jobFeedSettings).where(and(eq(jobFeedSettings.user_id, userId), eq(jobFeedSettings.revision, revision)));
 }
 
 /**
@@ -69,8 +109,9 @@ export async function withdrawConsent(userId: string): Promise<JobFeedSettings |
     .set({
       consent_accepted_at: null,
       enabled: false,
+      revision: sql`${jobFeedSettings.revision} + 1`,
       updated_at: nowIso(),
-    })
+    } as never)
     .where(eq(jobFeedSettings.user_id, userId));
 
   return getSettings(userId);
@@ -87,8 +128,9 @@ export async function grantConsent(userId: string): Promise<JobFeedSettings> {
     .set({
       consent_accepted_at: new Date().toISOString(),
       enabled: true,
+      revision: sql`${jobFeedSettings.revision} + 1`,
       updated_at: nowIso(),
-    })
+    } as never)
     .where(eq(jobFeedSettings.user_id, userId));
   const row = await getSettings(userId);
   if (!row) throw new Error('Failed to persist job feed consent');
@@ -116,14 +158,38 @@ export async function getRun(userId: string, runId: string): Promise<JobFeedRun 
   return (rows[0] as JobFeedRun | undefined) ?? null;
 }
 
+/** The latest run of a local day: the highest slot. */
 export async function getRunByDate(userId: string, localDate: string): Promise<JobFeedRun | null> {
   const db = await getDb();
   const rows = await db
     .select()
     .from(jobFeedRuns)
     .where(and(eq(jobFeedRuns.user_id, userId), eq(jobFeedRuns.local_date, localDate)))
+    .orderBy(desc(jobFeedRuns.run_slot))
     .limit(1);
   return (rows[0] as JobFeedRun | undefined) ?? null;
+}
+
+/** Runs that completed at or after `sinceIso`, any local day, oldest first. */
+export async function listRunsCompletedSince(userId: string, sinceIso: string): Promise<JobFeedRun[]> {
+  const db = await getDb();
+  const rows = await db
+    .select()
+    .from(jobFeedRuns)
+    .where(and(eq(jobFeedRuns.user_id, userId), eq(jobFeedRuns.status, 'completed'), gte(jobFeedRuns.completed_at, sinceIso)))
+    .orderBy(jobFeedRuns.completed_at);
+  return rows as JobFeedRun[];
+}
+
+/** Every run of a local day, latest slot first. */
+export async function listRunsByDate(userId: string, localDate: string): Promise<JobFeedRun[]> {
+  const db = await getDb();
+  const rows = await db
+    .select()
+    .from(jobFeedRuns)
+    .where(and(eq(jobFeedRuns.user_id, userId), eq(jobFeedRuns.local_date, localDate)))
+    .orderBy(desc(jobFeedRuns.run_slot));
+  return rows as JobFeedRun[];
 }
 
 export async function getLatestCompletedRun(userId: string): Promise<JobFeedRun | null> {
@@ -156,6 +222,7 @@ export async function getLatestManualCompletedRun(userId: string): Promise<JobFe
 
 export async function insertRun(userId: string, insert: {
   local_date: string;
+  run_slot?: number;
   local_timezone: string;
   trigger_source: string;
   idempotency_key: string;
@@ -215,11 +282,13 @@ export async function requeueRun(
   userId: string,
   runId: string,
   expected: { status: 'failed' | 'running' | 'completed'; updatedAt: string },
+  /** New metadata for the run, written in the same guarded update. */
+  metadata?: JobFeedRun['metadata'],
 ): Promise<JobFeedRun | null> {
   const db = await getDb();
   const rows = await db
     .update(jobFeedRuns)
-    .set({ status: 'queued', error_message: null, completed_at: null, updated_at: nowIso() })
+    .set({ status: 'queued', error_message: null, completed_at: null, updated_at: nowIso(), ...(metadata !== undefined ? { metadata } : {}) } as never)
     .where(and(
       eq(jobFeedRuns.id, runId),
       eq(jobFeedRuns.user_id, userId),

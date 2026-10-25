@@ -38,6 +38,7 @@ import type {
   UpdateTables,
 } from '@/db/types';
 import { getRun, updateRun } from '@/db/repos/jobFeed';
+import { isDescriptionComplete } from '@/lib/job-feed/posting-page';
 
 interface ObservedNormalizedJob {
   draft: NormalizedSerpApiJob;
@@ -209,6 +210,11 @@ export function buildJobFeedSearchPlanFromStrategy(
   strategy: SearchStrategy,
   settings: JobFeedSettings,
   maxQueries: number = JOB_FEED_MAX_DAILY_QUERIES,
+  /**
+   * Where in the strategy this run starts: a later run of the day takes the next slice, wrapping to the
+   * start, so it searches other queries (or, with a short list, the same ones for what was posted since).
+   */
+  queryOffset = 0,
 ): JobFeedSearchPlanItem[] {
   if (maxQueries <= 0 || strategy.queries.length === 0) return [];
 
@@ -218,10 +224,12 @@ export function buildJobFeedSearchPlanFromStrategy(
     [...new Set(strategy.queries.map((q) => q.targetCountry.toLowerCase()))],
   );
 
-  // Take the first maxQueries entries in strategy order. The strategy was
-  // generated with priority ordering as a hard rule, so a clean prefix
-  // gives us the model's "best within budget" pick.
-  const selected = strategy.queries.slice(0, maxQueries);
+  // Take maxQueries entries in strategy order from the run's offset. The strategy was
+  // generated with priority ordering as a hard rule, so the first run of the day gets
+  // the model's "best within budget" pick and later runs work down the list.
+  const count = Math.min(maxQueries, strategy.queries.length);
+  const start = queryOffset % strategy.queries.length;
+  const selected = Array.from({ length: count }, (_, index) => strategy.queries[(start + index) % strategy.queries.length]);
 
   const plan: JobFeedSearchPlanItem[] = selected.map((entry, index) => {
     const country = entry.targetCountry.toLowerCase();
@@ -370,10 +378,12 @@ export async function ingestJobFeedRunJobs(params: {
    * `target_roles × target_countries` planner.
    */
   strategy?: SearchStrategy | null;
+  /** Where in the strategy this run's searches start (a later run of the day). */
+  queryOffset?: number;
 }): Promise<JobFeedIngestionResult> {
   const {
     runId, userId, settings, maxQueries, maxMainQueries,
-    maxRawJobs = JOB_FEED_MAX_RAW_JOBS_PER_RUN, strategy = null,
+    maxRawJobs = JOB_FEED_MAX_RAW_JOBS_PER_RUN, strategy = null, queryOffset = 0,
   } = params;
   const planQueryCap = maxMainQueries ?? maxQueries;
   // Leftover argument: helpers used to take a Supabase admin client. Writes
@@ -381,7 +391,7 @@ export async function ingestJobFeedRunJobs(params: {
   const admin = null;
 
   const searchPlan = strategy
-    ? buildJobFeedSearchPlanFromStrategy(strategy, settings, planQueryCap)
+    ? buildJobFeedSearchPlanFromStrategy(strategy, settings, planQueryCap, queryOffset)
     : buildJobFeedSearchPlan(settings, planQueryCap);
 
   // Apply the cached "Past week" date_posted filter to every plan item in
@@ -922,6 +932,8 @@ function buildCanonicalJobInsert(
     salary_max: aggregated.draft.salary_max,
     salary_currency: aggregated.draft.salary_currency,
     description: aggregated.draft.description,
+    description_source: 'serp',
+    description_complete: isDescriptionComplete(aggregated.draft.description),
     apply_url: aggregated.draft.apply_url,
     source_url: aggregated.draft.source_url,
     posted_at_text: aggregated.draft.posted_at_text,
@@ -955,7 +967,13 @@ function buildCanonicalJobUpdate(
     salary_min: pickNumber(existing.salary_min, draft.salary_min),
     salary_max: pickNumber(existing.salary_max, draft.salary_max),
     salary_currency: draft.salary_currency ?? existing.salary_currency,
-    description: pickLongerText(existing.description, draft.description),
+    // A text read from the ad's own page is the ad. A later Google copy of it is never better.
+    ...(existing.description_source === 'employer_page'
+      ? {}
+      : (() => {
+          const description = pickLongerText(existing.description, draft.description);
+          return { description, description_complete: isDescriptionComplete(description) };
+        })()),
     apply_url: draft.apply_url ?? existing.apply_url,
     source_url: draft.source_url ?? existing.source_url,
     posted_at_text: pickFreshnessText(
