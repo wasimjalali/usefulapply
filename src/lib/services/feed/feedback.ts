@@ -11,6 +11,7 @@ import { captureJobFeedActionRejected, captureJobFeedEvent } from '@/lib/job-fee
 import { canAccessJobFeed, canViewJobFeed } from '@/lib/job-feed/helpers';
 import {
   authorizeJobFeedJobActionAdmin,
+  getJobFeedFeedbackAdmin,
   recordJobFeedFeedbackAdmin,
   toJobFeedFeedbackState,
 } from '@/lib/job-feed/server';
@@ -119,7 +120,7 @@ export async function recordFeedFeedback(params: {
         status: 404,
         subscriptionTier,
       });
-      throw new FeedError(404, 'Job Feed item not found.', 'not_found');
+      throw new FeedError(404, 'That job is not in this feed. Jobs leave it 7 days after the run that found them.', 'not_found');
     }
     const { job, rankedItem } = authorizedItem;
     const validatedRunId = rankedItem.run_id;
@@ -162,8 +163,27 @@ export async function recordFeedFeedback(params: {
           subscription_tier: subscriptionTier,
         },
       });
-      throw new FeedError(409, 'This job feed item can no longer be changed.', 'terminal_state');
+      throw await terminalStateError(userId, jobId);
     }
     throw error;
   }
+}
+
+/**
+ * Why a job's feedback can no longer change, from its feedback row: the kit was made (an application),
+ * it was dismissed, or it was rated not relevant. Each of those ends the job in the feed.
+ */
+async function terminalStateError(userId: string, jobId: string): Promise<FeedError> {
+  const feedback = await getJobFeedFeedbackAdmin(userId, jobId);
+  const metadata = (feedback?.metadata ?? null) as Record<string, unknown> | null;
+  if (feedback?.applied_at || feedback?.generation_status === 'succeeded') {
+    return new FeedError(409, 'This job already has an application kit, so it left the feed. It is in the tracker.', 'already_applied');
+  }
+  if (feedback?.dismissed_at) {
+    return new FeedError(409, 'This job was dismissed, so it left the feed for good.', 'dismissed');
+  }
+  if (metadata && typeof metadata === 'object' && metadata.match_rating === 'not_relevant') {
+    return new FeedError(409, 'This job was rated not relevant, so it left the feed for good.', 'rated_not_relevant');
+  }
+  return new FeedError(409, 'This job can no longer be changed.', 'terminal_state');
 }

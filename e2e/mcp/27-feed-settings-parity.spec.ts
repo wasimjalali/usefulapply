@@ -1,8 +1,9 @@
 import type { BrowserContext, Page } from '@playwright/test';
 import { expect, test } from '../lib/worker-logs';
-import { McpSession, newAgent } from '../lib/mcp-client';
+import { McpSession, newAgent, uuid } from '../lib/mcp-client';
 import { setPlan } from '../lib/mcp-db';
-import { seedCareerProfile, seedFeedInbox, seedFeedSettings } from '../lib/mcp-feed-seed';
+import { seedCareerProfile, seedFeedInbox, seedFeedSettings, type SeededFeedJob } from '../lib/mcp-feed-seed';
+import { openLocalD1 } from '../lib/sqlite';
 import { PRIMARY_CV } from '../lib/model-script';
 import type { TestUser } from '../lib/user';
 
@@ -33,6 +34,7 @@ test.describe.serial('feed settings: one revision for the web editor and the MCP
   let agent: McpSession;
   let user: TestUser;
   let context: BrowserContext;
+  let jobs: SeededFeedJob[];
 
   test.beforeAll(async ({ browser, request }) => {
     const created = await newAgent(browser, request, 'feed-parity');
@@ -42,7 +44,11 @@ test.describe.serial('feed settings: one revision for the web editor and the MCP
     await agent.ok('save_cv', { target: 'primary', text: PRIMARY_CV });
     setPlan(user.id, 'max');
     seedFeedSettings(user.id);
-    seedFeedInbox(user.id, [{ title: 'Financial Controller', company: 'Fabrikam', fitLabel: 'strong' }]);
+    jobs = seedFeedInbox(user.id, [
+      { title: 'Financial Controller', company: 'Fabrikam', fitLabel: 'strong' },
+      { title: 'FP&A Manager', company: 'Contoso', fitLabel: 'good' },
+      { title: 'Planning Analyst', company: 'Northwind Foods', fitLabel: 'good' },
+    ]);
   });
 
   test.afterAll(async () => {
@@ -243,6 +249,28 @@ test.describe.serial('feed settings: one revision for the web editor and the MCP
     expect(saved.droppedRoles).toEqual(roles.slice(24));
     expect(saved.warning).toContain('6 of the roles sent did not fit');
     expect(saved.warning).toContain('Role 25');
+  });
+
+  test('give_job_feedback says why a job cannot change: a kit made, dismissed, rated not relevant, or not in the feed', async () => {
+    // A kit made for the first job, the way the feed's apply leaves the row.
+    const db = openLocalD1();
+    try {
+      const now = new Date().toISOString();
+      db.prepare(
+        "INSERT INTO job_feed_feedback (id, user_id, canonical_job_id, apply_started_at, applied_at, generation_status, metadata, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'succeeded', '{}', ?, ?)",
+      ).run(uuid(), user.id, jobs[0].id, now, now, now, now);
+    } finally {
+      db.close();
+    }
+    expect(await agent.fails('give_job_feedback', { jobId: jobs[0].id, action: 'save' })).toBe('This job already has an application kit, so it left the feed. It is in the tracker.');
+
+    await agent.ok('give_job_feedback', { jobId: jobs[1].id, action: 'dismiss' });
+    expect(await agent.fails('give_job_feedback', { jobId: jobs[1].id, action: 'save' })).toBe('This job was dismissed, so it left the feed for good.');
+
+    await agent.ok('give_job_feedback', { jobId: jobs[2].id, action: 'rate_not_relevant' });
+    expect(await agent.fails('give_job_feedback', { jobId: jobs[2].id, action: 'rate_helpful' })).toBe('This job was rated not relevant, so it left the feed for good.');
+
+    expect(await agent.fails('give_job_feedback', { jobId: uuid(), action: 'save' })).toBe('That job is not in this feed. Jobs leave it 7 days after the run that found them.');
   });
 
   test('an agent sending an old revision is refused and nothing changes', async () => {
