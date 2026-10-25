@@ -13,11 +13,22 @@ const CONCURRENCY = 6;
 const MAX_JOBS_PER_RUN = 40;
 /** The whole pass never holds a run longer than this (every fetch is cut to it); jobs not reached keep their Google copy. */
 const PASS_DEADLINE_MS = 45_000;
+/** A page that had no readable ad is tried again only after this long. */
+const RETRY_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
+
+function identifiers(job: JobFeedCanonicalJob): Record<string, unknown> {
+  const value = job.source_identifiers;
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+/** When the ad's own page was last tried without a readable ad, if it was. */
+function checkedRecently(job: JobFeedCanonicalJob, now: number): boolean {
+  const checkedAt = identifiers(job).posting_page_checked_at;
+  return typeof checkedAt === 'string' && now - Date.parse(checkedAt) < RETRY_AFTER_MS;
+}
 
 function applyOptionLinks(job: JobFeedCanonicalJob): string[] {
-  const identifiers = job.source_identifiers;
-  if (!identifiers || typeof identifiers !== 'object' || Array.isArray(identifiers)) return [];
-  const options = (identifiers as Record<string, unknown>).apply_options;
+  const options = identifiers(job).apply_options;
   if (!Array.isArray(options)) return [];
   return options
     .map((option) => (option && typeof option === 'object' ? (option as Record<string, unknown>).link : null))
@@ -44,7 +55,7 @@ export async function enrichJobDescriptions(params: {
   const result = [...params.jobs];
   const targets = result
     .map((job, index) => ({ job, index }))
-    .filter(({ job }) => job.description_source !== 'employer_page' && needsPostingPage(job.description))
+    .filter(({ job }) => job.description_source !== 'employer_page' && needsPostingPage(job.description) && !checkedRecently(job, Date.now()))
     .slice(0, MAX_JOBS_PER_RUN);
 
   let enriched = 0;
@@ -56,7 +67,15 @@ export async function enrichJobDescriptions(params: {
       const urls = postingUrlCandidates([...applyOptionLinks(job), job.apply_url, job.source_url]);
       if (urls.length === 0) continue;
       const posting = await readFullPosting({ urls, title: job.title, company: job.company, current: job.description, fetchImpl: params.fetchImpl, deadline });
-      if (!posting) continue;
+      if (!posting) {
+        // Remembered, so the same dead or ad-less page is not fetched again on every run. A fetch the pass
+        // deadline cut short says nothing about the page, so it is not remembered.
+        if (Date.now() >= deadline) continue;
+        result[index] = await params.updateJob(job.id, {
+          source_identifiers: { ...identifiers(job), posting_page_checked_at: new Date().toISOString() } as JobFeedCanonicalJob['source_identifiers'],
+        });
+        continue;
+      }
       result[index] = await params.updateJob(job.id, {
         description: posting.text,
         description_source: 'employer_page',

@@ -63,36 +63,30 @@ export async function upsertSettings(
   } else {
     // A first row starts at revision 1, so 0 only ever means "no settings yet".
     if (expectedRevision !== undefined && expectedRevision !== 0) throw new RevisionConflict(null);
-    await db.insert(jobFeedSettings).values({
-      ...safe,
-      user_id: userId,
-      revision: 1,
-      created_at: now,
-      updated_at: now,
-    });
+    try {
+      await db.insert(jobFeedSettings).values({
+        ...safe,
+        user_id: userId,
+        revision: 1,
+        created_at: now,
+        updated_at: now,
+      });
+    } catch (error) {
+      // Another first save inserted the row since this one read "none": the same answer as a stale revision.
+      const raced = await getSettings(userId);
+      if (raced) throw new RevisionConflict(raced.revision);
+      throw error;
+    }
   }
   const row = await getSettings(userId);
   if (!row) throw new Error('Failed to persist job feed settings');
   return row;
 }
 
-/**
- * Move the revision on from `expected` and return the new one, writing nothing else: a save claims the
- * revision before a write of its own (the confirmed search list), so a save that lost the race stops there.
- * Throws a RevisionConflict carrying the current revision when the row has moved on.
- */
-export async function reserveSettingsRevision(userId: string, expected: number): Promise<number> {
+/** Remove the settings row a failed first save wrote, only while it is still at that revision. */
+export async function deleteSettings(userId: string, revision: number): Promise<void> {
   const db = await getDb();
-  const updated = await db
-    .update(jobFeedSettings)
-    .set({ revision: sql`${jobFeedSettings.revision} + 1`, updated_at: nowIso() } as never)
-    .where(and(eq(jobFeedSettings.user_id, userId), eq(jobFeedSettings.revision, expected)))
-    .returning({ revision: jobFeedSettings.revision });
-  if (updated.length === 0) {
-    const current = await getSettings(userId);
-    throw new RevisionConflict(current?.revision ?? null);
-  }
-  return updated[0].revision;
+  await db.delete(jobFeedSettings).where(and(eq(jobFeedSettings.user_id, userId), eq(jobFeedSettings.revision, revision)));
 }
 
 /**
@@ -169,6 +163,17 @@ export async function getRunByDate(userId: string, localDate: string): Promise<J
     .orderBy(desc(jobFeedRuns.run_slot))
     .limit(1);
   return (rows[0] as JobFeedRun | undefined) ?? null;
+}
+
+/** Runs that completed at or after `sinceIso`, any local day, oldest first. */
+export async function listRunsCompletedSince(userId: string, sinceIso: string): Promise<JobFeedRun[]> {
+  const db = await getDb();
+  const rows = await db
+    .select()
+    .from(jobFeedRuns)
+    .where(and(eq(jobFeedRuns.user_id, userId), eq(jobFeedRuns.status, 'completed'), gte(jobFeedRuns.completed_at, sinceIso)))
+    .orderBy(jobFeedRuns.completed_at);
+  return rows as JobFeedRun[];
 }
 
 /** Every run of a local day, latest slot first. */

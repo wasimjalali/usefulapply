@@ -8,7 +8,7 @@
  */
 
 import { getProfile } from '@/db/repos/profiles';
-import { getSettings, reserveSettingsRevision, upsertSettings, upsertJobPreferences, withdrawConsent } from '@/db/repos/jobFeed';
+import { deleteSettings, getSettings, upsertSettings, upsertJobPreferences, withdrawConsent } from '@/db/repos/jobFeed';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import {
   countriesImpliedByNewCities,
@@ -101,6 +101,24 @@ export async function saveFeedSettings(params: {
     expectedRevision,
     staleMessage: WEB_STALE_MESSAGE,
   });
+}
+
+/**
+ * Put the settings row back after the search list failed to save: the previous values, or no row for a first
+ * save. Conditional on the revision this save wrote, so a newer save meanwhile is left alone. A failed restore
+ * is logged loudly; the caller still reports the save as failed.
+ */
+async function restoreSettings(userId: string, previous: JobFeedSettings | null, writtenRevision: number): Promise<void> {
+  try {
+    if (previous) {
+      // upsertSettings drops the identity and the revision it is handed, and stamps updated_at itself.
+      await upsertSettings(userId, { ...previous }, { expectedRevision: writtenRevision });
+    } else {
+      await deleteSettings(userId, writtenRevision);
+    }
+  } catch (error) {
+    console.error('[job-feed/settings] could not restore settings after a failed search list save:', error instanceof Error ? error.message : error);
+  }
 }
 
 const WEB_STALE_MESSAGE = 'Your feed settings changed somewhere else. I loaded the latest. Check them and save again.';
@@ -259,28 +277,23 @@ async function persistFeedSettings(params: {
     excluded_terms: normalized.data.excluded_terms,
   };
 
-  // Persist the confirmed list before enabling the feed. If this fails we
-  // must not turn the feed on, or a later run would silently generate a
-  // new strategy over the user's picks. The list is a write of its own, so the
-  // revision is claimed first: a save that lost the race stops here, before it
-  // can replace the winner's searches.
-  let expectedRevision = existingSettings ? params.expectedRevision : 0;
+  // The settings row first, conditional on the revision the caller read: a save that lost a race stops here
+  // and writes nothing, its search list included. Then the confirmed list, the one other write. If that fails
+  // the row goes back to what it was, so the feed is never left on with settings its searches do not match.
+  let data;
+  try {
+    data = await upsertSettings(userId, nextSettings, { expectedRevision: existingSettings ? params.expectedRevision : 0 });
+  } catch (error) {
+    if (error instanceof RevisionConflict) throw staleSettings(params.staleMessage, error.currentRevision);
+    console.error('[job-feed/settings] PUT error:', error instanceof Error ? error.message : error);
+    throw new FeedError(500, 'Failed to save job feed settings.', 'save_failed');
+  }
+
   if (confirmed?.ok) {
-    if (existingSettings) {
-      try {
-        expectedRevision = await reserveSettingsRevision(userId, expectedRevision);
-      } catch (error) {
-        if (error instanceof RevisionConflict) throw staleSettings(params.staleMessage, error.currentRevision);
-        throw error;
-      }
-    }
     try {
       await persistUserConfirmedStrategyAdmin({
         userId,
-        settings: {
-          ...(existingSettings ?? {}),
-          ...nextSettings,
-        } as JobFeedSettings,
+        settings: data,
         strategy: buildUserConfirmedStrategy({
           queries: confirmed.queries,
           sourceProfileGeneratedAt: profileMirror ? undefined : existingSettings?.updated_at ?? new Date().toISOString(),
@@ -289,17 +302,9 @@ async function persistFeedSettings(params: {
       });
     } catch (error) {
       console.error('[job-feed/settings] confirmed strategy persist error:', error instanceof Error ? error.message : error);
+      await restoreSettings(userId, existingSettings, data.revision);
       throw new FeedError(500, 'Your searches did not save. Try again.', 'save_failed');
     }
-  }
-
-  let data;
-  try {
-    data = await upsertSettings(userId, nextSettings, { expectedRevision });
-  } catch (error) {
-    if (error instanceof RevisionConflict) throw staleSettings(params.staleMessage, error.currentRevision);
-    console.error('[job-feed/settings] PUT error:', error instanceof Error ? error.message : error);
-    throw new FeedError(500, 'Failed to save job feed settings.', 'save_failed');
   }
 
   // Sync preferences for cover letter context. Awaited because Vercel kills

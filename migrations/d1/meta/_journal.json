@@ -134,6 +134,13 @@
       "when": 1787238583125,
       "tag": "0019_reset_guessed_onsite",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1787238583126,
+      "tag": "0020_settings_revision_floor",
+      "breakpoints": true
     }
   ]
 }

@@ -13,6 +13,7 @@ import {
   getJobFeedTierLimits,
 } from '@/lib/job-feed/constants';
 import { toJobFeedInput } from '@/lib/job-feed/helpers';
+import { splitCompositeRole } from '@/lib/job-feed/cv-experience';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { getJobFeedFeedbackAdmin } from '@/lib/job-feed/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
@@ -355,13 +356,11 @@ const updateFeedSettings = defineTool({
       const { settings: before, searchLimit } = await loadFeedSettings(userId);
       const changed = changedFeedSettingFields(before, patch, searchLimit);
       if (before && changed.length === 0) {
-        const kept = new Set(before.target_roles.map((role) => role.toLowerCase()));
-        const droppedRoles = (patch.roles ?? []).filter((role) => !kept.has(role.toLowerCase()));
+        const droppedRoles = rolesNotKept(patch.roles ?? [], before.target_roles);
         return ok({ changed, revision: before.revision, settings: toSettingsView(before), searches: null, searchLimit: null, droppedRoles, warning: droppedWarning(droppedRoles, searchLimit) });
       }
       const saved = await updateFeedSettingsPartial({ userId, patch, clientRequestId: null, expectedRevision: args.revision });
-      const kept = new Set(saved.settings.target_roles.map((role) => role.toLowerCase()));
-      const droppedRoles = (patch.roles ?? []).filter((role) => !kept.has(role.toLowerCase()));
+      const droppedRoles = rolesNotKept(patch.roles ?? [], saved.settings.target_roles);
       return ok({
         changed,
         revision: saved.settings.revision,
@@ -374,6 +373,18 @@ const updateFeedSettings = defineTool({
     });
   },
 });
+
+/**
+ * The roles sent that none of the saved roles came from. A save splits a composite role ("AI Engineer | PM")
+ * into its parts, so a role counts as kept when any of its parts is saved.
+ */
+function rolesNotKept(sent: string[], saved: string[]): string[] {
+  const kept = new Set(saved.map((role) => role.trim().toLowerCase()));
+  return sent.filter((role) => {
+    const parts = splitCompositeRole(role);
+    return ![role, ...parts].some((part) => kept.has(part.trim().toLowerCase().slice(0, 80)));
+  });
+}
 
 /** Why roles were left out, in a sentence an agent can pass on. Null when none were. */
 function droppedWarning(droppedRoles: string[], searchLimit: number): string | null {

@@ -2037,7 +2037,7 @@ function extractRankedPreviewItems(metadata: Json): JobFeedRankedPreviewItem[] {
   return previewItems;
 }
 
-async function listJobFeedRankedItemsForRunAdmin(runId: string): Promise<SupabaseJobFeedRankedItem[]> {
+export async function listJobFeedRankedItemsForRunAdmin(runId: string): Promise<SupabaseJobFeedRankedItem[]> {
   return adminRepo.listRankedItemsByRunId(runId) as Promise<SupabaseJobFeedRankedItem[]>;
 }
 

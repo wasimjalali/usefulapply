@@ -1249,7 +1249,14 @@ function buildOpening(params: {
       const duplicates = diagnosticsBelongToFeed
         ? (overview?.latestRunDiagnostics?.duplicateCount ?? 0)
         : 0;
-      const ranToday = !canRunToday;
+      // A run finished today. On a plan with more runs a day the next one can still be open.
+      const latestRun = overview?.latestRun ?? null;
+      const ranToday = !canRunToday || Boolean(
+        latestRun
+        && latestRun.status === 'completed'
+        && latestRun.local_date === getLocalDateKey(new Date(), overview?.settings?.user_timezone || latestRun.local_timezone || 'UTC'),
+      );
+      const runsLeft = overview?.runsLeftToday ?? (canRunToday ? 1 : 0);
       const searchCount = plannedQueries === null ? null : Math.min(plannedQueries, queryBudget);
       const strongNames = strongTop.map((job) => escapeMarkdown(job.company)).join(' and ');
       const strongLine = strongTop.length > 0
@@ -1278,7 +1285,13 @@ function buildOpening(params: {
             searchCount === null
               ? 'I searched for you'
               : `I ran ${searchCount} ${plural(searchCount, 'search', 'searches')} for you`
-          } and found ${todayCount} ${plural(todayCount, 'new role', 'new roles')}.${strongLine}${dupLine} That's your run for today. The next one opens tomorrow.`
+          } and found ${todayCount} ${plural(todayCount, 'new role', 'new roles')}.${strongLine}${dupLine} ${
+            canRunToday
+              ? `I can search again today (${runsLeft} ${plural(runsLeft, 'run', 'runs')} left).`
+              : (overview?.runsPerDay ?? 1) > 1
+                ? "That's today's runs. The next one opens tomorrow."
+                : "That's your run for today. The next one opens tomorrow."
+          }`
         : `${plural(allJobs.length, 'This role is', 'These roles are')} from your last search.${strongLine} There is no automatic morning run. I can search again now.`;
 
       return [message(

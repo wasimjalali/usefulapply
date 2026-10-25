@@ -64,10 +64,20 @@ export function decodeHtmlEntities(value: string): string {
   return value.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, entity: string) => {
     if (entity[0] === '#') {
       const code = entity[1] === 'x' || entity[1] === 'X' ? parseInt(entity.slice(2), 16) : parseInt(entity.slice(1), 10);
-      return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : match;
+      // A lone surrogate (U+D800 to U+DFFF) is not a character: an API refuses text that carries one.
+      const valid = Number.isFinite(code) && code > 0 && code <= 0x10ffff && (code < 0xd800 || code > 0xdfff);
+      return valid ? String.fromCodePoint(code) : match;
     }
     return NAMED_ENTITIES[entity] ?? NAMED_ENTITIES[entity.toLowerCase()] ?? match;
   });
+}
+
+/**
+ * Lowercase A to Z only: every index stays the same as in the original, which toLowerCase does not promise
+ * ("İ" becomes two code units). Tag names are ASCII, which is all this is used to find.
+ */
+function asciiLower(value: string): string {
+  return value.replace(/[A-Z]/g, (character) => character.toLowerCase());
 }
 
 /** A heading line ends in a colon, so the web renderer and an agent both read it as one. */
@@ -98,10 +108,10 @@ const BLOCK_TAGS = new Set(['p', 'div', 'section', 'article', 'ul', 'ol', 'table
  */
 export function htmlToAdText(html: string): string {
   const source = html.length > MAX_HTML_CHARS ? html.slice(0, MAX_HTML_CHARS) : html;
-  const lower = source.toLowerCase();
+  const lower = asciiLower(source);
   const out: string[] = [];
   let heading: string[] | null = null;
-  let paragraph: { parts: string[]; boldDepth: number; sawBold: boolean; plainText: boolean } | null = null;
+  let paragraph: { parts: string[]; boldDepth: number; sawBold: boolean; plainText: boolean; bullet: boolean } | null = null;
 
   const write = (text: string) => {
     if (heading) heading.push(text);
@@ -120,8 +130,10 @@ export function htmlToAdText(html: string): string {
     if (!paragraph) return;
     const text = paragraph.parts.join('');
     const boldHeading = paragraph.sawBold && !paragraph.plainText && isHeadingLike(text);
+    const bullet = paragraph.bullet;
     paragraph = null;
-    out.push(boldHeading ? `\n\n${asHeading(text)}\n` : `\n\n${text}\n\n`);
+    if (bullet) out.push(`\n- ${text.trim()}`);
+    else out.push(boldHeading ? `\n\n${asHeading(text)}\n` : `\n\n${text}\n\n`);
   };
 
   let at = 0;
@@ -164,7 +176,12 @@ export function htmlToAdText(html: string): string {
     }
     if (name === 'p') {
       closeParagraph();
-      if (!closing) paragraph = { parts: [], boldDepth: 0, sawBold: false, plainText: false };
+      if (!closing) {
+        // <li><p>Item</p></li>, common on ATS pages: the paragraph is the item, so it keeps the bullet.
+        const bullet = !heading && out.length > 0 && out[out.length - 1] === '\n- ';
+        if (bullet) out.pop();
+        paragraph = { parts: [], boldDepth: 0, sawBold: false, plainText: false, bullet };
+      }
       continue;
     }
     if (name === 'strong' || name === 'b') {
@@ -236,7 +253,7 @@ function collectJobPostings(node: unknown, out: JobPostingLd[], depth = 0): void
 /** Every `JobPosting` in the page's `application/ld+json` blocks. A block that does not parse is skipped. */
 export function extractJobPostings(html: string): JobPostingLd[] {
   const postings: JobPostingLd[] = [];
-  const lower = html.toLowerCase();
+  const lower = asciiLower(html);
   let at = 0;
   // indexOf from each script's end: an unclosed script ends the read rather than being searched again.
   for (;;) {
@@ -287,6 +304,15 @@ function companyTokens(value: string): Set<string> {
   return new Set([...titleTokens(value)].filter((token) => !generic.has(token)));
 }
 
+const LEVEL_WORDS = ['senior', 'junior', 'intern', 'internship', 'lead', 'principal', 'staff', 'head', 'werkstudent', 'praktikant', 'praktikum', 'trainee', 'director'];
+
+/** The level words in two titles agree: "Senior Software Engineer" is not "Software Engineer Intern". */
+function sameLevelWords(ours: string, theirs: string): boolean {
+  const mine = titleTokens(ours);
+  const other = titleTokens(theirs);
+  return LEVEL_WORDS.every((word) => mine.has(word) === other.has(word));
+}
+
 /** A stated employer must share a word with ours; no stated employer is not a mismatch. */
 function companyFits(ours: string, theirs: string | null): boolean {
   if (!theirs) return true;
@@ -314,7 +340,8 @@ export function readPostingFromHtml(html: string, title: string, company: string
     .map((posting) => ({ posting, score: posting.title ? titleFit(title, posting.title) : postings.length === 1 ? 1 : 0 }))
     .sort((a, b) => b.score - a.score);
   const [best, next] = scored;
-  if (postings.length === 1 ? best.score < 0.5 : best.score < 0.6 || (next && next.score >= best.score)) return null;
+  if (postings.length === 1 ? best.score < 0.7 : best.score < 0.7 || (next && next.score >= best.score)) return null;
+  if (best.posting.title && !sameLevelWords(title, best.posting.title)) return null;
 
   // Some boards entity-encode the HTML inside the JSON string (&lt;p&gt;).
   const raw = /&lt;\/?[a-z]/i.test(best.posting.description) ? decodeHtmlEntities(best.posting.description) : best.posting.description;
@@ -341,7 +368,8 @@ export function isFetchablePostingUrl(value: string): boolean {
   }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') return false;
   if (url.username || url.password || url.port) return false;
-  const host = url.hostname.toLowerCase();
+  // "localhost." and "x.internal." are the same hosts as without the dot.
+  const host = url.hostname.toLowerCase().replace(/\.$/, '');
   if (!host.includes('.')) return false;
   if (/^[\d.]+$/.test(host) || host.startsWith('[') || host.includes(':')) return false;
   if (/(^|\.)(localhost|local|internal|intranet|lan|home|corp|test|example|invalid)$/.test(host)) return false;
@@ -370,6 +398,19 @@ async function readCapped(response: Response): Promise<string | null> {
   for (const chunk of chunks) {
     bytes.set(chunk, at);
     at += chunk.byteLength;
+  }
+  return decodeBody(bytes, response.headers.get('content-type'));
+}
+
+/** The body in the charset its Content-Type names (German boards still send windows-1252), UTF-8 otherwise. */
+function decodeBody(bytes: Uint8Array, contentType: string | null): string {
+  const charset = /charset=["']?([\w-]+)/i.exec(contentType ?? '')?.[1];
+  if (charset) {
+    try {
+      return new TextDecoder(charset).decode(bytes);
+    } catch {
+      // An unknown label (a typo on the server): UTF-8 below, which is what most pages are.
+    }
   }
   return new TextDecoder('utf-8').decode(bytes);
 }

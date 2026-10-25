@@ -682,6 +682,20 @@ async function main(): Promise<void> {
     return { winner: queries };
   });
 
+  await scenario('s4. a changed CV is always read again; a forced re-read of an unchanged CV waits until the profile is 5 minutes old', async () => {
+    const { generateCareerProfileForUser } = await import('../../src/lib/services/feed/career-profile');
+    const userId = await seedMaxUser('reread');
+    const read = (force: boolean) => generateCareerProfileForUser({ userId, force, clientRequestId: null, route: 'e2e' });
+    const first = await read(true);
+    assert.equal(first.regenerated, true, 'no profile yet: read');
+    assert.equal((await read(true)).regenerated, false, 'forced again at once: the stored profile');
+    assert.equal((await read(false)).regenerated, false, 'not forced, CV unchanged: the stored profile');
+    // The CV changes a minute later: read again at once, forced or not.
+    await run("UPDATE documents SET updated_at = ? WHERE user_id = ? AND type = 'primary_cv'", new Date(Date.now() + 60_000).toISOString(), userId);
+    assert.equal((await read(false)).regenerated, true, 'a newer CV is read without force, inside the 5 minutes');
+    return { firstAt: first.generatedAt };
+  });
+
   await scenario('d9. nothing left the machine except the stubbed SerpAPI calls and the stubbed employer pages', async () => {
     assert.deepEqual(strayRequests, []);
     return { serpCalls: serp.calls, pageRequests: pageRequests.length };

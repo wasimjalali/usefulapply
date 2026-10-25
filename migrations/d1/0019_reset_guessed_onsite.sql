@@ -6,6 +6,8 @@
 --   ad and stores it again.
 -- Date: 2026-10-26
 -- Rollback: none needed. The old values were a guess; a later ranking writes the mode it reads.
+-- Trade-off: a few of those rows came from a real "on-site" or "vor Ort" word. Ranked items from earlier runs have no
+--   reading of their own, so such a job can show to a remote-only user until it leaves the 7-day inbox, once.
 -- Blast radius: low. One column of job_feed_canonical_jobs for rows labelled 'onsite'; no row is added or removed.
 
 UPDATE `job_feed_canonical_jobs` SET `work_mode` = 'unknown' WHERE `work_mode` = 'onsite';

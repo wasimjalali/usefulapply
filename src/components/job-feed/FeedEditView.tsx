@@ -179,6 +179,13 @@ export function FeedEditView({
 
   const savePreferences = async () => {
     if (!draft || !settingsInput || !formValid || saveState === 'saving') return;
+    // The search list changed under unsaved edits (an agent saved one): saving these rows would put the old
+    // list back. Treat it as a stale save: take in the newer list and say so.
+    if (strategyVersion !== draftStrategyVersion) {
+      setStaleNotice('Your searches changed somewhere else. I loaded the latest. Check them and save again.');
+      setReloadDraft(true);
+      return;
+    }
     const checked = validateConfirmedQueries(draft.searchRows, searchListCap);
     if (!checked.ok) {
       setSaveState('error');

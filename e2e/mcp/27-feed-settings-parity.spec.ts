@@ -96,8 +96,7 @@ test.describe.serial('feed settings: a stale editor and seniority, one revision 
     await page.screenshot({ path: testInfo.outputPath('2-save-after-reload.png'), fullPage: true });
     const afterSave = await agent.ok<SettingsRead>('get_feed_settings');
     expect(afterSave.settings.salaryFloor).toBe(99000);
-    // The editor saves its search list too, and claims the revision before writing it: the revision moves by two.
-    expect(afterSave.revision).toBe(agentSave.revision + 2);
+    expect(afterSave.revision).toBe(agentSave.revision + 1);
     await page.close();
   });
 
@@ -338,7 +337,7 @@ test.describe.serial('feed settings: the career profile, dropped roles, feedback
     await agent.ok('give_job_feedback', { jobId: jobs[2].id, action: 'rate_not_relevant' });
     expect(await agent.fails('give_job_feedback', { jobId: jobs[2].id, action: 'rate_helpful' })).toBe('This job was rated not relevant, so it left the feed for good.');
 
-    expect(await agent.fails('give_job_feedback', { jobId: uuid(), action: 'save' })).toBe('That job is not in this feed. Jobs leave it 7 days after the run that found them.');
+    expect(await agent.fails('give_job_feedback', { jobId: uuid(), action: 'save' })).toBe('That job is not in this feed. It may be older than 7 days, or your feed settings leave it out.');
   });
 
   test('an agent sending an old revision is refused and nothing changes', async () => {

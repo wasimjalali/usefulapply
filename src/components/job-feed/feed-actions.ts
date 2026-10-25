@@ -88,13 +88,15 @@ export async function loadFeedOverview(options?: { quiet?: boolean }): Promise<F
     }
     const overview = payload as unknown as JobFeedOverviewResponse;
     const merged = mergeQuietSettings(overview, next);
+    // Settings saved elsewhere (an agent, another tab) can carry a new search list: load it first, so the
+    // editor never pairs the new settings with the old searches, even for a moment.
     const previousRevision = next.overview?.settings?.revision ?? null;
-    next.setOverview(merged);
-    next.setStatus('ready');
-    // Settings saved elsewhere (an agent, another tab) can carry a new search list: load it with them, so
-    // the editor never pairs the new settings with the old searches.
     const revision = merged.settings?.revision ?? null;
     if (previousRevision !== null && revision !== null && revision > previousRevision) await loadSearchStrategy();
+    const current = useFeedStore.getState();
+    if (current.fetchGeneration !== generation) return { ok: false, error: 'Feed was reset.' };
+    current.setOverview(merged);
+    current.setStatus('ready');
     return { ok: true, data: merged };
   } catch {
     const next = useFeedStore.getState();

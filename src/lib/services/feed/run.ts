@@ -10,7 +10,7 @@
 
 import * as jobFeedRepo from '@/db/repos/jobFeed';
 import { getProfile } from '@/db/repos/profiles';
-import type { JobFeedRun } from '@/db/types';
+import type { JobFeedRun, Json } from '@/db/types';
 import { canViewJobFeed, getLocalDateKey, getStartOfNextLocalDay, isJobFeedConfigured, isValidTimeZone } from '@/lib/job-feed/helpers';
 import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
 import type { ConfirmedSearchQuery } from '@/lib/job-feed/search-plan';
@@ -25,6 +25,8 @@ import { sendFeedRunMessage } from '../generation-runner';
 import { FeedError } from './errors';
 import { failUnclaimedRun } from './run-queue';
 import { getCalendarDayCooldown, nextRunAfter } from './cooldown';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface FeedRunResponse {
   success: true;
@@ -179,11 +181,27 @@ async function readRunGate(userId: string): Promise<RunGate> {
     return { timeZone, now, latestManualRun, cooldown, runsPerDay, runsLeftToday: cooldown.blocked ? 0 : 1 };
   }
 
-  const todaysRuns = await jobFeedRepo.listRunsByDate(userId, todayKey);
+  const [todaysRuns, lastDay] = await Promise.all([
+    jobFeedRepo.listRunsByDate(userId, todayKey),
+    jobFeedRepo.listRunsCompletedSince(userId, new Date(now.getTime() - DAY_MS).toISOString()),
+  ]);
   const completedRunIds = new Set(todaysRuns.filter((run) => run.status === 'completed').map((run) => run.id));
-  const runsLeftToday = Math.max(0, runsPerDay - completedRunIds.size);
   const latestToday = todaysRuns[0] ?? null;
   const open = { blocked: false, nextRunAt: null, remainingMs: 0, forceRerun: false };
+  // Also never more than the plan's runs in any 24 hours: a timezone change must not open another day's runs.
+  if (lastDay.length >= runsPerDay) {
+    const nextRunAt = new Date(Date.parse(lastDay[lastDay.length - runsPerDay].completed_at as string) + DAY_MS);
+    return {
+      timeZone,
+      now,
+      latestManualRun,
+      cooldown: { blocked: true, nextRunAt: nextRunAt.toISOString(), remainingMs: Math.max(0, nextRunAt.getTime() - now.getTime()), forceRerun: false },
+      runsPerDay,
+      runsLeftToday: 0,
+      completedRunIds,
+    };
+  }
+  const runsLeftToday = Math.max(0, Math.min(runsPerDay - completedRunIds.size, runsPerDay - lastDay.length));
   if (latestToday?.status !== 'completed') {
     // Nothing today yet, or today's latest run is queued, running or failed: the workflow takes it from there.
     return { timeZone, now, latestManualRun, cooldown: open, runsPerDay, runsLeftToday, completedRunIds };
@@ -291,8 +309,16 @@ export async function queueFeedRun(
     // since it ran, as after a timezone change). The synchronous path passes `force` to its workflow; the
     // queued path puts the completed row back on the queue, which is what a forced rerun of it amounts to.
     // The guard on status and updated_at lets one caller win; a loser reports the row as it is now.
+    // The rerun searches what this call asked for: an agent's own queries, or the saved list.
+    const customQueries = options.customQueries ?? null;
+    const metadata = run.metadata && typeof run.metadata === 'object' && !Array.isArray(run.metadata) ? run.metadata : {};
+    if (customQueries || 'custom_queries' in metadata) {
+      run = await jobFeedRepo.updateRun(userId, run.id, {
+        metadata: { ...metadata, custom_queries: customQueries ? (customQueries as unknown as Json) : null },
+      });
+    }
     const requeued = await jobFeedRepo.requeueRun(userId, run.id, {
-      status: run.status,
+      status: run.status as 'completed',
       updatedAt: run.updated_at,
     });
     if (requeued) {

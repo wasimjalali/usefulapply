@@ -213,16 +213,14 @@ export async function generateCareerProfileForUser(params: {
   const current = profileRow?.profile
     && isCurrentCareerProfile(profileRow.profile)
     && profileRow.version === CAREER_PROFILE_SCHEMA_VERSION;
-  // A forced re-read is a model call with no credit cost, so one profile is read again at most every few
-  // minutes whatever the caller sends.
+  // A changed CV is always read. Otherwise the stored profile stands, and a forced re-read (a model call with
+  // no credit cost) is allowed once the profile is a few minutes old.
+  const cvNewer = isCVNewerThanProfile({
+    profileSourceUpdatedAt: profileRow?.source_document_updated_at ?? null,
+    primaryDocUpdatedAt: primaryDoc.updated_at,
+  });
   const justRead = current && Date.now() - Date.parse(profileRow!.profile!.generatedAt) < FORCED_REREAD_MIN_AGE_MS;
-  if (
-    current
-    && (justRead || (!params.force && !isCVNewerThanProfile({
-      profileSourceUpdatedAt: profileRow!.source_document_updated_at,
-      primaryDocUpdatedAt: primaryDoc.updated_at,
-    })))
-  ) {
+  if (current && !cvNewer && (!params.force || justRead)) {
     return {
       profile: profileRow!.profile,
       cvNewerThanProfile: false,

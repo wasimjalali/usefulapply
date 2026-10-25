@@ -120,7 +120,7 @@ export async function recordFeedFeedback(params: {
         status: 404,
         subscriptionTier,
       });
-      throw new FeedError(404, 'That job is not in this feed. Jobs leave it 7 days after the run that found them.', 'not_found');
+      throw new FeedError(404, 'That job is not in this feed. It may be older than 7 days, or your feed settings leave it out.', 'not_found');
     }
     const { job, rankedItem } = authorizedItem;
     const validatedRunId = rankedItem.run_id;

@@ -8,6 +8,7 @@ import {
   getLatestManualCompletedJobFeedRunAdmin,
   listJobFeedInboxPageAdmin,
   resolveJobFeedRunForFeedAdmin,
+  listJobFeedRankedItemsForRunAdmin,
 } from '@/lib/job-feed/server';
 import { JOB_FEED_INBOX_PAGE_SIZE } from '@/lib/job-feed/constants';
 import { checkJobFeedIpGate, checkRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
@@ -131,10 +132,14 @@ export async function GET(request: NextRequest) {
       new Date(),
       settings?.user_timezone || latestRun?.local_timezone || 'UTC',
     );
-    // Every completed run of today: a plan with more runs a day has several.
-    const rankedToday = (await listRunsByDate(user.id, todayKey))
-      .filter((run) => run.status === 'completed')
-      .reduce((sum, run) => sum + (run.ranked_jobs_count ?? 0), 0);
+    // Distinct jobs ranked by today's completed runs (a plan with more runs a day has several, and they can
+    // find the same job). No completed run today falls back to the visible count below.
+    const todaysCompletedRuns = (await listRunsByDate(user.id, todayKey)).filter((run) => run.status === 'completed');
+    const rankedToday = todaysCompletedRuns.length > 0
+      ? new Set((await Promise.all(todaysCompletedRuns.map((run) => listJobFeedRankedItemsForRunAdmin(run.id))))
+        .flat()
+        .map((item) => item.canonical_job_id)).size
+      : null;
     const jobsMatchedCount = Math.max(
       0,
       typeof rankedToday === 'number' && Number.isFinite(rankedToday)
